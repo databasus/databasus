@@ -2,6 +2,8 @@ package mongodb
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -82,6 +84,16 @@ func (m *MongodbDatabase) TestConnection(
 	uri := m.buildConnectionURI(password)
 
 	clientOptions := options.Client().ApplyURI(uri)
+	
+	// Configure TLS if enabled and certificates are provided
+	if m.IsHttps && (m.TlsCaFile != "" || m.TlsCertFile != "" || m.TlsCertKeyFile != "") {
+		tlsConfig, err := m.buildTLSConfig(encryptor, databaseID)
+		if err != nil {
+			return fmt.Errorf("failed to configure TLS: %w", err)
+		}
+		clientOptions.SetTLSConfig(tlsConfig)
+	}
+	
 	client, err := mongo.Connect(ctx, clientOptions)
 	if err != nil {
 		return fmt.Errorf("failed to connect to MongoDB: %w", err)
@@ -208,6 +220,16 @@ func (m *MongodbDatabase) PopulateVersion(
 	uri := m.buildConnectionURI(password)
 
 	clientOptions := options.Client().ApplyURI(uri)
+	
+	// Configure TLS if enabled and certificates are provided
+	if m.IsHttps && (m.TlsCaFile != "" || m.TlsCertFile != "" || m.TlsCertKeyFile != "") {
+		tlsConfig, err := m.buildTLSConfig(encryptor, databaseID)
+		if err != nil {
+			return fmt.Errorf("failed to configure TLS: %w", err)
+		}
+		clientOptions.SetTLSConfig(tlsConfig)
+	}
+	
 	client, err := mongo.Connect(ctx, clientOptions)
 	if err != nil {
 		return fmt.Errorf("failed to connect to database: %w", err)
@@ -241,6 +263,16 @@ func (m *MongodbDatabase) IsUserReadOnly(
 	uri := m.buildConnectionURI(password)
 
 	clientOptions := options.Client().ApplyURI(uri)
+	
+	// Configure TLS if enabled and certificates are provided
+	if m.IsHttps && (m.TlsCaFile != "" || m.TlsCertFile != "" || m.TlsCertKeyFile != "") {
+		tlsConfig, err := m.buildTLSConfig(encryptor, databaseID)
+		if err != nil {
+			return false, nil, fmt.Errorf("failed to configure TLS: %w", err)
+		}
+		clientOptions.SetTLSConfig(tlsConfig)
+	}
+	
 	client, err := mongo.Connect(ctx, clientOptions)
 	if err != nil {
 		return false, nil, fmt.Errorf("failed to connect to database: %w", err)
@@ -428,6 +460,16 @@ func (m *MongodbDatabase) CreateReadOnlyUser(
 	uri := m.buildConnectionURI(password)
 
 	clientOptions := options.Client().ApplyURI(uri)
+	
+	// Configure TLS if enabled and certificates are provided
+	if m.IsHttps && (m.TlsCaFile != "" || m.TlsCertFile != "" || m.TlsCertKeyFile != "") {
+		tlsConfig, err := m.buildTLSConfig(encryptor, databaseID)
+		if err != nil {
+			return "", "", fmt.Errorf("failed to configure TLS: %w", err)
+		}
+		clientOptions.SetTLSConfig(tlsConfig)
+	}
+	
 	client, err := mongo.Connect(ctx, clientOptions)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to connect to database: %w", err)
@@ -478,6 +520,54 @@ func (m *MongodbDatabase) CreateReadOnlyUser(
 	}
 
 	return "", "", errors.New("failed to generate unique username after 3 attempts")
+}
+
+// buildTLSConfig creates a TLS configuration for the MongoDB Go driver
+func (m *MongodbDatabase) buildTLSConfig(
+	encryptor encryption.FieldEncryptor,
+	databaseID uuid.UUID,
+) (*tls.Config, error) {
+	tlsConfig := &tls.Config{
+		MinVersion: tls.VersionTLS12,
+	}
+
+	// Load CA certificate for server verification
+	if m.TlsCaFile != "" {
+		decryptedCA, err := encryptor.Decrypt(databaseID, m.TlsCaFile)
+		if err != nil {
+			return nil, fmt.Errorf("failed to decrypt CA certificate: %w", err)
+		}
+
+		caCertPool := x509.NewCertPool()
+		if !caCertPool.AppendCertsFromPEM([]byte(decryptedCA)) {
+			return nil, errors.New("failed to parse CA certificate")
+		}
+		tlsConfig.RootCAs = caCertPool
+	}
+
+	// Load client certificate and key for mutual TLS
+	if m.TlsCertFile != "" && m.TlsCertKeyFile != "" {
+		decryptedCert, err := encryptor.Decrypt(databaseID, m.TlsCertFile)
+		if err != nil {
+			return nil, fmt.Errorf("failed to decrypt client certificate: %w", err)
+		}
+
+		decryptedKey, err := encryptor.Decrypt(databaseID, m.TlsCertKeyFile)
+		if err != nil {
+			return nil, fmt.Errorf("failed to decrypt client key: %w", err)
+		}
+
+		// Parse the certificate and key
+		cert, err := tls.X509KeyPair([]byte(decryptedCert), []byte(decryptedKey))
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse client certificate and key: %w", err)
+		}
+		tlsConfig.Certificates = []tls.Certificate{cert}
+	} else if m.TlsCertFile != "" || m.TlsCertKeyFile != "" {
+		return nil, errors.New("both client certificate and key must be provided together")
+	}
+
+	return tlsConfig, nil
 }
 
 // buildConnectionURI builds a MongoDB connection URI
@@ -713,13 +803,13 @@ func decryptPasswordIfNeeded(
 
 // TlsCertPaths holds paths to temporary certificate files
 type TlsCertPaths struct {
-	CaFile      string
-	CertFile    string
-	CertKeyFile string
+	CaFile         string
+	CertKeyFile    string
 }
 
 // WriteTempCertificates writes decrypted certificates to temporary files
 // Returns paths to the temp files and cleanup function
+// MongoDB requires certificate and key in a single PEM file for --sslPEMKeyFile
 func (m *MongodbDatabase) WriteTempCertificates(
 	encryptor encryption.FieldEncryptor,
 	databaseID uuid.UUID,
@@ -733,6 +823,7 @@ func (m *MongodbDatabase) WriteTempCertificates(
 		}
 	}
 
+	// Write CA certificate file (for server verification)
 	if m.TlsCaFile != "" {
 		decrypted, err := encryptor.Decrypt(databaseID, m.TlsCaFile)
 		if err != nil {
@@ -746,84 +837,69 @@ func (m *MongodbDatabase) WriteTempCertificates(
 			return nil, cleanup, fmt.Errorf("failed to create temp CA file: %w", err)
 		}
 
-		defer func() {
-			_ = tmpFile.Close()
-		}()
-
 		if _, err := tmpFile.WriteString(decrypted); err != nil {
+			_ = tmpFile.Close()
 			cleanup()
 			return nil, cleanup, fmt.Errorf("failed to write CA certificate: %w", err)
 		}
 
 		if err := tmpFile.Chmod(0o600); err != nil {
+			_ = tmpFile.Close()
 			cleanup()
 			return nil, cleanup, fmt.Errorf("failed to set CA file permissions: %w", err)
 		}
 
+		_ = tmpFile.Close()
 		paths.CaFile = tmpFile.Name()
 		createdFiles = append(createdFiles, paths.CaFile)
 	}
 
-	if m.TlsCertFile != "" {
-		decrypted, err := encryptor.Decrypt(databaseID, m.TlsCertFile)
+	// Write combined certificate+key file (for client authentication)
+	// MongoDB's --sslPEMKeyFile expects both certificate and key in a single file
+	if m.TlsCertFile != "" && m.TlsCertKeyFile != "" {
+		decryptedCert, err := encryptor.Decrypt(databaseID, m.TlsCertFile)
 		if err != nil {
 			cleanup()
 			return nil, cleanup, fmt.Errorf("failed to decrypt client certificate: %w", err)
 		}
 
-		tmpFile, err := os.CreateTemp("", "mongodb-cert-*.pem")
-		if err != nil {
-			cleanup()
-			return nil, cleanup, fmt.Errorf("failed to create temp cert file: %w", err)
-		}
-
-		defer func() {
-			_ = tmpFile.Close()
-		}()
-
-		if _, err := tmpFile.WriteString(decrypted); err != nil {
-			cleanup()
-			return nil, cleanup, fmt.Errorf("failed to write client certificate: %w", err)
-		}
-
-		if err := tmpFile.Chmod(0o600); err != nil {
-			cleanup()
-			return nil, cleanup, fmt.Errorf("failed to set cert file permissions: %w", err)
-		}
-
-		paths.CertFile = tmpFile.Name()
-		createdFiles = append(createdFiles, paths.CertFile)
-	}
-
-	if m.TlsCertKeyFile != "" {
-		decrypted, err := encryptor.Decrypt(databaseID, m.TlsCertKeyFile)
+		decryptedKey, err := encryptor.Decrypt(databaseID, m.TlsCertKeyFile)
 		if err != nil {
 			cleanup()
 			return nil, cleanup, fmt.Errorf("failed to decrypt certificate key: %w", err)
 		}
 
-		tmpFile, err := os.CreateTemp("", "mongodb-key-*.pem")
+		tmpFile, err := os.CreateTemp("", "mongodb-client-*.pem")
 		if err != nil {
 			cleanup()
-			return nil, cleanup, fmt.Errorf("failed to create temp key file: %w", err)
+			return nil, cleanup, fmt.Errorf("failed to create temp client cert file: %w", err)
 		}
 
-		defer func() {
-			_ = tmpFile.Close()
-		}()
+		// Write certificate first, then key (standard PEM bundle format)
+		combined := decryptedCert
+		if !strings.HasSuffix(combined, "\n") {
+			combined += "\n"
+		}
+		combined += decryptedKey
 
-		if _, err := tmpFile.WriteString(decrypted); err != nil {
+		if _, err := tmpFile.WriteString(combined); err != nil {
+			_ = tmpFile.Close()
 			cleanup()
-			return nil, cleanup, fmt.Errorf("failed to write certificate key: %w", err)
+			return nil, cleanup, fmt.Errorf("failed to write client certificate+key: %w", err)
 		}
 
 		if err := tmpFile.Chmod(0o600); err != nil {
+			_ = tmpFile.Close()
 			cleanup()
-			return nil, cleanup, fmt.Errorf("failed to set key file permissions: %w", err)
+			return nil, cleanup, fmt.Errorf("failed to set client cert file permissions: %w", err)
 		}
 
+		_ = tmpFile.Close()
 		paths.CertKeyFile = tmpFile.Name()
 		createdFiles = append(createdFiles, paths.CertKeyFile)
+	} else if m.TlsCertFile != "" || m.TlsCertKeyFile != "" {
+		cleanup()
+		return nil, cleanup, errors.New("both client certificate and key must be provided together")
 	}
 
 	return &paths, cleanup, nil
