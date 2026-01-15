@@ -87,15 +87,18 @@ func getTestMongodbConfig() *mongodb.MongodbDatabase {
 	}
 
 	return &mongodb.MongodbDatabase{
-		Version:      tools.MongodbVersion7,
-		Host:         "localhost",
-		Port:         port,
-		Username:     "root",
-		Password:     "rootpassword",
-		Database:     "testdb",
-		AuthDatabase: "admin",
-		IsHttps:      false,
-		CpuCount:     1,
+		Version:        tools.MongodbVersion7,
+		Host:           "localhost",
+		Port:           port,
+		Username:       "root",
+		Password:       "rootpassword",
+		Database:       "testdb",
+		AuthDatabase:   "admin",
+		IsHttps:        false,
+		CpuCount:       1,
+		TlsCaFile:      "",
+		TlsCertFile:    "",
+		TlsCertKeyFile: "",
 	}
 }
 
@@ -1034,6 +1037,9 @@ func Test_DatabaseSensitiveDataLifecycle_AllTypes(t *testing.T) {
 			},
 			verifyHiddenData: func(t *testing.T, database *Database) {
 				assert.Equal(t, "", database.Mongodb.Password)
+				assert.Equal(t, "", database.Mongodb.TlsCaFile)
+				assert.Equal(t, "", database.Mongodb.TlsCertFile)
+				assert.Equal(t, "", database.Mongodb.TlsCertKeyFile)
 			},
 		},
 	}
