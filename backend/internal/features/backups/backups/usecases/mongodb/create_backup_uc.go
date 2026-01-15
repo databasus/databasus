@@ -72,7 +72,18 @@ func (uc *CreateMongodbBackupUsecase) Execute(
 		return nil, fmt.Errorf("failed to decrypt database password: %w", err)
 	}
 
-	args := uc.buildMongodumpArgs(mdb, decryptedPassword)
+	// Handle TLS certificates if provided
+	var certPaths *mongodbtypes.TlsCertPaths
+	var cleanupCerts func()
+	if mdb.IsHttps && (mdb.TlsCaFile != "" || mdb.TlsCertFile != "" || mdb.TlsCertKeyFile != "") {
+		certPaths, cleanupCerts, err = mdb.WriteTempCertificates(uc.fieldEncryptor, db.ID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to prepare TLS certificates: %w", err)
+		}
+		defer cleanupCerts()
+	}
+
+	args := uc.buildMongodumpArgs(mdb, decryptedPassword, certPaths)
 
 	return uc.streamToStorage(
 		ctx,
@@ -92,6 +103,7 @@ func (uc *CreateMongodbBackupUsecase) Execute(
 func (uc *CreateMongodbBackupUsecase) buildMongodumpArgs(
 	mdb *mongodbtypes.MongodbDatabase,
 	password string,
+	certPaths *mongodbtypes.TlsCertPaths,
 ) []string {
 	uri := mdb.BuildMongodumpURI(password)
 
@@ -100,6 +112,16 @@ func (uc *CreateMongodbBackupUsecase) buildMongodumpArgs(
 		"--db=" + mdb.Database,
 		"--archive",
 		"--gzip",
+	}
+
+	// Add TLS certificate arguments if provided
+	if certPaths != nil {
+		if certPaths.CaFile != "" {
+			args = append(args, "--tlsCAFile="+certPaths.CaFile)
+		}
+		if certPaths.CertFile != "" && certPaths.CertKeyFile != "" {
+			args = append(args, "--tlsCertificateKeyFile="+certPaths.CertFile)
+		}
 	}
 
 	// Use numParallelCollections based on CPU count
