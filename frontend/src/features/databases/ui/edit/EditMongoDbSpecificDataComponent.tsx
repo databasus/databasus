@@ -383,6 +383,82 @@ export const EditMongoDbSpecificDataComponent = ({
               placeholder="admin"
             />
           </div>
+
+          <div className="mb-3 mt-4 text-sm font-semibold text-gray-700 dark:text-gray-300">
+            TLS Certificates (Optional)
+          </div>
+
+          <div className="mb-1 flex w-full items-start">
+            <div className="min-w-[150px] pt-1">CA Certificate</div>
+            <div className="max-w-[400px] grow">
+              <Input.TextArea
+                value={editingDatabase.mongodb?.tlsCaFile}
+                onChange={(e) => {
+                  if (!editingDatabase.mongodb) return;
+
+                  setEditingDatabase({
+                    ...editingDatabase,
+                    mongodb: { ...editingDatabase.mongodb, tlsCaFile: e.target.value },
+                  });
+                  setIsConnectionTested(false);
+                }}
+                size="small"
+                rows={3}
+                placeholder="Paste PEM-encoded CA certificate"
+              />
+              <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                Required for server certificate verification
+              </div>
+            </div>
+          </div>
+
+          <div className="mb-1 flex w-full items-start">
+            <div className="min-w-[150px] pt-1">Client Certificate</div>
+            <div className="max-w-[400px] grow">
+              <Input.TextArea
+                value={editingDatabase.mongodb?.tlsCertFile}
+                onChange={(e) => {
+                  if (!editingDatabase.mongodb) return;
+
+                  setEditingDatabase({
+                    ...editingDatabase,
+                    mongodb: { ...editingDatabase.mongodb, tlsCertFile: e.target.value },
+                  });
+                  setIsConnectionTested(false);
+                }}
+                size="small"
+                rows={3}
+                placeholder="Paste PEM-encoded client certificate"
+              />
+              <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                Required for mutual TLS authentication
+              </div>
+            </div>
+          </div>
+
+          <div className="mb-1 flex w-full items-start">
+            <div className="min-w-[150px] pt-1">Client Key</div>
+            <div className="max-w-[400px] grow">
+              <Input.TextArea
+                value={editingDatabase.mongodb?.tlsCertKeyFile}
+                onChange={(e) => {
+                  if (!editingDatabase.mongodb) return;
+
+                  setEditingDatabase({
+                    ...editingDatabase,
+                    mongodb: { ...editingDatabase.mongodb, tlsCertKeyFile: e.target.value },
+                  });
+                  setIsConnectionTested(false);
+                }}
+                size="small"
+                rows={3}
+                placeholder="Paste PEM-encoded private key"
+              />
+              <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                Required for mutual TLS authentication
+              </div>
+            </div>
+          </div>
         </>
       )}
 
