@@ -2,7 +2,6 @@ package users_models
 
 import "github.com/google/uuid"
 
-
 type UsersSettings struct {
 	ID uuid.UUID `json:"id"                                gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
 	// means that any user can register via sign up form without invitation
