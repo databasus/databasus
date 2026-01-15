@@ -68,12 +68,23 @@ func (uc *RestoreMongodbBackupUsecase) Execute(
 		return fmt.Errorf("failed to decrypt password: %w", err)
 	}
 
+	// Handle TLS certificates if provided
+	var certPaths *mongodbtypes.TlsCertPaths
+	var cleanupCerts func()
+	if mdb.IsHttps && (mdb.TlsCaFile != "" || mdb.TlsCertFile != "" || mdb.TlsCertKeyFile != "") {
+		certPaths, cleanupCerts, err = mdb.WriteTempCertificates(fieldEncryptor, restoringToDB.ID)
+		if err != nil {
+			return fmt.Errorf("failed to prepare TLS certificates: %w", err)
+		}
+		defer cleanupCerts()
+	}
+
 	sourceDatabase := ""
 	if originalDB.Mongodb != nil {
 		sourceDatabase = originalDB.Mongodb.Database
 	}
 
-	args := uc.buildMongorestoreArgs(mdb, decryptedPassword, sourceDatabase)
+	args := uc.buildMongorestoreArgs(mdb, decryptedPassword, sourceDatabase, certPaths)
 
 	return uc.restoreFromStorage(
 		tools.GetMongodbExecutable(
@@ -91,6 +102,7 @@ func (uc *RestoreMongodbBackupUsecase) buildMongorestoreArgs(
 	mdb *mongodbtypes.MongodbDatabase,
 	password string,
 	sourceDatabase string,
+	certPaths *mongodbtypes.TlsCertPaths,
 ) []string {
 	uri := mdb.BuildMongodumpURI(password)
 
@@ -99,6 +111,16 @@ func (uc *RestoreMongodbBackupUsecase) buildMongorestoreArgs(
 		"--archive",
 		"--gzip",
 		"--drop",
+	}
+
+	// Add TLS certificate arguments if provided
+	if certPaths != nil {
+		if certPaths.CaFile != "" {
+			args = append(args, "--tlsCAFile="+certPaths.CaFile)
+		}
+		if certPaths.CertFile != "" && certPaths.CertKeyFile != "" {
+			args = append(args, "--tlsCertificateKeyFile="+certPaths.CertFile)
+		}
 	}
 
 	if sourceDatabase != "" && sourceDatabase != mdb.Database {
