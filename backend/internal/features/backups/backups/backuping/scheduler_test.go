@@ -1,9 +1,6 @@
 package backuping
 
 import (
-	"testing"
-	"time"
-
 	backups_core "databasus-backend/internal/features/backups/backups/core"
 	backups_config "databasus-backend/internal/features/backups/config"
 	"databasus-backend/internal/features/databases"
@@ -16,6 +13,8 @@ import (
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
 	cache_utils "databasus-backend/internal/util/cache"
 	"databasus-backend/internal/util/period"
+	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -142,7 +141,7 @@ func Test_RunPendingBackups_WhenLastBackupWasRecentlyCompleted_SkipsBackup(t *te
 
 		Status: backups_core.BackupStatusCompleted,
 
-		CreatedAt: time.Now().UTC().Add(-2 * time.Hour),
+		CreatedAt: time.Now().UTC().Add(-1 * time.Hour),
 	})
 
 	GetBackupsScheduler().runPendingBackups()
