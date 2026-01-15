@@ -3,6 +3,7 @@ package testing
 import (
 	"bytes"
 	"encoding/json"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -153,7 +154,9 @@ func MakeRequest(t *testing.T, router *gin.Engine, options RequestOptions) *Test
 	router.ServeHTTP(w, req)
 
 	if options.ExpectedStatus != 0 {
-		assert.Equal(t, options.ExpectedStatus, w.Code, "Unexpected status code")
+		if !assert.Equal(t, options.ExpectedStatus, w.Code, "Unexpected status code") {
+			log.Printf("Unexpected status code with response: %s", w.Body.String())
+		}
 	}
 
 	return &TestResponse{
