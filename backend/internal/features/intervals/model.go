@@ -13,11 +13,11 @@ type Interval struct {
 	ID       uuid.UUID    `json:"id"       gorm:"primaryKey;type:uuid;default:gen_random_uuid()"`
 	Interval IntervalType `json:"interval" gorm:"type:text;not null"`
 
-	TimeOfDay *string `json:"timeOfDay" gorm:"type:text;"`
+	TimeOfDay *string `json:"timeOfDay"                gorm:"type:text;"`
 	// only for WEEKLY
-	Weekday *int `json:"weekday,omitempty" gorm:"type:int"`
+	Weekday *int `json:"weekday,omitempty"        gorm:"type:int"`
 	// only for MONTHLY
-	DayOfMonth *int `json:"dayOfMonth,omitempty" gorm:"type:int"`
+	DayOfMonth *int `json:"dayOfMonth,omitempty"     gorm:"type:int"`
 	// only for CRON
 	CronExpression *string `json:"cronExpression,omitempty" gorm:"type:text"`
 }
