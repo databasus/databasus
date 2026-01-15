@@ -384,7 +384,7 @@ export const EditMongoDbSpecificDataComponent = ({
             />
           </div>
 
-          <div className="mb-3 mt-4 text-sm font-semibold text-gray-700 dark:text-gray-300">
+          <div className="mt-4 mb-3 text-sm font-semibold text-gray-700 dark:text-gray-300">
             TLS Certificates (Optional)
           </div>
 
