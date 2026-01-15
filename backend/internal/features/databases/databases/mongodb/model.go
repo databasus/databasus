@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/url"
+	"os"
 	"regexp"
 	"strings"
 	"time"
@@ -33,6 +34,10 @@ type MongodbDatabase struct {
 	AuthDatabase string `json:"authDatabase" gorm:"type:text;not null;default:'admin'"`
 	IsHttps      bool   `json:"isHttps"      gorm:"type:boolean;default:false"`
 	CpuCount     int    `json:"cpuCount"     gorm:"column:cpu_count;type:int;not null;default:1"`
+
+	TlsCaFile      string `json:"tlsCaFile"      gorm:"type:text;column:tls_ca_file"`
+	TlsCertFile    string `json:"tlsCertFile"    gorm:"type:text;column:tls_cert_file"`
+	TlsCertKeyFile string `json:"tlsCertKeyFile" gorm:"type:text;column:tls_cert_key_file"`
 }
 
 func (m *MongodbDatabase) TableName() string {
@@ -115,6 +120,9 @@ func (m *MongodbDatabase) HideSensitiveData() {
 		return
 	}
 	m.Password = ""
+	m.TlsCaFile = ""
+	m.TlsCertFile = ""
+	m.TlsCertKeyFile = ""
 }
 
 func (m *MongodbDatabase) Update(incoming *MongodbDatabase) {
@@ -130,6 +138,15 @@ func (m *MongodbDatabase) Update(incoming *MongodbDatabase) {
 	if incoming.Password != "" {
 		m.Password = incoming.Password
 	}
+	if incoming.TlsCaFile != "" {
+		m.TlsCaFile = incoming.TlsCaFile
+	}
+	if incoming.TlsCertFile != "" {
+		m.TlsCertFile = incoming.TlsCertFile
+	}
+	if incoming.TlsCertKeyFile != "" {
+		m.TlsCertKeyFile = incoming.TlsCertKeyFile
+	}
 }
 
 func (m *MongodbDatabase) EncryptSensitiveFields(
@@ -142,6 +159,27 @@ func (m *MongodbDatabase) EncryptSensitiveFields(
 			return err
 		}
 		m.Password = encrypted
+	}
+	if m.TlsCaFile != "" {
+		encrypted, err := encryptor.Encrypt(databaseID, m.TlsCaFile)
+		if err != nil {
+			return err
+		}
+		m.TlsCaFile = encrypted
+	}
+	if m.TlsCertFile != "" {
+		encrypted, err := encryptor.Encrypt(databaseID, m.TlsCertFile)
+		if err != nil {
+			return err
+		}
+		m.TlsCertFile = encrypted
+	}
+	if m.TlsCertKeyFile != "" {
+		encrypted, err := encryptor.Encrypt(databaseID, m.TlsCertKeyFile)
+		if err != nil {
+			return err
+		}
+		m.TlsCertKeyFile = encrypted
 	}
 	return nil
 }
@@ -425,7 +463,6 @@ func (m *MongodbDatabase) CreateReadOnlyUser(
 				},
 			}},
 		}).Err()
-
 		if err != nil {
 			if attempt < maxRetries-1 {
 				continue
@@ -452,7 +489,12 @@ func (m *MongodbDatabase) buildConnectionURI(password string) string {
 
 	tlsParams := ""
 	if m.IsHttps {
-		tlsParams = "&tls=true&tlsInsecure=true"
+		// Use tlsInsecure only if no certificates are provided
+		if m.TlsCaFile == "" && m.TlsCertFile == "" && m.TlsCertKeyFile == "" {
+			tlsParams = "&tls=true&tlsInsecure=true"
+		} else {
+			tlsParams = "&tls=true"
+		}
 	}
 
 	return fmt.Sprintf(
@@ -476,7 +518,12 @@ func (m *MongodbDatabase) BuildMongodumpURI(password string) string {
 
 	tlsParams := ""
 	if m.IsHttps {
-		tlsParams = "&tls=true&tlsInsecure=true"
+		// Use tlsInsecure only if no certificates are provided
+		if m.TlsCaFile == "" && m.TlsCertFile == "" && m.TlsCertKeyFile == "" {
+			tlsParams = "&tls=true&tlsInsecure=true"
+		} else {
+			tlsParams = "&tls=true"
+		}
 	}
 
 	return fmt.Sprintf(
@@ -662,4 +709,122 @@ func decryptPasswordIfNeeded(
 		return password, nil
 	}
 	return encryptor.Decrypt(databaseID, password)
+}
+
+// TlsCertPaths holds paths to temporary certificate files
+type TlsCertPaths struct {
+	CaFile      string
+	CertFile    string
+	CertKeyFile string
+}
+
+// WriteTempCertificates writes decrypted certificates to temporary files
+// Returns paths to the temp files and cleanup function
+func (m *MongodbDatabase) WriteTempCertificates(
+	encryptor encryption.FieldEncryptor,
+	databaseID uuid.UUID,
+) (*TlsCertPaths, func(), error) {
+	var paths TlsCertPaths
+	var createdFiles []string
+
+	cleanup := func() {
+		for _, file := range createdFiles {
+			_ = os.Remove(file)
+		}
+	}
+
+	if m.TlsCaFile != "" {
+		decrypted, err := encryptor.Decrypt(databaseID, m.TlsCaFile)
+		if err != nil {
+			cleanup()
+			return nil, cleanup, fmt.Errorf("failed to decrypt CA certificate: %w", err)
+		}
+
+		tmpFile, err := os.CreateTemp("", "mongodb-ca-*.pem")
+		if err != nil {
+			cleanup()
+			return nil, cleanup, fmt.Errorf("failed to create temp CA file: %w", err)
+		}
+
+		defer func() {
+			_ = tmpFile.Close()
+		}()
+
+		if _, err := tmpFile.WriteString(decrypted); err != nil {
+			cleanup()
+			return nil, cleanup, fmt.Errorf("failed to write CA certificate: %w", err)
+		}
+
+		if err := tmpFile.Chmod(0o600); err != nil {
+			cleanup()
+			return nil, cleanup, fmt.Errorf("failed to set CA file permissions: %w", err)
+		}
+
+		paths.CaFile = tmpFile.Name()
+		createdFiles = append(createdFiles, paths.CaFile)
+	}
+
+	if m.TlsCertFile != "" {
+		decrypted, err := encryptor.Decrypt(databaseID, m.TlsCertFile)
+		if err != nil {
+			cleanup()
+			return nil, cleanup, fmt.Errorf("failed to decrypt client certificate: %w", err)
+		}
+
+		tmpFile, err := os.CreateTemp("", "mongodb-cert-*.pem")
+		if err != nil {
+			cleanup()
+			return nil, cleanup, fmt.Errorf("failed to create temp cert file: %w", err)
+		}
+
+		defer func() {
+			_ = tmpFile.Close()
+		}()
+
+		if _, err := tmpFile.WriteString(decrypted); err != nil {
+			cleanup()
+			return nil, cleanup, fmt.Errorf("failed to write client certificate: %w", err)
+		}
+
+		if err := tmpFile.Chmod(0o600); err != nil {
+			cleanup()
+			return nil, cleanup, fmt.Errorf("failed to set cert file permissions: %w", err)
+		}
+
+		paths.CertFile = tmpFile.Name()
+		createdFiles = append(createdFiles, paths.CertFile)
+	}
+
+	if m.TlsCertKeyFile != "" {
+		decrypted, err := encryptor.Decrypt(databaseID, m.TlsCertKeyFile)
+		if err != nil {
+			cleanup()
+			return nil, cleanup, fmt.Errorf("failed to decrypt certificate key: %w", err)
+		}
+
+		tmpFile, err := os.CreateTemp("", "mongodb-key-*.pem")
+		if err != nil {
+			cleanup()
+			return nil, cleanup, fmt.Errorf("failed to create temp key file: %w", err)
+		}
+
+		defer func() {
+			_ = tmpFile.Close()
+		}()
+
+		if _, err := tmpFile.WriteString(decrypted); err != nil {
+			cleanup()
+			return nil, cleanup, fmt.Errorf("failed to write certificate key: %w", err)
+		}
+
+		if err := tmpFile.Chmod(0o600); err != nil {
+			cleanup()
+			return nil, cleanup, fmt.Errorf("failed to set key file permissions: %w", err)
+		}
+
+		paths.CertKeyFile = tmpFile.Name()
+		createdFiles = append(createdFiles, paths.CertKeyFile)
+	}
+
+	return &paths, cleanup, nil
 }
