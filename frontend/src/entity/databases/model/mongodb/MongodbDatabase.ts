@@ -11,4 +11,7 @@ export interface MongodbDatabase {
   authDatabase: string;
   isHttps: boolean;
   cpuCount: number;
+  tlsCaFile?: string;
+  tlsCertFile?: string;
+  tlsCertKeyFile?: string;
 }
