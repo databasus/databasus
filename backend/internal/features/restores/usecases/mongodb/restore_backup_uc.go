@@ -114,12 +114,14 @@ func (uc *RestoreMongodbBackupUsecase) buildMongorestoreArgs(
 	}
 
 	// Add TLS certificate arguments if provided
+	// --sslCAFile: CA certificate for server verification
+	// --sslPEMKeyFile: Combined client certificate+key for client authentication
 	if certPaths != nil {
 		if certPaths.CaFile != "" {
-			args = append(args, "--tlsCAFile="+certPaths.CaFile)
+			args = append(args, "--sslCAFile="+certPaths.CaFile)
 		}
-		if certPaths.CertFile != "" && certPaths.CertKeyFile != "" {
-			args = append(args, "--tlsCertificateKeyFile="+certPaths.CertFile)
+		if certPaths.CertKeyFile != "" {
+			args = append(args, "--sslPEMKeyFile="+certPaths.CertKeyFile)
 		}
 	}
 
