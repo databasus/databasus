@@ -135,14 +135,14 @@ func Test_RunPendingBackups_WhenLastBackupWasRecentlyCompleted_SkipsBackup(t *te
 	_, err = backups_config.GetBackupConfigService().SaveBackupConfig(backupConfig)
 	assert.NoError(t, err)
 
-	// add recent backup (1 hour ago)
+	// add recent backup (30 minutes ago)
 	backupRepository.Save(&backups_core.Backup{
 		DatabaseID: database.ID,
 		StorageID:  storage.ID,
 
 		Status: backups_core.BackupStatusCompleted,
 
-		CreatedAt: time.Now().UTC().Add(-2 * time.Hour),
+		CreatedAt: time.Now().UTC().Add(-30 * time.Minute),
 	})
 
 	GetBackupsScheduler().runPendingBackups()
