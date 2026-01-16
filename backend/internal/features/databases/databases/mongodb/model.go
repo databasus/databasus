@@ -84,7 +84,7 @@ func (m *MongodbDatabase) TestConnection(
 	uri := m.buildConnectionURI(password)
 
 	clientOptions := options.Client().ApplyURI(uri)
-	
+
 	// Configure TLS if enabled and certificates are provided
 	if m.IsHttps && (m.TlsCaFile != "" || m.TlsCertFile != "" || m.TlsCertKeyFile != "") {
 		tlsConfig, err := m.buildTLSConfig(encryptor, databaseID)
@@ -93,7 +93,7 @@ func (m *MongodbDatabase) TestConnection(
 		}
 		clientOptions.SetTLSConfig(tlsConfig)
 	}
-	
+
 	client, err := mongo.Connect(ctx, clientOptions)
 	if err != nil {
 		return fmt.Errorf("failed to connect to MongoDB: %w", err)
@@ -220,7 +220,7 @@ func (m *MongodbDatabase) PopulateVersion(
 	uri := m.buildConnectionURI(password)
 
 	clientOptions := options.Client().ApplyURI(uri)
-	
+
 	// Configure TLS if enabled and certificates are provided
 	if m.IsHttps && (m.TlsCaFile != "" || m.TlsCertFile != "" || m.TlsCertKeyFile != "") {
 		tlsConfig, err := m.buildTLSConfig(encryptor, databaseID)
@@ -229,7 +229,7 @@ func (m *MongodbDatabase) PopulateVersion(
 		}
 		clientOptions.SetTLSConfig(tlsConfig)
 	}
-	
+
 	client, err := mongo.Connect(ctx, clientOptions)
 	if err != nil {
 		return fmt.Errorf("failed to connect to database: %w", err)
@@ -263,7 +263,7 @@ func (m *MongodbDatabase) IsUserReadOnly(
 	uri := m.buildConnectionURI(password)
 
 	clientOptions := options.Client().ApplyURI(uri)
-	
+
 	// Configure TLS if enabled and certificates are provided
 	if m.IsHttps && (m.TlsCaFile != "" || m.TlsCertFile != "" || m.TlsCertKeyFile != "") {
 		tlsConfig, err := m.buildTLSConfig(encryptor, databaseID)
@@ -272,7 +272,7 @@ func (m *MongodbDatabase) IsUserReadOnly(
 		}
 		clientOptions.SetTLSConfig(tlsConfig)
 	}
-	
+
 	client, err := mongo.Connect(ctx, clientOptions)
 	if err != nil {
 		return false, nil, fmt.Errorf("failed to connect to database: %w", err)
@@ -460,7 +460,7 @@ func (m *MongodbDatabase) CreateReadOnlyUser(
 	uri := m.buildConnectionURI(password)
 
 	clientOptions := options.Client().ApplyURI(uri)
-	
+
 	// Configure TLS if enabled and certificates are provided
 	if m.IsHttps && (m.TlsCaFile != "" || m.TlsCertFile != "" || m.TlsCertKeyFile != "") {
 		tlsConfig, err := m.buildTLSConfig(encryptor, databaseID)
@@ -469,7 +469,7 @@ func (m *MongodbDatabase) CreateReadOnlyUser(
 		}
 		clientOptions.SetTLSConfig(tlsConfig)
 	}
-	
+
 	client, err := mongo.Connect(ctx, clientOptions)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to connect to database: %w", err)
@@ -803,8 +803,8 @@ func decryptPasswordIfNeeded(
 
 // TlsCertPaths holds paths to temporary certificate files
 type TlsCertPaths struct {
-	CaFile         string
-	CertKeyFile    string
+	CaFile      string
+	CertKeyFile string
 }
 
 // WriteTempCertificates writes decrypted certificates to temporary files
