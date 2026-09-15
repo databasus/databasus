@@ -930,6 +930,37 @@ func Test_HideSensitiveData_WhenReceiverIsNil_DoesNotPanic(t *testing.T) {
 	})
 }
 
+func Test_MapMysqlVersion_MapsMajorsToBundledClients(t *testing.T) {
+	cases := []struct {
+		major    string
+		minor    string
+		expected tools.MysqlVersion
+	}{
+		{"5", "7", tools.MysqlVersion57},
+		{"8", "0", tools.MysqlVersion80},
+		{"8", "3", tools.MysqlVersion80},
+		{"8", "4", tools.MysqlVersion84},
+		{"9", "7", tools.MysqlVersion9},
+		{"26", "7", tools.MysqlVersion9},
+		{"27", "1", tools.MysqlVersion9},
+	}
+
+	for _, c := range cases {
+		version, err := mapMysqlVersion(c.major, c.minor)
+
+		require.NoError(t, err, "%s.%s", c.major, c.minor)
+		assert.Equal(t, c.expected, version, "%s.%s", c.major, c.minor)
+	}
+}
+
+func Test_MapMysqlVersion_RejectsUnsupportedMajors(t *testing.T) {
+	for _, major := range []string{"4", "6", "7"} {
+		_, err := mapMysqlVersion(major, "0")
+
+		assert.ErrorContains(t, err, "unsupported MySQL major version", major)
+	}
+}
+
 func connectToMysqlContainer(
 	t *testing.T,
 	image string,
