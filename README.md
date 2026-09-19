@@ -203,7 +203,13 @@ Then run:
 docker compose up -d
 ```
 
-### Option 4: Kubernetes with Helm
+### Option 4: Easypanel
+
+[Easypanel](https://easypanel.io) is a self-hosted Docker deployment platform. It has a one-click Easypanel template for Databasus, which runs the image above with a persistent volume for `/databasus-data`.
+
+[![Deploy on Easypanel](https://easypanel.io/img/deploy-on-easypanel-40.svg)](https://easypanel.io/templates/databasus)
+
+### Option 5: Kubernetes with Helm
 
 For Kubernetes deployments, install directly from the OCI registry.
 
