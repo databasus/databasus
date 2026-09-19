@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"regexp"
 	"slices"
+	"strconv"
 	"time"
 
 	"github.com/go-sql-driver/mysql"
@@ -562,17 +563,24 @@ func detectMysqlVersion(ctx context.Context, db *sql.DB) (tools.MysqlVersion, er
 	return mapMysqlVersion(major, minor)
 }
 
+// Calendar-versioned releases (26.7 and later) continue the 9.x line and use the 9.x client.
+// Majors 10-25 are left unsupported so MariaDB (10.x/11.x) is not mistaken for MySQL.
 func mapMysqlVersion(major, minor string) (tools.MysqlVersion, error) {
-	switch major {
-	case "5":
+	majorNum, err := strconv.Atoi(major)
+	if err != nil {
+		return "", fmt.Errorf("could not parse MySQL major version: %s", major)
+	}
+
+	switch {
+	case majorNum == 5:
 		return tools.MysqlVersion57, nil
-	case "8":
+	case majorNum == 8:
 		return mapMysql8xVersion(minor), nil
-	case "9":
+	case majorNum == 9 || majorNum >= 26:
 		return tools.MysqlVersion9, nil
 	default:
 		return "", fmt.Errorf(
-			"unsupported MySQL major version: %s (supported: 5.x, 8.x, 9.x)",
+			"unsupported MySQL major version: %s (supported: 5.x, 8.x, 9.x, 26.x and later; use the MariaDB type for MariaDB servers)",
 			major,
 		)
 	}
