@@ -4,6 +4,7 @@ export { settingsApi } from './api/settingsApi';
 export { userManagementApi } from './api/userManagementApi';
 
 // Types and Enums
+export type { AuthEntryState } from './model/AuthEntryState';
 export type { SignInRequest } from './model/SignInRequest';
 export type { SignInResponse } from './model/SignInResponse';
 export type { SignInOutcome } from './model/SignInOutcome';

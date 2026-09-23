@@ -131,7 +131,7 @@ func (c *UserController) SignIn(ctx *gin.Context) {
 
 // HasAnyUser
 // @Summary Check whether the instance holds any account
-// @Description Tells the entry screen whether to offer signing in or the registration that claims the instance
+// @Description Tells the entry screen whether to offer signing in or the registration that claims the instance, and whether registration is open at all
 // @Tags users
 // @Produce json
 // @Success 200 {object} users_dto.HasAnyUserResponseDTO
@@ -144,7 +144,16 @@ func (c *UserController) HasAnyUser(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, user_dto.HasAnyUserResponseDTO{HasAnyUser: hasAnyUser})
+	isSignUpAllowed, err := c.userService.IsSignUpAllowed(ctx.Request.Context())
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, user_dto.HasAnyUserResponseDTO{
+		HasAnyUser:      hasAnyUser,
+		IsSignUpAllowed: isSignUpAllowed,
+	})
 }
 
 // ChangePassword
