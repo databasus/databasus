@@ -66,7 +66,8 @@ type ResendSignInCodeRequestDTO struct {
 // The wire name is isExist rather than hasAnyUser because the client already
 // reads that key (frontend/src/entity/users/api/userApi.ts).
 type HasAnyUserResponseDTO struct {
-	HasAnyUser bool `json:"isExist"`
+	HasAnyUser      bool `json:"isExist"`
+	IsSignUpAllowed bool `json:"isSignUpAllowed"`
 }
 
 type ChangePasswordRequestDTO struct {

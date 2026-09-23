@@ -1302,6 +1302,35 @@ func Test_HasAnyUser_WhenInstanceHoldsAnAccount_AnswersTrue(t *testing.T) {
 	assert.True(t, hasAnyUserViaAPI(t, router))
 }
 
+func Test_HasAnyUser_WhenInstanceHoldsAnAccountAndExternalRegistrationEnabled_AllowsSignUp(t *testing.T) {
+	router := createUserTestRouter()
+	users_testing.ResetSettingsToDefaults(t.Context())
+	users_testing.RecreateInitialAdmin(t.Context())
+
+	assert.True(t, getEntryStateViaAPI(t, router).IsSignUpAllowed)
+}
+
+func Test_HasAnyUser_WhenInstanceHoldsAnAccountAndExternalRegistrationDisabled_RefusesSignUp(t *testing.T) {
+	router := createUserTestRouter()
+	defer users_testing.ResetSettingsToDefaults(t.Context())
+
+	users_testing.ResetSettingsToDefaults(t.Context())
+	users_testing.RecreateInitialAdmin(t.Context())
+	users_testing.DisableExternalRegistrations(t.Context())
+
+	assert.False(t, getEntryStateViaAPI(t, router).IsSignUpAllowed)
+}
+
+func Test_HasAnyUser_WhenInstanceIsEmptyAndExternalRegistrationDisabled_StillAllowsSignUp(t *testing.T) {
+	router := createUserTestRouter()
+	defer users_testing.ResetSettingsToDefaults(t.Context())
+
+	users_testing.DisableExternalRegistrations(t.Context())
+	users_testing.DeleteAllUsers()
+
+	assert.True(t, getEntryStateViaAPI(t, router).IsSignUpAllowed)
+}
+
 // The spec refuses any way to set a password on an existing account without
 // authenticating as it or proving control of its address.
 func Test_SetPasswordOnExistingAccount_WhenCallerIsAnonymous_IsRefused(t *testing.T) {
@@ -1418,17 +1447,23 @@ func getOwnProfile(t *testing.T, router *gin.Engine, token string) users_dto.Use
 func hasAnyUserViaAPI(t *testing.T, router *gin.Engine) bool {
 	t.Helper()
 
-	var response users_dto.HasAnyUserResponseDTO
+	return getEntryStateViaAPI(t, router).HasAnyUser
+}
+
+func getEntryStateViaAPI(t *testing.T, router *gin.Engine) users_dto.HasAnyUserResponseDTO {
+	t.Helper()
+
+	var entryState users_dto.HasAnyUserResponseDTO
 	test_utils.MakeGetRequestAndUnmarshal(
 		t,
 		router,
 		"/api/v1/users/is-any-user-exist",
 		"",
 		http.StatusOK,
-		&response,
+		&entryState,
 	)
 
-	return response.HasAnyUser
+	return entryState
 }
 
 func gitHubOAuthEndpoint(serverURL string) oauth2.Endpoint {

@@ -2,6 +2,7 @@ import { getApplicationServer } from '../../../constants';
 import RequestOptions from '../../../shared/api/RequestOptions';
 import { accessTokenHelper } from '../../../shared/api/accessTokenHelper';
 import { apiHelper } from '../../../shared/api/apiHelper';
+import type { AuthEntryState } from '../model/AuthEntryState';
 import type { ChangePasswordRequest } from '../model/ChangePasswordRequest';
 import type { InviteUserRequest } from '../model/InviteUserRequest';
 import type { InviteUserResponse } from '../model/InviteUserResponse';
@@ -90,18 +91,14 @@ export const userApi = {
     );
   },
 
-  async isAnyUserExists(): Promise<boolean> {
+  /** Fetches whether the instance already holds an account and whether sign-up is currently allowed, for the auth page to decide what to show before anyone is signed in. */
+  async getAuthEntryState(): Promise<AuthEntryState> {
     const requestOptions: RequestOptions = new RequestOptions();
-    return apiHelper
-      .fetchGetJson(
-        `${getApplicationServer()}/api/v1/users/is-any-user-exist`,
-        requestOptions,
-        true,
-      )
-      .then((response: unknown) => {
-        const typedResponse = response as { isExist: boolean };
-        return typedResponse.isExist;
-      });
+    return apiHelper.fetchGetJson(
+      `${getApplicationServer()}/api/v1/users/is-any-user-exist`,
+      requestOptions,
+      true,
+    );
   },
 
   async changePassword(request: ChangePasswordRequest): Promise<{ message: string }> {

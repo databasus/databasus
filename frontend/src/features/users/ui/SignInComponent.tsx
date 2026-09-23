@@ -162,19 +162,23 @@ export function SignInComponent({
       )}
 
       <div className="mt-4 text-center text-sm text-gray-600 dark:text-gray-400">
-        <Trans
-          i18nKey="users.signIn.noAccount"
-          components={{
-            signUpLink: (
-              <button
-                type="button"
-                onClick={onSwitchToSignUp}
-                className="cursor-pointer font-medium text-blue-600 hover:text-blue-700 dark:!text-blue-500"
-              />
-            ),
-          }}
-        />
-        <br />
+        {onSwitchToSignUp && (
+          <>
+            <Trans
+              i18nKey="users.signIn.noAccount"
+              components={{
+                signUpLink: (
+                  <button
+                    type="button"
+                    onClick={onSwitchToSignUp}
+                    className="cursor-pointer font-medium text-blue-600 hover:text-blue-700 dark:!text-blue-500"
+                  />
+                ),
+              }}
+            />
+            <br />
+          </>
+        )}
         {IS_EMAIL_CONFIGURED && (
           <button
             type="button"

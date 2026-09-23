@@ -307,6 +307,27 @@ func (s *UserService) HasAnyUser() (bool, error) {
 	return !isUnclaimed, nil
 }
 
+// IsSignUpAllowed reports whether a new account may currently be created.
+// An empty instance always accepts a registration, because the first account is
+// how it gains an administrator, whatever the registration policy says.
+func (s *UserService) IsSignUpAllowed(ctx context.Context) (bool, error) {
+	isUnclaimed, err := s.isInstanceUnclaimed()
+	if err != nil {
+		return false, err
+	}
+
+	if isUnclaimed {
+		return true, nil
+	}
+
+	settings, err := s.settingsService.GetSettings(ctx)
+	if err != nil {
+		return false, fmt.Errorf("failed to get settings: %w", err)
+	}
+
+	return settings.IsAllowExternalRegistrations, nil
+}
+
 func (s *UserService) ChangeUserPasswordByEmail(ctx context.Context, email, newPassword string) error {
 	user, err := s.userRepository.GetUserByEmail(ctx, email)
 	if err != nil {

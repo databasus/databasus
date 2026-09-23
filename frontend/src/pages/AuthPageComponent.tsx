@@ -18,6 +18,7 @@ import { translateApiError } from '../shared/i18n';
 export function AuthPageComponent() {
   const { t } = useTranslation();
   const [isAnyUserExist, setIsAnyUserExist] = useState(true);
+  const [isSignUpAllowed, setIsSignUpAllowed] = useState(false);
   const [authMode, setAuthMode] = useState<
     'signIn' | 'signUp' | 'requestReset' | 'resetPassword' | 'signInCode'
   >('signUp');
@@ -35,13 +36,20 @@ export function AuthPageComponent() {
     setLoading(true);
 
     userApi
-      .isAnyUserExists()
-      .then((isExist) => {
-        setIsAnyUserExist(isExist);
+      .getAuthEntryState()
+      .then((authEntryState) => {
+        setIsAnyUserExist(authEntryState.isExist);
+        setIsSignUpAllowed(authEntryState.isSignUpAllowed);
+
+        if (!authEntryState.isSignUpAllowed) {
+          setAuthMode('signIn');
+        }
+
         setLoading(false);
       })
       .catch((e) => {
         alert(t('app.auth.accountsCheckFailed', { error: translateApiError(e, t) }));
+        setAuthMode('signIn');
         setLoading(false);
       });
   }, []);
@@ -65,7 +73,7 @@ export function AuthPageComponent() {
                 />
               ) : authMode === 'signIn' ? (
                 <SignInComponent
-                  onSwitchToSignUp={() => setAuthMode('signUp')}
+                  onSwitchToSignUp={isSignUpAllowed ? () => setAuthMode('signUp') : undefined}
                   onSwitchToResetPassword={() => setAuthMode('requestReset')}
                   onCodeRequired={(newPendingSignIn) => {
                     setPendingSignIn(newPendingSignIn);
