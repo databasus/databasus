@@ -31,6 +31,7 @@ Then open `http://localhost:4005` in your browser.
 | `image.tag`        | Image tag          | `latest`                    |
 | `image.pullPolicy` | Image pull policy  | `Always`                    |
 | `imagePullSecrets` | Image pull secrets | `[]`                        |
+| `priorityClassName`| Pod priority class | `""`                        |
 
 The chart always renders one application replica because transient cache,
 publish-subscribe and rate-limit state is process-local.
