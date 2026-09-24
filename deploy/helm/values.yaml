@@ -173,3 +173,6 @@ podAnnotations: {}
 nodeSelector: {}
 tolerations: []
 affinity: {}
+
+# PriorityClass for the pod. Leave empty to use the cluster default.
+priorityClassName: ""
