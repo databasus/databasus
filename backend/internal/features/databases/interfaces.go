@@ -18,6 +18,7 @@ type databaseStore interface {
 	Delete(id uuid.UUID) error
 	IsNotifierUsing(notifierID uuid.UUID) (bool, error)
 	GetAllDatabases() ([]*Database, error)
+	CountAll() (int64, error)
 	GetDatabasesIDsByNotifierID(notifierID uuid.UUID) ([]uuid.UUID, error)
 }
 

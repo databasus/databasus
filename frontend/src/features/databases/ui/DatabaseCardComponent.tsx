@@ -4,8 +4,7 @@ import { Trans, useTranslation } from 'react-i18next';
 
 import { logicalBackupConfigApi } from '../../../entity/backups/logical';
 import { physicalBackupConfigApi } from '../../../entity/backups/physical';
-import { type Database, DatabaseType, HEALTH_STATUS_LABEL_KEYS } from '../../../entity/databases';
-import { HealthStatus } from '../../../entity/databases/model/HealthStatus';
+import { type Database, DatabaseType, HealthStatusBadgeComponent } from '../../../entity/databases';
 import type { Storage } from '../../../entity/storages';
 import { getStorageLogoFromType } from '../../../entity/storages/models/getStorageLogoFromType';
 import { useLocale } from '../../../shared/i18n';
@@ -46,13 +45,7 @@ export const DatabaseCardComponent = ({
 
         {database.healthStatus && (
           <div className="ml-auto shrink-0 pl-1">
-            <div
-              className={`rounded px-[6px] py-[2px] text-[10px] text-white ${
-                database.healthStatus === HealthStatus.AVAILABLE ? 'bg-green-500' : 'bg-red-500'
-              }`}
-            >
-              {t(HEALTH_STATUS_LABEL_KEYS[database.healthStatus])}
-            </div>
+            <HealthStatusBadgeComponent healthStatus={database.healthStatus} />
           </div>
         )}
       </div>

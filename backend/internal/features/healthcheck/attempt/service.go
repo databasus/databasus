@@ -46,3 +46,20 @@ func (s *HealthcheckAttemptService) GetAttemptsByDatabase(
 		afterDate,
 	)
 }
+
+func (s *HealthcheckAttemptService) GetRecentAttemptsByDatabaseIDs(
+	databaseIDs []uuid.UUID,
+	limitPerDatabase int,
+) (map[uuid.UUID][]*HealthcheckAttempt, error) {
+	attempts, err := s.healthcheckAttemptRepository.FindRecentByDatabaseIDs(databaseIDs, limitPerDatabase)
+	if err != nil {
+		return nil, err
+	}
+
+	attemptsByDatabaseID := make(map[uuid.UUID][]*HealthcheckAttempt, len(databaseIDs))
+	for _, attempt := range attempts {
+		attemptsByDatabaseID[attempt.DatabaseID] = append(attemptsByDatabaseID[attempt.DatabaseID], attempt)
+	}
+
+	return attemptsByDatabaseID, nil
+}

@@ -502,6 +502,10 @@ func (s *DatabaseService) GetAllDatabases() ([]*Database, error) {
 	return s.dbRepository.GetAllDatabases()
 }
 
+func (s *DatabaseService) CountDatabases() (int64, error) {
+	return s.dbRepository.CountAll()
+}
+
 func (s *DatabaseService) SetBackupError(databaseID uuid.UUID, errorMessage string) error {
 	database, err := s.dbRepository.FindByID(databaseID)
 	if err != nil {

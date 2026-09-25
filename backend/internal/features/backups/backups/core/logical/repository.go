@@ -357,6 +357,52 @@ func (r *BackupRepository) CountByDatabaseIDWithFilters(
 	return count, nil
 }
 
+func (r *BackupRepository) GetTotalsByDatabaseIDs(
+	databaseIDs []uuid.UUID,
+) ([]DatabaseBackupTotals, error) {
+	if len(databaseIDs) == 0 {
+		return []DatabaseBackupTotals{}, nil
+	}
+
+	var totals []DatabaseBackupTotals
+
+	if err := storage.GetDb().Raw(`
+		SELECT database_id,
+		       COUNT(*) AS backups_count,
+		       COUNT(*) FILTER (WHERE status = ?) AS completed_backups_count,
+		       COUNT(*) FILTER (WHERE status = ?) AS failed_backups_count,
+		       COALESCE(SUM(backup_size_mb) FILTER (WHERE status = ?), 0) AS completed_backup_size_mb
+		FROM logical_backups
+		WHERE database_id IN ?
+		GROUP BY database_id
+	`,
+		BackupStatusCompleted,
+		BackupStatusFailed,
+		BackupStatusCompleted,
+		databaseIDs,
+	).Scan(&totals).Error; err != nil {
+		return nil, fmt.Errorf("sum logical backups by database: %w", err)
+	}
+
+	return totals, nil
+}
+
+func (r *BackupRepository) GetInstallationTotals() (BackupTotals, error) {
+	var totals BackupTotals
+
+	if err := storage.GetDb().Raw(`
+		SELECT COUNT(*) AS backups_count,
+		       COALESCE(SUM(backup_size_mb) FILTER (WHERE status = ?), 0) AS completed_backup_size_mb
+		FROM logical_backups
+	`,
+		BackupStatusCompleted,
+	).Scan(&totals).Error; err != nil {
+		return BackupTotals{}, fmt.Errorf("sum logical backups of the installation: %w", err)
+	}
+
+	return totals, nil
+}
+
 func (f *BackupFilters) applyToQuery(query *gorm.DB) *gorm.DB {
 	if len(f.Statuses) > 0 {
 		query = query.Where("status IN ?", f.Statuses)

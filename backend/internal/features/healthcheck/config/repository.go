@@ -52,3 +52,22 @@ func (r *HealthcheckConfigRepository) GetByDatabaseID(
 
 	return &config, nil
 }
+
+func (r *HealthcheckConfigRepository) FindByDatabaseIDs(
+	databaseIDs []uuid.UUID,
+) ([]HealthcheckConfig, error) {
+	configs := []HealthcheckConfig{}
+
+	if len(databaseIDs) == 0 {
+		return configs, nil
+	}
+
+	if err := storage.
+		GetDb().
+		Where("database_id IN ?", databaseIDs).
+		Find(&configs).Error; err != nil {
+		return nil, err
+	}
+
+	return configs, nil
+}

@@ -72,6 +72,26 @@ func (s *LogicalBackupService) GetLatestCompletedBackup(
 	return s.backupRepository.FindLatestCompleted(databaseID)
 }
 
+func (s *LogicalBackupService) GetBackupTotalsByDatabaseIDs(
+	databaseIDs []uuid.UUID,
+) (map[uuid.UUID]backups_core_logical.DatabaseBackupTotals, error) {
+	totals, err := s.backupRepository.GetTotalsByDatabaseIDs(databaseIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	totalsByDatabaseID := make(map[uuid.UUID]backups_core_logical.DatabaseBackupTotals, len(totals))
+	for _, databaseTotals := range totals {
+		totalsByDatabaseID[databaseTotals.DatabaseID] = databaseTotals
+	}
+
+	return totalsByDatabaseID, nil
+}
+
+func (s *LogicalBackupService) GetInstallationBackupTotals() (backups_core_logical.BackupTotals, error) {
+	return s.backupRepository.GetInstallationTotals()
+}
+
 func (s *LogicalBackupService) OnBeforeBackupsStorageChange(ctx context.Context, databaseID uuid.UUID) error {
 	err := s.deleteDbBackups(ctx, databaseID)
 	if err != nil {

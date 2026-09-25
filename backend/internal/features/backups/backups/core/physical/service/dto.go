@@ -99,3 +99,18 @@ type DependentsSummary struct {
 	HistoryFiles     int
 	TotalSizeMB      float64
 }
+
+type DatabasePhysicalBackupTotals struct {
+	DatabaseID            uuid.UUID `gorm:"column:database_id"`
+	BackupsCount          int64     `gorm:"column:backups_count"`
+	CompletedBackupsCount int64     `gorm:"column:completed_backups_count"`
+	FailedBackupsCount    int64     `gorm:"column:failed_backups_count"`
+	CompletedBackupSizeMb float64   `gorm:"column:completed_backup_size_mb"`
+	WalSizeMb             float64   `gorm:"column:wal_size_mb"`
+}
+
+type PhysicalBackupTotals struct {
+	BackupsCount          int64   `gorm:"column:backups_count"`
+	CompletedBackupSizeMb float64 `gorm:"column:completed_backup_size_mb"`
+	WalSizeMb             float64 `gorm:"column:wal_size_mb"`
+}

@@ -28,8 +28,8 @@ import {
 } from '../../../../entity/backups/physical';
 import { type Database, PhysicalDatabaseBackupType } from '../../../../entity/databases';
 import { usePersistentState } from '../../../../shared/hooks';
-import { type LocaleContextValue, translateApiError, useLocale } from '../../../../shared/i18n';
-import { formatDuration } from '../../../../shared/lib';
+import { translateApiError, useLocale } from '../../../../shared/i18n';
+import { formatDuration, formatSizeMb } from '../../../../shared/lib';
 import { getUserTimeFormat } from '../../../../shared/time';
 import { ConfirmationComponent } from '../../../../shared/ui';
 import { PHYSICAL_BACKUP_STATUS_BADGE_STYLES } from '../model/physicalBackupStatus';
@@ -44,15 +44,6 @@ interface Props {
   isDirectlyUnderTab?: boolean;
   scrollContainerRef?: React.RefObject<HTMLDivElement | null>;
 }
-
-const formatSize = (sizeMb: number, formatNumber: LocaleContextValue['formatNumber']): string => {
-  if (sizeMb >= 1024) {
-    const sizeGb = sizeMb / 1024;
-    return `${formatNumber(Number(sizeGb.toFixed(2)))} GB`;
-  }
-
-  return `${formatNumber(Number((sizeMb ?? 0).toFixed(2)))} MB`;
-};
 
 const renderStatusBadge = (
   backup: PhysicalBackupListItem,
@@ -413,7 +404,7 @@ export const PhysicalBackupsComponent = ({
       dataIndex: 'sizeMb',
       key: 'sizeMb',
       width: 110,
-      render: (sizeMb: number) => formatSize(sizeMb, formatNumber),
+      render: (sizeMb: number) => formatSizeMb(sizeMb, formatNumber),
     },
     {
       title: t('backups.list.columns.duration'),
@@ -504,7 +495,7 @@ export const PhysicalBackupsComponent = ({
       )}
 
       <div className="mt-3 text-sm text-gray-600 dark:text-gray-400">
-        {t('backups.physical.list.totalUsage', { size: formatSize(totalUsageMb, formatNumber) })}
+        {t('backups.physical.list.totalUsage', { size: formatSizeMb(totalUsageMb, formatNumber) })}
       </div>
 
       <div className="mt-4 flex items-center">
@@ -567,7 +558,7 @@ export const PhysicalBackupsComponent = ({
                           {t('backups.list.columns.size')}
                         </div>
                         <div className="text-sm font-medium">
-                          {formatSize(backup.sizeMb, formatNumber)}
+                          {formatSizeMb(backup.sizeMb, formatNumber)}
                         </div>
                       </div>
                       <div>

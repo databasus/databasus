@@ -62,6 +62,7 @@ export const fr: typeof en = {
       system: 'Système',
     },
     navigation: {
+      dashboard: 'Tableau de bord',
       databases: 'Bases de données',
       storages: 'Stockages',
       notifiers: 'Canaux de notification',
@@ -280,6 +281,35 @@ export const fr: typeof en = {
       copied: 'URL de vérification de disponibilité copiée dans le presse-papiers',
       description:
         'Utilisez cette URL pour surveiller la disponibilité de votre instance Databasus',
+    },
+  },
+  dashboard: {
+    tiles: {
+      databases: 'Bases de données',
+      backups: 'Sauvegardes',
+      backupsSize: 'Taille totale des sauvegardes',
+      backupsSizeHint:
+        'Seules les sauvegardes réussies sont comptées. Pour les bases de données physiques, les segments WAL sont inclus.',
+      installation: 'Tous les espaces de travail',
+      installationHint:
+        'Totaux de tous les espaces de travail de cette instance Databasus. Seuls les administrateurs les voient.',
+      installationDetails: 'Bases de données : {{databasesCount}}, sauvegardes : {{backupsCount}}',
+    },
+    list: {
+      title: 'Bases de données',
+      empty: "Cet espace de travail n'a pas encore de base de données",
+      columns: {
+        database: 'Base de données',
+        healthcheck: 'Disponibilité',
+        backups: 'Sauvegardes',
+        meanSize: 'Taille moyenne',
+        totalSize: 'Taille totale',
+        lastBackup: 'Dernière sauvegarde',
+        storage: 'Stockage',
+      },
+      successfulBackups: 'Réussies : {{successfulBackupsCount}}',
+      failedBackups: 'Échouées : {{failedBackupsCount}}',
+      noBackups: 'Aucune sauvegarde pour le moment',
     },
   },
   databases: {

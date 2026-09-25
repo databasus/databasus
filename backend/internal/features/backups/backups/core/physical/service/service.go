@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"log/slog"
 	"time"
 
@@ -21,6 +22,11 @@ import (
 	util_encryption "databasus-backend/internal/util/encryption"
 	"databasus-backend/internal/util/walmath"
 )
+
+var failedPhysicalBackupStatuses = []physical_enums.PhysicalBackupStatus{
+	physical_enums.PhysicalBackupStatusError,
+	physical_enums.PhysicalBackupStatusChainBroken,
+}
 
 const (
 	// Sidecar suffix mirrors the executor's metadata convention; every FULL /
@@ -557,6 +563,93 @@ func (s *PhysicalBackupService) CountBackups(
 	err := storage.GetDb().Raw(query, args...).Scan(&total).Error
 
 	return total, err
+}
+
+// WAL segments add to the size but not to the count: one streaming database
+// uploads thousands of them, and the count is meant to read as FULL and INCR backups.
+func (s *PhysicalBackupService) GetBackupTotalsByDatabaseIDs(
+	databaseIDs []uuid.UUID,
+) (map[uuid.UUID]DatabasePhysicalBackupTotals, error) {
+	totalsByDatabaseID := make(map[uuid.UUID]DatabasePhysicalBackupTotals, len(databaseIDs))
+
+	if len(databaseIDs) == 0 {
+		return totalsByDatabaseID, nil
+	}
+
+	var totals []DatabasePhysicalBackupTotals
+
+	err := storage.GetDb().Raw(`
+		SELECT database_id,
+		       SUM(backups_count) AS backups_count,
+		       SUM(completed_backups_count) AS completed_backups_count,
+		       SUM(failed_backups_count) AS failed_backups_count,
+		       SUM(completed_backup_size_mb) AS completed_backup_size_mb,
+		       SUM(wal_size_mb) AS wal_size_mb
+		FROM (
+			SELECT database_id,
+			       COUNT(*) AS backups_count,
+			       COUNT(*) FILTER (WHERE status = ?) AS completed_backups_count,
+			       COUNT(*) FILTER (WHERE status IN ?) AS failed_backups_count,
+			       COALESCE(SUM(backup_size_mb) FILTER (WHERE status = ?), 0) AS completed_backup_size_mb,
+			       0 AS wal_size_mb
+			FROM physical_full_backups
+			WHERE database_id IN ?
+			GROUP BY database_id
+			UNION ALL
+			SELECT database_id,
+			       COUNT(*),
+			       COUNT(*) FILTER (WHERE status = ?),
+			       COUNT(*) FILTER (WHERE status IN ?),
+			       COALESCE(SUM(backup_size_mb) FILTER (WHERE status = ?), 0),
+			       0
+			FROM physical_incremental_backups
+			WHERE database_id IN ?
+			GROUP BY database_id
+			UNION ALL
+			SELECT database_id, 0, 0, 0, 0, COALESCE(SUM(compressed_size_mb), 0)
+			FROM physical_wal_segments
+			WHERE database_id IN ?
+			GROUP BY database_id
+		) merged
+		GROUP BY database_id
+	`,
+		physical_enums.PhysicalBackupStatusCompleted, failedPhysicalBackupStatuses,
+		physical_enums.PhysicalBackupStatusCompleted, databaseIDs,
+		physical_enums.PhysicalBackupStatusCompleted, failedPhysicalBackupStatuses,
+		physical_enums.PhysicalBackupStatusCompleted, databaseIDs,
+		databaseIDs,
+	).Scan(&totals).Error
+	if err != nil {
+		return nil, fmt.Errorf("sum physical backups by database: %w", err)
+	}
+
+	for _, databaseTotals := range totals {
+		totalsByDatabaseID[databaseTotals.DatabaseID] = databaseTotals
+	}
+
+	return totalsByDatabaseID, nil
+}
+
+func (s *PhysicalBackupService) GetInstallationBackupTotals() (PhysicalBackupTotals, error) {
+	var totals PhysicalBackupTotals
+
+	err := storage.GetDb().Raw(`
+		SELECT
+		    (SELECT COUNT(*) FROM physical_full_backups)
+		  + (SELECT COUNT(*) FROM physical_incremental_backups) AS backups_count,
+		    COALESCE((SELECT SUM(backup_size_mb) FROM physical_full_backups WHERE status = ?), 0)
+		  + COALESCE((SELECT SUM(backup_size_mb) FROM physical_incremental_backups WHERE status = ?), 0)
+		    AS completed_backup_size_mb,
+		    COALESCE((SELECT SUM(compressed_size_mb) FROM physical_wal_segments), 0) AS wal_size_mb
+	`,
+		physical_enums.PhysicalBackupStatusCompleted,
+		physical_enums.PhysicalBackupStatusCompleted,
+	).Scan(&totals).Error
+	if err != nil {
+		return PhysicalBackupTotals{}, fmt.Errorf("sum physical backups of the installation: %w", err)
+	}
+
+	return totals, nil
 }
 
 // findNextAnchorLSNAfter returns the smallest start_lsn among the database's

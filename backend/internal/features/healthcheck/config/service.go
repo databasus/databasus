@@ -134,6 +134,12 @@ func (s *HealthcheckConfigService) GetDatabasesWithEnabledHealthcheck() (
 	return s.healthcheckConfigRepository.GetDatabasesWithEnabledHealthcheck()
 }
 
+func (s *HealthcheckConfigService) GetConfigsByDatabaseIDs(
+	databaseIDs []uuid.UUID,
+) ([]HealthcheckConfig, error) {
+	return s.healthcheckConfigRepository.FindByDatabaseIDs(databaseIDs)
+}
+
 func (s *HealthcheckConfigService) initializeDefaultConfig(
 	databaseID uuid.UUID,
 ) error {

@@ -62,6 +62,7 @@ export const zh: typeof en = {
       system: '跟随系统',
     },
     navigation: {
+      dashboard: '概览',
       databases: '数据库',
       storages: '存储',
       notifiers: '通知渠道',
@@ -265,6 +266,33 @@ export const zh: typeof en = {
       openInNewTab: '点击在新标签页中打开',
       copied: '可用性检查地址已复制到剪贴板',
       description: '通过这个地址监控 Databasus 系统是否可用',
+    },
+  },
+  dashboard: {
+    tiles: {
+      databases: '数据库',
+      backups: '备份',
+      backupsSize: '备份总大小',
+      backupsSizeHint: '仅统计成功的备份。物理数据库还包含 WAL 段。',
+      installation: '全部工作区',
+      installationHint: '本 Databasus 实例所有工作区的汇总，仅管理员可见。',
+      installationDetails: '数据库：{{databasesCount}}，备份：{{backupsCount}}',
+    },
+    list: {
+      title: '数据库',
+      empty: '该工作区还没有数据库',
+      columns: {
+        database: '数据库',
+        healthcheck: '可用性检查',
+        backups: '备份',
+        meanSize: '平均大小',
+        totalSize: '总大小',
+        lastBackup: '上次备份',
+        storage: '存储',
+      },
+      successfulBackups: '成功：{{successfulBackupsCount}}',
+      failedBackups: '失败：{{failedBackupsCount}}',
+      noBackups: '暂无备份',
     },
   },
   databases: {

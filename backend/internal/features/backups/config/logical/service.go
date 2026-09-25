@@ -145,6 +145,12 @@ func (s *BackupConfigService) GetBackupConfigByDbId(
 	return config, nil
 }
 
+func (s *BackupConfigService) GetBackupConfigsByDatabaseIDs(
+	databaseIDs []uuid.UUID,
+) ([]*LogicalBackupConfig, error) {
+	return s.backupConfigRepository.FindByDatabaseIDs(databaseIDs)
+}
+
 func (s *BackupConfigService) IsStorageInUse(
 	ctx context.Context,
 	user *users_models.User,

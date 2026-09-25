@@ -62,6 +62,7 @@ export const en = {
       system: 'System',
     },
     navigation: {
+      dashboard: 'Dashboard',
       databases: 'Databases',
       storages: 'Storages',
       notifiers: 'Notifiers',
@@ -273,6 +274,35 @@ export const en = {
       openInNewTab: 'Click to open in new tab',
       copied: 'Health-check endpoint copied to clipboard',
       description: "Use this endpoint to monitor your Databasus system's availability",
+    },
+  },
+  dashboard: {
+    tiles: {
+      databases: 'Databases',
+      backups: 'Backups',
+      backupsSize: 'Total backup size',
+      backupsSizeHint:
+        'Counts successful backups only. For physical databases, WAL segments are included.',
+      installation: 'All workspaces',
+      installationHint:
+        'Totals across every workspace of this Databasus instance. Only admins see them.',
+      installationDetails: 'Databases: {{databasesCount}}, backups: {{backupsCount}}',
+    },
+    list: {
+      title: 'Databases',
+      empty: 'This workspace has no databases yet',
+      columns: {
+        database: 'Database',
+        healthcheck: 'Healthcheck',
+        backups: 'Backups',
+        meanSize: 'Mean size',
+        totalSize: 'Total size',
+        lastBackup: 'Last backup',
+        storage: 'Storage',
+      },
+      successfulBackups: 'Successful: {{successfulBackupsCount}}',
+      failedBackups: 'Failed: {{failedBackupsCount}}',
+      noBackups: 'No backups yet',
     },
   },
   databases: {
