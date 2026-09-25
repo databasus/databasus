@@ -40,7 +40,7 @@ import {
   translateApiError,
   useLocale,
 } from '../../../../shared/i18n';
-import { formatDuration } from '../../../../shared/lib';
+import { formatDuration, formatSizeMb } from '../../../../shared/lib';
 import { getUserTimeFormat } from '../../../../shared/time';
 import { ConfirmationComponent } from '../../../../shared/ui';
 import { RestoresComponent } from '../../../restores';
@@ -518,14 +518,6 @@ export const LogicalBackupsComponent = ({
     );
   };
 
-  const formatSize = (sizeMb: number) => {
-    if (sizeMb >= 1024) {
-      const sizeGb = sizeMb / 1024;
-      return `${formatNumber(Number(sizeGb.toFixed(2)))} GB`;
-    }
-    return `${formatNumber(Number(sizeMb?.toFixed(2)))} MB`;
-  };
-
   const columns: ColumnsType<LogicalBackup> = [
     {
       title: t('backups.list.columns.createdAt'),
@@ -562,11 +554,11 @@ export const LogicalBackupsComponent = ({
       width: 150,
       render: (sizeMb: number, record: LogicalBackup) => (
         <div>
-          <div>{formatSize(sizeMb)}</div>
+          <div>{formatSizeMb(sizeMb, formatNumber)}</div>
           {record.backupRawDbSizeMb > 0 && (
             <div className="text-xs text-gray-500 dark:text-gray-500">
               {t('backups.logical.list.databaseSize', {
-                size: formatSize(record.backupRawDbSizeMb),
+                size: formatSizeMb(record.backupRawDbSizeMb, formatNumber),
               })}
             </div>
           )}
@@ -683,11 +675,13 @@ export const LogicalBackupsComponent = ({
                         <div className="text-xs text-gray-500 dark:text-gray-400">
                           {t('backups.list.columns.size')}
                         </div>
-                        <div className="text-sm font-medium">{formatSize(backup.backupSizeMb)}</div>
+                        <div className="text-sm font-medium">
+                          {formatSizeMb(backup.backupSizeMb, formatNumber)}
+                        </div>
                         {backup.backupRawDbSizeMb > 0 && (
                           <div className="text-xs text-gray-500 dark:text-gray-500">
                             {t('backups.logical.list.databaseSize', {
-                              size: formatSize(backup.backupRawDbSizeMb),
+                              size: formatSizeMb(backup.backupRawDbSizeMb, formatNumber),
                             })}
                           </div>
                         )}

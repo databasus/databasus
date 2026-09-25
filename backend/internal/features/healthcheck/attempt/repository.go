@@ -107,3 +107,33 @@ func (r *HealthcheckAttemptRepository) CountByDatabaseID(
 
 	return count, nil
 }
+
+func (r *HealthcheckAttemptRepository) FindRecentByDatabaseIDs(
+	databaseIDs []uuid.UUID,
+	limitPerDatabase int,
+) ([]*HealthcheckAttempt, error) {
+	attempts := []*HealthcheckAttempt{}
+
+	if len(databaseIDs) == 0 {
+		return attempts, nil
+	}
+
+	if err := storage.GetDb().Raw(`
+		SELECT id, database_id, status, created_at
+		FROM (
+			SELECT id, database_id, status, created_at,
+			       ROW_NUMBER() OVER (PARTITION BY database_id ORDER BY created_at DESC) AS recency_rank
+			FROM healthcheck_attempts
+			WHERE database_id IN ?
+		) ranked
+		WHERE recency_rank <= ?
+		ORDER BY database_id, created_at DESC
+	`,
+		databaseIDs,
+		limitPerDatabase,
+	).Scan(&attempts).Error; err != nil {
+		return nil, err
+	}
+
+	return attempts, nil
+}

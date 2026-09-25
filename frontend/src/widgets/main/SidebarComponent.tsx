@@ -13,6 +13,7 @@ import { StarButtonComponent } from '../../shared/ui/StarButtonComponent';
 import { getDiskUsageValues } from './getDiskUsageValues';
 
 export type MainTab =
+  | 'dashboard'
   | 'notifiers'
   | 'storages'
   | 'databases'

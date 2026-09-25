@@ -62,6 +62,7 @@ export const pt: typeof en = {
       system: 'Sistema',
     },
     navigation: {
+      dashboard: 'Painel',
       databases: 'Bancos de dados',
       storages: 'Armazenamentos',
       notifiers: 'Canais de notificação',
@@ -279,6 +280,35 @@ export const pt: typeof en = {
       openInNewTab: 'Abrir em uma nova aba',
       copied: 'Endpoint de verificação de disponibilidade copiado',
       description: 'Use este endpoint para monitorar a disponibilidade do seu Databasus',
+    },
+  },
+  dashboard: {
+    tiles: {
+      databases: 'Bancos de dados',
+      backups: 'Backups',
+      backupsSize: 'Tamanho total dos backups',
+      backupsSizeHint:
+        'Conta apenas os backups bem-sucedidos. Nos bancos de dados físicos, os segmentos WAL também entram no total.',
+      installation: 'Todos os espaços de trabalho',
+      installationHint:
+        'Totais de todos os espaços de trabalho desta instância do Databasus. Só os administradores veem esses números.',
+      installationDetails: 'Bancos de dados: {{databasesCount}}, backups: {{backupsCount}}',
+    },
+    list: {
+      title: 'Bancos de dados',
+      empty: 'Este espaço de trabalho ainda não tem bancos de dados',
+      columns: {
+        database: 'Banco de dados',
+        healthcheck: 'Disponibilidade',
+        backups: 'Backups',
+        meanSize: 'Tamanho médio',
+        totalSize: 'Tamanho total',
+        lastBackup: 'Último backup',
+        storage: 'Armazenamento',
+      },
+      successfulBackups: 'Bem-sucedidos: {{successfulBackupsCount}}',
+      failedBackups: 'Com falha: {{failedBackupsCount}}',
+      noBackups: 'Ainda não há backups',
     },
   },
   databases: {

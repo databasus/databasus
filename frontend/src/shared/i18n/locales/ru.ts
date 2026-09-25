@@ -62,6 +62,7 @@ export const ru: typeof en = {
       system: 'Системная',
     },
     navigation: {
+      dashboard: 'Обзор',
       databases: 'Базы данных',
       storages: 'Хранилища',
       notifiers: 'Каналы уведомлений',
@@ -274,6 +275,35 @@ export const ru: typeof en = {
       openInNewTab: 'Открыть в новой вкладке',
       copied: 'Адрес проверки доступности скопирован',
       description: 'По этому адресу можно отслеживать, доступна ли ваша система Databasus',
+    },
+  },
+  dashboard: {
+    tiles: {
+      databases: 'Базы данных',
+      backups: 'Бекапы',
+      backupsSize: 'Размер бекапов',
+      backupsSizeHint:
+        'Учитываются только успешные бекапы. У физических баз в размер входят и WAL-сегменты.',
+      installation: 'Все рабочие пространства',
+      installationHint:
+        'Итоги по всем рабочим пространствам этого экземпляра Databasus. Их видят только администраторы.',
+      installationDetails: 'Баз данных: {{databasesCount}}, бекапов: {{backupsCount}}',
+    },
+    list: {
+      title: 'Базы данных',
+      empty: 'В этом рабочем пространстве пока нет баз данных',
+      columns: {
+        database: 'База данных',
+        healthcheck: 'Проверки доступности',
+        backups: 'Бекапы',
+        meanSize: 'Средний размер',
+        totalSize: 'Общий размер',
+        lastBackup: 'Последний бекап',
+        storage: 'Хранилище',
+      },
+      successfulBackups: 'Успешных: {{successfulBackupsCount}}',
+      failedBackups: 'С ошибкой: {{failedBackupsCount}}',
+      noBackups: 'Бекапов пока нет',
     },
   },
   databases: {

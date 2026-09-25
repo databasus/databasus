@@ -147,3 +147,23 @@ func (r *BackupConfigRepository) GetDatabasesIDsByStorageID(
 
 	return databasesIDs, nil
 }
+
+func (r *BackupConfigRepository) FindByDatabaseIDs(
+	databaseIDs []uuid.UUID,
+) ([]*PhysicalBackupConfig, error) {
+	backupConfigs := []*PhysicalBackupConfig{}
+
+	if len(databaseIDs) == 0 {
+		return backupConfigs, nil
+	}
+
+	if err := storage.
+		GetDb().
+		Preload("Storage").
+		Where("database_id IN ?", databaseIDs).
+		Find(&backupConfigs).Error; err != nil {
+		return nil, err
+	}
+
+	return backupConfigs, nil
+}

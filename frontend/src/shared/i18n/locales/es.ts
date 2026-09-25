@@ -62,6 +62,7 @@ export const es: typeof en = {
       system: 'Sistema',
     },
     navigation: {
+      dashboard: 'Panel',
       databases: 'Bases de datos',
       storages: 'Almacenamientos',
       notifiers: 'Canales de notificación',
@@ -280,6 +281,35 @@ export const es: typeof en = {
       copied: 'Endpoint de comprobación de disponibilidad copiado al portapapeles',
       description:
         'Use este endpoint para supervisar la disponibilidad de su instancia de Databasus',
+    },
+  },
+  dashboard: {
+    tiles: {
+      databases: 'Bases de datos',
+      backups: 'Copias de seguridad',
+      backupsSize: 'Tamaño total de las copias',
+      backupsSizeHint:
+        'Solo cuenta las copias correctas. En las bases de datos físicas también se incluyen los segmentos WAL.',
+      installation: 'Todos los espacios de trabajo',
+      installationHint:
+        'Totales de todos los espacios de trabajo de esta instancia de Databasus. Solo los ven los administradores.',
+      installationDetails: 'Bases de datos: {{databasesCount}}, copias: {{backupsCount}}',
+    },
+    list: {
+      title: 'Bases de datos',
+      empty: 'Este espacio de trabajo todavía no tiene bases de datos',
+      columns: {
+        database: 'Base de datos',
+        healthcheck: 'Disponibilidad',
+        backups: 'Copias',
+        meanSize: 'Tamaño medio',
+        totalSize: 'Tamaño total',
+        lastBackup: 'Última copia',
+        storage: 'Almacenamiento',
+      },
+      successfulBackups: 'Correctas: {{successfulBackupsCount}}',
+      failedBackups: 'Fallidas: {{failedBackupsCount}}',
+      noBackups: 'Todavía no hay copias',
     },
   },
   databases: {

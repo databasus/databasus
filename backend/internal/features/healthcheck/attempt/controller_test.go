@@ -90,12 +90,12 @@ func Test_GetAttemptsByDatabase_PermissionsEnforced(t *testing.T) {
 			database := createTestDatabaseViaAPI("Test Database", workspace.ID, owner.Token, router)
 
 			pastTime := time.Now().UTC().Add(-1 * time.Hour)
-			createTestHealthcheckAttemptWithTime(
+			CreateTestHealthcheckAttempt(
 				database.ID,
 				databases.HealthStatusAvailable,
 				pastTime,
 			)
-			createTestHealthcheckAttemptWithTime(
+			CreateTestHealthcheckAttempt(
 				database.ID,
 				databases.HealthStatusUnavailable,
 				pastTime.Add(-30*time.Minute),
@@ -162,9 +162,9 @@ func Test_GetAttemptsByDatabase_FiltersByAfterDate(t *testing.T) {
 	oldTime := time.Now().UTC().Add(-2 * time.Hour)
 	recentTime := time.Now().UTC().Add(-30 * time.Minute)
 
-	createTestHealthcheckAttemptWithTime(database.ID, databases.HealthStatusAvailable, oldTime)
-	createTestHealthcheckAttemptWithTime(database.ID, databases.HealthStatusUnavailable, recentTime)
-	createTestHealthcheckAttempt(database.ID, databases.HealthStatusAvailable)
+	CreateTestHealthcheckAttempt(database.ID, databases.HealthStatusAvailable, oldTime)
+	CreateTestHealthcheckAttempt(database.ID, databases.HealthStatusUnavailable, recentTime)
+	CreateTestHealthcheckAttempt(database.ID, databases.HealthStatusAvailable, time.Now().UTC())
 
 	afterDate := time.Now().UTC().Add(-1 * time.Hour)
 	var response []*HealthcheckAttempt
@@ -245,25 +245,4 @@ func createTestDatabaseViaAPI(
 		panic(err)
 	}
 	return &database
-}
-
-func createTestHealthcheckAttempt(databaseID uuid.UUID, status databases.HealthStatus) {
-	createTestHealthcheckAttemptWithTime(databaseID, status, time.Now().UTC())
-}
-
-func createTestHealthcheckAttemptWithTime(
-	databaseID uuid.UUID,
-	status databases.HealthStatus,
-	createdAt time.Time,
-) {
-	repo := GetHealthcheckAttemptRepository()
-	attempt := &HealthcheckAttempt{
-		ID:         uuid.New(),
-		DatabaseID: databaseID,
-		Status:     status,
-		CreatedAt:  createdAt,
-	}
-	if err := repo.Create(attempt); err != nil {
-		panic("Failed to create test healthcheck attempt: " + err.Error())
-	}
 }

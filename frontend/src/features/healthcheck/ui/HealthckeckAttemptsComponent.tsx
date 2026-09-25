@@ -1,17 +1,15 @@
-import { Select, Spin, Tooltip } from 'antd';
-import dayjs from 'dayjs';
+import { Select, Spin } from 'antd';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import type { Database } from '../../../entity/databases';
-import { HealthStatus } from '../../../entity/databases/model/HealthStatus';
 import {
   type HealthcheckAttempt,
+  HealthcheckAttemptsStripComponent,
   healthcheckAttemptApi,
   healthcheckConfigApi,
 } from '../../../entity/healthcheck';
-import { translateApiError, useLocale } from '../../../shared/i18n';
-import { getUserShortTimeFormat } from '../../../shared/time/getUserTimeFormat';
+import { translateApiError } from '../../../shared/i18n';
 
 interface Props {
   database: Database;
@@ -44,7 +42,6 @@ const getAfterDateByPeriod = (period: 'today' | '7d' | '30d' | 'all'): Date => {
 
 export const HealthckeckAttemptsComponent = ({ database, onVisibilityChange }: Props) => {
   const { t } = useTranslation();
-  const { formatRelativeTime } = useLocale();
 
   const [isHealthcheckConfigLoading, setIsHealthcheckConfigLoading] = useState(false);
   const [isShowHealthcheckConfig, setIsShowHealthcheckConfig] = useState(false);
@@ -159,26 +156,13 @@ export const HealthckeckAttemptsComponent = ({ database, onVisibilityChange }: P
           <Spin size="small" />
         </div>
       ) : (
-        <div className="flex flex-wrap gap-1">
+        <>
           {healthcheckAttempts.length > 0 ? (
-            healthcheckAttempts.map((healthcheckAttempt) => (
-              <Tooltip
-                key={healthcheckAttempt.createdAt.toString()}
-                title={`${dayjs(healthcheckAttempt.createdAt).format(getUserShortTimeFormat().format)} (${formatRelativeTime(healthcheckAttempt.createdAt)})`}
-              >
-                <div
-                  className={`h-[8px] w-[8px] cursor-pointer rounded-[2px] ${
-                    healthcheckAttempt.status === HealthStatus.AVAILABLE
-                      ? 'bg-green-500'
-                      : 'bg-red-500'
-                  }`}
-                />
-              </Tooltip>
-            ))
+            <HealthcheckAttemptsStripComponent attempts={healthcheckAttempts} />
           ) : (
             <div className="text-xs text-gray-400">{t('healthcheck.attempts.empty')}</div>
           )}
-        </div>
+        </>
       )}
     </div>
   );

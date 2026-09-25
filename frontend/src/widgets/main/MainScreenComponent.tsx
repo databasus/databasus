@@ -13,6 +13,7 @@ import {
   userApi,
 } from '../../entity/users';
 import { type WorkspaceResponse, workspaceApi } from '../../entity/workspaces';
+import { DashboardComponent } from '../../features/dashboard';
 import { DatabasesComponent } from '../../features/databases/ui/DatabasesComponent';
 import { NotifiersComponent } from '../../features/notifiers/ui/NotifiersComponent';
 import { SettingsComponent } from '../../features/settings';
@@ -40,7 +41,7 @@ export const MainScreenComponent = () => {
   const isNewGitHubVersionAvailable = useIsNewGitHubVersionAvailable();
   const contentHeight = screenHeight - (isMobile ? 70 : 95);
 
-  const [selectedTab, setSelectedTab] = useState<MainTab>('databases');
+  const [selectedTab, setSelectedTab] = useState<MainTab>('dashboard');
   const [diskUsage, setDiskUsage] = useState<DiskUsage | undefined>(undefined);
   const [user, setUser] = useState<UserProfile | undefined>(undefined);
   const [globalSettings, setGlobalSettings] = useState<UsersSettings | undefined>(undefined);
@@ -108,7 +109,7 @@ export const MainScreenComponent = () => {
       const workspacesResponse = await workspaceApi.getWorkspaces();
       setWorkspaces(workspacesResponse.workspaces);
       setSelectedWorkspace(newWorkspace);
-      setSelectedTab('databases');
+      setSelectedTab('dashboard');
     } catch (e) {
       message.error(translateApiError(e, t));
     }
@@ -123,6 +124,16 @@ export const MainScreenComponent = () => {
   const isCanManageDBs = selectedWorkspace?.userRole !== WorkspaceRole.VIEWER;
 
   const tabs: SidebarTab[] = [
+    {
+      text: t('app.navigation.dashboard'),
+      name: 'dashboard',
+      icon: '/icons/menu/dashboard-gray.svg',
+      selectedIcon: '/icons/menu/dashboard-white.svg',
+      onClick: () => setSelectedTab('dashboard'),
+      isAdminOnly: false,
+      marginTop: '0px',
+      isVisible: true,
+    },
     {
       text: t('app.navigation.databases'),
       name: 'databases',
@@ -301,7 +312,8 @@ export const MainScreenComponent = () => {
             </div>
           )}
 
-          {(selectedTab === 'databases' ||
+          {(selectedTab === 'dashboard' ||
+            selectedTab === 'databases' ||
             selectedTab === 'storages' ||
             selectedTab === 'notifiers' ||
             selectedTab === 'settings') && (
@@ -351,6 +363,14 @@ export const MainScreenComponent = () => {
                     )}
 
                     <div className="flex-1 md:pl-3">
+                      {selectedTab === 'dashboard' && selectedWorkspace && user && (
+                        <DashboardComponent
+                          workspace={selectedWorkspace}
+                          user={user}
+                          contentHeight={contentHeight}
+                          key={`dashboard-${selectedWorkspace.id}`}
+                        />
+                      )}
                       {selectedTab === 'settings' && selectedWorkspace && user && (
                         <WorkspaceSettingsComponent
                           workspaceResponse={selectedWorkspace}

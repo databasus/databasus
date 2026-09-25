@@ -30,6 +30,7 @@ import (
 	backups_services "databasus-backend/internal/features/backups/backups/services"
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
 	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
+	"databasus-backend/internal/features/dashboard"
 	"databasus-backend/internal/features/databases"
 	"databasus-backend/internal/features/disk"
 	"databasus-backend/internal/features/encryption/secrets"
@@ -340,6 +341,7 @@ func setUpRoutes(r *gin.Engine) {
 	restores.GetRestoreController().RegisterRoutes(protected)
 	healthcheck_config.GetHealthcheckConfigController().RegisterRoutes(protected)
 	healthcheck_attempt.GetHealthcheckAttemptController().RegisterRoutes(protected)
+	dashboard.GetDashboardController().RegisterRoutes(protected)
 	backups_config_logical.GetBackupConfigController().RegisterRoutes(protected)
 	backups_config_physical.GetBackupConfigController().RegisterRoutes(protected)
 	audit_logs.GetAuditLogController().RegisterRoutes(protected)

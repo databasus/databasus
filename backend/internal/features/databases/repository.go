@@ -220,6 +220,16 @@ func (r *DatabaseRepository) IsNotifierUsing(notifierID uuid.UUID) (bool, error)
 	return count > 0, nil
 }
 
+func (r *DatabaseRepository) CountAll() (int64, error) {
+	var count int64
+
+	if err := storage.GetDb().Model(&Database{}).Count(&count).Error; err != nil {
+		return 0, err
+	}
+
+	return count, nil
+}
+
 func (r *DatabaseRepository) GetAllDatabases() ([]*Database, error) {
 	var databases []*Database
 
