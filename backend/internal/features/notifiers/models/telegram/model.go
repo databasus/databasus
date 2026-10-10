@@ -74,11 +74,6 @@ func (t *TelegramNotifier) Send(
 		return fmt.Errorf("failed to decrypt bot token: %w", err)
 	}
 
-	fullMessage := notification.Heading
-	if notification.Message != "" {
-		fullMessage = fmt.Sprintf("%s\n\n%s", notification.Heading, notification.Message)
-	}
-
 	sendMessageURL, err := t.getSendMessageURL(botToken)
 	if err != nil {
 		return err
@@ -86,7 +81,7 @@ func (t *TelegramNotifier) Send(
 
 	data := url.Values{}
 	data.Set("chat_id", t.TargetChatID)
-	data.Set("text", fullMessage)
+	data.Set("text", buildAndTruncateText(notification))
 	data.Set("parse_mode", "HTML")
 
 	if t.ThreadID != nil && *t.ThreadID != 0 {
@@ -128,6 +123,20 @@ func (t *TelegramNotifier) Send(
 	}
 
 	return nil
+}
+
+func buildAndTruncateText(notification notifier_models.Notification) string {
+	text := notification.Heading
+	if notification.Message != "" {
+		text = fmt.Sprintf("%s\n\n%s", notification.Heading, notification.Message)
+	}
+
+	textRunes := []rune(text)
+	if len(textRunes) > maxTextRunes {
+		return string(textRunes[:maxTextRunes])
+	}
+
+	return text
 }
 
 func (t *TelegramNotifier) HideSensitiveData() {

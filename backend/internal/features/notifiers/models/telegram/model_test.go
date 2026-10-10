@@ -1,6 +1,11 @@
 package telegram_notifier
 
 import (
+	"io"
+	"log/slog"
+	"net/http"
+	"net/url"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -99,4 +104,38 @@ func Test_GetSendMessageURL_WithoutBotAPIURL_UsesOfficialTelegramAPI(t *testing.
 
 	require.NoError(t, err)
 	assert.Equal(t, "https://api.telegram.org/bot123456:AAH-TOKEN/sendMessage", sendMessageURL)
+}
+
+func Test_Send_WhenTextExceedsTelegramLimit_TruncatesTextByRunes(t *testing.T) {
+	botAPIURL, recorder := notifier_models.StartRecordingServer(
+		t,
+		notifier_models.StubResponse{StatusCode: http.StatusOK, Body: `{"ok":true}`},
+	)
+	notifier := &TelegramNotifier{
+		BotToken:     "123456:AAH-TOKEN",
+		TargetChatID: "123456",
+		BotAPIURL:    botAPIURL,
+	}
+	heading := "Backup failed"
+
+	require.NoError(t, notifier.Send(
+		notifier_models.PassthroughEncryptor{},
+		slog.New(slog.NewTextHandler(io.Discard, nil)),
+		notifier_models.Notification{
+			Type:    notifier_models.NotificationTypeBackupFailed,
+			Heading: heading,
+			Message: strings.Repeat("界", maxTextRunes),
+		},
+	))
+
+	require.Equal(t, 1, recorder.GetRequestCount())
+	sentForm, err := url.ParseQuery(recorder.GetLastRequest().Body)
+	require.NoError(t, err)
+
+	messagePrefixLength := maxTextRunes - len([]rune(heading)) - len([]rune("\n\n"))
+	assert.Equal(
+		t,
+		heading+"\n\n"+strings.Repeat("界", messagePrefixLength),
+		sentForm.Get("text"),
+	)
 }
