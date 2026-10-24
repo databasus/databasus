@@ -1,3 +1,5 @@
+//go:build testhelpers
+
 package backups_controllers_logical
 
 import (

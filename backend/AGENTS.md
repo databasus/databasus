@@ -11,7 +11,7 @@ Run in `backend/` unless noted.
 | `just lint` | Check the backend code, the contracts and the generated code without changing files |
 | `just format` | Format the Go code |
 | `just test-package <packages>` | Run the given test packages |
-| `go test -race -count=1 -run 'TestName/scenario' <package>` | Run one test |
+| `go test -race -tags testhelpers -count=1 -run 'TestName/scenario' <package>` | Run one test; packages in the target layout need no tag |
 | `just generate-api` at the root | Regenerate servers, clients and frontend types after editing `api/*.yaml` |
 | `goose -dir migrations create <name> sql` | Create a migration stub, then fill it by hand |
 

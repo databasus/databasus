@@ -1,3 +1,5 @@
+//go:build testhelpers
+
 package restoring
 
 import (

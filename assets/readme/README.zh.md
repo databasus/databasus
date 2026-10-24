@@ -297,7 +297,7 @@ Databasus 处理的是敏感数据，所以防范漏洞、越权访问和数据�
 
 静态分析由几道彼此独立的检查组成。CodeQL 扫描整个代码库找安全问题。每个 PR 都会运行 gitleaks 扫描泄露的密钥，并用 semgrep 按安全规则检查代码。Dockerfile 和 CI 工作流还有各自额外的规则（action 引用是否固定、权限是否最小化、基础镜像是否可疑），不安全的写法在合并之前就会被标出来。在这些逐 PR 的检查之上，OpenAI 的 Codex Security 会定期对整个代码库做更深入的审计。这是一个独立的计划，能发现只看单个 PR 的扫描容易漏掉的架构性和跨模块问题。
 
-依赖方面，Dependabot 对照 GitHub Advisory Database 盯着我们所有的依赖，CVE 公布后几分钟内就会浮出来。更新会经过一段冷却期，让刚发布的版本先沉淀一下我们再采用。这是对投毒包事件（比如供应链攻击）的一道有意为之的防线。Dependency Review Action 则会直接拦下任何引入新的 HIGH 或 CRITICAL 级别 CVE 的 PR。
+依赖方面，Dependabot 对照 GitHub Advisory Database 盯着我们所有的依赖，CVE 公布后几分钟内就会浮出来。更新会经过一段冷却期，让刚发布的版本先沉淀一下我们再采用。这是对投毒包事件（比如供应链攻击）的一道有意为之的防线。Dependency Review Action 则会直接拦下任何引入新的 HIGH 或 CRITICAL 级别 CVE 的 PR。Go 代码方面，只要我们的代码调用了存在已知漏洞的函数，govulncheck 就会让 PR 失败；`go mod verify` 则用记录的校验和核对每个下载的模块。
 
 每次构建的容器镜像都会用 Trivy 扫描。另外还有一遍针对 Dockerfile 的 Trivy 扫描，在配置问题进入镜像之前就把它抓住。所有 GitHub Actions 都固定到完整的提交 SHA，而不是 `@v4`、`@main` 这类浮动标签，后者在 2025 年一直是活跃的攻击面。工作流默认使用最小权限，只在确实需要时按 job 提权。
 

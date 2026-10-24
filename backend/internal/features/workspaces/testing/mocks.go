@@ -1,3 +1,5 @@
+//go:build testhelpers
+
 package workspaces_testing
 
 import (

@@ -1,11 +1,12 @@
 set shell := ["bash", "-euo", "pipefail", "-c"]
 
 lint:
-    golangci-lint fmt --diff ./cmd/... ./internal/...
-    golangci-lint run ./cmd/... ./internal/...
+    golangci-lint fmt --diff ./cmd/... ./internal/... ./tools/...
+    golangci-lint run ./cmd/... ./internal/... ./tools/...
+    go run ./tools/archlint
 
 format:
-    golangci-lint fmt ./cmd/... ./internal/...
+    golangci-lint fmt ./cmd/... ./internal/... ./tools/...
 
 # The libedit shim lets the bundled PostgreSQL clients start on Fedora; without it a package that
 # checks them at startup exits before its first test.
@@ -15,7 +16,7 @@ test-package +packages:
     set -euo pipefail
     source ../scripts/fedora.sh
     apply_libedit_shim
-    go test -count=1 {{ packages }}
+    go test -race -tags testhelpers -count=1 {{ packages }}
 
 # CI runs one group per runner, so the groups must cover every package exactly once. The other
 # group drops only the subtrees the named groups take, so a new package lands in it. A group named
@@ -25,13 +26,13 @@ test-group-packages group:
     set -euo pipefail
     group_name=$(sed -E 's/-[0-9]+-of-[0-9]+$//' <<<"{{ group }}")
     case "$group_name" in
-        physical) go list ./internal/features/tests/physical/... ;;
-        logical) go list ./internal/features/tests/logical/... ;;
-        wal-usecases) go list ./internal/features/backups/backups/usecases/physical/postgresql ;;
+        physical) go list -tags testhelpers ./internal/features/tests/physical/... ;;
+        logical) go list -tags testhelpers ./internal/features/tests/logical/... ;;
+        wal-usecases) go list -tags testhelpers ./internal/features/backups/backups/usecases/physical/postgresql ;;
         other)
-            go list ./internal/... |
+            go list -tags testhelpers ./internal/... |
                 grep -Ev '/internal/features/(tests/(physical|logical)(/|$)|backups/backups/usecases/physical/postgresql$)'
-            go list ./cmd/...
+            go list -tags testhelpers ./cmd/...
             ;;
         *) echo "unknown test group: {{ group }} (expected physical, logical, wal-usecases or other)" >&2; exit 1 ;;
     esac
@@ -56,7 +57,7 @@ test-group-tests group:
     # go test -list would run each package's TestMain, which starts its database containers, so
     # the names come from the test sources.
     # shellcheck disable=SC2086 # one import path per word
-    package_directories=$(go list -f '{{{{ .Dir }}' $packages)
+    package_directories=$(go list -tags testhelpers -f '{{{{ .Dir }}' $packages)
     shopt -s nullglob
     test_files=()
     for package_directory in $package_directories; do

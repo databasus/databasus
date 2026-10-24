@@ -33,7 +33,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
-          go-version: "1.26.3"
+          go-version: "1.26.10"
           cache: false
 
       - name: Set up Go cache
@@ -45,6 +45,11 @@ jobs:
         run: |
           cd backend
           go mod download
+
+      - name: Verify Go module checksums
+        run: |
+          cd backend
+          go mod verify
 
       - name: Install golangci-lint
         run: |
@@ -63,6 +68,19 @@ jobs:
         run: |
           cd backend
           golangci-lint run
+
+      - name: Run archlint
+        run: |
+          cd backend
+          go run ./tools/archlint
+
+      - name: Install govulncheck
+        run: go install golang.org/x/vuln/cmd/govulncheck@v1.9.0
+
+      - name: Scan for reachable vulnerabilities
+        run: |
+          cd backend
+          govulncheck ./...
 
       - name: Verify go mod tidy
         run: |
@@ -188,7 +206,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
-          go-version: "1.26.3"
+          go-version: "1.26.10"
           cache: false
 
       - name: Set up Go cache
@@ -201,6 +219,11 @@ jobs:
           cd agent/verification
           go mod download
 
+      - name: Verify Go module checksums
+        run: |
+          cd agent/verification
+          go mod verify
+
       - name: Install golangci-lint
         run: |
           go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.11.3
@@ -210,6 +233,14 @@ jobs:
         run: |
           cd agent/verification
           golangci-lint run
+
+      - name: Install govulncheck
+        run: go install golang.org/x/vuln/cmd/govulncheck@v1.9.0
+
+      - name: Scan for reachable vulnerabilities
+        run: |
+          cd agent/verification
+          govulncheck ./...
 
       - name: Verify go mod tidy
         run: |
@@ -229,7 +260,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
-          go-version: "1.26.3"
+          go-version: "1.26.10"
           cache: false
 
       - name: Set up Go cache
@@ -345,7 +376,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
-          go-version: "1.26.3"
+          go-version: "1.26.10"
           cache: false
 
       - name: Set up Go cache
@@ -440,7 +471,7 @@ jobs:
           # Each leg runs one group on its own runner, so a group needs more wall-clock than the
           # 15m scripts/test.sh allows on a developer machine.
           # shellcheck disable=SC2086 # one import path per word
-          go test -p=8 -count=1 -failfast -timeout 40m ${run_pattern:+-run "$run_pattern"} $packages
+          go test -race -tags testhelpers -p=8 -count=1 -failfast -timeout 40m ${run_pattern:+-run "$run_pattern"} $packages
 
   build-storage-image:
     if: github.head_ref != 'develop'

@@ -1,3 +1,5 @@
+//go:build testhelpers
+
 // Package physicaltesting holds the shared control plane, helpers and version-parameterized bodies
 // for the PostgreSQL physical backup→restore E2E tests. The per-version packages (pg17, pg18) are
 // thin wrappers that call the exported Run* bodies, so each PostgreSQL major runs as its own test

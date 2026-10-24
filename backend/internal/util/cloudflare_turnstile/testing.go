@@ -1,3 +1,5 @@
+//go:build testhelpers
+
 package cloudflare_turnstile
 
 // A test that has to see an endpoint refuse an unanswered challenge cannot get

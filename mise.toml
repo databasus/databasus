@@ -1,5 +1,5 @@
 [tools]
-go = "1.26.3"
+go = "1.26.10"
 node = "24.21.0"
 pnpm = "9.15.9"
 just = "1.58.0"
@@ -18,5 +18,5 @@ ripgrep = "15.2.0"
 shellcheck = "0.11.0"
 
 [env]
-# tools/lsp/typescript-language-server explains why it shadows the mise shim.
+# Each wrapper in tools/lsp explains why it shadows the mise shim.
 _.path = ["{{config_root}}/tools/lsp"]

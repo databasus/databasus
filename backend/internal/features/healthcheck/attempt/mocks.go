@@ -1,3 +1,5 @@
+//go:build testhelpers
+
 package healthcheck_attempt
 
 import (

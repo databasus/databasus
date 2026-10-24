@@ -1,3 +1,5 @@
+//go:build testhelpers
+
 // Package logicaltesting holds the engine-agnostic helpers shared by the
 // per-engine logical backup/restore test packages (mysql, mariadb, mongodb,
 // postgresql). It is normal (non-_test) code so the sibling test packages can

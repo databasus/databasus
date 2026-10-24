@@ -2,9 +2,15 @@ version: "2"
 
 run:
   timeout: 5m
-  tests: false
+  tests: true
   concurrency: 4
+  relative-path-mode: gomod
+  build-tags:
+    - testhelpers
 
+# Code outside the target layout (the anchor `target-layout` below) awaits its move and keeps the
+# checks it had: its production files run only the linters listed before `forbidigo`, and its test
+# files run none. tools/archlint tests that every expression here matches its own pattern.
 linters:
   default: standard
   enable:
@@ -17,10 +23,147 @@ linters:
     - errname
     - noctx
     - modernize
+    - forbidigo
+    - sloglint
+    - depguard
+    - exhaustive
+    - exhaustruct
+    - revive
+    - nolintlint
+    - usetesting
+    - testifylint
+    - thelper
+    - gochecknoinits
 
   settings:
     errcheck:
       check-type-assertions: true
+
+    forbidigo:
+      analyze-types: true
+      forbid:
+        - pattern: ^time\.Sleep$
+          msg: wait for a condition with testwait.Until or move the clock from Deps
+        - pattern: ^(assert|require)\.(Eventually|Eventuallyf|EventuallyWithT|EventuallyWithTf)$
+          msg: wait for a condition with testwait.Until
+        - pattern: ^fmt\.Print(f|ln)?$
+          msg: log through the logger from Deps; only commands and tools print
+        - pattern: ^os\.Exit$
+          msg: return an error; only commands and tools exit
+        - pattern: ^os\.(Getenv|LookupEnv|Environ)$
+          msg: read settings through lib/config and pass them in Deps
+        - pattern: ^context\.(Background|TODO)$
+          msg: take the caller's context, or t.Context() in tests
+        - pattern: ^gorm\.DB$
+          pkg: ^gorm\.io/gorm$
+          msg: only repositories hold the database
+        - pattern: ^database\.Conn$
+          msg: only repositories run queries
+
+    sloglint:
+      attr-only: true
+      context: all
+      static-msg: true
+      key-naming-case: snake
+
+    depguard:
+      rules:
+        test-libraries:
+          files:
+            - "!$test"
+            - "!**/internal/lib/testdb/**"
+            - "!**/internal/lib/testwait/**"
+            - "!**/internal/lib/testcontainers/**"
+            - "!**/internal/lib/apiclient/**"
+            - "!**/internal/lib/agentclienttest/**"
+            - "!**/internal/app/apptest/**"
+          deny:
+            - pkg: github.com/stretchr/testify
+              desc: test libraries belong in test files and test-only packages
+            - pkg: github.com/testcontainers/testcontainers-go
+              desc: test libraries belong in test files and test-only packages
+        verification-agent:
+          files:
+            - "**/internal/agent/**"
+            - "**/cmd/verification-agent/**"
+          deny:
+            - pkg: github.com/gin-gonic/gin
+              desc: the verification agent has no HTTP server
+            - pkg: gorm.io
+              desc: the verification agent has no database schema
+
+    exhaustruct:
+      include:
+        - .+\.Deps$
+
+    revive:
+      rules:
+        - name: blank-imports
+        - name: context-as-argument
+        - name: context-keys-type
+        - name: dot-imports
+        - name: empty-block
+        - name: error-naming
+        - name: error-return
+        - name: error-strings
+        - name: errorf
+        - name: increment-decrement
+        - name: indent-error-flow
+        - name: range
+        - name: receiver-naming
+        - name: redefines-builtin-id
+        - name: superfluous-else
+        - name: time-naming
+        - name: unexported-return
+        - name: unreachable-code
+        - name: unused-parameter
+        - name: var-declaration
+        - name: var-naming
+
+    nolintlint:
+      require-explanation: true
+      require-specific: true
+      allow-unused: false
+
+  exclusions:
+    rules:
+      # The Go part of "Backend layout" in docs/architecture.md.
+      - path-except: &target-layout ^(api|cmd/databasus|cmd/verification-agent|internal/(app|modules|engines|lib|agent)|tools)/
+        linters:
+          - forbidigo
+          - sloglint
+          - depguard
+          - exhaustive
+          - exhaustruct
+          - revive
+          - nolintlint
+          - usetesting
+          - testifylint
+          - thelper
+          - gochecknoinits
+      # Test files outside the target layout. A rule cannot hold both `path` and `path-except`, so
+      # this one excludes every path that is neither in the target layout (the first branch, a copy of
+      # the anchor) nor a production file; RE2 has no lookahead, so the second branch spells out "a
+      # .go file not ending in _test.go". A rule needs two conditions, and `text: .` matches every
+      # finding.
+      - path-except: ^(api|cmd/databasus|cmd/verification-agent|internal/(app|modules|engines|lib|agent)|tools)/|(^|/)([^/]*([^t]|[^s]t|[^e]st|[^t]est|[^_]test)|test)\.go$
+        text: .
+
+      - path: ^(cmd|tools)/
+        linters: [forbidigo]
+        text: only commands and tools (print|exit)
+      - path: ^internal/lib/config/
+        linters: [forbidigo]
+        text: read settings through lib/config
+      - path: ^(cmd|internal/app)/
+        linters: [forbidigo]
+        text: take the caller's context
+      - path: ^internal/lib/clock/
+        linters: [forbidigo]
+        text: wait for a condition with testwait.Until or move the clock
+      - path: (^internal/(app|lib)/|(^|/)module\.go$|(^|/)([a-z0-9_]+_)?repository(_test)?\.go$|_test\.go$)
+        linters: [forbidigo]
+        text: only repositories (hold the database|run queries)
 
 formatters:
   enable:

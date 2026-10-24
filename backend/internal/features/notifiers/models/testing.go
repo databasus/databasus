@@ -1,3 +1,5 @@
+//go:build testhelpers
+
 package notifier_models
 
 import (

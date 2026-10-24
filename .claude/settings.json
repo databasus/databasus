@@ -1,4 +1,7 @@
 {
+  "env": {
+    "GOFLAGS": "-tags=testhelpers"
+  },
   "hooks": {
     "SessionStart": [
       {

@@ -1,3 +1,5 @@
+//go:build testhelpers
+
 package verification_agents
 
 import (

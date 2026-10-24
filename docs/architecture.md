@@ -226,7 +226,7 @@ PostgreSQL owns the backup format, and we do not implement block-level increment
 
 - **Background jobs** run through `background.Runner`. Each run of a job is a pass. The runner puts `job_name` and `job_id` into the context of each pass and never overlaps two passes of one job. When a pass returns an error or panics, the runner logs it and still runs the next pass on schedule. A second `Start` panics, because it is always a bug. The runner reports each job's last result to the health endpoint.
 - **External tools** (`pg_dump`, `pg_basebackup`, `pg_receivewal`, `mysqldump` and others) run through the `lib/process` helper. The helper binds the process to the operation's context and kills the whole process group when the context ends.
-- **Goroutines** are started only through `lib` helpers that tie them to a context and recover a panic into an error. A bare `go` statement exists only inside `lib`.
+- **Goroutines** are started only through `lib` helpers that tie them to a context and recover a panic into an error. In production code a bare `go` statement exists only inside `lib`; a test may start one directly to drive concurrent calls.
 - **Cancellation.** A running backup, restore or verification is registered under its ID, and a cancel request ends its context.
 - **Shutdown.** SIGTERM or SIGINT cancels the root context, and then:
   - the HTTP server stops accepting connections and waits for started requests;
@@ -269,6 +269,6 @@ The verification agent is a CLI worker that runs on a machine the user provides.
 | Exhaustive `switch` on enums | `exhaustive` |
 | The contract follows the API rules; generated code is up to date | `vacuum`, `just lint` |
 
-`just lint` in `backend/` runs all of them, on test files too.
+`just lint` in `backend/` runs all of them. The linters check test files too. The `archlint` rules on imports, the module root, file roles, errors and bare `go` check production files only: a module's API tests build the whole application through `apptest`, which sits above the modules, and tests start goroutines of their own to drive concurrent calls.
 
-Until `archlint` and these linters arrive, `just lint` in `backend/` runs the formatters and the linters configured in `backend/.golangci.yml`.
+`importas` arrives with the generated API packages, `gochecknoglobals` once no package-level dependencies remain, and `vacuum` and the generated-code check with the contract. Until a module moves into the layout above, its code keeps the golangci-lint checks it had before these rules, and its test files are not linted; `backend/.golangci.yml` names the target layout. Only the production-binary rule, the testhelpers build tag rule and the rule against direct provider writes in the old backup code of `archlint` reach that code.

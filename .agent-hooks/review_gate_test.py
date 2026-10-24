@@ -1048,7 +1048,7 @@ class ImplementationGateChecksTest(ShortReplyAssertions, unittest.TestCase):
 
         [call] = repository.check_calls()
         self.assertEqual(call["name"], "golangci-lint")
-        self.assertEqual(call["arguments"], ["run", "./cmd/...", "./internal/..."])
+        self.assertEqual(call["arguments"], ["run", "./cmd/...", "./internal/...", "./tools/..."])
         self.assertEqual(Path(call["cwd"]), repository.root / "backend")
 
     def test_runs_agent_linter_in_verification_agent_directory(self):
@@ -1107,7 +1107,7 @@ class ImplementationGateChecksTest(ShortReplyAssertions, unittest.TestCase):
         response = repository.stop("implementation")
 
         self.assertEqual(response["decision"], "block")
-        self.assertIn("`golangci-lint run ./cmd/... ./internal/...` in `backend`", response["reason"])
+        self.assertIn("`golangci-lint run ./cmd/... ./internal/... ./tools/...` in `backend`", response["reason"])
         self.assertIn("service.go:12:2: ineffectual assignment to err", response["reason"])
         self.assert_asks_for_short_reply(response["reason"])
         self.assertEqual(repository.reviewer_calls(), [])

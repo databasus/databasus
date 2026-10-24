@@ -1,14 +1,20 @@
+//go:build testhelpers
+
 package databases
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strconv"
+	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgconn"
+	"gorm.io/gorm"
 
 	"databasus-backend/internal/config"
 	"databasus-backend/internal/features/databases/databases/mariadb"
@@ -439,4 +445,50 @@ func RemoveTestDatabase(ctx context.Context, database *Database) {
 	if err := databaseService.DeleteForTest(context.WithoutCancel(ctx), database.ID); err != nil {
 		panic(fmt.Sprintf("failed to delete test database: %v", err))
 	}
+}
+
+// DeleteForTest removes a database through the listener chain, which owns external cleanup such as
+// backup rows and replication slots, without permission checks or audit logging. A missing row
+// counts as success, so a fixture's teardown can re-delete a database the test already deleted.
+// Under the
+// parallel test suite (go test -p=N) the cascade can deadlock against a concurrent writer in
+// the same process (a backup scheduler still settling), surfacing as SQLSTATE 40P01. The
+// aborted transaction is transient, so the whole delete — idempotent on a re-run — is retried.
+func (s *DatabaseService) DeleteForTest(ctx context.Context, id uuid.UUID) error {
+	const maxAttempts = 5
+
+	deleteOnce := func() error {
+		for _, listener := range s.dbRemoveListener {
+			if err := listener.OnBeforeDatabaseRemove(ctx, id); err != nil {
+				return err
+			}
+		}
+
+		if err := s.dbRepository.Delete(id); err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+			return err
+		}
+
+		return nil
+	}
+
+	var err error
+	for attempt := range maxAttempts {
+		err = deleteOnce()
+		if err == nil || !isTransientSerializationError(err) {
+			return err
+		}
+
+		time.Sleep(time.Duration(attempt+1) * 20 * time.Millisecond)
+	}
+
+	return err
+}
+
+// isTransientSerializationError reports whether err is a PostgreSQL deadlock (40P01) or
+// serialization failure (40001) — both transient, where retrying the aborted transaction is
+// the correct response rather than failing.
+func isTransientSerializationError(err error) bool {
+	var pgErr *pgconn.PgError
+
+	return errors.As(err, &pgErr) && (pgErr.Code == "40P01" || pgErr.Code == "40001")
 }

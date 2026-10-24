@@ -1,3 +1,5 @@
+//go:build testhelpers
+
 package usecases_physical_postgresql
 
 import (

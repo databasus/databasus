@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# The old backend packages keep their cross-package test helpers in files behind the testhelpers
+# build tag, so the production binary does not link them. Without the tag gopls reports every test
+# that calls such a helper as broken. This wrapper, which mise.toml puts ahead of the shim on PATH,
+# runs the pinned gopls with the tag. Claude Code starts gopls through the mise shim, which skips
+# this directory, so .claude/settings.json gives its sessions the tag through GOFLAGS.
+set -euo pipefail
+
+GOFLAGS="${GOFLAGS:+$GOFLAGS }-tags=testhelpers" exec "$(mise where go:golang.org/x/tools/gopls)/bin/gopls" "$@"

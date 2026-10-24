@@ -1,3 +1,5 @@
+//go:build testhelpers
+
 package storage_files
 
 import (

@@ -16,7 +16,7 @@ RUN pnpm build
 
 # ========= BUILD BACKEND =========
 # Backend build stage
-FROM --platform=$BUILDPLATFORM golang:1.26.3 AS backend-build
+FROM --platform=$BUILDPLATFORM golang:1.26.10 AS backend-build
 
 # Make TARGET args available early so tools built here match the final image arch
 ARG TARGETOS
@@ -65,7 +65,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
 
 
 # ========= BUILD VERIFICATION AGENT =========
-FROM --platform=$BUILDPLATFORM golang:1.26.3 AS verification-agent-build
+FROM --platform=$BUILDPLATFORM golang:1.26.10 AS verification-agent-build
 
 WORKDIR /agent
 

@@ -137,7 +137,7 @@ class Check:
 # agent is editing. Tests run only through the change verification commands a change names, and
 # their forms leave out `just test`, which resets the test containers other agents share.
 MODULE_CHECKS = (
-    ("backend/", (Check("backend", ("golangci-lint", "run", "./cmd/...", "./internal/...")),)),
+    ("backend/", (Check("backend", ("golangci-lint", "run", "./cmd/...", "./internal/...", "./tools/...")),)),
     (
         "agent/",
         (Check("agent/verification", ("golangci-lint", "run", "./cmd/...", "./internal/...", "./e2e/...")),),
