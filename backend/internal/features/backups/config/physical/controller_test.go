@@ -19,6 +19,7 @@ import (
 	"databasus-backend/internal/features/intervals"
 	"databasus-backend/internal/features/notifiers"
 	"databasus-backend/internal/features/storages"
+	local_storage "databasus-backend/internal/features/storages/models/local"
 	users_enums "databasus-backend/internal/features/users/enums"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_controllers "databasus-backend/internal/features/workspaces/controllers"
@@ -339,8 +340,13 @@ func Test_GetBackupConfig_PhysicalWhenNoneExists_InitializesDefaults(t *testing.
 }
 
 type recordingBackupCancellationListener struct {
-	backupsDisabledCount      int
-	walStreamingDisabledCount int
+	backupsDisabledCount       int
+	walStreamingDisabledCount  int
+	backupsStorageChangedCount int
+}
+
+func (r *recordingBackupCancellationListener) OnBackupsStorageChanged(_ context.Context, _ uuid.UUID) {
+	r.backupsStorageChangedCount++
 }
 
 func (r *recordingBackupCancellationListener) OnBackupsDisabled(_ context.Context, _ uuid.UUID) {
@@ -680,4 +686,183 @@ func Test_GetBackupConfig_WhenStoredConfigPredatesTheBackupType_RepairsItOnRead(
 		repairedConfig,
 		http.StatusOK,
 	)
+}
+
+type physicalStorageReferenceFixture struct {
+	router    *gin.Engine
+	ownerAuth string
+	workspace uuid.UUID
+	database  *databases.Database
+	// Removed after the database, whose backup config refers to them.
+	createdStorageIDs []uuid.UUID
+}
+
+func (f *physicalStorageReferenceFixture) createS3Storage() *storages.Storage {
+	createdStorage := storages.CreateTestFlakyS3Storage(f.workspace, "http://127.0.0.1:1")
+	f.createdStorageIDs = append(f.createdStorageIDs, createdStorage.ID)
+
+	return createdStorage
+}
+
+func createPhysicalStorageReferenceFixture(t *testing.T) *physicalStorageReferenceFixture {
+	t.Helper()
+
+	router := createPhysicalTestRouter()
+	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
+	database := createPhysicalDatabaseViaAPI(
+		t,
+		"Physical DB "+uuid.New().String(),
+		workspace.ID,
+		owner.Token,
+		router,
+		postgresql_physical.BackupTypeFullOnly,
+		"17",
+	)
+
+	fixture := &physicalStorageReferenceFixture{
+		router:    router,
+		ownerAuth: "Bearer " + owner.Token,
+		workspace: workspace.ID,
+		database:  database,
+	}
+
+	t.Cleanup(func() {
+		databases.RemoveTestDatabase(t.Context(), database)
+		for _, storageID := range fixture.createdStorageIDs {
+			storages.RemoveTestStorage(t.Context(), storageID)
+		}
+		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	})
+
+	return fixture
+}
+
+func Test_SaveBackupConfig_PhysicalWhenEmbeddedStorageHasChangedFields_KeepsStoredStorage(t *testing.T) {
+	fixture := createPhysicalStorageReferenceFixture(t)
+	existingStorage := fixture.createS3Storage()
+
+	changedStorage := *existingStorage
+	changedS3Storage := *existingStorage.S3Storage
+	changedStorage.Name = "Renamed through the backup config"
+	changedS3Storage.S3AccessKey = "replaced-access-key"
+	changedS3Storage.S3SecretKey = "replaced-secret-key"
+	changedStorage.S3Storage = &changedS3Storage
+
+	backupConfig := validPhysicalConfigForFullOnly(fixture.database.ID)
+	backupConfig.Storage = &changedStorage
+
+	var savedConfig PhysicalBackupConfig
+	test_utils.MakePostRequestAndUnmarshal(
+		t,
+		fixture.router,
+		"/api/v1/backup-configs/physical/save",
+		fixture.ownerAuth,
+		backupConfig,
+		http.StatusOK,
+		&savedConfig,
+	)
+
+	require.NotNil(t, savedConfig.StorageID)
+	assert.Equal(t, existingStorage.ID, *savedConfig.StorageID)
+
+	storedStorage, err := storages.GetStorageService().GetStorageByID(t.Context(), existingStorage.ID)
+	require.NoError(t, err)
+	assert.Equal(t, existingStorage.Name, storedStorage.Name)
+	assert.Equal(t, existingStorage.S3Storage.S3AccessKey, storedStorage.S3Storage.S3AccessKey)
+	assert.Equal(t, existingStorage.S3Storage.S3SecretKey, storedStorage.S3Storage.S3SecretKey)
+}
+
+func Test_SaveBackupConfig_PhysicalWhenEmbeddedStorageHasNoID_ReturnsBadRequestAndCreatesNoStorage(
+	t *testing.T,
+) {
+	fixture := createPhysicalStorageReferenceFixture(t)
+
+	backupConfig := validPhysicalConfigForFullOnly(fixture.database.ID)
+	backupConfig.Storage = &storages.Storage{
+		WorkspaceID:  fixture.workspace,
+		Type:         storages.StorageTypeLocal,
+		Name:         "Storage created through the backup config",
+		LocalStorage: &local_storage.LocalStorage{},
+	}
+
+	resp := test_utils.MakePostRequest(
+		t,
+		fixture.router,
+		"/api/v1/backup-configs/physical/save",
+		fixture.ownerAuth,
+		backupConfig,
+		http.StatusBadRequest,
+	)
+
+	assert.Contains(t, string(resp.Body), ErrStorageWithoutID.Error())
+
+	var storagesInWorkspace int64
+	require.NoError(t, storage.GetDb().Model(&storages.Storage{}).
+		Where("workspace_id = ?", fixture.workspace).
+		Count(&storagesInWorkspace).Error)
+	assert.Zero(t, storagesInWorkspace)
+}
+
+func Test_SaveBackupConfig_PhysicalWhenEmbeddedStorageIsUnknown_ReturnsBadRequestAndCreatesNoStorage(
+	t *testing.T,
+) {
+	fixture := createPhysicalStorageReferenceFixture(t)
+
+	unknownStorageID := uuid.New()
+	backupConfig := validPhysicalConfigForFullOnly(fixture.database.ID)
+	backupConfig.Storage = &storages.Storage{
+		ID:           unknownStorageID,
+		WorkspaceID:  fixture.workspace,
+		Type:         storages.StorageTypeLocal,
+		Name:         "Unknown storage",
+		LocalStorage: &local_storage.LocalStorage{},
+	}
+
+	test_utils.MakePostRequest(
+		t,
+		fixture.router,
+		"/api/v1/backup-configs/physical/save",
+		fixture.ownerAuth,
+		backupConfig,
+		http.StatusBadRequest,
+	)
+
+	var storagesWithUnknownID int64
+	require.NoError(t, storage.GetDb().Model(&storages.Storage{}).
+		Where("id = ?", unknownStorageID).
+		Count(&storagesWithUnknownID).Error)
+	assert.Zero(t, storagesWithUnknownID)
+}
+
+func Test_SaveBackupConfig_PhysicalWhenStorageChanges_StopsStreamingOnlyOnChange(t *testing.T) {
+	fixture := createPhysicalStorageReferenceFixture(t)
+	firstStorage := fixture.createS3Storage()
+	secondStorage := fixture.createS3Storage()
+	recorder := recordBackupCancellations(t)
+
+	saveConfigWithStorage := func(embeddedStorage *storages.Storage) {
+		backupConfig := validPhysicalConfigForFullOnly(fixture.database.ID)
+		backupConfig.Storage = embeddedStorage
+
+		test_utils.MakePostRequest(
+			t,
+			fixture.router,
+			"/api/v1/backup-configs/physical/save",
+			fixture.ownerAuth,
+			backupConfig,
+			http.StatusOK,
+		)
+	}
+
+	saveConfigWithStorage(firstStorage)
+	streamingStopsAfterFirstStorage := recorder.backupsStorageChangedCount
+
+	saveConfigWithStorage(firstStorage)
+	assert.Equal(t, streamingStopsAfterFirstStorage, recorder.backupsStorageChangedCount,
+		"saving with the same storage leaves streaming alone")
+
+	saveConfigWithStorage(secondStorage)
+	assert.Equal(t, streamingStopsAfterFirstStorage+1, recorder.backupsStorageChangedCount,
+		"moving to another storage stops the streamer on the old one")
 }

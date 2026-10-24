@@ -520,34 +520,16 @@ func (s *DatabaseService) GetAllDatabases() ([]*Database, error) {
 }
 
 func (s *DatabaseService) SetBackupError(databaseID uuid.UUID, errorMessage string) error {
-	database, err := s.dbRepository.FindByID(databaseID)
-	if err != nil {
-		return err
-	}
-
-	database.LastBackupErrorMessage = &errorMessage
-	_, err = s.dbRepository.Save(database)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return s.dbRepository.UpdateColumns(databaseID, map[string]any{
+		"last_backup_error_message": errorMessage,
+	})
 }
 
 func (s *DatabaseService) SetLastBackupTime(databaseID uuid.UUID, backupTime time.Time) error {
-	database, err := s.dbRepository.FindByID(databaseID)
-	if err != nil {
-		return err
-	}
-
-	database.LastBackupTime = &backupTime
-	database.LastBackupErrorMessage = nil // Clear any previous error
-	_, err = s.dbRepository.Save(database)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return s.dbRepository.UpdateColumns(databaseID, map[string]any{
+		"last_backup_time":          backupTime,
+		"last_backup_error_message": nil,
+	})
 }
 
 func (s *DatabaseService) CopyDatabase(
@@ -662,18 +644,9 @@ func (s *DatabaseService) SetHealthStatus(
 	databaseID uuid.UUID,
 	healthStatus *HealthStatus,
 ) error {
-	database, err := s.dbRepository.FindByID(databaseID)
-	if err != nil {
-		return err
-	}
-
-	database.HealthStatus = healthStatus
-	_, err = s.dbRepository.Save(database)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return s.dbRepository.UpdateColumns(databaseID, map[string]any{
+		"health_status": healthStatus,
+	})
 }
 
 func (s *DatabaseService) OnBeforeWorkspaceDeletion(workspaceID uuid.UUID) error {

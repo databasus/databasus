@@ -405,6 +405,43 @@ func (s *PhysicalBackupService) OpenRestoreStreamForBackup(
 	return s.writeRestoreStream(ctx, set, w)
 }
 
+// OnBackupsStorageChanged removes every full backup of the database kept outside storageID, each
+// with the incrementals and WAL of its chain, through the same deletion a user triggers, so an
+// in-flight backup of that chain stops and WAL another full backup needs is kept.
+func (s *PhysicalBackupService) OnBackupsStorageChanged(
+	ctx context.Context,
+	databaseID uuid.UUID,
+	storageID uuid.UUID,
+) error {
+	fullsInOtherStorages, err := s.fullBackupRepository.FindAllByDatabaseOutsideStorage(databaseID, storageID)
+	if err != nil {
+		return err
+	}
+
+	if len(fullsInOtherStorages) == 0 {
+		return nil
+	}
+
+	logger := s.logger.With("database_id", databaseID, "storage_id", storageID)
+
+	var removalErrors []error
+
+	for _, full := range fullsInOtherStorages {
+		if err := s.deleteFull(ctx, full); err != nil {
+			logger.ErrorContext(ctx, "failed to remove full backup kept in a previous storage",
+				"backup_id", full.ID, "error", err)
+
+			removalErrors = append(removalErrors, fmt.Errorf("remove full backup %s: %w", full.ID, err))
+		}
+	}
+
+	logger.InfoContext(ctx, "removed full backups kept in previous storages",
+		"removed_count", len(fullsInOtherStorages)-len(removalErrors),
+		"found_count", len(fullsInOtherStorages))
+
+	return errors.Join(removalErrors...)
+}
+
 func (s *PhysicalBackupService) writeRestoreStream(
 	ctx context.Context,
 	set *chain_view.RestoreSet,

@@ -1,29 +1,13 @@
 package config
 
-import (
-	"os"
-	"os/signal"
-	"syscall"
+import "sync"
 
-	"databasus-backend/internal/util/logger"
-)
+var shutdownSignal = make(chan struct{})
 
-var isShutDownSignalReceived = false
+var BeginShutdown = sync.OnceFunc(func() {
+	close(shutdownSignal)
+})
 
-func StartListeningForShutdownSignal() {
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
-
-	go func() {
-		<-quit
-
-		// Nothing else records why the process began shutting down.
-		logger.GetLogger().Info("shutdown signal received")
-
-		isShutDownSignalReceived = true
-	}()
-}
-
-func IsShouldShutdown() bool {
-	return isShutDownSignalReceived
+func GetShutdownSignal() <-chan struct{} {
+	return shutdownSignal
 }

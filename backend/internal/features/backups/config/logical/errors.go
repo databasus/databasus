@@ -27,4 +27,7 @@ var (
 	ErrTargetStorageNotSpecified = errors.New(
 		"target storage is not specified",
 	)
+	ErrStorageWithoutID = errors.New(
+		"storage must be referenced by the identifier of an existing storage",
+	)
 )

@@ -86,8 +86,12 @@ func (s *BackupConfigService) SaveBackupConfigWithAuth(
 		return nil, err
 	}
 
-	if backupConfig.Storage != nil && backupConfig.Storage.ID != uuid.Nil {
-		storage, err := s.storageService.GetStorageByID(ctx, backupConfig.Storage.ID)
+	if err := takeStorageIDFromEmbeddedStorage(backupConfig); err != nil {
+		return nil, err
+	}
+
+	if backupConfig.StorageID != nil {
+		storage, err := s.storageService.GetStorageByID(ctx, *backupConfig.StorageID)
 		if err != nil {
 			return nil, err
 		}
@@ -103,6 +107,10 @@ func (s *BackupConfigService) SaveBackupConfig(
 	ctx context.Context,
 	backupConfig *PhysicalBackupConfig,
 ) (*PhysicalBackupConfig, error) {
+	if err := takeStorageIDFromEmbeddedStorage(backupConfig); err != nil {
+		return nil, err
+	}
+
 	if backupConfig.PostgresqlPhysical == nil {
 		database, err := s.databaseService.GetDatabaseByID(backupConfig.DatabaseID)
 		if err != nil {
@@ -127,18 +135,6 @@ func (s *BackupConfigService) SaveBackupConfig(
 		return nil, err
 	}
 
-	if existingConfig != nil {
-		if s.dbStorageChangeListener != nil &&
-			backupConfig.Storage != nil &&
-			!storageIDsEqual(existingConfig.StorageID, &backupConfig.Storage.ID) {
-			if err := s.dbStorageChangeListener.OnBeforeBackupsStorageChange(ctx,
-				backupConfig.DatabaseID,
-			); err != nil {
-				return nil, err
-			}
-		}
-	}
-
 	savedConfig, err := s.backupConfigRepository.Save(backupConfig)
 	if err != nil {
 		return nil, err
@@ -147,6 +143,26 @@ func (s *BackupConfigService) SaveBackupConfig(
 	if existingConfig != nil && s.backupCancellationListener != nil &&
 		existingConfig.IsBackupsEnabled && !backupConfig.IsBackupsEnabled {
 		s.backupCancellationListener.OnBackupsDisabled(ctx, backupConfig.DatabaseID)
+	}
+
+	isStorageChanged := existingConfig != nil &&
+		backupConfig.StorageID != nil &&
+		!storageIDsEqual(existingConfig.StorageID, backupConfig.StorageID)
+
+	if isStorageChanged && s.backupCancellationListener != nil {
+		s.backupCancellationListener.OnBackupsStorageChanged(ctx, backupConfig.DatabaseID)
+	}
+
+	// Runs after the save, so a full backup or a streamer that starts meanwhile already writes to
+	// the new storage instead of surviving the change on the old one.
+	if s.dbStorageChangeListener != nil && backupConfig.StorageID != nil {
+		if err := s.dbStorageChangeListener.OnBackupsStorageChanged(
+			ctx,
+			backupConfig.DatabaseID,
+			*backupConfig.StorageID,
+		); err != nil {
+			return nil, fmt.Errorf("remove backups kept in a previous storage: %w", err)
+		}
 	}
 
 	return savedConfig, nil
@@ -519,6 +535,23 @@ func (s *BackupConfigService) assignTargetNotifiers(
 	}
 
 	return s.databaseService.UpdateDatabaseNotifiers(databaseID, targetNotifiers)
+}
+
+// A configuration refers to a storage only by its identifier. The storage endpoints are the only
+// place that checks who may create or edit a storage, so an embedded storage object never reaches
+// the database as anything but a reference.
+func takeStorageIDFromEmbeddedStorage(backupConfig *PhysicalBackupConfig) error {
+	if backupConfig.Storage == nil {
+		return nil
+	}
+
+	if backupConfig.Storage.ID == uuid.Nil {
+		return ErrStorageWithoutID
+	}
+
+	backupConfig.StorageID = &backupConfig.Storage.ID
+
+	return nil
 }
 
 func storageIDsEqual(id1, id2 *uuid.UUID) bool {

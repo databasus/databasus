@@ -134,7 +134,7 @@ func (uc *CreatePostgresqlBackupUsecase) streamToStorage(
 ) (*backups_core_logical.BackupArtifacts, error) {
 	uc.logger.InfoContext(parentCtx, "streaming PostgreSQL backup to storage", "pg_bin", pgBin, "args", args)
 
-	ctx, cancel := backups_core_logical.NewBackupContext(parentCtx)
+	ctx, cancel := backups_core_logical.NewBackupContext(parentCtx, config.GetShutdownSignal())
 	defer cancel(nil)
 
 	credentials, err := postgresql_shared.WriteCredentialFilesToTempDir(
@@ -280,10 +280,6 @@ func (uc *CreatePostgresqlBackupUsecase) copyWithShutdownCheck(
 		case <-ctx.Done():
 			return totalBytesWritten, fmt.Errorf("copy cancelled: %w", ctx.Err())
 		default:
-		}
-
-		if config.IsShouldShutdown() {
-			return totalBytesWritten, fmt.Errorf("copy cancelled due to shutdown")
 		}
 
 		bytesRead, readErr := src.Read(buf)

@@ -37,7 +37,6 @@ var backupService = &LogicalBackupService{
 	encryption.GetFieldEncryptor(),
 	usecases_logical.GetCreateBackupUsecase(),
 	logger.GetLogger(),
-	[]backups_core_logical.BackupRemoveListener{},
 	workspaces_services.GetWorkspaceService(),
 	audit_logs.GetAuditLogService(),
 	taskCancellationRequester,
@@ -77,6 +76,9 @@ var SetupDependencies = sync.OnceFunc(func() {
 	backups_config_logical.
 		GetBackupConfigService().
 		SetDatabaseStorageChangeListener(backupService)
+	backups_config_physical.
+		GetBackupConfigService().
+		SetDatabaseStorageChangeListener(physicalBackupService)
 
 	databases.GetDatabaseService().AddDbRemoveListener(backupService)
 	storages.GetStorageService().AddStorageBackupCounter(backupService)

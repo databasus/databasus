@@ -146,6 +146,23 @@ func (r *PhysicalFullBackupRepository) FindLastFullAnyStatusByDatabase(
 	return backups[0], nil
 }
 
+func (r *PhysicalFullBackupRepository) FindAllByDatabaseOutsideStorage(
+	databaseID uuid.UUID,
+	storageID uuid.UUID,
+) ([]*physical_models.PhysicalFullBackup, error) {
+	var backups []*physical_models.PhysicalFullBackup
+
+	if err := storage.
+		GetDb().
+		Where("database_id = ? AND storage_id <> ?", databaseID, storageID).
+		Order("created_at ASC").
+		Find(&backups).Error; err != nil {
+		return nil, err
+	}
+
+	return backups, nil
+}
+
 func (r *PhysicalFullBackupRepository) FindAllInProgress() ([]*physical_models.PhysicalFullBackup, error) {
 	var backups []*physical_models.PhysicalFullBackup
 

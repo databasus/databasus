@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -31,6 +30,7 @@ type Restorer struct {
 	restoreBackupUsecase     restores_core.RestoreBackupUsecase
 	restoreDatabaseCache     *cache.JSONStore[RestoreDatabaseCache]
 	taskCancellationRegistry *tasks_cancellation.Registry
+	shutdownSignal           <-chan struct{}
 }
 
 type restoreMetadataLookup struct {
@@ -88,17 +88,15 @@ func (r *Restorer) MakeRestore(
 		return
 	}
 
-	if backupConfig.StorageID == nil {
-		logger.ErrorContext(ctx, "backup config storage ID is not defined")
-		return
-	}
-
 	// Detached from the caller so a finished HTTP request cannot cancel a running restore.
 	executionCtx, cancel := context.WithCancel(context.Background())
 	r.taskCancellationRegistry.RegisterTask(restore.ID, cancel)
 	defer r.taskCancellationRegistry.UnregisterTask(restore.ID)
 
-	storage, err := r.storageService.GetStorageByID(executionCtx, *backupConfig.StorageID)
+	restoreCtx, cancelRestore := restores_core.NewRestoreContext(executionCtx, r.shutdownSignal)
+	defer cancelRestore(nil)
+
+	storage, err := r.storageService.GetStorageByID(restoreCtx, backup.StorageID)
 	if err != nil {
 		logger.ErrorContext(ctx, "failed to get storage by ID", "error", err)
 		return
@@ -117,7 +115,7 @@ func (r *Restorer) MakeRestore(
 
 	// The restore target is the only endpoint this function connects to, so one tunnel covers
 	// version detection, the TimescaleDB hooks and pg_restore itself.
-	tunneledDatabase, err := databases.OpenTunnel(executionCtx, databases.OpenTunnelSpec{
+	tunneledDatabase, err := databases.OpenTunnel(restoreCtx, databases.OpenTunnelSpec{
 		Database:  restoringToDB,
 		Logger:    logger,
 		Encryptor: r.fieldEncryptor,
@@ -170,7 +168,7 @@ func (r *Restorer) MakeRestore(
 		"backup_id", backup.ID, "database_id", databaseID, "storage_id", storage.ID)
 
 	err = r.restoreBackupUsecase.Execute(
-		executionCtx,
+		restoreCtx,
 		backupConfig,
 		*restore,
 		database,
@@ -182,17 +180,11 @@ func (r *Restorer) MakeRestore(
 	if err != nil {
 		errMsg := err.Error()
 
-		// Check if restore was cancelled
-		isCancelled := strings.Contains(errMsg, "restore cancelled") ||
-			strings.Contains(errMsg, "context canceled") ||
-			errors.Is(err, context.Canceled)
-		isShutdown := strings.Contains(errMsg, "shutdown")
-
-		if isCancelled && !isShutdown {
-			logger.WarnContext(ctx, "restore was cancelled by user or system",
-				"is_cancelled", isCancelled,
-				"is_shutdown", isShutdown,
-			)
+		switch {
+		case errors.Is(context.Cause(restoreCtx), restores_core.ErrRestoreShutdown):
+			errMsg = restores_core.ErrRestoreShutdown.Error()
+		case executionCtx.Err() != nil:
+			logger.WarnContext(ctx, "restore was cancelled by user")
 
 			restore.Status = restores_core.RestoreStatusCanceled
 			restore.RestoreDurationMs = time.Since(start).Milliseconds()

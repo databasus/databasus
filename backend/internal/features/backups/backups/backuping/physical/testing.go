@@ -79,6 +79,9 @@ type WalStreamSupervisorTestSpec struct {
 	// Zero means the production default; the streamer spec in the executor package
 	// reads zero as "disabled", hence the different name.
 	ChainAlertMinIntervalOverride time.Duration
+
+	// Nil means the process-wide registry.
+	TaskCancellationRegistry *tasks_cancellation.Registry
 }
 
 // CreateTestWalStreamSupervisor returns a fresh WAL stream supervisor wired to
@@ -91,6 +94,11 @@ func CreateTestWalStreamSupervisor(spec WalStreamSupervisorTestSpec) *PhysicalWa
 		chainAlertMinInterval = defaultChainAlertMinInterval
 	}
 
+	taskCancellationRegistry := spec.TaskCancellationRegistry
+	if taskCancellationRegistry == nil {
+		taskCancellationRegistry = tasks_cancellation.GetRegistry()
+	}
+
 	return &PhysicalWalStreamSupervisor{
 		databases.GetDatabaseService(),
 		backups_config_physical.GetBackupConfigService(),
@@ -101,7 +109,7 @@ func CreateTestWalStreamSupervisor(spec WalStreamSupervisorTestSpec) *PhysicalWa
 		physical_repositories.GetWalStreamerRepository(),
 		physical_repositories.GetWalStreamSampleRepository(),
 		spec.NotificationSender,
-		tasks_cancellation.GetRegistry(),
+		taskCancellationRegistry,
 		encryption_secrets.GetSecretKeyService(),
 		encryption.GetFieldEncryptor(),
 		logger.GetLogger(),

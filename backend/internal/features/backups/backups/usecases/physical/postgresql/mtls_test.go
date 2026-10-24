@@ -132,10 +132,6 @@ func Test_FullOverMtls_ProducesArtifactAndManifest(t *testing.T) {
 // (pg_receivewal over client-cert TLS) and asserts rotated segments are archived
 // through the insert-first uploader.
 func Test_WalStreamOverMtls_StreamerArchivesSegments(t *testing.T) {
-	if testing.Short() {
-		t.Skip("streamer integration test runs pg_receivewal; skipped in -short")
-	}
-
 	fixture := setupMtlsFixture(t)
 	t.Cleanup(func() {
 		_ = physical_repositories.GetWalStreamerRepository().DeleteByDatabaseID(fixture.DB.ID)

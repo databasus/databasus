@@ -8,10 +8,9 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
-	"os/signal"
 	"path/filepath"
 	"runtime/debug"
-	"syscall"
+	"strings"
 	"time"
 
 	"github.com/gin-contrib/cors"
@@ -68,7 +67,11 @@ import (
 // @BasePath /api/v1
 // @schemes http
 
-const serverAddr = ":4005"
+const (
+	serverAddr              = ":4005"
+	serverReadHeaderTimeout = 10 * time.Second
+	serverIdleTimeout       = 120 * time.Second
+)
 
 func main() {
 	if len(os.Args) > 1 && os.Args[1] == "healthcheck" {
@@ -139,11 +142,29 @@ func main() {
 
 	announceTelemetry()
 
-	runBackgroundTasks(log)
-
 	mountFrontend(ginApp)
 
-	startServerWithGracefulShutdown(log, ginApp)
+	server := newHTTPServer(ginApp)
+	backgroundTasksCtx, cancelBackgroundTasks := context.WithCancel(context.Background())
+
+	shutdownFinished := startGracefulShutdownOnStopSignal(gracefulShutdownSpec{
+		server:                   server,
+		taskCancellationRegistry: task_cancellation.GetRegistry(),
+		beginShutdown: func() {
+			config.BeginShutdown()
+			cancelBackgroundTasks()
+		},
+		flushLogs:       logger.FlushAndCloseSinks,
+		drainTimeout:    shutdownDrainTimeout,
+		logFlushTimeout: shutdownLogFlushTimeout,
+		logger:          log,
+	})
+
+	runBackgroundTasks(backgroundTasksCtx, log)
+
+	startHTTPServer(log, server)
+
+	<-shutdownFinished
 }
 
 type commandLineOptions struct {
@@ -327,38 +348,25 @@ func resetPassword(ctx context.Context, email, newPassword string, log *slog.Log
 	logger.ExitAfterFlush(0)
 }
 
-func startServerWithGracefulShutdown(log *slog.Logger, app *gin.Engine) {
-	srv := &http.Server{
-		Addr:    serverAddr,
-		Handler: app,
+// The server sets no ReadTimeout or WriteTimeout: both cover the whole request or response and
+// would cut long backup uploads and downloads.
+func newHTTPServer(handler http.Handler) *http.Server {
+	return &http.Server{
+		Addr:              serverAddr,
+		Handler:           handler,
+		ReadHeaderTimeout: serverReadHeaderTimeout,
+		IdleTimeout:       serverIdleTimeout,
 	}
+}
 
-	log.Info(fmt.Sprintf("http server listening on %s", serverAddr))
+func startHTTPServer(log *slog.Logger, server *http.Server) {
+	log.Info(fmt.Sprintf("http server listening on %s", server.Addr))
 
 	go func() {
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Error("http server failed to listen", "error", err)
 		}
 	}()
-
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
-	<-quit
-	log.Info("shutdown signal received")
-
-	// The context is used to inform the server it has 10 seconds to finish
-	// the request it is currently handling
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	if err := srv.Shutdown(ctx); err != nil {
-		log.Error("server forced to shutdown", "error", err)
-	}
-
-	log.Info("server gracefully stopped")
-
-	// Closed after the drain so in-flight request logs are included, on its own deadline so a
-	// slow drain cannot hand the flush an already-expired context.
-	logger.FlushAndCloseSinks()
 }
 
 func setUpRoutes(r *gin.Engine) {
@@ -438,20 +446,8 @@ func announceTelemetry() {
 	)
 }
 
-func runBackgroundTasks(log *slog.Logger) {
+func runBackgroundTasks(ctx context.Context, log *slog.Logger) {
 	log.Info("preparing to run background tasks")
-
-	// Create context that will be cancelled on shutdown
-	ctx, cancel := context.WithCancel(context.Background())
-
-	// Set up signal handling for graceful shutdown
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
-	go func() {
-		<-quit
-		log.Info("shutdown signal received, cancelling all background tasks")
-		cancel()
-	}()
 
 	err := files_utils.CleanFolder(config.GetEnv().TempFolder)
 	if err != nil {
@@ -617,8 +613,16 @@ func ginRecoveryWithLogger(log *slog.Logger) gin.HandlerFunc {
 }
 
 func mountFrontend(ginApp *gin.Engine) {
-	staticDir := "./ui/build"
-	ginApp.NoRoute(func(c *gin.Context) {
+	ginApp.NoRoute(newUnknownPathHandler("./ui/build"))
+}
+
+func newUnknownPathHandler(staticDir string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if strings.HasPrefix(c.Request.URL.Path, "/api/") {
+			c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
+			return
+		}
+
 		path := filepath.Join(staticDir, c.Request.URL.Path)
 
 		if info, err := os.Stat(path); err == nil && !info.IsDir() {
@@ -627,5 +631,5 @@ func mountFrontend(ginApp *gin.Engine) {
 		}
 
 		c.File(filepath.Join(staticDir, "index.html"))
-	})
+	}
 }

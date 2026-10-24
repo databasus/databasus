@@ -18,7 +18,7 @@ func (r *BackupConfigRepository) Save(
 		backupConfig.StorageID = &backupConfig.Storage.ID
 	}
 
-	if err := storage.GetDb().Save(backupConfig).Omit("Storage").Error; err != nil {
+	if err := storage.GetDb().Omit("Storage").Save(backupConfig).Error; err != nil {
 		return nil, err
 	}
 

@@ -26,6 +26,12 @@ func (l *PhysicalBackupCancellationListener) OnWalStreamingDisabled(ctx context.
 	l.cancelStreamingAndDeleteStreamerRow(ctx, databaseID)
 }
 
+// The streamer the supervisor starts next reads the storage from the saved configuration, so
+// stopping the current one moves WAL streaming to the new storage.
+func (l *PhysicalBackupCancellationListener) OnBackupsStorageChanged(ctx context.Context, databaseID uuid.UUID) {
+	l.cancelStreamingAndDeleteStreamerRow(ctx, databaseID)
+}
+
 func (l *PhysicalBackupCancellationListener) OnBeforeDatabaseRemove(ctx context.Context, databaseID uuid.UUID) error {
 	l.canceller.CancelInFlightForDatabase(ctx, databaseID)
 	l.cancelStreamingAndDeleteStreamerRow(ctx, databaseID)

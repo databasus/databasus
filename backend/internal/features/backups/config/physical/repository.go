@@ -19,7 +19,7 @@ func (r *BackupConfigRepository) Save(
 		backupConfig.StorageID = &backupConfig.Storage.ID
 	}
 
-	if err := storage.GetDb().Save(backupConfig).Omit("Storage", "PostgresqlPhysical").Error; err != nil {
+	if err := storage.GetDb().Omit("Storage", "PostgresqlPhysical").Save(backupConfig).Error; err != nil {
 		return nil, err
 	}
 

@@ -190,27 +190,6 @@ func (uc *RestorePostgresqlBackupUsecase) restoreViaStdin(
 	ctx, cancel := context.WithTimeout(parentCtx, 23*time.Hour)
 	defer cancel()
 
-	// Monitor for shutdown and parent cancellation
-	go func() {
-		ticker := time.NewTicker(1 * time.Second)
-		defer ticker.Stop()
-
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case <-parentCtx.Done():
-				cancel()
-				return
-			case <-ticker.C:
-				if config.IsShouldShutdown() {
-					cancel()
-					return
-				}
-			}
-		}
-	}()
-
 	// Materialize connection credentials (.pgpass + optional client certificates)
 	fieldEncryptor := util_encryption.GetFieldEncryptor()
 	decryptedPassword, err := fieldEncryptor.Decrypt(pg.Password)
@@ -354,11 +333,6 @@ func (uc *RestorePostgresqlBackupUsecase) executePgRestoreViaStdin(
 	default:
 	}
 
-	// Check for shutdown before finalizing
-	if config.IsShouldShutdown() {
-		return fmt.Errorf("restore cancelled due to shutdown")
-	}
-
 	if streamErr := restores_core.GetBackupStreamFailure(restores_core.BackupStreamTrackers{
 		StorageRead:   storageReadFailureTracker,
 		DecodedStream: decodedStreamFailureTracker,
@@ -374,10 +348,6 @@ func (uc *RestorePostgresqlBackupUsecase) executePgRestoreViaStdin(
 				return fmt.Errorf("restore cancelled")
 			}
 		default:
-		}
-
-		if config.IsShouldShutdown() {
-			return fmt.Errorf("restore cancelled due to shutdown")
 		}
 
 		return uc.resolvePgRestoreOutcome(pgRestoreFailure{
@@ -491,27 +461,6 @@ func (uc *RestorePostgresqlBackupUsecase) restoreFromStorage(
 
 	ctx, cancel := context.WithTimeout(parentCtx, 23*time.Hour)
 	defer cancel()
-
-	// Monitor for shutdown and parent cancellation
-	go func() {
-		ticker := time.NewTicker(1 * time.Second)
-		defer ticker.Stop()
-
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case <-parentCtx.Done():
-				cancel()
-				return
-			case <-ticker.C:
-				if config.IsShouldShutdown() {
-					cancel()
-					return
-				}
-			}
-		}
-	}()
 
 	// Materialize connection credentials (.pgpass + optional client certificates)
 	credentials, err := postgresql_shared.WriteCredentialFilesToTempDir(
@@ -725,11 +674,6 @@ func (uc *RestorePostgresqlBackupUsecase) executePgRestore(
 	default:
 	}
 
-	// Check for shutdown before finalizing
-	if config.IsShouldShutdown() {
-		return fmt.Errorf("restore cancelled due to shutdown")
-	}
-
 	if waitErr != nil {
 		// Check for cancellation again
 		select {
@@ -738,10 +682,6 @@ func (uc *RestorePostgresqlBackupUsecase) executePgRestore(
 				return fmt.Errorf("restore cancelled")
 			}
 		default:
-		}
-
-		if config.IsShouldShutdown() {
-			return fmt.Errorf("restore cancelled due to shutdown")
 		}
 
 		return uc.resolvePgRestoreOutcome(pgRestoreFailure{
@@ -924,10 +864,6 @@ func (uc *RestorePostgresqlBackupUsecase) copyWithShutdownCheck(
 		case <-ctx.Done():
 			return totalBytesWritten, fmt.Errorf("copy cancelled: %w", ctx.Err())
 		default:
-		}
-
-		if config.IsShouldShutdown() {
-			return totalBytesWritten, fmt.Errorf("copy cancelled due to shutdown")
 		}
 
 		bytesRead, readErr := src.Read(buf)

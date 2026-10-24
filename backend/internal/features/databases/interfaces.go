@@ -14,6 +14,7 @@ import (
 type databaseStore interface {
 	Save(database *Database) (*Database, error)
 	FindByID(id uuid.UUID) (*Database, error)
+	UpdateColumns(id uuid.UUID, columns map[string]any) error
 	FindByWorkspaceID(workspaceID uuid.UUID) ([]*Database, error)
 	Delete(id uuid.UUID) error
 	IsNotifierUsing(notifierID uuid.UUID) (bool, error)

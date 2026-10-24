@@ -1,8 +1,6 @@
 package secrets
 
-var secretKeyService = &SecretKeyService{
-	nil,
-}
+var secretKeyService = &SecretKeyService{}
 
 func GetSecretKeyService() *SecretKeyService {
 	return secretKeyService

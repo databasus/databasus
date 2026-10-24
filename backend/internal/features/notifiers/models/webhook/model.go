@@ -36,6 +36,10 @@ type WebhookNotifier struct {
 
 	AcceptNotificationTypes     []notifier_models.NotificationType `json:"acceptNotificationTypes" gorm:"-"`
 	AcceptNotificationTypesJSON string                             `json:"-"                       gorm:"column:accept_notification_types;type:text"`
+
+	// AfterFind cannot fail the query without breaking every list that loads this notifier, so
+	// it keeps the error here and Send refuses to deliver with a field it could not decrypt.
+	storedFieldsDecryptionErr error `gorm:"-"`
 }
 
 func (t *WebhookNotifier) TableName() string {
@@ -84,15 +88,25 @@ func (t *WebhookNotifier) AfterFind(_ *gorm.DB) error {
 	}
 
 	encryptor := encryption.GetFieldEncryptor()
+	t.storedFieldsDecryptionErr = nil
 
 	if t.WebhookURL != "" {
-		if decrypted, err := encryptor.Decrypt(t.WebhookURL); err == nil {
+		decrypted, err := encryptor.Decrypt(t.WebhookURL)
+		if err != nil {
+			t.storedFieldsDecryptionErr = fmt.Errorf("failed to decrypt webhook URL: %w", err)
+		} else {
 			t.WebhookURL = decrypted
 		}
 	}
 
 	if t.BodyTemplate != nil && *t.BodyTemplate != "" {
-		if decrypted, err := encryptor.Decrypt(*t.BodyTemplate); err == nil {
+		decrypted, err := encryptor.Decrypt(*t.BodyTemplate)
+		if err != nil {
+			t.storedFieldsDecryptionErr = errors.Join(
+				t.storedFieldsDecryptionErr,
+				fmt.Errorf("failed to decrypt webhook body template: %w", err),
+			)
+		} else {
 			t.BodyTemplate = &decrypted
 		}
 	}
@@ -121,6 +135,10 @@ func (t *WebhookNotifier) Send(
 		return nil
 	}
 
+	if t.storedFieldsDecryptionErr != nil {
+		return t.storedFieldsDecryptionErr
+	}
+
 	if err := t.decryptHeadersForSending(encryptor); err != nil {
 		return err
 	}
@@ -147,6 +165,7 @@ func (t *WebhookNotifier) Update(incoming *WebhookNotifier) {
 	t.BodyTemplate = incoming.BodyTemplate
 	t.Headers = incoming.Headers
 	t.AcceptNotificationTypes = incoming.AcceptNotificationTypes
+	t.storedFieldsDecryptionErr = nil
 }
 
 func (t *WebhookNotifier) EncryptSensitiveData(encryptor encryption.FieldEncryptor) error {
@@ -302,9 +321,12 @@ func escapeJSONString(s string) string {
 func (t *WebhookNotifier) decryptHeadersForSending(encryptor encryption.FieldEncryptor) error {
 	for i := range t.Headers {
 		if t.Headers[i].Value != "" {
-			if decrypted, err := encryptor.Decrypt(t.Headers[i].Value); err == nil {
-				t.Headers[i].Value = decrypted
+			decrypted, err := encryptor.Decrypt(t.Headers[i].Value)
+			if err != nil {
+				return fmt.Errorf("failed to decrypt webhook header %q: %w", t.Headers[i].Key, err)
 			}
+
+			t.Headers[i].Value = decrypted
 		}
 	}
 

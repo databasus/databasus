@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	notifier_models "databasus-backend/internal/features/notifiers/models"
+	"databasus-backend/internal/util/encryption"
 )
 
 func send(t *testing.T, notifier *WebhookNotifier, notificationType notifier_models.NotificationType) error {
@@ -272,4 +273,67 @@ func Test_AfterFind_WithSerializedTypes_RestoresSlice(t *testing.T) {
 		[]notifier_models.NotificationType{notifier_models.NotificationTypeVerificationFailed},
 		notifier.AcceptNotificationTypes,
 	)
+}
+
+func Test_Send_WithUndecryptableStoredField_FailsWithoutRequest(t *testing.T) {
+	const undecryptableValue = "enc:not-a-valid-ciphertext"
+
+	testCases := []struct {
+		name               string
+		buildNotifier      func(webhookURL string) *WebhookNotifier
+		expectedErrorField string
+	}{
+		{
+			name: "fails naming the URL when the stored URL cannot be decrypted",
+			buildNotifier: func(_ string) *WebhookNotifier {
+				return &WebhookNotifier{WebhookURL: undecryptableValue}
+			},
+			expectedErrorField: "webhook URL",
+		},
+		{
+			name: "fails naming the body template when the stored template cannot be decrypted",
+			buildNotifier: func(webhookURL string) *WebhookNotifier {
+				bodyTemplate := undecryptableValue
+				return &WebhookNotifier{WebhookURL: webhookURL, BodyTemplate: &bodyTemplate}
+			},
+			expectedErrorField: "webhook body template",
+		},
+		{
+			name: "fails naming the header when a stored header value cannot be decrypted",
+			buildNotifier: func(webhookURL string) *WebhookNotifier {
+				return &WebhookNotifier{
+					WebhookURL: webhookURL,
+					Headers:    []WebhookHeader{{Key: "Authorization", Value: undecryptableValue}},
+				}
+			},
+			expectedErrorField: `webhook header "Authorization"`,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			webhookURL, recorder := notifier_models.StartRecordingServer(
+				t,
+				notifier_models.StubResponse{StatusCode: http.StatusOK},
+			)
+			loadedNotifier := testCase.buildNotifier(webhookURL)
+			loadedNotifier.WebhookMethod = WebhookMethodPOST
+			loadedNotifier.AcceptNotificationTypes = acceptAll()
+			require.NoError(t, loadedNotifier.AfterFind(nil))
+
+			err := loadedNotifier.Send(
+				encryption.GetFieldEncryptor(),
+				slog.New(slog.NewTextHandler(io.Discard, nil)),
+				notifier_models.Notification{
+					Type:    notifier_models.NotificationTypeBackupFailed,
+					Heading: "Backup failed",
+					Message: "Disk is full",
+				},
+			)
+
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), "failed to decrypt "+testCase.expectedErrorField)
+			assert.Equal(t, 0, recorder.GetRequestCount())
+		})
+	}
 }

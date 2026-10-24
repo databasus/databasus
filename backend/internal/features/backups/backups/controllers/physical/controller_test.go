@@ -33,12 +33,15 @@ import (
 	"databasus-backend/internal/features/backups/backups/core/physical/wal_health"
 	backups_download "databasus-backend/internal/features/backups/backups/download"
 	backups_dto_physical "databasus-backend/internal/features/backups/backups/dto/physical"
+	backups_services "databasus-backend/internal/features/backups/backups/services"
 	postgresql_executor "databasus-backend/internal/features/backups/backups/usecases/physical/postgresql"
 	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
 	"databasus-backend/internal/features/databases"
 	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
+	"databasus-backend/internal/features/intervals"
 	"databasus-backend/internal/features/notifiers"
 	"databasus-backend/internal/features/storages"
+	storage_files "databasus-backend/internal/features/storages/files"
 	users_dto "databasus-backend/internal/features/users/dto"
 	users_enums "databasus-backend/internal/features/users/enums"
 	users_middleware "databasus-backend/internal/features/users/middleware"
@@ -121,6 +124,7 @@ func newPhysicalControllerRouter() *gin.Engine {
 		workspaces_controllers.GetMembershipController().RegisterRoutes(routerGroup)
 		databases.GetDatabaseController().RegisterRoutes(routerGroup)
 		backups_controllers_physical.GetPhysicalBackupController().RegisterRoutes(routerGroup)
+		backups_config_physical.GetBackupConfigController().RegisterRoutes(routerGroup)
 	}
 
 	storages.SetupDependencies()
@@ -2548,4 +2552,134 @@ func Test_GetWalStreamStatistics_WhenRunningStreamerHeartbeatIsStale_ReportsNotR
 	response := getWalStreamStatistics(t, prereqs, "HOUR")
 
 	assert.Equal(t, wal_health.StreamerStateNotRunning, response.Streamer.State)
+}
+
+// --- Storage change ------------------------------------------------------------
+
+func Test_SaveBackupConfig_WhenStorageChanges_RemovesChainKeptInOldStorage(t *testing.T) {
+	prereqs := createPhysicalControllerPrereqs(t)
+	newStorage := createStorageForStorageChange(t, prereqs)
+	saveBackupConfigWithStorage(t, prereqs, prereqs.storage)
+
+	full, incremental, walSegment := seedOneOfEachType(t, prereqs)
+
+	saveBackupConfigWithStorage(t, prereqs, newStorage)
+
+	assert.Empty(t, getBackups(t, prereqs, "").Backups)
+
+	fileNamesPendingDeletion := getFileNamesPendingDeletion(t, prereqs.storage.ID)
+	for _, removedFileName := range []string{*full.FileName, *incremental.FileName, *walSegment.FileName} {
+		assert.Contains(t, fileNamesPendingDeletion, removedFileName,
+			"the files of the removed chain are handed to the old storage for deletion")
+	}
+}
+
+func Test_SaveBackupConfig_WhenStorageChangesDuringFullBackup_StopsAndRemovesIt(t *testing.T) {
+	prereqs := createPhysicalControllerPrereqs(t)
+	newStorage := createStorageForStorageChange(t, prereqs)
+	saveBackupConfigWithStorage(t, prereqs, prereqs.storage)
+
+	runningFull := physical_testing.CreateTestFullBackup(t,
+		physical_testing.NewTestInProgressFullBackup(prereqs.database.ID, prereqs.storage.ID, 1))
+	physical_testing.CreateTestInFlightClaim(
+		t,
+		prereqs.database.ID,
+		runningFull.ID,
+		physical_enums.PhysicalBackupTypeFull,
+	)
+
+	saveBackupConfigWithStorage(t, prereqs, newStorage)
+
+	claim, err := physical_repositories.GetInFlightBackupRepository().FindByDatabaseID(prereqs.database.ID)
+	require.NoError(t, err)
+	assert.Nil(t, claim, "the running full backup on the old storage is stopped")
+	assertFullGone(t, runningFull.ID)
+	assert.Empty(t, getBackups(t, prereqs, "").Backups)
+}
+
+func Test_SaveBackupConfig_WhenStorageStaysTheSame_KeepsBackups(t *testing.T) {
+	prereqs := createPhysicalControllerPrereqs(t)
+	saveBackupConfigWithStorage(t, prereqs, prereqs.storage)
+
+	full, incremental, walSegment := seedOneOfEachType(t, prereqs)
+
+	saveBackupConfigWithStorage(t, prereqs, prereqs.storage)
+
+	assertFullPresent(t, full.ID)
+	assertIncrementalPresent(t, incremental.ID)
+	assertWalPresent(t, walSegment.ID)
+	assert.Empty(t, getFileNamesPendingDeletion(t, prereqs.storage.ID))
+}
+
+// The chain is written to the old storage after the configuration already names the new one,
+// which leaves the same state as a removal that failed during the storage change.
+func Test_SaveBackupConfig_AfterRemovalOfOldChainFailed_NextSaveRemovesIt(t *testing.T) {
+	prereqs := createPhysicalControllerPrereqs(t)
+	newStorage := createStorageForStorageChange(t, prereqs)
+	saveBackupConfigWithStorage(t, prereqs, newStorage)
+
+	full, incremental, walSegment := seedOneOfEachType(t, prereqs)
+
+	saveBackupConfigWithStorage(t, prereqs, newStorage)
+
+	assertFullGone(t, full.ID)
+	assertIncrementalGone(t, incremental.ID)
+	assertWalGone(t, walSegment.ID)
+}
+
+// The returned storage is removed after the configuration moves back to the prereqs storage, as
+// a storage that a configuration names cannot be deleted.
+func createStorageForStorageChange(t *testing.T, prereqs *physicalControllerPrereqs) *storages.Storage {
+	t.Helper()
+
+	backups_services.SetupDependencies()
+
+	newStorage := storages.CreateTestStorage(prereqs.workspace.ID)
+
+	t.Cleanup(func() {
+		backupConfig, err := backups_config_physical.GetBackupConfigService().GetBackupConfigByDbId(prereqs.database.ID)
+		require.NoError(t, err)
+
+		backupConfig.StorageID = &prereqs.storage.ID
+		backupConfig.Storage = prereqs.storage
+		_, err = backups_config_physical.GetBackupConfigService().SaveBackupConfig(context.Background(), backupConfig)
+		require.NoError(t, err)
+
+		storages.RemoveTestStorage(context.Background(), newStorage.ID)
+	})
+
+	return newStorage
+}
+
+func saveBackupConfigWithStorage(t *testing.T, prereqs *physicalControllerPrereqs, targetStorage *storages.Storage) {
+	t.Helper()
+
+	backups_services.SetupDependencies()
+
+	backupConfig, err := backups_config_physical.GetBackupConfigService().GetBackupConfigByDbId(prereqs.database.ID)
+	require.NoError(t, err)
+
+	backupConfig.IsBackupsEnabled = true
+	backupConfig.StorageID = nil
+	backupConfig.Storage = targetStorage
+	backupConfig.FullBackupInterval = intervals.Interval{
+		Type:      intervals.IntervalDaily,
+		TimeOfDay: new("04:00"),
+	}
+
+	test_utils.MakePostRequest(t, prereqs.router,
+		"/api/v1/backup-configs/physical/save",
+		"Bearer "+prereqs.user.Token, backupConfig, http.StatusOK)
+}
+
+func getFileNamesPendingDeletion(t *testing.T, storageID uuid.UUID) []string {
+	t.Helper()
+
+	var fileNames []string
+	require.NoError(t, storage.GetDb().
+		Model(&storage_files.PendingDeletion{}).
+		Where("storage_id = ?", storageID).
+		Pluck("file_name", &fileNames).Error)
+
+	return fileNames
 }

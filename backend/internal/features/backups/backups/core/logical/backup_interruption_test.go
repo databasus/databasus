@@ -18,6 +18,7 @@ func Test_DescribeBackupInterruption_ReportsWhoInterruptedTheBackup(t *testing.T
 		name                  string
 		backupCancelCause     error
 		isCallerCancelled     bool
+		isShutdownSignalled   bool
 		expectedErr           error
 		expectedMessage       string
 		expectedWrappedCause  error
@@ -28,6 +29,12 @@ func Test_DescribeBackupInterruption_ReportsWhoInterruptedTheBackup(t *testing.T
 			backupCancelCause: ErrBackupShutdown,
 			expectedErr:       ErrBackupShutdown,
 			expectedMessage:   "backup interrupted by application shutdown",
+		},
+		{
+			name:                "Test_DescribeBackupInterruption_WhenShutdownSignalCloses_ReturnsShutdownError",
+			isShutdownSignalled: true,
+			expectedErr:         ErrBackupShutdown,
+			expectedMessage:     "backup interrupted by application shutdown",
 		},
 		{
 			name:              "Test_DescribeBackupInterruption_WhenTimeLimitPassed_ReturnsTimeLimitError",
@@ -67,8 +74,14 @@ func Test_DescribeBackupInterruption_ReportsWhoInterruptedTheBackup(t *testing.T
 			callerCtx, cancelCaller := context.WithCancel(t.Context())
 			defer cancelCaller()
 
-			backupCtx, cancelBackup := NewBackupContext(callerCtx)
+			shutdownSignal := make(chan struct{})
+
+			backupCtx, cancelBackup := NewBackupContext(callerCtx, shutdownSignal)
 			defer cancelBackup(nil)
+
+			if testCase.isShutdownSignalled {
+				close(shutdownSignal)
+			}
 
 			if testCase.backupCancelCause != nil {
 				cancelBackup(testCase.backupCancelCause)

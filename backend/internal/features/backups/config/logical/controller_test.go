@@ -11,6 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"databasus-backend/internal/config"
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
@@ -19,10 +20,12 @@ import (
 	"databasus-backend/internal/features/intervals"
 	"databasus-backend/internal/features/notifiers"
 	"databasus-backend/internal/features/storages"
+	local_storage "databasus-backend/internal/features/storages/models/local"
 	users_enums "databasus-backend/internal/features/users/enums"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_controllers "databasus-backend/internal/features/workspaces/controllers"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
+	"databasus-backend/internal/storage"
 	"databasus-backend/internal/util/period"
 	test_utils "databasus-backend/internal/util/testing"
 	"databasus-backend/internal/util/tools"
@@ -1719,4 +1722,144 @@ func createTestRouterWithNotifiersForTransfer() *gin.Engine {
 	SetupDependencies()
 
 	return router
+}
+
+func Test_SaveBackupConfig_WhenEmbeddedStorageHasChangedFields_KeepsStoredStorage(t *testing.T) {
+	router := createTestRouterWithStorageForTransfer()
+	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
+	database := createTestDatabaseViaAPI("Test Database", workspace.ID, owner.Token, router)
+	existingStorage := storages.CreateTestFlakyS3Storage(workspace.ID, "http://127.0.0.1:1")
+
+	t.Cleanup(func() {
+		databases.RemoveTestDatabase(t.Context(), database)
+		storages.RemoveTestStorage(t.Context(), existingStorage.ID)
+		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	})
+
+	changedStorage := *existingStorage
+	changedS3Storage := *existingStorage.S3Storage
+	changedStorage.Name = "Renamed through the backup config"
+	changedS3Storage.S3AccessKey = "replaced-access-key"
+	changedS3Storage.S3SecretKey = "replaced-secret-key"
+	changedStorage.S3Storage = &changedS3Storage
+
+	var savedConfig LogicalBackupConfig
+	test_utils.MakePostRequestAndUnmarshal(
+		t,
+		router,
+		"/api/v1/backup-configs/save",
+		"Bearer "+owner.Token,
+		newLogicalConfigWithStorage(database.ID, &changedStorage),
+		http.StatusOK,
+		&savedConfig,
+	)
+
+	require.NotNil(t, savedConfig.StorageID)
+	assert.Equal(t, existingStorage.ID, *savedConfig.StorageID)
+
+	storedStorage, err := storages.GetStorageService().GetStorageByID(t.Context(), existingStorage.ID)
+	require.NoError(t, err)
+	assert.Equal(t, existingStorage.Name, storedStorage.Name)
+	assert.Equal(t, existingStorage.S3Storage.S3AccessKey, storedStorage.S3Storage.S3AccessKey)
+	assert.Equal(t, existingStorage.S3Storage.S3SecretKey, storedStorage.S3Storage.S3SecretKey)
+}
+
+func Test_SaveBackupConfig_WhenEmbeddedStorageHasNoID_ReturnsBadRequestAndCreatesNoStorage(t *testing.T) {
+	router := createTestRouterWithStorageForTransfer()
+	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
+	database := createTestDatabaseViaAPI("Test Database", workspace.ID, owner.Token, router)
+
+	t.Cleanup(func() {
+		databases.RemoveTestDatabase(t.Context(), database)
+		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	})
+
+	storageWithoutID := &storages.Storage{
+		WorkspaceID:  workspace.ID,
+		Type:         storages.StorageTypeLocal,
+		Name:         "Storage created through the backup config",
+		LocalStorage: &local_storage.LocalStorage{},
+	}
+
+	resp := test_utils.MakePostRequest(
+		t,
+		router,
+		"/api/v1/backup-configs/save",
+		"Bearer "+owner.Token,
+		newLogicalConfigWithStorage(database.ID, storageWithoutID),
+		http.StatusBadRequest,
+	)
+
+	assert.Contains(t, string(resp.Body), ErrStorageWithoutID.Error())
+	assert.Zero(t, countStoragesInWorkspace(t, workspace.ID))
+}
+
+func Test_SaveBackupConfig_WhenEmbeddedStorageIsUnknown_ReturnsBadRequestAndCreatesNoStorage(t *testing.T) {
+	router := createTestRouterWithStorageForTransfer()
+	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
+	database := createTestDatabaseViaAPI("Test Database", workspace.ID, owner.Token, router)
+
+	t.Cleanup(func() {
+		databases.RemoveTestDatabase(t.Context(), database)
+		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	})
+
+	unknownStorage := &storages.Storage{
+		ID:           uuid.New(),
+		WorkspaceID:  workspace.ID,
+		Type:         storages.StorageTypeLocal,
+		Name:         "Unknown storage",
+		LocalStorage: &local_storage.LocalStorage{},
+	}
+
+	test_utils.MakePostRequest(
+		t,
+		router,
+		"/api/v1/backup-configs/save",
+		"Bearer "+owner.Token,
+		newLogicalConfigWithStorage(database.ID, unknownStorage),
+		http.StatusBadRequest,
+	)
+
+	var storagesWithUnknownID int64
+	require.NoError(t, storage.GetDb().Model(&storages.Storage{}).
+		Where("id = ?", unknownStorage.ID).
+		Count(&storagesWithUnknownID).Error)
+	assert.Zero(t, storagesWithUnknownID)
+}
+
+func newLogicalConfigWithStorage(databaseID uuid.UUID, embeddedStorage *storages.Storage) LogicalBackupConfig {
+	timeOfDay := "04:00"
+
+	return LogicalBackupConfig{
+		DatabaseID:          databaseID,
+		IsBackupsEnabled:    true,
+		RetentionPolicyType: RetentionPolicyTypeTimePeriod,
+		RetentionTimePeriod: period.PeriodWeek,
+		BackupInterval: intervals.Interval{
+			Type:      intervals.IntervalDaily,
+			TimeOfDay: &timeOfDay,
+		},
+		Storage: embeddedStorage,
+		SendNotificationsOn: []BackupNotificationType{
+			NotificationBackupFailed,
+		},
+		IsRetryIfFailed:     true,
+		MaxFailedTriesCount: 3,
+		Encryption:          backups_core_enums.BackupEncryptionNone,
+	}
+}
+
+func countStoragesInWorkspace(t *testing.T, workspaceID uuid.UUID) int64 {
+	t.Helper()
+
+	var storagesInWorkspace int64
+	require.NoError(t, storage.GetDb().Model(&storages.Storage{}).
+		Where("workspace_id = ?", workspaceID).
+		Count(&storagesInWorkspace).Error)
+
+	return storagesInWorkspace
 }

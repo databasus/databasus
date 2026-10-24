@@ -45,10 +45,6 @@ func plantHistoryFileOnSource(t *testing.T, conn *pgx.Conn, timelineID int) {
 // recorded (issue #643). The two ids are distinct uuids, so the wrong one is
 // rejected outright.
 func Test_UploadHistoryFile_KeysRowOnParentDatabaseID(t *testing.T) {
-	if testing.Short() {
-		t.Skip("reads a .history file from the source PG cluster; skipped in -short")
-	}
-
 	fixture := SetupPhysicalDBForBackup(t)
 
 	sourceDB := fixture.DB.PostgresqlPhysical

@@ -11,3 +11,4 @@ pgdata-for-restore/
 temp/
 temp/
 tmp/
+/cleanup_test_db

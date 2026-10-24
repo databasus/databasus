@@ -31,6 +31,7 @@ test-group-packages group:
         other)
             go list ./internal/... |
                 grep -Ev '/internal/features/(tests/(physical|logical)(/|$)|backups/backups/usecases/physical/postgresql$)'
+            go list ./cmd/...
             ;;
         *) echo "unknown test group: {{ group }} (expected physical, logical, wal-usecases or other)" >&2; exit 1 ;;
     esac

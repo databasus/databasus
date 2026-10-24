@@ -21,6 +21,7 @@ import (
 
 	"databasus-backend/internal/util/encryption"
 	io_utils "databasus-backend/internal/util/io"
+	"databasus-backend/internal/util/logger"
 )
 
 const (
@@ -54,7 +55,7 @@ func (s *GoogleDriveStorage) SaveFile(
 	fileName string,
 	file io.Reader,
 ) error {
-	return s.withRetryOnAuth(ctx, encryptor, func(driveService *drive.Service) error {
+	return s.withRetryOnAuth(ctx, logger, encryptor, func(driveService *drive.Service) error {
 		folderID, err := s.ensureBackupsFolderExists(ctx, driveService)
 		if err != nil {
 			return fmt.Errorf("failed to create/find backups folder: %w", err)
@@ -161,6 +162,7 @@ func (s *GoogleDriveStorage) GetFile(
 
 	err := s.withRetryOnAuth(
 		ctx,
+		logger,
 		encryptor,
 		func(driveService *drive.Service) error {
 			folderID, err := s.findBackupsFolder(driveService)
@@ -199,7 +201,7 @@ func (s *GoogleDriveStorage) GetFile(
 		FileName:   fileName,
 		TotalBytes: totalBytes,
 		OpenAtOffset: func(attemptCtx context.Context, offsetBytes int64) (io.ReadCloser, error) {
-			return s.downloadFileFromOffset(attemptCtx, encryptor, driveFileID, offsetBytes)
+			return s.downloadFileFromOffset(attemptCtx, logger, encryptor, driveFileID, offsetBytes)
 		},
 		IsRetryableError: isRetryableGoogleDriveError,
 	}), nil
@@ -227,7 +229,7 @@ func (s *GoogleDriveStorage) DeleteFile(
 	deleteCtx, cancel := context.WithTimeout(context.Background(), gdDeleteTimeout)
 	defer cancel()
 
-	if err := s.withRetryOnAuth(deleteCtx, encryptor, func(driveService *drive.Service) error {
+	if err := s.withRetryOnAuth(deleteCtx, logger, encryptor, func(driveService *drive.Service) error {
 		folderID, err := s.findBackupsFolder(driveService)
 		if errors.Is(err, errBackupsFolderNotFound) {
 			return nil
@@ -279,7 +281,9 @@ func (s *GoogleDriveStorage) Validate(encryptor encryption.FieldEncryptor) error
 
 func (s *GoogleDriveStorage) TestConnection(encryptor encryption.FieldEncryptor) error {
 	ctx := context.Background()
-	return s.withRetryOnAuth(ctx, encryptor, func(driveService *drive.Service) error {
+	connectionLogger := logger.GetLogger()
+
+	return s.withRetryOnAuth(ctx, connectionLogger, encryptor, func(driveService *drive.Service) error {
 		testFilename := "test-connection-" + uuid.New().String()
 		testData := []byte("test")
 
@@ -311,7 +315,7 @@ func (s *GoogleDriveStorage) TestConnection(encryptor encryption.FieldEncryptor)
 		}
 		defer func() {
 			if err := resp.Body.Close(); err != nil {
-				fmt.Printf("failed to close response body: %v\n", err)
+				connectionLogger.WarnContext(ctx, "failed to close google drive response body", "error", err)
 			}
 		}()
 
@@ -377,9 +381,12 @@ func (s *GoogleDriveStorage) Update(incoming *GoogleDriveStorage) {
 	}
 }
 
-// withRetryOnAuth executes the provided function with retry logic for authentication errors
+// withRetryOnAuth runs fn and, after an authentication error, refreshes the token once and runs
+// fn again. Refresh events go through the logger, whose layer redacts secrets; no part of a token is
+// ever logged.
 func (s *GoogleDriveStorage) withRetryOnAuth(
 	ctx context.Context,
+	logger *slog.Logger,
 	encryptor encryption.FieldEncryptor,
 	fn func(*drive.Service) error,
 ) error {
@@ -402,11 +409,11 @@ func (s *GoogleDriveStorage) withRetryOnAuth(
 		default:
 		}
 
-		// Try to refresh token and retry once
-		fmt.Printf("Google Drive auth error detected, attempting token refresh: %v\n", err)
+		logger.InfoContext(ctx, "google drive auth error, refreshing token", "error", err)
 
-		if refreshErr := s.refreshToken(encryptor); refreshErr != nil {
-			// If refresh fails, return a more helpful error message
+		if refreshErr := s.refreshToken(ctx, encryptor); refreshErr != nil {
+			logger.WarnContext(ctx, "google drive token refresh failed", "error", refreshErr)
+
 			if strings.Contains(refreshErr.Error(), "invalid_grant") ||
 				strings.Contains(refreshErr.Error(), "refresh token") {
 				return fmt.Errorf(
@@ -419,20 +426,16 @@ func (s *GoogleDriveStorage) withRetryOnAuth(
 			return fmt.Errorf("failed to refresh token after auth error: %w", refreshErr)
 		}
 
-		fmt.Printf("Token refresh successful, retrying operation\n")
+		logger.InfoContext(ctx, "google drive token refreshed, retrying operation")
 
-		// Get new service with refreshed token
 		driveService, err = s.getDriveService(encryptor)
 		if err != nil {
 			return fmt.Errorf("failed to create service after token refresh: %w", err)
 		}
 
-		// Retry the operation
 		err = fn(driveService)
 		if err != nil {
-			fmt.Printf("Retry after token refresh also failed: %v\n", err)
-		} else {
-			fmt.Printf("Operation succeeded after token refresh\n")
+			logger.WarnContext(ctx, "google drive operation failed after token refresh", "error", err)
 		}
 	}
 
@@ -452,13 +455,13 @@ func (s *GoogleDriveStorage) isAuthError(err error) bool {
 		strings.Contains(errStr, "invalid authentication credentials")
 }
 
-// refreshToken refreshes the OAuth2 token and updates the TokenJSON field
-func (s *GoogleDriveStorage) refreshToken(encryptor encryption.FieldEncryptor) error {
+// refreshToken takes ctx so the token request ends with the operation that needed it, and so a
+// test can route it through oauth2.HTTPClient.
+func (s *GoogleDriveStorage) refreshToken(ctx context.Context, encryptor encryption.FieldEncryptor) error {
 	if err := s.Validate(encryptor); err != nil {
 		return err
 	}
 
-	// Decrypt credentials before use
 	clientSecret, err := encryptor.Decrypt(s.ClientSecret)
 	if err != nil {
 		return fmt.Errorf("failed to decrypt Google Drive client secret: %w", err)
@@ -474,20 +477,10 @@ func (s *GoogleDriveStorage) refreshToken(encryptor encryption.FieldEncryptor) e
 		return fmt.Errorf("invalid token JSON: %w", err)
 	}
 
-	// Check if we have a refresh token
 	if token.RefreshToken == "" {
 		return fmt.Errorf("no refresh token available in stored token")
 	}
 
-	fmt.Printf("Original token - Access Token: %s..., Refresh Token: %s..., Expiry: %v\n",
-		truncateString(token.AccessToken, 20),
-		truncateString(token.RefreshToken, 20),
-		token.Expiry)
-
-	// Debug: Print the full token JSON structure (sensitive data masked)
-	fmt.Printf("Original token JSON structure: %s\n", maskSensitiveData(tokenJSON))
-
-	ctx := context.Background()
 	cfg := &oauth2.Config{
 		ClientID:     s.ClientID,
 		ClientSecret: clientSecret,
@@ -495,73 +488,34 @@ func (s *GoogleDriveStorage) refreshToken(encryptor encryption.FieldEncryptor) e
 		Scopes:       []string{"https://www.googleapis.com/auth/drive.file"},
 	}
 
-	// Force the token to be expired so refresh is guaranteed
-	token.Expiry = time.Now().Add(-time.Hour)
-	fmt.Printf("Forcing token expiry to trigger refresh: %v\n", token.Expiry)
+	// The token source refreshes only an expired token, so expiring it guarantees the refresh.
+	token.Expiry = time.Now().UTC().Add(-time.Hour)
 
-	tokenSource := cfg.TokenSource(ctx, &token)
-
-	// Force token refresh
-	fmt.Printf("Attempting to refresh Google Drive token...\n")
-	newToken, err := tokenSource.Token()
+	newToken, err := cfg.TokenSource(ctx, &token).Token()
 	if err != nil {
 		return fmt.Errorf("failed to refresh token: %w", err)
 	}
 
-	fmt.Printf("New token - Access Token: %s..., Refresh Token: %s..., Expiry: %v\n",
-		truncateString(newToken.AccessToken, 20),
-		truncateString(newToken.RefreshToken, 20),
-		newToken.Expiry)
-
-	// Check if we actually got a new token
 	if newToken.AccessToken == token.AccessToken {
 		return fmt.Errorf(
 			"token refresh did not return a new access token - this indicates the refresh token may be invalid",
 		)
 	}
 
-	// Ensure the new token has a refresh token (preserve the original if not returned)
+	// Google returns a refresh token only on the first authorization, so the stored one is kept.
 	if newToken.RefreshToken == "" {
-		fmt.Printf("New token doesn't have refresh token, preserving original\n")
 		newToken.RefreshToken = token.RefreshToken
 	}
 
-	// Update the stored token JSON (keep as plaintext in memory, encryption happens on save)
+	// Kept as plaintext in memory; encryption happens on save.
 	newTokenJSON, err := json.Marshal(newToken)
 	if err != nil {
 		return fmt.Errorf("failed to marshal refreshed token: %w", err)
 	}
 
 	s.TokenJSON = string(newTokenJSON)
-	fmt.Printf("Token refresh completed successfully with new access token\n")
+
 	return nil
-}
-
-// maskSensitiveData masks sensitive information in token JSON for logging
-func maskSensitiveData(tokenJSON string) string {
-	// Replace sensitive values with masked versions
-	var data map[string]any
-	if err := json.Unmarshal([]byte(tokenJSON), &data); err != nil {
-		return "invalid JSON"
-	}
-
-	if accessToken, ok := data["access_token"].(string); ok && len(accessToken) > 10 {
-		data["access_token"] = accessToken[:10] + "..."
-	}
-	if refreshToken, ok := data["refresh_token"].(string); ok && len(refreshToken) > 10 {
-		data["refresh_token"] = refreshToken[:10] + "..."
-	}
-
-	masked, _ := json.Marshal(data)
-	return string(masked)
-}
-
-// truncateString safely truncates a string for logging purposes
-func truncateString(s string, maxLen int) string {
-	if len(s) <= maxLen {
-		return s
-	}
-	return s[:maxLen]
 }
 
 func (s *GoogleDriveStorage) getDriveService(
@@ -742,6 +696,7 @@ func (s *GoogleDriveStorage) findBackupsFolder(driveService *drive.Service) (str
 
 func (s *GoogleDriveStorage) downloadFileFromOffset(
 	attemptCtx context.Context,
+	logger *slog.Logger,
 	encryptor encryption.FieldEncryptor,
 	driveFileID string,
 	offsetBytes int64,
@@ -750,6 +705,7 @@ func (s *GoogleDriveStorage) downloadFileFromOffset(
 
 	err := s.withRetryOnAuth(
 		attemptCtx,
+		logger,
 		encryptor,
 		func(driveService *drive.Service) error {
 			downloadCall := driveService.Files.Get(driveFileID).Context(attemptCtx)

@@ -83,3 +83,17 @@ func Test_OnBeforeDatabaseRemove_CancelsInFlightAndDeletesStreamer(t *testing.T)
 	streamer, _ := physical_repositories.GetWalStreamerRepository().FindByDatabaseID(prereqs.DB.ID)
 	assert.Nil(t, streamer)
 }
+
+func Test_OnBackupsStorageChanged_DeletesStreamerKeepsInFlight(t *testing.T) {
+	prereqs := seedBackupPrereqs(t)
+	seedClaimAndStreamer(t, prereqs.DB.ID)
+	listener := newTestCancellationListener()
+
+	listener.OnBackupsStorageChanged(t.Context(), prereqs.DB.ID)
+
+	claim, _ := physical_repositories.GetInFlightBackupRepository().FindByDatabaseID(prereqs.DB.ID)
+	assert.NotNil(t, claim, "the in-flight backup is stopped by the removal of the old chain, not here")
+
+	streamer, _ := physical_repositories.GetWalStreamerRepository().FindByDatabaseID(prereqs.DB.ID)
+	assert.Nil(t, streamer, "a storage change must stop the streamer so the next one targets the new storage")
+}

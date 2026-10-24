@@ -184,7 +184,7 @@ func (uc *CreateMysqlBackupUsecase) streamToStorage(
 ) (*backups_core_logical.BackupArtifacts, error) {
 	uc.logger.InfoContext(parentCtx, "streaming MySQL backup to storage", "mysql_bin", mysqlBin)
 
-	ctx, cancel := backups_core_logical.NewBackupContext(parentCtx)
+	ctx, cancel := backups_core_logical.NewBackupContext(parentCtx, config.GetShutdownSignal())
 	defer cancel(nil)
 
 	myCnfFile, err := uc.createTempMyCnfFile(myConfig, password)
@@ -370,10 +370,6 @@ func (uc *CreateMysqlBackupUsecase) copyWithShutdownCheck(
 		case <-ctx.Done():
 			return fmt.Errorf("copy cancelled: %w", ctx.Err())
 		default:
-		}
-
-		if config.IsShouldShutdown() {
-			return fmt.Errorf("copy cancelled due to shutdown")
 		}
 
 		bytesRead, readErr := copySpec.Source.Read(buf)

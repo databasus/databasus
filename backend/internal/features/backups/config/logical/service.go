@@ -69,8 +69,12 @@ func (s *BackupConfigService) SaveBackupConfigWithAuth(
 		return nil, errors.New("insufficient permissions to modify backup configuration")
 	}
 
-	if backupConfig.Storage != nil && backupConfig.Storage.ID != uuid.Nil {
-		storage, err := s.storageService.GetStorageByID(ctx, backupConfig.Storage.ID)
+	if err := takeStorageIDFromEmbeddedStorage(backupConfig); err != nil {
+		return nil, err
+	}
+
+	if backupConfig.StorageID != nil {
+		storage, err := s.storageService.GetStorageByID(ctx, *backupConfig.StorageID)
 		if err != nil {
 			return nil, err
 		}
@@ -90,6 +94,10 @@ func (s *BackupConfigService) SaveBackupConfig(
 		return nil, err
 	}
 
+	if err := takeStorageIDFromEmbeddedStorage(backupConfig); err != nil {
+		return nil, err
+	}
+
 	// Check if there's an existing backup config for this database
 	existingConfig, err := s.GetBackupConfigByDbId(backupConfig.DatabaseID)
 	if err != nil {
@@ -99,8 +107,8 @@ func (s *BackupConfigService) SaveBackupConfig(
 	if existingConfig != nil {
 		// If storage is changing, notify the listener
 		if s.dbStorageChangeListener != nil &&
-			backupConfig.Storage != nil &&
-			!storageIDsEqual(existingConfig.StorageID, &backupConfig.Storage.ID) {
+			backupConfig.StorageID != nil &&
+			!storageIDsEqual(existingConfig.StorageID, backupConfig.StorageID) {
 			if err := s.dbStorageChangeListener.OnBeforeBackupsStorageChange(ctx,
 				backupConfig.DatabaseID,
 			); err != nil {
@@ -376,6 +384,23 @@ func (s *BackupConfigService) assignTargetNotifiers(
 	}
 
 	return s.databaseService.UpdateDatabaseNotifiers(databaseID, targetNotifiers)
+}
+
+// A configuration refers to a storage only by its identifier. The storage endpoints are the only
+// place that checks who may create or edit a storage, so an embedded storage object never reaches
+// the database as anything but a reference.
+func takeStorageIDFromEmbeddedStorage(backupConfig *LogicalBackupConfig) error {
+	if backupConfig.Storage == nil {
+		return nil
+	}
+
+	if backupConfig.Storage.ID == uuid.Nil {
+		return ErrStorageWithoutID
+	}
+
+	backupConfig.StorageID = &backupConfig.Storage.ID
+
+	return nil
 }
 
 func storageIDsEqual(id1, id2 *uuid.UUID) bool {

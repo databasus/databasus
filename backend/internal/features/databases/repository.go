@@ -1,6 +1,8 @@
 package databases
 
 import (
+	"fmt"
+
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
@@ -117,6 +119,22 @@ func (r *DatabaseRepository) Save(database *Database) (*Database, error) {
 	}
 
 	return database, nil
+}
+
+// UpdateColumns writes only the given columns of one database row, so a background status update
+// cannot overwrite settings a user saved after the caller read the database. A map is used so a
+// column cleared to NULL is written instead of being skipped as a zero value.
+func (r *DatabaseRepository) UpdateColumns(id uuid.UUID, columns map[string]any) error {
+	result := storage.GetDb().Model(&Database{}).Where("id = ?", id).Updates(columns)
+	if result.Error != nil {
+		return result.Error
+	}
+
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("database %s not found: %w", id, gorm.ErrRecordNotFound)
+	}
+
+	return nil
 }
 
 func (r *DatabaseRepository) FindByID(id uuid.UUID) (*Database, error) {

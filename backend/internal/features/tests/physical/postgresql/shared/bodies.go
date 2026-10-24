@@ -92,10 +92,6 @@ func RunFullPlusTwoIncrementalsRecoversAllRows(t *testing.T, version, image stri
 // the database and start pg_receivewal. It also strips the zstd CLI before starting the cluster,
 // proving the recovery script inflated WAL on the host and the runtime image needs no zstd.
 func RunFullTwoIncrementalsPlusWalRecoversToTarget(t *testing.T, version, image string) {
-	if testing.Short() {
-		t.Skip("streams WAL and runs a real PITR recovery; skipped in -short")
-	}
-
 	router, fixture := setupReplicationOnlyFixture(
 		t, version, image, postgresql_physical.BackupTypeFullIncrementalAndWalStream)
 	target := prepareRestoreTarget(t, image)
@@ -132,10 +128,6 @@ func RunFullTwoIncrementalsPlusWalRecoversToTarget(t *testing.T, version, image 
 // cross-timeline restore is unsupported by the current resolver regardless of issue #643. The
 // single-timeline PITR restore is already covered by RunFullTwoIncrementalsPlusWalRecoversToTarget.
 func RunWalStreamCatalogsHistoryOnTimelineSwitch(t *testing.T, version, image string) {
-	if testing.Short() {
-		t.Skip("clones a standby and promotes it across a timeline switch; skipped in -short")
-	}
-
 	primary, standby := containers.StartPhysicalPrimaryWithStandby(t, image)
 
 	// Databasus backs up the STANDBY: pg_basebackup and pg_receivewal run against it, so promoting it
@@ -180,10 +172,6 @@ func RunWalStreamCatalogsHistoryOnTimelineSwitch(t *testing.T, version, image st
 }
 
 func RunPromotionReanchorsIncrementalChain(t *testing.T, version, image string) {
-	if testing.Short() {
-		t.Skip("clones a standby, promotes it, and restores the replacement chain; skipped in -short")
-	}
-
 	primary, standby := containers.StartPhysicalPrimaryWithStandby(t, image)
 	router := newPhysicalTestRouter()
 	fixture := postgresql_executor.SetupPhysicalDBForScheduledBackupVersion(
@@ -229,10 +217,6 @@ func RunPromotionReanchorsIncrementalChain(t *testing.T, version, image string) 
 // with pg_ctl -D and so never exercise the entrypoint's PGDATA-layout detection. It then proves the
 // guard refuses a second restore onto the now-initialized volume.
 func RunBootViaEntrypointVolumeMountRecoversBaseRows(t *testing.T, version, image string) {
-	if testing.Short() {
-		t.Skip("restores on the host and boots a second postgres via the entrypoint; skipped in -short")
-	}
-
 	router, fixture := setupReplicationOnlyFixture(t, version, image, postgresql_physical.BackupTypeFullAndIncremental)
 
 	sourceConn := openSourceTestDBConn(t, fixture)
@@ -267,10 +251,6 @@ func RunBootViaEntrypointVolumeMountRecoversBaseRows(t *testing.T, version, imag
 // parameter settings" unless the script pinned the primary's parameters into postgresql.auto.conf -
 // this also covers that recovery-parameter auto-config.
 func RunPitrBootViaEntrypointVolumeMountRecoversToTarget(t *testing.T, version, image string) {
-	if testing.Short() {
-		t.Skip("streams WAL and boots a second postgres via the entrypoint; skipped in -short")
-	}
-
 	const primaryMaxConnections = 200
 
 	router, fixture := setupReplicationOnlyFixture(
@@ -311,10 +291,6 @@ func RunRejectsMisaimedRestoreTarget(t *testing.T, _, image string) {
 // asks for a restore token targeting a time past the gap and expects HTTP 422. No reconstruction —
 // the contract is that an unreachable target never mints a token.
 func RunWhenWalGapBeforeTargetTokenRequestReturns422(t *testing.T, version, image string) {
-	if testing.Short() {
-		t.Skip("streams WAL to build and then break a chain; skipped in -short")
-	}
-
 	router, fixture := setupReplicationOnlyFixture(
 		t, version, image, postgresql_physical.BackupTypeFullIncrementalAndWalStream)
 
@@ -350,10 +326,6 @@ func RunWhenWalGapBeforeTargetTokenRequestReturns422(t *testing.T, version, imag
 // begins from. No incremental is taken on purpose. An incremental moves the replay window past the
 // FULL's own boundary segment and hides whether the sweep kept it.
 func RunWhenOrphanSweepRunsAfterFullTargetPastFullStaysRestorable(t *testing.T, version, image string) {
-	if testing.Short() {
-		t.Skip("streams WAL and runs the retention sweep against a real cluster; skipped in -short")
-	}
-
 	router, fixture := setupReplicationOnlyFixture(
 		t, version, image, postgresql_physical.BackupTypeFullIncrementalAndWalStream)
 
@@ -428,10 +400,6 @@ func RunWalSlotAppearsWhenBackupingStartsRemovedWhenDatabaseDeleted(t *testing.T
 // Generating real WAL first makes the slot's receiver active at deletion time, exercising the path a
 // naive "refuse to drop an active slot" cleanup would orphan.
 func RunWalSlotWhenDatabaseDeletedWithStreamedWalSlotRemovedSoNoWalStuck(t *testing.T, version, image string) {
-	if testing.Short() {
-		t.Skip("streams real WAL before deleting; skipped in -short")
-	}
-
 	router, fixture := setupReplicationOnlyFixture(
 		t, version, image, postgresql_physical.BackupTypeFullIncrementalAndWalStream)
 
@@ -458,10 +426,6 @@ func RunWalSlotWhenDatabaseDeletedWithStreamedWalSlotRemovedSoNoWalStuck(t *test
 
 // The source publishes no port, so nothing on this path can silently fall back to a direct route.
 func RunOverSshTunnelRecoversToTarget(t *testing.T, version, image string) {
-	if testing.Short() {
-		t.Skip("streams WAL through an SSH bastion and runs a real PITR recovery; skipped in -short")
-	}
-
 	router, fixture, topology := setupBastionedFixture(
 		t, version, image, postgresql_physical.BackupTypeFullIncrementalAndWalStream)
 	target := prepareRestoreTarget(t, image)
@@ -487,10 +451,6 @@ func RunOverSshTunnelRecoversToTarget(t *testing.T, version, image string) {
 // the streamer would be marked FAILED and a chain-broken alert sent, leaving nobody consuming the
 // slot until a later supervisor tick reclaims it — for a blip the forwarder heals on its own.
 func RunWhenBastionDiesMidStreamKeepsTheSlotAndResumes(t *testing.T, version, image string) {
-	if testing.Short() {
-		t.Skip("stops and restarts a bastion container under a live WAL stream; skipped in -short")
-	}
-
 	router, fixture, topology := setupBastionedFixture(
 		t, version, image, postgresql_physical.BackupTypeFullIncrementalAndWalStream)
 

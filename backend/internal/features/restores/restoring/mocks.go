@@ -26,7 +26,9 @@ func (uc *MockSuccessRestoreUsecase) Execute(
 	return nil
 }
 
-type MockFailedRestoreUsecase struct{}
+type MockFailedRestoreUsecase struct {
+	RestoreErr error
+}
 
 func (uc *MockFailedRestoreUsecase) Execute(
 	ctx context.Context,
@@ -38,7 +40,7 @@ func (uc *MockFailedRestoreUsecase) Execute(
 	storage *storages.Storage,
 	options restores_core.RestoreOptions,
 ) error {
-	return errors.New("restore failed")
+	return uc.RestoreErr
 }
 
 type MockCaptureCredentialsRestoreUsecase struct {
@@ -85,4 +87,23 @@ func (uc *MockBlockingRestoreUsecase) Execute(
 	<-ctx.Done()
 
 	return ctx.Err()
+}
+
+type MockCaptureStorageRestoreUsecase struct {
+	ReceivedStorage *storages.Storage
+}
+
+func (uc *MockCaptureStorageRestoreUsecase) Execute(
+	ctx context.Context,
+	backupConfig *backups_config_logical.LogicalBackupConfig,
+	restore restores_core.Restore,
+	originalDB *databases.Database,
+	restoringToDB *databases.Database,
+	backup *backups_core_logical.LogicalBackup,
+	storage *storages.Storage,
+	options restores_core.RestoreOptions,
+) error {
+	uc.ReceivedStorage = storage
+
+	return nil
 }

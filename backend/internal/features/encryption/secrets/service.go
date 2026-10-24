@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -15,7 +16,8 @@ import (
 )
 
 type SecretKeyService struct {
-	cachedKey *string
+	keyLoadingMutex sync.Mutex
+	cachedKey       *string
 }
 
 func (s *SecretKeyService) MigrateKeyFromDbToFileIfExist() error {
@@ -50,6 +52,9 @@ func (s *SecretKeyService) MigrateKeyFromDbToFileIfExist() error {
 }
 
 func (s *SecretKeyService) GetSecretKey() (string, error) {
+	s.keyLoadingMutex.Lock()
+	defer s.keyLoadingMutex.Unlock()
+
 	if s.cachedKey != nil {
 		return *s.cachedKey, nil
 	}

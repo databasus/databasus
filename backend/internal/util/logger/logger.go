@@ -65,15 +65,15 @@ func GetAuditLogger() *slog.Logger {
 // without it the line describing a fatal startup failure - the one an operator actually needs -
 // is the single class of log guaranteed never to reach the forensic copy.
 func ExitAfterFlush(code int) {
-	FlushAndCloseSinks()
+	FlushAndCloseSinks(flushOnExitTimeout)
 	os.Exit(code)
 }
 
 // FlushAndCloseSinks is one-way - the file writer stops accepting writes and the OTLP provider
 // becomes a no-op - so it belongs only at process exit. It reports to stderr rather than through
 // the logger: by the time it can fail, the sinks it would report through are the ones it closed.
-func FlushAndCloseSinks() {
-	ctx, cancel := context.WithTimeout(context.Background(), flushOnExitTimeout)
+func FlushAndCloseSinks(timeout time.Duration) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	if err := Shutdown(ctx); err != nil {

@@ -70,21 +70,17 @@ func CreateTestRouter() *gin.Engine {
 }
 
 func CreateTestRestorer() *Restorer {
-	return &Restorer{
-		databases.GetDatabaseService(),
-		backups_services.GetBackupService(),
-		encryption.GetFieldEncryptor(),
-		restoreRepository,
-		backups_config_logical.GetBackupConfigService(),
-		storages.GetStorageService(),
-		logger.GetLogger(),
-		usecases.GetRestoreBackupUsecase(),
-		restoreDatabaseCache,
-		tasks_cancellation.GetRegistry(),
-	}
+	return CreateTestRestorerWithUsecase(usecases.GetRestoreBackupUsecase())
 }
 
 func CreateTestRestorerWithUsecase(usecase restores_core.RestoreBackupUsecase) *Restorer {
+	return createTestRestorerWithShutdownSignal(usecase, make(chan struct{}))
+}
+
+func createTestRestorerWithShutdownSignal(
+	usecase restores_core.RestoreBackupUsecase,
+	shutdownSignal <-chan struct{},
+) *Restorer {
 	return &Restorer{
 		databases.GetDatabaseService(),
 		backups_services.GetBackupService(),
@@ -96,6 +92,7 @@ func CreateTestRestorerWithUsecase(usecase restores_core.RestoreBackupUsecase) *
 		usecase,
 		restoreDatabaseCache,
 		tasks_cancellation.GetRegistry(),
+		shutdownSignal,
 	}
 }
 

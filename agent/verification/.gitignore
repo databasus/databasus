@@ -9,6 +9,7 @@ databasus-verification.lock
 
 # Local build artifacts (host binaries)
 databasus-verification-agent
+mock-server.exe
 
 # E2E working directories
 e2e/artifacts/

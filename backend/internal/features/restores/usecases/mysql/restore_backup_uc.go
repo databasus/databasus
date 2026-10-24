@@ -18,7 +18,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/klauspost/compress/zstd"
 
-	"databasus-backend/internal/config"
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	"databasus-backend/internal/features/backups/backups/encryption"
@@ -115,25 +114,6 @@ func (uc *RestoreMysqlBackupUsecase) restoreFromStorage(
 	ctx, cancel := context.WithTimeout(parentCtx, 23*time.Hour)
 	defer cancel()
 
-	go func() {
-		ticker := time.NewTicker(1 * time.Second)
-		defer ticker.Stop()
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case <-parentCtx.Done():
-				cancel()
-				return
-			case <-ticker.C:
-				if config.IsShouldShutdown() {
-					cancel()
-					return
-				}
-			}
-		}
-	}()
-
 	logger := uc.logger.With("backup_id", backup.ID)
 
 	fieldEncryptor := util_encryption.GetFieldEncryptor()
@@ -222,10 +202,6 @@ func (uc *RestoreMysqlBackupUsecase) executeMysqlRestore(
 			return fmt.Errorf("restore cancelled")
 		}
 	default:
-	}
-
-	if config.IsShouldShutdown() {
-		return fmt.Errorf("restore cancelled due to shutdown")
 	}
 
 	if streamErr := restores_core.GetBackupStreamFailure(restores_core.BackupStreamTrackers{

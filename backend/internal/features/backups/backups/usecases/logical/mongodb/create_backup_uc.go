@@ -137,7 +137,7 @@ func (uc *CreateMongodbBackupUsecase) streamToStorage(
 ) (*backups_core_logical.BackupArtifacts, error) {
 	uc.logger.InfoContext(parentCtx, "streaming MongoDB backup to storage", "mongodump_bin", mongodumpBin)
 
-	ctx, cancel := backups_core_logical.NewBackupContext(parentCtx)
+	ctx, cancel := backups_core_logical.NewBackupContext(parentCtx, config.GetShutdownSignal())
 	defer cancel(nil)
 
 	// The binary is a database client from the bundled tools directory, and the arguments go to it as a list, not through a shell.
@@ -301,10 +301,6 @@ func (uc *CreateMongodbBackupUsecase) copyWithShutdownCheck(
 		case <-ctx.Done():
 			return totalWritten, ctx.Err()
 		default:
-		}
-
-		if config.IsShouldShutdown() {
-			return totalWritten, errors.New("shutdown requested")
 		}
 
 		nr, readErr := src.Read(buf)

@@ -1,7 +1,9 @@
 package restoring
 
 import (
+	"context"
 	"errors"
+	"fmt"
 	"io"
 	"log/slog"
 	"testing"
@@ -20,6 +22,7 @@ import (
 	"databasus-backend/internal/features/notifiers"
 	restores_core "databasus-backend/internal/features/restores/core"
 	"databasus-backend/internal/features/storages"
+	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
 	users_enums "databasus-backend/internal/features/users/enums"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
@@ -200,4 +203,196 @@ func Test_MakeRestore_WhenTaskStarts_CacheDeletedImmediately(t *testing.T) {
 	cachedDBAfter, err := restoreDatabaseCache.Get(t.Context(), restore.ID.String())
 	require.NoError(t, err)
 	assert.Nil(t, cachedDBAfter, "Cache should be deleted immediately when task starts")
+}
+
+func Test_MakeRestore_WhenShutdownSignalCloses_RestoreFailsWithShutdownMessage(t *testing.T) {
+	restore, databaseCache := createRestoreForOutcomeTest(t)
+	blockingUsecase := &MockBlockingRestoreUsecase{StartedChan: make(chan bool, 1)}
+	shutdownSignal := make(chan struct{})
+	restorer := createTestRestorerWithShutdownSignal(blockingUsecase, shutdownSignal)
+
+	restoreFinished := startRestoreInBackground(t, restorer, restore.ID, databaseCache)
+	waitForRestoreUsecaseStart(t, blockingUsecase)
+
+	close(shutdownSignal)
+	waitForRestoreToReturn(t, restoreFinished)
+
+	persistedRestore, err := restoreRepository.FindByID(restore.ID)
+	require.NoError(t, err)
+	assert.Equal(t, restores_core.RestoreStatusFailed, persistedRestore.Status)
+	require.NotNil(t, persistedRestore.FailMessage)
+	assert.Contains(t, *persistedRestore.FailMessage, "restore interrupted by application shutdown")
+}
+
+func Test_MakeRestore_WhenCancellationRequested_RestoreCancelled(t *testing.T) {
+	restore, databaseCache := createRestoreForOutcomeTest(t)
+	blockingUsecase := &MockBlockingRestoreUsecase{StartedChan: make(chan bool, 1)}
+	restorer := CreateTestRestorerWithUsecase(blockingUsecase)
+
+	restoreFinished := startRestoreInBackground(t, restorer, restore.ID, databaseCache)
+	waitForRestoreUsecaseStart(t, blockingUsecase)
+
+	tasks_cancellation.GetRegistry().CancelRegisteredTask(restore.ID)
+	waitForRestoreToReturn(t, restoreFinished)
+
+	persistedRestore, err := restoreRepository.FindByID(restore.ID)
+	require.NoError(t, err)
+	assert.Equal(t, restores_core.RestoreStatusCanceled, persistedRestore.Status)
+}
+
+func Test_MakeRestore_WhenStorageErrorWrapsCanceled_RestoreFails(t *testing.T) {
+	restore, databaseCache := createRestoreForOutcomeTest(t)
+	storageErr := fmt.Errorf("read backup from storage: %w", context.Canceled)
+	restorer := CreateTestRestorerWithUsecase(&MockFailedRestoreUsecase{RestoreErr: storageErr})
+
+	restorer.MakeRestore(t.Context(), restore.ID, databaseCache)
+
+	persistedRestore, err := restoreRepository.FindByID(restore.ID)
+	require.NoError(t, err)
+	assert.Equal(t, restores_core.RestoreStatusFailed, persistedRestore.Status)
+	require.NotNil(t, persistedRestore.FailMessage)
+	assert.Equal(t, storageErr.Error(), *persistedRestore.FailMessage)
+}
+
+type configStorageChoice int
+
+const (
+	configNamesBackupStorage configStorageChoice = iota
+	configNamesOtherStorage
+	configNamesNoStorage
+)
+
+type restoreTestFixture struct {
+	restore         *restores_core.Restore
+	databaseCache   *RestoreDatabaseCache
+	backupStorageID uuid.UUID
+}
+
+func Test_MakeRestore_WhenConfigNamesAnotherStorage_ReadsFromBackupStorage(t *testing.T) {
+	fixture := createRestoreWithConfigStorage(t, configNamesOtherStorage)
+	storageCapturingUsecase := &MockCaptureStorageRestoreUsecase{}
+
+	CreateTestRestorerWithUsecase(storageCapturingUsecase).
+		MakeRestore(t.Context(), fixture.restore.ID, fixture.databaseCache)
+
+	assertRestoreCompletedFromStorage(t, fixture, storageCapturingUsecase)
+}
+
+func Test_MakeRestore_WhenConfigNamesNoStorage_ReadsFromBackupStorage(t *testing.T) {
+	fixture := createRestoreWithConfigStorage(t, configNamesNoStorage)
+	storageCapturingUsecase := &MockCaptureStorageRestoreUsecase{}
+
+	CreateTestRestorerWithUsecase(storageCapturingUsecase).
+		MakeRestore(t.Context(), fixture.restore.ID, fixture.databaseCache)
+
+	assertRestoreCompletedFromStorage(t, fixture, storageCapturingUsecase)
+}
+
+func assertRestoreCompletedFromStorage(
+	t *testing.T,
+	fixture restoreTestFixture,
+	storageCapturingUsecase *MockCaptureStorageRestoreUsecase,
+) {
+	t.Helper()
+
+	persistedRestore, err := restoreRepository.FindByID(fixture.restore.ID)
+	require.NoError(t, err)
+	assert.Equal(t, restores_core.RestoreStatusCompleted, persistedRestore.Status)
+	require.NotNil(t, storageCapturingUsecase.ReceivedStorage)
+	assert.Equal(t, fixture.backupStorageID, storageCapturingUsecase.ReceivedStorage.ID)
+}
+
+func createRestoreForOutcomeTest(t *testing.T) (*restores_core.Restore, *RestoreDatabaseCache) {
+	t.Helper()
+
+	fixture := createRestoreWithConfigStorage(t, configNamesBackupStorage)
+
+	return fixture.restore, fixture.databaseCache
+}
+
+func createRestoreWithConfigStorage(t *testing.T, configStorage configStorageChoice) restoreTestFixture {
+	t.Helper()
+
+	user := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	router := CreateTestRouter()
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", user, router)
+	backupStorage := storages.CreateTestStorage(workspace.ID)
+	notifier := notifiers.CreateTestNotifier(workspace.ID)
+	database := databases.CreateTestDatabase(workspace.ID, backupStorage, notifier)
+
+	var otherStorage *storages.Storage
+
+	switch configStorage {
+	case configNamesBackupStorage:
+		backups_config_logical.EnableBackupsForTestDatabase(t.Context(), database.ID, backupStorage)
+	case configNamesOtherStorage:
+		otherStorage = storages.CreateTestStorage(workspace.ID)
+		backups_config_logical.EnableBackupsForTestDatabase(t.Context(), database.ID, otherStorage)
+	case configNamesNoStorage:
+	}
+
+	backup := backups_controllers_logical.CreateTestBackup(database.ID, backupStorage.ID)
+
+	restore := &restores_core.Restore{
+		BackupID: backup.ID,
+		Status:   restores_core.RestoreStatusInProgress,
+	}
+	require.NoError(t, restoreRepository.Save(restore))
+
+	t.Cleanup(func() {
+		_ = restoreRepository.DeleteByID(restore.ID)
+		_ = (&backups_core_logical.BackupRepository{}).DeleteByID(backup.ID)
+		databases.RemoveTestDatabase(t.Context(), database)
+		notifiers.RemoveTestNotifier(notifier)
+		storages.RemoveTestStorage(t.Context(), backupStorage.ID)
+		if otherStorage != nil {
+			storages.RemoveTestStorage(t.Context(), otherStorage.ID)
+		}
+		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	})
+
+	return restoreTestFixture{
+		restore:         restore,
+		databaseCache:   &RestoreDatabaseCache{PostgresqlLogicalDatabase: databases.GetTestPostgresConfig()},
+		backupStorageID: backupStorage.ID,
+	}
+}
+
+func startRestoreInBackground(
+	t *testing.T,
+	restorer *Restorer,
+	restoreID uuid.UUID,
+	databaseCache *RestoreDatabaseCache,
+) <-chan struct{} {
+	t.Helper()
+
+	restoreFinished := make(chan struct{})
+
+	go func() {
+		defer close(restoreFinished)
+
+		restorer.MakeRestore(context.Background(), restoreID, databaseCache)
+	}()
+
+	return restoreFinished
+}
+
+func waitForRestoreUsecaseStart(t *testing.T, blockingUsecase *MockBlockingRestoreUsecase) {
+	t.Helper()
+
+	select {
+	case <-blockingUsecase.StartedChan:
+	case <-time.After(30 * time.Second):
+		t.Fatal("restore use case did not start")
+	}
+}
+
+func waitForRestoreToReturn(t *testing.T, restoreFinished <-chan struct{}) {
+	t.Helper()
+
+	select {
+	case <-restoreFinished:
+	case <-time.After(10 * time.Second):
+		t.Fatal("restore did not return")
+	}
 }

@@ -15,12 +15,15 @@ import (
 	physical_enums "databasus-backend/internal/features/backups/backups/core/physical/enums"
 	physical_models "databasus-backend/internal/features/backups/backups/core/physical/models"
 	physical_repositories "databasus-backend/internal/features/backups/backups/core/physical/repositories"
+	physical_testing "databasus-backend/internal/features/backups/backups/core/physical/testing"
 	"databasus-backend/internal/features/backups/backups/core/physical/wal_health"
 	postgresql_executor "databasus-backend/internal/features/backups/backups/usecases/physical/postgresql"
 	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
 	"databasus-backend/internal/features/databases"
 	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
 	"databasus-backend/internal/features/notifiers"
+	"databasus-backend/internal/features/storages"
+	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
 	"databasus-backend/internal/storage"
 )
 
@@ -463,10 +466,6 @@ func countSamples(t *testing.T, databaseID uuid.UUID) int {
 }
 
 func Test_Reconcile_WhenDatabaseIsNotWalStreaming_RecordsNoSamplesForIt(t *testing.T) {
-	if testing.Short() {
-		t.Skip("runs a real streamer until its first sample; skipped in -short")
-	}
-
 	streamingPrereqs := seedBackupPrereqsOnSharedSource(t, postgresql_physical.BackupTypeFullIncrementalAndWalStream)
 	dropStreamerSlotOnCleanup(t, streamingPrereqs)
 
@@ -532,4 +531,117 @@ func Test_Reconcile_WhenEverySessionFailsBeforeFirstSample_KeepsFirstFailingTime
 	require.True(t, firstFailure.FailingSince.Equal(*secondFailure.FailingSince),
 		"a crash loop keeps the time of its first failure")
 	require.Zero(t, countSamples(t, unreachablePrereqs.DB.ID))
+}
+
+func Test_PhysicalWalStreamSupervisorRun_WhenContextCancelledWithRunningStreamer_UnregistersStreamer(
+	t *testing.T,
+) {
+	prereqs := seedBackupPrereqsOnSharedSource(t, postgresql_physical.BackupTypeFullIncrementalAndWalStream)
+	dropStreamerSlotOnCleanup(t, prereqs)
+	t.Cleanup(func() {
+		_ = physical_repositories.GetWalStreamerRepository().DeleteByDatabaseID(prereqs.DB.ID)
+	})
+
+	registry := tasks_cancellation.NewRegistry()
+	supervisor := CreateTestWalStreamSupervisor(WalStreamSupervisorTestSpec{
+		NotificationSender:       notifiers.GetNotifierService(),
+		TaskCancellationRegistry: registry,
+	})
+
+	supervisorCtx, cancelSupervisor := context.WithCancel(t.Context())
+	supervisorStopped := make(chan struct{})
+
+	go func() {
+		defer close(supervisorStopped)
+
+		supervisor.Run(supervisorCtx)
+	}()
+
+	t.Cleanup(func() {
+		cancelSupervisor()
+		<-supervisorStopped
+	})
+
+	require.Eventually(t, func() bool {
+		supervisor.mu.Lock()
+		defer supervisor.mu.Unlock()
+
+		_, isRunning := supervisor.running[prereqs.DB.ID]
+
+		return isRunning
+	}, 30*time.Second, 100*time.Millisecond, "the supervisor starts a streamer for the WAL streaming database")
+
+	cancelSupervisor()
+
+	waitCtx, cancelWait := context.WithTimeout(t.Context(), 6*time.Second)
+	defer cancelWait()
+
+	require.NoError(t, registry.WaitUntilNoTasksRegistered(waitCtx),
+		"a cancelled supervisor unregisters its streamers before the shutdown deadline")
+}
+
+func Test_Reconcile_AfterBackupsStorageChanged_StartsStreamerOnNewStorage(t *testing.T) {
+	tasks_cancellation.SetupDependencies()
+
+	prereqs := seedBackupPrereqsOnSharedSource(t, postgresql_physical.BackupTypeFullIncrementalAndWalStream)
+	dropStreamerSlotOnCleanup(t, prereqs)
+
+	backupConfigService := backups_config_physical.GetBackupConfigService()
+	newStorage := storages.CreateTestStorage(prereqs.Workspace.ID)
+
+	t.Cleanup(func() {
+		physical_testing.DeleteAllPhysicalCatalogForDatabase(t, prereqs.DB.ID)
+		_ = physical_repositories.GetWalStreamerRepository().DeleteByDatabaseID(prereqs.DB.ID)
+
+		restoredConfig := *prereqs.Config
+		restoredConfig.StorageID = &prereqs.Storage.ID
+		restoredConfig.Storage = prereqs.Storage
+		_, err := backupConfigService.SaveBackupConfig(context.Background(), &restoredConfig)
+		require.NoError(t, err)
+
+		storages.RemoveTestStorage(context.Background(), newStorage.ID)
+	})
+
+	supervisor, ctx := startReconcilingSupervisor(t)
+
+	supervisor.reconcile(ctx)
+	waitForStreamerOnStorage(t, supervisor, prereqs.DB.ID, prereqs.Storage.ID)
+
+	movedConfig := *prereqs.Config
+	movedConfig.StorageID = &newStorage.ID
+	movedConfig.Storage = newStorage
+	_, err := backupConfigService.SaveBackupConfig(t.Context(), &movedConfig)
+	require.NoError(t, err)
+
+	newTestCancellationListener().OnBackupsStorageChanged(t.Context(), prereqs.DB.ID)
+
+	require.Eventually(t, func() bool {
+		supervisor.mu.Lock()
+		defer supervisor.mu.Unlock()
+
+		_, isRunning := supervisor.running[prereqs.DB.ID]
+
+		return !isRunning
+	}, 30*time.Second, 100*time.Millisecond, "the storage change stops the streamer on the old storage")
+
+	supervisor.reconcile(ctx)
+	waitForStreamerOnStorage(t, supervisor, prereqs.DB.ID, newStorage.ID)
+}
+
+func waitForStreamerOnStorage(
+	t *testing.T,
+	supervisor *PhysicalWalStreamSupervisor,
+	databaseID uuid.UUID,
+	storageID uuid.UUID,
+) {
+	t.Helper()
+
+	require.Eventually(t, func() bool {
+		supervisor.mu.Lock()
+		defer supervisor.mu.Unlock()
+
+		streamer, isRunning := supervisor.running[databaseID]
+
+		return isRunning && streamer.storageID == storageID
+	}, 30*time.Second, 100*time.Millisecond, "a streamer runs for the database on the expected storage")
 }

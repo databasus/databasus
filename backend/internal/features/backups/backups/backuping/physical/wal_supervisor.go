@@ -69,6 +69,7 @@ type runningStreamer struct {
 	cancel               context.CancelFunc
 	done                 chan struct{}
 	watchDir             string
+	storageID            uuid.UUID
 	shouldRemoveWatchDir atomic.Bool
 
 	// Read by GetLiveState; the HTTP handlers and the streamers share one
@@ -277,9 +278,10 @@ func (s *PhysicalWalStreamSupervisor) startStreamer(
 	streamerCtx, cancel := context.WithCancel(ctx)
 	done := make(chan struct{})
 	streamer := &runningStreamer{
-		cancel:   cancel,
-		done:     done,
-		watchDir: filepath.Join(config.GetEnv().DataFolder, "wal-queue", db.ID.String()),
+		cancel:    cancel,
+		done:      done,
+		watchDir:  filepath.Join(config.GetEnv().DataFolder, "wal-queue", db.ID.String()),
+		storageID: storage.ID,
 	}
 
 	s.taskCancellationRegistry.RegisterTask(db.ID, func() {
@@ -316,7 +318,7 @@ func (s *PhysicalWalStreamSupervisor) startStreamer(
 	s.running[db.ID] = streamer
 	s.mu.Unlock()
 
-	logger.InfoContext(ctx, "wal stream supervisor started for database")
+	logger.InfoContext(ctx, "wal stream supervisor started for database", "storage_id", streamer.storageID)
 
 	go func() {
 		defer close(done)

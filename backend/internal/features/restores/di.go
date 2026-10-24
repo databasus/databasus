@@ -45,6 +45,5 @@ func GetRestoreController() *RestoreController {
 }
 
 var SetupDependencies = sync.OnceFunc(func() {
-	backups_services.GetBackupService().AddBackupRemoveListener(restoreService)
 	backuping_logical.GetBackupCleaner().AddBackupRemoveListener(restoreService)
 })

@@ -28,10 +28,6 @@ import (
 )
 
 func Test_WalStream_FullIncrementalAndWalStream_StreamerArchivesSegments(t *testing.T) {
-	if testing.Short() {
-		t.Skip("streamer integration test runs pg_receivewal; skipped in -short")
-	}
-
 	fixture := SetupPhysicalDBForBackup(t)
 	t.Cleanup(func() {
 		_ = physical_repositories.GetWalStreamerRepository().DeleteByDatabaseID(fixture.DB.ID)
@@ -125,10 +121,6 @@ func committedSegmentsInOrder(t *testing.T, databaseID uuid.UUID) []*physical_mo
 }
 
 func Test_WalStream_MultipleDbs_EachArchivesSegmentsIndependently(t *testing.T) {
-	if testing.Short() {
-		t.Skip("streamer integration test runs pg_receivewal; skipped in -short")
-	}
-
 	fixtureA := SetupPhysicalDBForBackup(t)
 	fixtureB := SetupPhysicalDBForBackup(t)
 	t.Cleanup(func() {
@@ -171,10 +163,6 @@ func Test_WalStream_MultipleDbs_EachArchivesSegmentsIndependently(t *testing.T) 
 }
 
 func Test_WalStream_MissingSegmentInStreamedChain_SurfacesAsGapChainStaysExtendable(t *testing.T) {
-	if testing.Short() {
-		t.Skip("streamer integration test runs pg_receivewal; skipped in -short")
-	}
-
 	fixture := SetupPhysicalDBForBackup(t)
 	t.Cleanup(func() {
 		_ = physical_repositories.GetWalStreamerRepository().DeleteByDatabaseID(fixture.DB.ID)
@@ -226,10 +214,6 @@ func Test_WalStream_MissingSegmentInStreamedChain_SurfacesAsGapChainStaysExtenda
 }
 
 func Test_WalStream_SlotLagGrowsWithoutConsumer_DrainsOnceStreaming(t *testing.T) {
-	if testing.Short() {
-		t.Skip("streamer integration test runs pg_receivewal; skipped in -short")
-	}
-
 	fixture := SetupPhysicalDBForBackup(t)
 	t.Cleanup(func() {
 		_ = physical_repositories.GetWalStreamerRepository().DeleteByDatabaseID(fixture.DB.ID)
@@ -345,10 +329,6 @@ func Test_Cleaner_AbandonedNullClaim_OlderThanGrace_DeletedYoungerSurvives(t *te
 }
 
 func Test_WalStream_ResumePointBelowSlotRestartLsn_RealignsAndKeepsStreaming(t *testing.T) {
-	if testing.Short() {
-		t.Skip("streamer integration test runs pg_receivewal; skipped in -short")
-	}
-
 	fixture := SetupPhysicalDBForBackup(t)
 	t.Cleanup(func() {
 		_ = physical_repositories.GetWalStreamerRepository().DeleteByDatabaseID(fixture.DB.ID)
@@ -708,10 +688,6 @@ func Test_RecordExitAndDecideRetry_WhenTheBastionIsReachable_KeepsTheOrdinaryBac
 }
 
 func Test_WalStream_WhenSourceIsIdle_KeepsReceiverAliveAndDoesNotRebuildSlot(t *testing.T) {
-	if testing.Short() {
-		t.Skip("streamer integration test runs pg_receivewal; skipped in -short")
-	}
-
 	fixture := SetupPhysicalDBForBackup(t)
 	t.Cleanup(func() {
 		_ = physical_repositories.GetWalStreamerRepository().DeleteByDatabaseID(fixture.DB.ID)
@@ -784,10 +760,6 @@ func waitForAttachedReceiverPID(t *testing.T, adminConn *pgx.Conn, slotName stri
 }
 
 func Test_WalStream_WhenSourceWritesRarely_UploadsSegmentWithinRotationInterval(t *testing.T) {
-	if testing.Short() {
-		t.Skip("streamer integration test runs pg_receivewal; skipped in -short")
-	}
-
 	fixture := SetupPhysicalDBForBackup(t)
 	t.Cleanup(func() {
 		_ = physical_repositories.GetWalStreamerRepository().DeleteByDatabaseID(fixture.DB.ID)
@@ -812,10 +784,6 @@ func Test_WalStream_WhenSourceWritesRarely_UploadsSegmentWithinRotationInterval(
 }
 
 func Test_WalStream_WhenSwitchWalIsRefused_AlertsOnceAndStopsRotating(t *testing.T) {
-	if testing.Short() {
-		t.Skip("streamer integration test runs pg_receivewal; skipped in -short")
-	}
-
 	fixture := SetupPhysicalDBForBackup(t)
 	t.Cleanup(func() {
 		_ = physical_repositories.GetWalStreamerRepository().DeleteByDatabaseID(fixture.DB.ID)
@@ -895,10 +863,6 @@ func createReplicationOnlyRole(
 }
 
 func Test_WalStream_WhenUploadsKeepFailing_AlertsArchiveStaleOnce(t *testing.T) {
-	if testing.Short() {
-		t.Skip("streamer integration test runs pg_receivewal; skipped in -short")
-	}
-
 	fixture := SetupPhysicalDBForBackup(t)
 	t.Cleanup(func() {
 		_ = physical_repositories.GetWalStreamerRepository().DeleteByDatabaseID(fixture.DB.ID)
@@ -941,10 +905,6 @@ func Test_WalStream_WhenUploadsKeepFailing_AlertsArchiveStaleOnce(t *testing.T) 
 }
 
 func Test_WalStream_WhenQueueFillsAndReceiverExitsOnItsOwn_CountsOnePauseAndOneRestart(t *testing.T) {
-	if testing.Short() {
-		t.Skip("streamer integration test runs pg_receivewal; skipped in -short")
-	}
-
 	fixture := SetupPhysicalDBForBackup(t)
 	t.Cleanup(func() {
 		_ = physical_repositories.GetWalStreamerRepository().DeleteByDatabaseID(fixture.DB.ID)
@@ -1036,10 +996,6 @@ func terminateWalReceiverBackend(t *testing.T, adminConn *pgx.Conn, slotName str
 }
 
 func Test_WalStream_WhileReceiverRunsAndAfterItExits_SlotBreakSampleCarriesItsRunStartTime(t *testing.T) {
-	if testing.Short() {
-		t.Skip("streamer integration test runs pg_receivewal; skipped in -short")
-	}
-
 	fixture := SetupPhysicalDBForBackup(t)
 	t.Cleanup(func() {
 		_ = physical_repositories.GetWalStreamerRepository().DeleteByDatabaseID(fixture.DB.ID)

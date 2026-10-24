@@ -13,6 +13,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	audit_logs "databasus-backend/internal/features/audit_logs"
 	discord_notifier "databasus-backend/internal/features/notifiers/models/discord"
@@ -28,6 +29,7 @@ import (
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_controllers "databasus-backend/internal/features/workspaces/controllers"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
+	"databasus-backend/internal/storage"
 	"databasus-backend/internal/util/smtp_transport"
 	test_utils "databasus-backend/internal/util/testing"
 	"databasus-backend/internal/util/testing/containers"
@@ -1933,4 +1935,59 @@ func Test_SendTestNotificationDirect_TelegramBotAPIEchoesRequestPath_ErrorKeepsB
 
 	assert.Contains(t, string(response.Body), "Cannot POST /telegram/botredacted/sendMessage")
 	assert.NotContains(t, string(response.Body), testTelegramBotTokenSecret)
+}
+
+func Test_ListNotifiers_WithUndecryptableWebhookURL_ListsNotifierAndRefusesToSend(t *testing.T) {
+	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	router := createRouter()
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
+	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+
+	var savedNotifier Notifier
+	test_utils.MakePostRequestAndUnmarshal(
+		t,
+		router,
+		"/api/v1/notifiers",
+		"Bearer "+owner.Token,
+		*createNewNotifier(workspace.ID),
+		http.StatusOK,
+		&savedNotifier,
+	)
+	defer deleteNotifier(t, router, savedNotifier.ID, workspace.ID, owner.Token)
+
+	// The API stores only values it can decrypt, so a ciphertext under a lost or rotated key is
+	// written directly.
+	err := storage.GetDb().
+		Exec(
+			"UPDATE webhook_notifiers SET webhook_url = ? WHERE notifier_id = ?",
+			"enc:not-a-valid-ciphertext",
+			savedNotifier.ID,
+		).Error
+	require.NoError(t, err)
+
+	var listedNotifiers []Notifier
+	test_utils.MakeGetRequestAndUnmarshal(
+		t,
+		router,
+		fmt.Sprintf("/api/v1/notifiers?workspace_id=%s", workspace.ID.String()),
+		"Bearer "+owner.Token,
+		http.StatusOK,
+		&listedNotifiers,
+	)
+
+	require.Len(t, listedNotifiers, 1)
+	assert.Equal(t, savedNotifier.ID, listedNotifiers[0].ID)
+
+	GetWebhookStub().ResetCalls()
+	testResponse := test_utils.MakePostRequest(
+		t,
+		router,
+		fmt.Sprintf("/api/v1/notifiers/%s/test", savedNotifier.ID.String()),
+		"Bearer "+owner.Token,
+		nil,
+		http.StatusBadRequest,
+	)
+
+	assert.Contains(t, string(testResponse.Body), "failed to decrypt webhook URL")
+	assert.Equal(t, 0, GetWebhookStub().CallCount())
 }

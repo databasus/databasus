@@ -45,18 +45,12 @@ type LogicalBackupService struct {
 
 	logger *slog.Logger
 
-	backupRemoveListeners []backups_core_logical.BackupRemoveListener
-
 	workspaceService          *workspaces_services.WorkspaceService
 	auditLogService           *audit_logs.AuditLogService
 	taskCancellationRequester *task_cancellation.Requester
 	downloadTokenService      *download_token.Service
 	backupSchedulerService    *backuping_logical.BackupsScheduler
 	backupCleaner             *backuping_logical.BackupCleaner
-}
-
-func (s *LogicalBackupService) AddBackupRemoveListener(listener backups_core_logical.BackupRemoveListener) {
-	s.backupRemoveListeners = append(s.backupRemoveListeners, listener)
 }
 
 func (s *LogicalBackupService) HasSuccessfulBackupSince(

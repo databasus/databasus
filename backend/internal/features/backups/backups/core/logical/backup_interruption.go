@@ -5,19 +5,17 @@ import (
 	"errors"
 	"fmt"
 	"time"
-
-	"databasus-backend/internal/config"
 )
 
-const (
-	backupTimeLimit       = 23 * time.Hour
-	shutdownCheckInterval = 1 * time.Second
-)
+const backupTimeLimit = 23 * time.Hour
 
 // NewBackupContext derives the context an engine runs one logical backup under. Besides ending
-// with callerCtx, it ends with ErrBackupShutdown when the application starts shutting down and
-// with ErrBackupTimeout once the backup time limit passes.
-func NewBackupContext(callerCtx context.Context) (context.Context, context.CancelCauseFunc) {
+// with callerCtx, it ends with ErrBackupShutdown once shutdownSignal closes and with
+// ErrBackupTimeout once the backup time limit passes.
+func NewBackupContext(
+	callerCtx context.Context,
+	shutdownSignal <-chan struct{},
+) (context.Context, context.CancelCauseFunc) {
 	backupCtx, cancel := context.WithCancelCause(callerCtx)
 
 	timeLimit := time.AfterFunc(backupTimeLimit, func() { cancel(ErrBackupTimeout) })
@@ -25,19 +23,10 @@ func NewBackupContext(callerCtx context.Context) (context.Context, context.Cance
 	go func() {
 		defer timeLimit.Stop()
 
-		ticker := time.NewTicker(shutdownCheckInterval)
-		defer ticker.Stop()
-
-		for {
-			select {
-			case <-backupCtx.Done():
-				return
-			case <-ticker.C:
-				if config.IsShouldShutdown() {
-					cancel(ErrBackupShutdown)
-					return
-				}
-			}
+		select {
+		case <-backupCtx.Done():
+		case <-shutdownSignal:
+			cancel(ErrBackupShutdown)
 		}
 	}()
 

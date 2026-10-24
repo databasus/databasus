@@ -186,7 +186,7 @@ func (uc *CreateMariadbBackupUsecase) streamToStorage(
 ) (*backups_core_logical.BackupArtifacts, error) {
 	uc.logger.InfoContext(parentCtx, "streaming MariaDB backup to storage", "mariadb_bin", mariadbBin)
 
-	ctx, cancel := backups_core_logical.NewBackupContext(parentCtx)
+	ctx, cancel := backups_core_logical.NewBackupContext(parentCtx, config.GetShutdownSignal())
 	defer cancel(nil)
 
 	myCnfFile, err := uc.createTempMyCnfFile(mdbConfig, password)
@@ -373,10 +373,6 @@ func (uc *CreateMariadbBackupUsecase) copyWithShutdownCheck(
 		case <-ctx.Done():
 			return fmt.Errorf("copy cancelled: %w", ctx.Err())
 		default:
-		}
-
-		if config.IsShouldShutdown() {
-			return fmt.Errorf("copy cancelled due to shutdown")
 		}
 
 		bytesRead, readErr := copySpec.Source.Read(buf)

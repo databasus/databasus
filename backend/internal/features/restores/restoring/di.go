@@ -4,6 +4,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"databasus-backend/internal/config"
 	backups_services "databasus-backend/internal/features/backups/backups/services"
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
 	"databasus-backend/internal/features/databases"
@@ -33,6 +34,7 @@ var restorer = &Restorer{
 	usecases.GetRestoreBackupUsecase(),
 	restoreDatabaseCache,
 	taskCancellationRegistry,
+	config.GetShutdownSignal(),
 }
 
 var restoresScheduler = &RestoresScheduler{

@@ -277,10 +277,6 @@ func Test_ResolveLiveTimelineID_WhenWalFilenameIsUnreadable_ReturnsError(t *test
 const timelineTestPostgresVersion = "17"
 
 func Test_ReadClusterIdentity_WhenTheControlFileLagsAPromotion_ReportsTheLiveTimeline(t *testing.T) {
-	if testing.Short() {
-		t.Skip("clones a standby and promotes it across a timeline switch; skipped in -short")
-	}
-
 	primary, standby := containers.StartPhysicalPrimaryWithStandby(
 		t, "postgres:"+timelineTestPostgresVersion, containers.WithCheckpointsSpreadOverAnHour())
 
