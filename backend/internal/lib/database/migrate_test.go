@@ -98,6 +98,73 @@ func TestMigrate(t *testing.T) {
 		assert.True(t, hasTable(t, db, "second_table"))
 	})
 
+	t.Run(
+		"refuses and changes nothing when the database has a migration newer than every given one",
+		func(t *testing.T) {
+			t.Parallel()
+			db := openTestDatabase(t)
+
+			_, err := database.Migrate(t.Context(), db, fstest.MapFS{
+				firstMigrationName: newMigration("CREATE TABLE first_table (id INT);"),
+				thirdMigrationName: newMigration("CREATE TABLE third_table (id INT);"),
+			})
+			require.NoError(t, err)
+
+			appliedNames, err := database.Migrate(t.Context(), db, fstest.MapFS{
+				firstMigrationName:  newMigration("CREATE TABLE first_table (id INT);"),
+				secondMigrationName: newMigration("CREATE TABLE second_table (id INT);"),
+			})
+
+			require.ErrorIs(t, err, database.ErrSchemaNewerThanBinary)
+			assert.Contains(t, err.Error(), "is 3,")
+			assert.Contains(t, err.Error(), "carries is 2")
+			assert.Empty(t, appliedNames)
+			assert.Equal(t, []int64{0, 1, 3}, getAppliedVersions(t, db))
+			assert.False(t, hasTable(t, db, "second_table"))
+		},
+	)
+
+	t.Run("applies missing migrations when the database has an unknown migration older than the newest given one",
+		func(t *testing.T) {
+			t.Parallel()
+			db := openTestDatabase(t)
+
+			_, err := database.Migrate(t.Context(), db, fstest.MapFS{
+				firstMigrationName:  newMigration("CREATE TABLE first_table (id INT);"),
+				secondMigrationName: newMigration("CREATE TABLE removed_table (id INT);"),
+			})
+			require.NoError(t, err)
+
+			appliedNames, err := database.Migrate(t.Context(), db, fstest.MapFS{
+				firstMigrationName: newMigration("CREATE TABLE first_table (id INT);"),
+				thirdMigrationName: newMigration("CREATE TABLE third_table (id INT);"),
+			})
+
+			require.NoError(t, err)
+			assert.Equal(t, []string{thirdMigrationName}, appliedNames)
+			assert.Equal(t, []int64{0, 1, 2, 3}, getAppliedVersions(t, db))
+		})
+
+	t.Run(
+		"applies nothing and returns no error when the database is at the newest given migration",
+		func(t *testing.T) {
+			t.Parallel()
+			db := openTestDatabase(t)
+			migrationFiles := fstest.MapFS{
+				firstMigrationName:  newMigration("CREATE TABLE first_table (id INT);"),
+				secondMigrationName: newMigration("CREATE TABLE second_table (id INT);"),
+			}
+
+			_, err := database.Migrate(t.Context(), db, migrationFiles)
+			require.NoError(t, err)
+
+			appliedNames, err := database.Migrate(t.Context(), db, migrationFiles)
+
+			require.NoError(t, err)
+			assert.Empty(t, appliedNames)
+		},
+	)
+
 	t.Run("records each migration once when two calls migrate one database at the same time", func(t *testing.T) {
 		t.Parallel()
 		db := openTestDatabase(t)

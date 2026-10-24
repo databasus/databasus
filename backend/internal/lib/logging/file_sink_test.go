@@ -1,15 +1,18 @@
 package logging
 
 import (
+	"context"
+	"fmt"
 	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"databasus-backend/internal/lib/testwait"
 )
 
 func Test_RotatingFileWriter_OnShutdown_DrainsQueuedLinesToDisk(t *testing.T) {
@@ -53,10 +56,14 @@ func Test_RotatingFileWriter_WhenSizeExceeded_KeepsAtMostMaxBackupsPlusActive(t 
 
 	// lumberjack deletes surplus backups in a background goroutine that Close does not wait for,
 	// so the cap holds only once that cleanup has caught up with the last rotation.
-	//nolint:forbidigo // the cleanup goroutine gives no completion signal, and lib/testwait does not exist yet
-	require.Eventually(t, func() bool {
-		return len(globLogFiles()) <= 4
-	}, 5*time.Second, 50*time.Millisecond, "active file plus at most 3 backups")
+	testwait.Until(t, "the active file plus at most 3 backups", func(context.Context) error {
+		logFileCount := len(globLogFiles())
+		if logFileCount > 4 {
+			return fmt.Errorf("%d log files remain", logFileCount)
+		}
+
+		return nil
+	})
 
 	logFiles := globLogFiles()
 	// Both bounds matter: >1 proves rotation happened at all, <=4 proves it was capped. Asserting

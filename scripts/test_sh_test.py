@@ -18,26 +18,34 @@ WAIT_TIMEOUT_SECONDS = 30
 RUN_LABEL_FILTER = "label=databasus.test-run="
 
 # Each stub appends "<epoch seconds> <name> <arguments>" to $STUB_CALLS. The go stub records
-# DATABASUS_TEST_RUN_ID with its test call and sleeps for STUB_GO_TEST_SECONDS, so a test can
-# interrupt the run while its tests run. The docker stub lists one container and one network.
+# DATABASUS_TEST_RUN_ID with its test call, sleeps for STUB_GO_TEST_SECONDS, so a test can
+# interrupt the run while its tests run, and exits with STUB_GO_TEST_EXIT_STATUS. The docker stub
+# lists one container, one network and one volume. The just stub runs test-upgrade for
+# STUB_UPGRADE_TEST_SECONDS and exits with STUB_UPGRADE_TEST_EXIT_STATUS.
 STUB_SOURCES = {
     "docker": """
         echo "$(date +%s.%N) docker $*" >>"$STUB_CALLS"
         case "$1 $2" in
             "ps -aq") echo container-of-run ;;
             "network ls") echo network-of-run ;;
+            "volume ls") echo volume-of-run ;;
         esac
     """,
     "go": """
         if [[ "$1" == test ]]; then
             echo "$(date +%s.%N) go test run_id=${DATABASUS_TEST_RUN_ID:-}" >>"$STUB_CALLS"
             sleep "${STUB_GO_TEST_SECONDS:-0}"
+            exit "${STUB_GO_TEST_EXIT_STATUS:-0}"
         else
             echo "$(date +%s.%N) go $*" >>"$STUB_CALLS"
         fi
     """,
     "just": """
         echo "$(date +%s.%N) just $*" >>"$STUB_CALLS"
+        if [[ "${*: -1}" == test-upgrade ]]; then
+            sleep "${STUB_UPGRADE_TEST_SECONDS:-0}"
+            exit "${STUB_UPGRADE_TEST_EXIT_STATUS:-0}"
+        fi
     """,
 }
 
@@ -129,6 +137,9 @@ class TestScriptTestCase(unittest.TestCase):
 
         return recorded_calls
 
+    def get_upgrade_test_call(self):
+        return f"just --justfile {self.checkout}/backend/Justfile test-upgrade"
+
     def find_call(self, prefix):
         return next((recorded_call for recorded_call in self.read_calls() if recorded_call[1].startswith(prefix)), None)
 
@@ -188,7 +199,57 @@ class TestScriptTestCase(unittest.TestCase):
         self.assertEqual(package_run.returncode, 0, package_run.stderr)
         self.assertIsNotNone(self.find_call("go test"))
 
-    def test_an_interrupt_removes_only_the_containers_and_networks_of_its_run(self):
+    def test_the_upgrade_test_runs_after_the_packages_pass(self):
+        script = self.start_script()
+
+        exit_status, _, stderr = self.finish_script(script)
+
+        self.assertEqual(exit_status, 0, stderr)
+        test_call = self.find_call("go test")
+        upgrade_call = self.find_call(self.get_upgrade_test_call())
+        self.assertIsNotNone(test_call)
+        self.assertIsNotNone(upgrade_call)
+        self.assertLess(test_call[0], upgrade_call[0])
+
+    def test_the_upgrade_test_does_not_run_and_no_image_is_built_when_a_package_fails(self):
+        script = self.start_script({"STUB_GO_TEST_EXIT_STATUS": "1"})
+
+        exit_status, _, _ = self.finish_script(script)
+
+        self.assertNotEqual(exit_status, 0)
+        self.assertIsNotNone(self.find_call("go test"))
+        self.assertIsNone(self.find_call(self.get_upgrade_test_call()))
+        self.assertIsNone(self.find_call("docker build"))
+
+    def test_the_run_fails_when_the_upgrade_test_fails(self):
+        script = self.start_script({"STUB_UPGRADE_TEST_EXIT_STATUS": "1"})
+
+        exit_status, _, _ = self.finish_script(script)
+
+        self.assertNotEqual(exit_status, 0)
+        self.assertIsNotNone(self.find_call("go test"))
+        self.assertIsNotNone(self.find_call(self.get_upgrade_test_call()))
+
+    def test_an_interrupt_during_the_upgrade_test_removes_its_containers_networks_and_volumes(self):
+        script = self.start_script({"STUB_UPGRADE_TEST_SECONDS": "60"})
+        test_call = self.wait_for_call("go test")
+        run_id = test_call[1].split("run_id=", 1)[1]
+        self.wait_for_call(self.get_upgrade_test_call())
+
+        os.killpg(script.pid, signal.SIGINT)
+        exit_status, _, _ = self.finish_script(script)
+
+        self.assertNotEqual(exit_status, 0)
+        docker_calls = [recorded_call[1] for recorded_call in self.read_calls() if recorded_call[1].startswith("docker")]
+        self.assertIn(f"docker ps -aq --filter {RUN_LABEL_FILTER}{run_id}", docker_calls)
+        self.assertIn(f"docker network ls -q --filter {RUN_LABEL_FILTER}{run_id}", docker_calls)
+        self.assertIn(f"docker volume ls -q --filter {RUN_LABEL_FILTER}{run_id}", docker_calls)
+        self.assertIn("docker rm -f container-of-run", docker_calls)
+        self.assertIn("docker network rm network-of-run", docker_calls)
+        self.assertIn("docker volume rm -f volume-of-run", docker_calls)
+        self.assertIsNone(self.find_call("docker compose down"))
+
+    def test_an_interrupt_removes_only_the_containers_networks_and_volumes_of_its_run(self):
         script = self.start_script({"STUB_GO_TEST_SECONDS": "60"})
         test_call = self.wait_for_call("go test")
         run_id = test_call[1].split("run_id=", 1)[1]
@@ -199,13 +260,15 @@ class TestScriptTestCase(unittest.TestCase):
 
         self.assertNotEqual(exit_status, 0)
         docker_calls = [recorded_call[1] for recorded_call in self.read_calls() if recorded_call[1].startswith("docker")]
-        listing_calls = [docker_call for docker_call in docker_calls if " ps " in docker_call or " network ls " in docker_call]
+        listing_calls = [docker_call for docker_call in docker_calls if " ps " in docker_call or " ls " in docker_call]
         self.assertIn(f"docker ps -aq --filter {RUN_LABEL_FILTER}{run_id}", listing_calls)
         self.assertIn(f"docker network ls -q --filter {RUN_LABEL_FILTER}{run_id}", listing_calls)
+        self.assertIn(f"docker volume ls -q --filter {RUN_LABEL_FILTER}{run_id}", listing_calls)
         for listing_call in listing_calls:
             self.assertIn(f"{RUN_LABEL_FILTER}{run_id}", listing_call)
         self.assertIn("docker rm -f container-of-run", docker_calls)
         self.assertIn("docker network rm network-of-run", docker_calls)
+        self.assertIn("docker volume rm -f volume-of-run", docker_calls)
 
     def test_the_reset_waits_for_running_tests_and_runs_before_the_tests(self):
         fixtures_lock = self.hold_lock(FIXTURES_LOCK_NAME, fcntl.LOCK_SH)

@@ -2,6 +2,8 @@ package app
 
 import (
 	"path/filepath"
+	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -11,6 +13,7 @@ import (
 	"databasus-backend/internal/lib/config"
 	"databasus-backend/internal/lib/database"
 	"databasus-backend/internal/lib/testdb"
+	"databasus-backend/migrations"
 )
 
 // The tests of this package fill the process-wide bridge of the old code, so none of them runs in
@@ -41,6 +44,21 @@ func TestNew(t *testing.T) {
 		require.Error(t, err)
 		assert.Nil(t, createdApp)
 		assert.Contains(t, err.Error(), "20250605090323_init.sql")
+		assert.NotEqual(t, databaseDsn, old_config.GetEnv().DatabaseDsn)
+	})
+	t.Run("returns an error naming both versions and fills no bridge when the schema is newer", func(t *testing.T) {
+		databaseDsn := testdb.Open(t)
+		recordNewerMigration(t, databaseDsn)
+
+		environment := newTestEnvironment(t, databaseDsn)
+
+		createdApp, err := New(t.Context(), environment)
+
+		require.ErrorIs(t, err, database.ErrSchemaNewerThanBinary)
+		assert.Nil(t, createdApp)
+		assert.Contains(t, err.Error(), strconv.Itoa(newerMigrationVersion))
+		assert.Contains(t, err.Error(), getNewestMigrationVersion(t))
+		assert.Contains(t, err.Error(), "after an upgrade is not supported")
 		assert.NotEqual(t, databaseDsn, old_config.GetEnv().DatabaseDsn)
 	})
 }
@@ -89,4 +107,31 @@ func newIsolatedLoadSpec(t *testing.T, isDatabaseRequired bool) config.LoadSpec 
 		RootDirectory:            rootDirectory,
 		PublishedDatabaseDsnPath: filepath.Join(rootDirectory, "never-published"),
 	}
+}
+
+const newerMigrationVersion = 99991231235959
+
+func recordNewerMigration(t *testing.T, databaseDsn string) {
+	t.Helper()
+
+	db, err := database.Open(t.Context(), databaseDsn)
+	require.NoError(t, err)
+	defer closeDatabase(db)
+
+	require.NoError(t, db.WithContext(t.Context()).Exec(
+		"INSERT INTO goose_db_version (version_id, is_applied) VALUES (?, TRUE)", newerMigrationVersion,
+	).Error)
+}
+
+func getNewestMigrationVersion(t *testing.T) string {
+	t.Helper()
+
+	migrationFiles, err := migrations.Files.ReadDir(".")
+	require.NoError(t, err)
+
+	newestName := migrationFiles[len(migrationFiles)-1].Name()
+
+	newestVersion, _, _ := strings.Cut(newestName, "_")
+
+	return newestVersion
 }

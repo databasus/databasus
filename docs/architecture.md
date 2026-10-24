@@ -41,10 +41,13 @@ backend/
   internal/agent/              the verification agent's code
   internal/lib/<name>/         shared code without domain logic
   migrations/                  goose SQL migrations, embedded in the binary
+  e2e/upgrade/                 the upgrade test and its comparison helper upgradecheck
   tools/archlint/              the architecture linter
 ```
 
 Dependencies point one way: `cmd → app → modules → engines → lib`. `internal/app` is imported only by `cmd`. `lib` knows nothing of engines, modules or `app`. `engines` know nothing of modules, tables or HTTP. The agent imports only `lib`, `engines` and `lib/agentclient`, the agent API client generated from `agent.yaml`; modules and `app` never import the agent.
+
+`e2e/upgrade` holds only test files and drives the images of two releases from outside. It imports only `lib`, `api` and its own `upgradecheck`, and nothing imports it, so none of it reaches the production binary.
 
 No package-level variable holds a dependency. Each module and each `lib` service gets its dependencies through `Deps` in `New(deps Deps)`, and `internal/app` builds the whole graph explicitly in one place. There are no `init()` functions and no work at import time. `app` reads the configuration at startup, so it does not depend on which package happens to be imported first.
 
@@ -169,6 +172,7 @@ Audit events are written through `lib/audit` in the transaction of the operation
 - Migrations are applied with out-of-order allowed, so a migration merged after a later-numbered one still runs. A migration therefore never depends on the order of migrations within a release.
 - Every migration runs whole in one transaction, so a migration that fails leaves no partial changes behind and the next start applies it again. `-- +goose NO TRANSACTION` is not allowed. `CREATE INDEX CONCURRENTLY`, the usual reason to drop the transaction, gains nothing here: migrations run before the server accepts requests, so nothing waits for the table lock.
 - Every migration runs on any older valid state: a fresh install, an install upgraded through every release, and an internal database restored from an older Databasus dump. A migration that adds or tightens a constraint first repairs the rows that would violate it. Otherwise the upgraded instance does not start. A migration that moves encrypted values copies them as they are. SQL cannot decrypt them and does not need to.
+- An upgrade is one-way. Migrations only go forward, and a binary refuses to start on a schema newer than its own: it compares the newest migration recorded in the database with the newest one it carries and stops before applying anything. An older binary on a renamed table would otherwise fail at the first request instead of at startup. A recorded migration the binary does not carry but that is older than its newest one does not stop it, because releases have shipped migrations that later releases deleted or renamed.
 - The upgrade test from [testing.md](testing.md) runs every migration against data written by the previous release.
 - Format: one statement per table, constraint and index, column types aligned, each constraint clause on its own line.
 

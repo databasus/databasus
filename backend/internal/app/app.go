@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 
@@ -15,6 +16,9 @@ import (
 	files_utils "databasus-backend/internal/util/files"
 	"databasus-backend/migrations"
 )
+
+const olderVersionRefusal = "Returning to an older Databasus version after an upgrade is not supported. " +
+	"Start the image of the newer version instead"
 
 type App struct {
 	environment *Environment
@@ -37,6 +41,16 @@ func New(ctx context.Context, environment *Environment) (*App, error) {
 	appLogger.InfoContext(ctx, "running database migrations")
 
 	appliedMigrations, err := database.Migrate(ctx, db, migrations.Files)
+	if errors.Is(err, database.ErrSchemaNewerThanBinary) {
+		closeDatabase(db)
+
+		err = fmt.Errorf("%w. %s", err, olderVersionRefusal)
+		appLogger.ErrorContext(ctx, "refusing to start on a database migrated by a newer version",
+			slog.Any("error", err))
+
+		return nil, err
+	}
+
 	if err != nil {
 		closeDatabase(db)
 		appLogger.ErrorContext(ctx, "failed to run migrations", slog.Any("error", err))

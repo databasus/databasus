@@ -62,8 +62,9 @@ The full run is `just test`. It holds a machine-wide lock, so only one full run 
 - Backend tests run with `-race`, and a data race fails the test.
 - CI runs the same groups as the full run, split into shards by the measured duration of tests. Physical backup tests and WAL streaming tests are the slow groups and get their own shards.
 - The upgrade test and the filesystem tests are part of `just test`, and CI runs them on every pull request.
+- The upgrade test starts from the newest release tag by version. It runs in `just test` after the backend packages pass, and in CI as the check `test-upgrade` against the image CI built for the commit. `just test-upgrade` in `backend/` runs it alone and builds the image from the checkout unless `DATABASUS_IMAGE` names one.
 
-Until the tests of old code move into modules, the upgrade test does not exist yet and the filesystem tests run only through `just test-filesystem`. Old tests still change the shared `testdb` database on the three shared test PostgreSQL servers, so `just test` resets those servers before its tests. The reset waits up to ten minutes for running test processes to end, and a test process that starts during the reset waits for it. The linter rejects `time.Sleep` and `Eventually` only in the target layout, and tests of the packages outside it run with the `testhelpers` build tag, as "Until the migration finishes" in [`AGENTS.md`](../AGENTS.md#until-the-migration-finishes) says.
+Until the tests of old code move into modules, the filesystem tests run only through `just test-filesystem`. Old tests still change the shared `testdb` database on the three shared test PostgreSQL servers, so `just test` resets those servers before its tests. The reset waits up to ten minutes for running test processes to end, and a test process that starts during the reset waits for it. The linter rejects `time.Sleep` and `Eventually` only in the target layout, and tests of the packages outside it run with the `testhelpers` build tag, as "Until the migration finishes" in [`AGENTS.md`](../AGENTS.md#until-the-migration-finishes) says.
 
 ## Commands
 
@@ -74,4 +75,5 @@ Until the tests of old code move into modules, the upgrade test does not exist y
 | One backend package | `go test -race -count=1 ./internal/modules/<module>/...` in `backend/` |
 | One backend test | `go test -race -count=1 -run 'TestName/scenario text' ./internal/modules/<module>/...` in `backend/` |
 | Frontend | `pnpm test` in `frontend/`, or `pnpm test -t 'scenario text'` |
+| Upgrade test | `just test-upgrade` in `backend/` |
 | Filesystem tests | `just test-filesystem` at the root |

@@ -1,12 +1,12 @@
 set shell := ["bash", "-euo", "pipefail", "-c"]
 
 lint:
-    golangci-lint fmt --diff ./cmd/... ./internal/... ./tools/...
-    golangci-lint run ./cmd/... ./internal/... ./tools/...
+    golangci-lint fmt --diff ./cmd/... ./e2e/... ./internal/... ./tools/...
+    golangci-lint run ./cmd/... ./e2e/... ./internal/... ./tools/...
     go run ./tools/archlint
 
 format:
-    golangci-lint fmt ./cmd/... ./internal/... ./tools/...
+    golangci-lint fmt ./cmd/... ./e2e/... ./internal/... ./tools/...
 
 # The libedit shim lets the bundled PostgreSQL clients start on Fedora; without it a package that
 # checks them at startup exits before its first test.
@@ -82,6 +82,25 @@ test-group-tests group:
         exit 1
     fi
     echo "^($(paste -sd'|' <<<"$shard_names"))\$"
+
+# Upgrades the newest release to the current code: an image built from the checkout, or the one named
+# in DATABASUS_IMAGE. The newest release is chosen by version rather than by reachability, because
+# releases are tagged on main and develop does not contain those tags.
+test-upgrade:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    previous_release=$(git tag --list 'v*' --sort=-v:refname | head -1)
+    if [[ -z "$previous_release" ]]; then
+        echo "no v* release tag in this checkout; fetch the tags with git fetch --tags" >&2
+        exit 1
+    fi
+    if [[ -z "${DATABASUS_IMAGE:-}" ]]; then
+        export DATABASUS_IMAGE=databasus-candidate:local
+        docker build --tag "$DATABASUS_IMAGE" ..
+    fi
+    export DATABASUS_PREVIOUS_IMAGE="databasus/databasus:${previous_release}"
+    echo "upgrading ${DATABASUS_PREVIOUS_IMAGE} to ${DATABASUS_IMAGE}"
+    go test -race -count=1 -timeout 30m ./e2e/upgrade/...
 
 # Removes the leftover test containers of every run on the machine, other worktrees included, so run
 # it only when no other test run is in progress.

@@ -128,7 +128,7 @@ linters:
   exclusions:
     rules:
       # The Go part of "Backend layout" in docs/architecture.md.
-      - path-except: &target-layout ^(api|cmd/databasus|cmd/verification-agent|internal/(app|modules|engines|lib|agent)|tools)/
+      - path-except: &target-layout ^(api|cmd/databasus|cmd/verification-agent|e2e|internal/(app|modules|engines|lib|agent)|tools)/
         linters:
           - forbidigo
           - sloglint
@@ -146,7 +146,7 @@ linters:
       # the anchor) nor a production file; RE2 has no lookahead, so the second branch spells out "a
       # .go file not ending in _test.go". A rule needs two conditions, and `text: .` matches every
       # finding.
-      - path-except: ^(api|cmd/databasus|cmd/verification-agent|internal/(app|modules|engines|lib|agent)|tools)/|(^|/)([^/]*([^t]|[^s]t|[^e]st|[^t]est|[^_]test)|test)\.go$
+      - path-except: ^(api|cmd/databasus|cmd/verification-agent|e2e|internal/(app|modules|engines|lib|agent)|tools)/|(^|/)([^/]*([^t]|[^s]t|[^e]st|[^t]est|[^_]test)|test)\.go$
         text: .
 
       - path: ^(cmd|tools)/

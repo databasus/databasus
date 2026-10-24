@@ -13,8 +13,8 @@ fixtures_lock="$lock_directory/databasus-test-fixtures.lock"
 fixture_reset_wait_seconds=${DATABASUS_FIXTURE_RESET_WAIT_SECONDS:-600}
 fixture_reset_timeout_status=75
 
-# The containers helpers label every container and network with this ID, so the trap removes only
-# what this run started.
+# The containers helpers and the upgrade test label every container, network and volume they create
+# with this ID, so the trap removes only what this run started.
 DATABASUS_TEST_RUN_ID="$(date +%s)-$$-$RANDOM"
 export DATABASUS_TEST_RUN_ID
 
@@ -34,6 +34,11 @@ cleanup() {
     if [[ -n "$ids" ]]; then
         # shellcheck disable=SC2086 # one network ID per word
         docker network rm $ids >/dev/null
+    fi
+    ids=$(docker volume ls -q --filter "$run_filter")
+    if [[ -n "$ids" ]]; then
+        # shellcheck disable=SC2086 # one volume name per word
+        docker volume rm -f $ids >/dev/null
     fi
 }
 
@@ -85,3 +90,7 @@ fi
 
 TESTCONTAINERS_RYUK_DISABLED=true \
     go test -race -tags testhelpers -p=8 -count=1 -failfast -timeout 15m ./internal/... ./cmd/...
+
+# The upgrade test builds the image unless DATABASUS_IMAGE names one, so it runs only after every
+# package passed.
+just --justfile "$root/backend/Justfile" test-upgrade

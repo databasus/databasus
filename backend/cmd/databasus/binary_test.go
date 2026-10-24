@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"testing"
 	"time"
 
@@ -18,11 +19,13 @@ import (
 	"databasus-backend/internal/lib/config"
 	"databasus-backend/internal/lib/database"
 	"databasus-backend/internal/lib/testdb"
+	"databasus-backend/internal/lib/testwait"
 )
 
 const (
-	operatorPassword = "operator-password-123"
-	firstMigration   = "20250605090323_init.sql"
+	operatorPassword      = "operator-password-123"
+	firstMigration        = "20250605090323_init.sql"
+	newerMigrationVersion = 99991231235959
 )
 
 // binaryPath is the server binary built without the testhelpers tag, as the image builds it. A
@@ -185,6 +188,39 @@ func TestBinary(t *testing.T) {
 		requireVersionAnswers(t, serverAddress)
 	})
 
+	t.Run("stops the server and a console command without changes when the schema is newer", func(t *testing.T) {
+		host := newOperatorHost(t)
+		databaseDsn := testdb.Open(t)
+		environment := newDatabaseEnvironment(databaseDsn)
+		email := "rolled-back@databasus.local"
+
+		createRun := runBinary(t, host, environment,
+			"--create-user", "--email="+email, "--password="+operatorPassword, "--role=admin")
+		require.Equal(t, 0, createRun.exitCode, createRun.output)
+
+		executeStatement(t, databaseDsn, fmt.Sprintf(
+			"INSERT INTO goose_db_version (version_id, is_applied) VALUES (%d, TRUE)", newerMigrationVersion))
+
+		accountsBeforeRollback := listAccountRows(t, databaseDsn)
+		versionsBeforeRollback := listMigrationVersions(t, databaseDsn)
+
+		binaryRuns := map[string]binaryRun{
+			"server":         runBinary(t, host, environment),
+			"password reset": runBinary(t, host, environment, "--new-password=rotated-password-456", "--email="+email),
+		}
+
+		for runName, binaryRun := range binaryRuns {
+			assert.NotEqual(t, 0, binaryRun.exitCode, "%s: %s", runName, binaryRun.output)
+			assert.Contains(t, binaryRun.output, strconv.Itoa(newerMigrationVersion), runName)
+			assert.Contains(t, binaryRun.output, "after an upgrade is not supported", runName)
+			assert.NotContains(t, binaryRun.output, "http server listening", runName)
+			assert.NotContains(t, binaryRun.output, "password reset successfully", runName)
+		}
+
+		assert.Equal(t, accountsBeforeRollback, listAccountRows(t, databaseDsn))
+		assert.Equal(t, versionsBeforeRollback, listMigrationVersions(t, databaseDsn))
+	})
+
 	t.Run("stops on a failed migration without opening the port and applies it after the fix", func(t *testing.T) {
 		host := newOperatorHost(t)
 		databaseDsn := testdb.OpenEmpty(t)
@@ -313,28 +349,14 @@ func startInProcessServer(t *testing.T, databaseDsn string) string {
 	return address
 }
 
-// requireVersionAnswers polls until the server answers, since Serve opens its port in its own
-// goroutine. lib/testwait does not exist yet, so the poll is spelled out here.
+// requireVersionAnswers waits until the server answers, since Serve opens its port in its own
+// goroutine.
 func requireVersionAnswers(t *testing.T, address string) {
 	t.Helper()
 
-	deadline := time.Now().Add(10 * time.Second)
-	pollTicker := time.NewTicker(50 * time.Millisecond)
-
-	defer pollTicker.Stop()
-
-	for {
-		err := checkServerAlive(t.Context(), "http://"+address)
-		if err == nil {
-			return
-		}
-
-		if time.Now().After(deadline) {
-			require.NoError(t, err, "GET /api/v1/system/version")
-		}
-
-		<-pollTicker.C
-	}
+	testwait.Until(t, "GET /api/v1/system/version to answer", func(ctx context.Context) error {
+		return checkServerAlive(ctx, "http://"+address)
+	})
 }
 
 func executeStatement(t *testing.T, databaseDsn, statement string) {
@@ -375,4 +397,25 @@ func listAccountRows(t *testing.T, databaseDsn string) []accountRow {
 		Scan(&accountRows).Error)
 
 	return accountRows
+}
+
+func listMigrationVersions(t *testing.T, databaseDsn string) []int64 {
+	t.Helper()
+
+	db, err := database.Open(t.Context(), databaseDsn)
+	require.NoError(t, err)
+
+	defer func() {
+		sqlDB, sqlErr := db.DB()
+		if sqlErr == nil {
+			_ = sqlDB.Close()
+		}
+	}()
+
+	var migrationVersions []int64
+	require.NoError(t, db.WithContext(t.Context()).
+		Raw("SELECT version_id FROM goose_db_version ORDER BY id").
+		Scan(&migrationVersions).Error)
+
+	return migrationVersions
 }

@@ -22,7 +22,7 @@ var backendSpec = checkSpec{
 // targetLayoutPattern is the Go part of "Backend layout" in docs/architecture.md; backend/.golangci.yml
 // holds the same expression, and TestTargetLayoutPattern keeps the two equal.
 var targetLayoutPattern = regexp.MustCompile(
-	`^(api|cmd/databasus|cmd/verification-agent|internal/(app|modules|engines|lib|agent)|tools)/`,
+	`^(api|cmd/databasus|cmd/verification-agent|e2e|internal/(app|modules|engines|lib|agent)|tools)/`,
 )
 
 type violation struct {

@@ -584,6 +584,70 @@ jobs:
           CASE_GROUP: ${{ matrix.group }}
         run: just test-filesystem
 
+  test-upgrade:
+    if: github.head_ref != 'develop'
+    needs: [build-storage-image]
+    runs-on: namespace-profile-4vcpu-8ram-ubuntu-26-x64
+    timeout-minutes: 30
+    steps:
+      # The previous release is the newest v* tag, which lives on main, so the checkout needs every tag.
+      - name: Check out code with tags
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+        with:
+          go-version: "1.26.10"
+          cache: false
+
+      - name: Set up Go cache
+        uses: namespacelabs/nscloud-cache-action@1124a6f3ce44e5cf84cc22111530961f4d2a15f9 # v1.7.0
+        with:
+          cache: go
+
+      - name: Download the storage candidate
+        id: download-the-storage-candidate-1
+        continue-on-error: true
+        timeout-minutes: 3
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: databasus-storage-test
+          path: /tmp
+
+      - name: Download the storage candidate (attempt 2)
+        id: download-the-storage-candidate-2
+        if: steps.download-the-storage-candidate-1.outcome == 'failure'
+        continue-on-error: true
+        timeout-minutes: 3
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: databasus-storage-test
+          path: /tmp
+
+      - name: Download the storage candidate (attempt 3)
+        id: download-the-storage-candidate-3
+        if: steps.download-the-storage-candidate-2.outcome == 'failure'
+        timeout-minutes: 3
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: databasus-storage-test
+          path: /tmp
+
+      - name: Load the storage candidate
+        run: zstd -dc /tmp/databasus-storage-test.tar.zst | docker load
+
+      - name: Install tools from mise.toml
+        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
+        with:
+          install_args: "just"
+
+      - name: Run the upgrade test
+        env:
+          DATABASUS_IMAGE: databasus-storage-test:${{ github.sha }}
+        run: just --justfile backend/Justfile test-upgrade
+
   build-dev-image:
     runs-on: namespace-profile-4vcpu-8ram-ubuntu-26-x64
     timeout-minutes: 45
@@ -1004,7 +1068,7 @@ jobs:
   determine-version:
     runs-on: namespace-profile-2vcpu-4ram-ubuntu-26-x64
     timeout-minutes: 10
-    needs: [lint-backend, test-backend, test-frontend, test-verification-agent, e2e-verification-agent, e2e-verification-agent-podman, test-filesystems]
+    needs: [lint-backend, test-backend, test-frontend, test-verification-agent, e2e-verification-agent, e2e-verification-agent-podman, test-filesystems, test-upgrade]
     if: ${{ github.ref == 'refs/heads/main' && !contains(github.event.head_commit.message, '[skip-release]') }}
     outputs:
       should_release: ${{ steps.version_bump.outputs.should_release }}

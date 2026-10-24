@@ -3,7 +3,6 @@ package app
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -13,6 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"databasus-backend/internal/lib/testwait"
 	env_utils "databasus-backend/internal/util/env"
 )
 
@@ -96,33 +96,28 @@ func reserveFreeAddress(t *testing.T) string {
 	return address
 }
 
-// requireStatus polls until the server answers, since Serve opens its port in the test's goroutine.
-// lib/testwait does not exist yet, so the poll is spelled out here.
+// requireStatus waits until the server answers, since Serve opens its port in the test's goroutine.
 func requireStatus(t *testing.T, url string, expectedStatus int) {
 	t.Helper()
 
-	deadline := time.Now().Add(10 * time.Second)
-	pollTicker := time.NewTicker(50 * time.Millisecond)
+	var answeredStatus int
 
-	defer pollTicker.Stop()
-
-	for {
-		request, err := http.NewRequestWithContext(t.Context(), http.MethodGet, url, nil)
-		require.NoError(t, err)
+	testwait.Until(t, "GET "+url+" to answer", func(ctx context.Context) error {
+		request, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+		if err != nil {
+			return err
+		}
 
 		response, err := http.DefaultClient.Do(request)
-		if err == nil {
-			_ = response.Body.Close()
-			require.Equal(t, expectedStatus, response.StatusCode, url)
-
-			return
+		if err != nil {
+			return err
 		}
 
-		var opError *net.OpError
-		if !errors.As(err, &opError) || time.Now().After(deadline) {
-			require.NoError(t, err, url)
-		}
+		_ = response.Body.Close()
+		answeredStatus = response.StatusCode
 
-		<-pollTicker.C
-	}
+		return nil
+	})
+
+	require.Equal(t, expectedStatus, answeredStatus, url)
 }

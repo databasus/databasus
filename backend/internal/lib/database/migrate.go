@@ -18,6 +18,10 @@ import (
 // as a console command started while the server upgrades. Each migration runs in its own
 // transaction, so a failed one leaves no partial changes behind. It returns the names of the
 // migrations it applied.
+//
+// It applies nothing and returns ErrSchemaNewerThanBinary when the newest recorded migration is
+// newer than the newest one in files. A recorded migration missing from files but older than that
+// is no reason to stop: releases have shipped migrations that later releases deleted or renamed.
 func Migrate(ctx context.Context, db *gorm.DB, files fs.FS) ([]string, error) {
 	sqlDB, err := db.DB()
 	if err != nil {
@@ -41,6 +45,11 @@ func Migrate(ctx context.Context, db *gorm.DB, files fs.FS) ([]string, error) {
 		return nil, fmt.Errorf("read the migrations: %w", err)
 	}
 
+	err = ensureSchemaNotNewer(ctx, provider)
+	if err != nil {
+		return nil, err
+	}
+
 	results, err := provider.Up(ctx)
 
 	appliedNames := make([]string, 0, len(results))
@@ -62,4 +71,23 @@ func Migrate(ctx context.Context, db *gorm.DB, files fs.FS) ([]string, error) {
 	}
 
 	return appliedNames, nil
+}
+
+func ensureSchemaNotNewer(ctx context.Context, provider *goose.Provider) error {
+	databaseVersion, err := provider.GetDBVersion(ctx)
+	if err != nil {
+		return fmt.Errorf("read the newest applied migration: %w", err)
+	}
+
+	sources := provider.ListSources()
+	binaryVersion := sources[len(sources)-1].Version
+
+	if databaseVersion > binaryVersion {
+		return fmt.Errorf(
+			"%w: the newest migration in the database is %d, the newest one this version carries is %d",
+			ErrSchemaNewerThanBinary, databaseVersion, binaryVersion,
+		)
+	}
+
+	return nil
 }
