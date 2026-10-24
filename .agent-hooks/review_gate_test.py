@@ -853,7 +853,7 @@ class NamingGateTest(unittest.TestCase):
 
         self.assertEqual(response, {})
         [call] = repository.reviewer_calls()
-        self.assertIn("## Naming review", call["prompt"])
+        self.assertIn("## Names and comments review", call["prompt"])
 
     def test_runs_reviewer_when_turn_changes_agent_go_file(self):
         repository = HookRepository(self)
