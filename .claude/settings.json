@@ -1,51 +1,44 @@
 {
+  "enabledPlugins": {
+    "gopls-lsp@claude-plugins-official": true,
+    "typescript-lsp@claude-plugins-official": true
+  },
   "env": {
     "GOFLAGS": "-tags=testhelpers"
   },
   "hooks": {
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "command": "\"$(git -C \"${CLAUDE_PROJECT_DIR}\" rev-parse --show-toplevel)/.agent-hooks/run.sh\" plan",
+            "statusMessage": "Reviewing the plan",
+            "timeout": 600,
+            "type": "command"
+          },
+          {
+            "command": "\"$(git -C \"${CLAUDE_PROJECT_DIR}\" rev-parse --show-toplevel)/.agent-hooks/run.sh\" necessity",
+            "statusMessage": "Checking whether the task is needed",
+            "timeout": 600,
+            "type": "command"
+          },
+          {
+            "command": "\"$(git -C \"${CLAUDE_PROJECT_DIR}\" rev-parse --show-toplevel)/.agent-hooks/run.sh\" architecture",
+            "statusMessage": "Checking architecture",
+            "timeout": 600,
+            "type": "command"
+          }
+        ],
+        "matcher": "ExitPlanMode"
+      }
+    ],
     "SessionStart": [
       {
         "hooks": [
           {
-            "type": "command",
             "command": "\"$(git -C \"${CLAUDE_PROJECT_DIR}\" rev-parse --show-toplevel)/.agent-hooks/run.sh\" session-start",
-            "timeout": 10
-          }
-        ]
-      }
-    ],
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"$(git -C \"${CLAUDE_PROJECT_DIR}\" rev-parse --show-toplevel)/.agent-hooks/run.sh\" snapshot",
-            "timeout": 30
-          }
-        ]
-      }
-    ],
-    "PreToolUse": [
-      {
-        "matcher": "ExitPlanMode",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"$(git -C \"${CLAUDE_PROJECT_DIR}\" rev-parse --show-toplevel)/.agent-hooks/run.sh\" plan",
-            "timeout": 600,
-            "statusMessage": "Reviewing the plan"
-          },
-          {
-            "type": "command",
-            "command": "\"$(git -C \"${CLAUDE_PROJECT_DIR}\" rev-parse --show-toplevel)/.agent-hooks/run.sh\" necessity",
-            "timeout": 600,
-            "statusMessage": "Checking whether the task is needed"
-          },
-          {
-            "type": "command",
-            "command": "\"$(git -C \"${CLAUDE_PROJECT_DIR}\" rev-parse --show-toplevel)/.agent-hooks/run.sh\" architecture",
-            "timeout": 600,
-            "statusMessage": "Checking architecture"
+            "timeout": 10,
+            "type": "command"
           }
         ]
       }
@@ -54,47 +47,54 @@
       {
         "hooks": [
           {
-            "type": "command",
             "command": "\"$(git -C \"${CLAUDE_PROJECT_DIR}\" rev-parse --show-toplevel)/.agent-hooks/run.sh\" diff",
+            "statusMessage": "Reviewing the diff",
             "timeout": 600,
-            "statusMessage": "Reviewing the diff"
+            "type": "command"
           },
           {
-            "type": "command",
             "command": "\"$(git -C \"${CLAUDE_PROJECT_DIR}\" rev-parse --show-toplevel)/.agent-hooks/run.sh\" necessity",
+            "statusMessage": "Checking whether the task is needed",
             "timeout": 600,
-            "statusMessage": "Checking whether the task is needed"
+            "type": "command"
           },
           {
-            "type": "command",
             "command": "\"$(git -C \"${CLAUDE_PROJECT_DIR}\" rev-parse --show-toplevel)/.agent-hooks/run.sh\" architecture",
+            "statusMessage": "Checking architecture",
             "timeout": 600,
-            "statusMessage": "Checking architecture"
+            "type": "command"
           },
           {
-            "type": "command",
             "command": "\"$(git -C \"${CLAUDE_PROJECT_DIR}\" rev-parse --show-toplevel)/.agent-hooks/run.sh\" naming",
+            "statusMessage": "Checking names",
             "timeout": 600,
-            "statusMessage": "Checking names"
+            "type": "command"
           },
           {
-            "type": "command",
             "command": "\"$(git -C \"${CLAUDE_PROJECT_DIR}\" rev-parse --show-toplevel)/.agent-hooks/run.sh\" implementation",
+            "statusMessage": "Full implementation review",
             "timeout": 7200,
-            "statusMessage": "Full implementation review"
+            "type": "command"
           },
           {
-            "type": "command",
             "command": "\"$(git -C \"${CLAUDE_PROJECT_DIR}\" rev-parse --show-toplevel)/.agent-hooks/run.sh\" proposal",
+            "statusMessage": "Full proposal review",
             "timeout": 7200,
-            "statusMessage": "Full proposal review"
+            "type": "command"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "command": "\"$(git -C \"${CLAUDE_PROJECT_DIR}\" rev-parse --show-toplevel)/.agent-hooks/run.sh\" snapshot",
+            "timeout": 30,
+            "type": "command"
           }
         ]
       }
     ]
-  },
-  "enabledPlugins": {
-    "gopls-lsp@claude-plugins-official": true,
-    "typescript-lsp@claude-plugins-official": true
   }
 }
