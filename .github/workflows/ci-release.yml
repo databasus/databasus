@@ -129,6 +129,9 @@ jobs:
       - name: Run shellcheck
         run: just lint-shell
 
+      - name: Test the full test run script
+        run: python3 -m unittest discover -s scripts -p '*_test.py'
+
   dockerfile-scan:
     if: github.ref != 'refs/heads/develop' && github.head_ref != 'develop'
     runs-on: namespace-profile-2vcpu-4ram-ubuntu-26-x64
@@ -420,24 +423,12 @@ jobs:
           mkdir -p databasus-data/backups
           mkdir -p databasus-data/temp
 
-      - name: Provision per-worker test databases and run migrations
-        env:
-          TEST_PARALLEL_WORKERS: "8"
+      - name: Reset the shared test PostgreSQL servers
         run: |
           cd backend
-          go install github.com/pressly/goose/v3/cmd/goose@v3.27.1
-          go_binary_directory="$(go env GOPATH)/bin"
-          export PATH="${go_binary_directory}:${PATH}"
           set -a && . ../.env && set +a
-          # cleanup_test_db creates databasus_w0..w{workers-1} and resets the test PG
-          # containers. Then migrate each slot DB so every
-          # parallel `go test` worker connects to a migrated metadata DB.
+          # A CI runner runs one test group and nothing else, so the reset takes no fixtures lock.
           go run -tags testhelpers ./cmd/cleanup_test_db
-          for i in $(seq 0 $((TEST_PARALLEL_WORKERS - 1))); do
-            dbstring=$(echo "$GOOSE_TEST_DBSTRING" | sed -E "s#/([^/?]+)\?#/\1_w$i?#")
-            echo "migrating slot $i"
-            GOOSE_DBSTRING="$dbstring" goose -dir ./migrations up
-          done
 
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
@@ -451,9 +442,6 @@ jobs:
         env:
           # Ryuk stays disabled to match scripts/test.sh, so CI and local runs share one code path.
           TESTCONTAINERS_RYUK_DISABLED: "true"
-          # Each package runs in its own metadata DB, so packages run in parallel.
-          # -p must equal the provisioned worker count.
-          TEST_PARALLEL_WORKERS: "8"
           TEST_GROUP: ${{ matrix.group }}
         run: |
           cd backend

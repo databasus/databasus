@@ -148,6 +148,7 @@ func runTrafficControl(t *testing.T, handle ContainerHandle, args ...string) {
 			hostConfig.CapAdd = []string{"NET_ADMIN"}
 		}),
 		testcontainers.WithWaitStrategy(wait.ForExit().WithExitTimeout(netemSidecarTimeout)),
+		testcontainers.WithLabels(withTestRunLabel(nil)),
 	)
 	if sidecar != nil {
 		defer func() {

@@ -4,48 +4,33 @@ package config
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
+	"os"
+	"path/filepath"
+	"syscall"
 	"testing"
-	"time"
 
 	"github.com/caarlos0/env/v11"
-	_ "github.com/jackc/pgx/v5/stdlib"
 
 	lib_config "databasus-backend/internal/lib/config"
-	"databasus-backend/internal/util/logger"
+	"databasus-backend/internal/lib/testdb"
 )
 
-const (
-	// defaultTestParallelWorkers must equal the `go test -p` value so every running package can
-	// claim an isolated metadata database.
-	defaultTestParallelWorkers = 8
+// fixturesLockFileName names the lock that guards the shared test PostgreSQL servers. Every test
+// binary holds it shared for its whole life, and scripts/test.sh takes it exclusively to reset
+// those servers, so the reset waits for running tests and a test that starts during the reset waits
+// for it to end.
+const fixturesLockFileName = "databasus-test-fixtures.lock"
 
-	// testSlotAdvisoryLockBase is the first pg_advisory_lock key reserved for
-	// test-worker slot claims; slot N uses base+N.
-	testSlotAdvisoryLockBase = 945_000_000
-
-	// testSlotClaimTimeout bounds the wait for a free slot, absorbing the brief
-	// window where `go test -p` starts the next package before the previous
-	// process has exited and released its advisory lock.
-	testSlotClaimTimeout = 60 * time.Second
-
-	// systemDbName is the always-present database used for slot coordination and as
-	// the connection target when (re)creating per-slot databases.
-	systemDbName = "postgres"
-)
-
-// slotLockConn holds the system-DB connection whose session owns this worker's
-// advisory lock. It must live for the whole process: closing it (or letting it
-// be garbage-collected) releases the lock and frees the slot for another worker
-// mid-run.
+// fixturesLockFile keeps the shared lock: closing the file, or letting it be garbage-collected,
+// releases the lock while the process still uses the servers.
 //
-//nolint:unused // assigned-only: keeps the advisory-lock connection alive for the process lifetime
-var slotLockConn *sql.Conn
+//nolint:unused // assigned-only: keeps the shared lock for the process lifetime
+var fixturesLockFile *os.File
 
-// loadWithoutApp loads the test configuration: the test database instead of the working one and
-// the ports of the shared fixtures. Only a go test binary claims a per-worker slot; cleanup_test_db
-// works on every slot, so it keeps the base test DSN.
+// loadWithoutApp loads the test configuration: the ports of the shared fixtures and, in a go test
+// binary, an internal database of the process's own. cmd/cleanup_test_db is not a test binary, so it
+// neither waits for the lock that guards its own reset nor creates a database.
 func loadWithoutApp() *EnvVariables {
 	spec := lib_config.LoadSpec{IsDatabaseRequired: false, RootDirectory: "", PublishedDatabaseDsnPath: ""}
 
@@ -70,16 +55,17 @@ func loadWithoutApp() *EnvVariables {
 
 	testEnv.DatabaseDsn = testEnv.TestDatabaseDsn
 
-	if testEnv.TestParallelWorkers <= 0 {
-		testEnv.TestParallelWorkers = defaultTestParallelWorkers
-	}
-
 	if testEnv.TestLocalhost == "" {
 		testEnv.TestLocalhost = "localhost"
 	}
 
 	if testing.Testing() {
-		testEnv.DatabaseDsn = claimTestWorkerSlotAndSelectMetadataDatabase(&testEnv)
+		fixturesLockFile = lockSharedFixtures()
+
+		testEnv.DatabaseDsn, err = testdb.OpenForProcess(context.Background())
+		if err != nil {
+			panic(fmt.Sprintf("create the internal database of this test process: %v", err))
+		}
 	}
 
 	return &testEnv
@@ -100,74 +86,20 @@ func requireTestSettings(testEnv *EnvVariables) {
 	}
 }
 
-func claimTestWorkerSlotAndSelectMetadataDatabase(testEnv *EnvVariables) string {
-	baseDbName, _, err := RewriteDbName(testEnv.TestDatabaseDsn, systemDbName)
+// lockSharedFixtures blocks while a full run resets the shared servers. The kernel releases the
+// lock when the process dies, however it dies.
+func lockSharedFixtures() *os.File {
+	lockPath := filepath.Join(os.TempDir(), fixturesLockFileName)
+
+	lockFile, err := os.OpenFile(lockPath, os.O_RDONLY|os.O_CREATE, 0o600)
 	if err != nil {
-		panic(fmt.Sprintf("parse TEST_DATABASE_DSN for slot isolation: %v", err))
+		panic(fmt.Sprintf("open the test fixtures lock %s: %v", lockPath, err))
 	}
 
-	slot := claimTestWorkerSlot(testEnv.TestDatabaseDsn, testEnv.TestParallelWorkers)
-
-	slotDbName := fmt.Sprintf("%s_w%d", baseDbName, slot)
-
-	_, slotDsn, err := RewriteDbName(testEnv.TestDatabaseDsn, slotDbName)
+	err = syscall.Flock(int(lockFile.Fd()), syscall.LOCK_SH)
 	if err != nil {
-		panic(fmt.Sprintf("build the per-slot DSN: %v", err))
+		panic(fmt.Sprintf("take the test fixtures lock %s: %v", lockPath, err))
 	}
 
-	logger.GetLogger().Info("claimed test worker slot", "slot", slot, "db", slotDbName)
-
-	return slotDsn
-}
-
-// claimTestWorkerSlot acquires a session-level advisory lock for the first free
-// slot in [0,pool) on the system Postgres DB and returns it. The lock is held by
-// slotLockConn until the process exits. It retries until testSlotClaimTimeout to
-// absorb the handoff window where `go test -p` overlaps a finishing worker.
-func claimTestWorkerSlot(testDsn string, pool int) int {
-	_, systemDsn, err := RewriteDbName(testDsn, systemDbName)
-	if err != nil {
-		panic(fmt.Sprintf("build the system DSN for the slot claim: %v", err))
-	}
-
-	db, err := sql.Open("pgx", systemDsn)
-	if err != nil {
-		panic(fmt.Sprintf("open the system DB for the slot claim: %v", err))
-	}
-
-	ctx := context.Background()
-
-	conn, err := db.Conn(ctx)
-	if err != nil {
-		panic(fmt.Sprintf("connect to the system DB for the slot claim: %v", err))
-	}
-
-	deadline := time.Now().Add(testSlotClaimTimeout)
-	for {
-		for slot := range pool {
-			var isLocked bool
-
-			lockErr := conn.QueryRowContext(
-				ctx,
-				"SELECT pg_try_advisory_lock($1)",
-				testSlotAdvisoryLockBase+int64(slot),
-			).Scan(&isLocked)
-			if lockErr != nil {
-				panic(fmt.Sprintf("advisory lock query failed during the slot claim: %v", lockErr))
-			}
-
-			if isLocked {
-				slotLockConn = conn
-				return slot
-			}
-		}
-
-		if time.Now().After(deadline) {
-			panic(fmt.Sprintf(
-				"no free test DB slot among %d; TEST_PARALLEL_WORKERS must be >= the `go test -p` value", pool,
-			))
-		}
-
-		time.Sleep(100 * time.Millisecond)
-	}
+	return lockFile
 }

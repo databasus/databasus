@@ -7,6 +7,8 @@ package containers
 import (
 	"context"
 	"io"
+	"maps"
+	"os"
 	"strconv"
 	"strings"
 	"testing"
@@ -29,6 +31,13 @@ const containerBootAttempts = 3
 
 const failedContainerOutputTailBytes = 8 * 1024
 
+// scripts/test.sh exports a run ID, and its exit trap removes only the containers and networks that
+// carry it, so an interrupted full run never removes another run's containers.
+const (
+	testRunIDVariable = "DATABASUS_TEST_RUN_ID"
+	testRunLabel      = "databasus.test-run"
+)
+
 // Endpoint is the reachable address of a started container's primary port.
 type Endpoint struct {
 	Host string
@@ -47,7 +56,7 @@ type ContainerHandle struct {
 func StartNetwork(t *testing.T) string {
 	t.Helper()
 
-	testNetwork, err := network.New(context.Background())
+	testNetwork, err := newLabelledNetwork()
 	if err != nil {
 		t.Fatalf("failed to create test network: %v", err)
 	}
@@ -119,6 +128,8 @@ func bootContainer(t *testing.T, req testcontainers.ContainerRequest) testcontai
 
 	var lastErr error
 
+	req.Labels = withTestRunLabel(req.Labels)
+
 	for attempt := 1; attempt <= containerBootAttempts; attempt++ {
 		container, err := testcontainers.GenericContainer(context.Background(), testcontainers.GenericContainerRequest{
 			ContainerRequest: req,
@@ -147,6 +158,26 @@ func bootContainer(t *testing.T, req testcontainers.ContainerRequest) testcontai
 	t.Fatalf("failed to start %s container after %d attempts: %v", req.Image, containerBootAttempts, lastErr)
 
 	return nil
+}
+
+func newLabelledNetwork() (*testcontainers.DockerNetwork, error) {
+	return network.New(context.Background(), network.WithLabels(withTestRunLabel(nil)))
+}
+
+func withTestRunLabel(labels map[string]string) map[string]string {
+	testRunID := os.Getenv(testRunIDVariable)
+	if testRunID == "" {
+		return labels
+	}
+
+	labelled := maps.Clone(labels)
+	if labelled == nil {
+		labelled = map[string]string{}
+	}
+
+	labelled[testRunLabel] = testRunID
+
+	return labelled
 }
 
 // A container that exits during boot surfaces only as "exited with code N"; the reason sits in its

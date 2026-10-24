@@ -43,9 +43,11 @@ services:
     container_name: backend-db
     shm_size: 10gb
 
-  # Dedicated test DB so `just test` doesn't pollute the dev DB
+  # Dedicated test DB so `just test` doesn't pollute the dev DB. Every test and every test process of
+  # old code opens a pool on a database of its own, so the default 100 connections run out.
   backend-db-test:
     image: postgres:17
+    command: postgres -c max_connections=300
     ports:
       - "${BACKEND_DB_TEST_PORT:-5438}:5432"
     environment:

@@ -26,8 +26,8 @@ func TimingsForTest() Timings {
 	}
 }
 
-// It watches only what the caller names, because the slot database is shared with
-// every other test running in parallel.
+// It watches only what the caller names, because the database of the test process
+// is shared with every other test of the package running in parallel.
 func (w *DeletionWorker) DrainForTest(ctx context.Context, references ...StoredFileReference) error {
 	deadline := time.Now().UTC().Add(drainDeadlineForTest)
 

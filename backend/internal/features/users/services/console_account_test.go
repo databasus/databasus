@@ -326,8 +326,8 @@ func createConsoleAccount(
 	)
 }
 
-// The slot database is shared with earlier tests, so an instance that holds an
-// account is made rather than assumed.
+// The database of the test process is shared with earlier tests of this package,
+// so an instance that holds an account is made rather than assumed.
 func ensureInstanceIsClaimed(t *testing.T) {
 	t.Helper()
 

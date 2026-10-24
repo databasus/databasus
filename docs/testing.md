@@ -63,7 +63,7 @@ The full run is `just test`. It holds a machine-wide lock, so only one full run 
 - CI runs the same groups as the full run, split into shards by the measured duration of tests. Physical backup tests and WAL streaming tests are the slow groups and get their own shards.
 - The upgrade test and the filesystem tests are part of `just test`, and CI runs them on every pull request.
 
-Until every test has its own database, `scripts/test.sh` takes no lock, the upgrade test does not exist yet and the filesystem tests run only through `just test-filesystem`. The linter rejects `time.Sleep` and `Eventually` only in the target layout, and tests of the packages outside it run with the `testhelpers` build tag, as "Until the migration finishes" in [`AGENTS.md`](../AGENTS.md#until-the-migration-finishes) says.
+Until the tests of old code move into modules, the upgrade test does not exist yet and the filesystem tests run only through `just test-filesystem`. Old tests still change the shared `testdb` database on the three shared test PostgreSQL servers, so `just test` resets those servers before its tests. The reset waits up to ten minutes for running test processes to end, and a test process that starts during the reset waits for it. The linter rejects `time.Sleep` and `Eventually` only in the target layout, and tests of the packages outside it run with the `testhelpers` build tag, as "Until the migration finishes" in [`AGENTS.md`](../AGENTS.md#until-the-migration-finishes) says.
 
 ## Commands
 

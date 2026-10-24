@@ -3,8 +3,6 @@
 package config
 
 import (
-	"fmt"
-	"strings"
 	"sync"
 	"sync/atomic"
 
@@ -19,10 +17,9 @@ const (
 type EnvVariables struct {
 	lib_config.Config
 
-	IsTesting           bool
-	TestDatabaseDsn     string `env:"TEST_DATABASE_DSN"`
-	TestParallelWorkers int    `env:"TEST_PARALLEL_WORKERS"`
-	TestLocalhost       string `env:"TEST_LOCALHOST"`
+	IsTesting       bool
+	TestDatabaseDsn string `env:"TEST_DATABASE_DSN"`
+	TestLocalhost   string `env:"TEST_LOCALHOST"`
 
 	// TestLogicalPostgres16Port is the shared always-on logical-Postgres fixture used by
 	// GetTestPostgresConfig / CreateTestDatabase across the test suite. The per-version PG
@@ -50,33 +47,4 @@ func GetEnv() *EnvVariables {
 	}
 
 	return getEnvWithoutApp()
-}
-
-// RewriteDbName replaces the dbname= token in a keyword/value Postgres DSN,
-// returning the original dbname and the rewritten DSN. Used both to derive the
-// system DSN and to build per-slot test DSNs.
-func RewriteDbName(dsn, newDbName string) (origDbName, rewritten string, err error) {
-	parts := strings.Fields(dsn)
-	out := make([]string, 0, len(parts))
-
-	for _, p := range parts {
-		k, v, ok := strings.Cut(p, "=")
-		if !ok {
-			return "", "", fmt.Errorf("invalid DSN token: %q", p)
-		}
-
-		if k == "dbname" {
-			origDbName = v
-			out = append(out, "dbname="+newDbName)
-			continue
-		}
-
-		out = append(out, p)
-	}
-
-	if origDbName == "" {
-		return "", "", fmt.Errorf("DSN missing dbname: %q", dsn)
-	}
-
-	return origDbName, strings.Join(out, " "), nil
 }

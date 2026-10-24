@@ -134,7 +134,7 @@ func newMigration(upStatements string) *fstest.MapFile {
 func openTestDatabase(t *testing.T) *gorm.DB {
 	t.Helper()
 
-	db, err := database.Open(t.Context(), testdb.CreateDatabase(t))
+	db, err := database.Open(t.Context(), testdb.OpenEmpty(t))
 	require.NoError(t, err)
 
 	t.Cleanup(func() {

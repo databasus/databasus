@@ -95,7 +95,7 @@ func TestBinary(t *testing.T) {
 
 	t.Run("runs every console command on a new database without opening the server port", func(t *testing.T) {
 		host := newOperatorHost(t)
-		environment := newDatabaseEnvironment(testdb.CreateDatabase(t))
+		environment := newDatabaseEnvironment(testdb.OpenEmpty(t))
 		email := "owner@databasus.local"
 
 		consoleRuns := []struct {
@@ -129,7 +129,7 @@ func TestBinary(t *testing.T) {
 	})
 
 	t.Run("exits non-zero when the password reset names an unknown address", func(t *testing.T) {
-		environment := newDatabaseEnvironment(testdb.CreateDatabase(t))
+		environment := newDatabaseEnvironment(testdb.Open(t))
 
 		binaryRun := runBinary(t, newOperatorHost(t), environment,
 			"--new-password=rotated-password-456", "--email=nobody@databasus.local")
@@ -139,7 +139,7 @@ func TestBinary(t *testing.T) {
 
 	t.Run("refuses --create-user with --new-password and changes no account", func(t *testing.T) {
 		host := newOperatorHost(t)
-		databaseDsn := testdb.CreateDatabase(t)
+		databaseDsn := testdb.Open(t)
 		environment := newDatabaseEnvironment(databaseDsn)
 		email := "refused@databasus.local"
 
@@ -168,7 +168,7 @@ func TestBinary(t *testing.T) {
 
 	t.Run("resets a password while the server runs on the same database", func(t *testing.T) {
 		host := newOperatorHost(t)
-		databaseDsn := testdb.CreateDatabase(t)
+		databaseDsn := testdb.Open(t)
 		environment := newDatabaseEnvironment(databaseDsn)
 		email := "running@databasus.local"
 		serverAddress := startInProcessServer(t, databaseDsn)
@@ -187,7 +187,7 @@ func TestBinary(t *testing.T) {
 
 	t.Run("stops on a failed migration without opening the port and applies it after the fix", func(t *testing.T) {
 		host := newOperatorHost(t)
-		databaseDsn := testdb.CreateDatabase(t)
+		databaseDsn := testdb.OpenEmpty(t)
 		environment := newDatabaseEnvironment(databaseDsn)
 		executeStatement(t, databaseDsn, "CREATE TABLE users (id INT)")
 

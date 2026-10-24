@@ -83,6 +83,8 @@ test-group-tests group:
     fi
     echo "^($(paste -sd'|' <<<"$shard_names"))\$"
 
+# Removes the leftover test containers of every run on the machine, other worktrees included, so run
+# it only when no other test run is in progress.
 clean-testcontainers:
     #!/usr/bin/env bash
     set -euo pipefail

@@ -12,7 +12,6 @@ import (
 	"github.com/moby/moby/api/types/container"
 	"github.com/testcontainers/testcontainers-go"
 	tcexec "github.com/testcontainers/testcontainers-go/exec"
-	"github.com/testcontainers/testcontainers-go/network"
 	"github.com/testcontainers/testcontainers-go/wait"
 )
 
@@ -232,7 +231,7 @@ func StartPhysicalPrimaryWithStandby(
 	// A base backup taken on the standby requires full_page_writes — force it on for both nodes.
 	options.shouldEnableFullPageWrites = true
 
-	replicationNetwork, err := network.New(context.Background())
+	replicationNetwork, err := newLabelledNetwork()
 	if err != nil {
 		t.Fatalf("failed to create replication test network: %v", err)
 	}

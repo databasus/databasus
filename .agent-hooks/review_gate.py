@@ -135,7 +135,7 @@ class Check:
 
 # The hook only runs checks that leave files untouched: a formatter would rewrite files a parallel
 # agent is editing. Tests run only through the change verification commands a change names, and
-# their forms leave out `just test`, which resets the test containers other agents share.
+# their forms leave out `just test`, which takes too long for a hook and runs only when the user asks.
 MODULE_CHECKS = (
     ("backend/", (Check("backend", ("golangci-lint", "run", "./cmd/...", "./internal/...", "./tools/...")),)),
     (

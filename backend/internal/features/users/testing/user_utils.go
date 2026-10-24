@@ -103,9 +103,9 @@ func RecreateInitialAdmin(ctx context.Context) *users_models.User {
 	return insertTestUser(users_enums.UserRoleAdmin, true)
 }
 
-// No test may assume an instance that holds no account: the per-run slot
-// databases are shared across packages and carry whatever earlier ones left in
-// them, so a test keyed on the account-creation rule has to say so.
+// No test may assume an instance that holds no account: the tests of one package
+// share the database of their test process and carry whatever earlier ones left
+// in it, so a test keyed on the account-creation rule has to say so.
 func DeleteAllUsers() {
 	if err := storage.GetDb().Exec("DELETE FROM users").Error; err != nil {
 		panic(fmt.Errorf("failed to empty the users table: %w", err))

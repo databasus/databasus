@@ -1,19 +1,13 @@
-// Resets state before `just test` runs. Two distinct resets:
+// Resets the shared test PostgreSQL servers before `just test` runs: on each of them it drops every
+// non-system database (leftover backups, restores, and `testdb` itself), recreates `testdb`, drops
+// every non-system role and the replication slots tests left behind. Tests like CreateReadOnlyUser
+// issue `REVOKE CREATE ON SCHEMA public FROM PUBLIC` and create per-test roles that otherwise
+// persist across runs and break subsequent pg_dump calls with "permission denied for schema public".
 //
-//  1. The Databasus metadata DB: drop and recreate the test schema referenced
-//     by TEST_DATABASE_DSN so Goose migrations apply against a clean slate.
-//
-//  2. Each test PostgreSQL container (versions 12-18): drop every non-system
-//     database (leftover backups, restores, and `testdb` itself), recreate
-//     `testdb`, and drop every non-system role. This is what makes containers
-//     usable across runs - tests like CreateReadOnlyUser issue
-//     `REVOKE CREATE ON SCHEMA public FROM PUBLIC` and create per-test roles
-//     that otherwise persist across runs and break subsequent pg_dump calls
-//     with "permission denied for schema public".
-//
-// Reads the test DSN through config: built with the testhelpers tag, config.GetEnv()
-// loads the test configuration, whose DatabaseDsn is TestDatabaseDsn and IsTesting
-// is true. Run it as `go run -tags testhelpers ./cmd/cleanup_test_db`.
+// scripts/test.sh runs it under the exclusive side of the fixtures lock that every test binary holds
+// shared, so it never resets a server a running test uses. Reads the server ports through config:
+// built with the testhelpers tag, config.GetEnv() loads the test configuration. Run it as
+// `go run -tags testhelpers ./cmd/cleanup_test_db`.
 package main
 
 import (
@@ -25,9 +19,6 @@ import (
 	"strings"
 
 	_ "github.com/lib/pq"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
-	gormLogger "gorm.io/gorm/logger"
 
 	"databasus-backend/internal/config"
 	"databasus-backend/internal/util/logger"
@@ -50,53 +41,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err := resetMetadataDb(log, env); err != nil {
-		log.Error("failed to reset metadata DB", "error", err)
-		os.Exit(1)
-	}
-
 	if err := resetTestPostgresContainers(ctx, log, env); err != nil {
 		log.Error("failed to reset test PG containers", "error", err)
 		os.Exit(1)
 	}
-}
-
-// resetMetadataDb drops and recreates the metadata DB for every test worker slot
-// (databasus_test_w0 .. databasus_test_w{pool-1}). Tests run with `go test -p`,
-// each binary claiming one slot DB; provisioning all of them up front lets the
-// per-slot Goose migrations apply against a clean slate.
-func resetMetadataDb(log *slog.Logger, env *config.EnvVariables) error {
-	baseDbName, systemDsn, err := config.RewriteDbName(env.DatabaseDsn, systemDb)
-	if err != nil {
-		return fmt.Errorf("parse TEST_DATABASE_DSN: %w", err)
-	}
-
-	db, err := gorm.Open(postgres.Open(systemDsn), &gorm.Config{
-		Logger: gormLogger.Default.LogMode(gormLogger.Silent),
-	})
-	if err != nil {
-		return fmt.Errorf("connect to system postgres DB: %w", err)
-	}
-
-	for slot := range env.TestParallelWorkers {
-		slotDbName := fmt.Sprintf("%s_w%d", baseDbName, slot)
-		quoted := quoteIdentifier(slotDbName)
-
-		// Identifiers and literals are quoted with quoteIdentifier and quoteLiteral; this tool only resets test databases.
-		// nosemgrep: go.lang.security.audit.database.string-formatted-query.string-formatted-query
-		if err := db.Exec(fmt.Sprintf("DROP DATABASE IF EXISTS %s WITH (FORCE)", quoted)).Error; err != nil {
-			return fmt.Errorf("drop database %s: %w", slotDbName, err)
-		}
-
-		// nosemgrep: go.lang.security.audit.database.string-formatted-query.string-formatted-query
-		if err := db.Exec(fmt.Sprintf("CREATE DATABASE %s", quoted)).Error; err != nil {
-			return fmt.Errorf("create database %s: %w", slotDbName, err)
-		}
-
-		log.Info("metadata DB reset complete", "db", slotDbName)
-	}
-
-	return nil
 }
 
 func resetTestPostgresContainers(ctx context.Context, log *slog.Logger, env *config.EnvVariables) error {

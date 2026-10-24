@@ -28,7 +28,7 @@ func TestNew(t *testing.T) {
 	})
 
 	t.Run("returns an error naming the migration and fills no bridge when a migration fails", func(t *testing.T) {
-		databaseDsn := testdb.CreateDatabase(t)
+		databaseDsn := testdb.OpenEmpty(t)
 		db, err := database.Open(t.Context(), databaseDsn)
 		require.NoError(t, err)
 		require.NoError(t, db.WithContext(t.Context()).Exec("CREATE TABLE users (id INT)").Error)
@@ -60,7 +60,7 @@ func TestLoadEnvironment(t *testing.T) {
 func newTestApp(t *testing.T) *App {
 	t.Helper()
 
-	createdApp, err := New(t.Context(), newTestEnvironment(t, testdb.CreateDatabase(t)))
+	createdApp, err := New(t.Context(), newTestEnvironment(t, testdb.Open(t)))
 	require.NoError(t, err)
 
 	return createdApp
