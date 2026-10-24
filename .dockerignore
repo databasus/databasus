@@ -69,7 +69,7 @@ assets/tools/win-x64
 **/__pycache__
 
 # Local tooling config
-lefthook.yml
+hk.pkl
 mise.toml
+mise-tasks
 process-compose.yaml
-**/Justfile

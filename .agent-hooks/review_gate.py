@@ -28,7 +28,7 @@ Actions:
                  for necessity, architecture, names, proposal and design, and tasks. While it runs,
                  necessity, diff, architecture and naming skip a turn that only wrote the artifacts.
   doctor         Reports whether Python, git, openspec and a reviewer CLI are found, one line per tool,
-                 and exits with a non-zero code when one is missing. `just doctor` runs it.
+                 and exits with a non-zero code when one is missing. `mise run doctor` runs it.
 
 Both full reviews run within FULL_REVIEW_BUDGET_SECONDS from the hook's start: the checks share
 one total limit, and a reviewer starts only when the budget still holds its whole limit.
@@ -135,7 +135,7 @@ class Check:
 
 # The hook only runs checks that leave files untouched: a formatter would rewrite files a parallel
 # agent is editing. Tests run only through the change verification commands a change names, and
-# their forms leave out `just test`, which takes too long for a hook and runs only when the user asks.
+# their forms leave out `mise run test`, which takes too long for a hook and runs only when the user asks.
 MODULE_CHECKS = (
     ("backend/", (Check("backend", ("golangci-lint", "run", "./cmd/...", "./internal/...", "./tools/...")),)),
     (
@@ -172,17 +172,17 @@ class VerificationForm:
 CHANGE_VERIFICATION_HEADING = "## Change verification"
 VERIFICATION_FORMS = (
     VerificationForm(
-        prefix=("just", "test-package"),
-        directory="backend",
-        usage="just test-package <package>...",
+        prefix=("mise", "run", "backend:test-package"),
+        directory=".",
+        usage="mise run backend:test-package <package>...",
         min_arguments=1,
         max_arguments=None,
         is_package_list=True,
     ),
     VerificationForm(
-        prefix=("just", "--justfile", "agent/verification/Justfile", "test"),
+        prefix=("mise", "run", "agent:test"),
         directory=".",
-        usage="just --justfile agent/verification/Justfile test",
+        usage="mise run agent:test",
         min_arguments=0,
         max_arguments=0,
         is_package_list=False,
@@ -197,14 +197,14 @@ VERIFICATION_FORMS = (
     ),
 )
 # The commands run outside the agent's permission prompts, and both runners pass the arguments
-# through a shell: `just test-package` interpolates them into a bash recipe. The set leaves out
+# through a shell: `backend:test-package` hands them to a bash script. The set leaves out
 # every shell operator, redirection and substitution character, so `./internal/a;rm` is refused
 # although it holds no separate operator word.
 VERIFICATION_ARGUMENT_PATTERN = re.compile(r"[A-Za-z0-9._/=:@-]+")
 ALLOWED_VERIFICATION_FORMS = (
     "Allowed forms, one command per line in one ```sh block:\n"
-    "- `just test-package <package>...`, every package starting with `./`, runs in `backend/`\n"
-    "- `just --justfile agent/verification/Justfile test`, with nothing after it\n"
+    "- `mise run backend:test-package <package>...`, every package starting with `./`, resolved in `backend/`\n"
+    "- `mise run agent:test`, with nothing after it\n"
     "- `pnpm --dir frontend test [<argument>...]`\n"
     "Arguments may hold only letters, digits and `.`, `/`, `_`, `-`, `=`, `:`, `@`."
 )
@@ -852,7 +852,7 @@ def get_output_tail(output):
     return "\n".join((output or "").rstrip().splitlines()[-CHECK_OUTPUT_LINES:]) or "(no output)"
 
 
-# `just` starts bash, bash starts `go test`, and `go test` starts test binaries that hold a test slot
+# `mise` starts bash, bash starts `go test`, and `go test` starts test binaries that hold a test slot
 # database and containers. Each check runs in its own process group, so a timeout kills them all.
 def stop_process_group(process):
     try:
@@ -1259,7 +1259,7 @@ def check_environment():
 def stop_for_missing_tool(error):
     message = (
         f"The review hooks could not find `{error.tool}`, so the review did not run. "
-        "Run `mise install` to install the pinned tools and `just doctor` to check the environment."
+        "Run `mise install` to install the pinned tools and `mise run doctor` to check the environment."
     )
     emit({"continue": False, "stopReason": message, "systemMessage": message})
 

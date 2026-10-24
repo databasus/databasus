@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+#MISE description="Pull the database and object storage images the backend tests use"
+#MISE dir="backend"
+# For the bare names the tag must start with a digit, so a quoted "postgres:postgres" chown arg in
+# physical tests isn't mistaken for an image tag; every real image tag there is version-like. A
+# namespaced name (owner/image) cannot be confused with anything, so its tag is matched as written.
+set -euo pipefail
+
+# shellcheck disable=SC2016 # the inner script expands $1 and $n itself
+grep -rhoE '"(mysql|mariadb|mongo|postgres):[0-9][a-zA-Z0-9._-]*"|"pgsty/minio:[a-zA-Z0-9._-]+"|"nicolaka/netshoot:[a-zA-Z0-9._-]+"' ./internal |
+    tr -d '"' | sort -u |
+    xargs -P 4 -I {} sh -c 'for n in 1 2 3; do docker pull "$1" && exit 0; echo "retry $1 ($n)"; sleep 3; done; echo "FAILED to pull $1 after 3 attempts"; exit 1' sh {}

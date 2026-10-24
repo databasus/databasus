@@ -1,5 +1,5 @@
 #!/bin/bash
-# Podman subset of the e2e suite, run by `just e2e-podman` with the runner's
+# Podman subset of the e2e suite, run by `mise run agent:e2e-podman` with the runner's
 # engine socket pointed at Podman's Docker-compatible API. It covers the
 # engine-dependent paths: the privileges the kernel applied, a successful
 # restore and a failed one, each with its leak check. The other tests do not

@@ -18,6 +18,13 @@ describe('translateApiError', () => {
     expect(translateApiError(error, t)).toBe(t('errors.networkUnreachable'));
   });
 
+  it('translates a code of the contract', () => {
+    const error = new ApiError({ code: 'internal', status: 500 });
+
+    expect(translateApiError(error, t)).toBe(t('errors.internal'));
+    expect(translateApiError(error, t)).not.toBe('internal');
+  });
+
   it('includes the status for request_failed', () => {
     const error = new ApiError({ code: API_ERROR_CODES.requestFailed, status: 502 });
 

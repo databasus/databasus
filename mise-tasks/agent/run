@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+#MISE description="Run the verification agent against the backend named in agent/verification/.env"
+#MISE dir="agent/verification"
+set -euo pipefail
+
+if [[ -f .env ]]; then
+    set -a
+    # shellcheck disable=SC1091 # the developer's local file
+    source .env
+    set +a
+fi
+exec go run ./cmd run \
+    --databasus-host "$DATABASUS_URL" \
+    --agent-id "$AGENT_ID" \
+    --token "$AGENT_TOKEN" \
+    --max-cpu 4 \
+    --max-ram-mb 4096 \
+    --max-disk-gb 1000 \
+    --max-concurrent-jobs 2 \
+    --allow-insecure-http \
+    --skip-update

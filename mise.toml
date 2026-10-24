@@ -1,9 +1,10 @@
+min_version = "2026.10.6"
+
 [tools]
 go = "1.26.10"
 node = "24.21.0"
 pnpm = "9.15.9"
-just = "1.58.0"
-lefthook = "2.2.1"
+hk = "2.8.1"
 process-compose = "1.122.0"
 "aqua:pressly/goose" = "3.27.3"
 golangci-lint = "2.11.3"
@@ -15,7 +16,122 @@ python = "3.14.7"
 "npm:typescript-language-server" = "6.0.2"
 ripgrep = "15.2.0"
 shellcheck = "0.11.0"
+vacuum = "0.35.1"
 
 [env]
 # Each wrapper in tools/lsp explains why it shadows the mise shim.
 _.path = ["{{config_root}}/tools/lsp"]
+
+# Every task of a module sets dir to that module, so it runs the same from any directory. Scripts
+# longer than a few lines are file tasks in mise-tasks/, named after their path there.
+
+[tasks.dev]
+description = "Start the app locally: dev database, test fixtures, WAL backup source, backend and frontend"
+run = "scripts/dev.sh"
+
+[tasks.test]
+description = "Run every backend test package, then the upgrade test"
+run = "scripts/test.sh"
+
+[tasks.pull-testcontainers]
+description = "Pull the database images the backend tests use"
+run = "mise run backend:pull-testcontainers"
+
+[tasks.generate-api]
+description = "Regenerate the servers, the test clients and the frontend types from backend/api/*.yaml"
+depends = ["backend:generate-api"]
+run = "pnpm --dir frontend generate:api"
+
+# mise cancels the remaining dependencies of a task when one fails, so the module lints run through
+# --continue-on-error and every failing module is reported.
+[tasks.lint]
+description = "Check every module without changing files"
+run = "mise run --continue-on-error backend:lint ::: agent:lint ::: frontend:lint ::: lint-shell"
+
+[tasks.format]
+description = "Format every module"
+depends = ["backend:format", "agent:format", "frontend:format"]
+
+[tasks.lint-shell]
+description = "Check the shell scripts with shellcheck"
+shell = "bash -euo pipefail -c"
+run = "git ls-files -z --cached --others --exclude-standard '*.sh' tools/lsp mise-tasks | xargs -0 shellcheck"
+
+[tasks.doctor]
+description = "Check that the review hooks find the tools they need"
+run = ".agent-hooks/run.sh doctor"
+
+[tasks."backend:lint"]
+description = "Check the backend: contract rules, generated code, formatting, linters and go.mod"
+dir = "backend"
+depends = ["backend:check-generated"]
+run = [
+  "vacuum lint --no-banner --no-style --no-update-check --fail-severity warn --details --all-results --no-clip --ruleset api/vacuum.yaml api/openapi.yaml",
+  "golangci-lint fmt --diff ./api/... ./cmd/... ./e2e/... ./internal/... ./tools/...",
+  "golangci-lint run ./api/... ./cmd/... ./e2e/... ./internal/... ./tools/...",
+  "go run ./tools/archlint",
+  "go mod tidy -diff",
+]
+
+[tasks."backend:format"]
+description = "Format the backend"
+dir = "backend"
+run = "golangci-lint fmt ./api/... ./cmd/... ./e2e/... ./internal/... ./tools/..."
+
+[tasks."backend:generate-api"]
+description = "Regenerate the backend servers and test clients from backend/api/*.yaml"
+dir = "backend"
+run = "go generate ./..."
+
+# The libedit shim lets the bundled PostgreSQL clients start on Fedora; without it a package that
+# checks them at startup exits before its first test.
+[tasks."backend:test-package"]
+description = "Run the given backend test packages, e.g. mise run backend:test-package ./internal/features/intervals/..."
+dir = "backend"
+usage = 'arg "<packages>" var=#true help="Package paths relative to backend/, each starting with ./"'
+shell = "bash -euo pipefail -c"
+run = """
+source ../scripts/fedora.sh
+apply_libedit_shim
+# shellcheck disable=SC2086 # one package path per word
+go test -race -tags testhelpers -count=1 $usage_packages
+"""
+
+[tasks."agent:build"]
+description = "Build the verification agent binary"
+dir = "agent/verification"
+run = 'CGO_ENABLED=0 go build -ldflags "-X main.Version=${VERSION:-}" -o databasus-verification-agent ./cmd'
+
+[tasks."agent:test"]
+description = "Run the verification agent tests"
+dir = "agent/verification"
+run = "go test -race -count=1 -failfast ./internal/..."
+
+[tasks."agent:lint"]
+description = "Check the verification agent: formatting, linters and go.mod"
+dir = "agent/verification"
+run = [
+  "golangci-lint fmt --diff ./cmd/... ./internal/... ./e2e/...",
+  "golangci-lint run ./cmd/... ./internal/... ./e2e/...",
+  "go mod tidy -diff",
+]
+
+[tasks."agent:format"]
+description = "Format the verification agent"
+dir = "agent/verification"
+run = "golangci-lint fmt ./cmd/... ./internal/... ./e2e/..."
+
+[tasks."frontend:lint"]
+description = "Check the frontend: formatting, linter, types and the generated API types"
+dir = "frontend"
+run = [
+  "pnpm format:check",
+  "pnpm lint",
+  "pnpm typecheck",
+  "pnpm --silent check:api",
+]
+
+[tasks."frontend:format"]
+description = "Format the frontend"
+dir = "frontend"
+run = "pnpm format"

@@ -49,7 +49,7 @@ services:
       # on the host engine; pg_restore runs inside those containers (no host
       # client, no assets bundle). The scripts' docker CLI uses the same
       # socket. E2E_ENGINE_SOCKET swaps the engine for the agent only, e.g. a
-      # Podman socket for `just e2e-podman`; the other services stay on Docker.
+      # Podman socket for `mise run agent:e2e-podman`; the other services stay on Docker.
       - ${E2E_ENGINE_SOCKET:-/var/run/docker.sock}:/var/run/docker.sock
     # Mirrors production: the agent runs directly on the VM, so 127.0.0.1 IS
     # the host. Spawned Postgres containers publish 5432 to a random host port

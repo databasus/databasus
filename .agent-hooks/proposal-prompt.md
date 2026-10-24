@@ -59,7 +59,7 @@ Check every name the proposal, `design.md` and the delta specs introduce for cod
 
 - Check that every scenario of the delta specs is covered by a task with a test.
 - Check that every task has a verification: a test, a command or a repository search.
-- Check that every task closes without the user and without the full backend suite. Local tests of the touched packages and of the packages that test the same feature are enough. A task that runs `just test` or `just test-filesystem`, or waits on the user, CI or a push, is a `tasks` finding. Never ask for the full suite to be added.
+- Check that every task closes without the user and without the full backend suite. Local tests of the touched packages and of the packages that test the same feature are enough. A task that runs `mise run test` or `mise run test-filesystem`, or waits on the user, CI or a push, is a `tasks` finding. Never ask for the full suite to be added.
 - Check that the task order can be followed: no task relies on something that appears only in a later one.
 - Check that a change whose tasks add or change tests in a backend package, a verification agent package or the frontend has a `## Change verification` section, and that its commands run the tests of every such package the tasks' verifications name. A missing section, or a package the section leaves out, is a `tasks` finding that names the package. Tests that no allowed command form runs and that a module check already runs, such as the hook tests in `.agent-hooks/`, need no section, and neither does a change without tests.
 

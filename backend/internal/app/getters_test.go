@@ -43,7 +43,6 @@ import (
 	storages "databasus-backend/internal/features/storages"
 	system_agent "databasus-backend/internal/features/system/agent"
 	system_healthcheck "databasus-backend/internal/features/system/healthcheck"
-	system_version "databasus-backend/internal/features/system/version"
 	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
 	telemetry "databasus-backend/internal/features/telemetry"
 	users_controllers "databasus-backend/internal/features/users/controllers"
@@ -287,7 +286,6 @@ func getOldCodeGetters() []oldCodeGetter {
 			"features/system/healthcheck.GetHealthcheckController",
 			func() any { return system_healthcheck.GetHealthcheckController() },
 		},
-		{"features/system/version.GetVersionController", func() any { return system_version.GetVersionController() }},
 		{"features/tasks/cancellation.GetRegistry", func() any { return tasks_cancellation.GetRegistry() }},
 		{"features/tasks/cancellation.GetRequester", func() any { return tasks_cancellation.GetRequester() }},
 		{"features/tasks/cancellation.GetListener", func() any { return tasks_cancellation.GetListener() }},

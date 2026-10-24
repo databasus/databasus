@@ -142,6 +142,10 @@ export const es: typeof en = {
     emailNotConfigured: 'La instancia no tiene un servidor de correo configurado.',
     adminEmailMissing:
       'Su cuenta no tiene una dirección de correo válida a la que enviar un correo de prueba.',
+    invalidRequest:
+      'El servidor rechazó la solicitud por no ser válida. Recargue la página e inténtelo de nuevo.',
+    notFound: 'No se encontró el elemento solicitado. Es posible que se haya eliminado.',
+    internal: 'Se produjo un error interno en el servidor. Inténtelo de nuevo más tarde.',
   },
   status: {
     logicalBackup: {

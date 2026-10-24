@@ -19,7 +19,7 @@ import review_gate
 HOOK_PATH = Path(__file__).resolve().parent / "review_gate.py"
 CHANGE_NAME = "add-widgets"
 PROPOSAL_NAME = "add-gadgets"
-STUB_NAMES = ("claude", "openspec", "golangci-lint", "pnpm", "npm", "just")
+STUB_NAMES = ("claude", "openspec", "golangci-lint", "pnpm", "npm", "mise")
 
 # The stub stands in for every external command: it takes its answer from <stubs>/<name>.json
 # and records each call in <stubs>/calls, so a test sees the arguments, the working directory
@@ -232,7 +232,7 @@ class HookRepository:
         return [call for call in calls if name is None or call["name"] == name]
 
     def check_calls(self):
-        return [call for call in self.calls() if call["name"] in ("golangci-lint", "pnpm", "npm", "just")]
+        return [call for call in self.calls() if call["name"] in ("golangci-lint", "pnpm", "npm", "mise")]
 
     def reviewer_calls(self):
         return [call for call in self.calls() if call["name"] == "claude"]
@@ -443,7 +443,7 @@ class LauncherTest(unittest.TestCase):
 
         process = launcher.run("proposal")
 
-        self.assert_stops_agent(process, "not installed", MISSING_OPENSPEC_LINE, "mise install", "just doctor")
+        self.assert_stops_agent(process, "not installed", MISSING_OPENSPEC_LINE, "mise install", "mise run doctor")
         self.assertEqual(launcher.mise_calls("exec"), [])
 
     def test_stops_agent_without_running_hook_when_missing_tools_check_fails(self):
@@ -453,7 +453,7 @@ class LauncherTest(unittest.TestCase):
 
         process = launcher.run("diff")
 
-        self.assert_stops_agent(process, "mise exited with code 1", "is not trusted", "just doctor")
+        self.assert_stops_agent(process, "mise exited with code 1", "is not trusted", "mise run doctor")
         self.assertEqual(launcher.mise_calls("exec"), [])
 
     def test_stops_agent_when_version_manager_is_missing(self):
@@ -461,7 +461,7 @@ class LauncherTest(unittest.TestCase):
 
         process = launcher.run("diff")
 
-        self.assert_stops_agent(process, "could not find the version manager mise", "just doctor")
+        self.assert_stops_agent(process, "could not find the version manager mise", "Install mise first.", "mise run doctor")
 
     def test_stops_agent_with_action_and_exit_code_when_hook_crashes(self):
         launcher = Launcher(self)
@@ -470,7 +470,7 @@ class LauncherTest(unittest.TestCase):
 
         process = launcher.run("implementation")
 
-        self.assert_stops_agent(process, "`implementation`", "exit code 3", "just doctor")
+        self.assert_stops_agent(process, "`implementation`", "exit code 3", "mise run doctor")
 
     def test_keeps_stop_message_valid_json_when_error_output_has_quotes_and_control_characters(self):
         launcher = Launcher(self)
@@ -524,8 +524,8 @@ class MissingToolTest(unittest.TestCase):
 
         self.assertIs(response["continue"], False)
         self.assertIn("could not find `openspec`", response["stopReason"])
-        self.assertIn("just doctor", response["stopReason"])
-        self.assertIn("just doctor", response["systemMessage"])
+        self.assertIn("mise run doctor", response["stopReason"])
+        self.assertIn("mise run doctor", response["systemMessage"])
         self.assertEqual(repository.reviewer_calls(), [])
 
 
@@ -640,32 +640,45 @@ class ChangeVerificationParsingTest(unittest.TestCase):
         self.assertIn(review_gate.ALLOWED_VERIFICATION_FORMS, message)
 
     def test_rejects_full_backend_suite(self):
-        self.assert_rejected(verification_section("just test"), "`just test` is not an allowed command")
+        self.assert_rejected(verification_section("mise run test"), "`mise run test` is not an allowed command")
+
+    def test_rejects_old_just_form(self):
+        self.assert_rejected(
+            verification_section("just test-package ./internal/features/intervals/..."),
+            "`just test-package ./internal/features/intervals/...` is not an allowed command",
+        )
 
     def test_rejects_shell_operator_as_forbidden_character(self):
         self.assert_rejected(
-            verification_section("just test-package ./internal/features/intervals/... && rm -rf /tmp/x"),
+            verification_section("mise run backend:test-package ./internal/features/intervals/... && rm -rf /tmp/x"),
             "the argument `&&`",
         )
 
     def test_rejects_argument_with_forbidden_character(self):
         self.assert_rejected(
-            verification_section("just test-package ./internal/a;rm"),
-            "the argument `./internal/a;rm` in `just test-package ./internal/a;rm` has a forbidden character",
+            verification_section("mise run backend:test-package ./internal/a;rm"),
+            "the argument `./internal/a;rm` in `mise run backend:test-package ./internal/a;rm` has a forbidden character",
         )
 
-    def test_runs_backend_package_tests_in_backend_directory(self):
-        checks = self.parse(verification_section("just test-package ./internal/features/intervals/..."))
+    def test_runs_backend_package_tests_from_repository_root(self):
+        checks = self.parse(verification_section("mise run backend:test-package ./internal/features/intervals/..."))
 
-        self.assertEqual(checks, [review_gate.Check("backend", ("just", "test-package", "./internal/features/intervals/..."))])
+        self.assertEqual(
+            checks, [review_gate.Check(".", ("mise", "run", "backend:test-package", "./internal/features/intervals/..."))]
+        )
+
+    def test_runs_verification_agent_tests_from_repository_root(self):
+        checks = self.parse(verification_section("mise run agent:test"))
+
+        self.assertEqual(checks, [review_gate.Check(".", ("mise", "run", "agent:test"))])
 
     def test_accepts_every_allowed_form_and_skips_empty_and_comment_lines(self):
         checks = self.parse(
             verification_section(
                 "# backend",
-                "just test-package ./internal/features/intervals/... ./internal/features/backups/...",
+                "mise run backend:test-package ./internal/features/intervals/... ./internal/features/backups/...",
                 "",
-                "just --justfile agent/verification/Justfile test",
+                "mise run agent:test",
                 "pnpm --dir frontend test src/features/widgets --reporter=dot",
             )
         )
@@ -674,23 +687,24 @@ class ChangeVerificationParsingTest(unittest.TestCase):
             checks,
             [
                 review_gate.Check(
-                    "backend", ("just", "test-package", "./internal/features/intervals/...", "./internal/features/backups/...")
+                    ".",
+                    ("mise", "run", "backend:test-package", "./internal/features/intervals/...", "./internal/features/backups/..."),
                 ),
-                review_gate.Check(".", ("just", "--justfile", "agent/verification/Justfile", "test")),
+                review_gate.Check(".", ("mise", "run", "agent:test")),
                 review_gate.Check(".", ("pnpm", "--dir", "frontend", "test", "src/features/widgets", "--reporter=dot")),
             ],
         )
 
     def test_rejects_backend_package_tests_without_package(self):
-        self.assert_rejected(verification_section("just test-package"), "does not match the form `just test-package <package>...`")
+        self.assert_rejected(verification_section("mise run backend:test-package"), "does not match the form `mise run backend:test-package <package>...`")
 
     def test_rejects_package_path_without_leading_dot_slash(self):
-        self.assert_rejected(verification_section("just test-package internal/features/intervals/..."), "must start with `./`")
+        self.assert_rejected(verification_section("mise run backend:test-package internal/features/intervals/..."), "must start with `./`")
 
     def test_rejects_arguments_after_verification_agent_form(self):
         self.assert_rejected(
-            verification_section("just --justfile agent/verification/Justfile test ./internal/..."),
-            "does not match the form `just --justfile agent/verification/Justfile test`",
+            verification_section("mise run agent:test ./x"),
+            "does not match the form `mise run agent:test`",
         )
 
     def test_rejects_section_with_only_bash_fenced_block(self):
@@ -1112,17 +1126,17 @@ class ImplementationGateChecksTest(ShortReplyAssertions, unittest.TestCase):
         self.assert_asks_for_short_reply(response["reason"])
         self.assertEqual(repository.reviewer_calls(), [])
 
-    def test_never_runs_formatters_and_runs_just_only_from_change_verification_block(self):
+    def test_never_runs_formatters_and_runs_mise_only_from_change_verification_block(self):
         repository = HookRepository(self)
         repository.submit_prompt("Continue")
         repository.write("backend/internal/features/widgets/service.go", "package widgets\n")
         repository.write("frontend/src/pages/widgets/ui/WidgetsPage.tsx", "export {};\n")
-        repository.complete_tasks(verification_section=verification_section("just test-package ./internal/features/widgets/..."))
+        repository.complete_tasks(verification_section=verification_section("mise run backend:test-package ./internal/features/widgets/..."))
 
         response = repository.stop("implementation")
 
         self.assertEqual(response, {})
-        self.assertEqual([call["arguments"] for call in repository.calls("just")], [["test-package", "./internal/features/widgets/..."]])
+        self.assertEqual([call["arguments"] for call in repository.calls("mise")], [["run", "backend:test-package", "./internal/features/widgets/..."]])
         arguments = [" ".join(call["arguments"]) for call in repository.check_calls()]
         self.assertEqual(len(arguments), 3)
         self.assertFalse(any("fmt" in argument or "format" in argument for argument in arguments))
@@ -1130,31 +1144,31 @@ class ImplementationGateChecksTest(ShortReplyAssertions, unittest.TestCase):
 
     def test_blocks_turn_with_command_and_output_tail_when_package_test_fails(self):
         repository = HookRepository(self)
-        repository.set_stub("just", {"exit_code": 1, "output": "--- FAIL: Test_CreateInterval_WhenOverlapping_ReturnsConflict\n"})
+        repository.set_stub("mise", {"exit_code": 1, "output": "--- FAIL: Test_CreateInterval_WhenOverlapping_ReturnsConflict\n"})
         repository.submit_prompt("Continue")
         repository.write("backend/internal/features/intervals/service.go", "package intervals\n")
-        repository.complete_tasks(verification_section=verification_section("just test-package ./internal/features/intervals/..."))
+        repository.complete_tasks(verification_section=verification_section("mise run backend:test-package ./internal/features/intervals/..."))
 
         response = repository.stop("implementation")
 
         self.assertEqual(response["decision"], "block")
-        self.assertIn("`just test-package ./internal/features/intervals/...` in `backend` exited with code 1", response["reason"])
+        self.assertIn("`mise run backend:test-package ./internal/features/intervals/...` in `.` exited with code 1", response["reason"])
         self.assertIn("--- FAIL: Test_CreateInterval_WhenOverlapping_ReturnsConflict", response["reason"])
         self.assert_asks_for_short_reply(response["reason"])
         self.assertEqual(repository.reviewer_calls(), [])
 
-    def test_runs_backend_package_tests_in_backend_directory_after_linter(self):
+    def test_runs_backend_package_tests_from_repository_root_after_linter(self):
         repository = HookRepository(self)
         repository.submit_prompt("Continue")
         repository.write("backend/internal/features/intervals/service.go", "package intervals\n")
-        repository.complete_tasks(verification_section=verification_section("just test-package ./internal/features/intervals/..."))
+        repository.complete_tasks(verification_section=verification_section("mise run backend:test-package ./internal/features/intervals/..."))
 
         repository.stop("implementation")
 
         [linter_call] = repository.calls("golangci-lint")
-        [test_call] = repository.calls("just")
-        self.assertEqual(test_call["arguments"], ["test-package", "./internal/features/intervals/..."])
-        self.assertEqual(Path(test_call["cwd"]), repository.root / "backend")
+        [test_call] = repository.calls("mise")
+        self.assertEqual(test_call["arguments"], ["run", "backend:test-package", "./internal/features/intervals/..."])
+        self.assertEqual(Path(test_call["cwd"]), repository.root)
         self.assertLess(linter_call["started_at"], test_call["started_at"])
 
     def test_runs_command_named_by_two_changes_once(self):
@@ -1183,12 +1197,12 @@ class ImplementationGateChecksTest(ShortReplyAssertions, unittest.TestCase):
         repository = HookRepository(self)
         repository.submit_prompt("Continue")
         repository.write("backend/internal/features/intervals/service.go", "package intervals\n")
-        repository.complete_tasks(verification_section=verification_section("just test"))
+        repository.complete_tasks(verification_section=verification_section("mise run test"))
 
         response = repository.stop("implementation")
 
         self.assertEqual(response["decision"], "block")
-        self.assertIn("`just test` is not an allowed command", response["reason"])
+        self.assertIn("`mise run test` is not an allowed command", response["reason"])
         self.assertIn(review_gate.ALLOWED_VERIFICATION_FORMS, response["reason"])
         self.assertIn("No check or reviewer ran.", response["reason"])
         self.assertEqual(repository.check_calls(), [])
@@ -1641,14 +1655,14 @@ class ProposalGateValidationTest(unittest.TestCase):
     def test_blocks_turn_without_running_command_when_verification_section_has_forbidden_command(self):
         repository = HookRepository(self)
         repository.submit_prompt("Write a spec")
-        repository.write_proposal(tasks="- [ ] 1.1 Build\n" + verification_section("just test"))
+        repository.write_proposal(tasks="- [ ] 1.1 Build\n" + verification_section("mise run test"))
 
         response = repository.stop("proposal")
 
         self.assertEqual(response["decision"], "block")
-        self.assertIn("`just test` is not an allowed command", response["reason"])
+        self.assertIn("`mise run test` is not an allowed command", response["reason"])
         self.assertIn(review_gate.ALLOWED_VERIFICATION_FORMS, response["reason"])
-        self.assertEqual(repository.calls("just"), [])
+        self.assertEqual(repository.calls("mise"), [])
         self.assertEqual([call["arguments"][0] for call in repository.calls("openspec")], ["status"])
         self.assertEqual(repository.reviewer_calls(), [])
 

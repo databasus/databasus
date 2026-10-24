@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+#MISE description="Run the Docker filesystem suite; CASE or CASE_GROUP selects a case or a group"
+set -euo pipefail
+
+if [[ -z "${DATABASUS_IMAGE:-}" ]]; then
+    export DATABASUS_IMAGE=databasus-storage-test:local
+    docker build --tag "$DATABASUS_IMAGE" .
+fi
+exec bash e2e/docker-storage/run.sh

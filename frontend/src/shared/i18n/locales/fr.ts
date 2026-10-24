@@ -141,6 +141,10 @@ export const fr: typeof en = {
     emailNotConfigured: "L'instance n'a pas de serveur de messagerie configuré.",
     adminEmailMissing:
       "Votre compte n'a pas d'adresse e-mail valide à laquelle envoyer un e-mail de test.",
+    invalidRequest:
+      "Le serveur a refusé la requête car elle n'est pas valide. Rechargez la page et réessayez.",
+    notFound: "L'élément demandé est introuvable. Il a peut-être été supprimé.",
+    internal: "Une erreur interne s'est produite sur le serveur. Réessayez plus tard.",
   },
   status: {
     logicalBackup: {

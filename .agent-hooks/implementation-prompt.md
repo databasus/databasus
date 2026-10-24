@@ -35,7 +35,7 @@ Read `docs/architecture.md` completely and the architecture sections of the modu
 
 ### Role: documentation and tasks
 
-- For every task in `tasks.md` check that everything it says was done, including its verification. A claim that cannot be true for this code is a problem. Do not ask for the full backend suite (`just test`) to be run; local tests of the touched packages and of the packages that test the same feature are enough.
+- For every task in `tasks.md` check that everything it says was done, including its verification. A claim that cannot be true for this code is a problem. Do not ask for the full backend suite (`mise run test`) to be run; local tests of the touched packages and of the packages that test the same feature are enough.
 - Check documentation consistency per the section "Documentation consistency" in `AGENTS.md`: `AGENTS.md`, the module docs, `docs/`, the repository's own skills, the READMEs and code comments agree with each other and with the code. Search the repository for mentions of what the change changed.
 - Check the edits to agent instructions the change made, per the same section. Report an inventory of what exists, the state of the code, a description of how something works or a retelling of another document in `AGENTS.md` or an own skill as a `docs` finding, and name the place to move it to from that section's table. A rule of agent behavior that is written nowhere else is not a finding.
 
@@ -49,7 +49,7 @@ Read `.agents/skills/testing/SKILL.md` and the testing rules of the module doc f
 - The test waits for a condition up to a limit instead of a fixed pause, and it cleans up the data it created. A fixed pause, a flaky assertion or leaked data is a `bug` finding that names the condition to wait for or the data to clean up.
 - The commands of the "Change verification" section run the tests of every backend package, verification agent package and frontend test file in which the change added or changed tests. A package or file left out is a `missing_test` finding that names it. Tests that no allowed command form runs and that a module check already runs, such as the hook tests in `.agent-hooks/`, count as covered, so a change with only such tests needs no section.
 
-Do not ask for the full backend suite (`just test`) to be run.
+Do not ask for the full backend suite (`mise run test`) to be run.
 
 ### Role: repeat review
 

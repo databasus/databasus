@@ -48,6 +48,9 @@ This is the project's common language. Each concept has one term in the document
 | Shared code | lib | Packages in `internal/lib` without domain logic. |
 | Composition root | app | `internal/app`, which builds the whole object graph and wires modules together. |
 | API contract | contract | `backend/api/openapi.yaml` and `backend/api/agent.yaml`, from which the servers, the test clients and the frontend types are generated. |
+| Problem | Problem | The RFC 9457 error body that every operation of the contract answers with. |
+| Error code | `code` | The machine-readable cause in a `Problem`, such as `not_found`. The frontend chooses the text it shows by it. |
+| Contract-checking test client | `apiclient` | The client backend tests call the API through. It fails the test on any response that differs from the contract. |
 | Handler | handler | Code that decodes a request, calls a service and encodes the response. |
 | Service | service | Code that holds the rules of a module's operations. |
 | Repository | repository | Code that holds the queries of a module's tables. |

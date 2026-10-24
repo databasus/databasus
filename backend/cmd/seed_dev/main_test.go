@@ -260,7 +260,7 @@ func Test_Seed_WhenMemberMayNotCreateWorkspaces_FailsNamingWorkspace(t *testing.
 	assert.Equal(t, uuid.Nil, findWorkspaceID(t, router, token, params.WorkspaceName))
 }
 
-func Test_Seed_WhenBackendDoesNotAnswer_FailsWithJustRunHint(t *testing.T) {
+func Test_Seed_WhenBackendDoesNotAnswer_FailsWithDevTaskHint(t *testing.T) {
 	stoppedServer := httptest.NewServer(http.NotFoundHandler())
 	stoppedServer.Close()
 
@@ -269,7 +269,7 @@ func Test_Seed_WhenBackendDoesNotAnswer_FailsWithJustRunHint(t *testing.T) {
 	exitCode, output := runSeedForTest(t, params)
 
 	assert.Equal(t, 1, exitCode)
-	assert.Contains(t, output, "just run")
+	assert.Contains(t, output, "mise run dev")
 }
 
 // A full disk is unsafe to reproduce, so a stub stands in for the backend's health check.

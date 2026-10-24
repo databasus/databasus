@@ -142,6 +142,10 @@ export const pt: typeof en = {
     emailNotConfigured: 'A instância não tem um servidor de e-mail configurado.',
     adminEmailMissing:
       'Sua conta não tem um endereço de e-mail válido para receber o e-mail de teste.',
+    invalidRequest:
+      'O servidor recusou a solicitação por ser inválida. Recarregue a página e tente novamente.',
+    notFound: 'O item solicitado não foi encontrado. Ele pode ter sido excluído.',
+    internal: 'Ocorreu um erro interno no servidor. Tente novamente mais tarde.',
   },
   status: {
     logicalBackup: {

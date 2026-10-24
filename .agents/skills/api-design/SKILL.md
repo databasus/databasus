@@ -13,9 +13,9 @@ description: Design HTTP operations of Databasus in backend/api/openapi.yaml and
 ## Contract first
 
 1. Edit the contract.
-2. Run `just generate-api` at the root.
-3. Implement the generated strict server interface in the module's `internal/httpapi`, and call the operation from the frontend through the generated types.
-4. Run `just lint` in `backend/`. `vacuum` checks the contract against the rules below, and the lint fails when the generated code is out of date.
+2. Run `mise run generate-api`.
+3. Implement the generated strict server interface in the module's `internal/httpapi`, and call the operation from the frontend through the generated types. The `system` tag is the one exception: it is not a module, and `internal/app/systemhttpapi` serves it.
+4. Run `mise run backend:lint`. `vacuum` checks the contract against the rules below, and the lint fails when the generated code is out of date.
 
 Every operation has an `operationId` and exactly one tag. The tag is the name of the module that implements the operation. Generated files are never edited by hand.
 
@@ -27,7 +27,7 @@ Every operation has an `operationId` and exactly one tag. The tag is the name of
 
 ## Fields
 
-- Names are `camelCase`. Enum values are `UPPER_SNAKE_CASE`. IDs are strings with `format: uuid`. Times are RFC 3339 in UTC with `format: date-time`. Sizes and durations carry the unit in the name: `sizeBytes`, `intervalSeconds`.
+- Names are `camelCase`. Enum values are `UPPER_SNAKE_CASE`, except the error codes of `ProblemCode`, which are lower `snake_case` as the table in [Errors](#errors) shows. IDs are strings with `format: uuid`. Times are RFC 3339 in UTC with `format: date-time`. Sizes and durations carry the unit in the name: `sizeBytes`, `intervalSeconds`.
 - A field that may be missing is optional. A field that is present with an empty value is `nullable`. One meaning never uses both.
 - Secrets (passwords, keys, tokens) are `writeOnly`. A response never carries them. On `PUT`, an omitted secret keeps its stored value.
 - Some resources have settings that depend on their type: a storage, a notifier and a database. Such a resource puts its settings into a `oneOf` with the discriminator `type` and one schema per provider.
@@ -85,7 +85,7 @@ A file the browser downloads is returned with `Content-Disposition` and with `ap
 
 ## Before handing over
 
-- The contract passes `just lint`, and the generated code is up to date.
+- The contract passes `mise run backend:lint`, and the generated code is up to date.
 - Every operation has its tag, its `operationId`, an access mark where needed, the `default` error response and the statuses its access check can give.
 - Secrets are `writeOnly`, settings that vary by type are a `oneOf`, and lists page with a cursor.
 - A breaking change is marked in the proposal.

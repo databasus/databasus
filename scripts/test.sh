@@ -73,7 +73,7 @@ wait_for_port "${TEST_LOGICAL_POSTGRES_16_PORT:-5004}"
 wait_for_port "${TEST_PHYSICAL_POSTGRES_17_PORT:-5007}"
 wait_for_port "${TEST_PHYSICAL_POSTGRES_18_PORT:-5008}"
 
-just --justfile "$root/backend/Justfile" pull-testcontainers
+mise run backend:pull-testcontainers
 
 cd "$root/backend"
 reset_status=0
@@ -93,4 +93,4 @@ TESTCONTAINERS_RYUK_DISABLED=true \
 
 # The upgrade test builds the image unless DATABASUS_IMAGE names one, so it runs only after every
 # package passed.
-just --justfile "$root/backend/Justfile" test-upgrade
+mise run backend:test-upgrade

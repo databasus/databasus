@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+#MISE description="Print the backend packages of a CI test group"
+#MISE dir="backend"
+#USAGE arg "<group>" help="physical, logical, wal-usecases or other, optionally with a -<shard>-of-<count> suffix"
+# CI runs one group per runner, so the groups must cover every package exactly once. The other
+# group drops only the subtrees the named groups take, so a new package lands in it. A group named
+# <name>-<shard>-of-<count> runs one shard of <name>'s packages, see test-group-tests.
+set -euo pipefail
+
+group="${usage_group:?}"
+group_name=$(sed -E 's/-[0-9]+-of-[0-9]+$//' <<<"$group")
+case "$group_name" in
+    physical) go list -tags testhelpers ./internal/features/tests/physical/... ;;
+    logical) go list -tags testhelpers ./internal/features/tests/logical/... ;;
+    wal-usecases) go list -tags testhelpers ./internal/features/backups/backups/usecases/physical/postgresql ;;
+    other)
+        go list -tags testhelpers ./internal/... |
+            grep -Ev '/internal/features/(tests/(physical|logical)(/|$)|backups/backups/usecases/physical/postgresql$)'
+        go list -tags testhelpers ./cmd/...
+        ;;
+    *) echo "unknown test group: $group (expected physical, logical, wal-usecases or other)" >&2; exit 1 ;;
+esac

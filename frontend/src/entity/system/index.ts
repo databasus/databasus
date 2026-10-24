@@ -1,2 +1,4 @@
+import type { ApiComponents } from '../../shared/api';
+
 export { systemApi } from './api/systemApi';
-export { type VersionResponse } from './model/VersionResponse';
+export type VersionResponse = ApiComponents['schemas']['VersionResponse'];

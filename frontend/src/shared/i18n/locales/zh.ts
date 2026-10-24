@@ -132,6 +132,9 @@ export const zh: typeof en = {
     rateLimitExceeded: '尝试次数过多，请稍后重试。',
     emailNotConfigured: '实例没有配置邮件服务器。',
     adminEmailMissing: '你的账号没有可以接收测试邮件的有效邮箱地址。',
+    invalidRequest: '服务器认为请求无效并已拒绝。请刷新页面后重试。',
+    notFound: '未找到所请求的内容，它可能已被删除。',
+    internal: '服务器发生内部错误。请稍后重试。',
   },
   status: {
     logicalBackup: {

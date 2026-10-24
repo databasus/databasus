@@ -1,0 +1,147 @@
+extends: [[vacuum:oas, recommended]]
+rules:
+  oas3-missing-example: off
+
+  # The rule selects the operationId of each operation without a default response, so the message
+  # names the operation; an operation without an operationId fails databasus-operation-has-id first.
+  databasus-operation-has-default-response:
+    description: Every operation has a default response
+    message: operation {{value}} has no default response
+    severity: error
+    resolved: false
+    given: $.paths[*][?(@.operationId && !@.responses.default)].operationId
+    then:
+      function: pattern
+      functionOptions:
+        notMatch: .
+
+  databasus-default-response-uses-problem:
+    description: The default response refers to the shared Problem response
+    severity: error
+    resolved: false
+    given: $.paths[*][get,post,put,delete].responses.default
+    then:
+      field: $ref
+      function: pattern
+      functionOptions:
+        match: ^#/components/responses/Problem$
+
+  databasus-single-tag:
+    description: Every operation has exactly one tag, the name of the module that implements it
+    severity: error
+    given: $.paths[*][get,post,put,delete]
+    then:
+      field: tags
+      function: length
+      functionOptions:
+        min: 1
+        max: 1
+
+  databasus-operation-has-id:
+    description: Every operation has an operationId
+    severity: error
+    given: $.paths[*][get,post,put,delete]
+    then:
+      field: operationId
+      function: truthy
+
+  databasus-operation-id-camel-case:
+    description: An operationId is camelCase
+    severity: error
+    given: $.paths[*][get,post,put,delete].operationId
+    then:
+      function: casing
+      functionOptions:
+        type: camel
+
+  databasus-no-patch:
+    description: PUT replaces the editable fields of a resource, so PATCH is not used
+    severity: error
+    given: $.paths[*]
+    then:
+      field: patch
+      function: undefined
+
+  databasus-path-kebab-case:
+    description: Path segments are lowercase words joined by hyphens, path parameters are camelCase
+    severity: error
+    given: $.paths[*]~
+    then:
+      function: pattern
+      functionOptions:
+        match: ^(/([a-z0-9]+(-[a-z0-9]+)*|\{[a-z][a-zA-Z0-9]*\}))+$
+
+  # /system/version and /system/verification-agent never change, because installed agents update
+  # themselves through them.
+  databasus-path-plural-nouns:
+    description: >-
+      A path segment that names a resource is a plural noun; a segment after a parameter may be an
+      action verb
+    severity: error
+    given: $.paths[*]~
+    then:
+      function: pattern
+      functionOptions:
+        match: ^(/system/version|/system/verification-agent|(/[a-z0-9-]*s(/\{[a-z][a-zA-Z0-9]*\}(/[a-z0-9-]+)?)?)+)$
+
+  databasus-path-parameter-names-entity:
+    description: A path parameter names its entity, such as storageId, never id
+    severity: error
+    given: $.paths[*]~
+    then:
+      function: pattern
+      functionOptions:
+        notMatch: \{id\}
+
+  databasus-property-camel-case:
+    description: Field names are camelCase
+    severity: error
+    given: $..properties
+    then:
+      field: "@key"
+      function: casing
+      functionOptions:
+        type: camel
+
+  # Error codes are lower snake_case, as the error table of the api-design skill names them.
+  databasus-enum-upper-snake-case:
+    description: Enum values are UPPER_SNAKE_CASE, except the error codes of ProblemCode
+    severity: error
+    resolved: false
+    given:
+      - $.components.schemas[?(@property != 'ProblemCode')]..enum[*]
+      - $.paths..enum[*]
+    then:
+      function: pattern
+      functionOptions:
+        match: ^[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$
+
+  databasus-problem-code-snake-case:
+    description: Error codes are lower snake_case
+    severity: error
+    resolved: false
+    given: $.components.schemas.ProblemCode.enum[*]
+    then:
+      function: pattern
+      functionOptions:
+        match: ^[a-z][a-z0-9]*(_[a-z0-9]+)*$
+
+  databasus-id-is-uuid:
+    description: An ID field has format uuid
+    severity: error
+    given: $..properties[?(@property == 'id' || @property.match(/Id$/))]
+    then:
+      field: format
+      function: pattern
+      functionOptions:
+        match: ^uuid$
+
+  databasus-access-mark:
+    description: x-access is either public or admin; an operation without it requires a signed-in user
+    severity: error
+    given: $.paths[*][get,post,put,delete]
+    then:
+      field: x-access
+      function: pattern
+      functionOptions:
+        match: ^(public|admin)$

@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+#MISE description="Remove the leftover test containers of every run on the machine"
+#MISE dir="backend"
+# Removes the leftover test containers of every run on the machine, other worktrees included, so run
+# it only when no other test run is in progress.
+set -euo pipefail
+
+ids=$(docker ps -aq --filter "label=org.testcontainers")
+if [[ -n "$ids" ]]; then
+    # shellcheck disable=SC2086 # one container ID per word
+    docker rm -f $ids
+else
+    echo "no leftover testcontainers"
+fi

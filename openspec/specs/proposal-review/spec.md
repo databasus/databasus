@@ -36,7 +36,7 @@ Before starting reviewers the hook SHALL check the format of the change's "Chang
 - **THEN** the turn is blocked, the agent gets the validation output, and no reviewer starts
 
 #### Scenario: A forbidden command in the verification section
-- **WHEN** the change's "Change verification" section contains `just test`
+- **WHEN** the change's "Change verification" section contains `mise run test`
 - **THEN** the turn is blocked with the reason and the list of allowed forms, the command does not run, and no reviewer starts
 
 ### Requirement: What the full proposal review checks

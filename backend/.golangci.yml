@@ -34,8 +34,23 @@ linters:
     - testifylint
     - thelper
     - gochecknoinits
+    - importas
 
   settings:
+    # A generated package reads as its role next to the others: storageshttpapi.Handler rather than
+    # httpapi.Handler, and contract.OpenAPI rather than api.OpenAPI beside the httpapi packages.
+    importas:
+      no-unaliased: true
+      alias:
+        - pkg: databasus-backend/internal/modules/(\w+)/internal/httpapi
+          alias: ${1}httpapi
+        - pkg: databasus-backend/internal/app/systemhttpapi
+          alias: systemhttpapi
+        - pkg: databasus-backend/internal/lib/apiclient
+          alias: apiclient
+        - pkg: databasus-backend/api
+          alias: contract
+
     errcheck:
       check-type-assertions: true
 
@@ -141,6 +156,7 @@ linters:
           - testifylint
           - thelper
           - gochecknoinits
+          - importas
       # Test files outside the target layout. A rule cannot hold both `path` and `path-except`, so
       # this one excludes every path that is neither in the target layout (the first branch, a copy of
       # the anchor) nor a production file; RE2 has no lookahead, so the second branch spells out "a

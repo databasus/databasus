@@ -3,7 +3,7 @@ import { defineConfig } from 'oxlint';
 export default defineConfig({
   plugins: ['react', 'typescript'],
   jsPlugins: [{ name: 'i18next', specifier: './lint/i18next.js' }],
-  ignorePatterns: ['dist'],
+  ignorePatterns: ['dist', 'src/shared/api/schema.gen.ts'],
   rules: {
     'react/rules-of-hooks': 'error',
     'react/only-export-components': ['warn', { allowConstantExport: true }],

@@ -34,23 +34,23 @@ Reply to the user in the language they write in, and keep everything committed t
 
 ## Development environment
 
-Work happens on a Fedora host; any other host distro is on its own. Tool versions are pinned in [`mise.toml`](mise.toml): run `mise install` once and activate mise in your shell, so every command below resolves to the pinned version. In a fresh worktree, copy `.env.example` to `.env`.
+Work happens on a Fedora host; any other host distro is on its own. Tool versions are pinned in [`mise.toml`](mise.toml), and the `mise run` commands below are tasks from the same file and `mise-tasks/` that run from any directory of the repository. Run `mise install` once and activate mise in your shell, so every command resolves to the pinned version. Once per clone, run `mise exec lefthook@2.2.1 -- lefthook uninstall` if an older checkout installed lefthook, then `hk install --mise`, so the commit hook from [`hk.pkl`](hk.pkl) checks formatting and lint without changing files; worktrees share the clone's hook. In a fresh worktree, copy `.env.example` to `.env`.
 
 The repository's skills live in `.agents/skills/`; `.claude/skills` is a symlink to that directory, so each skill has one source file.
 
 | Command | Purpose |
 |---|---|
-| `just run` | Start the app locally: dev database, test fixtures, WAL backup source with its load generator, backend and frontend; seeds a dev account with databases and restarts the backend when its code changes |
-| `just test` | Run every test |
-| `just test-package <packages>`, run in `backend/` | Run the given backend test packages |
-| `just test-filesystem` | Run the Docker filesystem suite, mostly left to CI |
-| `just pull-testcontainers` | Pull the database images the backend tests use |
-| `just lint` | Check every module without changing files |
-| `just format` | Format every module |
-| `just doctor` | Check that the review hooks find the tools they need |
+| `mise run dev` | Start the app locally: dev database, test fixtures, WAL backup source with its load generator, backend and frontend; seeds a dev account with databases and restarts the backend when its code changes |
+| `mise run test` | Run every test |
+| `mise run backend:test-package <packages>` | Run the given backend test packages |
+| `mise run test-filesystem` | Run the Docker filesystem suite, mostly left to CI |
+| `mise run pull-testcontainers` | Pull the database images the backend tests use |
+| `mise run lint` | Check every module without changing files; `mise run backend:lint`, `agent:lint` and `frontend:lint` check one |
+| `mise run format` | Format every module; `backend:format`, `agent:format` and `frontend:format` format one |
+| `mise run doctor` | Check that the review hooks find the tools they need |
 | `goose -dir backend/migrations create <name> sql` | Create a migration |
 | `goose -dir backend/migrations up` (or `down`), with `.env` exported | Apply or roll back migrations on the dev database; goose reads `GOOSE_DRIVER` and `GOOSE_DBSTRING` from the environment. The server also applies migrations itself at startup |
-| `just generate-api` | Regenerate the servers, the test clients and the frontend types from `backend/api/*.yaml` |
+| `mise run generate-api` | Regenerate the servers, the test clients and the frontend types from `backend/api/*.yaml` |
 
 ### Code search and navigation
 
@@ -66,7 +66,7 @@ Several agents may work on this repo at once, in different worktrees, sharing on
 
 - Lint and format whenever you want: they touch nothing shared.
 - While working, run the packages and tests you need right now. Before handing the work over, run the tests of the packages you touched and of the packages that test the same feature, as [`docs/testing.md`](docs/testing.md#choosing-the-tests-to-run) says.
-- Run the full `just test` only when the user asks for it.
+- Run the full `mise run test` only when the user asks for it.
 - Never stop the shared test PostgreSQL server or prune Docker, because other runs use them.
 
 ### Until the migration finishes
@@ -75,7 +75,7 @@ The layout and the tooling described in `docs/` arrive milestone by milestone. U
 
 - The old code gets the configuration, the database and the logger through `config.GetEnv()`, `storage.GetDb()` and `logger.GetLogger()`, which `internal/app` fills; in a test build with the `testhelpers` tag they load themselves.
 - Go code under `backend/` and `agent/` outside the layout block in "Backend layout" of [`docs/architecture.md`](docs/architecture.md#backend-layout) keeps its existing structure until the milestone that moves it, as the first section of that document says.
-- Packages outside that layout keep their cross-package test helpers in files behind the `testhelpers` build tag, so the production binary does not link them. `just test-package` passes the tag itself; a `go test` that runs such a package directly passes it too: `go test -race -tags testhelpers -count=1 ./internal/features/storages/...` in `backend/`. Every `go` command in a Claude Code session sees the tag, and the repository's Zed and VS Code settings pass it to gopls, so the production graph is checked with `go run ./tools/archlint` or with `GOFLAGS=` in front of `go list`.
+- Packages outside that layout keep their cross-package test helpers in files behind the `testhelpers` build tag, so the production binary does not link them. `mise run backend:test-package` passes the tag itself; a `go test` that runs such a package directly passes it too: `go test -race -tags testhelpers -count=1 ./internal/features/storages/...` in `backend/`. Every `go` command in a Claude Code session sees the tag, and the repository's Zed and VS Code settings pass it to gopls, so the production graph is checked with `go run ./tools/archlint` or with `GOFLAGS=` in front of `go list`.
 
 Temporary docs and plan for migration is here - @temp/refactor
 

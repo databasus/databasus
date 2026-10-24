@@ -101,7 +101,7 @@ Write fakes as small hand-written structs. Do not use mock generators, `testify/
 
 ## Which tests to run
 
-While working, run the package or the single test you need. Before handing the work over, run the tests of every package you touched and of the packages that test the same feature, with `just test-package <packages>` in `backend/` and `pnpm test` in `frontend/`, and include the commands and their result in the report. [`docs/testing.md`](../../../docs/testing.md#choosing-the-tests-to-run) says which packages test the same feature. Run the full `just test` only when the user asks for it.
+While working, run the package or the single test you need. Before handing the work over, run the tests of every package you touched and of the packages that test the same feature, with `mise run backend:test-package <packages>` and `pnpm test` in `frontend/`, and include the commands and their result in the report. [`docs/testing.md`](../../../docs/testing.md#choosing-the-tests-to-run) says which packages test the same feature. Run the full `mise run test` only when the user asks for it.
 
 After you interrupt a run, remove only what that run left behind. Never prune Docker or stop the shared test PostgreSQL server.
 

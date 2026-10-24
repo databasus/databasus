@@ -4,15 +4,15 @@ Rules for writing Go code in `backend/`, which holds the server and the verifica
 
 ## Commands
 
-Run in `backend/` unless noted.
+`mise run` tasks run from any directory; the other commands run in `backend/`.
 
 | Command | Purpose |
 |---|---|
-| `just lint` | Check the backend code, the contracts and the generated code without changing files |
-| `just format` | Format the Go code |
-| `just test-package <packages>` | Run the given test packages |
+| `mise run backend:lint` | Check the backend code, the contracts and the generated code without changing files |
+| `mise run backend:format` | Format the Go code |
+| `mise run backend:test-package <packages>` | Run the given test packages |
 | `go test -race -tags testhelpers -count=1 -run 'TestName/scenario' <package>` | Run one test; packages in the target layout need no tag |
-| `just generate-api` at the root | Regenerate servers, clients and frontend types after editing `api/*.yaml` |
+| `mise run generate-api` | Regenerate servers, clients and frontend types after editing `api/*.yaml` |
 | `goose -dir migrations create <name> sql` | Create a migration stub, then fill it by hand |
 
 ## Where code goes
@@ -91,7 +91,7 @@ ALTER TABLE storages_s3
 
 ## Code style
 
-- `just format` sets the formatting. Beyond that, separate logical blocks with a blank line: after declarations, between error handling and what follows, before the final `return`.
+- `mise run backend:format` sets the formatting. Beyond that, separate logical blocks with a blank line: after declarations, between error handling and what follows, before the final `return`.
 - `modernize` enforces current standard-library idioms. Use `omitzero` instead of `omitempty` for `time.Time`, `time.Duration`, structs, slices and maps.
 - Every HTTP operation is described in the contract; Go code carries no API annotations.
 

@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+#MISE description="Print the -run pattern of a sharded CI test group"
+#MISE dir="backend"
+#USAGE arg "<group>" help="A test group, sharded as <name>-<shard>-of-<count>"
+# A single slow package bounds its group however the packages are spread, so a sharded group splits
+# the top-level tests of its packages instead. Each test goes to exactly one shard, the least-loaded
+# one by the weights in test-shard-weights.txt. Prints a -run pattern, or nothing for a group that
+# is not sharded.
+set -euo pipefail
+
+group="${usage_group:?}"
+if [[ ! "$group" =~ -([0-9]+)-of-([0-9]+)$ ]]; then
+    exit 0
+fi
+shard=${BASH_REMATCH[1]}
+shard_count=${BASH_REMATCH[2]}
+if ((shard < 1 || shard > shard_count)); then
+    echo "shard ${shard} is outside 1..${shard_count} in test group $group" >&2
+    exit 1
+fi
+packages=$(mise run --quiet backend:test-group-packages "$group")
+# go test -list would run each package's TestMain, which starts its database containers, so
+# the names come from the test sources.
+# shellcheck disable=SC2086 # one import path per word
+package_directories=$(go list -tags testhelpers -f '{{ .Dir }}' $packages)
+shopt -s nullglob
+test_files=()
+for package_directory in $package_directories; do
+    test_files+=("$package_directory"/*_test.go)
+done
+test_names=$(
+    grep -hoE '^func (Test|Example|Fuzz)[A-Za-z0-9_]*' "${test_files[@]}" | sed 's/^func //' | grep -vx 'TestMain' | sort -u
+)
+shard_names=$(
+    awk 'NR == FNR { if ($0 !~ /^#/ && NF == 2) weights[$2] = $1; next } { print ($1 in weights ? weights[$1] : 1), $1 }' \
+        test-shard-weights.txt - <<<"$test_names" |
+        sort -k1,1nr -k2,2 |
+        awk -v shard="$shard" -v count="$shard_count" '{
+            lightest = 1
+            for (candidate = 2; candidate <= count; candidate++) if (load[candidate] < load[lightest]) lightest = candidate
+            load[lightest] += $1
+            if (lightest == shard) print $2
+        }'
+)
+if [[ -z "$shard_names" ]]; then
+    echo "shard ${shard} of ${shard_count} in test group $group has no tests" >&2
+    exit 1
+fi
+echo "^($(paste -sd'|' <<<"$shard_names"))\$"

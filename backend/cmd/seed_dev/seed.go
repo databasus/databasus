@@ -102,7 +102,7 @@ func checkBackendHealth(ctx context.Context, client *apiClient, baseURL string) 
 		return fmt.Errorf("backend at %s reports itself unhealthy: %w", baseURL, err)
 	}
 
-	return fmt.Errorf("backend at %s does not answer, start the app with `just run`: %w", baseURL, err)
+	return fmt.Errorf("backend at %s does not answer, start the app with `mise run dev`: %w", baseURL, err)
 }
 
 func signInOrSignUp(

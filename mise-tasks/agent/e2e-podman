@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+#MISE description="Run the Podman subset of the verification agent end-to-end suite"
+#MISE dir="agent/verification/e2e"
+# Runs the Podman subset with restore containers on Podman. Defaults to the
+# rootful socket; override for rootless, e.g.
+# E2E_ENGINE_SOCKET=$XDG_RUNTIME_DIR/podman/podman.sock mise run agent:e2e-podman
+set -euo pipefail
+
+docker compose down -v --remove-orphans 2>/dev/null || true
+rm -rf artifacts
+docker compose build --no-cache e2e-mock-server
+docker compose build
+docker compose run --rm e2e-agent-builder
+docker compose run --rm e2e-fixture-gen
+docker compose up -d e2e-mock-server
+E2E_ENGINE_SOCKET="${E2E_ENGINE_SOCKET:-/run/podman/podman.sock}" docker compose run --rm e2e-agent-runner bash /opt/agent/scripts/run-podman.sh
+docker compose down -v

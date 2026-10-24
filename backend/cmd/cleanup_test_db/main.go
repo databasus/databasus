@@ -1,4 +1,4 @@
-// Resets the shared test PostgreSQL servers before `just test` runs: on each of them it drops every
+// Resets the shared test PostgreSQL servers before `mise run test` runs: on each of them it drops every
 // non-system database (leftover backups, restores, and `testdb` itself), recreates `testdb`, drops
 // every non-system role and the replication slots tests left behind. Tests like CreateReadOnlyUser
 // issue `REVOKE CREATE ON SCHEMA public FROM PUBLIC` and create per-test roles that otherwise

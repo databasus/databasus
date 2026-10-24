@@ -11,11 +11,12 @@ import (
 var fileRoles = []string{"Handler", "Service", "Repository"}
 
 // checkFileRoles keeps the methods of a handler, a service or a repository in a file of that role.
+// Generated code is left out: oapi-codegen puts the strict handler of a server into api.gen.go.
 func checkFileRoles(sourceModule *sourceModule) []violation {
 	var violations []violation
 
 	for _, file := range sourceModule.files {
-		if file.isTest || !isInTargetLayout(file.relativePath) {
+		if file.isTest || ast.IsGenerated(file.syntax) || !isInTargetLayout(file.relativePath) {
 			continue
 		}
 

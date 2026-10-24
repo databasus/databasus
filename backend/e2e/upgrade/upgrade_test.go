@@ -1,6 +1,6 @@
 // Package upgrade checks that an instance of the newest release keeps its data and its backups
 // after an upgrade to the current code. It drives both images through Docker, so it runs only
-// through `just test-upgrade` in backend/, which names the images.
+// through `mise run backend:test-upgrade`, which names the images.
 package upgrade
 
 import (
@@ -63,10 +63,10 @@ func TestUpgrade(t *testing.T) {
 func getUpgradeImages(t *testing.T) (string, string) {
 	t.Helper()
 
-	//nolint:forbidigo // just test-upgrade names the images, outside any configuration of ours
+	//nolint:forbidigo // mise run backend:test-upgrade names the images, outside any configuration of ours
 	previousImage, currentImage := os.Getenv(previousImageVariable), os.Getenv(currentImageVariable)
 	if previousImage == "" || currentImage == "" {
-		t.Fatalf("%s and %s name the images to upgrade between; run the test with `just test-upgrade` in backend/",
+		t.Fatalf("%s and %s name the images to upgrade between; run the test with `mise run backend:test-upgrade`",
 			previousImageVariable, currentImageVariable)
 	}
 

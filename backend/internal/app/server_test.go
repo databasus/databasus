@@ -61,23 +61,27 @@ func TestRouter(t *testing.T) {
 	swaggerPaths := []string{"/api/v1/docs/swagger/index.html", "/api/v1/docs/swagger/doc.json"}
 
 	for _, envMode := range []env_utils.EnvMode{env_utils.EnvModeProduction, env_utils.EnvModeDevelopment} {
-		t.Run("answers JSON 404 for the API documentation in "+string(envMode)+" mode", func(t *testing.T) {
+		t.Run("answers Problem 404 for the API documentation in "+string(envMode)+" mode", func(t *testing.T) {
 			testApp := newTestApp(t)
 			testApp.environment.Config.EnvMode = envMode
-			router := testApp.newRouter()
+			handler, err := testApp.NewHandler()
+			require.NoError(t, err)
 
 			for _, swaggerPath := range swaggerPaths {
 				response := httptest.NewRecorder()
-				router.ServeHTTP(
+				handler.ServeHTTP(
 					response,
 					httptest.NewRequestWithContext(t.Context(), http.MethodGet, swaggerPath, nil),
 				)
 
 				assert.Equal(t, http.StatusNotFound, response.Code, swaggerPath)
+				assert.Equal(t, "application/problem+json", response.Header().Get("Content-Type"), swaggerPath)
 
-				var errorBody map[string]string
-				require.NoError(t, json.Unmarshal(response.Body.Bytes(), &errorBody), swaggerPath)
-				assert.Equal(t, "not found", errorBody["error"], swaggerPath)
+				var problemBody struct {
+					Code string `json:"code"`
+				}
+				require.NoError(t, json.Unmarshal(response.Body.Bytes(), &problemBody), swaggerPath)
+				assert.Equal(t, "not_found", problemBody.Code, swaggerPath)
 			}
 		})
 	}

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"sync"
 
 	"gorm.io/gorm"
 
@@ -16,6 +17,10 @@ import (
 	files_utils "databasus-backend/internal/util/files"
 	"databasus-backend/migrations"
 )
+
+// The listeners of the old features live in process-wide state, so a second App in one process,
+// such as the next test application, must not register them again.
+var setUpDependenciesOnce sync.Once
 
 const olderVersionRefusal = "Returning to an older Databasus version after an upgrade is not supported. " +
 	"Start the image of the newer version instead"
@@ -76,7 +81,7 @@ func New(ctx context.Context, environment *Environment) (*App, error) {
 		return nil, fmt.Errorf("migrate the secret key from the database to its file: %w", err)
 	}
 
-	setUpDependencies()
+	setUpDependenciesOnce.Do(setUpDependencies)
 
 	return &App{
 		environment:     environment,
@@ -84,6 +89,12 @@ func New(ctx context.Context, environment *Environment) (*App, error) {
 		logger:          appLogger,
 		backgroundGroup: nil,
 	}, nil
+}
+
+// Close releases the connections to the internal database. The server never calls it, because the
+// process ends with Serve; a test application closes them before its database is dropped.
+func (a *App) Close() {
+	closeDatabase(a.db)
 }
 
 func closeDatabase(db *gorm.DB) {

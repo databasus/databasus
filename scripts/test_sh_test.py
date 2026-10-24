@@ -1,6 +1,7 @@
 import fcntl
 import os
 from pathlib import Path
+import re
 import shutil
 import signal
 import socket
@@ -20,7 +21,7 @@ RUN_LABEL_FILTER = "label=databasus.test-run="
 # Each stub appends "<epoch seconds> <name> <arguments>" to $STUB_CALLS. The go stub records
 # DATABASUS_TEST_RUN_ID with its test call, sleeps for STUB_GO_TEST_SECONDS, so a test can
 # interrupt the run while its tests run, and exits with STUB_GO_TEST_EXIT_STATUS. The docker stub
-# lists one container, one network and one volume. The just stub runs test-upgrade for
+# lists one container, one network and one volume. The mise stub runs backend:test-upgrade for
 # STUB_UPGRADE_TEST_SECONDS and exits with STUB_UPGRADE_TEST_EXIT_STATUS.
 STUB_SOURCES = {
     "docker": """
@@ -40,9 +41,9 @@ STUB_SOURCES = {
             echo "$(date +%s.%N) go $*" >>"$STUB_CALLS"
         fi
     """,
-    "just": """
-        echo "$(date +%s.%N) just $*" >>"$STUB_CALLS"
-        if [[ "${*: -1}" == test-upgrade ]]; then
+    "mise": """
+        echo "$(date +%s.%N) mise $*" >>"$STUB_CALLS"
+        if [[ "${*: -1}" == backend:test-upgrade ]]; then
             sleep "${STUB_UPGRADE_TEST_SECONDS:-0}"
             exit "${STUB_UPGRADE_TEST_EXIT_STATUS:-0}"
         fi
@@ -54,6 +55,14 @@ apply_libedit_shim() {
     :
 }
 """
+
+
+# The checkout gets only the package test task, without the [tools] of mise.toml, so mise puts no
+# real go ahead of the go stub.
+def get_package_test_task_config():
+    config = (REPOSITORY_ROOT / "mise.toml").read_text()
+    task = re.search(r'^\[tasks\."backend:test-package"\]\n.*?(?=^\[)', config, re.MULTILINE | re.DOTALL)
+    return task.group(0)
 
 
 class TestScriptTestCase(unittest.TestCase):
@@ -68,7 +77,7 @@ class TestScriptTestCase(unittest.TestCase):
         (self.checkout / "scripts").mkdir(parents=True)
         (self.checkout / "backend").mkdir()
         shutil.copy(REPOSITORY_ROOT / "scripts" / "test.sh", self.checkout / "scripts" / "test.sh")
-        shutil.copy(REPOSITORY_ROOT / "backend" / "Justfile", self.checkout / "backend" / "Justfile")
+        (self.checkout / "mise.toml").write_text(get_package_test_task_config())
         (self.checkout / "scripts" / "fedora.sh").write_text(STUB_FEDORA_SOURCE)
 
         self.lock_directory = self.workspace / "locks"
@@ -94,7 +103,7 @@ class TestScriptTestCase(unittest.TestCase):
             "TEST_PHYSICAL_POSTGRES_18_PORT": str(fixture_port),
         }
         self.environment.pop("DATABASUS_TEST_RUN_ID", None)
-        self.real_just = shutil.which("just")
+        self.real_mise = shutil.which("mise", path=os.environ["PATH"])
 
     def start_fixture_listener(self):
         listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -138,7 +147,7 @@ class TestScriptTestCase(unittest.TestCase):
         return recorded_calls
 
     def get_upgrade_test_call(self):
-        return f"just --justfile {self.checkout}/backend/Justfile test-upgrade"
+        return "mise run backend:test-upgrade"
 
     def find_call(self, prefix):
         return next((recorded_call for recorded_call in self.read_calls() if recorded_call[1].startswith(prefix)), None)
@@ -184,13 +193,19 @@ class TestScriptTestCase(unittest.TestCase):
         self.assertGreater(test_call[0], released_at)
 
     def test_a_package_run_does_not_wait_for_a_full_run(self):
-        if self.real_just is None:
-            self.skipTest("just is not installed")
+        if self.real_mise is None:
+            self.skipTest("mise is not installed")
         self.hold_lock(FULL_RUN_LOCK_NAME, fcntl.LOCK_EX)
 
         package_run = subprocess.run(
-            [self.real_just, "--justfile", str(self.checkout / "backend" / "Justfile"), "test-package", "./internal/lib/..."],
-            env=self.environment,
+            [self.real_mise, "run", "backend:test-package", "./internal/lib/..."],
+            cwd=self.checkout,
+            env={
+                **self.environment,
+                "MISE_TRUSTED_CONFIG_PATHS": str(self.checkout),
+                "MISE_GLOBAL_CONFIG_FILE": str(self.workspace / "no-global-mise.toml"),
+                "MISE_CEILING_PATHS": str(self.workspace),
+            },
             capture_output=True,
             text=True,
             timeout=WAIT_TIMEOUT_SECONDS,
@@ -273,7 +288,7 @@ class TestScriptTestCase(unittest.TestCase):
     def test_the_reset_waits_for_running_tests_and_runs_before_the_tests(self):
         fixtures_lock = self.hold_lock(FIXTURES_LOCK_NAME, fcntl.LOCK_SH)
         script = self.start_script()
-        self.wait_for_call("just --justfile")
+        self.wait_for_call("mise run backend:pull-testcontainers")
 
         released_at = time.time()
         fixtures_lock.close()

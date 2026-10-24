@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+#MISE description="Remove the containers, local images and artifacts of the agent end-to-end suite"
+#MISE dir="agent/verification/e2e"
+set -euo pipefail
+
+docker compose down -v --rmi local 2>/dev/null || true
+rm -rf artifacts

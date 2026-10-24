@@ -2,7 +2,6 @@ package httpserver
 
 import (
 	"log/slog"
-	"net/http"
 	"os"
 	"path/filepath"
 	"runtime/debug"
@@ -11,10 +10,12 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
+
+	"databasus-backend/internal/lib/apierror"
 )
 
-// Recover answers 500 to a request whose handler panicked and logs the panic, so one broken handler
-// does not take the server down.
+// Recover answers a Problem 500 to a request whose handler panicked and logs the panic, so one broken
+// handler does not take the server down and the panic text never reaches the client.
 func Recover(logger *slog.Logger) gin.HandlerFunc {
 	return func(ginContext *gin.Context) {
 		defer func() {
@@ -26,7 +27,7 @@ func Recover(logger *slog.Logger) gin.HandlerFunc {
 					slog.String("path", ginContext.Request.URL.Path),
 				)
 
-				ginContext.AbortWithStatus(http.StatusInternalServerError)
+				apierror.Write(ginContext, apierror.NewInternalProblem())
 			}
 		}()
 
@@ -67,12 +68,16 @@ func AllowAnyOrigin(exposedHeaders []string) gin.HandlerFunc {
 	})
 }
 
-// HandleUnknownPath answers an unknown API path with a JSON 404 and serves the frontend for every
+// HandleUnknownPath answers an unknown API path with a Problem 404 and serves the frontend for every
 // other path: a file when one exists, the single-page app's index.html otherwise.
 func HandleUnknownPath(staticDirectory string) gin.HandlerFunc {
 	return func(ginContext *gin.Context) {
 		if strings.HasPrefix(ginContext.Request.URL.Path, "/api/") {
-			ginContext.JSON(http.StatusNotFound, gin.H{"error": "not found"})
+			apierror.Write(ginContext, &apierror.Problem{
+				Code:   apierror.CodeNotFound,
+				Detail: "no API operation matches the path",
+				Errors: nil,
+			})
 
 			return
 		}

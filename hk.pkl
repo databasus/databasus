@@ -1,0 +1,45 @@
+amends "package://github.com/jdx/hk/releases/download/v2.8.1/hk@2.8.1#/Config.pkl"
+
+// The commit check only reads: several agents edit one working tree, and fixing or stashing would
+// rewrite or hide another agent's unstaged edits. mise run format is the only writer.
+local formatHint = "run mise run format to format it"
+
+steps {
+    ["backend-format"] {
+        dir = "backend"
+        glob = "**/*.go"
+        check = "golangci-lint fmt --diff {{files}} || { echo \"\(formatHint)\" >&2; exit 1; }"
+    }
+    ["backend-lint"] {
+        dir = "backend"
+        glob = "**"
+        check = "mise run backend:lint"
+    }
+    ["agent-format"] {
+        dir = "agent/verification"
+        glob = "**/*.go"
+        check = "golangci-lint fmt --diff {{files}} || { echo \"\(formatHint)\" >&2; exit 1; }"
+    }
+    ["agent-lint"] {
+        dir = "agent/verification"
+        glob = "**"
+        check = "mise run agent:lint"
+    }
+    ["frontend-format"] {
+        dir = "frontend"
+        glob = List("**/*.{js,jsx,ts,tsx,mjs,cjs,json,jsonc,css,md,yaml,yml}")
+        check = "pnpm exec oxfmt --check --no-error-on-unmatched-pattern {{files}} || { echo \"\(formatHint)\" >&2; exit 1; }"
+    }
+    ["frontend-lint"] {
+        dir = "frontend"
+        glob = "**"
+        check = "mise run frontend:lint"
+    }
+}
+
+hooks {
+    ["pre-commit"] {
+        fix = false
+        stash = "none"
+    }
+}

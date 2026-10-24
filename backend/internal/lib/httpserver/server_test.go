@@ -1,6 +1,7 @@
 package httpserver
 
 import (
+	"bytes"
 	"encoding/json"
 	"io"
 	"log/slog"
@@ -9,6 +10,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -35,7 +37,7 @@ func TestHandleUnknownPath(t *testing.T) {
 	ginEngine := gin.New()
 	ginEngine.NoRoute(HandleUnknownPath(staticDirectory))
 
-	t.Run("returns JSON 404 when the API path does not exist", func(t *testing.T) {
+	t.Run("returns Problem 404 when the API path does not exist", func(t *testing.T) {
 		t.Parallel()
 
 		response := httptest.NewRecorder()
@@ -44,10 +46,8 @@ func TestHandleUnknownPath(t *testing.T) {
 		))
 
 		assert.Equal(t, http.StatusNotFound, response.Code)
-
-		var errorBody map[string]string
-		require.NoError(t, json.Unmarshal(response.Body.Bytes(), &errorBody))
-		assert.Equal(t, "not found", errorBody["error"])
+		assert.Equal(t, "application/problem+json", response.Header().Get("Content-Type"))
+		assert.Equal(t, "not_found", decodeProblemCode(t, response))
 	})
 
 	t.Run("returns the frontend page when a frontend route has no file", func(t *testing.T) {
@@ -62,6 +62,81 @@ func TestHandleUnknownPath(t *testing.T) {
 		assert.Equal(t, http.StatusOK, response.Code)
 		assert.Equal(t, frontendPage, response.Body.String())
 	})
+}
+
+const guardedContract = `
+openapi: 3.0.3
+info:
+  title: Guarded contract
+  version: 1.0.0
+servers:
+  - url: /api/v1
+paths:
+  /system/version:
+    get:
+      operationId: getVersion
+      responses:
+        "200":
+          description: The version
+`
+
+func TestRequireContractOperation(t *testing.T) {
+	t.Parallel()
+
+	t.Run("runs the handler when the contract describes the route", func(t *testing.T) {
+		t.Parallel()
+		guarded := newGuardedEngine(t, "/system/version")
+
+		response := httptest.NewRecorder()
+		guarded.engine.ServeHTTP(response, httptest.NewRequestWithContext(
+			t.Context(), http.MethodGet, "/api/v1/system/version", nil,
+		))
+
+		assert.Equal(t, http.StatusNoContent, response.Code)
+		assert.Equal(t, int32(1), guarded.handledRequests.Load())
+	})
+
+	t.Run("answers 500 without running the handler when the contract lacks the route", func(t *testing.T) {
+		t.Parallel()
+		guarded := newGuardedEngine(t, "/system/settings")
+
+		response := httptest.NewRecorder()
+		guarded.engine.ServeHTTP(response, httptest.NewRequestWithContext(
+			t.Context(), http.MethodGet, "/api/v1/system/settings", nil,
+		))
+
+		assert.Equal(t, http.StatusInternalServerError, response.Code)
+		assert.Equal(t, "internal", decodeProblemCode(t, response))
+		assert.Zero(t, guarded.handledRequests.Load())
+		assert.Contains(t, guarded.logOutput.String(), `"method":"GET"`)
+		assert.Contains(t, guarded.logOutput.String(), `"path":"/api/v1/system/settings"`)
+	})
+}
+
+type guardedEngine struct {
+	engine          *gin.Engine
+	handledRequests *atomic.Int32
+	logOutput       *bytes.Buffer
+}
+
+// newGuardedEngine mounts one GET route under the contract guard; the handler counts its calls.
+func newGuardedEngine(t *testing.T, routePath string) guardedEngine {
+	t.Helper()
+
+	guarded := guardedEngine{engine: gin.New(), handledRequests: &atomic.Int32{}, logOutput: &bytes.Buffer{}}
+
+	guard, err := RequireContractOperation(
+		[]byte(guardedContract),
+		slog.New(slog.NewJSONHandler(guarded.logOutput, nil)),
+	)
+	require.NoError(t, err)
+
+	guarded.engine.Group("/api/v1", guard).GET(routePath, func(ginContext *gin.Context) {
+		guarded.handledRequests.Add(1)
+		ginContext.Status(http.StatusNoContent)
+	})
+
+	return guarded
 }
 
 func TestRecover(t *testing.T) {
@@ -81,6 +156,10 @@ func TestRecover(t *testing.T) {
 		)
 
 		assert.Equal(t, http.StatusInternalServerError, response.Code)
+		assert.Equal(t, "application/problem+json", response.Header().Get("Content-Type"))
+		assert.Equal(t, "internal", decodeProblemCode(t, response))
+		assert.Contains(t, response.Body.String(), `"detail":"an internal error occurred"`)
+		assert.NotContains(t, response.Body.String(), "broken handler")
 	})
 }
 
@@ -136,4 +215,15 @@ func TestListen(t *testing.T) {
 		require.NoError(t, err, "server must close the connection before the client read deadline")
 		assert.GreaterOrEqual(t, closedAfter, 10*time.Second)
 	})
+}
+
+func decodeProblemCode(t *testing.T, response *httptest.ResponseRecorder) string {
+	t.Helper()
+
+	var problemBody struct {
+		Code string `json:"code"`
+	}
+	require.NoError(t, json.Unmarshal(response.Body.Bytes(), &problemBody))
+
+	return problemBody.Code
 }

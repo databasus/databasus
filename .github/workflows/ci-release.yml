@@ -16,6 +16,11 @@ on:
 permissions:
   contents: read
 
+# mise installs every tool of mise.toml before a task by default, so each job installs only the
+# tools its tasks need through install_args.
+env:
+  MISE_TASK_RUN_AUTO_INSTALL: "false"
+
 concurrency:
   group: ci-release-${{ github.ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' && github.ref != 'refs/heads/develop' }}
@@ -30,11 +35,10 @@ jobs:
       - name: Check out code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
-      - name: Set up Go
-        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+      - name: Install tools from mise.toml
+        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
-          go-version: "1.26.10"
-          cache: false
+          install_args: "go golangci-lint vacuum"
 
       - name: Set up Go cache
         uses: namespacelabs/nscloud-cache-action@1124a6f3ce44e5cf84cc22111530961f4d2a15f9 # v1.7.0
@@ -51,34 +55,13 @@ jobs:
           cd backend
           go mod verify
 
-      - name: Install golangci-lint
-        run: |
-          go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.11.3
-          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
-
-      - name: Run golangci-lint
-        run: |
-          cd backend
-          golangci-lint run
-
-      - name: Run archlint
-        run: |
-          cd backend
-          go run ./tools/archlint
-
-      - name: Install govulncheck
-        run: go install golang.org/x/vuln/cmd/govulncheck@v1.9.0
+      - name: Run the backend lint
+        run: mise run backend:lint
 
       - name: Scan for reachable vulnerabilities
         run: |
           cd backend
-          govulncheck ./...
-
-      - name: Verify go mod tidy
-        run: |
-          cd backend
-          go mod tidy
-          git diff --exit-code go.mod go.sum || (echo "go mod tidy made changes, please run 'go mod tidy' and commit the changes" && exit 1)
+          go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./...
 
   lint-frontend:
     if: github.ref != 'refs/heads/develop' && github.head_ref != 'develop'
@@ -98,15 +81,8 @@ jobs:
           cd frontend
           pnpm install --frozen-lockfile
 
-      - name: Check formatting
-        run: |
-          cd frontend
-          pnpm format:check
-
-      - name: Check if linter was run
-        run: |
-          cd frontend
-          pnpm lint
+      - name: Run the frontend lint
+        run: mise run frontend:lint
 
       - name: Build frontend
         run: |
@@ -124,10 +100,10 @@ jobs:
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
-          install_args: "just shellcheck"
+          install_args: "shellcheck"
 
       - name: Run shellcheck
-        run: just lint-shell
+        run: mise run lint-shell
 
       - name: Test the full test run script
         run: python3 -m unittest discover -s scripts -p '*_test.py'
@@ -198,11 +174,10 @@ jobs:
       - name: Check out code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
-      - name: Set up Go
-        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+      - name: Install tools from mise.toml
+        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
-          go-version: "1.26.10"
-          cache: false
+          install_args: "go golangci-lint"
 
       - name: Set up Go cache
         uses: namespacelabs/nscloud-cache-action@1124a6f3ce44e5cf84cc22111530961f4d2a15f9 # v1.7.0
@@ -219,29 +194,13 @@ jobs:
           cd agent/verification
           go mod verify
 
-      - name: Install golangci-lint
-        run: |
-          go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.11.3
-          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
-
-      - name: Run golangci-lint
-        run: |
-          cd agent/verification
-          golangci-lint run
-
-      - name: Install govulncheck
-        run: go install golang.org/x/vuln/cmd/govulncheck@v1.9.0
+      - name: Run the verification agent lint
+        run: mise run agent:lint
 
       - name: Scan for reachable vulnerabilities
         run: |
           cd agent/verification
-          govulncheck ./...
-
-      - name: Verify go mod tidy
-        run: |
-          cd agent/verification
-          go mod tidy
-          git diff --exit-code go.mod go.sum || (echo "go mod tidy made changes, please run 'go mod tidy' and commit the changes" && exit 1)
+          go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./...
 
   test-verification-agent:
     if: github.ref != 'refs/heads/develop' && github.head_ref != 'develop'
@@ -285,12 +244,10 @@ jobs:
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
-          install_args: "just"
+          install: false
 
       - name: Run e2e tests
-        run: |
-          cd agent/verification
-          just e2e
+        run: mise run agent:e2e
 
       - name: Cleanup
         if: always()
@@ -313,7 +270,7 @@ jobs:
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
-          install_args: "just"
+          install: false
 
       - name: Start rootful Podman socket
         run: |
@@ -322,9 +279,7 @@ jobs:
           sudo podman info --format '{{.Host.OCIRuntime.Name}}'
 
       - name: Run e2e tests on Podman
-        run: |
-          cd agent/verification
-          just e2e-podman
+        run: mise run agent:e2e-podman
 
       - name: Cleanup
         if: always()
@@ -433,10 +388,10 @@ jobs:
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
-          install_args: "just"
+          install: false
 
       - name: Pull testcontainer images
-        run: just pull-testcontainers
+        run: mise run backend:pull-testcontainers
 
       - name: Run Go tests
         env:
@@ -445,9 +400,9 @@ jobs:
           TEST_GROUP: ${{ matrix.group }}
         run: |
           cd backend
-          # Separate assignments let a failing recipe stop the step instead of running no tests.
-          packages=$(just test-group-packages "$TEST_GROUP")
-          run_pattern=$(just test-group-tests "$TEST_GROUP")
+          # Separate assignments let a failing task stop the step instead of running no tests.
+          packages=$(mise run backend:test-group-packages "$TEST_GROUP")
+          run_pattern=$(mise run backend:test-group-tests "$TEST_GROUP")
           # Each leg runs one group on its own runner, so a group needs more wall-clock than the
           # 15m scripts/test.sh allows on a developer machine.
           # shellcheck disable=SC2086 # one import path per word
@@ -576,13 +531,13 @@ jobs:
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
-          install_args: "just"
+          install: false
 
       - name: Run filesystem suite
         env:
           DATABASUS_IMAGE: databasus-storage-test:${{ github.sha }}
           CASE_GROUP: ${{ matrix.group }}
-        run: just test-filesystem
+        run: mise run test-filesystem
 
   test-upgrade:
     if: github.head_ref != 'develop'
@@ -641,12 +596,12 @@ jobs:
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
-          install_args: "just"
+          install: false
 
       - name: Run the upgrade test
         env:
           DATABASUS_IMAGE: databasus-storage-test:${{ github.sha }}
-        run: just --justfile backend/Justfile test-upgrade
+        run: mise run backend:test-upgrade
 
   build-dev-image:
     runs-on: namespace-profile-4vcpu-8ram-ubuntu-26-x64

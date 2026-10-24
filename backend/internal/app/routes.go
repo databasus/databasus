@@ -3,6 +3,8 @@ package app
 import (
 	"github.com/gin-gonic/gin"
 
+	contract "databasus-backend/api"
+	systemhttpapi "databasus-backend/internal/app/systemhttpapi"
 	"databasus-backend/internal/features/audit_logs"
 	backups_controllers_logical "databasus-backend/internal/features/backups/backups/controllers/logical"
 	backups_controllers_physical "databasus-backend/internal/features/backups/backups/controllers/physical"
@@ -25,7 +27,34 @@ import (
 	verification_config "databasus-backend/internal/features/verification/config"
 	verification_runs "databasus-backend/internal/features/verification/runs"
 	workspaces_controllers "databasus-backend/internal/features/workspaces/controllers"
+	"databasus-backend/internal/lib/apierror"
+	"databasus-backend/internal/lib/httpserver"
 )
+
+// registerContractRoutes mounts the servers generated from the contract on a group that answers 500
+// to any route the contract does not describe. The old controllers stay on the plain group below.
+func (a *App) registerContractRoutes(router *gin.Engine) error {
+	contractGuard, err := httpserver.RequireContractOperation(contract.OpenAPI, a.logger)
+	if err != nil {
+		return err
+	}
+
+	contractRoutes := router.Group("/api/v1", contractGuard)
+	errorHooks := apierror.NewHooks(apierror.Deps{Logger: a.logger})
+
+	systemHandler := systemhttpapi.NewHandler(systemhttpapi.Deps{Version: system_version.GetAppVersion()})
+	systemhttpapi.RegisterHandlersWithOptions(
+		contractRoutes,
+		systemhttpapi.NewStrictHandlerWithOptions(systemHandler, nil, systemhttpapi.StrictGinServerOptions{
+			RequestErrorHandlerFunc:  errorHooks.HandleRequestError,
+			HandlerErrorFunc:         errorHooks.HandleHandlerError,
+			ResponseErrorHandlerFunc: errorHooks.HandleResponseError,
+		}),
+		systemhttpapi.GinServerOptions{BaseURL: "", Middlewares: nil, ErrorHandler: errorHooks.HandleParameterError},
+	)
+
+	return nil
+}
 
 func registerRoutes(router *gin.Engine) {
 	v1 := router.Group("/api/v1")
@@ -34,7 +63,6 @@ func registerRoutes(router *gin.Engine) {
 	userController := users_controllers.GetUserController()
 	userController.RegisterRoutes(v1)
 	system_healthcheck.GetHealthcheckController().RegisterRoutes(v1)
-	system_version.GetVersionController().RegisterRoutes(v1)
 	system_agent.GetAgentController().RegisterRoutes(v1)
 	backups_controllers_logical.GetBackupController().RegisterPublicRoutes(v1)
 	backups_controllers_physical.GetPhysicalBackupController().RegisterPublicRoutes(v1)

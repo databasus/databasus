@@ -1,6 +1,6 @@
 // Command seed_dev fills the local development app with what a developer or an agent needs to
 // look at a screen right after start: an account to sign in with, a workspace with a local storage
-// and two PostgreSQL databases whose backups are already running. `just run` starts it once the
+// and two PostgreSQL databases whose backups are already running. `mise run dev` starts it once the
 // backend accepts connections. Run it on its own with `go run ./cmd/seed_dev` in backend/ to
 // restore an item that was deleted from the running app.
 //

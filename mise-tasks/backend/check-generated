@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+#MISE description="Check that the generated API code matches the contract"
+#MISE dir="backend"
+# Each oapi-codegen config is regenerated into a temporary file and compared with the committed output,
+# so the lint names every generated file that is out of date without touching the checkout.
+set -euo pipefail
+
+status=0
+while IFS= read -r config; do
+    directory=$(dirname "$config")
+    output="$directory/$(sed -n 's/^output: *//p' "$config")"
+    contract="$directory/$(sed -n 's|^//go:generate go tool oapi-codegen .* \([^ ]*\.yaml\)$|\1|p' "$directory/generate.go")"
+    if [[ ! -f "$contract" ]]; then
+        echo "$directory/generate.go names no contract in its go:generate directive" >&2
+        status=1
+        continue
+    fi
+    fresh_output=$(mktemp --suffix=.go)
+    fresh_config=$(mktemp --suffix=.yaml)
+    sed "s|^output:.*|output: $fresh_output|" "$config" >"$fresh_config"
+    go tool oapi-codegen -config "$fresh_config" "$contract"
+    if ! cmp -s "$fresh_output" "$output"; then
+        echo "$output is out of date, run mise run generate-api" >&2
+        status=1
+    fi
+    rm -f "$fresh_output" "$fresh_config"
+done < <(find internal -name oapi-codegen.yaml)
+exit "$status"

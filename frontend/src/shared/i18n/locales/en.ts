@@ -137,6 +137,9 @@ export const en = {
     rateLimitExceeded: 'Too many attempts. Wait a little and try again.',
     emailNotConfigured: 'The instance has no mail server configured.',
     adminEmailMissing: 'Your account has no valid email address to send a test email to.',
+    invalidRequest: 'The server rejected the request as invalid. Reload the page and try again.',
+    notFound: 'The requested item was not found. It may have been deleted.',
+    internal: 'An internal server error occurred. Please try again later.',
   },
   status: {
     logicalBackup: {

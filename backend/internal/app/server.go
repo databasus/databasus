@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"log/slog"
+	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -38,7 +39,12 @@ func (a *App) Serve(ctx context.Context, address string) error {
 		a.logger.ErrorContext(ctx, "failed to clean temp folder", slog.Any("error", err))
 	}
 
-	server, err := httpserver.Listen(ctx, address, a.newRouter())
+	handler, err := a.NewHandler()
+	if err != nil {
+		return err
+	}
+
+	server, err := httpserver.Listen(ctx, address, handler)
 	if err != nil {
 		return err
 	}
@@ -78,7 +84,9 @@ func (a *App) Serve(ctx context.Context, address string) error {
 	return nil
 }
 
-func (a *App) newRouter() *gin.Engine {
+// NewHandler builds the router with every route and middleware of the server. Serve and the test
+// application share it, and it starts no background loop.
+func (a *App) NewHandler() (http.Handler, error) {
 	gin.SetMode(gin.ReleaseMode)
 
 	router := gin.New()
@@ -92,9 +100,14 @@ func (a *App) newRouter() *gin.Engine {
 		router.Use(httpserver.AllowAnyOrigin([]string{middleware.RequestIDHeader}))
 	}
 
+	err := a.registerContractRoutes(router)
+	if err != nil {
+		return nil, err
+	}
+
 	registerRoutes(router)
 
 	router.NoRoute(httpserver.HandleUnknownPath(frontendDirectory))
 
-	return router
+	return router, nil
 }

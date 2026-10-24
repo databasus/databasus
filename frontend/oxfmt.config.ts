@@ -13,5 +13,5 @@ export default defineConfig({
   sortTailwindcss: {
     stylesheet: './src/index.css',
   },
-  ignorePatterns: ['dist', 'pnpm-lock.yaml'],
+  ignorePatterns: ['dist', 'pnpm-lock.yaml', 'src/shared/api/schema.gen.ts'],
 });

@@ -6,7 +6,7 @@ This document describes the kinds of tests Databasus has and what each kind chec
 
 - A test checks what a caller observes: the HTTP API of the backend, the behavior of an engine against a real database server, or a screen of the frontend.
 - Our own database, modules and services are never mocked. Fakes replace only systems we cannot run locally and failures that are unsafe to cause for real.
-- Every test can run in parallel with any other test of the same run. Single packages and tests also run alongside runs from other worktrees on the same machine; only full runs take turns through a machine-wide lock. A test never takes a shared resource under a fixed name.
+- Every test can run in parallel with any other test of the same run, apart from the `apptest` limit in [The test application](#the-test-application). Single packages and tests also run alongside runs from other worktrees on the same machine; only full runs take turns through a machine-wide lock. A test never takes a shared resource under a fixed name.
 - Every check runs locally, and none of them is manual. CI repeats the same tests on a clean machine.
 
 ## Layers
@@ -23,8 +23,6 @@ Paths under `internal/` are inside `backend/`.
 | Filesystem tests | the image on the host filesystems and permission setups that users run | `e2e/docker-storage/` | Docker on the host |
 | Frontend tests | screens for every answer the contract allows | `frontend/src/**/*.test.tsx` | the components; the network is mocked through `mockApi`, typed by the contract |
 
-Until the contract in `backend/api` exists, frontend tests render components without network mocks, and `mockApi` arrives with the contract.
-
 Module API tests cover most behavior. A unit test without the application is used only for pure logic that has no HTTP entry point, or that is too slow to enumerate through HTTP. Examples are the scheduler's decision function, retention arithmetic, WAL position math, manifest reconstruction and parsers.
 
 ## The test application
@@ -35,6 +33,8 @@ Module API tests cover most behavior. A unit test without the application is use
 - a clock that the test moves forward, so schedules and deadlines need no real waiting;
 - fakes for external systems: an email recorder, an HTTP server for webhook and chat notifiers, and a local directory or a MinIO bucket for storages;
 - background jobs that never run on their own; the test runs each pass of a job explicitly.
+
+While old code is wired through process-wide state, the `apptest` tests of one package run one at a time: they never call `t.Parallel`, and a second `apptest.New` while one instance is alive in the process fails the test. Test packages still run in parallel with each other. The limit goes away once no old code is left.
 
 The test talks to the instance over real HTTP through `apiclient.New(t, url)`. The client checks every response against `openapi.yaml` and fails the test on any mismatch. It checks the status, the content type, the body and the field formats. The frontend tests mock responses by the contract, so they rely on this check. The agent tests use `agentclienttest`, which checks responses against `agent.yaml` in the same way.
 
@@ -53,27 +53,27 @@ Tests never wait for a fixed time. They wait for a condition with `testwait.Unti
 
 ## Choosing the tests to run
 
-While working, run the package or the test you need right now. Before handing the work over, run the tests of every package the change touched and of the packages that test the same feature, with `just test-package <packages>` in `backend/` and `pnpm test` in `frontend/`. A package that tests the same feature is one whose tests exercise the changed behavior through the API, such as the backup and restore tests for a change in an engine.
+While working, run the package or the test you need right now. Before handing the work over, run the tests of every package the change touched and of the packages that test the same feature, with `mise run backend:test-package <packages>` and `pnpm test` in `frontend/`. A package that tests the same feature is one whose tests exercise the changed behavior through the API, such as the backup and restore tests for a change in an engine.
 
-The full run is `just test`. It holds a machine-wide lock, so only one full run goes at a time and the others wait. Single packages and single tests run without the lock. CI runs everything on every pull request.
+The full run is `mise run test`. It holds a machine-wide lock, so only one full run goes at a time and the others wait. Single packages and single tests run without the lock. CI runs everything on every pull request.
 
 ## Runs
 
 - Backend tests run with `-race`, and a data race fails the test.
 - CI runs the same groups as the full run, split into shards by the measured duration of tests. Physical backup tests and WAL streaming tests are the slow groups and get their own shards.
-- The upgrade test and the filesystem tests are part of `just test`, and CI runs them on every pull request.
-- The upgrade test starts from the newest release tag by version. It runs in `just test` after the backend packages pass, and in CI as the check `test-upgrade` against the image CI built for the commit. `just test-upgrade` in `backend/` runs it alone and builds the image from the checkout unless `DATABASUS_IMAGE` names one.
+- The upgrade test and the filesystem tests are part of `mise run test`, and CI runs them on every pull request.
+- The upgrade test starts from the newest release tag by version. It runs in `mise run test` after the backend packages pass, and in CI as the check `test-upgrade` against the image CI built for the commit. `mise run backend:test-upgrade` runs it alone and builds the image from the checkout unless `DATABASUS_IMAGE` names one.
 
-Until the tests of old code move into modules, the filesystem tests run only through `just test-filesystem`. Old tests still change the shared `testdb` database on the three shared test PostgreSQL servers, so `just test` resets those servers before its tests. The reset waits up to ten minutes for running test processes to end, and a test process that starts during the reset waits for it. The linter rejects `time.Sleep` and `Eventually` only in the target layout, and tests of the packages outside it run with the `testhelpers` build tag, as "Until the migration finishes" in [`AGENTS.md`](../AGENTS.md#until-the-migration-finishes) says.
+Until the tests of old code move into modules, the filesystem tests run only through `mise run test-filesystem`. Old tests still change the shared `testdb` database on the three shared test PostgreSQL servers, so `mise run test` resets those servers before its tests. The reset waits up to ten minutes for running test processes to end, and a test process that starts during the reset waits for it. The linter rejects `time.Sleep` and `Eventually` only in the target layout, and tests of the packages outside it run with the `testhelpers` build tag, as "Until the migration finishes" in [`AGENTS.md`](../AGENTS.md#until-the-migration-finishes) says.
 
 ## Commands
 
 | What | Command |
 |---|---|
-| Given backend packages | `just test-package <packages>` in `backend/` |
-| Everything | `just test` at the root |
+| Given backend packages | `mise run backend:test-package <packages>` |
+| Everything | `mise run test` |
 | One backend package | `go test -race -count=1 ./internal/modules/<module>/...` in `backend/` |
 | One backend test | `go test -race -count=1 -run 'TestName/scenario text' ./internal/modules/<module>/...` in `backend/` |
 | Frontend | `pnpm test` in `frontend/`, or `pnpm test -t 'scenario text'` |
-| Upgrade test | `just test-upgrade` in `backend/` |
-| Filesystem tests | `just test-filesystem` at the root |
+| Upgrade test | `mise run backend:test-upgrade` |
+| Filesystem tests | `mise run test-filesystem` |

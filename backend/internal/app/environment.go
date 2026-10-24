@@ -30,6 +30,21 @@ func LoadEnvironment(ctx context.Context, spec config.LoadSpec) (*Environment, e
 		return nil, fmt.Errorf("load the configuration: %w", err)
 	}
 
+	environment, err := NewEnvironment(ctx, loadedConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	appLogger := environment.Logging.GetLogger()
+	logReport(ctx, appLogger, report)
+	appLogger.InfoContext(ctx, "environment variables loaded", slog.String("mode", string(loadedConfig.EnvMode)))
+
+	return environment, nil
+}
+
+// NewEnvironment builds the logging for a configuration that is already loaded, such as the one a
+// test application assembles.
+func NewEnvironment(ctx context.Context, loadedConfig config.Config) (*Environment, error) {
 	loadedLogging, err := logging.New(ctx, loadedConfig)
 	if err != nil {
 		logging.NewStdout().GetLogger().ErrorContext(ctx, "logging could not be configured", slog.Any("error", err))
@@ -38,10 +53,6 @@ func LoadEnvironment(ctx context.Context, spec config.LoadSpec) (*Environment, e
 	}
 
 	logger.Install(loadedLogging)
-
-	appLogger := loadedLogging.GetLogger()
-	logReport(ctx, appLogger, report)
-	appLogger.InfoContext(ctx, "environment variables loaded", slog.String("mode", string(loadedConfig.EnvMode)))
 
 	return &Environment{Config: loadedConfig, Logging: loadedLogging}, nil
 }

@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+#MISE description="Run the verification agent end-to-end suite on Docker"
+#MISE dir="agent/verification/e2e"
+set -euo pipefail
+
+docker compose down -v --remove-orphans 2>/dev/null || true
+rm -rf artifacts
+docker compose build --no-cache e2e-mock-server
+docker compose build
+docker compose run --rm e2e-agent-builder
+docker compose run --rm e2e-fixture-gen
+docker compose up -d e2e-mock-server
+docker compose run --rm e2e-agent-runner
+docker compose down -v

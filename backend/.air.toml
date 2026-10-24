@@ -1,4 +1,4 @@
-# `just run` runs the backend under air: a saved Go file rebuilds it and replaces the running one.
+# `mise run dev` runs the backend under air: a saved Go file rebuilds it and replaces the running one.
 # A build that fails leaves the previous backend serving, and the compile error shows in its output.
 root = "."
 tmp_dir = "tmp"

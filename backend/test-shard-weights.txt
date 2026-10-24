@@ -1,4 +1,4 @@
-# Seconds a test took in one local run, read by the test-group-tests recipe in Justfile. A sharded
+# Seconds a test took in one local run, read by the backend:test-group-tests task in mise-tasks/. A sharded
 # group deals its slowest tests first so each lands on the least-loaded shard, and a test missing
 # here counts as one second. The values only balance the shards: a stale one makes a shard slower,
 # never skips a test.

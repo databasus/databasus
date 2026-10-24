@@ -1,12 +1,21 @@
 import type { TFunction } from 'i18next';
 
-import { API_ERROR_CODES, ApiError } from '../api';
+import { API_ERROR_CODES, type ApiComponents, ApiError } from '../api';
 import { StringUtils } from '../lib/StringUtils';
 import type { TranslationKey } from './TranslationKey';
 
-// Error codes with a translated message. Backend codes are added here as the backend starts
-// sending them; until then the backend's own message is shown.
+// Every code the contract declares. A code added to the contract without a key here fails
+// pnpm typecheck, so it never reaches the user as raw text.
+const CONTRACT_ERROR_CODE_KEYS = {
+  invalid_request: 'errors.invalidRequest',
+  not_found: 'errors.notFound',
+  internal: 'errors.internal',
+} as const satisfies Record<ApiComponents['schemas']['ProblemCode'], TranslationKey>;
+
+// Error codes with a translated message. Codes of operations outside the contract are added here as
+// the backend starts sending them; until then the backend's own message is shown.
 const API_ERROR_CODE_KEYS: Record<string, TranslationKey> = {
+  ...CONTRACT_ERROR_CODE_KEYS,
   [API_ERROR_CODES.networkUnreachable]: 'errors.networkUnreachable',
   [API_ERROR_CODES.requestFailed]: 'errors.requestFailed',
   rate_limit_exceeded: 'errors.rateLimitExceeded',

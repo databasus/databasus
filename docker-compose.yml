@@ -43,7 +43,7 @@ services:
     container_name: backend-db
     shm_size: 10gb
 
-  # Dedicated test DB so `just test` doesn't pollute the dev DB. Every test and every test process of
+  # Dedicated test DB so `mise run test` doesn't pollute the dev DB. Every test and every test process of
   # old code opens a pool on a database of its own, so the default 100 connections run out.
   backend-db-test:
     image: postgres:17

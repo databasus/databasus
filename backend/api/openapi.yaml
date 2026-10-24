@@ -1,0 +1,90 @@
+openapi: 3.0.3
+info:
+  title: Databasus API
+  version: 1.0.0
+  description: >-
+    The API of a Databasus instance. The web interface and users' own scripts call it. Every error
+    answers with a `Problem` body whose `code` tells the cause apart.
+servers:
+  - url: /api/v1
+tags:
+  - name: system
+    description: The running Databasus instance itself
+paths:
+  /system/version:
+    get:
+      operationId: getVersion
+      tags: [system]
+      summary: Get the version of the running instance
+      description: >-
+        Public, because installed verification agents call it without a token to decide whether to
+        update themselves. Its path and its body never change.
+      x-access: public
+      responses:
+        "200":
+          description: The version of the running instance
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VersionResponse"
+        default:
+          $ref: "#/components/responses/Problem"
+components:
+  responses:
+    Problem:
+      description: An error in the RFC 9457 format
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+  schemas:
+    VersionResponse:
+      type: object
+      description: The body of the version operation
+      required: [version]
+      properties:
+        version:
+          type: string
+          description: The version of the running instance, such as `3.26.0`
+    Problem:
+      type: object
+      description: An error in the RFC 9457 format. The client chooses its text by `code`
+      required: [type, title, status, detail, code]
+      properties:
+        type:
+          type: string
+          description: A URI that identifies the kind of error
+        title:
+          type: string
+          description: A short summary of the kind of error, the same for every error with this code
+        status:
+          type: integer
+          description: The HTTP status of the response
+        detail:
+          type: string
+          description: An explanation of this occurrence, meant for logs and scripts
+        code:
+          $ref: "#/components/schemas/ProblemCode"
+        errors:
+          type: array
+          description: The fields that break the contract or a validation rule
+          items:
+            $ref: "#/components/schemas/FieldError"
+    ProblemCode:
+      type: string
+      description: The cause of the error for programs; a value never changes its meaning
+      enum:
+        - invalid_request
+        - not_found
+        - internal
+    FieldError:
+      type: object
+      description: A field of the request that breaks the contract or a validation rule
+      required: [field, detail]
+      properties:
+        field:
+          type: string
+          description: The path of the field in the request, such as `name` or `settings.bucket`
+        detail:
+          type: string
+          description: What is wrong with the field

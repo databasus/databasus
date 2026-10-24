@@ -1,0 +1,10 @@
+package: systemhttpapi
+output: api.gen.go
+generate:
+  models: true
+  gin-server: true
+  strict-server: true
+output-options:
+  include-tags: [system]
+compatibility:
+  always-prefix-enum-values: true

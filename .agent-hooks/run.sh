@@ -9,7 +9,7 @@ set -uo pipefail
 hooks_dir="$(cd "${BASH_SOURCE[0]%/*}" && pwd)"
 root="${hooks_dir%/*}"
 action="${1:-}"
-environment_check_hint="Run \`mise install\` to install the pinned tools and \`just doctor\` to check the environment."
+environment_check_hint="Run \`mise install\` to install the pinned tools and \`mise run doctor\` to check the environment."
 
 find_mise() {
     if command -v mise; then
@@ -44,7 +44,7 @@ if ! mise_path="$(find_mise)"; then
         printf '%s\n' "$reason" >&2
         exit 1
     fi
-    stop_agent "$reason Install mise, then $environment_check_hint"
+    stop_agent "$reason Install mise first. $environment_check_hint"
 fi
 
 # mise exec runs a command even when a pinned version is missing: python3 and openspec then resolve
