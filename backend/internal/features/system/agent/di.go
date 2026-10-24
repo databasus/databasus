@@ -1,7 +1,11 @@
 package system_agent
 
-var agentController = &AgentController{}
+import "sync"
+
+var getAgentController = sync.OnceValue(func() *AgentController {
+	return &AgentController{}
+})
 
 func GetAgentController() *AgentController {
-	return agentController
+	return getAgentController()
 }

@@ -1,35 +1,43 @@
 package users_controllers
 
 import (
+	"sync"
+
 	users_services "databasus-backend/internal/features/users/services"
 	"databasus-backend/internal/util/logger"
 	"databasus-backend/internal/util/ratelimiter"
 )
 
-var userController = &UserController{
-	users_services.GetUserService(),
-	ratelimiter.GetCounter(),
-	logger.GetLogger(),
-}
+var getUserController = sync.OnceValue(func() *UserController {
+	return &UserController{
+		users_services.GetUserService(),
+		ratelimiter.GetCounter(),
+		logger.GetLogger(),
+	}
+})
 
-var settingsController = &SettingsController{
-	users_services.GetSettingsService(),
-	ratelimiter.GetCounter(),
-	logger.GetLogger(),
-}
+var getSettingsController = sync.OnceValue(func() *SettingsController {
+	return &SettingsController{
+		users_services.GetSettingsService(),
+		ratelimiter.GetCounter(),
+		logger.GetLogger(),
+	}
+})
 
-var managementController = &ManagementController{
-	users_services.GetManagementService(),
-}
+var getManagementController = sync.OnceValue(func() *ManagementController {
+	return &ManagementController{
+		users_services.GetManagementService(),
+	}
+})
 
 func GetUserController() *UserController {
-	return userController
+	return getUserController()
 }
 
 func GetSettingsController() *SettingsController {
-	return settingsController
+	return getSettingsController()
 }
 
 func GetManagementController() *ManagementController {
-	return managementController
+	return getManagementController()
 }

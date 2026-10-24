@@ -22,115 +22,130 @@ import (
 	"databasus-backend/internal/util/logger"
 )
 
-var physicalBackuper = &PhysicalBackuper{
-	databases.GetDatabaseService(),
-	encryption.GetFieldEncryptor(),
-	workspaces_services.GetWorkspaceService(),
-	physical_repositories.GetFullBackupRepository(),
-	physical_repositories.GetIncrementalBackupRepository(),
-	physical_repositories.GetInFlightBackupRepository(),
-	physical_repositories.GetWalHistoryRepository(),
-	backups_config_physical.GetBackupConfigService(),
-	storages.GetStorageService(),
-	storages.GetStorageFileStore(),
-	notifiers.GetNotifierService(),
-	tasks_cancellation.GetRegistry(),
-	encryption_secrets.GetSecretKeyService(),
-	logger.GetLogger(),
-	postgresql_executor.NewCreateFullBackupUsecase(),
-	postgresql_executor.NewCreateIncrementalBackupUsecase(),
-}
+var getPhysicalBackuper = sync.OnceValue(func() *PhysicalBackuper {
+	return &PhysicalBackuper{
+		databases.GetDatabaseService(),
+		encryption.GetFieldEncryptor(),
+		workspaces_services.GetWorkspaceService(),
+		physical_repositories.GetFullBackupRepository(),
+		physical_repositories.GetIncrementalBackupRepository(),
+		physical_repositories.GetInFlightBackupRepository(),
+		physical_repositories.GetWalHistoryRepository(),
+		backups_config_physical.GetBackupConfigService(),
+		storages.GetStorageService(),
+		storages.GetStorageFileStore(),
+		notifiers.GetNotifierService(),
+		tasks_cancellation.GetRegistry(),
+		encryption_secrets.GetSecretKeyService(),
+		logger.GetLogger(),
+		postgresql_executor.NewCreateFullBackupUsecase(),
+		postgresql_executor.NewCreateIncrementalBackupUsecase(),
+	}
+})
 
-func GetPhysicalBackuper() *PhysicalBackuper { return physicalBackuper }
+func GetPhysicalBackuper() *PhysicalBackuper { return getPhysicalBackuper() }
 
-var physicalBackupsScheduler = &PhysicalBackupsScheduler{
-	physical_repositories.GetFullBackupRepository(),
-	physical_repositories.GetIncrementalBackupRepository(),
-	physical_repositories.GetInFlightBackupRepository(),
-	backups_config_physical.GetBackupConfigService(),
-	chain_view.GetChainViewService(),
-	tasks_cancellation.GetRequester(),
-	storages.GetStorageFileStore(),
-	physicalBackuper,
-	atomicTime{},
-	logger.GetLogger(),
-	atomic.Bool{},
-	atomic.Bool{},
-}
+var getPhysicalBackupsScheduler = sync.OnceValue(func() *PhysicalBackupsScheduler {
+	return &PhysicalBackupsScheduler{
+		physical_repositories.GetFullBackupRepository(),
+		physical_repositories.GetIncrementalBackupRepository(),
+		physical_repositories.GetInFlightBackupRepository(),
+		backups_config_physical.GetBackupConfigService(),
+		chain_view.GetChainViewService(),
+		tasks_cancellation.GetRequester(),
+		storages.GetStorageFileStore(),
+		getPhysicalBackuper(),
+		atomicTime{},
+		logger.GetLogger(),
+		atomic.Bool{},
+		atomic.Bool{},
+	}
+})
 
-func GetPhysicalBackupsScheduler() *PhysicalBackupsScheduler { return physicalBackupsScheduler }
+func GetPhysicalBackupsScheduler() *PhysicalBackupsScheduler { return getPhysicalBackupsScheduler() }
 
-var physicalBackupCleaner = &PhysicalBackupCleaner{
-	physical_service.GetPhysicalBackupService(),
-	chain_view.GetChainViewService(),
-	backups_config_physical.GetBackupConfigService(),
-	physical_repositories.GetFullBackupRepository(),
-	physical_repositories.GetWalSegmentRepository(),
-	physical_repositories.GetWalStreamSampleRepository(),
-	logger.GetLogger(),
-	atomic.Bool{},
-}
+var getPhysicalBackupCleaner = sync.OnceValue(func() *PhysicalBackupCleaner {
+	return &PhysicalBackupCleaner{
+		physical_service.GetPhysicalBackupService(),
+		chain_view.GetChainViewService(),
+		backups_config_physical.GetBackupConfigService(),
+		physical_repositories.GetFullBackupRepository(),
+		physical_repositories.GetWalSegmentRepository(),
+		physical_repositories.GetWalStreamSampleRepository(),
+		logger.GetLogger(),
+		atomic.Bool{},
+	}
+})
 
-func GetPhysicalBackupCleaner() *PhysicalBackupCleaner { return physicalBackupCleaner }
+func GetPhysicalBackupCleaner() *PhysicalBackupCleaner { return getPhysicalBackupCleaner() }
 
-var physicalWalStreamSupervisor = &PhysicalWalStreamSupervisor{
-	databases.GetDatabaseService(),
-	backups_config_physical.GetBackupConfigService(),
-	storages.GetStorageService(),
-	storages.GetStorageFileStore(),
-	physical_repositories.GetWalSegmentRepository(),
-	physical_repositories.GetWalHistoryRepository(),
-	physical_repositories.GetWalStreamerRepository(),
-	physical_repositories.GetWalStreamSampleRepository(),
-	notifiers.GetNotifierService(),
-	tasks_cancellation.GetRegistry(),
-	encryption_secrets.GetSecretKeyService(),
-	encryption.GetFieldEncryptor(),
-	logger.GetLogger(),
-	defaultChainAlertMinInterval,
-	sync.Mutex{},
-	make(map[uuid.UUID]*runningStreamer),
-	atomicTime{},
-	make(map[chainAlertKey]time.Time),
-	atomic.Bool{},
-	atomic.Bool{},
-}
+var getPhysicalWalStreamSupervisor = sync.OnceValue(func() *PhysicalWalStreamSupervisor {
+	return &PhysicalWalStreamSupervisor{
+		databases.GetDatabaseService(),
+		backups_config_physical.GetBackupConfigService(),
+		storages.GetStorageService(),
+		storages.GetStorageFileStore(),
+		physical_repositories.GetWalSegmentRepository(),
+		physical_repositories.GetWalHistoryRepository(),
+		physical_repositories.GetWalStreamerRepository(),
+		physical_repositories.GetWalStreamSampleRepository(),
+		notifiers.GetNotifierService(),
+		tasks_cancellation.GetRegistry(),
+		encryption_secrets.GetSecretKeyService(),
+		encryption.GetFieldEncryptor(),
+		logger.GetLogger(),
+		defaultChainAlertMinInterval,
+		sync.Mutex{},
+		make(map[uuid.UUID]*runningStreamer),
+		atomicTime{},
+		make(map[chainAlertKey]time.Time),
+		atomic.Bool{},
+		atomic.Bool{},
+	}
+})
 
 func GetPhysicalWalStreamSupervisor() *PhysicalWalStreamSupervisor {
-	return physicalWalStreamSupervisor
+	return getPhysicalWalStreamSupervisor()
 }
 
-var physicalSlotCleanupListener = postgresql_executor.NewPhysicalSlotCleanupListener(
-	databases.GetDatabaseService(),
-	encryption.GetFieldEncryptor(),
-	logger.GetLogger(),
-)
+var getPhysicalSlotCleanupListener = sync.OnceValue(func() *postgresql_executor.PhysicalSlotCleanupListener {
+	return postgresql_executor.NewPhysicalSlotCleanupListener(
+		databases.GetDatabaseService(),
+		encryption.GetFieldEncryptor(),
+		logger.GetLogger(),
+	)
+})
 
-var physicalBackupCanceller = NewPhysicalBackupCanceller(
-	physical_repositories.GetInFlightBackupRepository(),
-	tasks_cancellation.GetRequester(),
-	logger.GetLogger(),
-)
+var getPhysicalBackupCanceller = sync.OnceValue(func() *PhysicalBackupCanceller {
+	return NewPhysicalBackupCanceller(
+		physical_repositories.GetInFlightBackupRepository(),
+		tasks_cancellation.GetRequester(),
+		logger.GetLogger(),
+	)
+})
 
-func GetPhysicalBackupCanceller() *PhysicalBackupCanceller { return physicalBackupCanceller }
+func GetPhysicalBackupCanceller() *PhysicalBackupCanceller { return getPhysicalBackupCanceller() }
 
-var physicalBackupCancellationListener = &PhysicalBackupCancellationListener{
-	physicalBackupCanceller,
-	physical_repositories.GetWalStreamerRepository(),
-	tasks_cancellation.GetRequester(),
-	logger.GetLogger(),
-}
+var getPhysicalBackupCancellationListener = sync.OnceValue(func() *PhysicalBackupCancellationListener {
+	return &PhysicalBackupCancellationListener{
+		getPhysicalBackupCanceller(),
+		physical_repositories.GetWalStreamerRepository(),
+		tasks_cancellation.GetRequester(),
+		logger.GetLogger(),
+	}
+})
 
 var SetupDependencies = sync.OnceFunc(func() {
 	// Order matters: the cancellation listener stops the local pg_receivewal and
 	// deletes the streamer row first, so the slot cleanup listener that runs next
 	// can drop the (now detaching) WAL slot instead of refusing it as active and
 	// leaving it to pin WAL forever.
-	databases.GetDatabaseService().AddDbRemoveListener(physicalBackupCancellationListener)
+	databases.GetDatabaseService().AddDbRemoveListener(getPhysicalBackupCancellationListener())
 	// The cascade that would take the object names away runs only after every
 	// listener has returned.
 	databases.GetDatabaseService().AddDbRemoveListener(physical_service.GetPhysicalBackupService())
 	storages.GetStorageService().AddStorageBackupCounter(physical_service.GetPhysicalBackupService())
-	databases.GetDatabaseService().AddDbRemoveListener(physicalSlotCleanupListener)
-	backups_config_physical.GetBackupConfigService().SetBackupCancellationListener(physicalBackupCancellationListener)
+	databases.GetDatabaseService().AddDbRemoveListener(getPhysicalSlotCleanupListener())
+	backups_config_physical.GetBackupConfigService().
+		SetBackupCancellationListener(getPhysicalBackupCancellationListener())
 })

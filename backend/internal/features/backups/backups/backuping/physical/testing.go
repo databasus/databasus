@@ -184,7 +184,7 @@ func StartPhysicalSchedulerForTest(t *testing.T) context.CancelFunc {
 
 // StartPhysicalWalStreamSupervisorForTest starts a fresh WAL stream supervisor's
 // Run loop in a goroutine and waits until it is ready (IsRunning). It mirrors the
-// supervisor wiring in cmd/main.go: with the supervisor up, enabling
+// supervisor wiring in internal/app: with the supervisor up, enabling
 // WAL-stream backups over the HTTP config API causes it to claim the database and
 // create its replication slot on the next reconcile tick — so tests drive the slot
 // lifecycle through the API instead of starting a streamer by hand. Returns a

@@ -87,12 +87,12 @@ func createTestRestorerWithShutdownSignal(
 		databases.GetDatabaseService(),
 		backups_services.GetBackupService(),
 		encryption.GetFieldEncryptor(),
-		restoreRepository,
+		getRestoreRepository(),
 		backups_config_logical.GetBackupConfigService(),
 		storages.GetStorageService(),
 		logger.GetLogger(),
 		usecase,
-		restoreDatabaseCache,
+		getRestoreDatabaseCache(),
 		tasks_cancellation.GetRegistry(),
 		shutdownSignal,
 	}
@@ -100,11 +100,11 @@ func createTestRestorerWithShutdownSignal(
 
 func CreateTestRestoresScheduler() *RestoresScheduler {
 	return &RestoresScheduler{
-		restoreRepository,
+		getRestoreRepository(),
 		time.Now().UTC(),
 		logger.GetLogger(),
-		restorer,
-		restoreDatabaseCache,
+		getRestorer(),
+		getRestoreDatabaseCache(),
 		atomic.Bool{},
 	}
 }
@@ -118,7 +118,7 @@ func WaitForRestoreCompletion(
 	deadline := time.Now().UTC().Add(timeout)
 
 	for time.Now().UTC().Before(deadline) {
-		restore, err := restoreRepository.FindByID(restoreID)
+		restore, err := getRestoreRepository().FindByID(restoreID)
 		if err != nil {
 			t.Logf("WaitForRestoreCompletion: error finding restore: %v", err)
 			time.Sleep(50 * time.Millisecond)
@@ -147,11 +147,11 @@ func WaitForRestoreCompletion(
 // (e.g. a blocking or capturing mock) actually runs when StartRestore dispatches.
 // Returns a cancel function that restores the original executor.
 func StartRestorerForTest(_ *testing.T, restorerForTest *Restorer) context.CancelFunc {
-	previous := restoresScheduler.restorer
-	restoresScheduler.restorer = restorerForTest
+	previous := getRestoresScheduler().restorer
+	getRestoresScheduler().restorer = restorerForTest
 
 	return func() {
-		restoresScheduler.restorer = previous
+		getRestoresScheduler().restorer = previous
 	}
 }
 
@@ -215,7 +215,7 @@ func CreateTestRestore(
 		},
 	}
 
-	err := restoreRepository.Save(restore)
+	err := getRestoreRepository().Save(restore)
 	if err != nil {
 		t.Fatalf("Failed to create test restore: %v", err)
 	}

@@ -274,7 +274,7 @@ func Test_UpdatePhysicalDatabase_KeepsSameChildRow_WithStableIdAndDatabaseId(t *
 				workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
 			}()
 
-			createdDatabase, err := databaseRepository.FindByID(database.ID)
+			createdDatabase, err := getDatabaseRepository().FindByID(database.ID)
 			require.NoError(t, err)
 			require.NotNil(t, createdDatabase.PostgresqlPhysical)
 			require.NotEqual(t, uuid.Nil, createdDatabase.PostgresqlPhysical.ID)
@@ -290,7 +290,7 @@ func Test_UpdatePhysicalDatabase_KeepsSameChildRow_WithStableIdAndDatabaseId(t *
 				http.StatusOK,
 			)
 
-			updatedDatabase, err := databaseRepository.FindByID(database.ID)
+			updatedDatabase, err := getDatabaseRepository().FindByID(database.ID)
 			require.NoError(t, err)
 			require.NotNil(t, updatedDatabase.PostgresqlPhysical)
 			assert.Equal(t,
@@ -315,7 +315,7 @@ func Test_CopyDatabase_OnPhysicalDatabase_DoesNotCopySystemIdentifier(t *testing
 
 			originalDatabase := createPhysicalDatabaseInternalAPI(t, router, workspace.ID, owner.Token, fx)
 
-			originalPersistedDatabase, err := databaseRepository.FindByID(originalDatabase.ID)
+			originalPersistedDatabase, err := getDatabaseRepository().FindByID(originalDatabase.ID)
 			require.NoError(t, err)
 			require.NotNil(t, originalPersistedDatabase.PostgresqlPhysical)
 			require.NotNil(t, originalPersistedDatabase.PostgresqlPhysical.SystemIdentifier,
@@ -337,7 +337,7 @@ func Test_CopyDatabase_OnPhysicalDatabase_DoesNotCopySystemIdentifier(t *testing
 				workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
 			}()
 
-			copiedPersistedDatabase, err := databaseRepository.FindByID(copiedDatabase.ID)
+			copiedPersistedDatabase, err := getDatabaseRepository().FindByID(copiedDatabase.ID)
 			require.NoError(t, err)
 			require.NotNil(t, copiedPersistedDatabase.PostgresqlPhysical)
 			assert.NotEqual(t, originalDatabase.ID, copiedDatabase.ID)

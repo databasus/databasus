@@ -167,9 +167,9 @@ Audit events are written through `lib/audit` in the transaction of the operation
 
 - The schema changes only through goose SQL migrations in `backend/migrations`, embedded in the binary and applied at startup. `AutoMigrate` is never used.
 - Migrations are applied with out-of-order allowed, so a migration merged after a later-numbered one still runs. A migration therefore never depends on the order of migrations within a release.
+- Every migration runs whole in one transaction, so a migration that fails leaves no partial changes behind and the next start applies it again. `-- +goose NO TRANSACTION` is not allowed. `CREATE INDEX CONCURRENTLY`, the usual reason to drop the transaction, gains nothing here: migrations run before the server accepts requests, so nothing waits for the table lock.
 - Every migration runs on any older valid state: a fresh install, an install upgraded through every release, and an internal database restored from an older Databasus dump. A migration that adds or tightens a constraint first repairs the rows that would violate it. Otherwise the upgraded instance does not start. A migration that moves encrypted values copies them as they are. SQL cannot decrypt them and does not need to.
 - The upgrade test from [testing.md](testing.md) runs every migration against data written by the previous release.
-- Until `internal/app` exists, `runMigrations` in `backend/cmd/main.go` applies the migrations at startup by running the external `goose` binary on `./migrations`, in order and without out-of-order migrations.
 - Format: one statement per table, constraint and index, column types aligned, each constraint clause on its own line.
 
 ## Stored files
@@ -235,7 +235,7 @@ PostgreSQL owns the backup format, and we do not implement block-level increment
   - WAL streamers stop and keep their replication slots, so the next start resumes them;
   - the process flushes the logs and exits before the embedded PostgreSQL stops (spec `container-shutdown`).
 
-  A second signal exits immediately. Work still marked in progress at the next start is failed the same way.
+  A second signal during the shutdown neither kills the process nor starts the shutdown again (spec `application-shutdown`). Work still marked in progress at the next start is failed the same way.
 - **Time** that drives behavior, such as schedules, deadlines and retention, comes from a clock in `Deps`. SQL receives the current time as a parameter instead of calling `now()`.
 
 ## Configuration
@@ -262,6 +262,7 @@ The verification agent is a CLI worker that runs on a machine the user provides.
 | File roles, errors in `errors.go`, a bare `go` statement only in `lib` | `archlint` |
 | No `testing`, testify or testcontainers in the production binary | `archlint` (dependency graph of `cmd/databasus`) |
 | A migration adds no `CASCADE` foreign key to another module's table | `archlint` (table prefixes) |
+| A migration runs in its transaction: no `-- +goose NO TRANSACTION` | `archlint` |
 | `*gorm.DB` and `database.Conn` only in repositories; no `time.Sleep`, `Eventually`, `fmt.Print*`, `os.Exit`, `os.Getenv` or `context.Background()` outside the places allowed | `forbidigo` |
 | Log calls: attributes only, `...Context` methods, constant messages, `snake_case` keys | `sloglint` |
 | Imports of test libraries, Gin and GORM only where allowed; fixed import aliases | `depguard`, `importas` |

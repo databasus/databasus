@@ -18,18 +18,6 @@ func (c *HealthcheckAttemptController) RegisterRoutes(router *gin.RouterGroup) {
 	router.GET("/healthcheck-attempts/:databaseId", c.GetAttemptsByDatabase)
 }
 
-// GetAttemptsByDatabase
-// @Summary Get healthcheck attempts by database
-// @Description Get healthcheck attempts for a specific database with optional before date filter
-// @Tags healthcheck-attempts
-// @Produce json
-// @Param Authorization header string true "JWT token"
-// @Param databaseId path string true "Database ID"
-// @Param afterDate query string false "After date (RFC3339 format)"
-// @Success 200 {array} HealthcheckAttempt
-// @Failure 400
-// @Failure 401
-// @Router /healthcheck-attempts/{databaseId} [get]
 func (c *HealthcheckAttemptController) GetAttemptsByDatabase(ctx *gin.Context) {
 	user, ok := users_middleware.GetUserFromContext(ctx)
 	if !ok {

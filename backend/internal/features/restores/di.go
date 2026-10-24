@@ -19,31 +19,37 @@ import (
 )
 
 var (
-	restoreRepository = &restores_core.RestoreRepository{}
-	restoreService    = &RestoreService{
-		backups_services.GetBackupService(),
-		restoreRepository,
-		storages.GetStorageService(),
-		backups_config_logical.GetBackupConfigService(),
-		usecases.GetRestoreBackupUsecase(),
-		databases.GetDatabaseService(),
-		logger.GetLogger(),
-		workspaces_services.GetWorkspaceService(),
-		audit_logs.GetAuditLogService(),
-		encryption.GetFieldEncryptor(),
-		disk.GetDiskService(),
-		tasks_cancellation.GetRequester(),
-	}
+	getRestoreRepository = sync.OnceValue(func() *restores_core.RestoreRepository {
+		return &restores_core.RestoreRepository{}
+	})
+	getRestoreService = sync.OnceValue(func() *RestoreService {
+		return &RestoreService{
+			backups_services.GetBackupService(),
+			getRestoreRepository(),
+			storages.GetStorageService(),
+			backups_config_logical.GetBackupConfigService(),
+			usecases.GetRestoreBackupUsecase(),
+			databases.GetDatabaseService(),
+			logger.GetLogger(),
+			workspaces_services.GetWorkspaceService(),
+			audit_logs.GetAuditLogService(),
+			encryption.GetFieldEncryptor(),
+			disk.GetDiskService(),
+			tasks_cancellation.GetRequester(),
+		}
+	})
 )
 
-var restoreController = &RestoreController{
-	restoreService,
-}
+var getRestoreController = sync.OnceValue(func() *RestoreController {
+	return &RestoreController{
+		getRestoreService(),
+	}
+})
 
 func GetRestoreController() *RestoreController {
-	return restoreController
+	return getRestoreController()
 }
 
 var SetupDependencies = sync.OnceFunc(func() {
-	backuping_logical.GetBackupCleaner().AddBackupRemoveListener(restoreService)
+	backuping_logical.GetBackupCleaner().AddBackupRemoveListener(getRestoreService())
 })

@@ -1,7 +1,11 @@
 package system_version
 
-var versionController = &VersionController{}
+import "sync"
+
+var getVersionController = sync.OnceValue(func() *VersionController {
+	return &VersionController{}
+})
 
 func GetVersionController() *VersionController {
-	return versionController
+	return getVersionController()
 }

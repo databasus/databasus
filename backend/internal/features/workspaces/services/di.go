@@ -1,6 +1,8 @@
 package workspaces_services
 
 import (
+	"sync"
+
 	"databasus-backend/internal/features/audit_logs"
 	"databasus-backend/internal/features/email"
 	users_services "databasus-backend/internal/features/users/services"
@@ -10,34 +12,42 @@ import (
 )
 
 var (
-	workspaceRepository  = &workspaces_repositories.WorkspaceRepository{}
-	membershipRepository = &workspaces_repositories.MembershipRepository{}
+	getWorkspaceRepository = sync.OnceValue(func() *workspaces_repositories.WorkspaceRepository {
+		return &workspaces_repositories.WorkspaceRepository{}
+	})
+	getMembershipRepository = sync.OnceValue(func() *workspaces_repositories.MembershipRepository {
+		return &workspaces_repositories.MembershipRepository{}
+	})
 )
 
-var workspaceService = &WorkspaceService{
-	workspaceRepository,
-	membershipRepository,
-	users_services.GetUserService(),
-	audit_logs.GetAuditLogService(),
-	users_services.GetSettingsService(),
-	[]workspaces_interfaces.WorkspaceDeletionListener{},
-}
+var getWorkspaceService = sync.OnceValue(func() *WorkspaceService {
+	return &WorkspaceService{
+		getWorkspaceRepository(),
+		getMembershipRepository(),
+		users_services.GetUserService(),
+		audit_logs.GetAuditLogService(),
+		users_services.GetSettingsService(),
+		[]workspaces_interfaces.WorkspaceDeletionListener{},
+	}
+})
 
-var membershipService = &MembershipService{
-	membershipRepository,
-	workspaceRepository,
-	users_services.GetUserService(),
-	audit_logs.GetAuditLogService(),
-	workspaceService,
-	users_services.GetSettingsService(),
-	email.GetEmailSMTPSender(),
-	logger.GetLogger(),
-}
+var getMembershipService = sync.OnceValue(func() *MembershipService {
+	return &MembershipService{
+		getMembershipRepository(),
+		getWorkspaceRepository(),
+		users_services.GetUserService(),
+		audit_logs.GetAuditLogService(),
+		getWorkspaceService(),
+		users_services.GetSettingsService(),
+		email.GetEmailSMTPSender(),
+		logger.GetLogger(),
+	}
+})
 
 func GetWorkspaceService() *WorkspaceService {
-	return workspaceService
+	return getWorkspaceService()
 }
 
 func GetMembershipService() *MembershipService {
-	return membershipService
+	return getMembershipService()
 }

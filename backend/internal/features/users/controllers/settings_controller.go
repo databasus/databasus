@@ -42,17 +42,6 @@ func (c *SettingsController) RegisterRoutes(router *gin.RouterGroup) {
 	)
 }
 
-// GetUsersSettings
-// @Summary Get users settings
-// @Description Get global users settings. Every signed-in user can read them, because the main screen and the workspace dialogs depend on them
-// @Tags settings
-// @Produce json
-// @Security BearerAuth
-// @Success 200 {object} users_dto.SettingsResponseDTO
-// @Failure 401 {object} map[string]string "Unauthorized"
-// @Failure 403 {object} map[string]string "Forbidden"
-// @Failure 500 {object} map[string]string "Internal server error"
-// @Router /users/settings [get]
 func (c *SettingsController) GetUsersSettings(ctx *gin.Context) {
 	settings, err := c.settingsService.GetSettingsResponse(ctx.Request.Context())
 	if err != nil {
@@ -65,19 +54,6 @@ func (c *SettingsController) GetUsersSettings(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, settings)
 }
 
-// UpdateUsersSettings
-// @Summary Update users settings
-// @Description Update global users settings (admin only)
-// @Tags settings
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Param request body users_dto.UpdateSettingsRequestDTO true "Settings update data"
-// @Success 200 {object} users_dto.SettingsResponseDTO
-// @Failure 400 {object} map[string]string "Bad request"
-// @Failure 401 {object} map[string]string "Unauthorized"
-// @Failure 403 {object} map[string]string "Forbidden"
-// @Router /users/settings [put]
 func (c *SettingsController) UpdateUsersSettings(ctx *gin.Context) {
 	user, ok := user_middleware.GetUserFromContext(ctx)
 	if !ok {
@@ -100,18 +76,6 @@ func (c *SettingsController) UpdateUsersSettings(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, settings)
 }
 
-// SendTestEmail
-// @Summary Send a test email
-// @Description Send a test message through the instance mail server to the signed-in administrator's own address (admin only). A failed delivery answers 400 with the mail server's error and no code
-// @Tags settings
-// @Produce json
-// @Security BearerAuth
-// @Success 200 {object} users_dto.SendTestEmailResponseDTO
-// @Failure 400 {object} map[string]string "Mail server not configured, no usable address, or delivery failed"
-// @Failure 401 {object} map[string]string "Unauthorized"
-// @Failure 403 {object} map[string]string "Forbidden"
-// @Failure 429 {object} map[string]string "Rate limit exceeded"
-// @Router /users/settings/test-email [post]
 func (c *SettingsController) SendTestEmail(ctx *gin.Context) {
 	user, ok := user_middleware.GetUserFromContext(ctx)
 	if !ok {

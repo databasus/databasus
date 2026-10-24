@@ -1,21 +1,27 @@
 package workspaces_controllers
 
 import (
+	"sync"
+
 	workspaces_services "databasus-backend/internal/features/workspaces/services"
 )
 
-var workspaceController = &WorkspaceController{
-	workspaces_services.GetWorkspaceService(),
-}
+var getWorkspaceController = sync.OnceValue(func() *WorkspaceController {
+	return &WorkspaceController{
+		workspaces_services.GetWorkspaceService(),
+	}
+})
 
-var membershipController = &MembershipController{
-	workspaces_services.GetMembershipService(),
-}
+var getMembershipController = sync.OnceValue(func() *MembershipController {
+	return &MembershipController{
+		workspaces_services.GetMembershipService(),
+	}
+})
 
 func GetWorkspaceController() *WorkspaceController {
-	return workspaceController
+	return getWorkspaceController()
 }
 
 func GetMembershipController() *MembershipController {
-	return membershipController
+	return getMembershipController()
 }

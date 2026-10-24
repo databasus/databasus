@@ -48,7 +48,7 @@ just --justfile "$root/backend/Justfile" clean-testcontainers
 just --justfile "$root/backend/Justfile" pull-testcontainers
 
 cd "$root/backend"
-TEST_PARALLEL_WORKERS=$workers go run ./cmd/cleanup_test_db
+TEST_PARALLEL_WORKERS=$workers go run -tags testhelpers ./cmd/cleanup_test_db
 for ((i = 0; i < workers; i++)); do
     dbstring=$(sed -E "s#/([^/?]+)\?#/\1_w$i?#" <<<"$GOOSE_TEST_DBSTRING")
     echo "migrating slot $i"

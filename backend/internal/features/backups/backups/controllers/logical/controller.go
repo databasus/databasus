@@ -38,22 +38,6 @@ func (c *BackupController) RegisterPublicRoutes(router *gin.RouterGroup) {
 	router.GET("/backups/:id/file", c.GetFile)
 }
 
-// GetBackups
-// @Summary Get backups for a database
-// @Description Get paginated backups for the specified database with optional filters
-// @Tags backups
-// @Produce json
-// @Param database_id query string true "Database ID"
-// @Param limit query int false "Number of items per page" default(10)
-// @Param offset query int false "Offset for pagination" default(0)
-// @Param status query []string false "Filter by backup status (can be repeated)" Enums(IN_PROGRESS, COMPLETED, FAILED, CANCELED)
-// @Param beforeDate query string false "Filter backups created before this date (RFC3339)" format(date-time)
-// @Param pgWalBackupType query string false "Filter by WAL backup type" Enums(PG_FULL_BACKUP, PG_WAL_SEGMENT)
-// @Success 200 {object} backups_dto_logical.GetBackupsResponse
-// @Failure 400
-// @Failure 401
-// @Failure 500
-// @Router /backups [get]
 func (c *BackupController) GetBackups(ctx *gin.Context) {
 	user, ok := users_middleware.GetUserFromContext(ctx)
 	if !ok {
@@ -91,18 +75,6 @@ func (c *BackupController) GetBackups(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, response)
 }
 
-// MakeBackup
-// @Summary Create a backup
-// @Description Create a new backup for the specified database
-// @Tags backups
-// @Accept json
-// @Produce json
-// @Param request body backups_dto_logical.MakeBackupRequest true "Backup creation data"
-// @Success 200 {object} map[string]string
-// @Failure 400
-// @Failure 401
-// @Failure 500
-// @Router /backups [post]
 func (c *BackupController) MakeBackup(ctx *gin.Context) {
 	user, ok := users_middleware.GetUserFromContext(ctx)
 	if !ok {
@@ -124,16 +96,6 @@ func (c *BackupController) MakeBackup(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"message": "backup started successfully"})
 }
 
-// DeleteBackup
-// @Summary Delete a backup
-// @Description Delete an existing backup
-// @Tags backups
-// @Param id path string true "Backup ID"
-// @Success 204
-// @Failure 400
-// @Failure 401
-// @Failure 500
-// @Router /backups/{id} [delete]
 func (c *BackupController) DeleteBackup(ctx *gin.Context) {
 	user, ok := users_middleware.GetUserFromContext(ctx)
 	if !ok {
@@ -155,16 +117,6 @@ func (c *BackupController) DeleteBackup(ctx *gin.Context) {
 	ctx.Status(http.StatusNoContent)
 }
 
-// CancelBackup
-// @Summary Cancel an in-progress backup
-// @Description Cancel a backup that is currently in progress
-// @Tags backups
-// @Param id path string true "Backup ID"
-// @Success 204
-// @Failure 400
-// @Failure 401
-// @Failure 500
-// @Router /backups/{id}/cancel [post]
 func (c *BackupController) CancelBackup(ctx *gin.Context) {
 	user, ok := users_middleware.GetUserFromContext(ctx)
 	if !ok {
@@ -186,16 +138,6 @@ func (c *BackupController) CancelBackup(ctx *gin.Context) {
 	ctx.Status(http.StatusNoContent)
 }
 
-// GenerateDownloadToken
-// @Summary Generate short-lived download token
-// @Description Generate a token for downloading a backup file (valid for 5 minutes)
-// @Tags backups
-// @Param id path string true "Backup ID"
-// @Success 200 {object} download_token.GenerateTokenResponse
-// @Failure 400
-// @Failure 401
-// @Failure 409 {object} map[string]string "Download already in progress"
-// @Router /backups/{id}/download-token [post]
 func (c *BackupController) GenerateDownloadToken(ctx *gin.Context) {
 	user, ok := users_middleware.GetUserFromContext(ctx)
 	if !ok {
@@ -227,25 +169,6 @@ func (c *BackupController) GenerateDownloadToken(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, response)
 }
 
-// GetFile
-// @Summary Download a backup file
-// @Description Download the backup file for the specified backup using a download token.
-// @Description
-// @Description **Download Concurrency Control:**
-// @Description - Only one download per user is allowed at a time
-// @Description - If a download is already in progress, returns 409 Conflict
-// @Description - Downloads are tracked using cache with 5-second TTL and 3-second heartbeat
-// @Description - Browser cancellations automatically release the download lock
-// @Description - Server crashes are handled via automatic cache expiry (5 seconds)
-// @Tags backups
-// @Param id path string true "Backup ID"
-// @Param token query string true "Download token"
-// @Success 200 {file} file
-// @Failure 400 {object} map[string]string
-// @Failure 401 {object} map[string]string
-// @Failure 409 {object} map[string]string "Download already in progress"
-// @Failure 500 {object} map[string]string
-// @Router /backups/{id}/file [get]
 func (c *BackupController) GetFile(ctx *gin.Context) {
 	token := ctx.Query("token")
 	if token == "" {

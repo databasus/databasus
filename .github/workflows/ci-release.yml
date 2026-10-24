@@ -56,14 +56,6 @@ jobs:
           go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.11.3
           echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
 
-      - name: Install swag for swagger generation
-        run: go install github.com/swaggo/swag/cmd/swag@v1.16.4
-
-      - name: Generate swagger docs
-        run: |
-          cd backend
-          swag init -d . -g cmd/main.go -o swagger
-
       - name: Run golangci-lint
         run: |
           cd backend
@@ -440,7 +432,7 @@ jobs:
           # cleanup_test_db creates databasus_w0..w{workers-1} and resets the test PG
           # containers. Then migrate each slot DB so every
           # parallel `go test` worker connects to a migrated metadata DB.
-          go run ./cmd/cleanup_test_db
+          go run -tags testhelpers ./cmd/cleanup_test_db
           for i in $(seq 0 $((TEST_PARALLEL_WORKERS - 1))); do
             dbstring=$(echo "$GOOSE_TEST_DBSTRING" | sed -E "s#/([^/?]+)\?#/\1_w$i?#")
             echo "migrating slot $i"

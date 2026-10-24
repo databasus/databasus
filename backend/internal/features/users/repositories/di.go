@@ -1,24 +1,34 @@
 package users_repositories
 
+import "sync"
+
 var (
-	userRepository          = &UserRepository{}
-	usersSettingsRepository = &UsersSettingsRepository{}
-	passwordResetRepository = &PasswordResetRepository{}
-	twoFactorRepository     = &TwoFactorRepository{}
+	getUserRepository = sync.OnceValue(func() *UserRepository {
+		return &UserRepository{}
+	})
+	getUsersSettingsRepository = sync.OnceValue(func() *UsersSettingsRepository {
+		return &UsersSettingsRepository{}
+	})
+	getPasswordResetRepository = sync.OnceValue(func() *PasswordResetRepository {
+		return &PasswordResetRepository{}
+	})
+	getTwoFactorRepository = sync.OnceValue(func() *TwoFactorRepository {
+		return &TwoFactorRepository{}
+	})
 )
 
 func GetUserRepository() *UserRepository {
-	return userRepository
+	return getUserRepository()
 }
 
 func GetUsersSettingsRepository() *UsersSettingsRepository {
-	return usersSettingsRepository
+	return getUsersSettingsRepository()
 }
 
 func GetPasswordResetRepository() *PasswordResetRepository {
-	return passwordResetRepository
+	return getPasswordResetRepository()
 }
 
 func GetTwoFactorRepository() *TwoFactorRepository {
-	return twoFactorRepository
+	return getTwoFactorRepository()
 }

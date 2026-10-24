@@ -1,11 +1,17 @@
 package encryption
 
-import "databasus-backend/internal/features/encryption/secrets"
+import (
+	"sync"
 
-var fieldEncryptor = &SecretKeyFieldEncryptor{
-	secrets.GetSecretKeyService(),
-}
+	"databasus-backend/internal/features/encryption/secrets"
+)
+
+var getFieldEncryptor = sync.OnceValue(func() *SecretKeyFieldEncryptor {
+	return &SecretKeyFieldEncryptor{
+		secrets.GetSecretKeyService(),
+	}
+})
 
 func GetFieldEncryptor() FieldEncryptor {
-	return fieldEncryptor
+	return getFieldEncryptor()
 }

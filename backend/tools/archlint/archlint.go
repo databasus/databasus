@@ -15,7 +15,7 @@ type checkSpec struct {
 }
 
 var backendSpec = checkSpec{
-	entryPoints:   []string{"./cmd", "./cmd/databasus", "./cmd/verification-agent"},
+	entryPoints:   []string{"./cmd/databasus", "./cmd/verification-agent"},
 	cascadeCutoff: 20261024122431,
 }
 
@@ -60,12 +60,17 @@ func check(root string, spec checkSpec) ([]violation, error) {
 		return nil, err
 	}
 
+	transactionViolations, err := checkMigrationTransactions(root, filepath.Join(root, "migrations"))
+	if err != nil {
+		return nil, err
+	}
+
 	dependencyViolations, err := checkProductionDependencies(root, spec.entryPoints)
 	if err != nil {
 		return nil, err
 	}
 
-	violations = slices.Concat(violations, cascadeViolations, dependencyViolations)
+	violations = slices.Concat(violations, cascadeViolations, transactionViolations, dependencyViolations)
 	slices.SortFunc(violations, func(first, second violation) int {
 		return strings.Compare(first.String(), second.String())
 	})

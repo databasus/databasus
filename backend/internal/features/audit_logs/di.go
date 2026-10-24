@@ -8,37 +8,45 @@ import (
 )
 
 var (
-	auditLogRepository = &AuditLogRepository{}
-	auditLogService    = &AuditLogService{
-		auditLogRepository,
-		logger.GetLogger(),
-		logger.GetAuditLogger(),
-	}
+	getAuditLogRepository = sync.OnceValue(func() *AuditLogRepository {
+		return &AuditLogRepository{}
+	})
+	getAuditLogService = sync.OnceValue(func() *AuditLogService {
+		return &AuditLogService{
+			getAuditLogRepository(),
+			logger.GetLogger(),
+			logger.GetAuditLogger(),
+		}
+	})
 )
 
-var auditLogController = &AuditLogController{
-	auditLogService,
-}
+var getAuditLogController = sync.OnceValue(func() *AuditLogController {
+	return &AuditLogController{
+		getAuditLogService(),
+	}
+})
 
-var auditLogBackgroundService = &AuditLogBackgroundService{
-	auditLogService: auditLogService,
-	logger:          logger.GetLogger(),
-}
+var getAuditLogBackgroundService = sync.OnceValue(func() *AuditLogBackgroundService {
+	return &AuditLogBackgroundService{
+		auditLogService: getAuditLogService(),
+		logger:          logger.GetLogger(),
+	}
+})
 
 func GetAuditLogService() *AuditLogService {
-	return auditLogService
+	return getAuditLogService()
 }
 
 func GetAuditLogController() *AuditLogController {
-	return auditLogController
+	return getAuditLogController()
 }
 
 func GetAuditLogBackgroundService() *AuditLogBackgroundService {
-	return auditLogBackgroundService
+	return getAuditLogBackgroundService()
 }
 
 var SetupDependencies = sync.OnceFunc(func() {
-	users_services.GetUserService().SetAuditLogWriter(auditLogService)
-	users_services.GetSettingsService().SetAuditLogWriter(auditLogService)
-	users_services.GetManagementService().SetAuditLogWriter(auditLogService)
+	users_services.GetUserService().SetAuditLogWriter(getAuditLogService())
+	users_services.GetSettingsService().SetAuditLogWriter(getAuditLogService())
+	users_services.GetManagementService().SetAuditLogWriter(getAuditLogService())
 })

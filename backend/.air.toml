@@ -4,12 +4,12 @@ root = "."
 tmp_dir = "tmp"
 
 [build]
-  cmd = "go build -o ./tmp/databasus ./cmd"
+  cmd = "go build -o ./tmp/databasus ./cmd/databasus"
   entrypoint = ["./tmp/databasus"]
   include_ext = ["go"]
   # Tests and the dev-only commands are not part of the server binary, and the rest are generated
   # files or data the backend writes itself.
-  exclude_dir = ["tmp", "swagger", "ui", "migrations", "cmd/seed_dev", "cmd/cleanup_test_db", "pgdata_test", "pgdata-for-restore", "temp"]
+  exclude_dir = ["tmp", "ui", "migrations", "cmd/seed_dev", "cmd/cleanup_test_db", "pgdata_test", "pgdata-for-restore", "temp"]
   exclude_regex = ["_test\\.go$"]
   # One rebuild for an editor that saves several files at once.
   delay = 1000

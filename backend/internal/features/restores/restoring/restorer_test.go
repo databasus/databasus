@@ -99,7 +99,7 @@ func Test_MakeRestore_WhenCacheMissed_RestoreFails(t *testing.T) {
 		BackupID: backup.ID,
 		Status:   restores_core.RestoreStatusInProgress,
 	}
-	err := restoreRepository.Save(restore)
+	err := getRestoreRepository().Save(restore)
 	assert.NoError(t, err)
 
 	// Create restorer and execute restore (should fail due to cache miss)
@@ -107,7 +107,7 @@ func Test_MakeRestore_WhenCacheMissed_RestoreFails(t *testing.T) {
 	restorer.MakeRestore(t.Context(), restore.ID, nil)
 
 	// Verify restore failed with appropriate error message
-	updatedRestore, err := restoreRepository.FindByID(restore.ID)
+	updatedRestore, err := getRestoreRepository().FindByID(restore.ID)
 	assert.NoError(t, err)
 	assert.Equal(t, restores_core.RestoreStatusFailed, updatedRestore.Status)
 	assert.NotNil(t, updatedRestore.FailMessage)
@@ -167,7 +167,7 @@ func Test_MakeRestore_WhenTaskStarts_CacheDeletedImmediately(t *testing.T) {
 		BackupID: backup.ID,
 		Status:   restores_core.RestoreStatusInProgress,
 	}
-	err := restoreRepository.Save(restore)
+	err := getRestoreRepository().Save(restore)
 	assert.NoError(t, err)
 
 	// Cache DB credentials separately
@@ -181,7 +181,7 @@ func Test_MakeRestore_WhenTaskStarts_CacheDeletedImmediately(t *testing.T) {
 			Version:  "16",
 		},
 	}
-	require.NoError(t, restoreDatabaseCache.SetWithLifetime(
+	require.NoError(t, getRestoreDatabaseCache().SetWithLifetime(
 		t.Context(),
 		cache.ExpiringValue[RestoreDatabaseCache]{
 			Key:      restore.ID.String(),
@@ -191,7 +191,7 @@ func Test_MakeRestore_WhenTaskStarts_CacheDeletedImmediately(t *testing.T) {
 	))
 
 	// Verify cache exists before restore starts
-	cachedDB, err := restoreDatabaseCache.Get(t.Context(), restore.ID.String())
+	cachedDB, err := getRestoreDatabaseCache().Get(t.Context(), restore.ID.String())
 	require.NoError(t, err)
 	assert.NotNil(t, cachedDB, "Cache should exist before restore starts")
 
@@ -200,7 +200,7 @@ func Test_MakeRestore_WhenTaskStarts_CacheDeletedImmediately(t *testing.T) {
 	restorer.MakeRestore(t.Context(), restore.ID, nil)
 
 	// Verify cache was deleted immediately
-	cachedDBAfter, err := restoreDatabaseCache.Get(t.Context(), restore.ID.String())
+	cachedDBAfter, err := getRestoreDatabaseCache().Get(t.Context(), restore.ID.String())
 	require.NoError(t, err)
 	assert.Nil(t, cachedDBAfter, "Cache should be deleted immediately when task starts")
 }
@@ -217,7 +217,7 @@ func Test_MakeRestore_WhenShutdownSignalCloses_RestoreFailsWithShutdownMessage(t
 	close(shutdownSignal)
 	waitForRestoreToReturn(t, restoreFinished)
 
-	persistedRestore, err := restoreRepository.FindByID(restore.ID)
+	persistedRestore, err := getRestoreRepository().FindByID(restore.ID)
 	require.NoError(t, err)
 	assert.Equal(t, restores_core.RestoreStatusFailed, persistedRestore.Status)
 	require.NotNil(t, persistedRestore.FailMessage)
@@ -235,7 +235,7 @@ func Test_MakeRestore_WhenCancellationRequested_RestoreCancelled(t *testing.T) {
 	tasks_cancellation.GetRegistry().CancelRegisteredTask(restore.ID)
 	waitForRestoreToReturn(t, restoreFinished)
 
-	persistedRestore, err := restoreRepository.FindByID(restore.ID)
+	persistedRestore, err := getRestoreRepository().FindByID(restore.ID)
 	require.NoError(t, err)
 	assert.Equal(t, restores_core.RestoreStatusCanceled, persistedRestore.Status)
 }
@@ -247,7 +247,7 @@ func Test_MakeRestore_WhenStorageErrorWrapsCanceled_RestoreFails(t *testing.T) {
 
 	restorer.MakeRestore(t.Context(), restore.ID, databaseCache)
 
-	persistedRestore, err := restoreRepository.FindByID(restore.ID)
+	persistedRestore, err := getRestoreRepository().FindByID(restore.ID)
 	require.NoError(t, err)
 	assert.Equal(t, restores_core.RestoreStatusFailed, persistedRestore.Status)
 	require.NotNil(t, persistedRestore.FailMessage)
@@ -295,7 +295,7 @@ func assertRestoreCompletedFromStorage(
 ) {
 	t.Helper()
 
-	persistedRestore, err := restoreRepository.FindByID(fixture.restore.ID)
+	persistedRestore, err := getRestoreRepository().FindByID(fixture.restore.ID)
 	require.NoError(t, err)
 	assert.Equal(t, restores_core.RestoreStatusCompleted, persistedRestore.Status)
 	require.NotNil(t, storageCapturingUsecase.ReceivedStorage)
@@ -337,10 +337,10 @@ func createRestoreWithConfigStorage(t *testing.T, configStorage configStorageCho
 		BackupID: backup.ID,
 		Status:   restores_core.RestoreStatusInProgress,
 	}
-	require.NoError(t, restoreRepository.Save(restore))
+	require.NoError(t, getRestoreRepository().Save(restore))
 
 	t.Cleanup(func() {
-		_ = restoreRepository.DeleteByID(restore.ID)
+		_ = getRestoreRepository().DeleteByID(restore.ID)
 		_ = (&backups_core_logical.BackupRepository{}).DeleteByID(backup.ID)
 		databases.RemoveTestDatabase(t.Context(), database)
 		notifiers.RemoveTestNotifier(notifier)

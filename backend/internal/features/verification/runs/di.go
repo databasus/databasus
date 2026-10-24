@@ -15,57 +15,67 @@ import (
 	"databasus-backend/internal/util/logger"
 )
 
-var verificationRepository = &VerificationRepository{}
+var getVerificationRepository = sync.OnceValue(func() *VerificationRepository {
+	return &VerificationRepository{}
+})
 
-var verificationService = &VerificationService{
-	verificationRepository,
-	databases.GetDatabaseService(),
-	backups_services.GetBackupService(),
-	verification_config.GetVerificationConfigService(),
-	notifiers.GetNotifierService(),
-	workspaces_services.GetWorkspaceService(),
-	audit_logs.GetAuditLogService(),
-	logger.GetLogger(),
-}
+var getVerificationService = sync.OnceValue(func() *VerificationService {
+	return &VerificationService{
+		getVerificationRepository(),
+		databases.GetDatabaseService(),
+		backups_services.GetBackupService(),
+		verification_config.GetVerificationConfigService(),
+		notifiers.GetNotifierService(),
+		workspaces_services.GetWorkspaceService(),
+		audit_logs.GetAuditLogService(),
+		logger.GetLogger(),
+	}
+})
 
-var verificationScheduler = &VerificationScheduler{
-	verificationRepository,
-	verificationService,
-	verification_config.GetVerificationConfigService(),
-	verification_agents.GetAgentService(),
-	backups_services.GetBackupService(),
-	databases.GetDatabaseService(),
-	logger.GetLogger(),
-	atomic.Bool{},
-}
+var getVerificationScheduler = sync.OnceValue(func() *VerificationScheduler {
+	return &VerificationScheduler{
+		getVerificationRepository(),
+		getVerificationService(),
+		verification_config.GetVerificationConfigService(),
+		verification_agents.GetAgentService(),
+		backups_services.GetBackupService(),
+		databases.GetDatabaseService(),
+		logger.GetLogger(),
+		atomic.Bool{},
+	}
+})
 
-var verificationController = &VerificationController{
-	verificationService,
-}
+var getVerificationController = sync.OnceValue(func() *VerificationController {
+	return &VerificationController{
+		getVerificationService(),
+	}
+})
 
-var verificationAgentController = &VerificationAgentController{
-	verificationService,
-	verification_agents.GetAgentService(),
-	logger.GetLogger(),
-}
+var getVerificationAgentController = sync.OnceValue(func() *VerificationAgentController {
+	return &VerificationAgentController{
+		getVerificationService(),
+		verification_agents.GetAgentService(),
+		logger.GetLogger(),
+	}
+})
 
 func GetVerificationService() *VerificationService {
-	return verificationService
+	return getVerificationService()
 }
 
 func GetVerificationScheduler() *VerificationScheduler {
-	return verificationScheduler
+	return getVerificationScheduler()
 }
 
 func GetVerificationController() *VerificationController {
-	return verificationController
+	return getVerificationController()
 }
 
 func GetVerificationAgentController() *VerificationAgentController {
-	return verificationAgentController
+	return getVerificationAgentController()
 }
 
 var SetupDependencies = sync.OnceFunc(func() {
-	verification_agents.GetAgentService().AddAgentHeartbeatedListener(verificationService)
-	backuping_logical.GetBackupsScheduler().AddBackupCompletionListener(verificationService)
+	verification_agents.GetAgentService().AddAgentHeartbeatedListener(getVerificationService())
+	backuping_logical.GetBackupsScheduler().AddBackupCompletionListener(getVerificationService())
 })

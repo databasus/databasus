@@ -1,6 +1,7 @@
 package restoring
 
 import (
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -17,39 +18,47 @@ import (
 	"databasus-backend/internal/util/logger"
 )
 
-var restoreRepository = &restores_core.RestoreRepository{}
+var getRestoreRepository = sync.OnceValue(func() *restores_core.RestoreRepository {
+	return &restores_core.RestoreRepository{}
+})
 
-var restoreDatabaseCache = cache.NewJSONStore[RestoreDatabaseCache](cache.GetStore(), "restore_db")
+var getRestoreDatabaseCache = sync.OnceValue(func() *cache.JSONStore[RestoreDatabaseCache] {
+	return cache.NewJSONStore[RestoreDatabaseCache](cache.GetStore(), "restore_db")
+})
 
-var taskCancellationRegistry = tasks_cancellation.GetRegistry()
+var getTaskCancellationRegistry = sync.OnceValue(tasks_cancellation.GetRegistry)
 
-var restorer = &Restorer{
-	databases.GetDatabaseService(),
-	backups_services.GetBackupService(),
-	encryption.GetFieldEncryptor(),
-	restoreRepository,
-	backups_config_logical.GetBackupConfigService(),
-	storages.GetStorageService(),
-	logger.GetLogger(),
-	usecases.GetRestoreBackupUsecase(),
-	restoreDatabaseCache,
-	taskCancellationRegistry,
-	config.GetShutdownSignal(),
-}
+var getRestorer = sync.OnceValue(func() *Restorer {
+	return &Restorer{
+		databases.GetDatabaseService(),
+		backups_services.GetBackupService(),
+		encryption.GetFieldEncryptor(),
+		getRestoreRepository(),
+		backups_config_logical.GetBackupConfigService(),
+		storages.GetStorageService(),
+		logger.GetLogger(),
+		usecases.GetRestoreBackupUsecase(),
+		getRestoreDatabaseCache(),
+		getTaskCancellationRegistry(),
+		config.GetShutdownSignal(),
+	}
+})
 
-var restoresScheduler = &RestoresScheduler{
-	restoreRepository,
-	time.Now().UTC(),
-	logger.GetLogger(),
-	restorer,
-	restoreDatabaseCache,
-	atomic.Bool{},
-}
+var getRestoresScheduler = sync.OnceValue(func() *RestoresScheduler {
+	return &RestoresScheduler{
+		getRestoreRepository(),
+		time.Now().UTC(),
+		logger.GetLogger(),
+		getRestorer(),
+		getRestoreDatabaseCache(),
+		atomic.Bool{},
+	}
+})
 
 func GetRestoresScheduler() *RestoresScheduler {
-	return restoresScheduler
+	return getRestoresScheduler()
 }
 
 func GetRestorer() *Restorer {
-	return restorer
+	return getRestorer()
 }

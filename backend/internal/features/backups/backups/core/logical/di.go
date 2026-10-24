@@ -1,7 +1,11 @@
 package backups_core_logical
 
-var backupRepository = &BackupRepository{}
+import "sync"
+
+var getBackupRepository = sync.OnceValue(func() *BackupRepository {
+	return &BackupRepository{}
+})
 
 func GetBackupRepository() *BackupRepository {
-	return backupRepository
+	return getBackupRepository()
 }

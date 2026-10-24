@@ -42,35 +42,12 @@ func (c *PhysicalBackupController) RegisterPublicRoutes(router *gin.RouterGroup)
 	router.GET("/backups/physical/recovery-script", c.GetRecoveryScript)
 }
 
-// GetRecoveryScript
-// @Summary Download the physical-restore helper script
-// @Description Returns a POSIX sh script that takes a restore-stream URL (with its token) or a local bundle path, decompresses the backup blobs and WAL with the host's zstd up front, runs pg_combinebackup and wires up recovery with a plain-cp restore_command so the started cluster needs no extra tools. Pass --combine-image <postgres-image> to run pg_combinebackup in a container when the host lacks the PostgreSQL tools. It carries no secrets, so it needs no auth.
-// @Tags backups-physical
-// @Produce plain
-// @Success 200 {string} string "shell script"
-// @Router /backups/physical/recovery-script [get]
 func (c *PhysicalBackupController) GetRecoveryScript(ctx *gin.Context) {
 	ctx.Header("Content-Type", "text/x-shellscript; charset=utf-8")
 	ctx.Header("Content-Disposition", `inline; filename="databasus-recovery.sh"`)
 	ctx.String(http.StatusOK, recoveryScript)
 }
 
-// GetBackups
-// @Summary List physical backups for a database
-// @Description Returns a page of physical backups — FULLs, incrementals and WAL ranges of consecutive committed segments — as one flat list newest-first, with the database's total on-disk usage. nextCursor is set while further rows exist; pass it as cursor to get the next page. A malformed cursor returns 400.
-// @Tags backups-physical
-// @Produce json
-// @Security BearerAuth
-// @Param id path string true "Database ID"
-// @Param limit query int false "Page size (default 50, max 1000)"
-// @Param cursor query string false "nextCursor of the previous page; omit for the first page"
-// @Param type query []string false "Filter by backup type - repeatable, matches any" Enums(FULL, INCREMENTAL, WAL) collectionFormat(multi)
-// @Param status query []string false "Filter by status - repeatable, matches any (e.g. COMPLETED, IN_PROGRESS)" collectionFormat(multi)
-// @Param beforeDate query string false "Keep only backups created before this date (RFC3339)" format(date-time)
-// @Success 200 {object} backups_dto_physical.GetPhysicalBackupsResponse
-// @Failure 400 {object} map[string]string
-// @Failure 401 {object} map[string]string
-// @Router /backups/physical/database/{id}/backups [get]
 func (c *PhysicalBackupController) GetBackups(ctx *gin.Context) {
 	user, ok := users_middleware.GetUserFromContext(ctx)
 	if !ok {
@@ -99,17 +76,6 @@ func (c *PhysicalBackupController) GetBackups(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, response)
 }
 
-// GetWalStreamLive
-// @Summary Get the current WAL stream values of a database
-// @Description Returns the current values of a physical PostgreSQL database's running WAL stream, read from the running streamer at the time of the request and never stored, for a screen that refreshes every second: the local queue and its pause size, whether receiving runs, the archive progress point, the time the newest WAL segment was archived and how much is not saved to storage yet. The source-side values (current position, slot status, slot lag, remaining allowance) come from the streamer's newest probe of the source, made at least every 10 seconds, with the time of that probe; the request opens no connection to the source. While no streamer runs for the database, isStreamerRunning is false and current is null. Amounts carry their unit in their name and times are UTC. Any other database type or a database the user cannot view returns 400.
-// @Tags backups-physical
-// @Produce json
-// @Security BearerAuth
-// @Param id path string true "Database ID"
-// @Success 200 {object} backups_dto_physical.GetWalStreamLiveResponse
-// @Failure 400 {object} map[string]string
-// @Failure 401 {object} map[string]string
-// @Router /backups/physical/database/{id}/wal-stream/live [get]
 func (c *PhysicalBackupController) GetWalStreamLive(ctx *gin.Context) {
 	user, ok := users_middleware.GetUserFromContext(ctx)
 	if !ok {
@@ -132,18 +98,6 @@ func (c *PhysicalBackupController) GetWalStreamLive(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, response)
 }
 
-// GetWalStreamStatistics
-// @Summary Get WAL stream statistics for a database
-// @Description Returns how healthy WAL archiving of a physical PostgreSQL database is: one verdict with its reasons and notices, the latest moment a restore to the latest available point reaches (null before the first completed full backup), the stretches of time the newest chain can restore to (empty before the first completed full backup), the streamer's state, the values of the newest sample, a keeping-up summary of the last 10 minutes and a chart series for the requested period. Amounts carry their unit in their name, times are UTC, and the verdict, states, reasons and notices are codes from the documented enums, never display text. Samples are taken every 30 seconds and kept for 7 days. A physical database outside WAL streaming mode gets the NOT_STREAMING verdict with the samples it still has; any other database type, an unknown period or a database the user cannot view returns 400.
-// @Tags backups-physical
-// @Produce json
-// @Security BearerAuth
-// @Param id path string true "Database ID"
-// @Param period query string true "Chart period: the last hour in 1-minute points, the last day in 4-minute points or the last week in 28-minute points" Enums(HOUR, DAY, WEEK)
-// @Success 200 {object} backups_dto_physical.GetWalStreamStatisticsResponse
-// @Failure 400 {object} map[string]string
-// @Failure 401 {object} map[string]string
-// @Router /backups/physical/database/{id}/wal-stream/statistics [get]
 func (c *PhysicalBackupController) GetWalStreamStatistics(ctx *gin.Context) {
 	user, ok := users_middleware.GetUserFromContext(ctx)
 	if !ok {
@@ -172,20 +126,6 @@ func (c *PhysicalBackupController) GetWalStreamStatistics(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, response)
 }
 
-// TriggerBackup
-// @Summary Trigger a physical backup
-// @Description Requests an out-of-cadence backup, honored on the scheduler's next tick. type=full forces a new full; type=incremental extends the current chain (409 if none); type=auto lets the scheduler pick.
-// @Tags backups-physical
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Param id path string true "Database ID"
-// @Param request body backups_dto_physical.TriggerBackupRequest true "Backup type to trigger"
-// @Success 202 {object} map[string]string
-// @Failure 400 {object} map[string]string
-// @Failure 401 {object} map[string]string
-// @Failure 409 {object} map[string]string
-// @Router /backups/physical/database/{id}/trigger [post]
 func (c *PhysicalBackupController) TriggerBackup(ctx *gin.Context) {
 	user, ok := users_middleware.GetUserFromContext(ctx)
 	if !ok {
@@ -218,20 +158,6 @@ func (c *PhysicalBackupController) TriggerBackup(ctx *gin.Context) {
 	ctx.JSON(http.StatusAccepted, gin.H{"message": "backup requested"})
 }
 
-// GenerateRestoreToken
-// @Summary Issue a restore-stream token
-// @Description Issues a single-use, short-TTL token that authorizes the agent-less restore stream. Omit targetTime to restore to the latest available point.
-// @Tags backups-physical
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Param id path string true "Database ID"
-// @Param request body backups_dto_physical.GenerateRestoreTokenRequest true "Restore target"
-// @Success 200 {object} backups_dto_physical.GenerateRestoreTokenResponse
-// @Failure 400 {object} map[string]string
-// @Failure 401 {object} map[string]string
-// @Failure 409 {object} map[string]string
-// @Router /backups/physical/database/{id}/restore-token [post]
 func (c *PhysicalBackupController) GenerateRestoreToken(ctx *gin.Context) {
 	user, ok := users_middleware.GetUserFromContext(ctx)
 	if !ok {
@@ -276,19 +202,6 @@ func (c *PhysicalBackupController) GenerateRestoreToken(ctx *gin.Context) {
 	})
 }
 
-// GenerateBackupRestoreToken
-// @Summary Issue a restore-stream token for a specific backup
-// @Description Issues a single-use token authorizing a per-backup restore stream: a FULL restores just itself; an incremental restores its FULL plus its incremental ancestors. No WAL replay is involved.
-// @Tags backups-physical
-// @Produce json
-// @Security BearerAuth
-// @Param backupId path string true "Backup ID (FULL or incremental)"
-// @Success 200 {object} backups_dto_physical.GenerateRestoreTokenResponse
-// @Failure 400 {object} map[string]string
-// @Failure 401 {object} map[string]string
-// @Failure 404 {object} map[string]string
-// @Failure 409 {object} map[string]string
-// @Router /backups/physical/backups/{backupId}/restore-token [post]
 func (c *PhysicalBackupController) GenerateBackupRestoreToken(ctx *gin.Context) {
 	user, ok := users_middleware.GetUserFromContext(ctx)
 	if !ok {
@@ -331,17 +244,6 @@ func (c *PhysicalBackupController) GenerateBackupRestoreToken(ctx *gin.Context) 
 	})
 }
 
-// CancelBackup
-// @Summary Cancel an in-progress physical backup
-// @Description Stops a FULL or incremental backup that is currently running and releases its in-flight claim. Returns 400 if the backup is not in progress.
-// @Tags backups-physical
-// @Security BearerAuth
-// @Param backupId path string true "Backup ID"
-// @Success 204
-// @Failure 400 {object} map[string]string
-// @Failure 401 {object} map[string]string
-// @Failure 404 {object} map[string]string
-// @Router /backups/physical/backups/{backupId}/cancel [post]
 func (c *PhysicalBackupController) CancelBackup(ctx *gin.Context) {
 	user, ok := users_middleware.GetUserFromContext(ctx)
 	if !ok {
@@ -368,17 +270,6 @@ func (c *PhysicalBackupController) CancelBackup(ctx *gin.Context) {
 	ctx.Status(http.StatusNoContent)
 }
 
-// DeleteBackup
-// @Summary Delete a physical backup and its dependent cascade
-// @Description Deletes a backup. A FULL removes its whole chain (incrementals + WAL); an incremental removes it and its descendant incrementals (WAL kept); a WAL segment removes it and the later WAL up to the next FULL/incremental. A running backup in the removed set is cancelled first.
-// @Tags backups-physical
-// @Security BearerAuth
-// @Param backupId path string true "Backup ID (FULL, incremental or WAL segment)"
-// @Success 204
-// @Failure 400 {object} map[string]string
-// @Failure 401 {object} map[string]string
-// @Failure 404 {object} map[string]string
-// @Router /backups/physical/backups/{backupId} [delete]
 func (c *PhysicalBackupController) DeleteBackup(ctx *gin.Context) {
 	user, ok := users_middleware.GetUserFromContext(ctx)
 	if !ok {
@@ -405,18 +296,6 @@ func (c *PhysicalBackupController) DeleteBackup(ctx *gin.Context) {
 	ctx.Status(http.StatusNoContent)
 }
 
-// GetRestoreStream
-// @Summary Stream a ready-to-restore directory as a tar
-// @Description Resolves the restore set for the token's database + target and streams an artifact-only tar of the stored, still-compressed bytes (full/base.tar.zst, incr-N/base.tar.zst, each with a backup_manifest, plus wal/ and MANIFEST.sha256). curl '<url>' | tar -x, then run the reconstruction command shown in the UI (decompress the blobs, pg_combinebackup + recovery settings). Public: authorized by the ?token= query param, not Bearer.
-// @Tags backups-physical
-// @Produce application/x-tar
-// @Param token query string true "Restore token"
-// @Success 200
-// @Failure 401 {object} map[string]string
-// @Failure 404 {object} map[string]string
-// @Failure 409 {object} map[string]string
-// @Failure 422 {object} map[string]string
-// @Router /backups/physical/restore-stream [get]
 func (c *PhysicalBackupController) GetRestoreStream(ctx *gin.Context) {
 	token := ctx.Query("token")
 	if token == "" {

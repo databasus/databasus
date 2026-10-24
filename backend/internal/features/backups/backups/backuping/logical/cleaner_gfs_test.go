@@ -384,9 +384,9 @@ func Test_CleanByGFS_KeepsCorrectBackupsPerSlot(t *testing.T) {
 	database := databases.CreateTestDatabase(workspace.ID, storage, notifier)
 
 	defer func() {
-		backups, _ := backupRepository.FindByDatabaseID(database.ID)
+		backups, _ := getBackupRepository().FindByDatabaseID(database.ID)
 		for _, backup := range backups {
-			backupRepository.DeleteByID(backup.ID)
+			getBackupRepository().DeleteByID(backup.ID)
 		}
 
 		databases.RemoveTestDatabase(t.Context(), database)
@@ -425,7 +425,7 @@ func Test_CleanByGFS_KeepsCorrectBackupsPerSlot(t *testing.T) {
 			BackupSizeMb: 10,
 			CreatedAt:    now.Add(-time.Duration(4-i) * 24 * time.Hour).Truncate(24 * time.Hour),
 		}
-		err = backupRepository.Save(backup)
+		err = getBackupRepository().Save(backup)
 		assert.NoError(t, err)
 		backupIDs = append(backupIDs, backup.ID)
 	}
@@ -434,7 +434,7 @@ func Test_CleanByGFS_KeepsCorrectBackupsPerSlot(t *testing.T) {
 	err = cleaner.cleanByRetentionPolicy(t.Context(), testLogger())
 	assert.NoError(t, err)
 
-	remainingBackups, err := backupRepository.FindByDatabaseID(database.ID)
+	remainingBackups, err := getBackupRepository().FindByDatabaseID(database.ID)
 	assert.NoError(t, err)
 	assert.Equal(t, 3, len(remainingBackups))
 
@@ -458,9 +458,9 @@ func Test_CleanByGFS_WithWeeklyAndMonthlySlots_KeepsWiderSpread(t *testing.T) {
 	database := databases.CreateTestDatabase(workspace.ID, storage, notifier)
 
 	defer func() {
-		backups, _ := backupRepository.FindByDatabaseID(database.ID)
+		backups, _ := getBackupRepository().FindByDatabaseID(database.ID)
 		for _, backup := range backups {
-			backupRepository.DeleteByID(backup.ID)
+			getBackupRepository().DeleteByID(backup.ID)
 		}
 
 		databases.RemoveTestDatabase(t.Context(), database)
@@ -501,7 +501,7 @@ func Test_CleanByGFS_WithWeeklyAndMonthlySlots_KeepsWiderSpread(t *testing.T) {
 			BackupSizeMb: 10,
 			CreatedAt:    now.Add(-weekOffset).Truncate(24 * time.Hour),
 		}
-		err = backupRepository.Save(backup)
+		err = getBackupRepository().Save(backup)
 		assert.NoError(t, err)
 		createdIDs = append(createdIDs, backup.ID)
 	}
@@ -510,7 +510,7 @@ func Test_CleanByGFS_WithWeeklyAndMonthlySlots_KeepsWiderSpread(t *testing.T) {
 	err = cleaner.cleanByRetentionPolicy(t.Context(), testLogger())
 	assert.NoError(t, err)
 
-	remainingBackups, err := backupRepository.FindByDatabaseID(database.ID)
+	remainingBackups, err := getBackupRepository().FindByDatabaseID(database.ID)
 	assert.NoError(t, err)
 
 	// We should have at most 5 backups kept (2 daily + 2 weekly + 1 monthly, but with overlap possible)
@@ -536,9 +536,9 @@ func Test_CleanByGFS_WithHourlySlots_KeepsCorrectBackups(t *testing.T) {
 	database := databases.CreateTestDatabase(workspace.ID, testStorage, notifier)
 
 	defer func() {
-		backups, _ := backupRepository.FindByDatabaseID(database.ID)
+		backups, _ := getBackupRepository().FindByDatabaseID(database.ID)
 		for _, backup := range backups {
-			backupRepository.DeleteByID(backup.ID)
+			getBackupRepository().DeleteByID(backup.ID)
 		}
 
 		databases.RemoveTestDatabase(t.Context(), database)
@@ -574,7 +574,7 @@ func Test_CleanByGFS_WithHourlySlots_KeepsCorrectBackups(t *testing.T) {
 			BackupSizeMb: 10,
 			CreatedAt:    now.Add(-time.Duration(4-i) * time.Hour).Truncate(time.Hour),
 		}
-		err = backupRepository.Save(backup)
+		err = getBackupRepository().Save(backup)
 		assert.NoError(t, err)
 		backupIDs = append(backupIDs, backup.ID)
 	}
@@ -583,7 +583,7 @@ func Test_CleanByGFS_WithHourlySlots_KeepsCorrectBackups(t *testing.T) {
 	err = cleaner.cleanByRetentionPolicy(t.Context(), testLogger())
 	assert.NoError(t, err)
 
-	remainingBackups, err := backupRepository.FindByDatabaseID(database.ID)
+	remainingBackups, err := getBackupRepository().FindByDatabaseID(database.ID)
 	assert.NoError(t, err)
 	assert.Equal(t, 3, len(remainingBackups))
 
@@ -607,9 +607,9 @@ func Test_CleanByGFS_SkipsRecentBackup_WhenNotInKeepSet(t *testing.T) {
 	database := databases.CreateTestDatabase(workspace.ID, storage, notifier)
 
 	defer func() {
-		backups, _ := backupRepository.FindByDatabaseID(database.ID)
+		backups, _ := getBackupRepository().FindByDatabaseID(database.ID)
 		for _, backup := range backups {
-			backupRepository.DeleteByID(backup.ID)
+			getBackupRepository().DeleteByID(backup.ID)
 		}
 
 		databases.RemoveTestDatabase(t.Context(), database)
@@ -675,7 +675,7 @@ func Test_CleanByGFS_SkipsRecentBackup_WhenNotInKeepSet(t *testing.T) {
 	}
 
 	for _, b := range []*backups_core_logical.LogicalBackup{oldBackup1, oldBackup2, newestTodayBackup, recentNotInKeepSet} {
-		err = backupRepository.Save(b)
+		err = getBackupRepository().Save(b)
 		assert.NoError(t, err)
 	}
 
@@ -683,7 +683,7 @@ func Test_CleanByGFS_SkipsRecentBackup_WhenNotInKeepSet(t *testing.T) {
 	err = cleaner.cleanByRetentionPolicy(t.Context(), testLogger())
 	assert.NoError(t, err)
 
-	remainingBackups, err := backupRepository.FindByDatabaseID(database.ID)
+	remainingBackups, err := getBackupRepository().FindByDatabaseID(database.ID)
 	assert.NoError(t, err)
 
 	remainingIDs := make(map[uuid.UUID]bool)
@@ -714,9 +714,9 @@ func Test_CleanByGFS_With20DailyBackups_KeepsOnlyExpectedCount(t *testing.T) {
 	database := databases.CreateTestDatabase(workspace.ID, testStorage, notifier)
 
 	defer func() {
-		backups, _ := backupRepository.FindByDatabaseID(database.ID)
+		backups, _ := getBackupRepository().FindByDatabaseID(database.ID)
 		for _, backup := range backups {
-			backupRepository.DeleteByID(backup.ID)
+			getBackupRepository().DeleteByID(backup.ID)
 		}
 
 		databases.RemoveTestDatabase(t.Context(), database)
@@ -755,7 +755,7 @@ func Test_CleanByGFS_With20DailyBackups_KeepsOnlyExpectedCount(t *testing.T) {
 			BackupSizeMb: 10,
 			CreatedAt:    now.Add(-time.Duration(19-i)*24*time.Hour - 2*time.Hour),
 		}
-		err = backupRepository.Save(backup)
+		err = getBackupRepository().Save(backup)
 		assert.NoError(t, err)
 		backupIDs = append(backupIDs, backup.ID)
 	}
@@ -764,7 +764,7 @@ func Test_CleanByGFS_With20DailyBackups_KeepsOnlyExpectedCount(t *testing.T) {
 	err = cleaner.cleanByRetentionPolicy(t.Context(), testLogger())
 	assert.NoError(t, err)
 
-	remainingBackups, err := backupRepository.FindByDatabaseID(database.ID)
+	remainingBackups, err := getBackupRepository().FindByDatabaseID(database.ID)
 	assert.NoError(t, err)
 
 	// GFS 7d/4w/1m: 7 daily slots + up to 4 weekly + 1 monthly (with overlap).
@@ -795,9 +795,9 @@ func Test_CleanByGFS_WithMultipleBackupsPerDay_KeepsOnlyOnePerDailySlot(t *testi
 	database := databases.CreateTestDatabase(workspace.ID, testStorage, notifier)
 
 	defer func() {
-		backups, _ := backupRepository.FindByDatabaseID(database.ID)
+		backups, _ := getBackupRepository().FindByDatabaseID(database.ID)
 		for _, backup := range backups {
-			backupRepository.DeleteByID(backup.ID)
+			getBackupRepository().DeleteByID(backup.ID)
 		}
 
 		databases.RemoveTestDatabase(t.Context(), database)
@@ -839,7 +839,7 @@ func Test_CleanByGFS_WithMultipleBackupsPerDay_KeepsOnlyOnePerDailySlot(t *testi
 						time.Duration(2-sub)*6*time.Hour,
 				),
 			}
-			err = backupRepository.Save(backup)
+			err = getBackupRepository().Save(backup)
 			assert.NoError(t, err)
 		}
 	}
@@ -848,7 +848,7 @@ func Test_CleanByGFS_WithMultipleBackupsPerDay_KeepsOnlyOnePerDailySlot(t *testi
 	err = cleaner.cleanByRetentionPolicy(t.Context(), testLogger())
 	assert.NoError(t, err)
 
-	remainingBackups, err := backupRepository.FindByDatabaseID(database.ID)
+	remainingBackups, err := getBackupRepository().FindByDatabaseID(database.ID)
 	assert.NoError(t, err)
 
 	// 10 days spans ~2 ISO weeks. GFS 7d/4w: weekly slots overlap with daily.
@@ -884,9 +884,9 @@ func Test_CleanByGFS_With24HourlySlotsAnd23DailyBackups_DeletesExcessBackups(t *
 	database := databases.CreateTestDatabase(workspace.ID, testStorage, notifier)
 
 	defer func() {
-		backups, _ := backupRepository.FindByDatabaseID(database.ID)
+		backups, _ := getBackupRepository().FindByDatabaseID(database.ID)
 		for _, backup := range backups {
-			backupRepository.DeleteByID(backup.ID)
+			getBackupRepository().DeleteByID(backup.ID)
 		}
 
 		databases.RemoveTestDatabase(t.Context(), database)
@@ -924,7 +924,7 @@ func Test_CleanByGFS_With24HourlySlotsAnd23DailyBackups_DeletesExcessBackups(t *
 			BackupSizeMb: 0.02,
 			CreatedAt:    now.Add(-time.Duration(22-i)*24*time.Hour - 2*time.Hour),
 		}
-		err = backupRepository.Save(backup)
+		err = getBackupRepository().Save(backup)
 		assert.NoError(t, err)
 	}
 
@@ -932,7 +932,7 @@ func Test_CleanByGFS_With24HourlySlotsAnd23DailyBackups_DeletesExcessBackups(t *
 	err = cleaner.cleanByRetentionPolicy(t.Context(), testLogger())
 	assert.NoError(t, err)
 
-	remainingBackups, err := backupRepository.FindByDatabaseID(database.ID)
+	remainingBackups, err := getBackupRepository().FindByDatabaseID(database.ID)
 	assert.NoError(t, err)
 
 	assert.Less(t, len(remainingBackups), 20,
@@ -953,9 +953,9 @@ func Test_CleanByGFS_WithDisabledHourlySlotsAnd23DailyBackups_DeletesExcessBacku
 	database := databases.CreateTestDatabase(workspace.ID, testStorage, notifier)
 
 	defer func() {
-		backups, _ := backupRepository.FindByDatabaseID(database.ID)
+		backups, _ := getBackupRepository().FindByDatabaseID(database.ID)
 		for _, backup := range backups {
-			backupRepository.DeleteByID(backup.ID)
+			getBackupRepository().DeleteByID(backup.ID)
 		}
 
 		databases.RemoveTestDatabase(t.Context(), database)
@@ -993,7 +993,7 @@ func Test_CleanByGFS_WithDisabledHourlySlotsAnd23DailyBackups_DeletesExcessBacku
 			BackupSizeMb: 0.02,
 			CreatedAt:    now.Add(-time.Duration(22-i)*24*time.Hour - 2*time.Hour),
 		}
-		err = backupRepository.Save(backup)
+		err = getBackupRepository().Save(backup)
 		assert.NoError(t, err)
 	}
 
@@ -1001,7 +1001,7 @@ func Test_CleanByGFS_WithDisabledHourlySlotsAnd23DailyBackups_DeletesExcessBacku
 	err = cleaner.cleanByRetentionPolicy(t.Context(), testLogger())
 	assert.NoError(t, err)
 
-	remainingBackups, err := backupRepository.FindByDatabaseID(database.ID)
+	remainingBackups, err := getBackupRepository().FindByDatabaseID(database.ID)
 	assert.NoError(t, err)
 
 	assert.Less(t, len(remainingBackups), 15,
@@ -1022,9 +1022,9 @@ func Test_CleanByGFS_WithDailySlotsAndWeeklyBackups_DeletesExcessBackups(t *test
 	database := databases.CreateTestDatabase(workspace.ID, testStorage, notifier)
 
 	defer func() {
-		backups, _ := backupRepository.FindByDatabaseID(database.ID)
+		backups, _ := getBackupRepository().FindByDatabaseID(database.ID)
 		for _, backup := range backups {
-			backupRepository.DeleteByID(backup.ID)
+			getBackupRepository().DeleteByID(backup.ID)
 		}
 
 		databases.RemoveTestDatabase(t.Context(), database)
@@ -1062,7 +1062,7 @@ func Test_CleanByGFS_WithDailySlotsAndWeeklyBackups_DeletesExcessBackups(t *test
 			BackupSizeMb: 0.02,
 			CreatedAt:    now.Add(-time.Duration(9-i)*7*24*time.Hour - 2*time.Hour),
 		}
-		err = backupRepository.Save(backup)
+		err = getBackupRepository().Save(backup)
 		assert.NoError(t, err)
 	}
 
@@ -1070,7 +1070,7 @@ func Test_CleanByGFS_WithDailySlotsAndWeeklyBackups_DeletesExcessBackups(t *test
 	err = cleaner.cleanByRetentionPolicy(t.Context(), testLogger())
 	assert.NoError(t, err)
 
-	remainingBackups, err := backupRepository.FindByDatabaseID(database.ID)
+	remainingBackups, err := getBackupRepository().FindByDatabaseID(database.ID)
 	assert.NoError(t, err)
 
 	fmt.Printf(
@@ -1103,9 +1103,9 @@ func Test_CleanByGFS_WithWeeklySlotsAndMonthlyBackups_DeletesExcessBackups(t *te
 	database := databases.CreateTestDatabase(workspace.ID, testStorage, notifier)
 
 	defer func() {
-		backups, _ := backupRepository.FindByDatabaseID(database.ID)
+		backups, _ := getBackupRepository().FindByDatabaseID(database.ID)
 		for _, backup := range backups {
-			backupRepository.DeleteByID(backup.ID)
+			getBackupRepository().DeleteByID(backup.ID)
 		}
 
 		databases.RemoveTestDatabase(t.Context(), database)
@@ -1144,7 +1144,7 @@ func Test_CleanByGFS_WithWeeklySlotsAndMonthlyBackups_DeletesExcessBackups(t *te
 			BackupSizeMb: 0.02,
 			CreatedAt:    now.AddDate(0, -(7 - i), 0).Add(-2 * time.Hour),
 		}
-		err = backupRepository.Save(backup)
+		err = getBackupRepository().Save(backup)
 		assert.NoError(t, err)
 	}
 
@@ -1152,7 +1152,7 @@ func Test_CleanByGFS_WithWeeklySlotsAndMonthlyBackups_DeletesExcessBackups(t *te
 	err = cleaner.cleanByRetentionPolicy(t.Context(), testLogger())
 	assert.NoError(t, err)
 
-	remainingBackups, err := backupRepository.FindByDatabaseID(database.ID)
+	remainingBackups, err := getBackupRepository().FindByDatabaseID(database.ID)
 	assert.NoError(t, err)
 
 	fmt.Printf(

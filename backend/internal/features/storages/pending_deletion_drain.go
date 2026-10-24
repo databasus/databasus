@@ -20,7 +20,7 @@ const storageDeletionDrainBudget = 10 * time.Second
 // moment the credentials to carry them out exist. What the drain cannot remove is
 // named in the audit log, because those files stay in the user's storage.
 func (s *StorageService) drainPendingDeletions(ctx context.Context, storage *Storage) {
-	remaining, err := storageFileDeletionWorker.DrainStorage(ctx, storage.ID, storageDeletionDrainBudget)
+	remaining, err := getStorageFileDeletionWorker().DrainStorage(ctx, storage.ID, storageDeletionDrainBudget)
 	if err != nil {
 		logger.GetLogger().Warn("failed to drain pending deletions before removing a storage",
 			"storage_id", storage.ID, "error", err)

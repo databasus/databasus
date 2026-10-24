@@ -139,7 +139,7 @@ func Test_EncryptedFormat_ContainsPrefix(t *testing.T) {
 func Test_Decrypt_LegacyDeterministicNonceCiphertext_StillDecrypts(t *testing.T) {
 	encryptor := GetFieldEncryptor()
 
-	masterKey, err := fieldEncryptor.secretKeyService.GetSecretKey()
+	masterKey, err := getFieldEncryptor().secretKeyService.GetSecretKey()
 	require.NoError(t, err)
 
 	plaintext := "legacy-payload"

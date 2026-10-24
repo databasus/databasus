@@ -1,54 +1,26 @@
+// Package storage hands the database pool internal/app opened to the code that has not moved into
+// internal/modules yet. A test binary built with the testhelpers tag opens it on first use instead.
 package storage
 
 import (
 	"sync"
+	"sync/atomic"
 
-	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	gormLogger "gorm.io/gorm/logger"
-
-	"databasus-backend/internal/config"
-	"databasus-backend/internal/util/logger"
 )
 
-var log = logger.GetLogger()
+var installedDb atomic.Pointer[gorm.DB]
 
-var db *gorm.DB
+var getDbWithoutApp = sync.OnceValue(loadWithoutApp)
 
-var initDb = sync.OnceFunc(loadDbs)
+func Install(db *gorm.DB) {
+	installedDb.Store(db)
+}
 
 func GetDb() *gorm.DB {
-	initDb()
-	return db
-}
-
-func loadDbs() {
-	LoadMainDb()
-}
-
-func LoadMainDb() {
-	dbDsn := config.GetEnv().DatabaseDsn
-
-	log.Info("connection to database")
-
-	database, err := gorm.Open(postgres.Open(dbDsn), &gorm.Config{
-		Logger: gormLogger.Default.LogMode(gormLogger.Silent),
-	})
-	if err != nil {
-		log.Error("error on connecting to database", "error", err)
-		logger.ExitAfterFlush(1)
+	if db := installedDb.Load(); db != nil {
+		return db
 	}
 
-	sqlDB, err := database.DB()
-	if err != nil {
-		log.Error("error getting underlying sql.DB", "error", err)
-		logger.ExitAfterFlush(1)
-	}
-
-	sqlDB.SetMaxOpenConns(10)
-	sqlDB.SetMaxIdleConns(10)
-
-	db = database
-
-	log.Info("main database connected successfully")
+	return getDbWithoutApp()
 }

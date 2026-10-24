@@ -12,7 +12,7 @@ import (
 
 const fixtureCascadeCutoff = 20261024122431
 
-var fixtureSpec = checkSpec{entryPoints: []string{"./cmd"}, cascadeCutoff: fixtureCascadeCutoff}
+var fixtureSpec = checkSpec{entryPoints: []string{"./cmd/databasus"}, cascadeCutoff: fixtureCascadeCutoff}
 
 // fakeTestifyFiles stand in for testify through a replace directive, so a fixture module builds offline.
 var fakeTestifyFiles = map[string]string{
@@ -28,7 +28,7 @@ func TestProductionDependencies(t *testing.T) {
 	t.Run("fails when production code reachable from the entry point imports an assertion library", func(t *testing.T) {
 		t.Parallel()
 		violations := checkFixture(t, withFakeTestify(map[string]string{
-			"cmd/main.go": "package main\n\nimport _ \"fixture/internal/features/helper\"\n\nfunc main() {}\n",
+			"cmd/databasus/main.go": "package main\n\nimport _ \"fixture/internal/features/helper\"\n\nfunc main() {}\n",
 			"internal/features/helper/helper.go": "package helper\n\n" +
 				"import \"github.com/stretchr/testify/assert\"\n\nvar IsReady = assert.True(true)\n",
 		}))
@@ -43,7 +43,7 @@ func TestProductionDependencies(t *testing.T) {
 	t.Run("fails when a third-party package outside the accepted list imports testing", func(t *testing.T) {
 		t.Parallel()
 		violations := checkFixture(t, withFakeThirdPartyModule("example.com/sdk", map[string]string{
-			"cmd/main.go": "package main\n\nimport _ \"example.com/sdk\"\n\nfunc main() {}\n",
+			"cmd/databasus/main.go": "package main\n\nimport _ \"example.com/sdk\"\n\nfunc main() {}\n",
 		}))
 
 		requireSingleViolation(t, violations, violationSpec{
@@ -56,7 +56,7 @@ func TestProductionDependencies(t *testing.T) {
 	t.Run("passes when an accepted third-party importer imports testing", func(t *testing.T) {
 		t.Parallel()
 		violations := checkFixture(t, withFakeThirdPartyModule("github.com/rclone/Proton-API-Bridge", map[string]string{
-			"cmd/main.go": "package main\n\nimport _ \"github.com/rclone/Proton-API-Bridge\"\n\nfunc main() {}\n",
+			"cmd/databasus/main.go": "package main\n\nimport _ \"github.com/rclone/Proton-API-Bridge\"\n\nfunc main() {}\n",
 		}))
 
 		assert.Empty(t, violations)
@@ -65,7 +65,7 @@ func TestProductionDependencies(t *testing.T) {
 	t.Run("passes when the entry point imports nothing from tests", func(t *testing.T) {
 		t.Parallel()
 		violations := checkFixture(t, withFakeTestify(map[string]string{
-			"cmd/main.go":                      "package main\n\nimport _ \"fixture/internal/features/clock\"\n\nfunc main() {}\n",
+			"cmd/databasus/main.go":            "package main\n\nimport _ \"fixture/internal/features/clock\"\n\nfunc main() {}\n",
 			"internal/features/clock/clock.go": "package clock\n\nimport \"time\"\n\nvar Started = time.Now()\n",
 		}))
 
@@ -75,8 +75,8 @@ func TestProductionDependencies(t *testing.T) {
 	t.Run("passes when only a test file of the entry point imports a helper that imports testify", func(t *testing.T) {
 		t.Parallel()
 		violations := checkFixture(t, withFakeTestify(map[string]string{
-			"cmd/main.go": "package main\n\nfunc main() {}\n",
-			"cmd/main_test.go": "package main\n\nimport (\n\t\"testing\"\n\n\t\"fixture/internal/lib/testhelper\"\n)\n\n" +
+			"cmd/databasus/main.go": "package main\n\nfunc main() {}\n",
+			"cmd/databasus/main_test.go": "package main\n\nimport (\n\t\"testing\"\n\n\t\"fixture/internal/lib/testhelper\"\n)\n\n" +
 				"func TestMain(m *testing.M) { testhelper.Prepare() }\n",
 			"internal/lib/testhelper/testhelper.go": "package testhelper\n\n" +
 				"import \"github.com/stretchr/testify/assert\"\n\nfunc Prepare() { assert.True(true) }\n",
@@ -421,6 +421,34 @@ func TestCascades(t *testing.T) {
 			})
 		})
 	}
+}
+
+func TestMigrationTransactions(t *testing.T) {
+	t.Parallel()
+
+	t.Run("fails when a migration runs without a transaction", func(t *testing.T) {
+		t.Parallel()
+		violations := checkFixture(t, map[string]string{
+			"migrations/20250101000000_add_index.sql": "-- +goose NO TRANSACTION\n-- +goose Up\n" +
+				"CREATE INDEX CONCURRENTLY idx_backups_created_at ON backups (created_at);\n",
+		})
+
+		requireSingleViolation(t, violations, violationSpec{
+			position:     "migrations/20250101000000_add_index.sql:1",
+			rule:         "migration-transaction",
+			messageParts: []string{"NO TRANSACTION"},
+		})
+	})
+
+	t.Run("passes when a migration runs in its transaction", func(t *testing.T) {
+		t.Parallel()
+		violations := checkFixture(t, map[string]string{
+			"migrations/20250101000000_add_index.sql": "-- +goose Up\n" +
+				"CREATE INDEX idx_backups_created_at ON backups (created_at);\n",
+		})
+
+		assert.Empty(t, violations)
+	})
 }
 
 var cleanModuleFiles = map[string]string{

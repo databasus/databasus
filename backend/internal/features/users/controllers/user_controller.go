@@ -46,16 +46,6 @@ func (c *UserController) RegisterProtectedRoutes(router *gin.RouterGroup) {
 	router.POST("/users/invite", c.InviteUser)
 }
 
-// SignUp
-// @Summary Register a new user
-// @Description Register a new user with email and password
-// @Tags users
-// @Accept json
-// @Produce json
-// @Param request body users_dto.SignUpRequestDTO true "User signup data"
-// @Success 200 {object} users_dto.SignInResponseDTO
-// @Failure 400
-// @Router /users/signup [post]
 func (c *UserController) SignUp(ctx *gin.Context) {
 	var request user_dto.SignUpRequestDTO
 	if err := ctx.ShouldBindJSON(&request); err != nil {
@@ -84,17 +74,6 @@ func (c *UserController) SignUp(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, response)
 }
 
-// SignIn
-// @Summary Authenticate a user
-// @Description Authenticate a user with email and password. With the second factor on, a correct password answers with a pending sign-in instead of a token, and the emailed code completes it through /users/verify-signin-code.
-// @Tags users
-// @Accept json
-// @Produce json
-// @Param request body users_dto.SignInRequestDTO true "User signin data"
-// @Success 200 {object} users_dto.SignInOutcomeResponseDTO "An access token when the instance asks for one factor, and a pending sign-in when it asks for an emailed code"
-// @Failure 400
-// @Failure 429 {object} map[string]string "Rate limit exceeded"
-// @Router /users/signin [post]
 func (c *UserController) SignIn(ctx *gin.Context) {
 	var request user_dto.SignInRequestDTO
 	if err := ctx.ShouldBindJSON(&request); err != nil {
@@ -129,14 +108,6 @@ func (c *UserController) SignIn(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, outcome.CompletedSignIn)
 }
 
-// HasAnyUser
-// @Summary Check whether the instance holds any account
-// @Description Tells the entry screen whether to offer signing in or the registration that claims the instance
-// @Tags users
-// @Produce json
-// @Success 200 {object} users_dto.HasAnyUserResponseDTO
-// @Failure 500
-// @Router /users/is-any-user-exist [get]
 func (c *UserController) HasAnyUser(ctx *gin.Context) {
 	hasAnyUser, err := c.userService.HasAnyUser()
 	if err != nil {
@@ -147,18 +118,6 @@ func (c *UserController) HasAnyUser(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, user_dto.HasAnyUserResponseDTO{HasAnyUser: hasAnyUser})
 }
 
-// ChangePassword
-// @Summary Change user password
-// @Description Change the password for the currently authenticated user
-// @Tags users
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Param request body users_dto.ChangePasswordRequestDTO true "New password data"
-// @Success 200 {object} map[string]string
-// @Failure 400 {object} map[string]string
-// @Failure 401 {object} map[string]string
-// @Router /users/change-password [put]
 func (c *UserController) ChangePassword(ctx *gin.Context) {
 	user, ok := user_middleware.GetUserFromContext(ctx)
 	if !ok {
@@ -193,19 +152,6 @@ func (c *UserController) ChangePassword(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"message": "Password changed successfully"})
 }
 
-// InviteUser
-// @Summary Invite a new user
-// @Description Invite a new user to the system with optional workspace assignment
-// @Tags users
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Param request body users_dto.InviteUserRequestDTO true "User invitation data"
-// @Success 200 {object} users_dto.InviteUserResponseDTO
-// @Failure 400 {object} map[string]string
-// @Failure 401 {object} map[string]string
-// @Failure 403 {object} map[string]string
-// @Router /users/invite [post]
 func (c *UserController) InviteUser(ctx *gin.Context) {
 	user, ok := user_middleware.GetUserFromContext(ctx)
 	if !ok {
@@ -232,16 +178,6 @@ func (c *UserController) InviteUser(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, response)
 }
 
-// GetCurrentUser
-// @Summary Get current user profile
-// @Description Get the profile information of the currently authenticated user
-// @Tags users
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Success 200 {object} users_dto.UserProfileResponseDTO
-// @Failure 401 {object} map[string]string
-// @Router /users/me [get]
 func (c *UserController) GetCurrentUser(ctx *gin.Context) {
 	user, ok := user_middleware.GetUserFromContext(ctx)
 	if !ok {
@@ -253,18 +189,6 @@ func (c *UserController) GetCurrentUser(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, profile)
 }
 
-// UpdateUserInfo
-// @Summary Update current user information
-// @Description Update name and/or email for the currently authenticated user
-// @Tags users
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Param request body users_dto.UpdateUserInfoRequestDTO true "User info update data"
-// @Success 200 {object} map[string]string
-// @Failure 400 {object} map[string]string
-// @Failure 401 {object} map[string]string
-// @Router /users/me [put]
 func (c *UserController) UpdateUserInfo(ctx *gin.Context) {
 	user, ok := user_middleware.GetUserFromContext(ctx)
 	if !ok {
@@ -291,17 +215,6 @@ func (c *UserController) UpdateUserInfo(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"message": "User info updated successfully"})
 }
 
-// HandleGitHubOAuth
-// @Summary Handle GitHub OAuth callback
-// @Description Exchange GitHub authorization code for JWT token
-// @Tags auth
-// @Accept json
-// @Produce json
-// @Param request body users_dto.OAuthCallbackRequestDTO true "OAuth callback data"
-// @Success 200 {object} users_dto.OAuthCallbackResponseDTO
-// @Failure 400 {object} map[string]string
-// @Failure 501 {object} map[string]string
-// @Router /auth/github/callback [post]
 func (c *UserController) HandleGitHubOAuth(ctx *gin.Context) {
 	env := config.GetEnv()
 	if env.GitHubClientID == "" || env.GitHubClientSecret == "" {
@@ -324,17 +237,6 @@ func (c *UserController) HandleGitHubOAuth(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, response)
 }
 
-// HandleGoogleOAuth
-// @Summary Handle Google OAuth callback
-// @Description Exchange Google authorization code for JWT token
-// @Tags auth
-// @Accept json
-// @Produce json
-// @Param request body users_dto.OAuthCallbackRequestDTO true "OAuth callback data"
-// @Success 200 {object} users_dto.OAuthCallbackResponseDTO
-// @Failure 400 {object} map[string]string
-// @Failure 501 {object} map[string]string
-// @Router /auth/google/callback [post]
 func (c *UserController) HandleGoogleOAuth(ctx *gin.Context) {
 	env := config.GetEnv()
 	if env.GoogleClientID == "" || env.GoogleClientSecret == "" {
@@ -357,17 +259,6 @@ func (c *UserController) HandleGoogleOAuth(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, response)
 }
 
-// SendResetPasswordCode
-// @Summary Send password reset code
-// @Description Send a password reset code to the user's email
-// @Tags users
-// @Accept json
-// @Produce json
-// @Param request body users_dto.SendResetPasswordCodeRequestDTO true "Email address"
-// @Success 200 {object} map[string]string
-// @Failure 400 {object} map[string]string
-// @Failure 429 {object} map[string]string
-// @Router /users/send-reset-password-code [post]
 func (c *UserController) SendResetPasswordCode(ctx *gin.Context) {
 	var request user_dto.SendResetPasswordCodeRequestDTO
 	if err := ctx.ShouldBindJSON(&request); err != nil {
@@ -397,16 +288,6 @@ func (c *UserController) SendResetPasswordCode(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"message": "If the email exists, a reset code has been sent"})
 }
 
-// ResetPassword
-// @Summary Reset password with code
-// @Description Reset user password using the code sent via email
-// @Tags users
-// @Accept json
-// @Produce json
-// @Param request body users_dto.ResetPasswordRequestDTO true "Reset password data"
-// @Success 200 {object} map[string]string
-// @Failure 400 {object} map[string]string
-// @Router /users/reset-password [post]
 func (c *UserController) ResetPassword(ctx *gin.Context) {
 	var request user_dto.ResetPasswordRequestDTO
 	if err := ctx.ShouldBindJSON(&request); err != nil {

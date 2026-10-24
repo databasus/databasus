@@ -1,6 +1,8 @@
 package healthcheck_attempt
 
 import (
+	"sync"
+
 	"databasus-backend/internal/features/databases"
 	healthcheck_config "databasus-backend/internal/features/healthcheck/config"
 	"databasus-backend/internal/features/notifiers"
@@ -9,42 +11,52 @@ import (
 )
 
 var (
-	healthcheckAttemptRepository = &HealthcheckAttemptRepository{}
-	healthcheckAttemptService    = &HealthcheckAttemptService{
-		healthcheckAttemptRepository,
-		databases.GetDatabaseService(),
-		workspaces_services.GetWorkspaceService(),
-	}
+	getHealthcheckAttemptRepository = sync.OnceValue(func() *HealthcheckAttemptRepository {
+		return &HealthcheckAttemptRepository{}
+	})
+	getHealthcheckAttemptService = sync.OnceValue(func() *HealthcheckAttemptService {
+		return &HealthcheckAttemptService{
+			getHealthcheckAttemptRepository(),
+			databases.GetDatabaseService(),
+			workspaces_services.GetWorkspaceService(),
+		}
+	})
 )
 
-var checkDatabaseHealthUseCase = &CheckDatabaseHealthUseCase{
-	healthcheckAttemptRepository,
-	notifiers.GetNotifierService(),
-	databases.GetDatabaseService(),
-}
+var getCheckDatabaseHealthUseCase = sync.OnceValue(func() *CheckDatabaseHealthUseCase {
+	return &CheckDatabaseHealthUseCase{
+		getHealthcheckAttemptRepository(),
+		notifiers.GetNotifierService(),
+		databases.GetDatabaseService(),
+	}
+})
 
-var healthcheckAttemptBackgroundService = &HealthcheckAttemptBackgroundService{
-	healthcheckConfigService:   healthcheck_config.GetHealthcheckConfigService(),
-	checkDatabaseHealthUseCase: checkDatabaseHealthUseCase,
-	logger:                     logger.GetLogger(),
-}
+var getHealthcheckAttemptBackgroundService = sync.OnceValue(func() *HealthcheckAttemptBackgroundService {
+	return &HealthcheckAttemptBackgroundService{
+		healthcheckConfigService:   healthcheck_config.GetHealthcheckConfigService(),
+		checkDatabaseHealthUseCase: getCheckDatabaseHealthUseCase(),
+		logger:                     logger.GetLogger(),
+	}
+})
 
-var healthcheckAttemptController = &HealthcheckAttemptController{
-	healthcheckAttemptService,
-}
+var getHealthcheckAttemptController = sync.OnceValue(func() *HealthcheckAttemptController {
+	return &HealthcheckAttemptController{
+		getHealthcheckAttemptService(),
+	}
+})
 
 func GetHealthcheckAttemptRepository() *HealthcheckAttemptRepository {
-	return healthcheckAttemptRepository
+	return getHealthcheckAttemptRepository()
 }
 
 func GetHealthcheckAttemptService() *HealthcheckAttemptService {
-	return healthcheckAttemptService
+	return getHealthcheckAttemptService()
 }
 
 func GetHealthcheckAttemptBackgroundService() *HealthcheckAttemptBackgroundService {
-	return healthcheckAttemptBackgroundService
+	return getHealthcheckAttemptBackgroundService()
 }
 
 func GetHealthcheckAttemptController() *HealthcheckAttemptController {
-	return healthcheckAttemptController
+	return getHealthcheckAttemptController()
 }

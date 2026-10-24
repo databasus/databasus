@@ -1,15 +1,19 @@
 package email
 
 import (
+	"sync"
+
 	"databasus-backend/internal/config"
 	"databasus-backend/internal/util/logger"
 	"databasus-backend/internal/util/smtp_transport"
 )
 
-var emailSMTPSender = newEmailSMTPSenderFromEnv(config.GetEnv())
+var getEmailSMTPSender = sync.OnceValue(func() *EmailSMTPSender {
+	return newEmailSMTPSenderFromEnv(config.GetEnv())
+})
 
 func GetEmailSMTPSender() *EmailSMTPSender {
-	return emailSMTPSender
+	return getEmailSMTPSender()
 }
 
 func newEmailSMTPSenderFromEnv(env *config.EnvVariables) *EmailSMTPSender {

@@ -6,10 +6,10 @@ package cloudflare_turnstile
 // there through the environment, because the service reads it once at startup.
 // The returned function puts the previous key back.
 func EnableChallengeForTesting(secretKey string) func() {
-	previousSecretKey := cloudflareTurnstileService.secretKey
-	cloudflareTurnstileService.secretKey = secretKey
+	previousSecretKey := getCloudflareTurnstileService().secretKey
+	getCloudflareTurnstileService().secretKey = secretKey
 
 	return func() {
-		cloudflareTurnstileService.secretKey = previousSecretKey
+		getCloudflareTurnstileService().secretKey = previousSecretKey
 	}
 }

@@ -28,15 +28,6 @@ func (c *AgentController) RegisterRoutes(router *gin.RouterGroup) {
 	adminOnly.DELETE("/:id", c.DeleteAgent)
 }
 
-// GetAvailability
-// @Summary Get verification agent availability
-// @Description Returns the count of live verification agents. Available to any authenticated user so the UI can decide whether to render verification-related actions. No agent identifiers or tokens are exposed.
-// @Tags verification-agents
-// @Produce json
-// @Security BearerAuth
-// @Success 200 {object} AvailabilityResponse
-// @Failure 401 {object} map[string]string
-// @Router /verification/agents/availability [get]
 func (c *AgentController) GetAvailability(ctx *gin.Context) {
 	count, err := c.agentService.CountLiveAgents(ctx.Request.Context())
 	if err != nil {
@@ -51,19 +42,6 @@ func (c *AgentController) GetAvailability(ctx *gin.Context) {
 	})
 }
 
-// CreateAgent
-// @Summary Create a verification agent
-// @Description Create a new verification-worker agent (ADMIN only). The raw token is returned exactly once.
-// @Tags verification-agents
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Param request body CreateAgentRequest true "Agent name"
-// @Success 201 {object} CreatedAgentResponse
-// @Failure 400 {object} map[string]string
-// @Failure 401 {object} map[string]string
-// @Failure 403 {object} map[string]string
-// @Router /verification/agents [post]
 func (c *AgentController) CreateAgent(ctx *gin.Context) {
 	user, ok := users_middleware.GetUserFromContext(ctx)
 	if !ok {
@@ -87,16 +65,6 @@ func (c *AgentController) CreateAgent(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, response)
 }
 
-// ListAgents
-// @Summary List verification agents
-// @Description List all live verification agents (ADMIN only).
-// @Tags verification-agents
-// @Produce json
-// @Security BearerAuth
-// @Success 200 {array} Agent
-// @Failure 401 {object} map[string]string
-// @Failure 403 {object} map[string]string
-// @Router /verification/agents [get]
 func (c *AgentController) ListAgents(ctx *gin.Context) {
 	agents, err := c.agentService.ListAgents(ctx.Request.Context())
 	if err != nil {
@@ -108,19 +76,6 @@ func (c *AgentController) ListAgents(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, agents)
 }
 
-// RotateToken
-// @Summary Rotate a verification agent's token
-// @Description Mint a new token for the agent and invalidate the old one (ADMIN only). The raw token is returned exactly once.
-// @Tags verification-agents
-// @Produce json
-// @Security BearerAuth
-// @Param id path string true "Agent ID"
-// @Success 200 {object} RotateTokenResponse
-// @Failure 400 {object} map[string]string
-// @Failure 401 {object} map[string]string
-// @Failure 403 {object} map[string]string
-// @Failure 404 {object} map[string]string
-// @Router /verification/agents/{id}/rotate-token [post]
 func (c *AgentController) RotateToken(ctx *gin.Context) {
 	user, ok := users_middleware.GetUserFromContext(ctx)
 	if !ok {
@@ -149,19 +104,6 @@ func (c *AgentController) RotateToken(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, RotateTokenResponse{Token: token})
 }
 
-// DeleteAgent
-// @Summary Delete a verification agent
-// @Description Soft-delete a verification agent (ADMIN only). The agent's token is preserved so a still-running worker receives a 404 on its next heartbeat rather than a 401.
-// @Tags verification-agents
-// @Produce json
-// @Security BearerAuth
-// @Param id path string true "Agent ID"
-// @Success 204
-// @Failure 400 {object} map[string]string
-// @Failure 401 {object} map[string]string
-// @Failure 403 {object} map[string]string
-// @Failure 404 {object} map[string]string
-// @Router /verification/agents/{id} [delete]
 func (c *AgentController) DeleteAgent(ctx *gin.Context) {
 	user, ok := users_middleware.GetUserFromContext(ctx)
 	if !ok {

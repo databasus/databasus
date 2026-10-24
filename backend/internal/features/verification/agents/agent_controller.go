@@ -17,21 +17,6 @@ func (c *AgentFacingController) RegisterRoutes(router *gin.RouterGroup) {
 	g.POST("/heartbeat", c.Heartbeat)
 }
 
-// Heartbeat
-// @Summary Verification agent heartbeat
-// @Description Called periodically by a verification agent to report capacity and refresh last-seen.
-// @Description Authentication uses the agent's raw token (NOT a user JWT) — the same token returned at create/rotate.
-// @Tags verification-agents
-// @Accept json
-// @Produce json
-// @Param agentId path string true "Agent UUID"
-// @Param Authorization header string true "Bearer <agent-token>"
-// @Param request body HeartbeatRequest true "Capacity report"
-// @Success 200 {object} HeartbeatResponse
-// @Failure 400 {object} map[string]string
-// @Failure 401 {object} map[string]string
-// @Failure 429 {object} map[string]string
-// @Router /agent/verification/{agentId}/heartbeat [post]
 func (c *AgentFacingController) Heartbeat(ctx *gin.Context) {
 	agent, ok := GetAgentFromContext(ctx)
 	if !ok {

@@ -11,9 +11,9 @@
 //     that otherwise persist across runs and break subsequent pg_dump calls
 //     with "permission denied for schema public".
 //
-// Reads the test DSN through config (config.GetEnv() auto-swaps DatabaseDsn to
-// TestDatabaseDsn when IsTesting is true). The executable name cleanup_test_db
-// selects that mode.
+// Reads the test DSN through config: built with the testhelpers tag, config.GetEnv()
+// loads the test configuration, whose DatabaseDsn is TestDatabaseDsn and IsTesting
+// is true. Run it as `go run -tags testhelpers ./cmd/cleanup_test_db`.
 package main
 
 import (

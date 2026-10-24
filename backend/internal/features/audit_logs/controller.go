@@ -22,20 +22,6 @@ func (c *AuditLogController) RegisterRoutes(router *gin.RouterGroup) {
 	auditRoutes.GET("/users/:userId", c.GetUserAuditLogs)
 }
 
-// GetGlobalAuditLogs
-// @Summary Get global audit logs (ADMIN only)
-// @Description Retrieve all audit logs across the system
-// @Tags audit-logs
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Param limit query int false "Limit number of results" default(100)
-// @Param offset query int false "Offset for pagination" default(0)
-// @Param beforeDate query string false "Filter logs created before this date (RFC3339 format)" format(date-time)
-// @Success 200 {object} GetAuditLogsResponse
-// @Failure 401 {object} map[string]string
-// @Failure 403 {object} map[string]string
-// @Router /audit-logs/global [get]
 func (c *AuditLogController) GetGlobalAuditLogs(ctx *gin.Context) {
 	user, isOk := ctx.MustGet("user").(*user_models.User)
 	if !isOk {
@@ -64,22 +50,6 @@ func (c *AuditLogController) GetGlobalAuditLogs(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, response)
 }
 
-// GetUserAuditLogs
-// @Summary Get user audit logs
-// @Description Retrieve audit logs for a specific user
-// @Tags audit-logs
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Param userId path string true "User ID"
-// @Param limit query int false "Limit number of results" default(100)
-// @Param offset query int false "Offset for pagination" default(0)
-// @Param beforeDate query string false "Filter logs created before this date (RFC3339 format)" format(date-time)
-// @Success 200 {object} GetAuditLogsResponse
-// @Failure 400 {object} map[string]string
-// @Failure 401 {object} map[string]string
-// @Failure 403 {object} map[string]string
-// @Router /audit-logs/users/{userId} [get]
 func (c *AuditLogController) GetUserAuditLogs(ctx *gin.Context) {
 	user, isOk := ctx.MustGet("user").(*user_models.User)
 	if !isOk {

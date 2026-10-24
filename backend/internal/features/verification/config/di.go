@@ -9,28 +9,34 @@ import (
 	"databasus-backend/internal/util/logger"
 )
 
-var verificationConfigRepository = &VerificationConfigRepository{}
+var getVerificationConfigRepository = sync.OnceValue(func() *VerificationConfigRepository {
+	return &VerificationConfigRepository{}
+})
 
-var verificationConfigService = &VerificationConfigService{
-	verificationConfigRepository,
-	databases.GetDatabaseService(),
-	workspaces_services.GetWorkspaceService(),
-	audit_logs.GetAuditLogService(),
-	logger.GetLogger(),
-}
+var getVerificationConfigService = sync.OnceValue(func() *VerificationConfigService {
+	return &VerificationConfigService{
+		getVerificationConfigRepository(),
+		databases.GetDatabaseService(),
+		workspaces_services.GetWorkspaceService(),
+		audit_logs.GetAuditLogService(),
+		logger.GetLogger(),
+	}
+})
 
-var verificationConfigController = &VerificationConfigController{
-	verificationConfigService,
-}
+var getVerificationConfigController = sync.OnceValue(func() *VerificationConfigController {
+	return &VerificationConfigController{
+		getVerificationConfigService(),
+	}
+})
 
 func GetVerificationConfigService() *VerificationConfigService {
-	return verificationConfigService
+	return getVerificationConfigService()
 }
 
 func GetVerificationConfigController() *VerificationConfigController {
-	return verificationConfigController
+	return getVerificationConfigController()
 }
 
 var SetupDependencies = sync.OnceFunc(func() {
-	databases.GetDatabaseService().AddDbCopyListener(verificationConfigService)
+	databases.GetDatabaseService().AddDbCopyListener(getVerificationConfigService())
 })

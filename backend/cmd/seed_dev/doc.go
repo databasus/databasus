@@ -5,8 +5,8 @@
 // restore an item that was deleted from the running app.
 //
 // It talks to the backend on http://localhost:4005 through the public API, so every item passes
-// the same validation as in the web interface. The production image builds only ./cmd and never
-// contains this command.
+// the same validation as in the web interface. The production image builds only ./cmd/databasus and
+// never contains this command.
 //
 // What it makes sure exists, finding each item by its name:
 //

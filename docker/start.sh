@@ -9,7 +9,7 @@ readonly postgres_binary_directory="/usr/lib/postgresql/17/bin"
 # A process started with `docker exec` inherits the container's configured environment, not
 # PID 1's, so the generated credential reaches it through this file instead. The location is
 # memory-backed, so the value dies with the container rather than outliving the password
-# rotation of the next start. backend/internal/config/config.go reads the same path.
+# rotation of the next start. backend/internal/lib/config/config.go reads the same path.
 readonly published_database_dsn_path="/dev/shm/databasus-database-dsn"
 
 readonly runtime_phase_argument="--as-databasus"

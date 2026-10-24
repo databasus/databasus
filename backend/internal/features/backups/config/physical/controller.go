@@ -20,18 +20,6 @@ func (c *BackupConfigController) RegisterRoutes(router *gin.RouterGroup) {
 	router.POST("/backup-configs/physical/database/:id/transfer", c.TransferDatabase)
 }
 
-// SaveBackupConfig
-// @Summary Save physical backup configuration
-// @Description Save or update physical backup configuration for a database. Encryption can be set to NONE (no encryption) or ENCRYPTED (AES-256-GCM encryption).
-// @Tags backup-configs-physical
-// @Accept json
-// @Produce json
-// @Param request body PhysicalBackupConfig true "Physical backup configuration"
-// @Success 200 {object} PhysicalBackupConfig
-// @Failure 400 {object} map[string]string
-// @Failure 401 {object} map[string]string
-// @Failure 500 {object} map[string]string
-// @Router /backup-configs/physical/save [post]
 func (c *BackupConfigController) SaveBackupConfig(ctx *gin.Context) {
 	user, ok := users_middleware.GetUserFromContext(ctx)
 	if !ok {
@@ -56,17 +44,6 @@ func (c *BackupConfigController) SaveBackupConfig(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, savedConfig)
 }
 
-// GetBackupConfigByDbID
-// @Summary Get physical backup configuration by database ID
-// @Description Get physical backup configuration for a specific database
-// @Tags backup-configs-physical
-// @Produce json
-// @Param id path string true "Database ID"
-// @Success 200 {object} PhysicalBackupConfig
-// @Failure 400 {object} map[string]string
-// @Failure 401 {object} map[string]string
-// @Failure 404 {object} map[string]string
-// @Router /backup-configs/physical/database/{id} [get]
 func (c *BackupConfigController) GetBackupConfigByDbID(ctx *gin.Context) {
 	user, ok := users_middleware.GetUserFromContext(ctx)
 	if !ok {
@@ -89,19 +66,6 @@ func (c *BackupConfigController) GetBackupConfigByDbID(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, backupConfig)
 }
 
-// TransferDatabase
-// @Summary Transfer a database with physical backup config to another workspace
-// @Description Transfer a database from one workspace to another, optionally moving its storage and notifiers.
-// @Tags backup-configs-physical
-// @Accept json
-// @Produce json
-// @Param id path string true "Database ID"
-// @Param request body TransferDatabaseRequest true "Transfer request"
-// @Success 200 {object} map[string]string
-// @Failure 400 {object} map[string]string
-// @Failure 401 {object} map[string]string
-// @Failure 403 {object} map[string]string
-// @Router /backup-configs/physical/database/{id}/transfer [post]
 func (c *BackupConfigController) TransferDatabase(ctx *gin.Context) {
 	user, ok := users_middleware.GetUserFromContext(ctx)
 	if !ok {

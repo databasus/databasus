@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"databasus-backend/internal/config"
+	lib_config "databasus-backend/internal/lib/config"
 	"databasus-backend/internal/util/testing/containers"
 	"databasus-backend/internal/util/testing/mailpit"
 )
@@ -19,12 +20,12 @@ func Test_SendEmail_WhenSmtpServerAccepts_DeliversMessageWithSenderNameAndMessag
 		fmt.Sprintf("%s:%d", mailpitEndpoint.HTTP.Host, mailpitEndpoint.HTTP.Port),
 	)
 
-	sender := newEmailSMTPSenderFromEnv(&config.EnvVariables{
+	sender := newEmailSMTPSenderFromEnv(&config.EnvVariables{Config: lib_config.Config{
 		SMTPHost:     mailpitEndpoint.SMTP.Host,
 		SMTPPort:     mailpitEndpoint.SMTP.Port,
 		SMTPFrom:     "sender@databasus.local",
 		SMTPSecurity: "none",
-	})
+	}})
 
 	err := sender.SendEmail(t.Context(), "recipient@databasus.local", "Password Reset Code", "<b>123456</b>")
 	require.NoError(t, err)
@@ -57,8 +58,12 @@ func Test_SendEmail_WhenSmtpHostIsUnset_SkipsWithoutError(t *testing.T) {
 }
 
 func Test_NewEmailSMTPSenderFromEnv_WithoutSecurity_UsesPortDefault(t *testing.T) {
-	implicitTLSSender := newEmailSMTPSenderFromEnv(&config.EnvVariables{SMTPHost: "smtp.example.com", SMTPPort: 465})
-	upgradeSender := newEmailSMTPSenderFromEnv(&config.EnvVariables{SMTPHost: "smtp.example.com", SMTPPort: 587})
+	implicitTLSSender := newEmailSMTPSenderFromEnv(
+		&config.EnvVariables{Config: lib_config.Config{SMTPHost: "smtp.example.com", SMTPPort: 465}},
+	)
+	upgradeSender := newEmailSMTPSenderFromEnv(
+		&config.EnvVariables{Config: lib_config.Config{SMTPHost: "smtp.example.com", SMTPPort: 587}},
+	)
 
 	assert.True(t, implicitTLSSender.IsConfigured())
 	assert.Equal(t, "tls", string(implicitTLSSender.connection.Security))
@@ -66,7 +71,9 @@ func Test_NewEmailSMTPSenderFromEnv_WithoutSecurity_UsesPortDefault(t *testing.T
 }
 
 func Test_NewEmailSMTPSenderFromEnv_ForRelayWithoutCredentials_UsesStartTLSWithoutAuth(t *testing.T) {
-	relaySender := newEmailSMTPSenderFromEnv(&config.EnvVariables{SMTPHost: "relay.example.com", SMTPPort: 25})
+	relaySender := newEmailSMTPSenderFromEnv(
+		&config.EnvVariables{Config: lib_config.Config{SMTPHost: "relay.example.com", SMTPPort: 25}},
+	)
 
 	assert.True(t, relaySender.IsConfigured())
 	assert.Equal(t, "starttls", string(relaySender.connection.Security))

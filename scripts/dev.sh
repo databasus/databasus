@@ -55,7 +55,6 @@ trap stop_services EXIT
 docker compose -f "$root/docker-compose.yml" up -d "${own_services[@]}" "${test_fixtures[@]}"
 timeout 60 bash -c 'until docker exec backend-db pg_isready -U postgres >/dev/null; do sleep 2; done'
 
-(cd "$root/backend" && swag init -d . -g cmd/main.go -o swagger --quiet)
 pnpm --dir "$root/frontend" install --frozen-lockfile
 stop_stale_backend_watchers
 free_backend_port

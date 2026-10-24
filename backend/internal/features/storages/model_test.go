@@ -498,7 +498,7 @@ var rcloneSecretLine = regexp.MustCompile(`(?m)^secret_access_key = .*$`)
 func setTestStorageSecret(t *testing.T, storageID uuid.UUID, secret string) {
 	t.Helper()
 
-	storage, err := storageRepository.FindByID(t.Context(), storageID)
+	storage, err := getStorageRepository().FindByID(t.Context(), storageID)
 	require.NoError(t, err)
 
 	switch storage.Type {
@@ -525,7 +525,7 @@ func setTestStorageSecret(t *testing.T, storageID uuid.UUID, secret string) {
 
 	require.NoError(t, storage.EncryptSensitiveData(encryption.GetFieldEncryptor()))
 
-	_, err = storageRepository.Save(storage)
+	_, err = getStorageRepository().Save(storage)
 	require.NoError(t, err)
 }
 
@@ -758,11 +758,11 @@ func saveTestStorage(t *testing.T, storage *Storage) *Storage {
 	storage.WorkspaceID = workspace.ID
 	require.NoError(t, storage.EncryptSensitiveData(encryption.GetFieldEncryptor()))
 
-	savedStorage, err := storageRepository.Save(storage)
+	savedStorage, err := getStorageRepository().Save(storage)
 	require.NoError(t, err)
 
 	t.Cleanup(func() {
-		if _, err := storageRepository.FindByID(context.WithoutCancel(t.Context()), savedStorage.ID); err == nil {
+		if _, err := getStorageRepository().FindByID(context.WithoutCancel(t.Context()), savedStorage.ID); err == nil {
 			RemoveTestStorage(t.Context(), savedStorage.ID)
 		}
 

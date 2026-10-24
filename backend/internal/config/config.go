@@ -1,76 +1,28 @@
+// Package config hands the configuration internal/app loaded to the code that has not moved into
+// internal/modules yet. A test binary built with the testhelpers tag loads it on first use instead.
 package config
 
 import (
-	"context"
-	"database/sql"
-	"errors"
 	"fmt"
-	"os"
-	"path/filepath"
 	"strings"
 	"sync"
-	"time"
+	"sync/atomic"
 
-	"github.com/ilyakaznacheev/cleanenv"
-	_ "github.com/jackc/pgx/v5/stdlib"
-	"github.com/joho/godotenv"
-
-	env_utils "databasus-backend/internal/util/env"
-	"databasus-backend/internal/util/logger"
-	"databasus-backend/internal/util/smtp_transport"
-	"databasus-backend/internal/util/tools"
+	lib_config "databasus-backend/internal/lib/config"
 )
-
-var log = logger.GetLogger()
 
 const (
 	AppModeWeb        = "web"
 	AppModeBackground = "background"
 )
 
-const databaseDsnEnvVariable = "DATABASE_DSN"
-
-const StorageProbeFlagName = "test-storage"
-
-// A process started with `docker exec` does not inherit PID 1's environment, so this file
-// is the only way it learns the internal password, which is rotated on every container
-// start. The location is memory-backed, so the value dies with the container instead of
-// going stale against the next rotation.
-const publishedDatabaseDsnPath = "/dev/shm/databasus-database-dsn"
-
-const (
-	// defaultTestParallelWorkers must equal the `go test -p` value so every running package can
-	// claim an isolated metadata database.
-	defaultTestParallelWorkers = 8
-
-	// testSlotAdvisoryLockBase is the first pg_advisory_lock key reserved for
-	// test-worker slot claims; slot N uses base+N.
-	testSlotAdvisoryLockBase = 945_000_000
-
-	// testSlotClaimTimeout bounds the wait for a free slot, absorbing the brief
-	// window where `go test -p` starts the next package before the previous
-	// process has exited and released its advisory lock.
-	testSlotClaimTimeout = 60 * time.Second
-)
-
 type EnvVariables struct {
-	IsTesting bool
-	EnvMode   env_utils.EnvMode `env:"ENV_MODE" required:"true"`
+	lib_config.Config
 
-	// Internal database
-	DatabaseDsn         string `env:"DATABASE_DSN"          required:"true"`
+	IsTesting           bool
 	TestDatabaseDsn     string `env:"TEST_DATABASE_DSN"`
 	TestParallelWorkers int    `env:"TEST_PARALLEL_WORKERS"`
 	TestLocalhost       string `env:"TEST_LOCALHOST"`
-
-	ShowDbInstallationVerificationLogs bool `env:"SHOW_DB_INSTALLATION_VERIFICATION_LOGS"`
-
-	DataFolder            string
-	TempFolder            string
-	SecretKeyPath         string
-	TelemetryInstancePath string
-
-	IsDisableAnonymousTelemetry bool `env:"IS_DISABLE_ANONYMOUS_TELEMETRY"`
 
 	// TestLogicalPostgres16Port is the shared always-on logical-Postgres fixture used by
 	// GetTestPostgresConfig / CreateTestDatabase across the test suite. The per-version PG
@@ -82,380 +34,22 @@ type EnvVariables struct {
 	// on testcontainers and need no fixed port.
 	TestPhysicalPostgres17Port string `env:"TEST_PHYSICAL_POSTGRES_17_PORT"`
 	TestPhysicalPostgres18Port string `env:"TEST_PHYSICAL_POSTGRES_18_PORT"`
-
-	// oauth
-	GitHubClientID     string `env:"GITHUB_CLIENT_ID"`
-	GitHubClientSecret string `env:"GITHUB_CLIENT_SECRET"`
-	GoogleClientID     string `env:"GOOGLE_CLIENT_ID"`
-	GoogleClientSecret string `env:"GOOGLE_CLIENT_SECRET"`
-
-	// Cloudflare Turnstile
-	CloudflareTurnstileSecretKey string `env:"CLOUDFLARE_TURNSTILE_SECRET_KEY"`
-	CloudflareTurnstileSiteKey   string `env:"CLOUDFLARE_TURNSTILE_SITE_KEY"`
-
-	// SMTP configuration (optional)
-	SMTPHost               string                  `env:"SMTP_HOST"`
-	SMTPPort               int                     `env:"SMTP_PORT"`
-	SMTPUser               string                  `env:"SMTP_USER"`
-	SMTPPassword           string                  `env:"SMTP_PASSWORD"`
-	SMTPFrom               string                  `env:"SMTP_FROM"`
-	SMTPSecurity           smtp_transport.Security `env:"SMTP_SECURITY"`
-	SMTPHeloName           string                  `env:"SMTP_HELO_NAME"`
-	SMTPInsecureSkipVerify bool                    `env:"SMTP_INSECURE_SKIP_VERIFY"`
-
-	// Application URL (optional) - used for email links
-	DatabasusURL string `env:"DATABASUS_URL"`
 }
 
-var env EnvVariables
+var installedEnv atomic.Pointer[EnvVariables]
 
-var initEnv = sync.OnceFunc(loadEnvVariables)
+var getEnvWithoutApp = sync.OnceValue(loadWithoutApp)
+
+func Install(loadedConfig lib_config.Config) {
+	installedEnv.Store(&EnvVariables{Config: loadedConfig})
+}
 
 func GetEnv() *EnvVariables {
-	initEnv()
-	return &env
-}
-
-func loadEnvVariables() {
-	cwd, err := os.Getwd()
-	if err != nil {
-		log.Warn("could not get current working directory", "error", err)
-		cwd = "."
+	if env := installedEnv.Load(); env != nil {
+		return env
 	}
 
-	backendRoot := cwd
-	for {
-		if _, err := os.Stat(filepath.Join(backendRoot, "go.mod")); err == nil {
-			break
-		}
-
-		parent := filepath.Dir(backendRoot)
-		if parent == backendRoot {
-			break
-		}
-
-		backendRoot = parent
-	}
-
-	envPath := filepath.Join(filepath.Dir(backendRoot), ".env")
-
-	adoptPublishedDatabaseDsnIfUnset(publishedDatabaseDsnPath)
-
-	isEnvFileLoaded, err := loadEnvFileIfPresent(envPath)
-	if err != nil {
-		log.Error("error loading .env file from repo root", "path", envPath, "error", err)
-		logger.ExitAfterFlush(1)
-	}
-
-	if isEnvFileLoaded {
-		log.Info("successfully loaded .env", "path", envPath)
-	} else {
-		log.Info("no .env file found, using the process environment only", "path", envPath)
-	}
-
-	// Empty values for non-string fields (e.g. SMTP_PORT=) crash cleanenv's
-	// strconv parsing. Drop them so cleanenv falls back to the Go zero value.
-	unsetEmptyEnvVars()
-
-	err = cleanenv.ReadEnv(&env)
-	if err != nil {
-		log.Error("configuration could not be loaded", "error", err)
-		logger.ExitAfterFlush(1)
-	}
-
-	if err := validateSMTPSettings(&env); err != nil {
-		log.Error("invalid SMTP configuration", "error", err)
-		logger.ExitAfterFlush(1)
-	}
-
-	// Set default value for ShowDbInstallationVerificationLogs if not defined
-	if os.Getenv("SHOW_DB_INSTALLATION_VERIFICATION_LOGS") == "" {
-		env.ShowDbInstallationVerificationLogs = true
-	}
-
-	env.IsTesting = isTestProcess(os.Args)
-
-	if env.IsTesting {
-		if env.TestDatabaseDsn == "" {
-			log.Error("TEST_DATABASE_DSN is empty")
-			logger.ExitAfterFlush(1)
-		}
-
-		env.DatabaseDsn = env.TestDatabaseDsn
-
-		if env.TestParallelWorkers <= 0 {
-			env.TestParallelWorkers = defaultTestParallelWorkers
-		}
-
-		// Only a real `go test` binary claims a per-worker slot; the cleanup_test_db
-		// command and any other tool run with IsTesting=true must operate on all
-		// slots, so they keep the base test DSN.
-		if strings.Contains(os.Args[0], ".test") {
-			claimTestWorkerSlotAndSelectMetadataDatabase()
-		}
-	}
-
-	if !isStorageProbeProcess(os.Args) && env.DatabaseDsn == "" {
-		log.Error("DATABASE_DSN is empty")
-		logger.ExitAfterFlush(1)
-	}
-
-	if env.EnvMode == "" {
-		log.Error("ENV_MODE is empty")
-		logger.ExitAfterFlush(1)
-	}
-	if env.EnvMode != "development" && env.EnvMode != "production" {
-		log.Error("ENV_MODE is invalid", "mode", env.EnvMode)
-		logger.ExitAfterFlush(1)
-	}
-	log.Info("ENV_MODE loaded", "mode", env.EnvMode)
-
-	tools.LogAndExitIfClientToolsBroken(log, env.ShowDbInstallationVerificationLogs)
-
-	if env.TestLocalhost == "" {
-		env.TestLocalhost = "localhost"
-	}
-
-	// Store the data and temp folders one level below the root
-	// (projectRoot/databasus-data -> /databasus-data)
-	env.DataFolder = filepath.Join(filepath.Dir(backendRoot), "databasus-data", "backups")
-	env.TempFolder = filepath.Join(filepath.Dir(backendRoot), "databasus-data", "temp")
-	env.SecretKeyPath = filepath.Join(filepath.Dir(backendRoot), "databasus-data", "secret.key")
-	env.TelemetryInstancePath = filepath.Join(
-		filepath.Dir(backendRoot), "databasus-data", "instance.json",
-	)
-
-	if env.IsTesting {
-		if env.TestLogicalPostgres16Port == "" {
-			log.Error("TEST_LOGICAL_POSTGRES_16_PORT is empty")
-			logger.ExitAfterFlush(1)
-		}
-		if env.TestPhysicalPostgres17Port == "" {
-			log.Error("TEST_PHYSICAL_POSTGRES_17_PORT is empty")
-			logger.ExitAfterFlush(1)
-		}
-		if env.TestPhysicalPostgres18Port == "" {
-			log.Error("TEST_PHYSICAL_POSTGRES_18_PORT is empty")
-			logger.ExitAfterFlush(1)
-		}
-	}
-
-	log.Info("environment variables loaded successfully")
-}
-
-func validateSMTPSettings(env *EnvVariables) error {
-	if env.SMTPHost != "" && env.SMTPPort <= 0 {
-		return fmt.Errorf("SMTP_PORT must be a positive integer when SMTP_HOST is set, got %d", env.SMTPPort)
-	}
-
-	if env.SMTPSecurity != "" && !env.SMTPSecurity.IsValid() {
-		return fmt.Errorf("SMTP_SECURITY %q: %w", env.SMTPSecurity, smtp_transport.ErrUnknownSecurity)
-	}
-
-	if env.SMTPHeloName != "" {
-		if err := smtp_transport.ValidateHeloName(env.SMTPHeloName); err != nil {
-			return fmt.Errorf("SMTP_HELO_NAME %q: %w", env.SMTPHeloName, err)
-		}
-	}
-
-	if env.SMTPFrom != "" {
-		if _, err := smtp_transport.ParseSender(env.SMTPFrom); err != nil {
-			return fmt.Errorf("SMTP_FROM %q: %w", env.SMTPFrom, err)
-		}
-	}
-
-	return nil
-}
-
-// The Docker image carries no .env, so every setting there comes from the operator or from a
-// code default. A development checkout still reads its own .env. Variables that are already
-// set, even to an empty value, keep their value.
-func loadEnvFileIfPresent(envPath string) (bool, error) {
-	if _, err := os.Stat(envPath); err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			return false, nil
-		}
-
-		return false, err
-	}
-
-	if err := godotenv.Load(envPath); err != nil {
-		return false, err
-	}
-
-	return true, nil
-}
-
-// An operator-supplied connection string wins, then the one startup published, then
-// whatever a development .env carries.
-func adoptPublishedDatabaseDsnIfUnset(publishedDsnPath string) {
-	if _, isSet := os.LookupEnv(databaseDsnEnvVariable); isSet {
-		return
-	}
-
-	publishedDsn, err := os.ReadFile(publishedDsnPath)
-	if err != nil {
-		if !errors.Is(err, os.ErrNotExist) {
-			log.Warn(
-				"could not read the published database connection string",
-				"path", publishedDsnPath,
-				"error", err,
-			)
-		}
-
-		return
-	}
-
-	dsn := strings.TrimSpace(string(publishedDsn))
-	if dsn == "" {
-		return
-	}
-
-	if err := os.Setenv(databaseDsnEnvVariable, dsn); err != nil {
-		log.Error("could not apply the published database connection string", "error", err)
-		logger.ExitAfterFlush(1)
-	}
-
-	log.Info("using the database connection string published by container startup")
-}
-
-func unsetEmptyEnvVars() {
-	for _, kv := range os.Environ() {
-		key, value, ok := strings.Cut(kv, "=")
-		if !ok {
-			continue
-		}
-
-		if value == "" {
-			_ = os.Unsetenv(key)
-		}
-	}
-}
-
-// The storage probe never opens the metadata database, and container startup runs it
-// before the embedded database exists, so demanding a connection string there would
-// refuse a healthy container. The flag is read here rather than passed in because
-// package-level dependency wiring loads the configuration before main runs.
-func isStorageProbeProcess(arguments []string) bool {
-	if len(arguments) == 0 {
-		return false
-	}
-
-	for _, argument := range arguments[1:] {
-		if !strings.HasPrefix(argument, "-") {
-			continue
-		}
-
-		flagName, _, _ := strings.Cut(strings.TrimLeft(argument, "-"), "=")
-		if flagName == StorageProbeFlagName {
-			return true
-		}
-	}
-
-	return false
-}
-
-func isTestProcess(arguments []string) bool {
-	if len(arguments) == 0 {
-		return false
-	}
-
-	executableName := filepath.Base(arguments[0])
-	return strings.HasSuffix(executableName, ".test") ||
-		strings.HasSuffix(executableName, ".test.exe") ||
-		executableName == "cleanup_test_db" ||
-		executableName == "cleanup_test_db.exe"
-}
-
-// slotLockConn holds the system-DB connection whose session owns this worker's
-// advisory lock. It must live for the whole process: closing it (or letting it
-// be garbage-collected) releases the lock and frees the slot for another worker
-// mid-run. It is assigned-only by design — the reference itself is the point, so
-// it anchors the connection lifetime as a GC root.
-//
-//nolint:unused // assigned-only: keeps the advisory-lock connection alive for the process lifetime
-var slotLockConn *sql.Conn
-
-func claimTestWorkerSlotAndSelectMetadataDatabase() {
-	baseDbName, _, err := RewriteDbName(env.TestDatabaseDsn, systemDbName)
-	if err != nil {
-		log.Error("could not parse TEST_DATABASE_DSN for slot isolation", "error", err)
-		logger.ExitAfterFlush(1)
-	}
-
-	slot := claimTestWorkerSlot(env.TestDatabaseDsn, env.TestParallelWorkers)
-
-	slotDbName := fmt.Sprintf("%s_w%d", baseDbName, slot)
-	_, slotDsn, err := RewriteDbName(env.TestDatabaseDsn, slotDbName)
-	if err != nil {
-		log.Error("could not build per-slot DSN", "error", err)
-		logger.ExitAfterFlush(1)
-	}
-
-	env.DatabaseDsn = slotDsn
-
-	log.Info("claimed test worker slot", "slot", slot, "db", slotDbName)
-}
-
-// systemDbName is the always-present database used for slot coordination and as
-// the connection target when (re)creating per-slot databases.
-const systemDbName = "postgres"
-
-// claimTestWorkerSlot acquires a session-level advisory lock for the first free
-// slot in [0,pool) on the system Postgres DB and returns it. The lock is held by
-// slotLockConn until the process exits. It retries until testSlotClaimTimeout to
-// absorb the handoff window where `go test -p` overlaps a finishing worker.
-func claimTestWorkerSlot(testDsn string, pool int) int {
-	_, systemDsn, err := RewriteDbName(testDsn, systemDbName)
-	if err != nil {
-		log.Error("could not build system DSN for slot claim", "error", err)
-		logger.ExitAfterFlush(1)
-	}
-
-	db, err := sql.Open("pgx", systemDsn)
-	if err != nil {
-		log.Error("could not open system DB for slot claim", "error", err)
-		logger.ExitAfterFlush(1)
-	}
-
-	ctx := context.Background()
-	conn, err := db.Conn(ctx)
-	if err != nil {
-		log.Error("could not get system DB connection for slot claim", "error", err)
-		logger.ExitAfterFlush(1)
-	}
-
-	deadline := time.Now().Add(testSlotClaimTimeout)
-	for {
-		for slot := range pool {
-			var locked bool
-			lockErr := conn.QueryRowContext(
-				ctx,
-				"SELECT pg_try_advisory_lock($1)",
-				testSlotAdvisoryLockBase+int64(slot),
-			).Scan(&locked)
-			if lockErr != nil {
-				log.Error("advisory lock query failed during slot claim", "error", lockErr)
-				logger.ExitAfterFlush(1)
-			}
-
-			if locked {
-				slotLockConn = conn
-				return slot
-			}
-		}
-
-		if time.Now().After(deadline) {
-			log.Error(
-				"no free test DB slot",
-				"pool", pool,
-				"hint", "TEST_PARALLEL_WORKERS must be >= the `go test -p` value",
-			)
-			logger.ExitAfterFlush(1)
-		}
-
-		time.Sleep(100 * time.Millisecond)
-	}
+	return getEnvWithoutApp()
 }
 
 // RewriteDbName replaces the dbname= token in a keyword/value Postgres DSN,

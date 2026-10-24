@@ -1,15 +1,19 @@
 package usecases_mariadb
 
 import (
+	"sync"
+
 	"databasus-backend/internal/features/encryption/secrets"
 	"databasus-backend/internal/util/logger"
 )
 
-var restoreMariadbBackupUsecase = &RestoreMariadbBackupUsecase{
-	logger.GetLogger(),
-	secrets.GetSecretKeyService(),
-}
+var getRestoreMariadbBackupUsecase = sync.OnceValue(func() *RestoreMariadbBackupUsecase {
+	return &RestoreMariadbBackupUsecase{
+		logger.GetLogger(),
+		secrets.GetSecretKeyService(),
+	}
+})
 
 func GetRestoreMariadbBackupUsecase() *RestoreMariadbBackupUsecase {
-	return restoreMariadbBackupUsecase
+	return getRestoreMariadbBackupUsecase()
 }

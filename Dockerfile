@@ -18,24 +18,6 @@ RUN pnpm build
 # Backend build stage
 FROM --platform=$BUILDPLATFORM golang:1.26.10 AS backend-build
 
-# Make TARGET args available early so tools built here match the final image arch
-ARG TARGETOS
-ARG TARGETARCH
-ARG GOOSE_VERSION=v3.27.3
-
-# Install Go public tools needed in runtime. Use `go build` for goose so the
-# binary is compiled for the target architecture instead of downloading a
-# prebuilt binary which may have the wrong architecture (causes exec format
-# errors on ARM).
-RUN git clone --depth 1 --branch "$GOOSE_VERSION" https://github.com/pressly/goose.git /tmp/goose && \
-  cd /tmp/goose/cmd/goose && \
-  go get golang.org/x/crypto@v0.55.0 && \
-  GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64} \
-  go build -ldflags "-X main.version=${GOOSE_VERSION}+databasus.1" \
-  -o /usr/local/bin/goose . && \
-  rm -rf /tmp/goose
-RUN go install github.com/swaggo/swag/cmd/swag@v1.16.4
-
 # Set working directory
 WORKDIR /app
 
@@ -49,9 +31,8 @@ RUN mkdir -p /app/ui/build
 # Copy frontend build output for embedding
 COPY --from=frontend-build /frontend/dist /app/ui/build
 
-# Generate Swagger documentation
+# Copy the backend sources
 COPY backend/ ./
-RUN swag init -d . -g cmd/main.go -o swagger
 
 # Compile the backend
 ARG TARGETOS
@@ -61,7 +42,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
   CGO_ENABLED=0 \
   GOOS=$TARGETOS \
   GOARCH=$TARGETARCH \
-  go build -o /app/main ./cmd
+  go build -o /app/main ./cmd/databasus
 
 
 # ========= BUILD VERIFICATION AGENT =========
@@ -159,17 +140,11 @@ RUN set -eux; \
 
 WORKDIR /app
 
-# Copy Goose from build stage
-COPY --from=backend-build /usr/local/bin/goose /usr/local/bin/goose
-
 # Copy app binary
 COPY --from=backend-build /app/main .
 
 # Expose the binary as the `databasus` command on PATH (e.g. `databasus healthcheck`)
 RUN ln -s /app/main /usr/local/bin/databasus
-
-# Copy migrations directory
-COPY backend/migrations ./migrations
 
 # Copy UI files
 COPY --from=backend-build /app/ui/build ./ui/build

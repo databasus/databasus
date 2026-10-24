@@ -12,37 +12,43 @@ import (
 	"databasus-backend/internal/util/logger"
 )
 
-var databaseRepository = &DatabaseRepository{}
+var getDatabaseRepository = sync.OnceValue(func() *DatabaseRepository {
+	return &DatabaseRepository{}
+})
 
-var databaseService = &DatabaseService{
-	databaseRepository,
-	notifiers.GetNotifierService(),
-	logger.GetLogger(),
-	[]DatabaseCreationListener{},
-	[]DatabaseRemoveListener{},
-	[]DatabaseCopyListener{},
-	[]DatabaseBackupTypeChangeListener{},
-	workspaces_services.GetWorkspaceService(),
-	audit_logs.GetAuditLogService(),
-	encryption.GetFieldEncryptor(),
-	physical_core_service.GetPhysicalBackupService(),
-}
+var getDatabaseService = sync.OnceValue(func() *DatabaseService {
+	return &DatabaseService{
+		getDatabaseRepository(),
+		notifiers.GetNotifierService(),
+		logger.GetLogger(),
+		[]DatabaseCreationListener{},
+		[]DatabaseRemoveListener{},
+		[]DatabaseCopyListener{},
+		[]DatabaseBackupTypeChangeListener{},
+		workspaces_services.GetWorkspaceService(),
+		audit_logs.GetAuditLogService(),
+		encryption.GetFieldEncryptor(),
+		physical_core_service.GetPhysicalBackupService(),
+	}
+})
 
-var databaseController = &DatabaseController{
-	databaseService,
-	users_services.GetUserService(),
-	workspaces_services.GetWorkspaceService(),
-}
+var getDatabaseController = sync.OnceValue(func() *DatabaseController {
+	return &DatabaseController{
+		getDatabaseService(),
+		users_services.GetUserService(),
+		workspaces_services.GetWorkspaceService(),
+	}
+})
 
 func GetDatabaseService() *DatabaseService {
-	return databaseService
+	return getDatabaseService()
 }
 
 func GetDatabaseController() *DatabaseController {
-	return databaseController
+	return getDatabaseController()
 }
 
 var SetupDependencies = sync.OnceFunc(func() {
-	workspaces_services.GetWorkspaceService().AddWorkspaceDeletionListener(databaseService)
-	notifiers.GetNotifierService().SetNotifierDatabaseCounter(databaseService)
+	workspaces_services.GetWorkspaceService().AddWorkspaceDeletionListener(getDatabaseService())
+	notifiers.GetNotifierService().SetNotifierDatabaseCounter(getDatabaseService())
 })

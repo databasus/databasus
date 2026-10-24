@@ -20,17 +20,6 @@ var verificationAgentBinaryPaths = map[string]string{
 	"arm64": "agent-binaries/databasus-verification-agent-linux-arm64",
 }
 
-// DownloadVerificationAgent
-// @Summary Download verification agent binary
-// @Description Download the databasus-verification-agent binary for the specified architecture
-// @Tags system/agent
-// @Produce octet-stream
-// @Param arch query string true "Target architecture" Enums(amd64, arm64)
-// @Success 200 {file} binary
-// @Header 200 {string} X-Databasus-Version "Version the served binary was built from"
-// @Failure 400 {object} map[string]string
-// @Failure 404 {object} map[string]string
-// @Router /system/verification-agent [get]
 func (c *AgentController) DownloadVerificationAgent(ctx *gin.Context) {
 	binaryPath, isOk := verificationAgentBinaryPaths[ctx.Query("arch")]
 	if !isOk {

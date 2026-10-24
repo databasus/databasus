@@ -37,20 +37,6 @@ func (c *ManagementController) RegisterRoutes(router *gin.RouterGroup) {
 	)
 }
 
-// ListUsers
-// @Summary List users
-// @Description Get list of users (admin only)
-// @Tags user-management
-// @Produce json
-// @Security BearerAuth
-// @Param limit query int false "Number of items per page" default(20)
-// @Param offset query int false "Page offset" default(0)
-// @Param beforeDate query string false "Filter users created before this date (RFC3339 format)" format(date-time)
-// @Param query query string false "Search by email or name (case-insensitive)"
-// @Success 200 {object} users_dto.ListUsersResponseDTO
-// @Failure 401 {object} map[string]string "Unauthorized"
-// @Failure 403 {object} map[string]string "Forbidden"
-// @Router /users [get]
 func (c *ManagementController) GetUsers(ctx *gin.Context) {
 	fmt.Println("GetUsers")
 
@@ -108,18 +94,6 @@ func (c *ManagementController) GetUsers(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, response)
 }
 
-// GetUserProfile
-// @Summary Get user profile
-// @Description Get user profile information (users can view own profile, admins can view any)
-// @Tags user-management
-// @Produce json
-// @Security BearerAuth
-// @Param id path string true "User ID"
-// @Success 200 {object} users_dto.UserProfileResponseDTO
-// @Failure 400 {object} map[string]string "Bad request"
-// @Failure 401 {object} map[string]string "Unauthorized"
-// @Failure 403 {object} map[string]string "Forbidden"
-// @Router /users/{id} [get]
 func (c *ManagementController) GetUserProfile(ctx *gin.Context) {
 	currentUser, ok := user_middleware.GetUserFromContext(ctx)
 	if !ok {
@@ -152,17 +126,6 @@ func (c *ManagementController) GetUserProfile(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, profile)
 }
 
-// DeactivateUser
-// @Summary Deactivate user
-// @Description Deactivate a user account (admin only)
-// @Tags user-management
-// @Security BearerAuth
-// @Param id path string true "User ID"
-// @Success 200 {object} map[string]string
-// @Failure 400 {object} map[string]string "Bad request"
-// @Failure 401 {object} map[string]string "Unauthorized"
-// @Failure 403 {object} map[string]string "Forbidden"
-// @Router /users/{id}/deactivate [post]
 func (c *ManagementController) DeactivateUser(ctx *gin.Context) {
 	currentUser, ok := user_middleware.GetUserFromContext(ctx)
 	if !ok {
@@ -185,17 +148,6 @@ func (c *ManagementController) DeactivateUser(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"message": "User deactivated successfully"})
 }
 
-// ActivateUser
-// @Summary Activate user
-// @Description Activate a user account (admin only)
-// @Tags user-management
-// @Security BearerAuth
-// @Param id path string true "User ID"
-// @Success 200 {object} map[string]string
-// @Failure 400 {object} map[string]string "Bad request"
-// @Failure 401 {object} map[string]string "Unauthorized"
-// @Failure 403 {object} map[string]string "Forbidden"
-// @Router /users/{id}/activate [post]
 func (c *ManagementController) ActivateUser(ctx *gin.Context) {
 	currentUser, ok := user_middleware.GetUserFromContext(ctx)
 	if !ok {
@@ -218,20 +170,6 @@ func (c *ManagementController) ActivateUser(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"message": "User activated successfully"})
 }
 
-// ChangeUserRole
-// @Summary Change user role
-// @Description Change a user's role (admin only)
-// @Tags user-management
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Param id path string true "User ID"
-// @Param request body users_dto.ChangeUserRoleRequestDTO true "Role change data"
-// @Success 200 {object} map[string]string
-// @Failure 400 {object} map[string]string "Bad request"
-// @Failure 401 {object} map[string]string "Unauthorized"
-// @Failure 403 {object} map[string]string "Forbidden"
-// @Router /users/{id}/role [put]
 func (c *ManagementController) ChangeUserRole(ctx *gin.Context) {
 	currentUser, ok := user_middleware.GetUserFromContext(ctx)
 	if !ok {

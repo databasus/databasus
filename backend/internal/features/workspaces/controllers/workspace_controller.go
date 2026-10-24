@@ -30,19 +30,6 @@ func (c *WorkspaceController) RegisterRoutes(router *gin.RouterGroup) {
 	workspaceRoutes.GET("/:id/audit-logs", c.GetWorkspaceAuditLogs)
 }
 
-// CreateWorkspace
-// @Summary Create a new workspace
-// @Description Create a new workspace with default settings
-// @Tags workspaces
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Param request body workspaces_dto.CreateWorkspaceRequestDTO true "Workspace creation data"
-// @Success 200 {object} workspaces_dto.WorkspaceResponseDTO
-// @Failure 400 {object} map[string]string
-// @Failure 401 {object} map[string]string
-// @Failure 403 {object} map[string]string
-// @Router /workspaces [post]
 func (c *WorkspaceController) CreateWorkspace(ctx *gin.Context) {
 	user, ok := users_middleware.GetUserFromContext(ctx)
 	if !ok {
@@ -70,15 +57,6 @@ func (c *WorkspaceController) CreateWorkspace(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, response)
 }
 
-// GetWorkspaces
-// @Summary List user's workspaces
-// @Description Get list of workspaces the user is a member of
-// @Tags workspaces
-// @Produce json
-// @Security BearerAuth
-// @Success 200 {object} workspaces_dto.ListWorkspacesResponseDTO
-// @Failure 401 {object} map[string]string
-// @Router /workspaces [get]
 func (c *WorkspaceController) GetWorkspaces(ctx *gin.Context) {
 	user, ok := users_middleware.GetUserFromContext(ctx)
 	if !ok {
@@ -97,18 +75,6 @@ func (c *WorkspaceController) GetWorkspaces(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, response)
 }
 
-// GetWorkspace
-// @Summary Get workspace details
-// @Description Get detailed information about a specific workspace
-// @Tags workspaces
-// @Produce json
-// @Security BearerAuth
-// @Param id path string true "Workspace ID"
-// @Success 200 {object} workspaces_models.Workspace
-// @Failure 400 {object} map[string]string
-// @Failure 401 {object} map[string]string
-// @Failure 403 {object} map[string]string
-// @Router /workspaces/{id} [get]
 func (c *WorkspaceController) GetWorkspace(ctx *gin.Context) {
 	user, ok := users_middleware.GetUserFromContext(ctx)
 	if !ok {
@@ -136,20 +102,6 @@ func (c *WorkspaceController) GetWorkspace(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, workspace)
 }
 
-// UpdateWorkspace
-// @Summary Update workspace settings
-// @Description Update workspace configuration and settings
-// @Tags workspaces
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Param id path string true "Workspace ID"
-// @Param request body workspaces_models.Workspace true "Workspace update data"
-// @Success 200 {object} workspaces_models.Workspace
-// @Failure 400 {object} map[string]string
-// @Failure 401 {object} map[string]string
-// @Failure 403 {object} map[string]string
-// @Router /workspaces/{id} [put]
 func (c *WorkspaceController) UpdateWorkspace(ctx *gin.Context) {
 	user, ok := users_middleware.GetUserFromContext(ctx)
 	if !ok {
@@ -183,17 +135,6 @@ func (c *WorkspaceController) UpdateWorkspace(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, updatedWorkspace)
 }
 
-// DeleteWorkspace
-// @Summary Delete workspace
-// @Description Delete a workspace (owner only)
-// @Tags workspaces
-// @Security BearerAuth
-// @Param id path string true "Workspace ID"
-// @Success 200 {object} map[string]string
-// @Failure 400 {object} map[string]string
-// @Failure 401 {object} map[string]string
-// @Failure 403 {object} map[string]string
-// @Router /workspaces/{id} [delete]
 func (c *WorkspaceController) DeleteWorkspace(ctx *gin.Context) {
 	user, ok := users_middleware.GetUserFromContext(ctx)
 	if !ok {
@@ -220,22 +161,6 @@ func (c *WorkspaceController) DeleteWorkspace(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"message": "Workspace deleted successfully"})
 }
 
-// GetWorkspaceAuditLogs
-// @Summary Get workspace audit logs
-// @Description Retrieve audit logs for a specific workspace (member access required)
-// @Tags workspaces
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Param id path string true "Workspace ID"
-// @Param limit query int false "Limit number of results" default(100)
-// @Param offset query int false "Offset for pagination" default(0)
-// @Param beforeDate query string false "Filter logs created before this date (RFC3339 format)" format(date-time)
-// @Success 200 {object} audit_logs.GetAuditLogsResponse
-// @Failure 400 {object} map[string]string
-// @Failure 401 {object} map[string]string
-// @Failure 403 {object} map[string]string
-// @Router /workspaces/{id}/audit-logs [get]
 func (c *WorkspaceController) GetWorkspaceAuditLogs(ctx *gin.Context) {
 	user, ok := users_middleware.GetUserFromContext(ctx)
 	if !ok {

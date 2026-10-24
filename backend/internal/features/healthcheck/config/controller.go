@@ -18,18 +18,6 @@ func (c *HealthcheckConfigController) RegisterRoutes(router *gin.RouterGroup) {
 	router.GET("/healthcheck-config/:databaseId", c.GetHealthcheckConfig)
 }
 
-// SaveHealthcheckConfig
-// @Summary Save healthcheck configuration
-// @Description Create or update healthcheck configuration for a database
-// @Tags healthcheck-config
-// @Accept json
-// @Produce json
-// @Param Authorization header string true "JWT token"
-// @Param config body HealthcheckConfigDTO true "Healthcheck configuration data"
-// @Success 200 {object} map[string]string
-// @Failure 400
-// @Failure 401
-// @Router /healthcheck-config [post]
 func (c *HealthcheckConfigController) SaveHealthcheckConfig(ctx *gin.Context) {
 	user, ok := users_middleware.GetUserFromContext(ctx)
 	if !ok {
@@ -53,17 +41,6 @@ func (c *HealthcheckConfigController) SaveHealthcheckConfig(ctx *gin.Context) {
 	})
 }
 
-// GetHealthcheckConfig
-// @Summary Get healthcheck configuration
-// @Description Get healthcheck configuration for a specific database
-// @Tags healthcheck-config
-// @Produce json
-// @Param Authorization header string true "JWT token"
-// @Param databaseId path string true "Database ID"
-// @Success 200 {object} HealthcheckConfig
-// @Failure 400
-// @Failure 401
-// @Router /healthcheck-config/{databaseId} [get]
 func (c *HealthcheckConfigController) GetHealthcheckConfig(ctx *gin.Context) {
 	user, ok := users_middleware.GetUserFromContext(ctx)
 	if !ok {

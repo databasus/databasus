@@ -10,34 +10,40 @@ import (
 )
 
 var (
-	notifierRepository = &NotifierRepository{}
-	notifierService    = &NotifierService{
-		notifierRepository,
-		logger.GetLogger(),
-		workspaces_services.GetWorkspaceService(),
-		audit_logs.GetAuditLogService(),
-		encryption.GetFieldEncryptor(),
-		nil,
-	}
+	getNotifierRepository = sync.OnceValue(func() *NotifierRepository {
+		return &NotifierRepository{}
+	})
+	getNotifierService = sync.OnceValue(func() *NotifierService {
+		return &NotifierService{
+			getNotifierRepository(),
+			logger.GetLogger(),
+			workspaces_services.GetWorkspaceService(),
+			audit_logs.GetAuditLogService(),
+			encryption.GetFieldEncryptor(),
+			nil,
+		}
+	})
 )
 
-var notifierController = &NotifierController{
-	notifierService,
-	workspaces_services.GetWorkspaceService(),
-}
+var getNotifierController = sync.OnceValue(func() *NotifierController {
+	return &NotifierController{
+		getNotifierService(),
+		workspaces_services.GetWorkspaceService(),
+	}
+})
 
 func GetNotifierController() *NotifierController {
-	return notifierController
+	return getNotifierController()
 }
 
 func GetNotifierService() *NotifierService {
-	return notifierService
+	return getNotifierService()
 }
 
 func GetNotifierRepository() *NotifierRepository {
-	return notifierRepository
+	return getNotifierRepository()
 }
 
 var SetupDependencies = sync.OnceFunc(func() {
-	workspaces_services.GetWorkspaceService().AddWorkspaceDeletionListener(notifierService)
+	workspaces_services.GetWorkspaceService().AddWorkspaceDeletionListener(getNotifierService())
 })

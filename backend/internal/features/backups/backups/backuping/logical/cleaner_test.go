@@ -38,9 +38,9 @@ func Test_CleanOldBackups_DeletesBackupsOlderThanRetentionTimePeriod(t *testing.
 	database := databases.CreateTestDatabase(workspace.ID, storage, notifier)
 
 	defer func() {
-		backups, _ := backupRepository.FindByDatabaseID(database.ID)
+		backups, _ := getBackupRepository().FindByDatabaseID(database.ID)
 		for _, backup := range backups {
-			backupRepository.DeleteByID(backup.ID)
+			getBackupRepository().DeleteByID(backup.ID)
 		}
 
 		databases.RemoveTestDatabase(t.Context(), database)
@@ -90,18 +90,18 @@ func Test_CleanOldBackups_DeletesBackupsOlderThanRetentionTimePeriod(t *testing.
 		CreatedAt:    now.Add(-3 * 24 * time.Hour),
 	}
 
-	err = backupRepository.Save(oldBackup1)
+	err = getBackupRepository().Save(oldBackup1)
 	assert.NoError(t, err)
-	err = backupRepository.Save(oldBackup2)
+	err = getBackupRepository().Save(oldBackup2)
 	assert.NoError(t, err)
-	err = backupRepository.Save(recentBackup)
+	err = getBackupRepository().Save(recentBackup)
 	assert.NoError(t, err)
 
 	cleaner := GetBackupCleaner()
 	err = cleaner.cleanByRetentionPolicy(t.Context(), testLogger())
 	assert.NoError(t, err)
 
-	remainingBackups, err := backupRepository.FindByDatabaseID(database.ID)
+	remainingBackups, err := getBackupRepository().FindByDatabaseID(database.ID)
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(remainingBackups))
 	assert.Equal(t, recentBackup.ID, remainingBackups[0].ID)
@@ -116,9 +116,9 @@ func Test_CleanOldBackups_SkipsDatabaseWithForeverRetentionPeriod(t *testing.T) 
 	database := databases.CreateTestDatabase(workspace.ID, storage, notifier)
 
 	defer func() {
-		backups, _ := backupRepository.FindByDatabaseID(database.ID)
+		backups, _ := getBackupRepository().FindByDatabaseID(database.ID)
 		for _, backup := range backups {
-			backupRepository.DeleteByID(backup.ID)
+			getBackupRepository().DeleteByID(backup.ID)
 		}
 
 		databases.RemoveTestDatabase(t.Context(), database)
@@ -150,14 +150,14 @@ func Test_CleanOldBackups_SkipsDatabaseWithForeverRetentionPeriod(t *testing.T) 
 		BackupSizeMb: 10,
 		CreatedAt:    time.Now().UTC().Add(-365 * 24 * time.Hour),
 	}
-	err = backupRepository.Save(oldBackup)
+	err = getBackupRepository().Save(oldBackup)
 	assert.NoError(t, err)
 
 	cleaner := GetBackupCleaner()
 	err = cleaner.cleanByRetentionPolicy(t.Context(), testLogger())
 	assert.NoError(t, err)
 
-	remainingBackups, err := backupRepository.FindByDatabaseID(database.ID)
+	remainingBackups, err := getBackupRepository().FindByDatabaseID(database.ID)
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(remainingBackups))
 	assert.Equal(t, oldBackup.ID, remainingBackups[0].ID)
@@ -172,9 +172,9 @@ func Test_CleanByCount_KeepsNewestNBackups_DeletesOlder(t *testing.T) {
 	database := databases.CreateTestDatabase(workspace.ID, storage, notifier)
 
 	defer func() {
-		backups, _ := backupRepository.FindByDatabaseID(database.ID)
+		backups, _ := getBackupRepository().FindByDatabaseID(database.ID)
 		for _, backup := range backups {
-			backupRepository.DeleteByID(backup.ID)
+			getBackupRepository().DeleteByID(backup.ID)
 		}
 
 		databases.RemoveTestDatabase(t.Context(), database)
@@ -211,7 +211,7 @@ func Test_CleanByCount_KeepsNewestNBackups_DeletesOlder(t *testing.T) {
 				-time.Duration(4-i) * time.Hour,
 			), // oldest first in loop, newest = i=4
 		}
-		err = backupRepository.Save(backup)
+		err = getBackupRepository().Save(backup)
 		assert.NoError(t, err)
 		backupIDs = append(backupIDs, backup.ID)
 	}
@@ -220,7 +220,7 @@ func Test_CleanByCount_KeepsNewestNBackups_DeletesOlder(t *testing.T) {
 	err = cleaner.cleanByRetentionPolicy(t.Context(), testLogger())
 	assert.NoError(t, err)
 
-	remainingBackups, err := backupRepository.FindByDatabaseID(database.ID)
+	remainingBackups, err := getBackupRepository().FindByDatabaseID(database.ID)
 	assert.NoError(t, err)
 	assert.Equal(t, 3, len(remainingBackups))
 
@@ -244,9 +244,9 @@ func Test_CleanByCount_WhenUnderLimit_NoBackupsDeleted(t *testing.T) {
 	database := databases.CreateTestDatabase(workspace.ID, storage, notifier)
 
 	defer func() {
-		backups, _ := backupRepository.FindByDatabaseID(database.ID)
+		backups, _ := getBackupRepository().FindByDatabaseID(database.ID)
 		for _, backup := range backups {
-			backupRepository.DeleteByID(backup.ID)
+			getBackupRepository().DeleteByID(backup.ID)
 		}
 
 		databases.RemoveTestDatabase(t.Context(), database)
@@ -279,7 +279,7 @@ func Test_CleanByCount_WhenUnderLimit_NoBackupsDeleted(t *testing.T) {
 			BackupSizeMb: 10,
 			CreatedAt:    time.Now().UTC().Add(-time.Duration(i) * time.Hour),
 		}
-		err = backupRepository.Save(backup)
+		err = getBackupRepository().Save(backup)
 		assert.NoError(t, err)
 	}
 
@@ -287,7 +287,7 @@ func Test_CleanByCount_WhenUnderLimit_NoBackupsDeleted(t *testing.T) {
 	err = cleaner.cleanByRetentionPolicy(t.Context(), testLogger())
 	assert.NoError(t, err)
 
-	remainingBackups, err := backupRepository.FindByDatabaseID(database.ID)
+	remainingBackups, err := getBackupRepository().FindByDatabaseID(database.ID)
 	assert.NoError(t, err)
 	assert.Equal(t, 5, len(remainingBackups))
 }
@@ -301,9 +301,9 @@ func Test_CleanByCount_DoesNotDeleteInProgressBackups(t *testing.T) {
 	database := databases.CreateTestDatabase(workspace.ID, storage, notifier)
 
 	defer func() {
-		backups, _ := backupRepository.FindByDatabaseID(database.ID)
+		backups, _ := getBackupRepository().FindByDatabaseID(database.ID)
 		for _, backup := range backups {
-			backupRepository.DeleteByID(backup.ID)
+			getBackupRepository().DeleteByID(backup.ID)
 		}
 
 		databases.RemoveTestDatabase(t.Context(), database)
@@ -338,7 +338,7 @@ func Test_CleanByCount_DoesNotDeleteInProgressBackups(t *testing.T) {
 			BackupSizeMb: 10,
 			CreatedAt:    now.Add(-time.Duration(3-i) * time.Hour),
 		}
-		err = backupRepository.Save(backup)
+		err = getBackupRepository().Save(backup)
 		assert.NoError(t, err)
 	}
 
@@ -350,14 +350,14 @@ func Test_CleanByCount_DoesNotDeleteInProgressBackups(t *testing.T) {
 		BackupSizeMb: 5,
 		CreatedAt:    now,
 	}
-	err = backupRepository.Save(inProgressBackup)
+	err = getBackupRepository().Save(inProgressBackup)
 	assert.NoError(t, err)
 
 	cleaner := GetBackupCleaner()
 	err = cleaner.cleanByRetentionPolicy(t.Context(), testLogger())
 	assert.NoError(t, err)
 
-	remainingBackups, err := backupRepository.FindByDatabaseID(database.ID)
+	remainingBackups, err := getBackupRepository().FindByDatabaseID(database.ID)
 	assert.NoError(t, err)
 
 	var inProgressFound bool
@@ -382,9 +382,9 @@ func Test_DeleteBackup_WhenStorageDeleteFails_BackupStillRemovedFromDatabase(t *
 	database := databases.CreateTestDatabase(workspace.ID, testStorage, notifier)
 
 	defer func() {
-		backups, _ := backupRepository.FindByDatabaseID(database.ID)
+		backups, _ := getBackupRepository().FindByDatabaseID(database.ID)
 		for _, backup := range backups {
-			backupRepository.DeleteByID(backup.ID)
+			getBackupRepository().DeleteByID(backup.ID)
 		}
 
 		databases.RemoveTestDatabase(t.Context(), database)
@@ -402,7 +402,7 @@ func Test_DeleteBackup_WhenStorageDeleteFails_BackupStillRemovedFromDatabase(t *
 		BackupSizeMb: 10,
 		CreatedAt:    time.Now().UTC(),
 	}
-	err := backupRepository.Save(backup)
+	err := getBackupRepository().Save(backup)
 	assert.NoError(t, err)
 
 	cleaner := GetBackupCleaner()
@@ -410,7 +410,7 @@ func Test_DeleteBackup_WhenStorageDeleteFails_BackupStillRemovedFromDatabase(t *
 	err = cleaner.DeleteBackup(t.Context(), backup)
 	assert.NoError(t, err, "DeleteBackup should succeed even when storage file doesn't exist")
 
-	deletedBackup, err := backupRepository.FindByID(backup.ID)
+	deletedBackup, err := getBackupRepository().FindByID(backup.ID)
 	assert.Error(t, err, "Backup should not exist in database")
 	assert.Nil(t, deletedBackup)
 }
@@ -424,9 +424,9 @@ func Test_CleanByTimePeriod_SkipsRecentBackup_EvenIfOlderThanRetention(t *testin
 	database := databases.CreateTestDatabase(workspace.ID, storage, notifier)
 
 	defer func() {
-		backups, _ := backupRepository.FindByDatabaseID(database.ID)
+		backups, _ := getBackupRepository().FindByDatabaseID(database.ID)
 		for _, backup := range backups {
-			backupRepository.DeleteByID(backup.ID)
+			getBackupRepository().DeleteByID(backup.ID)
 		}
 
 		databases.RemoveTestDatabase(t.Context(), database)
@@ -471,16 +471,16 @@ func Test_CleanByTimePeriod_SkipsRecentBackup_EvenIfOlderThanRetention(t *testin
 		CreatedAt:    now.Add(-30 * time.Minute),
 	}
 
-	err = backupRepository.Save(oldBackup)
+	err = getBackupRepository().Save(oldBackup)
 	assert.NoError(t, err)
-	err = backupRepository.Save(recentBackup)
+	err = getBackupRepository().Save(recentBackup)
 	assert.NoError(t, err)
 
 	cleaner := GetBackupCleaner()
 	err = cleaner.cleanByRetentionPolicy(t.Context(), testLogger())
 	assert.NoError(t, err)
 
-	remainingBackups, err := backupRepository.FindByDatabaseID(database.ID)
+	remainingBackups, err := getBackupRepository().FindByDatabaseID(database.ID)
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(remainingBackups))
 	assert.Equal(t, recentBackup.ID, remainingBackups[0].ID)
@@ -495,9 +495,9 @@ func Test_CleanByCount_SkipsRecentBackup_EvenIfOverLimit(t *testing.T) {
 	database := databases.CreateTestDatabase(workspace.ID, storage, notifier)
 
 	defer func() {
-		backups, _ := backupRepository.FindByDatabaseID(database.ID)
+		backups, _ := getBackupRepository().FindByDatabaseID(database.ID)
 		for _, backup := range backups {
-			backupRepository.DeleteByID(backup.ID)
+			getBackupRepository().DeleteByID(backup.ID)
 		}
 
 		databases.RemoveTestDatabase(t.Context(), database)
@@ -560,7 +560,7 @@ func Test_CleanByCount_SkipsRecentBackup_EvenIfOverLimit(t *testing.T) {
 	}
 
 	for _, b := range []*backups_core_logical.LogicalBackup{oldBackup1, oldBackup2, recentExcessBackup, newestBackup} {
-		err = backupRepository.Save(b)
+		err = getBackupRepository().Save(b)
 		assert.NoError(t, err)
 	}
 
@@ -568,7 +568,7 @@ func Test_CleanByCount_SkipsRecentBackup_EvenIfOverLimit(t *testing.T) {
 	err = cleaner.cleanByRetentionPolicy(t.Context(), testLogger())
 	assert.NoError(t, err)
 
-	remainingBackups, err := backupRepository.FindByDatabaseID(database.ID)
+	remainingBackups, err := getBackupRepository().FindByDatabaseID(database.ID)
 	assert.NoError(t, err)
 
 	remainingIDs := make(map[uuid.UUID]bool)
@@ -619,7 +619,7 @@ func Test_DeleteBackup_WhenProviderRefusesThenRecovers_RowGoesFirstAndFileFollow
 	directory := "refusing-" + backup.ID.String()
 	backup.FileName = directory + "/artifact"
 	backup.Status = backups_core_logical.BackupStatusCompleted
-	require.NoError(t, backupRepository.Save(backup))
+	require.NoError(t, getBackupRepository().Save(backup))
 
 	require.NoError(t, fixture.Storage.SaveFile(
 		t.Context(), encryption.GetFieldEncryptor(), logger.GetLogger(),
@@ -636,7 +636,7 @@ func Test_DeleteBackup_WhenProviderRefusesThenRecovers_RowGoesFirstAndFileFollow
 
 	require.NoError(t, GetBackupCleaner().DeleteBackup(t.Context(), backup))
 
-	persisted, err := backupRepository.FindByID(backup.ID)
+	persisted, err := getBackupRepository().FindByID(backup.ID)
 	require.Error(t, err, "the catalog row must not wait for a provider that is refusing")
 	assert.Nil(t, persisted)
 

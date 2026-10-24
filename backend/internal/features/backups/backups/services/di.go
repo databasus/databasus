@@ -24,63 +24,67 @@ import (
 	"databasus-backend/internal/util/logger"
 )
 
-var taskCancellationRequester = task_cancellation.GetRequester()
+var getTaskCancellationRequester = sync.OnceValue(task_cancellation.GetRequester)
 
-var backupService = &LogicalBackupService{
-	databases.GetDatabaseService(),
-	storages.GetStorageService(),
-	backups_core_logical.GetBackupRepository(),
-	notifiers.GetNotifierService(),
-	notifiers.GetNotifierService(),
-	backups_config_logical.GetBackupConfigService(),
-	encryption_secrets.GetSecretKeyService(),
-	encryption.GetFieldEncryptor(),
-	usecases_logical.GetCreateBackupUsecase(),
-	logger.GetLogger(),
-	workspaces_services.GetWorkspaceService(),
-	audit_logs.GetAuditLogService(),
-	taskCancellationRequester,
-	backups_download.GetDownloadTokenService(),
-	backuping_logical.GetBackupsScheduler(),
-	backuping_logical.GetBackupCleaner(),
-}
+var getBackupService = sync.OnceValue(func() *LogicalBackupService {
+	return &LogicalBackupService{
+		databases.GetDatabaseService(),
+		storages.GetStorageService(),
+		backups_core_logical.GetBackupRepository(),
+		notifiers.GetNotifierService(),
+		notifiers.GetNotifierService(),
+		backups_config_logical.GetBackupConfigService(),
+		encryption_secrets.GetSecretKeyService(),
+		encryption.GetFieldEncryptor(),
+		usecases_logical.GetCreateBackupUsecase(),
+		logger.GetLogger(),
+		workspaces_services.GetWorkspaceService(),
+		audit_logs.GetAuditLogService(),
+		getTaskCancellationRequester(),
+		backups_download.GetDownloadTokenService(),
+		backuping_logical.GetBackupsScheduler(),
+		backuping_logical.GetBackupCleaner(),
+	}
+})
 
 func GetBackupService() *LogicalBackupService {
-	return backupService
+	return getBackupService()
 }
 
-var physicalBackupService = &PhysicalBackupService{
-	databases.GetDatabaseService(),
-	workspaces_services.GetWorkspaceService(),
-	backups_config_physical.GetBackupConfigService(),
-	chain_view.GetChainViewService(),
-	physical_core_service.GetPhysicalBackupService(),
-	physical_repositories.GetFullBackupRepository(),
-	physical_repositories.GetIncrementalBackupRepository(),
-	physical_repositories.GetWalSegmentRepository(),
-	physical_repositories.GetInFlightBackupRepository(),
-	backuping_physical.GetPhysicalBackupCanceller(),
-	backuping_physical.GetPhysicalWalStreamSupervisor(),
-	backups_download.GetRestoreStreamWriter(),
-	backups_download.GetRestoreTokenService(),
-	encryption_secrets.GetSecretKeyService(),
-	audit_logs.GetAuditLogService(),
-	logger.GetLogger(),
-}
+var getPhysicalBackupService = sync.OnceValue(func() *PhysicalBackupService {
+	return &PhysicalBackupService{
+		databases.GetDatabaseService(),
+		workspaces_services.GetWorkspaceService(),
+		backups_config_physical.GetBackupConfigService(),
+		chain_view.GetChainViewService(),
+		physical_core_service.GetPhysicalBackupService(),
+		physical_repositories.GetFullBackupRepository(),
+		physical_repositories.GetIncrementalBackupRepository(),
+		physical_repositories.GetWalSegmentRepository(),
+		physical_repositories.GetInFlightBackupRepository(),
+		backuping_physical.GetPhysicalBackupCanceller(),
+		backuping_physical.GetPhysicalWalStreamSupervisor(),
+		backups_download.GetRestoreStreamWriter(),
+		backups_download.GetRestoreTokenService(),
+		encryption_secrets.GetSecretKeyService(),
+		audit_logs.GetAuditLogService(),
+		logger.GetLogger(),
+	}
+})
 
 func GetPhysicalBackupService() *PhysicalBackupService {
-	return physicalBackupService
+	return getPhysicalBackupService()
 }
 
 var SetupDependencies = sync.OnceFunc(func() {
 	backups_config_logical.
 		GetBackupConfigService().
-		SetDatabaseStorageChangeListener(backupService)
+		SetDatabaseStorageChangeListener(getBackupService())
 	backups_config_physical.
 		GetBackupConfigService().
-		SetDatabaseStorageChangeListener(physicalBackupService)
+		SetDatabaseStorageChangeListener(getPhysicalBackupService())
 
-	databases.GetDatabaseService().AddDbRemoveListener(backupService)
-	storages.GetStorageService().AddStorageBackupCounter(backupService)
+	databases.GetDatabaseService().AddDbRemoveListener(getBackupService())
+	storages.GetStorageService().AddStorageBackupCounter(getBackupService())
 	databases.GetDatabaseService().AddDbCopyListener(backups_config_logical.GetBackupConfigService())
 })

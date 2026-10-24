@@ -22,18 +22,6 @@ func (c *BackupConfigController) RegisterRoutes(router *gin.RouterGroup) {
 	router.POST("/backup-configs/database/:id/transfer", c.TransferDatabase)
 }
 
-// SaveBackupConfig
-// @Summary Save backup configuration
-// @Description Save or update backup configuration for a database. Encryption can be set to NONE (no encryption) or ENCRYPTED (AES-256-GCM encryption).
-// @Tags backup-configs
-// @Accept json
-// @Produce json
-// @Param request body LogicalBackupConfig true "Backup configuration data (encryption field: NONE or ENCRYPTED)"
-// @Success 200 {object} LogicalBackupConfig "Returns the saved backup configuration including encryption settings"
-// @Failure 400 {object} map[string]string "Invalid encryption value or other validation errors"
-// @Failure 401 {object} map[string]string "User not authenticated"
-// @Failure 500 {object} map[string]string "Internal server error"
-// @Router /backup-configs/save [post]
 func (c *BackupConfigController) SaveBackupConfig(ctx *gin.Context) {
 	user, ok := users_middleware.GetUserFromContext(ctx)
 	if !ok {
@@ -59,17 +47,6 @@ func (c *BackupConfigController) SaveBackupConfig(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, savedConfig)
 }
 
-// GetBackupConfigByDbID
-// @Summary Get backup configuration by database ID
-// @Description Get backup configuration for a specific database including encryption settings (NONE or ENCRYPTED)
-// @Tags backup-configs
-// @Produce json
-// @Param id path string true "Database ID"
-// @Success 200 {object} LogicalBackupConfig "Returns backup configuration with encryption field"
-// @Failure 400 {object} map[string]string "Invalid database ID"
-// @Failure 401 {object} map[string]string "User not authenticated"
-// @Failure 404 {object} map[string]string "Backup configuration not found"
-// @Router /backup-configs/database/{id} [get]
 func (c *BackupConfigController) GetBackupConfigByDbID(ctx *gin.Context) {
 	user, ok := users_middleware.GetUserFromContext(ctx)
 	if !ok {
@@ -92,17 +69,6 @@ func (c *BackupConfigController) GetBackupConfigByDbID(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, backupConfig)
 }
 
-// IsStorageInUse
-// @Summary Check if storage is being used
-// @Description Check if a storage is currently being used by any backup configuration
-// @Tags backup-configs
-// @Produce json
-// @Param id path string true "Storage ID"
-// @Success 200 {object} map[string]bool
-// @Failure 400
-// @Failure 401
-// @Failure 500
-// @Router /backup-configs/storage/{id}/is-using [get]
 func (c *BackupConfigController) IsStorageInUse(ctx *gin.Context) {
 	user, ok := users_middleware.GetUserFromContext(ctx)
 	if !ok {
@@ -126,17 +92,6 @@ func (c *BackupConfigController) IsStorageInUse(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"isUsing": isUsing})
 }
 
-// CountDatabasesForStorage
-// @Summary Count databases using a storage
-// @Description Get the count of databases that are using a specific storage
-// @Tags backup-configs
-// @Produce json
-// @Param id path string true "Storage ID"
-// @Success 200 {object} map[string]int
-// @Failure 400
-// @Failure 401
-// @Failure 500
-// @Router /backup-configs/storage/{id}/databases-count [get]
 func (c *BackupConfigController) CountDatabasesForStorage(ctx *gin.Context) {
 	user, ok := users_middleware.GetUserFromContext(ctx)
 	if !ok {
@@ -160,19 +115,6 @@ func (c *BackupConfigController) CountDatabasesForStorage(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"count": count})
 }
 
-// TransferDatabase
-// @Summary Transfer database to another workspace
-// @Description Transfer a database from one workspace to another. Can transfer to a new storage or transfer with the existing storage. Can also specify target notifiers from the target workspace.
-// @Tags backup-configs
-// @Accept json
-// @Produce json
-// @Param id path string true "Database ID"
-// @Param request body TransferDatabaseRequest true "Transfer request with targetWorkspaceId, storage options (targetStorageId or isTransferWithStorage), and optional targetNotifierIds"
-// @Success 200 {object} map[string]string "Database transferred successfully"
-// @Failure 400 {object} map[string]string "Invalid request, target storage/notifier not in target workspace, or transfer failed"
-// @Failure 401 {object} map[string]string "User not authenticated"
-// @Failure 403 {object} map[string]string "Insufficient permissions"
-// @Router /backup-configs/database/{id}/transfer [post]
 func (c *BackupConfigController) TransferDatabase(ctx *gin.Context) {
 	user, ok := users_middleware.GetUserFromContext(ctx)
 	if !ok {

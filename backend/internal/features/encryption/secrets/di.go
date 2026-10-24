@@ -1,7 +1,11 @@
 package secrets
 
-var secretKeyService = &SecretKeyService{}
+import "sync"
+
+var getSecretKeyService = sync.OnceValue(func() *SecretKeyService {
+	return &SecretKeyService{}
+})
 
 func GetSecretKeyService() *SecretKeyService {
-	return secretKeyService
+	return getSecretKeyService()
 }

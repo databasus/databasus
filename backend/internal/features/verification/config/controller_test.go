@@ -355,9 +355,9 @@ func Test_OnDatabaseCopied_CopiesConfigOntoNewDatabase(t *testing.T) {
 		&saved,
 	)
 
-	verificationConfigService.OnDatabaseCopied(t.Context(), source.ID, target.ID)
+	getVerificationConfigService().OnDatabaseCopied(t.Context(), source.ID, target.ID)
 
-	copied, err := verificationConfigRepository.GetByDatabaseID(target.ID)
+	copied, err := getVerificationConfigRepository().GetByDatabaseID(target.ID)
 	assert.NoError(t, err)
 	assert.NotNil(t, copied)
 	assert.Equal(t, target.ID, copied.DatabaseID)

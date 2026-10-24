@@ -57,5 +57,6 @@ This is the project's common language. Each concept has one term in the document
 | Write receipt | write receipt | What the file store returns for a written file. The transaction that publishes the backup spends it to keep the file. |
 | Pending deletion | pending deletion | A recorded obligation to delete a file from a storage, carried out by the deletion worker. |
 | Deletion worker | deletion worker | The background job of the storages module that deletes files with a pending deletion. |
+| Console command | console command | An operation of the Databasus binary that the operator runs on the host or in the container instead of starting the server, such as a password reset. The `healthcheck` subcommand is not one: it only asks the running server. |
 | Migration | migration | A goose SQL file in `backend/migrations`, the only way to change the schema. |
 | Test application | test app | A backend instance built for one test by `apptest.New`, with its own database, clock and fakes. |

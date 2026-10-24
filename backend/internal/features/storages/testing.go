@@ -19,18 +19,18 @@ func DrainStorageFileDeletions(
 	ctx context.Context,
 	references ...storage_files.StoredFileReference,
 ) error {
-	dependencies := storageFileDependencies
+	dependencies := getStorageFileDependencies()
 	dependencies.Timings = storage_files.TimingsForTest()
 
-	return storage_files.NewDeletionWorker(storageFileStore, dependencies).DrainForTest(ctx, references...)
+	return storage_files.NewDeletionWorker(getStorageFileStore(), dependencies).DrainForTest(ctx, references...)
 }
 
 func SetStorageDatabaseCountersForTest(counters ...StorageDatabaseCounter) {
-	storageService.storageDatabaseCounters = counters
+	getStorageService().storageDatabaseCounters = counters
 }
 
 func SetStorageBackupCountersForTest(counters ...StorageBackupCounter) {
-	storageService.storageBackupCounters = counters
+	getStorageService().storageBackupCounters = counters
 }
 
 func CreateTestStorage(workspaceID uuid.UUID) *Storage {
@@ -41,7 +41,7 @@ func CreateTestStorage(workspaceID uuid.UUID) *Storage {
 		LocalStorage: &local_storage.LocalStorage{},
 	}
 
-	storage, err := storageRepository.Save(storage)
+	storage, err := getStorageRepository().Save(storage)
 	if err != nil {
 		panic(err)
 	}
@@ -75,7 +75,7 @@ func CreateTestFlakyS3Storage(workspaceID uuid.UUID, endpoint string) *Storage {
 		},
 	}
 
-	saved, err := storageRepository.Save(storage)
+	saved, err := getStorageRepository().Save(storage)
 	if err != nil {
 		panic(err)
 	}
@@ -88,12 +88,12 @@ func CreateTestFlakyS3Storage(workspaceID uuid.UUID, endpoint string) *Storage {
 func RemoveTestStorage(ctx context.Context, id uuid.UUID) {
 	ctx = context.WithoutCancel(ctx)
 
-	storage, err := storageRepository.FindByID(ctx, id)
+	storage, err := getStorageRepository().FindByID(ctx, id)
 	if err != nil {
 		panic(err)
 	}
 
-	err = storageRepository.Delete(storage)
+	err = getStorageRepository().Delete(storage)
 	if err != nil {
 		panic(err)
 	}

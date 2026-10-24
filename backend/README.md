@@ -33,13 +33,3 @@ To apply or roll back migrations on the dev database, with the variables from `.
 > goose -dir backend/migrations up
 
 > goose -dir backend/migrations down
-
-# Swagger
-
-`just run` generates the swagger docs before the backend starts. To regenerate them by hand, from `backend/`:
-
-> swag init -d . -g cmd/main.go -o swagger
-
-Swagger URL is:
-
-> http://localhost:4005/api/v1/docs/swagger/index.html#/

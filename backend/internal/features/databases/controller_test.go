@@ -1873,7 +1873,7 @@ func Test_UpdateDatabase_WhenSshAuthTypeChangesToPassword_ClearsTheStoredPrivate
 		createdDatabase, http.StatusOK, &updatedDatabase,
 	)
 
-	persistedDatabase, err := databaseRepository.FindByID(createdDatabase.ID)
+	persistedDatabase, err := getDatabaseRepository().FindByID(createdDatabase.ID)
 	require.NoError(t, err)
 	require.NotNil(t, persistedDatabase.PostgresqlLogical)
 

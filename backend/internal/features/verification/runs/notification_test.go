@@ -84,10 +84,10 @@ func installRecordingNotificationSender(t *testing.T) *recordingNotificationSend
 	t.Helper()
 
 	recorder := newRecordingNotificationSender()
-	original := verificationService.notifierService
-	verificationService.notifierService = recorder
+	original := getVerificationService().notifierService
+	getVerificationService().notifierService = recorder
 
-	t.Cleanup(func() { verificationService.notifierService = original })
+	t.Cleanup(func() { getVerificationService().notifierService = original })
 
 	return recorder
 }

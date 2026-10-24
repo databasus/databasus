@@ -68,9 +68,9 @@ func Test_BackupExecuted_NotificationSent(t *testing.T) {
 
 	defer func() {
 		// cleanup backups first
-		backups, _ := backupRepository.FindByDatabaseID(database.ID)
+		backups, _ := getBackupRepository().FindByDatabaseID(database.ID)
 		for _, backup := range backups {
-			backupRepository.DeleteByID(backup.ID)
+			getBackupRepository().DeleteByID(backup.ID)
 		}
 
 		databases.RemoveTestDatabase(t.Context(), database)
@@ -94,7 +94,7 @@ func Test_BackupExecuted_NotificationSent(t *testing.T) {
 			Status:     backups_core_logical.BackupStatusInProgress,
 			CreatedAt:  time.Now().UTC(),
 		}
-		err := backupRepository.Save(backup)
+		err := getBackupRepository().Save(backup)
 		assert.NoError(t, err)
 
 		// Set up expectations
@@ -127,7 +127,7 @@ func Test_BackupExecuted_NotificationSent(t *testing.T) {
 			Status:     backups_core_logical.BackupStatusInProgress,
 			CreatedAt:  time.Now().UTC(),
 		}
-		err := backupRepository.Save(backup)
+		err := getBackupRepository().Save(backup)
 		assert.NoError(t, err)
 
 		// Set up expectations
@@ -160,7 +160,7 @@ func Test_BackupExecuted_NotificationSent(t *testing.T) {
 			Status:     backups_core_logical.BackupStatusInProgress,
 			CreatedAt:  time.Now().UTC(),
 		}
-		err := backupRepository.Save(backup)
+		err := getBackupRepository().Save(backup)
 		assert.NoError(t, err)
 
 		// capture arguments
@@ -219,7 +219,7 @@ func Test_MakeBackup_WhenUsecaseStoresArtifactThenFails_ArtifactRemoved(t *testi
 	fixture := CreateBackupTestFixture(t, "Failed Backup Artifact Workspace")
 	backup := SeedInProgressTestBackup(t, fixture.Database.ID, fixture.Storage.ID)
 	backup.FileName = "failed-logical-" + backup.ID.String()
-	require.NoError(t, backupRepository.Save(backup))
+	require.NoError(t, getBackupRepository().Save(backup))
 
 	notificationSender := &MockNotificationSender{}
 	notificationSender.On("SendNotification", mock.Anything, mock.Anything).Maybe()
@@ -228,7 +228,7 @@ func Test_MakeBackup_WhenUsecaseStoresArtifactThenFails_ArtifactRemoved(t *testi
 	backuper.notificationSender = notificationSender
 	backuper.MakeBackup(t.Context(), backup.ID, true)
 
-	persistedBackup, err := backupRepository.FindByID(backup.ID)
+	persistedBackup, err := getBackupRepository().FindByID(backup.ID)
 	require.NoError(t, err)
 	assert.Equal(t, backups_core_logical.BackupStatusFailed, persistedBackup.Status)
 
@@ -438,7 +438,7 @@ func assertBackupFailsAndIsReported(t *testing.T, backupErr error, expectedFailM
 	backuper.notificationSender = notificationSender
 	backuper.MakeBackup(t.Context(), backup.ID, true)
 
-	persistedBackup, err := backupRepository.FindByID(backup.ID)
+	persistedBackup, err := getBackupRepository().FindByID(backup.ID)
 	require.NoError(t, err)
 	assert.Equal(t, backups_core_logical.BackupStatusFailed, persistedBackup.Status)
 	require.NotNil(t, persistedBackup.FailMessage)
@@ -480,7 +480,7 @@ func makeBackupCancellingThroughRegistry(t *testing.T, backuper *Backuper, backu
 		t.Fatal("the backup use case never started")
 	}
 
-	taskCancellationRegistry.CancelRegisteredTask(backupID)
+	getTaskCancellationRegistry().CancelRegisteredTask(backupID)
 
 	select {
 	case <-finishedBackup:
@@ -497,7 +497,7 @@ func assertBackupCancelledSilently(
 ) {
 	t.Helper()
 
-	persistedBackup, err := backupRepository.FindByID(backupID)
+	persistedBackup, err := getBackupRepository().FindByID(backupID)
 	require.NoError(t, err)
 	assert.Equal(t, backups_core_logical.BackupStatusCanceled, persistedBackup.Status)
 
@@ -519,7 +519,7 @@ func Test_MakeBackup_WhenMetadataIsUnusable_BackupFailsAndArtifactRemoved(t *tes
 	backuper.notificationSender = notificationSender
 	backuper.MakeBackup(t.Context(), backup.ID, true)
 
-	persistedBackup, err := backupRepository.FindByID(backup.ID)
+	persistedBackup, err := getBackupRepository().FindByID(backup.ID)
 	require.NoError(t, err)
 	assert.Equal(t, backups_core_logical.BackupStatusFailed, persistedBackup.Status,
 		"a backup whose metadata cannot be restored from must not be published")
@@ -568,7 +568,7 @@ func Test_MakeBackup_WhenPublicationFails_EveryFileOfTheAttemptIsRemoved(t *test
 	backuper.notificationSender = notificationSender
 	backuper.MakeBackup(t.Context(), backup.ID, true)
 
-	persistedBackup, err := backupRepository.FindByID(backup.ID)
+	persistedBackup, err := getBackupRepository().FindByID(backup.ID)
 	require.NoError(t, err)
 	assert.Equal(t, backups_core_logical.BackupStatusFailed, persistedBackup.Status,
 		"a backup whose files cannot be claimed must not be published")

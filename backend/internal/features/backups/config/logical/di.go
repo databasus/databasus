@@ -10,29 +10,35 @@ import (
 )
 
 var (
-	backupConfigRepository = &BackupConfigRepository{}
-	backupConfigService    = &BackupConfigService{
-		backupConfigRepository,
-		databases.GetDatabaseService(),
-		storages.GetStorageService(),
-		notifiers.GetNotifierService(),
-		workspaces_services.GetWorkspaceService(),
-		nil,
-	}
+	getBackupConfigRepository = sync.OnceValue(func() *BackupConfigRepository {
+		return &BackupConfigRepository{}
+	})
+	getBackupConfigService = sync.OnceValue(func() *BackupConfigService {
+		return &BackupConfigService{
+			getBackupConfigRepository(),
+			databases.GetDatabaseService(),
+			storages.GetStorageService(),
+			notifiers.GetNotifierService(),
+			workspaces_services.GetWorkspaceService(),
+			nil,
+		}
+	})
 )
 
-var backupConfigController = &BackupConfigController{
-	backupConfigService,
-}
+var getBackupConfigController = sync.OnceValue(func() *BackupConfigController {
+	return &BackupConfigController{
+		getBackupConfigService(),
+	}
+})
 
 func GetBackupConfigController() *BackupConfigController {
-	return backupConfigController
+	return getBackupConfigController()
 }
 
 func GetBackupConfigService() *BackupConfigService {
-	return backupConfigService
+	return getBackupConfigService()
 }
 
 var SetupDependencies = sync.OnceFunc(func() {
-	storages.GetStorageService().AddStorageDatabaseCounter(backupConfigService)
+	storages.GetStorageService().AddStorageDatabaseCounter(getBackupConfigService())
 })

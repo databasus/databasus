@@ -106,9 +106,9 @@ func CreateBackupTestFixture(t *testing.T, workspaceName string) *BackupTestFixt
 	backups_config_logical.EnableBackupsForTestDatabase(t.Context(), createdDatabase.ID, createdStorage)
 
 	t.Cleanup(func() {
-		backups, _ := backupRepository.FindByDatabaseID(createdDatabase.ID)
+		backups, _ := getBackupRepository().FindByDatabaseID(createdDatabase.ID)
 		for _, backup := range backups {
-			if err := backupRepository.DeleteByID(backup.ID); err != nil {
+			if err := getBackupRepository().DeleteByID(backup.ID); err != nil {
 				t.Errorf("clean up backup %s: %v", backup.ID, err)
 			}
 		}
@@ -138,7 +138,7 @@ func CreateTestRouter() *gin.Engine {
 
 func CreateTestBackupCleaner() *BackupCleaner {
 	return &BackupCleaner{
-		backupRepository,
+		getBackupRepository(),
 		storages.GetStorageFileStore(),
 		backups_config_logical.GetBackupConfigService(),
 		logger.GetLogger(),
@@ -151,11 +151,11 @@ func CreateTestBackuper() *Backuper {
 	return &Backuper{
 		databases.GetDatabaseService(),
 		workspaces_services.GetWorkspaceService(),
-		backupRepository,
+		getBackupRepository(),
 		backups_config_logical.GetBackupConfigService(),
 		storages.GetStorageFileStore(),
 		notifiers.GetNotifierService(),
-		taskCancellationRegistry,
+		getTaskCancellationRegistry(),
 		logger.GetLogger(),
 		usecases_logical.GetCreateBackupUsecase(),
 	}
@@ -165,11 +165,11 @@ func CreateTestBackuperWithUseCase(useCase backups_core_logical.CreateBackupUsec
 	return &Backuper{
 		databases.GetDatabaseService(),
 		workspaces_services.GetWorkspaceService(),
-		backupRepository,
+		getBackupRepository(),
 		backups_config_logical.GetBackupConfigService(),
 		storages.GetStorageFileStore(),
 		notifiers.GetNotifierService(),
-		taskCancellationRegistry,
+		getTaskCancellationRegistry(),
 		logger.GetLogger(),
 		useCase,
 	}
@@ -184,9 +184,9 @@ func CreateTestScheduler() *BackupsScheduler {
 // to it in-process.
 func CreateTestSchedulerWithBackuper(backuper *Backuper) *BackupsScheduler {
 	return &BackupsScheduler{
-		backupRepository,
+		getBackupRepository(),
 		backups_config_logical.GetBackupConfigService(),
-		taskCancellationRequester,
+		getTaskCancellationRequester(),
 		databases.GetDatabaseService(),
 		time.Now().UTC(),
 		logger.GetLogger(),
@@ -208,7 +208,7 @@ func WaitForBackupCompletion(
 	deadline := time.Now().UTC().Add(timeout)
 
 	for time.Now().UTC().Before(deadline) {
-		backups, err := backupRepository.FindByDatabaseID(databaseID)
+		backups, err := getBackupRepository().FindByDatabaseID(databaseID)
 		if err != nil {
 			t.Logf("WaitForBackupCompletion: error finding backups: %v", err)
 			time.Sleep(50 * time.Millisecond)
@@ -282,5 +282,5 @@ func StartSchedulerForTest(t *testing.T, scheduler *BackupsScheduler) context.Ca
 // listeners for a backup, standing in for the in-process completion hook that
 // StartBackup's dispatch goroutine calls after MakeBackup returns.
 func TriggerBackupCompletedForTest(backupID uuid.UUID) {
-	backupsScheduler.onBackupCompleted(backupID)
+	getBackupsScheduler().onBackupCompleted(backupID)
 }

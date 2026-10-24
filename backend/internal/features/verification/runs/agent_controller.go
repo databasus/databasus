@@ -27,20 +27,6 @@ func (c *VerificationAgentController) RegisterRoutes(router *gin.RouterGroup) {
 	g.POST("/:id/report", c.Report)
 }
 
-// Claim
-// @Summary Claim next verification job
-// @Description Called by a verification agent. Returns the oldest PENDING verification that fits the agent's disk budget, or 204 if nothing fits.
-// @Tags verification-agents
-// @Accept json
-// @Produce json
-// @Param agentId path string true "Agent UUID"
-// @Param Authorization header string true "Bearer <agent-token>"
-// @Param request body ClaimRequest true "Agent capacity"
-// @Success 200 {object} JobAssignment
-// @Success 204
-// @Failure 400 {object} map[string]string
-// @Failure 401 {object} map[string]string
-// @Router /agent/verifications/{agentId}/claim [post]
 func (c *VerificationAgentController) Claim(ctx *gin.Context) {
 	agent, ok := verification_agents.GetAgentFromContext(ctx)
 	if !ok {
@@ -69,19 +55,6 @@ func (c *VerificationAgentController) Claim(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, assignment)
 }
 
-// BackupStream
-// @Summary Stream the backup file for a verification
-// @Description Streams the decrypted backup file to the agent that owns this RUNNING verification. Same bytes the user-facing /backups/{id}/download endpoint returns.
-// @Tags verification-agents
-// @Produce application/octet-stream
-// @Param agentId path string true "Agent UUID"
-// @Param id path string true "Verification UUID"
-// @Param Authorization header string true "Bearer <agent-token>"
-// @Success 200
-// @Failure 400 {object} map[string]string
-// @Failure 401 {object} map[string]string
-// @Failure 410 {object} map[string]string
-// @Router /agent/verifications/{agentId}/{id}/backup-stream [get]
 func (c *VerificationAgentController) BackupStream(ctx *gin.Context) {
 	agent, ok := verification_agents.GetAgentFromContext(ctx)
 	if !ok {
@@ -128,21 +101,6 @@ func (c *VerificationAgentController) BackupStream(ctx *gin.Context) {
 	}
 }
 
-// Report
-// @Summary Submit verification result
-// @Description Agent reports COMPLETED (with stats) or FAILED. CAS-guarded: stale or foreign reports get 410.
-// @Tags verification-agents
-// @Accept json
-// @Produce json
-// @Param agentId path string true "Agent UUID"
-// @Param id path string true "Verification UUID"
-// @Param Authorization header string true "Bearer <agent-token>"
-// @Param request body ReportRequest true "Report payload"
-// @Success 204
-// @Failure 400 {object} map[string]string
-// @Failure 401 {object} map[string]string
-// @Failure 410 {object} map[string]string
-// @Router /agent/verifications/{agentId}/{id}/report [post]
 func (c *VerificationAgentController) Report(ctx *gin.Context) {
 	agent, ok := verification_agents.GetAgentFromContext(ctx)
 	if !ok {

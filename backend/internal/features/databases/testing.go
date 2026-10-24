@@ -204,7 +204,7 @@ func CreateTestPhysicalPostgresDatabaseMtls(
 		},
 	}
 
-	database, err := databaseRepository.Save(database)
+	database, err := getDatabaseRepository().Save(database)
 	if err != nil {
 		panic(err)
 	}
@@ -274,7 +274,7 @@ func CreateTestDatabase(
 		},
 	}
 
-	database, err := databaseRepository.Save(database)
+	database, err := getDatabaseRepository().Save(database)
 	if err != nil {
 		panic(err)
 	}
@@ -317,7 +317,7 @@ func CreateTestPhysicalPostgresDatabaseWithType(
 		},
 	}
 
-	database, err := databaseRepository.Save(database)
+	database, err := getDatabaseRepository().Save(database)
 	if err != nil {
 		panic(err)
 	}
@@ -355,7 +355,7 @@ func CreateTestPhysicalPostgresDatabaseWithTunnel(
 		},
 	}
 
-	database, err := databaseRepository.Save(database)
+	database, err := getDatabaseRepository().Save(database)
 	if err != nil {
 		panic(err)
 	}
@@ -383,7 +383,7 @@ func CreateTestPhysicalPostgresDatabaseNoSummary(
 		},
 	}
 
-	database, err := databaseRepository.Save(database)
+	database, err := getDatabaseRepository().Save(database)
 	if err != nil {
 		panic(err)
 	}
@@ -407,7 +407,7 @@ func CreateTestMariadbDatabase(
 		},
 	}
 
-	database, err := databaseRepository.Save(database)
+	database, err := getDatabaseRepository().Save(database)
 	if err != nil {
 		panic(err)
 	}
@@ -431,7 +431,7 @@ func CreateTestMongodbDatabase(
 		},
 	}
 
-	database, err := databaseRepository.Save(database)
+	database, err := getDatabaseRepository().Save(database)
 	if err != nil {
 		panic(err)
 	}
@@ -442,7 +442,7 @@ func CreateTestMongodbDatabase(
 // The context is stripped of cancellation because callers pass t.Context() from a t.Cleanup, and
 // the test context is already cancelled by the time cleanup runs.
 func RemoveTestDatabase(ctx context.Context, database *Database) {
-	if err := databaseService.DeleteForTest(context.WithoutCancel(ctx), database.ID); err != nil {
+	if err := getDatabaseService().DeleteForTest(context.WithoutCancel(ctx), database.ID); err != nil {
 		panic(fmt.Sprintf("failed to delete test database: %v", err))
 	}
 }

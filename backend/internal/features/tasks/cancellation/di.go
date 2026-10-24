@@ -9,29 +9,33 @@ import (
 )
 
 var (
-	taskCancellationRegistry  = NewRegistry()
-	taskCancellationRequester = NewRequester(pubsub.GetBroker(), logger.GetLogger())
-	taskCancellationListener  = NewListener(
-		pubsub.GetBroker(),
-		taskCancellationRegistry,
-		logger.GetLogger(),
-	)
+	getTaskCancellationRegistry  = sync.OnceValue(NewRegistry)
+	getTaskCancellationRequester = sync.OnceValue(func() *Requester {
+		return NewRequester(pubsub.GetBroker(), logger.GetLogger())
+	})
+	getTaskCancellationListener = sync.OnceValue(func() *Listener {
+		return NewListener(
+			pubsub.GetBroker(),
+			getTaskCancellationRegistry(),
+			logger.GetLogger(),
+		)
+	})
 )
 
 func GetRegistry() *Registry {
-	return taskCancellationRegistry
+	return getTaskCancellationRegistry()
 }
 
 func GetRequester() *Requester {
-	return taskCancellationRequester
+	return getTaskCancellationRequester()
 }
 
 func GetListener() *Listener {
-	return taskCancellationListener
+	return getTaskCancellationListener()
 }
 
 var SetupDependencies = sync.OnceFunc(func() {
-	if err := taskCancellationListener.Start(context.Background()); err != nil {
+	if err := getTaskCancellationListener().Start(context.Background()); err != nil {
 		panic(err)
 	}
 })

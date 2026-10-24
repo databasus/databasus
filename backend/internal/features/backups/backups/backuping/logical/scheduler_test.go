@@ -69,9 +69,9 @@ func Test_RunPendingBackups_ByDatabaseType_OnlySchedulesNonAgentManagedBackups(t
 			database := tc.createDatabase(t, workspace.ID, storage, notifier)
 
 			defer func() {
-				backups, _ := backupRepository.FindByDatabaseID(database.ID)
+				backups, _ := getBackupRepository().FindByDatabaseID(database.ID)
 				for _, backup := range backups {
-					backupRepository.DeleteByID(backup.ID)
+					getBackupRepository().DeleteByID(backup.ID)
 				}
 
 				databases.RemoveTestDatabase(t.Context(), database)
@@ -99,7 +99,7 @@ func Test_RunPendingBackups_ByDatabaseType_OnlySchedulesNonAgentManagedBackups(t
 			assert.NoError(t, err)
 
 			// add old backup (24h ago)
-			backupRepository.Save(&backups_core_logical.LogicalBackup{
+			getBackupRepository().Save(&backups_core_logical.LogicalBackup{
 				DatabaseID: database.ID,
 				StorageID:  storage.ID,
 				Status:     backups_core_logical.BackupStatusCompleted,
@@ -111,13 +111,13 @@ func Test_RunPendingBackups_ByDatabaseType_OnlySchedulesNonAgentManagedBackups(t
 			if tc.isBackupExpected {
 				WaitForBackupCompletion(t, database.ID, 1, 10*time.Second)
 
-				backups, err := backupRepository.FindByDatabaseID(database.ID)
+				backups, err := getBackupRepository().FindByDatabaseID(database.ID)
 				assert.NoError(t, err)
 				assert.Len(t, backups, 2)
 			} else {
 				time.Sleep(100 * time.Millisecond)
 
-				backups, err := backupRepository.FindByDatabaseID(database.ID)
+				backups, err := getBackupRepository().FindByDatabaseID(database.ID)
 				assert.NoError(t, err)
 				assert.Len(t, backups, 1)
 			}
@@ -139,9 +139,9 @@ func Test_RunPendingBackups_WhenLastBackupWasYesterday_CreatesNewBackup(t *testi
 
 	defer func() {
 		// cleanup backups first
-		backups, _ := backupRepository.FindByDatabaseID(database.ID)
+		backups, _ := getBackupRepository().FindByDatabaseID(database.ID)
 		for _, backup := range backups {
-			backupRepository.DeleteByID(backup.ID)
+			getBackupRepository().DeleteByID(backup.ID)
 		}
 
 		databases.RemoveTestDatabase(t.Context(), database)
@@ -170,7 +170,7 @@ func Test_RunPendingBackups_WhenLastBackupWasYesterday_CreatesNewBackup(t *testi
 	assert.NoError(t, err)
 
 	// add old backup
-	backupRepository.Save(&backups_core_logical.LogicalBackup{
+	getBackupRepository().Save(&backups_core_logical.LogicalBackup{
 		DatabaseID: database.ID,
 		StorageID:  storage.ID,
 
@@ -185,7 +185,7 @@ func Test_RunPendingBackups_WhenLastBackupWasYesterday_CreatesNewBackup(t *testi
 	WaitForBackupCompletion(t, database.ID, 1, 10*time.Second)
 
 	// assertions
-	backups, err := backupRepository.FindByDatabaseID(database.ID)
+	backups, err := getBackupRepository().FindByDatabaseID(database.ID)
 	assert.NoError(t, err)
 	assert.Len(t, backups, 2)
 
@@ -205,9 +205,9 @@ func Test_RunPendingBackups_WhenLastBackupWasRecentlyCompleted_SkipsBackup(t *te
 
 	defer func() {
 		// cleanup backups first
-		backups, _ := backupRepository.FindByDatabaseID(database.ID)
+		backups, _ := getBackupRepository().FindByDatabaseID(database.ID)
 		for _, backup := range backups {
-			backupRepository.DeleteByID(backup.ID)
+			getBackupRepository().DeleteByID(backup.ID)
 		}
 
 		databases.RemoveTestDatabase(t.Context(), database)
@@ -235,7 +235,7 @@ func Test_RunPendingBackups_WhenLastBackupWasRecentlyCompleted_SkipsBackup(t *te
 	_, err = backups_config_logical.GetBackupConfigService().SaveBackupConfig(t.Context(), backupConfig)
 	assert.NoError(t, err)
 
-	backupRepository.Save(&backups_core_logical.LogicalBackup{
+	getBackupRepository().Save(&backups_core_logical.LogicalBackup{
 		DatabaseID: database.ID,
 		StorageID:  storage.ID,
 
@@ -249,7 +249,7 @@ func Test_RunPendingBackups_WhenLastBackupWasRecentlyCompleted_SkipsBackup(t *te
 	time.Sleep(100 * time.Millisecond)
 
 	// assertions
-	backups, err := backupRepository.FindByDatabaseID(database.ID)
+	backups, err := getBackupRepository().FindByDatabaseID(database.ID)
 	assert.NoError(t, err)
 	assert.Len(t, backups, 1) // Should still be 1 backup, no new backup created
 
@@ -269,9 +269,9 @@ func Test_RunPendingBackups_WhenLastBackupFailedAndRetriesDisabled_SkipsBackup(t
 
 	defer func() {
 		// cleanup backups first
-		backups, _ := backupRepository.FindByDatabaseID(database.ID)
+		backups, _ := getBackupRepository().FindByDatabaseID(database.ID)
 		for _, backup := range backups {
-			backupRepository.DeleteByID(backup.ID)
+			getBackupRepository().DeleteByID(backup.ID)
 		}
 
 		databases.RemoveTestDatabase(t.Context(), database)
@@ -302,7 +302,7 @@ func Test_RunPendingBackups_WhenLastBackupFailedAndRetriesDisabled_SkipsBackup(t
 	assert.NoError(t, err)
 
 	failMessage := "backup failed"
-	backupRepository.Save(&backups_core_logical.LogicalBackup{
+	getBackupRepository().Save(&backups_core_logical.LogicalBackup{
 		DatabaseID: database.ID,
 		StorageID:  storage.ID,
 
@@ -317,7 +317,7 @@ func Test_RunPendingBackups_WhenLastBackupFailedAndRetriesDisabled_SkipsBackup(t
 	time.Sleep(100 * time.Millisecond)
 
 	// assertions
-	backups, err := backupRepository.FindByDatabaseID(database.ID)
+	backups, err := getBackupRepository().FindByDatabaseID(database.ID)
 	assert.NoError(t, err)
 	assert.Len(t, backups, 1) // Should still be 1 backup, no retry attempted
 
@@ -337,9 +337,9 @@ func Test_RunPendingBackups_WhenLastBackupFailedAndRetriesEnabled_CreatesNewBack
 
 	defer func() {
 		// cleanup backups first
-		backups, _ := backupRepository.FindByDatabaseID(database.ID)
+		backups, _ := getBackupRepository().FindByDatabaseID(database.ID)
 		for _, backup := range backups {
-			backupRepository.DeleteByID(backup.ID)
+			getBackupRepository().DeleteByID(backup.ID)
 		}
 
 		databases.RemoveTestDatabase(t.Context(), database)
@@ -371,7 +371,7 @@ func Test_RunPendingBackups_WhenLastBackupFailedAndRetriesEnabled_CreatesNewBack
 
 	// add failed backup
 	failMessage := "backup failed"
-	backupRepository.Save(&backups_core_logical.LogicalBackup{
+	getBackupRepository().Save(&backups_core_logical.LogicalBackup{
 		DatabaseID: database.ID,
 		StorageID:  storage.ID,
 
@@ -387,7 +387,7 @@ func Test_RunPendingBackups_WhenLastBackupFailedAndRetriesEnabled_CreatesNewBack
 	WaitForBackupCompletion(t, database.ID, 1, 10*time.Second)
 
 	// assertions
-	backups, err := backupRepository.FindByDatabaseID(database.ID)
+	backups, err := getBackupRepository().FindByDatabaseID(database.ID)
 	assert.NoError(t, err)
 	assert.Len(t, backups, 2) // Should have 2 backups, retry was attempted
 
@@ -407,9 +407,9 @@ func Test_RunPendingBackups_WhenFailedBackupsExceedMaxRetries_SkipsBackup(t *tes
 
 	defer func() {
 		// cleanup backups first
-		backups, _ := backupRepository.FindByDatabaseID(database.ID)
+		backups, _ := getBackupRepository().FindByDatabaseID(database.ID)
 		for _, backup := range backups {
-			backupRepository.DeleteByID(backup.ID)
+			getBackupRepository().DeleteByID(backup.ID)
 		}
 
 		databases.RemoveTestDatabase(t.Context(), database)
@@ -442,7 +442,7 @@ func Test_RunPendingBackups_WhenFailedBackupsExceedMaxRetries_SkipsBackup(t *tes
 	failMessage := "backup failed"
 
 	for range 3 {
-		backupRepository.Save(&backups_core_logical.LogicalBackup{
+		getBackupRepository().Save(&backups_core_logical.LogicalBackup{
 			DatabaseID: database.ID,
 			StorageID:  storage.ID,
 
@@ -458,7 +458,7 @@ func Test_RunPendingBackups_WhenFailedBackupsExceedMaxRetries_SkipsBackup(t *tes
 	time.Sleep(100 * time.Millisecond)
 
 	// assertions
-	backups, err := backupRepository.FindByDatabaseID(database.ID)
+	backups, err := getBackupRepository().FindByDatabaseID(database.ID)
 	assert.NoError(t, err)
 	assert.Len(t, backups, 3) // Should have 3 backups, not more than max
 
@@ -476,9 +476,9 @@ func Test_RunPendingBackups_WhenBackupsDisabled_SkipsBackup(t *testing.T) {
 	database := databases.CreateTestDatabase(workspace.ID, storage, notifier)
 
 	defer func() {
-		backups, _ := backupRepository.FindByDatabaseID(database.ID)
+		backups, _ := getBackupRepository().FindByDatabaseID(database.ID)
 		for _, backup := range backups {
-			backupRepository.DeleteByID(backup.ID)
+			getBackupRepository().DeleteByID(backup.ID)
 		}
 
 		databases.RemoveTestDatabase(t.Context(), database)
@@ -506,7 +506,7 @@ func Test_RunPendingBackups_WhenBackupsDisabled_SkipsBackup(t *testing.T) {
 	assert.NoError(t, err)
 
 	// add old backup that would trigger new backup if enabled
-	backupRepository.Save(&backups_core_logical.LogicalBackup{
+	getBackupRepository().Save(&backups_core_logical.LogicalBackup{
 		DatabaseID: database.ID,
 		StorageID:  storage.ID,
 
@@ -519,7 +519,7 @@ func Test_RunPendingBackups_WhenBackupsDisabled_SkipsBackup(t *testing.T) {
 
 	time.Sleep(100 * time.Millisecond)
 
-	backups, err := backupRepository.FindByDatabaseID(database.ID)
+	backups, err := getBackupRepository().FindByDatabaseID(database.ID)
 	assert.NoError(t, err)
 	assert.Len(t, backups, 1)
 
@@ -538,9 +538,9 @@ func Test_FailBackupsInProgress_WhenSchedulerStarts_CancelsBackupsAndUpdatesStat
 	database := databases.CreateTestDatabase(workspace.ID, storage, notifier)
 
 	defer func() {
-		backups, _ := backupRepository.FindByDatabaseID(database.ID)
+		backups, _ := getBackupRepository().FindByDatabaseID(database.ID)
 		for _, backup := range backups {
-			backupRepository.DeleteByID(backup.ID)
+			getBackupRepository().DeleteByID(backup.ID)
 		}
 
 		databases.RemoveTestDatabase(t.Context(), database)
@@ -577,7 +577,7 @@ func Test_FailBackupsInProgress_WhenSchedulerStarts_CancelsBackupsAndUpdatesStat
 		BackupSizeMb: 10.5,
 		CreatedAt:    time.Now().UTC().Add(-30 * time.Minute),
 	}
-	err = backupRepository.Save(backup1)
+	err = getBackupRepository().Save(backup1)
 	assert.NoError(t, err)
 
 	backup2 := &backups_core_logical.LogicalBackup{
@@ -587,7 +587,7 @@ func Test_FailBackupsInProgress_WhenSchedulerStarts_CancelsBackupsAndUpdatesStat
 		BackupSizeMb: 5.2,
 		CreatedAt:    time.Now().UTC().Add(-15 * time.Minute),
 	}
-	err = backupRepository.Save(backup2)
+	err = getBackupRepository().Save(backup2)
 	assert.NoError(t, err)
 
 	// Create a completed backup to verify it's not affected by failBackupsInProgress
@@ -598,7 +598,7 @@ func Test_FailBackupsInProgress_WhenSchedulerStarts_CancelsBackupsAndUpdatesStat
 		BackupSizeMb: 20.0,
 		CreatedAt:    time.Now().UTC().Add(-1 * time.Hour),
 	}
-	err = backupRepository.Save(completedBackup)
+	err = getBackupRepository().Save(completedBackup)
 	assert.NoError(t, err)
 
 	// Trigger the scheduler's failBackupsInProgress logic
@@ -607,7 +607,7 @@ func Test_FailBackupsInProgress_WhenSchedulerStarts_CancelsBackupsAndUpdatesStat
 	assert.NoError(t, err)
 
 	// Verify all backups exist and were processed correctly
-	backups, err := backupRepository.FindByDatabaseID(database.ID)
+	backups, err := getBackupRepository().FindByDatabaseID(database.ID)
 	assert.NoError(t, err)
 	assert.Len(t, backups, 3)
 
@@ -644,9 +644,9 @@ func Test_StartBackup_WhenBackupAlreadyInProgress_SkipsNewBackup(t *testing.T) {
 	database := databases.CreateTestDatabase(workspace.ID, storage, notifier)
 
 	defer func() {
-		backups, _ := backupRepository.FindByDatabaseID(database.ID)
+		backups, _ := getBackupRepository().FindByDatabaseID(database.ID)
 		for _, backup := range backups {
-			backupRepository.DeleteByID(backup.ID)
+			getBackupRepository().DeleteByID(backup.ID)
 		}
 
 		databases.RemoveTestDatabase(t.Context(), database)
@@ -681,7 +681,7 @@ func Test_StartBackup_WhenBackupAlreadyInProgress_SkipsNewBackup(t *testing.T) {
 		BackupSizeMb: 0,
 		CreatedAt:    time.Now().UTC(),
 	}
-	err = backupRepository.Save(inProgressBackup)
+	err = getBackupRepository().Save(inProgressBackup)
 	assert.NoError(t, err)
 
 	// Try to start a new backup - should be skipped
@@ -690,7 +690,7 @@ func Test_StartBackup_WhenBackupAlreadyInProgress_SkipsNewBackup(t *testing.T) {
 	time.Sleep(200 * time.Millisecond)
 
 	// Verify only 1 backup exists (the original in-progress one)
-	backups, err := backupRepository.FindByDatabaseID(database.ID)
+	backups, err := getBackupRepository().FindByDatabaseID(database.ID)
 	assert.NoError(t, err)
 	assert.Len(t, backups, 1)
 	assert.Equal(t, backups_core_logical.BackupStatusInProgress, backups[0].Status)
@@ -711,9 +711,9 @@ func Test_RunPendingBackups_WhenLastBackupFailedWithIsSkipRetry_SkipsBackupEvenW
 	database := databases.CreateTestDatabase(workspace.ID, storage, notifier)
 
 	defer func() {
-		backups, _ := backupRepository.FindByDatabaseID(database.ID)
+		backups, _ := getBackupRepository().FindByDatabaseID(database.ID)
 		for _, backup := range backups {
-			backupRepository.DeleteByID(backup.ID)
+			getBackupRepository().DeleteByID(backup.ID)
 		}
 
 		databases.RemoveTestDatabase(t.Context(), database)
@@ -745,7 +745,7 @@ func Test_RunPendingBackups_WhenLastBackupFailedWithIsSkipRetry_SkipsBackupEvenW
 
 	// Create a failed backup with IsSkipRetry set to true
 	failMessage := "backup failed due to size limit exceeded"
-	backupRepository.Save(&backups_core_logical.LogicalBackup{
+	getBackupRepository().Save(&backups_core_logical.LogicalBackup{
 		DatabaseID: database.ID,
 		StorageID:  storage.ID,
 
@@ -757,7 +757,7 @@ func Test_RunPendingBackups_WhenLastBackupFailedWithIsSkipRetry_SkipsBackupEvenW
 	})
 
 	// Verify GetRemainedBackupTryCount returns 0 even though retries are enabled
-	lastBackup, err := backupRepository.FindLastByDatabaseID(database.ID)
+	lastBackup, err := getBackupRepository().FindLastByDatabaseID(database.ID)
 	assert.NoError(t, err)
 	assert.NotNil(t, lastBackup)
 
@@ -770,7 +770,7 @@ func Test_RunPendingBackups_WhenLastBackupFailedWithIsSkipRetry_SkipsBackupEvenW
 	time.Sleep(100 * time.Millisecond)
 
 	// Verify no new backup was created (still only 1 backup exists)
-	backups, err := backupRepository.FindByDatabaseID(database.ID)
+	backups, err := getBackupRepository().FindByDatabaseID(database.ID)
 	assert.NoError(t, err)
 	assert.Len(t, backups, 1, "No retry should be attempted when IsSkipRetry is true")
 
@@ -805,15 +805,15 @@ func Test_StartBackup_When2BackupsStartedForDifferentDatabases_BothUseCasesAreCa
 
 	defer func() {
 		// Cleanup backups for database1
-		backups1, _ := backupRepository.FindByDatabaseID(database1.ID)
+		backups1, _ := getBackupRepository().FindByDatabaseID(database1.ID)
 		for _, backup := range backups1 {
-			backupRepository.DeleteByID(backup.ID)
+			getBackupRepository().DeleteByID(backup.ID)
 		}
 
 		// Cleanup backups for database2
-		backups2, _ := backupRepository.FindByDatabaseID(database2.ID)
+		backups2, _ := getBackupRepository().FindByDatabaseID(database2.ID)
 		for _, backup := range backups2 {
-			backupRepository.DeleteByID(backup.ID)
+			getBackupRepository().DeleteByID(backup.ID)
 		}
 
 		databases.RemoveTestDatabase(t.Context(), database1)
@@ -890,8 +890,8 @@ func Test_StartBackup_When2BackupsStartedForDifferentDatabases_BothUseCasesAreCa
 	// terminal status, so wait for both dispatch goroutines to finish flipping the
 	// backups to COMPLETED before asserting on their status.
 	assert.Eventually(t, func() bool {
-		dbBackups1, _ := backupRepository.FindByDatabaseID(database1.ID)
-		dbBackups2, _ := backupRepository.FindByDatabaseID(database2.ID)
+		dbBackups1, _ := getBackupRepository().FindByDatabaseID(database1.ID)
+		dbBackups2, _ := getBackupRepository().FindByDatabaseID(database2.ID)
 
 		return len(dbBackups1) == 1 &&
 			dbBackups1[0].Status == backups_core_logical.BackupStatusCompleted &&
@@ -900,14 +900,14 @@ func Test_StartBackup_When2BackupsStartedForDifferentDatabases_BothUseCasesAreCa
 	}, 10*time.Second, 100*time.Millisecond, "both backups should reach COMPLETED")
 
 	// Verify both backups exist in repository and are completed
-	backups1, err := backupRepository.FindByDatabaseID(database1.ID)
+	backups1, err := getBackupRepository().FindByDatabaseID(database1.ID)
 	assert.NoError(t, err)
 	assert.Len(t, backups1, 1, "Database1 should have 1 backup")
 	if len(backups1) > 0 {
 		t.Logf("Database1 backup status: %s", backups1[0].Status)
 	}
 
-	backups2, err := backupRepository.FindByDatabaseID(database2.ID)
+	backups2, err := getBackupRepository().FindByDatabaseID(database2.ID)
 	assert.NoError(t, err)
 	assert.Len(t, backups2, 1, "Database2 should have 1 backup")
 	if len(backups2) > 0 {

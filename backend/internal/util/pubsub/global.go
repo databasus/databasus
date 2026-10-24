@@ -1,9 +1,15 @@
 package pubsub
 
-import "databasus-backend/internal/util/logger"
+import (
+	"sync"
 
-var defaultBroker Broker = NewLocalBroker(logger.GetLogger())
+	"databasus-backend/internal/util/logger"
+)
+
+var getDefaultBroker = sync.OnceValue(func() Broker {
+	return NewLocalBroker(logger.GetLogger())
+})
 
 func GetBroker() Broker {
-	return defaultBroker
+	return getDefaultBroker()
 }

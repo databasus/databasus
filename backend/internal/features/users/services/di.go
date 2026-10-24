@@ -1,6 +1,7 @@
 package users_services
 
 import (
+	"sync"
 	"sync/atomic"
 
 	"databasus-backend/internal/features/email"
@@ -10,48 +11,56 @@ import (
 	"databasus-backend/internal/util/ratelimiter"
 )
 
-var userService = &UserService{
-	users_repositories.GetUserRepository(),
-	secrets.GetSecretKeyService(),
-	settingsService,
-	nil,
-	email.GetEmailSMTPSender(),
-	users_repositories.GetPasswordResetRepository(),
-	users_repositories.GetTwoFactorRepository(),
-	ratelimiter.GetCounter(),
-	logger.GetLogger(),
-}
+var getUserService = sync.OnceValue(func() *UserService {
+	return &UserService{
+		users_repositories.GetUserRepository(),
+		secrets.GetSecretKeyService(),
+		getSettingsService(),
+		nil,
+		email.GetEmailSMTPSender(),
+		users_repositories.GetPasswordResetRepository(),
+		users_repositories.GetTwoFactorRepository(),
+		ratelimiter.GetCounter(),
+		logger.GetLogger(),
+	}
+})
 
-var settingsService = &SettingsService{
-	users_repositories.GetUsersSettingsRepository(),
-	users_repositories.GetUserRepository(),
-	nil,
-	email.GetEmailSMTPSender(),
-}
+var getSettingsService = sync.OnceValue(func() *SettingsService {
+	return &SettingsService{
+		users_repositories.GetUsersSettingsRepository(),
+		users_repositories.GetUserRepository(),
+		nil,
+		email.GetEmailSMTPSender(),
+	}
+})
 
-var signInCodeBackgroundService = &SignInCodeBackgroundService{
-	userService,
-	logger.GetLogger(),
-	atomic.Bool{},
-}
+var getSignInCodeBackgroundService = sync.OnceValue(func() *SignInCodeBackgroundService {
+	return &SignInCodeBackgroundService{
+		getUserService(),
+		logger.GetLogger(),
+		atomic.Bool{},
+	}
+})
 
-var managementService = &UserManagementService{
-	users_repositories.GetUserRepository(),
-	nil,
-}
+var getManagementService = sync.OnceValue(func() *UserManagementService {
+	return &UserManagementService{
+		users_repositories.GetUserRepository(),
+		nil,
+	}
+})
 
 func GetUserService() *UserService {
-	return userService
+	return getUserService()
 }
 
 func GetSettingsService() *SettingsService {
-	return settingsService
+	return getSettingsService()
 }
 
 func GetManagementService() *UserManagementService {
-	return managementService
+	return getManagementService()
 }
 
 func GetSignInCodeBackgroundService() *SignInCodeBackgroundService {
-	return signInCodeBackgroundService
+	return getSignInCodeBackgroundService()
 }

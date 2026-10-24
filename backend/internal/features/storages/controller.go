@@ -26,19 +26,6 @@ func (c *StorageController) RegisterRoutes(router *gin.RouterGroup) {
 	router.POST("/storages/direct-test", c.TestStorageConnectionDirect)
 }
 
-// SaveStorage
-// @Summary Save a storage
-// @Description Create or update a storage
-// @Tags storages
-// @Accept json
-// @Produce json
-// @Param Authorization header string true "JWT token"
-// @Param request body Storage true "Storage data with workspaceId"
-// @Success 200 {object} Storage
-// @Failure 400
-// @Failure 401
-// @Failure 403
-// @Router /storages [post]
 func (c *StorageController) SaveStorage(ctx *gin.Context) {
 	user, ok := users_middleware.GetUserFromContext(ctx)
 	if !ok {
@@ -70,18 +57,6 @@ func (c *StorageController) SaveStorage(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, request)
 }
 
-// GetStorage
-// @Summary Get a storage by ID
-// @Description Get a specific storage by ID
-// @Tags storages
-// @Produce json
-// @Param Authorization header string true "JWT token"
-// @Param id path string true "Storage ID"
-// @Success 200 {object} Storage
-// @Failure 400
-// @Failure 401
-// @Failure 403
-// @Router /storages/{id} [get]
 func (c *StorageController) GetStorage(ctx *gin.Context) {
 	user, ok := users_middleware.GetUserFromContext(ctx)
 	if !ok {
@@ -108,18 +83,6 @@ func (c *StorageController) GetStorage(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, storage)
 }
 
-// GetStorages
-// @Summary Get all storages
-// @Description Get all storages for a workspace
-// @Tags storages
-// @Produce json
-// @Param Authorization header string true "JWT token"
-// @Param workspace_id query string true "Workspace ID"
-// @Success 200 {array} Storage
-// @Failure 400
-// @Failure 401
-// @Failure 403
-// @Router /storages [get]
 func (c *StorageController) GetStorages(ctx *gin.Context) {
 	user, ok := users_middleware.GetUserFromContext(ctx)
 	if !ok {
@@ -152,18 +115,6 @@ func (c *StorageController) GetStorages(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, storages)
 }
 
-// DeleteStorage
-// @Summary Delete a storage
-// @Description Delete a storage by ID
-// @Tags storages
-// @Produce json
-// @Param Authorization header string true "JWT token"
-// @Param id path string true "Storage ID"
-// @Success 200
-// @Failure 400
-// @Failure 401
-// @Failure 403
-// @Router /storages/{id} [delete]
 func (c *StorageController) DeleteStorage(ctx *gin.Context) {
 	user, ok := users_middleware.GetUserFromContext(ctx)
 	if !ok {
@@ -189,18 +140,6 @@ func (c *StorageController) DeleteStorage(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"message": "storage deleted successfully"})
 }
 
-// TestStorageConnection
-// @Summary Test storage connection
-// @Description Test the connection to the storage
-// @Tags storages
-// @Produce json
-// @Param Authorization header string true "JWT token"
-// @Param id path string true "Storage ID"
-// @Success 200
-// @Failure 400
-// @Failure 401
-// @Failure 403
-// @Router /storages/{id}/test [post]
 func (c *StorageController) TestStorageConnection(ctx *gin.Context) {
 	user, ok := users_middleware.GetUserFromContext(ctx)
 	if !ok {
@@ -226,20 +165,6 @@ func (c *StorageController) TestStorageConnection(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"message": "storage connection test successful"})
 }
 
-// TransferStorageToWorkspace
-// @Summary Transfer storage to another workspace
-// @Description Transfer a storage from one workspace to another
-// @Tags storages
-// @Accept json
-// @Produce json
-// @Param Authorization header string true "JWT token"
-// @Param id path string true "Storage ID"
-// @Param request body TransferStorageRequest true "Target workspace ID"
-// @Success 200
-// @Failure 400
-// @Failure 401
-// @Failure 403
-// @Router /storages/{id}/transfer [post]
 func (c *StorageController) TransferStorageToWorkspace(ctx *gin.Context) {
 	user, ok := users_middleware.GetUserFromContext(ctx)
 	if !ok {
@@ -283,19 +208,6 @@ func (c *StorageController) TransferStorageToWorkspace(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"message": "storage transferred successfully"})
 }
 
-// TestStorageConnectionDirect
-// @Summary Test storage connection directly
-// @Description Test the connection to a storage object provided in the request
-// @Tags storages
-// @Accept json
-// @Produce json
-// @Param Authorization header string true "JWT token"
-// @Param request body Storage true "Storage data with workspaceId"
-// @Success 200
-// @Failure 400
-// @Failure 401
-// @Failure 403
-// @Router /storages/direct-test [post]
 func (c *StorageController) TestStorageConnectionDirect(ctx *gin.Context) {
 	user, ok := users_middleware.GetUserFromContext(ctx)
 	if !ok {

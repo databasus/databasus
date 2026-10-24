@@ -1,22 +1,21 @@
 package disk
 
-var (
-	diskService    *DiskService
-	diskController *DiskController
-)
+import "sync"
 
-func init() {
-	diskService = &DiskService{}
+var getDiskService = sync.OnceValue(func() *DiskService {
+	return &DiskService{}
+})
 
-	diskController = &DiskController{
-		diskService,
+var getDiskController = sync.OnceValue(func() *DiskController {
+	return &DiskController{
+		getDiskService(),
 	}
-}
+})
 
 func GetDiskService() *DiskService {
-	return diskService
+	return getDiskService()
 }
 
 func GetDiskController() *DiskController {
-	return diskController
+	return getDiskController()
 }

@@ -2,63 +2,34 @@ package logger
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log/slog"
 	"os"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"databasus-backend/internal/lib/logging"
 )
 
-const (
-	logTypeKey   = "log_type"
-	logTypeAudit = "audit"
+const flushOnExitTimeout = 5 * time.Second
 
-	flushOnExitTimeout = 5 * time.Second
-)
+var currentLogging atomic.Pointer[logging.Logging]
 
-var (
-	loggerInstance      *slog.Logger
-	auditLoggerInstance *slog.Logger
-	sinkShutdowns       []func(context.Context) error
-
-	// isInitialized publishes the writes above so Shutdown can read them without initializing.
-	isInitialized atomic.Bool
-)
-
-var initLogger = sync.OnceFunc(func() {
-	loadedSettings := mustLoadSettings()
-
-	level := new(slog.LevelVar)
-	level.Set(loadedSettings.level)
-
-	assembledSinks := buildSinks(loadedSettings)
-	sinkShutdowns = assembledSinks.shutdowns
-
-	fanOut := newFanOutHandler(assembledSinks.handlers, level)
-	loggerInstance = slog.New(fanOut)
-	auditLoggerInstance = slog.New(fanOut.withLevelBypass()).With(logTypeKey, logTypeAudit)
-
-	isInitialized.Store(true)
-
-	for _, failure := range assembledSinks.failures {
-		loggerInstance.Warn(failure.message, "error", failure.err)
-	}
+var initWithoutApp = sync.OnceFunc(func() {
+	currentLogging.CompareAndSwap(nil, loadWithoutApp())
 })
 
-func GetLogger() *slog.Logger {
-	initLogger()
-
-	return loggerInstance
+func Install(installedLogging *logging.Logging) {
+	currentLogging.Store(installedLogging)
 }
 
-// GetAuditLogger's records carry log_type=audit and ignore LOG_LEVEL, so raising the level to
-// error never silently drops the audit trail.
-func GetAuditLogger() *slog.Logger {
-	initLogger()
+func GetLogger() *slog.Logger {
+	return getLogging().GetLogger()
+}
 
-	return auditLoggerInstance
+func GetAuditLogger() *slog.Logger {
+	return getLogging().GetAuditLogger()
 }
 
 // ExitAfterFlush exists because os.Exit skips deferred work while the file and OTLP sinks buffer:
@@ -69,9 +40,8 @@ func ExitAfterFlush(code int) {
 	os.Exit(code)
 }
 
-// FlushAndCloseSinks is one-way - the file writer stops accepting writes and the OTLP provider
-// becomes a no-op - so it belongs only at process exit. It reports to stderr rather than through
-// the logger: by the time it can fail, the sinks it would report through are the ones it closed.
+// FlushAndCloseSinks reports to stderr rather than through the logger: by the time it can fail,
+// the sinks it would report through are the ones it closed.
 func FlushAndCloseSinks(timeout time.Duration) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
@@ -81,68 +51,43 @@ func FlushAndCloseSinks(timeout time.Duration) {
 	}
 }
 
-// Shutdown deliberately does not initialize: building the sinks only to close them would create
-// the log file on a process that never logged, and would let a malformed OPEN_TELEMETRY_URL exit
-// the process from inside a shutdown path.
+// Shutdown deliberately does not build the logging: building the sinks only to close them would
+// create the log file on a process that never logged.
 func Shutdown(ctx context.Context) error {
-	if !isInitialized.Load() {
+	loadedLogging := currentLogging.Load()
+	if loadedLogging == nil {
 		return nil
 	}
 
-	var shutdownErrors []error
-	for _, shutdownSink := range sinkShutdowns {
-		if err := shutdownSink(ctx); err != nil {
-			shutdownErrors = append(shutdownErrors, err)
-		}
-	}
-
-	return errors.Join(shutdownErrors...)
+	return loadedLogging.Shutdown(ctx)
 }
 
-type sinkFailure struct {
-	message string
-	err     error
+func Redact(message string) string {
+	return logging.Redact(message)
 }
 
-type builtSinks struct {
-	handlers  []slog.Handler
-	shutdowns []func(context.Context) error
-	failures  []sinkFailure
+func ContextWithRequestID(ctx context.Context, requestID string) context.Context {
+	return logging.ContextWithRequestID(ctx, requestID)
 }
 
-// buildSinks reports failures instead of logging them: it runs before the logger exists, and an
-// optional sink that fails to open must not take the process down the way malformed config does.
-func buildSinks(loadedSettings settings) builtSinks {
-	assembledSinks := builtSinks{handlers: []slog.Handler{newStdoutHandler()}}
+func GetRequestID(ctx context.Context) string {
+	return logging.GetRequestID(ctx)
+}
 
-	if loadedSettings.file.isEnabled {
-		fileWriter, err := newRotatingFileWriter(rotatingFileSpec{
-			path:       loadedSettings.file.path,
-			maxSizeMB:  logFileMaxSizeMB,
-			maxBackups: logFileMaxBackups,
-		})
-		if err == nil {
-			assembledSinks.handlers = append(assembledSinks.handlers,
-				slog.NewJSONHandler(fileWriter, &slog.HandlerOptions{Level: slog.LevelDebug}))
-			assembledSinks.shutdowns = append(assembledSinks.shutdowns, fileWriter.Shutdown)
-		} else {
-			assembledSinks.failures = append(assembledSinks.failures, sinkFailure{"log file sink disabled", err})
-		}
+func ContextWithUserID(ctx context.Context, userID string) context.Context {
+	return logging.ContextWithUserID(ctx, userID)
+}
+
+func GetUserID(ctx context.Context) string {
+	return logging.GetUserID(ctx)
+}
+
+func getLogging() *logging.Logging {
+	if loadedLogging := currentLogging.Load(); loadedLogging != nil {
+		return loadedLogging
 	}
 
-	if loadedSettings.openTelemetry != nil {
-		otelHandler, shutdownProvider, err := newOpenTelemetryHandler(
-			context.Background(),
-			*loadedSettings.openTelemetry,
-			loadedSettings.serviceVersion,
-		)
-		if err == nil {
-			assembledSinks.handlers = append(assembledSinks.handlers, otelHandler)
-			assembledSinks.shutdowns = append(assembledSinks.shutdowns, shutdownProvider)
-		} else {
-			assembledSinks.failures = append(assembledSinks.failures, sinkFailure{"otlp log sink disabled", err})
-		}
-	}
+	initWithoutApp()
 
-	return assembledSinks
+	return currentLogging.Load()
 }

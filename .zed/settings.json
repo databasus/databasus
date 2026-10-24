@@ -1,0 +1,9 @@
+{
+  "lsp": {
+    "gopls": {
+      "initialization_options": {
+        "buildFlags": ["-tags=testhelpers"]
+      }
+    }
+  }
+}

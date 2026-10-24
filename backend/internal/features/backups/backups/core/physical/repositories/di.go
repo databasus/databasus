@@ -1,39 +1,55 @@
 package physical_repositories
 
+import "sync"
+
 var (
-	fullBackupRepository        = &PhysicalFullBackupRepository{}
-	incrementalBackupRepository = &PhysicalIncrementalBackupRepository{}
-	inFlightBackupRepository    = &PhysicalInFlightBackupRepository{}
-	walSegmentRepository        = &PhysicalWalSegmentRepository{}
-	walHistoryRepository        = &PhysicalWalHistoryRepository{}
-	walStreamerRepository       = &PhysicalWalStreamerRepository{}
-	walStreamSampleRepository   = &PhysicalWalStreamSampleRepository{}
+	getFullBackupRepository = sync.OnceValue(func() *PhysicalFullBackupRepository {
+		return &PhysicalFullBackupRepository{}
+	})
+	getIncrementalBackupRepository = sync.OnceValue(func() *PhysicalIncrementalBackupRepository {
+		return &PhysicalIncrementalBackupRepository{}
+	})
+	getInFlightBackupRepository = sync.OnceValue(func() *PhysicalInFlightBackupRepository {
+		return &PhysicalInFlightBackupRepository{}
+	})
+	getWalSegmentRepository = sync.OnceValue(func() *PhysicalWalSegmentRepository {
+		return &PhysicalWalSegmentRepository{}
+	})
+	getWalHistoryRepository = sync.OnceValue(func() *PhysicalWalHistoryRepository {
+		return &PhysicalWalHistoryRepository{}
+	})
+	getWalStreamerRepository = sync.OnceValue(func() *PhysicalWalStreamerRepository {
+		return &PhysicalWalStreamerRepository{}
+	})
+	getWalStreamSampleRepository = sync.OnceValue(func() *PhysicalWalStreamSampleRepository {
+		return &PhysicalWalStreamSampleRepository{}
+	})
 )
 
 func GetFullBackupRepository() *PhysicalFullBackupRepository {
-	return fullBackupRepository
+	return getFullBackupRepository()
 }
 
 func GetIncrementalBackupRepository() *PhysicalIncrementalBackupRepository {
-	return incrementalBackupRepository
+	return getIncrementalBackupRepository()
 }
 
 func GetInFlightBackupRepository() *PhysicalInFlightBackupRepository {
-	return inFlightBackupRepository
+	return getInFlightBackupRepository()
 }
 
 func GetWalSegmentRepository() *PhysicalWalSegmentRepository {
-	return walSegmentRepository
+	return getWalSegmentRepository()
 }
 
 func GetWalHistoryRepository() *PhysicalWalHistoryRepository {
-	return walHistoryRepository
+	return getWalHistoryRepository()
 }
 
 func GetWalStreamerRepository() *PhysicalWalStreamerRepository {
-	return walStreamerRepository
+	return getWalStreamerRepository()
 }
 
 func GetWalStreamSampleRepository() *PhysicalWalStreamSampleRepository {
-	return walStreamSampleRepository
+	return getWalStreamSampleRepository()
 }

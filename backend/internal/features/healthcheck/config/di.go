@@ -10,30 +10,36 @@ import (
 )
 
 var (
-	healthcheckConfigRepository = &HealthcheckConfigRepository{}
-	healthcheckConfigService    = &HealthcheckConfigService{
-		databases.GetDatabaseService(),
-		healthcheckConfigRepository,
-		workspaces_services.GetWorkspaceService(),
-		audit_logs.GetAuditLogService(),
-		logger.GetLogger(),
-	}
+	getHealthcheckConfigRepository = sync.OnceValue(func() *HealthcheckConfigRepository {
+		return &HealthcheckConfigRepository{}
+	})
+	getHealthcheckConfigService = sync.OnceValue(func() *HealthcheckConfigService {
+		return &HealthcheckConfigService{
+			databases.GetDatabaseService(),
+			getHealthcheckConfigRepository(),
+			workspaces_services.GetWorkspaceService(),
+			audit_logs.GetAuditLogService(),
+			logger.GetLogger(),
+		}
+	})
 )
 
-var healthcheckConfigController = &HealthcheckConfigController{
-	healthcheckConfigService,
-}
+var getHealthcheckConfigController = sync.OnceValue(func() *HealthcheckConfigController {
+	return &HealthcheckConfigController{
+		getHealthcheckConfigService(),
+	}
+})
 
 func GetHealthcheckConfigService() *HealthcheckConfigService {
-	return healthcheckConfigService
+	return getHealthcheckConfigService()
 }
 
 func GetHealthcheckConfigController() *HealthcheckConfigController {
-	return healthcheckConfigController
+	return getHealthcheckConfigController()
 }
 
 var SetupDependencies = sync.OnceFunc(func() {
 	databases.
 		GetDatabaseService().
-		AddDbCreationListener(healthcheckConfigService)
+		AddDbCreationListener(getHealthcheckConfigService())
 })

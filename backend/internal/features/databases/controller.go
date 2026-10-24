@@ -38,18 +38,6 @@ func (c *DatabaseController) RegisterRoutes(router *gin.RouterGroup) {
 func (c *DatabaseController) RegisterPublicRoutes(_ *gin.RouterGroup) {
 }
 
-// CreateDatabase
-// @Summary Create a new database
-// @Description Create a new database configuration in a workspace
-// @Tags databases
-// @Accept json
-// @Produce json
-// @Param request body Database true "Database creation data with workspaceId"
-// @Success 201 {object} Database
-// @Failure 400
-// @Failure 401
-// @Failure 500
-// @Router /databases/create [post]
 func (c *DatabaseController) CreateDatabase(ctx *gin.Context) {
 	user, ok := users_middleware.GetUserFromContext(ctx)
 	if !ok {
@@ -77,18 +65,6 @@ func (c *DatabaseController) CreateDatabase(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, database)
 }
 
-// UpdateDatabase
-// @Summary Update a database
-// @Description Update an existing database configuration
-// @Tags databases
-// @Accept json
-// @Produce json
-// @Param request body Database true "Database update data"
-// @Success 200 {object} Database
-// @Failure 400
-// @Failure 401
-// @Failure 500
-// @Router /databases/update [post]
 func (c *DatabaseController) UpdateDatabase(ctx *gin.Context) {
 	user, ok := users_middleware.GetUserFromContext(ctx)
 	if !ok {
@@ -110,16 +86,6 @@ func (c *DatabaseController) UpdateDatabase(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, request)
 }
 
-// DeleteDatabase
-// @Summary Delete a database
-// @Description Delete a database configuration
-// @Tags databases
-// @Param id path string true "Database ID"
-// @Success 204
-// @Failure 400
-// @Failure 401
-// @Failure 500
-// @Router /databases/{id} [delete]
 func (c *DatabaseController) DeleteDatabase(ctx *gin.Context) {
 	user, ok := users_middleware.GetUserFromContext(ctx)
 	if !ok {
@@ -142,16 +108,6 @@ func (c *DatabaseController) DeleteDatabase(ctx *gin.Context) {
 	ctx.Status(http.StatusNoContent)
 }
 
-// GetDatabase
-// @Summary Get a database
-// @Description Get a database configuration by ID
-// @Tags databases
-// @Produce json
-// @Param id path string true "Database ID"
-// @Success 200 {object} Database
-// @Failure 400
-// @Failure 401
-// @Router /databases/{id} [get]
 func (c *DatabaseController) GetDatabase(ctx *gin.Context) {
 	user, ok := users_middleware.GetUserFromContext(ctx)
 	if !ok {
@@ -174,17 +130,6 @@ func (c *DatabaseController) GetDatabase(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, database)
 }
 
-// GetDatabases
-// @Summary Get databases by workspace
-// @Description Get all databases for a specific workspace
-// @Tags databases
-// @Produce json
-// @Param workspace_id query string true "Workspace ID"
-// @Success 200 {array} Database
-// @Failure 400
-// @Failure 401
-// @Failure 500
-// @Router /databases [get]
 func (c *DatabaseController) GetDatabases(ctx *gin.Context) {
 	user, ok := users_middleware.GetUserFromContext(ctx)
 	if !ok {
@@ -213,17 +158,6 @@ func (c *DatabaseController) GetDatabases(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, databases)
 }
 
-// TestDatabaseConnection
-// @Summary Test database connection
-// @Description Test connection to an existing database configuration. A physical PostgreSQL source is refused with a machine-readable code, including no_wal_switch_privilege when the backup type is FULL_INCREMENTAL_WAL_STREAM and the credentials cannot execute pg_switch_wal().
-// @Tags databases
-// @Produce json
-// @Param id path string true "Database ID"
-// @Success 200
-// @Failure 400 {object} map[string]string
-// @Failure 401
-// @Failure 500
-// @Router /databases/{id}/test-connection [post]
 func (c *DatabaseController) TestDatabaseConnection(ctx *gin.Context) {
 	user, ok := users_middleware.GetUserFromContext(ctx)
 	if !ok {
@@ -245,19 +179,6 @@ func (c *DatabaseController) TestDatabaseConnection(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"message": "connection successful"})
 }
 
-// TestDatabaseConnectionDirect
-// @Summary Test database connection directly
-// @Description Test connection to a database configuration without saving it. A physical PostgreSQL source is refused with a machine-readable code, including no_wal_switch_privilege when the backup type is FULL_INCREMENTAL_WAL_STREAM and the credentials cannot execute pg_switch_wal().
-// @Tags databases
-// @Accept json
-// @Produce json
-// @Param request body Database true "Database configuration to test"
-// @Success 200
-// @Failure 400 {object} map[string]string
-// @Failure 401
-// @Failure 403 {object} map[string]string
-// @Failure 500 {object} map[string]string
-// @Router /databases/test-connection-direct [post]
 func (c *DatabaseController) TestDatabaseConnectionDirect(ctx *gin.Context) {
 	user, ok := users_middleware.GetUserFromContext(ctx)
 	if !ok {
@@ -303,17 +224,6 @@ func respondConnectionTestError(ctx *gin.Context, err error) {
 	ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 }
 
-// IsNotifierUsing
-// @Summary Check if notifier is being used
-// @Description Check if a notifier is currently being used by any database
-// @Tags databases
-// @Produce json
-// @Param id path string true "Notifier ID"
-// @Success 200 {object} map[string]bool
-// @Failure 400
-// @Failure 401
-// @Failure 500
-// @Router /databases/notifier/{id}/is-using [get]
 func (c *DatabaseController) IsNotifierUsing(ctx *gin.Context) {
 	user, ok := users_middleware.GetUserFromContext(ctx)
 	if !ok {
@@ -337,17 +247,6 @@ func (c *DatabaseController) IsNotifierUsing(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"isUsing": isUsing})
 }
 
-// CountDatabasesByNotifier
-// @Summary Count databases using a notifier
-// @Description Get the count of databases that are using a specific notifier
-// @Tags databases
-// @Produce json
-// @Param id path string true "Notifier ID"
-// @Success 200 {object} map[string]int
-// @Failure 400
-// @Failure 401
-// @Failure 500
-// @Router /databases/notifier/{id}/databases-count [get]
 func (c *DatabaseController) CountDatabasesByNotifier(ctx *gin.Context) {
 	user, ok := users_middleware.GetUserFromContext(ctx)
 	if !ok {
@@ -371,17 +270,6 @@ func (c *DatabaseController) CountDatabasesByNotifier(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"count": count})
 }
 
-// CopyDatabase
-// @Summary Copy a database
-// @Description Copy an existing database configuration
-// @Tags databases
-// @Produce json
-// @Param id path string true "Database ID"
-// @Success 201 {object} Database
-// @Failure 400
-// @Failure 401
-// @Failure 500
-// @Router /databases/{id}/copy [post]
 func (c *DatabaseController) CopyDatabase(ctx *gin.Context) {
 	user, ok := users_middleware.GetUserFromContext(ctx)
 	if !ok {
@@ -404,19 +292,6 @@ func (c *DatabaseController) CopyDatabase(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, copiedDatabase)
 }
 
-// ShouldSuggestReadOnlyUser
-// @Summary Check whether a limited backup user should be suggested
-// @Description Report whether Databasus should offer to create a read-only (or replication-only) user for these credentials
-// @Tags databases
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Param request body Database true "Database configuration to check"
-// @Success 200 {object} ShouldSuggestReadOnlyUserResponse
-// @Failure 400 {object} map[string]string
-// @Failure 401 {object} map[string]string
-// @Failure 403 {object} map[string]string
-// @Router /databases/should-suggest-readonly-user [post]
 func (c *DatabaseController) ShouldSuggestReadOnlyUser(ctx *gin.Context) {
 	user, ok := users_middleware.GetUserFromContext(ctx)
 	if !ok {
@@ -446,19 +321,6 @@ func (c *DatabaseController) ShouldSuggestReadOnlyUser(ctx *gin.Context) {
 	})
 }
 
-// CreateReadOnlyUser
-// @Summary Create read-only database user
-// @Description Create a new PostgreSQL user with read-only privileges for backup operations
-// @Tags databases
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Param request body Database true "Database configuration to create user for"
-// @Success 200 {object} CreateReadOnlyUserResponse
-// @Failure 400 {object} map[string]string
-// @Failure 401 {object} map[string]string
-// @Failure 403 {object} map[string]string
-// @Router /databases/create-readonly-user [post]
 func (c *DatabaseController) CreateReadOnlyUser(ctx *gin.Context) {
 	user, ok := users_middleware.GetUserFromContext(ctx)
 	if !ok {
@@ -484,19 +346,6 @@ func (c *DatabaseController) CreateReadOnlyUser(ctx *gin.Context) {
 	})
 }
 
-// CreateReplicationOnlyUser
-// @Summary Create replication-only database user (PostgreSQL physical only)
-// @Description Provision a fresh PostgreSQL role with LOGIN + REPLICATION (or its cloud equivalent on RDS / Azure / GCP) plus EXECUTE on pg_switch_wal() where the source allows it, and nothing more. isForcedWalRotationAvailable reports whether the created role can force a WAL segment switch, which the FULL_INCREMENTAL_WAL_STREAM backup type requires. Refuses for database types other than POSTGRES_PHYSICAL.
-// @Tags databases
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Param request body Database true "Database configuration (must be POSTGRES_PHYSICAL)"
-// @Success 200 {object} CreateReplicationOnlyUserResponse
-// @Failure 400 {object} map[string]string
-// @Failure 401 {object} map[string]string
-// @Failure 403 {object} map[string]string
-// @Router /databases/create-replication-only-user [post]
 func (c *DatabaseController) CreateReplicationOnlyUser(ctx *gin.Context) {
 	user, ok := users_middleware.GetUserFromContext(ctx)
 	if !ok {

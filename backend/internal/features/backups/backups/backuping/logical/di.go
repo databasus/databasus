@@ -1,6 +1,7 @@
 package backuping_logical
 
 import (
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -15,55 +16,63 @@ import (
 	"databasus-backend/internal/util/logger"
 )
 
-var backupRepository = &backups_core_logical.BackupRepository{}
+var getBackupRepository = sync.OnceValue(func() *backups_core_logical.BackupRepository {
+	return &backups_core_logical.BackupRepository{}
+})
 
 var (
-	taskCancellationRegistry  = tasks_cancellation.GetRegistry()
-	taskCancellationRequester = tasks_cancellation.GetRequester()
+	getTaskCancellationRegistry  = sync.OnceValue(tasks_cancellation.GetRegistry)
+	getTaskCancellationRequester = sync.OnceValue(tasks_cancellation.GetRequester)
 )
 
-var backupCleaner = &BackupCleaner{
-	backupRepository,
-	storages.GetStorageFileStore(),
-	backups_config_logical.GetBackupConfigService(),
-	logger.GetLogger(),
-	[]backups_core_logical.BackupRemoveListener{},
-	atomic.Bool{},
-}
+var getBackupCleaner = sync.OnceValue(func() *BackupCleaner {
+	return &BackupCleaner{
+		getBackupRepository(),
+		storages.GetStorageFileStore(),
+		backups_config_logical.GetBackupConfigService(),
+		logger.GetLogger(),
+		[]backups_core_logical.BackupRemoveListener{},
+		atomic.Bool{},
+	}
+})
 
-var backuper = &Backuper{
-	databases.GetDatabaseService(),
-	workspaces_services.GetWorkspaceService(),
-	backupRepository,
-	backups_config_logical.GetBackupConfigService(),
-	storages.GetStorageFileStore(),
-	notifiers.GetNotifierService(),
-	taskCancellationRegistry,
-	logger.GetLogger(),
-	usecases_logical.GetCreateBackupUsecase(),
-}
+var getBackuper = sync.OnceValue(func() *Backuper {
+	return &Backuper{
+		databases.GetDatabaseService(),
+		workspaces_services.GetWorkspaceService(),
+		getBackupRepository(),
+		backups_config_logical.GetBackupConfigService(),
+		storages.GetStorageFileStore(),
+		notifiers.GetNotifierService(),
+		getTaskCancellationRegistry(),
+		logger.GetLogger(),
+		usecases_logical.GetCreateBackupUsecase(),
+	}
+})
 
-var backupsScheduler = &BackupsScheduler{
-	backupRepository,
-	backups_config_logical.GetBackupConfigService(),
-	taskCancellationRequester,
-	databases.GetDatabaseService(),
-	time.Now().UTC(),
-	logger.GetLogger(),
-	backuper,
-	[]backups_core_logical.BackupCompletionListener{},
-	atomic.Bool{},
-	atomic.Bool{},
-}
+var getBackupsScheduler = sync.OnceValue(func() *BackupsScheduler {
+	return &BackupsScheduler{
+		getBackupRepository(),
+		backups_config_logical.GetBackupConfigService(),
+		getTaskCancellationRequester(),
+		databases.GetDatabaseService(),
+		time.Now().UTC(),
+		logger.GetLogger(),
+		getBackuper(),
+		[]backups_core_logical.BackupCompletionListener{},
+		atomic.Bool{},
+		atomic.Bool{},
+	}
+})
 
 func GetBackupsScheduler() *BackupsScheduler {
-	return backupsScheduler
+	return getBackupsScheduler()
 }
 
 func GetBackuper() *Backuper {
-	return backuper
+	return getBackuper()
 }
 
 func GetBackupCleaner() *BackupCleaner {
-	return backupCleaner
+	return getBackupCleaner()
 }

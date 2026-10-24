@@ -14,14 +14,6 @@ func (c *HealthcheckController) RegisterRoutes(router *gin.RouterGroup) {
 	router.GET("/system/health", c.CheckHealth)
 }
 
-// CheckHealth
-// @Summary Check system health
-// @Description Check if the system is healthy by testing database connection
-// @Tags system/health
-// @Produce json
-// @Success 200 {object} HealthcheckResponse
-// @Failure 503 {object} HealthcheckResponse
-// @Router /system/health [get]
 func (c *HealthcheckController) CheckHealth(ctx *gin.Context) {
 	// Allow unrestricted CORS for health check endpoint
 	// This enables monitoring tools from any origin to check system health

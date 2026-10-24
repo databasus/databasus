@@ -11,50 +11,62 @@ import (
 )
 
 var (
-	storageRepository = &StorageRepository{}
-	storageService    = &StorageService{
-		storageRepository,
-		workspaces_services.GetWorkspaceService(),
-		audit_logs.GetAuditLogService(),
-		encryption.GetFieldEncryptor(),
-		nil,
-		nil,
-	}
+	getStorageRepository = sync.OnceValue(func() *StorageRepository {
+		return &StorageRepository{}
+	})
+	getStorageService = sync.OnceValue(func() *StorageService {
+		return &StorageService{
+			getStorageRepository(),
+			workspaces_services.GetWorkspaceService(),
+			audit_logs.GetAuditLogService(),
+			encryption.GetFieldEncryptor(),
+			nil,
+			nil,
+		}
+	})
 )
 
 var (
-	storageFileDependencies = storage_files.Dependencies{
-		Repository:     &storage_files.PendingDeletionRepository{},
-		Locator:        storageService,
-		FieldEncryptor: encryption.GetFieldEncryptor(),
-		Logger:         logger.GetLogger(),
-		Timings:        storage_files.ProductionTimings(),
-	}
-	storageFileStore          = storage_files.NewStore(storageFileDependencies)
-	storageFileDeletionWorker = storage_files.NewDeletionWorker(storageFileStore, storageFileDependencies)
+	getStorageFileDependencies = sync.OnceValue(func() storage_files.Dependencies {
+		return storage_files.Dependencies{
+			Repository:     &storage_files.PendingDeletionRepository{},
+			Locator:        getStorageService(),
+			FieldEncryptor: encryption.GetFieldEncryptor(),
+			Logger:         logger.GetLogger(),
+			Timings:        storage_files.ProductionTimings(),
+		}
+	})
+	getStorageFileStore = sync.OnceValue(func() *storage_files.Store {
+		return storage_files.NewStore(getStorageFileDependencies())
+	})
+	getStorageFileDeletionWorker = sync.OnceValue(func() *storage_files.DeletionWorker {
+		return storage_files.NewDeletionWorker(getStorageFileStore(), getStorageFileDependencies())
+	})
 )
 
-var storageController = &StorageController{
-	storageService,
-	workspaces_services.GetWorkspaceService(),
-}
+var getStorageController = sync.OnceValue(func() *StorageController {
+	return &StorageController{
+		getStorageService(),
+		workspaces_services.GetWorkspaceService(),
+	}
+})
 
 func GetStorageService() *StorageService {
-	return storageService
+	return getStorageService()
 }
 
 func GetStorageController() *StorageController {
-	return storageController
+	return getStorageController()
 }
 
 func GetStorageFileStore() *storage_files.Store {
-	return storageFileStore
+	return getStorageFileStore()
 }
 
 func GetStorageFileDeletionWorker() *storage_files.DeletionWorker {
-	return storageFileDeletionWorker
+	return getStorageFileDeletionWorker()
 }
 
 var SetupDependencies = sync.OnceFunc(func() {
-	workspaces_services.GetWorkspaceService().AddWorkspaceDeletionListener(storageService)
+	workspaces_services.GetWorkspaceService().AddWorkspaceDeletionListener(getStorageService())
 })

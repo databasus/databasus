@@ -58,7 +58,7 @@ func CreateTestNotifier(workspaceID uuid.UUID) *Notifier {
 		},
 	}
 
-	notifier, err := notifierRepository.Save(notifier)
+	notifier, err := getNotifierRepository().Save(notifier)
 	if err != nil {
 		panic(err)
 	}
@@ -67,7 +67,7 @@ func CreateTestNotifier(workspaceID uuid.UUID) *Notifier {
 }
 
 func RemoveTestNotifier(notifier *Notifier) {
-	err := notifierRepository.Delete(notifier)
+	err := getNotifierRepository().Delete(notifier)
 	if err != nil {
 		panic(err)
 	}

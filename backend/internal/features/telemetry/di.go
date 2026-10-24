@@ -19,40 +19,48 @@ import (
 const productionEndpoint = "https://metrics.databasus.com/api/anonymous/collect"
 
 var (
-	telemetryLogger = logger.GetLogger()
+	getTelemetryLogger = sync.OnceValue(logger.GetLogger)
 
-	instanceLoader = NewInstanceFileLoader("", telemetryLogger)
-	httpSender     = NewHTTPTelemetrySender(productionEndpoint, system_version.GetAppVersion())
+	getInstanceLoader = sync.OnceValue(func() *InstanceFileLoader {
+		return NewInstanceFileLoader("", getTelemetryLogger())
+	})
+	getHttpSender = sync.OnceValue(func() *HTTPTelemetrySender {
+		return NewHTTPTelemetrySender(productionEndpoint, system_version.GetAppVersion())
+	})
 
-	telemetryService = NewTelemetryService(
-		instanceLoader,
-		httpSender,
-		databases.GetDatabaseService(),
-		storages.GetStorageService(),
-		notifiers.GetNotifierService(),
-		backups_services.GetBackupService(),
-		physical_service.GetPhysicalBackupService(),
-		verification_agents.GetAgentService(),
-		verification_config.GetVerificationConfigService(),
-		users_services.GetUserService(),
-		system_version.GetAppVersion(),
-		telemetryLogger,
-	)
+	getTelemetryService = sync.OnceValue(func() *TelemetryService {
+		return NewTelemetryService(
+			getInstanceLoader(),
+			getHttpSender(),
+			databases.GetDatabaseService(),
+			storages.GetStorageService(),
+			notifiers.GetNotifierService(),
+			backups_services.GetBackupService(),
+			physical_service.GetPhysicalBackupService(),
+			verification_agents.GetAgentService(),
+			verification_config.GetVerificationConfigService(),
+			users_services.GetUserService(),
+			system_version.GetAppVersion(),
+			getTelemetryLogger(),
+		)
+	})
 
-	telemetryBackgroundService = NewTelemetryBackgroundService(
-		telemetryService,
-		telemetryLogger,
-	)
+	getTelemetryBackgroundService = sync.OnceValue(func() *TelemetryBackgroundService {
+		return NewTelemetryBackgroundService(
+			getTelemetryService(),
+			getTelemetryLogger(),
+		)
+	})
 )
 
 func GetTelemetryService() *TelemetryService {
-	return telemetryService
+	return getTelemetryService()
 }
 
 func GetTelemetryBackgroundService() *TelemetryBackgroundService {
-	return telemetryBackgroundService
+	return getTelemetryBackgroundService()
 }
 
 var SetupDependencies = sync.OnceFunc(func() {
-	instanceLoader.path = config.GetEnv().TelemetryInstancePath
+	getInstanceLoader().path = config.GetEnv().TelemetryInstancePath
 })

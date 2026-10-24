@@ -27,18 +27,6 @@ func (c *MembershipController) RegisterRoutes(router *gin.RouterGroup) {
 	workspaceRoutes.POST("/transfer-ownership", c.TransferOwnership)
 }
 
-// ListMembers
-// @Summary List workspace members
-// @Description Get list of all workspace members
-// @Tags workspace-membership
-// @Produce json
-// @Security BearerAuth
-// @Param id path string true "Workspace ID"
-// @Success 200 {object} workspaces_dto.GetMembersResponseDTO
-// @Failure 400 {object} map[string]string
-// @Failure 401 {object} map[string]string
-// @Failure 403 {object} map[string]string
-// @Router /workspaces/memberships/{id}/members [get]
 func (c *MembershipController) ListMembers(ctx *gin.Context) {
 	user, ok := users_middleware.GetUserFromContext(ctx)
 	if !ok {
@@ -66,20 +54,6 @@ func (c *MembershipController) ListMembers(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, response)
 }
 
-// AddMember
-// @Summary Add member to workspace (supports both existing and new users)
-// @Description Add an existing user to the workspace or invite a new user if they don't exist
-// @Tags workspace-membership
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Param id path string true "Workspace ID"
-// @Param request body workspaces_dto.AddMemberRequestDTO true "Member addition data"
-// @Success 200 {object} workspaces_dto.AddMemberResponseDTO
-// @Failure 400 {object} map[string]string
-// @Failure 401 {object} map[string]string
-// @Failure 403 {object} map[string]string
-// @Router /workspaces/memberships/{id}/members [post]
 func (c *MembershipController) AddMember(ctx *gin.Context) {
 	user, ok := users_middleware.GetUserFromContext(ctx)
 	if !ok {
@@ -119,21 +93,6 @@ func (c *MembershipController) AddMember(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, response)
 }
 
-// ChangeMemberRole
-// @Summary Change member role
-// @Description Change the role of an existing workspace member
-// @Tags workspace-membership
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Param id path string true "Workspace ID"
-// @Param userId path string true "User ID"
-// @Param request body workspaces_dto.ChangeMemberRoleRequestDTO true "Role change data"
-// @Success 200 {object} map[string]string
-// @Failure 400 {object} map[string]string
-// @Failure 401 {object} map[string]string
-// @Failure 403 {object} map[string]string
-// @Router /workspaces/memberships/{id}/members/{userId}/role [put]
 func (c *MembershipController) ChangeMemberRole(ctx *gin.Context) {
 	user, ok := users_middleware.GetUserFromContext(ctx)
 	if !ok {
@@ -180,18 +139,6 @@ func (c *MembershipController) ChangeMemberRole(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"message": "Member role changed successfully"})
 }
 
-// RemoveMember
-// @Summary Remove member from workspace
-// @Description Remove a member from the workspace
-// @Tags workspace-membership
-// @Security BearerAuth
-// @Param id path string true "Workspace ID"
-// @Param userId path string true "User ID"
-// @Success 200 {object} map[string]string
-// @Failure 400 {object} map[string]string
-// @Failure 401 {object} map[string]string
-// @Failure 403 {object} map[string]string
-// @Router /workspaces/memberships/{id}/members/{userId} [delete]
 func (c *MembershipController) RemoveMember(ctx *gin.Context) {
 	user, ok := users_middleware.GetUserFromContext(ctx)
 	if !ok {
@@ -226,20 +173,6 @@ func (c *MembershipController) RemoveMember(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"message": "Member removed successfully"})
 }
 
-// TransferOwnership
-// @Summary Transfer workspace ownership
-// @Description Transfer workspace ownership to another workspace admin
-// @Tags workspace-membership
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Param id path string true "Workspace ID"
-// @Param request body workspaces_dto.TransferOwnershipRequestDTO true "Ownership transfer data"
-// @Success 200 {object} map[string]string
-// @Failure 400 {object} map[string]string
-// @Failure 401 {object} map[string]string
-// @Failure 403 {object} map[string]string
-// @Router /workspaces/memberships/{id}/transfer-ownership [post]
 func (c *MembershipController) TransferOwnership(ctx *gin.Context) {
 	user, ok := users_middleware.GetUserFromContext(ctx)
 	if !ok {
