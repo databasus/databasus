@@ -9,8 +9,10 @@ import (
 )
 
 // archAssetsKey returns the assets/tools/<key>/ subdirectory name for the
-// current GOOS+GOARCH. Panics on unsupported combinations because the app
-// cannot operate without DB client binaries.
+// current GOOS+GOARCH: x64 for linux/amd64 and arm for linux/arm64. A client
+// binary lives at assets/tools/<key>/<engine>/<engine>-<bundle>/bin/<command>,
+// except MongoDB's single set under mongodb/bin/. Panics on unsupported
+// combinations because the app cannot operate without DB client binaries.
 func archAssetsKey() string {
 	if runtime.GOOS == "linux" {
 		if runtime.GOARCH == "arm64" {

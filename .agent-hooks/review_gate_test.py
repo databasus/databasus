@@ -818,6 +818,31 @@ class DiffGateTest(unittest.TestCase):
         self.assertIs(responses[3]["continue"], False)
 
 
+class ArchitectureGateTest(unittest.TestCase):
+    def test_architecture_prompt_checks_http_contract_against_api_design_skill(self):
+        repository = HookRepository(self)
+        repository.submit_prompt("Add a widget")
+        repository.write("src/widgets.py", "WIDGETS = []\n")
+
+        repository.stop("architecture")
+
+        [call] = repository.reviewer_calls()
+        self.assertIn(
+            "When a plan adds or changes an HTTP operation, or a finished change edits a file under `backend/api/`, "
+            "also read `.agents/skills/api-design/SKILL.md` and check the operation or the edit against it.",
+            call["prompt"],
+        )
+
+
+class FullReviewSchemaTest(unittest.TestCase):
+    def test_reviewer_schemas_allow_exactly_the_categories_of_their_full_review(self):
+        for full_review in (review_gate.IMPLEMENTATION_REVIEW, review_gate.PROPOSAL_REVIEW):
+            with self.subTest(full_review.gate):
+                schema = json.loads(full_review.reviewer.schema_path.read_text())
+                category_enum = schema["properties"]["findings"]["items"]["properties"]["category"]["enum"]
+                self.assertEqual(tuple(category_enum), full_review.categories)
+
+
 class NamingGateTest(unittest.TestCase):
     def test_runs_reviewer_when_turn_changes_backend_go_file(self):
         repository = HookRepository(self)
@@ -926,7 +951,7 @@ class ImplementationGateStartTest(unittest.TestCase):
         response = repository.stop("implementation")
 
         self.assertEqual(response, {})
-        self.assertEqual(len(repository.reviewer_calls()), 3)
+        self.assertEqual(len(repository.reviewer_calls()), 4)
 
     def test_skips_review_when_tasks_remain_unchecked(self):
         repository = HookRepository(self)
@@ -972,7 +997,7 @@ class ImplementationGateStartTest(unittest.TestCase):
 
         repository.stop("implementation")
 
-        self.assertEqual(len(repository.reviewer_calls()), 3)
+        self.assertEqual(len(repository.reviewer_calls()), 4)
 
     def test_skips_review_when_prompt_has_openspec_planning_command(self):
         repository = HookRepository(self)
@@ -1070,7 +1095,7 @@ class ImplementationGateChecksTest(ShortReplyAssertions, unittest.TestCase):
         repository.stop("implementation")
 
         self.assertEqual(repository.check_calls(), [])
-        self.assertEqual(len(repository.reviewer_calls()), 3)
+        self.assertEqual(len(repository.reviewer_calls()), 4)
 
     def test_blocks_turn_with_output_tail_when_linter_fails(self):
         repository = HookRepository(self)
@@ -1101,7 +1126,7 @@ class ImplementationGateChecksTest(ShortReplyAssertions, unittest.TestCase):
         arguments = [" ".join(call["arguments"]) for call in repository.check_calls()]
         self.assertEqual(len(arguments), 3)
         self.assertFalse(any("fmt" in argument or "format" in argument for argument in arguments))
-        self.assertEqual(len(repository.reviewer_calls()), 3)
+        self.assertEqual(len(repository.reviewer_calls()), 4)
 
     def test_blocks_turn_with_command_and_output_tail_when_package_test_fails(self):
         repository = HookRepository(self)
@@ -1152,7 +1177,7 @@ class ImplementationGateChecksTest(ShortReplyAssertions, unittest.TestCase):
 
         self.assertEqual(response, {})
         self.assertEqual([call["arguments"] for call in repository.check_calls()], [["--dir", "frontend", "lint"]])
-        self.assertEqual(len(repository.reviewer_calls()), 3)
+        self.assertEqual(len(repository.reviewer_calls()), 4)
 
     def test_blocks_turn_before_any_check_when_verification_section_is_malformed(self):
         repository = HookRepository(self)
@@ -1178,7 +1203,7 @@ class ImplementationGateChecksTest(ShortReplyAssertions, unittest.TestCase):
         response = repository.stop("implementation")
 
         self.assertEqual(response, {})
-        self.assertEqual(len(repository.reviewer_calls()), 3)
+        self.assertEqual(len(repository.reviewer_calls()), 4)
 
     def test_blocks_turn_when_hook_tests_fail(self):
         repository = HookRepository(self)
@@ -1194,7 +1219,7 @@ class ImplementationGateChecksTest(ShortReplyAssertions, unittest.TestCase):
 
 
 class ImplementationGateReviewTest(ShortReplyAssertions, unittest.TestCase):
-    def test_runs_reviewer_per_spec_and_one_for_docs_on_claude_with_medium_effort(self):
+    def test_runs_reviewer_per_spec_and_for_architecture_docs_and_tests_on_claude_with_medium_effort(self):
         repository = HookRepository(self)
         repository.write_change(spec_names=("widgets", "gadgets"), tasks="- [x] 1.1 Build\n")
         repository.submit_prompt("Continue")
@@ -1203,7 +1228,7 @@ class ImplementationGateReviewTest(ShortReplyAssertions, unittest.TestCase):
         repository.stop("implementation")
 
         calls = repository.calls("claude")
-        self.assertEqual(len(calls), 4)
+        self.assertEqual(len(calls), 5)
         for call in calls:
             self.assertIn("--model opus --effort medium", " ".join(call["arguments"]))
             self.assertEqual(call["effort_env"], "medium")
@@ -1211,12 +1236,35 @@ class ImplementationGateReviewTest(ShortReplyAssertions, unittest.TestCase):
         self.assertEqual(
             roles,
             [
+                "Role: architecture",
                 f"Role: delta spec `openspec/changes/{CHANGE_NAME}/specs/gadgets/spec.md`",
                 f"Role: delta spec `openspec/changes/{CHANGE_NAME}/specs/widgets/spec.md`",
                 "Role: documentation and tasks",
                 "Role: tests",
             ],
         )
+
+    def test_implementation_architecture_reviewer_prompt_checks_layout_contract_and_exempts_old_code(self):
+        repository = HookRepository(self)
+        repository.submit_prompt("Continue")
+        repository.complete_tasks()
+
+        repository.stop("implementation")
+
+        [call] = [call for call in repository.reviewer_calls() if "\nRole: architecture\n" in call["prompt"]]
+        prompt = call["prompt"]
+        architecture_role = prompt[prompt.index("### Role: architecture") : prompt.index("### Role: documentation and tasks")]
+        self.assertIn("Read `docs/architecture.md` completely", architecture_role)
+        self.assertIn("including parts committed or written in earlier requests", architecture_role)
+        self.assertIn(
+            "When the change edits an HTTP contract file under `backend/api/`, read `.agents/skills/api-design/SKILL.md`",
+            architecture_role,
+        )
+        self.assertIn(
+            'Go code under `backend/` and `agent/` outside the layout block in "Backend layout" of `docs/architecture.md`',
+            architecture_role,
+        )
+        self.assertIn("The exemption does not cover the frontend.", architecture_role)
 
     def test_implementation_docs_reviewer_prompt_checks_agent_instructions(self):
         repository = HookRepository(self)
@@ -1238,7 +1286,7 @@ class ImplementationGateReviewTest(ShortReplyAssertions, unittest.TestCase):
 
         repository.stop("implementation")
 
-        self.assertEqual(len(repository.reviewer_calls()), 4)
+        self.assertEqual(len(repository.reviewer_calls()), 5)
         [call] = [call for call in repository.reviewer_calls() if "\nRole: tests\n" in call["prompt"]]
         prompt = call["prompt"]
         tests_role = prompt[prompt.index("### Role: tests") : prompt.index("### Role: repeat review")]
@@ -1283,7 +1331,7 @@ class ImplementationGateReviewTest(ShortReplyAssertions, unittest.TestCase):
 
         self.assertEqual(response, {})
         self.assertEqual(len(repository.calls("golangci-lint")), 1)
-        self.assertEqual(len(repository.reviewer_calls()), 7)
+        self.assertEqual(len(repository.reviewer_calls()), 8)
 
     def test_blocks_turn_and_requires_agent_to_resolve_findings_when_reviewer_finds_bug(self):
         repository = HookRepository(self)
@@ -1296,6 +1344,23 @@ class ImplementationGateReviewTest(ShortReplyAssertions, unittest.TestCase):
         self.assertEqual(response["decision"], "block")
         self.assertIn("[bug] src/widgets.py:10: Race between the check and the write.", response["reason"])
         self.assertIn("without asking the user", response["reason"])
+        self.assert_asks_for_short_reply(response["reason"])
+
+    def test_blocks_turn_and_asks_to_move_code_or_change_architecture_doc_when_reviewer_finds_architecture_violation(self):
+        repository = HookRepository(self)
+        repository.set_reviewer_result({"findings": [finding("architecture", "The service imports another module's repository.")]})
+        repository.submit_prompt("Continue")
+        repository.complete_tasks()
+
+        response = repository.stop("implementation")
+
+        self.assertEqual(response["decision"], "block")
+        self.assertIn("[architecture] src/widgets.py:10: The service imports another module's repository.", response["reason"])
+        self.assertIn(
+            "On an architecture finding, move the code to follow docs/architecture.md, "
+            "or change docs/architecture.md in the same change when the rule itself is wrong.",
+            response["reason"],
+        )
         self.assert_asks_for_short_reply(response["reason"])
 
     def test_marks_minor_findings_optional_when_turn_is_blocked(self):
@@ -1383,7 +1448,7 @@ class ImplementationGateRepeatTest(SummaryAssertions, unittest.TestCase):
         repository.clear_calls()
         repository.stop("implementation")
 
-        self.assertEqual(len(repository.reviewer_calls()), 3)
+        self.assertEqual(len(repository.reviewer_calls()), 4)
 
     def test_asks_for_summary_without_review_once_after_repeat_accepts_change(self):
         repository = HookRepository(self)
@@ -1455,7 +1520,7 @@ class ProposalGateStartTest(unittest.TestCase):
         response = repository.stop("proposal")
 
         self.assertEqual(response, {})
-        self.assertEqual(len(repository.reviewer_calls()), 3)
+        self.assertEqual(len(repository.reviewer_calls()), 6)
 
     def test_skips_review_without_calling_openspec_when_tasks_are_missing(self):
         repository = HookRepository(self)
@@ -1543,7 +1608,7 @@ class ProposalGateStartTest(unittest.TestCase):
 
         repository.stop("proposal")
 
-        self.assertEqual(len(repository.reviewer_calls()), 3)
+        self.assertEqual(len(repository.reviewer_calls()), 6)
 
     def test_skips_archived_changes(self):
         repository = HookRepository(self)
@@ -1589,7 +1654,7 @@ class ProposalGateValidationTest(unittest.TestCase):
 
 
 class ProposalGateReviewTest(ShortReplyAssertions, SummaryAssertions, unittest.TestCase):
-    def test_runs_reviewer_per_spec_and_for_proposal_and_tasks_on_claude_with_medium_effort(self):
+    def test_runs_reviewer_per_spec_and_one_per_proposal_role_on_claude_with_medium_effort(self):
         repository = HookRepository(self)
         repository.submit_prompt("Write a spec")
         repository.write_proposal(spec_names=("gadgets", "gizmos"))
@@ -1597,7 +1662,7 @@ class ProposalGateReviewTest(ShortReplyAssertions, SummaryAssertions, unittest.T
         repository.stop("proposal")
 
         calls = repository.calls("claude")
-        self.assertEqual(len(calls), 4)
+        self.assertEqual(len(calls), 7)
         for call in calls:
             self.assertIn("--model opus --effort medium", " ".join(call["arguments"]))
             self.assertEqual(call["effort_env"], "medium")
@@ -1605,12 +1670,81 @@ class ProposalGateReviewTest(ShortReplyAssertions, SummaryAssertions, unittest.T
         self.assertEqual(
             roles,
             [
+                "Role: architecture",
                 f"Role: delta spec `openspec/changes/{PROPOSAL_NAME}/specs/gadgets/spec.md`",
                 f"Role: delta spec `openspec/changes/{PROPOSAL_NAME}/specs/gizmos/spec.md`",
+                "Role: names",
+                "Role: necessity",
                 "Role: proposal and design",
                 "Role: tasks",
             ],
         )
+
+    def test_runs_seven_reviewers_of_two_spec_proposal_at_most_six_at_a_time(self):
+        reviewer_seconds = 1
+        repository = HookRepository(self)
+        repository.set_stub("claude", {"sleep_seconds": reviewer_seconds})
+        repository.submit_prompt("Write a spec")
+        repository.write_proposal(spec_names=("gadgets", "gizmos"))
+
+        repository.stop("proposal")
+
+        reviewer_starts_ns = sorted(call["started_at"] for call in repository.reviewer_calls())
+        self.assertEqual(len(reviewer_starts_ns), 7)
+        self.assertEqual(review_gate.MAX_PARALLEL_REVIEWERS, 6)
+        first_wave_spread_seconds = (reviewer_starts_ns[5] - reviewer_starts_ns[0]) / 1e9
+        seventh_reviewer_delay_seconds = (reviewer_starts_ns[6] - reviewer_starts_ns[0]) / 1e9
+        self.assertLess(first_wave_spread_seconds, reviewer_seconds)
+        self.assertGreaterEqual(seventh_reviewer_delay_seconds, reviewer_seconds)
+
+    def get_proposal_role_section(self, repository, role, next_role):
+        [call] = [call for call in repository.reviewer_calls() if f"\nRole: {role}\n" in call["prompt"]]
+        prompt = call["prompt"]
+        return prompt[prompt.index(f"### Role: {role}") : prompt.index(f"### Role: {next_role}")]
+
+    def test_necessity_reviewer_prompt_returns_simplify_or_scope(self):
+        repository = HookRepository(self)
+        repository.submit_prompt("Write a spec")
+        repository.write_proposal()
+
+        repository.stop("proposal")
+
+        necessity_role = self.get_proposal_role_section(repository, "necessity", "architecture")
+        self.assertIn('"The best code is unwritten"', necessity_role)
+        self.assertIn("Return a `simplify` finding when the user loses nothing", necessity_role)
+        self.assertIn("a `scope` finding when the user loses a feature, screen, scenario or setting", necessity_role)
+
+    def test_architecture_reviewer_prompt_checks_design_and_operations_and_exempts_old_code(self):
+        repository = HookRepository(self)
+        repository.submit_prompt("Write a spec")
+        repository.write_proposal()
+
+        repository.stop("proposal")
+
+        architecture_role = self.get_proposal_role_section(repository, "architecture", "names")
+        self.assertIn("Read `docs/architecture.md` completely", architecture_role)
+        self.assertIn(
+            "When the change adds or changes an HTTP operation, read `.agents/skills/api-design/SKILL.md`",
+            architecture_role,
+        )
+        self.assertIn(
+            'Go code under `backend/` and `agent/` outside the layout block in "Backend layout" of `docs/architecture.md`',
+            architecture_role,
+        )
+        self.assertIn("The exemption does not cover the frontend.", architecture_role)
+
+    def test_names_reviewer_prompt_checks_naming_rules_data_section_and_glossary(self):
+        repository = HookRepository(self)
+        repository.submit_prompt("Write a spec")
+        repository.write_proposal()
+
+        repository.stop("proposal")
+
+        names_role = self.get_proposal_role_section(repository, "names", "proposal and design")
+        self.assertIn('the sections "Naming" and "Functions, methods and types" of `AGENTS.md`', names_role)
+        self.assertIn('the table naming rules in the "Data" section of `docs/architecture.md`', names_role)
+        self.assertIn("is a `mismatch` finding that names the rule and suggests a name", names_role)
+        self.assertIn("`docs/glossary.md` does not define, while the change does not add it, is a `gap` finding", names_role)
 
     def test_tasks_reviewer_prompt_requires_every_scenario_covered_by_task_with_test(self):
         repository = HookRepository(self)
@@ -1668,7 +1802,7 @@ class ProposalGateReviewTest(ShortReplyAssertions, SummaryAssertions, unittest.T
         )
 
         self.assertEqual(response, {})
-        self.assertEqual(len(repository.reviewer_calls()), 7)
+        self.assertEqual(len(repository.reviewer_calls()), 10)
 
     def test_blocks_turn_and_requires_agent_to_resolve_simplify_finding_without_asking_user(self):
         repository = HookRepository(self)

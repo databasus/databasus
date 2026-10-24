@@ -8,7 +8,7 @@ Run in `backend/` unless noted.
 
 | Command | Purpose |
 |---|---|
-| `just lint` | golangci-lint with formatters, `archlint`, `vacuum` on the contracts, the generated-code check |
+| `just lint` | Check the backend code, the contracts and the generated code without changing files |
 | `just format` | Format the Go code |
 | `just test-package <packages>` | Run the given test packages |
 | `go test -race -count=1 -run 'TestName/scenario' <package>` | Run one test |

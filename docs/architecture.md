@@ -2,7 +2,7 @@
 
 This document states how Databasus is built and why. The architecture review hook checks every plan and every diff against it. Terms follow the [glossary](glossary.md), and [testing.md](testing.md) describes the test setup. Product behavior lives in the OpenSpec specs under `openspec/specs`. Rules that a linter or `archlint` enforces are listed in [Automatic checks](#automatic-checks).
 
-Code under `backend/internal/features`, `backend/internal/util` and `agent/verification` predates this document and is being moved into the layout below. New code follows this document. A change to the old code keeps that code's existing structure, unless the change is the one that moves it.
+Go code under `backend/` and `agent/` outside the layout block in [Backend layout](#backend-layout) predates this document and is being moved into that layout. New code follows this document. A change to the old code keeps that code's existing structure, unless the change is the one that moves it.
 
 ## System
 
@@ -24,7 +24,7 @@ Databasus backs up and restores the user's PostgreSQL, MySQL, MariaDB and MongoD
 
 - **One image, one container.** The image holds the backend, the built SPA, an embedded PostgreSQL and the client tools. Installing is one `docker run`, and upgrading is pulling a newer image. We considered two alternatives. A separate database service made users manage two images and two volumes, and they never upgraded the database. A single static binary would have made users install a dozen client tool versions themselves.
 - **The internal database is PostgreSQL, not SQLite.** It is never external, and the image pins its version.
-- **Client tools are vendored** under `assets/`, per engine, major version and architecture. The image copies them in instead of installing them from package repositories. The build stays reproducible, works offline and does not depend on a third-party mirror. Rules for the binaries live in `assets/tools/AGENTS.md`.
+- **Client tools are vendored** under `assets/`, per engine, major version and architecture. The image copies them in instead of installing them from package repositories. The build stays reproducible, works offline and does not depend on a third-party mirror. Adding and refreshing the binaries follows the `client-tool-bundles` skill.
 - **One process per installation.** The supplied deployments start exactly one backend process (spec `single-instance-runtime`). That process owns all in-memory state: the cache, rate-limit counters, task cancellation and the WAL streamers. There is no separate worker process and no shared cache service.
 - **Backups run remotely.** Databasus connects to the user's database over the network or through an SSH tunnel to a jump host. It runs the dump or replication tools from its own container, and nothing of ours is installed on the database host. Managed databases forbid host installs, and an agent on the database host would double the release and test surface. We tried one and removed it.
 
@@ -169,6 +169,7 @@ Audit events are written through `lib/audit` in the transaction of the operation
 - Migrations are applied with out-of-order allowed, so a migration merged after a later-numbered one still runs. A migration therefore never depends on the order of migrations within a release.
 - Every migration runs on any older valid state: a fresh install, an install upgraded through every release, and an internal database restored from an older Databasus dump. A migration that adds or tightens a constraint first repairs the rows that would violate it. Otherwise the upgraded instance does not start. A migration that moves encrypted values copies them as they are. SQL cannot decrypt them and does not need to.
 - The upgrade test from [testing.md](testing.md) runs every migration against data written by the previous release.
+- Until `internal/app` exists, `runMigrations` in `backend/cmd/main.go` applies the migrations at startup by running the external `goose` binary on `./migrations`, in order and without out-of-order migrations.
 - Format: one statement per table, constraint and index, column types aligned, each constraint clause on its own line.
 
 ## Stored files
@@ -269,3 +270,5 @@ The verification agent is a CLI worker that runs on a machine the user provides.
 | The contract follows the API rules; generated code is up to date | `vacuum`, `just lint` |
 
 `just lint` in `backend/` runs all of them, on test files too.
+
+Until `archlint` and these linters arrive, `just lint` in `backend/` runs the formatters and the linters configured in `backend/.golangci.yml`.

@@ -52,22 +52,22 @@ Databasus SHALL take physical backups and stream WAL from its own container over
 
 ### Requirement: Sources with custom tablespaces are refused
 
-A physical backup streams one archive of the cluster to the storage without staging it on disk. PostgreSQL produces one more archive for each extra tablespace. Databasus SHALL therefore refuse a physical backup of a source that has any tablespace besides `pg_default` and `pg_global`, before any backup is recorded. The refusal SHALL name the tablespaces and suggest a logical backup, which handles tablespaces. While the source keeps such a tablespace, Databasus SHALL notify about the refusal at most once per database per 24 hours.
+A physical backup streams one archive of the cluster to the storage without staging it on disk. PostgreSQL produces one more archive for each extra tablespace. Databasus SHALL therefore refuse a physical backup source that has any tablespace besides `pg_default` and `pg_global` at the connection test, so no physical backup of it is configured. The refusal SHALL say that custom tablespaces are not supported and suggest dropping them or using a logical backup, which handles tablespaces.
 
 #### Scenario: Source with a custom tablespace
 
-- **WHEN** a scheduled physical backup finds a tablespace named `fast_disk` on the source
-- **THEN** no backup is recorded
-- **AND** the user is notified that `fast_disk` prevents physical backups and that a logical backup can be used
+- **WHEN** a user tests the connection of a physical backup source that has a tablespace named `fast_disk`
+- **THEN** the connection test fails
+- **AND** the message says custom tablespaces are not supported and suggests dropping them or switching to a logical backup
 
-#### Scenario: Repeated refusal
+#### Scenario: Source without custom tablespaces
 
-- **WHEN** the same source still has the tablespace on the next scheduled attempts within 24 hours
-- **THEN** no further notification is sent in that period
+- **WHEN** a user tests the connection of a physical backup source whose only tablespaces are `pg_default` and `pg_global`
+- **THEN** the tablespace check passes
 
 ### Requirement: Only completed WAL segments reach the storage
 
-Databasus SHALL upload a WAL segment only after the source has completed it. A segment that is still being written SHALL stay on the Databasus host and SHALL NOT be uploaded, so every archived segment is final and never rewritten. The physical backup settings SHALL tell the user that, while the database is idle, `archive_timeout` on the source bounds how much recent WAL a source failure can lose.
+Databasus SHALL upload a WAL segment only after the source has completed it. A segment that is still being written SHALL stay on the Databasus host and SHALL NOT be uploaded, so every archived segment is final and never rewritten. How long the newest WAL of a rarely-written database waits on the source is bounded by forced WAL rotation, as the `physical-backups/replication-credentials` spec states.
 
 #### Scenario: Idle database
 

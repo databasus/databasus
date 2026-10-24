@@ -6,8 +6,8 @@ A proposal is often written over several requests, so the shared rule about path
 
 This review answers with a `findings` list instead of the `ok` and `reason` from the shared instructions. Every finding has a category, a path and a description:
 
-- `gap`: a requirement is incomplete or cannot be verified, a case is missing, a scenario does not say what exactly is observed;
-- `mismatch`: the artifacts contradict each other, the main specs, the code, `docs/architecture.md` or the architecture rules of the module docs; the design relies on a function, table or file that does not exist in the repository or works differently;
+- `gap`: a requirement is incomplete or cannot be verified, a case is missing, a scenario does not say what exactly is observed, or the change introduces a domain term that `docs/glossary.md` does not define and the change does not add;
+- `mismatch`: the artifacts contradict each other, the main specs, the code, `docs/architecture.md`, the architecture rules of the module docs, the `api-design` skill, or the naming rules of `AGENTS.md`, the module docs and `docs/glossary.md`; the design relies on a function, table or file that does not exist in the repository or works differently;
 - `tasks`: a scenario is not covered by a task with a test, a task has no verification, the task order cannot be followed;
 - `simplify`: the same result for the user is reachable noticeably more simply, and the user loses nothing;
 - `scope`: an option where the user loses a feature, screen, scenario or setting, in exchange for saving a noticeable part of the work;
@@ -25,11 +25,35 @@ Review only the requirements of your delta spec.
 - Requirements do not contradict the main specs, `proposal.md` or `design.md`.
 - Claims about existing code, tables, commands and files are true. Check them against the repository.
 
-### Role: proposal and design
+### Role: necessity
 
 - Look for a way to reach the same result noticeably more simply, per the section "The best code is unwritten" in `AGENTS.md`: something that already exists in the repository or its dependencies, a small refactoring instead of new code, a narrower option.
-- Check the decisions in `design.md` against `docs/architecture.md` and the architecture rules of the module docs.
-- Check that the decisions agree with each other and with `proposal.md`, and that the facts about the code are true.
+- Return a `simplify` finding when the user loses nothing, and a `scope` finding when the user loses a feature, screen, scenario or setting.
+- Do not check architecture, names or consistency. Other reviewers do that.
+
+### Role: architecture
+
+Read `docs/architecture.md` completely and the architecture sections of the module docs that `.agent-hooks/architecture-prompt.md` lists.
+
+- Check the decisions in `design.md` and the structure the proposal implies against these documents: layer direction, module boundaries, roles of files inside a module, data ownership and migrations. A contradiction that the change does not resolve by editing `docs/architecture.md` itself is a `mismatch` finding that names the rule.
+- When the change adds or changes an HTTP operation, read `.agents/skills/api-design/SKILL.md` and check the operation against it. Each broken rule is a `mismatch` finding that names the rule of the `api-design` skill.
+- Go code under `backend/` and `agent/` outside the layout block in "Backend layout" of `docs/architecture.md` predates that document and keeps its existing structure. Do not report a design that keeps that structure, unless the change moves that code. The exemption does not cover the frontend.
+- Do not check names, simplicity or prose. Other reviewers do that.
+
+### Role: names
+
+Check every name the proposal, `design.md` and the delta specs introduce for code, data or the contract: modules, packages, types, functions, tables, columns, HTTP operations, fields, commands and environment variables.
+
+- The standard is the sections "Naming" and "Functions, methods and types" of `AGENTS.md`, the naming rules of the module docs, the table naming rules in the "Data" section of `docs/architecture.md`, and `docs/glossary.md`.
+- A name that breaks a rule is a `mismatch` finding that names the rule and suggests a name.
+- A domain term the change introduces that `docs/glossary.md` does not define, while the change does not add it, is a `gap` finding that asks to add the term.
+- Do not check architecture, simplicity or prose. Other reviewers do that.
+
+### Role: proposal and design
+
+- Check that the decisions in `design.md` agree with each other and with `proposal.md`.
+- Check that the facts `proposal.md` and `design.md` state about the code are true. Check them against the repository.
+- Do not check simplicity, architecture or names. Other reviewers do that.
 
 ### Role: tasks
 

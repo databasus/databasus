@@ -19,13 +19,14 @@ Actions:
                  frontend/src/ or website/ changed.
   implementation Full review of an OpenSpec change whose tasks are all checked: first the read-only
                  checks of the touched modules, then the commands of the "Change verification"
-                 section of tasks.md, then parallel reviewers by spec, for documentation and for tests,
-                 after a block a repeat over the previous findings only.
+                 section of tasks.md, then parallel reviewers: one per delta spec, and one each for
+                 architecture, documentation and tasks, and tests; after a block a repeat over the
+                 previous findings only.
   proposal       Full review of a finished OpenSpec proposal with no checked task: first the format
                  check of the "Change verification" section without running it, then
-                 openspec validate --strict, then parallel reviewers by spec, for proposal and design
-                 and for tasks. While it runs, necessity, diff, architecture and naming skip a turn
-                 that only wrote the artifacts.
+                 openspec validate --strict, then parallel reviewers: one per delta spec, and one each
+                 for necessity, architecture, names, proposal and design, and tasks. While it runs,
+                 necessity, diff, architecture and naming skip a turn that only wrote the artifacts.
   doctor         Reports whether Python, git, openspec and a reviewer CLI are found, one line per tool,
                  and exits with a non-zero code when one is missing. `just doctor` runs it.
 
@@ -92,9 +93,9 @@ class Reviewer:
     timeout_seconds: int
 
 
-# The strongest model plans and writes code, and the reviewer runs one step below at low effort:
-# smart enough to check and quick to answer. The full proposal and implementation reviews run
-# once per change and look for what the quick checks miss, so their effort is higher.
+# The quick reviewers run on the same model as the agent that writes the code, with low effort, so
+# they answer fast. The full proposal and implementation reviews run once per change and look for
+# what the quick checks miss, so their effort is higher.
 QUICK_REVIEWER = Reviewer(
     claude_model="opus",
     claude_effort="low",
@@ -1195,16 +1196,18 @@ IMPLEMENTATION_REVIEW = FullReview(
     title="Full implementation review",
     subject="change",
     reviewer=IMPLEMENTATION_REVIEWER,
-    categories=("bug", "spec_mismatch", "missing_test", "docs", "minor"),
+    categories=("bug", "spec_mismatch", "missing_test", "architecture", "docs", "minor"),
     non_blocking_categories=("minor",),
     summary_categories=(),
     category_notes={"minor": " (optional)"},
-    first_roles=("documentation and tasks", "tests"),
+    first_roles=("architecture", "documentation and tasks", "tests"),
     files_title="Paths changed relative to HEAD",
     select_targets=select_implementation_targets,
     get_checks=get_implementation_checks,
     block_instruction="Resolve every finding yourself, without asking the user. Fix a bug in the code. "
     "On a spec mismatch, pick the right side and fix the other one, including the change's delta spec. "
+    "On an architecture finding, move the code to follow docs/architecture.md, "
+    "or change docs/architecture.md in the same change when the rule itself is wrong. "
     "Reject a false finding. Minor findings are optional. "
     "If a reviewer could not run, find the cause of the failure. " + FULL_REVIEW_REPLY_INSTRUCTION,
     optional_findings_title="Optional findings",
@@ -1222,7 +1225,7 @@ PROPOSAL_REVIEW = FullReview(
     non_blocking_categories=("scope", "minor"),
     summary_categories=("scope",),
     category_notes={"scope": " (the user decides)", "minor": " (optional)"},
-    first_roles=("proposal and design", "tasks"),
+    first_roles=("necessity", "architecture", "names", "proposal and design", "tasks"),
     files_title="Change files",
     select_targets=select_proposal_targets,
     get_checks=get_proposal_checks,

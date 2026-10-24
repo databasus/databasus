@@ -12,12 +12,13 @@ context: |
   The architecture is in docs/architecture.md, the test setup in
   docs/testing.md and the terms in docs/glossary.md. Per-folder rules live in
   backend/AGENTS.md, frontend/AGENTS.md, website/AGENTS.md; the root
-  AGENTS.md holds the engineering philosophy. A change under a folder answers
+  AGENTS.md holds the rules for every module. A change under a folder answers
   to both.
 
   Conventions that shape planning:
-  - Before any OpenSpec message or action, load the repository Humanizer skill
-    and apply its embedded mode to all agent-authored prose. Preserve exact
+  - Load the repository Humanizer skill once per context, before the first
+    OpenSpec message or action, as AGENTS.md says, and apply its embedded
+    mode to all agent-authored prose. Preserve exact
     commands, paths, identifiers, schemas, templates, quotations and facts.
   - English only in code, comments, identifiers, API strings and commit
     messages. AGENTS.md enumerates every place translated end-user content

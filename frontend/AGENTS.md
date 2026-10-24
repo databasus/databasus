@@ -1,7 +1,7 @@
 # Frontend guidelines (React + TypeScript)
 
 This document contains coding standards for the Databasus frontend (React 19 + TypeScript + Vite + Ant Design + TailwindCSS).
-For project-wide engineering philosophy, see the root `AGENTS.md`.
+The rules for every module are in the root `AGENTS.md`.
 
 ---
 

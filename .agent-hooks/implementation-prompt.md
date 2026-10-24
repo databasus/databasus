@@ -9,6 +9,7 @@ This review answers with a `findings` list instead of the `ok` and `reason` from
 - `bug`: wrong behavior, a race between a check and a write, a transaction error, secrets or personal data in logs or error texts, a wrong response code;
 - `spec_mismatch`: the code differs from a requirement, a scenario or a decision in `design.md`;
 - `missing_test`: a scenario has no test, or the test passes without the described behavior;
+- `architecture`: the code breaks `docs/architecture.md` or the architecture rules of the module docs, or an edit of an HTTP contract file under `backend/api/` breaks the `api-design` skill;
 - `docs`: a task is not fully done, documentation disagrees with the code or with other documents, or an edit to agent instructions breaks the section "Documentation consistency" in `AGENTS.md`;
 - `minor`: a detail that does not stop the change from being accepted.
 
@@ -21,6 +22,16 @@ Review only the requirements of your delta spec.
 - For every requirement and scenario find the code and the test: the file and the test name. Check that the test proves the scenario rather than passing by accident.
 - Check the decisions in `design.md` that relate to these requirements against the code.
 - Look for bugs in the code that implements the requirements.
+
+### Role: architecture
+
+Read `docs/architecture.md` completely and the architecture sections of the module docs that `.agent-hooks/architecture-prompt.md` lists.
+
+- Check all code that belongs to the change against these documents, including parts committed or written in earlier requests: layer direction, module boundaries, roles of files inside a module, data ownership and migrations.
+- Read the edits of the change together. A violation that appears only across several edits, such as an import added in one request and used across a module boundary in another, is an `architecture` finding that names every path involved and the rule in `docs/architecture.md`.
+- When the change edits an HTTP contract file under `backend/api/`, read `.agents/skills/api-design/SKILL.md` and check the edit against it. Each broken rule is an `architecture` finding that names the rule of the `api-design` skill.
+- Go code under `backend/` and `agent/` outside the layout block in "Backend layout" of `docs/architecture.md` predates that document and keeps its existing structure. Do not report it for not following the new layout, unless the change moves that code. The exemption does not cover the frontend.
+- Do not check names, style, prose or general correctness. Other reviewers do that.
 
 ### Role: documentation and tasks
 

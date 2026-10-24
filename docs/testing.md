@@ -6,7 +6,7 @@ This document describes the kinds of tests Databasus has and what each kind chec
 
 - A test checks what a caller observes: the HTTP API of the backend, the behavior of an engine against a real database server, or a screen of the frontend.
 - Our own database, modules and services are never mocked. Fakes replace only systems we cannot run locally and failures that are unsafe to cause for real.
-- Every test can run in parallel with any other test of the same run. Single packages and tests also run alongside runs from other worktrees on the same machine; only full and affected runs take turns through a machine-wide lock. A test never takes a shared resource under a fixed name.
+- Every test can run in parallel with any other test of the same run. Single packages and tests also run alongside runs from other worktrees on the same machine; only full runs take turns through a machine-wide lock. A test never takes a shared resource under a fixed name.
 - Every check runs locally, and none of them is manual. CI repeats the same tests on a clean machine.
 
 ## Layers
@@ -22,6 +22,8 @@ Paths under `internal/` are inside `backend/`.
 | Upgrade tests | an instance of the previous release keeps its data after an upgrade to the current code, and its backups restore | `backend/e2e/upgrade/` | both images, real data written through the API |
 | Filesystem tests | the image on the host filesystems and permission setups that users run | `e2e/docker-storage/` | Docker on the host |
 | Frontend tests | screens for every answer the contract allows | `frontend/src/**/*.test.tsx` | the components; the network is mocked through `mockApi`, typed by the contract |
+
+Until the contract in `backend/api` exists, frontend tests render components without network mocks, and `mockApi` arrives with the contract.
 
 Module API tests cover most behavior. A unit test without the application is used only for pure logic that has no HTTP entry point, or that is too slow to enumerate through HTTP. Examples are the scheduler's decision function, retention arithmetic, WAL position math, manifest reconstruction and parsers.
 
@@ -51,13 +53,9 @@ Tests never wait for a fixed time. They wait for a condition with `testwait.Unti
 
 ## Choosing the tests to run
 
-`just test-affected` selects tests from the files changed in the working tree:
+While working, run the package or the test you need right now. Before handing the work over, run the tests of every package the change touched and of the packages that test the same feature, with `just test-package <packages>` in `backend/` and `pnpm test` in `frontend/`. A package that tests the same feature is one whose tests exercise the changed behavior through the API, such as the backup and restore tests for a change in an engine.
 
-- A changed Go package selects the packages whose tests depend on it through `go list -deps -test`. A migration or a contract file selects the packages that embed it.
-- A changed file under `frontend/src` selects the frontend tests related to it.
-- A path that no rule knows, such as `go.mod`, a lockfile or the test runner itself, selects the full run.
-
-The command prints what it selected and why. The full run is `just test`. Full and affected runs hold a machine-wide lock, so only one of them goes at a time and the others wait. Single packages and single tests run without the lock.
+The full run is `just test`. It holds a machine-wide lock, so only one full run goes at a time and the others wait. Single packages and single tests run without the lock. CI runs everything on every pull request.
 
 ## Runs
 
@@ -65,11 +63,13 @@ The command prints what it selected and why. The full run is `just test`. Full a
 - CI runs the same groups as the full run, split into shards by the measured duration of tests. Physical backup tests and WAL streaming tests are the slow groups and get their own shards.
 - The upgrade test and the filesystem tests are part of `just test`, and CI runs them on every pull request.
 
+Until every test has its own database, `scripts/test.sh` takes no lock, backend tests run without `-race`, no linter rejects `time.Sleep` and `Eventually` yet, the upgrade test does not exist yet and the filesystem tests run only through `just test-filesystem`.
+
 ## Commands
 
 | What | Command |
 |---|---|
-| Tests affected by the working tree | `just test-affected` at the root |
+| Given backend packages | `just test-package <packages>` in `backend/` |
 | Everything | `just test` at the root |
 | One backend package | `go test -race -count=1 ./internal/modules/<module>/...` in `backend/` |
 | One backend test | `go test -race -count=1 -run 'TestName/scenario text' ./internal/modules/<module>/...` in `backend/` |

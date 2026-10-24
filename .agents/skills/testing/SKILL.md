@@ -88,7 +88,7 @@ Write fakes as small hand-written structs. Do not use mock generators, `testify/
 
 ## Waiting
 
-- Never wait for a fixed time. Wait for the condition with `testwait.Until`, up to the test's overall timeout. The linter rejects `time.Sleep` and `Eventually`.
+- Never wait for a fixed time. Wait for the condition with `testwait.Until`, up to the test's overall timeout. Never use `time.Sleep` or `Eventually`.
 - For a negative check, such as "no notification was sent", first wait for a sign that the action was processed. Then watch the check's window.
 - When the behavior depends on time, move the test clock.
 
@@ -101,7 +101,7 @@ Write fakes as small hand-written structs. Do not use mock generators, `testify/
 
 ## Which tests to run
 
-While working, run the package or the single test you need. Before handing the work over, run `just test-affected` and include its output in the report. Run the full `just test` when the user asks for it. When a change needs a full run, `just test-affected` says so and runs it itself.
+While working, run the package or the single test you need. Before handing the work over, run the tests of every package you touched and of the packages that test the same feature, with `just test-package <packages>` in `backend/` and `pnpm test` in `frontend/`, and include the commands and their result in the report. [`docs/testing.md`](../../../docs/testing.md#choosing-the-tests-to-run) says which packages test the same feature. Run the full `just test` only when the user asks for it.
 
 After you interrupt a run, remove only what that run left behind. Never prune Docker or stop the shared test PostgreSQL server.
 

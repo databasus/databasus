@@ -18,13 +18,13 @@ Per-folder rules live next to the code they govern:
 - [`website/AGENTS.md`](website/AGENTS.md) — marketing site rules and its translations, Next.js
 - [`assets/readme/AGENTS.md`](assets/readme/AGENTS.md) — translated copies of the root `README.md`
 
-This root file holds the engineering philosophy that applies everywhere.
+This root file holds the rules for every module.
 
 ---
 
 ## Mandatory communication skill
 
-At the start of every turn, before sending any message or taking any action, read the [how-to-communicate skill](.agents/skills/humanizer/SKILL.md) completely. Load it explicitly regardless of automatic skill selection. This applies to every request and workflow, for all agents working in this repository, including Claude Code and its subagents.
+Read the [how-to-communicate skill](.agents/skills/humanizer/SKILL.md) completely once per context, before the first message or action: at the start of a session, after the context is compacted, and at the start of each subagent. Load it explicitly regardless of automatic skill selection. The skill then stays in context, so it is not reread on later turns. This applies to all agents working in this repository, including Claude Code and its subagents.
 
 Apply the skill in embedded mode to all agent-authored prose, including chat responses, progress updates, plans, documentation, OpenSpec artifacts, review findings, commit messages and pull request text. Prioritize the reader's understanding, factual accuracy and necessary context before style and brevity. Run its draft, audit and final pass internally, then emit only the final text. Preserve exact code, commands, paths, identifiers, schemas, required templates, quotations and user-provided text unless the user asks to edit them. Select relevant information for original answers without hiding material limitations; preserve substantive claims when editing supplied text unless summarization is requested. Editing must not change facts, behavior, scope or technical meaning.
 
@@ -41,8 +41,7 @@ The repository's skills live in `.agents/skills/`; `.claude/skills` is a symlink
 | Command | Purpose |
 |---|---|
 | `just run` | Start the app locally: dev database, test fixtures, WAL backup source with its load generator, backend and frontend; seeds a dev account with databases and restarts the backend when its code changes |
-| `just test-affected` | Run the tests the working tree's changes affect |
-| `just test` | Run every test; only one full run at a time runs on the machine |
+| `just test` | Run every test |
 | `just test-package <packages>`, run in `backend/` | Run the given backend test packages |
 | `just test-filesystem` | Run the Docker filesystem suite, mostly left to CI |
 | `just pull-testcontainers` | Pull the database images the backend tests use |
@@ -66,18 +65,17 @@ Run tests, linters and builds as ordinary foreground commands, so the user sees 
 Several agents may work on this repo at once, in different worktrees, sharing one Docker daemon and one test PostgreSQL server. Every test takes its own database and gives its containers unique names, as [`docs/testing.md`](docs/testing.md) describes, so runs from different worktrees do not disturb each other.
 
 - Lint and format whenever you want: they touch nothing shared.
-- While working, run the packages and tests you need right now. Before handing the work over, run `just test-affected`.
-- Run the full `just test` when the user asks for it or when `just test-affected` decides a full run is needed. It takes the machine-wide lock and first waits for any other full run to finish.
+- While working, run the packages and tests you need right now. Before handing the work over, run the tests of the packages you touched and of the packages that test the same feature, as [`docs/testing.md`](docs/testing.md#choosing-the-tests-to-run) says.
+- Run the full `just test` only when the user asks for it.
 - Never stop the shared test PostgreSQL server or prune Docker, because other runs use them.
 
 ### Until the migration finishes
 
 The layout and the tooling described in `docs/` arrive milestone by milestone. Until they do, these substitutes apply:
 
-- Until `just test-affected` exists, test the packages you touched and the packages that test the same feature. Run them with `just test-package <packages>` in `backend/`.
-- While backend tests still share per-worker metadata databases, as set up in `backend/internal/config/config.go`, an agent never runs `just test`. A full run resets the containers and databases every other agent uses, so until then the full suite is for the developer and CI.
+- While backend tests still share per-worker metadata databases, as set up in `backend/internal/config/config.go`, an agent never runs `just test`, and `just test` takes no machine-wide lock yet. A full run resets the containers and databases every other agent uses, so until then the full suite is for the developer and CI.
 - Until `just generate-api` exists, regenerate the API docs with `swag init -d . -g cmd/main.go -o swagger` in `backend/`.
-- Code under `backend/internal/features`, `backend/internal/util` and `agent/verification` keeps its existing structure until the milestone that moves it, as the first section of [`docs/architecture.md`](docs/architecture.md) says.
+- Go code under `backend/` and `agent/` outside the layout block in "Backend layout" of [`docs/architecture.md`](docs/architecture.md#backend-layout) keeps its existing structure until the milestone that moves it, as the first section of that document says.
 
 Temporary docs and plan for migration is here - @temp/refactor
 
@@ -109,27 +107,7 @@ A temporary working document the agent writes for the user outside code, such as
 
 ---
 
-## Engineering philosophy
-
-**Think like a skeptical senior engineer and code reviewer. Don't just do what was asked — also think about what should have been asked. Catch real issues, not theoretical ones.**
-
-### Task tiers (scale your response to the task)
-
-- **Trivial** (typos, formatting, single-field adds): apply directly. Steps 5 only.
-- **Standard** (CRUD, typical features): steps 1, 5.
-- **Complex** (architecture, security, performance-critical): all steps.
-- **Unclear** (ambiguous requirements): steps 1 and 4 are mandatory.
-
-### Steps for non-trivial tasks
-
-1. **Restate the objective**, list explicit + inferred assumptions, flag shaky ones.
-2. **Propose solutions** — for complex tasks, 2–3 approaches including a simpler baseline; recommend one with tradeoffs (complexity, maintainability, performance, extensibility).
-3. **Identify risks** — edge cases, security/privacy, performance, operational concerns (deployment, observability, rollback). Before finalizing, ask "what could go wrong?" and patch.
-4. **Handle ambiguity** — pick a reasonable default, label it, note what changes under alternative assumptions.
-5. **Deliver quality** — correct, testable, maintainable code with minimal tests/validation. Prefer controller tests over unit tests.
-6. **Fix root causes, not symptoms** — ask "why did this happen?" and address the underlying issue.
-
-### Review hooks
+## Review hooks
 
 Every change answers to this document **and** the module doc for each area it touches. The module docs add stack-specific rules on top of this one; they never replace it, so a change under `backend/` answers to both.
 
@@ -144,7 +122,7 @@ What the agent does with findings:
 - The summary for the user describes the final state as if there had been no review: what was done, which decisions were made, which checks passed, what remains and the next step. It leaves out review rounds, the findings and the fixes made for them.
 - Run the linter and formatter for each directory the diff touches before finishing.
 
-### The best code is unwritten
+## The best code is unwritten
 
 Before doing a task, check whether it is needed in this form. If the feature can be skipped or done much more simply, offer that to the user before implementing: what they lose and what they save.
 
@@ -153,102 +131,55 @@ Before doing a task, check whether it is needed in this form. If the feature can
 
 The user decides; the task is never cut without their consent. Simplify code within the task yourself, and agree a large rework first per [Refactoring within a feature](#refactoring-within-a-feature).
 
-### Refactoring within a feature
+## Refactoring within a feature
 
 The system improves gradually, along with ordinary tasks. If code the task touches stands in the way of the task or breaks the rules of the module docs or `docs/architecture.md`, the refactoring is part of the same task; no separate task for later. The refactoring is limited to the code the task works with and does not touch other agents' changes in the working tree. The agent refactors the touched code while implementing, without asking the user, and lists no refactoring suggestions for it. Its summary names only a refactoring that goes beyond the change, together with its cost, because such a rework needs the user's agreement first.
 
-### Other agents' changes in the working tree
+## Other agents' changes in the working tree
 
 Several agents sometimes work in one branch at once. A file or change the agent did not create within the current request belongs to someone else. Never delete, revert, format, stage or commit someone else's changes. If they must be moved aside with `git stash` before a commit, ask the user first.
 
-### Agent memory
+## Agent memory
 
 The agent writes no rules, preferences or facts to its local memory outside the repository, such as `~/.claude/projects/*/memory`. Other agents and people cannot read that memory, and it drifts from the repository rules. A rule or preference that must outlive the session goes, with the user's consent, into an `AGENTS.md` file or a repository skill.
 
-### Naming
+## Naming
 
-Name variables and functions for **intent**, not mechanism. Naming is the biggest readability lever — avoid generic placeholders (`data`, `handle`, `process`, `tmp`, `helper`, `manager`), type-suffix noise (`nameStr`, `agentList`, `tokenObj`), and mechanism-flavored names (`tickNow`, `hbResp`, `dataObj`).
+Names state intent, not mechanism. The rules below go beyond Go and TypeScript idiom, so the reviewers hold code to them:
 
-Booleans take an `is` / `can` / `has` / `should` prefix (`isAllowed`, `canAccess`, `hasItems`, `shouldRetry`) — never bare nouns/verbs like `allowed` or `touches`.
+- Booleans take an `is`, `can`, `has` or `should` prefix: `isSidebarOpen`, not `sidebarOpen`.
+- State that holds the entity currently being acted on names that entity: `selectedDatabaseId`, not `selectedId`.
+- Test variables are named after the domain, never `got`, `want` or `expected`: `persistedAgent`, not `got`.
+- A loop variable takes the domain word: `for _, storage := range listedStorages`, not `for _, s := range listed`. Single letters stay only inside trivial one-line lambdas.
+- Client code keeps the domain words of the API: if the API says `agent`, the client does not call it `worker`.
 
-State that holds "the entity currently being X-ed" must include the entity: `createdAgent`, not `created`; `listedAgents`, not `listed`; `deletingAgentId`, not `deletingId`. Pair related state explicitly: `revealedToken` + `revealedTokenAgentName`, not `tokenAgentName`. Loop variables get the domain word — `for _, agent := range listedAgents` (Go) — single letters only inside trivial one-line lambdas (`.map((a) => a.id)`).
+Short names stay where the convention is well established: Go receivers (`s *NotifierService`), `ctx`, and the JS/TS error catch `catch (e)`.
 
-Test-mechanism names (`got`, `want`, `expected`) are not acceptable — use the domain noun: `persistedAgent`, `firstRotation`, `secondRotation`. Match domain language across the wire — if the API says `agent`, don't rename to `worker` or `node` in client code.
+## Functions, methods and types
 
-Idiomatic short names stay where the convention is well-established: Go receivers (`s *AgentService`, `r *AgentRepository`, `ctx *gin.Context`) and JS/TS error catches (`} catch (e) {`). When no good name exists, the abstraction is wrong — extract or rename it, don't reach for `helper` / `tmp` / `manager`.
+- Getters take a `Get` prefix and name the entity, even though Go idiom omits it: `GetWorkspace`, not `Workspace`. Constructors stay `New...`, and a getter that returns a bool is a predicate.
+- A predicate reads as a question: `IsAborted(id)`, not `AbortedContains(id)`.
+- The name states everything the unit does, or the unit is split: `repairAndSaveConfigForBackupType`, not `saveConfigForBackupType` for a method that also repairs the row.
+- Four or more parameters, or two adjacent parameters of one type, become a named struct: `SpawnSpec`, not `spawn(name, image string, ...)`.
+- A type name is neither generic nor stuttering: not `Helper` or `Processor`, not `container.ContainerManager`. When the only honest name stutters, the variable carries the noun: `containerManager := container.NewManager(...)`.
 
-Examples:
-
-```go
-// bad
-var hbResp HeartbeatResponse
-var got *Agent
-for _, a := range listed { ... }
-
-// good
-var heartbeatResponse HeartbeatResponse
-var persistedAgent *Agent
-for _, agent := range listedAgents { ... }
-```
-
-```ts
-// bad
-const [tickNow, setTickNow] = useState(Date.now());
-const [deletingId, setDeletingId] = useState<string | null>(null);
-const [tokenAgentName, setTokenAgentName] = useState('');
-
-// good
-const [currentTimeMs, setCurrentTimeMs] = useState(Date.now());
-const [deletingAgentId, setDeletingAgentId] = useState<string | null>(null);
-const [revealedTokenAgentName, setRevealedTokenAgentName] = useState('');
-```
-
-### Functions, methods and types
-
-The intent rule applies to callables and types too — this is where it's violated most:
-
-- **A name that needs a "what" comment is a naming bug.** Doc comments are for *why*, ordering, and hidden constraints — never to restate behavior. If you wrote `// Foo does X` above `func Foo`, rename `Foo` until that comment is redundant, then delete it. Keep only the sentence a name *cannot* carry (e.g. "must be called before the container exists").
-- **Predicate methods read as a question**, same as boolean vars: `IsAborted(id)`, not `AbortedContains(id)`; `HasCapacity()`, not `CapacityCheck()`.
-- **The name states everything the unit does.** A function that records *and* cancels is `recordAndCancelAborts` — or it's two functions. A name that hides a second effect is a lie.
-- **Getters take a `Get` prefix and name the entity.** `GetRunningVerificationIDs()`, not `Active()`, `RunningVerificationIDs()`, or `DiskUsageBytes()`. This is a deliberate house style: prefer the explicit `Get` *even though vanilla Go idiom omits it* — it keeps accessors visually distinct from actions and matches the backend (`GetAuditLogService`, `GetGlobalAuditLogs`). Constructors stay `New...`; a getter that returns a bool is still a predicate, so it stays `Is/Has...`, not `Get...`.
-- **Long positional parameter lists become a struct.** ~4+ params, or two same-typed params adjacent → a named parameter/DTO struct (the input counterpart to the result type, e.g. `spawnPlan` → `SpawnSpec`). Kills call-site ordering bugs and the comment explaining argument order.
-- **Type names: avoid generic *and* avoid package stutter.** Not `Manager` / `Provisioner` / `Handler` (generic), not `container.ContainerManager` (stutters). If the only honest name stutters, put the noun on the *variable*, not the type: keep the type `container.Manager`, name the variable `containerManager`. If no precise type name exists, the abstraction is wrong — split it.
-
-```go
-// bad — comment restates the name; name hides the second effect; predicate isn't a question
-// applyAborts records the abort set and cancels each registered job.
-func (h *Heartbeater) applyAborts(ids []uuid.UUID) { ... }
-func (h *Heartbeater) AbortedContains(id uuid.UUID) bool { ... }
-
-// good — the names carry it; no comment needed
-func (h *Heartbeater) recordAndCancelAborts(ids []uuid.UUID) { ... }
-func (h *Heartbeater) IsAborted(id uuid.UUID) bool { ... }
-```
-
-### Linting and formatting
-
-After each change run linting and formatting depending on folder you are working it.
-- backend has `just lint` and `just format` in its folder, and they cover the verification agent; until the agent moves into `backend/`, `agent/verification` has its own
-- frontend has `pnpm lint`, `pnpm typecheck` and `pnpm format`
-- `just lint` and `just format` at the root cover every module; the root `just lint` also runs shellcheck on every shell script
-
-### Comments are a last resort
+## Comments are a last resort
 
 The default is **no comment**. Before writing one, reach for a clearer name or a smaller function first — self-explanatory code beats commented code every time. A comment is justified only when it carries something the code cannot: a *why* (business rule, hidden cross-system constraint, non-obvious algorithm or optimisation, a reference to `docs/architecture.md` or a spec). Never write a comment that restates *what* the code does or narrates the obvious — if a `// Foo does X` comment sits above the code, that's a naming bug: rename until the comment is redundant, then delete it. This applies everywhere, tests included — a well-named test needs no header comment explaining what it checks.
 
-### No issue numbers in production code
+## No issue numbers in production code
 
 Fixing an issue does not put its number in the code. Production files, comments and error messages state the constraint itself — an issue number is a pointer to a discussion the reader has to leave the code to follow, and it rots the moment the tracker moves.
 
 The one exception is a test written specifically to pin that issue's behaviour: there the number belongs next to the test, because it says *why this case exists* and where the reproduction came from.
 
-### No "how it was" comments, no unrequested backward compatibility
+## No "how it was" comments, no unrequested backward compatibility
 
 Don't write comments that explain previous behavior ("used to be X", "was renamed from Y", "kept for legacy callers"). Code shows the current state; history lives in git.
 
 Don't preserve backward compatibility unless the user asks for it. No deprecation shims, no aliases, no fallbacks for the old shape. When planning a change that would break existing callers, schemas, configs, or APIs, call out the break explicitly in the plan. If the user approves it, delete the old code outright — do not leave a transition layer behind.
 
-### Security
+## Security
 
 Databasus handles sensitive data, so security is a layered defence. When working in the repo:
 

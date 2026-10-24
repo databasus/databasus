@@ -3,8 +3,8 @@ CI, and the Docker image all read from one place. The Go backend
 resolves them at runtime via `runtime.GOOS`+`runtime.GOARCH` →
 `assets/tools/<arch-key>/<db>/<db>-<v>/bin/<command>`.
 
-`AGENTS.md` in this directory carries the checklist for adding a version and
-for refreshing a patch level. Read it before changing anything here.
+The checklist for adding a version and for refreshing a patch level is the
+`client-tool-bundles` skill in `.agents/skills/client-tool-bundles/SKILL.md`.
 
 Layout (one subtree per arch, identical shape):
 

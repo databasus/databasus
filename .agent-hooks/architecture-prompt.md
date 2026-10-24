@@ -6,7 +6,9 @@ The standard for this review is `docs/architecture.md` and the architecture rule
 - `backend/AGENTS.md`: "Where code goes", "Dependencies", "Handlers, services, repositories", "Engines and providers", "Long-running work", "Migrations";
 - `frontend/AGENTS.md`: "FSD (Feature-Sliced Design)".
 
-Code under `backend/internal/features`, `backend/internal/util` and `agent/verification` predates `docs/architecture.md`. A change there keeps that code's existing structure and is not blocked for not following the new layout, unless the change itself moves the code. New code under `backend/internal/app`, `backend/internal/modules`, `backend/internal/engines`, `backend/internal/lib` and `backend/internal/agent` follows `docs/architecture.md` fully.
+Go code under `backend/` and `agent/` outside the layout block in "Backend layout" of `docs/architecture.md` predates that document. A change there keeps that code's existing structure and is not blocked for not following the new layout, unless the change itself moves the code. Code inside that layout follows `docs/architecture.md` fully. The exemption does not cover the frontend.
+
+When a plan adds or changes an HTTP operation, or a finished change edits a file under `backend/api/`, also read `.agents/skills/api-design/SKILL.md` and check the operation or the edit against it. Name the rule of the `api-design` skill that is broken.
 
 If the candidate is a plan, check that the proposed structure follows these rules. If the candidate is a finished change, use `git status`, the full `git diff HEAD` and the untracked files, and check the changed code.
 
@@ -16,6 +18,7 @@ Check only architecture:
 - roles inside a module: handlers call services, services hold the rules and access checks, repositories hold all database access, and files sit in the roles the documents name;
 - data ownership: a module touches only its own tables, foreign keys between modules are `RESTRICT`, invariants live in the schema, and schema changes go through migrations in the required form;
 - frontend FSD layers and slices: import direction, slice placement, no cross-imports between slices of one layer, the public API of a slice;
+- HTTP operations and contract edits against the `api-design` skill;
 - a decision that contradicts `docs/architecture.md` without changing that document in the same change.
 
 If the change edits `docs/architecture.md` or an architecture section of a module doc, check that the edit agrees with the code and with the latest user request.

@@ -13,7 +13,7 @@ Agent instructions are the git-tracked `AGENTS.md` files at the repository root 
 - descriptions of how code, hooks and tools work: the internal steps of commands, hook trigger conditions, constant values, limits, models;
 - retellings of another document's sections.
 
-The root `AGENTS.md` SHALL name the place for each of these kinds of information: code and its comments, the API contract, `docs/`, the ADRs, a program's README, the hook docstring and prompts, the OpenSpec specs. An instruction MAY link to a file as an example or a source of values, when the link itself does not change with the file's contents. An instruction MAY hold:
+The root `AGENTS.md` SHALL name the place for each of these kinds of information: code and its comments, the API contract, `docs/` including the reasons behind architectural choices in `docs/architecture.md`, a program's README, the hook docstring and prompts, the OpenSpec specs. The repository SHALL keep no separate decision records: the reason for an architectural choice is written in `docs/architecture.md` next to the rule it explains. An instruction MAY link to a file as an example or a source of values, when the link itself does not change with the file's contents. An instruction MAY hold:
 
 - a table of documents with the topic of each;
 - a table of commands the agent runs with the purpose of each, without its internal steps;
@@ -39,6 +39,10 @@ The root `AGENTS.md` SHALL name the place for each of these kinds of information
 #### Scenario: A new rule of agent behavior appears
 - **WHEN** the team introduces a rule that changes how the agent writes code or answers
 - **THEN** the rule is written in one place in the agent instructions, and other documents link to it
+
+#### Scenario: A change explains an architectural choice
+- **WHEN** a change makes an architectural choice and records why
+- **THEN** the reason is written in `docs/architecture.md` next to the rule it explains, and no separate decision record is created
 
 ### Requirement: The diff reviewer checks edits to agent instructions
 The diff reviewer SHALL check every edit to agent instructions against the requirement "What belongs in agent instructions". When an edit adds an inventory of what exists, a statement about the current state of code, a description of how something works or a retelling of another document, the reviewer SHALL reject the turn and name the place to move that information to. An edit that adds or changes a rule of agent behavior MUST NOT be rejected under this criterion.
