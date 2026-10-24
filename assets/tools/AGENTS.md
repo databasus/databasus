@@ -1,7 +1,7 @@
 # Client binaries — rules for changing this tree
 
 Every file under `assets/tools/` is a vendored third-party binary that runs in
-production. ADR-0005 explains why they are committed instead of installed at
+production. `docs/architecture.md` explains why they are committed instead of installed at
 image build time. Two rules follow from that and apply to every change here:
 the bytes in the repository are the bytes that ship, so a binary must be
 verified in the runtime environment rather than on a developer machine, and a
@@ -125,7 +125,7 @@ edit the pinned package version in it rather than passing one in.
 
 ## What not to do here
 
-- Do not install client binaries in the `Dockerfile`. ADR-0005 rejected that.
+- Do not install client binaries in the `Dockerfile`; see "System" in `docs/architecture.md`.
 - Do not add a shared library to the runtime image only to satisfy one client
   when a build against the libraries already present exists.
 - Do not trust a directory name while you are building the bundle. Confirm

@@ -113,3 +113,12 @@ The system SHALL ship MongoDB client tools that are byte-identical to the progra
 
 - **WHEN** the version embedded in the shipped MongoDB dump and restore programs is read for each supported architecture
 - **THEN** every program carries the tools release the client documentation records
+
+### Requirement: Building the image downloads no client tools
+
+The client tools SHALL be committed to the repository and copied into the image. Building the image SHALL NOT download client tools from engine vendors' package repositories, so a vendor mirror that is down or has changed its keys cannot break or alter a build.
+
+#### Scenario: Vendor repository is down
+
+- **WHEN** a vendor's package repository is unreachable during an image build
+- **THEN** the build completes with the same client tools as before

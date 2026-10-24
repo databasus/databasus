@@ -1,720 +1,100 @@
-# Backend guidelines (Go + Gin + GORM)
+# Backend rules
 
-Coding standards for the Databasus backend (Go + Gin + GORM + PostgreSQL).
-For project-wide engineering philosophy, naming, and lint/format commands, see the root `AGENTS.md`.
+Rules for writing Go code in `backend/`, which holds the server and the verification agent. [`docs/architecture.md`](../docs/architecture.md) describes how the backend is organized and why. Before changing the structure of some code, read the sections that cover it. The project-wide rules are in the root [`AGENTS.md`](../AGENTS.md). Tests follow the [testing skill](../.agents/skills/testing/SKILL.md), and HTTP operations follow the [api-design skill](../.agents/skills/api-design/SKILL.md).
 
----
+## Commands
 
-## Table of Contents
+Run in `backend/` unless noted.
 
-- [Spacing between logical statements](#spacing-between-logical-statements)
-- [Comments](#comments)
-- [File organization](#file-organization)
-- [Controllers](#controllers)
-- [Dependency injection (DI)](#dependency-injection-di)
-- [Background services](#background-services)
-- [Stored files](#stored-files)
-- [Migrations](#migrations)
-- [Testing](#testing)
-- [Time handling](#time-handling)
-- [Logging](#logging)
-- [CRUD examples](#crud-examples)
-- [Modern Go](#modern-go)
+| Command | Purpose |
+|---|---|
+| `just lint` | golangci-lint with formatters, `archlint`, `vacuum` on the contracts, the generated-code check |
+| `just format` | Format the Go code |
+| `just test-package <packages>` | Run the given test packages |
+| `go test -race -count=1 -run 'TestName/scenario' <package>` | Run one test |
+| `just generate-api` at the root | Regenerate servers, clients and frontend types after editing `api/*.yaml` |
+| `goose -dir migrations create <name> sql` | Create a migration stub, then fill it by hand |
 
----
+## Where code goes
 
-## Spacing between logical statements
+- A domain rule goes into the module that owns the data, under `internal/modules/<name>/internal/`. Other modules reach it only through that module's `module.go`.
+- Code that knows a database engine but no tables goes into `internal/engines/<engine>`.
+- Code with no domain knowledge goes into `internal/lib/<name>`.
+- Wiring goes into `internal/app` and nowhere else.
+- A file holds one role, and its name says which: `service.go`, `*_repository.go`, `<entity>.go`, `errors.go`. Test files mirror the source split. Create a file only when it has content.
 
-Add blank lines between logical blocks so the flow is visible at a glance:
+## Dependencies
 
-- before the final `return`
-- after variable declarations, before they're used
-- between error handling and subsequent logic
-- between distinct logical operations
+- A module or a `lib` service takes its dependencies through `Deps` in `New(deps Deps)`. A `Deps` literal lists every field. `exhaustruct` fails the build when one is missing, so adding a dependency forces every call site to supply it.
+- No package-level variable holds a dependency, and no package does work at import time.
+- Configuration values arrive through `Deps`. A module never reads the environment.
 
-Bad:
+## Handlers, services, repositories
 
-```go
-func (r *Repository) FindById(id uuid.UUID) (*models.Task, error) {
-	var task models.Task
-	result := storage.GetDb().Where("id = ?", id).First(&task)
-	if result.Error != nil {
-		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			return nil, errors.New("task not found")
-		}
-		return nil, result.Error
-	}
-	return &task, nil
-}
-```
+- A handler implements the generated strict server interface: it takes the decoded request, calls one service method with the request context and returns the generated response type. It holds no logic, and it checks nothing beyond what the contract already enforces.
+- A service checks access first: it looks the object up, answers "not found" when it is missing, then calls `workspaces.Authorize`. It opens transactions with `database.Transaction(ctx, fn)` and writes the audit event inside the same transaction.
+- A repository runs every query through `database.Conn(ctx, r.db)`. A lookup that finds nothing returns `false` as its second value, never `gorm.ErrRecordNotFound`. A repository changes one column with one `UPDATE`, never by saving the whole row. It uses no GORM associations and no `Preload` across tables.
 
-Good:
+## Errors
 
-```go
-func (r *Repository) FindById(id uuid.UUID) (*models.Task, error) {
-	var task models.Task
+- Every sentinel error and error type of a package lives in its `errors.go`.
+- Wrap with context using `%w`, and compare with `errors.Is` or `errors.As`, never by the error's text.
+- A service returns errors from `lib/apierror` with a stable `code` for anything the client must tell apart. The handler never builds an error body itself, and an internal error's text never reaches the client.
 
-	result := storage.GetDb().Where("id = ?", id).First(&task)
-	if result.Error != nil {
-		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			return nil, errors.New("task not found")
-		}
+## Engines and providers
 
-		return nil, result.Error
-	}
+Code outside a family never switches on a database, storage or notifier type: only the family's registry maps a type to its implementation. To add a provider:
 
-	return &task, nil
-}
-```
+1. Add a package under the family with its settings struct, its repository and its behavior.
+2. Add a migration with its table. Columns carry `NOT NULL`, `DEFAULT` and `CHECK` where they apply, and the row references the parent through the composite key `(id, type)`.
+3. Register it in the family's registry.
+4. Add its schema to the contract as one more variant of the type's `oneOf`.
 
----
+## Long-running work
 
-## Comments
-
-**Comment only in the rare, genuinely non-obvious case.** The default is no comment. A
-comment must earn its place by carrying something the code itself cannot — never by
-restating, narrating, or labelling what is already visible.
-
-- **Almost never comment.** If you're about to write one, first try a clearer name or a
-  smaller function. Self-explanatory code with no comment beats commented code.
-- **A comment may only explain *why*** — a business rule, a hidden cross-system constraint,
-  a non-obvious algorithm or optimisation, an ADR reference. Never *what* the code does.
-- **Don't narrate the obvious.** No "first failing check", no "the detected platform", no
-  "re-open the connection", no step-by-step play-by-play. If the reader can see it, delete it.
-- **A name that needs a "what" comment is a naming bug** — rename until the comment is
-  redundant, then delete it.
-- **Swagger comments are mandatory** for every HTTP endpoint.
-- **No "Summary" / "Conclusion" sections in `.md` files** unless explicitly requested.
-
-Bad (comments restate the code / narrate the obvious):
-
-```go
-// Create test project
-project := CreateTestProject(projectName, user, router)
-
-// CreateValidLogItems creates valid log items for testing
-func CreateValidLogItems(count int, uniqueID string) []logs_receiving.LogItemRequestDTO {
-
-// the first failing check, plus the detected platform
-type ConnectionDiagnostics struct {
-```
-
----
-
-## File organization
-
-One responsibility per file. Don't dump a whole package into one file — split
-by role so a reader can find a type by its filename. Conventional names within
-a feature package:
-
-- `doc.go` — package doc comment, once the package spans more than one file
-- `<feature>.go` — the core type and its methods (the orchestrator/executor)
-- `dto.go` — request/response and cross-package data + interface seams
-- `errors.go` — sentinel errors (`var Err... = errors.New(...)`)
-- `enums.go` — typed-constant groups (`type Status string` + its values)
-- `constants.go` — package-level constants that aren't an enum
-- background loops, reapers, and pools get their own file (`reaper.go`, `pool.go`)
-
-Only create a file when there is real content for it — an empty `enums.go` or
-`constants.go` is noise, not structure. Test files mirror the source split:
-`restorer.go` → `restorer_test.go`, `diskexhaustion.go` →
-`diskexhaustion_test.go`. The CRUD layout — `controller.go`, `service.go`,
-`repository.go`, `model.go`, `dto.go`, `di.go` — is the same principle applied
-to a Gin/GORM feature.
-
----
-
-## Controllers
-
-- One controller per feature, combining all routes for that feature.
-- Method names express **what we do** (`GetAvailableTasks`), not the suffix `Handler`.
-- All routes use Gin and take `*gin.Context`.
-- Every route is documented with Swagger annotations — see [CRUD examples → controller.go](#controllergo) for the canonical annotation format.
-
-```go
-type AuditLogController struct {
-    auditLogService *AuditLogService
-}
-
-func (c *AuditLogController) RegisterRoutes(router *gin.RouterGroup) {
-    auditRoutes := router.Group("/audit-logs")
-
-    auditRoutes.GET("/global", c.GetGlobalAuditLogs)
-    auditRoutes.GET("/users/:userId", c.GetUserAuditLogs)
-}
-```
-
----
-
-## Dependency injection (DI)
-
-For DI files (controllers, services, repositories, use cases — not plain data structs), use **implicit positional field declaration**. Adding a new dependency must force every callsite to update; named-field syntax silently accepts a missing field as zero.
-
-```go
-// good — positional, fails to compile if a field is added or reordered
-var orderController = &OrderController{
-    orderService,
-    bot_users.GetBotUserService(),
-    bots.GetBotService(),
-    users.GetUserService(),
-}
-
-// bad — named fields, silently accept new fields with zero values
-var orderController = &OrderController{
-    orderService:   orderService,
-    botUserService: bot_users.GetBotUserService(),
-    botService:     bots.GetBotService(),
-    userService:    users.GetUserService(),
-}
-```
-
-Apply this anywhere you see the `var fooController = &FooController{...}` + `GetFooController()` getter shape.
-
-### `SetupDependencies()` pattern
-
-`SetupDependencies()` runs cross-feature wiring (e.g. registering audit-log writers on user services) and **must be idempotent** — tests call it many times. Use `sync.OnceFunc`:
-
-```go
-var SetupDependencies = sync.OnceFunc(func() {
-    users_services.GetUserService().SetAuditLogWriter(auditLogService)
-    users_services.GetSettingsService().SetAuditLogWriter(auditLogService)
-})
-```
-
-`sync.OnceFunc` (Go 1.21+) is concise and thread-safe — don't reinvent it with `sync.Once` + `atomic.Bool`.
-
-### Never inject another feature's repository
-
-A feature's repositories are its **private implementation detail**. When feature A needs data that lives under feature B, extend B's *service* with a public method and inject **that service** — not B's repository.
-
-The seam must live at the service layer so authorization, logging, and invariants stay auditable in one place, and so schema changes don't ripple across features. A feature injecting its **own** repository is unchanged.
-
-```go
-// good — cross-feature data access goes through the owning service
-var backupController = &BackupController{
-    backupService,
-    databases.GetDatabaseService(),  // service, not repository
-}
-
-// bad — reaches into another feature's private layer
-var backupController = &BackupController{
-    backupService,
-    databases.GetDatabaseRepository(), // bypasses authz / logging / invariants
-}
-```
-
----
-
-## Background services
-
-A background service runs an infinite loop in a goroutine. Calling `Run()` twice on the same instance is always a bug — duplicate goroutines leak resources and corrupt state. **Always panic; never just log a warning.**
-
-```go
-type BackgroundService struct {
-    // ...
-    hasRun atomic.Bool
-}
-
-func (s *BackgroundService) Run(ctx context.Context) {
-    if s.hasRun.Swap(true) {
-        panic(fmt.Sprintf("%T.Run() called multiple times", s))
-    }
-
-    ticker := time.NewTicker(1 * time.Minute)
-    defer ticker.Stop()
-
-    for {
-        select {
-        case <-ctx.Done():
-            return
-        case <-ticker.C:
-            s.doWork()
-        }
-    }
-}
-```
-
-`atomic.Bool.Swap(true)` does the check-and-set atomically — no `sync.Once` needed. Applies to schedulers, registries, worker nodes, and cleanup services.
-
----
+- A periodic job is a function given to `background.Runner`. Never write your own ticker loop or `hasRun` guard.
+- Run external tools only through `lib/process`, so the process dies with its context.
+- Start goroutines only through the `lib` helpers that tie them to a context and turn a panic into an error.
+- Take the current time from the clock in `Deps`, and pass it into SQL as a parameter. All time is UTC.
 
 ## Stored files
 
-Backup code never calls a storage provider's `SaveFile` or `DeleteFile`. Everything
-goes through `storage_files.Store`, and a test under `internal/features/backups`
-fails if a direct call comes back.
-
-**A stored file is kept only when a committed transaction claims it.** `WriteFile`
-records a pending deletion before the first byte leaves and hands back a receipt.
-The transaction that publishes the backup spends that receipt with
-`ConfirmFileWrites`; every other outcome, including a provider error, a crash, a
-rolled back publication and a cancellation, leaves the obligation standing, and the
-background worker removes the file. A terminal failure path calls
-`RequestFileDeletions` in the same transaction that records the failure, so the
-file is handed back at once rather than waiting out the commit window.
-
-Two rules follow from that:
-
-- **Every write attempt gets its own object name.** A retry that reused a name
-  would address the object a pending cleanup already owns. Logical backups get this
-  from the backup UUID; physical FULL and INCR mint one per codec attempt, and WAL
-  and history carry an attempt UUID of their own.
-- **A provider's `DeleteFile` owes every representation it derives from the name**:
-  chunk objects and manifests, incomplete multipart uploads, staged blocks,
-  temporary and partial files. Only a confirmed absence counts as success. It puts
-  its own deadline on the call and must stay under `Timings.AttemptLease`, or the
-  worker reclaims the row while the attempt is still running.
-
-A test that asserts a file is gone drives the worker first, through
-`storages.DrainStorageFileDeletions`. Nothing observes cleanup by sleeping.
-
----
+Write and delete files in a storage only through the storages module's file store. A backup is published by spending its write receipt in the publishing transaction. The rules are in "Stored files" in [`docs/architecture.md`](../docs/architecture.md#stored-files).
 
 ## Migrations
 
-- PostgreSQL only.
-- Primary UUID keys → `gen_random_uuid()`.
-- Time columns → `TIMESTAMPTZ` (timestamp with zone), never `TIMESTAMP`.
-- Tables, constraints, and indexes go in **separate** declarations (table first, then each constraint / index on its own statement).
-- Format SQL: align column types, put each constraint clause on its own line.
+- Follow "Data" and "Migrations" in [`docs/architecture.md`](../docs/architecture.md#data): module prefixes, `RESTRICT` between modules, constraints in the schema, upgrade safety.
+- One statement per table, constraint and index. Align column types and put each constraint clause on its own line.
 
 ```sql
-CREATE TABLE marketplace_info (
-    bot_id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    title             TEXT NOT NULL,
-    description       TEXT NOT NULL,
-    short_description TEXT NOT NULL,
-    tutorial_url      TEXT,
-    info_order        BIGINT NOT NULL DEFAULT 0,
-    is_published      BOOLEAN NOT NULL DEFAULT FALSE
+CREATE TABLE storages_s3 (
+    storage_id UUID NOT NULL,
+    type       TEXT NOT NULL DEFAULT 'S3',
+    bucket     TEXT NOT NULL,
+    region     TEXT NOT NULL
 );
 
-ALTER TABLE marketplace_info_images
-    ADD CONSTRAINT fk_marketplace_info_images_bot_id
-    FOREIGN KEY (bot_id)
-    REFERENCES marketplace_info (bot_id);
+ALTER TABLE storages_s3
+    ADD CONSTRAINT fk_storages_s3_storage
+    FOREIGN KEY (storage_id, type)
+    REFERENCES storages (id, type)
+    ON DELETE CASCADE;
 ```
-
-Generate the migration stub with the goose create command from the [command table](../AGENTS.md#development-environment) and only then fill it manually.
-
----
-
-## Testing
-
-The [testing skill](../.agents/skills/testing/SKILL.md) holds the rules every module shares; this section adds the backend's own.
-
-### Naming
-
-- `Test_WhatWeDo_WhatWeExpect`
-- `Test_WhatWeDo_WhichConditions_WhatWeExpect`
-
-Examples: `Test_CreateApiKey_WhenUserIsProjectOwner_ApiKeyCreated`, `Test_DeleteApiKey_WhenUserIsProjectMember_ReturnsForbidden`, `Test_GetProjectAuditLogs_WithDifferentUserRoles_EnforcesPermissionsCorrectly`, `Test_ProjectLifecycleE2E_CompletesSuccessfully`.
-
-This convention applies to `t.Run` subtest names too. When a per-version orchestrator runs former
-top-level test functions as subtests (see ADR-0013), name each subtest the full former function
-name verbatim — `t.Run("Test_CreateReadOnlyUser_UserCanReadButNotWrite", ...)`, not an abbreviation.
-Reserve non-`Test_` subtest names for grouping labels only: the engine-version group (`"PostgreSQL 16"`)
-and per-case variants (`"CPU=4 directory"`).
-
-### Prefer controller tests over unit tests
-
-- Test through HTTP endpoints whenever possible — that's the contract real callers see.
-- Avoid testing repositories or services in isolation; cover them via the API.
-- Use unit tests only for complex model logic with no API surface.
-- File names: `controller_test.go` or `service_test.go` — never `integration_test.go`.
-
-### `features/tests/` is for backup → restore cycle tests only
-
-The `internal/features/tests/` package is reserved for **end-to-end tests that exercise a full backup → restore cycle** against a real database container (today: `tests/logical/`; physical restore tests land here once the restore path ships). These tests cross multiple feature packages and have no single "owner" file, so they live in this shared package.
-
-**Everything else** — controller tests, service tests, executor / backuper tests, slot-lifecycle tests, helpers — lives next to its source per the source-split rule (`backup_slot.go` → `backup_slot_test.go`, `full.go` → `full_test.go`). Shared per-package test fixtures go in that package's `testing.go`.
-
-### Shared testing utilities
-
-Each feature creates a `testing.go` (or `testing/testing.go`) with router builders, model creation helpers, and request helpers used by other features' tests. Build creation helpers via the API (`POST /...`) — not direct DB inserts — so the helpers double as a sanity check on the create endpoint.
-
-### Refactor tests as you touch them
-
-When editing existing tests, look for: repetitive setup that should become a helper, oversized tests that should be split, inline test data that should reuse a helper, and similar patterns across files that should be consolidated.
-
-### Clean up test data
-
-If the feature has a DELETE endpoint or cleanup method, **use it** in the test (`defer` or `t.Cleanup`). Prefer API cleanup over direct DB delete. Skip cleanup only when the test runs in an auto-rollback transaction, the cleanup endpoint doesn't exist yet, or the test explicitly validates a failure path where cleanup isn't possible.
-
-### Canonical controller test
-
-```go
-func Test_CreateApiKey_WhenUserIsProjectOwner_ApiKeyCreated(t *testing.T) {
-    router := CreateApiKeyTestRouter(GetProjectController(), GetMembershipController())
-    owner := users_testing.CreateTestUser(users_enums.UserRoleMember)
-    project, _ := projects_testing.CreateTestProjectViaAPI("Test Project", owner, router)
-
-    request := CreateApiKeyRequestDTO{Name: "Test API Key"}
-    var response ApiKey
-    test_utils.MakePostRequestAndUnmarshal(t, router,
-        "/api/v1/projects/api-keys/"+project.ID.String(),
-        "Bearer "+owner.Token, request, http.StatusOK, &response)
-
-    assert.Equal(t, "Test API Key", response.Name)
-    assert.NotEmpty(t, response.Token)
-}
-```
-
-The same shape extends to:
-- **Permission-failure tests** — assert `http.StatusForbidden` plus the error message body.
-- **Cross-tenant isolation tests** — create a second user/project, attempt to access the first via the second's endpoint, assert `http.StatusBadRequest`.
-- **E2E lifecycle tests** — chain create → mutate → transfer → verify, all via API.
-
----
-
-## Time handling
-
-Always use `time.Now().UTC()` instead of `time.Now()` to keep timezones consistent across the application.
-
----
 
 ## Logging
 
-We use `log/slog`. Three rules.
+- Log through the logger from `Deps` with the `...Context` methods, so `request_id`, `job_name` and `job_id` from the context reach every record.
+- The message is a constant lowercase phrase without a trailing period. Values, IDs and errors are attributes with `snake_case` keys: `logger.InfoContext(ctx, "backup completed", "backup_id", backupID, "size_mb", sizeMb)`.
+- Add an entity's ID to the context with `logging.With` where the entity becomes known, so later records carry it.
+- Levels: Debug for routine steps, Info for completed actions and state changes, Warn for a degraded but recoverable state, Error for failures that need attention.
+- Never log passwords, tokens, keys, full headers or request bodies. Masking happens in the log handler, not at call sites.
 
-### 1. Scope IDs early via `logger.With(...)`
+## Code style
 
-Attach `database_id`, `backup_id`, `verification_id`, etc. as soon as you know them so every downstream line carries them automatically.
+- `just format` sets the formatting. Beyond that, separate logical blocks with a blank line: after declarations, between error handling and what follows, before the final `return`.
+- `modernize` enforces current standard-library idioms. Use `omitzero` instead of `omitempty` for `time.Time`, `time.Duration`, structs, slices and maps.
+- Every HTTP operation is described in the contract; Go code carries no API annotations.
 
-```go
-func (s *BackupService) CreateBackup(logger *slog.Logger, databaseID uuid.UUID) {
-    logger = logger.With("database_id", databaseID)
+## Verification agent
 
-    logger.Debug("creating backup")
-    // every subsequent log automatically carries database_id
-}
-```
-
-For background services, also scope `task_name` per subtask in `Run()`. Inside loops, scope further with the loop's identifying ID.
-
-### 2. Values in message, IDs and errors as kv pairs
-
-Sizes, counts, and status transitions go into the message via `fmt.Sprintf`. IDs and errors stay as structured kv pairs so they're searchable in log aggregation tools.
-
-```go
-// good
-logger.Info(fmt.Sprintf("subscription renewed: %s -> %s, %d GB", oldStatus, newStatus, sub.StorageGB))
-logger.Info("deleted old backup", "backup_id", backup.ID)
-logger.Error("failed to save subscription", "error", err)
-
-// bad — ID buried in the message string, error formatted instead of attached
-logger.Info(fmt.Sprintf("deleted old backup %s", backup.ID))
-logger.Error(fmt.Sprintf("failed to save subscription: %v", err))
-```
-
-### 3. Style and level
-
-- All keys `snake_case` (`database_id`, `total_size_mb`) — never camelCase.
-- Messages start lowercase, no trailing period.
-- **Debug**: routine ops, function entry, query result counts.
-- **Info**: significant state changes, completed actions.
-- **Warn**: degraded but recoverable.
-- **Error**: failures that need attention.
-
-### Required contextual fields
-
-Every log line must carry enough to reconstruct one entity's history:
-
-- **`request_id`** — auto-generated per HTTP request by `middleware.AssignRequestID()`, echoed back as `X-Request-Id`, and carried in the request's `context.Context`. The fan-out handler attaches it to any record logged through a `...Context` method, so on the request path use `logger.InfoContext(ctx, ...)` / `ErrorContext` and pass `ctx.Request.Context()` from the controller into the service. Never set `request_id` by hand.
-- **`user_id`, `database_id`, `backup_id`, `verification_id`, etc.** — attach via `logger.With(...)` at the boundary where the entity becomes known so downstream logs inherit it.
-- **Background jobs / schedulers** (no HTTP request, no `request_id`): pass these inline on every log call:
-  - **`job_id`** — fresh UUID per execution; the correlation ID for one run.
-  - **`job_name`** — stable snake_case identifier of which job this is (e.g. `"backup_retention_cleanup"`, `"audit_log_cleanup"`). Define it as a `const` next to the service — never the struct's type name (renames break log queries). Lets you query "all runs of job X" or "all errors from job Y" across history.
-
-```go
-const jobName = "backup_retention_cleanup"
-
-func (c *BackupCleaner) Run(ctx context.Context) {
-    jobID := uuid.New()
-    logger := c.logger.With("job_id", jobID, "job_name", jobName)
-
-    logger.Info("job started")
-    // ...
-}
-```
-
-### What never goes into logs
-
-- **Passwords, tokens, API keys, full `Authorization` / `Cookie` headers** — centralize redaction at the logger config; don't redact ad-hoc at call sites.
-- **PII (email, phone)** — mask before logging (`r***@example.com`, `+7***1234`).
-- **Full request / response bodies** — log only the fields you actually need, never whole payloads.
-
----
-
-## CRUD examples
-
-A complete feature has these files. The controller carries the canonical Swagger annotation format — that's the part to memorize.
-
-### controller.go
-
-```go
-package audit_logs
-
-type AuditLogController struct {
-    auditLogService *AuditLogService
-}
-
-func (c *AuditLogController) RegisterRoutes(router *gin.RouterGroup) {
-    auditRoutes := router.Group("/audit-logs")
-
-    auditRoutes.GET("/global", c.GetGlobalAuditLogs)
-    auditRoutes.GET("/users/:userId", c.GetUserAuditLogs)
-}
-
-// GetGlobalAuditLogs
-// @Summary Get global audit logs (ADMIN only)
-// @Description Retrieve all audit logs across the system
-// @Tags audit-logs
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Param limit query int false "Limit number of results" default(100)
-// @Param offset query int false "Offset for pagination" default(0)
-// @Param beforeDate query string false "Filter logs created before this date (RFC3339 format)" format(date-time)
-// @Success 200 {object} GetAuditLogsResponse
-// @Failure 401 {object} map[string]string
-// @Failure 403 {object} map[string]string
-// @Router /audit-logs/global [get]
-func (c *AuditLogController) GetGlobalAuditLogs(ctx *gin.Context) {
-    user, isOk := ctx.MustGet("user").(*user_models.User)
-    if !isOk {
-        ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user type in context"})
-        return
-    }
-
-    request := &GetAuditLogsRequest{}
-    if err := ctx.ShouldBindQuery(request); err != nil {
-        ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid query parameters"})
-        return
-    }
-
-    response, err := c.auditLogService.GetGlobalAuditLogs(ctx.Request.Context(), user, request)
-    if err != nil {
-        if err.Error() == "only administrators can view global audit logs" {
-            ctx.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
-            return
-        }
-        ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve audit logs"})
-        return
-    }
-
-    ctx.JSON(http.StatusOK, response)
-}
-```
-
-### di.go
-
-```go
-var auditLogRepository = &AuditLogRepository{}
-var auditLogService = &AuditLogService{
-    auditLogRepository,
-    logger.GetLogger(),
-    logger.GetAuditLogger(),
-}
-var auditLogController = &AuditLogController{auditLogService}
-
-func GetAuditLogService() *AuditLogService       { return auditLogService }
-func GetAuditLogController() *AuditLogController { return auditLogController }
-
-var SetupDependencies = sync.OnceFunc(func() {
-    users_services.GetUserService().SetAuditLogWriter(auditLogService)
-    users_services.GetSettingsService().SetAuditLogWriter(auditLogService)
-})
-```
-
-### dto.go
-
-```go
-type GetAuditLogsRequest struct {
-    Limit      int        `form:"limit"      json:"limit"`
-    Offset     int        `form:"offset"     json:"offset"`
-    BeforeDate *time.Time `form:"beforeDate" json:"beforeDate"`
-}
-
-type GetAuditLogsResponse struct {
-    AuditLogs []*AuditLog `json:"auditLogs"`
-    Total     int64       `json:"total"`
-    Limit     int         `json:"limit"`
-    Offset    int         `json:"offset"`
-}
-```
-
-### model.go
-
-```go
-type AuditLog struct {
-    ID        uuid.UUID  `json:"id"        gorm:"column:id"`
-    UserID    *uuid.UUID `json:"userId"    gorm:"column:user_id"`
-    ProjectID *uuid.UUID `json:"projectId" gorm:"column:project_id"`
-    Message   string     `json:"message"   gorm:"column:message"`
-    CreatedAt time.Time  `json:"createdAt" gorm:"column:created_at"`
-}
-
-func (AuditLog) TableName() string { return "audit_logs" }
-```
-
-### repository.go
-
-```go
-type AuditLogRepository struct{}
-
-func (r *AuditLogRepository) Create(auditLog *AuditLog) error {
-    if auditLog.ID == uuid.Nil {
-        auditLog.ID = uuid.New()
-    }
-
-    return storage.GetDb().Create(auditLog).Error
-}
-
-func (r *AuditLogRepository) GetGlobal(
-    ctx context.Context,
-    limit, offset int,
-    beforeDate *time.Time,
-) ([]*AuditLog, error) {
-    var auditLogs []*AuditLog
-
-    query := storage.GetDb().WithContext(ctx).Order("created_at DESC")
-    if beforeDate != nil {
-        query = query.Where("created_at < ?", *beforeDate)
-    }
-
-    err := query.Limit(limit).Offset(offset).Find(&auditLogs).Error
-
-    return auditLogs, err
-}
-```
-
-### service.go
-
-```go
-type AuditLogService struct {
-    auditLogRepository *AuditLogRepository
-    logger             *slog.Logger
-    auditLogger        *slog.Logger
-}
-
-func (s *AuditLogService) WriteAuditLog(ctx context.Context, entry audit_logs_models.AuditEntry) {
-    auditLog := &AuditLog{
-        UserID:    entry.UserID,
-        ProjectID: entry.ProjectID,
-        Message:   entry.Message,
-        CreatedAt: time.Now().UTC(),
-    }
-
-    s.auditLogger.InfoContext(ctx, entry.Message, "user_id", entry.UserID, "project_id", entry.ProjectID)
-
-    if err := s.auditLogRepository.Create(auditLog); err != nil {
-        s.logger.ErrorContext(ctx, "failed to create audit log", "error", err)
-    }
-}
-
-func (s *AuditLogService) GetGlobalAuditLogs(
-    ctx context.Context,
-    user *user_models.User,
-    request *GetAuditLogsRequest,
-) (*GetAuditLogsResponse, error) {
-    if user.Role != user_enums.UserRoleAdmin {
-        return nil, errors.New("only administrators can view global audit logs")
-    }
-
-    limit := request.Limit
-    if limit <= 0 || limit > 1000 {
-        limit = 100
-    }
-
-    offset := max(request.Offset, 0)
-
-    auditLogs, err := s.auditLogRepository.GetGlobal(ctx, limit, offset, request.BeforeDate)
-    if err != nil {
-        return nil, err
-    }
-
-    total, err := s.auditLogRepository.CountGlobal(ctx, request.BeforeDate)
-    if err != nil {
-        return nil, err
-    }
-
-    return &GetAuditLogsResponse{
-        AuditLogs: auditLogs,
-        Total:     total,
-        Limit:     limit,
-        Offset:    offset,
-    }, nil
-}
-```
-
-For `controller_test.go`, see [Testing → Canonical controller test](#canonical-controller-test) above.
-
----
-
-## Modern Go
-
-Prefer modern stdlib idioms over manual equivalents.
-
-### `slices` package — avoid manual loops
-
-```go
-slices.Contains(items, x)
-slices.Index(items, x)                                         // returns index or -1
-slices.IndexFunc(items, func(item T) bool { return item.ID == id })
-slices.SortFunc(items, func(a, b T) int { return cmp.Compare(a.X, b.X) })
-slices.Sort(items)                                             // ordered types
-slices.Max(items) / slices.Min(items)
-slices.Reverse(items)                                          // in-place
-slices.Compact(items)                                          // remove consecutive duplicates
-slices.Clone(s)                                                // shallow copy
-slices.Clip(s)                                                 // trim unused capacity
-```
-
-### Quick wins
-
-- `any` instead of `interface{}`.
-- `for i := range len(items)` instead of `for i := 0; i < len(items); i++`.
-- `sync.OnceFunc(fn)` / `sync.OnceValue(fn)` instead of `sync.Once` + wrapper.
-- `t.Context()` in tests instead of `context.WithCancel(context.Background())` + `defer cancel()` — auto-cancels at test end.
-- `wg.Go(fn)` instead of `wg.Add(1)` + `go func() { defer wg.Done(); fn() }()`.
-
-### `context` helpers
-
-```go
-stop := context.AfterFunc(ctx, cleanup)                                  // run cleanup on cancellation
-ctx, cancel := context.WithTimeoutCause(parent, d, ErrTimeout)           // timeout with cause
-ctx, cancel := context.WithDeadlineCause(parent, deadline, ErrDeadline)  // deadline with cause
-```
-
-### `omitzero` instead of `omitempty` for non-nullable types
-
-`omitempty` is broken for `time.Duration`, `time.Time`, structs, slices, and maps — it doesn't omit a zero value. Use `omitzero`:
-
-```go
-// good
-type Config struct {
-    Timeout   time.Duration `json:"timeout,omitzero"`
-    CreatedAt time.Time     `json:"createdAt,omitzero"`
-}
-
-// bad
-type Config struct {
-    Timeout   time.Duration `json:"timeout,omitempty"` // broken for Duration!
-    CreatedAt time.Time     `json:"createdAt,omitempty"`
-}
-```
-
-### `new(val)` for pointer literals (Go 1.26+)
-
-`new()` accepts expressions, eliminating the temp-variable pattern:
-
-```go
-// good
-cfg := Config{Timeout: new(30), Debug: new(true)}
-
-// bad
-timeout := 30
-debug := true
-cfg := Config{Timeout: &timeout, Debug: &debug}
-```
+The verification agent's code lives in `cmd/verification-agent` and `internal/agent`. It runs on the user's machine, so it imports only `lib`, `engines` and the generated agent client. `depguard` keeps GORM, Gin and the modules out of it. The agent reads its settings from its own configuration file and flags, and stores the agent token with permissions `0600`. It talks to containers only through the Docker Engine API, which Podman also serves. Its end-to-end tests run it against a backend from the test harness.

@@ -36,7 +36,7 @@ var mongodbModelVersions = []mongodbModelVersion{
 }
 
 // Test_MongodbModel_AcrossSupportedVersions boots each MongoDB version once and runs every matrix
-// model test against it as a subtest. Only one container is alive per package at a time. See ADR-0013.
+// model test against it as a subtest. Only one container is alive per package at a time. See docs/testing.md.
 func Test_MongodbModel_AcrossSupportedVersions(t *testing.T) {
 	for _, dbVersion := range mongodbModelVersions {
 		t.Run(dbVersion.name, func(t *testing.T) {

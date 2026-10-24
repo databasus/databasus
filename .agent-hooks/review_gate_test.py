@@ -791,7 +791,7 @@ class DiffGateTest(unittest.TestCase):
         repository.stop("diff")
 
         [call] = repository.reviewer_calls()
-        self.assertIn("| `agent/**` | `agent/verification/AGENTS.md` |", call["prompt"])
+        self.assertIn("| `agent/**` | `backend/AGENTS.md` |", call["prompt"])
 
     def test_runs_claude_reviewer_on_opus_with_low_effort(self):
         repository = HookRepository(self)

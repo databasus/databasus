@@ -7,7 +7,7 @@ A proposal is often written over several requests, so the shared rule about path
 This review answers with a `findings` list instead of the `ok` and `reason` from the shared instructions. Every finding has a category, a path and a description:
 
 - `gap`: a requirement is incomplete or cannot be verified, a case is missing, a scenario does not say what exactly is observed;
-- `mismatch`: the artifacts contradict each other, the main specs, the code, the architecture rules of the module docs or an accepted ADR; the design relies on a function, table or file that does not exist in the repository or works differently;
+- `mismatch`: the artifacts contradict each other, the main specs, the code, `docs/architecture.md` or the architecture rules of the module docs; the design relies on a function, table or file that does not exist in the repository or works differently;
 - `tasks`: a scenario is not covered by a task with a test, a task has no verification, the task order cannot be followed;
 - `simplify`: the same result for the user is reachable noticeably more simply, and the user loses nothing;
 - `scope`: an option where the user loses a feature, screen, scenario or setting, in exchange for saving a noticeable part of the work;
@@ -28,7 +28,7 @@ Review only the requirements of your delta spec.
 ### Role: proposal and design
 
 - Look for a way to reach the same result noticeably more simply, per the section "The best code is unwritten" in `AGENTS.md`: something that already exists in the repository or its dependencies, a small refactoring instead of new code, a narrower option.
-- Check the decisions in `design.md` against the architecture rules of the module docs and the accepted ADRs in `adr/`.
+- Check the decisions in `design.md` against `docs/architecture.md` and the architecture rules of the module docs.
 - Check that the decisions agree with each other and with `proposal.md`, and that the facts about the code are true.
 
 ### Role: tasks

@@ -39,7 +39,7 @@ const (
 	// defaultInnerPartSize is the multipart part we feed S3 for one object. 16 MiB balances
 	// memory against request count and creates backpressure to pg_dump: we keep one part in
 	// flight and wait for S3 to confirm it before reading the next, so pipeline memory does not
-	// grow with the database size (ADR-0004).
+	// grow with the database size (docs/architecture.md, "Backup data flow").
 	defaultInnerPartSize = 16 * 1024 * 1024
 
 	// defaultMaxPartsPerObject caps inner parts per object; once reached we roll to the next

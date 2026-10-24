@@ -380,27 +380,6 @@ export default function FAQPage() {
                 time, so nothing breaks.
               </p>
 
-              <p>
-                You can read the full reasoning in the architecture decision
-                records:{" "}
-                <a
-                  href="https://github.com/databasus/databasus/blob/main/adr/0008-why-pg17-native-backups-with-mandatory-wal-summary.md"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  ADR-0008: PG17-native backups with mandatory WAL summary
-                </a>{" "}
-                and{" "}
-                <a
-                  href="https://github.com/databasus/databasus/blob/main/adr/0009-why-remote-physical-backups-instead-of-agents.md"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  ADR-0009: remote physical backups instead of agents
-                </a>
-                .
-              </p>
-
               <h2 id="backup-databasus">How to backup Databasus itself?</h2>
 
               <p>

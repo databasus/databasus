@@ -13,7 +13,7 @@ Actions:
   plan           Reviews a plan before the user sees it.
   necessity      Checks a plan or an OpenSpec proposal: is the task needed, is there a much simpler option.
   diff           Reviews a finished change.
-  architecture   Checks a plan or a change against the architecture rules of the module docs and the ADRs.
+  architecture   Checks a plan or a change against docs/architecture.md and the architecture rules of the module docs.
   naming         Checks names in code the request changed against the naming rules of AGENTS.md
                  and the module docs. Runs when a .go, .ts or .tsx file under backend/, agent/,
                  frontend/src/ or website/ changed.

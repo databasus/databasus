@@ -98,7 +98,7 @@ func testTestConnectionFindGrantedOnSingleCollection(
 	suffix := uuid.New().String()[:8]
 	readableCollectionName := "readable_" + suffix
 	blockedCollectionName := "blocked_" + suffix
-	// The version's subtests share one server (ADR-0013), so an own database keeps the dump set
+	// The version's subtests share one server (docs/testing.md, "Isolation"), so an own database keeps the dump set
 	// free of the collections the other subtests leave behind.
 	databaseName := "collection_scope_" + suffix
 	roleName := "single_collection_reader_" + suffix

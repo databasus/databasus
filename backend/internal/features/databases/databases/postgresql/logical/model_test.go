@@ -150,7 +150,7 @@ var postgresModelVersions = []postgresModelVersion{
 }
 
 // Test_PostgresqlModel_AcrossSupportedVersions boots each PostgreSQL version once and runs every
-// matrix model test against it as a subtest. Only one container is alive per package at a time. See ADR-0013.
+// matrix model test against it as a subtest. Only one container is alive per package at a time. See docs/testing.md.
 func Test_PostgresqlModel_AcrossSupportedVersions(t *testing.T) {
 	for _, dbVersion := range postgresModelVersions {
 		t.Run(dbVersion.name, func(t *testing.T) {
@@ -291,7 +291,7 @@ func setupUnreadableUserMappingModel(
 	limitedUsername := fmt.Sprintf("um_limited_%s", suffix)
 	limitedPassword := "limitedpassword123"
 	serverName := fmt.Sprintf("um_test_srv_%s", suffix)
-	// The version's subtests share one server (ADR-0013), so an own schema keeps the dump scope
+	// The version's subtests share one server (docs/testing.md, "Isolation"), so an own schema keeps the dump scope
 	// free of the tables other subtests leave behind in public.
 	schemaName := fmt.Sprintf("um_test_schema_%s", suffix)
 

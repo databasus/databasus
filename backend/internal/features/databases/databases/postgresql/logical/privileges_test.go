@@ -16,7 +16,7 @@ import (
 	"databasus-backend/internal/util/tools"
 )
 
-// The version's subtests share one server (ADR-0013), so every case works in a schema of its own
+// The version's subtests share one server (docs/testing.md, "Isolation"), so every case works in a schema of its own
 // and scopes the model to it. Without that, tables another subtest left in public would join the
 // dump scope and decide the outcome.
 type backupPrivilegeFixture struct {

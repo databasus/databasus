@@ -52,7 +52,7 @@ func WithoutSummarizer() PhysicalPostgresOption {
 }
 
 // WithTablespace pre-creates a custom tablespace at first boot so the pre-flight rejects the cluster
-// per ADR-0010 (physical backups do not support custom tablespaces).
+// because physical backups do not support custom tablespaces (spec physical-backups/backup-method).
 func WithTablespace() PhysicalPostgresOption {
 	return func(o *physicalPostgresOptions) { o.shouldCreateTablespace = true }
 }

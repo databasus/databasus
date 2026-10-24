@@ -67,7 +67,7 @@ var mongodbVersions = []mongodbVersion{
 
 // Test_MongodbBackupRestore_AcrossSupportedVersions boots each MongoDB version once, runs every
 // backup/restore test function against it as a subtest, then shuts it down before the next version.
-// Only one matrix container is alive per package at a time. See ADR-0013.
+// Only one matrix container is alive per package at a time. See docs/testing.md.
 func Test_MongodbBackupRestore_AcrossSupportedVersions(t *testing.T) {
 	for _, dbVersion := range mongodbVersions {
 		t.Run(dbVersion.name, func(t *testing.T) {

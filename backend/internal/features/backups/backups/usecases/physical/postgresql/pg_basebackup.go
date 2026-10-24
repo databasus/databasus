@@ -59,7 +59,7 @@ func newPgBasebackupCommand(
 		"--pgdata=-",
 		"--format=tar",
 		// Server-side compression so only ~1/3 of the bytes cross the
-		// PG->Databasus link (ADR-0012). server-zstd + tar-to-stdout makes
+		// PG->Databasus link (docs/architecture.md, "Physical backups"). server-zstd + tar-to-stdout makes
 		// pg_basebackup refuse to inject the manifest, hence --no-manifest below.
 		"--compress=" + compressFlag(codec),
 		// --wal-method=fetch inlines WAL into the same tar; --wal-method=stream

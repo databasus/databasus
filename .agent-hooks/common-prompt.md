@@ -9,14 +9,13 @@ Before judging, read completely:
    | Touched path | Module doc |
    |---|---|
    | `backend/**` | `backend/AGENTS.md` |
-   | `agent/**` | `agent/verification/AGENTS.md` |
+   | `agent/**` | `backend/AGENTS.md` |
    | `frontend/**` | `frontend/AGENTS.md` |
    | `website/**` | `website/AGENTS.md` |
    | `assets/readme/**` | `assets/readme/AGENTS.md` |
-   | `adr/**` | `adr/AGENTS.md` |
 
 4. When the work writes, changes, runs or reviews tests: `.agents/skills/testing/SKILL.md`.
-5. The ADRs in `adr/` that the work relies on or contradicts.
+5. The parts of `docs/architecture.md`, `docs/testing.md` and `docs/glossary.md` that the work relies on or contradicts.
 6. When the repository has `openspec/`: the main specs under `openspec/specs` that relate to the task, and the artifacts of active changes under `openspec/changes`.
 
 Paths that were already changed before the latest request belong to unfinished work of the user or another agent. Do not review them and do not block on them unless the candidate touched them within this request.

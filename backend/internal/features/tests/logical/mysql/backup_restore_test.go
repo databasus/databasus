@@ -80,7 +80,7 @@ var mysqlVersions = []mysqlVersion{
 
 // Test_MysqlBackupRestore_AcrossSupportedVersions boots each MySQL version once, runs every
 // backup/restore test function against it as a subtest, then shuts it down before the next version.
-// Only one matrix container is alive per package at a time. See ADR-0013.
+// Only one matrix container is alive per package at a time. See docs/testing.md.
 func Test_MysqlBackupRestore_AcrossSupportedVersions(t *testing.T) {
 	for _, dbVersion := range mysqlVersions {
 		t.Run(dbVersion.name, func(t *testing.T) {

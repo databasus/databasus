@@ -89,7 +89,7 @@ var mariadbVersions = []mariadbVersion{
 // Only one matrix container is alive per package at a time.
 // Test_MariadbBackupRestore_AcrossSupportedVersions boots each MariaDB version once, runs every
 // backup/restore test function against it as a subtest, then shuts it down before the next version.
-// Only one matrix container is alive per package at a time. See ADR-0013.
+// Only one matrix container is alive per package at a time. See docs/testing.md.
 func Test_MariadbBackupRestore_AcrossSupportedVersions(t *testing.T) {
 	for _, dbVersion := range mariadbVersions {
 		t.Run(dbVersion.name, func(t *testing.T) {

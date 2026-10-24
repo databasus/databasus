@@ -39,7 +39,7 @@ type settings struct {
 	openTelemetry  *openTelemetrySettings
 }
 
-// ADR-0014: a malformed endpoint or header is a typo whose only alternative is shipping no logs
+// A malformed endpoint or header is a typo whose only alternative is shipping no logs
 // and no error.
 func mustLoadSettings() settings {
 	ensureEnvLoaded()

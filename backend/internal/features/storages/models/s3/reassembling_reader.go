@@ -34,7 +34,8 @@ type reassemblingReaderSpec struct {
 }
 
 // reassemblingReader streams a chunked backup back as one byte stream, holding at most one part
-// connection at a time to preserve the bounded-memory streaming of the upload path (ADR-0004).
+// connection at a time to preserve the bounded-memory streaming of the upload path
+// (docs/architecture.md, "Backup data flow").
 //
 // A dropped or stalled connection is retried in place, resuming the current part from the last byte
 // handed out via a Range request. It has to recover here rather than downstream: the bytes are an

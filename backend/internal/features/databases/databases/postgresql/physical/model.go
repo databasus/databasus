@@ -301,10 +301,8 @@ func (p *PostgresqlPhysicalDatabase) SystemIdentifierUint64() uint64 {
 	return 0
 }
 
-// Rationale for the summarize_wal=on gate: see
-// adr/0008-why-pg17-native-backups-with-mandatory-wal-summary.md.
-// Rationale for the custom-tablespace refusal: see
-// adr/0010-no-support-for-customer-tablespaces.md.
+// The summarize_wal=on gate and the custom-tablespace refusal are required by the spec
+// physical-backups/backup-method.
 func (p *PostgresqlPhysicalDatabase) TestReplicationConnection(
 	logger *slog.Logger,
 	encryptor encryption.FieldEncryptor,
@@ -950,7 +948,7 @@ func (p *PostgresqlPhysicalDatabase) checkReplicationReadiness(
 	return nil
 }
 
-// checkNoCustomTablespaces enforces ADR-0010: physical backups refuse any
+// checkNoCustomTablespaces enforces the spec physical-backups/backup-method: physical backups refuse any
 // cluster that has tablespaces outside pg_default / pg_global, because
 // pg_basebackup --pgdata=- -F tar cannot multiplex multi-tablespace output
 // into a single stdout stream.

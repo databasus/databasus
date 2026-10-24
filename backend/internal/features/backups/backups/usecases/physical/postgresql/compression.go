@@ -18,7 +18,7 @@ var codecFallbackOrder = []physical_enums.PhysicalBackupCompression{
 }
 
 // compressFlag maps a codec to pg_basebackup's --compress value. Compression is
-// server-side so only ~1/3 of the bytes cross the PG->Databasus link (ADR-0012);
+// server-side so only ~1/3 of the bytes cross the PG->Databasus link (docs/architecture.md, "Physical backups");
 // gzip:6 is the balanced analogue of zstd:5, and none is the no-library floor.
 func compressFlag(codec physical_enums.PhysicalBackupCompression) string {
 	switch codec {

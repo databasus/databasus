@@ -131,7 +131,7 @@ The interface ships in English, Russian, Spanish, Portuguese (Brazilian), Chines
 - Counts are phrased so one string fits every number: `Members: {{count}}`, not `{{count}} members`. The dictionaries have no plural forms, because Russian's `_few` would be a stray key under `typeof en`.
 - Translated text is never rendered as HTML. No `dangerouslySetInnerHTML`.
 - Locale-dependent output comes from hooks, so a language switch re-renders it: `useTranslation` for text, `useLocale()` for `formatNumber` (instead of `toLocaleString()`) and `formatRelativeTime` (instead of dayjs `fromNow()`).
-- API errors reach the user only through `translateApiError(error, t)`: a known error code gives its translation, otherwise the backend's message, otherwise a general message. Never show `error.message` directly.
+- API errors reach the user only through `translateApiError(error, t)`, which picks the text by the error's `code`. Every `code` the contract declares has a translation. Never show `error.message` or the backend's text directly.
 - Links to databasus.com pages go through `getWebsitePageUrl(pageId, locale)` with a page from `WEBSITE_PAGES`, which opens the page in the selected language when the website publishes it.
 
 ### Clock format and date order
@@ -202,13 +202,12 @@ Paths below are written from `src/` for readability. Real imports are relative; 
    // ✅  model/user.ts, model/backup.ts, api/fetch-database.ts
    ```
 4. **No business logic in `shared/`.** Shared holds only infrastructure. Domain calculations live in `entity/` or higher.
-5. **One type per file in `model/` / DTOs.** Each `interface`, `class`, or `enum` that represents a domain entity, DTO, request body, or response shape gets its own file in `model/` (or `models/`), named after the type. Don't co-locate sibling types like `Foo` + `FooStatus` + `FooResponse` in a single `Foo.ts` — split them. Re-export each from the slice `index.ts` so consumers still import from the slice's public API.
+5. **API types are generated, other types get one file each.** Request bodies, responses and API enums come from `shared/api/schema.gen.ts`, which is generated from `backend/api/openapi.yaml`. Never write them by hand. Every other `interface`, `class`, or `enum` that represents a domain entity or view state gets its own file in `model/` (or `models/`), named after the type. Don't co-locate sibling types like `Foo` + `FooFilter` + `FooSortOrder` in a single `Foo.ts` — split them. Re-export each from the slice `index.ts` so consumers still import from the slice's public API.
    ```text
-   // ❌  model/RestoreVerification.ts — enums + table-stat + main interface all in one file
-   // ✅  model/RestoreVerification.ts        — interface RestoreVerification
-   // ✅  model/RestoreVerificationTableStat.ts — interface RestoreVerificationTableStat
-   // ✅  model/VerificationStatus.ts         — enum VerificationStatus
-   // ✅  model/VerificationTrigger.ts        — enum VerificationTrigger
+   // ❌  model/BackupListView.ts — filter, sort order and view state all in one file
+   // ✅  model/BackupListView.ts      — interface BackupListView
+   // ✅  model/BackupListFilter.ts    — interface BackupListFilter
+   // ✅  model/BackupListSortOrder.ts — enum BackupListSortOrder
    ```
    Tiny shape-only helper types tightly coupled to a parent type (a literal-union alias, a `Pick<>`) may stay in the parent's file. Splitting applies to anything with its own identity — anything you'd reasonably import on its own elsewhere.
 
@@ -216,7 +215,7 @@ Paths below are written from `src/` for readability. Real imports are relative; 
 
 - `ui/` — components, styles
 - `model/` — state, types, domain logic, validation
-- `api/` — backend calls, request functions, API-specific types
+- `api/` — backend calls through the generated client in `shared/api`
 - `lib/` — internal helpers for this slice only
 - `config/` — slice-level config / feature flags
 

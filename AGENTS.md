@@ -3,14 +3,20 @@
 This document contains project-wide coding standards and best practices for Databasus.
 This is NOT a strict set of rules — it is a set of recommendations to help write better, more consistent code.
 
+How the system is built is described in `docs/`:
+
+- [`docs/architecture.md`](docs/architecture.md) — the layout, the module boundaries, data, the API contract, long-running work, and the reasons behind each rule
+- [`docs/testing.md`](docs/testing.md) — the kinds of tests, isolation, test selection and runs
+- [`docs/glossary.md`](docs/glossary.md) — one term per concept, in prose and in code
+
+Product behavior is specified in `openspec/specs`.
+
 Per-folder rules live next to the code they govern:
 
-- [`backend/AGENTS.md`](backend/AGENTS.md) — backend code rules, Go + Gin + GORM + PostgreSQL
-- [`agent/verification/AGENTS.md`](agent/verification/AGENTS.md) — verification agent code rules, Go CLI
+- [`backend/AGENTS.md`](backend/AGENTS.md) — backend and verification agent code rules, Go + Gin + GORM + PostgreSQL
 - [`frontend/AGENTS.md`](frontend/AGENTS.md) — frontend code rules, React + TypeScript + Vite + Ant Design + Tailwind
 - [`website/AGENTS.md`](website/AGENTS.md) — marketing site rules and its translations, Next.js
 - [`assets/readme/AGENTS.md`](assets/readme/AGENTS.md) — translated copies of the root `README.md`
-- [`adr/AGENTS.md`](adr/AGENTS.md) — how to write architecture decision records
 
 This root file holds the engineering philosophy that applies everywhere.
 
@@ -35,7 +41,8 @@ The repository's skills live in `.agents/skills/`; `.claude/skills` is a symlink
 | Command | Purpose |
 |---|---|
 | `just run` | Start the app locally: dev database, test fixtures, WAL backup source with its load generator, backend and frontend; seeds a dev account with databases and restarts the backend when its code changes |
-| `just test` | Run the full backend suite |
+| `just test-affected` | Run the tests the working tree's changes affect |
+| `just test` | Run every test; only one full run at a time runs on the machine |
 | `just test-package <packages>`, run in `backend/` | Run the given backend test packages |
 | `just test-filesystem` | Run the Docker filesystem suite, mostly left to CI |
 | `just pull-testcontainers` | Pull the database images the backend tests use |
@@ -43,8 +50,8 @@ The repository's skills live in `.agents/skills/`; `.claude/skills` is a symlink
 | `just format` | Format every module |
 | `just doctor` | Check that the review hooks find the tools they need |
 | `goose -dir backend/migrations create <name> sql` | Create a migration |
-| `goose -dir backend/migrations up` (or `down`), with `.env` exported | Apply or roll back migrations on the dev database; goose reads `GOOSE_DRIVER` and `GOOSE_DBSTRING` from the environment |
-| `swag init -d . -g cmd/main.go -o swagger`, run in `backend/` | Regenerate the API docs |
+| `goose -dir backend/migrations up` (or `down`), with `.env` exported | Apply or roll back migrations on the dev database; goose reads `GOOSE_DRIVER` and `GOOSE_DBSTRING` from the environment. The server also applies migrations itself at startup |
+| `just generate-api` | Regenerate the servers, the test clients and the frontend types from `backend/api/*.yaml` |
 
 ### Code search and navigation
 
@@ -54,20 +61,33 @@ Search text with `rg`. For definitions, references, callers, implementations and
 
 Run tests, linters and builds as ordinary foreground commands, so the user sees which command runs and that the agent is working. A backend, frontend or other long-lived process the agent started to check its work is stopped before the task ends. Long-lived processes the user wants running are started by the user.
 
-### Several agents, one set of containers
+### Several agents, one machine
 
-Several agents may work on this repo at once, in different worktrees, sharing one Docker daemon, one set of test containers and one pool of test metadata databases. Don't let that stop you from running tests — simultaneous runs are rare and usually harmless. Two habits keep them that way:
+Several agents may work on this repo at once, in different worktrees, sharing one Docker daemon and one test PostgreSQL server. Every test takes its own database and gives its containers unique names, as [`docs/testing.md`](docs/testing.md) describes, so runs from different worktrees do not disturb each other.
 
-- Lint and format whenever you want: the linters, the formatters and the frontend's `pnpm test` touch nothing shared.
-- Test the packages you touched, and the packages that test the same feature, with `just test-package ./internal/features/<feature>/...` in `backend/`; the database slot it claims is described in [`backend/internal/config/config.go`](backend/internal/config/config.go). An agent never runs `just test`, not even at the end of a change, and never makes finishing a task depend on it: it resets the test containers and slot databases every other agent uses. The full suite is for the developer and CI. A fresh environment needs one full run first, which the developer starts.
+- Lint and format whenever you want: they touch nothing shared.
+- While working, run the packages and tests you need right now. Before handing the work over, run `just test-affected`.
+- Run the full `just test` when the user asks for it or when `just test-affected` decides a full run is needed. It takes the machine-wide lock and first waits for any other full run to finish.
+- Never stop the shared test PostgreSQL server or prune Docker, because other runs use them.
 
-When a failure makes no sense — a container that vanished, a database that emptied itself — a parallel run is worth suspecting in maybe one case in twenty. Re-run before hunting the bug.
+### Until the migration finishes
+
+The layout and the tooling described in `docs/` arrive milestone by milestone. Until they do, these substitutes apply:
+
+- Until `just test-affected` exists, test the packages you touched and the packages that test the same feature. Run them with `just test-package <packages>` in `backend/`.
+- While backend tests still share per-worker metadata databases, as set up in `backend/internal/config/config.go`, an agent never runs `just test`. A full run resets the containers and databases every other agent uses, so until then the full suite is for the developer and CI.
+- Until `just generate-api` exists, regenerate the API docs with `swag init -d . -g cmd/main.go -o swagger` in `backend/`.
+- Code under `backend/internal/features`, `backend/internal/util` and `agent/verification` keeps its existing structure until the milestone that moves it, as the first section of [`docs/architecture.md`](docs/architecture.md) says.
+
+Temporary docs and plan for migration is here - @temp/refactor
 
 ---
 
 ## Tests
 
-When you write, change, run or review tests, load the [testing skill](.agents/skills/testing/SKILL.md) first. It holds the rules every module shares; the module docs add the rules of their stack.
+When you write, change, run or review tests, load the [testing skill](.agents/skills/testing/SKILL.md) first. It says how to write a test; [`docs/testing.md`](docs/testing.md) says which kinds of tests exist and how they are isolated.
+
+When you design or change an HTTP operation, load the [api-design skill](.agents/skills/api-design/SKILL.md) first.
 
 ---
 
@@ -84,6 +104,8 @@ When you start the app or look at its pages, load the [run-app skill](.agents/sk
 Translated end-user content is allowed in five places and nowhere else: the website page copies (`website/app/[lang]/*/content/<locale>.tsx`), the README translations (`assets/readme/README.<locale>.md`), the six language-switcher labels in the root `README.md`, the frontend interface dictionaries (`frontend/src/shared/i18n/locales/<locale>.ts`), and the quoted example pairs in the [how-to-communicate skill](.agents/skills/humanizer/SKILL.md), which model conversation output rather than documentation prose. Even there, file names (locale codes aside), identifiers, dictionary keys and commit messages stay English.
 
 The dictionaries are the only target-language text anywhere under `frontend/`, `index.html` included. Every other file there stays English, fallback copy and error messages included: a component renders a translation by looking up a key, never by holding the translated string itself.
+
+A temporary working document the agent writes for the user outside code, such as a plan, an analysis or draft notes, may be in the language the user speaks while it stays uncommitted. It is translated to English before it is committed.
 
 ---
 
@@ -133,7 +155,7 @@ The user decides; the task is never cut without their consent. Simplify code wit
 
 ### Refactoring within a feature
 
-The system improves gradually, along with ordinary tasks. If code the task touches stands in the way of the task or breaks the rules of the module docs or an accepted ADR, the refactoring is part of the same task; no separate task for later. The refactoring is limited to the code the task works with and does not touch other agents' changes in the working tree. The agent refactors the touched code while implementing, without asking the user, and lists no refactoring suggestions for it. Its summary names only a refactoring that goes beyond the change, together with its cost, because such a rework needs the user's agreement first.
+The system improves gradually, along with ordinary tasks. If code the task touches stands in the way of the task or breaks the rules of the module docs or `docs/architecture.md`, the refactoring is part of the same task; no separate task for later. The refactoring is limited to the code the task works with and does not touch other agents' changes in the working tree. The agent refactors the touched code while implementing, without asking the user, and lists no refactoring suggestions for it. Its summary names only a refactoring that goes beyond the change, together with its cost, because such a rework needs the user's agreement first.
 
 ### Other agents' changes in the working tree
 
@@ -206,13 +228,13 @@ func (h *Heartbeater) IsAborted(id uuid.UUID) bool { ... }
 ### Linting and formatting
 
 After each change run linting and formatting depending on folder you are working it.
-- backend and agent have `just lint` and `just format` in their folder
+- backend has `just lint` and `just format` in its folder, and they cover the verification agent; until the agent moves into `backend/`, `agent/verification` has its own
 - frontend has `pnpm lint`, `pnpm typecheck` and `pnpm format`
-- `just lint` and `just format` at the root cover all three; the root `just lint` also runs shellcheck on every shell script
+- `just lint` and `just format` at the root cover every module; the root `just lint` also runs shellcheck on every shell script
 
 ### Comments are a last resort
 
-The default is **no comment**. Before writing one, reach for a clearer name or a smaller function first — self-explanatory code beats commented code every time. A comment is justified only when it carries something the code cannot: a *why* (business rule, hidden cross-system constraint, non-obvious algorithm or optimisation, ADR reference). Never write a comment that restates *what* the code does or narrates the obvious — if a `// Foo does X` comment sits above the code, that's a naming bug: rename until the comment is redundant, then delete it. This applies everywhere, tests included — a well-named test needs no header comment explaining what it checks.
+The default is **no comment**. Before writing one, reach for a clearer name or a smaller function first — self-explanatory code beats commented code every time. A comment is justified only when it carries something the code cannot: a *why* (business rule, hidden cross-system constraint, non-obvious algorithm or optimisation, a reference to `docs/architecture.md` or a spec). Never write a comment that restates *what* the code does or narrates the obvious — if a `// Foo does X` comment sits above the code, that's a naming bug: rename until the comment is redundant, then delete it. This applies everywhere, tests included — a well-named test needs no header comment explaining what it checks.
 
 ### No issue numbers in production code
 
@@ -242,7 +264,7 @@ The README's `🛡️ Security & reliability engineering` section is the public-
 
 ## Documentation consistency
 
-All project documentation agrees with itself and with the code: every `AGENTS.md`, `adr/`, `docs/`, the repository's own skills, the READMEs and code comments. OpenSpec specs and changes are outside this rule; the OpenSpec process keeps them consistent.
+All project documentation agrees with itself and with the code: every `AGENTS.md`, `docs/`, the repository's own skills, the READMEs and code comments. OpenSpec specs and changes are outside this rule; the OpenSpec process keeps them consistent.
 
 When an edit in one place affects others, update every affected place in the same task: a renamed command, a changed rule, a new path, a different order of steps. Before handing the work over, search the repository for every mention of what changed and bring them in line.
 
@@ -255,7 +277,7 @@ Everything else lives next to what it describes:
 | Inventories of what exists: features, endpoints, checks, tools | the code, the generated API description, the program's README |
 | The state of the code, "currently" and "for now" statements about it | the code and its comments, `docs/` |
 | How a process, module, command or deployment works; helper signatures and options | the code and its comments, `docs/`, `README.md` |
-| Why an architectural choice was made | `adr/` |
+| Why an architectural choice was made | `docs/architecture.md`, next to the rule it explains |
 | How the review hooks work | the docstring and comments of `.agent-hooks/review_gate.py`, the prompts `.agent-hooks/*-prompt.md`, the specs `openspec/specs/implementation-review` and `openspec/specs/proposal-review` |
 | The sections of a document | the document itself |
 

@@ -1,47 +1,114 @@
 ---
 name: testing
-description: Write, change, run and review tests in Databasus by the rules shared by every module. Use when writing, changing, running or reviewing tests, when fixing a bug, and when choosing which test commands a change runs.
+description: Write, change, run and review tests in Databasus. Covers how to name a test, which layer it belongs to, how to prepare data through the API, when a unit test or a fake is allowed, how to wait for a condition, and which tests to run before handing work over. Use when writing, changing, running or reviewing tests, when fixing a bug, and when choosing which test commands a change runs.
 ---
 
 # Testing
 
-These rules apply in every module. The module docs add the rules of their stack: test names, the level of test they prefer, where tests live and how they clean up. Read the one for the area you work in:
+[`docs/testing.md`](../../../docs/testing.md) describes the kinds of tests, how they are isolated and how runs work. This skill says how to write one test.
 
-- [`backend/AGENTS.md`, "Testing"](../../../backend/AGENTS.md#testing)
-- [`agent/verification/AGENTS.md`, "Testing"](../../../agent/verification/AGENTS.md#testing)
+## The main rules
 
-## Run what you wrote
+- Test what a caller observes: an HTTP operation, an engine against a real server, or a screen. Internal functions are covered through that surface.
+- Never mock our own database, modules or services. A module's test builds the real modules it depends on.
+- A bug fix starts with a test that reproduces the bug. Run it on the unfixed code and see it fail for the reason the bug describes, then fix the code and see it pass.
+- Run every test you wrote or changed and see it pass. A package that only compiled has not passed; say so in the report.
 
-Run every test you wrote or changed and see it pass before you hand the work over. A package that compiles has not passed its tests: when you only built it or ran `go vet`, say so in the report instead of calling it tested.
+## Names
 
-## Start a bug fix with a failing test
+A test name has two parts: what is tested and the scenario.
 
-A bug fix starts with a test that reproduces the bug. Run it on the code before the fix and see it fail for the reason the bug describes, then fix the code and see it pass. A test that passes on the broken code proves nothing about the fix.
+- The Go function names what is tested, in Go style: `TestCreateStorage`, `TestRestoreBackup`.
+- Each scenario is a sentence in `t.Run`, even when the function has only one scenario. The sentence is lowercase, has no period and uses the present tense. It states the result first, then the condition, which starts with `when`, `with`, `without`, `after` or `before`.
 
-## Test what a caller observes
+```go
+func TestDeleteStorage(t *testing.T) {
+	t.Parallel()
 
-Test the behavior a caller sees, at the level the module doc prefers: through the HTTP API in the backend, through exported functions and CLI commands in the verification agent. A test that pins private helpers breaks on every refactoring and still misses the contract.
+	t.Run("deletes storage when no backup uses it", func(t *testing.T) {
+		t.Parallel()
+		// ...
+	})
 
-Mock only external systems the test cannot run, such as a third-party API, and failures that are unsafe to reproduce, such as a full disk. A database, a container or a file system the test fixtures provide stays real.
+	t.Run("returns 409 when a backup is stored in it", func(t *testing.T) {
+		t.Parallel()
+		// ...
+	})
+}
+```
 
-## Wait for a condition, not for time
+A table test puts the sentence into the `name` field. In Vitest, `describe` names the component or page and `it` holds the sentence. Variables inside a test are named after the domain, such as `createdStorage` or `secondMember`. Never name them `got`, `want`, `result` or `data`. `expectedStatus` in a case table is fine.
 
-A test that needs something to happen waits for that condition up to a limit and fails with a message when the limit passes. A fixed pause is either too short on a loaded machine or wastes time on a fast one. A negative check, such as "no notification was sent", first waits for a sign that the action was processed, so it does not pass merely because it looked too early.
+## Module API tests
 
-## Run the tests the change touched
+A module's tests live in its root directory in package `<module>_test` and reach the module only through its HTTP operations.
 
-Which tests to run, and which command never to run, is set in [Several agents, one set of containers](../../../AGENTS.md#several-agents-one-set-of-containers), and the commands in the table of its parent section, [Development environment](../../../AGENTS.md#development-environment).
+```go
+func TestGetStorage(t *testing.T) {
+	t.Parallel()
 
-When package tests fail because the shared test fixtures are down, such as a refused database connection or a missing container, tell the user. Do not start the fixtures through `just test`: the developer starts the first full run.
+	t.Run("returns 404 when storage belongs to another workspace", func(t *testing.T) {
+		t.Parallel()
+		app := apptest.New(t)
+		owner := app.SignUp(t)
+		stranger := app.SignUp(t)
+		storage := owner.CreateLocalStorage(t, owner.CreateWorkspace(t))
 
-## Clean up after an interrupted run
+		response, err := stranger.Client.GetStorageWithResponse(t.Context(), storage.Id)
 
-After a test run you stopped or that crashed, remove only what that run left behind: its containers, processes and temporary directories. Never remove all containers, prune Docker or stop processes you did not start; another agent's run may be using them.
+		require.NoError(t, err)
+		require.Equal(t, http.StatusNotFound, response.StatusCode())
+	})
+}
+```
+
+- Call operations through the client from `apptest`, which checks every response against the contract. Use a raw `http.Client` only for a request the contract cannot describe, such as malformed JSON.
+- Create data through the API. Direct SQL is allowed only for a state the API cannot create, for data the API does not return, and to clean up outside the test's own database.
+- Extract a helper as soon as a second test repeats the same setup.
+- Cover every operation for these cases:
+  - the successful case;
+  - invalid input;
+  - a request without a session;
+  - a request from a member of another workspace, or from a member whose role is too low;
+  - conflicts of state, such as deleting a storage that holds backups or creating a duplicate.
+- A background job does not run on its own in the test application. Run its pass explicitly, and move the clock instead of waiting for the schedule.
+
+## Unit tests and fakes
+
+Write a unit test without the application only for pure logic that has no HTTP entry point or is too slow to enumerate through HTTP. [`docs/testing.md`](../../../docs/testing.md#layers) lists examples.
+
+A fake replaces only:
+
+- an external system we cannot run locally, behind an interface in `Deps`, such as a third-party HTTP API;
+- a failure that is unsafe to cause for real, such as a full disk or a connection cut in the middle of an upload.
+
+Test a client of an external system against a real local substitute where one exists. Use Mailpit for SMTP, MinIO, Azurite and SFTP containers for storages, and an `httptest.Server` for HTTP APIs.
+
+Write fakes as small hand-written structs. Do not use mock generators, `testify/mock` or `testify/suite`. Use `require` for what the rest of the test depends on and `assert` for independent fields.
+
+## Waiting
+
+- Never wait for a fixed time. Wait for the condition with `testwait.Until`, up to the test's overall timeout. The linter rejects `time.Sleep` and `Eventually`.
+- For a negative check, such as "no notification was sent", first wait for a sign that the action was processed. Then watch the check's window.
+- When the behavior depends on time, move the test clock.
+
+## Isolation
+
+- Call `testdb.Open(t)` once per test. A helper that opens one database for several subtests makes that database shared again.
+- On a shared engine server, give every object a unique name: database, role, schema and replication slot.
+- Take ports from `127.0.0.1:0` and files from `t.TempDir()`. Remove every container or process the test starts in `t.Cleanup`.
+- Mark independent tests with `t.Parallel()`.
+
+## Which tests to run
+
+While working, run the package or the single test you need. Before handing the work over, run `just test-affected` and include its output in the report. Run the full `just test` when the user asks for it. When a change needs a full run, `just test-affected` says so and runs it itself.
+
+After you interrupt a run, remove only what that run left behind. Never prune Docker or stop the shared test PostgreSQL server.
 
 ## Before handing the work over
 
-- Every test you wrote or changed ran and passed, and the report says which commands ran.
-- A bug fix has a test that failed before the fix.
-- No test sleeps for a fixed time to wait for a result.
-- Every test removes the data, files and processes it created, as the module doc describes.
-- An OpenSpec change whose tasks add or change tests lists their commands in the "Change verification" section of its `tasks.md`, as the tasks rule in [`openspec/config.yaml`](../../../openspec/config.yaml) describes.
+- Each test names what it tests and describes its scenario in a sentence.
+- New behavior is covered at the right layer.
+- Data is prepared through the API. Direct SQL appears only where nothing else works.
+- Nothing of ours is mocked, and no test sleeps.
+- The tests you touched ran and passed, and the report shows the commands.

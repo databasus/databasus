@@ -31,7 +31,7 @@ const timescaleImage = "timescale/timescaledb:2.17.0-pg17"
 // Test_PostgresqlBackupRestore_TimescaleDB boots one timescaledb container and runs the full
 // backup→restore cycle of a hypertable through it, on both the CPU=1 streaming path and the CPU=4
 // parallel path (the path that previously failed with _timescaledb_catalog FK violations). See
-// ADR-0013 for the one-container-per-version pattern.
+// "Isolation" in docs/testing.md for the one-container-per-version pattern.
 func Test_PostgresqlBackupRestore_TimescaleDB(t *testing.T) {
 	endpoint := containers.StartTimescaleDB(t, timescaleImage)
 

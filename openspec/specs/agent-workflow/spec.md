@@ -6,7 +6,7 @@ Defines how an agent finishes work in this repository: it refactors the code it 
 ## Requirements
 
 ### Requirement: The agent refactors touched code within the change
-When code the change touches stands in the way of the change or breaks the rules of the module docs or an accepted ADR, the agent SHALL refactor it while implementing the change, without asking the user and without a separate task for later. The agent's summary MUST NOT list refactoring suggestions for code inside the change. The summary SHALL name only a refactoring that goes beyond the change, together with what it would cost, because such a refactoring needs the user's agreement first.
+When code the change touches stands in the way of the change or breaks the rules of the module docs or `docs/architecture.md`, the agent SHALL refactor it while implementing the change, without asking the user and without a separate task for later. The agent's summary MUST NOT list refactoring suggestions for code inside the change. The summary SHALL name only a refactoring that goes beyond the change, together with what it would cost, because such a refactoring needs the user's agreement first.
 
 #### Scenario: Duplicated code in a touched function
 - **WHEN** the agent edits a function and finds that it duplicates a helper next to it

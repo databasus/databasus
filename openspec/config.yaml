@@ -4,13 +4,16 @@ context: |
   Databasus - PostgreSQL/MySQL/MariaDB/MongoDB backup and restore platform,
   self-hosted, Docker-deployed.
 
-  Stack: Go + Gin + GORM + PostgreSQL (backend/), Go CLI (agent/verification/),
+  Stack: Go + Gin + GORM + PostgreSQL (backend/, including the verification
+  agent),
   React 19 + TypeScript + Vite + Ant Design 5 + Tailwind (frontend/),
   Next.js 16 static export (website/).
 
-  Per-folder rules live in backend/AGENTS.md, agent/verification/AGENTS.md,
-  frontend/AGENTS.md, website/AGENTS.md; the root AGENTS.md holds the
-  engineering philosophy. A change under a folder answers to both.
+  The architecture is in docs/architecture.md, the test setup in
+  docs/testing.md and the terms in docs/glossary.md. Per-folder rules live in
+  backend/AGENTS.md, frontend/AGENTS.md, website/AGENTS.md; the root
+  AGENTS.md holds the engineering philosophy. A change under a folder answers
+  to both.
 
   Conventions that shape planning:
   - Before any OpenSpec message or action, load the repository Humanizer skill
@@ -49,7 +52,7 @@ rules:
     - Humanize all prose in embedded mode before writing the artifact.
     - For each decision, name the alternatives rejected and why. A decision with no alternatives listed is a description, not a decision.
     - Ground claims about current state in file:line references.
-    - Ground architecture decisions in the module AGENTS.md architecture rules and the accepted ADRs in adr/.
+    - Ground architecture decisions in docs/architecture.md and the module AGENTS.md architecture rules. A decision that changes the architecture changes docs/architecture.md in the same change.
     - Say which module AGENTS.md rules the approach is constrained by.
   tasks:
     - Humanize all prose in embedded mode before writing the artifact.

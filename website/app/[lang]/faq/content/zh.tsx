@@ -345,26 +345,6 @@ export default function FAQPage() {
                 及之前的版本中仍然可用，并会长期继续工作，所以不会有任何东西坏掉。
               </p>
 
-              <p>
-                完整的论证可以在架构决策记录中查看：{" "}
-                <a
-                  href="https://github.com/databasus/databasus/blob/main/adr/0008-why-pg17-native-backups-with-mandatory-wal-summary.md"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  ADR-0008: PG17-native backups with mandatory WAL summary
-                </a>{" "}
-                和{" "}
-                <a
-                  href="https://github.com/databasus/databasus/blob/main/adr/0009-why-remote-physical-backups-instead-of-agents.md"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  ADR-0009: remote physical backups instead of agents
-                </a>
-                。
-              </p>
-
               <h2 id="backup-databasus">如何备份 Databasus 自身？</h2>
 
               <p>

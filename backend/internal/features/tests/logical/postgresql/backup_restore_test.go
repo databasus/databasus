@@ -112,7 +112,7 @@ var postgresVersions = []postgresVersion{
 
 // Test_PostgresqlBackupRestore_AcrossSupportedVersions boots each PostgreSQL version once, runs
 // every backup/restore test function against it as a subtest, then shuts it down before the next
-// version. Only one matrix container is alive per package at a time. See ADR-0013.
+// version. Only one matrix container is alive per package at a time. See docs/testing.md.
 func Test_PostgresqlBackupRestore_AcrossSupportedVersions(t *testing.T) {
 	for _, dbVersion := range postgresVersions {
 		t.Run(dbVersion.name, func(t *testing.T) {
@@ -606,7 +606,7 @@ func testBackupRestoreSkipUserMappingsForVersion(t *testing.T, endpoint containe
 		fmt.Sprintf(`GRANT CONNECT ON DATABASE "%s" TO "%s"`, container.Database, limitedUsername),
 		fmt.Sprintf(`GRANT USAGE ON SCHEMA public TO "%s"`, limitedUsername),
 		// The backup covers the whole database, and the version's subtests share this server
-		// (ADR-0013), so the role needs every relation in public, not just this test's table.
+		// (docs/testing.md, "Isolation"), so the role needs every relation in public, not just this test's table.
 		fmt.Sprintf(`GRANT SELECT ON ALL TABLES IN SCHEMA public TO "%s"`, limitedUsername),
 		fmt.Sprintf(`GRANT SELECT ON ALL SEQUENCES IN SCHEMA public TO "%s"`, limitedUsername),
 	}

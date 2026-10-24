@@ -14,7 +14,7 @@ import (
 	"databasus-backend/internal/util/tools"
 )
 
-// The version's subtests share one server (ADR-0013), so every name carries a suffix and the
+// The version's subtests share one server (docs/testing.md, "Isolation"), so every name carries a suffix and the
 // tables a case creates are dropped again before the next one runs.
 type backupPrivilegeFixture struct {
 	Container *MariadbContainer

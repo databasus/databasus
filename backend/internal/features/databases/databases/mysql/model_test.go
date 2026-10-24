@@ -34,7 +34,7 @@ var mysqlModelVersions = []mysqlModelVersion{
 }
 
 // Test_MysqlModel_AcrossSupportedVersions boots each MySQL version once and runs every matrix model
-// test against it as a subtest. Only one container is alive per package at a time. See ADR-0013.
+// test against it as a subtest. Only one container is alive per package at a time. See docs/testing.md.
 func Test_MysqlModel_AcrossSupportedVersions(t *testing.T) {
 	for _, dbVersion := range mysqlModelVersions {
 		t.Run(dbVersion.name, func(t *testing.T) {
