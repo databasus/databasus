@@ -131,11 +131,13 @@ func Test_ParseConfigContent_WhitespaceAroundKeysAndValues_Trimmed(t *testing.T)
 func newLocalRcloneStorage(t *testing.T) (*RcloneStorage, string) {
 	t.Helper()
 
-	// The first Encrypt resolves the secret key through config.GetEnv(), which finds
-	// the module root by walking up from the working directory and loads .env from
-	// above it, so it has to run before the test moves.
+	// The first Encrypt and the first GetLogger load their settings from .env, which
+	// they find by walking up from the working directory, so both have to run before
+	// the test moves.
 	config, err := encryption.GetFieldEncryptor().Encrypt("[testlocal]\ntype = local\n")
 	require.NoError(t, err)
+
+	logger.GetLogger()
 
 	root := t.TempDir()
 	t.Chdir(root)

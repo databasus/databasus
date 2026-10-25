@@ -18,10 +18,10 @@ import (
 	backups_services "databasus-backend/internal/features/backups/backups/services"
 	"databasus-backend/internal/features/databases"
 	notifier_models "databasus-backend/internal/features/notifiers/models"
-	users_models "databasus-backend/internal/features/users/models"
 	verification_agents "databasus-backend/internal/features/verification/agents"
 	verification_config "databasus-backend/internal/features/verification/config"
 	workspaces_services "databasus-backend/internal/features/workspaces/services"
+	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/storage"
 )
 
@@ -38,7 +38,7 @@ type VerificationService struct {
 
 func (s *VerificationService) EnqueueManualVerification(
 	ctx context.Context,
-	user *users_models.User,
+	actor users.Actor,
 	backupID uuid.UUID,
 ) (*RestoreVerification, error) {
 	backup, err := s.backupService.GetBackup(backupID)
@@ -59,7 +59,7 @@ func (s *VerificationService) EnqueueManualVerification(
 		return nil, errors.New("cannot verify backup for database without workspace")
 	}
 
-	canManage, err := s.workspaceService.CanUserManageDBs(ctx, *database.WorkspaceID, user)
+	canManage, err := s.workspaceService.CanUserManageDBs(ctx, *database.WorkspaceID, actor)
 	if err != nil {
 		return nil, err
 	}
@@ -110,7 +110,7 @@ func (s *VerificationService) EnqueueManualVerification(
 
 	s.auditLogService.WriteAuditLog(ctx, audit_logs_models.AuditEntry{
 		Message:     fmt.Sprintf("manual backup verification enqueued for database %q", database.Name),
-		UserID:      &user.ID,
+		UserID:      &actor.UserID,
 		WorkspaceID: database.WorkspaceID,
 	})
 
@@ -123,7 +123,7 @@ func (s *VerificationService) OnBackupCompleted(backupID uuid.UUID) {
 
 func (s *VerificationService) CancelVerification(
 	ctx context.Context,
-	user *users_models.User,
+	actor users.Actor,
 	verificationID uuid.UUID,
 ) error {
 	verification, err := s.verificationRepository.FindByID(ctx, verificationID)
@@ -144,7 +144,7 @@ func (s *VerificationService) CancelVerification(
 		return errors.New("cannot cancel verification for database without workspace")
 	}
 
-	canManage, err := s.workspaceService.CanUserManageDBs(ctx, *database.WorkspaceID, user)
+	canManage, err := s.workspaceService.CanUserManageDBs(ctx, *database.WorkspaceID, actor)
 	if err != nil {
 		return err
 	}
@@ -164,7 +164,7 @@ func (s *VerificationService) CancelVerification(
 
 	s.auditLogService.WriteAuditLog(ctx, audit_logs_models.AuditEntry{
 		Message:     fmt.Sprintf("backup verification canceled for database %q", database.Name),
-		UserID:      &user.ID,
+		UserID:      &actor.UserID,
 		WorkspaceID: database.WorkspaceID,
 	})
 
@@ -173,7 +173,7 @@ func (s *VerificationService) CancelVerification(
 
 func (s *VerificationService) GetVerificationsByDatabaseID(
 	ctx context.Context,
-	user *users_models.User,
+	actor users.Actor,
 	databaseID uuid.UUID,
 	limit, offset int,
 ) (*GetVerificationsResponse, error) {
@@ -186,7 +186,7 @@ func (s *VerificationService) GetVerificationsByDatabaseID(
 		return nil, errors.New("cannot list verifications for database without workspace")
 	}
 
-	canAccess, _, err := s.workspaceService.CanUserAccessWorkspace(ctx, *database.WorkspaceID, user)
+	canAccess, _, err := s.workspaceService.CanUserAccessWorkspace(ctx, *database.WorkspaceID, actor)
 	if err != nil {
 		return nil, err
 	}
@@ -221,7 +221,7 @@ func (s *VerificationService) GetVerificationsByDatabaseID(
 
 func (s *VerificationService) GetVerificationByID(
 	ctx context.Context,
-	user *users_models.User,
+	actor users.Actor,
 	verificationID uuid.UUID,
 ) (*RestoreVerification, error) {
 	verification, err := s.verificationRepository.FindByID(ctx, verificationID)
@@ -242,7 +242,7 @@ func (s *VerificationService) GetVerificationByID(
 		return nil, errors.New("cannot view verification for database without workspace")
 	}
 
-	canAccess, _, err := s.workspaceService.CanUserAccessWorkspace(ctx, *database.WorkspaceID, user)
+	canAccess, _, err := s.workspaceService.CanUserAccessWorkspace(ctx, *database.WorkspaceID, actor)
 	if err != nil {
 		return nil, err
 	}

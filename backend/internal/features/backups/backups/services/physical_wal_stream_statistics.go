@@ -15,7 +15,7 @@ import (
 	backups_dto_physical "databasus-backend/internal/features/backups/backups/dto/physical"
 	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
 	"databasus-backend/internal/features/databases"
-	users_models "databasus-backend/internal/features/users/models"
+	"databasus-backend/internal/modules/users"
 )
 
 var ErrWalStreamStatisticsNotPhysical = errors.New(
@@ -30,11 +30,11 @@ var ErrUnknownWalStreamStatisticsPeriod = errors.New("period must be one of HOUR
 // samples it recorded before.
 func (s *PhysicalBackupService) GetWalStreamStatistics(
 	ctx context.Context,
-	user *users_models.User,
+	actor users.Actor,
 	databaseID uuid.UUID,
 	request *backups_dto_physical.GetWalStreamStatisticsRequest,
 ) (*backups_dto_physical.GetWalStreamStatisticsResponse, error) {
-	database, err := s.databaseService.GetDatabase(ctx, user, databaseID)
+	database, err := s.databaseService.GetDatabase(ctx, actor, databaseID)
 	if err != nil {
 		return nil, err
 	}

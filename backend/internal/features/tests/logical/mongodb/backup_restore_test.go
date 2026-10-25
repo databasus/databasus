@@ -25,9 +25,9 @@ import (
 	restores_core "databasus-backend/internal/features/restores/core"
 	"databasus-backend/internal/features/storages"
 	logicaltesting "databasus-backend/internal/features/tests/logical/shared"
-	users_enums "databasus-backend/internal/features/users/enums"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
+	"databasus-backend/internal/modules/users"
 	test_utils "databasus-backend/internal/util/testing"
 	"databasus-backend/internal/util/testing/containers"
 	"databasus-backend/internal/util/tools"
@@ -103,7 +103,7 @@ func testMongodbBackupRestoreForVersion(
 	setupMongodbTestData(t, container)
 
 	router := logicaltesting.CreateTestRouter()
-	user := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "MongoDB Test Workspace", user, router)
 
 	storage := storages.CreateTestStorage(workspace.ID)
@@ -173,7 +173,7 @@ func testMongodbBackupRestoreWithEncryptionForVersion(
 	setupMongodbTestData(t, container)
 
 	router := logicaltesting.CreateTestRouter()
-	user := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(),
 		"MongoDB Encrypted Test Workspace",
 		user,
@@ -247,7 +247,7 @@ func testMongodbBackupRestoreWithReadOnlyUserForVersion(
 	setupMongodbTestData(t, container)
 
 	router := logicaltesting.CreateTestRouter()
-	user := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(),
 		"MongoDB ReadOnly Test Workspace",
 		user,
@@ -345,7 +345,7 @@ func testMongodbBackupRestoreWithExcludeCollectionsForVersion(
 	}()
 
 	router := logicaltesting.CreateTestRouter()
-	user := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(),
 		"MongoDB Exclude Collections Test Workspace",
 		user,

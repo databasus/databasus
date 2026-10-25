@@ -15,9 +15,9 @@ import (
 	"gorm.io/gorm"
 
 	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
-	users_enums "databasus-backend/internal/features/users/enums"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
+	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/util/encryption"
 	test_utils "databasus-backend/internal/util/testing"
 	"databasus-backend/internal/util/testing/bastion"
@@ -76,7 +76,7 @@ func createStatusUpdateFixture(t *testing.T) *statusUpdateFixture {
 	t.Helper()
 
 	router := createTestRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Status Updates", owner, router)
 	t.Cleanup(func() { workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router) })
 

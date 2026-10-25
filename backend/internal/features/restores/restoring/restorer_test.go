@@ -23,9 +23,9 @@ import (
 	restores_core "databasus-backend/internal/features/restores/core"
 	"databasus-backend/internal/features/storages"
 	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
-	users_enums "databasus-backend/internal/features/users/enums"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
+	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/util/cache"
 )
 
@@ -57,7 +57,7 @@ func Test_GetRestoreDatabaseCache_WhenProviderFails_UsesSuppliedMetadata(t *test
 func Test_MakeRestore_WhenCacheMissed_RestoreFails(t *testing.T) {
 	cache.GetStore().Clear(t.Context())
 
-	user := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	user := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 	router := CreateTestRouter()
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", user, router)
 	storage := storages.CreateTestStorage(workspace.ID)
@@ -121,7 +121,7 @@ func Test_MakeRestore_WhenCacheMissed_RestoreFails(t *testing.T) {
 func Test_MakeRestore_WhenTaskStarts_CacheDeletedImmediately(t *testing.T) {
 	cache.GetStore().Clear(t.Context())
 
-	user := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	user := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 	router := CreateTestRouter()
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", user, router)
 	storage := storages.CreateTestStorage(workspace.ID)
@@ -313,7 +313,7 @@ func createRestoreForOutcomeTest(t *testing.T) (*restores_core.Restore, *Restore
 func createRestoreWithConfigStorage(t *testing.T, configStorage configStorageChoice) restoreTestFixture {
 	t.Helper()
 
-	user := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	user := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 	router := CreateTestRouter()
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", user, router)
 	backupStorage := storages.CreateTestStorage(workspace.ID)

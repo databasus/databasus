@@ -1,16 +1,15 @@
 package users_controllers
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
 	user_dto "databasus-backend/internal/features/users/dto"
-	user_enums "databasus-backend/internal/features/users/enums"
 	user_middleware "databasus-backend/internal/features/users/middleware"
 	users_services "databasus-backend/internal/features/users/services"
+	"databasus-backend/internal/modules/users"
 )
 
 type ManagementController struct {
@@ -18,29 +17,27 @@ type ManagementController struct {
 }
 
 func (c *ManagementController) RegisterRoutes(router *gin.RouterGroup) {
-	router.GET("/users", user_middleware.RequireRole(user_enums.UserRoleAdmin), c.GetUsers)
+	router.GET("/users", user_middleware.RequireRole(users.RoleAdmin), c.GetUsers)
 	router.GET("/users/:id", c.GetUserProfile)
 	router.POST(
 		"/users/:id/deactivate",
-		user_middleware.RequireRole(user_enums.UserRoleAdmin),
+		user_middleware.RequireRole(users.RoleAdmin),
 		c.DeactivateUser,
 	)
 	router.POST(
 		"/users/:id/activate",
-		user_middleware.RequireRole(user_enums.UserRoleAdmin),
+		user_middleware.RequireRole(users.RoleAdmin),
 		c.ActivateUser,
 	)
 	router.PUT(
 		"/users/:id/role",
-		user_middleware.RequireRole(user_enums.UserRoleAdmin),
+		user_middleware.RequireRole(users.RoleAdmin),
 		c.ChangeUserRole,
 	)
 }
 
 func (c *ManagementController) GetUsers(ctx *gin.Context) {
-	fmt.Println("GetUsers")
-
-	user, ok := user_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -62,7 +59,7 @@ func (c *ManagementController) GetUsers(ctx *gin.Context) {
 
 	users, total, err := c.managementService.GetUsers(
 		ctx.Request.Context(),
-		user,
+		actor,
 		request.Limit,
 		request.Offset,
 		request.BeforeDate,
@@ -95,7 +92,7 @@ func (c *ManagementController) GetUsers(ctx *gin.Context) {
 }
 
 func (c *ManagementController) GetUserProfile(ctx *gin.Context) {
-	currentUser, ok := user_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -108,7 +105,7 @@ func (c *ManagementController) GetUserProfile(ctx *gin.Context) {
 		return
 	}
 
-	user, err := c.managementService.GetUserProfile(ctx.Request.Context(), userID, currentUser)
+	user, err := c.managementService.GetUserProfile(ctx.Request.Context(), userID, actor)
 	if err != nil {
 		ctx.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
 		return
@@ -127,7 +124,7 @@ func (c *ManagementController) GetUserProfile(ctx *gin.Context) {
 }
 
 func (c *ManagementController) DeactivateUser(ctx *gin.Context) {
-	currentUser, ok := user_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -140,7 +137,7 @@ func (c *ManagementController) DeactivateUser(ctx *gin.Context) {
 		return
 	}
 
-	if err := c.managementService.DeactivateUser(ctx.Request.Context(), userID, currentUser); err != nil {
+	if err := c.managementService.DeactivateUser(ctx.Request.Context(), userID, actor); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -149,7 +146,7 @@ func (c *ManagementController) DeactivateUser(ctx *gin.Context) {
 }
 
 func (c *ManagementController) ActivateUser(ctx *gin.Context) {
-	currentUser, ok := user_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -162,7 +159,7 @@ func (c *ManagementController) ActivateUser(ctx *gin.Context) {
 		return
 	}
 
-	if err := c.managementService.ActivateUser(ctx.Request.Context(), userID, currentUser); err != nil {
+	if err := c.managementService.ActivateUser(ctx.Request.Context(), userID, actor); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -171,7 +168,7 @@ func (c *ManagementController) ActivateUser(ctx *gin.Context) {
 }
 
 func (c *ManagementController) ChangeUserRole(ctx *gin.Context) {
-	currentUser, ok := user_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -190,7 +187,7 @@ func (c *ManagementController) ChangeUserRole(ctx *gin.Context) {
 		return
 	}
 
-	if err := c.managementService.ChangeUserRole(ctx.Request.Context(), userID, request.Role, currentUser); err != nil {
+	if err := c.managementService.ChangeUserRole(ctx.Request.Context(), userID, request.Role, actor); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}

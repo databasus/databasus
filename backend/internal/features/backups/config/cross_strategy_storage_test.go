@@ -14,10 +14,10 @@ import (
 	"databasus-backend/internal/features/databases"
 	"databasus-backend/internal/features/notifiers"
 	"databasus-backend/internal/features/storages"
-	users_enums "databasus-backend/internal/features/users/enums"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_controllers "databasus-backend/internal/features/workspaces/controllers"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
+	"databasus-backend/internal/modules/users"
 	test_utils "databasus-backend/internal/util/testing"
 )
 
@@ -44,7 +44,7 @@ func createCrossStrategyRouter() *gin.Engine {
 
 func Test_StorageDeletion_WithPhysicalOnlyAttachment_BlocksDeletion(t *testing.T) {
 	router := createCrossStrategyRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 	notifier := notifiers.CreateTestNotifier(workspace.ID)
 
@@ -72,7 +72,7 @@ func Test_StorageDeletion_WithPhysicalOnlyAttachment_BlocksDeletion(t *testing.T
 
 func Test_StorageDeletion_WithLogicalOnlyAttachment_BlocksDeletion(t *testing.T) {
 	router := createCrossStrategyRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 	notifier := notifiers.CreateTestNotifier(workspace.ID)
 
@@ -100,7 +100,7 @@ func Test_StorageDeletion_WithLogicalOnlyAttachment_BlocksDeletion(t *testing.T)
 
 func Test_StorageIsUsing_WithPhysicalOnlyAttachment_ReportsTrue(t *testing.T) {
 	router := createCrossStrategyRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 	notifier := notifiers.CreateTestNotifier(workspace.ID)
 
@@ -130,7 +130,7 @@ func Test_StorageIsUsing_WithPhysicalOnlyAttachment_ReportsTrue(t *testing.T) {
 
 func Test_StorageDeletion_WithNoAttachment_Succeeds(t *testing.T) {
 	router := createCrossStrategyRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 
 	storage := storages.CreateTestStorage(workspace.ID)

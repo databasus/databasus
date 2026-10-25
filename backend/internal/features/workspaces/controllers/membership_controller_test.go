@@ -8,14 +8,17 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"databasus-backend/internal/config"
 	"databasus-backend/internal/features/email"
 	users_enums "databasus-backend/internal/features/users/enums"
+	users_repositories "databasus-backend/internal/features/users/repositories"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_dto "databasus-backend/internal/features/workspaces/dto"
 	workspaces_services "databasus-backend/internal/features/workspaces/services"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
+	"databasus-backend/internal/modules/users"
 	test_utils "databasus-backend/internal/util/testing"
 )
 
@@ -79,7 +82,7 @@ func Test_GetWorkspaceMembers_PermissionsEnforced(t *testing.T) {
 				GetWorkspaceController(),
 				GetMembershipController(),
 			)
-			owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+			owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 			workspace, _ := workspaces_testing.CreateTestWorkspaceViaAPI(t.Context(),
 				"Test Workspace",
 				owner,
@@ -90,12 +93,12 @@ func Test_GetWorkspaceMembers_PermissionsEnforced(t *testing.T) {
 
 			var testUserToken string
 			if tt.isGlobalAdmin {
-				admin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+				admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 				testUserToken = admin.Token
 			} else if tt.workspaceRole != nil && *tt.workspaceRole == users_enums.WorkspaceRoleOwner {
 				testUserToken = owner.Token
 			} else if tt.workspaceRole != nil {
-				member := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+				member := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 				workspaces_testing.AddMemberToWorkspaceViaOwner(t.Context(),
 					workspace,
 					member,
@@ -104,7 +107,7 @@ func Test_GetWorkspaceMembers_PermissionsEnforced(t *testing.T) {
 				)
 				testUserToken = member.Token
 			} else {
-				nonMember := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+				nonMember := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 				testUserToken = nonMember.Token
 			}
 
@@ -143,7 +146,7 @@ func Test_GetWorkspaceMembers_WithInvalidWorkspaceID_ReturnsBadRequest(t *testin
 		GetWorkspaceController(),
 		GetMembershipController(),
 	)
-	user := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
 	resp := test_utils.MakeGetRequest(
 		t,
@@ -208,8 +211,8 @@ func Test_AddMemberToWorkspace_PermissionsEnforced(t *testing.T) {
 				GetWorkspaceController(),
 				GetMembershipController(),
 			)
-			owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
-			newMember := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+			owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
+			newMember := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 			workspace, _ := workspaces_testing.CreateTestWorkspaceViaAPI(t.Context(),
 				"Test Workspace",
 				owner,
@@ -220,12 +223,12 @@ func Test_AddMemberToWorkspace_PermissionsEnforced(t *testing.T) {
 
 			var testUserToken string
 			if tt.isGlobalAdmin {
-				admin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+				admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 				testUserToken = admin.Token
 			} else if tt.requesterRole != nil && *tt.requesterRole == users_enums.WorkspaceRoleOwner {
 				testUserToken = owner.Token
 			} else if tt.requesterRole != nil {
-				requester := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+				requester := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 				workspaces_testing.AddMemberToWorkspaceViaOwner(t.Context(),
 					workspace,
 					requester,
@@ -273,8 +276,8 @@ func Test_AddMemberToWorkspace_WhenUserIsAlreadyMember_ReturnsBadRequest(t *test
 		GetWorkspaceController(),
 		GetMembershipController(),
 	)
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
-	member := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
+	member := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
 	workspace, _ := workspaces_testing.CreateTestWorkspaceViaAPI(t.Context(), "Test Workspace", owner, router)
 	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
@@ -308,7 +311,7 @@ func Test_AddMemberToWorkspace_WithNonExistentUser_ReturnsInvited(t *testing.T) 
 		GetWorkspaceController(),
 		GetMembershipController(),
 	)
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
 	workspace, _ := workspaces_testing.CreateTestWorkspaceViaAPI(t.Context(), "Test Workspace", owner, router)
 	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
@@ -345,7 +348,7 @@ func Test_AddMemberToWorkspace_WithNonExistentUser_InvitationLinksToConfiguredUr
 				GetWorkspaceController(),
 				GetMembershipController(),
 			)
-			owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+			owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
 			workspace, _ := workspaces_testing.CreateTestWorkspaceViaAPI(t.Context(), "Test Workspace", owner, router)
 			defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
@@ -369,6 +372,41 @@ func Test_AddMemberToWorkspace_WithNonExistentUser_InvitationLinksToConfiguredUr
 			assert.Contains(t, mockEmailSender.SendEmailCalls[0].Body, `href="`+databasusURL+`"`)
 		})
 	}
+}
+
+func TestAddMemberInvitationEmail(t *testing.T) {
+	t.Run("names the inviting account when the invited address has no account", func(t *testing.T) {
+		mockEmailSender := useMockMembershipEmailSender(t)
+
+		router := workspaces_testing.CreateTestRouter(
+			GetWorkspaceController(),
+			GetMembershipController(),
+		)
+		owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
+
+		inviterName := "Inviter " + uuid.New().String()
+		require.NoError(t, users_repositories.GetUserRepository().UpdateUserInfo(owner.UserID, &inviterName, nil))
+
+		workspace, _ := workspaces_testing.CreateTestWorkspaceViaAPI(t.Context(), "Test Workspace", owner, router)
+		defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+
+		request := workspaces_dto.AddMemberRequestDTO{
+			Email: uuid.New().String() + "@example.com",
+			Role:  users_enums.WorkspaceRoleViewer,
+		}
+
+		test_utils.MakePostRequest(
+			t,
+			router,
+			"/api/v1/workspaces/memberships/"+workspace.ID.String()+"/members",
+			"Bearer "+owner.Token,
+			request,
+			http.StatusOK,
+		)
+
+		require.Len(t, mockEmailSender.SendEmailCalls, 1)
+		assert.Contains(t, mockEmailSender.SendEmailCalls[0].Body, inviterName)
+	})
 }
 
 func useMockMembershipEmailSender(t *testing.T) *workspaces_testing.MockEmailSender {
@@ -398,9 +436,9 @@ func Test_AddMemberToWorkspace_WhenWorkspaceAdminTriesToAddAdmin_ReturnsBadReque
 		GetWorkspaceController(),
 		GetMembershipController(),
 	)
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
-	workspaceAdmin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
-	newMember := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
+	workspaceAdmin := users_testing.CreateTestUser(t.Context(), users.RoleMember)
+	newMember := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
 	workspace, _ := workspaces_testing.CreateTestWorkspaceViaAPI(t.Context(), "Test Workspace", owner, router)
 	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
@@ -436,9 +474,9 @@ func Test_AddMemberToWorkspace_WhenWorkspaceAdminTriesToAddWorkspaceAdmin_Return
 		GetWorkspaceController(),
 		GetMembershipController(),
 	)
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
-	workspaceAdmin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
-	newMember := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
+	workspaceAdmin := users_testing.CreateTestUser(t.Context(), users.RoleMember)
+	newMember := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
 	workspace, _ := workspaces_testing.CreateTestWorkspaceViaAPI(t.Context(), "Test Workspace", owner, router)
 	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
@@ -518,8 +556,8 @@ func Test_AddWorkspaceAdmin_PermissionsEnforced(t *testing.T) {
 				GetWorkspaceController(),
 				GetMembershipController(),
 			)
-			owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
-			newMember := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+			owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
+			newMember := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 			workspace, _ := workspaces_testing.CreateTestWorkspaceViaAPI(t.Context(),
 				"Test Workspace",
 				owner,
@@ -530,12 +568,12 @@ func Test_AddWorkspaceAdmin_PermissionsEnforced(t *testing.T) {
 
 			var testUserToken string
 			if tt.isGlobalAdmin {
-				admin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+				admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 				testUserToken = admin.Token
 			} else if tt.requesterRole != nil && *tt.requesterRole == users_enums.WorkspaceRoleOwner {
 				testUserToken = owner.Token
 			} else if tt.requesterRole != nil {
-				requester := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+				requester := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 				workspaces_testing.AddMemberToWorkspaceViaOwner(t.Context(),
 					workspace,
 					requester,
@@ -632,7 +670,7 @@ func Test_InviteMemberToWorkspace_PermissionsEnforced(t *testing.T) {
 			users_testing.EnableMemberInvitations(t.Context())
 			defer users_testing.ResetSettingsToDefaults(t.Context())
 
-			owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+			owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 			workspace, _ := workspaces_testing.CreateTestWorkspaceViaAPI(t.Context(),
 				"Test Workspace",
 				owner,
@@ -642,12 +680,12 @@ func Test_InviteMemberToWorkspace_PermissionsEnforced(t *testing.T) {
 
 			var testUserToken string
 			if tt.isGlobalAdmin {
-				admin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+				admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 				testUserToken = admin.Token
 			} else if tt.requesterRole != nil && *tt.requesterRole == users_enums.WorkspaceRoleOwner {
 				testUserToken = owner.Token
 			} else if tt.requesterRole != nil {
-				requester := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+				requester := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 				workspaces_testing.AddMemberToWorkspaceViaOwner(t.Context(),
 					workspace,
 					requester,
@@ -743,8 +781,8 @@ func Test_ChangeMemberRole_PermissionsEnforced(t *testing.T) {
 				GetWorkspaceController(),
 				GetMembershipController(),
 			)
-			owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
-			targetMember := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+			owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
+			targetMember := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 			workspace, _ := workspaces_testing.CreateTestWorkspaceViaAPI(t.Context(),
 				"Test Workspace",
 				owner,
@@ -761,12 +799,12 @@ func Test_ChangeMemberRole_PermissionsEnforced(t *testing.T) {
 
 			var testUserToken string
 			if tt.isGlobalAdmin {
-				admin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+				admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 				testUserToken = admin.Token
 			} else if tt.requesterRole != nil && *tt.requesterRole == users_enums.WorkspaceRoleOwner {
 				testUserToken = owner.Token
 			} else if tt.requesterRole != nil {
-				requester := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+				requester := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 				workspaces_testing.AddMemberToWorkspaceViaOwner(t.Context(),
 					workspace,
 					requester,
@@ -846,8 +884,8 @@ func Test_ChangeMemberRoleToAdmin_PermissionsEnforced(t *testing.T) {
 				GetWorkspaceController(),
 				GetMembershipController(),
 			)
-			owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
-			targetMember := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+			owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
+			targetMember := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 			workspace, _ := workspaces_testing.CreateTestWorkspaceViaAPI(t.Context(),
 				"Test Workspace",
 				owner,
@@ -864,12 +902,12 @@ func Test_ChangeMemberRoleToAdmin_PermissionsEnforced(t *testing.T) {
 
 			var testUserToken string
 			if tt.isGlobalAdmin {
-				admin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+				admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 				testUserToken = admin.Token
 			} else if tt.requesterRole != nil && *tt.requesterRole == users_enums.WorkspaceRoleOwner {
 				testUserToken = owner.Token
 			} else if tt.requesterRole != nil {
-				requester := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+				requester := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 				workspaces_testing.AddMemberToWorkspaceViaOwner(t.Context(),
 					workspace,
 					requester,
@@ -910,7 +948,7 @@ func Test_ChangeMemberRole_WhenChangingOwnRole_ReturnsBadRequest(t *testing.T) {
 		GetWorkspaceController(),
 		GetMembershipController(),
 	)
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace, _ := workspaces_testing.CreateTestWorkspaceViaAPI(t.Context(), "Test Workspace", owner, router)
 	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
 
@@ -938,8 +976,8 @@ func Test_ChangeMemberRole_WhenChangingOwnerRole_ReturnsBadRequest(t *testing.T)
 		GetWorkspaceController(),
 		GetMembershipController(),
 	)
-	admin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
 	workspace, _ := workspaces_testing.CreateTestWorkspaceViaAPI(t.Context(), "Test Workspace", owner, router)
 	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
@@ -1016,8 +1054,8 @@ func Test_RemoveMemberFromWorkspace_PermissionsEnforced(t *testing.T) {
 				GetWorkspaceController(),
 				GetMembershipController(),
 			)
-			owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
-			targetMember := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+			owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
+			targetMember := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 			workspace, _ := workspaces_testing.CreateTestWorkspaceViaAPI(t.Context(),
 				"Test Workspace",
 				owner,
@@ -1034,12 +1072,12 @@ func Test_RemoveMemberFromWorkspace_PermissionsEnforced(t *testing.T) {
 
 			var testUserToken string
 			if tt.isGlobalAdmin {
-				admin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+				admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 				testUserToken = admin.Token
 			} else if tt.requesterRole != nil && *tt.requesterRole == users_enums.WorkspaceRoleOwner {
 				testUserToken = owner.Token
 			} else if tt.requesterRole != nil {
-				requester := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+				requester := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 				workspaces_testing.AddMemberToWorkspaceViaOwner(t.Context(),
 					workspace,
 					requester,
@@ -1074,8 +1112,8 @@ func Test_RemoveMemberFromWorkspace_WhenRemovingOwner_ReturnsBadRequest(t *testi
 		GetWorkspaceController(),
 		GetMembershipController(),
 	)
-	admin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
 	workspace, _ := workspaces_testing.CreateTestWorkspaceViaAPI(t.Context(), "Test Workspace", owner, router)
 	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
@@ -1138,8 +1176,8 @@ func Test_RemoveWorkspaceAdmin_PermissionsEnforced(t *testing.T) {
 				GetWorkspaceController(),
 				GetMembershipController(),
 			)
-			owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
-			targetAdmin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+			owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
+			targetAdmin := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 			workspace, _ := workspaces_testing.CreateTestWorkspaceViaAPI(t.Context(),
 				"Test Workspace",
 				owner,
@@ -1156,12 +1194,12 @@ func Test_RemoveWorkspaceAdmin_PermissionsEnforced(t *testing.T) {
 
 			var testUserToken string
 			if tt.isGlobalAdmin {
-				admin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+				admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 				testUserToken = admin.Token
 			} else if tt.requesterRole != nil && *tt.requesterRole == users_enums.WorkspaceRoleOwner {
 				testUserToken = owner.Token
 			} else if tt.requesterRole != nil {
-				requester := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+				requester := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 				workspaces_testing.AddMemberToWorkspaceViaOwner(t.Context(),
 					workspace,
 					requester,
@@ -1243,8 +1281,8 @@ func Test_TransferWorkspaceOwnership_PermissionsEnforced(t *testing.T) {
 				GetWorkspaceController(),
 				GetMembershipController(),
 			)
-			owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
-			newOwner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+			owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
+			newOwner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 			workspace, _ := workspaces_testing.CreateTestWorkspaceViaAPI(t.Context(),
 				"Test Workspace",
 				owner,
@@ -1261,12 +1299,12 @@ func Test_TransferWorkspaceOwnership_PermissionsEnforced(t *testing.T) {
 
 			var testUserToken string
 			if tt.isGlobalAdmin {
-				admin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+				admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 				testUserToken = admin.Token
 			} else if tt.requesterRole != nil && *tt.requesterRole == users_enums.WorkspaceRoleOwner {
 				testUserToken = owner.Token
 			} else if tt.requesterRole != nil {
-				requester := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+				requester := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 				workspaces_testing.AddMemberToWorkspaceViaOwner(t.Context(),
 					workspace,
 					requester,
@@ -1307,8 +1345,8 @@ func Test_TransferWorkspaceOwnership_WhenNewOwnerIsNotMember_ReturnsBadRequest(t
 		GetWorkspaceController(),
 		GetMembershipController(),
 	)
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
-	nonMember := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
+	nonMember := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
 	workspace, _ := workspaces_testing.CreateTestWorkspaceViaAPI(t.Context(), "Test Workspace", owner, router)
 	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
@@ -1333,8 +1371,8 @@ func Test_TransferWorkspaceOwnership_ThereIsOnlyOneOwner_OldOwnerBecomeAdmin(t *
 		GetWorkspaceController(),
 		GetMembershipController(),
 	)
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
-	member := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
+	member := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
 	workspace, _ := workspaces_testing.CreateTestWorkspaceViaAPI(t.Context(), "Test Workspace", owner, router)
 	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)

@@ -8,9 +8,9 @@ import (
 	"github.com/google/uuid"
 
 	postgresql_shared "databasus-backend/internal/features/databases/databases/postgresql/shared"
-	users_middleware "databasus-backend/internal/features/users/middleware"
 	users_services "databasus-backend/internal/features/users/services"
 	workspaces_services "databasus-backend/internal/features/workspaces/services"
+	"databasus-backend/internal/modules/users"
 )
 
 type DatabaseController struct {
@@ -39,7 +39,7 @@ func (c *DatabaseController) RegisterPublicRoutes(_ *gin.RouterGroup) {
 }
 
 func (c *DatabaseController) CreateDatabase(ctx *gin.Context) {
-	user, ok := users_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -56,7 +56,7 @@ func (c *DatabaseController) CreateDatabase(ctx *gin.Context) {
 		return
 	}
 
-	database, err := c.databaseService.CreateDatabase(ctx.Request.Context(), user, *request.WorkspaceID, &request)
+	database, err := c.databaseService.CreateDatabase(ctx.Request.Context(), actor, *request.WorkspaceID, &request)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -66,7 +66,7 @@ func (c *DatabaseController) CreateDatabase(ctx *gin.Context) {
 }
 
 func (c *DatabaseController) UpdateDatabase(ctx *gin.Context) {
-	user, ok := users_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -78,7 +78,7 @@ func (c *DatabaseController) UpdateDatabase(ctx *gin.Context) {
 		return
 	}
 
-	if err := c.databaseService.UpdateDatabase(ctx.Request.Context(), user, &request); err != nil {
+	if err := c.databaseService.UpdateDatabase(ctx.Request.Context(), actor, &request); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -87,7 +87,7 @@ func (c *DatabaseController) UpdateDatabase(ctx *gin.Context) {
 }
 
 func (c *DatabaseController) DeleteDatabase(ctx *gin.Context) {
-	user, ok := users_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -99,7 +99,7 @@ func (c *DatabaseController) DeleteDatabase(ctx *gin.Context) {
 		return
 	}
 
-	if err := c.databaseService.DeleteDatabase(ctx.Request.Context(), user, id); err != nil {
+	if err := c.databaseService.DeleteDatabase(ctx.Request.Context(), actor, id); err != nil {
 		_ = ctx.Error(err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -109,7 +109,7 @@ func (c *DatabaseController) DeleteDatabase(ctx *gin.Context) {
 }
 
 func (c *DatabaseController) GetDatabase(ctx *gin.Context) {
-	user, ok := users_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -121,7 +121,7 @@ func (c *DatabaseController) GetDatabase(ctx *gin.Context) {
 		return
 	}
 
-	database, err := c.databaseService.GetDatabase(ctx.Request.Context(), user, id)
+	database, err := c.databaseService.GetDatabase(ctx.Request.Context(), actor, id)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -131,7 +131,7 @@ func (c *DatabaseController) GetDatabase(ctx *gin.Context) {
 }
 
 func (c *DatabaseController) GetDatabases(ctx *gin.Context) {
-	user, ok := users_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -149,7 +149,7 @@ func (c *DatabaseController) GetDatabases(ctx *gin.Context) {
 		return
 	}
 
-	databases, err := c.databaseService.GetDatabasesByWorkspace(ctx.Request.Context(), user, workspaceID)
+	databases, err := c.databaseService.GetDatabasesByWorkspace(ctx.Request.Context(), actor, workspaceID)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -159,7 +159,7 @@ func (c *DatabaseController) GetDatabases(ctx *gin.Context) {
 }
 
 func (c *DatabaseController) TestDatabaseConnection(ctx *gin.Context) {
-	user, ok := users_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -171,7 +171,7 @@ func (c *DatabaseController) TestDatabaseConnection(ctx *gin.Context) {
 		return
 	}
 
-	if err := c.databaseService.TestDatabaseConnection(ctx.Request.Context(), user, id); err != nil {
+	if err := c.databaseService.TestDatabaseConnection(ctx.Request.Context(), actor, id); err != nil {
 		respondConnectionTestError(ctx, err)
 		return
 	}
@@ -180,7 +180,7 @@ func (c *DatabaseController) TestDatabaseConnection(ctx *gin.Context) {
 }
 
 func (c *DatabaseController) TestDatabaseConnectionDirect(ctx *gin.Context) {
-	user, ok := users_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -192,7 +192,7 @@ func (c *DatabaseController) TestDatabaseConnectionDirect(ctx *gin.Context) {
 		return
 	}
 
-	if err := c.databaseService.TestDatabaseConnectionDirect(ctx.Request.Context(), user, &request); err != nil {
+	if err := c.databaseService.TestDatabaseConnectionDirect(ctx.Request.Context(), actor, &request); err != nil {
 		respondConnectionTestError(ctx, err)
 		return
 	}
@@ -225,7 +225,7 @@ func respondConnectionTestError(ctx *gin.Context, err error) {
 }
 
 func (c *DatabaseController) IsNotifierUsing(ctx *gin.Context) {
-	user, ok := users_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -237,7 +237,7 @@ func (c *DatabaseController) IsNotifierUsing(ctx *gin.Context) {
 		return
 	}
 
-	isUsing, err := c.databaseService.IsNotifierUsing(ctx.Request.Context(), user, id)
+	isUsing, err := c.databaseService.IsNotifierUsing(ctx.Request.Context(), actor, id)
 	if err != nil {
 		_ = ctx.Error(err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -248,7 +248,7 @@ func (c *DatabaseController) IsNotifierUsing(ctx *gin.Context) {
 }
 
 func (c *DatabaseController) CountDatabasesByNotifier(ctx *gin.Context) {
-	user, ok := users_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -260,7 +260,7 @@ func (c *DatabaseController) CountDatabasesByNotifier(ctx *gin.Context) {
 		return
 	}
 
-	count, err := c.databaseService.CountDatabasesByNotifier(ctx.Request.Context(), user, id)
+	count, err := c.databaseService.CountDatabasesByNotifier(ctx.Request.Context(), actor, id)
 	if err != nil {
 		_ = ctx.Error(err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -271,7 +271,7 @@ func (c *DatabaseController) CountDatabasesByNotifier(ctx *gin.Context) {
 }
 
 func (c *DatabaseController) CopyDatabase(ctx *gin.Context) {
-	user, ok := users_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -283,7 +283,7 @@ func (c *DatabaseController) CopyDatabase(ctx *gin.Context) {
 		return
 	}
 
-	copiedDatabase, err := c.databaseService.CopyDatabase(ctx.Request.Context(), user, id)
+	copiedDatabase, err := c.databaseService.CopyDatabase(ctx.Request.Context(), actor, id)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -293,7 +293,7 @@ func (c *DatabaseController) CopyDatabase(ctx *gin.Context) {
 }
 
 func (c *DatabaseController) ShouldSuggestReadOnlyUser(ctx *gin.Context) {
-	user, ok := users_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -307,7 +307,7 @@ func (c *DatabaseController) ShouldSuggestReadOnlyUser(ctx *gin.Context) {
 
 	shouldSuggestReadOnlyUser, privileges, err := c.databaseService.ShouldSuggestReadOnlyUser(
 		ctx.Request.Context(),
-		user,
+		actor,
 		&request,
 	)
 	if err != nil {
@@ -322,7 +322,7 @@ func (c *DatabaseController) ShouldSuggestReadOnlyUser(ctx *gin.Context) {
 }
 
 func (c *DatabaseController) CreateReadOnlyUser(ctx *gin.Context) {
-	user, ok := users_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -334,7 +334,7 @@ func (c *DatabaseController) CreateReadOnlyUser(ctx *gin.Context) {
 		return
 	}
 
-	username, password, err := c.databaseService.CreateReadOnlyUser(ctx.Request.Context(), user, &request)
+	username, password, err := c.databaseService.CreateReadOnlyUser(ctx.Request.Context(), actor, &request)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -347,7 +347,7 @@ func (c *DatabaseController) CreateReadOnlyUser(ctx *gin.Context) {
 }
 
 func (c *DatabaseController) CreateReplicationOnlyUser(ctx *gin.Context) {
-	user, ok := users_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -359,7 +359,7 @@ func (c *DatabaseController) CreateReplicationOnlyUser(ctx *gin.Context) {
 		return
 	}
 
-	createdUser, err := c.databaseService.CreateReplicationOnlyUser(ctx.Request.Context(), user, &request)
+	createdUser, err := c.databaseService.CreateReplicationOnlyUser(ctx.Request.Context(), actor, &request)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return

@@ -12,6 +12,7 @@ import (
 	workspaces_dto "databasus-backend/internal/features/workspaces/dto"
 	workspaces_models "databasus-backend/internal/features/workspaces/models"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
+	"databasus-backend/internal/modules/users"
 	test_utils "databasus-backend/internal/util/testing"
 )
 
@@ -24,7 +25,7 @@ func Test_WorkspaceLifecycleE2E_CompletesSuccessfully(t *testing.T) {
 	defer users_testing.ResetSettingsToDefaults(t.Context())
 
 	// 1. Create workspace owner
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
 	// 2. Owner creates workspace
 	createRequest := workspaces_dto.CreateWorkspaceRequestDTO{
@@ -66,7 +67,7 @@ func Test_WorkspaceLifecycleE2E_CompletesSuccessfully(t *testing.T) {
 	assert.True(t, inviteResponse.Status == workspaces_dto.AddStatusInvited)
 
 	// 4. Add existing user to workspace
-	existingMember := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	existingMember := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	addMemberRequest := workspaces_dto.AddMemberRequestDTO{
 		Email: existingMember.Email,
 		Role:  users_enums.WorkspaceRoleViewer,
@@ -185,8 +186,8 @@ func Test_AdminWorkspaceManagementE2E_CompletesSuccessfully(t *testing.T) {
 	)
 
 	// 1. Create admin and regular user
-	admin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
-	regularUser := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
+	regularUser := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
 	// 2. Regular user creates workspace (with member creation disabled)
 	users_testing.DisableMemberWorkspaceCreation(t.Context())
@@ -226,7 +227,7 @@ func Test_AdminWorkspaceManagementE2E_CompletesSuccessfully(t *testing.T) {
 	adminWorkspaceID := adminWorkspaceResponse.ID
 
 	// 4. Admin can view any workspace (even not a member)
-	regularUser2 := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	regularUser2 := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	users_testing.EnableMemberWorkspaceCreation(t.Context())
 
 	regularUserCreateRequest := workspaces_dto.CreateWorkspaceRequestDTO{

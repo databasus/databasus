@@ -14,9 +14,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	users_enums "databasus-backend/internal/features/users/enums"
 	users_testing "databasus-backend/internal/features/users/testing"
 	"databasus-backend/internal/lib/logging"
+	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/util/ratelimiter"
 )
 
@@ -58,7 +58,7 @@ func TestRequireAgentAuth(t *testing.T) {
 	t.Run("adds agent_id to the log records of the request when the agent authenticates", func(t *testing.T) {
 		cleanupAgents(t)
 
-		admin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+		admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 		createdAgent := CreateTestVerificationAgent(t, createTestRouter(), admin.Token, "logged-"+uuid.NewString())
 
 		var loggedAgentIDs []string

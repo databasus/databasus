@@ -11,15 +11,15 @@ import (
 	"databasus-backend/internal/features/databases"
 	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
 	"databasus-backend/internal/features/storages"
-	users_enums "databasus-backend/internal/features/users/enums"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
+	"databasus-backend/internal/modules/users"
 	test_utils "databasus-backend/internal/util/testing"
 )
 
 func Test_AttachStorageFromSameWorkspace_PhysicalConfig_SuccessfullyAttached(t *testing.T) {
 	router := createPhysicalTestRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 
 	database := createPhysicalDatabaseViaAPI(
@@ -55,14 +55,14 @@ func Test_AttachStorageFromSameWorkspace_PhysicalConfig_SuccessfullyAttached(t *
 func Test_AttachStorageFromDifferentWorkspace_PhysicalConfig_ReturnsBadRequest(t *testing.T) {
 	router := createPhysicalTestRouter()
 
-	owner1 := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner1 := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace1 := workspaces_testing.CreateTestWorkspace(t.Context(), "Workspace 1", owner1, router)
 	database := createPhysicalDatabaseViaAPI(
 		t, "Physical DB "+uuid.New().String(), workspace1.ID, owner1.Token, router,
 		postgresql_physical.BackupTypeFullOnly, "17",
 	)
 
-	owner2 := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner2 := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace2 := workspaces_testing.CreateTestWorkspace(t.Context(), "Workspace 2", owner2, router)
 	storage := storages.CreateTestStorage(workspace2.ID)
 
@@ -89,7 +89,7 @@ func Test_AttachStorageFromDifferentWorkspace_PhysicalConfig_ReturnsBadRequest(t
 
 func Test_DeleteStorageWithAttachedPhysicalConfig_CannotDelete(t *testing.T) {
 	router := createPhysicalTestRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 
 	database := createPhysicalDatabaseViaAPI(

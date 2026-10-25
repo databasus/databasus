@@ -7,8 +7,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
-	users_middleware "databasus-backend/internal/features/users/middleware"
 	workspaces_services "databasus-backend/internal/features/workspaces/services"
+	"databasus-backend/internal/modules/users"
 )
 
 type StorageController struct {
@@ -27,7 +27,7 @@ func (c *StorageController) RegisterRoutes(router *gin.RouterGroup) {
 }
 
 func (c *StorageController) SaveStorage(ctx *gin.Context) {
-	user, ok := users_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -44,7 +44,7 @@ func (c *StorageController) SaveStorage(ctx *gin.Context) {
 		return
 	}
 
-	if err := c.storageService.SaveStorage(ctx.Request.Context(), user, request.WorkspaceID, &request); err != nil {
+	if err := c.storageService.SaveStorage(ctx.Request.Context(), actor, request.WorkspaceID, &request); err != nil {
 		if errors.Is(err, ErrInsufficientPermissionsToManageStorage) ||
 			errors.Is(err, ErrRcloneStorageRequiresAdmin) {
 			ctx.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
@@ -58,7 +58,7 @@ func (c *StorageController) SaveStorage(ctx *gin.Context) {
 }
 
 func (c *StorageController) GetStorage(ctx *gin.Context) {
-	user, ok := users_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -70,7 +70,7 @@ func (c *StorageController) GetStorage(ctx *gin.Context) {
 		return
 	}
 
-	storage, err := c.storageService.GetStorage(ctx.Request.Context(), user, id)
+	storage, err := c.storageService.GetStorage(ctx.Request.Context(), actor, id)
 	if err != nil {
 		if errors.Is(err, ErrInsufficientPermissionsToViewStorage) {
 			ctx.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
@@ -84,7 +84,7 @@ func (c *StorageController) GetStorage(ctx *gin.Context) {
 }
 
 func (c *StorageController) GetStorages(ctx *gin.Context) {
-	user, ok := users_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -102,7 +102,7 @@ func (c *StorageController) GetStorages(ctx *gin.Context) {
 		return
 	}
 
-	storages, err := c.storageService.GetStorages(ctx.Request.Context(), user, workspaceID)
+	storages, err := c.storageService.GetStorages(ctx.Request.Context(), actor, workspaceID)
 	if err != nil {
 		if errors.Is(err, ErrInsufficientPermissionsToViewStorages) {
 			ctx.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
@@ -116,7 +116,7 @@ func (c *StorageController) GetStorages(ctx *gin.Context) {
 }
 
 func (c *StorageController) DeleteStorage(ctx *gin.Context) {
-	user, ok := users_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -128,7 +128,7 @@ func (c *StorageController) DeleteStorage(ctx *gin.Context) {
 		return
 	}
 
-	if err := c.storageService.DeleteStorage(ctx.Request.Context(), user, id); err != nil {
+	if err := c.storageService.DeleteStorage(ctx.Request.Context(), actor, id); err != nil {
 		if errors.Is(err, ErrInsufficientPermissionsToManageStorage) {
 			ctx.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
 			return
@@ -141,7 +141,7 @@ func (c *StorageController) DeleteStorage(ctx *gin.Context) {
 }
 
 func (c *StorageController) TestStorageConnection(ctx *gin.Context) {
-	user, ok := users_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -153,7 +153,7 @@ func (c *StorageController) TestStorageConnection(ctx *gin.Context) {
 		return
 	}
 
-	if err := c.storageService.TestStorageConnection(ctx.Request.Context(), user, id); err != nil {
+	if err := c.storageService.TestStorageConnection(ctx.Request.Context(), actor, id); err != nil {
 		if errors.Is(err, ErrInsufficientPermissionsToTestStorage) {
 			ctx.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
 			return
@@ -166,7 +166,7 @@ func (c *StorageController) TestStorageConnection(ctx *gin.Context) {
 }
 
 func (c *StorageController) TransferStorageToWorkspace(ctx *gin.Context) {
-	user, ok := users_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -191,7 +191,7 @@ func (c *StorageController) TransferStorageToWorkspace(ctx *gin.Context) {
 
 	if err := c.storageService.TransferStorageToWorkspace(
 		ctx.Request.Context(),
-		user,
+		actor,
 		id,
 		request.TargetWorkspaceID,
 		nil,
@@ -209,7 +209,7 @@ func (c *StorageController) TransferStorageToWorkspace(ctx *gin.Context) {
 }
 
 func (c *StorageController) TestStorageConnectionDirect(ctx *gin.Context) {
-	user, ok := users_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -226,7 +226,7 @@ func (c *StorageController) TestStorageConnectionDirect(ctx *gin.Context) {
 		return
 	}
 
-	canView, _, err := c.workspaceService.CanUserAccessWorkspace(ctx.Request.Context(), request.WorkspaceID, user)
+	canView, _, err := c.workspaceService.CanUserAccessWorkspace(ctx.Request.Context(), request.WorkspaceID, actor)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -239,7 +239,7 @@ func (c *StorageController) TestStorageConnectionDirect(ctx *gin.Context) {
 		return
 	}
 
-	if err := c.storageService.TestStorageConnectionDirect(ctx.Request.Context(), user, &request); err != nil {
+	if err := c.storageService.TestStorageConnectionDirect(ctx.Request.Context(), actor, &request); err != nil {
 		if errors.Is(err, ErrRcloneStorageRequiresAdmin) {
 			ctx.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
 			return

@@ -7,8 +7,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
-	users_enums "databasus-backend/internal/features/users/enums"
 	users_middleware "databasus-backend/internal/features/users/middleware"
+	"databasus-backend/internal/modules/users"
 )
 
 type AgentController struct {
@@ -20,7 +20,7 @@ func (c *AgentController) RegisterRoutes(router *gin.RouterGroup) {
 	publicAuth.GET("/availability", c.GetAvailability)
 
 	adminOnly := router.Group("/verification/agents")
-	adminOnly.Use(users_middleware.RequireRole(users_enums.UserRoleAdmin))
+	adminOnly.Use(users_middleware.RequireRole(users.RoleAdmin))
 
 	adminOnly.POST("", c.CreateAgent)
 	adminOnly.GET("", c.ListAgents)
@@ -43,7 +43,7 @@ func (c *AgentController) GetAvailability(ctx *gin.Context) {
 }
 
 func (c *AgentController) CreateAgent(ctx *gin.Context) {
-	user, ok := users_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -55,7 +55,7 @@ func (c *AgentController) CreateAgent(ctx *gin.Context) {
 		return
 	}
 
-	response, err := c.agentService.CreateAgent(ctx.Request.Context(), user, &request)
+	response, err := c.agentService.CreateAgent(ctx.Request.Context(), actor, &request)
 	if err != nil {
 		_ = ctx.Error(err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -77,7 +77,7 @@ func (c *AgentController) ListAgents(ctx *gin.Context) {
 }
 
 func (c *AgentController) RotateToken(ctx *gin.Context) {
-	user, ok := users_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -89,7 +89,7 @@ func (c *AgentController) RotateToken(ctx *gin.Context) {
 		return
 	}
 
-	token, err := c.agentService.RotateToken(ctx.Request.Context(), user, agentID)
+	token, err := c.agentService.RotateToken(ctx.Request.Context(), actor, agentID)
 	if err != nil {
 		if errors.Is(err, ErrAgentNotFound) {
 			ctx.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
@@ -105,7 +105,7 @@ func (c *AgentController) RotateToken(ctx *gin.Context) {
 }
 
 func (c *AgentController) DeleteAgent(ctx *gin.Context) {
-	user, ok := users_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -117,7 +117,7 @@ func (c *AgentController) DeleteAgent(ctx *gin.Context) {
 		return
 	}
 
-	if err := c.agentService.DeleteAgent(ctx.Request.Context(), user, agentID); err != nil {
+	if err := c.agentService.DeleteAgent(ctx.Request.Context(), actor, agentID); err != nil {
 		if errors.Is(err, ErrAgentNotFound) {
 			ctx.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return

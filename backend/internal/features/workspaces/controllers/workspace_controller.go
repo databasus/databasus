@@ -8,11 +8,11 @@ import (
 	"github.com/google/uuid"
 
 	audit_logs "databasus-backend/internal/features/audit_logs"
-	users_middleware "databasus-backend/internal/features/users/middleware"
 	workspaces_dto "databasus-backend/internal/features/workspaces/dto"
 	workspaces_errors "databasus-backend/internal/features/workspaces/errors"
 	workspaces_models "databasus-backend/internal/features/workspaces/models"
 	workspaces_services "databasus-backend/internal/features/workspaces/services"
+	"databasus-backend/internal/modules/users"
 )
 
 type WorkspaceController struct {
@@ -31,7 +31,7 @@ func (c *WorkspaceController) RegisterRoutes(router *gin.RouterGroup) {
 }
 
 func (c *WorkspaceController) CreateWorkspace(ctx *gin.Context) {
-	user, ok := users_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -43,7 +43,7 @@ func (c *WorkspaceController) CreateWorkspace(ctx *gin.Context) {
 		return
 	}
 
-	response, err := c.workspaceService.CreateWorkspace(ctx.Request.Context(), &request, user)
+	response, err := c.workspaceService.CreateWorkspace(ctx.Request.Context(), &request, actor)
 	if err != nil {
 		if errors.Is(err, workspaces_errors.ErrInsufficientPermissionsToCreateWorkspaces) {
 			ctx.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
@@ -58,13 +58,13 @@ func (c *WorkspaceController) CreateWorkspace(ctx *gin.Context) {
 }
 
 func (c *WorkspaceController) GetWorkspaces(ctx *gin.Context) {
-	user, ok := users_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
 	}
 
-	response, err := c.workspaceService.GetUserWorkspaces(ctx.Request.Context(), user)
+	response, err := c.workspaceService.GetUserWorkspaces(ctx.Request.Context(), actor)
 	if err != nil {
 		_ = ctx.Error(err)
 
@@ -76,7 +76,7 @@ func (c *WorkspaceController) GetWorkspaces(ctx *gin.Context) {
 }
 
 func (c *WorkspaceController) GetWorkspace(ctx *gin.Context) {
-	user, ok := users_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -89,7 +89,7 @@ func (c *WorkspaceController) GetWorkspace(ctx *gin.Context) {
 		return
 	}
 
-	workspace, err := c.workspaceService.GetWorkspace(ctx.Request.Context(), workspaceID, user)
+	workspace, err := c.workspaceService.GetWorkspace(ctx.Request.Context(), workspaceID, actor)
 	if err != nil {
 		if errors.Is(err, workspaces_errors.ErrInsufficientPermissionsToViewWorkspace) {
 			ctx.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
@@ -103,7 +103,7 @@ func (c *WorkspaceController) GetWorkspace(ctx *gin.Context) {
 }
 
 func (c *WorkspaceController) UpdateWorkspace(ctx *gin.Context) {
-	user, ok := users_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -122,7 +122,7 @@ func (c *WorkspaceController) UpdateWorkspace(ctx *gin.Context) {
 		return
 	}
 
-	updatedWorkspace, err := c.workspaceService.UpdateWorkspace(ctx.Request.Context(), workspaceID, &workspace, user)
+	updatedWorkspace, err := c.workspaceService.UpdateWorkspace(ctx.Request.Context(), workspaceID, &workspace, actor)
 	if err != nil {
 		if errors.Is(err, workspaces_errors.ErrInsufficientPermissionsToUpdateWorkspace) {
 			ctx.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
@@ -136,7 +136,7 @@ func (c *WorkspaceController) UpdateWorkspace(ctx *gin.Context) {
 }
 
 func (c *WorkspaceController) DeleteWorkspace(ctx *gin.Context) {
-	user, ok := users_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -149,7 +149,7 @@ func (c *WorkspaceController) DeleteWorkspace(ctx *gin.Context) {
 		return
 	}
 
-	if err := c.workspaceService.DeleteWorkspace(ctx.Request.Context(), workspaceID, user); err != nil {
+	if err := c.workspaceService.DeleteWorkspace(ctx.Request.Context(), workspaceID, actor); err != nil {
 		if errors.Is(err, workspaces_errors.ErrOnlyOwnerOrAdminCanDeleteWorkspace) {
 			ctx.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
 			return
@@ -162,7 +162,7 @@ func (c *WorkspaceController) DeleteWorkspace(ctx *gin.Context) {
 }
 
 func (c *WorkspaceController) GetWorkspaceAuditLogs(ctx *gin.Context) {
-	user, ok := users_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -181,7 +181,7 @@ func (c *WorkspaceController) GetWorkspaceAuditLogs(ctx *gin.Context) {
 		return
 	}
 
-	response, err := c.workspaceService.GetWorkspaceAuditLogs(ctx.Request.Context(), workspaceID, user, request)
+	response, err := c.workspaceService.GetWorkspaceAuditLogs(ctx.Request.Context(), workspaceID, actor, request)
 	if err != nil {
 		if errors.Is(err, workspaces_errors.ErrInsufficientPermissionsToViewWorkspaceAuditLogs) {
 			ctx.JSON(http.StatusForbidden, gin.H{"error": err.Error()})

@@ -12,22 +12,20 @@ import (
 
 	audit_logs "databasus-backend/internal/features/audit_logs"
 	audit_logs_models "databasus-backend/internal/features/audit_logs/models"
-	users_dto "databasus-backend/internal/features/users/dto"
 	users_enums "databasus-backend/internal/features/users/enums"
-	users_models "databasus-backend/internal/features/users/models"
 	users_repositories "databasus-backend/internal/features/users/repositories"
-	users_services "databasus-backend/internal/features/users/services"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_dto "databasus-backend/internal/features/workspaces/dto"
 	workspaces_models "databasus-backend/internal/features/workspaces/models"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
+	"databasus-backend/internal/modules/users"
 	test_utils "databasus-backend/internal/util/testing"
 )
 
 func Test_CreateWorkspace_PermissionsEnforced(t *testing.T) {
 	tests := []struct {
 		name                  string
-		userRole              users_enums.UserRole
+		userRole              users.Role
 		memberCreationEnabled bool
 		expectSuccess         bool
 		expectedStatusCode    int
@@ -35,7 +33,7 @@ func Test_CreateWorkspace_PermissionsEnforced(t *testing.T) {
 	}{
 		{
 			name:                  "member can create workspace when enabled",
-			userRole:              users_enums.UserRoleMember,
+			userRole:              users.RoleMember,
 			memberCreationEnabled: true,
 			expectSuccess:         true,
 			expectedStatusCode:    http.StatusOK,
@@ -43,14 +41,14 @@ func Test_CreateWorkspace_PermissionsEnforced(t *testing.T) {
 		},
 		{
 			name:                  "member cannot create workspace when disabled",
-			userRole:              users_enums.UserRoleMember,
+			userRole:              users.RoleMember,
 			memberCreationEnabled: false,
 			expectSuccess:         false,
 			expectedStatusCode:    http.StatusForbidden,
 		},
 		{
 			name:                  "admin can create workspace when member creation disabled",
-			userRole:              users_enums.UserRoleAdmin,
+			userRole:              users.RoleAdmin,
 			memberCreationEnabled: false,
 			expectSuccess:         true,
 			expectedStatusCode:    http.StatusOK,
@@ -123,7 +121,7 @@ func Test_CreateWorkspace_WithInvalidJSON_ReturnsBadRequest(t *testing.T) {
 		GetWorkspaceController(),
 		GetMembershipController(),
 	)
-	user := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	user := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 
 	resp := test_utils.MakeRequest(t, router, test_utils.RequestOptions{
 		Method:         "POST",
@@ -161,7 +159,7 @@ func Test_GetUserWorkspaces_WhenUserHasWorkspaces_ReturnsWorkspacesList(t *testi
 		GetWorkspaceController(),
 		GetMembershipController(),
 	)
-	user := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
 	workspace1, _ := workspaces_testing.CreateTestWorkspaceWithToken(t.Context(),
 		"Workspace 1",
@@ -263,7 +261,7 @@ func Test_GetSingleWorkspace_PermissionsEnforced(t *testing.T) {
 				GetWorkspaceController(),
 				GetMembershipController(),
 			)
-			owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+			owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 			workspace, _ := workspaces_testing.CreateTestWorkspaceWithToken(t.Context(),
 				"Test Workspace",
 				owner.Token,
@@ -273,12 +271,12 @@ func Test_GetSingleWorkspace_PermissionsEnforced(t *testing.T) {
 
 			var testUserToken string
 			if tt.isGlobalAdmin {
-				admin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+				admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 				testUserToken = admin.Token
 			} else if tt.workspaceRole != nil && *tt.workspaceRole == users_enums.WorkspaceRoleOwner {
 				testUserToken = owner.Token
 			} else if tt.workspaceRole != nil {
-				member := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+				member := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 				workspaces_testing.AddMemberToWorkspace(
 					workspace,
 					member,
@@ -288,7 +286,7 @@ func Test_GetSingleWorkspace_PermissionsEnforced(t *testing.T) {
 				)
 				testUserToken = member.Token
 			} else {
-				nonMember := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+				nonMember := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 				testUserToken = nonMember.Token
 			}
 
@@ -324,7 +322,7 @@ func Test_GetSingleWorkspace_WithInvalidWorkspaceID_ReturnsBadRequest(t *testing
 		GetWorkspaceController(),
 		GetMembershipController(),
 	)
-	user := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
 	resp := test_utils.MakeGetRequest(
 		t,
@@ -375,7 +373,7 @@ func Test_UpdateWorkspace_PermissionsEnforced(t *testing.T) {
 				GetWorkspaceController(),
 				GetMembershipController(),
 			)
-			owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+			owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 			workspace, _ := workspaces_testing.CreateTestWorkspaceWithToken(t.Context(),
 				"Original Name",
 				owner.Token,
@@ -387,7 +385,7 @@ func Test_UpdateWorkspace_PermissionsEnforced(t *testing.T) {
 			if tt.workspaceRole == users_enums.WorkspaceRoleOwner {
 				testUserToken = owner.Token
 			} else {
-				member := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+				member := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 				workspaces_testing.AddMemberToWorkspace(
 					workspace,
 					member,
@@ -479,7 +477,7 @@ func Test_DeleteWorkspace_PermissionsEnforced(t *testing.T) {
 				GetWorkspaceController(),
 				GetMembershipController(),
 			)
-			owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+			owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 			workspace, _ := workspaces_testing.CreateTestWorkspaceWithToken(t.Context(),
 				"Test Workspace",
 				owner.Token,
@@ -492,12 +490,12 @@ func Test_DeleteWorkspace_PermissionsEnforced(t *testing.T) {
 
 			var testUserToken string
 			if tt.isGlobalAdmin {
-				admin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+				admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 				testUserToken = admin.Token
 			} else if tt.workspaceRole != nil && *tt.workspaceRole == users_enums.WorkspaceRoleOwner {
 				testUserToken = owner.Token
 			} else if tt.workspaceRole != nil {
-				member := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+				member := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 				workspaces_testing.AddMemberToWorkspace(
 					workspace,
 					member,
@@ -533,8 +531,8 @@ func Test_GetWorkspaceAuditLogs_WhenUserIsWorkspaceAdmin_ReturnsAuditLogs(t *tes
 		GetWorkspaceController(),
 		GetMembershipController(),
 	)
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
-	workspaceAdmin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
+	workspaceAdmin := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
 	uniqueID := uuid.New()
 	workspaceName := fmt.Sprintf("WorkspaceAdmin Test %s", uniqueID.String()[:8])
@@ -570,7 +568,7 @@ func TestGetWorkspaceAuditLogs(t *testing.T) {
 				GetWorkspaceController(),
 				GetMembershipController(),
 			)
-			owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+			owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 			ownerBeforeChange, err := users_repositories.GetUserRepository().GetUserByID(t.Context(), owner.UserID)
 			require.NoError(t, err)
 			workspace, _ := workspaces_testing.CreateTestWorkspaceWithToken(t.Context(),
@@ -605,8 +603,8 @@ func Test_GetWorkspaceAuditLogs_WithMultipleWorkspaces_ReturnsOnlyWorkspaceSpeci
 		GetWorkspaceController(),
 		GetMembershipController(),
 	)
-	owner1 := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
-	owner2 := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner1 := users_testing.CreateTestUser(t.Context(), users.RoleMember)
+	owner2 := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
 	uniqueID1 := uuid.New()
 	uniqueID2 := uuid.New()
@@ -700,10 +698,10 @@ func Test_GetWorkspaceAuditLogs_WithDifferentUserRoles_EnforcesPermissionsCorrec
 		GetWorkspaceController(),
 		GetMembershipController(),
 	)
-	globalAdmin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
-	member := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
-	nonMember := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	globalAdmin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
+	member := users_testing.CreateTestUser(t.Context(), users.RoleMember)
+	nonMember := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
 	uniqueID := uuid.New()
 	workspaceName := fmt.Sprintf("Audit Test Workspace %s", uniqueID.String()[:8])
@@ -753,7 +751,7 @@ func Test_GetWorkspaceAuditLogs_WithoutAuthToken_ReturnsUnauthorized(t *testing.
 		GetWorkspaceController(),
 		GetMembershipController(),
 	)
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
 	workspace, _ := workspaces_testing.CreateTestWorkspaceWithToken(t.Context(),
 		"Test Workspace",
@@ -773,15 +771,6 @@ func extractAuditLogMessages(logs []*audit_logs.AuditLogDTO) []string {
 		messages[i] = log.Message
 	}
 	return messages
-}
-
-func getUserFromSignInResponse(ctx context.Context, response *users_dto.SignInResponseDTO) *users_models.User {
-	userService := users_services.GetUserService()
-	user, err := userService.GetUserByID(ctx, response.UserID)
-	if err != nil {
-		panic(err)
-	}
-	return user
 }
 
 type AuditLogWriterStub struct{}

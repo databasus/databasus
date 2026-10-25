@@ -31,11 +31,11 @@ import (
 	"databasus-backend/internal/features/storages"
 	storage_files "databasus-backend/internal/features/storages/files"
 	users_dto "databasus-backend/internal/features/users/dto"
-	users_enums "databasus-backend/internal/features/users/enums"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_controllers "databasus-backend/internal/features/workspaces/controllers"
 	workspaces_models "databasus-backend/internal/features/workspaces/models"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
+	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/storage"
 	"databasus-backend/internal/util/encryption"
 	"databasus-backend/internal/util/logger"
@@ -220,7 +220,7 @@ func wirePhysicalDBFixture(
 		backups_config_logical.GetBackupConfigController(),
 	)
 
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner, router)
 	t.Cleanup(func() { workspaces_testing.RemoveTestWorkspace(context.Background(), workspace, router) })

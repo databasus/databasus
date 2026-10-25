@@ -6,7 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
-	users_middleware "databasus-backend/internal/features/users/middleware"
+	"databasus-backend/internal/modules/users"
 )
 
 type VerificationConfigController struct {
@@ -19,7 +19,7 @@ func (c *VerificationConfigController) RegisterRoutes(router *gin.RouterGroup) {
 }
 
 func (c *VerificationConfigController) GetByDatabaseID(ctx *gin.Context) {
-	user, ok := users_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -31,7 +31,7 @@ func (c *VerificationConfigController) GetByDatabaseID(ctx *gin.Context) {
 		return
 	}
 
-	config, err := c.verificationConfigService.GetByDatabaseID(ctx.Request.Context(), user, databaseID)
+	config, err := c.verificationConfigService.GetByDatabaseID(ctx.Request.Context(), actor, databaseID)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -41,7 +41,7 @@ func (c *VerificationConfigController) GetByDatabaseID(ctx *gin.Context) {
 }
 
 func (c *VerificationConfigController) Save(ctx *gin.Context) {
-	user, ok := users_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -59,7 +59,7 @@ func (c *VerificationConfigController) Save(ctx *gin.Context) {
 		return
 	}
 
-	config, err := c.verificationConfigService.Save(ctx.Request.Context(), user, databaseID, &req)
+	config, err := c.verificationConfigService.Save(ctx.Request.Context(), actor, databaseID, &req)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return

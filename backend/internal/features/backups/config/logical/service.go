@@ -11,8 +11,8 @@ import (
 	"databasus-backend/internal/features/intervals"
 	"databasus-backend/internal/features/notifiers"
 	"databasus-backend/internal/features/storages"
-	users_models "databasus-backend/internal/features/users/models"
 	workspaces_services "databasus-backend/internal/features/workspaces/services"
+	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/util/period"
 )
 
@@ -45,14 +45,14 @@ func (s *BackupConfigService) GetStorageAttachedDatabasesIDs(
 
 func (s *BackupConfigService) SaveBackupConfigWithAuth(
 	ctx context.Context,
-	user *users_models.User,
+	actor users.Actor,
 	backupConfig *LogicalBackupConfig,
 ) (*LogicalBackupConfig, error) {
 	if err := backupConfig.Validate(); err != nil {
 		return nil, err
 	}
 
-	database, err := s.databaseService.GetDatabase(ctx, user, backupConfig.DatabaseID)
+	database, err := s.databaseService.GetDatabase(ctx, actor, backupConfig.DatabaseID)
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +61,7 @@ func (s *BackupConfigService) SaveBackupConfigWithAuth(
 		return nil, errors.New("cannot save backup config for database without workspace")
 	}
 
-	canManage, err := s.workspaceService.CanUserManageDBs(ctx, *database.WorkspaceID, user)
+	canManage, err := s.workspaceService.CanUserManageDBs(ctx, *database.WorkspaceID, actor)
 	if err != nil {
 		return nil, err
 	}
@@ -122,10 +122,10 @@ func (s *BackupConfigService) SaveBackupConfig(
 
 func (s *BackupConfigService) GetBackupConfigByDbIdWithAuth(
 	ctx context.Context,
-	user *users_models.User,
+	actor users.Actor,
 	databaseID uuid.UUID,
 ) (*LogicalBackupConfig, error) {
-	_, err := s.databaseService.GetDatabase(ctx, user, databaseID)
+	_, err := s.databaseService.GetDatabase(ctx, actor, databaseID)
 	if err != nil {
 		return nil, err
 	}
@@ -155,10 +155,10 @@ func (s *BackupConfigService) GetBackupConfigByDbId(
 
 func (s *BackupConfigService) IsStorageInUse(
 	ctx context.Context,
-	user *users_models.User,
+	actor users.Actor,
 	storageID uuid.UUID,
 ) (bool, error) {
-	_, err := s.storageService.GetStorage(ctx, user, storageID)
+	_, err := s.storageService.GetStorage(ctx, actor, storageID)
 	if err != nil {
 		return false, err
 	}
@@ -168,10 +168,10 @@ func (s *BackupConfigService) IsStorageInUse(
 
 func (s *BackupConfigService) CountDatabasesForStorage(
 	ctx context.Context,
-	user *users_models.User,
+	actor users.Actor,
 	storageID uuid.UUID,
 ) (int, error) {
-	_, err := s.storageService.GetStorage(ctx, user, storageID)
+	_, err := s.storageService.GetStorage(ctx, actor, storageID)
 	if err != nil {
 		return 0, err
 	}
@@ -203,7 +203,7 @@ func (s *BackupConfigService) CreateDisabledBackupConfig(databaseID uuid.UUID) e
 
 func (s *BackupConfigService) TransferDatabaseToWorkspace(
 	ctx context.Context,
-	user *users_models.User,
+	actor users.Actor,
 	databaseID uuid.UUID,
 	request *TransferDatabaseRequest,
 ) error {
@@ -216,7 +216,7 @@ func (s *BackupConfigService) TransferDatabaseToWorkspace(
 		return ErrDatabaseHasNoWorkspace
 	}
 
-	canManageSource, err := s.workspaceService.CanUserManageDBs(ctx, *database.WorkspaceID, user)
+	canManageSource, err := s.workspaceService.CanUserManageDBs(ctx, *database.WorkspaceID, actor)
 	if err != nil {
 		return err
 	}
@@ -224,7 +224,7 @@ func (s *BackupConfigService) TransferDatabaseToWorkspace(
 		return ErrInsufficientPermissionsInSourceWorkspace
 	}
 
-	canManageTarget, err := s.workspaceService.CanUserManageDBs(ctx, request.TargetWorkspaceID, user)
+	canManageTarget, err := s.workspaceService.CanUserManageDBs(ctx, request.TargetWorkspaceID, actor)
 	if err != nil {
 		return err
 	}
@@ -242,7 +242,7 @@ func (s *BackupConfigService) TransferDatabaseToWorkspace(
 	}
 
 	if request.IsTransferWithNotifiers {
-		s.transferNotifiers(ctx, user, database, request.TargetWorkspaceID)
+		s.transferNotifiers(ctx, actor, database, request.TargetWorkspaceID)
 	}
 
 	switch {
@@ -266,7 +266,7 @@ func (s *BackupConfigService) TransferDatabaseToWorkspace(
 
 		err = s.storageService.TransferStorageToWorkspace(
 			ctx,
-			user,
+			actor,
 			*backupConfig.StorageID,
 			request.TargetWorkspaceID,
 			&databaseID,
@@ -338,14 +338,14 @@ func (s *BackupConfigService) initializeDefaultConfig(
 
 func (s *BackupConfigService) transferNotifiers(
 	ctx context.Context,
-	user *users_models.User,
+	actor users.Actor,
 	database *databases.Database,
 	targetWorkspaceID uuid.UUID,
 ) {
 	for _, notifier := range database.Notifiers {
 		_ = s.notifierService.TransferNotifierToWorkspace(
 			ctx,
-			user,
+			actor,
 			notifier.ID,
 			targetWorkspaceID,
 			&database.ID,

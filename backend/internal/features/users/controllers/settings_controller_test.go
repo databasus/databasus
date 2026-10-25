@@ -11,9 +11,9 @@ import (
 	"github.com/stretchr/testify/require"
 
 	users_dto "databasus-backend/internal/features/users/dto"
-	users_enums "databasus-backend/internal/features/users/enums"
 	users_services "databasus-backend/internal/features/users/services"
 	users_testing "databasus-backend/internal/features/users/testing"
+	"databasus-backend/internal/modules/users"
 	test_utils "databasus-backend/internal/util/testing"
 )
 
@@ -22,7 +22,7 @@ func Test_GetUserSettings_WhenUserIsAdmin_ReturnsSettings(t *testing.T) {
 	router := createSettingsTestRouter()
 
 	// Create admin user and get token
-	testUser := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	testUser := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 
 	var response users_dto.SettingsResponseDTO
 	test_utils.MakeGetRequestAndUnmarshal(
@@ -49,7 +49,7 @@ func Test_GetUserSettings_WhenUserIsMember_ReturnsSettings(t *testing.T) {
 	router := createSettingsTestRouter()
 
 	// Create member user and get token
-	testUser := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	testUser := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
 	_ = test_utils.MakeGetRequest(
 		t,
@@ -72,7 +72,7 @@ func Test_UpdateUserSettings_WhenUserIsAdmin_SettingsUpdated(t *testing.T) {
 	router := createSettingsTestRouter()
 
 	// Create admin user and get token
-	testUser := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	testUser := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 
 	// Update some settings
 	request := users_dto.UpdateSettingsRequestDTO{
@@ -103,7 +103,7 @@ func Test_UpdateUserSettings_WithPartialData_SettingsUpdated(t *testing.T) {
 	router := createSettingsTestRouter()
 
 	// Create admin user and get token
-	testUser := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	testUser := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 
 	// Update only one setting
 	request := users_dto.UpdateSettingsRequestDTO{
@@ -136,7 +136,7 @@ func Test_UpdateUserSettings_WhenUserIsMember_ReturnsForbidden(t *testing.T) {
 	router := createSettingsTestRouter()
 
 	// Create member user and get token
-	testUser := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	testUser := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
 	request := users_dto.UpdateSettingsRequestDTO{
 		IsAllowExternalRegistrations: false,
@@ -158,7 +158,7 @@ func Test_UpdateUserSettings_WithInvalidJSON_ReturnsBadRequest(t *testing.T) {
 	router := createSettingsTestRouter()
 
 	// Create admin user and get token
-	testUser := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	testUser := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 
 	// Test with invalid JSON structure
 	resp := test_utils.MakeRequest(t, router, test_utils.RequestOptions{
@@ -194,7 +194,7 @@ func Test_GetUserSettings_WhenMailServerIsConfigured_ReportsItConfigured(t *test
 	users_testing.ResetSettingsToDefaults(t.Context())
 	router, _ := createSettingsTestRouterWithMailSender(t, false)
 
-	admin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 
 	var response users_dto.SettingsResponseDTO
 	test_utils.MakeGetRequestAndUnmarshal(
@@ -213,7 +213,7 @@ func Test_GetUserSettings_WhenMailServerIsMissing_ReportsItUnconfigured(t *testi
 	users_testing.ResetSettingsToDefaults(t.Context())
 	router, _ := createSettingsTestRouterWithMailSender(t, true)
 
-	admin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 
 	var response users_dto.SettingsResponseDTO
 	test_utils.MakeGetRequestAndUnmarshal(
@@ -232,7 +232,7 @@ func Test_UpdateUserSettings_WhenRequestCarriesTheDerivedField_StoredRowIsUntouc
 	users_testing.ResetSettingsToDefaults(t.Context())
 	router, _ := createSettingsTestRouterWithMailSender(t, true)
 
-	admin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 
 	response := test_utils.MakeRequest(t, router, test_utils.RequestOptions{
 		Method: "PUT",
@@ -262,7 +262,7 @@ func Test_UpdateUserSettings_TurningTwoFactorOn_ReadsBackTheNewValue(t *testing.
 	router, _ := createSettingsTestRouterWithMailSender(t, false)
 	users_testing.DeleteAllUsers()
 
-	admin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 
 	var beforeUpdate users_dto.SettingsResponseDTO
 	test_utils.MakeGetRequestAndUnmarshal(
@@ -304,7 +304,7 @@ func Test_UpdateUserSettings_WhenASwitchChanges_AuditLogCarriesItsOldAndNewValue
 	router, _ := createSettingsTestRouterWithMailSender(t, false)
 	users_testing.DeleteAllUsers()
 
-	admin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 	recorder := users_testing.GetAuditLogRecorder()
 
 	test_utils.MakePutRequest(
@@ -337,7 +337,7 @@ func Test_UpdateUserSettings_WhenNothingChanges_WritesNoAuditEntry(t *testing.T)
 	users_testing.ResetSettingsToDefaults(t.Context())
 	router, _ := createSettingsTestRouterWithMailSender(t, false)
 
-	admin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 	recorder := users_testing.GetAuditLogRecorder()
 
 	test_utils.MakePutRequest(
@@ -363,7 +363,7 @@ func Test_UpdateUserSettings_WhenMailServerIsMissing_RefusesToRequireTwoFactor(t
 	router, _ := createSettingsTestRouterWithMailSender(t, true)
 	users_testing.DeleteAllUsers()
 
-	admin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 
 	response := test_utils.MakePutRequest(
 		t,
@@ -385,10 +385,10 @@ func Test_UpdateUserSettings_WhenAnAdminHasNoUsableAddress_RefusesAndNamesTheAcc
 	router, _ := createSettingsTestRouterWithMailSender(t, false)
 	users_testing.DeleteAllUsers()
 
-	admin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 	unreachableAdmin := users_testing.CreateTestUserWithEmail(
 		t.Context(),
-		users_enums.UserRoleAdmin,
+		users.RoleAdmin,
 		"admin",
 	)
 	t.Cleanup(func() { users_testing.DeleteTestUser(context.Background(), unreachableAdmin.UserID) })
@@ -414,10 +414,10 @@ func Test_UpdateUserSettings_WhenAnInactiveAdminHasNoUsableAddress_StillAccepts(
 	router, _ := createSettingsTestRouterWithMailSender(t, false)
 	users_testing.DeleteAllUsers()
 
-	admin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 	retiredAdmin := users_testing.CreateTestUserWithEmail(
 		t.Context(),
-		users_enums.UserRoleAdmin,
+		users.RoleAdmin,
 		"retired-admin",
 	)
 	users_testing.DeactivateTestUser(t.Context(), retiredAdmin.UserID)
@@ -460,7 +460,7 @@ func countAuditEntries(recorder *users_testing.RecordingAuditLogWriter, fragment
 
 func Test_SendTestEmail_WhenAdminHasAddress_SendsToAdminAndAuditsDelivery(t *testing.T) {
 	router, mockEmailSender := createSettingsTestRouterWithMailSender(t, false)
-	admin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 
 	var response users_dto.SendTestEmailResponseDTO
 	test_utils.MakePostRequestAndUnmarshal(
@@ -475,7 +475,7 @@ func Test_SendTestEmail_WhenAdminHasAddress_SendsToAdminAndAuditsDelivery(t *tes
 
 func Test_SendTestEmail_WhenUserIsMember_ReturnsForbiddenAndSendsNothing(t *testing.T) {
 	router, mockEmailSender := createSettingsTestRouterWithMailSender(t, false)
-	member := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	member := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
 	test_utils.MakePostRequest(
 		t, router, "/api/v1/users/settings/test-email", "Bearer "+member.Token, nil, http.StatusForbidden,
@@ -486,7 +486,7 @@ func Test_SendTestEmail_WhenUserIsMember_ReturnsForbiddenAndSendsNothing(t *test
 
 func Test_SendTestEmail_WhenMailServerIsMissing_RefusesWithCodeAndSendsNothing(t *testing.T) {
 	router, mockEmailSender := createSettingsTestRouterWithMailSender(t, true)
-	admin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 
 	response := test_utils.MakePostRequest(
 		t, router, "/api/v1/users/settings/test-email", "Bearer "+admin.Token, nil, http.StatusBadRequest,
@@ -498,7 +498,7 @@ func Test_SendTestEmail_WhenMailServerIsMissing_RefusesWithCodeAndSendsNothing(t
 
 func Test_SendTestEmail_WhenAdminHasBootstrapLogin_RefusesWithCodeAndSendsNothing(t *testing.T) {
 	router, mockEmailSender := createSettingsTestRouterWithMailSender(t, false)
-	bootstrapAdmin := users_testing.CreateTestUserWithEmail(t.Context(), users_enums.UserRoleAdmin, "admin")
+	bootstrapAdmin := users_testing.CreateTestUserWithEmail(t.Context(), users.RoleAdmin, "admin")
 	t.Cleanup(func() { users_testing.DeleteTestUser(context.Background(), bootstrapAdmin.UserID) })
 
 	response := test_utils.MakePostRequest(
@@ -511,7 +511,7 @@ func Test_SendTestEmail_WhenAdminHasBootstrapLogin_RefusesWithCodeAndSendsNothin
 
 func Test_SendTestEmail_SixthRequestWithinWindow_ReturnsTooManyRequests(t *testing.T) {
 	router, mockEmailSender := createSettingsTestRouterWithMailSender(t, false)
-	admin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 
 	for range 5 {
 		test_utils.MakePostRequest(
@@ -529,7 +529,7 @@ func Test_SendTestEmail_SixthRequestWithinWindow_ReturnsTooManyRequests(t *testi
 func Test_SendTestEmail_WhenDeliveryFails_ReturnsSenderErrorAndAuditsFailure(t *testing.T) {
 	router, mockEmailSender := createSettingsTestRouterWithMailSender(t, false)
 	mockEmailSender.ShouldFail = true
-	admin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 
 	response := test_utils.MakePostRequest(
 		t, router, "/api/v1/users/settings/test-email", "Bearer "+admin.Token, nil, http.StatusBadRequest,

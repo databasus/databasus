@@ -12,17 +12,17 @@ import (
 	"github.com/stretchr/testify/require"
 
 	audit_logs_models "databasus-backend/internal/features/audit_logs/models"
-	user_enums "databasus-backend/internal/features/users/enums"
 	users_middleware "databasus-backend/internal/features/users/middleware"
 	users_repositories "databasus-backend/internal/features/users/repositories"
 	users_services "databasus-backend/internal/features/users/services"
 	users_testing "databasus-backend/internal/features/users/testing"
+	"databasus-backend/internal/modules/users"
 	test_utils "databasus-backend/internal/util/testing"
 )
 
 func Test_GetGlobalAuditLogs_WithDifferentUserRoles_EnforcesPermissionsCorrectly(t *testing.T) {
-	adminUser := users_testing.CreateTestUser(t.Context(), user_enums.UserRoleAdmin)
-	memberUser := users_testing.CreateTestUser(t.Context(), user_enums.UserRoleMember)
+	adminUser := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
+	memberUser := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	router := createRouter()
 	service := GetAuditLogService()
 	workspaceID := uuid.New()
@@ -66,9 +66,9 @@ func Test_GetGlobalAuditLogs_WithDifferentUserRoles_EnforcesPermissionsCorrectly
 }
 
 func Test_GetUserAuditLogs_WithDifferentUserRoles_EnforcesPermissionsCorrectly(t *testing.T) {
-	adminUser := users_testing.CreateTestUser(t.Context(), user_enums.UserRoleAdmin)
-	user1 := users_testing.CreateTestUser(t.Context(), user_enums.UserRoleMember)
-	user2 := users_testing.CreateTestUser(t.Context(), user_enums.UserRoleMember)
+	adminUser := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
+	user1 := users_testing.CreateTestUser(t.Context(), users.RoleMember)
+	user2 := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	router := createRouter()
 	service := GetAuditLogService()
 	workspaceID := uuid.New()
@@ -147,7 +147,7 @@ func Test_GetUserAuditLogs_WithDifferentUserRoles_EnforcesPermissionsCorrectly(t
 }
 
 func Test_GetGlobalAuditLogs_WithBeforeDateFilter_ReturnsFilteredLogs(t *testing.T) {
-	adminUser := users_testing.CreateTestUser(t.Context(), user_enums.UserRoleAdmin)
+	adminUser := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 	router := createRouter()
 	baseTime := time.Now().UTC()
 
@@ -178,8 +178,8 @@ func Test_GetGlobalAuditLogs_WithBeforeDateFilter_ReturnsFilteredLogs(t *testing
 func TestGetAuditLogs(t *testing.T) {
 	t.Run("shows the author's email and name from the event when the user changed both afterwards",
 		func(t *testing.T) {
-			adminUser := users_testing.CreateTestUser(t.Context(), user_enums.UserRoleAdmin)
-			author := users_testing.CreateTestUser(t.Context(), user_enums.UserRoleMember)
+			adminUser := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
+			author := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 			authorBeforeChange, err := users_repositories.GetUserRepository().GetUserByID(t.Context(), author.UserID)
 			require.NoError(t, err)
 			router := createRouter()

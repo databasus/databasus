@@ -13,9 +13,9 @@ import (
 
 	"databasus-backend/internal/config"
 	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
-	users_enums "databasus-backend/internal/features/users/enums"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
+	"databasus-backend/internal/modules/users"
 	test_utils "databasus-backend/internal/util/testing"
 	"databasus-backend/internal/util/tools"
 )
@@ -81,7 +81,7 @@ func Test_TestConnection_OnPhysicalDatabase_DispatchesToReplicationConnection(t 
 	for _, fx := range physicalFixtures() {
 		t.Run(fx.name, func(t *testing.T) {
 			router := createTestRouter()
-			owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+			owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 			workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 
 			database := createPhysicalDatabaseInternalAPI(t, router, workspace.ID, owner.Token, fx)
@@ -105,7 +105,7 @@ func Test_CreateReplicationOnlyUser_OnPhysicalDatabase_ReturnsCredentials(t *tes
 	for _, fixture := range physicalFixtures() {
 		t.Run(fixture.name, func(t *testing.T) {
 			router := createTestRouter()
-			owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+			owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 			workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 
 			database := createPhysicalDatabaseInternalAPI(t, router, workspace.ID, owner.Token, fixture)
@@ -136,7 +136,7 @@ func Test_TestDatabaseConnectionDirect_OnReplicationReadyCluster_ReturnsSuccess(
 	for _, fx := range physicalFixtures() {
 		t.Run(fx.name, func(t *testing.T) {
 			router := createTestRouter()
-			owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+			owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 			workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 
 			database := createPhysicalDatabaseInternalAPI(t, router, workspace.ID, owner.Token, fx)
@@ -158,7 +158,7 @@ func Test_TestDatabaseConnectionDirect_OnReplicationReadyCluster_ReturnsSuccess(
 
 func Test_TestDatabaseConnectionDirect_WithoutPhysicalConfig_ReturnsBadRequest(t *testing.T) {
 	router := createTestRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
 
@@ -183,7 +183,7 @@ func Test_CreatePhysicalDatabase_DetectsVersionFromServer_OverridingPayloadVersi
 	for _, fx := range physicalFixtures() {
 		t.Run(fx.name, func(t *testing.T) {
 			router := createTestRouter()
-			owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+			owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 			workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 
 			request := buildPhysicalDatabaseRequest(t, workspace.ID, fx)
@@ -209,7 +209,7 @@ func Test_CreatePhysicalDatabase_DetectsVersionFromServer_OverridingPayloadVersi
 
 func Test_CreatePhysicalDatabase_OnUnsupportedServerVersion_ReturnsError(t *testing.T) {
 	router := createTestRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
 
@@ -241,7 +241,7 @@ func Test_CreatePhysicalDatabase_OnUnsupportedServerVersion_ReturnsError(t *test
 
 func Test_CreateReplicationOnlyUser_OnLogicalDatabase_ReturnsBadRequest(t *testing.T) {
 	router := createTestRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 
 	logicalDB := createTestDatabaseViaAPI("Logical DB", workspace.ID, owner.Token, router)
@@ -265,7 +265,7 @@ func Test_UpdatePhysicalDatabase_KeepsSameChildRow_WithStableIdAndDatabaseId(t *
 	for _, fx := range physicalFixtures() {
 		t.Run(fx.name, func(t *testing.T) {
 			router := createTestRouter()
-			owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+			owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 			workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 
 			database := createPhysicalDatabaseInternalAPI(t, router, workspace.ID, owner.Token, fx)
@@ -310,7 +310,7 @@ func Test_CopyDatabase_OnPhysicalDatabase_DoesNotCopySystemIdentifier(t *testing
 	for _, fx := range physicalFixtures() {
 		t.Run(fx.name, func(t *testing.T) {
 			router := createTestRouter()
-			owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+			owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 			workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 
 			originalDatabase := createPhysicalDatabaseInternalAPI(t, router, workspace.ID, owner.Token, fx)

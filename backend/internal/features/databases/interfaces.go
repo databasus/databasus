@@ -7,8 +7,8 @@ import (
 
 	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
 	users_enums "databasus-backend/internal/features/users/enums"
-	users_models "databasus-backend/internal/features/users/models"
 	workspaces_models "databasus-backend/internal/features/workspaces/models"
+	"databasus-backend/internal/modules/users"
 )
 
 type databaseStore interface {
@@ -26,9 +26,9 @@ type workspaceService interface {
 	CanUserAccessWorkspace(
 		ctx context.Context,
 		workspaceID uuid.UUID,
-		user *users_models.User,
+		actor users.Actor,
 	) (bool, *users_enums.WorkspaceRole, error)
-	CanUserManageDBs(ctx context.Context, workspaceID uuid.UUID, user *users_models.User) (bool, error)
+	CanUserManageDBs(ctx context.Context, workspaceID uuid.UUID, actor users.Actor) (bool, error)
 	GetWorkspaceByID(workspaceID uuid.UUID) (*workspaces_models.Workspace, error)
 }
 

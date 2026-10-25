@@ -20,9 +20,9 @@ import (
 	restores_core "databasus-backend/internal/features/restores/core"
 	"databasus-backend/internal/features/storages"
 	logicaltesting "databasus-backend/internal/features/tests/logical/shared"
-	users_enums "databasus-backend/internal/features/users/enums"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
+	"databasus-backend/internal/modules/users"
 	test_utils "databasus-backend/internal/util/testing"
 	"databasus-backend/internal/util/testing/bastion"
 	"databasus-backend/internal/util/testing/containers"
@@ -68,7 +68,7 @@ func Test_MariadbBackupRestore_OverSshTunnel_RestoresData(t *testing.T) {
 	setupMariadbTestData(t, sourceConnection)
 
 	router := logicaltesting.CreateTestRouter()
-	user := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "MariaDB SSH Tunnel Workspace", user, router)
 	t.Cleanup(func() { workspaces_testing.RemoveTestWorkspace(context.Background(), workspace, router) })
 

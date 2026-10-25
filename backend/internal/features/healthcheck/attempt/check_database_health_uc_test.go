@@ -15,9 +15,9 @@ import (
 	"databasus-backend/internal/features/notifiers"
 	notifier_models "databasus-backend/internal/features/notifiers/models"
 	"databasus-backend/internal/features/storages"
-	users_enums "databasus-backend/internal/features/users/enums"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
+	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/util/logger"
 )
 
@@ -62,7 +62,7 @@ func newTestHealthcheckConfig(databaseID uuid.UUID) *healthcheck_config.Healthch
 }
 
 func Test_CheckDatabaseHealthUseCase(t *testing.T) {
-	user := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	user := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 
 	// Create workspace directly via service
 	workspace, err := workspaces_testing.CreateTestWorkspaceDirect("Test Workspace", user.UserID)

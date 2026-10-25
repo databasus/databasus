@@ -11,10 +11,10 @@ import (
 	"databasus-backend/internal/features/databases"
 	"databasus-backend/internal/features/notifiers"
 	"databasus-backend/internal/features/storages"
-	users_enums "databasus-backend/internal/features/users/enums"
 	users_testing "databasus-backend/internal/features/users/testing"
 	verification_agents "databasus-backend/internal/features/verification/agents"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
+	"databasus-backend/internal/modules/users"
 )
 
 // Test_ClaimVerification_AssignmentDatabase_StripsSensitiveData locks down the
@@ -22,7 +22,7 @@ import (
 // notifier secrets must be empty when the JobAssignment leaves the server.
 func Test_ClaimVerification_AssignmentDatabase_StripsSensitiveData(t *testing.T) {
 	router := createTestRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner, router)
 	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
 

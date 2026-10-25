@@ -23,10 +23,10 @@ import (
 	notifier_models "databasus-backend/internal/features/notifiers/models"
 	"databasus-backend/internal/features/storages"
 	storage_files "databasus-backend/internal/features/storages/files"
-	users_enums "databasus-backend/internal/features/users/enums"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
 	"databasus-backend/internal/lib/logging"
+	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/util/cache"
 	"databasus-backend/internal/util/encryption"
 	util_logger "databasus-backend/internal/util/logger"
@@ -59,7 +59,7 @@ func (*createStoredArtifactThenFailBackupUsecase) Execute(
 
 func Test_BackupExecuted_NotificationSent(t *testing.T) {
 	cache.GetStore().Clear(t.Context())
-	user := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	user := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 	router := CreateTestRouter()
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", user, router)
 	storage := storages.CreateTestStorage(workspace.ID)

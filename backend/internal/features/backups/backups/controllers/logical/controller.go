@@ -16,7 +16,7 @@ import (
 	backups_dto_logical "databasus-backend/internal/features/backups/backups/dto/logical"
 	backups_services "databasus-backend/internal/features/backups/backups/services"
 	"databasus-backend/internal/features/databases"
-	users_middleware "databasus-backend/internal/features/users/middleware"
+	"databasus-backend/internal/modules/users"
 	files_utils "databasus-backend/internal/util/files"
 )
 
@@ -39,7 +39,7 @@ func (c *BackupController) RegisterPublicRoutes(router *gin.RouterGroup) {
 }
 
 func (c *BackupController) GetBackups(ctx *gin.Context) {
-	user, ok := users_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -61,7 +61,7 @@ func (c *BackupController) GetBackups(ctx *gin.Context) {
 
 	response, err := c.backupService.GetBackups(
 		ctx.Request.Context(),
-		user,
+		actor,
 		databaseID,
 		request.Limit,
 		request.Offset,
@@ -76,7 +76,7 @@ func (c *BackupController) GetBackups(ctx *gin.Context) {
 }
 
 func (c *BackupController) MakeBackup(ctx *gin.Context) {
-	user, ok := users_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -88,7 +88,7 @@ func (c *BackupController) MakeBackup(ctx *gin.Context) {
 		return
 	}
 
-	if err := c.backupService.MakeBackupWithAuth(ctx.Request.Context(), user, request.DatabaseID); err != nil {
+	if err := c.backupService.MakeBackupWithAuth(ctx.Request.Context(), actor, request.DatabaseID); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -97,7 +97,7 @@ func (c *BackupController) MakeBackup(ctx *gin.Context) {
 }
 
 func (c *BackupController) DeleteBackup(ctx *gin.Context) {
-	user, ok := users_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -109,7 +109,7 @@ func (c *BackupController) DeleteBackup(ctx *gin.Context) {
 		return
 	}
 
-	if err := c.backupService.DeleteBackup(ctx.Request.Context(), user, id); err != nil {
+	if err := c.backupService.DeleteBackup(ctx.Request.Context(), actor, id); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -118,7 +118,7 @@ func (c *BackupController) DeleteBackup(ctx *gin.Context) {
 }
 
 func (c *BackupController) CancelBackup(ctx *gin.Context) {
-	user, ok := users_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -130,7 +130,7 @@ func (c *BackupController) CancelBackup(ctx *gin.Context) {
 		return
 	}
 
-	if err := c.backupService.CancelBackup(ctx.Request.Context(), user, id); err != nil {
+	if err := c.backupService.CancelBackup(ctx.Request.Context(), actor, id); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -139,7 +139,7 @@ func (c *BackupController) CancelBackup(ctx *gin.Context) {
 }
 
 func (c *BackupController) GenerateDownloadToken(ctx *gin.Context) {
-	user, ok := users_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -151,7 +151,7 @@ func (c *BackupController) GenerateDownloadToken(ctx *gin.Context) {
 		return
 	}
 
-	response, err := c.backupService.GenerateDownloadToken(ctx.Request.Context(), user, id)
+	response, err := c.backupService.GenerateDownloadToken(ctx.Request.Context(), actor, id)
 	if err != nil {
 		if errors.Is(err, stream_guard.ErrDownloadAlreadyInProgress) {
 			ctx.JSON(

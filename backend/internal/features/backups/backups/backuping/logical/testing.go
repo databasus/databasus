@@ -17,11 +17,11 @@ import (
 	"databasus-backend/internal/features/databases"
 	"databasus-backend/internal/features/notifiers"
 	"databasus-backend/internal/features/storages"
-	users_enums "databasus-backend/internal/features/users/enums"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_controllers "databasus-backend/internal/features/workspaces/controllers"
 	workspaces_services "databasus-backend/internal/features/workspaces/services"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
+	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/storage"
 	"databasus-backend/internal/util/cache"
 	"databasus-backend/internal/util/logger"
@@ -96,7 +96,7 @@ func CreateBackupTestFixture(t *testing.T, workspaceName string) *BackupTestFixt
 		t.Fatalf("clear cache before backup fixture: %v", err)
 	}
 
-	user := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	user := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 	router := CreateTestRouter()
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), workspaceName, user, router)
 	createdStorage := storages.CreateTestStorage(workspace.ID)

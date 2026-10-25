@@ -7,8 +7,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
-	users_middleware "databasus-backend/internal/features/users/middleware"
 	workspaces_services "databasus-backend/internal/features/workspaces/services"
+	"databasus-backend/internal/modules/users"
 )
 
 type NotifierController struct {
@@ -27,7 +27,7 @@ func (c *NotifierController) RegisterRoutes(router *gin.RouterGroup) {
 }
 
 func (c *NotifierController) SaveNotifier(ctx *gin.Context) {
-	user, ok := users_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -44,7 +44,7 @@ func (c *NotifierController) SaveNotifier(ctx *gin.Context) {
 		return
 	}
 
-	if err := c.notifierService.SaveNotifier(ctx.Request.Context(), user, request.WorkspaceID, &request); err != nil {
+	if err := c.notifierService.SaveNotifier(ctx.Request.Context(), actor, request.WorkspaceID, &request); err != nil {
 		if errors.Is(err, ErrInsufficientPermissionsToManageNotifier) {
 			ctx.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
 			return
@@ -57,7 +57,7 @@ func (c *NotifierController) SaveNotifier(ctx *gin.Context) {
 }
 
 func (c *NotifierController) GetNotifier(ctx *gin.Context) {
-	user, ok := users_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -69,7 +69,7 @@ func (c *NotifierController) GetNotifier(ctx *gin.Context) {
 		return
 	}
 
-	notifier, err := c.notifierService.GetNotifier(ctx.Request.Context(), user, id)
+	notifier, err := c.notifierService.GetNotifier(ctx.Request.Context(), actor, id)
 	if err != nil {
 		if errors.Is(err, ErrInsufficientPermissionsToViewNotifier) {
 			ctx.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
@@ -83,7 +83,7 @@ func (c *NotifierController) GetNotifier(ctx *gin.Context) {
 }
 
 func (c *NotifierController) GetNotifiers(ctx *gin.Context) {
-	user, ok := users_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -101,7 +101,7 @@ func (c *NotifierController) GetNotifiers(ctx *gin.Context) {
 		return
 	}
 
-	notifiers, err := c.notifierService.GetNotifiers(ctx.Request.Context(), user, workspaceID)
+	notifiers, err := c.notifierService.GetNotifiers(ctx.Request.Context(), actor, workspaceID)
 	if err != nil {
 		if errors.Is(err, ErrInsufficientPermissionsToViewNotifiers) {
 			ctx.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
@@ -115,7 +115,7 @@ func (c *NotifierController) GetNotifiers(ctx *gin.Context) {
 }
 
 func (c *NotifierController) DeleteNotifier(ctx *gin.Context) {
-	user, ok := users_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -127,7 +127,7 @@ func (c *NotifierController) DeleteNotifier(ctx *gin.Context) {
 		return
 	}
 
-	if err := c.notifierService.DeleteNotifier(ctx.Request.Context(), user, id); err != nil {
+	if err := c.notifierService.DeleteNotifier(ctx.Request.Context(), actor, id); err != nil {
 		if errors.Is(err, ErrInsufficientPermissionsToManageNotifier) {
 			ctx.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
 			return
@@ -140,7 +140,7 @@ func (c *NotifierController) DeleteNotifier(ctx *gin.Context) {
 }
 
 func (c *NotifierController) SendTestNotification(ctx *gin.Context) {
-	user, ok := users_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -152,7 +152,7 @@ func (c *NotifierController) SendTestNotification(ctx *gin.Context) {
 		return
 	}
 
-	if err := c.notifierService.SendTestNotification(ctx.Request.Context(), user, id); err != nil {
+	if err := c.notifierService.SendTestNotification(ctx.Request.Context(), actor, id); err != nil {
 		if errors.Is(err, ErrInsufficientPermissionsToTestNotifier) {
 			ctx.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
 			return
@@ -165,7 +165,7 @@ func (c *NotifierController) SendTestNotification(ctx *gin.Context) {
 }
 
 func (c *NotifierController) TransferNotifierToWorkspace(ctx *gin.Context) {
-	user, ok := users_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -190,7 +190,7 @@ func (c *NotifierController) TransferNotifierToWorkspace(ctx *gin.Context) {
 
 	if err := c.notifierService.TransferNotifierToWorkspace(
 		ctx.Request.Context(),
-		user,
+		actor,
 		id,
 		request.TargetWorkspaceID,
 		nil,
@@ -208,7 +208,7 @@ func (c *NotifierController) TransferNotifierToWorkspace(ctx *gin.Context) {
 }
 
 func (c *NotifierController) SendTestNotificationDirect(ctx *gin.Context) {
-	user, ok := users_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -225,7 +225,7 @@ func (c *NotifierController) SendTestNotificationDirect(ctx *gin.Context) {
 		return
 	}
 
-	canView, _, err := c.workspaceService.CanUserAccessWorkspace(ctx.Request.Context(), request.WorkspaceID, user)
+	canView, _, err := c.workspaceService.CanUserAccessWorkspace(ctx.Request.Context(), request.WorkspaceID, actor)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return

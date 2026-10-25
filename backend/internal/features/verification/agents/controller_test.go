@@ -12,12 +12,12 @@ import (
 	"github.com/stretchr/testify/require"
 
 	audit_logs "databasus-backend/internal/features/audit_logs"
-	users_enums "databasus-backend/internal/features/users/enums"
 	users_middleware "databasus-backend/internal/features/users/middleware"
 	users_services "databasus-backend/internal/features/users/services"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_controllers "databasus-backend/internal/features/workspaces/controllers"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
+	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/storage"
 	test_utils "databasus-backend/internal/util/testing"
 )
@@ -57,7 +57,7 @@ func Test_CreateAgent_WhenUserIsAdmin_AgentCreated(t *testing.T) {
 	cleanupAgents(t)
 
 	router := createTestRouter()
-	admin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 
 	name := "test-agent-" + uuid.New().String()
 	var createResponse CreatedAgentResponse
@@ -97,7 +97,7 @@ func Test_CreateAgent_ResponseJSON_NeverIncludesTokenHashOrDeletedAt(t *testing.
 	cleanupAgents(t)
 
 	router := createTestRouter()
-	admin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 
 	createResponse := test_utils.MakePostRequest(
 		t, router,
@@ -120,7 +120,7 @@ func Test_CreateAgent_WhenUserIsMember_ReturnsForbidden(t *testing.T) {
 	cleanupAgents(t)
 
 	router := createTestRouter()
-	member := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	member := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
 	test_utils.MakePostRequest(
 		t, router,
@@ -149,7 +149,7 @@ func Test_CreateAgent_WhenUserIsWorkspaceOwner_StillReturnsForbidden(t *testing.
 	cleanupAgents(t)
 
 	router := createTestRouter()
-	member := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	member := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws-"+uuid.New().String(), member, router)
 	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
 
@@ -166,7 +166,7 @@ func Test_ListAgents_WhenUserIsAdmin_ReturnsAll(t *testing.T) {
 	cleanupAgents(t)
 
 	router := createTestRouter()
-	admin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 
 	CreateTestVerificationAgent(t, router, admin.Token, "agent-a-"+uuid.New().String())
 	CreateTestVerificationAgent(t, router, admin.Token, "agent-b-"+uuid.New().String())
@@ -186,7 +186,7 @@ func Test_ListAgents_WhenUserIsMember_ReturnsForbidden(t *testing.T) {
 	cleanupAgents(t)
 
 	router := createTestRouter()
-	member := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	member := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
 	test_utils.MakeGetRequest(
 		t, router,
@@ -213,7 +213,7 @@ func Test_RotateToken_WhenUserIsAdmin_ReturnsNewToken_InvalidatesOld(t *testing.
 	cleanupAgents(t)
 
 	router := createTestRouter()
-	admin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 
 	createdAgent := CreateTestVerificationAgent(t, router, admin.Token, "rotate-test-"+uuid.New().String())
 	originalToken := createdAgent.Token
@@ -246,8 +246,8 @@ func Test_RotateToken_WhenUserIsMember_ReturnsForbidden(t *testing.T) {
 	cleanupAgents(t)
 
 	router := createTestRouter()
-	admin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
-	member := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
+	member := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
 	createdAgent := CreateTestVerificationAgent(t, router, admin.Token, "rotate-forbid-"+uuid.New().String())
 
@@ -295,7 +295,7 @@ func Test_RotateToken_OnUnknownID_Returns404(t *testing.T) {
 	cleanupAgents(t)
 
 	router := createTestRouter()
-	admin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 
 	test_utils.MakePostRequest(
 		t, router,
@@ -310,7 +310,7 @@ func Test_RotateToken_OnSoftDeletedAgent_Returns404(t *testing.T) {
 	cleanupAgents(t)
 
 	router := createTestRouter()
-	admin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 
 	createdAgent := CreateTestVerificationAgent(t, router, admin.Token, "rotate-deleted-"+uuid.New().String())
 
@@ -334,7 +334,7 @@ func Test_DeleteAgent_WhenUserIsAdmin_RemovesFromList(t *testing.T) {
 	cleanupAgents(t)
 
 	router := createTestRouter()
-	admin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 
 	createdAgent := CreateTestVerificationAgent(t, router, admin.Token, "delete-test-"+uuid.New().String())
 
@@ -361,8 +361,8 @@ func Test_DeleteAgent_WhenUserIsMember_ReturnsForbidden(t *testing.T) {
 	cleanupAgents(t)
 
 	router := createTestRouter()
-	admin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
-	member := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
+	member := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
 	createdAgent := CreateTestVerificationAgent(t, router, admin.Token, "delete-forbid-"+uuid.New().String())
 
@@ -407,7 +407,7 @@ func Test_DeleteAgent_OnUnknownID_Returns404(t *testing.T) {
 	cleanupAgents(t)
 
 	router := createTestRouter()
-	admin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 
 	test_utils.MakeDeleteRequest(
 		t, router,
@@ -421,7 +421,7 @@ func Test_DeleteAgent_Twice_SecondCallReturns404(t *testing.T) {
 	cleanupAgents(t)
 
 	router := createTestRouter()
-	admin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 
 	createdAgent := CreateTestVerificationAgent(t, router, admin.Token, "delete-twice-"+uuid.New().String())
 
@@ -453,7 +453,7 @@ func Test_ListAgents_ExcludesSoftDeletedAgents(t *testing.T) {
 	cleanupAgents(t)
 
 	router := createTestRouter()
-	admin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 
 	keptAgent := CreateTestVerificationAgent(t, router, admin.Token, "kept-"+uuid.New().String())
 	deletedAgent := CreateTestVerificationAgent(t, router, admin.Token, "deleted-"+uuid.New().String())
@@ -498,7 +498,7 @@ func Test_CreateAgent_WritesAuditLog(t *testing.T) {
 	cleanupAgents(t)
 
 	router := createTestRouter()
-	admin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 
 	name := "audit-test-" + uuid.New().String()
 	CreateTestVerificationAgent(t, router, admin.Token, name)
@@ -524,7 +524,7 @@ func Test_CreateAgent_TokenIsHex32(t *testing.T) {
 	cleanupAgents(t)
 
 	router := createTestRouter()
-	admin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 
 	createdAgent := CreateTestVerificationAgent(t, router, admin.Token, "hex-token-"+uuid.New().String())
 
@@ -536,8 +536,8 @@ func Test_GetAvailability_WhenUserIsMember_ReturnsCountWithoutAgentDetails(t *te
 	cleanupAgents(t)
 
 	router := createTestRouter()
-	admin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
-	member := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
+	member := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
 	CreateTestVerificationAgent(t, router, admin.Token, "avail-a-"+uuid.New().String())
 	CreateTestVerificationAgent(t, router, admin.Token, "avail-b-"+uuid.New().String())
@@ -566,7 +566,7 @@ func Test_GetAvailability_WhenNoAgents_ReturnsZeroAndFalse(t *testing.T) {
 	cleanupAgents(t)
 
 	router := createTestRouter()
-	member := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	member := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
 	var availability AvailabilityResponse
 	test_utils.MakeGetRequestAndUnmarshal(
@@ -597,8 +597,8 @@ func Test_GetAvailability_ExcludesSoftDeletedAgents(t *testing.T) {
 	cleanupAgents(t)
 
 	router := createTestRouter()
-	admin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
-	member := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
+	member := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
 	keptAgent := CreateTestVerificationAgent(t, router, admin.Token, "avail-kept-"+uuid.New().String())
 	deletedAgent := CreateTestVerificationAgent(t, router, admin.Token, "avail-deleted-"+uuid.New().String())
@@ -628,7 +628,7 @@ func Test_ListAgents_JSONShape_NoInternalFields(t *testing.T) {
 	cleanupAgents(t)
 
 	router := createTestRouter()
-	admin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 
 	CreateTestVerificationAgent(t, router, admin.Token, "shape-"+uuid.New().String())
 

@@ -15,7 +15,7 @@ import (
 	physical_core_service "databasus-backend/internal/features/backups/backups/core/physical/service"
 	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
 	"databasus-backend/internal/features/notifiers"
-	users_models "databasus-backend/internal/features/users/models"
+	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/util/encryption"
 )
 
@@ -72,11 +72,11 @@ func (s *DatabaseService) GetNotifierAttachedDatabasesIDs(
 
 func (s *DatabaseService) CreateDatabase(
 	ctx context.Context,
-	user *users_models.User,
+	actor users.Actor,
 	workspaceID uuid.UUID,
 	database *Database,
 ) (*Database, error) {
-	canManage, err := s.workspaceService.CanUserManageDBs(ctx, workspaceID, user)
+	canManage, err := s.workspaceService.CanUserManageDBs(ctx, workspaceID, actor)
 	if err != nil {
 		return nil, err
 	}
@@ -133,7 +133,7 @@ func (s *DatabaseService) CreateDatabase(
 
 	s.auditLogService.WriteAuditLog(ctx, audit_logs_models.AuditEntry{
 		Message:     fmt.Sprintf("Database created: %s", database.Name),
-		UserID:      &user.ID,
+		UserID:      &actor.UserID,
 		WorkspaceID: &workspaceID,
 	})
 
@@ -142,7 +142,7 @@ func (s *DatabaseService) CreateDatabase(
 
 func (s *DatabaseService) UpdateDatabase(
 	ctx context.Context,
-	user *users_models.User,
+	actor users.Actor,
 	database *Database,
 ) error {
 	if database.ID == uuid.Nil {
@@ -158,7 +158,7 @@ func (s *DatabaseService) UpdateDatabase(
 		return errors.New("cannot update database without workspace")
 	}
 
-	canManage, err := s.workspaceService.CanUserManageDBs(ctx, *existingDatabase.WorkspaceID, user)
+	canManage, err := s.workspaceService.CanUserManageDBs(ctx, *existingDatabase.WorkspaceID, actor)
 	if err != nil {
 		return err
 	}
@@ -234,13 +234,13 @@ func (s *DatabaseService) UpdateDatabase(
 	if oldName != existingDatabase.Name {
 		s.auditLogService.WriteAuditLog(ctx, audit_logs_models.AuditEntry{
 			Message:     fmt.Sprintf("Database updated and renamed from '%s' to '%s'", oldName, existingDatabase.Name),
-			UserID:      &user.ID,
+			UserID:      &actor.UserID,
 			WorkspaceID: existingDatabase.WorkspaceID,
 		})
 	} else {
 		s.auditLogService.WriteAuditLog(ctx, audit_logs_models.AuditEntry{
 			Message:     fmt.Sprintf("Database updated: %s", existingDatabase.Name),
-			UserID:      &user.ID,
+			UserID:      &actor.UserID,
 			WorkspaceID: existingDatabase.WorkspaceID,
 		})
 	}
@@ -250,7 +250,7 @@ func (s *DatabaseService) UpdateDatabase(
 
 func (s *DatabaseService) DeleteDatabase(
 	ctx context.Context,
-	user *users_models.User,
+	actor users.Actor,
 	id uuid.UUID,
 ) error {
 	existingDatabase, err := s.dbRepository.FindByID(id)
@@ -262,7 +262,7 @@ func (s *DatabaseService) DeleteDatabase(
 		return errors.New("cannot delete database without workspace")
 	}
 
-	canManage, err := s.workspaceService.CanUserManageDBs(ctx, *existingDatabase.WorkspaceID, user)
+	canManage, err := s.workspaceService.CanUserManageDBs(ctx, *existingDatabase.WorkspaceID, actor)
 	if err != nil {
 		return err
 	}
@@ -278,7 +278,7 @@ func (s *DatabaseService) DeleteDatabase(
 
 	s.auditLogService.WriteAuditLog(ctx, audit_logs_models.AuditEntry{
 		Message:     fmt.Sprintf("Database deleted: %s", existingDatabase.Name),
-		UserID:      &user.ID,
+		UserID:      &actor.UserID,
 		WorkspaceID: existingDatabase.WorkspaceID,
 	})
 
@@ -287,7 +287,7 @@ func (s *DatabaseService) DeleteDatabase(
 
 func (s *DatabaseService) GetDatabase(
 	ctx context.Context,
-	user *users_models.User,
+	actor users.Actor,
 	id uuid.UUID,
 ) (*Database, error) {
 	database, err := s.dbRepository.FindByID(id)
@@ -299,7 +299,7 @@ func (s *DatabaseService) GetDatabase(
 		return nil, errors.New("cannot access database without workspace")
 	}
 
-	canAccess, _, err := s.workspaceService.CanUserAccessWorkspace(ctx, *database.WorkspaceID, user)
+	canAccess, _, err := s.workspaceService.CanUserAccessWorkspace(ctx, *database.WorkspaceID, actor)
 	if err != nil {
 		return nil, err
 	}
@@ -313,10 +313,10 @@ func (s *DatabaseService) GetDatabase(
 
 func (s *DatabaseService) GetDatabasesByWorkspace(
 	ctx context.Context,
-	user *users_models.User,
+	actor users.Actor,
 	workspaceID uuid.UUID,
 ) ([]*Database, error) {
-	canAccess, _, err := s.workspaceService.CanUserAccessWorkspace(ctx, workspaceID, user)
+	canAccess, _, err := s.workspaceService.CanUserAccessWorkspace(ctx, workspaceID, actor)
 	if err != nil {
 		return nil, err
 	}
@@ -340,10 +340,10 @@ func (s *DatabaseService) GetDatabasesByWorkspace(
 
 func (s *DatabaseService) IsNotifierUsing(
 	ctx context.Context,
-	user *users_models.User,
+	actor users.Actor,
 	notifierID uuid.UUID,
 ) (bool, error) {
-	_, err := s.notifierService.GetNotifier(ctx, user, notifierID)
+	_, err := s.notifierService.GetNotifier(ctx, actor, notifierID)
 	if err != nil {
 		return false, err
 	}
@@ -353,10 +353,10 @@ func (s *DatabaseService) IsNotifierUsing(
 
 func (s *DatabaseService) CountDatabasesByNotifier(
 	ctx context.Context,
-	user *users_models.User,
+	actor users.Actor,
 	notifierID uuid.UUID,
 ) (int, error) {
-	_, err := s.notifierService.GetNotifier(ctx, user, notifierID)
+	_, err := s.notifierService.GetNotifier(ctx, actor, notifierID)
 	if err != nil {
 		return 0, err
 	}
@@ -371,7 +371,7 @@ func (s *DatabaseService) CountDatabasesByNotifier(
 
 func (s *DatabaseService) TestDatabaseConnection(
 	ctx context.Context,
-	user *users_models.User,
+	actor users.Actor,
 	databaseID uuid.UUID,
 ) error {
 	database, err := s.dbRepository.FindByID(databaseID)
@@ -383,7 +383,7 @@ func (s *DatabaseService) TestDatabaseConnection(
 		return errors.New("cannot test connection for database without workspace")
 	}
 
-	canAccess, _, err := s.workspaceService.CanUserAccessWorkspace(ctx, *database.WorkspaceID, user)
+	canAccess, _, err := s.workspaceService.CanUserAccessWorkspace(ctx, *database.WorkspaceID, actor)
 	if err != nil {
 		return err
 	}
@@ -422,10 +422,10 @@ func (s *DatabaseService) TestDatabaseConnection(
 
 func (s *DatabaseService) TestDatabaseConnectionDirect(
 	ctx context.Context,
-	user *users_models.User,
+	actor users.Actor,
 	database *Database,
 ) error {
-	usingDatabase, err := s.resolveAuthorizedConnectionTarget(ctx, user, database)
+	usingDatabase, err := s.resolveAuthorizedConnectionTarget(ctx, actor, database)
 	if err != nil {
 		return err
 	}
@@ -482,7 +482,7 @@ func (s *DatabaseService) SetLastBackupTime(databaseID uuid.UUID, backupTime tim
 
 func (s *DatabaseService) CopyDatabase(
 	ctx context.Context,
-	user *users_models.User,
+	actor users.Actor,
 	databaseID uuid.UUID,
 ) (*Database, error) {
 	existingDatabase, err := s.dbRepository.FindByID(databaseID)
@@ -494,7 +494,7 @@ func (s *DatabaseService) CopyDatabase(
 		return nil, errors.New("cannot copy database without workspace")
 	}
 
-	canManage, err := s.workspaceService.CanUserManageDBs(ctx, *existingDatabase.WorkspaceID, user)
+	canManage, err := s.workspaceService.CanUserManageDBs(ctx, *existingDatabase.WorkspaceID, actor)
 	if err != nil {
 		return nil, err
 	}
@@ -524,7 +524,7 @@ func (s *DatabaseService) CopyDatabase(
 
 	s.auditLogService.WriteAuditLog(ctx, audit_logs_models.AuditEntry{
 		Message:     fmt.Sprintf("Database copied: %s to %s", existingDatabase.Name, copiedDatabase.Name),
-		UserID:      &user.ID,
+		UserID:      &actor.UserID,
 		WorkspaceID: existingDatabase.WorkspaceID,
 	})
 
@@ -615,7 +615,7 @@ func (s *DatabaseService) OnBeforeWorkspaceDeletion(workspaceID uuid.UUID) error
 
 func (s *DatabaseService) ShouldSuggestReadOnlyUser(
 	ctx context.Context,
-	user *users_models.User,
+	actor users.Actor,
 	database *Database,
 ) (bool, []string, error) {
 	var usingDatabase *Database
@@ -633,7 +633,7 @@ func (s *DatabaseService) ShouldSuggestReadOnlyUser(
 		canAccess, _, err := s.workspaceService.CanUserAccessWorkspace(
 			ctx,
 			*existingDatabase.WorkspaceID,
-			user,
+			actor,
 		)
 		if err != nil {
 			return false, nil, err
@@ -658,7 +658,7 @@ func (s *DatabaseService) ShouldSuggestReadOnlyUser(
 			canAccess, _, err := s.workspaceService.CanUserAccessWorkspace(
 				ctx,
 				*database.WorkspaceID,
-				user,
+				actor,
 			)
 			if err != nil {
 				return false, nil, err
@@ -692,7 +692,7 @@ func (s *DatabaseService) ShouldSuggestReadOnlyUser(
 
 func (s *DatabaseService) CreateReadOnlyUser(
 	ctx context.Context,
-	user *users_models.User,
+	actor users.Actor,
 	database *Database,
 ) (string, string, error) {
 	var usingDatabase *Database
@@ -707,7 +707,7 @@ func (s *DatabaseService) CreateReadOnlyUser(
 			return "", "", errors.New("cannot create user for database without workspace")
 		}
 
-		canManage, err := s.workspaceService.CanUserManageDBs(ctx, *existingDatabase.WorkspaceID, user)
+		canManage, err := s.workspaceService.CanUserManageDBs(ctx, *existingDatabase.WorkspaceID, actor)
 		if err != nil {
 			return "", "", err
 		}
@@ -728,7 +728,7 @@ func (s *DatabaseService) CreateReadOnlyUser(
 		usingDatabase = existingDatabase
 	} else {
 		if database.WorkspaceID != nil {
-			canManage, err := s.workspaceService.CanUserManageDBs(ctx, *database.WorkspaceID, user)
+			canManage, err := s.workspaceService.CanUserManageDBs(ctx, *database.WorkspaceID, actor)
 			if err != nil {
 				return "", "", err
 			}
@@ -795,7 +795,7 @@ func (s *DatabaseService) CreateReadOnlyUser(
 				usingDatabase.Name,
 				username,
 			),
-			UserID:      &user.ID,
+			UserID:      &actor.UserID,
 			WorkspaceID: usingDatabase.WorkspaceID,
 		})
 	}
@@ -805,7 +805,7 @@ func (s *DatabaseService) CreateReadOnlyUser(
 
 func (s *DatabaseService) CreateReplicationOnlyUser(
 	ctx context.Context,
-	user *users_models.User,
+	actor users.Actor,
 	database *Database,
 ) (*postgresql_physical.ReplicationOnlyUser, error) {
 	var usingDatabase *Database
@@ -820,7 +820,7 @@ func (s *DatabaseService) CreateReplicationOnlyUser(
 			return nil, errors.New("cannot create user for database without workspace")
 		}
 
-		canManage, err := s.workspaceService.CanUserManageDBs(ctx, *existingDatabase.WorkspaceID, user)
+		canManage, err := s.workspaceService.CanUserManageDBs(ctx, *existingDatabase.WorkspaceID, actor)
 		if err != nil {
 			return nil, err
 		}
@@ -841,7 +841,7 @@ func (s *DatabaseService) CreateReplicationOnlyUser(
 		usingDatabase = existingDatabase
 	} else {
 		if database.WorkspaceID != nil {
-			canManage, err := s.workspaceService.CanUserManageDBs(ctx, *database.WorkspaceID, user)
+			canManage, err := s.workspaceService.CanUserManageDBs(ctx, *database.WorkspaceID, actor)
 			if err != nil {
 				return nil, err
 			}
@@ -892,7 +892,7 @@ func (s *DatabaseService) CreateReplicationOnlyUser(
 				usingDatabase.Name,
 				createdUser.Username,
 			),
-			UserID:      &user.ID,
+			UserID:      &actor.UserID,
 			WorkspaceID: usingDatabase.WorkspaceID,
 		})
 	}
@@ -954,7 +954,7 @@ func (s *DatabaseService) fillPhysicalLastBackupTimes(ctx context.Context, datab
 
 func (s *DatabaseService) resolveAuthorizedConnectionTarget(
 	ctx context.Context,
-	user *users_models.User,
+	actor users.Actor,
 	database *Database,
 ) (*Database, error) {
 	if database == nil {
@@ -966,7 +966,7 @@ func (s *DatabaseService) resolveAuthorizedConnectionTarget(
 			return nil, errors.New("workspaceId is required")
 		}
 
-		canManage, err := s.workspaceService.CanUserManageDBs(ctx, *database.WorkspaceID, user)
+		canManage, err := s.workspaceService.CanUserManageDBs(ctx, *database.WorkspaceID, actor)
 		if err != nil {
 			return nil, errors.Join(ErrDatabaseConnectionAuthorizationLookup, err)
 		}
@@ -990,7 +990,7 @@ func (s *DatabaseService) resolveAuthorizedConnectionTarget(
 		return nil, ErrInsufficientPermissionsToTestDatabaseConnection
 	}
 
-	canManage, err := s.workspaceService.CanUserManageDBs(ctx, *existingDatabase.WorkspaceID, user)
+	canManage, err := s.workspaceService.CanUserManageDBs(ctx, *existingDatabase.WorkspaceID, actor)
 	if err != nil {
 		return nil, errors.Join(ErrDatabaseConnectionAuthorizationLookup, err)
 	}

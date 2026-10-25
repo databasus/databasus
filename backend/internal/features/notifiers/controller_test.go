@@ -30,13 +30,14 @@ import (
 	workspaces_controllers "databasus-backend/internal/features/workspaces/controllers"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
 	"databasus-backend/internal/lib/mailer"
+	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/storage"
 	test_utils "databasus-backend/internal/util/testing"
 	"databasus-backend/internal/util/testing/containers"
 )
 
 func Test_SaveNewNotifier_NotifierReturnedViaGet(t *testing.T) {
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	router := createRouter()
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 
@@ -87,7 +88,7 @@ func Test_SaveNewNotifier_NotifierReturnedViaGet(t *testing.T) {
 }
 
 func Test_UpdateExistingNotifier_UpdatedNotifierReturnedViaGet(t *testing.T) {
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	router := createRouter()
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 
@@ -126,7 +127,7 @@ func Test_UpdateExistingNotifier_UpdatedNotifierReturnedViaGet(t *testing.T) {
 }
 
 func Test_DeleteNotifier_NotifierNotReturnedViaGet(t *testing.T) {
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	router := createRouter()
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 
@@ -164,7 +165,7 @@ func Test_DeleteNotifier_NotifierNotReturnedViaGet(t *testing.T) {
 }
 
 func Test_SendTestNotificationDirect_NotificationSent(t *testing.T) {
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	router := createRouter()
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 
@@ -182,7 +183,7 @@ func Test_SendTestNotificationDirect_NotificationSent(t *testing.T) {
 }
 
 func Test_SendTestNotificationExisting_NotificationSent(t *testing.T) {
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	router := createRouter()
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 
@@ -272,17 +273,17 @@ func Test_WorkspaceRolePermissions_Notifiers(t *testing.T) {
 			router := createRouter()
 			GetNotifierService().SetNotifierDatabaseCounter(&mockNotifierDatabaseCounter{})
 
-			owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+			owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 			workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 
 			var testUserToken string
 			if tt.isGlobalAdmin {
-				admin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+				admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 				testUserToken = admin.Token
 			} else if tt.workspaceRole != nil && *tt.workspaceRole == users_enums.WorkspaceRoleOwner {
 				testUserToken = owner.Token
 			} else if tt.workspaceRole != nil {
-				testUser := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+				testUser := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 				workspaces_testing.AddMemberToWorkspace(
 					workspace,
 					testUser,
@@ -374,8 +375,8 @@ func Test_WorkspaceRolePermissions_Notifiers(t *testing.T) {
 }
 
 func Test_UserNotInWorkspace_CannotAccessNotifiers(t *testing.T) {
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
-	outsider := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
+	outsider := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	router := createRouter()
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 
@@ -430,8 +431,8 @@ func Test_UserNotInWorkspace_CannotAccessNotifiers(t *testing.T) {
 }
 
 func Test_CrossWorkspaceSecurity_CannotAccessNotifierFromAnotherWorkspace(t *testing.T) {
-	owner1 := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
-	owner2 := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner1 := users_testing.CreateTestUser(t.Context(), users.RoleMember)
+	owner2 := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	router := createRouter()
 	workspace1 := workspaces_testing.CreateTestWorkspace(t.Context(), "Workspace 1", owner1, router)
 	workspace2 := workspaces_testing.CreateTestWorkspace(t.Context(), "Workspace 2", owner2, router)
@@ -850,7 +851,7 @@ func Test_NotifierSensitiveDataLifecycle_AllTypes(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+			owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 			router := createRouter()
 			workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 
@@ -1172,7 +1173,7 @@ func Test_CreateNotifier_AllSensitiveFieldsEncryptedInDB(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+			owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 			router := createRouter()
 			workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 
@@ -1259,8 +1260,8 @@ func Test_TransferNotifier_PermissionsEnforced(t *testing.T) {
 			router := createRouter()
 			GetNotifierService().SetNotifierDatabaseCounter(&mockNotifierDatabaseCounter{})
 
-			sourceOwner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
-			targetOwner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+			sourceOwner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
+			targetOwner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
 			sourceWorkspace := workspaces_testing.CreateTestWorkspace(t.Context(),
 				"Source Workspace",
@@ -1287,10 +1288,10 @@ func Test_TransferNotifier_PermissionsEnforced(t *testing.T) {
 
 			var testUserToken string
 			if tt.isGlobalAdmin {
-				admin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+				admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 				testUserToken = admin.Token
 			} else if tt.sourceRole != nil {
-				testUser := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+				testUser := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 				workspaces_testing.AddMemberToWorkspace(
 					sourceWorkspace,
 					testUser,
@@ -1351,8 +1352,8 @@ func Test_TransferNotifierNotManagableWorkspace_TransferFailed(t *testing.T) {
 	router := createRouter()
 	GetNotifierService().SetNotifierDatabaseCounter(&mockNotifierDatabaseCounter{})
 
-	userA := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
-	userB := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	userA := users_testing.CreateTestUser(t.Context(), users.RoleMember)
+	userB := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
 	workspace1 := workspaces_testing.CreateTestWorkspace(t.Context(), "Workspace 1", userA, router)
 	workspace2 := workspaces_testing.CreateTestWorkspace(t.Context(), "Workspace 2", userB, router)
@@ -1477,7 +1478,7 @@ func decryptField(t *testing.T, encryptedValue string) string {
 }
 
 func Test_SaveEmailNotifier_WithUnusableSettings_Refused(t *testing.T) {
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	router := createRouter()
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
@@ -1526,7 +1527,7 @@ func Test_SaveEmailNotifier_WithUnusableSettings_Refused(t *testing.T) {
 }
 
 func Test_SaveEmailNotifier_WithDisplayNameSenderAndConnectionOptions_ReturnedAsSaved(t *testing.T) {
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	router := createRouter()
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 
@@ -1559,7 +1560,7 @@ func Test_SaveEmailNotifier_WithDisplayNameSenderAndConnectionOptions_ReturnedAs
 }
 
 func Test_SaveEmailNotifier_WithoutSecurity_CreatesWithPortDefaultAndUpdateKeepsStoredMode(t *testing.T) {
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	router := createRouter()
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 
@@ -1601,7 +1602,7 @@ func Test_SaveEmailNotifier_WithoutSecurity_CreatesWithPortDefaultAndUpdateKeeps
 }
 
 func Test_SendTestNotificationDirect_EmailWithoutSecurity_SendsWithPortDefault(t *testing.T) {
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	router := createRouter()
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 
@@ -1634,7 +1635,7 @@ func createEmailNotifier(workspaceID uuid.UUID) *Notifier {
 }
 
 func Test_SaveTelegramNotifier_WithBotAPIURL_ReturnedInClearAndClearedByUpdate(t *testing.T) {
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	router := createRouter()
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 
@@ -1697,7 +1698,7 @@ const (
 )
 
 func Test_SaveTelegramNotifier_WithUnusableBotAPIURL_RefusedAndStoredNotifierUnchanged(t *testing.T) {
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	router := createRouter()
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 
@@ -1750,7 +1751,7 @@ func Test_SaveTelegramNotifier_WithUnusableBotAPIURL_RefusedAndStoredNotifierUnc
 }
 
 func Test_SendTestNotificationExisting_TelegramWithBotAPIURL_DeliveredUnderPathPrefix(t *testing.T) {
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	router := createRouter()
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 
@@ -1786,7 +1787,7 @@ func Test_SendTestNotificationExisting_TelegramWithBotAPIURL_DeliveredUnderPathP
 }
 
 func Test_SendTestNotificationDirect_TelegramWithBotAPIURL_DeliveredUnderPathPrefix(t *testing.T) {
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	router := createRouter()
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
@@ -1805,7 +1806,7 @@ func Test_SendTestNotificationDirect_TelegramWithBotAPIURL_DeliveredUnderPathPre
 }
 
 func Test_SendTestNotificationDirect_TelegramWithUnusableBotAPIURL_RefusedWithoutRequest(t *testing.T) {
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	router := createRouter()
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
@@ -1830,7 +1831,7 @@ func Test_SendTestNotificationDirect_TelegramWithUnusableBotAPIURL_RefusedWithou
 }
 
 func Test_SendTestNotificationDirect_TelegramWithBotAPIURLAndProxy_SentThroughProxy(t *testing.T) {
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	router := createRouter()
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
@@ -1855,7 +1856,7 @@ func Test_SendTestNotificationDirect_TelegramWithBotAPIURLAndProxy_SentThroughPr
 }
 
 func Test_SendTestNotificationDirect_TelegramBotAPIUnreachable_ErrorNamesHostWithoutBotToken(t *testing.T) {
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	router := createRouter()
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
@@ -1921,7 +1922,7 @@ func startTelegramBotAPIStub(t *testing.T, statusCode int, responseBody string) 
 }
 
 func Test_SendTestNotificationDirect_TelegramBotAPIEchoesRequestPath_ErrorKeepsBodyWithoutBotToken(t *testing.T) {
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	router := createRouter()
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
@@ -1938,7 +1939,7 @@ func Test_SendTestNotificationDirect_TelegramBotAPIEchoesRequestPath_ErrorKeepsB
 }
 
 func Test_ListNotifiers_WithUndecryptableWebhookURL_ListsNotifierAndRefusesToSend(t *testing.T) {
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	router := createRouter()
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)

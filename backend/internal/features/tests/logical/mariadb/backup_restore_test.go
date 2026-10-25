@@ -23,9 +23,9 @@ import (
 	restores_core "databasus-backend/internal/features/restores/core"
 	"databasus-backend/internal/features/storages"
 	logicaltesting "databasus-backend/internal/features/tests/logical/shared"
-	users_enums "databasus-backend/internal/features/users/enums"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
+	"databasus-backend/internal/modules/users"
 	test_utils "databasus-backend/internal/util/testing"
 	"databasus-backend/internal/util/testing/containers"
 	"databasus-backend/internal/util/tools"
@@ -135,7 +135,7 @@ func testMariadbBackupRestoreForVersion(
 	setupMariadbTestData(t, container.DB)
 
 	router := logicaltesting.CreateTestRouter()
-	user := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "MariaDB Test Workspace", user, router)
 
 	storage := storages.CreateTestStorage(workspace.ID)
@@ -228,7 +228,7 @@ func testMariadbBackupRestoreWithEncryptionForVersion(
 	setupMariadbTestData(t, container.DB)
 
 	router := logicaltesting.CreateTestRouter()
-	user := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(),
 		"MariaDB Encrypted Test Workspace",
 		user,
@@ -326,7 +326,7 @@ func testMariadbBackupRestoreWithReadOnlyUserForVersion(
 	setupMariadbTestData(t, container.DB)
 
 	router := logicaltesting.CreateTestRouter()
-	user := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(),
 		"MariaDB ReadOnly Test Workspace",
 		user,
@@ -709,7 +709,7 @@ func testMariadbBackupRestoreWithExcludeTablesForVersion(
 	}()
 
 	router := logicaltesting.CreateTestRouter()
-	user := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(),
 		"MariaDB Exclude Tables Test Workspace",
 		user,
@@ -847,7 +847,7 @@ func testMariadbBackupRestoreWithExcludeEventsForVersion(
 	}
 
 	router := logicaltesting.CreateTestRouter()
-	user := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(),
 		"MariaDB Exclude Events Test Workspace",
 		user,

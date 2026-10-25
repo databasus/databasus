@@ -6,10 +6,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	users_enums "databasus-backend/internal/features/users/enums"
-	users_models "databasus-backend/internal/features/users/models"
 	users_services "databasus-backend/internal/features/users/services"
 	"databasus-backend/internal/lib/logging"
+	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/util/logger"
 )
 
@@ -40,36 +39,28 @@ func AuthMiddleware(userService *users_services.UserService) gin.HandlerFunc {
 			return
 		}
 
-		ctx.Set("user", user)
-
+		requestContext := users.WithActor(ctx.Request.Context(), users.Actor{UserID: user.ID, Role: user.Role})
 		ctx.Request = ctx.Request.WithContext(
-			logging.With(ctx.Request.Context(), slog.String("user_id", user.ID.String())),
+			logging.With(requestContext, slog.String("user_id", user.ID.String())),
 		)
 
 		ctx.Next()
 	}
 }
 
-func RequireRole(requiredRole users_enums.UserRole) gin.HandlerFunc {
+func RequireRole(requiredRole users.Role) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		userInterface, exists := ctx.Get("user")
-		if !exists {
+		actor, isAuthenticated := users.GetActor(ctx.Request.Context())
+		if !isAuthenticated {
 			ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 			ctx.Abort()
 			return
 		}
 
-		user, ok := userInterface.(*users_models.User)
-		if !ok {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user context"})
-			ctx.Abort()
-			return
-		}
-
-		if user.Role != requiredRole {
+		if actor.Role != requiredRole {
 			logger.GetLogger().WarnContext(ctx.Request.Context(),
 				"rejected a request from a user without the required role",
-				"user_id", user.ID, "required_role", requiredRole, "user_role", user.Role,
+				"user_id", actor.UserID, "required_role", requiredRole, "user_role", actor.Role,
 				"client_ip", ctx.ClientIP())
 
 			ctx.JSON(http.StatusForbidden, gin.H{"error": "Insufficient permissions"})
@@ -79,16 +70,4 @@ func RequireRole(requiredRole users_enums.UserRole) gin.HandlerFunc {
 
 		ctx.Next()
 	}
-}
-
-// GetUserFromContext helper function to extract user from gin context
-func GetUserFromContext(ctx *gin.Context) (*users_models.User, bool) {
-	userInterface, exists := ctx.Get("user")
-	if !exists {
-		return nil, false
-	}
-
-	user, ok := userInterface.(*users_models.User)
-
-	return user, ok
 }

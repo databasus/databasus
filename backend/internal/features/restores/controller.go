@@ -7,7 +7,7 @@ import (
 	"github.com/google/uuid"
 
 	restores_core "databasus-backend/internal/features/restores/core"
-	users_middleware "databasus-backend/internal/features/users/middleware"
+	"databasus-backend/internal/modules/users"
 )
 
 type RestoreController struct {
@@ -21,7 +21,7 @@ func (c *RestoreController) RegisterRoutes(router *gin.RouterGroup) {
 }
 
 func (c *RestoreController) GetRestores(ctx *gin.Context) {
-	user, ok := users_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -33,7 +33,7 @@ func (c *RestoreController) GetRestores(ctx *gin.Context) {
 		return
 	}
 
-	restores, err := c.restoreService.GetRestores(ctx.Request.Context(), user, backupID)
+	restores, err := c.restoreService.GetRestores(ctx.Request.Context(), actor, backupID)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -43,7 +43,7 @@ func (c *RestoreController) GetRestores(ctx *gin.Context) {
 }
 
 func (c *RestoreController) RestoreBackup(ctx *gin.Context) {
-	user, ok := users_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -61,7 +61,7 @@ func (c *RestoreController) RestoreBackup(ctx *gin.Context) {
 		return
 	}
 
-	if err := c.restoreService.RestoreBackupWithAuth(ctx.Request.Context(), user, backupID, requestDTO); err != nil {
+	if err := c.restoreService.RestoreBackupWithAuth(ctx.Request.Context(), actor, backupID, requestDTO); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -70,7 +70,7 @@ func (c *RestoreController) RestoreBackup(ctx *gin.Context) {
 }
 
 func (c *RestoreController) CancelRestore(ctx *gin.Context) {
-	user, ok := users_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -82,7 +82,7 @@ func (c *RestoreController) CancelRestore(ctx *gin.Context) {
 		return
 	}
 
-	if err := c.restoreService.CancelRestore(ctx.Request.Context(), user, restoreID); err != nil {
+	if err := c.restoreService.CancelRestore(ctx.Request.Context(), actor, restoreID); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}

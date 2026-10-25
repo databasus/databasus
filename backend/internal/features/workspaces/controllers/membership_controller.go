@@ -7,10 +7,10 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
-	users_middleware "databasus-backend/internal/features/users/middleware"
 	workspaces_dto "databasus-backend/internal/features/workspaces/dto"
 	workspaces_errors "databasus-backend/internal/features/workspaces/errors"
 	workspaces_services "databasus-backend/internal/features/workspaces/services"
+	"databasus-backend/internal/modules/users"
 )
 
 type MembershipController struct {
@@ -28,7 +28,7 @@ func (c *MembershipController) RegisterRoutes(router *gin.RouterGroup) {
 }
 
 func (c *MembershipController) ListMembers(ctx *gin.Context) {
-	user, ok := users_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -41,7 +41,7 @@ func (c *MembershipController) ListMembers(ctx *gin.Context) {
 		return
 	}
 
-	response, err := c.membershipService.GetMembers(ctx.Request.Context(), workspaceID, user)
+	response, err := c.membershipService.GetMembers(ctx.Request.Context(), workspaceID, actor)
 	if err != nil {
 		if errors.Is(err, workspaces_errors.ErrInsufficientPermissionsToViewMembers) {
 			ctx.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
@@ -55,7 +55,7 @@ func (c *MembershipController) ListMembers(ctx *gin.Context) {
 }
 
 func (c *MembershipController) AddMember(ctx *gin.Context) {
-	user, ok := users_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -79,7 +79,7 @@ func (c *MembershipController) AddMember(ctx *gin.Context) {
 		return
 	}
 
-	response, err := c.membershipService.AddMember(ctx.Request.Context(), workspaceID, &request, user)
+	response, err := c.membershipService.AddMember(ctx.Request.Context(), workspaceID, &request, actor)
 	if err != nil {
 		if errors.Is(err, workspaces_errors.ErrInsufficientPermissionsToManageMembers) ||
 			errors.Is(err, workspaces_errors.ErrOnlyOwnerCanAddManageAdmins) {
@@ -94,7 +94,7 @@ func (c *MembershipController) AddMember(ctx *gin.Context) {
 }
 
 func (c *MembershipController) ChangeMemberRole(ctx *gin.Context) {
-	user, ok := users_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -125,7 +125,7 @@ func (c *MembershipController) ChangeMemberRole(ctx *gin.Context) {
 		workspaceID,
 		userID,
 		&request,
-		user,
+		actor,
 	); err != nil {
 		if errors.Is(err, workspaces_errors.ErrInsufficientPermissionsToManageMembers) ||
 			errors.Is(err, workspaces_errors.ErrOnlyOwnerCanAddManageAdmins) {
@@ -140,7 +140,7 @@ func (c *MembershipController) ChangeMemberRole(ctx *gin.Context) {
 }
 
 func (c *MembershipController) RemoveMember(ctx *gin.Context) {
-	user, ok := users_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -160,7 +160,7 @@ func (c *MembershipController) RemoveMember(ctx *gin.Context) {
 		return
 	}
 
-	if err := c.membershipService.RemoveMember(ctx.Request.Context(), workspaceID, userID, user); err != nil {
+	if err := c.membershipService.RemoveMember(ctx.Request.Context(), workspaceID, userID, actor); err != nil {
 		if errors.Is(err, workspaces_errors.ErrInsufficientPermissionsToRemoveMembers) ||
 			errors.Is(err, workspaces_errors.ErrOnlyOwnerCanRemoveAdmins) {
 			ctx.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
@@ -174,7 +174,7 @@ func (c *MembershipController) RemoveMember(ctx *gin.Context) {
 }
 
 func (c *MembershipController) TransferOwnership(ctx *gin.Context) {
-	user, ok := users_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -193,7 +193,7 @@ func (c *MembershipController) TransferOwnership(ctx *gin.Context) {
 		return
 	}
 
-	if err := c.membershipService.TransferOwnership(ctx.Request.Context(), workspaceID, &request, user); err != nil {
+	if err := c.membershipService.TransferOwnership(ctx.Request.Context(), workspaceID, &request, actor); err != nil {
 		if errors.Is(err, workspaces_errors.ErrOnlyOwnerOrAdminCanTransferOwnership) {
 			ctx.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
 			return

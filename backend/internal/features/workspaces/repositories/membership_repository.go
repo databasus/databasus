@@ -11,6 +11,7 @@ import (
 	users_enums "databasus-backend/internal/features/users/enums"
 	workspaces_dto "databasus-backend/internal/features/workspaces/dto"
 	workspaces_models "databasus-backend/internal/features/workspaces/models"
+	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/storage"
 )
 
@@ -112,12 +113,12 @@ func (r *MembershipRepository) GetWorkspaceOwner(
 
 func (r *MembershipRepository) GetWorkspacesWithRolesByUserID(
 	ctx context.Context,
-	userRole users_enums.UserRole,
+	userRole users.Role,
 	userID uuid.UUID,
 ) ([]workspaces_dto.WorkspaceResponseDTO, error) {
 	results := make([]workspaces_dto.WorkspaceResponseDTO, 0)
 
-	if userRole == users_enums.UserRoleAdmin {
+	if userRole == users.RoleAdmin {
 		err := storage.GetDb().WithContext(ctx).Table("workspaces").Order("name ASC").Scan(&results).Error
 		return results, err
 	}

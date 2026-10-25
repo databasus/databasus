@@ -13,10 +13,11 @@ import (
 	users_models "databasus-backend/internal/features/users/models"
 	users_repositories "databasus-backend/internal/features/users/repositories"
 	users_services "databasus-backend/internal/features/users/services"
+	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/storage"
 )
 
-func CreateTestUser(ctx context.Context, role users_enums.UserRole) *users_dto.SignInResponseDTO {
+func CreateTestUser(ctx context.Context, role users.Role) *users_dto.SignInResponseDTO {
 	user := insertTestUser(role, false)
 
 	response, err := users_services.GetUserService().GenerateAccessToken(ctx, user)
@@ -33,7 +34,7 @@ func CreateTestUser(ctx context.Context, role users_enums.UserRole) *users_dto.S
 // binds the address of every account it creates.
 func CreateTestUserWithEmail(
 	ctx context.Context,
-	role users_enums.UserRole,
+	role users.Role,
 	email string,
 ) *users_dto.SignInResponseDTO {
 	user := insertTestUser(role, false)
@@ -100,7 +101,7 @@ func RecreateInitialAdmin(ctx context.Context) *users_models.User {
 		panic(fmt.Errorf("failed to retire the current bootstrap administrator: %w", err))
 	}
 
-	return insertTestUser(users_enums.UserRoleAdmin, true)
+	return insertTestUser(users.RoleAdmin, true)
 }
 
 // No test may assume an instance that holds no account: the tests of one package
@@ -112,7 +113,7 @@ func DeleteAllUsers() {
 	}
 }
 
-func insertTestUser(role users_enums.UserRole, isRootAdmin bool) *users_models.User {
+func insertTestUser(role users.Role, isRootAdmin bool) *users_models.User {
 	userID := uuid.New()
 	hashedPassword := "$2a$10$test"
 

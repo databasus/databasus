@@ -13,6 +13,7 @@ import (
 	user_interfaces "databasus-backend/internal/features/users/interfaces"
 	user_models "databasus-backend/internal/features/users/models"
 	user_repositories "databasus-backend/internal/features/users/repositories"
+	"databasus-backend/internal/modules/users"
 )
 
 type UserManagementService struct {
@@ -26,12 +27,12 @@ func (s *UserManagementService) SetAuditLogWriter(writer user_interfaces.AuditLo
 
 func (s *UserManagementService) GetUsers(
 	ctx context.Context,
-	currentUser *user_models.User,
+	actor users.Actor,
 	limit, offset int,
 	beforeCreatedAt *time.Time,
 	query string,
 ) ([]*user_models.User, int64, error) {
-	if !currentUser.CanManageUsers() {
+	if actor.Role != users.RoleAdmin {
 		return nil, 0, errors.New("insufficient permissions to list users")
 	}
 
@@ -41,10 +42,10 @@ func (s *UserManagementService) GetUsers(
 func (s *UserManagementService) GetUserProfile(
 	ctx context.Context,
 	userID uuid.UUID,
-	requestedBy *user_models.User,
+	actor users.Actor,
 ) (*user_models.User, error) {
 	// Users can view their own profile, admins can view any profile
-	if userID != requestedBy.ID && !requestedBy.CanManageUsers() {
+	if userID != actor.UserID && actor.Role != users.RoleAdmin {
 		return nil, errors.New("insufficient permissions to view user profile")
 	}
 
@@ -54,14 +55,14 @@ func (s *UserManagementService) GetUserProfile(
 func (s *UserManagementService) DeactivateUser(
 	ctx context.Context,
 	userID uuid.UUID,
-	deactivatedBy *user_models.User,
+	actor users.Actor,
 ) error {
-	if !deactivatedBy.CanManageUsers() {
+	if actor.Role != users.RoleAdmin {
 		return errors.New("insufficient permissions to deactivate users")
 	}
 
 	// Don't allow deactivating self
-	if userID == deactivatedBy.ID {
+	if userID == actor.UserID {
 		return errors.New("cannot deactivate your own account")
 	}
 
@@ -71,8 +72,15 @@ func (s *UserManagementService) DeactivateUser(
 	}
 
 	// Only the instance's bootstrap administrator can deactivate ADMIN accounts
-	if user.Role == user_enums.UserRoleAdmin && !deactivatedBy.IsRootAdmin {
-		return errors.New("only the root admin user can deactivate admin accounts")
+	if user.Role == users.RoleAdmin {
+		isRootAdmin, err := s.isRootAdmin(ctx, actor)
+		if err != nil {
+			return err
+		}
+
+		if !isRootAdmin {
+			return errors.New("only the root admin user can deactivate admin accounts")
+		}
 	}
 
 	if err := s.userRepository.UpdateUserStatus(userID, user_enums.UserStatusInactive); err != nil {
@@ -82,7 +90,7 @@ func (s *UserManagementService) DeactivateUser(
 	if s.auditLogWriter != nil {
 		s.auditLogWriter.WriteAuditLog(ctx, audit_logs_models.AuditEntry{
 			Message:     fmt.Sprintf("User deactivated: %s", user.Email),
-			UserID:      &deactivatedBy.ID,
+			UserID:      &actor.UserID,
 			WorkspaceID: nil,
 		})
 	}
@@ -93,9 +101,9 @@ func (s *UserManagementService) DeactivateUser(
 func (s *UserManagementService) ActivateUser(
 	ctx context.Context,
 	userID uuid.UUID,
-	activatedBy *user_models.User,
+	actor users.Actor,
 ) error {
-	if !activatedBy.CanManageUsers() {
+	if actor.Role != users.RoleAdmin {
 		return errors.New("insufficient permissions to activate users")
 	}
 
@@ -105,8 +113,15 @@ func (s *UserManagementService) ActivateUser(
 	}
 
 	// Only the instance's bootstrap administrator can reactivate ADMIN accounts
-	if user.Role == user_enums.UserRoleAdmin && !activatedBy.IsRootAdmin {
-		return errors.New("only the root admin user can activate admin accounts")
+	if user.Role == users.RoleAdmin {
+		isRootAdmin, err := s.isRootAdmin(ctx, actor)
+		if err != nil {
+			return err
+		}
+
+		if !isRootAdmin {
+			return errors.New("only the root admin user can activate admin accounts")
+		}
 	}
 
 	if err := s.userRepository.UpdateUserStatus(userID, user_enums.UserStatusActive); err != nil {
@@ -116,7 +131,7 @@ func (s *UserManagementService) ActivateUser(
 	if s.auditLogWriter != nil {
 		s.auditLogWriter.WriteAuditLog(ctx, audit_logs_models.AuditEntry{
 			Message:     fmt.Sprintf("User activated: %s", user.Email),
-			UserID:      &activatedBy.ID,
+			UserID:      &actor.UserID,
 			WorkspaceID: nil,
 		})
 	}
@@ -127,10 +142,10 @@ func (s *UserManagementService) ActivateUser(
 func (s *UserManagementService) ChangeUserRole(
 	ctx context.Context,
 	userID uuid.UUID,
-	newRole user_enums.UserRole,
-	changedBy *user_models.User,
+	newRole users.Role,
+	actor users.Actor,
 ) error {
-	if !changedBy.CanManageUsers() {
+	if actor.Role != users.RoleAdmin {
 		return errors.New("insufficient permissions to change user roles")
 	}
 
@@ -140,7 +155,7 @@ func (s *UserManagementService) ChangeUserRole(
 	}
 
 	// Don't allow changing own role
-	if userID == changedBy.ID {
+	if userID == actor.UserID {
 		return errors.New("cannot change your own role")
 	}
 
@@ -150,11 +165,17 @@ func (s *UserManagementService) ChangeUserRole(
 	}
 
 	// Only the instance's bootstrap administrator can grant or revoke the ADMIN role
-	if (newRole == user_enums.UserRoleAdmin || user.Role == user_enums.UserRoleAdmin) &&
-		!changedBy.IsRootAdmin {
-		return errors.New(
-			"only the root admin user can promote users to admin or demote admin users",
-		)
+	if newRole == users.RoleAdmin || user.Role == users.RoleAdmin {
+		isRootAdmin, err := s.isRootAdmin(ctx, actor)
+		if err != nil {
+			return err
+		}
+
+		if !isRootAdmin {
+			return errors.New(
+				"only the root admin user can promote users to admin or demote admin users",
+			)
+		}
 	}
 
 	if err := s.userRepository.UpdateUserRole(userID, newRole); err != nil {
@@ -164,10 +185,19 @@ func (s *UserManagementService) ChangeUserRole(
 	if s.auditLogWriter != nil {
 		s.auditLogWriter.WriteAuditLog(ctx, audit_logs_models.AuditEntry{
 			Message:     fmt.Sprintf("User role changed: %s from %s to %s", user.Email, user.Role, newRole),
-			UserID:      &changedBy.ID,
+			UserID:      &actor.UserID,
 			WorkspaceID: nil,
 		})
 	}
 
 	return nil
+}
+
+func (s *UserManagementService) isRootAdmin(ctx context.Context, actor users.Actor) (bool, error) {
+	actingUser, err := s.userRepository.GetUserByID(ctx, actor.UserID)
+	if err != nil {
+		return false, fmt.Errorf("failed to get acting user: %w", err)
+	}
+
+	return actingUser.IsRootAdmin, nil
 }

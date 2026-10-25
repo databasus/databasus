@@ -15,6 +15,7 @@ This is the project's common language. Each concept has one term in the document
 | Workspace | workspace | A group of users and the databases, storages and notifiers they share. |
 | Member | member | A user in a workspace, with a workspace role. |
 | Instance admin | admin | A user with the global admin role, who manages users and instance settings. |
+| Global role | global role, `ADMIN`, `MEMBER` | A user's role on the whole instance: `ADMIN` makes the user an instance admin, and `MEMBER` grants nothing beyond the user's workspace memberships. The word "member" alone means a member of a workspace. |
 | Actor | actor | The user on whose behalf a request runs: user ID and global role. |
 | Audit event | audit event | A record of who did what to which object, written in the transaction of the action. |
 | Audit author | audit author | The user an audit event names as the one who acted, kept in the event as a snapshot of user ID, email and name. |

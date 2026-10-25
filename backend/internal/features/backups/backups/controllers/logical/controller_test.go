@@ -40,6 +40,7 @@ import (
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_models "databasus-backend/internal/features/workspaces/models"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
+	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/util/encryption"
 	files_utils "databasus-backend/internal/util/files"
 	test_utils "databasus-backend/internal/util/testing"
@@ -87,20 +88,20 @@ func Test_GetBackups_PermissionsEnforced(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			router := createTestRouter()
-			owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+			owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 			workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 
 			database, _, storage := createTestDatabaseWithBackups(t.Context(), workspace, owner, router)
 
 			var testUserToken string
 			if tt.isGlobalAdmin {
-				admin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+				admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 				testUserToken = admin.Token
 			} else if tt.workspaceRole != nil {
 				if *tt.workspaceRole == users_enums.WorkspaceRoleOwner {
 					testUserToken = owner.Token
 				} else {
-					member := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+					member := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 					workspaces_testing.AddMemberToWorkspace(
 						workspace,
 						member,
@@ -111,7 +112,7 @@ func Test_GetBackups_PermissionsEnforced(t *testing.T) {
 					testUserToken = member.Token
 				}
 			} else {
-				nonMember := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+				nonMember := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 				testUserToken = nonMember.Token
 			}
 
@@ -144,7 +145,7 @@ func Test_GetBackups_PermissionsEnforced(t *testing.T) {
 
 func Test_GetBackups_WithStatusFilter_ReturnsFilteredBackups(t *testing.T) {
 	router := createTestRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 
 	database := createTestDatabase("Test Database", workspace.ID, owner.Token, router)
@@ -216,7 +217,7 @@ func Test_GetBackups_WithStatusFilter_ReturnsFilteredBackups(t *testing.T) {
 
 func Test_GetBackups_WithBeforeDateFilter_ReturnsFilteredBackups(t *testing.T) {
 	router := createTestRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 
 	database := createTestDatabase("Test Database", workspace.ID, owner.Token, router)
@@ -262,7 +263,7 @@ func Test_GetBackups_WithBeforeDateFilter_ReturnsFilteredBackups(t *testing.T) {
 
 func Test_GetBackups_WithCombinedFilters_ReturnsFilteredBackups(t *testing.T) {
 	router := createTestRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 
 	database := createTestDatabase("Test Database", workspace.ID, owner.Token, router)
@@ -361,7 +362,7 @@ func Test_CreateBackup_PermissionsEnforced(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			router := createTestRouter()
-			owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+			owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 			workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 
 			database := createTestDatabase("Test Database", workspace.ID, owner.Token, router)
@@ -369,13 +370,13 @@ func Test_CreateBackup_PermissionsEnforced(t *testing.T) {
 
 			var testUserToken string
 			if tt.isGlobalAdmin {
-				admin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+				admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 				testUserToken = admin.Token
 			} else if tt.workspaceRole != nil {
 				if *tt.workspaceRole == users_enums.WorkspaceRoleOwner {
 					testUserToken = owner.Token
 				} else {
-					member := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+					member := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 					workspaces_testing.AddMemberToWorkspace(
 						workspace,
 						member,
@@ -386,7 +387,7 @@ func Test_CreateBackup_PermissionsEnforced(t *testing.T) {
 					testUserToken = member.Token
 				}
 			} else {
-				nonMember := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+				nonMember := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 				testUserToken = nonMember.Token
 			}
 
@@ -415,7 +416,7 @@ func Test_CreateBackup_PermissionsEnforced(t *testing.T) {
 
 func Test_CreateBackup_AuditLogWritten(t *testing.T) {
 	router := createTestRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 
 	database := createTestDatabase("Test Database", workspace.ID, owner.Token, router)
@@ -506,20 +507,20 @@ func Test_DeleteBackup_PermissionsEnforced(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			router := createTestRouter()
-			owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+			owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 			workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 
 			database, backup, storage := createTestDatabaseWithBackups(t.Context(), workspace, owner, router)
 
 			var testUserToken string
 			if tt.isGlobalAdmin {
-				admin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+				admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 				testUserToken = admin.Token
 			} else if tt.workspaceRole != nil {
 				if *tt.workspaceRole == users_enums.WorkspaceRoleOwner {
 					testUserToken = owner.Token
 				} else {
-					member := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+					member := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 					workspaces_testing.AddMemberToWorkspace(
 						workspace,
 						member,
@@ -530,7 +531,7 @@ func Test_DeleteBackup_PermissionsEnforced(t *testing.T) {
 					testUserToken = member.Token
 				}
 			} else {
-				nonMember := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+				nonMember := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 				testUserToken = nonMember.Token
 			}
 
@@ -545,12 +546,10 @@ func Test_DeleteBackup_PermissionsEnforced(t *testing.T) {
 			if !tt.expectSuccess {
 				assert.Contains(t, string(testResp.Body), "insufficient permissions")
 			} else {
-				userService := users_services.GetUserService()
-				ownerUser, err := userService.GetUserFromToken(t.Context(), owner.Token)
-				assert.NoError(t, err)
+				ownerActor := users.Actor{UserID: owner.UserID, Role: users.RoleMember}
 
 				response, err := backups_services.GetBackupService().
-					GetBackups(t.Context(), ownerUser, database.ID, 10, 0, nil)
+					GetBackups(t.Context(), ownerActor, database.ID, 10, 0, nil)
 				assert.NoError(t, err)
 				assert.Equal(t, 0, len(response.Backups))
 			}
@@ -566,7 +565,7 @@ func Test_DeleteBackup_PermissionsEnforced(t *testing.T) {
 
 func Test_DeleteBackup_AuditLogWritten(t *testing.T) {
 	router := createTestRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 
 	database, backup, storage := createTestDatabaseWithBackups(t.Context(), workspace, owner, router)
@@ -649,20 +648,20 @@ func Test_GenerateDownloadToken_PermissionsEnforced(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			router := createTestRouter()
-			owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+			owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 			workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 
 			database, backup, storage := createTestDatabaseWithBackups(t.Context(), workspace, owner, router)
 
 			var testUserToken string
 			if tt.isGlobalAdmin {
-				admin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+				admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 				testUserToken = admin.Token
 			} else if tt.workspaceRole != nil {
 				if *tt.workspaceRole == users_enums.WorkspaceRoleOwner {
 					testUserToken = owner.Token
 				} else {
-					member := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+					member := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 					workspaces_testing.AddMemberToWorkspace(
 						workspace,
 						member,
@@ -673,7 +672,7 @@ func Test_GenerateDownloadToken_PermissionsEnforced(t *testing.T) {
 					testUserToken = member.Token
 				}
 			} else {
-				nonMember := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+				nonMember := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 				testUserToken = nonMember.Token
 			}
 
@@ -708,7 +707,7 @@ func Test_GenerateDownloadToken_PermissionsEnforced(t *testing.T) {
 
 func Test_DownloadBackup_WithValidToken_Success(t *testing.T) {
 	router := createTestRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 
 	database, backup, storage := createTestDatabaseWithBackups(t.Context(), workspace, owner, router)
@@ -748,7 +747,7 @@ func Test_DownloadBackup_WithValidToken_Success(t *testing.T) {
 
 func Test_DownloadBackup_WithoutToken_Unauthorized(t *testing.T) {
 	router := createTestRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 
 	database, backup, storage := createTestDatabaseWithBackups(t.Context(), workspace, owner, router)
@@ -773,7 +772,7 @@ func Test_DownloadBackup_WithoutToken_Unauthorized(t *testing.T) {
 
 func Test_DownloadBackup_WithInvalidToken_Unauthorized(t *testing.T) {
 	router := createTestRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 
 	database, backup, storage := createTestDatabaseWithBackups(t.Context(), workspace, owner, router)
@@ -798,7 +797,7 @@ func Test_DownloadBackup_WithInvalidToken_Unauthorized(t *testing.T) {
 
 func Test_DownloadBackup_WithExpiredToken_Unauthorized(t *testing.T) {
 	router := createTestRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 
 	database, backup, storage := createTestDatabaseWithBackups(t.Context(), workspace, owner, router)
@@ -856,7 +855,7 @@ func Test_DownloadBackup_WithExpiredToken_Unauthorized(t *testing.T) {
 
 func Test_DownloadBackup_TokenUsedOnce_CannotReuseToken(t *testing.T) {
 	router := createTestRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 
 	database, backup, storage := createTestDatabaseWithBackups(t.Context(), workspace, owner, router)
@@ -902,7 +901,7 @@ func Test_DownloadBackup_TokenUsedOnce_CannotReuseToken(t *testing.T) {
 
 func Test_DownloadBackup_WithDifferentBackupToken_Unauthorized(t *testing.T) {
 	router := createTestRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 
 	database1 := createTestDatabase("Database 1", workspace.ID, owner.Token, router)
@@ -963,7 +962,7 @@ func Test_DownloadBackup_WithDifferentBackupToken_Unauthorized(t *testing.T) {
 
 func Test_DownloadBackup_AuditLogWritten(t *testing.T) {
 	router := createTestRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 
 	database, backup, storage := createTestDatabaseWithBackups(t.Context(), workspace, owner, router)
@@ -1048,7 +1047,7 @@ func Test_DownloadBackup_ProperFilenameForPostgreSQL(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			router := createTestRouter()
-			owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+			owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 			workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 
 			database := createTestDatabase(tt.databaseName, workspace.ID, owner.Token, router)
@@ -1149,7 +1148,7 @@ func Test_SanitizeFilename(t *testing.T) {
 
 func Test_CancelBackup_InProgressBackup_SuccessfullyCancelled(t *testing.T) {
 	router := createTestRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 	database := createTestDatabase("Test Database", workspace.ID, owner.Token, router)
 	storage := createTestStorage(workspace.ID)
@@ -1193,14 +1192,11 @@ func Test_CancelBackup_InProgressBackup_SuccessfullyCancelled(t *testing.T) {
 	assert.Equal(t, http.StatusNoContent, resp.StatusCode)
 
 	// Verify audit log was created
-	admin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
-	userService := users_services.GetUserService()
-	adminUser, err := userService.GetUserFromToken(t.Context(), admin.Token)
-	assert.NoError(t, err)
+	admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 
 	auditLogService := audit_logs.GetAuditLogService()
 	auditLogs, err := auditLogService.GetGlobalAuditLogs(t.Context(),
-		adminUser,
+		users.Actor{UserID: admin.UserID, Role: users.RoleAdmin},
 		&audit_logs.GetAuditLogsRequest{Limit: 100, Offset: 0},
 	)
 	assert.NoError(t, err)
@@ -1224,7 +1220,7 @@ func Test_CancelBackup_InProgressBackup_SuccessfullyCancelled(t *testing.T) {
 
 func Test_ConcurrentDownloadPrevention(t *testing.T) {
 	router := createTestRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 
 	database, backup, storage := createTestDatabaseWithBackups(t.Context(), workspace, owner, router)
@@ -1292,7 +1288,7 @@ func Test_ConcurrentDownloadPrevention(t *testing.T) {
 
 func Test_GenerateDownloadToken_BlockedWhenDownloadInProgress(t *testing.T) {
 	router := createTestRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 
 	database, backup, storage := createTestDatabaseWithBackups(t.Context(), workspace, owner, router)
@@ -1345,7 +1341,7 @@ func Test_GenerateDownloadToken_BlockedWhenDownloadInProgress(t *testing.T) {
 
 func Test_MakeBackup_VerifyBackupAndMetadataFilesExistInStorage(t *testing.T) {
 	router := createTestRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 
 	database, _, storage := createTestDatabaseWithBackups(t.Context(), workspace, owner, router)
@@ -1553,7 +1549,11 @@ func createTestBackup(
 		panic(err)
 	}
 
-	loadedStorages, err := storages.GetStorageService().GetStorages(ctx, user, *database.WorkspaceID)
+	loadedStorages, err := storages.GetStorageService().GetStorages(
+		ctx,
+		users.Actor{UserID: user.ID, Role: user.Role},
+		*database.WorkspaceID,
+	)
 	if err != nil || len(loadedStorages) == 0 {
 		panic("No storage found for workspace")
 	}
@@ -1620,7 +1620,7 @@ func createExpiredDownloadToken(ctx context.Context, spec expiredDownloadTokenSp
 
 func Test_DeleteBackup_RemovesBackupAndMetadataFilesFromDisk(t *testing.T) {
 	router := createTestRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 
 	database := createTestDatabase("Test Database", workspace.ID, owner.Token, router)

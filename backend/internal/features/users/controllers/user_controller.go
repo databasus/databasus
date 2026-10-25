@@ -11,8 +11,8 @@ import (
 	"databasus-backend/internal/config"
 	user_dto "databasus-backend/internal/features/users/dto"
 	users_errors "databasus-backend/internal/features/users/errors"
-	user_middleware "databasus-backend/internal/features/users/middleware"
 	users_services "databasus-backend/internal/features/users/services"
+	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/util/ratelimiter"
 )
 
@@ -119,7 +119,7 @@ func (c *UserController) HasAnyUser(ctx *gin.Context) {
 }
 
 func (c *UserController) ChangePassword(ctx *gin.Context) {
-	user, ok := user_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -144,7 +144,7 @@ func (c *UserController) ChangePassword(ctx *gin.Context) {
 		return
 	}
 
-	if err := c.userService.ChangeUserPassword(ctx.Request.Context(), user.ID, request.NewPassword); err != nil {
+	if err := c.userService.ChangeUserPassword(ctx.Request.Context(), actor.UserID, request.NewPassword); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -153,7 +153,7 @@ func (c *UserController) ChangePassword(ctx *gin.Context) {
 }
 
 func (c *UserController) InviteUser(ctx *gin.Context) {
-	user, ok := user_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -165,7 +165,7 @@ func (c *UserController) InviteUser(ctx *gin.Context) {
 		return
 	}
 
-	response, err := c.userService.InviteUser(ctx.Request.Context(), &request, user)
+	response, err := c.userService.InviteUser(ctx.Request.Context(), &request, actor)
 	if err != nil {
 		if errors.Is(err, users_errors.ErrInsufficientPermissionsToInviteUsers) {
 			ctx.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
@@ -179,18 +179,23 @@ func (c *UserController) InviteUser(ctx *gin.Context) {
 }
 
 func (c *UserController) GetCurrentUser(ctx *gin.Context) {
-	user, ok := user_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
 	}
 
-	profile := c.userService.GetCurrentUserProfile(ctx.Request.Context(), user)
+	profile, err := c.userService.GetCurrentUserProfile(ctx.Request.Context(), actor)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user profile"})
+		return
+	}
+
 	ctx.JSON(http.StatusOK, profile)
 }
 
 func (c *UserController) UpdateUserInfo(ctx *gin.Context) {
-	user, ok := user_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -207,7 +212,7 @@ func (c *UserController) UpdateUserInfo(ctx *gin.Context) {
 		return
 	}
 
-	if err := c.userService.UpdateUserInfo(ctx.Request.Context(), user.ID, &request); err != nil {
+	if err := c.userService.UpdateUserInfo(ctx.Request.Context(), actor.UserID, &request); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}

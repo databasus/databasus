@@ -14,10 +14,10 @@ import (
 	"databasus-backend/internal/features/databases"
 	"databasus-backend/internal/features/notifiers"
 	"databasus-backend/internal/features/storages"
-	users_enums "databasus-backend/internal/features/users/enums"
 	users_testing "databasus-backend/internal/features/users/testing"
 	verification_config "databasus-backend/internal/features/verification/config"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
+	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/util/logger"
 )
 
@@ -38,7 +38,7 @@ func enableAfterBackupVerificationViaAPI(
 
 func Test_CreateScheduledRuns_WhenScheduleTypeAfterBackup_DoesNotCreateTimeBasedRun(t *testing.T) {
 	router := createTestRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner, router)
 	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
 
@@ -64,7 +64,7 @@ func Test_CreateScheduledRuns_WhenScheduleTypeAfterBackup_DoesNotCreateTimeBased
 
 func Test_OnBackupCompleted_WhenScheduleTypeAfterBackup_EnqueuesPendingRun(t *testing.T) {
 	router := createTestRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner, router)
 	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
 
@@ -92,7 +92,7 @@ func Test_OnBackupCompleted_WhenScheduleTypeAfterBackup_EnqueuesPendingRun(t *te
 
 func Test_OnBackupCompleted_WhenPendingAfterBackupExists_CancelsOldAndEnqueuesNew(t *testing.T) {
 	router := createTestRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner, router)
 	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
 
@@ -143,7 +143,7 @@ func Test_OnBackupCompleted_WhenManualVerificationPending_LeavesItAndStillEnqueu
 	t *testing.T,
 ) {
 	router := createTestRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner, router)
 	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
 
@@ -188,7 +188,7 @@ func Test_OnBackupCompleted_WhenManualVerificationPending_LeavesItAndStillEnqueu
 
 func Test_OnBackupCompleted_WhenScheduleTypeInterval_DoesNothing(t *testing.T) {
 	router := createTestRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner, router)
 	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
 
@@ -213,7 +213,7 @@ func Test_OnBackupCompleted_WhenScheduleTypeInterval_DoesNothing(t *testing.T) {
 
 func Test_OnBackupCompleted_WhenDisabled_DoesNothing(t *testing.T) {
 	router := createTestRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner, router)
 	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
 
@@ -244,7 +244,7 @@ func Test_MakeBackup_WhenAfterBackupConfigured_SchedulesAndReplacesPendingVerifi
 	t *testing.T,
 ) {
 	router := createTestRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner, router)
 	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
 

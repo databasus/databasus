@@ -10,10 +10,10 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	users_dto "databasus-backend/internal/features/users/dto"
-	users_enums "databasus-backend/internal/features/users/enums"
 	users_models "databasus-backend/internal/features/users/models"
 	users_services "databasus-backend/internal/features/users/services"
 	users_testing "databasus-backend/internal/features/users/testing"
+	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/storage"
 	test_utils "databasus-backend/internal/util/testing"
 )
@@ -23,7 +23,7 @@ func Test_SendResetPasswordCode_WithValidEmail_CodeSent(t *testing.T) {
 	mockEmailSender := users_testing.NewMockEmailSender()
 	users_services.GetUserService().SetEmailSender(mockEmailSender)
 
-	user := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
 	request := users_dto.SendResetPasswordCodeRequestDTO{
 		Email: user.Email,
@@ -71,7 +71,7 @@ func Test_SendResetPasswordCode_WithInvitedUser_ReturnsBadRequest(t *testing.T) 
 	mockEmailSender := users_testing.NewMockEmailSender()
 	users_services.GetUserService().SetEmailSender(mockEmailSender)
 
-	adminUser := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	adminUser := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 	email := "invited" + uuid.New().String() + "@example.com"
 
 	inviteRequest := users_dto.InviteUserRequestDTO{
@@ -107,7 +107,7 @@ func Test_SendResetPasswordCode_WithRateLimitExceeded_ReturnsTooManyRequests(t *
 	mockEmailSender := users_testing.NewMockEmailSender()
 	users_services.GetUserService().SetEmailSender(mockEmailSender)
 
-	user := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
 	request := users_dto.SendResetPasswordCodeRequestDTO{
 		Email: user.Email,
@@ -241,7 +241,7 @@ func Test_ResetPassword_WithExpiredCode_ReturnsBadRequest(t *testing.T) {
 	mockEmailSender := users_testing.NewMockEmailSender()
 	users_services.GetUserService().SetEmailSender(mockEmailSender)
 
-	user := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
 	// Create expired reset code directly in database
 	code := "123456"
@@ -342,7 +342,7 @@ func Test_ResetPassword_WithWrongCode_ReturnsBadRequest(t *testing.T) {
 	mockEmailSender := users_testing.NewMockEmailSender()
 	users_services.GetUserService().SetEmailSender(mockEmailSender)
 
-	user := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
 	// Request reset code
 	sendCodeRequest := users_dto.SendResetPasswordCodeRequestDTO{
@@ -380,7 +380,7 @@ func Test_ResetPassword_WithInvalidNewPassword_ReturnsBadRequest(t *testing.T) {
 	mockEmailSender := users_testing.NewMockEmailSender()
 	users_services.GetUserService().SetEmailSender(mockEmailSender)
 
-	user := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
 	resetRequest := users_dto.ResetPasswordRequestDTO{
 		Email:       user.Email,
@@ -404,7 +404,7 @@ func Test_ResetPassword_EmailSendFailure_ReturnsError(t *testing.T) {
 	mockEmailSender.ShouldFail = true
 	users_services.GetUserService().SetEmailSender(mockEmailSender)
 
-	user := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
 	request := users_dto.SendResetPasswordCodeRequestDTO{
 		Email: user.Email,

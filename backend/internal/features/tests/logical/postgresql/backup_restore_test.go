@@ -23,9 +23,9 @@ import (
 	restores_core "databasus-backend/internal/features/restores/core"
 	"databasus-backend/internal/features/storages"
 	logicaltesting "databasus-backend/internal/features/tests/logical/shared"
-	users_enums "databasus-backend/internal/features/users/enums"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
+	"databasus-backend/internal/modules/users"
 	test_utils "databasus-backend/internal/util/testing"
 	"databasus-backend/internal/util/testing/containers"
 )
@@ -232,7 +232,7 @@ func testBackupRestoreForVersion(t *testing.T, endpoint containers.Endpoint, pgV
 	}()
 
 	router := logicaltesting.CreateTestRouter()
-	user := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", user, router)
 
 	storage := storages.CreateTestStorage(workspace.ID)
@@ -350,7 +350,7 @@ func testSchemaSelectionAllSchemasForVersion(t *testing.T, endpoint containers.E
 	}()
 
 	router := logicaltesting.CreateTestRouter()
-	user := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Schema Test Workspace", user, router)
 
 	storage := storages.CreateTestStorage(workspace.ID)
@@ -479,7 +479,7 @@ func testBackupRestoreWithExcludeExtensionsForVersion(t *testing.T, endpoint con
 	}()
 
 	router := logicaltesting.CreateTestRouter()
-	user := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Extension Test Workspace", user, router)
 
 	storage := storages.CreateTestStorage(workspace.ID)
@@ -624,7 +624,7 @@ func testBackupRestoreSkipUserMappingsForVersion(t *testing.T, endpoint containe
 	}()
 
 	router := logicaltesting.CreateTestRouter()
-	user := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Skip User Mappings Workspace", user, router)
 
 	storage := storages.CreateTestStorage(workspace.ID)
@@ -738,7 +738,7 @@ func testBackupRestoreWithoutExcludeExtensionsForVersion(
 	}()
 
 	router := logicaltesting.CreateTestRouter()
-	user := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(),
 		"Extension Recovery Test Workspace",
 		user,
@@ -886,7 +886,7 @@ func testBackupRestoreWithRestoreOwnershipForVersion(t *testing.T, endpoint cont
 	}()
 
 	router := logicaltesting.CreateTestRouter()
-	user := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Ownership Test Workspace", user, router)
 
 	storage := storages.CreateTestStorage(workspace.ID)
@@ -999,7 +999,7 @@ func testBackupRestoreWithRestorePrivilegesForVersion(t *testing.T, endpoint con
 	}()
 
 	router := logicaltesting.CreateTestRouter()
-	user := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Privileges Test Workspace", user, router)
 
 	storage := storages.CreateTestStorage(workspace.ID)
@@ -1106,7 +1106,7 @@ func testBackupRestoreWithReadOnlyUserForVersion(t *testing.T, endpoint containe
 	}()
 
 	router := logicaltesting.CreateTestRouter()
-	user := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ReadOnly Test Workspace", user, router)
 
 	storage := storages.CreateTestStorage(workspace.ID)
@@ -1242,7 +1242,7 @@ func testBackupFailsWhenUserCannotReadSequencesForVersion(
 	}()
 
 	router := logicaltesting.CreateTestRouter()
-	user := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Sequence Privileges Workspace", user, router)
 
 	storage := storages.CreateTestStorage(workspace.ID)
@@ -1345,7 +1345,7 @@ func testSchemaSelectionOnlySpecifiedSchemasForVersion(
 	}()
 
 	router := logicaltesting.CreateTestRouter()
-	user := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Schema Test Workspace", user, router)
 
 	storage := storages.CreateTestStorage(workspace.ID)
@@ -1486,7 +1486,7 @@ func testBackupRestoreWithExcludeTablesForVersion(t *testing.T, endpoint contain
 	}()
 
 	router := logicaltesting.CreateTestRouter()
-	user := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(),
 		"Exclude Tables Test Workspace",
 		user,
@@ -1626,7 +1626,7 @@ func testSchemasWithExcludeTablesForVersion(t *testing.T, endpoint containers.En
 	}()
 
 	router := logicaltesting.CreateTestRouter()
-	user := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(),
 		"Schemas+Exclude Tables Workspace",
 		user,
@@ -1762,7 +1762,7 @@ func testBackupRestoreWithEncryptionForVersion(t *testing.T, endpoint containers
 	}()
 
 	router := logicaltesting.CreateTestRouter()
-	user := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", user, router)
 
 	storage := storages.CreateTestStorage(workspace.ID)

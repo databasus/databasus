@@ -13,6 +13,7 @@ import (
 	users_models "databasus-backend/internal/features/users/models"
 	users_repositories "databasus-backend/internal/features/users/repositories"
 	"databasus-backend/internal/lib/mailer"
+	"databasus-backend/internal/modules/users"
 )
 
 const (
@@ -45,6 +46,32 @@ func (s *SettingsService) GetSettings(ctx context.Context) (*users_models.UsersS
 	return s.userSettingsRepository.GetSettings(ctx)
 }
 
+func (s *SettingsService) CanInviteUsers(ctx context.Context, actor users.Actor) (bool, error) {
+	if actor.Role == users.RoleAdmin {
+		return true, nil
+	}
+
+	settings, err := s.userSettingsRepository.GetSettings(ctx)
+	if err != nil {
+		return false, fmt.Errorf("failed to get settings: %w", err)
+	}
+
+	return actor.Role == users.RoleMember && settings.IsAllowMemberInvitations, nil
+}
+
+func (s *SettingsService) CanCreateWorkspaces(ctx context.Context, actor users.Actor) (bool, error) {
+	if actor.Role == users.RoleAdmin {
+		return true, nil
+	}
+
+	settings, err := s.userSettingsRepository.GetSettings(ctx)
+	if err != nil {
+		return false, fmt.Errorf("failed to get settings: %w", err)
+	}
+
+	return actor.Role == users.RoleMember && settings.IsMemberAllowedToCreateWorkspaces, nil
+}
+
 func (s *SettingsService) GetSettingsResponse(
 	ctx context.Context,
 ) (*users_dto.SettingsResponseDTO, error) {
@@ -60,9 +87,14 @@ func (s *SettingsService) IsEmailConfigured() bool {
 	return s.emailSender != nil && s.emailSender.IsConfigured()
 }
 
-func (s *SettingsService) SendTestEmail(ctx context.Context, admin *users_models.User) (string, error) {
+func (s *SettingsService) SendTestEmail(ctx context.Context, actor users.Actor) (string, error) {
 	if !s.IsEmailConfigured() {
 		return "", users_errors.ErrEmailNotConfigured
+	}
+
+	admin, err := s.userRepository.GetUserByID(ctx, actor.UserID)
+	if err != nil {
+		return "", fmt.Errorf("failed to get user: %w", err)
 	}
 
 	if !isDeliverableAddress(admin.Email) {
@@ -88,9 +120,9 @@ func (s *SettingsService) SendTestEmail(ctx context.Context, admin *users_models
 func (s *SettingsService) UpdateSettings(
 	ctx context.Context,
 	request users_dto.UpdateSettingsRequestDTO,
-	updatedBy *users_models.User,
+	actor users.Actor,
 ) (*users_dto.SettingsResponseDTO, error) {
-	if !updatedBy.CanUpdateSettings() {
+	if actor.Role != users.RoleAdmin {
 		return nil, fmt.Errorf("insufficient permissions to update settings")
 	}
 
@@ -159,7 +191,7 @@ func (s *SettingsService) UpdateSettings(
 	for _, message := range auditLogMessages {
 		s.writeAuditLog(ctx, audit_logs_models.AuditEntry{
 			Message:     message,
-			UserID:      &updatedBy.ID,
+			UserID:      &actor.UserID,
 			WorkspaceID: nil,
 		})
 	}

@@ -24,9 +24,9 @@ import (
 	"databasus-backend/internal/features/notifiers"
 	"databasus-backend/internal/features/storages"
 	task_cancellation "databasus-backend/internal/features/tasks/cancellation"
-	users_models "databasus-backend/internal/features/users/models"
 	workspaces_services "databasus-backend/internal/features/workspaces/services"
 	"databasus-backend/internal/lib/crypto"
+	"databasus-backend/internal/modules/users"
 	util_encryption "databasus-backend/internal/util/encryption"
 	files_utils "databasus-backend/internal/util/files"
 )
@@ -92,7 +92,7 @@ func (s *LogicalBackupService) OnBeforeDatabaseRemove(ctx context.Context, datab
 
 func (s *LogicalBackupService) MakeBackupWithAuth(
 	ctx context.Context,
-	user *users_models.User,
+	actor users.Actor,
 	databaseID uuid.UUID,
 ) error {
 	database, err := s.databaseService.GetDatabaseByID(databaseID)
@@ -104,7 +104,7 @@ func (s *LogicalBackupService) MakeBackupWithAuth(
 		return errors.New("cannot create backup for database without workspace")
 	}
 
-	canAccess, _, err := s.workspaceService.CanUserAccessWorkspace(ctx, *database.WorkspaceID, user)
+	canAccess, _, err := s.workspaceService.CanUserAccessWorkspace(ctx, *database.WorkspaceID, actor)
 	if err != nil {
 		return err
 	}
@@ -116,7 +116,7 @@ func (s *LogicalBackupService) MakeBackupWithAuth(
 
 	s.auditLogService.WriteAuditLog(ctx, audit_logs_models.AuditEntry{
 		Message:     fmt.Sprintf("Backup manually initiated for database: %s", database.Name),
-		UserID:      &user.ID,
+		UserID:      &actor.UserID,
 		WorkspaceID: database.WorkspaceID,
 	})
 
@@ -125,7 +125,7 @@ func (s *LogicalBackupService) MakeBackupWithAuth(
 
 func (s *LogicalBackupService) GetBackups(
 	ctx context.Context,
-	user *users_models.User,
+	actor users.Actor,
 	databaseID uuid.UUID,
 	limit, offset int,
 	filters *backups_core_logical.BackupFilters,
@@ -139,7 +139,7 @@ func (s *LogicalBackupService) GetBackups(
 		return nil, errors.New("cannot get backups for database without workspace")
 	}
 
-	canAccess, _, err := s.workspaceService.CanUserAccessWorkspace(ctx, *database.WorkspaceID, user)
+	canAccess, _, err := s.workspaceService.CanUserAccessWorkspace(ctx, *database.WorkspaceID, actor)
 	if err != nil {
 		return nil, err
 	}
@@ -176,7 +176,7 @@ func (s *LogicalBackupService) GetBackups(
 
 func (s *LogicalBackupService) DeleteBackup(
 	ctx context.Context,
-	user *users_models.User,
+	actor users.Actor,
 	backupID uuid.UUID,
 ) error {
 	backup, err := s.backupRepository.FindByID(backupID)
@@ -193,7 +193,7 @@ func (s *LogicalBackupService) DeleteBackup(
 		return errors.New("cannot delete backup for database without workspace")
 	}
 
-	canManage, err := s.workspaceService.CanUserManageDBs(ctx, *database.WorkspaceID, user)
+	canManage, err := s.workspaceService.CanUserManageDBs(ctx, *database.WorkspaceID, actor)
 	if err != nil {
 		return err
 	}
@@ -207,7 +207,7 @@ func (s *LogicalBackupService) DeleteBackup(
 
 	s.auditLogService.WriteAuditLog(ctx, audit_logs_models.AuditEntry{
 		Message:     fmt.Sprintf("Backup deleted for database: %s", database.Name),
-		UserID:      &user.ID,
+		UserID:      &actor.UserID,
 		WorkspaceID: database.WorkspaceID,
 	})
 
@@ -227,7 +227,7 @@ func (s *LogicalBackupService) SetRestoreVerificationStatus(
 
 func (s *LogicalBackupService) CancelBackup(
 	ctx context.Context,
-	user *users_models.User,
+	actor users.Actor,
 	backupID uuid.UUID,
 ) error {
 	backup, err := s.backupRepository.FindByID(backupID)
@@ -244,7 +244,7 @@ func (s *LogicalBackupService) CancelBackup(
 		return errors.New("cannot cancel backup for database without workspace")
 	}
 
-	canManage, err := s.workspaceService.CanUserManageDBs(ctx, *database.WorkspaceID, user)
+	canManage, err := s.workspaceService.CanUserManageDBs(ctx, *database.WorkspaceID, actor)
 	if err != nil {
 		return err
 	}
@@ -262,7 +262,7 @@ func (s *LogicalBackupService) CancelBackup(
 
 	s.auditLogService.WriteAuditLog(ctx, audit_logs_models.AuditEntry{
 		Message:     fmt.Sprintf("Backup cancelled for database: %s", database.Name),
-		UserID:      &user.ID,
+		UserID:      &actor.UserID,
 		WorkspaceID: database.WorkspaceID,
 	})
 
@@ -351,7 +351,7 @@ func (s *LogicalBackupService) GetBackupReader(
 
 func (s *LogicalBackupService) GenerateDownloadToken(
 	ctx context.Context,
-	user *users_models.User,
+	actor users.Actor,
 	backupID uuid.UUID,
 ) (*download_token.GenerateTokenResponse, error) {
 	backup, err := s.backupRepository.FindByID(backupID)
@@ -368,7 +368,7 @@ func (s *LogicalBackupService) GenerateDownloadToken(
 		return nil, errors.New("cannot download backup for database without workspace")
 	}
 
-	canAccess, _, err := s.workspaceService.CanUserAccessWorkspace(ctx, *database.WorkspaceID, user)
+	canAccess, _, err := s.workspaceService.CanUserAccessWorkspace(ctx, *database.WorkspaceID, actor)
 	if err != nil {
 		return nil, err
 	}
@@ -376,7 +376,7 @@ func (s *LogicalBackupService) GenerateDownloadToken(
 		return nil, errors.New("insufficient permissions to download backup for this database")
 	}
 
-	token, err := s.downloadTokenService.Generate(ctx, backupID, user.ID)
+	token, err := s.downloadTokenService.Generate(ctx, backupID, actor.UserID)
 	if err != nil {
 		return nil, err
 	}
@@ -385,7 +385,7 @@ func (s *LogicalBackupService) GenerateDownloadToken(
 
 	s.auditLogService.WriteAuditLog(ctx, audit_logs_models.AuditEntry{
 		Message:     fmt.Sprintf("Download token generated for backup of database: %s", database.Name),
-		UserID:      &user.ID,
+		UserID:      &actor.UserID,
 		WorkspaceID: database.WorkspaceID,
 	})
 

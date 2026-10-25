@@ -10,8 +10,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	users_enums "databasus-backend/internal/features/users/enums"
 	users_testing "databasus-backend/internal/features/users/testing"
+	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/storage"
 	test_utils "databasus-backend/internal/util/testing"
 )
@@ -20,7 +20,7 @@ func Test_Heartbeat_WhenTokenIsValid_UpdatesCapacityAndLastSeen(t *testing.T) {
 	cleanupAgents(t)
 
 	router := createTestRouter()
-	admin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 
 	createdAgent := CreateTestVerificationAgent(t, router, admin.Token, "hb-ok-"+uuid.New().String())
 
@@ -65,7 +65,7 @@ func Test_Heartbeat_TwiceUpdatesSameRow(t *testing.T) {
 	cleanupAgents(t)
 
 	router := createTestRouter()
-	admin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 
 	createdAgent := CreateTestVerificationAgent(t, router, admin.Token, "hb-twice-"+uuid.New().String())
 	heartbeatPath := heartbeatPathFor(createdAgent.Agent.ID)
@@ -107,7 +107,7 @@ func Test_Heartbeat_PersistsRamAsGb_NotMb(t *testing.T) {
 	cleanupAgents(t)
 
 	router := createTestRouter()
-	admin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 
 	createdAgent := CreateTestVerificationAgent(t, router, admin.Token, "hb-gb-"+uuid.New().String())
 
@@ -130,7 +130,7 @@ func Test_Heartbeat_WhenNoToken_ReturnsUnauthorized(t *testing.T) {
 	cleanupAgents(t)
 
 	router := createTestRouter()
-	admin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 
 	createdAgent := CreateTestVerificationAgent(t, router, admin.Token, "hb-notoken-"+uuid.New().String())
 
@@ -145,7 +145,7 @@ func Test_Heartbeat_WhenInvalidToken_ReturnsUnauthorized(t *testing.T) {
 	cleanupAgents(t)
 
 	router := createTestRouter()
-	admin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 
 	createdAgent := CreateTestVerificationAgent(t, router, admin.Token, "hb-bad-"+uuid.New().String())
 
@@ -161,7 +161,7 @@ func Test_Heartbeat_WhenUserJwtInsteadOfAgentToken_ReturnsUnauthorized(t *testin
 	cleanupAgents(t)
 
 	router := createTestRouter()
-	admin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 
 	createdAgent := CreateTestVerificationAgent(t, router, admin.Token, "hb-jwt-"+uuid.New().String())
 
@@ -201,7 +201,7 @@ func Test_Heartbeat_WhenAgentIdMismatchesToken_ReturnsUnauthorized(t *testing.T)
 	cleanupAgents(t)
 
 	router := createTestRouter()
-	admin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 
 	agentA := CreateTestVerificationAgent(t, router, admin.Token, "hb-mix-a-"+uuid.New().String())
 	agentB := CreateTestVerificationAgent(t, router, admin.Token, "hb-mix-b-"+uuid.New().String())
@@ -241,7 +241,7 @@ func Test_Heartbeat_AfterRotateToken_OldTokenReturnsUnauthorized(t *testing.T) {
 	cleanupAgents(t)
 
 	router := createTestRouter()
-	admin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 
 	createdAgent := CreateTestVerificationAgent(t, router, admin.Token, "hb-rotate-"+uuid.New().String())
 	originalToken := createdAgent.Token
@@ -270,7 +270,7 @@ func Test_Heartbeat_AfterDelete_ReturnsUnauthorized(t *testing.T) {
 	cleanupAgents(t)
 
 	router := createTestRouter()
-	admin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 
 	createdAgent := CreateTestVerificationAgent(t, router, admin.Token, "hb-deleted-"+uuid.New().String())
 
@@ -292,7 +292,7 @@ func Test_Heartbeat_AfterDelete_DoesNotUpdateLastSeen(t *testing.T) {
 	cleanupAgents(t)
 
 	router := createTestRouter()
-	admin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 
 	createdAgent := CreateTestVerificationAgent(t, router, admin.Token, "hb-no-update-"+uuid.New().String())
 	heartbeatPath := heartbeatPathFor(createdAgent.Agent.ID)
@@ -339,7 +339,7 @@ func Test_Heartbeat_RejectsNegativeCapacity(t *testing.T) {
 	cleanupAgents(t)
 
 	router := createTestRouter()
-	admin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 
 	createdAgent := CreateTestVerificationAgent(t, router, admin.Token, "hb-neg-"+uuid.New().String())
 
@@ -353,7 +353,7 @@ func Test_Heartbeat_OverPerAgentRateLimit_Returns429(t *testing.T) {
 	cleanupAgents(t)
 
 	router := createTestRouter()
-	admin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 
 	createdAgent := CreateTestVerificationAgent(t, router, admin.Token, "hb-burst-"+uuid.New().String())
 	heartbeatPath := heartbeatPathFor(createdAgent.Agent.ID)
@@ -384,7 +384,7 @@ func Test_Heartbeat_InvalidUuidDoesNotConsumeRateLimit(t *testing.T) {
 	cleanupAgents(t)
 
 	router := createTestRouter()
-	admin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 
 	createdAgent := CreateTestVerificationAgent(t, router, admin.Token, "hb-garbage-"+uuid.New().String())
 
@@ -409,7 +409,7 @@ func Test_AdminEndpoint_WithAgentToken_ReturnsUnauthorized(t *testing.T) {
 	cleanupAgents(t)
 
 	router := createTestRouter()
-	admin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 
 	createdAgent := CreateTestVerificationAgent(t, router, admin.Token, "cross-"+uuid.New().String())
 

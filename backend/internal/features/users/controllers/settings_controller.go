@@ -9,10 +9,10 @@ import (
 	"github.com/gin-gonic/gin"
 
 	users_dto "databasus-backend/internal/features/users/dto"
-	user_enums "databasus-backend/internal/features/users/enums"
 	users_errors "databasus-backend/internal/features/users/errors"
 	user_middleware "databasus-backend/internal/features/users/middleware"
 	users_services "databasus-backend/internal/features/users/services"
+	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/util/ratelimiter"
 )
 
@@ -32,12 +32,12 @@ func (c *SettingsController) RegisterRoutes(router *gin.RouterGroup) {
 	router.GET("/users/settings", c.GetUsersSettings)
 	router.PUT(
 		"/users/settings",
-		user_middleware.RequireRole(user_enums.UserRoleAdmin),
+		user_middleware.RequireRole(users.RoleAdmin),
 		c.UpdateUsersSettings,
 	)
 	router.POST(
 		"/users/settings/test-email",
-		user_middleware.RequireRole(user_enums.UserRoleAdmin),
+		user_middleware.RequireRole(users.RoleAdmin),
 		c.SendTestEmail,
 	)
 }
@@ -55,7 +55,7 @@ func (c *SettingsController) GetUsersSettings(ctx *gin.Context) {
 }
 
 func (c *SettingsController) UpdateUsersSettings(ctx *gin.Context) {
-	user, ok := user_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -67,7 +67,7 @@ func (c *SettingsController) UpdateUsersSettings(ctx *gin.Context) {
 		return
 	}
 
-	settings, err := c.settingsService.UpdateSettings(ctx.Request.Context(), request, user)
+	settings, err := c.settingsService.UpdateSettings(ctx.Request.Context(), request, actor)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -77,7 +77,7 @@ func (c *SettingsController) UpdateUsersSettings(ctx *gin.Context) {
 }
 
 func (c *SettingsController) SendTestEmail(ctx *gin.Context) {
-	user, ok := user_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -85,14 +85,14 @@ func (c *SettingsController) SendTestEmail(ctx *gin.Context) {
 
 	if !checkRateLimitOrRespond(ctx, c.rateLimiter, c.logger, ratelimiter.Attempt{
 		Scope:      testEmailRateLimitScope,
-		Identifier: user.ID.String(),
+		Identifier: actor.UserID.String(),
 		Limit:      testEmailRateLimit,
 		Window:     testEmailRateLimitWindow,
 	}) {
 		return
 	}
 
-	recipientEmail, err := c.settingsService.SendTestEmail(ctx.Request.Context(), user)
+	recipientEmail, err := c.settingsService.SendTestEmail(ctx.Request.Context(), actor)
 
 	switch {
 	case errors.Is(err, users_errors.ErrEmailNotConfigured):

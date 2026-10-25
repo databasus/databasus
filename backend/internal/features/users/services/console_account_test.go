@@ -17,6 +17,7 @@ import (
 	users_repositories "databasus-backend/internal/features/users/repositories"
 	users_services "databasus-backend/internal/features/users/services"
 	users_testing "databasus-backend/internal/features/users/testing"
+	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/storage"
 )
 
@@ -33,7 +34,7 @@ func Test_CreateUserFromConsole_WhenInstanceIsEmpty_CreatesTheBootstrapAdministr
 
 	assert.True(t, outcome.IsCreated)
 	assert.True(t, outcome.User.IsRootAdmin)
-	assert.Equal(t, users_enums.UserRoleAdmin, outcome.User.Role)
+	assert.Equal(t, users.RoleAdmin, outcome.User.Role)
 	assert.Contains(t, users_services.RenderConsoleAccountOutcome(outcome), "administrator of this instance")
 	assert.True(t, recorder.HasEntryContaining("created from the host console", email, "ADMIN"))
 	assert.True(t, recorder.HasEntryContaining("First account on the instance now administers it", email))
@@ -48,7 +49,7 @@ func Test_CreateUserFromConsole_WhenInstanceIsEmpty_CreatesTheBootstrapAdministr
 		Name:     "Registered",
 	})
 	require.NoError(t, err)
-	assert.Equal(t, users_enums.UserRoleMember, registered.Role)
+	assert.Equal(t, users.RoleMember, registered.Role)
 	assert.False(t, registered.IsRootAdmin)
 }
 
@@ -112,7 +113,7 @@ func Test_CreateUserFromConsole_WhenRegistrationClaimsTheEmptyInstanceConcurrent
 
 		consoleUser := getUserByEmail(t, consoleEmail)
 		registeredUser := getUserByEmail(t, registeredEmail)
-		assert.Equal(t, users_enums.UserRoleAdmin, consoleUser.Role)
+		assert.Equal(t, users.RoleAdmin, consoleUser.Role)
 		assert.NotEqual(t, consoleUser.IsRootAdmin, registeredUser.IsRootAdmin)
 	}
 }
@@ -129,7 +130,7 @@ func Test_CreateUserFromConsole_WhenInstanceHoldsAccounts_CreatesAnOrdinaryAdmin
 
 	assert.True(t, outcome.IsCreated)
 	assert.False(t, outcome.User.IsRootAdmin)
-	assert.Equal(t, users_enums.UserRoleAdmin, outcome.User.Role)
+	assert.Equal(t, users.RoleAdmin, outcome.User.Role)
 	assert.NotContains(t, users_services.RenderConsoleAccountOutcome(outcome), "administrator of this instance")
 	assert.True(t, recorder.HasEntryContaining("created from the host console", email, "ADMIN"))
 	assert.False(t, recorder.HasEntryContaining("First account on the instance"))
@@ -149,7 +150,7 @@ func Test_CreateUserFromConsole_WhenExternalRegistrationIsDisabled_CreatesTheMem
 	require.NoError(t, err)
 	t.Cleanup(func() { users_testing.DeleteTestUser(context.Background(), outcome.User.ID) })
 
-	assert.Equal(t, users_enums.UserRoleMember, outcome.User.Role)
+	assert.Equal(t, users.RoleMember, outcome.User.Role)
 	require.NoError(t, signIn(t, email, consoleAccountPassword))
 }
 
@@ -252,16 +253,16 @@ func Test_CreateUserFromConsole_WhenAddressBelongsToAnAccountInAnotherState_Refu
 		existing      *users_models.User
 	}{
 		{"member asked to become administrator", "admin", newExistingUser(
-			users_enums.UserRoleMember, users_enums.UserStatusActive, new("old-hash"), nil,
+			users.RoleMember, users_enums.UserStatusActive, new("old-hash"), nil,
 		)},
 		{"deactivated account", "member", newExistingUser(
-			users_enums.UserRoleMember, users_enums.UserStatusInactive, new("old-hash"), nil,
+			users.RoleMember, users_enums.UserStatusInactive, new("old-hash"), nil,
 		)},
 		{"invited account", "member", newExistingUser(
-			users_enums.UserRoleMember, users_enums.UserStatusInvited, nil, nil,
+			users.RoleMember, users_enums.UserStatusInvited, nil, nil,
 		)},
 		{"administrator without a password", "admin", newExistingUser(
-			users_enums.UserRoleAdmin, users_enums.UserStatusActive, nil, &githubOAuthID,
+			users.RoleAdmin, users_enums.UserStatusActive, nil, &githubOAuthID,
 		)},
 	}
 
@@ -344,7 +345,7 @@ func newConsoleEmail() string {
 }
 
 func newExistingUser(
-	role users_enums.UserRole,
+	role users.Role,
 	status users_enums.UserStatus,
 	hashedPassword *string,
 	githubOAuthID *string,

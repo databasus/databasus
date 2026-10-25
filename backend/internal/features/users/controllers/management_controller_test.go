@@ -20,6 +20,7 @@ import (
 	workspaces_controllers "databasus-backend/internal/features/workspaces/controllers"
 	workspaces_dto "databasus-backend/internal/features/workspaces/dto"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
+	"databasus-backend/internal/modules/users"
 	test_utils "databasus-backend/internal/util/testing"
 )
 
@@ -27,7 +28,7 @@ func Test_GetUsersList_WhenUserIsAdmin_ReturnsUsers(t *testing.T) {
 	router := createManagementTestRouter()
 
 	// Create admin user and get token
-	testUser := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	testUser := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 
 	var response users_dto.ListUsersResponseDTO
 	test_utils.MakeGetRequestAndUnmarshal(
@@ -47,7 +48,7 @@ func Test_GetUsersList_WhenUserIsMember_ReturnsForbidden(t *testing.T) {
 	router := createManagementTestRouter()
 
 	// Create member user and get token
-	testUser := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	testUser := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
 	resp := test_utils.MakeGetRequest(
 		t,
@@ -63,7 +64,7 @@ func Test_GetUsersList_WithPagination_RespectsLimits(t *testing.T) {
 	router := createManagementTestRouter()
 
 	// Create admin user and get token
-	testUser := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	testUser := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 
 	var response users_dto.ListUsersResponseDTO
 	test_utils.MakeGetRequestAndUnmarshal(
@@ -83,7 +84,7 @@ func Test_GetUsersList_WithBeforeDateFilter_ReturnsFilteredUsers(t *testing.T) {
 	router := createManagementTestRouter()
 
 	// Create admin user and get token
-	testUser := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	testUser := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 
 	// Test with beforeDate filter
 	beforeDate := "2024-01-01T00:00:00Z"
@@ -108,7 +109,7 @@ func Test_GetUsersList_WithInvalidDateFilter_ReturnsBadRequest(t *testing.T) {
 	router := createManagementTestRouter()
 
 	// Create admin user and get token
-	testUser := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	testUser := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 
 	// Test with invalid date format
 	resp := test_utils.MakeGetRequest(
@@ -125,11 +126,11 @@ func Test_GetUsersList_WithSearchQuery_ReturnsFilteredUsers(t *testing.T) {
 	router := createManagementTestRouter()
 
 	// Create admin user and get token
-	adminUser := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	adminUser := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 
 	// Create test users with specific emails and names
-	user1 := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
-	user2 := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	user1 := users_testing.CreateTestUser(t.Context(), users.RoleMember)
+	user2 := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
 	// Test searching by email (partial match)
 	emailPart := user1.Email[:5]
@@ -200,7 +201,7 @@ func Test_GetUserProfile_WhenAccessingOwnProfile_ReturnsProfile(t *testing.T) {
 	router := createManagementTestRouter()
 
 	// Create member user and get token
-	testUser := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	testUser := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
 	var response users_dto.UserProfileResponseDTO
 	test_utils.MakeGetRequestAndUnmarshal(
@@ -213,15 +214,15 @@ func Test_GetUserProfile_WhenAccessingOwnProfile_ReturnsProfile(t *testing.T) {
 	)
 
 	assert.Equal(t, testUser.UserID, response.ID)
-	assert.Equal(t, users_enums.UserRoleMember, response.Role)
+	assert.Equal(t, users.RoleMember, response.Role)
 }
 
 func Test_GetUserProfile_WhenUserIsAdmin_ReturnsProfile(t *testing.T) {
 	router := createManagementTestRouter()
 
 	// Create both admin and regular user
-	adminUser := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
-	regularUser := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	adminUser := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
+	regularUser := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
 	var response users_dto.UserProfileResponseDTO
 	test_utils.MakeGetRequestAndUnmarshal(
@@ -240,8 +241,8 @@ func Test_GetUserProfile_WhenAccessingOtherUserAsMember_ReturnsForbidden(t *test
 	router := createManagementTestRouter()
 
 	// Create two member users
-	user1 := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
-	user2 := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	user1 := users_testing.CreateTestUser(t.Context(), users.RoleMember)
+	user2 := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
 	test_utils.MakeGetRequest(
 		t,
@@ -256,7 +257,7 @@ func Test_GetUserProfile_WithNonExistentUser_ReturnsForbidden(t *testing.T) {
 	router := createManagementTestRouter()
 
 	// Create admin user and get token
-	testUser := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	testUser := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 
 	// Try to access non-existent user
 	test_utils.MakeGetRequest(
@@ -272,7 +273,7 @@ func Test_GetUserProfile_WithInvalidUserID_ReturnsBadRequest(t *testing.T) {
 	router := createManagementTestRouter()
 
 	// Create admin user and get token
-	testUser := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	testUser := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 
 	resp := test_utils.MakeGetRequest(
 		t,
@@ -288,8 +289,8 @@ func Test_DeactivateUser_WhenUserIsAdmin_UserDeactivated(t *testing.T) {
 	router := createManagementTestRouter()
 
 	// Create admin and target user
-	adminUser := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
-	targetUser := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	adminUser := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
+	targetUser := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
 	resp := test_utils.MakePostRequest(
 		t,
@@ -306,8 +307,8 @@ func Test_DeactivateUser_WhenUserIsMember_ReturnsForbidden(t *testing.T) {
 	router := createManagementTestRouter()
 
 	// Create two member users
-	user1 := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
-	user2 := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	user1 := users_testing.CreateTestUser(t.Context(), users.RoleMember)
+	user2 := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
 	test_utils.MakePostRequest(
 		t,
@@ -323,7 +324,7 @@ func Test_DeactivateUser_WhenDeactivatingOwnAccount_ReturnsBadRequest(t *testing
 	router := createManagementTestRouter()
 
 	// Create admin user
-	adminUser := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	adminUser := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 
 	resp := test_utils.MakePostRequest(
 		t,
@@ -340,8 +341,8 @@ func Test_ActivateUser_WhenUserIsAdmin_UserActivated(t *testing.T) {
 	router := createManagementTestRouter()
 
 	// Create admin and target user
-	adminUser := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
-	targetUser := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	adminUser := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
+	targetUser := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
 	// First deactivate the user
 	test_utils.MakePostRequest(
@@ -369,8 +370,8 @@ func Test_ActivateUser_WhenUserIsMember_ReturnsForbidden(t *testing.T) {
 	router := createManagementTestRouter()
 
 	// Create two member users
-	user1 := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
-	user2 := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	user1 := users_testing.CreateTestUser(t.Context(), users.RoleMember)
+	user2 := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
 	test_utils.MakePostRequest(
 		t,
@@ -387,10 +388,10 @@ func Test_ChangeUserRole_WhenUserIsRootAdmin_RoleChanged(t *testing.T) {
 
 	// Create root admin and target user
 	rootAdmin := users_testing.RecreateInitAdminAndGetAccess(t.Context())
-	targetUser := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	targetUser := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
 	request := users_dto.ChangeUserRoleRequestDTO{
-		Role: users_enums.UserRoleAdmin,
+		Role: users.RoleAdmin,
 	}
 
 	resp := test_utils.MakePutRequest(
@@ -408,11 +409,11 @@ func Test_ChangeUserRole_WhenUserIsMember_ReturnsForbidden(t *testing.T) {
 	router := createManagementTestRouter()
 
 	// Create two member users
-	user1 := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
-	user2 := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	user1 := users_testing.CreateTestUser(t.Context(), users.RoleMember)
+	user2 := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
 	request := users_dto.ChangeUserRoleRequestDTO{
-		Role: users_enums.UserRoleAdmin,
+		Role: users.RoleAdmin,
 	}
 
 	test_utils.MakePutRequest(
@@ -429,10 +430,10 @@ func Test_ChangeUserRole_WhenChangingOwnRole_ReturnsBadRequest(t *testing.T) {
 	router := createManagementTestRouter()
 
 	// Create admin user
-	adminUser := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	adminUser := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 
 	request := users_dto.ChangeUserRoleRequestDTO{
-		Role: users_enums.UserRoleMember,
+		Role: users.RoleMember,
 	}
 
 	resp := test_utils.MakePutRequest(
@@ -450,8 +451,8 @@ func Test_ChangeUserRole_WithInvalidRole_ReturnsBadRequest(t *testing.T) {
 	router := createManagementTestRouter()
 
 	// Create admin and target user
-	adminUser := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
-	targetUser := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	adminUser := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
+	targetUser := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
 	// Test with invalid JSON structure containing invalid role
 	resp := test_utils.MakeRequest(t, router, test_utils.RequestOptions{
@@ -469,8 +470,8 @@ func Test_ChangeUserRole_WithInvalidJSON_ReturnsBadRequest(t *testing.T) {
 	router := createManagementTestRouter()
 
 	// Create admin and target user
-	adminUser := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
-	targetUser := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	adminUser := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
+	targetUser := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
 	// Test with invalid JSON structure
 	resp := test_utils.MakeRequest(t, router, test_utils.RequestOptions{
@@ -489,11 +490,11 @@ func Test_ChangeUserRole_WhenRegularAdminPromotesToAdmin_ReturnsBadRequest(t *te
 	router := createManagementTestRouter()
 
 	// Create regular admin and target user
-	regularAdmin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
-	targetUser := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	regularAdmin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
+	targetUser := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
 	request := users_dto.ChangeUserRoleRequestDTO{
-		Role: users_enums.UserRoleAdmin,
+		Role: users.RoleAdmin,
 	}
 
 	resp := test_utils.MakePutRequest(
@@ -515,11 +516,11 @@ func Test_ChangeUserRole_WhenRegularAdminDemotesAdmin_ReturnsBadRequest(t *testi
 	router := createManagementTestRouter()
 
 	// Create regular admin and admin target user
-	regularAdmin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
-	adminTargetUser := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	regularAdmin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
+	adminTargetUser := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 
 	request := users_dto.ChangeUserRoleRequestDTO{
-		Role: users_enums.UserRoleMember,
+		Role: users.RoleMember,
 	}
 
 	resp := test_utils.MakePutRequest(
@@ -541,8 +542,8 @@ func Test_DeactivateUser_WhenRegularAdminDeactivatesAdmin_ReturnsBadRequest(t *t
 	router := createManagementTestRouter()
 
 	// Create regular admin and admin target user
-	regularAdmin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
-	adminTargetUser := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	regularAdmin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
+	adminTargetUser := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 
 	resp := test_utils.MakePostRequest(
 		t,
@@ -559,8 +560,8 @@ func Test_ActivateUser_WhenRegularAdminActivatesAdmin_ReturnsBadRequest(t *testi
 	router := createManagementTestRouter()
 
 	// Create regular admin and admin target user
-	regularAdmin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
-	adminTargetUser := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	regularAdmin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
+	adminTargetUser := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 
 	resp := test_utils.MakePostRequest(
 		t,
@@ -578,10 +579,10 @@ func Test_ChangeUserRole_WhenRootAdminPromotesToAdmin_RoleChanged(t *testing.T) 
 
 	// Create root admin and target user
 	rootAdmin := users_testing.RecreateInitAdminAndGetAccess(t.Context())
-	targetUser := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	targetUser := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
 	request := users_dto.ChangeUserRoleRequestDTO{
-		Role: users_enums.UserRoleAdmin,
+		Role: users.RoleAdmin,
 	}
 
 	resp := test_utils.MakePutRequest(
@@ -600,10 +601,10 @@ func Test_ChangeUserRole_WhenRootAdminDemotesAdmin_RoleChanged(t *testing.T) {
 
 	// Create root admin and admin target user
 	rootAdmin := users_testing.RecreateInitAdminAndGetAccess(t.Context())
-	adminTargetUser := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	adminTargetUser := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 
 	request := users_dto.ChangeUserRoleRequestDTO{
-		Role: users_enums.UserRoleMember,
+		Role: users.RoleMember,
 	}
 
 	resp := test_utils.MakePutRequest(
@@ -622,7 +623,7 @@ func Test_DeactivateUser_WhenRootAdminDeactivatesAdmin_UserDeactivated(t *testin
 
 	// Create root admin and admin target user
 	rootAdmin := users_testing.RecreateInitAdminAndGetAccess(t.Context())
-	adminTargetUser := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	adminTargetUser := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 
 	resp := test_utils.MakePostRequest(
 		t,
@@ -640,7 +641,7 @@ func Test_ActivateUser_WhenRootAdminActivatesAdmin_UserActivated(t *testing.T) {
 
 	// Create root admin and admin target user
 	rootAdmin := users_testing.RecreateInitAdminAndGetAccess(t.Context())
-	adminTargetUser := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	adminTargetUser := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 
 	// First deactivate the admin user
 	test_utils.MakePostRequest(
@@ -671,7 +672,7 @@ func Test_ChangeUserRole_WhenRootAdminChangesOwnRole_ReturnsBadRequest(t *testin
 	rootAdmin := users_testing.RecreateInitAdminAndGetAccess(t.Context())
 
 	request := users_dto.ChangeUserRoleRequestDTO{
-		Role: users_enums.UserRoleMember,
+		Role: users.RoleMember,
 	}
 
 	resp := test_utils.MakePutRequest(
@@ -709,7 +710,7 @@ func Test_InviteUserToWorkspace_MembershipReceivedAfterSignUp(t *testing.T) {
 	defer users_testing.ResetSettingsToDefaults(t.Context())
 
 	// 1. Create workspace owner and workspace
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace, _ := workspaces_testing.CreateTestWorkspaceViaAPI(t.Context(),
 		"Invite Test Workspace",
 		owner,
@@ -816,14 +817,14 @@ func Test_ManageAdmins_WhenBootstrapAdminHasChangedAddress_AllThreeActionsSuccee
 		http.StatusOK,
 	)
 
-	targetUser := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	targetUser := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
 	response := test_utils.MakePutRequest(
 		t,
 		router,
 		"/api/v1/users/"+targetUser.UserID.String()+"/role",
 		"Bearer "+rootAdmin.Token,
-		users_dto.ChangeUserRoleRequestDTO{Role: users_enums.UserRoleAdmin},
+		users_dto.ChangeUserRoleRequestDTO{Role: users.RoleAdmin},
 		http.StatusOK,
 	)
 	assert.Contains(t, string(response.Body), "User role changed successfully")
@@ -864,14 +865,14 @@ func Test_ManageAdmins_AgainstTheBootstrapAdmin_IsAlwaysRefused(t *testing.T) {
 	require.NotNil(t, recordedRootAdmin)
 	require.Equal(t, rootAdmin.UserID, recordedRootAdmin.ID)
 
-	ordinaryAdmin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	ordinaryAdmin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 
 	response := test_utils.MakePutRequest(
 		t,
 		router,
 		"/api/v1/users/"+rootAdmin.UserID.String()+"/role",
 		"Bearer "+ordinaryAdmin.Token,
-		users_dto.ChangeUserRoleRequestDTO{Role: users_enums.UserRoleMember},
+		users_dto.ChangeUserRoleRequestDTO{Role: users.RoleMember},
 		http.StatusBadRequest,
 	)
 	assert.Contains(t, string(response.Body), "only the root admin user")
@@ -891,7 +892,7 @@ func Test_ManageAdmins_AgainstTheBootstrapAdmin_IsAlwaysRefused(t *testing.T) {
 		router,
 		"/api/v1/users/"+rootAdmin.UserID.String()+"/role",
 		"Bearer "+rootAdmin.Token,
-		users_dto.ChangeUserRoleRequestDTO{Role: users_enums.UserRoleMember},
+		users_dto.ChangeUserRoleRequestDTO{Role: users.RoleMember},
 		http.StatusBadRequest,
 	)
 	assert.Contains(t, string(response.Body), "cannot change your own role")
@@ -910,6 +911,6 @@ func Test_ManageAdmins_AgainstTheBootstrapAdmin_IsAlwaysRefused(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, unchangedRootAdmin)
 	assert.Equal(t, rootAdmin.UserID, unchangedRootAdmin.ID)
-	assert.Equal(t, users_enums.UserRoleAdmin, unchangedRootAdmin.Role)
+	assert.Equal(t, users.RoleAdmin, unchangedRootAdmin.Role)
 	assert.Equal(t, users_enums.UserStatusActive, unchangedRootAdmin.Status)
 }

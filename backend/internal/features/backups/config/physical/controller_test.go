@@ -24,6 +24,7 @@ import (
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_controllers "databasus-backend/internal/features/workspaces/controllers"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
+	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/storage"
 	test_utils "databasus-backend/internal/util/testing"
 	"databasus-backend/internal/util/tools"
@@ -170,7 +171,7 @@ func Test_SaveBackupConfig_PhysicalWithDifferentRoles_EnforcesPermissions(t *tes
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			router := createPhysicalTestRouter()
-			owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+			owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 			workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 
 			database := createPhysicalDatabaseViaAPI(
@@ -192,12 +193,12 @@ func Test_SaveBackupConfig_PhysicalWithDifferentRoles_EnforcesPermissions(t *tes
 
 			switch {
 			case tt.isGlobalAdmin:
-				admin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+				admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 				testUserToken = admin.Token
 			case tt.workspaceRole != nil && *tt.workspaceRole == users_enums.WorkspaceRoleOwner:
 				testUserToken = owner.Token
 			case tt.workspaceRole != nil:
-				member := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+				member := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 				workspaces_testing.AddMemberToWorkspace(
 					workspace, member, *tt.workspaceRole, owner.Token, router,
 				)
@@ -230,7 +231,7 @@ func Test_SaveBackupConfig_PhysicalWithDifferentRoles_EnforcesPermissions(t *tes
 
 func Test_SaveBackupConfig_PhysicalFullOnlyWithChainsRetention_ReturnsBadRequest(t *testing.T) {
 	router := createPhysicalTestRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 
 	database := createPhysicalDatabaseViaAPI(
@@ -266,7 +267,7 @@ func Test_SaveBackupConfig_PhysicalFullOnlyWithChainsRetention_ReturnsBadRequest
 
 func Test_SaveBackupConfig_PhysicalFullOnlyWithIncrementalInterval_ReturnsBadRequest(t *testing.T) {
 	router := createPhysicalTestRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 
 	database := createPhysicalDatabaseViaAPI(
@@ -304,7 +305,7 @@ func Test_SaveBackupConfig_PhysicalFullOnlyWithIncrementalInterval_ReturnsBadReq
 
 func Test_GetBackupConfig_PhysicalWhenNoneExists_InitializesDefaults(t *testing.T) {
 	router := createPhysicalTestRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 
 	database := createPhysicalDatabaseViaAPI(
@@ -421,7 +422,7 @@ func updateBackupTypeViaAPI(t *testing.T, spec backupTypeUpdateSpec) {
 // https://github.com/databasus/databasus/issues/746
 func Test_SaveBackupConfig_AfterBackupTypeDemotedFromWalStream_ConfigSavesCleanly(t *testing.T) {
 	router := createPhysicalTestRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 
 	database := createPhysicalDatabaseViaAPI(
@@ -482,7 +483,7 @@ func Test_SaveBackupConfig_AfterBackupTypeDemotedFromWalStream_ConfigSavesCleanl
 
 func Test_SaveBackupConfig_AfterBackupTypePromotedFromFullOnly_ConfigSavesCleanly(t *testing.T) {
 	router := createPhysicalTestRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 
 	database := createPhysicalDatabaseViaAPI(
@@ -542,7 +543,7 @@ func Test_SaveBackupConfig_AfterBackupTypePromotedFromFullOnly_ConfigSavesCleanl
 
 func Test_GetBackupConfig_PhysicalIncrementalWhenNoneExists_InitializesDefaultsThatSave(t *testing.T) {
 	router := createPhysicalTestRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 
 	database := createPhysicalDatabaseViaAPI(
@@ -585,7 +586,7 @@ func Test_GetBackupConfig_PhysicalIncrementalWhenNoneExists_InitializesDefaultsT
 
 func Test_SaveBackupConfig_WhenBackupsGetDisabled_StandsBackupWorkDown(t *testing.T) {
 	router := createPhysicalTestRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 
 	database := createPhysicalDatabaseViaAPI(
@@ -635,7 +636,7 @@ func Test_SaveBackupConfig_WhenBackupsGetDisabled_StandsBackupWorkDown(t *testin
 // that switched backup type before the config followed along.
 func Test_GetBackupConfig_WhenStoredConfigPredatesTheBackupType_RepairsItOnRead(t *testing.T) {
 	router := createPhysicalTestRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 
 	database := createPhysicalDatabaseViaAPI(
@@ -708,7 +709,7 @@ func createPhysicalStorageReferenceFixture(t *testing.T) *physicalStorageReferen
 	t.Helper()
 
 	router := createPhysicalTestRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 	database := createPhysicalDatabaseViaAPI(
 		t,

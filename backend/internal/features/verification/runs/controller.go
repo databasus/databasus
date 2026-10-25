@@ -6,7 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
-	users_middleware "databasus-backend/internal/features/users/middleware"
+	"databasus-backend/internal/modules/users"
 )
 
 type VerificationController struct {
@@ -21,7 +21,7 @@ func (c *VerificationController) RegisterRoutes(router *gin.RouterGroup) {
 }
 
 func (c *VerificationController) EnqueueManual(ctx *gin.Context) {
-	user, ok := users_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -33,7 +33,7 @@ func (c *VerificationController) EnqueueManual(ctx *gin.Context) {
 		return
 	}
 
-	verification, err := c.verificationService.EnqueueManualVerification(ctx.Request.Context(), user, req.BackupID)
+	verification, err := c.verificationService.EnqueueManualVerification(ctx.Request.Context(), actor, req.BackupID)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -43,7 +43,7 @@ func (c *VerificationController) EnqueueManual(ctx *gin.Context) {
 }
 
 func (c *VerificationController) Cancel(ctx *gin.Context) {
-	user, ok := users_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -55,7 +55,7 @@ func (c *VerificationController) Cancel(ctx *gin.Context) {
 		return
 	}
 
-	if err := c.verificationService.CancelVerification(ctx.Request.Context(), user, verificationID); err != nil {
+	if err := c.verificationService.CancelVerification(ctx.Request.Context(), actor, verificationID); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -64,7 +64,7 @@ func (c *VerificationController) Cancel(ctx *gin.Context) {
 }
 
 func (c *VerificationController) GetByID(ctx *gin.Context) {
-	user, ok := users_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -76,7 +76,7 @@ func (c *VerificationController) GetByID(ctx *gin.Context) {
 		return
 	}
 
-	verification, err := c.verificationService.GetVerificationByID(ctx.Request.Context(), user, verificationID)
+	verification, err := c.verificationService.GetVerificationByID(ctx.Request.Context(), actor, verificationID)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -86,7 +86,7 @@ func (c *VerificationController) GetByID(ctx *gin.Context) {
 }
 
 func (c *VerificationController) ListByDatabase(ctx *gin.Context) {
-	user, ok := users_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -106,7 +106,7 @@ func (c *VerificationController) ListByDatabase(ctx *gin.Context) {
 
 	response, err := c.verificationService.GetVerificationsByDatabaseID(
 		ctx.Request.Context(),
-		user,
+		actor,
 		databaseID,
 		req.Limit,
 		req.Offset,

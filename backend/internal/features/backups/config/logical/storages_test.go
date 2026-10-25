@@ -12,17 +12,17 @@ import (
 	"databasus-backend/internal/features/databases"
 	"databasus-backend/internal/features/intervals"
 	"databasus-backend/internal/features/storages"
-	users_enums "databasus-backend/internal/features/users/enums"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_controllers "databasus-backend/internal/features/workspaces/controllers"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
+	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/util/period"
 	test_utils "databasus-backend/internal/util/testing"
 )
 
 func Test_AttachStorageFromSameWorkspace_SuccessfullyAttached(t *testing.T) {
 	router := createTestRouterWithStorage()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 
 	database := createTestDatabaseViaAPI("Test Database", workspace.ID, owner.Token, router)
@@ -72,11 +72,11 @@ func Test_AttachStorageFromSameWorkspace_SuccessfullyAttached(t *testing.T) {
 func Test_AttachStorageFromDifferentWorkspace_ReturnsForbidden(t *testing.T) {
 	router := createTestRouterWithStorage()
 
-	owner1 := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner1 := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace1 := workspaces_testing.CreateTestWorkspace(t.Context(), "Workspace 1", owner1, router)
 	database := createTestDatabaseViaAPI("Test Database", workspace1.ID, owner1.Token, router)
 
-	owner2 := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner2 := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace2 := workspaces_testing.CreateTestWorkspace(t.Context(), "Workspace 2", owner2, router)
 	storage := createTestStorage(workspace2.ID)
 
@@ -120,7 +120,7 @@ func Test_AttachStorageFromDifferentWorkspace_ReturnsForbidden(t *testing.T) {
 
 func Test_DeleteStorageWithAttachedDatabases_CannotDelete(t *testing.T) {
 	router := createTestRouterWithStorage()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 
 	database := createTestDatabaseViaAPI("Test Database", workspace.ID, owner.Token, router)
@@ -179,7 +179,7 @@ func Test_DeleteStorageWithAttachedDatabases_CannotDelete(t *testing.T) {
 
 func Test_TransferStorageWithAttachedDatabase_CannotTransfer(t *testing.T) {
 	router := createTestRouterWithStorage()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 	targetWorkspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Target Workspace", owner, router)
 

@@ -9,16 +9,16 @@ import (
 	"github.com/stretchr/testify/require"
 	"golang.org/x/crypto/bcrypt"
 
-	users_enums "databasus-backend/internal/features/users/enums"
 	users_models "databasus-backend/internal/features/users/models"
 	users_repositories "databasus-backend/internal/features/users/repositories"
 	users_services "databasus-backend/internal/features/users/services"
 	users_testing "databasus-backend/internal/features/users/testing"
+	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/storage"
 )
 
 func Test_SweepPendingSignIns_WithRowsOfBothAges_RemovesOnlyThePastItsRetention(t *testing.T) {
-	user := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
 	agedCode := seedPendingSignIn(t, user.UserID, 2*time.Hour)
 	freshCode := seedPendingSignIn(t, user.UserID, time.Minute)
@@ -37,7 +37,7 @@ func Test_SweepPendingSignIns_WithRowsOfBothAges_RemovesOnlyThePastItsRetention(
 }
 
 func Test_SweepExpiredPasswordResetCodes_WithRowsOfBothAges_RemovesOnlyTheExpired(t *testing.T) {
-	user := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
 	expiredCode := seedPasswordResetCode(t, user.UserID, -time.Minute)
 	liveCode := seedPasswordResetCode(t, user.UserID, time.Hour)

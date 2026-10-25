@@ -25,6 +25,7 @@ import (
 	users_repositories "databasus-backend/internal/features/users/repositories"
 	users_services "databasus-backend/internal/features/users/services"
 	users_testing "databasus-backend/internal/features/users/testing"
+	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/util/ratelimiter"
 	test_utils "databasus-backend/internal/util/testing"
 )
@@ -373,7 +374,7 @@ func Test_ChangeUserPassword_WithoutAuth_ReturnsUnauthorized(t *testing.T) {
 
 func Test_ChangeUserPassword_WithInvalidJSON_ReturnsBadRequest(t *testing.T) {
 	router := createUserTestRouter()
-	testUser := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	testUser := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
 	// Test with invalid JSON structure
 	resp := test_utils.MakeRequest(t, router, test_utils.RequestOptions{
@@ -389,7 +390,7 @@ func Test_ChangeUserPassword_WithInvalidJSON_ReturnsBadRequest(t *testing.T) {
 
 func Test_ChangeUserPassword_WithValidationErrors_ReturnsBadRequest(t *testing.T) {
 	router := createUserTestRouter()
-	testUser := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	testUser := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
 	testCases := []struct {
 		name    string
@@ -423,7 +424,7 @@ func Test_ChangeUserPassword_WithValidationErrors_ReturnsBadRequest(t *testing.T
 
 func Test_InviteUser_WhenUserIsAdmin_UserInvited(t *testing.T) {
 	router := createUserTestRouter()
-	adminUser := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	adminUser := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 	workspaceID := uuid.New()
 	workspaceRole := users_enums.WorkspaceRoleMember
 
@@ -471,7 +472,7 @@ func Test_InviteUser_WithoutPermission_ReturnsForbidden(t *testing.T) {
 	router := createUserTestRouter()
 	defer users_testing.ResetSettingsToDefaults(t.Context())
 
-	memberUser := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	memberUser := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
 	uniqueID := uuid.New().String()[:8]
 	request := users_dto.InviteUserRequestDTO{
@@ -503,7 +504,7 @@ func Test_InviteUser_WithoutPermission_ReturnsForbidden(t *testing.T) {
 
 func Test_InviteUser_WithInvalidJSON_ReturnsBadRequest(t *testing.T) {
 	router := createUserTestRouter()
-	adminUser := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	adminUser := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 
 	// Test with invalid JSON structure
 	resp := test_utils.MakeRequest(t, router, test_utils.RequestOptions{
@@ -519,7 +520,7 @@ func Test_InviteUser_WithInvalidJSON_ReturnsBadRequest(t *testing.T) {
 
 func Test_InviteUser_WithValidationErrors_ReturnsBadRequest(t *testing.T) {
 	router := createUserTestRouter()
-	adminUser := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	adminUser := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 
 	testCases := []struct {
 		name    string
@@ -555,7 +556,7 @@ func Test_InviteUser_WithValidationErrors_ReturnsBadRequest(t *testing.T) {
 
 func Test_InviteUser_WithDuplicateEmail_ReturnsBadRequest(t *testing.T) {
 	router := createUserTestRouter()
-	adminUser := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	adminUser := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 	email := "duplicate-invite" + uuid.New().String() + "@example.com"
 
 	request := users_dto.InviteUserRequestDTO{
@@ -586,7 +587,7 @@ func Test_InviteUser_WithDuplicateEmail_ReturnsBadRequest(t *testing.T) {
 
 func Test_UpdateUserInfo_WithValidName_NameUpdated(t *testing.T) {
 	router := createUserTestRouter()
-	testUser := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	testUser := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
 	newName := "Updated Name"
 	request := users_dto.UpdateUserInfoRequestDTO{
@@ -617,7 +618,7 @@ func Test_UpdateUserInfo_WithValidName_NameUpdated(t *testing.T) {
 
 func Test_UpdateUserInfo_WithValidEmail_EmailUpdated(t *testing.T) {
 	router := createUserTestRouter()
-	testUser := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	testUser := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
 	newEmail := "newemail" + uuid.New().String() + "@example.com"
 	request := users_dto.UpdateUserInfoRequestDTO{
@@ -648,8 +649,8 @@ func Test_UpdateUserInfo_WithValidEmail_EmailUpdated(t *testing.T) {
 
 func Test_UpdateUserInfo_WithTakenEmail_ReturnsBadRequest(t *testing.T) {
 	router := createUserTestRouter()
-	user1 := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
-	user2 := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	user1 := users_testing.CreateTestUser(t.Context(), users.RoleMember)
+	user2 := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
 	request := users_dto.UpdateUserInfoRequestDTO{
 		Email: &user2.Email,
@@ -773,7 +774,7 @@ func Test_GitHubOAuth_WithExistingEmail_LinksAccount(t *testing.T) {
 
 func Test_GitHubOAuth_WithInvitedUser_ActivatesUser(t *testing.T) {
 	router := createUserTestRouter()
-	adminUser := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	adminUser := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 	testID := uuid.New().String()[:8]
 	email := "invited-" + testID + "@example.com"
 	testOAuthID := int64(uuid.New().ID())
@@ -1042,7 +1043,7 @@ func Test_GoogleOAuth_WithExistingEmail_LinksAccount(t *testing.T) {
 
 func Test_GoogleOAuth_WithInvitedUser_ActivatesUser(t *testing.T) {
 	router := createUserTestRouter()
-	adminUser := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	adminUser := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 	testID := uuid.New().String()[:8]
 	email := "invited-google-" + testID + "@example.com"
 	testOAuthID := "google-" + testID + "-789"
@@ -1156,7 +1157,7 @@ func Test_SignUp_WhenInstanceHoldsNoAccount_AccountAdministersTheInstance(t *tes
 	signUpResponse := signUpViaAPI(t, router, email)
 
 	profile := getOwnProfile(t, router, signUpResponse.Token)
-	assert.Equal(t, users_enums.UserRoleAdmin, profile.Role)
+	assert.Equal(t, users.RoleAdmin, profile.Role)
 
 	rootAdmin, err := (&users_repositories.UserRepository{}).GetRootAdmin(t.Context())
 	require.NoError(t, err)
@@ -1175,7 +1176,7 @@ func Test_SignUp_WhenInstanceAlreadyHoldsAnAccount_AccountIsOrdinaryMember(t *te
 	secondResponse := signUpViaAPI(t, router, "second"+uuid.New().String()+"@example.com")
 
 	profile := getOwnProfile(t, router, secondResponse.Token)
-	assert.Equal(t, users_enums.UserRoleMember, profile.Role)
+	assert.Equal(t, users.RoleMember, profile.Role)
 
 	rootAdmin, err := (&users_repositories.UserRepository{}).GetRootAdmin(t.Context())
 	require.NoError(t, err)
@@ -1193,7 +1194,7 @@ func Test_SignUp_WhenInstanceIsEmptyAndExternalRegistrationDisabled_AccountStill
 	signUpResponse := signUpViaAPI(t, router, "first"+uuid.New().String()+"@example.com")
 
 	profile := getOwnProfile(t, router, signUpResponse.Token)
-	assert.Equal(t, users_enums.UserRoleAdmin, profile.Role)
+	assert.Equal(t, users.RoleAdmin, profile.Role)
 }
 
 func Test_SignUp_WhenInstanceHoldsAnAccountAndExternalRegistrationDisabled_ReturnsBadRequest(t *testing.T) {
@@ -1229,7 +1230,7 @@ func Test_SignUp_WhenBootstrapAdminAlreadyRecorded_RegistersAsMemberAndLeavesRec
 	signUpResponse := signUpViaAPI(t, router, "member"+uuid.New().String()+"@example.com")
 
 	profile := getOwnProfile(t, router, signUpResponse.Token)
-	assert.Equal(t, users_enums.UserRoleMember, profile.Role)
+	assert.Equal(t, users.RoleMember, profile.Role)
 
 	rootAdmin, err := (&users_repositories.UserRepository{}).GetRootAdmin(t.Context())
 	require.NoError(t, err)
@@ -1370,7 +1371,7 @@ func assertAccountAdministersTheInstance(t *testing.T, userID uuid.UUID) {
 
 	user, err := repository.GetUserByID(t.Context(), userID)
 	require.NoError(t, err)
-	assert.Equal(t, users_enums.UserRoleAdmin, user.Role)
+	assert.Equal(t, users.RoleAdmin, user.Role)
 
 	rootAdmin, err := repository.GetRootAdmin(t.Context())
 	require.NoError(t, err)
@@ -1640,7 +1641,7 @@ func Test_SignIn_WhenAccountHasNotCompletedSignUp_IsRefused(t *testing.T) {
 	router := createUserTestRouter()
 	users_testing.ResetSettingsToDefaults(t.Context())
 
-	inviter := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	inviter := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 	invitedEmail := "invited" + uuid.New().String() + "@example.com"
 
 	test_utils.MakePostRequest(
@@ -1695,7 +1696,7 @@ func Test_SignIn_WhenUpgradedInstanceStillUsesThePlaceholderAddress_Succeeds(t *
 		Name:                 "Admin",
 		PasswordCreationTime: time.Now().UTC(),
 		CreatedAt:            time.Now().UTC(),
-		Role:                 users_enums.UserRoleAdmin,
+		Role:                 users.RoleAdmin,
 		Status:               users_enums.UserStatusActive,
 		IsRootAdmin:          true,
 	}

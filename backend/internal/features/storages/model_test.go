@@ -32,9 +32,9 @@ import (
 	rclone_storage "databasus-backend/internal/features/storages/models/rclone"
 	s3_storage "databasus-backend/internal/features/storages/models/s3"
 	sftp_storage "databasus-backend/internal/features/storages/models/sftp"
-	users_enums "databasus-backend/internal/features/users/enums"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
+	"databasus-backend/internal/modules/users"
 	db "databasus-backend/internal/storage"
 	"databasus-backend/internal/util/encryption"
 	"databasus-backend/internal/util/logger"
@@ -750,7 +750,7 @@ acl = private`, s3Container.accessKey, secretKey, s3Container.endpoint)
 func saveTestStorage(t *testing.T, storage *Storage) *Storage {
 	t.Helper()
 
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
 	workspace, err := workspaces_testing.CreateTestWorkspaceDirect("Storage Test Workspace", owner.UserID)
 	require.NoError(t, err)

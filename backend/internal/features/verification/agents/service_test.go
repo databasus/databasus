@@ -8,8 +8,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	users_enums "databasus-backend/internal/features/users/enums"
 	users_testing "databasus-backend/internal/features/users/testing"
+	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/storage"
 )
 
@@ -35,7 +35,7 @@ func Test_GetStaleAgents_WhenAgentHeartbeatedRecently_ReturnsEmpty(t *testing.T)
 	cleanupAgents(t)
 
 	router := createTestRouter()
-	admin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 
 	createdAgent := CreateTestVerificationAgent(t, router, admin.Token, "fresh-"+uuid.New().String())
 	recentHeartbeat := time.Now().UTC().Add(-1 * time.Minute)
@@ -51,7 +51,7 @@ func Test_GetStaleAgents_WhenAgentLastSeenBeforeThreshold_ReturnsAgent(t *testin
 	cleanupAgents(t)
 
 	router := createTestRouter()
-	admin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 
 	createdAgent := CreateTestVerificationAgent(t, router, admin.Token, "stale-"+uuid.New().String())
 	oldHeartbeat := time.Now().UTC().Add(-10 * time.Minute)
@@ -68,7 +68,7 @@ func Test_GetStaleAgents_WhenAgentNeverHeartbeatedButCreatedRecently_ReturnsEmpt
 	cleanupAgents(t)
 
 	router := createTestRouter()
-	admin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 
 	createdAgent := CreateTestVerificationAgent(t, router, admin.Token, "newborn-"+uuid.New().String())
 	setAgentTimestamps(t, createdAgent.Agent.ID, nil, time.Now().UTC())
@@ -83,7 +83,7 @@ func Test_GetStaleAgents_WhenAgentNeverHeartbeatedAndCreatedOld_ReturnsAgent(t *
 	cleanupAgents(t)
 
 	router := createTestRouter()
-	admin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 
 	createdAgent := CreateTestVerificationAgent(t, router, admin.Token, "ghost-"+uuid.New().String())
 	setAgentTimestamps(t, createdAgent.Agent.ID, nil, time.Now().UTC().Add(-10*time.Minute))
@@ -99,7 +99,7 @@ func Test_GetStaleAgents_WhenStaleAgentSoftDeleted_ReturnsEmpty(t *testing.T) {
 	cleanupAgents(t)
 
 	router := createTestRouter()
-	admin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 
 	createdAgent := CreateTestVerificationAgent(t, router, admin.Token, "retired-"+uuid.New().String())
 	oldHeartbeat := time.Now().UTC().Add(-10 * time.Minute)

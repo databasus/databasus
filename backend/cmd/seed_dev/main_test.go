@@ -34,13 +34,13 @@ import (
 	system_healthcheck "databasus-backend/internal/features/system/healthcheck"
 	users_controllers "databasus-backend/internal/features/users/controllers"
 	users_dto "databasus-backend/internal/features/users/dto"
-	users_enums "databasus-backend/internal/features/users/enums"
 	users_middleware "databasus-backend/internal/features/users/middleware"
 	users_services "databasus-backend/internal/features/users/services"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_controllers "databasus-backend/internal/features/workspaces/controllers"
 	workspaces_dto "databasus-backend/internal/features/workspaces/dto"
 	workspaces_errors "databasus-backend/internal/features/workspaces/errors"
+	"databasus-backend/internal/modules/users"
 	test_utils "databasus-backend/internal/util/testing"
 )
 
@@ -230,7 +230,7 @@ func Test_Seed_WhenMemberMayNotCreateWorkspaces_FailsNamingWorkspace(t *testing.
 	router, params := setUpSeedTest(t)
 
 	token := signUpForTest(t, router, params.Email, seedPassword)
-	require.Equal(t, users_enums.UserRoleMember, getProfile(t, router, token).Role)
+	require.Equal(t, users.RoleMember, getProfile(t, router, token).Role)
 
 	var existingWorkspace workspaces_dto.WorkspaceResponseDTO
 	test_utils.MakePostRequestAndUnmarshal(t, router, "/api/v1/workspaces", "Bearer "+token,
@@ -317,7 +317,7 @@ func setUpSeedTest(t *testing.T) (*gin.Engine, seedParams) {
 
 	users_testing.ResetSettingsToDefaults(t.Context())
 
-	instanceOwner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	instanceOwner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	t.Cleanup(func() { users_testing.DeleteTestUser(context.Background(), instanceOwner.UserID) })
 
 	params := buildTestSeedParams(server.URL)

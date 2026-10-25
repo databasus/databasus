@@ -18,11 +18,11 @@ import (
 	"databasus-backend/internal/features/notifiers"
 	notifier_models "databasus-backend/internal/features/notifiers/models"
 	"databasus-backend/internal/features/storages"
-	users_enums "databasus-backend/internal/features/users/enums"
 	users_testing "databasus-backend/internal/features/users/testing"
 	verification_agents "databasus-backend/internal/features/verification/agents"
 	verification_config "databasus-backend/internal/features/verification/config"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
+	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/storage"
 	"databasus-backend/internal/util/logger"
 	test_utils "databasus-backend/internal/util/testing"
@@ -113,7 +113,7 @@ func enableFailureNotificationsViaAPI(
 
 func Test_SubmitReport_WhenBackupRejected_SendsFailureNotification(t *testing.T) {
 	router := createTestRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner, router)
 	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
 
@@ -171,7 +171,7 @@ func Test_SubmitReport_WhenBackupRejected_SendsFailureNotification(t *testing.T)
 
 func Test_SubmitReport_WhenRestoredTooSmall_SendsFailureNotification(t *testing.T) {
 	router := createTestRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner, router)
 	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
 
@@ -222,7 +222,7 @@ func Test_SubmitReport_WhenRestoredTooSmall_SendsFailureNotification(t *testing.
 
 func Test_SubmitReport_WhenAgentSetupFailedRepeatedly_SendsFailureNotificationOnlyAtTerminal(t *testing.T) {
 	router := createTestRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner, router)
 	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
 
@@ -287,7 +287,7 @@ func Test_ReapStaleRuns_WhenAgentLostContact_SendsFailureNotificationOnlyAtTermi
 	shrinkThresholds(t, 1*time.Hour, 1*time.Millisecond)
 
 	router := createTestRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner, router)
 	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
 
@@ -347,7 +347,7 @@ func Test_ReapStaleRuns_WhenAgentLostContact_SendsFailureNotificationOnlyAtTermi
 
 func Test_SubmitReport_WhenFailureNotificationsDisabled_DoesNotSend(t *testing.T) {
 	router := createTestRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner, router)
 	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
 

@@ -11,8 +11,8 @@ import (
 	"databasus-backend/internal/features/audit_logs"
 	audit_logs_models "databasus-backend/internal/features/audit_logs/models"
 	"databasus-backend/internal/features/databases"
-	users_models "databasus-backend/internal/features/users/models"
 	workspaces_services "databasus-backend/internal/features/workspaces/services"
+	"databasus-backend/internal/modules/users"
 )
 
 type HealthcheckConfigService struct {
@@ -35,7 +35,7 @@ func (s *HealthcheckConfigService) OnDatabaseCreated(
 
 func (s *HealthcheckConfigService) Save(
 	ctx context.Context,
-	user users_models.User,
+	actor users.Actor,
 	configDTO HealthcheckConfigDTO,
 ) error {
 	database, err := s.databaseService.GetDatabaseByID(configDTO.DatabaseID)
@@ -47,7 +47,7 @@ func (s *HealthcheckConfigService) Save(
 		return errors.New("cannot modify healthcheck config for databases without workspace")
 	}
 
-	canManage, err := s.workspaceService.CanUserManageDBs(ctx, *database.WorkspaceID, &user)
+	canManage, err := s.workspaceService.CanUserManageDBs(ctx, *database.WorkspaceID, actor)
 	if err != nil {
 		return err
 	}
@@ -79,7 +79,7 @@ func (s *HealthcheckConfigService) Save(
 
 	s.auditLogService.WriteAuditLog(ctx, audit_logs_models.AuditEntry{
 		Message:     fmt.Sprintf("Healthcheck config updated for database '%s'", database.Name),
-		UserID:      &user.ID,
+		UserID:      &actor.UserID,
 		WorkspaceID: database.WorkspaceID,
 	})
 
@@ -88,7 +88,7 @@ func (s *HealthcheckConfigService) Save(
 
 func (s *HealthcheckConfigService) GetByDatabaseID(
 	ctx context.Context,
-	user users_models.User,
+	actor users.Actor,
 	databaseID uuid.UUID,
 ) (*HealthcheckConfig, error) {
 	database, err := s.databaseService.GetDatabaseByID(databaseID)
@@ -100,7 +100,7 @@ func (s *HealthcheckConfigService) GetByDatabaseID(
 		return nil, errors.New("cannot access healthcheck config for databases without workspace")
 	}
 
-	canAccess, _, err := s.workspaceService.CanUserAccessWorkspace(ctx, *database.WorkspaceID, &user)
+	canAccess, _, err := s.workspaceService.CanUserAccessWorkspace(ctx, *database.WorkspaceID, actor)
 	if err != nil {
 		return nil, err
 	}

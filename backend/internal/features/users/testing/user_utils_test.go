@@ -14,6 +14,7 @@ import (
 	users_models "databasus-backend/internal/features/users/models"
 	users_repositories "databasus-backend/internal/features/users/repositories"
 	users_testing "databasus-backend/internal/features/users/testing"
+	"databasus-backend/internal/modules/users"
 )
 
 func Test_RecreateInitialAdmin_WhenBootstrapAddressHasChanged_MovesRecordToFreshAccount(t *testing.T) {
@@ -47,7 +48,7 @@ func Test_CreateUser_WhenInstanceAlreadyHasBootstrapAdmin_DatabaseRefusesSecondO
 		HashedPassword:       &hashedPassword,
 		PasswordCreationTime: time.Now().UTC(),
 		CreatedAt:            time.Now().UTC(),
-		Role:                 users_enums.UserRoleAdmin,
+		Role:                 users.RoleAdmin,
 		Status:               users_enums.UserStatusActive,
 		IsRootAdmin:          true,
 	}

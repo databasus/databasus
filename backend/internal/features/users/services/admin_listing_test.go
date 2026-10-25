@@ -11,15 +11,16 @@ import (
 	users_repositories "databasus-backend/internal/features/users/repositories"
 	users_services "databasus-backend/internal/features/users/services"
 	users_testing "databasus-backend/internal/features/users/testing"
+	"databasus-backend/internal/modules/users"
 )
 
 func Test_RenderAdminListing_WithSeveralAdministrators_MarksTheBootstrapOneAndOmitsMembers(t *testing.T) {
 	users_testing.DeleteAllUsers()
 
 	bootstrapAdmin := users_testing.RecreateInitialAdmin(t.Context())
-	ordinaryAdmin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
-	deactivatedAdmin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
-	member := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	ordinaryAdmin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
+	deactivatedAdmin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
+	member := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
 	require.NoError(t, (&users_repositories.UserRepository{}).UpdateUserStatus(
 		deactivatedAdmin.UserID,

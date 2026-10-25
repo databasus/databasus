@@ -16,6 +16,7 @@ import (
 	users_repositories "databasus-backend/internal/features/users/repositories"
 	users_services "databasus-backend/internal/features/users/services"
 	users_testing "databasus-backend/internal/features/users/testing"
+	"databasus-backend/internal/modules/users"
 )
 
 func Test_ChangeUserPasswordByEmail_WhenNoAccountHoldsTheAddress_ReturnsAnError(t *testing.T) {
@@ -35,7 +36,7 @@ func Test_ChangeUserPasswordByEmail_WhenPasswordIsShorterThanEightCharacters_Kee
 	users_testing.ResetSettingsToDefaults(t.Context())
 	installAuditLogRecorder()
 
-	user := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	t.Cleanup(func() { users_testing.DeleteTestUser(context.Background(), user.UserID) })
 
 	const oldPassword = "old-password-123"
@@ -63,7 +64,7 @@ func Test_ChangeUserPasswordByEmail_WhenAccountStillHoldsThePlaceholderAddress_S
 		Name:                 "Admin",
 		PasswordCreationTime: time.Now().UTC(),
 		CreatedAt:            time.Now().UTC(),
-		Role:                 users_enums.UserRoleAdmin,
+		Role:                 users.RoleAdmin,
 		Status:               users_enums.UserStatusActive,
 		IsRootAdmin:          true,
 	}

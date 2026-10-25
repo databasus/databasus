@@ -22,10 +22,10 @@ import (
 	physical_models "databasus-backend/internal/features/backups/backups/core/physical/models"
 	"databasus-backend/internal/features/backups/backups/download/restore_stream"
 	"databasus-backend/internal/features/storages"
-	users_enums "databasus-backend/internal/features/users/enums"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_controllers "databasus-backend/internal/features/workspaces/controllers"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
+	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/util/encryption"
 	"databasus-backend/internal/util/logger"
 )
@@ -112,7 +112,7 @@ func createTestStorage(t *testing.T) *storages.Storage {
 		workspaces_controllers.GetWorkspaceController(),
 		workspaces_controllers.GetMembershipController(),
 	)
-	user := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(
 		t.Context(),
 		"Restore Stream Test "+uuid.NewString(),

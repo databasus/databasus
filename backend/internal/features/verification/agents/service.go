@@ -13,7 +13,7 @@ import (
 
 	audit_logs "databasus-backend/internal/features/audit_logs"
 	audit_logs_models "databasus-backend/internal/features/audit_logs/models"
-	users_models "databasus-backend/internal/features/users/models"
+	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/util/ratelimiter"
 )
 
@@ -32,7 +32,7 @@ func (s *AgentService) AddAgentHeartbeatedListener(listener AgentHeartbeatedList
 
 func (s *AgentService) CreateAgent(
 	ctx context.Context,
-	user *users_models.User,
+	actor users.Actor,
 	req *CreateAgentRequest,
 ) (*CreatedAgentResponse, error) {
 	plainToken := newPlainToken()
@@ -51,7 +51,7 @@ func (s *AgentService) CreateAgent(
 
 	s.auditLogService.WriteAuditLog(ctx, audit_logs_models.AuditEntry{
 		Message:     fmt.Sprintf("verification agent created: %s", agent.Name),
-		UserID:      &user.ID,
+		UserID:      &actor.UserID,
 		WorkspaceID: nil,
 	})
 
@@ -75,7 +75,7 @@ func (s *AgentService) GetStaleAgents(threshold time.Duration) ([]*Agent, error)
 
 func (s *AgentService) RotateToken(
 	ctx context.Context,
-	user *users_models.User,
+	actor users.Actor,
 	agentID uuid.UUID,
 ) (string, error) {
 	agent, err := s.agentRepository.FindByID(agentID)
@@ -95,14 +95,14 @@ func (s *AgentService) RotateToken(
 
 	s.auditLogService.WriteAuditLog(ctx, audit_logs_models.AuditEntry{
 		Message:     fmt.Sprintf("verification agent token rotated: %s", agent.Name),
-		UserID:      &user.ID,
+		UserID:      &actor.UserID,
 		WorkspaceID: nil,
 	})
 
 	return plainToken, nil
 }
 
-func (s *AgentService) DeleteAgent(ctx context.Context, user *users_models.User, agentID uuid.UUID) error {
+func (s *AgentService) DeleteAgent(ctx context.Context, actor users.Actor, agentID uuid.UUID) error {
 	agent, err := s.agentRepository.FindByID(agentID)
 	if err != nil {
 		return err
@@ -117,7 +117,7 @@ func (s *AgentService) DeleteAgent(ctx context.Context, user *users_models.User,
 
 	s.auditLogService.WriteAuditLog(ctx, audit_logs_models.AuditEntry{
 		Message:     fmt.Sprintf("verification agent deleted: %s", agent.Name),
-		UserID:      &user.ID,
+		UserID:      &actor.UserID,
 		WorkspaceID: nil,
 	})
 

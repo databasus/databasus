@@ -16,8 +16,7 @@ import (
 	"databasus-backend/internal/features/backups/backups/download/stream_guard"
 	backups_dto_physical "databasus-backend/internal/features/backups/backups/dto/physical"
 	backups_services "databasus-backend/internal/features/backups/backups/services"
-	users_middleware "databasus-backend/internal/features/users/middleware"
-	users_models "databasus-backend/internal/features/users/models"
+	"databasus-backend/internal/modules/users"
 )
 
 type PhysicalBackupController struct {
@@ -49,7 +48,7 @@ func (c *PhysicalBackupController) GetRecoveryScript(ctx *gin.Context) {
 }
 
 func (c *PhysicalBackupController) GetBackups(ctx *gin.Context) {
-	user, ok := users_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -67,7 +66,7 @@ func (c *PhysicalBackupController) GetBackups(ctx *gin.Context) {
 		return
 	}
 
-	response, err := c.physicalBackupService.GetBackups(ctx.Request.Context(), user, databaseID, &request)
+	response, err := c.physicalBackupService.GetBackups(ctx.Request.Context(), actor, databaseID, &request)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -77,7 +76,7 @@ func (c *PhysicalBackupController) GetBackups(ctx *gin.Context) {
 }
 
 func (c *PhysicalBackupController) GetWalStreamLive(ctx *gin.Context) {
-	user, ok := users_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -89,7 +88,7 @@ func (c *PhysicalBackupController) GetWalStreamLive(ctx *gin.Context) {
 		return
 	}
 
-	response, err := c.physicalBackupService.GetWalStreamLive(ctx.Request.Context(), user, databaseID)
+	response, err := c.physicalBackupService.GetWalStreamLive(ctx.Request.Context(), actor, databaseID)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -99,7 +98,7 @@ func (c *PhysicalBackupController) GetWalStreamLive(ctx *gin.Context) {
 }
 
 func (c *PhysicalBackupController) GetWalStreamStatistics(ctx *gin.Context) {
-	user, ok := users_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -117,7 +116,7 @@ func (c *PhysicalBackupController) GetWalStreamStatistics(ctx *gin.Context) {
 		return
 	}
 
-	response, err := c.physicalBackupService.GetWalStreamStatistics(ctx.Request.Context(), user, databaseID, &request)
+	response, err := c.physicalBackupService.GetWalStreamStatistics(ctx.Request.Context(), actor, databaseID, &request)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -127,7 +126,7 @@ func (c *PhysicalBackupController) GetWalStreamStatistics(ctx *gin.Context) {
 }
 
 func (c *PhysicalBackupController) TriggerBackup(ctx *gin.Context) {
-	user, ok := users_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -145,7 +144,7 @@ func (c *PhysicalBackupController) TriggerBackup(ctx *gin.Context) {
 		return
 	}
 
-	if err := c.requestBackupOfType(ctx.Request.Context(), user, databaseID, request.Type); err != nil {
+	if err := c.requestBackupOfType(ctx.Request.Context(), actor, databaseID, request.Type); err != nil {
 		if errors.Is(err, backups_services.ErrNoExtendableChain) {
 			ctx.JSON(http.StatusConflict, gin.H{"error": err.Error()})
 			return
@@ -159,7 +158,7 @@ func (c *PhysicalBackupController) TriggerBackup(ctx *gin.Context) {
 }
 
 func (c *PhysicalBackupController) GenerateRestoreToken(ctx *gin.Context) {
-	user, ok := users_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -177,7 +176,7 @@ func (c *PhysicalBackupController) GenerateRestoreToken(ctx *gin.Context) {
 		return
 	}
 
-	token, err := c.physicalBackupService.GenerateRestoreToken(ctx.Request.Context(), user, databaseID, &request)
+	token, err := c.physicalBackupService.GenerateRestoreToken(ctx.Request.Context(), actor, databaseID, &request)
 	if err != nil {
 		if errors.Is(err, stream_guard.ErrDownloadAlreadyInProgress) {
 			ctx.JSON(http.StatusConflict, gin.H{"error": err.Error()})
@@ -203,7 +202,7 @@ func (c *PhysicalBackupController) GenerateRestoreToken(ctx *gin.Context) {
 }
 
 func (c *PhysicalBackupController) GenerateBackupRestoreToken(ctx *gin.Context) {
-	user, ok := users_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -215,7 +214,7 @@ func (c *PhysicalBackupController) GenerateBackupRestoreToken(ctx *gin.Context) 
 		return
 	}
 
-	token, err := c.physicalBackupService.GenerateBackupRestoreToken(ctx.Request.Context(), user, backupID)
+	token, err := c.physicalBackupService.GenerateBackupRestoreToken(ctx.Request.Context(), actor, backupID)
 	if err != nil {
 		if errors.Is(err, backups_services.ErrBackupNotFound) {
 			ctx.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
@@ -245,7 +244,7 @@ func (c *PhysicalBackupController) GenerateBackupRestoreToken(ctx *gin.Context) 
 }
 
 func (c *PhysicalBackupController) CancelBackup(ctx *gin.Context) {
-	user, ok := users_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -257,7 +256,7 @@ func (c *PhysicalBackupController) CancelBackup(ctx *gin.Context) {
 		return
 	}
 
-	if err := c.physicalBackupService.CancelBackup(ctx.Request.Context(), user, backupID); err != nil {
+	if err := c.physicalBackupService.CancelBackup(ctx.Request.Context(), actor, backupID); err != nil {
 		if errors.Is(err, backups_services.ErrBackupNotFound) {
 			ctx.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return
@@ -271,7 +270,7 @@ func (c *PhysicalBackupController) CancelBackup(ctx *gin.Context) {
 }
 
 func (c *PhysicalBackupController) DeleteBackup(ctx *gin.Context) {
-	user, ok := users_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -283,7 +282,7 @@ func (c *PhysicalBackupController) DeleteBackup(ctx *gin.Context) {
 		return
 	}
 
-	if err := c.physicalBackupService.DeleteBackup(ctx.Request.Context(), user, backupID); err != nil {
+	if err := c.physicalBackupService.DeleteBackup(ctx.Request.Context(), actor, backupID); err != nil {
 		if errors.Is(err, backups_services.ErrBackupNotFound) {
 			ctx.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return
@@ -389,19 +388,19 @@ func (c *PhysicalBackupController) openRestoreStream(
 
 func (c *PhysicalBackupController) requestBackupOfType(
 	ctx context.Context,
-	user *users_models.User,
+	actor users.Actor,
 	databaseID uuid.UUID,
 	backupType backups_dto_physical.TriggerBackupType,
 ) error {
 	switch backupType {
 	case backups_dto_physical.TriggerBackupTypeFull:
-		return c.physicalBackupService.RequestFullBackup(ctx, user, databaseID)
+		return c.physicalBackupService.RequestFullBackup(ctx, actor, databaseID)
 
 	case backups_dto_physical.TriggerBackupTypeIncremental:
-		return c.physicalBackupService.RequestIncrementalBackup(ctx, user, databaseID)
+		return c.physicalBackupService.RequestIncrementalBackup(ctx, actor, databaseID)
 
 	default:
-		return c.physicalBackupService.RequestBackup(ctx, user, databaseID)
+		return c.physicalBackupService.RequestBackup(ctx, actor, databaseID)
 	}
 }
 

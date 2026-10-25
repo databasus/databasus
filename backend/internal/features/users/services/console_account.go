@@ -15,6 +15,7 @@ import (
 	users_enums "databasus-backend/internal/features/users/enums"
 	users_errors "databasus-backend/internal/features/users/errors"
 	users_models "databasus-backend/internal/features/users/models"
+	"databasus-backend/internal/modules/users"
 )
 
 // The library and the tag the registration binding evaluates, so the console
@@ -64,7 +65,7 @@ func (s *UserService) CreateUserFromConsole(
 		return nil, err
 	}
 
-	if isInstanceUnclaimed && role != users_enums.UserRoleAdmin {
+	if isInstanceUnclaimed && role != users.RoleAdmin {
 		return nil, users_errors.ErrConsoleAccountFirstMustBeAdmin
 	}
 
@@ -126,7 +127,7 @@ func RenderConsoleAccountOutcome(outcome *ConsoleAccountOutcome) string {
 
 func validateConsoleAccountRequest(
 	request *users_dto.CreateConsoleAccountRequest,
-) (users_enums.UserRole, error) {
+) (users.Role, error) {
 	if err := consoleAccountValidator.Var(request.Email, "required,email"); err != nil {
 		return "", users_errors.ErrConsoleAccountEmailInvalid
 	}
@@ -135,7 +136,7 @@ func validateConsoleAccountRequest(
 		return "", users_errors.ErrPasswordTooShort
 	}
 
-	role := users_enums.UserRole(strings.ToUpper(request.Role))
+	role := users.Role(strings.ToUpper(request.Role))
 	if !role.IsValid() {
 		return "", users_errors.ErrConsoleAccountRoleInvalid
 	}
@@ -145,7 +146,7 @@ func validateConsoleAccountRequest(
 
 // A password-less account counts as another state: reporting it as ready would
 // tell a deployment the address signs in with a password it does not hold.
-func isSameConsoleAccount(user *users_models.User, role users_enums.UserRole) bool {
+func isSameConsoleAccount(user *users_models.User, role users.Role) bool {
 	return user.IsActiveUser() && user.Role == role && user.HasPassword()
 }
 
@@ -165,7 +166,7 @@ func allowConsoleAccount(context.Context) error {
 
 func buildConsoleUser(
 	email, name, hashedPassword string,
-	role users_enums.UserRole,
+	role users.Role,
 	isTakingTheInstance bool,
 ) *users_models.User {
 	return &users_models.User{

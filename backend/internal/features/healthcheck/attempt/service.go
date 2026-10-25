@@ -8,8 +8,8 @@ import (
 	"github.com/google/uuid"
 
 	"databasus-backend/internal/features/databases"
-	users_models "databasus-backend/internal/features/users/models"
 	workspaces_services "databasus-backend/internal/features/workspaces/services"
+	"databasus-backend/internal/modules/users"
 )
 
 type HealthcheckAttemptService struct {
@@ -20,7 +20,7 @@ type HealthcheckAttemptService struct {
 
 func (s *HealthcheckAttemptService) GetAttemptsByDatabase(
 	ctx context.Context,
-	user users_models.User,
+	actor users.Actor,
 	databaseID uuid.UUID,
 	afterDate time.Time,
 ) ([]*HealthcheckAttempt, error) {
@@ -33,7 +33,7 @@ func (s *HealthcheckAttemptService) GetAttemptsByDatabase(
 		return nil, errors.New("cannot access healthcheck attempts for databases without workspace")
 	}
 
-	canAccess, _, err := s.workspaceService.CanUserAccessWorkspace(ctx, *database.WorkspaceID, &user)
+	canAccess, _, err := s.workspaceService.CanUserAccessWorkspace(ctx, *database.WorkspaceID, actor)
 	if err != nil {
 		return nil, err
 	}

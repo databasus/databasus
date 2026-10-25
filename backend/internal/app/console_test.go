@@ -16,9 +16,9 @@ import (
 
 	old_config "databasus-backend/internal/config"
 	users_dto "databasus-backend/internal/features/users/dto"
-	users_enums "databasus-backend/internal/features/users/enums"
 	users_services "databasus-backend/internal/features/users/services"
 	users_testing "databasus-backend/internal/features/users/testing"
+	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/storage"
 	"databasus-backend/internal/util/encryption"
 )
@@ -41,7 +41,7 @@ func TestRunConsoleCommand(t *testing.T) {
 			t,
 			hasAuditRecordContaining(
 				t,
-				"Account created from the host console: "+email+" (role "+string(users_enums.UserRoleAdmin)+")",
+				"Account created from the host console: "+email+" (role "+string(users.RoleAdmin)+")",
 			),
 		)
 		assert.Nil(t, testApp.backgroundGroup)

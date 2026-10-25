@@ -6,7 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
-	users_middleware "databasus-backend/internal/features/users/middleware"
+	"databasus-backend/internal/modules/users"
 )
 
 type HealthcheckConfigController struct {
@@ -19,7 +19,7 @@ func (c *HealthcheckConfigController) RegisterRoutes(router *gin.RouterGroup) {
 }
 
 func (c *HealthcheckConfigController) SaveHealthcheckConfig(ctx *gin.Context) {
-	user, ok := users_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -31,7 +31,7 @@ func (c *HealthcheckConfigController) SaveHealthcheckConfig(ctx *gin.Context) {
 		return
 	}
 
-	if err := c.healthcheckConfigService.Save(ctx.Request.Context(), *user, configDTO); err != nil {
+	if err := c.healthcheckConfigService.Save(ctx.Request.Context(), actor, configDTO); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -42,7 +42,7 @@ func (c *HealthcheckConfigController) SaveHealthcheckConfig(ctx *gin.Context) {
 }
 
 func (c *HealthcheckConfigController) GetHealthcheckConfig(ctx *gin.Context) {
-	user, ok := users_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -54,7 +54,7 @@ func (c *HealthcheckConfigController) GetHealthcheckConfig(ctx *gin.Context) {
 		return
 	}
 
-	config, err := c.healthcheckConfigService.GetByDatabaseID(ctx.Request.Context(), *user, databaseID)
+	config, err := c.healthcheckConfigService.GetByDatabaseID(ctx.Request.Context(), actor, databaseID)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return

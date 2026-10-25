@@ -9,10 +9,9 @@ import (
 	"gorm.io/gorm"
 
 	audit_logs_models "databasus-backend/internal/features/audit_logs/models"
-	user_enums "databasus-backend/internal/features/users/enums"
-	user_models "databasus-backend/internal/features/users/models"
 	users_repositories "databasus-backend/internal/features/users/repositories"
 	"databasus-backend/internal/lib/audit"
+	"databasus-backend/internal/modules/users"
 )
 
 type AuditLogService struct {
@@ -41,10 +40,10 @@ func (s *AuditLogService) WriteAuditLog(ctx context.Context, entry audit_logs_mo
 
 func (s *AuditLogService) GetGlobalAuditLogs(
 	ctx context.Context,
-	user *user_models.User,
+	actor users.Actor,
 	request *GetAuditLogsRequest,
 ) (*GetAuditLogsResponse, error) {
-	if user.Role != user_enums.UserRoleAdmin {
+	if actor.Role != users.RoleAdmin {
 		return nil, ErrOnlyAdminsCanViewGlobalLogs
 	}
 
@@ -76,11 +75,11 @@ func (s *AuditLogService) GetGlobalAuditLogs(
 func (s *AuditLogService) GetUserAuditLogs(
 	ctx context.Context,
 	targetUserID uuid.UUID,
-	user *user_models.User,
+	actor users.Actor,
 	request *GetAuditLogsRequest,
 ) (*GetAuditLogsResponse, error) {
 	// Users can view their own logs, ADMIN can view any user's logs
-	if user.Role != user_enums.UserRoleAdmin && user.ID != targetUserID {
+	if actor.Role != users.RoleAdmin && actor.UserID != targetUserID {
 		return nil, ErrInsufficientPermissionsToViewLogs
 	}
 

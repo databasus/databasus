@@ -7,7 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
-	users_middleware "databasus-backend/internal/features/users/middleware"
+	"databasus-backend/internal/modules/users"
 )
 
 type HealthcheckAttemptController struct {
@@ -19,7 +19,7 @@ func (c *HealthcheckAttemptController) RegisterRoutes(router *gin.RouterGroup) {
 }
 
 func (c *HealthcheckAttemptController) GetAttemptsByDatabase(ctx *gin.Context) {
-	user, ok := users_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -46,7 +46,7 @@ func (c *HealthcheckAttemptController) GetAttemptsByDatabase(ctx *gin.Context) {
 
 	attempts, err := c.healthcheckAttemptService.GetAttemptsByDatabase(
 		ctx.Request.Context(),
-		*user,
+		actor,
 		databaseID,
 		afterDate,
 	)

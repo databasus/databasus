@@ -7,7 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
-	user_models "databasus-backend/internal/features/users/models"
+	"databasus-backend/internal/modules/users"
 )
 
 type AuditLogController struct {
@@ -23,9 +23,9 @@ func (c *AuditLogController) RegisterRoutes(router *gin.RouterGroup) {
 }
 
 func (c *AuditLogController) GetGlobalAuditLogs(ctx *gin.Context) {
-	user, isOk := ctx.MustGet("user").(*user_models.User)
-	if !isOk {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user type in context"})
+	actor, ok := users.GetActor(ctx.Request.Context())
+	if !ok {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
 	}
 
@@ -35,7 +35,7 @@ func (c *AuditLogController) GetGlobalAuditLogs(ctx *gin.Context) {
 		return
 	}
 
-	response, err := c.auditLogService.GetGlobalAuditLogs(ctx.Request.Context(), user, request)
+	response, err := c.auditLogService.GetGlobalAuditLogs(ctx.Request.Context(), actor, request)
 	if err != nil {
 		if errors.Is(err, ErrOnlyAdminsCanViewGlobalLogs) {
 			ctx.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
@@ -51,9 +51,9 @@ func (c *AuditLogController) GetGlobalAuditLogs(ctx *gin.Context) {
 }
 
 func (c *AuditLogController) GetUserAuditLogs(ctx *gin.Context) {
-	user, isOk := ctx.MustGet("user").(*user_models.User)
-	if !isOk {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user type in context"})
+	actor, ok := users.GetActor(ctx.Request.Context())
+	if !ok {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
 	}
 
@@ -70,7 +70,7 @@ func (c *AuditLogController) GetUserAuditLogs(ctx *gin.Context) {
 		return
 	}
 
-	response, err := c.auditLogService.GetUserAuditLogs(ctx.Request.Context(), targetUserID, user, request)
+	response, err := c.auditLogService.GetUserAuditLogs(ctx.Request.Context(), targetUserID, actor, request)
 	if err != nil {
 		if errors.Is(err, ErrInsufficientPermissionsToViewLogs) {
 			ctx.JSON(http.StatusForbidden, gin.H{"error": err.Error()})

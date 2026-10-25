@@ -12,8 +12,8 @@ import (
 	audit_logs_models "databasus-backend/internal/features/audit_logs/models"
 	"databasus-backend/internal/features/databases"
 	"databasus-backend/internal/features/intervals"
-	users_models "databasus-backend/internal/features/users/models"
 	workspaces_services "databasus-backend/internal/features/workspaces/services"
+	"databasus-backend/internal/modules/users"
 )
 
 type VerificationConfigService struct {
@@ -26,7 +26,7 @@ type VerificationConfigService struct {
 
 func (s *VerificationConfigService) GetByDatabaseID(
 	ctx context.Context,
-	user *users_models.User,
+	actor users.Actor,
 	databaseID uuid.UUID,
 ) (*BackupVerificationConfig, error) {
 	database, err := s.databaseService.GetDatabaseByID(databaseID)
@@ -38,7 +38,7 @@ func (s *VerificationConfigService) GetByDatabaseID(
 		return nil, errors.New("cannot access verification config for databases without workspace")
 	}
 
-	canAccess, _, err := s.workspaceService.CanUserAccessWorkspace(ctx, *database.WorkspaceID, user)
+	canAccess, _, err := s.workspaceService.CanUserAccessWorkspace(ctx, *database.WorkspaceID, actor)
 	if err != nil {
 		return nil, err
 	}
@@ -67,7 +67,7 @@ func (s *VerificationConfigService) GetByDatabaseID(
 
 func (s *VerificationConfigService) Save(
 	ctx context.Context,
-	user *users_models.User,
+	actor users.Actor,
 	databaseID uuid.UUID,
 	req *SaveBackupVerificationConfigDTO,
 ) (*BackupVerificationConfig, error) {
@@ -80,7 +80,7 @@ func (s *VerificationConfigService) Save(
 		return nil, errors.New("cannot modify verification config for databases without workspace")
 	}
 
-	canManage, err := s.workspaceService.CanUserManageDBs(ctx, *database.WorkspaceID, user)
+	canManage, err := s.workspaceService.CanUserManageDBs(ctx, *database.WorkspaceID, actor)
 	if err != nil {
 		return nil, err
 	}
@@ -119,7 +119,7 @@ func (s *VerificationConfigService) Save(
 
 	s.auditLogService.WriteAuditLog(ctx, audit_logs_models.AuditEntry{
 		Message:     fmt.Sprintf("Backup verification config updated for database '%s'", database.Name),
-		UserID:      &user.ID,
+		UserID:      &actor.UserID,
 		WorkspaceID: database.WorkspaceID,
 	})
 

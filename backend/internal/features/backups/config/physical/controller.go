@@ -7,7 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
-	users_middleware "databasus-backend/internal/features/users/middleware"
+	"databasus-backend/internal/modules/users"
 )
 
 type BackupConfigController struct {
@@ -21,7 +21,7 @@ func (c *BackupConfigController) RegisterRoutes(router *gin.RouterGroup) {
 }
 
 func (c *BackupConfigController) SaveBackupConfig(ctx *gin.Context) {
-	user, ok := users_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -35,7 +35,7 @@ func (c *BackupConfigController) SaveBackupConfig(ctx *gin.Context) {
 
 	requestDTO.StorageID = nil
 
-	savedConfig, err := c.backupConfigService.SaveBackupConfigWithAuth(ctx.Request.Context(), user, &requestDTO)
+	savedConfig, err := c.backupConfigService.SaveBackupConfigWithAuth(ctx.Request.Context(), actor, &requestDTO)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -45,7 +45,7 @@ func (c *BackupConfigController) SaveBackupConfig(ctx *gin.Context) {
 }
 
 func (c *BackupConfigController) GetBackupConfigByDbID(ctx *gin.Context) {
-	user, ok := users_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -57,7 +57,7 @@ func (c *BackupConfigController) GetBackupConfigByDbID(ctx *gin.Context) {
 		return
 	}
 
-	backupConfig, err := c.backupConfigService.GetAndRepairBackupConfigByDbIdWithAuth(ctx.Request.Context(), user, id)
+	backupConfig, err := c.backupConfigService.GetAndRepairBackupConfigByDbIdWithAuth(ctx.Request.Context(), actor, id)
 	if err != nil {
 		ctx.JSON(http.StatusNotFound, gin.H{"error": "backup configuration not found"})
 		return
@@ -67,7 +67,7 @@ func (c *BackupConfigController) GetBackupConfigByDbID(ctx *gin.Context) {
 }
 
 func (c *BackupConfigController) TransferDatabase(ctx *gin.Context) {
-	user, ok := users_middleware.GetUserFromContext(ctx)
+	actor, ok := users.GetActor(ctx.Request.Context())
 	if !ok {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -90,7 +90,12 @@ func (c *BackupConfigController) TransferDatabase(ctx *gin.Context) {
 		return
 	}
 
-	if err := c.backupConfigService.TransferDatabaseToWorkspace(ctx.Request.Context(), user, id, &request); err != nil {
+	if err := c.backupConfigService.TransferDatabaseToWorkspace(
+		ctx.Request.Context(),
+		actor,
+		id,
+		&request,
+	); err != nil {
 		if errors.Is(err, ErrInsufficientPermissionsInSourceWorkspace) ||
 			errors.Is(err, ErrInsufficientPermissionsInTargetWorkspace) {
 			ctx.JSON(http.StatusForbidden, gin.H{"error": err.Error()})

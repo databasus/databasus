@@ -25,6 +25,7 @@ import (
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_controllers "databasus-backend/internal/features/workspaces/controllers"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
+	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/storage"
 	"databasus-backend/internal/util/period"
 	test_utils "databasus-backend/internal/util/testing"
@@ -89,7 +90,7 @@ func Test_SaveBackupConfig_PermissionsEnforced(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			router := createTestRouter()
-			owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+			owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 			workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 
 			database := createTestDatabaseViaAPI("Test Database", workspace.ID, owner.Token, router)
@@ -101,12 +102,12 @@ func Test_SaveBackupConfig_PermissionsEnforced(t *testing.T) {
 
 			var testUserToken string
 			if tt.isGlobalAdmin {
-				admin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+				admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 				testUserToken = admin.Token
 			} else if tt.workspaceRole != nil && *tt.workspaceRole == users_enums.WorkspaceRoleOwner {
 				testUserToken = owner.Token
 			} else if tt.workspaceRole != nil {
-				member := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+				member := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 				workspaces_testing.AddMemberToWorkspace(
 					workspace,
 					member,
@@ -158,7 +159,7 @@ func Test_SaveBackupConfig_PermissionsEnforced(t *testing.T) {
 
 func Test_SaveBackupConfig_WhenUserIsNotWorkspaceMember_ReturnsForbidden(t *testing.T) {
 	router := createTestRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 
 	database := createTestDatabaseViaAPI("Test Database", workspace.ID, owner.Token, router)
@@ -168,7 +169,7 @@ func Test_SaveBackupConfig_WhenUserIsNotWorkspaceMember_ReturnsForbidden(t *test
 		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
 	}()
 
-	nonMember := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	nonMember := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
 	timeOfDay := "04:00"
 	request := LogicalBackupConfig{
@@ -254,7 +255,7 @@ func Test_GetBackupConfigByDbID_PermissionsEnforced(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			router := createTestRouter()
-			owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+			owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 			workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 
 			database := createTestDatabaseViaAPI("Test Database", workspace.ID, owner.Token, router)
@@ -266,12 +267,12 @@ func Test_GetBackupConfigByDbID_PermissionsEnforced(t *testing.T) {
 
 			var testUserToken string
 			if tt.isGlobalAdmin {
-				admin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+				admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 				testUserToken = admin.Token
 			} else if tt.workspaceRole != nil && *tt.workspaceRole == users_enums.WorkspaceRoleOwner {
 				testUserToken = owner.Token
 			} else if tt.workspaceRole != nil {
-				member := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+				member := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 				workspaces_testing.AddMemberToWorkspace(
 					workspace,
 					member,
@@ -281,7 +282,7 @@ func Test_GetBackupConfigByDbID_PermissionsEnforced(t *testing.T) {
 				)
 				testUserToken = member.Token
 			} else {
-				nonMember := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+				nonMember := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 				testUserToken = nonMember.Token
 			}
 
@@ -307,7 +308,7 @@ func Test_GetBackupConfigByDbID_PermissionsEnforced(t *testing.T) {
 
 func Test_GetBackupConfigByDbID_ReturnsDefaultConfigForNewDatabase(t *testing.T) {
 	router := createTestRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 
 	database := createTestDatabaseViaAPI("Test Database", workspace.ID, owner.Token, router)
@@ -358,7 +359,7 @@ func Test_IsStorageInUse_PermissionsEnforced(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			router := createTestRouter()
-			storageOwner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+			storageOwner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 			workspace := workspaces_testing.CreateTestWorkspace(t.Context(),
 				"Test Workspace",
 				storageOwner,
@@ -374,7 +375,7 @@ func Test_IsStorageInUse_PermissionsEnforced(t *testing.T) {
 			if tt.isStorageOwner {
 				testUserToken = storageOwner.Token
 			} else {
-				otherUser := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+				otherUser := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 				testUserToken = otherUser.Token
 			}
 
@@ -408,7 +409,7 @@ func Test_IsStorageInUse_PermissionsEnforced(t *testing.T) {
 
 func Test_SaveBackupConfig_WithEncryptionNone_ConfigSaved(t *testing.T) {
 	router := createTestRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 
 	database := createTestDatabaseViaAPI("Test Database", workspace.ID, owner.Token, router)
@@ -453,7 +454,7 @@ func Test_SaveBackupConfig_WithEncryptionNone_ConfigSaved(t *testing.T) {
 
 func Test_SaveBackupConfig_WithEncryptionEncrypted_ConfigSaved(t *testing.T) {
 	router := createTestRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 
 	database := createTestDatabaseViaAPI("Test Database", workspace.ID, owner.Token, router)
@@ -551,8 +552,8 @@ func Test_TransferDatabase_PermissionsEnforced(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			router := createTestRouterWithStorageForTransfer()
 
-			sourceOwner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
-			targetOwner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+			sourceOwner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
+			targetOwner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
 			sourceWorkspace := workspaces_testing.CreateTestWorkspace(t.Context(),
 				"Source Workspace",
@@ -585,10 +586,10 @@ func Test_TransferDatabase_PermissionsEnforced(t *testing.T) {
 
 			var testUserToken string
 			if tt.isGlobalAdmin {
-				admin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+				admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 				testUserToken = admin.Token
 			} else if tt.sourceRole != nil {
-				testUser := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+				testUser := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 				if *tt.sourceRole == users_enums.WorkspaceRoleOwner {
 					testUserToken = sourceOwner.Token
 					workspaces_testing.AddMemberToWorkspace(
@@ -654,8 +655,8 @@ func Test_TransferDatabase_PermissionsEnforced(t *testing.T) {
 func Test_TransferDatabase_NonMemberInSourceWorkspace_CannotTransfer(t *testing.T) {
 	router := createTestRouterWithStorageForTransfer()
 
-	sourceOwner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
-	targetOwner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	sourceOwner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
+	targetOwner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
 	sourceWorkspace := workspaces_testing.CreateTestWorkspace(t.Context(),
 		"Source Workspace",
@@ -700,8 +701,8 @@ func Test_TransferDatabase_NonMemberInSourceWorkspace_CannotTransfer(t *testing.
 func Test_TransferDatabase_NonMemberInTargetWorkspace_CannotTransfer(t *testing.T) {
 	router := createTestRouterWithStorageForTransfer()
 
-	sourceOwner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
-	targetOwner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	sourceOwner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
+	targetOwner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
 	sourceWorkspace := workspaces_testing.CreateTestWorkspace(t.Context(),
 		"Source Workspace",
@@ -746,7 +747,7 @@ func Test_TransferDatabase_NonMemberInTargetWorkspace_CannotTransfer(t *testing.
 func Test_TransferDatabase_ToNewStorage_DatabaseTransferd(t *testing.T) {
 	router := createTestRouterWithStorageForTransfer()
 
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	sourceWorkspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Source Workspace", owner, router)
 	targetWorkspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Target Workspace", owner, router)
 
@@ -834,7 +835,7 @@ func Test_TransferDatabase_ToNewStorage_DatabaseTransferd(t *testing.T) {
 func Test_TransferDatabase_WithExistingStorage_DatabaseAndStorageTransferd(t *testing.T) {
 	router := createTestRouterWithStorageForTransfer()
 
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	sourceWorkspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Source Workspace", owner, router)
 	targetWorkspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Target Workspace", owner, router)
 
@@ -920,7 +921,7 @@ func Test_TransferDatabase_WithExistingStorage_DatabaseAndStorageTransferd(t *te
 func Test_TransferDatabase_StorageHasOtherDBs_CannotTransfer(t *testing.T) {
 	router := createTestRouterWithStorageForTransfer()
 
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	sourceWorkspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Source Workspace", owner, router)
 	targetWorkspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Target Workspace", owner, router)
 
@@ -1021,7 +1022,7 @@ func Test_TransferDatabase_StorageHasOtherDBs_CannotTransfer(t *testing.T) {
 func Test_TransferDatabase_WithNotifiers_NotifiersTransferred(t *testing.T) {
 	router := createTestRouterWithNotifiersForTransfer()
 
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	sourceWorkspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Source Workspace", owner, router)
 	targetWorkspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Target Workspace", owner, router)
 
@@ -1122,7 +1123,7 @@ func Test_TransferDatabase_WithNotifiers_NotifiersTransferred(t *testing.T) {
 func Test_TransferDatabase_NotifierHasOtherDBs_NotifierSkipped(t *testing.T) {
 	router := createTestRouterWithNotifiersForTransfer()
 
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	sourceWorkspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Source Workspace", owner, router)
 	targetWorkspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Target Workspace", owner, router)
 
@@ -1242,7 +1243,7 @@ func Test_TransferDatabase_NotifierHasOtherDBs_NotifierSkipped(t *testing.T) {
 func Test_TransferDatabase_WithMultipleNotifiers_OnlyExclusiveOnesTransferred(t *testing.T) {
 	router := createTestRouterWithNotifiersForTransfer()
 
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	sourceWorkspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Source Workspace", owner, router)
 	targetWorkspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Target Workspace", owner, router)
 
@@ -1377,7 +1378,7 @@ func Test_TransferDatabase_WithMultipleNotifiers_OnlyExclusiveOnesTransferred(t 
 func Test_TransferDatabase_WithTargetNotifiers_NotifiersAssigned(t *testing.T) {
 	router := createTestRouterWithNotifiersForTransfer()
 
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	sourceWorkspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Source Workspace", owner, router)
 	targetWorkspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Target Workspace", owner, router)
 
@@ -1456,7 +1457,7 @@ func Test_TransferDatabase_WithTargetNotifiers_NotifiersAssigned(t *testing.T) {
 func Test_TransferDatabase_TargetNotifierFromDifferentWorkspace_ReturnsBadRequest(t *testing.T) {
 	router := createTestRouterWithNotifiersForTransfer()
 
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	sourceWorkspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Source Workspace", owner, router)
 	targetWorkspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Target Workspace", owner, router)
 	otherWorkspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Other Workspace", owner, router)
@@ -1524,7 +1525,7 @@ func Test_TransferDatabase_TargetNotifierFromDifferentWorkspace_ReturnsBadReques
 func Test_TransferDatabase_TargetStorageFromDifferentWorkspace_ReturnsBadRequest(t *testing.T) {
 	router := createTestRouterWithNotifiersForTransfer()
 
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	sourceWorkspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Source Workspace", owner, router)
 	targetWorkspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Target Workspace", owner, router)
 	otherWorkspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Other Workspace", owner, router)
@@ -1589,8 +1590,8 @@ func Test_TransferDatabase_TargetStorageFromDifferentWorkspace_ReturnsBadRequest
 func Test_SaveBackupConfig_WithStorageFromAnotherWorkspace_ReturnsBadRequest(t *testing.T) {
 	router := createTestRouterWithStorageForTransfer()
 
-	owner1 := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
-	owner2 := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner1 := users_testing.CreateTestUser(t.Context(), users.RoleMember)
+	owner2 := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
 	workspaceA := workspaces_testing.CreateTestWorkspace(t.Context(), "Workspace A", owner1, router)
 	workspaceB := workspaces_testing.CreateTestWorkspace(t.Context(), "Workspace B", owner2, router)
@@ -1726,7 +1727,7 @@ func createTestRouterWithNotifiersForTransfer() *gin.Engine {
 
 func Test_SaveBackupConfig_WhenEmbeddedStorageHasChangedFields_KeepsStoredStorage(t *testing.T) {
 	router := createTestRouterWithStorageForTransfer()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 	database := createTestDatabaseViaAPI("Test Database", workspace.ID, owner.Token, router)
 	existingStorage := storages.CreateTestFlakyS3Storage(workspace.ID, "http://127.0.0.1:1")
@@ -1767,7 +1768,7 @@ func Test_SaveBackupConfig_WhenEmbeddedStorageHasChangedFields_KeepsStoredStorag
 
 func Test_SaveBackupConfig_WhenEmbeddedStorageHasNoID_ReturnsBadRequestAndCreatesNoStorage(t *testing.T) {
 	router := createTestRouterWithStorageForTransfer()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 	database := createTestDatabaseViaAPI("Test Database", workspace.ID, owner.Token, router)
 
@@ -1798,7 +1799,7 @@ func Test_SaveBackupConfig_WhenEmbeddedStorageHasNoID_ReturnsBadRequestAndCreate
 
 func Test_SaveBackupConfig_WhenEmbeddedStorageIsUnknown_ReturnsBadRequestAndCreatesNoStorage(t *testing.T) {
 	router := createTestRouterWithStorageForTransfer()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 	database := createTestDatabaseViaAPI("Test Database", workspace.ID, owner.Token, router)
 

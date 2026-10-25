@@ -85,6 +85,12 @@ func New(ctx context.Context, environment *Environment) (*App, error) {
 	old_config.Install(environment.Config)
 	storage.Install(db)
 
+	if err := parseModelSchemas(db); err != nil {
+		closeDatabase(db)
+
+		return nil, err
+	}
+
 	transactor := database.NewTransactor(db)
 
 	masterKey, err := moveLegacyAndOpenMasterKey(ctx, crypto.Deps{

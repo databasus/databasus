@@ -17,7 +17,6 @@ import (
 	"databasus-backend/internal/features/databases"
 	"databasus-backend/internal/features/notifiers"
 	"databasus-backend/internal/features/storages"
-	users_enums "databasus-backend/internal/features/users/enums"
 	users_middleware "databasus-backend/internal/features/users/middleware"
 	users_services "databasus-backend/internal/features/users/services"
 	users_testing "databasus-backend/internal/features/users/testing"
@@ -25,6 +24,7 @@ import (
 	verification_config "databasus-backend/internal/features/verification/config"
 	workspaces_controllers "databasus-backend/internal/features/workspaces/controllers"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
+	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/storage"
 	test_utils "databasus-backend/internal/util/testing"
 )
@@ -58,7 +58,7 @@ func createTestRouter() *gin.Engine {
 
 func Test_EnqueueManualVerification_AsOwner_CreatesPendingRow(t *testing.T) {
 	router := createTestRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner, router)
 	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
 
@@ -92,7 +92,7 @@ func Test_EnqueueManualVerification_AsOwner_CreatesPendingRow(t *testing.T) {
 
 func Test_EnqueueManualVerification_WhenManualPendingExists_Returns400(t *testing.T) {
 	router := createTestRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner, router)
 	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
 
@@ -132,7 +132,7 @@ func Test_EnqueueManualVerification_WhenManualPendingExists_Returns400(t *testin
 
 func Test_EnqueueManualVerification_WhenRunningExists_Returns400(t *testing.T) {
 	router := createTestRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner, router)
 	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
 
@@ -166,7 +166,7 @@ func Test_EnqueueManualVerification_WhenRunningExists_Returns400(t *testing.T) {
 
 func Test_EnqueueManualVerification_WhenScheduledNonTerminalExists_DoesNotDisplaceIt(t *testing.T) {
 	router := createTestRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner, router)
 	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
 
@@ -230,7 +230,7 @@ func Test_EnqueueManualVerification_WhenScheduledNonTerminalExists_DoesNotDispla
 
 func Test_EnqueueManualVerification_AsNonWorkspaceMember_ReturnsForbidden(t *testing.T) {
 	router := createTestRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner, router)
 	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
 
@@ -245,7 +245,7 @@ func Test_EnqueueManualVerification_AsNonWorkspaceMember_ReturnsForbidden(t *tes
 
 	backup := backuping_logical.SeedTestBackup(t, database.ID, testStorage.ID, 100)
 
-	outsider := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	outsider := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
 	resp := test_utils.MakePostRequest(
 		t, router, "/api/v1/verifications/enqueue", "Bearer "+outsider.Token,
@@ -257,7 +257,7 @@ func Test_EnqueueManualVerification_AsNonWorkspaceMember_ReturnsForbidden(t *tes
 
 func Test_GetVerificationByID_ReturnsTableStats_WhileListByDatabaseOmitsThem(t *testing.T) {
 	router := createTestRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner, router)
 	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
 
@@ -317,7 +317,7 @@ func Test_GetVerificationByID_ReturnsTableStats_WhileListByDatabaseOmitsThem(t *
 
 func Test_ListVerificationsByDatabase_WithLimit_CapsRowsAndReturnsTotal(t *testing.T) {
 	router := createTestRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner, router)
 	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
 
@@ -354,7 +354,7 @@ func Test_ListVerificationsByDatabase_WithLimit_CapsRowsAndReturnsTotal(t *testi
 
 func Test_CancelVerification_AsOwner_FlipsToCanceled(t *testing.T) {
 	router := createTestRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner, router)
 	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
 
@@ -382,7 +382,7 @@ func Test_CancelVerification_AsOwner_FlipsToCanceled(t *testing.T) {
 
 func Test_CancelVerification_WhenAlreadyCompleted_Returns400(t *testing.T) {
 	router := createTestRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner, router)
 	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
 
@@ -433,7 +433,7 @@ func Test_CancelVerification_WhenAlreadyCompleted_Returns400(t *testing.T) {
 
 func Test_CancelVerification_AsNonWorkspaceMember_ReturnsForbidden(t *testing.T) {
 	router := createTestRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner, router)
 	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
 
@@ -449,7 +449,7 @@ func Test_CancelVerification_AsNonWorkspaceMember_ReturnsForbidden(t *testing.T)
 	backup := backuping_logical.SeedTestBackup(t, database.ID, testStorage.ID, 100)
 	enqueued := EnqueueManualVerificationViaAPI(t, router, owner.Token, backup.ID)
 
-	outsider := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	outsider := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
 	resp := test_utils.MakePostRequest(
 		t, router,
@@ -466,7 +466,7 @@ func Test_CancelVerification_AsNonWorkspaceMember_ReturnsForbidden(t *testing.T)
 
 func Test_CancelVerification_WithAgentToken_Returns401(t *testing.T) {
 	router := createTestRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner, router)
 	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
 
@@ -501,7 +501,7 @@ func Test_CancelVerification_WithAgentToken_Returns401(t *testing.T) {
 
 func Test_DeleteDatabase_RemovesVerifications_ViaCascade(t *testing.T) {
 	router := createTestRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner, router)
 	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
 
@@ -533,7 +533,7 @@ func Test_DeleteDatabase_RemovesVerifications_ViaCascade(t *testing.T) {
 
 func Test_DeleteBackup_RemovesVerifications_ViaCascade(t *testing.T) {
 	router := createTestRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner, router)
 	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
 

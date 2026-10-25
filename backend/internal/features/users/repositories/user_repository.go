@@ -10,6 +10,7 @@ import (
 
 	users_enums "databasus-backend/internal/features/users/enums"
 	users_models "databasus-backend/internal/features/users/models"
+	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/storage"
 )
 
@@ -128,7 +129,7 @@ func (r *UserRepository) UpdateUserStatus(userID uuid.UUID, status users_enums.U
 		}).Error
 }
 
-func (r *UserRepository) UpdateUserRole(userID uuid.UUID, role users_enums.UserRole) error {
+func (r *UserRepository) UpdateUserRole(userID uuid.UUID, role users.Role) error {
 	return storage.GetDb().Model(&users_models.User{}).
 		Where("id = ?", userID).
 		Updates(map[string]any{
@@ -140,7 +141,7 @@ func (r *UserRepository) GetAdmins(ctx context.Context) ([]*users_models.User, e
 	var admins []*users_models.User
 
 	if err := storage.GetDb().WithContext(ctx).
-		Where("role = ?", users_enums.UserRoleAdmin).
+		Where("role = ?", users.RoleAdmin).
 		Order("created_at ASC").
 		Find(&admins).Error; err != nil {
 		return nil, err

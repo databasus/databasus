@@ -15,6 +15,7 @@ import (
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_controllers "databasus-backend/internal/features/workspaces/controllers"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
+	"databasus-backend/internal/modules/users"
 	test_utils "databasus-backend/internal/util/testing"
 )
 
@@ -77,7 +78,7 @@ func createTestDatabaseViaAPI(
 
 func Test_GetByDatabaseID_WhenNoRowExists_LazyCreatesDisabledDefault(t *testing.T) {
 	router := createTestRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 	database := createTestDatabaseViaAPI("Test Database", workspace.ID, owner.Token, router)
 
@@ -111,11 +112,11 @@ func Test_GetByDatabaseID_WhenNoRowExists_LazyCreatesDisabledDefault(t *testing.
 
 func Test_GetByDatabaseID_WhenUserNotInWorkspace_ReturnsError(t *testing.T) {
 	router := createTestRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 	database := createTestDatabaseViaAPI("Test Database", workspace.ID, owner.Token, router)
 
-	nonMember := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	nonMember := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
 	resp := test_utils.MakeGetRequest(
 		t,
@@ -132,7 +133,7 @@ func Test_GetByDatabaseID_WhenUserNotInWorkspace_ReturnsError(t *testing.T) {
 
 func Test_Save_AsOwner_PersistsAndReturns(t *testing.T) {
 	router := createTestRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 	database := createTestDatabaseViaAPI("Test Database", workspace.ID, owner.Token, router)
 
@@ -188,11 +189,11 @@ func Test_Save_AsOwner_PersistsAndReturns(t *testing.T) {
 
 func Test_Save_AsViewer_RejectedWithPermissionError(t *testing.T) {
 	router := createTestRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 	database := createTestDatabaseViaAPI("Test Database", workspace.ID, owner.Token, router)
 
-	viewer := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	viewer := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspaces_testing.AddMemberToWorkspace(
 		workspace,
 		viewer,
@@ -217,7 +218,7 @@ func Test_Save_AsViewer_RejectedWithPermissionError(t *testing.T) {
 
 func Test_Save_WhenEnabled_WithInvalidInterval_ReturnsValidationError(t *testing.T) {
 	router := createTestRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 	database := createTestDatabaseViaAPI("Test Database", workspace.ID, owner.Token, router)
 
@@ -242,7 +243,7 @@ func Test_Save_WhenEnabled_WithInvalidInterval_ReturnsValidationError(t *testing
 
 func Test_Save_WithInvalidNotificationType_ReturnsValidationError(t *testing.T) {
 	router := createTestRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 	database := createTestDatabaseViaAPI("Test Database", workspace.ID, owner.Token, router)
 
@@ -267,7 +268,7 @@ func Test_Save_WithInvalidNotificationType_ReturnsValidationError(t *testing.T) 
 
 func Test_Save_WhenScheduleTypeAfterBackup_SkipsIntervalValidationAndPersists(t *testing.T) {
 	router := createTestRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 	database := createTestDatabaseViaAPI("Test Database", workspace.ID, owner.Token, router)
 
@@ -310,7 +311,7 @@ func Test_Save_WhenScheduleTypeAfterBackup_SkipsIntervalValidationAndPersists(t 
 
 func Test_Save_WhenScheduleTypeInvalid_ReturnsValidationError(t *testing.T) {
 	router := createTestRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 	database := createTestDatabaseViaAPI("Test Database", workspace.ID, owner.Token, router)
 
@@ -333,7 +334,7 @@ func Test_Save_WhenScheduleTypeInvalid_ReturnsValidationError(t *testing.T) {
 
 func Test_OnDatabaseCopied_CopiesConfigOntoNewDatabase(t *testing.T) {
 	router := createTestRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
 	source := createTestDatabaseViaAPI("Source Database", workspace.ID, owner.Token, router)
 	target := createTestDatabaseViaAPI("Target Database", workspace.ID, owner.Token, router)

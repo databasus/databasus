@@ -28,6 +28,7 @@ import (
 	users_models "databasus-backend/internal/features/users/models"
 	users_repositories "databasus-backend/internal/features/users/repositories"
 	"databasus-backend/internal/lib/crypto"
+	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/util/ratelimiter"
 )
 
@@ -347,16 +348,14 @@ func (s *UserService) ChangeUserPassword(ctx context.Context, userID uuid.UUID, 
 func (s *UserService) InviteUser(
 	ctx context.Context,
 	request *users_dto.InviteUserRequestDTO,
-	invitedBy *users_models.User,
+	invitedBy users.Actor,
 ) (*users_dto.InviteUserResponseDTO, error) {
-	// Get settings to check permissions
-	settings, err := s.settingsService.GetSettings(ctx)
+	canInviteUsers, err := s.settingsService.CanInviteUsers(ctx, invitedBy)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get settings: %w", err)
+		return nil, err
 	}
 
-	// Check if user has permission to invite
-	if !invitedBy.CanInviteUsers(settings) {
+	if !canInviteUsers {
 		return nil, users_errors.ErrInsufficientPermissionsToInviteUsers
 	}
 
@@ -375,7 +374,7 @@ func (s *UserService) InviteUser(
 		Name:                 "User",
 		HashedPassword:       nil,
 		PasswordCreationTime: time.Now().UTC(),
-		Role:                 users_enums.UserRoleMember,
+		Role:                 users.RoleMember,
 		Status:               users_enums.UserStatusInvited,
 		CreatedAt:            time.Now().UTC(),
 	}
@@ -390,7 +389,7 @@ func (s *UserService) InviteUser(
 	}
 	s.writeAuditLog(ctx, audit_logs_models.AuditEntry{
 		Message:     message,
-		UserID:      &invitedBy.ID,
+		UserID:      &invitedBy.UserID,
 		WorkspaceID: request.IntendedWorkspaceID,
 	})
 
@@ -413,8 +412,13 @@ func (s *UserService) GetUserByEmail(ctx context.Context, email string) (*users_
 
 func (s *UserService) GetCurrentUserProfile(
 	ctx context.Context,
-	user *users_models.User,
-) *users_dto.UserProfileResponseDTO {
+	actor users.Actor,
+) (*users_dto.UserProfileResponseDTO, error) {
+	user, err := s.userRepository.GetUserByID(ctx, actor.UserID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user: %w", err)
+	}
+
 	return &users_dto.UserProfileResponseDTO{
 		ID:        user.ID,
 		Email:     user.Email,
@@ -422,7 +426,7 @@ func (s *UserService) GetCurrentUserProfile(
 		Role:      user.Role,
 		IsActive:  user.IsActiveUser(),
 		CreatedAt: user.CreatedAt,
-	}
+	}, nil
 }
 
 func (s *UserService) UpdateUserInfo(
@@ -799,12 +803,12 @@ func buildOAuthUser(
 	}
 }
 
-func roleForNewAccount(isTakingTheInstance bool) users_enums.UserRole {
+func roleForNewAccount(isTakingTheInstance bool) users.Role {
 	if isTakingTheInstance {
-		return users_enums.UserRoleAdmin
+		return users.RoleAdmin
 	}
 
-	return users_enums.UserRoleMember
+	return users.RoleMember
 }
 
 // The log has to explain an administrator nobody appointed.

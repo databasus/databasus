@@ -12,11 +12,11 @@ import (
 
 	"databasus-backend/internal/features/email"
 	users_dto "databasus-backend/internal/features/users/dto"
-	users_enums "databasus-backend/internal/features/users/enums"
 	users_middleware "databasus-backend/internal/features/users/middleware"
 	users_repositories "databasus-backend/internal/features/users/repositories"
 	users_services "databasus-backend/internal/features/users/services"
 	users_testing "databasus-backend/internal/features/users/testing"
+	"databasus-backend/internal/modules/users"
 	test_utils "databasus-backend/internal/util/testing"
 )
 
@@ -52,7 +52,7 @@ func Test_AdminLifecycleE2E_CompletesSuccessfully(t *testing.T) {
 		http.StatusOK,
 		&profileResponse,
 	)
-	assert.Equal(t, users_enums.UserRoleAdmin, profileResponse.Role)
+	assert.Equal(t, users.RoleAdmin, profileResponse.Role)
 
 	rootAdmin, err := (&users_repositories.UserRepository{}).GetRootAdmin(t.Context())
 	require.NoError(t, err)
@@ -161,7 +161,7 @@ func Test_UserLifecycleE2E_CompletesSuccessfully(t *testing.T) {
 	)
 	assert.Equal(t, signinResponse.UserID, profileResponse.ID)
 	assert.Equal(t, userEmail, profileResponse.Email)
-	assert.Equal(t, users_enums.UserRoleMember, profileResponse.Role)
+	assert.Equal(t, users.RoleMember, profileResponse.Role)
 	assert.True(t, profileResponse.IsActive)
 }
 

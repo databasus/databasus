@@ -21,8 +21,8 @@ import (
 	"databasus-backend/internal/features/restores/usecases"
 	"databasus-backend/internal/features/storages"
 	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
-	users_models "databasus-backend/internal/features/users/models"
 	workspaces_services "databasus-backend/internal/features/workspaces/services"
+	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/util/encryption"
 	"databasus-backend/internal/util/tools"
 )
@@ -65,7 +65,7 @@ func (s *RestoreService) OnBeforeBackupRemove(backup *backups_core_logical.Logic
 
 func (s *RestoreService) GetRestores(
 	ctx context.Context,
-	user *users_models.User,
+	actor users.Actor,
 	backupID uuid.UUID,
 ) ([]*restores_core.Restore, error) {
 	backup, err := s.backupService.GetBackup(backupID)
@@ -85,7 +85,7 @@ func (s *RestoreService) GetRestores(
 	canAccess, _, err := s.workspaceService.CanUserAccessWorkspace(
 		ctx,
 		*database.WorkspaceID,
-		user,
+		actor,
 	)
 	if err != nil {
 		return nil, err
@@ -99,7 +99,7 @@ func (s *RestoreService) GetRestores(
 
 func (s *RestoreService) RestoreBackupWithAuth(
 	ctx context.Context,
-	user *users_models.User,
+	actor users.Actor,
 	backupID uuid.UUID,
 	requestDTO restores_core.RestoreBackupRequest,
 ) error {
@@ -120,7 +120,7 @@ func (s *RestoreService) RestoreBackupWithAuth(
 	canAccess, _, err := s.workspaceService.CanUserAccessWorkspace(
 		ctx,
 		*database.WorkspaceID,
-		user,
+		actor,
 	)
 	if err != nil {
 		return err
@@ -129,7 +129,7 @@ func (s *RestoreService) RestoreBackupWithAuth(
 		return errors.New("insufficient permissions to restore this backup")
 	}
 
-	backupDatabase, err := s.databaseService.GetDatabase(ctx, user, backup.DatabaseID)
+	backupDatabase, err := s.databaseService.GetDatabase(ctx, actor, backup.DatabaseID)
 	if err != nil {
 		return err
 	}
@@ -194,7 +194,7 @@ func (s *RestoreService) RestoreBackupWithAuth(
 
 	s.auditLogService.WriteAuditLog(ctx, audit_logs_models.AuditEntry{
 		Message:     fmt.Sprintf("Database restored for database: %s", database.Name),
-		UserID:      &user.ID,
+		UserID:      &actor.UserID,
 		WorkspaceID: database.WorkspaceID,
 	})
 
@@ -203,7 +203,7 @@ func (s *RestoreService) RestoreBackupWithAuth(
 
 func (s *RestoreService) CancelRestore(
 	ctx context.Context,
-	user *users_models.User,
+	actor users.Actor,
 	restoreID uuid.UUID,
 ) error {
 	restore, err := s.restoreRepository.FindByID(restoreID)
@@ -225,7 +225,7 @@ func (s *RestoreService) CancelRestore(
 		return errors.New("cannot cancel restore for database without workspace")
 	}
 
-	canManage, err := s.workspaceService.CanUserManageDBs(ctx, *database.WorkspaceID, user)
+	canManage, err := s.workspaceService.CanUserManageDBs(ctx, *database.WorkspaceID, actor)
 	if err != nil {
 		return err
 	}
@@ -243,7 +243,7 @@ func (s *RestoreService) CancelRestore(
 
 	s.auditLogService.WriteAuditLog(ctx, audit_logs_models.AuditEntry{
 		Message:     fmt.Sprintf("Restore cancelled for database: %s", database.Name),
-		UserID:      &user.ID,
+		UserID:      &actor.UserID,
 		WorkspaceID: database.WorkspaceID,
 	})
 

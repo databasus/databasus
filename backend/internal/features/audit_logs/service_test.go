@@ -9,15 +9,15 @@ import (
 	"github.com/stretchr/testify/require"
 
 	audit_logs_models "databasus-backend/internal/features/audit_logs/models"
-	user_enums "databasus-backend/internal/features/users/enums"
 	users_repositories "databasus-backend/internal/features/users/repositories"
 	users_testing "databasus-backend/internal/features/users/testing"
+	"databasus-backend/internal/modules/users"
 )
 
 func Test_AuditLogs_WorkspaceSpecificLogs(t *testing.T) {
 	service := GetAuditLogService()
-	user1 := users_testing.CreateTestUser(t.Context(), user_enums.UserRoleMember)
-	user2 := users_testing.CreateTestUser(t.Context(), user_enums.UserRoleMember)
+	user1 := users_testing.CreateTestUser(t.Context(), users.RoleMember)
+	user2 := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace1ID, workspace2ID := uuid.New(), uuid.New()
 
 	createAuditLog(t, service, audit_logs_models.AuditEntry{
@@ -90,7 +90,7 @@ func Test_AuditLogs_WorkspaceSpecificLogs(t *testing.T) {
 
 func TestWriteAuditLog(t *testing.T) {
 	t.Run("stores the author's email and name when the entry has a user ID", func(t *testing.T) {
-		author := users_testing.CreateTestUser(t.Context(), user_enums.UserRoleMember)
+		author := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 		workspaceID := uuid.New()
 
 		GetAuditLogService().WriteAuditLog(t.Context(), audit_logs_models.AuditEntry{
@@ -107,7 +107,7 @@ func TestWriteAuditLog(t *testing.T) {
 	})
 
 	t.Run("keeps the author's email and name when the user changes both afterwards", func(t *testing.T) {
-		author := users_testing.CreateTestUser(t.Context(), user_enums.UserRoleMember)
+		author := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 		authorBeforeChange, err := users_repositories.GetUserRepository().GetUserByID(t.Context(), author.UserID)
 		require.NoError(t, err)
 		workspaceID := uuid.New()
@@ -140,7 +140,7 @@ func TestWriteAuditLog(t *testing.T) {
 	})
 
 	t.Run("stores the event without an author when the account no longer exists", func(t *testing.T) {
-		removedUser := users_testing.CreateTestUser(t.Context(), user_enums.UserRoleMember)
+		removedUser := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 		users_testing.DeleteTestUser(t.Context(), removedUser.UserID)
 		workspaceID := uuid.New()
 

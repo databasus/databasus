@@ -6,6 +6,7 @@ import (
 	"github.com/google/uuid"
 
 	users_enums "databasus-backend/internal/features/users/enums"
+	"databasus-backend/internal/modules/users"
 )
 
 type SignUpRequestDTO struct {
@@ -102,12 +103,12 @@ type InviteUserResponseDTO struct {
 }
 
 type UserProfileResponseDTO struct {
-	ID        uuid.UUID            `json:"id"`
-	Email     string               `json:"email"`
-	Name      string               `json:"name"`
-	Role      users_enums.UserRole `json:"role"`
-	IsActive  bool                 `json:"isActive"`
-	CreatedAt time.Time            `json:"createdAt"`
+	ID        uuid.UUID  `json:"id"`
+	Email     string     `json:"email"`
+	Name      string     `json:"name"`
+	Role      users.Role `json:"role"`
+	IsActive  bool       `json:"isActive"`
+	CreatedAt time.Time  `json:"createdAt"`
 }
 
 type ListUsersResponseDTO struct {
@@ -116,7 +117,7 @@ type ListUsersResponseDTO struct {
 }
 
 type ChangeUserRoleRequestDTO struct {
-	Role users_enums.UserRole `json:"role" binding:"required"`
+	Role users.Role `json:"role" binding:"required"`
 }
 
 type ListUsersRequestDTO struct {

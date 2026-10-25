@@ -50,6 +50,7 @@ import (
 	workspaces_controllers "databasus-backend/internal/features/workspaces/controllers"
 	workspaces_models "databasus-backend/internal/features/workspaces/models"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
+	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/storage"
 	"databasus-backend/internal/util/encryption"
 	"databasus-backend/internal/util/logger"
@@ -84,7 +85,7 @@ func createPhysicalControllerPrereqsWithDatabase(
 	t.Helper()
 
 	router := newPhysicalControllerRouter()
-	user := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Physical Ctrl "+uuid.NewString(), user, router)
 	storage := storages.CreateTestStorage(workspace.ID)
 	notifier := notifiers.CreateTestNotifier(workspace.ID)
@@ -297,7 +298,7 @@ func Test_GetBackups_WithCursor_WhenNonMember_ReturnsError(t *testing.T) {
 	firstPage := getBackups(t, prereqs, "?limit=1")
 	require.NotEmpty(t, firstPage.NextCursor)
 
-	outsider := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	outsider := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
 	test_utils.MakeGetRequest(t, prereqs.router,
 		"/api/v1/backups/physical/database/"+prereqs.database.ID.String()+"/backups?cursor="+firstPage.NextCursor,
@@ -307,7 +308,7 @@ func Test_GetBackups_WithCursor_WhenNonMember_ReturnsError(t *testing.T) {
 func Test_GetBackups_WhenNonMember_ReturnsError(t *testing.T) {
 	prereqs := createPhysicalControllerPrereqs(t)
 
-	outsider := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	outsider := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
 	test_utils.MakeGetRequest(t, prereqs.router,
 		"/api/v1/backups/physical/database/"+prereqs.database.ID.String()+"/backups",
@@ -1321,13 +1322,13 @@ func runRolePermissionMatrix(
 ) {
 	t.Helper()
 
-	member := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	member := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspaces_testing.AddMemberToWorkspace(
 		prereqs.workspace, member, users_enums.WorkspaceRoleMember, prereqs.user.Token, prereqs.router)
 
 	viewer := addWorkspaceViewer(t, prereqs)
-	nonMember := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
-	admin := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleAdmin)
+	nonMember := users_testing.CreateTestUser(t.Context(), users.RoleMember)
+	admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 
 	viewerCode := successCode
 	if managersOnly {
@@ -1361,7 +1362,7 @@ func occupyUserStreamSlot(t *testing.T, userID uuid.UUID) {
 func addWorkspaceViewer(t *testing.T, prereqs *physicalControllerPrereqs) *users_dto.SignInResponseDTO {
 	t.Helper()
 
-	viewer := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	viewer := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspaces_testing.AddMemberToWorkspace(
 		prereqs.workspace, viewer, users_enums.WorkspaceRoleViewer, prereqs.user.Token, prereqs.router)
 
@@ -1749,7 +1750,7 @@ func Test_GetWalStreamStatistics_WhenRequestNotAllowed_RefusesWithoutStatistics(
 	prereqs := createWalStreamingControllerPrereqs(t)
 	seedTestWalStreamSamples(t, prereqs.database.ID, 2, time.Now().UTC(), nil)
 
-	outsider := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	outsider := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
 	logicalDatabase := databases.CreateTestDatabase(prereqs.workspace.ID, prereqs.storage, prereqs.notifier)
 	t.Cleanup(func() { databases.RemoveTestDatabase(context.Background(), logicalDatabase) })
@@ -1849,7 +1850,7 @@ func Test_GetWalStreamLive_WhenRequestNotAllowed_RefusesWithoutValues(t *testing
 	prereqs := createWalStreamingControllerPrereqs(t)
 	registerTestRunningWalStreamer(t, prereqs)
 
-	outsider := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+	outsider := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
 	logicalDatabase := databases.CreateTestDatabase(prereqs.workspace.ID, prereqs.storage, prereqs.notifier)
 	t.Cleanup(func() { databases.RemoveTestDatabase(context.Background(), logicalDatabase) })

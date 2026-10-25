@@ -8,9 +8,8 @@ import (
 
 	audit_logs "databasus-backend/internal/features/audit_logs"
 	audit_logs_models "databasus-backend/internal/features/audit_logs/models"
-	users_enums "databasus-backend/internal/features/users/enums"
-	users_models "databasus-backend/internal/features/users/models"
 	workspaces_services "databasus-backend/internal/features/workspaces/services"
+	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/util/encryption"
 )
 
@@ -111,11 +110,11 @@ func (s *StorageService) OnBeforeWorkspaceDeletion(workspaceID uuid.UUID) error 
 
 func (s *StorageService) SaveStorage(
 	ctx context.Context,
-	user *users_models.User,
+	actor users.Actor,
 	workspaceID uuid.UUID,
 	storage *Storage,
 ) error {
-	canManage, err := s.workspaceService.CanUserManageDBs(ctx, workspaceID, user)
+	canManage, err := s.workspaceService.CanUserManageDBs(ctx, workspaceID, actor)
 	if err != nil {
 		return err
 	}
@@ -123,7 +122,7 @@ func (s *StorageService) SaveStorage(
 		return ErrInsufficientPermissionsToManageStorage
 	}
 
-	if storage.Type == StorageTypeRclone && user.Role != users_enums.UserRoleAdmin {
+	if storage.Type == StorageTypeRclone && actor.Role != users.RoleAdmin {
 		return ErrRcloneStorageRequiresAdmin
 	}
 
@@ -159,13 +158,13 @@ func (s *StorageService) SaveStorage(
 		if oldName != existingStorage.Name {
 			s.auditLogService.WriteAuditLog(ctx, audit_logs_models.AuditEntry{
 				Message:     fmt.Sprintf("Storage renamed from '%s' to '%s'", oldName, existingStorage.Name),
-				UserID:      &user.ID,
+				UserID:      &actor.UserID,
 				WorkspaceID: &workspaceID,
 			})
 		} else {
 			s.auditLogService.WriteAuditLog(ctx, audit_logs_models.AuditEntry{
 				Message:     fmt.Sprintf("Storage updated: %s", existingStorage.Name),
-				UserID:      &user.ID,
+				UserID:      &actor.UserID,
 				WorkspaceID: &workspaceID,
 			})
 		}
@@ -187,7 +186,7 @@ func (s *StorageService) SaveStorage(
 
 		s.auditLogService.WriteAuditLog(ctx, audit_logs_models.AuditEntry{
 			Message:     fmt.Sprintf("Storage created: %s", storage.Name),
-			UserID:      &user.ID,
+			UserID:      &actor.UserID,
 			WorkspaceID: &workspaceID,
 		})
 	}
@@ -197,7 +196,7 @@ func (s *StorageService) SaveStorage(
 
 func (s *StorageService) DeleteStorage(
 	ctx context.Context,
-	user *users_models.User,
+	actor users.Actor,
 	storageID uuid.UUID,
 ) error {
 	storage, err := s.storageRepository.FindByID(ctx, storageID)
@@ -205,7 +204,7 @@ func (s *StorageService) DeleteStorage(
 		return err
 	}
 
-	canManage, err := s.workspaceService.CanUserManageDBs(ctx, storage.WorkspaceID, user)
+	canManage, err := s.workspaceService.CanUserManageDBs(ctx, storage.WorkspaceID, actor)
 	if err != nil {
 		return err
 	}
@@ -239,7 +238,7 @@ func (s *StorageService) DeleteStorage(
 
 	s.auditLogService.WriteAuditLog(ctx, audit_logs_models.AuditEntry{
 		Message:     fmt.Sprintf("Storage deleted: %s", storage.Name),
-		UserID:      &user.ID,
+		UserID:      &actor.UserID,
 		WorkspaceID: &storage.WorkspaceID,
 	})
 
@@ -248,7 +247,7 @@ func (s *StorageService) DeleteStorage(
 
 func (s *StorageService) GetStorage(
 	ctx context.Context,
-	user *users_models.User,
+	actor users.Actor,
 	id uuid.UUID,
 ) (*Storage, error) {
 	storage, err := s.storageRepository.FindByID(ctx, id)
@@ -256,7 +255,7 @@ func (s *StorageService) GetStorage(
 		return nil, err
 	}
 
-	canView, _, err := s.workspaceService.CanUserAccessWorkspace(ctx, storage.WorkspaceID, user)
+	canView, _, err := s.workspaceService.CanUserAccessWorkspace(ctx, storage.WorkspaceID, actor)
 	if err != nil {
 		return nil, err
 	}
@@ -271,10 +270,10 @@ func (s *StorageService) GetStorage(
 
 func (s *StorageService) GetStorages(
 	ctx context.Context,
-	user *users_models.User,
+	actor users.Actor,
 	workspaceID uuid.UUID,
 ) ([]*Storage, error) {
-	canView, _, err := s.workspaceService.CanUserAccessWorkspace(ctx, workspaceID, user)
+	canView, _, err := s.workspaceService.CanUserAccessWorkspace(ctx, workspaceID, actor)
 	if err != nil {
 		return nil, err
 	}
@@ -296,7 +295,7 @@ func (s *StorageService) GetStorages(
 
 func (s *StorageService) TestStorageConnection(
 	ctx context.Context,
-	user *users_models.User,
+	actor users.Actor,
 	storageID uuid.UUID,
 ) error {
 	storage, err := s.storageRepository.FindByID(ctx, storageID)
@@ -304,7 +303,7 @@ func (s *StorageService) TestStorageConnection(
 		return err
 	}
 
-	canView, _, err := s.workspaceService.CanUserAccessWorkspace(ctx, storage.WorkspaceID, user)
+	canView, _, err := s.workspaceService.CanUserAccessWorkspace(ctx, storage.WorkspaceID, actor)
 	if err != nil {
 		return err
 	}
@@ -330,10 +329,10 @@ func (s *StorageService) TestStorageConnection(
 
 func (s *StorageService) TestStorageConnectionDirect(
 	ctx context.Context,
-	user *users_models.User,
+	actor users.Actor,
 	storage *Storage,
 ) error {
-	if storage.Type == StorageTypeRclone && user.Role != users_enums.UserRoleAdmin {
+	if storage.Type == StorageTypeRclone && actor.Role != users.RoleAdmin {
 		return ErrRcloneStorageRequiresAdmin
 	}
 
@@ -376,7 +375,7 @@ func (s *StorageService) GetAllStorages() ([]*Storage, error) {
 
 func (s *StorageService) TransferStorageToWorkspace(
 	ctx context.Context,
-	user *users_models.User,
+	actor users.Actor,
 	storageID uuid.UUID,
 	targetWorkspaceID uuid.UUID,
 	transferingWithDbID *uuid.UUID,
@@ -386,7 +385,7 @@ func (s *StorageService) TransferStorageToWorkspace(
 		return err
 	}
 
-	canManageSource, err := s.workspaceService.CanUserManageDBs(ctx, existingStorage.WorkspaceID, user)
+	canManageSource, err := s.workspaceService.CanUserManageDBs(ctx, existingStorage.WorkspaceID, actor)
 	if err != nil {
 		return err
 	}
@@ -394,7 +393,7 @@ func (s *StorageService) TransferStorageToWorkspace(
 		return ErrInsufficientPermissionsInSourceWorkspace
 	}
 
-	canManageTarget, err := s.workspaceService.CanUserManageDBs(ctx, targetWorkspaceID, user)
+	canManageTarget, err := s.workspaceService.CanUserManageDBs(ctx, targetWorkspaceID, actor)
 	if err != nil {
 		return err
 	}
@@ -441,7 +440,7 @@ func (s *StorageService) TransferStorageToWorkspace(
 			existingStorage.Name,
 			targetWorkspace.Name,
 		),
-		UserID:      &user.ID,
+		UserID:      &actor.UserID,
 		WorkspaceID: &sourceWorkspaceID,
 	})
 
@@ -451,7 +450,7 @@ func (s *StorageService) TransferStorageToWorkspace(
 			existingStorage.Name,
 			sourceWorkspace.Name,
 		),
-		UserID:      &user.ID,
+		UserID:      &actor.UserID,
 		WorkspaceID: &targetWorkspaceID,
 	})
 
