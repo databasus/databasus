@@ -59,8 +59,7 @@ func Test_MakeRestore_WhenCacheMissed_RestoreFails(t *testing.T) {
 	caching.GetStore().Clear(t.Context())
 
 	user := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
-	router := CreateTestRouter()
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", user, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", user)
 	storage := storages.CreateTestStorage(workspace.ID)
 	notifier := notifiers.CreateTestNotifier(workspace.ID)
 	database := databases.CreateTestDatabase(workspace.ID, storage, notifier)
@@ -87,7 +86,7 @@ func Test_MakeRestore_WhenCacheMissed_RestoreFails(t *testing.T) {
 		time.Sleep(50 * time.Millisecond)
 		notifiers.RemoveTestNotifier(notifier)
 		storages.RemoveTestStorage(t.Context(), storage.ID)
-		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
 		caching.GetStore().Clear(t.Context())
 	}()
@@ -123,8 +122,7 @@ func Test_MakeRestore_WhenTaskStarts_CacheDeletedImmediately(t *testing.T) {
 	caching.GetStore().Clear(t.Context())
 
 	user := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
-	router := CreateTestRouter()
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", user, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", user)
 	storage := storages.CreateTestStorage(workspace.ID)
 	notifier := notifiers.CreateTestNotifier(workspace.ID)
 	database := databases.CreateTestDatabase(workspace.ID, storage, notifier)
@@ -155,7 +153,7 @@ func Test_MakeRestore_WhenTaskStarts_CacheDeletedImmediately(t *testing.T) {
 		time.Sleep(50 * time.Millisecond)
 		notifiers.RemoveTestNotifier(notifier)
 		storages.RemoveTestStorage(t.Context(), storage.ID)
-		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
 		caching.GetStore().Clear(t.Context())
 	}()
@@ -315,8 +313,7 @@ func createRestoreWithConfigStorage(t *testing.T, configStorage configStorageCho
 	t.Helper()
 
 	user := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
-	router := CreateTestRouter()
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", user, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", user)
 	backupStorage := storages.CreateTestStorage(workspace.ID)
 	notifier := notifiers.CreateTestNotifier(workspace.ID)
 	database := databases.CreateTestDatabase(workspace.ID, backupStorage, notifier)
@@ -349,7 +346,7 @@ func createRestoreWithConfigStorage(t *testing.T, configStorage configStorageCho
 		if otherStorage != nil {
 			storages.RemoveTestStorage(t.Context(), otherStorage.ID)
 		}
-		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	})
 
 	return restoreTestFixture{

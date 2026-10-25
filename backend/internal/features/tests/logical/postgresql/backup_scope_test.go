@@ -48,7 +48,7 @@ func backupAndRestoreWithScope(
 
 	router := logicaltesting.CreateTestRouter()
 	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Backup Scope Workspace", user, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Backup Scope Workspace", user)
 	storage := storages.CreateTestStorage(workspace.ID)
 
 	database := createDatabaseViaAPI(
@@ -64,7 +64,7 @@ func backupAndRestoreWithScope(
 			"Bearer "+user.Token, http.StatusNoContent,
 		)
 		storages.RemoveTestStorage(context.Background(), storage.ID)
-		workspaces_testing.RemoveTestWorkspace(context.Background(), workspace, router)
+		workspaces_testing.RemoveTestWorkspace(context.Background(), workspace)
 	})
 
 	database.PostgresqlLogical.IncludeSchemas = settings.IncludeSchemas

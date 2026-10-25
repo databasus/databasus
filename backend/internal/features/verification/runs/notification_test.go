@@ -114,8 +114,8 @@ func enableFailureNotificationsViaAPI(
 func Test_SubmitReport_WhenBackupRejected_SendsFailureNotification(t *testing.T) {
 	router := createTestRouter()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner, router)
-	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner)
+	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
 	testStorage := storages.CreateTestStorage(workspace.ID)
 	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
@@ -172,8 +172,8 @@ func Test_SubmitReport_WhenBackupRejected_SendsFailureNotification(t *testing.T)
 func Test_SubmitReport_WhenRestoredTooSmall_SendsFailureNotification(t *testing.T) {
 	router := createTestRouter()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner, router)
-	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner)
+	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
 	testStorage := storages.CreateTestStorage(workspace.ID)
 	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
@@ -223,8 +223,8 @@ func Test_SubmitReport_WhenRestoredTooSmall_SendsFailureNotification(t *testing.
 func Test_SubmitReport_WhenAgentSetupFailedRepeatedly_SendsFailureNotificationOnlyAtTerminal(t *testing.T) {
 	router := createTestRouter()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner, router)
-	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner)
+	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
 	testStorage := storages.CreateTestStorage(workspace.ID)
 	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
@@ -288,8 +288,8 @@ func Test_ReapStaleRuns_WhenAgentLostContact_SendsFailureNotificationOnlyAtTermi
 
 	router := createTestRouter()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner, router)
-	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner)
+	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
 	testStorage := storages.CreateTestStorage(workspace.ID)
 	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
@@ -348,8 +348,8 @@ func Test_ReapStaleRuns_WhenAgentLostContact_SendsFailureNotificationOnlyAtTermi
 func Test_SubmitReport_WhenFailureNotificationsDisabled_DoesNotSend(t *testing.T) {
 	router := createTestRouter()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner, router)
-	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner)
+	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
 	testStorage := storages.CreateTestStorage(workspace.ID)
 	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)

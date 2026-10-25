@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 
 import { storageApi } from '../../../entity/storages';
 import type { Storage } from '../../../entity/storages';
-import type { WorkspaceResponse } from '../../../entity/workspaces';
+import type { Workspace } from '../../../entity/workspaces';
 import { useIsMobile } from '../../../shared/hooks';
 import { translateApiError } from '../../../shared/i18n';
 import { EditStorageComponent } from './edit/EditStorageComponent';
@@ -13,7 +13,7 @@ import { StorageComponent } from './StorageComponent';
 
 interface Props {
   contentHeight: number;
-  workspace: WorkspaceResponse;
+  workspace: Workspace;
   isCanManageStorages: boolean;
 }
 

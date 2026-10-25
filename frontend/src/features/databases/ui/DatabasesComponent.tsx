@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 
 import { databaseApi } from '../../../entity/databases';
 import type { Database } from '../../../entity/databases';
-import type { WorkspaceResponse } from '../../../entity/workspaces';
+import type { Workspace } from '../../../entity/workspaces';
 import { useIsMobile } from '../../../shared/hooks';
 import { translateApiError } from '../../../shared/i18n';
 import { CreateDatabaseComponent } from './CreateDatabaseComponent';
@@ -13,7 +13,7 @@ import { DatabaseComponent } from './DatabaseComponent';
 
 interface Props {
   contentHeight: number;
-  workspace: WorkspaceResponse;
+  workspace: Workspace;
   isCanManageDBs: boolean;
 }
 

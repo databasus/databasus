@@ -12,7 +12,6 @@ import (
 	"databasus-backend/internal/features/databases"
 	"databasus-backend/internal/features/intervals"
 	users_testing "databasus-backend/internal/features/users/testing"
-	workspaces_controllers "databasus-backend/internal/features/workspaces/controllers"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/modules/workspaces"
@@ -21,8 +20,6 @@ import (
 
 func createTestRouter() *gin.Engine {
 	return workspaces_testing.CreateTestRouter(
-		workspaces_controllers.GetWorkspaceController(),
-		workspaces_controllers.GetMembershipController(),
 		databases.GetDatabaseController(),
 		GetVerificationConfigController(),
 	)
@@ -79,7 +76,7 @@ func createTestDatabaseViaAPI(
 func Test_GetByDatabaseID_WhenNoRowExists_LazyCreatesDisabledDefault(t *testing.T) {
 	router := createTestRouter()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
 	database := createTestDatabaseViaAPI("Test Database", workspace.ID, owner.Token, router)
 
 	var response BackupVerificationConfig
@@ -107,13 +104,13 @@ func Test_GetByDatabaseID_WhenNoRowExists_LazyCreatesDisabledDefault(t *testing.
 	)
 
 	databases.RemoveTestDatabase(t.Context(), database)
-	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 }
 
 func Test_GetByDatabaseID_WhenUserNotInWorkspace_ReturnsError(t *testing.T) {
 	router := createTestRouter()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
 	database := createTestDatabaseViaAPI("Test Database", workspace.ID, owner.Token, router)
 
 	nonMember := users_testing.CreateTestUser(t.Context(), users.RoleMember)
@@ -128,13 +125,13 @@ func Test_GetByDatabaseID_WhenUserNotInWorkspace_ReturnsError(t *testing.T) {
 	assert.Contains(t, string(resp.Body), "insufficient permissions")
 
 	databases.RemoveTestDatabase(t.Context(), database)
-	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 }
 
 func Test_Save_AsOwner_PersistsAndReturns(t *testing.T) {
 	router := createTestRouter()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
 	database := createTestDatabaseViaAPI("Test Database", workspace.ID, owner.Token, router)
 
 	request := newEnabledRequest()
@@ -184,23 +181,20 @@ func Test_Save_AsOwner_PersistsAndReturns(t *testing.T) {
 	)
 
 	databases.RemoveTestDatabase(t.Context(), database)
-	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 }
 
 func Test_Save_AsViewer_RejectedWithPermissionError(t *testing.T) {
 	router := createTestRouter()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
 	database := createTestDatabaseViaAPI("Test Database", workspace.ID, owner.Token, router)
 
 	viewer := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspaces_testing.AddMemberToWorkspace(
 		workspace,
 		viewer,
-		workspaces.RoleViewer,
-		owner.Token,
-		router,
-	)
+		workspaces.RoleViewer)
 
 	resp := test_utils.MakePutRequest(
 		t,
@@ -213,13 +207,13 @@ func Test_Save_AsViewer_RejectedWithPermissionError(t *testing.T) {
 	assert.Contains(t, string(resp.Body), "insufficient permissions")
 
 	databases.RemoveTestDatabase(t.Context(), database)
-	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 }
 
 func Test_Save_WhenEnabled_WithInvalidInterval_ReturnsValidationError(t *testing.T) {
 	router := createTestRouter()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
 	database := createTestDatabaseViaAPI("Test Database", workspace.ID, owner.Token, router)
 
 	request := newEnabledRequest()
@@ -238,13 +232,13 @@ func Test_Save_WhenEnabled_WithInvalidInterval_ReturnsValidationError(t *testing
 	assert.Contains(t, string(resp.Body), "cron expression")
 
 	databases.RemoveTestDatabase(t.Context(), database)
-	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 }
 
 func Test_Save_WithInvalidNotificationType_ReturnsValidationError(t *testing.T) {
 	router := createTestRouter()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
 	database := createTestDatabaseViaAPI("Test Database", workspace.ID, owner.Token, router)
 
 	request := newEnabledRequest()
@@ -263,13 +257,13 @@ func Test_Save_WithInvalidNotificationType_ReturnsValidationError(t *testing.T) 
 	assert.Contains(t, string(resp.Body), "invalid verification notification type")
 
 	databases.RemoveTestDatabase(t.Context(), database)
-	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 }
 
 func Test_Save_WhenScheduleTypeAfterBackup_SkipsIntervalValidationAndPersists(t *testing.T) {
 	router := createTestRouter()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
 	database := createTestDatabaseViaAPI("Test Database", workspace.ID, owner.Token, router)
 
 	request := SaveBackupVerificationConfigDTO{
@@ -306,13 +300,13 @@ func Test_Save_WhenScheduleTypeAfterBackup_SkipsIntervalValidationAndPersists(t 
 	assert.Equal(t, VerificationScheduleAfterBackup, fetched.ScheduleType)
 
 	databases.RemoveTestDatabase(t.Context(), database)
-	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 }
 
 func Test_Save_WhenScheduleTypeInvalid_ReturnsValidationError(t *testing.T) {
 	router := createTestRouter()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
 	database := createTestDatabaseViaAPI("Test Database", workspace.ID, owner.Token, router)
 
 	request := newEnabledRequest()
@@ -329,13 +323,13 @@ func Test_Save_WhenScheduleTypeInvalid_ReturnsValidationError(t *testing.T) {
 	assert.Contains(t, string(resp.Body), "invalid verification schedule type")
 
 	databases.RemoveTestDatabase(t.Context(), database)
-	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 }
 
 func Test_OnDatabaseCopied_CopiesConfigOntoNewDatabase(t *testing.T) {
 	router := createTestRouter()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
 	source := createTestDatabaseViaAPI("Source Database", workspace.ID, owner.Token, router)
 	target := createTestDatabaseViaAPI("Target Database", workspace.ID, owner.Token, router)
 
@@ -374,5 +368,5 @@ func Test_OnDatabaseCopied_CopiesConfigOntoNewDatabase(t *testing.T) {
 
 	databases.RemoveTestDatabase(t.Context(), source)
 	databases.RemoveTestDatabase(t.Context(), target)
-	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 }

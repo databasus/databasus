@@ -81,6 +81,10 @@ func (m *Module) GetUser(ctx context.Context, userID uuid.UUID) (identity.User, 
 	return m.directory.GetUser(ctx, userID)
 }
 
+func (m *Module) GetUsers(ctx context.Context, userIDs []uuid.UUID) ([]identity.User, error) {
+	return m.directory.GetUsers(ctx, userIDs)
+}
+
 func (m *Module) GetUserByEmail(ctx context.Context, email string) (identity.User, bool, error) {
 	return m.directory.GetUserByEmail(ctx, email)
 }

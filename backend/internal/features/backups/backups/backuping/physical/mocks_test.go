@@ -7,7 +7,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 
-	backuping_logical "databasus-backend/internal/features/backups/backups/backuping/logical"
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	physical_testing "databasus-backend/internal/features/backups/backups/core/physical/testing"
 	postgresql_executor "databasus-backend/internal/features/backups/backups/usecases/physical/postgresql"
@@ -18,7 +17,6 @@ import (
 	notifier_models "databasus-backend/internal/features/notifiers/models"
 	"databasus-backend/internal/features/storages"
 	users_testing "databasus-backend/internal/features/users/testing"
-	workspaces_models "databasus-backend/internal/features/workspaces/models"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
 	"databasus-backend/internal/modules/users"
 )
@@ -83,7 +81,7 @@ func (s *recordingNotificationSender) SendNotification(
 // config pointing at that storage. Tests seed their own backup rows against
 // DB.ID / Storage.ID.
 type backupPrereqs struct {
-	Workspace *workspaces_models.Workspace
+	Workspace *workspaces_testing.TestWorkspace
 	Storage   *storages.Storage
 	Notifier  *notifiers.Notifier
 	DB        *databases.Database
@@ -111,12 +109,10 @@ func seedBackupPrereqsWithDatabase(
 ) *backupPrereqs {
 	t.Helper()
 
-	router := backuping_logical.CreateTestRouter()
-
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner, router)
-	t.Cleanup(func() { workspaces_testing.RemoveTestWorkspace(context.Background(), workspace, router) })
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner)
+	t.Cleanup(func() { workspaces_testing.RemoveTestWorkspace(context.Background(), workspace) })
 
 	testStorage := storages.CreateTestStorage(workspace.ID)
 	t.Cleanup(func() { storages.RemoveTestStorage(t.Context(), testStorage.ID) })

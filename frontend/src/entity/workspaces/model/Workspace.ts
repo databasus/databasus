@@ -1,5 +1,3 @@
-export interface Workspace {
-  id: string;
-  name: string;
-  createdAt: Date;
-}
+import type { ApiComponents } from '../../../shared/api';
+
+export type Workspace = ApiComponents['schemas']['Workspace'];

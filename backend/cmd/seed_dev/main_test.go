@@ -27,15 +27,12 @@ import (
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
 	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
 	"databasus-backend/internal/features/databases"
-	"databasus-backend/internal/features/notifiers"
 	"databasus-backend/internal/features/storages"
 	local_storage "databasus-backend/internal/features/storages/models/local"
 	system_healthcheck "databasus-backend/internal/features/system/healthcheck"
 	users_bridge "databasus-backend/internal/features/users"
 	users_testing "databasus-backend/internal/features/users/testing"
-	workspaces_controllers "databasus-backend/internal/features/workspaces/controllers"
-	workspaces_dto "databasus-backend/internal/features/workspaces/dto"
-	workspaces_errors "databasus-backend/internal/features/workspaces/errors"
+	workspaces_bridge "databasus-backend/internal/features/workspaces"
 	"databasus-backend/internal/lib/apiclient"
 	"databasus-backend/internal/lib/apierror"
 	"databasus-backend/internal/lib/httpserver"
@@ -231,19 +228,19 @@ func Test_Seed_WhenMemberMayNotCreateWorkspaces_FailsNamingWorkspace(t *testing.
 	token := session.Token
 	require.Equal(t, apiclient.UserRoleMEMBER, getProfile(t, router, session.UserId, session.Token).Role)
 
-	var existingWorkspace workspaces_dto.WorkspaceResponseDTO
+	var existingWorkspace apiclient.Workspace
 	test_utils.MakePostRequestAndUnmarshal(t, router, "/api/v1/workspaces", "Bearer "+token,
-		workspaces_dto.CreateWorkspaceRequestDTO{Name: "Existing"}, http.StatusOK, &existingWorkspace)
+		apiclient.WorkspaceCreate{Name: "Existing"}, http.StatusCreated, &existingWorkspace)
 
 	test_utils.MakePostRequest(t, router, "/api/v1/storages", "Bearer "+token, storages.Storage{
-		WorkspaceID:  existingWorkspace.ID,
+		WorkspaceID:  existingWorkspace.Id,
 		Type:         storages.StorageTypeLocal,
 		Name:         "Existing storage",
 		LocalStorage: &local_storage.LocalStorage{},
 	}, http.StatusOK)
 
 	workspacesBefore := listWorkspaces(t, router, token)
-	storagesBefore := listStorages(t, router, token, existingWorkspace.ID)
+	storagesBefore := listStorages(t, router, token, existingWorkspace.Id)
 
 	users_testing.DisableMemberWorkspaceCreation(t.Context())
 	t.Cleanup(func() { users_testing.ResetSettingsToDefaults(context.Background()) })
@@ -252,10 +249,10 @@ func Test_Seed_WhenMemberMayNotCreateWorkspaces_FailsNamingWorkspace(t *testing.
 
 	assert.Equal(t, 1, exitCode)
 	assert.Contains(t, output, params.WorkspaceName)
-	assert.Contains(t, output, workspaces_errors.ErrInsufficientPermissionsToCreateWorkspaces.Error())
+	assert.Contains(t, output, "the instance does not allow this user to create workspaces")
 
 	assert.Equal(t, workspacesBefore, listWorkspaces(t, router, token))
-	assert.Equal(t, storagesBefore, listStorages(t, router, token, existingWorkspace.ID))
+	assert.Equal(t, storagesBefore, listStorages(t, router, token, existingWorkspace.Id))
 	assert.Equal(t, uuid.Nil, findWorkspaceID(t, router, token, params.WorkspaceName))
 }
 
@@ -338,17 +335,19 @@ func newSeedTestRouter() *gin.Engine {
 
 	usersModule := users_bridge.NewModuleWithoutApp(acceptingMailer{})
 	users_bridge.Install(usersModule)
-	usersModule.RegisterRoutes(
-		router.Group("/api/v1", contractGuard, usersModule.GetAccessMiddleware()),
-		apierror.NewHooks(apierror.Deps{Logger: logger.GetLogger()}),
-	)
+	workspacesModule := workspaces_bridge.NewModuleWithoutApp(usersModule)
+	workspaces_bridge.Install(workspacesModule)
+
+	contractRoutes := router.Group("/api/v1", contractGuard, usersModule.GetAccessMiddleware())
+	errorHooks := apierror.NewHooks(apierror.Deps{Logger: logger.GetLogger()})
+	usersModule.RegisterRoutes(contractRoutes, errorHooks)
+	workspacesModule.RegisterRoutes(contractRoutes, errorHooks)
 
 	system_healthcheck.GetHealthcheckController().RegisterRoutes(v1)
 
 	protected := v1.Group("")
 	protected.Use(users_testing.GetSessionMiddleware())
 
-	workspaces_controllers.GetWorkspaceController().RegisterRoutes(protected)
 	storages.GetStorageController().RegisterRoutes(protected)
 	databases.GetDatabaseController().RegisterRoutes(protected)
 	backups_config_logical.GetBackupConfigController().RegisterRoutes(protected)
@@ -358,8 +357,6 @@ func newSeedTestRouter() *gin.Engine {
 
 	databases.SetupDependencies()
 	backups_services.SetupDependencies()
-	notifiers.SetupDependencies()
-	storages.SetupDependencies()
 	backups_config_logical.SetupDependencies()
 	backups_config_physical.SetupDependencies()
 	backuping_physical.SetupDependencies()
@@ -458,14 +455,14 @@ func getProfile(t *testing.T, router *gin.Engine, userID uuid.UUID, token string
 	return profile
 }
 
-func listWorkspaces(t *testing.T, router *gin.Engine, token string) []workspaces_dto.WorkspaceResponseDTO {
+func listWorkspaces(t *testing.T, router *gin.Engine, token string) []apiclient.Workspace {
 	t.Helper()
 
-	var listedWorkspaces workspaces_dto.ListWorkspacesResponseDTO
-	test_utils.MakeGetRequestAndUnmarshal(t, router, "/api/v1/workspaces", "Bearer "+token,
+	var listedWorkspaces apiclient.WorkspacePage
+	test_utils.MakeGetRequestAndUnmarshal(t, router, "/api/v1/workspaces?limit=100", "Bearer "+token,
 		http.StatusOK, &listedWorkspaces)
 
-	return listedWorkspaces.Workspaces
+	return listedWorkspaces.Items
 }
 
 func findWorkspaceID(t *testing.T, router *gin.Engine, token, name string) uuid.UUID {
@@ -473,7 +470,7 @@ func findWorkspaceID(t *testing.T, router *gin.Engine, token, name string) uuid.
 
 	for _, workspace := range listWorkspaces(t, router, token) {
 		if workspace.Name == name {
-			return workspace.ID
+			return workspace.Id
 		}
 	}
 
@@ -530,13 +527,13 @@ func listSeededItems(t *testing.T, router *gin.Engine, token string) seededItems
 	var items seededItems
 
 	for _, workspace := range listWorkspaces(t, router, token) {
-		items.workspaceIDs = append(items.workspaceIDs, workspace.ID)
+		items.workspaceIDs = append(items.workspaceIDs, workspace.Id)
 
-		for _, storage := range listStorages(t, router, token, workspace.ID) {
+		for _, storage := range listStorages(t, router, token, workspace.Id) {
 			items.storageIDs = append(items.storageIDs, storage.ID)
 		}
 
-		for _, database := range listDatabases(t, router, token, workspace.ID) {
+		for _, database := range listDatabases(t, router, token, workspace.Id) {
 			items.databaseIDs = append(items.databaseIDs, database.ID)
 		}
 	}
@@ -584,7 +581,7 @@ func removeAccountWithItems(t *testing.T, router *gin.Engine, email string) {
 		}
 
 		test_utils.MakeDeleteRequest(t, router, "/api/v1/workspaces/"+workspaceID.String(),
-			"Bearer "+token, http.StatusOK)
+			"Bearer "+token, http.StatusNoContent)
 	}
 
 	users_testing.DeleteTestUser(ctx, userID)

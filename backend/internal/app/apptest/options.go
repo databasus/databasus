@@ -8,6 +8,7 @@ type settings struct {
 	isTurnstileEnabled  bool
 	isGitHubEnabled     bool
 	isGoogleEnabled     bool
+	publicURL           string
 }
 
 // WithoutMailServer builds an instance whose operator configured no mail server.
@@ -36,5 +37,13 @@ func WithGitHub() Option {
 func WithGoogle() Option {
 	return func(applied *settings) {
 		applied.isGoogleEnabled = true
+	}
+}
+
+// WithPublicURL builds an instance whose operator configured the public address that email links
+// point to.
+func WithPublicURL(publicURL string) Option {
+	return func(applied *settings) {
+		applied.publicURL = publicURL
 	}
 }

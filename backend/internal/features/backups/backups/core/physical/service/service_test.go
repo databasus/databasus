@@ -20,7 +20,6 @@ import (
 	"databasus-backend/internal/features/storages"
 	storage_files "databasus-backend/internal/features/storages/files"
 	users_testing "databasus-backend/internal/features/users/testing"
-	workspaces_controllers "databasus-backend/internal/features/workspaces/controllers"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/storage"
@@ -44,13 +43,8 @@ type serviceTestPrereqs struct {
 func createServiceTestPrereqs(t *testing.T) *serviceTestPrereqs {
 	t.Helper()
 
-	router := workspaces_testing.CreateTestRouter(
-		workspaces_controllers.GetWorkspaceController(),
-		workspaces_controllers.GetMembershipController(),
-		databases.GetDatabaseController(),
-	)
 	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Phys Service "+uuid.NewString(), user, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Phys Service "+uuid.NewString(), user)
 	storage := storages.CreateTestStorage(workspace.ID)
 	notifier := notifiers.CreateTestNotifier(workspace.ID)
 	database := databases.CreateTestPhysicalPostgresDatabase(workspace.ID, notifier, "17")

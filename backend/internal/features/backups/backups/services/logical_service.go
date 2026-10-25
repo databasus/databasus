@@ -24,7 +24,7 @@ import (
 	"databasus-backend/internal/features/notifiers"
 	"databasus-backend/internal/features/storages"
 	task_cancellation "databasus-backend/internal/features/tasks/cancellation"
-	workspaces_services "databasus-backend/internal/features/workspaces/services"
+	workspaces_bridge "databasus-backend/internal/features/workspaces"
 	"databasus-backend/internal/lib/crypto"
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/modules/workspaces"
@@ -46,7 +46,7 @@ type LogicalBackupService struct {
 
 	logger *slog.Logger
 
-	workspaceService          *workspaces_services.WorkspaceService
+	workspaceService          *workspaces_bridge.Access
 	auditLogService           *audit_logs.AuditLogService
 	taskCancellationRequester *task_cancellation.Requester
 	downloadTokenService      *download_token.Service

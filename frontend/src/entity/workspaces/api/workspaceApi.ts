@@ -1,46 +1,67 @@
 import { getApplicationServer } from '../../../constants';
+import { getApiClient, requireData, requireSuccess } from '../../../shared/api';
 import { apiHelper } from '../../../shared/api/apiHelper';
 import RequestOptions from '../../../shared/api/RequestOptions';
 import type { GetAuditLogsResponse } from '../../audit-logs/model/GetAuditLogsResponse';
-import type { CreateWorkspaceRequest } from '../model/CreateWorkspaceRequest';
-import type { ListWorkspacesResponse } from '../model/ListWorkspacesResponse';
 import type { Workspace } from '../model/Workspace';
-import type { WorkspaceResponse } from '../model/WorkspaceResponse';
+
+// The largest page the contract serves, so a team's workspaces arrive in as few requests as possible.
+const WORKSPACE_PAGE_LIMIT = 100;
 
 export const workspaceApi = {
-  async createWorkspace(request: CreateWorkspaceRequest): Promise<WorkspaceResponse> {
-    const requestOptions: RequestOptions = new RequestOptions();
-    requestOptions.setBody(JSON.stringify(request));
-    return apiHelper.fetchPostJson(`${getApplicationServer()}/api/v1/workspaces`, requestOptions);
+  // The workspace selector and the transfer dialogs need every workspace, so this follows the
+  // cursor to the last page.
+  async listAllWorkspaces(): Promise<Workspace[]> {
+    const workspaces: Workspace[] = [];
+    let after: string | undefined;
+
+    do {
+      const page = requireData(
+        await getApiClient().GET('/workspaces', {
+          params: { query: { limit: WORKSPACE_PAGE_LIMIT, after } },
+        }),
+      );
+
+      workspaces.push(...page.items);
+      after = page.nextCursor;
+    } while (after !== undefined);
+
+    return workspaces;
   },
 
-  async getWorkspaces(): Promise<ListWorkspacesResponse> {
-    const requestOptions: RequestOptions = new RequestOptions();
-    return apiHelper.fetchGetJson(`${getApplicationServer()}/api/v1/workspaces`, requestOptions);
+  async createWorkspace(name: string): Promise<Workspace> {
+    return requireData(await getApiClient().POST('/workspaces', { body: { name } }));
   },
 
   async getWorkspace(workspaceId: string): Promise<Workspace> {
-    const requestOptions: RequestOptions = new RequestOptions();
-    return apiHelper.fetchGetJson(
-      `${getApplicationServer()}/api/v1/workspaces/${workspaceId}`,
-      requestOptions,
+    return requireData(
+      await getApiClient().GET('/workspaces/{workspaceId}', { params: { path: { workspaceId } } }),
     );
   },
 
-  async updateWorkspace(workspaceId: string, workspace: Workspace): Promise<Workspace> {
-    const requestOptions: RequestOptions = new RequestOptions();
-    requestOptions.setBody(JSON.stringify(workspace));
-    return apiHelper.fetchPutJson(
-      `${getApplicationServer()}/api/v1/workspaces/${workspaceId}`,
-      requestOptions,
+  async updateWorkspace(workspaceId: string, name: string): Promise<Workspace> {
+    return requireData(
+      await getApiClient().PUT('/workspaces/{workspaceId}', {
+        params: { path: { workspaceId } },
+        body: { name },
+      }),
     );
   },
 
-  async deleteWorkspace(workspaceId: string): Promise<{ message: string }> {
-    const requestOptions: RequestOptions = new RequestOptions();
-    return apiHelper.fetchDeleteJson(
-      `${getApplicationServer()}/api/v1/workspaces/${workspaceId}`,
-      requestOptions,
+  async deleteWorkspace(workspaceId: string): Promise<void> {
+    requireSuccess(
+      await getApiClient().DELETE('/workspaces/{workspaceId}', {
+        params: { path: { workspaceId } },
+      }),
+    );
+  },
+
+  async transferOwnership(workspaceId: string, newOwnerMemberId: string): Promise<void> {
+    requireSuccess(
+      await getApiClient().POST('/workspaces/{workspaceId}/transfer-ownership', {
+        params: { path: { workspaceId } },
+        body: { newOwnerMemberId },
+      }),
     );
   },
 

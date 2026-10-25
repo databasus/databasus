@@ -43,8 +43,6 @@ import (
 	"databasus-backend/internal/features/storages"
 	storage_files "databasus-backend/internal/features/storages/files"
 	users_testing "databasus-backend/internal/features/users/testing"
-	workspaces_controllers "databasus-backend/internal/features/workspaces/controllers"
-	workspaces_models "databasus-backend/internal/features/workspaces/models"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/modules/workspaces"
@@ -59,7 +57,7 @@ const segmentBytes = 16 * 1024 * 1024
 
 type physicalControllerPrereqs struct {
 	user      *users_testing.TestUser
-	workspace *workspaces_models.Workspace
+	workspace *workspaces_testing.TestWorkspace
 	storage   *storages.Storage
 	notifier  *notifiers.Notifier
 	database  *databases.Database
@@ -83,7 +81,7 @@ func createPhysicalControllerPrereqsWithDatabase(
 
 	router := newPhysicalControllerRouter()
 	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Physical Ctrl "+uuid.NewString(), user, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Physical Ctrl "+uuid.NewString(), user)
 	storage := storages.CreateTestStorage(workspace.ID)
 	notifier := notifiers.CreateTestNotifier(workspace.ID)
 	database := createDatabase(workspace.ID, notifier)
@@ -118,16 +116,12 @@ func newPhysicalControllerRouter() *gin.Engine {
 
 	protected := v1.Group("").Use(users_testing.GetSessionMiddleware())
 	if routerGroup, ok := protected.(*gin.RouterGroup); ok {
-		workspaces_controllers.GetWorkspaceController().RegisterRoutes(routerGroup)
-		workspaces_controllers.GetMembershipController().RegisterRoutes(routerGroup)
 		databases.GetDatabaseController().RegisterRoutes(routerGroup)
 		backups_controllers_physical.GetPhysicalBackupController().RegisterRoutes(routerGroup)
 		backups_config_physical.GetBackupConfigController().RegisterRoutes(routerGroup)
 	}
 
-	storages.SetupDependencies()
 	databases.SetupDependencies()
-	notifiers.SetupDependencies()
 	backups_config_physical.SetupDependencies()
 	backuping_physical.SetupDependencies()
 
@@ -1321,7 +1315,7 @@ func runRolePermissionMatrix(
 
 	member := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspaces_testing.AddMemberToWorkspace(
-		prereqs.workspace, member, workspaces.RoleMember, prereqs.user.Token, prereqs.router)
+		prereqs.workspace, member, workspaces.RoleMember)
 
 	viewer := addWorkspaceViewer(t, prereqs)
 	nonMember := users_testing.CreateTestUser(t.Context(), users.RoleMember)
@@ -1361,7 +1355,7 @@ func addWorkspaceViewer(t *testing.T, prereqs *physicalControllerPrereqs) *users
 
 	viewer := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspaces_testing.AddMemberToWorkspace(
-		prereqs.workspace, viewer, workspaces.RoleViewer, prereqs.user.Token, prereqs.router)
+		prereqs.workspace, viewer, workspaces.RoleViewer)
 
 	return viewer
 }

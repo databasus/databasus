@@ -2,14 +2,14 @@ import { Button, Input } from 'antd';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { type WorkspaceResponse } from '../../entity/workspaces';
+import { type Workspace } from '../../entity/workspaces';
 import { useIsMobile } from '../../shared/hooks';
 
 interface Props {
-  workspaces: WorkspaceResponse[];
-  selectedWorkspace?: WorkspaceResponse;
+  workspaces: Workspace[];
+  selectedWorkspace?: Workspace;
   onCreateWorkspace: () => void;
-  onWorkspaceSelect: (workspace: WorkspaceResponse) => void;
+  onWorkspaceSelect: (workspace: Workspace) => void;
 }
 
 export const WorkspaceSelectionComponent = ({
@@ -30,7 +30,7 @@ export const WorkspaceSelectionComponent = ({
     return workspaces.filter((workspace) => workspace.name.toLowerCase().includes(searchTerm));
   }, [workspaces, searchValue]);
 
-  const openWorkspace = (workspace: WorkspaceResponse) => {
+  const openWorkspace = (workspace: Workspace) => {
     setIsDropdownOpen(false);
     setSearchValue('');
     onWorkspaceSelect?.(workspace);

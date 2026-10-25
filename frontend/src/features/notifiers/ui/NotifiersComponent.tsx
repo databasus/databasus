@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 
 import { notifierApi } from '../../../entity/notifiers';
 import type { Notifier } from '../../../entity/notifiers';
-import type { WorkspaceResponse } from '../../../entity/workspaces';
+import type { Workspace } from '../../../entity/workspaces';
 import { useIsMobile } from '../../../shared/hooks';
 import { translateApiError } from '../../../shared/i18n';
 import { EditNotifierComponent } from './edit/EditNotifierComponent';
@@ -13,7 +13,7 @@ import { NotifierComponent } from './NotifierComponent';
 
 interface Props {
   contentHeight: number;
-  workspace: WorkspaceResponse;
+  workspace: Workspace;
   isCanManageNotifiers: boolean;
 }
 

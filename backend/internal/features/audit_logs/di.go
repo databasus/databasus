@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	users_bridge "databasus-backend/internal/features/users"
+	workspaces_bridge "databasus-backend/internal/features/workspaces"
 	"databasus-backend/internal/util/logger"
 )
 
@@ -23,6 +24,7 @@ var (
 var getAuditLogController = sync.OnceValue(func() *AuditLogController {
 	return &AuditLogController{
 		getAuditLogService(),
+		workspaces_bridge.GetAccess(),
 	}
 })
 

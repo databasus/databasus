@@ -59,8 +59,8 @@ func enableHourlyVerificationViaAPI(
 func Test_CreateScheduledRuns_WhenMultipleBackupsExist_PicksLatestForVerification(t *testing.T) {
 	router := createTestRouter()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner, router)
-	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner)
+	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
 	testStorage := storages.CreateTestStorage(workspace.ID)
 	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
@@ -92,8 +92,8 @@ func Test_CreateScheduledRuns_WhenMultipleBackupsExist_PicksLatestForVerificatio
 func Test_CreateScheduledRuns_WhenScheduledPendingAlreadyExists_DoesNotInsertNewRun(t *testing.T) {
 	router := createTestRouter()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner, router)
-	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner)
+	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
 	testStorage := storages.CreateTestStorage(workspace.ID)
 	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
@@ -119,8 +119,8 @@ func Test_CreateScheduledRuns_WhenScheduledPendingAlreadyExists_DoesNotInsertNew
 func Test_CreateScheduledRuns_WhenManualPendingExists_StillCreatesScheduledRun(t *testing.T) {
 	router := createTestRouter()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner, router)
-	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner)
+	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
 	testStorage := storages.CreateTestStorage(workspace.ID)
 	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
@@ -163,8 +163,8 @@ func Test_ReapStaleRuns_WhenPendingExceedsMaxDuration_MarksFailedWithoutRetry(t 
 
 	router := createTestRouter()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner, router)
-	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner)
+	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
 	testStorage := storages.CreateTestStorage(workspace.ID)
 	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
@@ -197,8 +197,8 @@ func Test_ReapStaleRuns_WhenOwningAgentRemoved_RequeuesThenRetiresIfUnclaimed(t 
 
 	router := createTestRouter()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner, router)
-	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner)
+	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
 	testStorage := storages.CreateTestStorage(workspace.ID)
 	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
@@ -259,8 +259,8 @@ func Test_ReapStaleRuns_WhenAgentLostContactWithRetriesRemaining_RequeuesVerific
 
 	router := createTestRouter()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner, router)
-	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner)
+	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
 	testStorage := storages.CreateTestStorage(workspace.ID)
 	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
@@ -307,8 +307,8 @@ func Test_ReapStaleRuns_WhenPendingExceedsMaxDuration_MarksTerminalRegardlessOfP
 
 	router := createTestRouter()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner, router)
-	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner)
+	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
 	testStorage := storages.CreateTestStorage(workspace.ID)
 	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
@@ -343,8 +343,8 @@ func Test_CancelAutomaticVerificationsForDisabledSchedules_WhenScheduledVerifica
 ) {
 	router := createTestRouter()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner, router)
-	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner)
+	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
 	testStorage := storages.CreateTestStorage(workspace.ID)
 	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
@@ -386,8 +386,8 @@ func Test_CancelAutomaticVerificationsForDisabledSchedules_WhenManualVerificatio
 ) {
 	router := createTestRouter()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner, router)
-	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner)
+	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
 	testStorage := storages.CreateTestStorage(workspace.ID)
 	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
@@ -423,8 +423,8 @@ func Test_CancelAutomaticVerificationsForDisabledSchedules_WhenManualVerificatio
 ) {
 	router := createTestRouter()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner, router)
-	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner)
+	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
 	testStorage := storages.CreateTestStorage(workspace.ID)
 	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
@@ -485,9 +485,9 @@ func Test_CancelAutomaticVerificationsForDisabledSchedules_WhenAutomaticVerifica
 			router := createTestRouter()
 			owner := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 			workspace := workspaces_testing.CreateTestWorkspace(
-				t.Context(), "ws "+uuid.New().String(), owner, router,
-			)
-			defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+				t.Context(), "ws "+uuid.New().String(), owner)
+
+			defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
 			testStorage := storages.CreateTestStorage(workspace.ID)
 			defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
@@ -564,8 +564,8 @@ func Test_CancelAutomaticVerificationsForDisabledSchedules_WhenManualAndAutomati
 ) {
 	router := createTestRouter()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner, router)
-	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner)
+	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
 	testStorage := storages.CreateTestStorage(workspace.ID)
 	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
@@ -623,8 +623,8 @@ func Test_CancelAutomaticVerificationsForDisabledSchedules_WhenManualAndAutomati
 func Test_CreateScheduledRuns_AfterUserCancel_DoesNotImmediatelyRecreate(t *testing.T) {
 	router := createTestRouter()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner, router)
-	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner)
+	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
 	testStorage := storages.CreateTestStorage(workspace.ID)
 	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
@@ -663,8 +663,8 @@ func Test_CreateScheduledRuns_AfterUserCancel_DoesNotImmediatelyRecreate(t *test
 func Test_CreateScheduledRuns_AfterUserCancel_DoesNotRequeueOrRestart(t *testing.T) {
 	router := createTestRouter()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner, router)
-	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner)
+	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
 	testStorage := storages.CreateTestStorage(workspace.ID)
 	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)

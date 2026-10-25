@@ -6,7 +6,7 @@ import (
 	"databasus-backend/internal/features/databases"
 	healthcheck_config "databasus-backend/internal/features/healthcheck/config"
 	"databasus-backend/internal/features/notifiers"
-	workspaces_services "databasus-backend/internal/features/workspaces/services"
+	workspaces_bridge "databasus-backend/internal/features/workspaces"
 	"databasus-backend/internal/util/logger"
 )
 
@@ -18,7 +18,7 @@ var (
 		return &HealthcheckAttemptService{
 			getHealthcheckAttemptRepository(),
 			databases.GetDatabaseService(),
-			workspaces_services.GetWorkspaceService(),
+			workspaces_bridge.GetAccess(),
 		}
 	})
 )

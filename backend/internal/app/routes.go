@@ -23,7 +23,6 @@ import (
 	verification_agents "databasus-backend/internal/features/verification/agents"
 	verification_config "databasus-backend/internal/features/verification/config"
 	verification_runs "databasus-backend/internal/features/verification/runs"
-	workspaces_controllers "databasus-backend/internal/features/workspaces/controllers"
 	"databasus-backend/internal/lib/apierror"
 	"databasus-backend/internal/lib/httpserver"
 )
@@ -40,6 +39,7 @@ func (a *App) registerContractRoutes(router *gin.Engine) error {
 	errorHooks := apierror.NewHooks(apierror.Deps{Logger: a.logger})
 
 	a.usersModule.RegisterRoutes(contractRoutes, errorHooks)
+	a.workspacesModule.RegisterRoutes(contractRoutes, errorHooks)
 
 	systemHandler := systemhttpapi.NewHandler(systemhttpapi.Deps{Version: system_version.GetAppVersion()})
 	systemhttpapi.RegisterHandlersWithOptions(
@@ -70,8 +70,6 @@ func (a *App) registerRoutes(router *gin.Engine) {
 	protected := v1.Group("")
 	protected.Use(a.usersModule.GetSessionMiddleware())
 
-	workspaces_controllers.GetWorkspaceController().RegisterRoutes(protected)
-	workspaces_controllers.GetMembershipController().RegisterRoutes(protected)
 	disk.GetDiskController().RegisterRoutes(protected)
 	notifiers.GetNotifierController().RegisterRoutes(protected)
 	storages.GetStorageController().RegisterRoutes(protected)

@@ -14,6 +14,7 @@ import (
 	"databasus-backend/internal/features/telemetry"
 	verification_config "databasus-backend/internal/features/verification/config"
 	verification_runs "databasus-backend/internal/features/verification/runs"
+	"databasus-backend/internal/modules/workspaces"
 )
 
 // setUpDependencies registers the listeners between the old features. The server and the console
@@ -23,8 +24,6 @@ func setUpDependencies() {
 	backups_services.SetupDependencies()
 	restores.SetupDependencies()
 	healthcheck_config.SetupDependencies()
-	notifiers.SetupDependencies()
-	storages.SetupDependencies()
 	backups_config_logical.SetupDependencies()
 	backups_config_physical.SetupDependencies()
 	backuping_physical.SetupDependencies()
@@ -32,4 +31,13 @@ func setUpDependencies() {
 	verification_runs.SetupDependencies()
 	task_cancellation.SetupDependencies()
 	telemetry.SetupDependencies()
+}
+
+// subscribeToWorkspaceDeleting sets the order in which a workspace deletion runs its handlers:
+// the databases refuse a workspace that still has some before the notifiers and the storages are
+// deleted.
+func subscribeToWorkspaceDeleting(workspacesModule workspaces.Module) {
+	workspacesModule.SubscribeToWorkspaceDeleting(databases.GetDatabaseService().OnWorkspaceDeleting)
+	workspacesModule.SubscribeToWorkspaceDeleting(notifiers.GetNotifierService().OnWorkspaceDeleting)
+	workspacesModule.SubscribeToWorkspaceDeleting(storages.GetStorageService().OnWorkspaceDeleting)
 }

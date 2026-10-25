@@ -12,7 +12,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	users_testing "databasus-backend/internal/features/users/testing"
-	workspaces_controllers "databasus-backend/internal/features/workspaces/controllers"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/storage"
@@ -28,8 +27,6 @@ func createTestRouter() *gin.Engine {
 
 	if routerGroup, ok := protected.(*gin.RouterGroup); ok {
 		GetAgentController().RegisterRoutes(routerGroup)
-		workspaces_controllers.GetWorkspaceController().RegisterRoutes(routerGroup)
-		workspaces_controllers.GetMembershipController().RegisterRoutes(routerGroup)
 	}
 
 	GetAgentFacingController().RegisterRoutes(v1)
@@ -145,8 +142,8 @@ func Test_CreateAgent_WhenUserIsWorkspaceOwner_StillReturnsForbidden(t *testing.
 
 	router := createTestRouter()
 	member := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws-"+uuid.New().String(), member, router)
-	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws-"+uuid.New().String(), member)
+	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
 	test_utils.MakePostRequest(
 		t, router,

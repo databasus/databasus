@@ -49,8 +49,7 @@ import (
 	verification_agents "databasus-backend/internal/features/verification/agents"
 	verification_config "databasus-backend/internal/features/verification/config"
 	verification_runs "databasus-backend/internal/features/verification/runs"
-	workspaces_controllers "databasus-backend/internal/features/workspaces/controllers"
-	workspaces_services "databasus-backend/internal/features/workspaces/services"
+	workspaces_bridge "databasus-backend/internal/features/workspaces"
 	util_cloudflare_turnstile "databasus-backend/internal/util/cloudflare_turnstile"
 	util_encryption "databasus-backend/internal/util/encryption"
 )
@@ -320,22 +319,8 @@ func getOldCodeGetters() []oldCodeGetter {
 			"features/verification/runs.GetVerificationAgentController",
 			func() any { return verification_runs.GetVerificationAgentController() },
 		},
-		{
-			"features/workspaces/controllers.GetWorkspaceController",
-			func() any { return workspaces_controllers.GetWorkspaceController() },
-		},
-		{
-			"features/workspaces/controllers.GetMembershipController",
-			func() any { return workspaces_controllers.GetMembershipController() },
-		},
-		{
-			"features/workspaces/services.GetWorkspaceService",
-			func() any { return workspaces_services.GetWorkspaceService() },
-		},
-		{
-			"features/workspaces/services.GetMembershipService",
-			func() any { return workspaces_services.GetMembershipService() },
-		},
+		{"features/workspaces.GetModule", func() any { return workspaces_bridge.GetModule() }},
+		{"features/workspaces.GetAccess", func() any { return workspaces_bridge.GetAccess() }},
 		{
 			"util/cloudflare_turnstile.GetCloudflareTurnstileService",
 			func() any { return util_cloudflare_turnstile.GetCloudflareTurnstileService() },

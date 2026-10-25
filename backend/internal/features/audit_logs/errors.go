@@ -9,4 +9,7 @@ var (
 	ErrInsufficientPermissionsToViewLogs = errors.New(
 		"insufficient permissions to view user audit logs",
 	)
+	ErrInsufficientPermissionsToViewWorkspaceLogs = errors.New(
+		"insufficient permissions to view workspace audit logs",
+	)
 )

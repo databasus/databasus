@@ -21,7 +21,6 @@ import (
 	"databasus-backend/internal/features/restores/usecases"
 	"databasus-backend/internal/features/storages"
 	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
-	workspaces_controllers "databasus-backend/internal/features/workspaces/controllers"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
 	"databasus-backend/internal/lib/cache"
 	"databasus-backend/internal/util/encryption"
@@ -62,8 +61,6 @@ func (s failingRestoreMetadataStore) Clear(context.Context) error {
 
 func CreateTestRouter() *gin.Engine {
 	router := workspaces_testing.CreateTestRouter(
-		workspaces_controllers.GetWorkspaceController(),
-		workspaces_controllers.GetMembershipController(),
 		databases.GetDatabaseController(),
 		backups_config_logical.GetBackupConfigController(),
 	)

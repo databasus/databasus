@@ -10,7 +10,7 @@ import (
 	audit_logs "databasus-backend/internal/features/audit_logs"
 	audit_logs_models "databasus-backend/internal/features/audit_logs/models"
 	notifier_models "databasus-backend/internal/features/notifiers/models"
-	workspaces_services "databasus-backend/internal/features/workspaces/services"
+	workspaces_bridge "databasus-backend/internal/features/workspaces"
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/modules/workspaces"
 	"databasus-backend/internal/util/encryption"
@@ -19,7 +19,7 @@ import (
 type NotifierService struct {
 	notifierRepository      *NotifierRepository
 	logger                  *slog.Logger
-	workspaceService        *workspaces_services.WorkspaceService
+	workspaceService        *workspaces_bridge.Access
 	auditLogService         *audit_logs.AuditLogService
 	fieldEncryptor          encryption.FieldEncryptor
 	notifierDatabaseCounter NotifierDatabaseCounter
@@ -146,7 +146,7 @@ func (s *NotifierService) DeleteNotifier(
 		return ErrNotifierHasAttachedDatabases
 	}
 
-	err = s.notifierRepository.Delete(notifier)
+	err = s.notifierRepository.Delete(ctx, notifier)
 	if err != nil {
 		return err
 	}
@@ -203,7 +203,7 @@ func (s *NotifierService) GetNotifiers(
 		return nil, ErrInsufficientPermissionsToViewNotifiers
 	}
 
-	notifiers, err := s.notifierRepository.FindByWorkspaceID(workspaceID)
+	notifiers, err := s.notifierRepository.FindByWorkspaceID(ctx, workspaceID)
 	if err != nil {
 		return nil, err
 	}
@@ -400,12 +400,12 @@ func (s *NotifierService) TransferNotifierToWorkspace(
 		return err
 	}
 
-	sourceWorkspace, err := s.workspaceService.GetWorkspaceByID(sourceWorkspaceID)
+	sourceWorkspace, err := s.workspaceService.GetWorkspaceByID(ctx, sourceWorkspaceID)
 	if err != nil {
 		return fmt.Errorf("failed to get source workspace: %w", err)
 	}
 
-	targetWorkspace, err := s.workspaceService.GetWorkspaceByID(targetWorkspaceID)
+	targetWorkspace, err := s.workspaceService.GetWorkspaceByID(ctx, targetWorkspaceID)
 	if err != nil {
 		return fmt.Errorf("failed to get target workspace: %w", err)
 	}
@@ -424,14 +424,14 @@ func (s *NotifierService) TransferNotifierToWorkspace(
 	return nil
 }
 
-func (s *NotifierService) OnBeforeWorkspaceDeletion(workspaceID uuid.UUID) error {
-	notifiers, err := s.notifierRepository.FindByWorkspaceID(workspaceID)
+func (s *NotifierService) OnWorkspaceDeleting(ctx context.Context, event workspaces.WorkspaceDeleting) error {
+	notifiers, err := s.notifierRepository.FindByWorkspaceID(ctx, event.WorkspaceID)
 	if err != nil {
 		return fmt.Errorf("failed to get notifiers for workspace deletion: %w", err)
 	}
 
 	for _, notifier := range notifiers {
-		if err := s.notifierRepository.Delete(notifier); err != nil {
+		if err := s.notifierRepository.Delete(ctx, notifier); err != nil {
 			return fmt.Errorf("failed to delete notifier %s: %w", notifier.ID, err)
 		}
 	}

@@ -10,17 +10,22 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"sync"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 
-	users_bridge "databasus-backend/internal/features/users"
 	users_testing "databasus-backend/internal/features/users/testing"
-	workspaces_dto "databasus-backend/internal/features/workspaces/dto"
-	workspaces_models "databasus-backend/internal/features/workspaces/models"
-	workspaces_repositories "databasus-backend/internal/features/workspaces/repositories"
 	"databasus-backend/internal/modules/workspaces"
+	"databasus-backend/internal/storage"
 )
+
+// TestWorkspace is a workspace the helpers inserted.
+type TestWorkspace struct {
+	ID   uuid.UUID
+	Name string
+}
 
 // setGinTestMode runs once because gin.SetMode writes a process-wide variable, and parallel tests build
 // their routers at the same time.
@@ -42,373 +47,48 @@ func CreateTestRouter(controllers ...ControllerInterface) *gin.Engine {
 	return router
 }
 
-func CreateTestWorkspace(
-	ctx context.Context,
-	name string,
-	owner *users_testing.TestUser,
-	router *gin.Engine,
-) *workspaces_models.Workspace {
-	workspace, _ := CreateTestWorkspaceViaAPI(ctx, name, owner, router)
+// CreateTestWorkspace inserts a workspace owned by the user, as the workspaces module creates one.
+func CreateTestWorkspace(ctx context.Context, name string, owner *users_testing.TestUser) *TestWorkspace {
+	workspace, err := insertWorkspace(ctx, name, owner.UserID)
+	if err != nil {
+		panic(err)
+	}
+
 	return workspace
 }
 
-func CreateTestWorkspaceViaAPI(
-	ctx context.Context,
-	name string,
-	owner *users_testing.TestUser,
-	router *gin.Engine,
-) (*workspaces_models.Workspace, string) {
-	return createTestWorkspaceViaAPI(ctx, name, owner, router, true)
-}
-
-func CreateTestWorkspaceViaAPIWithoutSettingsChange(
-	ctx context.Context,
-	name string,
-	owner *users_testing.TestUser,
-	router *gin.Engine,
-) (*workspaces_models.Workspace, string) {
-	return createTestWorkspaceViaAPI(ctx, name, owner, router, false)
-}
-
-func createTestWorkspaceViaAPI(
-	ctx context.Context,
-	name string,
-	owner *users_testing.TestUser,
-	router *gin.Engine,
-	enableMemberCreation bool,
-) (*workspaces_models.Workspace, string) {
-	if enableMemberCreation {
-		users_testing.EnableMemberWorkspaceCreation(ctx)
-		defer users_testing.ResetSettingsToDefaults(ctx)
-	}
-
-	request := workspaces_dto.CreateWorkspaceRequestDTO{Name: name}
-	w := MakeAPIRequest(router, "POST", "/api/v1/workspaces", "Bearer "+owner.Token, request)
-
-	if w.Code != http.StatusOK {
-		panic(
-			fmt.Sprintf(
-				"Failed to create workspace. Status: %d, Body: %s",
-				w.Code,
-				w.Body.String(),
-			),
-		)
-	}
-
-	var response workspaces_dto.WorkspaceResponseDTO
-	if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
-		panic(err)
-	}
-
-	workspace := &workspaces_models.Workspace{
-		ID:   response.ID,
-		Name: response.Name,
-	}
-
-	return workspace, owner.Token
-}
-
-func CreateTestWorkspaceWithToken(
-	ctx context.Context,
-	name string,
-	token string,
-	router *gin.Engine,
-) (*workspaces_models.Workspace, string) {
-	return createTestWorkspaceWithToken(ctx, name, token, router, true)
-}
-
-func CreateTestWorkspaceWithTokenWithoutSettingsChange(
-	ctx context.Context,
-	name string,
-	token string,
-	router *gin.Engine,
-) (*workspaces_models.Workspace, string) {
-	return createTestWorkspaceWithToken(ctx, name, token, router, false)
-}
-
-func createTestWorkspaceWithToken(
-	ctx context.Context,
-	name string,
-	token string,
-	router *gin.Engine,
-	enableMemberCreation bool,
-) (*workspaces_models.Workspace, string) {
-	if enableMemberCreation {
-		users_testing.EnableMemberWorkspaceCreation(ctx)
-		defer users_testing.ResetSettingsToDefaults(ctx)
-	}
-
-	request := workspaces_dto.CreateWorkspaceRequestDTO{Name: name}
-	w := MakeAPIRequest(router, "POST", "/api/v1/workspaces", "Bearer "+token, request)
-
-	if w.Code != http.StatusOK {
-		panic(
-			fmt.Sprintf(
-				"Failed to create workspace. Status: %d, Body: %s",
-				w.Code,
-				w.Body.String(),
-			),
-		)
-	}
-
-	var response workspaces_dto.WorkspaceResponseDTO
-	if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
-		panic(err)
-	}
-
-	workspace := &workspaces_models.Workspace{
-		ID:   response.ID,
-		Name: response.Name,
-	}
-
-	return workspace, token
-}
-
-func AddMemberToWorkspace(
-	workspace *workspaces_models.Workspace,
-	member *users_testing.TestUser,
-	role workspaces.Role,
-	ownerToken string,
-	router *gin.Engine,
-) {
-	request := workspaces_dto.AddMemberRequestDTO{
-		Email: member.Email,
-		Role:  role,
-	}
-
-	w := MakeAPIRequest(
-		router,
-		"POST",
-		"/api/v1/workspaces/memberships/"+workspace.ID.String()+"/members",
-		"Bearer "+ownerToken,
-		request,
-	)
-
-	if w.Code != http.StatusOK {
-		panic("Failed to add member to workspace via API: " + w.Body.String())
-	}
-}
-
-func AddMemberToWorkspaceViaOwner(
-	ctx context.Context,
-	workspace *workspaces_models.Workspace,
-	member *users_testing.TestUser,
-	role workspaces.Role,
-	router *gin.Engine,
-) {
-	membershipRepo := &workspaces_repositories.MembershipRepository{}
-	workspaceMembers, err := membershipRepo.GetWorkspaceMembers(workspace.ID)
-	if err != nil {
-		panic("Failed to get workspace members: " + err.Error())
-	}
-
-	var ownerToken string
-	for _, m := range workspaceMembers {
-		if m.Role == workspaces.RoleOwner {
-			ownerToken = users_testing.IssueTestToken(ctx, m.UserID)
-
-			break
-		}
-	}
-
-	if ownerToken == "" {
-		panic("No workspace owner found")
-	}
-
-	AddMemberToWorkspace(workspace, member, role, ownerToken, router)
-}
-
-func InviteMemberToWorkspace(
-	workspace *workspaces_models.Workspace,
-	email string,
-	role workspaces.Role,
-	inviterToken string,
-	router *gin.Engine,
-) *workspaces_dto.AddMemberResponseDTO {
-	request := workspaces_dto.AddMemberRequestDTO{
-		Email: email,
-		Role:  role,
-	}
-
-	w := MakeAPIRequest(
-		router,
-		"POST",
-		"/api/v1/workspaces/memberships/"+workspace.ID.String()+"/members",
-		"Bearer "+inviterToken,
-		request,
-	)
-
-	if w.Code != http.StatusOK {
-		panic("Failed to invite member to workspace via API: " + w.Body.String())
-	}
-
-	var response workspaces_dto.AddMemberResponseDTO
-	if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
-		panic(err)
-	}
-
-	return &response
-}
-
-func ChangeMemberRole(
-	workspace *workspaces_models.Workspace,
-	memberUserID uuid.UUID,
-	newRole workspaces.Role,
-	changerToken string,
-	router *gin.Engine,
-) {
-	request := workspaces_dto.ChangeMemberRoleRequestDTO{
-		Role: newRole,
-	}
-
-	w := MakeAPIRequest(
-		router,
-		"PUT",
-		fmt.Sprintf(
-			"/api/v1/workspaces/memberships/%s/members/%s/role",
-			workspace.ID.String(),
-			memberUserID.String(),
-		),
-		"Bearer "+changerToken,
-		request,
-	)
-
-	if w.Code != http.StatusOK {
-		panic("Failed to change member role via API: " + w.Body.String())
-	}
-}
-
-func RemoveMemberFromWorkspace(
-	workspace *workspaces_models.Workspace,
-	memberUserID uuid.UUID,
-	removerToken string,
-	router *gin.Engine,
-) {
-	w := MakeAPIRequest(
-		router,
-		"DELETE",
-		fmt.Sprintf(
-			"/api/v1/workspaces/memberships/%s/members/%s",
-			workspace.ID.String(),
-			memberUserID.String(),
-		),
-		"Bearer "+removerToken,
-		nil,
-	)
-
-	if w.Code != http.StatusOK {
-		panic("Failed to remove member from workspace via API: " + w.Body.String())
-	}
-}
-
-func GetWorkspaceMembers(
-	workspace *workspaces_models.Workspace,
-	requesterToken string,
-	router *gin.Engine,
-) *workspaces_dto.GetMembersResponseDTO {
-	w := MakeAPIRequest(
-		router,
-		"GET",
-		"/api/v1/workspaces/memberships/"+workspace.ID.String()+"/members",
-		"Bearer "+requesterToken,
-		nil,
-	)
-
-	if w.Code != http.StatusOK {
-		panic("Failed to get workspace members via API: " + w.Body.String())
-	}
-
-	var response workspaces_dto.GetMembersResponseDTO
-	if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
-		panic(err)
-	}
-
-	return &response
-}
-
-func UpdateWorkspace(
-	workspace *workspaces_models.Workspace,
-	updateData *workspaces_models.Workspace,
-	updaterToken string,
-	router *gin.Engine,
-) *workspaces_models.Workspace {
-	w := MakeAPIRequest(
-		router,
-		"PUT",
-		"/api/v1/workspaces/"+workspace.ID.String(),
-		"Bearer "+updaterToken,
-		updateData,
-	)
-
-	if w.Code != http.StatusOK {
-		panic("Failed to update workspace via API: " + w.Body.String())
-	}
-
-	var response workspaces_models.Workspace
-	if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
-		panic(err)
-	}
-
-	return &response
-}
-
-func DeleteWorkspace(
-	workspace *workspaces_models.Workspace,
-	deleterToken string,
-	router *gin.Engine,
-) {
-	w := MakeAPIRequest(
-		router,
-		"DELETE",
-		"/api/v1/workspaces/"+workspace.ID.String(),
-		"Bearer "+deleterToken,
-		nil,
-	)
-
-	if w.Code != http.StatusOK {
-		panic("Failed to delete workspace via API: " + w.Body.String())
-	}
-}
-
-// The context is stripped of cancellation because callers pass t.Context() from a t.Cleanup, and
-// the test context is already cancelled by the time cleanup runs.
-func RemoveTestWorkspace(ctx context.Context, workspace *workspaces_models.Workspace, router *gin.Engine) {
-	ctx = context.WithoutCancel(ctx)
-
-	membershipRepo := &workspaces_repositories.MembershipRepository{}
-	workspaceMembers, err := membershipRepo.GetWorkspaceMembers(workspace.ID)
-	if err != nil {
-		// Workspace might already be deleted or doesn't exist, silently return
-		return
-	}
-
-	if len(workspaceMembers) == 0 {
-		// No members found, workspace might have been deleted, silently return
-		return
-	}
-
-	var ownerToken string
-	for _, m := range workspaceMembers {
-		if m.Role == workspaces.RoleOwner {
-			_, isOwnerFound, err := users_bridge.GetModule().GetUser(ctx, m.UserID)
-			if err != nil || !isOwnerFound {
-				// Owner user not found, workspace might be in inconsistent state, try direct deletion
-				_ = RemoveTestWorkspaceDirect(workspace.ID)
-				return
+// AddMemberToWorkspace inserts a member of the workspace with the role. A workspace has one owner,
+// so a new owner takes the role over and the previous owner becomes an admin, as in an ownership
+// transfer.
+func AddMemberToWorkspace(workspace *TestWorkspace, member *users_testing.TestUser, role workspaces.Role) {
+	err := storage.GetDb().Transaction(func(tx *gorm.DB) error {
+		if role == workspaces.RoleOwner {
+			err := tx.Exec("UPDATE workspaces_members SET role = ? WHERE workspace_id = ? AND role = ?",
+				workspaces.RoleAdmin, workspace.ID, workspaces.RoleOwner).Error
+			if err != nil {
+				return err
 			}
-
-			ownerToken = users_testing.IssueTestToken(ctx, m.UserID)
-			break
 		}
-	}
 
-	if ownerToken == "" {
-		// No owner found, try direct deletion
-		_ = RemoveTestWorkspaceDirect(workspace.ID)
-		return
+		return tx.Exec(
+			"INSERT INTO workspaces_members (id, user_id, workspace_id, role, created_at) VALUES (?, ?, ?, ?, ?)",
+			uuid.New(), member.UserID, workspace.ID, role, time.Now().UTC(),
+		).Error
+	})
+	if err != nil {
+		panic(fmt.Errorf("add a member to a test workspace: %w", err))
 	}
+}
 
-	DeleteWorkspace(workspace, ownerToken, router)
+// RemoveTestWorkspace deletes the workspace's databases, notifiers and storages before the
+// workspace, standing in for the deletion the workspaces module runs through its subscribers, which
+// only internal/app subscribes. The context is stripped of cancellation because callers pass t.Context() from a t.Cleanup, and the
+// test context is already cancelled by the time cleanup runs.
+func RemoveTestWorkspace(ctx context.Context, workspace *TestWorkspace) {
+	err := removeWorkspace(context.WithoutCancel(ctx), workspace.ID)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func MakeAPIRequest(
@@ -444,40 +124,57 @@ func MakeAPIRequest(
 	return w
 }
 
-// CreateTestWorkspaceDirect creates a workspace directly without using HTTP API
-func CreateTestWorkspaceDirect(
-	name string,
-	ownerID uuid.UUID,
-) (*workspaces_models.Workspace, error) {
-	repo := &workspaces_repositories.WorkspaceRepository{}
-	membershipRepo := &workspaces_repositories.MembershipRepository{}
+// CreateTestWorkspaceDirect serves a test that has the owner's ID but no test user.
+func CreateTestWorkspaceDirect(name string, ownerID uuid.UUID) (*TestWorkspace, error) {
+	return insertWorkspace(context.Background(), name, ownerID)
+}
 
-	workspace := &workspaces_models.Workspace{
-		Name: name,
-	}
+func RemoveTestWorkspaceDirect(workspaceID uuid.UUID) error {
+	return removeWorkspace(context.Background(), workspaceID)
+}
 
-	err := repo.CreateWorkspace(workspace)
+// insertWorkspace inserts a workspace with its owner's member in one transaction, as the workspaces
+// module creates one.
+func insertWorkspace(ctx context.Context, name string, ownerID uuid.UUID) (*TestWorkspace, error) {
+	workspace := &TestWorkspace{ID: uuid.New(), Name: name}
+	now := time.Now().UTC()
+
+	err := storage.GetDb().WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		err := tx.Exec("INSERT INTO workspaces (id, name, created_at) VALUES (?, ?, ?)",
+			workspace.ID, workspace.Name, now).Error
+		if err != nil {
+			return err
+		}
+
+		return tx.Exec(
+			"INSERT INTO workspaces_members (id, user_id, workspace_id, role, created_at) VALUES (?, ?, ?, ?, ?)",
+			uuid.New(), ownerID, workspace.ID, workspaces.RoleOwner, now,
+		).Error
+	})
 	if err != nil {
-		return nil, err
-	}
-
-	// Create owner membership
-	membership := &workspaces_models.WorkspaceMembership{
-		WorkspaceID: workspace.ID,
-		UserID:      ownerID,
-		Role:        workspaces.RoleOwner,
-	}
-
-	err = membershipRepo.CreateMembership(membership)
-	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("insert a test workspace: %w", err)
 	}
 
 	return workspace, nil
 }
 
-// RemoveTestWorkspaceDirect removes a workspace directly without using HTTP API
-func RemoveTestWorkspaceDirect(workspaceID uuid.UUID) error {
-	repo := &workspaces_repositories.WorkspaceRepository{}
-	return repo.DeleteWorkspace(workspaceID)
+// removeWorkspace deletes what the cascade from the workspace deleted before the references to
+// workspaces became RESTRICT; the cascades of the old features remove what hangs off the databases,
+// notifiers and storages. A workspace that is already gone is not an error.
+func removeWorkspace(ctx context.Context, workspaceID uuid.UUID) error {
+	return storage.GetDb().WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		for _, statement := range []string{
+			"DELETE FROM databases WHERE workspace_id = ?",
+			"DELETE FROM notifiers WHERE workspace_id = ?",
+			"DELETE FROM storages WHERE workspace_id = ?",
+			"DELETE FROM workspaces WHERE id = ?",
+		} {
+			err := tx.Exec(statement, workspaceID).Error
+			if err != nil {
+				return fmt.Errorf("remove a test workspace: %w", err)
+			}
+		}
+
+		return nil
+	})
 }

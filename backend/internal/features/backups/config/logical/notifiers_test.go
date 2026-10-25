@@ -12,7 +12,6 @@ import (
 	"databasus-backend/internal/features/notifiers"
 	"databasus-backend/internal/features/storages"
 	users_testing "databasus-backend/internal/features/users/testing"
-	workspaces_controllers "databasus-backend/internal/features/workspaces/controllers"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
 	"databasus-backend/internal/modules/users"
 	test_utils "databasus-backend/internal/util/testing"
@@ -21,7 +20,7 @@ import (
 func Test_AttachNotifierFromSameWorkspace_SuccessfullyAttached(t *testing.T) {
 	router := createTestRouterWithNotifier()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
 
 	database := createTestDatabaseViaAPI("Test Database", workspace.ID, owner.Token, router)
 	notifier := notifiers.CreateTestNotifier(workspace.ID)
@@ -29,7 +28,7 @@ func Test_AttachNotifierFromSameWorkspace_SuccessfullyAttached(t *testing.T) {
 	defer func() {
 		databases.RemoveTestDatabase(t.Context(), database)
 		notifiers.RemoveTestNotifier(notifier)
-		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	}()
 
 	database.Notifiers = []notifiers.Notifier{*notifier}
@@ -54,18 +53,18 @@ func Test_AttachNotifierFromDifferentWorkspace_ReturnsForbidden(t *testing.T) {
 	router := createTestRouterWithNotifier()
 
 	owner1 := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace1 := workspaces_testing.CreateTestWorkspace(t.Context(), "Workspace 1", owner1, router)
+	workspace1 := workspaces_testing.CreateTestWorkspace(t.Context(), "Workspace 1", owner1)
 	database := createTestDatabaseViaAPI("Test Database", workspace1.ID, owner1.Token, router)
 
 	owner2 := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace2 := workspaces_testing.CreateTestWorkspace(t.Context(), "Workspace 2", owner2, router)
+	workspace2 := workspaces_testing.CreateTestWorkspace(t.Context(), "Workspace 2", owner2)
 	notifier := notifiers.CreateTestNotifier(workspace2.ID)
 
 	defer func() {
 		databases.RemoveTestDatabase(t.Context(), database)
 		notifiers.RemoveTestNotifier(notifier)
-		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace1, router)
-		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace2, router)
+		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace1)
+		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace2)
 	}()
 
 	database.Notifiers = []notifiers.Notifier{*notifier}
@@ -85,7 +84,7 @@ func Test_AttachNotifierFromDifferentWorkspace_ReturnsForbidden(t *testing.T) {
 func Test_DeleteNotifierWithAttachedDatabases_CannotDelete(t *testing.T) {
 	router := createTestRouterWithNotifier()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
 
 	database := createTestDatabaseViaAPI("Test Database", workspace.ID, owner.Token, router)
 	notifier := notifiers.CreateTestNotifier(workspace.ID)
@@ -93,7 +92,7 @@ func Test_DeleteNotifierWithAttachedDatabases_CannotDelete(t *testing.T) {
 	defer func() {
 		databases.RemoveTestDatabase(t.Context(), database)
 		notifiers.RemoveTestNotifier(notifier)
-		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	}()
 
 	database.Notifiers = []notifiers.Notifier{*notifier}
@@ -127,8 +126,8 @@ func Test_DeleteNotifierWithAttachedDatabases_CannotDelete(t *testing.T) {
 func Test_TransferNotifierWithAttachedDatabase_CannotTransfer(t *testing.T) {
 	router := createTestRouterWithNotifier()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
-	targetWorkspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Target Workspace", owner, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
+	targetWorkspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Target Workspace", owner)
 
 	database := createTestDatabaseViaAPI("Test Database", workspace.ID, owner.Token, router)
 	notifier := notifiers.CreateTestNotifier(workspace.ID)
@@ -136,8 +135,8 @@ func Test_TransferNotifierWithAttachedDatabase_CannotTransfer(t *testing.T) {
 	defer func() {
 		databases.RemoveTestDatabase(t.Context(), database)
 		notifiers.RemoveTestNotifier(notifier)
-		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
-		workspaces_testing.RemoveTestWorkspace(t.Context(), targetWorkspace, router)
+		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
+		workspaces_testing.RemoveTestWorkspace(t.Context(), targetWorkspace)
 	}()
 
 	database.Notifiers = []notifiers.Notifier{*notifier}
@@ -175,17 +174,13 @@ func Test_TransferNotifierWithAttachedDatabase_CannotTransfer(t *testing.T) {
 
 func createTestRouterWithNotifier() *gin.Engine {
 	router := workspaces_testing.CreateTestRouter(
-		workspaces_controllers.GetWorkspaceController(),
-		workspaces_controllers.GetMembershipController(),
 		databases.GetDatabaseController(),
 		GetBackupConfigController(),
 		storages.GetStorageController(),
 		notifiers.GetNotifierController(),
 	)
 
-	storages.SetupDependencies()
 	databases.SetupDependencies()
-	notifiers.SetupDependencies()
 	SetupDependencies()
 
 	return router

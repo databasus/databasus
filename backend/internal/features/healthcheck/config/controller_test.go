@@ -11,7 +11,6 @@ import (
 
 	"databasus-backend/internal/features/databases"
 	users_testing "databasus-backend/internal/features/users/testing"
-	workspaces_controllers "databasus-backend/internal/features/workspaces/controllers"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/modules/workspaces"
@@ -20,8 +19,6 @@ import (
 
 func createTestRouter() *gin.Engine {
 	router := workspaces_testing.CreateTestRouter(
-		workspaces_controllers.GetWorkspaceController(),
-		workspaces_controllers.GetMembershipController(),
 		databases.GetDatabaseController(),
 		GetHealthcheckConfigController(),
 	)
@@ -77,7 +74,7 @@ func Test_SaveHealthcheckConfig_PermissionsEnforced(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			router := createTestRouter()
 			owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-			workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
+			workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
 
 			database := createTestDatabaseViaAPI("Test Database", workspace.ID, owner.Token, router)
 
@@ -92,10 +89,8 @@ func Test_SaveHealthcheckConfig_PermissionsEnforced(t *testing.T) {
 				workspaces_testing.AddMemberToWorkspace(
 					workspace,
 					member,
-					*tt.workspaceRole,
-					owner.Token,
-					router,
-				)
+					*tt.workspaceRole)
+
 				testUserToken = member.Token
 			}
 
@@ -134,7 +129,7 @@ func Test_SaveHealthcheckConfig_PermissionsEnforced(t *testing.T) {
 
 			// Cleanup
 			databases.RemoveTestDatabase(t.Context(), database)
-			workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+			workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 		})
 	}
 }
@@ -142,7 +137,7 @@ func Test_SaveHealthcheckConfig_PermissionsEnforced(t *testing.T) {
 func Test_SaveHealthcheckConfig_WhenUserIsNotWorkspaceMember_ReturnsForbidden(t *testing.T) {
 	router := createTestRouter()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
 
 	database := createTestDatabaseViaAPI("Test Database", workspace.ID, owner.Token, router)
 
@@ -170,7 +165,7 @@ func Test_SaveHealthcheckConfig_WhenUserIsNotWorkspaceMember_ReturnsForbidden(t 
 
 	// Cleanup
 	databases.RemoveTestDatabase(t.Context(), database)
-	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 }
 
 func Test_GetHealthcheckConfig_PermissionsEnforced(t *testing.T) {
@@ -229,7 +224,7 @@ func Test_GetHealthcheckConfig_PermissionsEnforced(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			router := createTestRouter()
 			owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-			workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
+			workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
 
 			database := createTestDatabaseViaAPI("Test Database", workspace.ID, owner.Token, router)
 
@@ -244,10 +239,8 @@ func Test_GetHealthcheckConfig_PermissionsEnforced(t *testing.T) {
 				workspaces_testing.AddMemberToWorkspace(
 					workspace,
 					member,
-					*tt.workspaceRole,
-					owner.Token,
-					router,
-				)
+					*tt.workspaceRole)
+
 				testUserToken = member.Token
 			} else {
 				nonMember := users_testing.CreateTestUser(t.Context(), users.RoleMember)
@@ -280,7 +273,7 @@ func Test_GetHealthcheckConfig_PermissionsEnforced(t *testing.T) {
 
 			// Cleanup
 			databases.RemoveTestDatabase(t.Context(), database)
-			workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+			workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 		})
 	}
 }
@@ -288,7 +281,7 @@ func Test_GetHealthcheckConfig_PermissionsEnforced(t *testing.T) {
 func Test_GetHealthcheckConfig_ReturnsDefaultConfigForNewDatabase(t *testing.T) {
 	router := createTestRouter()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
 
 	database := createTestDatabaseViaAPI("Test Database", workspace.ID, owner.Token, router)
 
@@ -311,7 +304,7 @@ func Test_GetHealthcheckConfig_ReturnsDefaultConfigForNewDatabase(t *testing.T) 
 
 	// Cleanup
 	databases.RemoveTestDatabase(t.Context(), database)
-	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 }
 
 func createTestDatabaseViaAPI(

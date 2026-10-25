@@ -18,7 +18,7 @@ import (
 	notifier_models "databasus-backend/internal/features/notifiers/models"
 	storage_files "databasus-backend/internal/features/storages/files"
 	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
-	workspaces_services "databasus-backend/internal/features/workspaces/services"
+	workspaces_bridge "databasus-backend/internal/features/workspaces"
 	db "databasus-backend/internal/storage"
 )
 
@@ -30,7 +30,7 @@ const (
 
 type Backuper struct {
 	databaseService          *databases.DatabaseService
-	workspaceService         *workspaces_services.WorkspaceService
+	workspaceService         *workspaces_bridge.Access
 	backupRepository         *backups_core_logical.BackupRepository
 	backupConfigService      *backups_config_logical.BackupConfigService
 	fileStore                *storage_files.Store
@@ -251,7 +251,7 @@ func (b *Backuper) SendBackupNotification(
 		return
 	}
 
-	workspace, err := b.workspaceService.GetWorkspaceByID(*database.WorkspaceID)
+	workspace, err := b.workspaceService.GetWorkspaceByID(ctx, *database.WorkspaceID)
 	if err != nil {
 		logger.ErrorContext(ctx, "failed to get workspace for the backup notification", "error", err)
 

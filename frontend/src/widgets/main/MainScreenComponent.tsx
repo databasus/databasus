@@ -8,11 +8,11 @@ import { type DiskUsage, diskApi } from '../../entity/disk';
 import {
   type User,
   type InstanceSettings,
-  WorkspaceRole,
+  UserRole,
   settingsApi,
   userApi,
 } from '../../entity/users';
-import { type WorkspaceResponse, workspaceApi } from '../../entity/workspaces';
+import { type Workspace, WorkspaceRole, workspaceApi } from '../../entity/workspaces';
 import { DatabasesComponent } from '../../features/databases/ui/DatabasesComponent';
 import { NotifiersComponent } from '../../features/notifiers/ui/NotifiersComponent';
 import { SettingsComponent } from '../../features/settings';
@@ -45,10 +45,8 @@ export const MainScreenComponent = () => {
   const [user, setUser] = useState<User | undefined>(undefined);
   const [globalSettings, setGlobalSettings] = useState<InstanceSettings | undefined>(undefined);
 
-  const [workspaces, setWorkspaces] = useState<WorkspaceResponse[]>([]);
-  const [selectedWorkspace, setSelectedWorkspace] = useState<WorkspaceResponse | undefined>(
-    undefined,
-  );
+  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
+  const [selectedWorkspace, setSelectedWorkspace] = useState<Workspace | undefined>(undefined);
 
   const [isLoading, setIsLoading] = useState(false);
   const [showCreateWorkspaceDialog, setShowCreateWorkspaceDialog] = useState(false);
@@ -61,13 +59,13 @@ export const MainScreenComponent = () => {
       const [diskUsage, user, workspaces, settings] = await Promise.all([
         diskApi.getDiskUsage(),
         userApi.getCurrentUser(),
-        workspaceApi.getWorkspaces(),
+        workspaceApi.listAllWorkspaces(),
         settingsApi.getSettings(),
       ]);
 
       setDiskUsage(diskUsage);
       setUser(user);
-      setWorkspaces(workspaces.workspaces);
+      setWorkspaces(workspaces);
       setGlobalSettings(settings);
     } catch (e) {
       message.error(translateApiError(e, t));
@@ -103,10 +101,9 @@ export const MainScreenComponent = () => {
     setShowCreateWorkspaceDialog(true);
   };
 
-  const handleWorkspaceCreated = async (newWorkspace: WorkspaceResponse) => {
+  const handleWorkspaceCreated = async (newWorkspace: Workspace) => {
     try {
-      const workspacesResponse = await workspaceApi.getWorkspaces();
-      setWorkspaces(workspacesResponse.workspaces);
+      setWorkspaces(await workspaceApi.listAllWorkspaces());
       setSelectedWorkspace(newWorkspace);
       setSelectedTab('databases');
     } catch (e) {
@@ -120,7 +117,9 @@ export const MainScreenComponent = () => {
   const isUsedMoreThan85Percent =
     diskUsage && diskUsage.usedSpaceBytes / diskUsage.totalSpaceBytes > 0.85;
 
-  const isCanManageDBs = selectedWorkspace?.userRole !== WorkspaceRole.VIEWER;
+  // An instance admin may do everything in every workspace, whatever their own role in it.
+  const isCanManageDBs =
+    user?.role === UserRole.ADMIN || selectedWorkspace?.currentUserRole !== WorkspaceRole.VIEWER;
 
   const tabs: SidebarTab[] = [
     {
@@ -351,7 +350,7 @@ export const MainScreenComponent = () => {
                     <div className="flex-1 md:pl-3">
                       {selectedTab === 'settings' && selectedWorkspace && user && (
                         <WorkspaceSettingsComponent
-                          workspaceResponse={selectedWorkspace}
+                          selectedWorkspace={selectedWorkspace}
                           contentHeight={contentHeight}
                           user={user}
                           key={`settings-${selectedWorkspace.id}`}

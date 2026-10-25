@@ -48,7 +48,7 @@ func Test_BackupAndRestoreMysqlSSL_Succeeds(t *testing.T) {
 
 	router := logicaltesting.CreateTestRouter()
 	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "MySQL SSL Workspace", user, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "MySQL SSL Workspace", user)
 	storage := storages.CreateTestStorage(workspace.ID)
 
 	dbName := "testdb"
@@ -96,7 +96,7 @@ func Test_BackupAndRestoreMysqlSSL_Succeeds(t *testing.T) {
 		"Bearer "+user.Token, http.StatusNoContent,
 	)
 	storages.RemoveTestStorage(t.Context(), storage.ID)
-	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 }
 
 func createMysqlSSLDatabaseViaAPI(

@@ -27,6 +27,10 @@ const CONTRACT_ERROR_CODE_KEYS = {
   sign_in_code_incorrect: 'errors.signInCodeIncorrect',
   email_not_configured: 'errors.emailNotConfigured',
   admin_email_missing: 'errors.adminEmailMissing',
+  already_member: 'errors.alreadyMember',
+  cannot_change_own_role: 'errors.cannotChangeOwnRole',
+  owner_requires_transfer: 'errors.ownerRequiresTransfer',
+  workspace_not_empty: 'errors.workspaceNotEmpty',
   internal: 'errors.internal',
 } as const satisfies Record<ApiComponents['schemas']['ProblemCode'], TranslationKey>;
 

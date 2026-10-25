@@ -14,6 +14,8 @@ tags:
     description: The running Databasus instance itself
   - name: users
     description: Users, sign-in, password reset and the instance settings
+  - name: workspaces
+    description: Workspaces, their members and the ownership of a workspace
 paths:
   /users:
     get:
@@ -597,6 +599,318 @@ paths:
                 $ref: "#/components/schemas/SignInOptions"
         default:
           $ref: "#/components/responses/Problem"
+  /workspaces:
+    get:
+      operationId: listWorkspaces
+      tags: [workspaces]
+      summary: List the workspaces of the signed-in user
+      description: >-
+        Ordered by name, then by ID. A user sees the workspaces they are a member of; an instance
+        admin sees every workspace, with no `currentUserRole` in the ones they are not a member of.
+      parameters:
+        - name: limit
+          in: query
+          description: The largest number of workspaces on the page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: after
+          in: query
+          description: The `nextCursor` of the previous page
+          schema:
+            type: string
+      responses:
+        "200":
+          description: One page of workspaces
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkspacePage"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+    post:
+      operationId: createWorkspace
+      tags: [workspaces]
+      summary: Create a workspace owned by the signed-in user
+      description: >-
+        An instance admin may always create one. Anyone else may only while the instance settings
+        let members create workspaces, and otherwise gets 403 `permission_denied`.
+      requestBody:
+        description: The workspace to create.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkspaceCreate"
+      responses:
+        "201":
+          description: The workspace, with the creator as its owner
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Workspace"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /workspaces/{workspaceId}:
+    parameters:
+      - $ref: "#/components/parameters/WorkspaceId"
+    get:
+      operationId: getWorkspace
+      tags: [workspaces]
+      summary: Get a workspace
+      description: >-
+        A user who is not a member of the workspace gets 404 `not_found`, as for a workspace that
+        does not exist.
+      responses:
+        "200":
+          description: The workspace
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Workspace"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+    put:
+      operationId: updateWorkspace
+      tags: [workspaces]
+      summary: Replace the name of a workspace
+      description: >-
+        Needs the role `WORKSPACE_ADMIN` or `WORKSPACE_OWNER`; a viewer or a member gets 403
+        `permission_denied`.
+      requestBody:
+        description: The editable fields of the workspace.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkspaceUpdate"
+      responses:
+        "200":
+          description: The workspace after the change
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Workspace"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+    delete:
+      operationId: deleteWorkspace
+      tags: [workspaces]
+      summary: Delete a workspace with its notifiers, storages and members
+      description: >-
+        Needs the role `WORKSPACE_OWNER`. A workspace that still has databases gets 409
+        `workspace_not_empty`, and nothing is deleted. The deletion happens completely or not at
+        all.
+      responses:
+        "204":
+          description: The workspace is deleted
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        "409":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /workspaces/{workspaceId}/transfer-ownership:
+    parameters:
+      - $ref: "#/components/parameters/WorkspaceId"
+    post:
+      operationId: transferWorkspaceOwnership
+      tags: [workspaces]
+      summary: Make another member the owner of a workspace
+      description: >-
+        Needs the role `WORKSPACE_OWNER`. The previous owner becomes `WORKSPACE_ADMIN`. A member of
+        another workspace gets 404 `not_found`, and naming the current owner changes nothing.
+      requestBody:
+        description: The member who becomes the owner.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OwnershipTransfer"
+      responses:
+        "204":
+          description: The named member owns the workspace
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /workspace-members:
+    get:
+      operationId: listWorkspaceMembers
+      tags: [workspaces]
+      summary: List the members of a workspace
+      description: >-
+        Ordered by the time a member joined, the oldest first, then by ID. A user who is not a
+        member of the workspace gets 404 `not_found`.
+      parameters:
+        - name: workspaceId
+          in: query
+          required: true
+          description: The workspace whose members to list
+          schema:
+            type: string
+            format: uuid
+        - name: limit
+          in: query
+          description: The largest number of members on the page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: after
+          in: query
+          description: The `nextCursor` of the previous page
+          schema:
+            type: string
+      responses:
+        "200":
+          description: One page of members
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkspaceMemberPage"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+    post:
+      operationId: addWorkspaceMember
+      tags: [workspaces]
+      summary: Add a user to a workspace by email address
+      description: >-
+        An address without a user invites one, which a user who is not an instance admin may do
+        only while the instance settings allow member invitations; otherwise the answer is 403
+        `permission_denied`. Adding an admin needs the role `WORKSPACE_OWNER`, adding anyone else
+        `WORKSPACE_ADMIN`. A user who is already a member gets 409 `already_member`.
+      requestBody:
+        description: The address, the workspace and the role of the new member.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkspaceMemberAddition"
+      responses:
+        "201":
+          description: The new member and whether the user was added or invited
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AddedWorkspaceMember"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        "409":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /workspace-members/{memberId}:
+    parameters:
+      - $ref: "#/components/parameters/MemberId"
+    put:
+      operationId: changeWorkspaceMemberRole
+      tags: [workspaces]
+      summary: Replace the role of a member
+      description: >-
+        Changing an admin or making a member an admin needs the role `WORKSPACE_OWNER`, changing
+        anyone else `WORKSPACE_ADMIN`. Changing your own role gets 409 `cannot_change_own_role`,
+        and changing the owner's role 409 `owner_requires_transfer`.
+      requestBody:
+        description: The new role.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkspaceMemberRoleChange"
+      responses:
+        "200":
+          description: The member after the change
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkspaceMember"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        "409":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+    delete:
+      operationId: removeWorkspaceMember
+      tags: [workspaces]
+      summary: Remove a member from a workspace
+      description: >-
+        Removing an admin needs the role `WORKSPACE_OWNER`, removing anyone else
+        `WORKSPACE_ADMIN`. Removing the owner gets 409 `owner_requires_transfer`. The user keeps
+        their account.
+      responses:
+        "204":
+          description: The member is removed
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        "409":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
   /system/version:
     get:
       operationId: getVersion
@@ -631,6 +945,22 @@ components:
       in: path
       required: true
       description: The pending sign-in that the latest password step or resend named
+      schema:
+        type: string
+        format: uuid
+    WorkspaceId:
+      name: workspaceId
+      in: path
+      required: true
+      description: The ID of the workspace
+      schema:
+        type: string
+        format: uuid
+    MemberId:
+      name: memberId
+      in: path
+      required: true
+      description: The ID of the member, which names one user in one workspace
       schema:
         type: string
         format: uuid
@@ -970,6 +1300,162 @@ components:
         version:
           type: string
           description: The version of the running instance, such as `3.26.0`
+    Workspace:
+      type: object
+      description: A workspace
+      required: [id, name, createdAt, currentUserRole]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: The ID of the workspace
+        name:
+          type: string
+          description: The name of the workspace
+        createdAt:
+          type: string
+          format: date-time
+          description: When the workspace was created
+        currentUserRole:
+          allOf:
+            - $ref: "#/components/schemas/WorkspaceRole"
+          nullable: true
+          description: >-
+            The role of the signed-in user in the workspace, null for an instance admin who is not
+            a member of it
+    WorkspacePage:
+      type: object
+      description: One page of workspaces, ordered by name
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Workspace"
+          description: The workspaces on the page
+        nextCursor:
+          type: string
+          description: The `after` of the next page, absent on the last page
+    WorkspaceCreate:
+      type: object
+      description: A new workspace
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: The name of the workspace
+    WorkspaceUpdate:
+      type: object
+      description: The editable fields of a workspace
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: The name of the workspace
+    OwnershipTransfer:
+      type: object
+      description: The member who becomes the owner of the workspace
+      required: [newOwnerMemberId]
+      properties:
+        newOwnerMemberId:
+          type: string
+          format: uuid
+          description: The member ID of the new owner, a member of the same workspace
+    WorkspaceMember:
+      type: object
+      description: A user in a workspace
+      required: [id, workspaceId, userId, email, name, role, isInvited, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: The member ID
+        workspaceId:
+          type: string
+          format: uuid
+          description: The workspace the member belongs to
+        userId:
+          type: string
+          format: uuid
+          description: The user of the member
+        email:
+          type: string
+          description: The address the user signs in with
+        name:
+          type: string
+          description: The name of the user
+        role:
+          $ref: "#/components/schemas/WorkspaceRole"
+        isInvited:
+          type: boolean
+          description: Whether the user was invited and has not finished sign-up
+        createdAt:
+          type: string
+          format: date-time
+          description: When the user joined the workspace
+    WorkspaceMemberPage:
+      type: object
+      description: One page of members, the oldest first
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/WorkspaceMember"
+          description: The members on the page
+        nextCursor:
+          type: string
+          description: The `after` of the next page, absent on the last page
+    WorkspaceMemberAddition:
+      type: object
+      description: A user to add to a workspace
+      required: [workspaceId, email, role]
+      properties:
+        workspaceId:
+          type: string
+          format: uuid
+          description: The workspace to add the user to
+        email:
+          type: string
+          format: email
+          description: The address of the user; an address without a user invites one
+        role:
+          $ref: "#/components/schemas/AssignableWorkspaceRole"
+    AddedWorkspaceMember:
+      description: The new member and whether the user was added or invited
+      allOf:
+        - $ref: "#/components/schemas/WorkspaceMember"
+        - type: object
+          required: [outcome]
+          properties:
+            outcome:
+              type: string
+              enum: [ADDED, INVITED]
+              description: >-
+                `ADDED` for a user who already had an account, `INVITED` for an address that got
+                an invited user
+    WorkspaceMemberRoleChange:
+      type: object
+      description: A new workspace role
+      required: [role]
+      properties:
+        role:
+          $ref: "#/components/schemas/AssignableWorkspaceRole"
+    WorkspaceRole:
+      type: string
+      description: >-
+        The role of a member in a workspace. A viewer sees it, a member also edits its content, an
+        admin also renames it and manages members, and the owner also manages admins, transfers
+        ownership and deletes it
+      enum: [WORKSPACE_OWNER, WORKSPACE_ADMIN, WORKSPACE_MEMBER, WORKSPACE_VIEWER]
+    AssignableWorkspaceRole:
+      type: string
+      description: A workspace role a request may set; the owner role changes hands only through a transfer
+      enum: [WORKSPACE_ADMIN, WORKSPACE_MEMBER, WORKSPACE_VIEWER]
     Problem:
       type: object
       description: An error in the RFC 9457 format. The client chooses its text by `code`
@@ -1018,6 +1504,10 @@ components:
         - sign_in_code_incorrect
         - email_not_configured
         - admin_email_missing
+        - already_member
+        - cannot_change_own_role
+        - owner_requires_transfer
+        - workspace_not_empty
         - internal
     FieldError:
       type: object

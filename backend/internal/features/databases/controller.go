@@ -8,13 +8,13 @@ import (
 	"github.com/google/uuid"
 
 	postgresql_shared "databasus-backend/internal/features/databases/databases/postgresql/shared"
-	workspaces_services "databasus-backend/internal/features/workspaces/services"
+	workspaces_bridge "databasus-backend/internal/features/workspaces"
 	"databasus-backend/internal/modules/users"
 )
 
 type DatabaseController struct {
 	databaseService  *DatabaseService
-	workspaceService *workspaces_services.WorkspaceService
+	workspaceService *workspaces_bridge.Access
 }
 
 func (c *DatabaseController) RegisterRoutes(router *gin.RouterGroup) {

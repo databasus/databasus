@@ -39,8 +39,8 @@ func enableAfterBackupVerificationViaAPI(
 func Test_CreateScheduledRuns_WhenScheduleTypeAfterBackup_DoesNotCreateTimeBasedRun(t *testing.T) {
 	router := createTestRouter()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner, router)
-	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner)
+	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
 	testStorage := storages.CreateTestStorage(workspace.ID)
 	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
@@ -65,8 +65,8 @@ func Test_CreateScheduledRuns_WhenScheduleTypeAfterBackup_DoesNotCreateTimeBased
 func Test_OnBackupCompleted_WhenScheduleTypeAfterBackup_EnqueuesPendingRun(t *testing.T) {
 	router := createTestRouter()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner, router)
-	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner)
+	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
 	testStorage := storages.CreateTestStorage(workspace.ID)
 	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
@@ -93,8 +93,8 @@ func Test_OnBackupCompleted_WhenScheduleTypeAfterBackup_EnqueuesPendingRun(t *te
 func Test_OnBackupCompleted_WhenPendingAfterBackupExists_CancelsOldAndEnqueuesNew(t *testing.T) {
 	router := createTestRouter()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner, router)
-	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner)
+	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
 	testStorage := storages.CreateTestStorage(workspace.ID)
 	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
@@ -144,8 +144,8 @@ func Test_OnBackupCompleted_WhenManualVerificationPending_LeavesItAndStillEnqueu
 ) {
 	router := createTestRouter()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner, router)
-	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner)
+	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
 	testStorage := storages.CreateTestStorage(workspace.ID)
 	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
@@ -189,8 +189,8 @@ func Test_OnBackupCompleted_WhenManualVerificationPending_LeavesItAndStillEnqueu
 func Test_OnBackupCompleted_WhenScheduleTypeInterval_DoesNothing(t *testing.T) {
 	router := createTestRouter()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner, router)
-	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner)
+	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
 	testStorage := storages.CreateTestStorage(workspace.ID)
 	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
@@ -214,8 +214,8 @@ func Test_OnBackupCompleted_WhenScheduleTypeInterval_DoesNothing(t *testing.T) {
 func Test_OnBackupCompleted_WhenDisabled_DoesNothing(t *testing.T) {
 	router := createTestRouter()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner, router)
-	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner)
+	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
 	testStorage := storages.CreateTestStorage(workspace.ID)
 	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
@@ -245,8 +245,8 @@ func Test_MakeBackup_WhenAfterBackupConfigured_SchedulesAndReplacesPendingVerifi
 ) {
 	router := createTestRouter()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner, router)
-	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner)
+	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
 	testStorage := storages.CreateTestStorage(workspace.ID)
 	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)

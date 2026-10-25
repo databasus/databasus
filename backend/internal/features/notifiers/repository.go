@@ -6,6 +6,7 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
+	"databasus-backend/internal/lib/database"
 	"databasus-backend/internal/storage"
 )
 
@@ -168,11 +169,10 @@ func (r *NotifierRepository) GetAllNotifiers() ([]*Notifier, error) {
 	return notifiers, nil
 }
 
-func (r *NotifierRepository) FindByWorkspaceID(workspaceID uuid.UUID) ([]*Notifier, error) {
+func (r *NotifierRepository) FindByWorkspaceID(ctx context.Context, workspaceID uuid.UUID) ([]*Notifier, error) {
 	var notifiers []*Notifier
 
-	if err := storage.
-		GetDb().
+	if err := database.Conn(ctx, storage.GetDb()).
 		Preload("TelegramNotifier").
 		Preload("EmailNotifier").
 		Preload("WebhookNotifier").
@@ -189,8 +189,8 @@ func (r *NotifierRepository) FindByWorkspaceID(workspaceID uuid.UUID) ([]*Notifi
 	return notifiers, nil
 }
 
-func (r *NotifierRepository) Delete(notifier *Notifier) error {
-	return storage.GetDb().Transaction(func(tx *gorm.DB) error {
+func (r *NotifierRepository) Delete(ctx context.Context, notifier *Notifier) error {
+	return database.Conn(ctx, storage.GetDb()).Transaction(func(tx *gorm.DB) error {
 		switch notifier.NotifierType {
 		case NotifierTypeTelegram:
 			if notifier.TelegramNotifier != nil {

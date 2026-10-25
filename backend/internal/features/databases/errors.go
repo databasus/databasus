@@ -1,6 +1,10 @@
 package databases
 
-import "errors"
+import (
+	"errors"
+
+	"databasus-backend/internal/lib/apierror"
+)
 
 var ErrInsufficientPermissionsToTestDatabaseConnection = errors.New(
 	"insufficient permissions to test this database connection",
@@ -11,3 +15,11 @@ var ErrDatabaseConnectionTargetLookup = errors.New("failed to load database conn
 var ErrDatabaseConnectionAuthorizationLookup = errors.New(
 	"failed to verify database connection permissions",
 )
+
+// ErrWorkspaceHasDatabases refuses a workspace deletion through the workspaces module, which
+// answers it as it is.
+var ErrWorkspaceHasDatabases = &apierror.Problem{
+	Code:   apierror.CodeWorkspaceNotEmpty,
+	Detail: "the workspace still has databases, which must be deleted first",
+	Errors: nil,
+}

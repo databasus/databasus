@@ -42,6 +42,10 @@ func TestCode(t *testing.T) {
 		{apierror.CodeSignInCodeIncorrect, http.StatusBadRequest},
 		{apierror.CodeEmailNotConfigured, http.StatusConflict},
 		{apierror.CodeAdminEmailMissing, http.StatusConflict},
+		{apierror.CodeAlreadyMember, http.StatusConflict},
+		{apierror.CodeCannotChangeOwnRole, http.StatusConflict},
+		{apierror.CodeOwnerRequiresTransfer, http.StatusConflict},
+		{apierror.CodeWorkspaceNotEmpty, http.StatusConflict},
 		{apierror.CodeInternal, http.StatusInternalServerError},
 	}
 
@@ -84,6 +88,10 @@ func TestCode(t *testing.T) {
 			apierror.CodeSignInCodeIncorrect,
 			apierror.CodeEmailNotConfigured,
 			apierror.CodeAdminEmailMissing,
+			apierror.CodeAlreadyMember,
+			apierror.CodeCannotChangeOwnRole,
+			apierror.CodeOwnerRequiresTransfer,
+			apierror.CodeWorkspaceNotEmpty,
 			apierror.CodeInternal,
 		}
 

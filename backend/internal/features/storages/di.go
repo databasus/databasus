@@ -5,7 +5,7 @@ import (
 
 	audit_logs "databasus-backend/internal/features/audit_logs"
 	storage_files "databasus-backend/internal/features/storages/files"
-	workspaces_services "databasus-backend/internal/features/workspaces/services"
+	workspaces_bridge "databasus-backend/internal/features/workspaces"
 	"databasus-backend/internal/util/encryption"
 	"databasus-backend/internal/util/logger"
 )
@@ -17,7 +17,7 @@ var (
 	getStorageService = sync.OnceValue(func() *StorageService {
 		return &StorageService{
 			getStorageRepository(),
-			workspaces_services.GetWorkspaceService(),
+			workspaces_bridge.GetAccess(),
 			audit_logs.GetAuditLogService(),
 			encryption.GetFieldEncryptor(),
 			nil,
@@ -47,7 +47,7 @@ var (
 var getStorageController = sync.OnceValue(func() *StorageController {
 	return &StorageController{
 		getStorageService(),
-		workspaces_services.GetWorkspaceService(),
+		workspaces_bridge.GetAccess(),
 	}
 })
 
@@ -66,7 +66,3 @@ func GetStorageFileStore() *storage_files.Store {
 func GetStorageFileDeletionWorker() *storage_files.DeletionWorker {
 	return getStorageFileDeletionWorker()
 }
-
-var SetupDependencies = sync.OnceFunc(func() {
-	workspaces_services.GetWorkspaceService().AddWorkspaceDeletionListener(getStorageService())
-})

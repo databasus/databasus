@@ -73,7 +73,7 @@ Go's `internal/` rule makes the rest of the module unreachable from outside.
 | Module | Owns |
 |---|---|
 | `users` | accounts, sign-in (password, GitHub and Google OAuth, email codes), password reset, instance settings, global roles, the request's `Actor`, the instance admin area |
-| `workspaces` | workspaces, memberships, workspace roles, invitations, `Authorize`, every audit log view: the global one, a user's and a workspace's |
+| `workspaces` | workspaces, members, workspace roles, invitations, ownership transfer, `Authorize`, every audit log view: the global one, a user's and a workspace's |
 | `notifiers` | notification channels and sending a notification |
 | `storages` | storages, the file lifecycle (write receipts, pending deletions and the deletion worker) |
 | `databases` | connections to user databases, connection tests, read-only and replication users, the last backup time and health status shown in the list |
@@ -89,7 +89,7 @@ How modules talk:
 - Only through the interfaces in `module.go`. Data of another module is read through its methods. To read a set of records, the consumer calls a batch method with their IDs and joins the results in Go, instead of calling a method once per record in a loop.
 - The request's user is an `Actor` from `users`: the user ID and the global role. A module never receives a `users` model.
 - Only `workspaces.Authorize(ctx, actor, workspaceID, action)` checks access to a workspace and to anything inside it. A module first looks the object up in its own table and answers 404 when it is missing. Then it calls `Authorize`, which answers 404 when the actor is not a member of the workspace and 403 when the actor's role does not allow the action.
-- A lower module that needs something done by higher ones publishes an event declared in its `module.go`, for example `workspaces.WorkspaceDeleting`. The event's handlers run synchronously, in the publisher's transaction. They run in the order in which `internal/app` registers them in its single wiring file, and nothing else sets that order. Effects outside the database, such as cancelling a running process or dropping a replication slot, are registered as after-commit handlers.
+- A lower module that needs something done by higher ones publishes an event declared in its `module.go`, for example `workspaces.WorkspaceDeleting`. The event's handlers run synchronously, in the publisher's transaction. They run in the order in which `internal/app` registers them in its single wiring file, and nothing else sets that order. Effects outside the database, such as cancelling a running process or dropping a replication slot, are registered as after-commit handlers. An effect that stays correct when the transaction rolls back, such as deleting files that already have a pending deletion, may run inside the handler.
 - If two areas keep needing a SQL JOIN of each other's tables, the boundary is wrong and they belong in one module.
 
 Inside a module's subpackage the code has three roles:

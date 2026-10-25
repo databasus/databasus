@@ -1,11 +1,11 @@
 package users_test
 
 import (
-	"encoding/json"
 	"net/http"
 	"testing"
 
 	"github.com/google/uuid"
+	openapi_types "github.com/oapi-codegen/runtime/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -14,18 +14,18 @@ import (
 )
 
 // The contract has no invitation operation: the product invites a user by adding an unknown address
-// to a workspace, which the old workspace member route serves through Module.InviteUser.
+// to a workspace, which addWorkspaceMember serves through Module.InviteUser.
 func TestInviteUser(t *testing.T) {
 	t.Run("invites an unknown address an instance admin adds to a workspace", func(t *testing.T) {
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
-		workspaceID := createWorkspace(t, app, admin)
+		workspaceID := createWorkspace(t, admin)
 		invitedEmail := apptest.NewTestEmail("invited")
 
-		status, body := addWorkspaceMember(t, app, admin, workspaceID, invitedEmail)
+		response := addWorkspaceMember(t, admin, workspaceID, invitedEmail)
 
-		require.Equal(t, http.StatusOK, status, string(body))
-		assert.Contains(t, string(body), `"INVITED"`)
+		require.Equal(t, http.StatusCreated, response.StatusCode(), string(response.Body))
+		assert.Equal(t, apiclient.AddedWorkspaceMemberOutcomeINVITED, response.JSON201.Outcome)
 		assert.Equal(t, 1, countUsersWithStatus(t, app, invitedEmail, "INVITED"))
 		assert.Contains(t, listGlobalAuditMessages(t, app, admin.Token), "User invited: "+invitedEmail+" for workspace")
 	})
@@ -34,12 +34,12 @@ func TestInviteUser(t *testing.T) {
 		app := apptest.New(t)
 		app.CreateAdmin(t)
 		member := app.SignUp(t, apptest.NewTestEmail("member"))
-		workspaceID := createWorkspace(t, app, member)
+		workspaceID := createWorkspace(t, member)
 		invitedEmail := apptest.NewTestEmail("invited")
 
-		status, body := addWorkspaceMember(t, app, member, workspaceID, invitedEmail)
+		response := addWorkspaceMember(t, member, workspaceID, invitedEmail)
 
-		require.Equal(t, http.StatusOK, status, string(body))
+		require.Equal(t, http.StatusCreated, response.StatusCode(), string(response.Body))
 		assert.Equal(t, 1, countUsersWithStatus(t, app, invitedEmail, "INVITED"))
 	})
 
@@ -47,23 +47,24 @@ func TestInviteUser(t *testing.T) {
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 		member := app.SignUp(t, apptest.NewTestEmail("member"))
-		workspaceID := createWorkspace(t, app, member)
+		workspaceID := createWorkspace(t, member)
 		closedInvitations := defaultSettingsUpdate()
 		closedInvitations.IsAllowMemberInvitations = false
 		updatedSettings := updateInstanceSettings(t, admin.Client, closedInvitations)
 		require.Equal(t, http.StatusOK, updatedSettings.StatusCode(), string(updatedSettings.Body))
 		invitedEmail := apptest.NewTestEmail("invited")
 
-		status, body := addWorkspaceMember(t, app, member, workspaceID, invitedEmail)
+		response := addWorkspaceMember(t, member, workspaceID, invitedEmail)
 
-		assert.Equal(t, http.StatusBadRequest, status, string(body))
+		requireProblem(t, response.StatusCode(), response.Body, http.StatusForbidden,
+			apiclient.ProblemCodePermissionDenied)
 		assert.Equal(t, 0, countUsersWithStatus(t, app, invitedEmail, "INVITED"))
 	})
 
 	t.Run("refuses a password sign-in for the invited user like a wrong password", func(t *testing.T) {
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
-		invitedEmail := inviteThroughWorkspace(t, app, admin)
+		invitedEmail := inviteThroughWorkspace(t, admin)
 
 		invitedResponse := signIn(t, app, invitedEmail, apptest.TestPassword)
 		wrongPasswordResponse := signIn(t, app, admin.Email, "wrong-password-123")
@@ -81,7 +82,7 @@ func TestInviteUser(t *testing.T) {
 		closedRegistration.IsAllowExternalRegistrations = false
 		updatedSettings := updateInstanceSettings(t, admin.Client, closedRegistration)
 		require.Equal(t, http.StatusOK, updatedSettings.StatusCode(), string(updatedSettings.Body))
-		invitedEmail := inviteThroughWorkspace(t, app, admin)
+		invitedEmail := inviteThroughWorkspace(t, admin)
 
 		invitedUser := app.SignUp(t, invitedEmail)
 
@@ -91,31 +92,34 @@ func TestInviteUser(t *testing.T) {
 		assert.Equal(t, apiclient.UserRoleMEMBER, readUser.JSON200.Role)
 	})
 
-	t.Run("gives the invited user the workspace membership after sign-up", func(t *testing.T) {
+	t.Run("makes the invited user a member of the workspace after sign-up", func(t *testing.T) {
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
-		workspaceID := createWorkspace(t, app, admin)
+		workspaceID := createWorkspace(t, admin)
 		invitedEmail := apptest.NewTestEmail("invited")
-		status, body := addWorkspaceMember(t, app, admin, workspaceID, invitedEmail)
-		require.Equal(t, http.StatusOK, status, string(body))
+		addResponse := addWorkspaceMember(t, admin, workspaceID, invitedEmail)
+		require.Equal(t, http.StatusCreated, addResponse.StatusCode(), string(addResponse.Body))
 
 		invitedUser := app.SignUp(t, invitedEmail)
 
-		status, body = sendAuthorizedRawRequest(t, app, invitedUser, http.MethodGet,
-			"/workspaces/memberships/"+workspaceID.String()+"/members", "")
-		require.Equal(t, http.StatusOK, status, string(body))
-		var listedMembers struct {
-			Members []workspaceMember `json:"members"`
+		membersResponse, err := invitedUser.Client.ListWorkspaceMembersWithResponse(t.Context(),
+			&apiclient.ListWorkspaceMembersParams{WorkspaceId: workspaceID, Limit: nil, After: nil})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, membersResponse.StatusCode(), string(membersResponse.Body))
+		require.Len(t, membersResponse.JSON200.Items, 2)
+		invitedMember := membersResponse.JSON200.Items[0]
+		if invitedMember.UserId != invitedUser.UserID {
+			invitedMember = membersResponse.JSON200.Items[1]
 		}
-		require.NoError(t, json.Unmarshal(body, &listedMembers))
-		assert.Contains(t, listedMembers.Members,
-			workspaceMember{UserID: invitedUser.UserID, Role: "WORKSPACE_MEMBER"})
+		assert.Equal(t, invitedUser.UserID, invitedMember.UserId)
+		assert.Equal(t, apiclient.WorkspaceRoleWORKSPACEMEMBER, invitedMember.Role)
+		assert.False(t, invitedMember.IsInvited)
 	})
 
 	t.Run("lets the invited user finish sign-up through GitHub", func(t *testing.T) {
 		app := apptest.New(t, apptest.WithGitHub())
 		admin := app.CreateAdmin(t)
-		invitedEmail := inviteThroughWorkspace(t, app, admin)
+		invitedEmail := inviteThroughWorkspace(t, admin)
 
 		session := requireGitHubSession(t, app, apptest.NewGitHubAccount(invitedEmail))
 
@@ -126,55 +130,38 @@ func TestInviteUser(t *testing.T) {
 	})
 }
 
-// workspaceMember reads the old members route, which the contract does not describe yet.
-type workspaceMember struct {
-	UserID uuid.UUID `json:"userId"`
-	Role   string    `json:"role"`
-}
-
-func inviteThroughWorkspace(t *testing.T, app *apptest.App, inviter apptest.Session) string {
+func inviteThroughWorkspace(t *testing.T, inviter apptest.Session) string {
 	t.Helper()
 
 	invitedEmail := apptest.NewTestEmail("invited")
-	status, body := addWorkspaceMember(t, app, inviter, createWorkspace(t, app, inviter), invitedEmail)
-	require.Equal(t, http.StatusOK, status, string(body))
+	response := addWorkspaceMember(t, inviter, createWorkspace(t, inviter), invitedEmail)
+	require.Equal(t, http.StatusCreated, response.StatusCode(), string(response.Body))
 
 	return invitedEmail
 }
 
-// createWorkspace creates a workspace through the old route, which the contract does not describe
-// yet.
-func createWorkspace(t *testing.T, app *apptest.App, owner apptest.Session) uuid.UUID {
+func createWorkspace(t *testing.T, owner apptest.Session) uuid.UUID {
 	t.Helper()
 
-	status, body := sendAuthorizedRawRequest(t, app, owner, http.MethodPost, "/workspaces", `{"name":"Invitations"}`)
-	require.Equal(t, http.StatusOK, status, string(body))
-
-	var createdWorkspace struct {
-		ID uuid.UUID `json:"id"`
-	}
-	require.NoError(t, json.Unmarshal(body, &createdWorkspace))
-
-	return createdWorkspace.ID
+	return apptest.CreateWorkspace(t, owner, "Invitations").Id
 }
 
 func addWorkspaceMember(
 	t *testing.T,
-	app *apptest.App,
 	actor apptest.Session,
 	workspaceID uuid.UUID,
 	email string,
-) (int, []byte) {
+) *apiclient.AddWorkspaceMemberResponse {
 	t.Helper()
 
-	return sendAuthorizedRawRequest(
-		t,
-		app,
-		actor,
-		http.MethodPost,
-		"/workspaces/memberships/"+workspaceID.String()+"/members",
-		`{"email":"`+email+`","role":"WORKSPACE_MEMBER"}`,
-	)
+	response, err := actor.Client.AddWorkspaceMemberWithResponse(t.Context(), apiclient.WorkspaceMemberAddition{
+		WorkspaceId: workspaceID,
+		Email:       openapi_types.Email(email),
+		Role:        apiclient.AssignableWorkspaceRoleWORKSPACEMEMBER,
+	})
+	require.NoError(t, err)
+
+	return response
 }
 
 // countUsersWithStatus reads the users table, because no operation lists invited users yet.

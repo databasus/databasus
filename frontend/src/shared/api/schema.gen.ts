@@ -357,6 +357,135 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/workspaces": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the workspaces of the signed-in user
+         * @description Ordered by name, then by ID. A user sees the workspaces they are a member of; an instance admin sees every workspace, with no `currentUserRole` in the ones they are not a member of.
+         */
+        get: operations["listWorkspaces"];
+        put?: never;
+        /**
+         * Create a workspace owned by the signed-in user
+         * @description An instance admin may always create one. Anyone else may only while the instance settings let members create workspaces, and otherwise gets 403 `permission_denied`.
+         */
+        post: operations["createWorkspace"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{workspaceId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the workspace */
+                workspaceId: components["parameters"]["WorkspaceId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Get a workspace
+         * @description A user who is not a member of the workspace gets 404 `not_found`, as for a workspace that does not exist.
+         */
+        get: operations["getWorkspace"];
+        /**
+         * Replace the name of a workspace
+         * @description Needs the role `WORKSPACE_ADMIN` or `WORKSPACE_OWNER`; a viewer or a member gets 403 `permission_denied`.
+         */
+        put: operations["updateWorkspace"];
+        post?: never;
+        /**
+         * Delete a workspace with its notifiers, storages and members
+         * @description Needs the role `WORKSPACE_OWNER`. A workspace that still has databases gets 409 `workspace_not_empty`, and nothing is deleted. The deletion happens completely or not at all.
+         */
+        delete: operations["deleteWorkspace"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{workspaceId}/transfer-ownership": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the workspace */
+                workspaceId: components["parameters"]["WorkspaceId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Make another member the owner of a workspace
+         * @description Needs the role `WORKSPACE_OWNER`. The previous owner becomes `WORKSPACE_ADMIN`. A member of another workspace gets 404 `not_found`, and naming the current owner changes nothing.
+         */
+        post: operations["transferWorkspaceOwnership"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspace-members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the members of a workspace
+         * @description Ordered by the time a member joined, the oldest first, then by ID. A user who is not a member of the workspace gets 404 `not_found`.
+         */
+        get: operations["listWorkspaceMembers"];
+        put?: never;
+        /**
+         * Add a user to a workspace by email address
+         * @description An address without a user invites one, which a user who is not an instance admin may do only while the instance settings allow member invitations; otherwise the answer is 403 `permission_denied`. Adding an admin needs the role `WORKSPACE_OWNER`, adding anyone else `WORKSPACE_ADMIN`. A user who is already a member gets 409 `already_member`.
+         */
+        post: operations["addWorkspaceMember"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspace-members/{memberId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the member, which names one user in one workspace */
+                memberId: components["parameters"]["MemberId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Replace the role of a member
+         * @description Changing an admin or making a member an admin needs the role `WORKSPACE_OWNER`, changing anyone else `WORKSPACE_ADMIN`. Changing your own role gets 409 `cannot_change_own_role`, and changing the owner's role 409 `owner_requires_transfer`.
+         */
+        put: operations["changeWorkspaceMemberRole"];
+        post?: never;
+        /**
+         * Remove a member from a workspace
+         * @description Removing an admin needs the role `WORKSPACE_OWNER`, removing anyone else `WORKSPACE_ADMIN`. Removing the owner gets 409 `owner_requires_transfer`. The user keeps their account.
+         */
+        delete: operations["removeWorkspaceMember"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/system/version": {
         parameters: {
             query?: never;
@@ -590,6 +719,121 @@ export interface components {
             /** @description The version of the running instance, such as `3.26.0` */
             version: string;
         };
+        /** @description A workspace */
+        Workspace: {
+            /**
+             * Format: uuid
+             * @description The ID of the workspace
+             */
+            id: string;
+            /** @description The name of the workspace */
+            name: string;
+            /**
+             * Format: date-time
+             * @description When the workspace was created
+             */
+            createdAt: string;
+            /** @description The role of the signed-in user in the workspace, null for an instance admin who is not a member of it */
+            currentUserRole: components["schemas"]["WorkspaceRole"] | null;
+        };
+        /** @description One page of workspaces, ordered by name */
+        WorkspacePage: {
+            /** @description The workspaces on the page */
+            items: components["schemas"]["Workspace"][];
+            /** @description The `after` of the next page, absent on the last page */
+            nextCursor?: string;
+        };
+        /** @description A new workspace */
+        WorkspaceCreate: {
+            /** @description The name of the workspace */
+            name: string;
+        };
+        /** @description The editable fields of a workspace */
+        WorkspaceUpdate: {
+            /** @description The name of the workspace */
+            name: string;
+        };
+        /** @description The member who becomes the owner of the workspace */
+        OwnershipTransfer: {
+            /**
+             * Format: uuid
+             * @description The member ID of the new owner, a member of the same workspace
+             */
+            newOwnerMemberId: string;
+        };
+        /** @description A user in a workspace */
+        WorkspaceMember: {
+            /**
+             * Format: uuid
+             * @description The member ID
+             */
+            id: string;
+            /**
+             * Format: uuid
+             * @description The workspace the member belongs to
+             */
+            workspaceId: string;
+            /**
+             * Format: uuid
+             * @description The user of the member
+             */
+            userId: string;
+            /** @description The address the user signs in with */
+            email: string;
+            /** @description The name of the user */
+            name: string;
+            role: components["schemas"]["WorkspaceRole"];
+            /** @description Whether the user was invited and has not finished sign-up */
+            isInvited: boolean;
+            /**
+             * Format: date-time
+             * @description When the user joined the workspace
+             */
+            createdAt: string;
+        };
+        /** @description One page of members, the oldest first */
+        WorkspaceMemberPage: {
+            /** @description The members on the page */
+            items: components["schemas"]["WorkspaceMember"][];
+            /** @description The `after` of the next page, absent on the last page */
+            nextCursor?: string;
+        };
+        /** @description A user to add to a workspace */
+        WorkspaceMemberAddition: {
+            /**
+             * Format: uuid
+             * @description The workspace to add the user to
+             */
+            workspaceId: string;
+            /**
+             * Format: email
+             * @description The address of the user; an address without a user invites one
+             */
+            email: string;
+            role: components["schemas"]["AssignableWorkspaceRole"];
+        };
+        /** @description The new member and whether the user was added or invited */
+        AddedWorkspaceMember: components["schemas"]["WorkspaceMember"] & {
+            /**
+             * @description `ADDED` for a user who already had an account, `INVITED` for an address that got an invited user
+             * @enum {string}
+             */
+            outcome: "ADDED" | "INVITED";
+        };
+        /** @description A new workspace role */
+        WorkspaceMemberRoleChange: {
+            role: components["schemas"]["AssignableWorkspaceRole"];
+        };
+        /**
+         * @description The role of a member in a workspace. A viewer sees it, a member also edits its content, an admin also renames it and manages members, and the owner also manages admins, transfers ownership and deletes it
+         * @enum {string}
+         */
+        WorkspaceRole: "WORKSPACE_OWNER" | "WORKSPACE_ADMIN" | "WORKSPACE_MEMBER" | "WORKSPACE_VIEWER";
+        /**
+         * @description A workspace role a request may set; the owner role changes hands only through a transfer
+         * @enum {string}
+         */
+        AssignableWorkspaceRole: "WORKSPACE_ADMIN" | "WORKSPACE_MEMBER" | "WORKSPACE_VIEWER";
         /** @description An error in the RFC 9457 format. The client chooses its text by `code` */
         Problem: {
             /** @description A URI that identifies the kind of error */
@@ -608,7 +852,7 @@ export interface components {
          * @description The cause of the error for programs; a value never changes its meaning
          * @enum {string}
          */
-        ProblemCode: "invalid_request" | "unauthenticated" | "permission_denied" | "not_found" | "rate_limited" | "human_verification_failed" | "invalid_credentials" | "user_deactivated" | "registration_closed" | "email_taken" | "invalid_reset_code" | "oauth_not_configured" | "oauth_failed" | "pending_sign_in_not_usable" | "sign_in_code_not_sent" | "too_many_sign_in_codes" | "sign_in_code_resent_too_soon" | "sign_in_code_incorrect" | "email_not_configured" | "admin_email_missing" | "internal";
+        ProblemCode: "invalid_request" | "unauthenticated" | "permission_denied" | "not_found" | "rate_limited" | "human_verification_failed" | "invalid_credentials" | "user_deactivated" | "registration_closed" | "email_taken" | "invalid_reset_code" | "oauth_not_configured" | "oauth_failed" | "pending_sign_in_not_usable" | "sign_in_code_not_sent" | "too_many_sign_in_codes" | "sign_in_code_resent_too_soon" | "sign_in_code_incorrect" | "email_not_configured" | "admin_email_missing" | "already_member" | "cannot_change_own_role" | "owner_requires_transfer" | "workspace_not_empty" | "internal";
         /** @description A field of the request that breaks the contract or a validation rule */
         FieldError: {
             /** @description The path of the field in the request, such as `name` or `settings.bucket` */
@@ -633,6 +877,10 @@ export interface components {
         UserId: string;
         /** @description The pending sign-in that the latest password step or resend named */
         PendingSignInId: string;
+        /** @description The ID of the workspace */
+        WorkspaceId: string;
+        /** @description The ID of the member, which names one user in one workspace */
+        MemberId: string;
     };
     requestBodies: never;
     headers: never;
@@ -1176,6 +1424,304 @@ export interface operations {
                     "application/json": components["schemas"]["SignInOptions"];
                 };
             };
+            default: components["responses"]["Problem"];
+        };
+    };
+    listWorkspaces: {
+        parameters: {
+            query?: {
+                /** @description The largest number of workspaces on the page */
+                limit?: number;
+                /** @description The `nextCursor` of the previous page */
+                after?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page of workspaces */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspacePage"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    createWorkspace: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The workspace to create. */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkspaceCreate"];
+            };
+        };
+        responses: {
+            /** @description The workspace, with the creator as its owner */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Workspace"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    getWorkspace: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the workspace */
+                workspaceId: components["parameters"]["WorkspaceId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The workspace */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Workspace"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    updateWorkspace: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the workspace */
+                workspaceId: components["parameters"]["WorkspaceId"];
+            };
+            cookie?: never;
+        };
+        /** @description The editable fields of the workspace. */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkspaceUpdate"];
+            };
+        };
+        responses: {
+            /** @description The workspace after the change */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Workspace"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    deleteWorkspace: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the workspace */
+                workspaceId: components["parameters"]["WorkspaceId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The workspace is deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    transferWorkspaceOwnership: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the workspace */
+                workspaceId: components["parameters"]["WorkspaceId"];
+            };
+            cookie?: never;
+        };
+        /** @description The member who becomes the owner. */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OwnershipTransfer"];
+            };
+        };
+        responses: {
+            /** @description The named member owns the workspace */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    listWorkspaceMembers: {
+        parameters: {
+            query: {
+                /** @description The workspace whose members to list */
+                workspaceId: string;
+                /** @description The largest number of members on the page */
+                limit?: number;
+                /** @description The `nextCursor` of the previous page */
+                after?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page of members */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceMemberPage"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    addWorkspaceMember: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The address, the workspace and the role of the new member. */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkspaceMemberAddition"];
+            };
+        };
+        responses: {
+            /** @description The new member and whether the user was added or invited */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AddedWorkspaceMember"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    changeWorkspaceMemberRole: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the member, which names one user in one workspace */
+                memberId: components["parameters"]["MemberId"];
+            };
+            cookie?: never;
+        };
+        /** @description The new role. */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkspaceMemberRoleChange"];
+            };
+        };
+        responses: {
+            /** @description The member after the change */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceMember"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    removeWorkspaceMember: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the member, which names one user in one workspace */
+                memberId: components["parameters"]["MemberId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The member is removed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
             default: components["responses"]["Problem"];
         };
     };

@@ -4,7 +4,7 @@ import (
 	"sync"
 
 	audit_logs "databasus-backend/internal/features/audit_logs"
-	workspaces_services "databasus-backend/internal/features/workspaces/services"
+	workspaces_bridge "databasus-backend/internal/features/workspaces"
 	"databasus-backend/internal/util/encryption"
 	"databasus-backend/internal/util/logger"
 )
@@ -17,7 +17,7 @@ var (
 		return &NotifierService{
 			getNotifierRepository(),
 			logger.GetLogger(),
-			workspaces_services.GetWorkspaceService(),
+			workspaces_bridge.GetAccess(),
 			audit_logs.GetAuditLogService(),
 			encryption.GetFieldEncryptor(),
 			nil,
@@ -28,7 +28,7 @@ var (
 var getNotifierController = sync.OnceValue(func() *NotifierController {
 	return &NotifierController{
 		getNotifierService(),
-		workspaces_services.GetWorkspaceService(),
+		workspaces_bridge.GetAccess(),
 	}
 })
 
@@ -43,7 +43,3 @@ func GetNotifierService() *NotifierService {
 func GetNotifierRepository() *NotifierRepository {
 	return getNotifierRepository()
 }
-
-var SetupDependencies = sync.OnceFunc(func() {
-	workspaces_services.GetWorkspaceService().AddWorkspaceDeletionListener(getNotifierService())
-})

@@ -10,7 +10,7 @@ import { type Database, DatabaseType, databaseApi } from '../../../entity/databa
 import type { Notifier } from '../../../entity/notifiers';
 import { notifierApi } from '../../../entity/notifiers';
 import { type Storage, getStorageLogoFromType, storageApi } from '../../../entity/storages';
-import { type WorkspaceResponse, workspaceApi } from '../../../entity/workspaces';
+import { type Workspace, workspaceApi } from '../../../entity/workspaces';
 import { translateApiError } from '../../../shared/i18n';
 import { ToastHelper } from '../../../shared/toast';
 import { EditNotifierComponent } from '../../notifiers/ui/edit/EditNotifierComponent';
@@ -37,7 +37,7 @@ export const DatabaseTransferDialogComponent = ({
 }: Props) => {
   const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(true);
-  const [workspaces, setWorkspaces] = useState<WorkspaceResponse[]>([]);
+  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | undefined>();
 
   const [storageOption, setStorageOption] = useState<'transfer' | 'select'>('select');
@@ -67,8 +67,8 @@ export const DatabaseTransferDialogComponent = ({
     setIsLoading(true);
 
     try {
-      const response = await workspaceApi.getWorkspaces();
-      const filteredWorkspaces = response.workspaces.filter((w) => w.id !== database.workspaceId);
+      const listedWorkspaces = await workspaceApi.listAllWorkspaces();
+      const filteredWorkspaces = listedWorkspaces.filter((w) => w.id !== database.workspaceId);
       setWorkspaces(filteredWorkspaces);
     } catch (e) {
       alert(translateApiError(e, t));

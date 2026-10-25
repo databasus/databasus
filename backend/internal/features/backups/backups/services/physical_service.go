@@ -23,7 +23,7 @@ import (
 	backups_dto_physical "databasus-backend/internal/features/backups/backups/dto/physical"
 	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
 	"databasus-backend/internal/features/databases"
-	workspaces_services "databasus-backend/internal/features/workspaces/services"
+	workspaces_bridge "databasus-backend/internal/features/workspaces"
 	"databasus-backend/internal/lib/crypto"
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/modules/workspaces"
@@ -54,7 +54,7 @@ var ErrBackupNotInProgress = errors.New("backup is not in progress")
 // OpenRestoreStream is the auth-free seam reused by restore verification.
 type PhysicalBackupService struct {
 	databaseService             *databases.DatabaseService
-	workspaceService            *workspaces_services.WorkspaceService
+	workspaceService            *workspaces_bridge.Access
 	backupConfigService         *backups_config_physical.BackupConfigService
 	chainViewService            *chain_view.ChainViewService
 	physicalCoreService         *physical_core_service.PhysicalBackupService

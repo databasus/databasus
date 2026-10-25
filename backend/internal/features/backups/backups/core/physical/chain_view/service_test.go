@@ -19,8 +19,6 @@ import (
 	"databasus-backend/internal/features/notifiers"
 	"databasus-backend/internal/features/storages"
 	users_testing "databasus-backend/internal/features/users/testing"
-	workspaces_controllers "databasus-backend/internal/features/workspaces/controllers"
-	workspaces_models "databasus-backend/internal/features/workspaces/models"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/util/walmath"
@@ -35,7 +33,7 @@ const (
 
 type chainViewTestPrereqs struct {
 	user      *users_testing.TestUser
-	workspace *workspaces_models.Workspace
+	workspace *workspaces_testing.TestWorkspace
 	storage   *storages.Storage
 	notifier  *notifiers.Notifier
 	database  *databases.Database
@@ -44,9 +42,8 @@ type chainViewTestPrereqs struct {
 func createChainViewTestPrereqs(t *testing.T) *chainViewTestPrereqs {
 	t.Helper()
 
-	router := newChainViewTestRouter()
 	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Chain View Test "+uuid.NewString(), user, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Chain View Test "+uuid.NewString(), user)
 	storage := storages.CreateTestStorage(workspace.ID)
 	notifier := notifiers.CreateTestNotifier(workspace.ID)
 	database := databases.CreateTestPhysicalPostgresDatabase(workspace.ID, notifier, "17")
@@ -69,8 +66,6 @@ func createChainViewTestPrereqs(t *testing.T) *chainViewTestPrereqs {
 
 func newChainViewTestRouter() *gin.Engine {
 	return workspaces_testing.CreateTestRouter(
-		workspaces_controllers.GetWorkspaceController(),
-		workspaces_controllers.GetMembershipController(),
 		databases.GetDatabaseController(),
 	)
 }

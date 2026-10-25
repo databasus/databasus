@@ -13,7 +13,6 @@ import (
 	"databasus-backend/internal/features/intervals"
 	"databasus-backend/internal/features/storages"
 	users_testing "databasus-backend/internal/features/users/testing"
-	workspaces_controllers "databasus-backend/internal/features/workspaces/controllers"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/util/period"
@@ -23,7 +22,7 @@ import (
 func Test_AttachStorageFromSameWorkspace_SuccessfullyAttached(t *testing.T) {
 	router := createTestRouterWithStorage()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
 
 	database := createTestDatabaseViaAPI("Test Database", workspace.ID, owner.Token, router)
 	storage := createTestStorage(workspace.ID)
@@ -31,7 +30,7 @@ func Test_AttachStorageFromSameWorkspace_SuccessfullyAttached(t *testing.T) {
 	defer func() {
 		databases.RemoveTestDatabase(t.Context(), database)
 		storages.RemoveTestStorage(t.Context(), storage.ID)
-		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	}()
 
 	timeOfDay := "04:00"
@@ -73,18 +72,18 @@ func Test_AttachStorageFromDifferentWorkspace_ReturnsForbidden(t *testing.T) {
 	router := createTestRouterWithStorage()
 
 	owner1 := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace1 := workspaces_testing.CreateTestWorkspace(t.Context(), "Workspace 1", owner1, router)
+	workspace1 := workspaces_testing.CreateTestWorkspace(t.Context(), "Workspace 1", owner1)
 	database := createTestDatabaseViaAPI("Test Database", workspace1.ID, owner1.Token, router)
 
 	owner2 := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace2 := workspaces_testing.CreateTestWorkspace(t.Context(), "Workspace 2", owner2, router)
+	workspace2 := workspaces_testing.CreateTestWorkspace(t.Context(), "Workspace 2", owner2)
 	storage := createTestStorage(workspace2.ID)
 
 	defer func() {
 		databases.RemoveTestDatabase(t.Context(), database)
 		storages.RemoveTestStorage(t.Context(), storage.ID)
-		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace1, router)
-		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace2, router)
+		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace1)
+		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace2)
 	}()
 
 	timeOfDay := "04:00"
@@ -121,7 +120,7 @@ func Test_AttachStorageFromDifferentWorkspace_ReturnsForbidden(t *testing.T) {
 func Test_DeleteStorageWithAttachedDatabases_CannotDelete(t *testing.T) {
 	router := createTestRouterWithStorage()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
 
 	database := createTestDatabaseViaAPI("Test Database", workspace.ID, owner.Token, router)
 	storage := createTestStorage(workspace.ID)
@@ -129,7 +128,7 @@ func Test_DeleteStorageWithAttachedDatabases_CannotDelete(t *testing.T) {
 	defer func() {
 		databases.RemoveTestDatabase(t.Context(), database)
 		storages.RemoveTestStorage(t.Context(), storage.ID)
-		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	}()
 
 	timeOfDay := "04:00"
@@ -180,8 +179,8 @@ func Test_DeleteStorageWithAttachedDatabases_CannotDelete(t *testing.T) {
 func Test_TransferStorageWithAttachedDatabase_CannotTransfer(t *testing.T) {
 	router := createTestRouterWithStorage()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
-	targetWorkspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Target Workspace", owner, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
+	targetWorkspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Target Workspace", owner)
 
 	database := createTestDatabaseViaAPI("Test Database", workspace.ID, owner.Token, router)
 	storage := createTestStorage(workspace.ID)
@@ -189,8 +188,8 @@ func Test_TransferStorageWithAttachedDatabase_CannotTransfer(t *testing.T) {
 	defer func() {
 		databases.RemoveTestDatabase(t.Context(), database)
 		storages.RemoveTestStorage(t.Context(), storage.ID)
-		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
-		workspaces_testing.RemoveTestWorkspace(t.Context(), targetWorkspace, router)
+		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
+		workspaces_testing.RemoveTestWorkspace(t.Context(), targetWorkspace)
 	}()
 
 	timeOfDay := "04:00"
@@ -245,14 +244,11 @@ func Test_TransferStorageWithAttachedDatabase_CannotTransfer(t *testing.T) {
 
 func createTestRouterWithStorage() *gin.Engine {
 	router := workspaces_testing.CreateTestRouter(
-		workspaces_controllers.GetWorkspaceController(),
-		workspaces_controllers.GetMembershipController(),
 		databases.GetDatabaseController(),
 		GetBackupConfigController(),
 		storages.GetStorageController(),
 	)
 
-	storages.SetupDependencies()
 	databases.SetupDependencies()
 	SetupDependencies()
 

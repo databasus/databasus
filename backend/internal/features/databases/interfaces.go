@@ -6,7 +6,6 @@ import (
 	"github.com/google/uuid"
 
 	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
-	workspaces_models "databasus-backend/internal/features/workspaces/models"
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/modules/workspaces"
 )
@@ -15,7 +14,7 @@ type databaseStore interface {
 	Save(database *Database) (*Database, error)
 	FindByID(id uuid.UUID) (*Database, error)
 	UpdateColumns(id uuid.UUID, columns map[string]any) error
-	FindByWorkspaceID(workspaceID uuid.UUID) ([]*Database, error)
+	FindByWorkspaceID(ctx context.Context, workspaceID uuid.UUID) ([]*Database, error)
 	Delete(id uuid.UUID) error
 	IsNotifierUsing(notifierID uuid.UUID) (bool, error)
 	GetAllDatabases() ([]*Database, error)
@@ -29,7 +28,7 @@ type workspaceService interface {
 		workspaceID uuid.UUID,
 		action workspaces.Action,
 	) (bool, error)
-	GetWorkspaceByID(workspaceID uuid.UUID) (*workspaces_models.Workspace, error)
+	GetWorkspaceByID(ctx context.Context, workspaceID uuid.UUID) (workspaces.Workspace, error)
 }
 
 type DatabaseCreationListener interface {

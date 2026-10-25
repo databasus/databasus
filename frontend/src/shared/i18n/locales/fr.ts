@@ -124,6 +124,12 @@ export const fr: typeof en = {
     },
   },
   errors: {
+    alreadyMember: "Cet utilisateur est déjà membre de l'espace de travail.",
+    cannotChangeOwnRole: "Vous ne pouvez pas modifier votre propre rôle dans l'espace de travail.",
+    ownerRequiresTransfer:
+      "Le propriétaire ne peut être ni modifié ni retiré. Transférez d'abord la propriété à un autre membre.",
+    workspaceNotEmpty:
+      "L'espace de travail contient encore des bases de données. Supprimez-les d'abord, puis supprimez l'espace de travail.",
     unknown: "Une erreur s'est produite. Réessayez.",
     networkUnreachable:
       'Impossible de joindre le serveur Databasus. Vérifiez votre connexion et réessayez.',
@@ -880,6 +886,7 @@ export const fr: typeof en = {
         description:
           "Cet utilisateur n'a pas encore de compte, mais il a été invité dans l'espace de travail. Dès qu'il s'inscrira avec cette adresse e-mail, il en deviendra automatiquement membre.",
       },
+      invitedMark: 'Invité',
       roleChanged: 'Rôle du membre modifié',
       remove: {
         tooltip: 'Supprimer le membre',

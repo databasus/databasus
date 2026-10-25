@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 
 import { logicalBackupConfigApi } from '../../../entity/backups/logical';
 import { type Storage, storageApi } from '../../../entity/storages';
-import { type WorkspaceResponse, workspaceApi } from '../../../entity/workspaces';
+import { type Workspace, workspaceApi } from '../../../entity/workspaces';
 import { translateApiError } from '../../../shared/i18n';
 
 interface Props {
@@ -17,7 +17,7 @@ export const StorageTransferDialogComponent = ({ storage, onClose, onTransferred
   const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(true);
   const [isStorageInUse, setIsStorageInUse] = useState(false);
-  const [workspaces, setWorkspaces] = useState<WorkspaceResponse[]>([]);
+  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | undefined>();
   const [isTransferring, setIsTransferring] = useState(false);
 
@@ -29,8 +29,8 @@ export const StorageTransferDialogComponent = ({ storage, onClose, onTransferred
       setIsStorageInUse(isUsing);
 
       if (!isUsing) {
-        const response = await workspaceApi.getWorkspaces();
-        const filteredWorkspaces = response.workspaces.filter((w) => w.id !== storage.workspaceId);
+        const listedWorkspaces = await workspaceApi.listAllWorkspaces();
+        const filteredWorkspaces = listedWorkspaces.filter((w) => w.id !== storage.workspaceId);
         setWorkspaces(filteredWorkspaces);
       }
     } catch (e) {

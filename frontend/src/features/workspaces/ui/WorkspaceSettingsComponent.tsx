@@ -6,22 +6,19 @@ import { Trans, useTranslation } from 'react-i18next';
 import { databaseApi } from '../../../entity/databases/api/databaseApi';
 import type { User } from '../../../entity/users';
 import { UserRole } from '../../../entity/users';
-import { WorkspaceRole } from '../../../entity/users';
-import { workspaceApi } from '../../../entity/workspaces/api/workspaceApi';
-import type { Workspace } from '../../../entity/workspaces/model/Workspace';
-import type { WorkspaceResponse } from '../../../entity/workspaces/model/WorkspaceResponse';
+import { type Workspace, WorkspaceRole, workspaceApi } from '../../../entity/workspaces';
 import { useIsMobile } from '../../../shared/hooks';
 import { translateApiError } from '../../../shared/i18n';
 import { WorkspaceAuditLogsComponent } from './WorkspaceAuditLogsComponent';
-import { WorkspaceMembershipComponent } from './WorkspaceMembershipComponent';
+import { WorkspaceMembersComponent } from './WorkspaceMembersComponent';
 
 interface Props {
-  workspaceResponse: WorkspaceResponse;
+  selectedWorkspace: Workspace;
   user: User;
   contentHeight: number;
 }
 
-export function WorkspaceSettingsComponent({ workspaceResponse, user, contentHeight }: Props) {
+export function WorkspaceSettingsComponent({ selectedWorkspace, user, contentHeight }: Props) {
   const { t } = useTranslation();
   const { message, modal } = App.useApp();
   const isMobile = useIsMobile();
@@ -37,16 +34,16 @@ export function WorkspaceSettingsComponent({ workspaceResponse, user, contentHei
 
   const [basicInfoChanges, setBasicInfoChanges] = useState(false);
 
-  // Only OWNER and ADMIN can edit workspace settings
-  // MEMBER and VIEWER can only view
+  const isInstanceAdmin = user.role === UserRole.ADMIN;
   const canEdit =
-    user.role === UserRole.ADMIN ||
-    workspaceResponse.userRole === WorkspaceRole.OWNER ||
-    workspaceResponse.userRole === WorkspaceRole.ADMIN;
+    isInstanceAdmin ||
+    selectedWorkspace.currentUserRole === WorkspaceRole.OWNER ||
+    selectedWorkspace.currentUserRole === WorkspaceRole.ADMIN;
+  const canDelete = isInstanceAdmin || selectedWorkspace.currentUserRole === WorkspaceRole.OWNER;
 
   useEffect(() => {
     loadWorkspace();
-  }, [workspaceResponse.id]);
+  }, [selectedWorkspace.id]);
 
   const checkBasicInfoChanges = (newFormWorkspace: Partial<Workspace>): boolean => {
     if (!workspace) return false;
@@ -57,7 +54,7 @@ export function WorkspaceSettingsComponent({ workspaceResponse, user, contentHei
     setIsLoading(true);
 
     try {
-      const workspaceData = await workspaceApi.getWorkspace(workspaceResponse.id);
+      const workspaceData = await workspaceApi.getWorkspace(selectedWorkspace.id);
       setWorkspace(workspaceData);
       setFormWorkspace(workspaceData);
       setNameError(false);
@@ -91,11 +88,10 @@ export function WorkspaceSettingsComponent({ workspaceResponse, user, contentHei
 
     setIsSaving(true);
     try {
-      const updateData = {
-        ...workspace,
-        name: formWorkspace.name,
-      };
-      const updatedWorkspace = await workspaceApi.updateWorkspace(workspace.id, updateData);
+      const updatedWorkspace = await workspaceApi.updateWorkspace(
+        workspace.id,
+        formWorkspace.name.trim(),
+      );
       setWorkspace(updatedWorkspace);
       setFormWorkspace(updatedWorkspace);
 
@@ -116,7 +112,7 @@ export function WorkspaceSettingsComponent({ workspaceResponse, user, contentHei
       return;
     }
 
-    if (!canEdit) {
+    if (!canDelete) {
       message.error(t('workspaces.delete.noPermission'));
       return;
     }
@@ -241,10 +237,10 @@ export function WorkspaceSettingsComponent({ workspaceResponse, user, contentHei
                 </div>
 
                 <div className="max-w-2xl border-b border-gray-200 pb-6 dark:border-gray-700">
-                  <WorkspaceMembershipComponent workspaceResponse={workspaceResponse} user={user} />
+                  <WorkspaceMembersComponent selectedWorkspace={selectedWorkspace} user={user} />
                 </div>
 
-                {canEdit && (
+                {canDelete && (
                   <div className="max-w-2xl border-b border-gray-200 pb-6 dark:border-gray-700">
                     <h2 className="mb-4 text-xl font-bold text-gray-900 dark:text-white">
                       {t('workspaces.delete.dangerZone')}
@@ -268,7 +264,7 @@ export function WorkspaceSettingsComponent({ workspaceResponse, user, contentHei
                             type="primary"
                             danger
                             onClick={handleDeleteWorkspace}
-                            disabled={!canEdit || isDeleting || isSaving}
+                            disabled={!canDelete || isDeleting || isSaving}
                             loading={isDeleting}
                             className={`bg-red-600 hover:bg-red-700 ${isMobile ? 'w-full' : ''}`}
                           >

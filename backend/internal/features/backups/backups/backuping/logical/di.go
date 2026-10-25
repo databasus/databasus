@@ -12,7 +12,7 @@ import (
 	"databasus-backend/internal/features/notifiers"
 	"databasus-backend/internal/features/storages"
 	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
-	workspaces_services "databasus-backend/internal/features/workspaces/services"
+	workspaces_bridge "databasus-backend/internal/features/workspaces"
 	"databasus-backend/internal/util/logger"
 )
 
@@ -39,7 +39,7 @@ var getBackupCleaner = sync.OnceValue(func() *BackupCleaner {
 var getBackuper = sync.OnceValue(func() *Backuper {
 	return &Backuper{
 		databases.GetDatabaseService(),
-		workspaces_services.GetWorkspaceService(),
+		workspaces_bridge.GetAccess(),
 		getBackupRepository(),
 		backups_config_logical.GetBackupConfigService(),
 		storages.GetStorageFileStore(),

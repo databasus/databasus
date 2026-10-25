@@ -23,8 +23,8 @@ import (
 func Test_ClaimVerification_AssignmentDatabase_StripsSensitiveData(t *testing.T) {
 	router := createTestRouter()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner, router)
-	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner)
+	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
 	testStorage := storages.CreateTestStorage(workspace.ID)
 	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)

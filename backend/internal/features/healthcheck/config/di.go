@@ -5,7 +5,7 @@ import (
 
 	"databasus-backend/internal/features/audit_logs"
 	"databasus-backend/internal/features/databases"
-	workspaces_services "databasus-backend/internal/features/workspaces/services"
+	workspaces_bridge "databasus-backend/internal/features/workspaces"
 	"databasus-backend/internal/util/logger"
 )
 
@@ -17,7 +17,7 @@ var (
 		return &HealthcheckConfigService{
 			databases.GetDatabaseService(),
 			getHealthcheckConfigRepository(),
-			workspaces_services.GetWorkspaceService(),
+			workspaces_bridge.GetAccess(),
 			audit_logs.GetAuditLogService(),
 			logger.GetLogger(),
 		}

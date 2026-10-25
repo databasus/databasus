@@ -23,7 +23,7 @@ import (
 	"databasus-backend/internal/features/storages"
 	storage_files "databasus-backend/internal/features/storages/files"
 	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
-	workspaces_services "databasus-backend/internal/features/workspaces/services"
+	workspaces_bridge "databasus-backend/internal/features/workspaces"
 	"databasus-backend/internal/lib/crypto"
 	"databasus-backend/internal/storage"
 	util_encryption "databasus-backend/internal/util/encryption"
@@ -38,7 +38,7 @@ const metadataSuffix = ".metadata"
 type PhysicalBackuper struct {
 	databaseService          *databases.DatabaseService
 	fieldEncryptor           util_encryption.FieldEncryptor
-	workspaceService         *workspaces_services.WorkspaceService
+	workspaceService         *workspaces_bridge.Access
 	fullRepo                 *physical_repositories.PhysicalFullBackupRepository
 	incrRepo                 *physical_repositories.PhysicalIncrementalBackupRepository
 	inFlightRepo             *physical_repositories.PhysicalInFlightBackupRepository
@@ -732,7 +732,13 @@ func (b *PhysicalBackuper) sendFullBackupNotification(
 	fullBackup *physical_models.PhysicalFullBackup,
 	backupResult postgresql_executor.PhysicalBackupResult,
 ) {
-	notificationType, title, message := classifyFullBackupNotification(db, fullBackup, backupResult, b.workspaceService)
+	notificationType, title, message := classifyFullBackupNotification(
+		ctx,
+		db,
+		fullBackup,
+		backupResult,
+		b.workspaceService,
+	)
 	if notificationType == "" {
 		return
 	}
@@ -759,7 +765,13 @@ func (b *PhysicalBackuper) sendIncrBackupNotification(
 	incrBackup *physical_models.PhysicalIncrementalBackup,
 	backupResult postgresql_executor.PhysicalBackupResult,
 ) {
-	notificationType, title, message := classifyIncrBackupNotification(db, incrBackup, backupResult, b.workspaceService)
+	notificationType, title, message := classifyIncrBackupNotification(
+		ctx,
+		db,
+		incrBackup,
+		backupResult,
+		b.workspaceService,
+	)
 	if notificationType == "" {
 		return
 	}
@@ -790,14 +802,15 @@ func toNotificationType(
 }
 
 func classifyFullBackupNotification(
+	ctx context.Context,
 	db *databases.Database,
 	fullBackup *physical_models.PhysicalFullBackup,
 	backupResult postgresql_executor.PhysicalBackupResult,
-	workspaceService *workspaces_services.WorkspaceService,
+	workspaceService *workspaces_bridge.Access,
 ) (backups_config_physical.BackupNotificationType, string, string) {
 	workspaceName := "unknown"
 	if db.WorkspaceID != nil {
-		if ws, err := workspaceService.GetWorkspaceByID(*db.WorkspaceID); err == nil {
+		if ws, err := workspaceService.GetWorkspaceByID(ctx, *db.WorkspaceID); err == nil {
 			workspaceName = ws.Name
 		}
 	}
@@ -826,14 +839,15 @@ func classifyFullBackupNotification(
 }
 
 func classifyIncrBackupNotification(
+	ctx context.Context,
 	db *databases.Database,
 	incrBackup *physical_models.PhysicalIncrementalBackup,
 	backupResult postgresql_executor.PhysicalBackupResult,
-	workspaceService *workspaces_services.WorkspaceService,
+	workspaceService *workspaces_bridge.Access,
 ) (backups_config_physical.BackupNotificationType, string, string) {
 	workspaceName := "unknown"
 	if db.WorkspaceID != nil {
-		if ws, err := workspaceService.GetWorkspaceByID(*db.WorkspaceID); err == nil {
+		if ws, err := workspaceService.GetWorkspaceByID(ctx, *db.WorkspaceID); err == nil {
 			workspaceName = ws.Name
 		}
 	}

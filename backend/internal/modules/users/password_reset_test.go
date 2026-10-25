@@ -62,7 +62,7 @@ func TestRequestPasswordReset(t *testing.T) {
 	t.Run("answers alike and mails nothing for an invited user", func(t *testing.T) {
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
-		invitedEmail := inviteThroughWorkspace(t, app, admin)
+		invitedEmail := inviteThroughWorkspace(t, admin)
 		mailCountBeforeReset := len(app.Mail.GetMessagesTo(invitedEmail))
 
 		response := requestPasswordReset(t, app, invitedEmail)

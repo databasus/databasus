@@ -11,7 +11,7 @@ import (
 	"databasus-backend/internal/features/audit_logs"
 	audit_logs_models "databasus-backend/internal/features/audit_logs/models"
 	"databasus-backend/internal/features/databases"
-	workspaces_services "databasus-backend/internal/features/workspaces/services"
+	workspaces_bridge "databasus-backend/internal/features/workspaces"
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/modules/workspaces"
 )
@@ -19,7 +19,7 @@ import (
 type HealthcheckConfigService struct {
 	databaseService             *databases.DatabaseService
 	healthcheckConfigRepository *HealthcheckConfigRepository
-	workspaceService            *workspaces_services.WorkspaceService
+	workspaceService            *workspaces_bridge.Access
 	auditLogService             *audit_logs.AuditLogService
 	logger                      *slog.Logger
 }

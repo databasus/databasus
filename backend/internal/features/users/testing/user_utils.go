@@ -68,7 +68,10 @@ func DeactivateTestUser(ctx context.Context, userID uuid.UUID) {
 	executeSQL(ctx, "UPDATE users SET status = ? WHERE id = ?", users.StatusInactive, userID)
 }
 
+// DeleteTestUser removes the user's members first, because a member keeps its user from being
+// deleted.
 func DeleteTestUser(ctx context.Context, userID uuid.UUID) {
+	executeSQL(ctx, "DELETE FROM workspaces_members WHERE user_id = ?", userID)
 	executeSQL(ctx, "DELETE FROM users WHERE id = ?", userID)
 }
 
@@ -89,6 +92,7 @@ func RecreateInitialAdmin(ctx context.Context) *TestUser {
 // DeleteAllUsers empties the users table. The tests of one package share the database of their
 // test process, so a test keyed on the first-user rule has to make the instance empty itself.
 func DeleteAllUsers() {
+	executeSQL(context.Background(), "DELETE FROM workspaces_members")
 	executeSQL(context.Background(), "DELETE FROM users")
 }
 

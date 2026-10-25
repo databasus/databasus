@@ -6,6 +6,7 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
+	"databasus-backend/internal/lib/database"
 	db "databasus-backend/internal/storage"
 )
 
@@ -164,11 +165,10 @@ func (r *StorageRepository) GetAllStorages() ([]*Storage, error) {
 	return storages, nil
 }
 
-func (r *StorageRepository) FindByWorkspaceID(workspaceID uuid.UUID) ([]*Storage, error) {
+func (r *StorageRepository) FindByWorkspaceID(ctx context.Context, workspaceID uuid.UUID) ([]*Storage, error) {
 	var storages []*Storage
 
-	if err := db.
-		GetDb().
+	if err := database.Conn(ctx, db.GetDb()).
 		Preload("LocalStorage").
 		Preload("S3Storage").
 		Preload("GoogleDriveStorage").
@@ -186,8 +186,8 @@ func (r *StorageRepository) FindByWorkspaceID(workspaceID uuid.UUID) ([]*Storage
 	return storages, nil
 }
 
-func (r *StorageRepository) Delete(s *Storage) error {
-	return db.GetDb().Transaction(func(tx *gorm.DB) error {
+func (r *StorageRepository) Delete(ctx context.Context, s *Storage) error {
+	return database.Conn(ctx, db.GetDb()).Transaction(func(tx *gorm.DB) error {
 		// Delete specific storage based on type
 		switch s.Type {
 		case StorageTypeLocal:

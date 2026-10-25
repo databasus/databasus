@@ -5,8 +5,7 @@ import { useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
 import { type User, UserRole, type InstanceSettings } from '../../../entity/users';
-import type { WorkspaceResponse } from '../../../entity/workspaces';
-import { workspaceApi } from '../../../entity/workspaces';
+import { type Workspace, workspaceApi } from '../../../entity/workspaces';
 import { translateApiError } from '../../../shared/i18n';
 
 interface Props {
@@ -14,7 +13,7 @@ interface Props {
   globalSettings: InstanceSettings;
 
   onClose: () => void;
-  onWorkspaceCreated: (workspace: WorkspaceResponse) => void;
+  onWorkspaceCreated: (workspace: Workspace) => void;
 
   workspacesCount: number;
 }
@@ -45,9 +44,7 @@ export const CreateWorkspaceDialogComponent = ({
     setIsCreating(true);
 
     try {
-      const newWorkspace = await workspaceApi.createWorkspace({
-        name: workspaceName.trim(),
-      });
+      const newWorkspace = await workspaceApi.createWorkspace(workspaceName.trim());
 
       message.success(t('workspaces.create.created'));
       onWorkspaceCreated(newWorkspace);

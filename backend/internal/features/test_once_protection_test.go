@@ -12,10 +12,8 @@ import (
 	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
 	"databasus-backend/internal/features/databases"
 	healthcheck_config "databasus-backend/internal/features/healthcheck/config"
-	"databasus-backend/internal/features/notifiers"
 	"databasus-backend/internal/features/restores"
 	"databasus-backend/internal/features/restores/restoring"
-	"databasus-backend/internal/features/storages"
 	task_cancellation "databasus-backend/internal/features/tasks/cancellation"
 )
 
@@ -41,14 +39,8 @@ func Test_SetupDependencies_CalledTwice_LogsWarning(t *testing.T) {
 	healthcheck_config.SetupDependencies()
 	healthcheck_config.SetupDependencies()
 
-	notifiers.SetupDependencies()
-	notifiers.SetupDependencies()
-
 	restores.SetupDependencies()
 	restores.SetupDependencies()
-
-	storages.SetupDependencies()
-	storages.SetupDependencies()
 
 	task_cancellation.SetupDependencies()
 	task_cancellation.SetupDependencies()

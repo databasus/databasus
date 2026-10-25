@@ -72,7 +72,7 @@ INSERT INTO public.%s (id, label) VALUES (1, 'alpha'), (2, 'beta'), (3, 'gamma')
 
 	router := logicaltesting.CreateTestRouter()
 	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", user, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", user)
 	storage := storages.CreateTestStorage(workspace.ID)
 
 	database := createDatabaseWithSchemasViaAPI(
@@ -138,7 +138,7 @@ INSERT INTO public.%s (id, label) VALUES (1, 'alpha'), (2, 'beta'), (3, 'gamma')
 		http.StatusNoContent,
 	)
 	storages.RemoveTestStorage(t.Context(), storage.ID)
-	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 }
 
 func seedHypertableQuery(tableName string) string {
@@ -184,7 +184,7 @@ func testTimescaleBackupRestoreForCpuCount(t *testing.T, endpoint containers.End
 
 	router := logicaltesting.CreateTestRouter()
 	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", user, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", user)
 	storage := storages.CreateTestStorage(workspace.ID)
 
 	database := createDatabaseWithCpuCountViaAPI(
@@ -248,7 +248,7 @@ func testTimescaleBackupRestoreForCpuCount(t *testing.T, endpoint containers.End
 		http.StatusNoContent,
 	)
 	storages.RemoveTestStorage(t.Context(), storage.ID)
-	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 }
 
 func assertHypertableRestored(t *testing.T, restoredDB *sqlx.DB, tableName string, expectedRows int) {

@@ -122,6 +122,12 @@ export const en = {
     },
   },
   errors: {
+    alreadyMember: 'This user is already a member of the workspace.',
+    cannotChangeOwnRole: 'You cannot change your own role in the workspace.',
+    ownerRequiresTransfer:
+      'The owner cannot be changed or removed. Transfer the ownership to another member first.',
+    workspaceNotEmpty:
+      'The workspace still has databases. Delete them first, then delete the workspace.',
     unknown: 'Something went wrong. Please try again.',
     networkUnreachable: 'Cannot reach the Databasus server. Check your connection and try again.',
     requestFailed:
@@ -850,6 +856,7 @@ export const en = {
         description:
           'The user is not present in the system yet, but has been invited to the workspace. After the user signs up via specified email, they will automatically become a member of the workspace.',
       },
+      invitedMark: 'Invited',
       roleChanged: 'Member role updated successfully',
       remove: {
         tooltip: 'Remove member',

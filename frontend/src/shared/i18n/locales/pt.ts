@@ -125,6 +125,12 @@ export const pt: typeof en = {
     },
   },
   errors: {
+    alreadyMember: 'Este usuário já é membro do espaço de trabalho.',
+    cannotChangeOwnRole: 'Você não pode alterar seu próprio papel no espaço de trabalho.',
+    ownerRequiresTransfer:
+      'O proprietário não pode ser alterado nem removido. Primeiro transfira a propriedade para outro membro.',
+    workspaceNotEmpty:
+      'O espaço de trabalho ainda tem bancos de dados. Exclua-os primeiro e depois exclua o espaço de trabalho.',
     unknown: 'Algo deu errado. Tente novamente.',
     networkUnreachable:
       'Não foi possível acessar o servidor do Databasus. Verifique sua conexão e tente novamente.',
@@ -871,6 +877,7 @@ export const pt: typeof en = {
         description:
           'O usuário ainda não está no sistema, mas já foi convidado para o espaço de trabalho. Quando ele se registrar com esse e-mail, vai se tornar membro do espaço de trabalho automaticamente.',
       },
+      invitedMark: 'Convidado',
       roleChanged: 'Papel do membro atualizado',
       remove: {
         tooltip: 'Remover membro',

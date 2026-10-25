@@ -233,7 +233,7 @@ func testBackupRestoreForVersion(t *testing.T, endpoint containers.Endpoint, pgV
 
 	router := logicaltesting.CreateTestRouter()
 	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", user, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", user)
 
 	storage := storages.CreateTestStorage(workspace.ID)
 
@@ -314,7 +314,7 @@ func testBackupRestoreForVersion(t *testing.T, endpoint containers.Endpoint, pgV
 		http.StatusNoContent,
 	)
 	storages.RemoveTestStorage(t.Context(), storage.ID)
-	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 }
 
 func testSchemaSelectionAllSchemasForVersion(t *testing.T, endpoint containers.Endpoint, pgVersion string) {
@@ -351,7 +351,7 @@ func testSchemaSelectionAllSchemasForVersion(t *testing.T, endpoint containers.E
 
 	router := logicaltesting.CreateTestRouter()
 	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Schema Test Workspace", user, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Schema Test Workspace", user)
 
 	storage := storages.CreateTestStorage(workspace.ID)
 
@@ -443,7 +443,7 @@ func testSchemaSelectionAllSchemasForVersion(t *testing.T, endpoint containers.E
 		http.StatusNoContent,
 	)
 	storages.RemoveTestStorage(t.Context(), storage.ID)
-	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 }
 
 func testBackupRestoreWithExcludeExtensionsForVersion(t *testing.T, endpoint containers.Endpoint, pgVersion string) {
@@ -480,7 +480,7 @@ func testBackupRestoreWithExcludeExtensionsForVersion(t *testing.T, endpoint con
 
 	router := logicaltesting.CreateTestRouter()
 	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Extension Test Workspace", user, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Extension Test Workspace", user)
 
 	storage := storages.CreateTestStorage(workspace.ID)
 
@@ -571,7 +571,7 @@ func testBackupRestoreWithExcludeExtensionsForVersion(t *testing.T, endpoint con
 		http.StatusNoContent,
 	)
 	storages.RemoveTestStorage(t.Context(), storage.ID)
-	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 }
 
 // testBackupRestoreSkipUserMappingsForVersion backs up under a role that cannot read a user
@@ -625,7 +625,7 @@ func testBackupRestoreSkipUserMappingsForVersion(t *testing.T, endpoint containe
 
 	router := logicaltesting.CreateTestRouter()
 	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Skip User Mappings Workspace", user, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Skip User Mappings Workspace", user)
 
 	storage := storages.CreateTestStorage(workspace.ID)
 
@@ -700,7 +700,7 @@ func testBackupRestoreSkipUserMappingsForVersion(t *testing.T, endpoint containe
 		http.StatusNoContent,
 	)
 	storages.RemoveTestStorage(t.Context(), storage.ID)
-	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 }
 
 func testBackupRestoreWithoutExcludeExtensionsForVersion(
@@ -741,9 +741,7 @@ func testBackupRestoreWithoutExcludeExtensionsForVersion(
 	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(),
 		"Extension Recovery Test Workspace",
-		user,
-		router,
-	)
+		user)
 
 	storage := storages.CreateTestStorage(workspace.ID)
 
@@ -850,7 +848,7 @@ func testBackupRestoreWithoutExcludeExtensionsForVersion(
 		http.StatusNoContent,
 	)
 	storages.RemoveTestStorage(t.Context(), storage.ID)
-	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 }
 
 func testBackupRestoreWithRestoreOwnershipForVersion(t *testing.T, endpoint containers.Endpoint, pgVersion string) {
@@ -887,7 +885,7 @@ func testBackupRestoreWithRestoreOwnershipForVersion(t *testing.T, endpoint cont
 
 	router := logicaltesting.CreateTestRouter()
 	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Ownership Test Workspace", user, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Ownership Test Workspace", user)
 
 	storage := storages.CreateTestStorage(workspace.ID)
 
@@ -963,7 +961,7 @@ func testBackupRestoreWithRestoreOwnershipForVersion(t *testing.T, endpoint cont
 		http.StatusNoContent,
 	)
 	storages.RemoveTestStorage(t.Context(), storage.ID)
-	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 }
 
 func testBackupRestoreWithRestorePrivilegesForVersion(t *testing.T, endpoint containers.Endpoint, pgVersion string) {
@@ -1000,7 +998,7 @@ func testBackupRestoreWithRestorePrivilegesForVersion(t *testing.T, endpoint con
 
 	router := logicaltesting.CreateTestRouter()
 	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Privileges Test Workspace", user, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Privileges Test Workspace", user)
 
 	storage := storages.CreateTestStorage(workspace.ID)
 
@@ -1085,7 +1083,7 @@ func testBackupRestoreWithRestorePrivilegesForVersion(t *testing.T, endpoint con
 		http.StatusNoContent,
 	)
 	storages.RemoveTestStorage(t.Context(), storage.ID)
-	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 }
 
 func testBackupRestoreWithReadOnlyUserForVersion(t *testing.T, endpoint containers.Endpoint, pgVersion string) {
@@ -1107,7 +1105,7 @@ func testBackupRestoreWithReadOnlyUserForVersion(t *testing.T, endpoint containe
 
 	router := logicaltesting.CreateTestRouter()
 	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ReadOnly Test Workspace", user, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ReadOnly Test Workspace", user)
 
 	storage := storages.CreateTestStorage(workspace.ID)
 
@@ -1195,7 +1193,7 @@ func testBackupRestoreWithReadOnlyUserForVersion(t *testing.T, endpoint containe
 		http.StatusNoContent,
 	)
 	storages.RemoveTestStorage(t.Context(), storage.ID)
-	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 }
 
 // pg_dump 18.0 and 18.1 emitted wrong sequence values instead of failing when the
@@ -1243,7 +1241,7 @@ func testBackupFailsWhenUserCannotReadSequencesForVersion(
 
 	router := logicaltesting.CreateTestRouter()
 	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Sequence Privileges Workspace", user, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Sequence Privileges Workspace", user)
 
 	storage := storages.CreateTestStorage(workspace.ID)
 
@@ -1303,7 +1301,7 @@ func testBackupFailsWhenUserCannotReadSequencesForVersion(
 		http.StatusNoContent,
 	)
 	storages.RemoveTestStorage(t.Context(), storage.ID)
-	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 }
 
 func testSchemaSelectionOnlySpecifiedSchemasForVersion(
@@ -1346,7 +1344,7 @@ func testSchemaSelectionOnlySpecifiedSchemasForVersion(
 
 	router := logicaltesting.CreateTestRouter()
 	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Schema Test Workspace", user, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Schema Test Workspace", user)
 
 	storage := storages.CreateTestStorage(workspace.ID)
 
@@ -1451,7 +1449,7 @@ func testSchemaSelectionOnlySpecifiedSchemasForVersion(
 		http.StatusNoContent,
 	)
 	storages.RemoveTestStorage(t.Context(), storage.ID)
-	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 }
 
 func testBackupRestoreWithExcludeTablesForVersion(t *testing.T, endpoint containers.Endpoint, pgVersion string) {
@@ -1489,9 +1487,7 @@ func testBackupRestoreWithExcludeTablesForVersion(t *testing.T, endpoint contain
 	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(),
 		"Exclude Tables Test Workspace",
-		user,
-		router,
-	)
+		user)
 
 	storage := storages.CreateTestStorage(workspace.ID)
 
@@ -1588,7 +1584,7 @@ func testBackupRestoreWithExcludeTablesForVersion(t *testing.T, endpoint contain
 		http.StatusNoContent,
 	)
 	storages.RemoveTestStorage(t.Context(), storage.ID)
-	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 }
 
 func testSchemasWithExcludeTablesForVersion(t *testing.T, endpoint containers.Endpoint, pgVersion string) {
@@ -1629,9 +1625,7 @@ func testSchemasWithExcludeTablesForVersion(t *testing.T, endpoint containers.En
 	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(),
 		"Schemas+Exclude Tables Workspace",
-		user,
-		router,
-	)
+		user)
 
 	storage := storages.CreateTestStorage(workspace.ID)
 
@@ -1741,7 +1735,7 @@ func testSchemasWithExcludeTablesForVersion(t *testing.T, endpoint containers.En
 		http.StatusNoContent,
 	)
 	storages.RemoveTestStorage(t.Context(), storage.ID)
-	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 }
 
 func testBackupRestoreWithEncryptionForVersion(t *testing.T, endpoint containers.Endpoint, pgVersion string) {
@@ -1763,7 +1757,7 @@ func testBackupRestoreWithEncryptionForVersion(t *testing.T, endpoint containers
 
 	router := logicaltesting.CreateTestRouter()
 	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", user, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", user)
 
 	storage := storages.CreateTestStorage(workspace.ID)
 
@@ -1842,7 +1836,7 @@ func testBackupRestoreWithEncryptionForVersion(t *testing.T, endpoint containers
 		http.StatusNoContent,
 	)
 	storages.RemoveTestStorage(t.Context(), storage.ID)
-	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 }
 
 func waitForRestoreCompletion(

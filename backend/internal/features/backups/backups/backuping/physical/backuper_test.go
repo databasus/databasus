@@ -22,7 +22,7 @@ import (
 	notifier_models "databasus-backend/internal/features/notifiers/models"
 	"databasus-backend/internal/features/storages"
 	storage_files "databasus-backend/internal/features/storages/files"
-	workspaces_services "databasus-backend/internal/features/workspaces/services"
+	workspaces_bridge "databasus-backend/internal/features/workspaces"
 	"databasus-backend/internal/storage"
 	"databasus-backend/internal/util/encryption"
 	"databasus-backend/internal/util/logger"
@@ -377,7 +377,8 @@ func Test_ClassifyFullBackupNotification_WhenCompleted_ReturnsSuccessNotificatio
 	result := postgresql_executor.PhysicalBackupResult{BackupSizeMb: 12.5, BackupDurationMs: 999}
 
 	notificationType, title, message := classifyFullBackupNotification(
-		database, fullBackup, result, workspaces_services.GetWorkspaceService())
+		t.Context(),
+		database, fullBackup, result, workspaces_bridge.GetAccess())
 
 	assert.Equal(t, backups_config_physical.NotificationBackupSuccess, notificationType)
 	assert.Contains(t, title, "completed")
@@ -395,7 +396,8 @@ func Test_ClassifyFullBackupNotification_WhenErrorStatus_ReturnsFailedNotificati
 	result := postgresql_executor.PhysicalBackupResult{ErrorMessage: "disk full"}
 
 	notificationType, title, _ := classifyFullBackupNotification(
-		database, fullBackup, result, workspaces_services.GetWorkspaceService())
+		t.Context(),
+		database, fullBackup, result, workspaces_bridge.GetAccess())
 
 	assert.Equal(t, backups_config_physical.NotificationBackupFailed, notificationType)
 	assert.Contains(t, title, "failed")
@@ -409,7 +411,8 @@ func Test_ClassifyFullBackupNotification_WhenChainBroken_ReturnsChainBrokenNotif
 	}
 
 	notificationType, title, _ := classifyFullBackupNotification(
-		database, fullBackup, postgresql_executor.PhysicalBackupResult{}, workspaces_services.GetWorkspaceService())
+		t.Context(),
+		database, fullBackup, postgresql_executor.PhysicalBackupResult{}, workspaces_bridge.GetAccess())
 
 	assert.Equal(t, backups_config_physical.NotificationChainBroken, notificationType)
 	assert.Contains(t, title, "chain-broken")
@@ -423,7 +426,8 @@ func Test_ClassifyFullBackupNotification_WhenInProgress_ReturnsEmpty(t *testing.
 	}
 
 	notificationType, _, _ := classifyFullBackupNotification(
-		database, fullBackup, postgresql_executor.PhysicalBackupResult{}, workspaces_services.GetWorkspaceService())
+		t.Context(),
+		database, fullBackup, postgresql_executor.PhysicalBackupResult{}, workspaces_bridge.GetAccess())
 
 	assert.Empty(t, notificationType)
 }

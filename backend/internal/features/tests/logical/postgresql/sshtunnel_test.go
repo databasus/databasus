@@ -70,8 +70,8 @@ func Test_PostgresqlBackupRestore_OverSshTunnel_RestoresData(t *testing.T) {
 
 	router := logicaltesting.CreateTestRouter()
 	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "SSH Tunnel Cycle Workspace", user, router)
-	t.Cleanup(func() { workspaces_testing.RemoveTestWorkspace(context.Background(), workspace, router) })
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "SSH Tunnel Cycle Workspace", user)
+	t.Cleanup(func() { workspaces_testing.RemoveTestWorkspace(context.Background(), workspace) })
 
 	storage := storages.CreateTestStorage(workspace.ID)
 	t.Cleanup(func() { storages.RemoveTestStorage(t.Context(), storage.ID) })

@@ -21,7 +21,7 @@ import (
 	"databasus-backend/internal/features/restores/usecases"
 	"databasus-backend/internal/features/storages"
 	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
-	workspaces_services "databasus-backend/internal/features/workspaces/services"
+	workspaces_bridge "databasus-backend/internal/features/workspaces"
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/modules/workspaces"
 	"databasus-backend/internal/util/encryption"
@@ -36,7 +36,7 @@ type RestoreService struct {
 	restoreBackupUsecase      *usecases.RestoreBackupUsecase
 	databaseService           *databases.DatabaseService
 	logger                    *slog.Logger
-	workspaceService          *workspaces_services.WorkspaceService
+	workspaceService          *workspaces_bridge.Access
 	auditLogService           *audit_logs.AuditLogService
 	fieldEncryptor            encryption.FieldEncryptor
 	diskService               *disk.DiskService

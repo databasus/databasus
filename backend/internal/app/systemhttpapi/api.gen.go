@@ -17,6 +17,8 @@ import (
 // Defines values for ProblemCode.
 const (
 	ProblemCodeAdminEmailMissing       ProblemCode = "admin_email_missing"
+	ProblemCodeAlreadyMember           ProblemCode = "already_member"
+	ProblemCodeCannotChangeOwnRole     ProblemCode = "cannot_change_own_role"
 	ProblemCodeEmailNotConfigured      ProblemCode = "email_not_configured"
 	ProblemCodeEmailTaken              ProblemCode = "email_taken"
 	ProblemCodeHumanVerificationFailed ProblemCode = "human_verification_failed"
@@ -27,6 +29,7 @@ const (
 	ProblemCodeNotFound                ProblemCode = "not_found"
 	ProblemCodeOauthFailed             ProblemCode = "oauth_failed"
 	ProblemCodeOauthNotConfigured      ProblemCode = "oauth_not_configured"
+	ProblemCodeOwnerRequiresTransfer   ProblemCode = "owner_requires_transfer"
 	ProblemCodePendingSignInNotUsable  ProblemCode = "pending_sign_in_not_usable"
 	ProblemCodePermissionDenied        ProblemCode = "permission_denied"
 	ProblemCodeRateLimited             ProblemCode = "rate_limited"
@@ -37,12 +40,17 @@ const (
 	ProblemCodeTooManySignInCodes      ProblemCode = "too_many_sign_in_codes"
 	ProblemCodeUnauthenticated         ProblemCode = "unauthenticated"
 	ProblemCodeUserDeactivated         ProblemCode = "user_deactivated"
+	ProblemCodeWorkspaceNotEmpty       ProblemCode = "workspace_not_empty"
 )
 
 // Valid indicates whether the value is a known member of the ProblemCode enum.
 func (e ProblemCode) Valid() bool {
 	switch e {
 	case ProblemCodeAdminEmailMissing:
+		return true
+	case ProblemCodeAlreadyMember:
+		return true
+	case ProblemCodeCannotChangeOwnRole:
 		return true
 	case ProblemCodeEmailNotConfigured:
 		return true
@@ -64,6 +72,8 @@ func (e ProblemCode) Valid() bool {
 		return true
 	case ProblemCodeOauthNotConfigured:
 		return true
+	case ProblemCodeOwnerRequiresTransfer:
+		return true
 	case ProblemCodePendingSignInNotUsable:
 		return true
 	case ProblemCodePermissionDenied:
@@ -83,6 +93,8 @@ func (e ProblemCode) Valid() bool {
 	case ProblemCodeUnauthenticated:
 		return true
 	case ProblemCodeUserDeactivated:
+		return true
+	case ProblemCodeWorkspaceNotEmpty:
 		return true
 	default:
 		return false
@@ -128,11 +140,17 @@ type VersionResponse struct {
 	Version string `json:"version"`
 }
 
+// MemberId defines model for MemberId.
+type MemberId = openapi_types.UUID
+
 // PendingSignInId defines model for PendingSignInId.
 type PendingSignInId = openapi_types.UUID
 
 // UserId defines model for UserId.
 type UserId = openapi_types.UUID
+
+// WorkspaceId defines model for WorkspaceId.
+type WorkspaceId = openapi_types.UUID
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {

@@ -3,6 +3,7 @@
 package notifiers
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"sync"
@@ -67,7 +68,7 @@ func CreateTestNotifier(workspaceID uuid.UUID) *Notifier {
 }
 
 func RemoveTestNotifier(notifier *Notifier) {
-	err := getNotifierRepository().Delete(notifier)
+	err := getNotifierRepository().Delete(context.Background(), notifier)
 	if err != nil {
 		panic(err)
 	}

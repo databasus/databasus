@@ -38,8 +38,8 @@ func newReclaimFixture(
 	router = createTestRouter()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner, router)
-	t.Cleanup(func() { workspaces_testing.RemoveTestWorkspace(context.Background(), workspace, router) })
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner)
+	t.Cleanup(func() { workspaces_testing.RemoveTestWorkspace(context.Background(), workspace) })
 
 	testStorage := storages.CreateTestStorage(workspace.ID)
 	t.Cleanup(func() { storages.RemoveTestStorage(t.Context(), testStorage.ID) })
@@ -216,8 +216,8 @@ func Test_OnAgentHeartbeated_WhenAgentDropsOneStillRunsAnother_ReclaimsOnlyDropp
 
 	router := createTestRouter()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner, router)
-	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner)
+	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
 	testStorage := storages.CreateTestStorage(workspace.ID)
 	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)

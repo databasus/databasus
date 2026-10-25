@@ -31,7 +31,10 @@ func createStorageRow(t *testing.T) uuid.UUID {
 		storageID, workspaceID, "storage-files-"+storageID.String(),
 	).Error)
 
+	// The reference from storages to workspaces is RESTRICT, so the storage goes first; its pending
+	// deletions go with it.
 	t.Cleanup(func() {
+		db.GetDb().Exec("DELETE FROM storages WHERE workspace_id = ?", workspaceID)
 		db.GetDb().Exec("DELETE FROM workspaces WHERE id = ?", workspaceID)
 	})
 

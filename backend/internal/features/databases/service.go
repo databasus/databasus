@@ -335,7 +335,7 @@ func (s *DatabaseService) GetDatabasesByWorkspace(
 		return nil, errors.New("insufficient permissions to access this workspace")
 	}
 
-	databases, err := s.dbRepository.FindByWorkspaceID(workspaceID)
+	databases, err := s.dbRepository.FindByWorkspaceID(ctx, workspaceID)
 	if err != nil {
 		return nil, err
 	}
@@ -565,12 +565,12 @@ func (s *DatabaseService) TransferDatabaseToWorkspace(
 		return err
 	}
 
-	sourceWorkspace, err := s.workspaceService.GetWorkspaceByID(*sourceWorkspaceID)
+	sourceWorkspace, err := s.workspaceService.GetWorkspaceByID(ctx, *sourceWorkspaceID)
 	if err != nil {
 		return fmt.Errorf("failed to get source workspace: %w", err)
 	}
 
-	targetWorkspace, err := s.workspaceService.GetWorkspaceByID(targetWorkspaceID)
+	targetWorkspace, err := s.workspaceService.GetWorkspaceByID(ctx, targetWorkspaceID)
 	if err != nil {
 		return fmt.Errorf("failed to get target workspace: %w", err)
 	}
@@ -613,17 +613,16 @@ func (s *DatabaseService) SetHealthStatus(
 	})
 }
 
-func (s *DatabaseService) OnBeforeWorkspaceDeletion(workspaceID uuid.UUID) error {
-	databases, err := s.dbRepository.FindByWorkspaceID(workspaceID)
+// OnWorkspaceDeleting refuses the deletion of a workspace that still has databases, before the
+// later handlers delete its notifiers and storages.
+func (s *DatabaseService) OnWorkspaceDeleting(ctx context.Context, event workspaces.WorkspaceDeleting) error {
+	databases, err := s.dbRepository.FindByWorkspaceID(ctx, event.WorkspaceID)
 	if err != nil {
 		return err
 	}
 
 	if len(databases) > 0 {
-		return fmt.Errorf(
-			"workspace contains %d databases that must be deleted",
-			len(databases),
-		)
+		return ErrWorkspaceHasDatabases
 	}
 
 	return nil

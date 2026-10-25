@@ -93,7 +93,7 @@ func RemoveTestStorage(ctx context.Context, id uuid.UUID) {
 		panic(err)
 	}
 
-	err = getStorageRepository().Delete(storage)
+	err = getStorageRepository().Delete(ctx, storage)
 	if err != nil {
 		panic(err)
 	}

@@ -18,7 +18,7 @@ import (
 	"databasus-backend/internal/features/notifiers"
 	"databasus-backend/internal/features/storages"
 	task_cancellation "databasus-backend/internal/features/tasks/cancellation"
-	workspaces_services "databasus-backend/internal/features/workspaces/services"
+	workspaces_bridge "databasus-backend/internal/features/workspaces"
 	"databasus-backend/internal/util/encryption"
 	"databasus-backend/internal/util/logger"
 )
@@ -37,7 +37,7 @@ var getBackupService = sync.OnceValue(func() *LogicalBackupService {
 		encryption.GetFieldEncryptor(),
 		usecases_logical.GetCreateBackupUsecase(),
 		logger.GetLogger(),
-		workspaces_services.GetWorkspaceService(),
+		workspaces_bridge.GetAccess(),
 		audit_logs.GetAuditLogService(),
 		getTaskCancellationRequester(),
 		backups_download.GetDownloadTokenService(),
@@ -53,7 +53,7 @@ func GetBackupService() *LogicalBackupService {
 var getPhysicalBackupService = sync.OnceValue(func() *PhysicalBackupService {
 	return &PhysicalBackupService{
 		databases.GetDatabaseService(),
-		workspaces_services.GetWorkspaceService(),
+		workspaces_bridge.GetAccess(),
 		backups_config_physical.GetBackupConfigService(),
 		chain_view.GetChainViewService(),
 		physical_core_service.GetPhysicalBackupService(),

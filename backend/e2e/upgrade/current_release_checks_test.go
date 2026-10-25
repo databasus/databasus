@@ -33,13 +33,22 @@ type currentSignInResponse struct {
 	Token string `json:"token"`
 }
 
-type currentWorkspaceList struct {
-	Workspaces []currentWorkspace `json:"workspaces"`
+type currentWorkspacePage struct {
+	Items []currentWorkspace `json:"items"`
 }
 
 type currentWorkspace struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
+}
+
+type currentMemberPage struct {
+	Items []currentMember `json:"items"`
+}
+
+type currentMember struct {
+	Email string `json:"email"`
+	Role  string `json:"role"`
 }
 
 type currentStorage struct {
@@ -132,16 +141,16 @@ func readUpgradeData(ctx context.Context, api *apiClient) ([]upgradecheck.Item, 
 	api.token = signIn.Token
 	listedItems := []upgradecheck.Item{{Kind: "account", Name: signIn.Email, Values: map[string]string{}}}
 
-	var workspaceList currentWorkspaceList
+	var workspacePage currentWorkspacePage
 
-	err = api.get(ctx, "/workspaces", &workspaceList)
+	err = api.get(ctx, "/workspaces?limit=100", &workspacePage)
 	if err != nil {
 		return nil, fmt.Errorf("list workspaces: %w", err)
 	}
 
 	workspaceID := ""
 
-	for _, workspace := range workspaceList.Workspaces {
+	for _, workspace := range workspacePage.Items {
 		listedItems = append(listedItems, upgradecheck.Item{
 			Kind: "workspace", Name: workspace.Name, Values: map[string]string{"id": workspace.ID},
 		})
@@ -223,9 +232,22 @@ func getOptionalValue(value *string) string {
 func readWorkspaceItems(ctx context.Context, api *apiClient, workspaceID string) ([]upgradecheck.Item, error) {
 	var listedItems []upgradecheck.Item
 
+	var memberPage currentMemberPage
+
+	err := api.get(ctx, "/workspace-members?limit=100&workspaceId="+workspaceID, &memberPage)
+	if err != nil {
+		return nil, fmt.Errorf("list workspace members: %w", err)
+	}
+
+	for _, member := range memberPage.Items {
+		listedItems = append(listedItems, upgradecheck.Item{
+			Kind: "workspace member", Name: member.Email, Values: map[string]string{"role": member.Role},
+		})
+	}
+
 	var storages []currentStorage
 
-	err := api.get(ctx, "/storages?workspace_id="+workspaceID, &storages)
+	err = api.get(ctx, "/storages?workspace_id="+workspaceID, &storages)
 	if err != nil {
 		return nil, fmt.Errorf("list storages: %w", err)
 	}

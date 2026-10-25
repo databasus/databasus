@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 
 import { databaseApi } from '../../../entity/databases';
 import { type Notifier, notifierApi } from '../../../entity/notifiers';
-import { type WorkspaceResponse, workspaceApi } from '../../../entity/workspaces';
+import { type Workspace, workspaceApi } from '../../../entity/workspaces';
 import { translateApiError } from '../../../shared/i18n';
 
 interface Props {
@@ -17,7 +17,7 @@ export const NotifierTransferDialogComponent = ({ notifier, onClose, onTransferr
   const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(true);
   const [isNotifierInUse, setIsNotifierInUse] = useState(false);
-  const [workspaces, setWorkspaces] = useState<WorkspaceResponse[]>([]);
+  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | undefined>();
   const [isTransferring, setIsTransferring] = useState(false);
 
@@ -29,8 +29,8 @@ export const NotifierTransferDialogComponent = ({ notifier, onClose, onTransferr
       setIsNotifierInUse(isUsing);
 
       if (!isUsing) {
-        const response = await workspaceApi.getWorkspaces();
-        const filteredWorkspaces = response.workspaces.filter((w) => w.id !== notifier.workspaceId);
+        const listedWorkspaces = await workspaceApi.listAllWorkspaces();
+        const filteredWorkspaces = listedWorkspaces.filter((w) => w.id !== notifier.workspaceId);
         setWorkspaces(filteredWorkspaces);
       }
     } catch (e) {

@@ -19,9 +19,50 @@ import (
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
+// Defines values for AddedWorkspaceMemberOutcome.
+const (
+	AddedWorkspaceMemberOutcomeADDED   AddedWorkspaceMemberOutcome = "ADDED"
+	AddedWorkspaceMemberOutcomeINVITED AddedWorkspaceMemberOutcome = "INVITED"
+)
+
+// Valid indicates whether the value is a known member of the AddedWorkspaceMemberOutcome enum.
+func (e AddedWorkspaceMemberOutcome) Valid() bool {
+	switch e {
+	case AddedWorkspaceMemberOutcomeADDED:
+		return true
+	case AddedWorkspaceMemberOutcomeINVITED:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for AssignableWorkspaceRole.
+const (
+	AssignableWorkspaceRoleWORKSPACEADMIN  AssignableWorkspaceRole = "WORKSPACE_ADMIN"
+	AssignableWorkspaceRoleWORKSPACEMEMBER AssignableWorkspaceRole = "WORKSPACE_MEMBER"
+	AssignableWorkspaceRoleWORKSPACEVIEWER AssignableWorkspaceRole = "WORKSPACE_VIEWER"
+)
+
+// Valid indicates whether the value is a known member of the AssignableWorkspaceRole enum.
+func (e AssignableWorkspaceRole) Valid() bool {
+	switch e {
+	case AssignableWorkspaceRoleWORKSPACEADMIN:
+		return true
+	case AssignableWorkspaceRoleWORKSPACEMEMBER:
+		return true
+	case AssignableWorkspaceRoleWORKSPACEVIEWER:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ProblemCode.
 const (
 	ProblemCodeAdminEmailMissing       ProblemCode = "admin_email_missing"
+	ProblemCodeAlreadyMember           ProblemCode = "already_member"
+	ProblemCodeCannotChangeOwnRole     ProblemCode = "cannot_change_own_role"
 	ProblemCodeEmailNotConfigured      ProblemCode = "email_not_configured"
 	ProblemCodeEmailTaken              ProblemCode = "email_taken"
 	ProblemCodeHumanVerificationFailed ProblemCode = "human_verification_failed"
@@ -32,6 +73,7 @@ const (
 	ProblemCodeNotFound                ProblemCode = "not_found"
 	ProblemCodeOauthFailed             ProblemCode = "oauth_failed"
 	ProblemCodeOauthNotConfigured      ProblemCode = "oauth_not_configured"
+	ProblemCodeOwnerRequiresTransfer   ProblemCode = "owner_requires_transfer"
 	ProblemCodePendingSignInNotUsable  ProblemCode = "pending_sign_in_not_usable"
 	ProblemCodePermissionDenied        ProblemCode = "permission_denied"
 	ProblemCodeRateLimited             ProblemCode = "rate_limited"
@@ -42,12 +84,17 @@ const (
 	ProblemCodeTooManySignInCodes      ProblemCode = "too_many_sign_in_codes"
 	ProblemCodeUnauthenticated         ProblemCode = "unauthenticated"
 	ProblemCodeUserDeactivated         ProblemCode = "user_deactivated"
+	ProblemCodeWorkspaceNotEmpty       ProblemCode = "workspace_not_empty"
 )
 
 // Valid indicates whether the value is a known member of the ProblemCode enum.
 func (e ProblemCode) Valid() bool {
 	switch e {
 	case ProblemCodeAdminEmailMissing:
+		return true
+	case ProblemCodeAlreadyMember:
+		return true
+	case ProblemCodeCannotChangeOwnRole:
 		return true
 	case ProblemCodeEmailNotConfigured:
 		return true
@@ -69,6 +116,8 @@ func (e ProblemCode) Valid() bool {
 		return true
 	case ProblemCodeOauthNotConfigured:
 		return true
+	case ProblemCodeOwnerRequiresTransfer:
+		return true
 	case ProblemCodePendingSignInNotUsable:
 		return true
 	case ProblemCodePermissionDenied:
@@ -88,6 +137,8 @@ func (e ProblemCode) Valid() bool {
 	case ProblemCodeUnauthenticated:
 		return true
 	case ProblemCodeUserDeactivated:
+		return true
+	case ProblemCodeWorkspaceNotEmpty:
 		return true
 	default:
 		return false
@@ -163,6 +214,66 @@ func (e UserStatus) Valid() bool {
 	}
 }
 
+// Defines values for WorkspaceRole.
+const (
+	WorkspaceRoleWORKSPACEADMIN  WorkspaceRole = "WORKSPACE_ADMIN"
+	WorkspaceRoleWORKSPACEMEMBER WorkspaceRole = "WORKSPACE_MEMBER"
+	WorkspaceRoleWORKSPACEOWNER  WorkspaceRole = "WORKSPACE_OWNER"
+	WorkspaceRoleWORKSPACEVIEWER WorkspaceRole = "WORKSPACE_VIEWER"
+)
+
+// Valid indicates whether the value is a known member of the WorkspaceRole enum.
+func (e WorkspaceRole) Valid() bool {
+	switch e {
+	case WorkspaceRoleWORKSPACEADMIN:
+		return true
+	case WorkspaceRoleWORKSPACEMEMBER:
+		return true
+	case WorkspaceRoleWORKSPACEOWNER:
+		return true
+	case WorkspaceRoleWORKSPACEVIEWER:
+		return true
+	default:
+		return false
+	}
+}
+
+// AddedWorkspaceMember The new member and whether the user was added or invited
+type AddedWorkspaceMember struct {
+	// CreatedAt When the user joined the workspace
+	CreatedAt time.Time `json:"createdAt"`
+
+	// Email The address the user signs in with
+	Email string `json:"email"`
+
+	// Id The member ID
+	Id openapi_types.UUID `json:"id"`
+
+	// IsInvited Whether the user was invited and has not finished sign-up
+	IsInvited bool `json:"isInvited"`
+
+	// Name The name of the user
+	Name string `json:"name"`
+
+	// Outcome `ADDED` for a user who already had an account, `INVITED` for an address that got an invited user
+	Outcome AddedWorkspaceMemberOutcome `json:"outcome"`
+
+	// Role The role of a member in a workspace. A viewer sees it, a member also edits its content, an admin also renames it and manages members, and the owner also manages admins, transfers ownership and deletes it
+	Role WorkspaceRole `json:"role"`
+
+	// UserId The user of the member
+	UserId openapi_types.UUID `json:"userId"`
+
+	// WorkspaceId The workspace the member belongs to
+	WorkspaceId openapi_types.UUID `json:"workspaceId"`
+}
+
+// AddedWorkspaceMemberOutcome `ADDED` for a user who already had an account, `INVITED` for an address that got an invited user
+type AddedWorkspaceMemberOutcome string
+
+// AssignableWorkspaceRole A workspace role a request may set; the owner role changes hands only through a transfer
+type AssignableWorkspaceRole string
+
 // FieldError A field of the request that breaks the contract or a validation rule
 type FieldError struct {
 	// Detail What is wrong with the field
@@ -212,6 +323,12 @@ type OAuthSignInRequest struct {
 
 	// RedirectUri The redirect URI the code was issued for
 	RedirectUri string `json:"redirectUri"`
+}
+
+// OwnershipTransfer The member who becomes the owner of the workspace
+type OwnershipTransfer struct {
+	// NewOwnerMemberId The member ID of the new owner, a member of the same workspace
+	NewOwnerMemberId openapi_types.UUID `json:"newOwnerMemberId"`
 }
 
 // PasswordChange A new password
@@ -441,11 +558,110 @@ type VersionResponse struct {
 	Version string `json:"version"`
 }
 
+// Workspace A workspace
+type Workspace struct {
+	// CreatedAt When the workspace was created
+	CreatedAt time.Time `json:"createdAt"`
+
+	// CurrentUserRole The role of the signed-in user in the workspace, null for an instance admin who is not a member of it
+	CurrentUserRole *WorkspaceRole `json:"currentUserRole"`
+
+	// Id The ID of the workspace
+	Id openapi_types.UUID `json:"id"`
+
+	// Name The name of the workspace
+	Name string `json:"name"`
+}
+
+// WorkspaceCreate A new workspace
+type WorkspaceCreate struct {
+	// Name The name of the workspace
+	Name string `json:"name"`
+}
+
+// WorkspaceMember A user in a workspace
+type WorkspaceMember struct {
+	// CreatedAt When the user joined the workspace
+	CreatedAt time.Time `json:"createdAt"`
+
+	// Email The address the user signs in with
+	Email string `json:"email"`
+
+	// Id The member ID
+	Id openapi_types.UUID `json:"id"`
+
+	// IsInvited Whether the user was invited and has not finished sign-up
+	IsInvited bool `json:"isInvited"`
+
+	// Name The name of the user
+	Name string `json:"name"`
+
+	// Role The role of a member in a workspace. A viewer sees it, a member also edits its content, an admin also renames it and manages members, and the owner also manages admins, transfers ownership and deletes it
+	Role WorkspaceRole `json:"role"`
+
+	// UserId The user of the member
+	UserId openapi_types.UUID `json:"userId"`
+
+	// WorkspaceId The workspace the member belongs to
+	WorkspaceId openapi_types.UUID `json:"workspaceId"`
+}
+
+// WorkspaceMemberAddition A user to add to a workspace
+type WorkspaceMemberAddition struct {
+	// Email The address of the user; an address without a user invites one
+	Email openapi_types.Email `json:"email"`
+
+	// Role A workspace role a request may set; the owner role changes hands only through a transfer
+	Role AssignableWorkspaceRole `json:"role"`
+
+	// WorkspaceId The workspace to add the user to
+	WorkspaceId openapi_types.UUID `json:"workspaceId"`
+}
+
+// WorkspaceMemberPage One page of members, the oldest first
+type WorkspaceMemberPage struct {
+	// Items The members on the page
+	Items []WorkspaceMember `json:"items"`
+
+	// NextCursor The `after` of the next page, absent on the last page
+	NextCursor *string `json:"nextCursor,omitempty"`
+}
+
+// WorkspaceMemberRoleChange A new workspace role
+type WorkspaceMemberRoleChange struct {
+	// Role A workspace role a request may set; the owner role changes hands only through a transfer
+	Role AssignableWorkspaceRole `json:"role"`
+}
+
+// WorkspacePage One page of workspaces, ordered by name
+type WorkspacePage struct {
+	// Items The workspaces on the page
+	Items []Workspace `json:"items"`
+
+	// NextCursor The `after` of the next page, absent on the last page
+	NextCursor *string `json:"nextCursor,omitempty"`
+}
+
+// WorkspaceRole The role of a member in a workspace. A viewer sees it, a member also edits its content, an admin also renames it and manages members, and the owner also manages admins, transfers ownership and deletes it
+type WorkspaceRole string
+
+// WorkspaceUpdate The editable fields of a workspace
+type WorkspaceUpdate struct {
+	// Name The name of the workspace
+	Name string `json:"name"`
+}
+
+// MemberId defines model for MemberId.
+type MemberId = openapi_types.UUID
+
 // PendingSignInId defines model for PendingSignInId.
 type PendingSignInId = openapi_types.UUID
 
 // UserId defines model for UserId.
 type UserId = openapi_types.UUID
+
+// WorkspaceId defines model for WorkspaceId.
+type WorkspaceId = openapi_types.UUID
 
 // ListUsersParams defines parameters for ListUsers.
 type ListUsersParams struct {
@@ -457,6 +673,27 @@ type ListUsersParams struct {
 
 	// Query The text the email address or the name contains
 	Query *string `form:"query,omitempty" json:"query,omitempty"`
+}
+
+// ListWorkspaceMembersParams defines parameters for ListWorkspaceMembers.
+type ListWorkspaceMembersParams struct {
+	// WorkspaceId The workspace whose members to list
+	WorkspaceId openapi_types.UUID `form:"workspaceId" json:"workspaceId"`
+
+	// Limit The largest number of members on the page
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// After The `nextCursor` of the previous page
+	After *string `form:"after,omitempty" json:"after,omitempty"`
+}
+
+// ListWorkspacesParams defines parameters for ListWorkspaces.
+type ListWorkspacesParams struct {
+	// Limit The largest number of workspaces on the page
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// After The `nextCursor` of the previous page
+	After *string `form:"after,omitempty" json:"after,omitempty"`
 }
 
 // SignInWithGitHubJSONRequestBody defines body for SignInWithGitHub for application/json ContentType.
@@ -494,6 +731,21 @@ type ChangeUserPasswordJSONRequestBody = PasswordChange
 
 // ChangeUserRoleJSONRequestBody defines body for ChangeUserRole for application/json ContentType.
 type ChangeUserRoleJSONRequestBody = UserRoleChange
+
+// AddWorkspaceMemberJSONRequestBody defines body for AddWorkspaceMember for application/json ContentType.
+type AddWorkspaceMemberJSONRequestBody = WorkspaceMemberAddition
+
+// ChangeWorkspaceMemberRoleJSONRequestBody defines body for ChangeWorkspaceMemberRole for application/json ContentType.
+type ChangeWorkspaceMemberRoleJSONRequestBody = WorkspaceMemberRoleChange
+
+// CreateWorkspaceJSONRequestBody defines body for CreateWorkspace for application/json ContentType.
+type CreateWorkspaceJSONRequestBody = WorkspaceCreate
+
+// UpdateWorkspaceJSONRequestBody defines body for UpdateWorkspace for application/json ContentType.
+type UpdateWorkspaceJSONRequestBody = WorkspaceUpdate
+
+// TransferWorkspaceOwnershipJSONRequestBody defines body for TransferWorkspaceOwnership for application/json ContentType.
+type TransferWorkspaceOwnershipJSONRequestBody = OwnershipTransfer
 
 // AsSignInCompleted returns the union data inside the SignInOutcome as a SignInCompleted
 func (t SignInOutcome) AsSignInCompleted() (SignInCompleted, error) {
@@ -941,6 +1193,131 @@ type ClientInterface interface {
 	//
 	// Corresponds with PUT /users/{userId}/role (the `ChangeUserRole` operationId).
 	ChangeUserRole(ctx context.Context, userId UserId, body ChangeUserRoleJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListWorkspaceMembers List the members of a workspace
+	//
+	// Ordered by the time a member joined, the oldest first, then by ID. A user who is not a member of the workspace gets 404 `not_found`.
+	//
+	// Corresponds with GET /workspace-members (the `ListWorkspaceMembers` operationId).
+	ListWorkspaceMembers(ctx context.Context, params *ListWorkspaceMembersParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// AddWorkspaceMemberWithBody Add a user to a workspace by email address
+	//
+	// An address without a user invites one, which a user who is not an instance admin may do only while the instance settings allow member invitations; otherwise the answer is 403 `permission_denied`. Adding an admin needs the role `WORKSPACE_OWNER`, adding anyone else `WORKSPACE_ADMIN`. A user who is already a member gets 409 `already_member`.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /workspace-members (the `AddWorkspaceMember` operationId).
+	AddWorkspaceMemberWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// AddWorkspaceMember Add a user to a workspace by email address
+	//
+	// An address without a user invites one, which a user who is not an instance admin may do only while the instance settings allow member invitations; otherwise the answer is 403 `permission_denied`. Adding an admin needs the role `WORKSPACE_OWNER`, adding anyone else `WORKSPACE_ADMIN`. A user who is already a member gets 409 `already_member`.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /workspace-members (the `AddWorkspaceMember` operationId).
+	AddWorkspaceMember(ctx context.Context, body AddWorkspaceMemberJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// RemoveWorkspaceMember Remove a member from a workspace
+	//
+	// Removing an admin needs the role `WORKSPACE_OWNER`, removing anyone else `WORKSPACE_ADMIN`. Removing the owner gets 409 `owner_requires_transfer`. The user keeps their account.
+	//
+	// Corresponds with DELETE /workspace-members/{memberId} (the `RemoveWorkspaceMember` operationId).
+	RemoveWorkspaceMember(ctx context.Context, memberId MemberId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ChangeWorkspaceMemberRoleWithBody Replace the role of a member
+	//
+	// Changing an admin or making a member an admin needs the role `WORKSPACE_OWNER`, changing anyone else `WORKSPACE_ADMIN`. Changing your own role gets 409 `cannot_change_own_role`, and changing the owner's role 409 `owner_requires_transfer`.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with PUT /workspace-members/{memberId} (the `ChangeWorkspaceMemberRole` operationId).
+	ChangeWorkspaceMemberRoleWithBody(ctx context.Context, memberId MemberId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ChangeWorkspaceMemberRole Replace the role of a member
+	//
+	// Changing an admin or making a member an admin needs the role `WORKSPACE_OWNER`, changing anyone else `WORKSPACE_ADMIN`. Changing your own role gets 409 `cannot_change_own_role`, and changing the owner's role 409 `owner_requires_transfer`.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with PUT /workspace-members/{memberId} (the `ChangeWorkspaceMemberRole` operationId).
+	ChangeWorkspaceMemberRole(ctx context.Context, memberId MemberId, body ChangeWorkspaceMemberRoleJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListWorkspaces List the workspaces of the signed-in user
+	//
+	// Ordered by name, then by ID. A user sees the workspaces they are a member of; an instance admin sees every workspace, with no `currentUserRole` in the ones they are not a member of.
+	//
+	// Corresponds with GET /workspaces (the `ListWorkspaces` operationId).
+	ListWorkspaces(ctx context.Context, params *ListWorkspacesParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateWorkspaceWithBody Create a workspace owned by the signed-in user
+	//
+	// An instance admin may always create one. Anyone else may only while the instance settings let members create workspaces, and otherwise gets 403 `permission_denied`.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /workspaces (the `CreateWorkspace` operationId).
+	CreateWorkspaceWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateWorkspace Create a workspace owned by the signed-in user
+	//
+	// An instance admin may always create one. Anyone else may only while the instance settings let members create workspaces, and otherwise gets 403 `permission_denied`.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /workspaces (the `CreateWorkspace` operationId).
+	CreateWorkspace(ctx context.Context, body CreateWorkspaceJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DeleteWorkspace Delete a workspace with its notifiers, storages and members
+	//
+	// Needs the role `WORKSPACE_OWNER`. A workspace that still has databases gets 409 `workspace_not_empty`, and nothing is deleted. The deletion happens completely or not at all.
+	//
+	// Corresponds with DELETE /workspaces/{workspaceId} (the `DeleteWorkspace` operationId).
+	DeleteWorkspace(ctx context.Context, workspaceId WorkspaceId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetWorkspace Get a workspace
+	//
+	// A user who is not a member of the workspace gets 404 `not_found`, as for a workspace that does not exist.
+	//
+	// Corresponds with GET /workspaces/{workspaceId} (the `GetWorkspace` operationId).
+	GetWorkspace(ctx context.Context, workspaceId WorkspaceId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpdateWorkspaceWithBody Replace the name of a workspace
+	//
+	// Needs the role `WORKSPACE_ADMIN` or `WORKSPACE_OWNER`; a viewer or a member gets 403 `permission_denied`.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with PUT /workspaces/{workspaceId} (the `UpdateWorkspace` operationId).
+	UpdateWorkspaceWithBody(ctx context.Context, workspaceId WorkspaceId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpdateWorkspace Replace the name of a workspace
+	//
+	// Needs the role `WORKSPACE_ADMIN` or `WORKSPACE_OWNER`; a viewer or a member gets 403 `permission_denied`.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with PUT /workspaces/{workspaceId} (the `UpdateWorkspace` operationId).
+	UpdateWorkspace(ctx context.Context, workspaceId WorkspaceId, body UpdateWorkspaceJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// TransferWorkspaceOwnershipWithBody Make another member the owner of a workspace
+	//
+	// Needs the role `WORKSPACE_OWNER`. The previous owner becomes `WORKSPACE_ADMIN`. A member of another workspace gets 404 `not_found`, and naming the current owner changes nothing.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /workspaces/{workspaceId}/transfer-ownership (the `TransferWorkspaceOwnership` operationId).
+	TransferWorkspaceOwnershipWithBody(ctx context.Context, workspaceId WorkspaceId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// TransferWorkspaceOwnership Make another member the owner of a workspace
+	//
+	// Needs the role `WORKSPACE_OWNER`. The previous owner becomes `WORKSPACE_ADMIN`. A member of another workspace gets 404 `not_found`, and naming the current owner changes nothing.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /workspaces/{workspaceId}/transfer-ownership (the `TransferWorkspaceOwnership` operationId).
+	TransferWorkspaceOwnership(ctx context.Context, workspaceId WorkspaceId, body TransferWorkspaceOwnershipJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 }
 
 // SignInWithGitHubWithBody Sign in with GitHub
@@ -1525,6 +1902,281 @@ func (c *Client) ChangeUserRoleWithBody(ctx context.Context, userId UserId, cont
 // Corresponds with PUT /users/{userId}/role (the `ChangeUserRole` operationId).
 func (c *Client) ChangeUserRole(ctx context.Context, userId UserId, body ChangeUserRoleJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewChangeUserRoleRequest(c.Server, userId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ListWorkspaceMembers List the members of a workspace
+//
+// Ordered by the time a member joined, the oldest first, then by ID. A user who is not a member of the workspace gets 404 `not_found`.
+//
+// Corresponds with GET /workspace-members (the `ListWorkspaceMembers` operationId).
+func (c *Client) ListWorkspaceMembers(ctx context.Context, params *ListWorkspaceMembersParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListWorkspaceMembersRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// AddWorkspaceMemberWithBody Add a user to a workspace by email address
+//
+// An address without a user invites one, which a user who is not an instance admin may do only while the instance settings allow member invitations; otherwise the answer is 403 `permission_denied`. Adding an admin needs the role `WORKSPACE_OWNER`, adding anyone else `WORKSPACE_ADMIN`. A user who is already a member gets 409 `already_member`.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /workspace-members (the `AddWorkspaceMember` operationId).
+func (c *Client) AddWorkspaceMemberWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewAddWorkspaceMemberRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// AddWorkspaceMember Add a user to a workspace by email address
+//
+// An address without a user invites one, which a user who is not an instance admin may do only while the instance settings allow member invitations; otherwise the answer is 403 `permission_denied`. Adding an admin needs the role `WORKSPACE_OWNER`, adding anyone else `WORKSPACE_ADMIN`. A user who is already a member gets 409 `already_member`.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /workspace-members (the `AddWorkspaceMember` operationId).
+func (c *Client) AddWorkspaceMember(ctx context.Context, body AddWorkspaceMemberJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewAddWorkspaceMemberRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// RemoveWorkspaceMember Remove a member from a workspace
+//
+// Removing an admin needs the role `WORKSPACE_OWNER`, removing anyone else `WORKSPACE_ADMIN`. Removing the owner gets 409 `owner_requires_transfer`. The user keeps their account.
+//
+// Corresponds with DELETE /workspace-members/{memberId} (the `RemoveWorkspaceMember` operationId).
+func (c *Client) RemoveWorkspaceMember(ctx context.Context, memberId MemberId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRemoveWorkspaceMemberRequest(c.Server, memberId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ChangeWorkspaceMemberRoleWithBody Replace the role of a member
+//
+// Changing an admin or making a member an admin needs the role `WORKSPACE_OWNER`, changing anyone else `WORKSPACE_ADMIN`. Changing your own role gets 409 `cannot_change_own_role`, and changing the owner's role 409 `owner_requires_transfer`.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with PUT /workspace-members/{memberId} (the `ChangeWorkspaceMemberRole` operationId).
+func (c *Client) ChangeWorkspaceMemberRoleWithBody(ctx context.Context, memberId MemberId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewChangeWorkspaceMemberRoleRequestWithBody(c.Server, memberId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ChangeWorkspaceMemberRole Replace the role of a member
+//
+// Changing an admin or making a member an admin needs the role `WORKSPACE_OWNER`, changing anyone else `WORKSPACE_ADMIN`. Changing your own role gets 409 `cannot_change_own_role`, and changing the owner's role 409 `owner_requires_transfer`.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with PUT /workspace-members/{memberId} (the `ChangeWorkspaceMemberRole` operationId).
+func (c *Client) ChangeWorkspaceMemberRole(ctx context.Context, memberId MemberId, body ChangeWorkspaceMemberRoleJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewChangeWorkspaceMemberRoleRequest(c.Server, memberId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ListWorkspaces List the workspaces of the signed-in user
+//
+// Ordered by name, then by ID. A user sees the workspaces they are a member of; an instance admin sees every workspace, with no `currentUserRole` in the ones they are not a member of.
+//
+// Corresponds with GET /workspaces (the `ListWorkspaces` operationId).
+func (c *Client) ListWorkspaces(ctx context.Context, params *ListWorkspacesParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListWorkspacesRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// CreateWorkspaceWithBody Create a workspace owned by the signed-in user
+//
+// An instance admin may always create one. Anyone else may only while the instance settings let members create workspaces, and otherwise gets 403 `permission_denied`.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /workspaces (the `CreateWorkspace` operationId).
+func (c *Client) CreateWorkspaceWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateWorkspaceRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// CreateWorkspace Create a workspace owned by the signed-in user
+//
+// An instance admin may always create one. Anyone else may only while the instance settings let members create workspaces, and otherwise gets 403 `permission_denied`.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /workspaces (the `CreateWorkspace` operationId).
+func (c *Client) CreateWorkspace(ctx context.Context, body CreateWorkspaceJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateWorkspaceRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// DeleteWorkspace Delete a workspace with its notifiers, storages and members
+//
+// Needs the role `WORKSPACE_OWNER`. A workspace that still has databases gets 409 `workspace_not_empty`, and nothing is deleted. The deletion happens completely or not at all.
+//
+// Corresponds with DELETE /workspaces/{workspaceId} (the `DeleteWorkspace` operationId).
+func (c *Client) DeleteWorkspace(ctx context.Context, workspaceId WorkspaceId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteWorkspaceRequest(c.Server, workspaceId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetWorkspace Get a workspace
+//
+// A user who is not a member of the workspace gets 404 `not_found`, as for a workspace that does not exist.
+//
+// Corresponds with GET /workspaces/{workspaceId} (the `GetWorkspace` operationId).
+func (c *Client) GetWorkspace(ctx context.Context, workspaceId WorkspaceId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetWorkspaceRequest(c.Server, workspaceId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// UpdateWorkspaceWithBody Replace the name of a workspace
+//
+// Needs the role `WORKSPACE_ADMIN` or `WORKSPACE_OWNER`; a viewer or a member gets 403 `permission_denied`.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with PUT /workspaces/{workspaceId} (the `UpdateWorkspace` operationId).
+func (c *Client) UpdateWorkspaceWithBody(ctx context.Context, workspaceId WorkspaceId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateWorkspaceRequestWithBody(c.Server, workspaceId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// UpdateWorkspace Replace the name of a workspace
+//
+// Needs the role `WORKSPACE_ADMIN` or `WORKSPACE_OWNER`; a viewer or a member gets 403 `permission_denied`.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with PUT /workspaces/{workspaceId} (the `UpdateWorkspace` operationId).
+func (c *Client) UpdateWorkspace(ctx context.Context, workspaceId WorkspaceId, body UpdateWorkspaceJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateWorkspaceRequest(c.Server, workspaceId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// TransferWorkspaceOwnershipWithBody Make another member the owner of a workspace
+//
+// Needs the role `WORKSPACE_OWNER`. The previous owner becomes `WORKSPACE_ADMIN`. A member of another workspace gets 404 `not_found`, and naming the current owner changes nothing.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /workspaces/{workspaceId}/transfer-ownership (the `TransferWorkspaceOwnership` operationId).
+func (c *Client) TransferWorkspaceOwnershipWithBody(ctx context.Context, workspaceId WorkspaceId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewTransferWorkspaceOwnershipRequestWithBody(c.Server, workspaceId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// TransferWorkspaceOwnership Make another member the owner of a workspace
+//
+// Needs the role `WORKSPACE_OWNER`. The previous owner becomes `WORKSPACE_ADMIN`. A member of another workspace gets 404 `not_found`, and naming the current owner changes nothing.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /workspaces/{workspaceId}/transfer-ownership (the `TransferWorkspaceOwnership` operationId).
+func (c *Client) TransferWorkspaceOwnership(ctx context.Context, workspaceId WorkspaceId, body TransferWorkspaceOwnershipJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewTransferWorkspaceOwnershipRequest(c.Server, workspaceId, body)
 	if err != nil {
 		return nil, err
 	}
@@ -2338,6 +2990,469 @@ func NewChangeUserRoleRequestWithBody(server string, userId UserId, contentType 
 	return req, nil
 }
 
+// NewListWorkspaceMembersRequest constructs an http.Request for the ListWorkspaceMembers method
+func NewListWorkspaceMembersRequest(server string, params *ListWorkspaceMembersParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/workspace-members")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "workspaceId", params.WorkspaceId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: "uuid"}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "limit", *params.Limit, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.After != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "after", *params.After, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewAddWorkspaceMemberRequest calls the generic AddWorkspaceMember builder with application/json body
+func NewAddWorkspaceMemberRequest(server string, body AddWorkspaceMemberJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewAddWorkspaceMemberRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewAddWorkspaceMemberRequestWithBody constructs an http.Request for the AddWorkspaceMember method, with any body, and a specified content type
+func NewAddWorkspaceMemberRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/workspace-members")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewRemoveWorkspaceMemberRequest constructs an http.Request for the RemoveWorkspaceMember method
+func NewRemoveWorkspaceMemberRequest(server string, memberId MemberId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "memberId", memberId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/workspace-members/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodDelete, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewChangeWorkspaceMemberRoleRequest calls the generic ChangeWorkspaceMemberRole builder with application/json body
+func NewChangeWorkspaceMemberRoleRequest(server string, memberId MemberId, body ChangeWorkspaceMemberRoleJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewChangeWorkspaceMemberRoleRequestWithBody(server, memberId, "application/json", bodyReader)
+}
+
+// NewChangeWorkspaceMemberRoleRequestWithBody constructs an http.Request for the ChangeWorkspaceMemberRole method, with any body, and a specified content type
+func NewChangeWorkspaceMemberRoleRequestWithBody(server string, memberId MemberId, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "memberId", memberId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/workspace-members/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPut, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewListWorkspacesRequest constructs an http.Request for the ListWorkspaces method
+func NewListWorkspacesRequest(server string, params *ListWorkspacesParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/workspaces")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "limit", *params.Limit, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.After != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "after", *params.After, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewCreateWorkspaceRequest calls the generic CreateWorkspace builder with application/json body
+func NewCreateWorkspaceRequest(server string, body CreateWorkspaceJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCreateWorkspaceRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewCreateWorkspaceRequestWithBody constructs an http.Request for the CreateWorkspace method, with any body, and a specified content type
+func NewCreateWorkspaceRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/workspaces")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewDeleteWorkspaceRequest constructs an http.Request for the DeleteWorkspace method
+func NewDeleteWorkspaceRequest(server string, workspaceId WorkspaceId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "workspaceId", workspaceId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/workspaces/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodDelete, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetWorkspaceRequest constructs an http.Request for the GetWorkspace method
+func NewGetWorkspaceRequest(server string, workspaceId WorkspaceId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "workspaceId", workspaceId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/workspaces/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewUpdateWorkspaceRequest calls the generic UpdateWorkspace builder with application/json body
+func NewUpdateWorkspaceRequest(server string, workspaceId WorkspaceId, body UpdateWorkspaceJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewUpdateWorkspaceRequestWithBody(server, workspaceId, "application/json", bodyReader)
+}
+
+// NewUpdateWorkspaceRequestWithBody constructs an http.Request for the UpdateWorkspace method, with any body, and a specified content type
+func NewUpdateWorkspaceRequestWithBody(server string, workspaceId WorkspaceId, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "workspaceId", workspaceId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/workspaces/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPut, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewTransferWorkspaceOwnershipRequest calls the generic TransferWorkspaceOwnership builder with application/json body
+func NewTransferWorkspaceOwnershipRequest(server string, workspaceId WorkspaceId, body TransferWorkspaceOwnershipJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewTransferWorkspaceOwnershipRequestWithBody(server, workspaceId, "application/json", bodyReader)
+}
+
+// NewTransferWorkspaceOwnershipRequestWithBody constructs an http.Request for the TransferWorkspaceOwnership method, with any body, and a specified content type
+func NewTransferWorkspaceOwnershipRequestWithBody(server string, workspaceId WorkspaceId, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "workspaceId", workspaceId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/workspaces/%s/transfer-ownership", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 func (c *Client) applyEditors(ctx context.Context, req *http.Request, additionalEditors []RequestEditorFn) error {
 	for _, r := range c.RequestEditors {
 		if err := r(ctx, req); err != nil {
@@ -2669,6 +3784,141 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with PUT /users/{userId}/role (the `ChangeUserRole` operationId).
 	ChangeUserRoleWithResponse(ctx context.Context, userId UserId, body ChangeUserRoleJSONRequestBody, reqEditors ...RequestEditorFn) (*ChangeUserRoleResponse, error)
+
+	// ListWorkspaceMembersWithResponse List the members of a workspace
+	//
+	// Ordered by the time a member joined, the oldest first, then by ID. A user who is not a member of the workspace gets 404 `not_found`.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /workspace-members (the `ListWorkspaceMembers` operationId).
+	ListWorkspaceMembersWithResponse(ctx context.Context, params *ListWorkspaceMembersParams, reqEditors ...RequestEditorFn) (*ListWorkspaceMembersResponse, error)
+
+	// AddWorkspaceMemberWithBodyWithResponse Add a user to a workspace by email address
+	//
+	// An address without a user invites one, which a user who is not an instance admin may do only while the instance settings allow member invitations; otherwise the answer is 403 `permission_denied`. Adding an admin needs the role `WORKSPACE_OWNER`, adding anyone else `WORKSPACE_ADMIN`. A user who is already a member gets 409 `already_member`.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /workspace-members (the `AddWorkspaceMember` operationId).
+	AddWorkspaceMemberWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AddWorkspaceMemberResponse, error)
+
+	// AddWorkspaceMemberWithResponse Add a user to a workspace by email address
+	//
+	// An address without a user invites one, which a user who is not an instance admin may do only while the instance settings allow member invitations; otherwise the answer is 403 `permission_denied`. Adding an admin needs the role `WORKSPACE_OWNER`, adding anyone else `WORKSPACE_ADMIN`. A user who is already a member gets 409 `already_member`.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /workspace-members (the `AddWorkspaceMember` operationId).
+	AddWorkspaceMemberWithResponse(ctx context.Context, body AddWorkspaceMemberJSONRequestBody, reqEditors ...RequestEditorFn) (*AddWorkspaceMemberResponse, error)
+
+	// RemoveWorkspaceMemberWithResponse Remove a member from a workspace
+	//
+	// Removing an admin needs the role `WORKSPACE_OWNER`, removing anyone else `WORKSPACE_ADMIN`. Removing the owner gets 409 `owner_requires_transfer`. The user keeps their account.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with DELETE /workspace-members/{memberId} (the `RemoveWorkspaceMember` operationId).
+	RemoveWorkspaceMemberWithResponse(ctx context.Context, memberId MemberId, reqEditors ...RequestEditorFn) (*RemoveWorkspaceMemberResponse, error)
+
+	// ChangeWorkspaceMemberRoleWithBodyWithResponse Replace the role of a member
+	//
+	// Changing an admin or making a member an admin needs the role `WORKSPACE_OWNER`, changing anyone else `WORKSPACE_ADMIN`. Changing your own role gets 409 `cannot_change_own_role`, and changing the owner's role 409 `owner_requires_transfer`.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /workspace-members/{memberId} (the `ChangeWorkspaceMemberRole` operationId).
+	ChangeWorkspaceMemberRoleWithBodyWithResponse(ctx context.Context, memberId MemberId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ChangeWorkspaceMemberRoleResponse, error)
+
+	// ChangeWorkspaceMemberRoleWithResponse Replace the role of a member
+	//
+	// Changing an admin or making a member an admin needs the role `WORKSPACE_OWNER`, changing anyone else `WORKSPACE_ADMIN`. Changing your own role gets 409 `cannot_change_own_role`, and changing the owner's role 409 `owner_requires_transfer`.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /workspace-members/{memberId} (the `ChangeWorkspaceMemberRole` operationId).
+	ChangeWorkspaceMemberRoleWithResponse(ctx context.Context, memberId MemberId, body ChangeWorkspaceMemberRoleJSONRequestBody, reqEditors ...RequestEditorFn) (*ChangeWorkspaceMemberRoleResponse, error)
+
+	// ListWorkspacesWithResponse List the workspaces of the signed-in user
+	//
+	// Ordered by name, then by ID. A user sees the workspaces they are a member of; an instance admin sees every workspace, with no `currentUserRole` in the ones they are not a member of.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /workspaces (the `ListWorkspaces` operationId).
+	ListWorkspacesWithResponse(ctx context.Context, params *ListWorkspacesParams, reqEditors ...RequestEditorFn) (*ListWorkspacesResponse, error)
+
+	// CreateWorkspaceWithBodyWithResponse Create a workspace owned by the signed-in user
+	//
+	// An instance admin may always create one. Anyone else may only while the instance settings let members create workspaces, and otherwise gets 403 `permission_denied`.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /workspaces (the `CreateWorkspace` operationId).
+	CreateWorkspaceWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateWorkspaceResponse, error)
+
+	// CreateWorkspaceWithResponse Create a workspace owned by the signed-in user
+	//
+	// An instance admin may always create one. Anyone else may only while the instance settings let members create workspaces, and otherwise gets 403 `permission_denied`.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /workspaces (the `CreateWorkspace` operationId).
+	CreateWorkspaceWithResponse(ctx context.Context, body CreateWorkspaceJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateWorkspaceResponse, error)
+
+	// DeleteWorkspaceWithResponse Delete a workspace with its notifiers, storages and members
+	//
+	// Needs the role `WORKSPACE_OWNER`. A workspace that still has databases gets 409 `workspace_not_empty`, and nothing is deleted. The deletion happens completely or not at all.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with DELETE /workspaces/{workspaceId} (the `DeleteWorkspace` operationId).
+	DeleteWorkspaceWithResponse(ctx context.Context, workspaceId WorkspaceId, reqEditors ...RequestEditorFn) (*DeleteWorkspaceResponse, error)
+
+	// GetWorkspaceWithResponse Get a workspace
+	//
+	// A user who is not a member of the workspace gets 404 `not_found`, as for a workspace that does not exist.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /workspaces/{workspaceId} (the `GetWorkspace` operationId).
+	GetWorkspaceWithResponse(ctx context.Context, workspaceId WorkspaceId, reqEditors ...RequestEditorFn) (*GetWorkspaceResponse, error)
+
+	// UpdateWorkspaceWithBodyWithResponse Replace the name of a workspace
+	//
+	// Needs the role `WORKSPACE_ADMIN` or `WORKSPACE_OWNER`; a viewer or a member gets 403 `permission_denied`.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /workspaces/{workspaceId} (the `UpdateWorkspace` operationId).
+	UpdateWorkspaceWithBodyWithResponse(ctx context.Context, workspaceId WorkspaceId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateWorkspaceResponse, error)
+
+	// UpdateWorkspaceWithResponse Replace the name of a workspace
+	//
+	// Needs the role `WORKSPACE_ADMIN` or `WORKSPACE_OWNER`; a viewer or a member gets 403 `permission_denied`.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /workspaces/{workspaceId} (the `UpdateWorkspace` operationId).
+	UpdateWorkspaceWithResponse(ctx context.Context, workspaceId WorkspaceId, body UpdateWorkspaceJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateWorkspaceResponse, error)
+
+	// TransferWorkspaceOwnershipWithBodyWithResponse Make another member the owner of a workspace
+	//
+	// Needs the role `WORKSPACE_OWNER`. The previous owner becomes `WORKSPACE_ADMIN`. A member of another workspace gets 404 `not_found`, and naming the current owner changes nothing.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /workspaces/{workspaceId}/transfer-ownership (the `TransferWorkspaceOwnership` operationId).
+	TransferWorkspaceOwnershipWithBodyWithResponse(ctx context.Context, workspaceId WorkspaceId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*TransferWorkspaceOwnershipResponse, error)
+
+	// TransferWorkspaceOwnershipWithResponse Make another member the owner of a workspace
+	//
+	// Needs the role `WORKSPACE_OWNER`. The previous owner becomes `WORKSPACE_ADMIN`. A member of another workspace gets 404 `not_found`, and naming the current owner changes nothing.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /workspaces/{workspaceId}/transfer-ownership (the `TransferWorkspaceOwnership` operationId).
+	TransferWorkspaceOwnershipWithResponse(ctx context.Context, workspaceId WorkspaceId, body TransferWorkspaceOwnershipJSONRequestBody, reqEditors ...RequestEditorFn) (*TransferWorkspaceOwnershipResponse, error)
 }
 
 type SignInWithGitHubResponse struct {
@@ -3995,6 +5245,738 @@ func (r ChangeUserRoleResponse) ContentType() string {
 	return ""
 }
 
+type ListWorkspaceMembersResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *WorkspaceMemberPage
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ListWorkspaceMembersResponse) GetJSON200() *WorkspaceMemberPage {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r ListWorkspaceMembersResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r ListWorkspaceMembersResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r ListWorkspaceMembersResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r ListWorkspaceMembersResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r ListWorkspaceMembersResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ListWorkspaceMembersResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListWorkspaceMembersResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ListWorkspaceMembersResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type AddWorkspaceMemberResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON201 the response for an HTTP 201 `application/json` response
+	JSON201 *AddedWorkspaceMember
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSON409 the response for an HTTP 409 `application/problem+json` response
+	ApplicationproblemJSON409 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON201 returns the response for an HTTP 201 `application/json` response
+func (r AddWorkspaceMemberResponse) GetJSON201() *AddedWorkspaceMember {
+	return r.JSON201
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r AddWorkspaceMemberResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r AddWorkspaceMemberResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r AddWorkspaceMemberResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r AddWorkspaceMemberResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSON409 returns the response for an HTTP 409 `application/problem+json` response
+func (r AddWorkspaceMemberResponse) GetApplicationproblemJSON409() *Problem {
+	return r.ApplicationproblemJSON409
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r AddWorkspaceMemberResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r AddWorkspaceMemberResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r AddWorkspaceMemberResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r AddWorkspaceMemberResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r AddWorkspaceMemberResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type RemoveWorkspaceMemberResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSON409 the response for an HTTP 409 `application/problem+json` response
+	ApplicationproblemJSON409 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r RemoveWorkspaceMemberResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r RemoveWorkspaceMemberResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r RemoveWorkspaceMemberResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r RemoveWorkspaceMemberResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSON409 returns the response for an HTTP 409 `application/problem+json` response
+func (r RemoveWorkspaceMemberResponse) GetApplicationproblemJSON409() *Problem {
+	return r.ApplicationproblemJSON409
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r RemoveWorkspaceMemberResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r RemoveWorkspaceMemberResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r RemoveWorkspaceMemberResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r RemoveWorkspaceMemberResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r RemoveWorkspaceMemberResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type ChangeWorkspaceMemberRoleResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *WorkspaceMember
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSON409 the response for an HTTP 409 `application/problem+json` response
+	ApplicationproblemJSON409 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ChangeWorkspaceMemberRoleResponse) GetJSON200() *WorkspaceMember {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r ChangeWorkspaceMemberRoleResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r ChangeWorkspaceMemberRoleResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r ChangeWorkspaceMemberRoleResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r ChangeWorkspaceMemberRoleResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSON409 returns the response for an HTTP 409 `application/problem+json` response
+func (r ChangeWorkspaceMemberRoleResponse) GetApplicationproblemJSON409() *Problem {
+	return r.ApplicationproblemJSON409
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r ChangeWorkspaceMemberRoleResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r ChangeWorkspaceMemberRoleResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ChangeWorkspaceMemberRoleResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ChangeWorkspaceMemberRoleResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ChangeWorkspaceMemberRoleResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type ListWorkspacesResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *WorkspacePage
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ListWorkspacesResponse) GetJSON200() *WorkspacePage {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r ListWorkspacesResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r ListWorkspacesResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r ListWorkspacesResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r ListWorkspacesResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ListWorkspacesResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListWorkspacesResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ListWorkspacesResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type CreateWorkspaceResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON201 the response for an HTTP 201 `application/json` response
+	JSON201 *Workspace
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON201 returns the response for an HTTP 201 `application/json` response
+func (r CreateWorkspaceResponse) GetJSON201() *Workspace {
+	return r.JSON201
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r CreateWorkspaceResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r CreateWorkspaceResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r CreateWorkspaceResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r CreateWorkspaceResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r CreateWorkspaceResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r CreateWorkspaceResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreateWorkspaceResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r CreateWorkspaceResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type DeleteWorkspaceResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSON409 the response for an HTTP 409 `application/problem+json` response
+	ApplicationproblemJSON409 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r DeleteWorkspaceResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r DeleteWorkspaceResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r DeleteWorkspaceResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r DeleteWorkspaceResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSON409 returns the response for an HTTP 409 `application/problem+json` response
+func (r DeleteWorkspaceResponse) GetApplicationproblemJSON409() *Problem {
+	return r.ApplicationproblemJSON409
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r DeleteWorkspaceResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r DeleteWorkspaceResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r DeleteWorkspaceResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DeleteWorkspaceResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r DeleteWorkspaceResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetWorkspaceResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *Workspace
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetWorkspaceResponse) GetJSON200() *Workspace {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r GetWorkspaceResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r GetWorkspaceResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r GetWorkspaceResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r GetWorkspaceResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r GetWorkspaceResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetWorkspaceResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetWorkspaceResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetWorkspaceResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type UpdateWorkspaceResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *Workspace
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r UpdateWorkspaceResponse) GetJSON200() *Workspace {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r UpdateWorkspaceResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r UpdateWorkspaceResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r UpdateWorkspaceResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r UpdateWorkspaceResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r UpdateWorkspaceResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r UpdateWorkspaceResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r UpdateWorkspaceResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r UpdateWorkspaceResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r UpdateWorkspaceResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type TransferWorkspaceOwnershipResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r TransferWorkspaceOwnershipResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r TransferWorkspaceOwnershipResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r TransferWorkspaceOwnershipResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r TransferWorkspaceOwnershipResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r TransferWorkspaceOwnershipResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r TransferWorkspaceOwnershipResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r TransferWorkspaceOwnershipResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r TransferWorkspaceOwnershipResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r TransferWorkspaceOwnershipResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 // SignInWithGitHubWithBodyWithResponse Sign in with GitHub
 //
 // Public, because it creates the session the caller does not have yet. The code from GitHub's authorization page signs in the user linked to the GitHub account, or the user with the same email address, linking the account and finishing the sign-up of an invited user. An unknown address creates a user under the same rules as sign-up. The second factor does not apply, because GitHub verified the user. A deactivated user gets 403 `user_deactivated`, an instance without the GitHub client gets 409 `oauth_not_configured`, and a code GitHub refuses or an account without an email address gets 400 `oauth_failed`.
@@ -4473,6 +6455,231 @@ func (c *ClientWithResponses) ChangeUserRoleWithResponse(ctx context.Context, us
 		return nil, err
 	}
 	return ParseChangeUserRoleResponse(rsp)
+}
+
+// ListWorkspaceMembersWithResponse List the members of a workspace
+//
+// Ordered by the time a member joined, the oldest first, then by ID. A user who is not a member of the workspace gets 404 `not_found`.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /workspace-members (the `ListWorkspaceMembers` operationId).
+func (c *ClientWithResponses) ListWorkspaceMembersWithResponse(ctx context.Context, params *ListWorkspaceMembersParams, reqEditors ...RequestEditorFn) (*ListWorkspaceMembersResponse, error) {
+	rsp, err := c.ListWorkspaceMembers(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListWorkspaceMembersResponse(rsp)
+}
+
+// AddWorkspaceMemberWithBodyWithResponse Add a user to a workspace by email address
+//
+// An address without a user invites one, which a user who is not an instance admin may do only while the instance settings allow member invitations; otherwise the answer is 403 `permission_denied`. Adding an admin needs the role `WORKSPACE_OWNER`, adding anyone else `WORKSPACE_ADMIN`. A user who is already a member gets 409 `already_member`.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /workspace-members (the `AddWorkspaceMember` operationId).
+func (c *ClientWithResponses) AddWorkspaceMemberWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AddWorkspaceMemberResponse, error) {
+	rsp, err := c.AddWorkspaceMemberWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseAddWorkspaceMemberResponse(rsp)
+}
+
+// AddWorkspaceMemberWithResponse Add a user to a workspace by email address
+//
+// An address without a user invites one, which a user who is not an instance admin may do only while the instance settings allow member invitations; otherwise the answer is 403 `permission_denied`. Adding an admin needs the role `WORKSPACE_OWNER`, adding anyone else `WORKSPACE_ADMIN`. A user who is already a member gets 409 `already_member`.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /workspace-members (the `AddWorkspaceMember` operationId).
+func (c *ClientWithResponses) AddWorkspaceMemberWithResponse(ctx context.Context, body AddWorkspaceMemberJSONRequestBody, reqEditors ...RequestEditorFn) (*AddWorkspaceMemberResponse, error) {
+	rsp, err := c.AddWorkspaceMember(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseAddWorkspaceMemberResponse(rsp)
+}
+
+// RemoveWorkspaceMemberWithResponse Remove a member from a workspace
+//
+// Removing an admin needs the role `WORKSPACE_OWNER`, removing anyone else `WORKSPACE_ADMIN`. Removing the owner gets 409 `owner_requires_transfer`. The user keeps their account.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with DELETE /workspace-members/{memberId} (the `RemoveWorkspaceMember` operationId).
+func (c *ClientWithResponses) RemoveWorkspaceMemberWithResponse(ctx context.Context, memberId MemberId, reqEditors ...RequestEditorFn) (*RemoveWorkspaceMemberResponse, error) {
+	rsp, err := c.RemoveWorkspaceMember(ctx, memberId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseRemoveWorkspaceMemberResponse(rsp)
+}
+
+// ChangeWorkspaceMemberRoleWithBodyWithResponse Replace the role of a member
+//
+// Changing an admin or making a member an admin needs the role `WORKSPACE_OWNER`, changing anyone else `WORKSPACE_ADMIN`. Changing your own role gets 409 `cannot_change_own_role`, and changing the owner's role 409 `owner_requires_transfer`.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /workspace-members/{memberId} (the `ChangeWorkspaceMemberRole` operationId).
+func (c *ClientWithResponses) ChangeWorkspaceMemberRoleWithBodyWithResponse(ctx context.Context, memberId MemberId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ChangeWorkspaceMemberRoleResponse, error) {
+	rsp, err := c.ChangeWorkspaceMemberRoleWithBody(ctx, memberId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseChangeWorkspaceMemberRoleResponse(rsp)
+}
+
+// ChangeWorkspaceMemberRoleWithResponse Replace the role of a member
+//
+// Changing an admin or making a member an admin needs the role `WORKSPACE_OWNER`, changing anyone else `WORKSPACE_ADMIN`. Changing your own role gets 409 `cannot_change_own_role`, and changing the owner's role 409 `owner_requires_transfer`.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /workspace-members/{memberId} (the `ChangeWorkspaceMemberRole` operationId).
+func (c *ClientWithResponses) ChangeWorkspaceMemberRoleWithResponse(ctx context.Context, memberId MemberId, body ChangeWorkspaceMemberRoleJSONRequestBody, reqEditors ...RequestEditorFn) (*ChangeWorkspaceMemberRoleResponse, error) {
+	rsp, err := c.ChangeWorkspaceMemberRole(ctx, memberId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseChangeWorkspaceMemberRoleResponse(rsp)
+}
+
+// ListWorkspacesWithResponse List the workspaces of the signed-in user
+//
+// Ordered by name, then by ID. A user sees the workspaces they are a member of; an instance admin sees every workspace, with no `currentUserRole` in the ones they are not a member of.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /workspaces (the `ListWorkspaces` operationId).
+func (c *ClientWithResponses) ListWorkspacesWithResponse(ctx context.Context, params *ListWorkspacesParams, reqEditors ...RequestEditorFn) (*ListWorkspacesResponse, error) {
+	rsp, err := c.ListWorkspaces(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListWorkspacesResponse(rsp)
+}
+
+// CreateWorkspaceWithBodyWithResponse Create a workspace owned by the signed-in user
+//
+// An instance admin may always create one. Anyone else may only while the instance settings let members create workspaces, and otherwise gets 403 `permission_denied`.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /workspaces (the `CreateWorkspace` operationId).
+func (c *ClientWithResponses) CreateWorkspaceWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateWorkspaceResponse, error) {
+	rsp, err := c.CreateWorkspaceWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateWorkspaceResponse(rsp)
+}
+
+// CreateWorkspaceWithResponse Create a workspace owned by the signed-in user
+//
+// An instance admin may always create one. Anyone else may only while the instance settings let members create workspaces, and otherwise gets 403 `permission_denied`.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /workspaces (the `CreateWorkspace` operationId).
+func (c *ClientWithResponses) CreateWorkspaceWithResponse(ctx context.Context, body CreateWorkspaceJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateWorkspaceResponse, error) {
+	rsp, err := c.CreateWorkspace(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateWorkspaceResponse(rsp)
+}
+
+// DeleteWorkspaceWithResponse Delete a workspace with its notifiers, storages and members
+//
+// Needs the role `WORKSPACE_OWNER`. A workspace that still has databases gets 409 `workspace_not_empty`, and nothing is deleted. The deletion happens completely or not at all.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with DELETE /workspaces/{workspaceId} (the `DeleteWorkspace` operationId).
+func (c *ClientWithResponses) DeleteWorkspaceWithResponse(ctx context.Context, workspaceId WorkspaceId, reqEditors ...RequestEditorFn) (*DeleteWorkspaceResponse, error) {
+	rsp, err := c.DeleteWorkspace(ctx, workspaceId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDeleteWorkspaceResponse(rsp)
+}
+
+// GetWorkspaceWithResponse Get a workspace
+//
+// A user who is not a member of the workspace gets 404 `not_found`, as for a workspace that does not exist.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /workspaces/{workspaceId} (the `GetWorkspace` operationId).
+func (c *ClientWithResponses) GetWorkspaceWithResponse(ctx context.Context, workspaceId WorkspaceId, reqEditors ...RequestEditorFn) (*GetWorkspaceResponse, error) {
+	rsp, err := c.GetWorkspace(ctx, workspaceId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetWorkspaceResponse(rsp)
+}
+
+// UpdateWorkspaceWithBodyWithResponse Replace the name of a workspace
+//
+// Needs the role `WORKSPACE_ADMIN` or `WORKSPACE_OWNER`; a viewer or a member gets 403 `permission_denied`.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /workspaces/{workspaceId} (the `UpdateWorkspace` operationId).
+func (c *ClientWithResponses) UpdateWorkspaceWithBodyWithResponse(ctx context.Context, workspaceId WorkspaceId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateWorkspaceResponse, error) {
+	rsp, err := c.UpdateWorkspaceWithBody(ctx, workspaceId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateWorkspaceResponse(rsp)
+}
+
+// UpdateWorkspaceWithResponse Replace the name of a workspace
+//
+// Needs the role `WORKSPACE_ADMIN` or `WORKSPACE_OWNER`; a viewer or a member gets 403 `permission_denied`.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /workspaces/{workspaceId} (the `UpdateWorkspace` operationId).
+func (c *ClientWithResponses) UpdateWorkspaceWithResponse(ctx context.Context, workspaceId WorkspaceId, body UpdateWorkspaceJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateWorkspaceResponse, error) {
+	rsp, err := c.UpdateWorkspace(ctx, workspaceId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateWorkspaceResponse(rsp)
+}
+
+// TransferWorkspaceOwnershipWithBodyWithResponse Make another member the owner of a workspace
+//
+// Needs the role `WORKSPACE_OWNER`. The previous owner becomes `WORKSPACE_ADMIN`. A member of another workspace gets 404 `not_found`, and naming the current owner changes nothing.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /workspaces/{workspaceId}/transfer-ownership (the `TransferWorkspaceOwnership` operationId).
+func (c *ClientWithResponses) TransferWorkspaceOwnershipWithBodyWithResponse(ctx context.Context, workspaceId WorkspaceId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*TransferWorkspaceOwnershipResponse, error) {
+	rsp, err := c.TransferWorkspaceOwnershipWithBody(ctx, workspaceId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseTransferWorkspaceOwnershipResponse(rsp)
+}
+
+// TransferWorkspaceOwnershipWithResponse Make another member the owner of a workspace
+//
+// Needs the role `WORKSPACE_OWNER`. The previous owner becomes `WORKSPACE_ADMIN`. A member of another workspace gets 404 `not_found`, and naming the current owner changes nothing.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /workspaces/{workspaceId}/transfer-ownership (the `TransferWorkspaceOwnership` operationId).
+func (c *ClientWithResponses) TransferWorkspaceOwnershipWithResponse(ctx context.Context, workspaceId WorkspaceId, body TransferWorkspaceOwnershipJSONRequestBody, reqEditors ...RequestEditorFn) (*TransferWorkspaceOwnershipResponse, error) {
+	rsp, err := c.TransferWorkspaceOwnership(ctx, workspaceId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseTransferWorkspaceOwnershipResponse(rsp)
 }
 
 // ParseSignInWithGitHubResponse parses an HTTP response from a SignInWithGitHubWithResponse call
@@ -5467,6 +7674,597 @@ func ParseChangeUserRoleResponse(rsp *http.Response) (*ChangeUserRoleResponse, e
 			return nil, err
 		}
 		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListWorkspaceMembersResponse parses an HTTP response from a ListWorkspaceMembersWithResponse call
+func ParseListWorkspaceMembersResponse(rsp *http.Response) (*ListWorkspaceMembersResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListWorkspaceMembersResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest WorkspaceMemberPage
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseAddWorkspaceMemberResponse parses an HTTP response from a AddWorkspaceMemberWithResponse call
+func ParseAddWorkspaceMemberResponse(rsp *http.Response) (*AddWorkspaceMemberResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &AddWorkspaceMemberResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest AddedWorkspaceMember
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseRemoveWorkspaceMemberResponse parses an HTTP response from a RemoveWorkspaceMemberWithResponse call
+func ParseRemoveWorkspaceMemberResponse(rsp *http.Response) (*RemoveWorkspaceMemberResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &RemoveWorkspaceMemberResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case rsp.StatusCode == 204:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseChangeWorkspaceMemberRoleResponse parses an HTTP response from a ChangeWorkspaceMemberRoleWithResponse call
+func ParseChangeWorkspaceMemberRoleResponse(rsp *http.Response) (*ChangeWorkspaceMemberRoleResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ChangeWorkspaceMemberRoleResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest WorkspaceMember
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListWorkspacesResponse parses an HTTP response from a ListWorkspacesWithResponse call
+func ParseListWorkspacesResponse(rsp *http.Response) (*ListWorkspacesResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListWorkspacesResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest WorkspacePage
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCreateWorkspaceResponse parses an HTTP response from a CreateWorkspaceWithResponse call
+func ParseCreateWorkspaceResponse(rsp *http.Response) (*CreateWorkspaceResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CreateWorkspaceResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest Workspace
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseDeleteWorkspaceResponse parses an HTTP response from a DeleteWorkspaceWithResponse call
+func ParseDeleteWorkspaceResponse(rsp *http.Response) (*DeleteWorkspaceResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeleteWorkspaceResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case rsp.StatusCode == 204:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetWorkspaceResponse parses an HTTP response from a GetWorkspaceWithResponse call
+func ParseGetWorkspaceResponse(rsp *http.Response) (*GetWorkspaceResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetWorkspaceResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Workspace
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseUpdateWorkspaceResponse parses an HTTP response from a UpdateWorkspaceWithResponse call
+func ParseUpdateWorkspaceResponse(rsp *http.Response) (*UpdateWorkspaceResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &UpdateWorkspaceResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Workspace
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseTransferWorkspaceOwnershipResponse parses an HTTP response from a TransferWorkspaceOwnershipWithResponse call
+func ParseTransferWorkspaceOwnershipResponse(rsp *http.Response) (*TransferWorkspaceOwnershipResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &TransferWorkspaceOwnershipResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case rsp.StatusCode == 204:
+		break // No content-type
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
 		var dest Problem

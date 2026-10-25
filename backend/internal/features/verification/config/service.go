@@ -12,7 +12,7 @@ import (
 	audit_logs_models "databasus-backend/internal/features/audit_logs/models"
 	"databasus-backend/internal/features/databases"
 	"databasus-backend/internal/features/intervals"
-	workspaces_services "databasus-backend/internal/features/workspaces/services"
+	workspaces_bridge "databasus-backend/internal/features/workspaces"
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/modules/workspaces"
 )
@@ -20,7 +20,7 @@ import (
 type VerificationConfigService struct {
 	verificationConfigRepository *VerificationConfigRepository
 	databaseService              *databases.DatabaseService
-	workspaceService             *workspaces_services.WorkspaceService
+	workspaceService             *workspaces_bridge.Access
 	auditLogService              *audit_logs.AuditLogService
 	logger                       *slog.Logger
 }

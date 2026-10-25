@@ -20,7 +20,7 @@ import (
 	"databasus-backend/internal/features/notifiers"
 	"databasus-backend/internal/features/storages"
 	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
-	workspaces_services "databasus-backend/internal/features/workspaces/services"
+	workspaces_bridge "databasus-backend/internal/features/workspaces"
 	"databasus-backend/internal/util/encryption"
 	"databasus-backend/internal/util/logger"
 )
@@ -38,7 +38,7 @@ func CreateTestPhysicalBackuper(notificationSender NotificationSender) *Physical
 	return &PhysicalBackuper{
 		databases.GetDatabaseService(),
 		encryption.GetFieldEncryptor(),
-		workspaces_services.GetWorkspaceService(),
+		workspaces_bridge.GetAccess(),
 		physical_repositories.GetFullBackupRepository(),
 		physical_repositories.GetIncrementalBackupRepository(),
 		physical_repositories.GetInFlightBackupRepository(),

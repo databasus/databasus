@@ -16,10 +16,17 @@ import (
 // predecessor then speaks the new API.
 
 const (
-	accountEmail     = "upgrade-owner@databasus.local"
-	accountPassword  = "upgrade-owner-password"
-	accountName      = "Upgrade Owner"
-	workspaceName    = "upgrade workspace"
+	accountEmail    = "upgrade-owner@databasus.local"
+	accountPassword = "upgrade-owner-password"
+	accountName     = "Upgrade Owner"
+	workspaceName   = "upgrade workspace"
+	memberEmail     = "upgrade-member@databasus.local"
+	memberName      = "Upgrade Member"
+	memberRole      = "WORKSPACE_MEMBER"
+	// The previous release let a workspace get a second owner; the upgrade keeps the earliest owner
+	// and makes the other one an admin.
+	secondOwnerEmail = "upgrade-second-owner@databasus.local"
+	secondOwnerName  = "Upgrade Second Owner"
 	storageName      = "upgrade local storage"
 	notifierName     = "upgrade webhook"
 	notifierURL      = "http://upgrade-webhook.invalid/hook"
@@ -56,6 +63,11 @@ type previousCreatedItem struct {
 
 type previousWorkspaceRequest struct {
 	Name string `json:"name"`
+}
+
+type previousMemberRequest struct {
+	Email string `json:"email"`
+	Role  string `json:"role"`
 }
 
 type previousStorageRequest struct {
@@ -112,6 +124,8 @@ type previousAuditLog struct {
 	WorkspaceID *string `json:"workspaceId"`
 	Message     string  `json:"message"`
 	CreatedAt   string  `json:"createdAt"`
+	UserEmail   *string `json:"userEmail"`
+	UserName    *string `json:"userName"`
 }
 
 type previousBackup struct {
@@ -122,8 +136,8 @@ type previousBackup struct {
 }
 
 // writeUpgradeData creates through the previous release what a user has after a while: an account,
-// a workspace, a storage, a notifier, a database with an encrypted backup config and one completed
-// backup.
+// a workspace with two more members, one of them a second owner, a storage, a notifier, a database
+// with an encrypted backup config and one completed backup.
 func writeUpgradeData(t *testing.T, api *apiClient) (writtenUpgradeData, error) {
 	t.Helper()
 
@@ -147,6 +161,11 @@ func writeUpgradeData(t *testing.T, api *apiClient) (writtenUpgradeData, error) 
 	err = api.post(ctx, "/workspaces", previousWorkspaceRequest{Name: workspaceName}, &workspace)
 	if err != nil {
 		return writtenUpgradeData{}, fmt.Errorf("create the workspace: %w", err)
+	}
+
+	err = addMembers(ctx, api, workspace.ID)
+	if err != nil {
+		return writtenUpgradeData{}, err
 	}
 
 	var storage previousCreatedItem
@@ -214,6 +233,9 @@ func writeUpgradeData(t *testing.T, api *apiClient) (writtenUpgradeData, error) 
 		items: append([]upgradecheck.Item{
 			{Kind: "account", Name: accountEmail, Values: map[string]string{}},
 			{Kind: "workspace", Name: workspaceName, Values: map[string]string{"id": workspace.ID}},
+			{Kind: "workspace member", Name: accountEmail, Values: map[string]string{"role": "WORKSPACE_OWNER"}},
+			{Kind: "workspace member", Name: memberEmail, Values: map[string]string{"role": memberRole}},
+			{Kind: "workspace member", Name: secondOwnerEmail, Values: map[string]string{"role": "WORKSPACE_ADMIN"}},
 			{Kind: "storage", Name: storageName, Values: map[string]string{"id": storage.ID, "type": "LOCAL"}},
 			{Kind: "notifier", Name: notifierName, Values: map[string]string{
 				"id":            notifier.ID,
@@ -243,6 +265,46 @@ func writeUpgradeData(t *testing.T, api *apiClient) (writtenUpgradeData, error) 
 		databaseID: database.ID,
 		backupID:   backup.ID,
 	}, nil
+}
+
+// addMembers signs up two more users and adds them to the workspace as the account that owns it:
+// one as a member and one as a second owner, which the previous release allowed.
+func addMembers(ctx context.Context, api *apiClient, workspaceID string) error {
+	err := addMember(ctx, api, workspaceID, previousSignUpRequest{
+		Email:    memberEmail,
+		Password: accountPassword,
+		Name:     memberName,
+	}, memberRole)
+	if err != nil {
+		return err
+	}
+
+	return addMember(ctx, api, workspaceID, previousSignUpRequest{
+		Email:    secondOwnerEmail,
+		Password: accountPassword,
+		Name:     secondOwnerName,
+	}, "WORKSPACE_OWNER")
+}
+
+func addMember(
+	ctx context.Context,
+	api *apiClient,
+	workspaceID string,
+	signUp previousSignUpRequest,
+	role string,
+) error {
+	err := api.post(ctx, "/users/signup", signUp, nil)
+	if err != nil {
+		return fmt.Errorf("sign up %s: %w", signUp.Email, err)
+	}
+
+	err = api.post(ctx, "/workspaces/memberships/"+workspaceID+"/members",
+		previousMemberRequest{Email: signUp.Email, Role: role}, nil)
+	if err != nil {
+		return fmt.Errorf("add %s to the workspace: %w", signUp.Email, err)
+	}
+
+	return nil
 }
 
 // The previous release fills a new database's backup config with its defaults on the first read,
@@ -324,8 +386,9 @@ func makeBackup(t *testing.T, api *apiClient, databaseID string) (previousBackup
 }
 
 // readAuditEventItems lists the global audit log the account sees as the first account of the
-// instance, which makes it the admin. Every event the account wrote is expected to show its email
-// and name after the upgrade, and an event without an author is expected to stay without one.
+// instance, which makes it the admin. Every event with an author is expected to show the email and
+// name the previous release showed for it, and an event without an author is expected to stay
+// without one.
 func readAuditEventItems(ctx context.Context, api *apiClient) ([]upgradecheck.Item, error) {
 	var auditLogList previousAuditLogList
 
@@ -344,7 +407,7 @@ func readAuditEventItems(ctx context.Context, api *apiClient) ([]upgradecheck.It
 
 		authorEmail, authorName := "", ""
 		if auditLog.UserID != nil {
-			authorEmail, authorName = accountEmail, accountName
+			authorEmail, authorName = getOptionalValue(auditLog.UserEmail), getOptionalValue(auditLog.UserName)
 		}
 
 		auditEventItems = append(auditEventItems, upgradecheck.Item{

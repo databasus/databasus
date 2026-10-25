@@ -22,7 +22,6 @@ import (
 	physical_enums "databasus-backend/internal/features/backups/backups/core/physical/enums"
 	physical_models "databasus-backend/internal/features/backups/backups/core/physical/models"
 	physical_repositories "databasus-backend/internal/features/backups/backups/core/physical/repositories"
-	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
 	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
 	"databasus-backend/internal/features/databases"
 	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
@@ -31,8 +30,6 @@ import (
 	"databasus-backend/internal/features/storages"
 	storage_files "databasus-backend/internal/features/storages/files"
 	users_testing "databasus-backend/internal/features/users/testing"
-	workspaces_controllers "databasus-backend/internal/features/workspaces/controllers"
-	workspaces_models "databasus-backend/internal/features/workspaces/models"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/storage"
@@ -50,7 +47,7 @@ import (
 // source PG.
 type PhysicalDBFixture struct {
 	Owner     *users_testing.TestUser
-	Workspace *workspaces_models.Workspace
+	Workspace *workspaces_testing.TestWorkspace
 	Storage   *storages.Storage
 	Notifier  *notifiers.Notifier
 	DB        *databases.Database
@@ -212,17 +209,10 @@ func wirePhysicalDBFixture(
 ) *PhysicalDBFixture {
 	t.Helper()
 
-	router := workspaces_testing.CreateTestRouter(
-		workspaces_controllers.GetWorkspaceController(),
-		workspaces_controllers.GetMembershipController(),
-		databases.GetDatabaseController(),
-		backups_config_logical.GetBackupConfigController(),
-	)
-
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner, router)
-	t.Cleanup(func() { workspaces_testing.RemoveTestWorkspace(context.Background(), workspace, router) })
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner)
+	t.Cleanup(func() { workspaces_testing.RemoveTestWorkspace(context.Background(), workspace) })
 
 	testStorage := storages.CreateTestStorage(workspace.ID)
 	t.Cleanup(func() { storages.RemoveTestStorage(t.Context(), testStorage.ID) })

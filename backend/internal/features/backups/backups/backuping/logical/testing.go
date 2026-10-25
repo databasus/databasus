@@ -19,8 +19,7 @@ import (
 	"databasus-backend/internal/features/notifiers"
 	"databasus-backend/internal/features/storages"
 	users_testing "databasus-backend/internal/features/users/testing"
-	workspaces_controllers "databasus-backend/internal/features/workspaces/controllers"
-	workspaces_services "databasus-backend/internal/features/workspaces/services"
+	workspaces_bridge "databasus-backend/internal/features/workspaces"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/storage"
@@ -97,8 +96,7 @@ func CreateBackupTestFixture(t *testing.T, workspaceName string) *BackupTestFixt
 	}
 
 	user := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
-	router := CreateTestRouter()
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), workspaceName, user, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), workspaceName, user)
 	createdStorage := storages.CreateTestStorage(workspace.ID)
 	createdNotifier := notifiers.CreateTestNotifier(workspace.ID)
 	createdDatabase := databases.CreateTestDatabase(workspace.ID, createdStorage, createdNotifier)
@@ -119,7 +117,7 @@ func CreateBackupTestFixture(t *testing.T, workspaceName string) *BackupTestFixt
 		time.Sleep(50 * time.Millisecond)
 		notifiers.RemoveTestNotifier(createdNotifier)
 		storages.RemoveTestStorage(t.Context(), createdStorage.ID)
-		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	})
 
 	return &BackupTestFixture{createdStorage, createdNotifier, createdDatabase}
@@ -127,8 +125,6 @@ func CreateBackupTestFixture(t *testing.T, workspaceName string) *BackupTestFixt
 
 func CreateTestRouter() *gin.Engine {
 	router := workspaces_testing.CreateTestRouter(
-		workspaces_controllers.GetWorkspaceController(),
-		workspaces_controllers.GetMembershipController(),
 		databases.GetDatabaseController(),
 		backups_config_logical.GetBackupConfigController(),
 	)
@@ -150,7 +146,7 @@ func CreateTestBackupCleaner() *BackupCleaner {
 func CreateTestBackuper() *Backuper {
 	return &Backuper{
 		databases.GetDatabaseService(),
-		workspaces_services.GetWorkspaceService(),
+		workspaces_bridge.GetAccess(),
 		getBackupRepository(),
 		backups_config_logical.GetBackupConfigService(),
 		storages.GetStorageFileStore(),
@@ -164,7 +160,7 @@ func CreateTestBackuper() *Backuper {
 func CreateTestBackuperWithUseCase(useCase backups_core_logical.CreateBackupUsecase) *Backuper {
 	return &Backuper{
 		databases.GetDatabaseService(),
-		workspaces_services.GetWorkspaceService(),
+		workspaces_bridge.GetAccess(),
 		getBackupRepository(),
 		backups_config_logical.GetBackupConfigService(),
 		storages.GetStorageFileStore(),

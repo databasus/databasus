@@ -13,7 +13,7 @@ import (
 	"databasus-backend/internal/features/intervals"
 	"databasus-backend/internal/features/notifiers"
 	"databasus-backend/internal/features/storages"
-	workspaces_services "databasus-backend/internal/features/workspaces/services"
+	workspaces_bridge "databasus-backend/internal/features/workspaces"
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/modules/workspaces"
 )
@@ -23,7 +23,7 @@ type BackupConfigService struct {
 	databaseService        *databases.DatabaseService
 	storageService         *storages.StorageService
 	notifierService        *notifiers.NotifierService
-	workspaceService       *workspaces_services.WorkspaceService
+	workspaceService       *workspaces_bridge.Access
 	logger                 *slog.Logger
 
 	dbStorageChangeListener    BackupConfigStorageChangeListener

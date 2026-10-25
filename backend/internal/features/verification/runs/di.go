@@ -11,7 +11,7 @@ import (
 	"databasus-backend/internal/features/notifiers"
 	verification_agents "databasus-backend/internal/features/verification/agents"
 	verification_config "databasus-backend/internal/features/verification/config"
-	workspaces_services "databasus-backend/internal/features/workspaces/services"
+	workspaces_bridge "databasus-backend/internal/features/workspaces"
 	"databasus-backend/internal/util/logger"
 )
 
@@ -26,7 +26,7 @@ var getVerificationService = sync.OnceValue(func() *VerificationService {
 		backups_services.GetBackupService(),
 		verification_config.GetVerificationConfigService(),
 		notifiers.GetNotifierService(),
-		workspaces_services.GetWorkspaceService(),
+		workspaces_bridge.GetAccess(),
 		audit_logs.GetAuditLogService(),
 		logger.GetLogger(),
 	}

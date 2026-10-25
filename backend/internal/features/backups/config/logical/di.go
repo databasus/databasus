@@ -6,7 +6,7 @@ import (
 	"databasus-backend/internal/features/databases"
 	"databasus-backend/internal/features/notifiers"
 	"databasus-backend/internal/features/storages"
-	workspaces_services "databasus-backend/internal/features/workspaces/services"
+	workspaces_bridge "databasus-backend/internal/features/workspaces"
 )
 
 var (
@@ -19,7 +19,7 @@ var (
 			databases.GetDatabaseService(),
 			storages.GetStorageService(),
 			notifiers.GetNotifierService(),
-			workspaces_services.GetWorkspaceService(),
+			workspaces_bridge.GetAccess(),
 			nil,
 		}
 	})

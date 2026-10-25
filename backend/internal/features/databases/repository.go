@@ -1,6 +1,7 @@
 package databases
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/google/uuid"
@@ -10,6 +11,7 @@ import (
 	"databasus-backend/internal/features/databases/databases/mongodb"
 	"databasus-backend/internal/features/databases/databases/mysql"
 	postgresql_logical "databasus-backend/internal/features/databases/databases/postgresql/logical"
+	lib_database "databasus-backend/internal/lib/database"
 	"databasus-backend/internal/storage"
 )
 
@@ -156,11 +158,10 @@ func (r *DatabaseRepository) FindByID(id uuid.UUID) (*Database, error) {
 	return &database, nil
 }
 
-func (r *DatabaseRepository) FindByWorkspaceID(workspaceID uuid.UUID) ([]*Database, error) {
+func (r *DatabaseRepository) FindByWorkspaceID(ctx context.Context, workspaceID uuid.UUID) ([]*Database, error) {
 	var databases []*Database
 
-	if err := storage.
-		GetDb().
+	if err := lib_database.Conn(ctx, storage.GetDb()).
 		Preload("PostgresqlLogical").
 		Preload("PostgresqlPhysical").
 		Preload("Mysql").

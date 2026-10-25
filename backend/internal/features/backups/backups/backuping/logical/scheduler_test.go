@@ -62,8 +62,7 @@ func Test_RunPendingBackups_ByDatabaseType_OnlySchedulesNonAgentManagedBackups(t
 			caching.GetStore().Clear(t.Context())
 
 			user := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
-			router := CreateTestRouter()
-			workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", user, router)
+			workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", user)
 			storage := storages.CreateTestStorage(workspace.ID)
 			notifier := notifiers.CreateTestNotifier(workspace.ID)
 			database := tc.createDatabase(t, workspace.ID, storage, notifier)
@@ -78,7 +77,7 @@ func Test_RunPendingBackups_ByDatabaseType_OnlySchedulesNonAgentManagedBackups(t
 				time.Sleep(50 * time.Millisecond)
 				storages.RemoveTestStorage(t.Context(), storage.ID)
 				notifiers.RemoveTestNotifier(notifier)
-				workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+				workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 			}()
 
 			backupConfig, err := backups_config_logical.GetBackupConfigService().GetBackupConfigByDbId(database.ID)
@@ -131,8 +130,7 @@ func Test_RunPendingBackups_WhenLastBackupWasYesterday_CreatesNewBackup(t *testi
 	caching.GetStore().Clear(t.Context())
 	// setup data
 	user := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
-	router := CreateTestRouter()
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", user, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", user)
 	storage := storages.CreateTestStorage(workspace.ID)
 	notifier := notifiers.CreateTestNotifier(workspace.ID)
 	database := databases.CreateTestDatabase(workspace.ID, storage, notifier)
@@ -148,7 +146,7 @@ func Test_RunPendingBackups_WhenLastBackupWasYesterday_CreatesNewBackup(t *testi
 		time.Sleep(50 * time.Millisecond)
 		storages.RemoveTestStorage(t.Context(), storage.ID)
 		notifiers.RemoveTestNotifier(notifier)
-		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	}()
 
 	// Enable backups for the database
@@ -197,8 +195,7 @@ func Test_RunPendingBackups_WhenLastBackupWasRecentlyCompleted_SkipsBackup(t *te
 	caching.GetStore().Clear(t.Context())
 	// setup data
 	user := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
-	router := CreateTestRouter()
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", user, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", user)
 	storage := storages.CreateTestStorage(workspace.ID)
 	notifier := notifiers.CreateTestNotifier(workspace.ID)
 	database := databases.CreateTestDatabase(workspace.ID, storage, notifier)
@@ -214,7 +211,7 @@ func Test_RunPendingBackups_WhenLastBackupWasRecentlyCompleted_SkipsBackup(t *te
 		time.Sleep(50 * time.Millisecond)
 		storages.RemoveTestStorage(t.Context(), storage.ID)
 		notifiers.RemoveTestNotifier(notifier)
-		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	}()
 
 	// Enable backups for the database
@@ -261,8 +258,7 @@ func Test_RunPendingBackups_WhenLastBackupFailedAndRetriesDisabled_SkipsBackup(t
 	caching.GetStore().Clear(t.Context())
 	// setup data
 	user := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
-	router := CreateTestRouter()
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", user, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", user)
 	storage := storages.CreateTestStorage(workspace.ID)
 	notifier := notifiers.CreateTestNotifier(workspace.ID)
 	database := databases.CreateTestDatabase(workspace.ID, storage, notifier)
@@ -278,7 +274,7 @@ func Test_RunPendingBackups_WhenLastBackupFailedAndRetriesDisabled_SkipsBackup(t
 		time.Sleep(50 * time.Millisecond)
 		storages.RemoveTestStorage(t.Context(), storage.ID)
 		notifiers.RemoveTestNotifier(notifier)
-		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	}()
 
 	// Enable backups for the database with retries disabled
@@ -329,8 +325,7 @@ func Test_RunPendingBackups_WhenLastBackupFailedAndRetriesEnabled_CreatesNewBack
 	caching.GetStore().Clear(t.Context())
 	// setup data
 	user := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
-	router := CreateTestRouter()
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", user, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", user)
 	storage := storages.CreateTestStorage(workspace.ID)
 	notifier := notifiers.CreateTestNotifier(workspace.ID)
 	database := databases.CreateTestDatabase(workspace.ID, storage, notifier)
@@ -346,7 +341,7 @@ func Test_RunPendingBackups_WhenLastBackupFailedAndRetriesEnabled_CreatesNewBack
 		time.Sleep(50 * time.Millisecond)
 		storages.RemoveTestStorage(t.Context(), storage.ID)
 		notifiers.RemoveTestNotifier(notifier)
-		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	}()
 
 	// Enable backups for the database with retries enabled
@@ -399,8 +394,7 @@ func Test_RunPendingBackups_WhenFailedBackupsExceedMaxRetries_SkipsBackup(t *tes
 	caching.GetStore().Clear(t.Context())
 	// setup data
 	user := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
-	router := CreateTestRouter()
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", user, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", user)
 	storage := storages.CreateTestStorage(workspace.ID)
 	notifier := notifiers.CreateTestNotifier(workspace.ID)
 	database := databases.CreateTestDatabase(workspace.ID, storage, notifier)
@@ -416,7 +410,7 @@ func Test_RunPendingBackups_WhenFailedBackupsExceedMaxRetries_SkipsBackup(t *tes
 		time.Sleep(50 * time.Millisecond)
 		storages.RemoveTestStorage(t.Context(), storage.ID)
 		notifiers.RemoveTestNotifier(notifier)
-		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	}()
 
 	// Enable backups for the database with retries enabled
@@ -469,8 +463,7 @@ func Test_RunPendingBackups_WhenFailedBackupsExceedMaxRetries_SkipsBackup(t *tes
 func Test_RunPendingBackups_WhenBackupsDisabled_SkipsBackup(t *testing.T) {
 	caching.GetStore().Clear(t.Context())
 	user := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
-	router := CreateTestRouter()
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", user, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", user)
 	storage := storages.CreateTestStorage(workspace.ID)
 	notifier := notifiers.CreateTestNotifier(workspace.ID)
 	database := databases.CreateTestDatabase(workspace.ID, storage, notifier)
@@ -485,7 +478,7 @@ func Test_RunPendingBackups_WhenBackupsDisabled_SkipsBackup(t *testing.T) {
 		time.Sleep(50 * time.Millisecond)
 		storages.RemoveTestStorage(t.Context(), storage.ID)
 		notifiers.RemoveTestNotifier(notifier)
-		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	}()
 
 	backupConfig, err := backups_config_logical.GetBackupConfigService().GetBackupConfigByDbId(database.ID)
@@ -531,8 +524,7 @@ func Test_FailBackupsInProgress_WhenSchedulerStarts_CancelsBackupsAndUpdatesStat
 	caching.GetStore().Clear(t.Context())
 
 	user := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
-	router := CreateTestRouter()
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", user, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", user)
 	storage := storages.CreateTestStorage(workspace.ID)
 	notifier := notifiers.CreateTestNotifier(workspace.ID)
 	database := databases.CreateTestDatabase(workspace.ID, storage, notifier)
@@ -547,7 +539,7 @@ func Test_FailBackupsInProgress_WhenSchedulerStarts_CancelsBackupsAndUpdatesStat
 		time.Sleep(50 * time.Millisecond)
 		storages.RemoveTestStorage(t.Context(), storage.ID)
 		notifiers.RemoveTestNotifier(notifier)
-		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
 		caching.GetStore().Clear(t.Context())
 	}()
@@ -637,8 +629,7 @@ func Test_FailBackupsInProgress_WhenSchedulerStarts_CancelsBackupsAndUpdatesStat
 func Test_StartBackup_WhenBackupAlreadyInProgress_SkipsNewBackup(t *testing.T) {
 	caching.GetStore().Clear(t.Context())
 	user := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
-	router := CreateTestRouter()
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", user, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", user)
 	storage := storages.CreateTestStorage(workspace.ID)
 	notifier := notifiers.CreateTestNotifier(workspace.ID)
 	database := databases.CreateTestDatabase(workspace.ID, storage, notifier)
@@ -653,7 +644,7 @@ func Test_StartBackup_WhenBackupAlreadyInProgress_SkipsNewBackup(t *testing.T) {
 		time.Sleep(50 * time.Millisecond)
 		storages.RemoveTestStorage(t.Context(), storage.ID)
 		notifiers.RemoveTestNotifier(notifier)
-		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	}()
 
 	backupConfig, err := backups_config_logical.GetBackupConfigService().GetBackupConfigByDbId(database.ID)
@@ -704,8 +695,7 @@ func Test_RunPendingBackups_WhenLastBackupFailedWithIsSkipRetry_SkipsBackupEvenW
 ) {
 	caching.GetStore().Clear(t.Context())
 	user := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
-	router := CreateTestRouter()
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", user, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", user)
 	storage := storages.CreateTestStorage(workspace.ID)
 	notifier := notifiers.CreateTestNotifier(workspace.ID)
 	database := databases.CreateTestDatabase(workspace.ID, storage, notifier)
@@ -720,7 +710,7 @@ func Test_RunPendingBackups_WhenLastBackupFailedWithIsSkipRetry_SkipsBackupEvenW
 		time.Sleep(50 * time.Millisecond)
 		storages.RemoveTestStorage(t.Context(), storage.ID)
 		notifiers.RemoveTestNotifier(notifier)
-		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	}()
 
 	// Enable backups with retries enabled and high retry count
@@ -794,8 +784,7 @@ func Test_StartBackup_When2BackupsStartedForDifferentDatabases_BothUseCasesAreCa
 
 	// Setup test data
 	user := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
-	router := CreateTestRouter()
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", user, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", user)
 	storage := storages.CreateTestStorage(workspace.ID)
 	notifier := notifiers.CreateTestNotifier(workspace.ID)
 
@@ -821,7 +810,7 @@ func Test_StartBackup_When2BackupsStartedForDifferentDatabases_BothUseCasesAreCa
 		time.Sleep(50 * time.Millisecond)
 		storages.RemoveTestStorage(t.Context(), storage.ID)
 		notifiers.RemoveTestNotifier(notifier)
-		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	}()
 
 	// Enable backups for database1

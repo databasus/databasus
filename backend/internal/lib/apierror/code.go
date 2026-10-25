@@ -28,6 +28,10 @@ const (
 	CodeSignInCodeIncorrect     Code = "sign_in_code_incorrect"
 	CodeEmailNotConfigured      Code = "email_not_configured"
 	CodeAdminEmailMissing       Code = "admin_email_missing"
+	CodeAlreadyMember           Code = "already_member"
+	CodeCannotChangeOwnRole     Code = "cannot_change_own_role"
+	CodeOwnerRequiresTransfer   Code = "owner_requires_transfer"
+	CodeWorkspaceNotEmpty       Code = "workspace_not_empty"
 	CodeInternal                Code = "internal"
 )
 
@@ -73,6 +77,14 @@ func describeCode(code Code) (int, string) {
 		return http.StatusConflict, "Email not configured"
 	case CodeAdminEmailMissing:
 		return http.StatusConflict, "Admin email missing"
+	case CodeAlreadyMember:
+		return http.StatusConflict, "Already a member"
+	case CodeCannotChangeOwnRole:
+		return http.StatusConflict, "Cannot change own role"
+	case CodeOwnerRequiresTransfer:
+		return http.StatusConflict, "Owner requires transfer"
+	case CodeWorkspaceNotEmpty:
+		return http.StatusConflict, "Workspace not empty"
 	case CodeInternal:
 		return http.StatusInternalServerError, "Internal error"
 	}

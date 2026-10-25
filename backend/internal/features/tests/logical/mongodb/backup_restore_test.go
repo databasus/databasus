@@ -104,7 +104,7 @@ func testMongodbBackupRestoreForVersion(
 
 	router := logicaltesting.CreateTestRouter()
 	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "MongoDB Test Workspace", user, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "MongoDB Test Workspace", user)
 
 	storage := storages.CreateTestStorage(workspace.ID)
 
@@ -159,7 +159,7 @@ func testMongodbBackupRestoreForVersion(
 		http.StatusNoContent,
 	)
 	storages.RemoveTestStorage(t.Context(), storage.ID)
-	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 }
 
 func testMongodbBackupRestoreWithEncryptionForVersion(
@@ -176,9 +176,7 @@ func testMongodbBackupRestoreWithEncryptionForVersion(
 	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(),
 		"MongoDB Encrypted Test Workspace",
-		user,
-		router,
-	)
+		user)
 
 	storage := storages.CreateTestStorage(workspace.ID)
 
@@ -233,7 +231,7 @@ func testMongodbBackupRestoreWithEncryptionForVersion(
 		http.StatusNoContent,
 	)
 	storages.RemoveTestStorage(t.Context(), storage.ID)
-	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 }
 
 func testMongodbBackupRestoreWithReadOnlyUserForVersion(
@@ -250,9 +248,7 @@ func testMongodbBackupRestoreWithReadOnlyUserForVersion(
 	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(),
 		"MongoDB ReadOnly Test Workspace",
-		user,
-		router,
-	)
+		user)
 
 	storage := storages.CreateTestStorage(workspace.ID)
 
@@ -318,7 +314,7 @@ func testMongodbBackupRestoreWithReadOnlyUserForVersion(
 		http.StatusNoContent,
 	)
 	storages.RemoveTestStorage(t.Context(), storage.ID)
-	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 }
 
 func testMongodbBackupRestoreWithExcludeCollectionsForVersion(
@@ -348,9 +344,7 @@ func testMongodbBackupRestoreWithExcludeCollectionsForVersion(
 	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(),
 		"MongoDB Exclude Collections Test Workspace",
-		user,
-		router,
-	)
+		user)
 
 	storage := storages.CreateTestStorage(workspace.ID)
 
@@ -429,7 +423,7 @@ func testMongodbBackupRestoreWithExcludeCollectionsForVersion(
 		http.StatusNoContent,
 	)
 	storages.RemoveTestStorage(t.Context(), storage.ID)
-	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 }
 
 func createMongodbDatabaseViaAPI(

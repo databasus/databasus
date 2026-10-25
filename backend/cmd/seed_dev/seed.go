@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"maps"
 	"net/http"
+	"net/url"
 	"slices"
 
 	"github.com/google/uuid"
@@ -151,15 +152,25 @@ func findOrCreateWorkspace(
 	workspaceName string,
 	logger *slog.Logger,
 ) (uuid.UUID, error) {
-	var listedWorkspaces listWorkspacesResponse
-	if err := client.get(ctx, "/workspaces", &listedWorkspaces); err != nil {
-		return uuid.Nil, fmt.Errorf("list workspaces: %w", err)
-	}
+	path := "/workspaces?limit=100"
 
-	for _, workspace := range listedWorkspaces.Workspaces {
-		if workspace.Name == workspaceName {
-			return workspace.ID, nil
+	for {
+		var page workspacePage
+		if err := client.get(ctx, path, &page); err != nil {
+			return uuid.Nil, fmt.Errorf("list workspaces: %w", err)
 		}
+
+		for _, workspace := range page.Items {
+			if workspace.Name == workspaceName {
+				return workspace.ID, nil
+			}
+		}
+
+		if page.NextCursor == nil {
+			break
+		}
+
+		path = "/workspaces?limit=100&after=" + url.QueryEscape(*page.NextCursor)
 	}
 
 	var createdWorkspace namedItem

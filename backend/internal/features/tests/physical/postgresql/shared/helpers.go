@@ -35,9 +35,7 @@ import (
 	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
 	"databasus-backend/internal/features/intervals"
 	"databasus-backend/internal/features/notifiers"
-	"databasus-backend/internal/features/storages"
 	users_testing "databasus-backend/internal/features/users/testing"
-	workspaces_controllers "databasus-backend/internal/features/workspaces/controllers"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
 	"databasus-backend/internal/util/encryption"
 	"databasus-backend/internal/util/logger"
@@ -216,16 +214,12 @@ func newPhysicalTestRouter() *gin.Engine {
 
 	protected := v1.Group("").Use(users_testing.GetSessionMiddleware())
 	if routerGroup, ok := protected.(*gin.RouterGroup); ok {
-		workspaces_controllers.GetWorkspaceController().RegisterRoutes(routerGroup)
-		workspaces_controllers.GetMembershipController().RegisterRoutes(routerGroup)
 		databases.GetDatabaseController().RegisterRoutes(routerGroup)
 		backups_config_physical.GetBackupConfigController().RegisterRoutes(routerGroup)
 		backups_controllers_physical.GetPhysicalBackupController().RegisterRoutes(routerGroup)
 	}
 
-	storages.SetupDependencies()
 	databases.SetupDependencies()
-	notifiers.SetupDependencies()
 	backups_config_physical.SetupDependencies()
 	backuping_physical.SetupDependencies()
 

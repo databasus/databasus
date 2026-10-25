@@ -77,8 +77,8 @@ func createStatusUpdateFixture(t *testing.T) *statusUpdateFixture {
 
 	router := createTestRouter()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Status Updates", owner, router)
-	t.Cleanup(func() { workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router) })
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Status Updates", owner)
+	t.Cleanup(func() { workspaces_testing.RemoveTestWorkspace(t.Context(), workspace) })
 
 	postgresConfig := getTestPostgresConfig()
 

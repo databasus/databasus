@@ -15,14 +15,21 @@ type MailMessage struct {
 // MailRecorder stands in for the operator's mail server: it keeps every message the application
 // sends, so a test reads a sign-in or reset code from it.
 type MailRecorder struct {
-	mutex          sync.Mutex
-	messages       []MailMessage
-	isConfigured   bool
-	isRefusingSend bool
+	mutex           sync.Mutex
+	messages        []MailMessage
+	refusedMessages []MailMessage
+	isConfigured    bool
+	isRefusingSend  bool
 }
 
 func newMailRecorder(isConfigured bool) *MailRecorder {
-	return &MailRecorder{mutex: sync.Mutex{}, messages: nil, isConfigured: isConfigured, isRefusingSend: false}
+	return &MailRecorder{
+		mutex:           sync.Mutex{},
+		messages:        nil,
+		refusedMessages: nil,
+		isConfigured:    isConfigured,
+		isRefusingSend:  false,
+	}
 }
 
 func (r *MailRecorder) IsConfigured() bool {
@@ -43,6 +50,8 @@ func (r *MailRecorder) SendEmail(_ context.Context, to, subject, htmlBody string
 	}
 
 	if r.isRefusingSend {
+		r.refusedMessages = append(r.refusedMessages, MailMessage{To: to, Subject: subject, HTMLBody: htmlBody})
+
 		return errMailServerRefused
 	}
 
@@ -64,9 +73,22 @@ func (r *MailRecorder) GetMessagesTo(address string) []MailMessage {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
+	return filterMessagesTo(r.messages, address)
+}
+
+// GetRefusedMessagesTo returns the messages to the address that RefuseSends turned away, so a test
+// tells a refused send from a send that never happened.
+func (r *MailRecorder) GetRefusedMessagesTo(address string) []MailMessage {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	return filterMessagesTo(r.refusedMessages, address)
+}
+
+func filterMessagesTo(messages []MailMessage, address string) []MailMessage {
 	var addressedMessages []MailMessage
 
-	for _, message := range r.messages {
+	for _, message := range messages {
 		if message.To == address {
 			addressedMessages = append(addressedMessages, message)
 		}

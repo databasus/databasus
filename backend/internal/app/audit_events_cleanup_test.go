@@ -17,33 +17,18 @@ import (
 func TestAuditEventsCleanup(t *testing.T) {
 	t.Run("deletes an event older than one year and keeps a younger one", func(t *testing.T) {
 		testApp := apptest.New(t)
-		token := testApp.CreateAdmin(t).Token
-		expiringWorkspaceID := createWorkspaceThroughOldAPI(t, testApp, token, "expiring-"+uuid.NewString())
+		admin := testApp.CreateAdmin(t)
+		token := admin.Token
+		expiringWorkspaceID := apptest.CreateWorkspace(t, admin, "expiring-"+uuid.NewString()).Id
 
 		testApp.Clock.Advance(366 * 24 * time.Hour)
-		keptWorkspaceID := createWorkspaceThroughOldAPI(t, testApp, token, "kept-"+uuid.NewString())
+		keptWorkspaceID := apptest.CreateWorkspace(t, admin, "kept-"+uuid.NewString()).Id
 
 		testApp.RunJobPass(t, "audit_events_cleanup")
 
 		assert.Empty(t, listWorkspaceAuditMessages(t, testApp, token, expiringWorkspaceID))
 		assert.NotEmpty(t, listWorkspaceAuditMessages(t, testApp, token, keptWorkspaceID))
 	})
-}
-
-func createWorkspaceThroughOldAPI(t *testing.T, testApp *apptest.App, token, name string) uuid.UUID {
-	t.Helper()
-
-	var createdWorkspace struct {
-		ID uuid.UUID `json:"id"`
-	}
-	callOldAPI(t, testApp, oldAPICall{
-		method: http.MethodPost,
-		path:   "/api/v1/workspaces",
-		token:  token,
-		body:   map[string]string{"name": name},
-	}, &createdWorkspace)
-
-	return createdWorkspace.ID
 }
 
 func listWorkspaceAuditMessages(t *testing.T, testApp *apptest.App, token string, workspaceID uuid.UUID) []string {

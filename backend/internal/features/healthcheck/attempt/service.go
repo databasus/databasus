@@ -8,7 +8,7 @@ import (
 	"github.com/google/uuid"
 
 	"databasus-backend/internal/features/databases"
-	workspaces_services "databasus-backend/internal/features/workspaces/services"
+	workspaces_bridge "databasus-backend/internal/features/workspaces"
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/modules/workspaces"
 )
@@ -16,7 +16,7 @@ import (
 type HealthcheckAttemptService struct {
 	healthcheckAttemptRepository *HealthcheckAttemptRepository
 	databaseService              *databases.DatabaseService
-	workspaceService             *workspaces_services.WorkspaceService
+	workspaceService             *workspaces_bridge.Access
 }
 
 func (s *HealthcheckAttemptService) GetAttemptsByDatabase(

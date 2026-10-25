@@ -14,6 +14,7 @@ import (
 	"databasus-backend/internal/features/caching"
 	"databasus-backend/internal/features/email"
 	users_bridge "databasus-backend/internal/features/users"
+	workspaces_bridge "databasus-backend/internal/features/workspaces"
 	"databasus-backend/internal/lib/audit"
 	"databasus-backend/internal/lib/background"
 	"databasus-backend/internal/lib/cache"
@@ -21,6 +22,7 @@ import (
 	"databasus-backend/internal/lib/database"
 	"databasus-backend/internal/lib/ratelimit"
 	"databasus-backend/internal/modules/users"
+	"databasus-backend/internal/modules/workspaces"
 	"databasus-backend/internal/storage"
 	"databasus-backend/internal/util/encryption"
 	files_utils "databasus-backend/internal/util/files"
@@ -35,11 +37,12 @@ const olderVersionRefusal = "Returning to an older Databasus version after an up
 	"Start the image of the newer version instead"
 
 type App struct {
-	usersModule users.Module
-	environment *Environment
-	db          *gorm.DB
-	transactor  *database.Transactor
-	logger      *slog.Logger
+	usersModule      users.Module
+	workspacesModule workspaces.Module
+	environment      *Environment
+	db               *gorm.DB
+	transactor       *database.Transactor
+	logger           *slog.Logger
 	// backgroundGroup exists only while Serve runs, so a console command cannot start a loop.
 	backgroundGroup *background.Group
 	// runner is started only by Serve; a console command and a test application run its passes
@@ -159,19 +162,33 @@ func New(ctx context.Context, environment *Environment) (*App, error) {
 	})
 	users_bridge.Install(usersModule)
 
+	workspacesModule := workspaces.New(workspaces.Deps{
+		DB:         db,
+		Transactor: transactor,
+		Clock:      environment.Clock,
+		Logger:     appLogger,
+		Mailer:     environment.Mailer,
+		AuditLog:   auditLog,
+		Users:      usersModule,
+		PublicURL:  environment.Config.DatabasusURL,
+	})
+	workspaces_bridge.Install(workspacesModule)
+
 	setUpDependenciesOnce.Do(setUpDependencies)
+	subscribeToWorkspaceDeleting(workspacesModule)
 
 	jobs := append([]background.Job{newAuditEventsCleanupJob(auditLog, appLogger)}, usersModule.GetJobs()...)
 	runner := background.NewRunner(background.RunnerDeps{Logger: appLogger, Clock: environment.Clock}, jobs...)
 
 	return &App{
-		usersModule:     usersModule,
-		environment:     environment,
-		db:              db,
-		transactor:      transactor,
-		logger:          appLogger,
-		backgroundGroup: nil,
-		runner:          runner,
+		usersModule:      usersModule,
+		workspacesModule: workspacesModule,
+		environment:      environment,
+		db:               db,
+		transactor:       transactor,
+		logger:           appLogger,
+		backgroundGroup:  nil,
+		runner:           runner,
 	}, nil
 }
 
@@ -202,4 +219,10 @@ func closeDatabase(db *gorm.DB) {
 	if err == nil {
 		_ = sqlDB.Close()
 	}
+}
+
+// SubscribeToWorkspaceDeleting adds a handler after the ones subscribed in wiring.go. A test
+// application uses it to stand in for a higher module.
+func (a *App) SubscribeToWorkspaceDeleting(handler workspaces.WorkspaceDeletingHandler) {
+	a.workspacesModule.SubscribeToWorkspaceDeleting(handler)
 }

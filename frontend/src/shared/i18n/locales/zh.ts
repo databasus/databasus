@@ -121,6 +121,10 @@ export const zh: typeof en = {
     },
   },
   errors: {
+    alreadyMember: '该用户已经是工作区成员。',
+    cannotChangeOwnRole: '你不能更改自己在工作区中的角色。',
+    ownerRequiresTransfer: '不能更改或移除所有者。请先将所有权转让给其他成员。',
+    workspaceNotEmpty: '工作区中仍有数据库。请先删除这些数据库，再删除工作区。',
     unknown: '出了点问题，请重试。',
     networkUnreachable: '无法连接 Databasus 服务器。请检查网络连接后重试。',
     requestFailed: '服务器未能完成请求（HTTP {{status}}）。请稍后重试。',
@@ -811,6 +815,7 @@ export const zh: typeof en = {
         description:
           '该用户还没有注册，但已受邀加入工作区。用这个邮箱注册后，将自动成为工作区成员。',
       },
+      invitedMark: '已邀请',
       roleChanged: '成员角色已更新',
       remove: {
         tooltip: '移除成员',

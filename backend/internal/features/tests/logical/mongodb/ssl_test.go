@@ -68,7 +68,7 @@ func Test_BackupAndRestoreMongodbSSL_Succeeds(t *testing.T) {
 
 	router := logicaltesting.CreateTestRouter()
 	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "MongoDB SSL Workspace", user, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "MongoDB SSL Workspace", user)
 	storage := storages.CreateTestStorage(workspace.ID)
 
 	database := createMongodbSSLDatabaseViaAPI(
@@ -105,7 +105,7 @@ func Test_BackupAndRestoreMongodbSSL_Succeeds(t *testing.T) {
 		"Bearer "+user.Token, http.StatusNoContent,
 	)
 	storages.RemoveTestStorage(t.Context(), storage.ID)
-	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 }
 
 func createMongodbSSLDatabaseViaAPI(

@@ -74,6 +74,8 @@ type Module interface {
 
 	// GetUser and GetUserByEmail report false when no user matches.
 	GetUser(ctx context.Context, userID uuid.UUID) (User, bool, error)
+	// GetUsers leaves out the IDs that match no user.
+	GetUsers(ctx context.Context, userIDs []uuid.UUID) ([]User, error)
 	GetUserByEmail(ctx context.Context, email string) (User, bool, error)
 	// InviteUser creates a user who finishes sign-up later. It answers permission_denied when
 	// CanInviteUsers would answer false and email_taken when the address has a user.

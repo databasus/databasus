@@ -33,6 +33,17 @@ func (r *userRepository) getByID(ctx context.Context, userID uuid.UUID) (UserRec
 	return r.getWhere(ctx, "get the user by id", "id = ?", userID)
 }
 
+func (r *userRepository) listByIDs(ctx context.Context, userIDs []uuid.UUID) ([]UserRecord, error) {
+	var records []UserRecord
+
+	err := database.Conn(ctx, r.db).Where("id IN ?", userIDs).Find(&records).Error
+	if err != nil {
+		return nil, fmt.Errorf("list the users by id: %w", err)
+	}
+
+	return records, nil
+}
+
 func (r *userRepository) getByEmail(ctx context.Context, email string) (UserRecord, bool, error) {
 	return r.getWhere(ctx, "get the user by email", "email = ?", email)
 }

@@ -7,14 +7,14 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
-	workspaces_services "databasus-backend/internal/features/workspaces/services"
+	workspaces_bridge "databasus-backend/internal/features/workspaces"
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/modules/workspaces"
 )
 
 type NotifierController struct {
 	notifierService  *NotifierService
-	workspaceService *workspaces_services.WorkspaceService
+	workspaceService *workspaces_bridge.Access
 }
 
 func (c *NotifierController) RegisterRoutes(router *gin.RouterGroup) {

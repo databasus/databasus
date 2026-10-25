@@ -34,8 +34,9 @@ type namedItem struct {
 	Name string    `json:"name"`
 }
 
-type listWorkspacesResponse struct {
-	Workspaces []namedItem `json:"workspaces"`
+type workspacePage struct {
+	Items      []namedItem `json:"items"`
+	NextCursor *string     `json:"nextCursor"`
 }
 
 type createWorkspaceRequest struct {

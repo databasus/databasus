@@ -8,7 +8,7 @@ import (
 
 	audit_logs "databasus-backend/internal/features/audit_logs"
 	audit_logs_models "databasus-backend/internal/features/audit_logs/models"
-	workspaces_services "databasus-backend/internal/features/workspaces/services"
+	workspaces_bridge "databasus-backend/internal/features/workspaces"
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/modules/workspaces"
 	"databasus-backend/internal/util/encryption"
@@ -16,7 +16,7 @@ import (
 
 type StorageService struct {
 	storageRepository       *StorageRepository
-	workspaceService        *workspaces_services.WorkspaceService
+	workspaceService        *workspaces_bridge.Access
 	auditLogService         *audit_logs.AuditLogService
 	fieldEncryptor          encryption.FieldEncryptor
 	storageDatabaseCounters []StorageDatabaseCounter
@@ -88,20 +88,19 @@ func (s *StorageService) CountDatabasesForStorage(ctx context.Context, storageID
 	return len(ids), nil
 }
 
-func (s *StorageService) OnBeforeWorkspaceDeletion(workspaceID uuid.UUID) error {
-	storages, err := s.storageRepository.FindByWorkspaceID(workspaceID)
+// OnWorkspaceDeleting drains the pending deletions of each storage before it deletes the storage.
+// The drain deletes files that are deleted whatever the outcome, so it stays correct when the
+// workspace deletion rolls back.
+func (s *StorageService) OnWorkspaceDeleting(ctx context.Context, event workspaces.WorkspaceDeleting) error {
+	storages, err := s.storageRepository.FindByWorkspaceID(ctx, event.WorkspaceID)
 	if err != nil {
 		return fmt.Errorf("failed to get storages for workspace deletion: %w", err)
 	}
 
-	// The listener contract carries no context, and the drain needs one that is not
-	// already cancelled by the finished request.
-	ctx := context.Background()
-
 	for _, storage := range storages {
 		s.drainPendingDeletions(ctx, storage)
 
-		if err := s.storageRepository.Delete(storage); err != nil {
+		if err := s.storageRepository.Delete(ctx, storage); err != nil {
 			return fmt.Errorf("failed to delete storage %s: %w", storage.ID, err)
 		}
 	}
@@ -232,7 +231,7 @@ func (s *StorageService) DeleteStorage(
 
 	s.drainPendingDeletions(ctx, storage)
 
-	err = s.storageRepository.Delete(storage)
+	err = s.storageRepository.Delete(ctx, storage)
 	if err != nil {
 		return err
 	}
@@ -282,7 +281,7 @@ func (s *StorageService) GetStorages(
 		return nil, ErrInsufficientPermissionsToViewStorages
 	}
 
-	storages, err := s.storageRepository.FindByWorkspaceID(workspaceID)
+	storages, err := s.storageRepository.FindByWorkspaceID(ctx, workspaceID)
 	if err != nil {
 		return nil, err
 	}
@@ -435,12 +434,12 @@ func (s *StorageService) TransferStorageToWorkspace(
 		return err
 	}
 
-	sourceWorkspace, err := s.workspaceService.GetWorkspaceByID(sourceWorkspaceID)
+	sourceWorkspace, err := s.workspaceService.GetWorkspaceByID(ctx, sourceWorkspaceID)
 	if err != nil {
 		return fmt.Errorf("failed to get source workspace: %w", err)
 	}
 
-	targetWorkspace, err := s.workspaceService.GetWorkspaceByID(targetWorkspaceID)
+	targetWorkspace, err := s.workspaceService.GetWorkspaceByID(ctx, targetWorkspaceID)
 	if err != nil {
 		return fmt.Errorf("failed to get target workspace: %w", err)
 	}

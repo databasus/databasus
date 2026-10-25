@@ -60,8 +60,7 @@ func (*createStoredArtifactThenFailBackupUsecase) Execute(
 func Test_BackupExecuted_NotificationSent(t *testing.T) {
 	caching.GetStore().Clear(t.Context())
 	user := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
-	router := CreateTestRouter()
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", user, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", user)
 	storage := storages.CreateTestStorage(workspace.ID)
 	notifier := notifiers.CreateTestNotifier(workspace.ID)
 	database := databases.CreateTestDatabase(workspace.ID, storage, notifier)
@@ -78,7 +77,7 @@ func Test_BackupExecuted_NotificationSent(t *testing.T) {
 		time.Sleep(50 * time.Millisecond) // Wait for cascading deletes
 		notifiers.RemoveTestNotifier(notifier)
 		storages.RemoveTestStorage(t.Context(), storage.ID)
-		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	}()
 
 	t.Run("BackupFailed_FailNotificationSent", func(t *testing.T) {

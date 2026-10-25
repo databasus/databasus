@@ -20,7 +20,7 @@ import (
 func Test_AttachStorageFromSameWorkspace_PhysicalConfig_SuccessfullyAttached(t *testing.T) {
 	router := createPhysicalTestRouter()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
 
 	database := createPhysicalDatabaseViaAPI(
 		t, "Physical DB "+uuid.New().String(), workspace.ID, owner.Token, router,
@@ -31,7 +31,7 @@ func Test_AttachStorageFromSameWorkspace_PhysicalConfig_SuccessfullyAttached(t *
 	defer func() {
 		databases.RemoveTestDatabase(t.Context(), database)
 		storages.RemoveTestStorage(t.Context(), storage.ID)
-		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	}()
 
 	request := validPhysicalConfigForFullOnly(database.ID)
@@ -56,21 +56,21 @@ func Test_AttachStorageFromDifferentWorkspace_PhysicalConfig_ReturnsBadRequest(t
 	router := createPhysicalTestRouter()
 
 	owner1 := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace1 := workspaces_testing.CreateTestWorkspace(t.Context(), "Workspace 1", owner1, router)
+	workspace1 := workspaces_testing.CreateTestWorkspace(t.Context(), "Workspace 1", owner1)
 	database := createPhysicalDatabaseViaAPI(
 		t, "Physical DB "+uuid.New().String(), workspace1.ID, owner1.Token, router,
 		postgresql_physical.BackupTypeFullOnly, "17",
 	)
 
 	owner2 := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace2 := workspaces_testing.CreateTestWorkspace(t.Context(), "Workspace 2", owner2, router)
+	workspace2 := workspaces_testing.CreateTestWorkspace(t.Context(), "Workspace 2", owner2)
 	storage := storages.CreateTestStorage(workspace2.ID)
 
 	defer func() {
 		databases.RemoveTestDatabase(t.Context(), database)
 		storages.RemoveTestStorage(t.Context(), storage.ID)
-		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace1, router)
-		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace2, router)
+		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace1)
+		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace2)
 	}()
 
 	request := validPhysicalConfigForFullOnly(database.ID)
@@ -90,7 +90,7 @@ func Test_AttachStorageFromDifferentWorkspace_PhysicalConfig_ReturnsBadRequest(t
 func Test_DeleteStorageWithAttachedPhysicalConfig_CannotDelete(t *testing.T) {
 	router := createPhysicalTestRouter()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
 
 	database := createPhysicalDatabaseViaAPI(
 		t, "Physical DB "+uuid.New().String(), workspace.ID, owner.Token, router,
@@ -101,7 +101,7 @@ func Test_DeleteStorageWithAttachedPhysicalConfig_CannotDelete(t *testing.T) {
 	defer func() {
 		databases.RemoveTestDatabase(t.Context(), database)
 		storages.RemoveTestStorage(t.Context(), storage.ID)
-		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	}()
 
 	request := validPhysicalConfigForFullOnly(database.ID)

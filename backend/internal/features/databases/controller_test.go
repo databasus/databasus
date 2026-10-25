@@ -32,7 +32,6 @@ import (
 	"databasus-backend/internal/features/sshtunnel"
 	"databasus-backend/internal/features/storages"
 	users_testing "databasus-backend/internal/features/users/testing"
-	workspaces_controllers "databasus-backend/internal/features/workspaces/controllers"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/modules/workspaces"
@@ -86,8 +85,8 @@ func Test_CreateDatabase_PermissionsEnforced(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			router := createTestRouter()
 			owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-			workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
-			defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+			workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
+			defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
 			var testUserToken string
 			if tt.isGlobalAdmin {
@@ -100,10 +99,8 @@ func Test_CreateDatabase_PermissionsEnforced(t *testing.T) {
 				workspaces_testing.AddMemberToWorkspace(
 					workspace,
 					member,
-					*tt.workspaceRole,
-					owner.Token,
-					router,
-				)
+					*tt.workspaceRole)
+
 				testUserToken = member.Token
 			}
 
@@ -139,8 +136,8 @@ func Test_CreateDatabase_PermissionsEnforced(t *testing.T) {
 func Test_CreateDatabase_WhenUserIsNotWorkspaceMember_ReturnsForbidden(t *testing.T) {
 	router := createTestRouter()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
-	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
+	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
 	nonMember := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
@@ -166,8 +163,8 @@ func Test_CreateDatabase_WhenUserIsNotWorkspaceMember_ReturnsForbidden(t *testin
 func Test_CreateDatabase_WithoutConnectionFields_ValidationFails(t *testing.T) {
 	router := createTestRouter()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
-	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
+	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
 	request := Database{
 		Name:        "Test Database",
@@ -232,8 +229,8 @@ func Test_UpdateDatabase_PermissionsEnforced(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			router := createTestRouter()
 			owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-			workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
-			defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+			workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
+			defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
 			database := createTestDatabaseViaAPI("Test Database", workspace.ID, owner.Token, router)
 			defer RemoveTestDatabase(t.Context(), database)
@@ -249,10 +246,8 @@ func Test_UpdateDatabase_PermissionsEnforced(t *testing.T) {
 				workspaces_testing.AddMemberToWorkspace(
 					workspace,
 					member,
-					*tt.workspaceRole,
-					owner.Token,
-					router,
-				)
+					*tt.workspaceRole)
+
 				testUserToken = member.Token
 			}
 
@@ -281,8 +276,8 @@ func Test_UpdateDatabase_PermissionsEnforced(t *testing.T) {
 func Test_UpdateDatabase_WhenUserIsNotWorkspaceMember_ReturnsForbidden(t *testing.T) {
 	router := createTestRouter()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
-	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
+	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
 	database := createTestDatabaseViaAPI("Test Database", workspace.ID, owner.Token, router)
 	defer RemoveTestDatabase(t.Context(), database)
@@ -305,8 +300,8 @@ func Test_UpdateDatabase_WhenUserIsNotWorkspaceMember_ReturnsForbidden(t *testin
 func Test_UpdateDatabase_WhenDatabaseTypeChanged_ReturnsBadRequest(t *testing.T) {
 	router := createTestRouter()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
-	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
+	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
 	database := createTestDatabaseViaAPI("Test Database", workspace.ID, owner.Token, router)
 	defer RemoveTestDatabase(t.Context(), database)
@@ -367,8 +362,8 @@ func Test_DeleteDatabase_PermissionsEnforced(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			router := createTestRouter()
 			owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-			workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
-			defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+			workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
+			defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
 			database := createTestDatabaseViaAPI("Test Database", workspace.ID, owner.Token, router)
 
@@ -383,10 +378,8 @@ func Test_DeleteDatabase_PermissionsEnforced(t *testing.T) {
 				workspaces_testing.AddMemberToWorkspace(
 					workspace,
 					member,
-					*tt.workspaceRole,
-					owner.Token,
-					router,
-				)
+					*tt.workspaceRole)
+
 				testUserToken = member.Token
 			}
 
@@ -442,8 +435,8 @@ func Test_GetDatabase_PermissionsEnforced(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			router := createTestRouter()
 			owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-			workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
-			defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+			workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
+			defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
 			database := createTestDatabaseViaAPI("Test Database", workspace.ID, owner.Token, router)
 			defer RemoveTestDatabase(t.Context(), database)
@@ -457,10 +450,8 @@ func Test_GetDatabase_PermissionsEnforced(t *testing.T) {
 				workspaces_testing.AddMemberToWorkspace(
 					workspace,
 					member,
-					*tt.userRole,
-					owner.Token,
-					router,
-				)
+					*tt.userRole)
+
 				testUser = member.Token
 			} else {
 				nonMember := users_testing.CreateTestUser(t.Context(), users.RoleMember)
@@ -522,8 +513,8 @@ func Test_GetDatabasesByWorkspace_PermissionsEnforced(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			router := createTestRouter()
 			owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-			workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
-			defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+			workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
+			defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
 			db1 := createTestDatabaseViaAPI("Database 1", workspace.ID, owner.Token, router)
 			defer RemoveTestDatabase(t.Context(), db1)
@@ -569,8 +560,8 @@ func Test_GetDatabasesByWorkspace_PermissionsEnforced(t *testing.T) {
 func Test_GetDatabasesByWorkspace_WhenMultipleDatabasesExist_ReturnsCorrectCount(t *testing.T) {
 	router := createTestRouter()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
-	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
+	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
 	db1 := createTestDatabaseViaAPI("Database 1", workspace.ID, owner.Token, router)
 	defer RemoveTestDatabase(t.Context(), db1)
@@ -600,10 +591,9 @@ func Test_GetDatabasesByWorkspace_WithPhysicalBackups_ReturnsNewestBackupTimeAcr
 	workspace := workspaces_testing.CreateTestWorkspace(
 		t.Context(),
 		"Phys Last Backup "+uuid.NewString(),
-		owner,
-		router,
-	)
-	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+		owner)
+
+	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
 	storage := storages.CreateTestStorage(workspace.ID)
 	defer storages.RemoveTestStorage(t.Context(), storage.ID)
@@ -673,12 +663,12 @@ func findDatabaseByID(t *testing.T, databases []Database, databaseID uuid.UUID) 
 func Test_GetDatabasesByWorkspace_EnsuresCrossWorkspaceIsolation(t *testing.T) {
 	router := createTestRouter()
 	owner1 := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace1 := workspaces_testing.CreateTestWorkspace(t.Context(), "Workspace 1", owner1, router)
-	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace1, router)
+	workspace1 := workspaces_testing.CreateTestWorkspace(t.Context(), "Workspace 1", owner1)
+	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace1)
 
 	owner2 := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace2 := workspaces_testing.CreateTestWorkspace(t.Context(), "Workspace 2", owner2, router)
-	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace2, router)
+	workspace2 := workspaces_testing.CreateTestWorkspace(t.Context(), "Workspace 2", owner2)
+	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace2)
 
 	workspace1Db1 := createTestDatabaseViaAPI("Workspace1 DB1", workspace1.ID, owner1.Token, router)
 	defer RemoveTestDatabase(t.Context(), workspace1Db1)
@@ -762,8 +752,8 @@ func Test_CopyDatabase_PermissionsEnforced(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			router := createTestRouter()
 			owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-			workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
-			defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+			workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
+			defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
 			database := createTestDatabaseViaAPI("Test Database", workspace.ID, owner.Token, router)
 			defer RemoveTestDatabase(t.Context(), database)
@@ -779,10 +769,8 @@ func Test_CopyDatabase_PermissionsEnforced(t *testing.T) {
 				workspaces_testing.AddMemberToWorkspace(
 					workspace,
 					member,
-					*tt.workspaceRole,
-					owner.Token,
-					router,
-				)
+					*tt.workspaceRole)
+
 				testUserToken = member.Token
 			}
 
@@ -811,8 +799,8 @@ func Test_CopyDatabase_PermissionsEnforced(t *testing.T) {
 func Test_CopyDatabase_CopyStaysInSameWorkspace(t *testing.T) {
 	router := createTestRouter()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
-	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
+	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
 	database := createTestDatabaseViaAPI("Test Database", workspace.ID, owner.Token, router)
 	defer RemoveTestDatabase(t.Context(), database)
@@ -839,7 +827,7 @@ func Test_CopyDatabase_CopyStaysInSameWorkspace(t *testing.T) {
 func Test_CreateDatabase_PasswordIsEncryptedInDB(t *testing.T) {
 	router := createTestRouter()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
 
 	pgConfig := getTestPostgresConfig()
 	plainPassword := "testpassword"
@@ -889,7 +877,7 @@ func Test_CreateDatabase_PasswordIsEncryptedInDB(t *testing.T) {
 		http.StatusNoContent,
 	)
 
-	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 }
 
 const updatedSshTunnelHost = "moved-bastion.example.com"
@@ -1174,7 +1162,7 @@ func Test_DatabaseSensitiveDataLifecycle_AllTypes(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			router := createTestRouter()
 			owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-			workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
+			workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
 
 			// Phase 1: Create database with sensitive data
 			initialDatabase := tc.createDatabase(t, workspace.ID)
@@ -1269,7 +1257,7 @@ func Test_DatabaseSensitiveDataLifecycle_AllTypes(t *testing.T) {
 				http.StatusNoContent,
 			)
 
-			workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+			workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 		})
 	}
 }
@@ -1309,8 +1297,8 @@ func Test_TestConnection_PermissionsEnforced(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			router := createTestRouter()
 			owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-			workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
-			defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+			workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
+			defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
 			database := createTestDatabaseViaAPI("Test Database", workspace.ID, owner.Token, router)
 			defer RemoveTestDatabase(t.Context(), database)
@@ -1356,8 +1344,8 @@ func Test_TestConnection_PermissionsEnforced(t *testing.T) {
 func Test_UpdateDatabase_WhenExcludeTablesArePastedMultiline_StoresTrimmedUniqueNames(t *testing.T) {
 	router := createTestRouter()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
-	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
+	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
 	database := createTestDatabaseViaAPI("Test Database", workspace.ID, owner.Token, router)
 	defer RemoveTestDatabase(t.Context(), database)
@@ -1409,8 +1397,8 @@ func Test_ExcludeTableData_WhenDatabaseIsCreatedCopiedAndUpdatedWithoutIt_ListIs
 ) {
 	router := createTestRouter()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
-	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
+	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
 	createRequest := newTestPostgresqlLogicalDatabaseRequest("Data-excluded Database", workspace.ID)
 	createRequest.PostgresqlLogical.ExcludeTables = []string{"audit_tmp"}
@@ -1513,8 +1501,6 @@ func createTestRouter() *gin.Engine {
 	v1 := router.Group("/api/v1")
 	protected := v1.Group("").Use(users_testing.GetSessionMiddleware())
 
-	workspaces_controllers.GetWorkspaceController().RegisterRoutes(protected.(*gin.RouterGroup))
-	workspaces_controllers.GetMembershipController().RegisterRoutes(protected.(*gin.RouterGroup))
 	GetDatabaseController().RegisterRoutes(protected.(*gin.RouterGroup))
 
 	GetDatabaseController().RegisterPublicRoutes(v1)
@@ -1544,8 +1530,8 @@ func getTestPostgresConfig() *postgresql_logical.PostgresqlLogicalDatabase {
 func Test_CreateDatabase_WhenUserIsNotReadOnly_DatabaseCreated(t *testing.T) {
 	router := createTestRouter()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Non-Cloud", owner, router)
-	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Non-Cloud", owner)
+	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
 	request := Database{
 		Name:              "Non-Cloud DB",
@@ -1617,8 +1603,8 @@ func Test_CreateDatabase_FailsForPhysicalIncrementalWhenSummarizeWalOff(t *testi
 			t.Run(fmt.Sprintf("pg%s_%s", dbVersion.tag, backupType), func(t *testing.T) {
 				router := createTestRouter()
 				owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-				workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
-				defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+				workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
+				defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
 				source := containers.StartPhysicalPostgres(t, dbVersion.image, containers.WithoutSummarizer())
 				physicalConfig := GetTestPhysicalPostgresConfigNoSummary(source.Host, source.Port, dbVersion.tag)
@@ -1651,8 +1637,8 @@ func Test_UpdateDatabase_FailsForSwitchToPhysicalIncrementalWhenSummarizeWalOff(
 		t.Run("pg"+dbVersion.tag, func(t *testing.T) {
 			router := createTestRouter()
 			owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-			workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
-			defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+			workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
+			defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
 			source := containers.StartPhysicalPostgres(t, dbVersion.image, containers.WithoutSummarizer())
 			createRequest := Database{
@@ -1757,8 +1743,8 @@ func Test_CreateDatabase_OverSshTunnel_DetectsVersionAndHidesTunnelSecrets(t *te
 
 	router := createTestRouter()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "SSH Tunnel", owner, router)
-	t.Cleanup(func() { workspaces_testing.RemoveTestWorkspace(context.Background(), workspace, router) })
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "SSH Tunnel", owner)
+	t.Cleanup(func() { workspaces_testing.RemoveTestWorkspace(context.Background(), workspace) })
 
 	var createdDatabase Database
 	test_utils.MakePostRequestAndUnmarshal(
@@ -1806,8 +1792,8 @@ func Test_CreateDatabase_OverSshTunnelWithAPrivateKey_DatabaseCreated(t *testing
 
 	router := createTestRouter()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "SSH Tunnel Key", owner, router)
-	t.Cleanup(func() { workspaces_testing.RemoveTestWorkspace(context.Background(), workspace, router) })
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "SSH Tunnel Key", owner)
+	t.Cleanup(func() { workspaces_testing.RemoveTestWorkspace(context.Background(), workspace) })
 
 	postgresConfig := bastionedPostgresConfig(topology)
 	postgresConfig.SshTunnel.AuthType = sshtunnel.AuthTypePrivateKey
@@ -1838,8 +1824,8 @@ func Test_UpdateDatabase_WhenSshAuthTypeChangesToPassword_ClearsTheStoredPrivate
 
 	router := createTestRouter()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "SSH Tunnel Auth Switch", owner, router)
-	t.Cleanup(func() { workspaces_testing.RemoveTestWorkspace(context.Background(), workspace, router) })
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "SSH Tunnel Auth Switch", owner)
+	t.Cleanup(func() { workspaces_testing.RemoveTestWorkspace(context.Background(), workspace) })
 
 	postgresConfig := bastionedPostgresConfig(topology)
 	postgresConfig.SshTunnel.AuthType = sshtunnel.AuthTypePrivateKey
@@ -1881,8 +1867,8 @@ func Test_CreateDatabase_WhenSshAuthTypeIsPrivateKeyButOnlyAPasswordIsSet_Return
 ) {
 	router := createTestRouter()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "SSH Tunnel Auth Mismatch", owner, router)
-	t.Cleanup(func() { workspaces_testing.RemoveTestWorkspace(context.Background(), workspace, router) })
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "SSH Tunnel Auth Mismatch", owner)
+	t.Cleanup(func() { workspaces_testing.RemoveTestWorkspace(context.Background(), workspace) })
 
 	postgresConfig := getTestPostgresConfig()
 	postgresConfig.SshTunnel = sshtunnel.Config{
@@ -1913,8 +1899,8 @@ func Test_CreateDatabase_WhenSshAuthTypeIsPrivateKeyButOnlyAPasswordIsSet_Return
 func Test_CreateDatabase_WhenTheSshTunnelCarriesBothSecrets_ReturnsBadRequest(t *testing.T) {
 	router := createTestRouter()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "SSH Tunnel Both Secrets", owner, router)
-	t.Cleanup(func() { workspaces_testing.RemoveTestWorkspace(context.Background(), workspace, router) })
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "SSH Tunnel Both Secrets", owner)
+	t.Cleanup(func() { workspaces_testing.RemoveTestWorkspace(context.Background(), workspace) })
 
 	postgresConfig := getTestPostgresConfig()
 	postgresConfig.SshTunnel = sshtunnel.Config{
@@ -1944,8 +1930,8 @@ func Test_CreateDatabase_WhenTheSshTunnelCarriesBothSecrets_ReturnsBadRequest(t 
 func Test_CreateDatabase_WhenSshTunnelIsEnabledWithoutAHost_ReturnsBadRequest(t *testing.T) {
 	router := createTestRouter()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "SSH Tunnel Invalid", owner, router)
-	t.Cleanup(func() { workspaces_testing.RemoveTestWorkspace(context.Background(), workspace, router) })
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "SSH Tunnel Invalid", owner)
+	t.Cleanup(func() { workspaces_testing.RemoveTestWorkspace(context.Background(), workspace) })
 
 	postgresConfig := getTestPostgresConfig()
 	postgresConfig.SshTunnel = sshtunnel.Config{
@@ -1975,8 +1961,8 @@ func Test_CopyDatabase_WhenTheSourceIsBehindABastion_KeepsTheTunnelConfig(t *tes
 
 	router := createTestRouter()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "SSH Tunnel Copy", owner, router)
-	t.Cleanup(func() { workspaces_testing.RemoveTestWorkspace(context.Background(), workspace, router) })
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "SSH Tunnel Copy", owner)
+	t.Cleanup(func() { workspaces_testing.RemoveTestWorkspace(context.Background(), workspace) })
 
 	var createdDatabase Database
 	test_utils.MakePostRequestAndUnmarshal(
@@ -2008,8 +1994,8 @@ func Test_CopyDatabase_WhenTheSourceIsBehindABastion_KeepsTheTunnelConfig(t *tes
 func Test_CreateMongodbDatabase_WhenSrvAndSshTunnelAreEnabled_ReturnsBadRequest(t *testing.T) {
 	router := createTestRouter()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Mongo SRV Tunnel", owner, router)
-	t.Cleanup(func() { workspaces_testing.RemoveTestWorkspace(context.Background(), workspace, router) })
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Mongo SRV Tunnel", owner)
+	t.Cleanup(func() { workspaces_testing.RemoveTestWorkspace(context.Background(), workspace) })
 
 	response := workspaces_testing.MakeAPIRequest(
 		router, "POST", "/api/v1/databases/create", "Bearer "+owner.Token,
@@ -2048,8 +2034,8 @@ func Test_CreateReplicationOnlyUser_WhenTheDatabaseIsBehindABastion_ReachesTheCl
 ) {
 	router := createTestRouter()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Bastioned Workspace", owner, router)
-	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Bastioned Workspace", owner)
+	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
 	topology := containers.StartPhysicalPostgresBehindSshBastion(t, "postgres:17")
 
@@ -2088,8 +2074,8 @@ func Test_CreateDatabase_WhenThePhysicalClusterIsBehindABastion_PassesTheReplica
 ) {
 	router := createTestRouter()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Bastioned Create", owner, router)
-	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Bastioned Create", owner)
+	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
 	topology := containers.StartPhysicalPostgresBehindSshBastion(t, "postgres:17")
 
@@ -2391,9 +2377,9 @@ func Test_TestDatabaseConnectionDirect_ForUnauthorizedSavedDatabase_ReturnsForbi
 		t.Run(testCase.name, func(t *testing.T) {
 			router := createTestRouter()
 			owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-			workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Direct Test Workspace", owner, router)
+			workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Direct Test Workspace", owner)
 			t.Cleanup(func() {
-				workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+				workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 			})
 
 			createdDatabase := createDatabaseForDirectConnectionTest(t, router, workspace.ID, owner.Token)
@@ -2402,10 +2388,7 @@ func Test_TestDatabaseConnectionDirect_ForUnauthorizedSavedDatabase_ReturnsForbi
 				workspaces_testing.AddMemberToWorkspace(
 					workspace,
 					unauthorizedUser,
-					testCase.unauthorizedRole,
-					owner.Token,
-					router,
-				)
+					testCase.unauthorizedRole)
 			}
 
 			createdDatabase.PostgresqlLogical.Host = "127.0.0.1"
@@ -2457,9 +2440,9 @@ func Test_TestDatabaseConnectionDirect_ForUnknownDatabase_ReturnsForbidden(t *te
 func Test_TestDatabaseConnectionDirect_ForWorkspaceMember_ReturnsSuccess(t *testing.T) {
 	router := createTestRouter()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Direct Test Workspace", owner, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Direct Test Workspace", owner)
 	t.Cleanup(func() {
-		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	})
 
 	createdDatabase := createDatabaseForDirectConnectionTest(t, router, workspace.ID, owner.Token)
@@ -2467,10 +2450,7 @@ func Test_TestDatabaseConnectionDirect_ForWorkspaceMember_ReturnsSuccess(t *test
 	workspaces_testing.AddMemberToWorkspace(
 		workspace,
 		member,
-		workspaces.RoleMember,
-		owner.Token,
-		router,
-	)
+		workspaces.RoleMember)
 
 	test_utils.MakePostRequest(
 		t,
@@ -2489,8 +2469,8 @@ func Test_TestDatabaseConnectionDirect_ForWalStreamWhenRoleCannotSwitchWal_Retur
 		t.Run(fixture.name, func(t *testing.T) {
 			router := createTestRouter()
 			owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-			workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
-			defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+			workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
+			defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
 			username, password := createReplicationRole(t, openFixtureConn(t, fixture), false)
 
@@ -2522,8 +2502,8 @@ func Test_TestDatabaseConnectionDirect_ForWalStreamWhenRoleCanSwitchWal_ReturnsS
 		t.Run(fixture.name, func(t *testing.T) {
 			router := createTestRouter()
 			owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-			workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
-			defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+			workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
+			defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
 			username, password := createReplicationRole(t, openFixtureConn(t, fixture), true)
 
@@ -2555,7 +2535,7 @@ func Test_TestDatabaseConnection_WhenTheSourceRevokedTheWalSwitchPrivilege_Retur
 		t.Run(fixture.name, func(t *testing.T) {
 			router := createTestRouter()
 			owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-			workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
+			workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
 
 			conn := openFixtureConn(t, fixture)
 			username, password := createReplicationRole(t, conn, true)
@@ -2578,7 +2558,7 @@ func Test_TestDatabaseConnection_WhenTheSourceRevokedTheWalSwitchPrivilege_Retur
 			require.NoError(t, json.Unmarshal(createDatabaseResponse.Body.Bytes(), &database))
 			defer func() {
 				RemoveTestDatabase(t.Context(), &database)
-				workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+				workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 			}()
 
 			_, err := conn.Exec(t.Context(),
@@ -2607,7 +2587,7 @@ func Test_UpdateDatabase_RaisingToWalStreamWhenRoleCannotSwitchWal_ReturnsNoWalS
 		t.Run(fixture.name, func(t *testing.T) {
 			router := createTestRouter()
 			owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-			workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
+			workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
 
 			username, password := createReplicationRole(t, openFixtureConn(t, fixture), false)
 
@@ -2629,7 +2609,7 @@ func Test_UpdateDatabase_RaisingToWalStreamWhenRoleCannotSwitchWal_ReturnsNoWalS
 			require.NoError(t, json.Unmarshal(createDatabaseResponse.Body.Bytes(), &database))
 			defer func() {
 				RemoveTestDatabase(t.Context(), &database)
-				workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+				workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 			}()
 
 			database.PostgresqlPhysical.Password = password

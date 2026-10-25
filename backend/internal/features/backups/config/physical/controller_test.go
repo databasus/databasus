@@ -21,7 +21,6 @@ import (
 	"databasus-backend/internal/features/storages"
 	local_storage "databasus-backend/internal/features/storages/models/local"
 	users_testing "databasus-backend/internal/features/users/testing"
-	workspaces_controllers "databasus-backend/internal/features/workspaces/controllers"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/modules/workspaces"
@@ -32,17 +31,13 @@ import (
 
 func createPhysicalTestRouter() *gin.Engine {
 	router := workspaces_testing.CreateTestRouter(
-		workspaces_controllers.GetWorkspaceController(),
-		workspaces_controllers.GetMembershipController(),
 		databases.GetDatabaseController(),
 		GetBackupConfigController(),
 		storages.GetStorageController(),
 		notifiers.GetNotifierController(),
 	)
 
-	storages.SetupDependencies()
 	databases.SetupDependencies()
-	notifiers.SetupDependencies()
 	SetupDependencies()
 
 	return router
@@ -172,7 +167,7 @@ func Test_SaveBackupConfig_PhysicalWithDifferentRoles_EnforcesPermissions(t *tes
 		t.Run(tt.name, func(t *testing.T) {
 			router := createPhysicalTestRouter()
 			owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-			workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
+			workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
 
 			database := createPhysicalDatabaseViaAPI(
 				t,
@@ -186,7 +181,7 @@ func Test_SaveBackupConfig_PhysicalWithDifferentRoles_EnforcesPermissions(t *tes
 
 			defer func() {
 				databases.RemoveTestDatabase(t.Context(), database)
-				workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+				workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 			}()
 
 			var testUserToken string
@@ -200,8 +195,8 @@ func Test_SaveBackupConfig_PhysicalWithDifferentRoles_EnforcesPermissions(t *tes
 			case tt.workspaceRole != nil:
 				member := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 				workspaces_testing.AddMemberToWorkspace(
-					workspace, member, *tt.workspaceRole, owner.Token, router,
-				)
+					workspace, member, *tt.workspaceRole)
+
 				testUserToken = member.Token
 			}
 
@@ -232,7 +227,7 @@ func Test_SaveBackupConfig_PhysicalWithDifferentRoles_EnforcesPermissions(t *tes
 func Test_SaveBackupConfig_PhysicalFullOnlyWithChainsRetention_ReturnsBadRequest(t *testing.T) {
 	router := createPhysicalTestRouter()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
 
 	database := createPhysicalDatabaseViaAPI(
 		t,
@@ -245,7 +240,7 @@ func Test_SaveBackupConfig_PhysicalFullOnlyWithChainsRetention_ReturnsBadRequest
 	)
 	defer func() {
 		databases.RemoveTestDatabase(t.Context(), database)
-		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	}()
 
 	request := validPhysicalConfigForFullOnly(database.ID)
@@ -268,7 +263,7 @@ func Test_SaveBackupConfig_PhysicalFullOnlyWithChainsRetention_ReturnsBadRequest
 func Test_SaveBackupConfig_PhysicalFullOnlyWithIncrementalInterval_ReturnsBadRequest(t *testing.T) {
 	router := createPhysicalTestRouter()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
 
 	database := createPhysicalDatabaseViaAPI(
 		t,
@@ -281,7 +276,7 @@ func Test_SaveBackupConfig_PhysicalFullOnlyWithIncrementalInterval_ReturnsBadReq
 	)
 	defer func() {
 		databases.RemoveTestDatabase(t.Context(), database)
-		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	}()
 
 	request := validPhysicalConfigForFullOnly(database.ID)
@@ -306,7 +301,7 @@ func Test_SaveBackupConfig_PhysicalFullOnlyWithIncrementalInterval_ReturnsBadReq
 func Test_GetBackupConfig_PhysicalWhenNoneExists_InitializesDefaults(t *testing.T) {
 	router := createPhysicalTestRouter()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
 
 	database := createPhysicalDatabaseViaAPI(
 		t,
@@ -319,7 +314,7 @@ func Test_GetBackupConfig_PhysicalWhenNoneExists_InitializesDefaults(t *testing.
 	)
 	defer func() {
 		databases.RemoveTestDatabase(t.Context(), database)
-		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	}()
 
 	var response PhysicalBackupConfig
@@ -423,7 +418,7 @@ func updateBackupTypeViaAPI(t *testing.T, spec backupTypeUpdateSpec) {
 func Test_SaveBackupConfig_AfterBackupTypeDemotedFromWalStream_ConfigSavesCleanly(t *testing.T) {
 	router := createPhysicalTestRouter()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
 
 	database := createPhysicalDatabaseViaAPI(
 		t,
@@ -436,7 +431,7 @@ func Test_SaveBackupConfig_AfterBackupTypeDemotedFromWalStream_ConfigSavesCleanl
 	)
 	defer func() {
 		databases.RemoveTestDatabase(t.Context(), database)
-		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	}()
 
 	recorder := recordBackupCancellations(t)
@@ -484,7 +479,7 @@ func Test_SaveBackupConfig_AfterBackupTypeDemotedFromWalStream_ConfigSavesCleanl
 func Test_SaveBackupConfig_AfterBackupTypePromotedFromFullOnly_ConfigSavesCleanly(t *testing.T) {
 	router := createPhysicalTestRouter()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
 
 	database := createPhysicalDatabaseViaAPI(
 		t,
@@ -497,7 +492,7 @@ func Test_SaveBackupConfig_AfterBackupTypePromotedFromFullOnly_ConfigSavesCleanl
 	)
 	defer func() {
 		databases.RemoveTestDatabase(t.Context(), database)
-		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	}()
 
 	test_utils.MakePostRequest(
@@ -544,7 +539,7 @@ func Test_SaveBackupConfig_AfterBackupTypePromotedFromFullOnly_ConfigSavesCleanl
 func Test_GetBackupConfig_PhysicalIncrementalWhenNoneExists_InitializesDefaultsThatSave(t *testing.T) {
 	router := createPhysicalTestRouter()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
 
 	database := createPhysicalDatabaseViaAPI(
 		t,
@@ -557,7 +552,7 @@ func Test_GetBackupConfig_PhysicalIncrementalWhenNoneExists_InitializesDefaultsT
 	)
 	defer func() {
 		databases.RemoveTestDatabase(t.Context(), database)
-		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	}()
 
 	var initializedConfig PhysicalBackupConfig
@@ -587,7 +582,7 @@ func Test_GetBackupConfig_PhysicalIncrementalWhenNoneExists_InitializesDefaultsT
 func Test_SaveBackupConfig_WhenBackupsGetDisabled_StandsBackupWorkDown(t *testing.T) {
 	router := createPhysicalTestRouter()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
 
 	database := createPhysicalDatabaseViaAPI(
 		t,
@@ -600,7 +595,7 @@ func Test_SaveBackupConfig_WhenBackupsGetDisabled_StandsBackupWorkDown(t *testin
 	)
 	defer func() {
 		databases.RemoveTestDatabase(t.Context(), database)
-		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	}()
 
 	recorder := recordBackupCancellations(t)
@@ -637,7 +632,7 @@ func Test_SaveBackupConfig_WhenBackupsGetDisabled_StandsBackupWorkDown(t *testin
 func Test_GetBackupConfig_WhenStoredConfigPredatesTheBackupType_RepairsItOnRead(t *testing.T) {
 	router := createPhysicalTestRouter()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
 
 	database := createPhysicalDatabaseViaAPI(
 		t,
@@ -650,7 +645,7 @@ func Test_GetBackupConfig_WhenStoredConfigPredatesTheBackupType_RepairsItOnRead(
 	)
 	defer func() {
 		databases.RemoveTestDatabase(t.Context(), database)
-		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	}()
 
 	test_utils.MakePostRequest(
@@ -710,7 +705,7 @@ func createPhysicalStorageReferenceFixture(t *testing.T) *physicalStorageReferen
 
 	router := createPhysicalTestRouter()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner, router)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
 	database := createPhysicalDatabaseViaAPI(
 		t,
 		"Physical DB "+uuid.New().String(),
@@ -733,7 +728,7 @@ func createPhysicalStorageReferenceFixture(t *testing.T) *physicalStorageReferen
 		for _, storageID := range fixture.createdStorageIDs {
 			storages.RemoveTestStorage(t.Context(), storageID)
 		}
-		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	})
 
 	return fixture

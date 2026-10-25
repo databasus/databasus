@@ -6,7 +6,7 @@ import (
 	"databasus-backend/internal/features/databases"
 	"databasus-backend/internal/features/notifiers"
 	"databasus-backend/internal/features/storages"
-	workspaces_services "databasus-backend/internal/features/workspaces/services"
+	workspaces_bridge "databasus-backend/internal/features/workspaces"
 	"databasus-backend/internal/util/logger"
 )
 
@@ -20,7 +20,7 @@ var (
 			databases.GetDatabaseService(),
 			storages.GetStorageService(),
 			notifiers.GetNotifierService(),
-			workspaces_services.GetWorkspaceService(),
+			workspaces_bridge.GetAccess(),
 			logger.GetLogger(),
 			nil,
 			nil,

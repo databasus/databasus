@@ -23,7 +23,6 @@ import (
 	"databasus-backend/internal/features/backups/backups/download/restore_stream"
 	"databasus-backend/internal/features/storages"
 	users_testing "databasus-backend/internal/features/users/testing"
-	workspaces_controllers "databasus-backend/internal/features/workspaces/controllers"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/util/encryption"
@@ -108,17 +107,11 @@ func Test_Writer_Write_ProducesCombineableLayoutWithIntegrityManifest(t *testing
 func createTestStorage(t *testing.T) *storages.Storage {
 	t.Helper()
 
-	router := workspaces_testing.CreateTestRouter(
-		workspaces_controllers.GetWorkspaceController(),
-		workspaces_controllers.GetMembershipController(),
-	)
 	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(
 		t.Context(),
 		"Restore Stream Test "+uuid.NewString(),
-		user,
-		router,
-	)
+		user)
 
 	storage := storages.CreateTestStorage(workspace.ID)
 	t.Cleanup(func() { storages.RemoveTestStorage(t.Context(), storage.ID) })

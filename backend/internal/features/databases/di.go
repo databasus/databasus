@@ -6,7 +6,7 @@ import (
 	audit_logs "databasus-backend/internal/features/audit_logs"
 	physical_core_service "databasus-backend/internal/features/backups/backups/core/physical/service"
 	"databasus-backend/internal/features/notifiers"
-	workspaces_services "databasus-backend/internal/features/workspaces/services"
+	workspaces_bridge "databasus-backend/internal/features/workspaces"
 	"databasus-backend/internal/util/encryption"
 	"databasus-backend/internal/util/logger"
 )
@@ -24,7 +24,7 @@ var getDatabaseService = sync.OnceValue(func() *DatabaseService {
 		[]DatabaseRemoveListener{},
 		[]DatabaseCopyListener{},
 		[]DatabaseBackupTypeChangeListener{},
-		workspaces_services.GetWorkspaceService(),
+		workspaces_bridge.GetAccess(),
 		audit_logs.GetAuditLogService(),
 		encryption.GetFieldEncryptor(),
 		physical_core_service.GetPhysicalBackupService(),
@@ -34,7 +34,7 @@ var getDatabaseService = sync.OnceValue(func() *DatabaseService {
 var getDatabaseController = sync.OnceValue(func() *DatabaseController {
 	return &DatabaseController{
 		getDatabaseService(),
-		workspaces_services.GetWorkspaceService(),
+		workspaces_bridge.GetAccess(),
 	}
 })
 
@@ -47,6 +47,5 @@ func GetDatabaseController() *DatabaseController {
 }
 
 var SetupDependencies = sync.OnceFunc(func() {
-	workspaces_services.GetWorkspaceService().AddWorkspaceDeletionListener(getDatabaseService())
 	notifiers.GetNotifierService().SetNotifierDatabaseCounter(getDatabaseService())
 })

@@ -10,6 +10,4 @@ export type { InstanceSettingsUpdate } from './model/InstanceSettingsUpdate';
 export type { PendingSignIn } from './model/PendingSignIn';
 export type { SignInOutcome } from './model/SignInOutcome';
 export { UserRole } from './model/UserRole';
-export { WorkspaceRole } from './model/WorkspaceRole';
 export { USER_ROLE_LABEL_KEYS } from './model/UserRoleLabelKeys';
-export { WORKSPACE_ROLE_LABEL_KEYS } from './model/WorkspaceRoleLabelKeys';

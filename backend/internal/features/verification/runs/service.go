@@ -20,7 +20,7 @@ import (
 	notifier_models "databasus-backend/internal/features/notifiers/models"
 	verification_agents "databasus-backend/internal/features/verification/agents"
 	verification_config "databasus-backend/internal/features/verification/config"
-	workspaces_services "databasus-backend/internal/features/workspaces/services"
+	workspaces_bridge "databasus-backend/internal/features/workspaces"
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/modules/workspaces"
 	"databasus-backend/internal/storage"
@@ -32,7 +32,7 @@ type VerificationService struct {
 	backupService          *backups_services.LogicalBackupService
 	configService          *verification_config.VerificationConfigService
 	notifierService        NotificationSender
-	workspaceService       *workspaces_services.WorkspaceService
+	workspaceService       *workspaces_bridge.Access
 	auditLogService        *audit_logs.AuditLogService
 	logger                 *slog.Logger
 }

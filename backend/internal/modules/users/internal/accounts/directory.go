@@ -27,6 +27,25 @@ func (d *Directory) GetUser(ctx context.Context, userID uuid.UUID) (identity.Use
 	return record.ToUser(), true, nil
 }
 
+// GetUsers leaves out the IDs that match no user.
+func (d *Directory) GetUsers(ctx context.Context, userIDs []uuid.UUID) ([]identity.User, error) {
+	if len(userIDs) == 0 {
+		return []identity.User{}, nil
+	}
+
+	records, err := d.repository.listByIDs(ctx, userIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	foundUsers := make([]identity.User, 0, len(records))
+	for _, record := range records {
+		foundUsers = append(foundUsers, record.ToUser())
+	}
+
+	return foundUsers, nil
+}
+
 func (d *Directory) GetUserByEmail(ctx context.Context, email string) (identity.User, bool, error) {
 	record, isFound, err := d.repository.getByEmail(ctx, email)
 	if err != nil || !isFound {

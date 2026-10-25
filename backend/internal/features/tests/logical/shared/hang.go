@@ -36,8 +36,8 @@ func SetupFlakyBackupTarget(
 
 	router = CreateTestRouter()
 	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), workspaceName, user, router)
-	t.Cleanup(func() { workspaces_testing.RemoveTestWorkspace(context.Background(), workspace, router) })
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), workspaceName, user)
+	t.Cleanup(func() { workspaces_testing.RemoveTestWorkspace(context.Background(), workspace) })
 
 	// The bucket deliberately does not exist on this (reachable) MinIO, so SaveFile fails at upload
 	// rather than at connect — that is the issue-582 path the assertion below guards.

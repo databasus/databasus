@@ -13,7 +13,7 @@ import (
 	"databasus-backend/internal/features/restores/usecases"
 	"databasus-backend/internal/features/storages"
 	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
-	workspaces_services "databasus-backend/internal/features/workspaces/services"
+	workspaces_bridge "databasus-backend/internal/features/workspaces"
 	"databasus-backend/internal/util/encryption"
 	"databasus-backend/internal/util/logger"
 )
@@ -31,7 +31,7 @@ var (
 			usecases.GetRestoreBackupUsecase(),
 			databases.GetDatabaseService(),
 			logger.GetLogger(),
-			workspaces_services.GetWorkspaceService(),
+			workspaces_bridge.GetAccess(),
 			audit_logs.GetAuditLogService(),
 			encryption.GetFieldEncryptor(),
 			disk.GetDiskService(),

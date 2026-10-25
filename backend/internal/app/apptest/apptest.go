@@ -69,6 +69,7 @@ func New(tb testing.TB, options ...Option) *App {
 		isTurnstileEnabled:  false,
 		isGitHubEnabled:     false,
 		isGoogleEnabled:     false,
+		publicURL:           "",
 	}
 	for _, option := range options {
 		option(&applied)
@@ -86,6 +87,7 @@ func New(tb testing.TB, options ...Option) *App {
 	manualClock := clock.NewManual(time.Now())
 
 	appConfig := newConfig(tb, databaseDsn)
+	appConfig.DatabasusURL = applied.publicURL
 
 	if applied.isTurnstileEnabled {
 		appConfig.CloudflareTurnstileSecretKey = turnstileSecretKey
