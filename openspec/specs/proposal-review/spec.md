@@ -137,7 +137,7 @@ After a blocked review the next run SHALL check the previous findings and the ch
 - **THEN** the hook stops the agent and shows the remaining findings
 
 ### Requirement: Quick checks yield to the full proposal review
-When only files of changes that have every artifact and no checked task changed during the turn, the `necessity`, `architecture`, `diff` and `naming` checks SHALL skip the turn. This way the quick checks duplicate neither the review turn nor the summary turn after acceptance. When other files changed too, the quick checks SHALL run as usual.
+When only files of changes that have every artifact and no checked task changed during the turn, the `necessity`, `architecture`, `diff` and `code-shape` checks SHALL skip the turn. This way the quick checks duplicate neither the review turn nor the summary turn after acceptance. When other files changed too, the quick checks SHALL run as usual.
 
 #### Scenario: A turn with only artifacts
 - **WHEN** the agent finished every artifact of a change and changed nothing else

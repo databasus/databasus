@@ -117,3 +117,24 @@ func (m *sourceModule) getPosition(file sourceFile, pos token.Pos) string {
 func (m *sourceModule) getRelativeImport(importPath string) (string, bool) {
 	return strings.CutPrefix(importPath, m.modulePath+"/")
 }
+
+func getReceiverTypeName(function *ast.FuncDecl) string {
+	receiver := function.Recv.List[0].Type
+
+	if star, isPointer := receiver.(*ast.StarExpr); isPointer {
+		receiver = star.X
+	}
+
+	switch typed := receiver.(type) {
+	case *ast.IndexExpr:
+		receiver = typed.X
+	case *ast.IndexListExpr:
+		receiver = typed.X
+	}
+
+	if identifier, isIdentifier := receiver.(*ast.Ident); isIdentifier {
+		return identifier.Name
+	}
+
+	return ""
+}

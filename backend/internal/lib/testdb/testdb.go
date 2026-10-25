@@ -5,13 +5,8 @@ package testdb
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/hex"
 	"fmt"
 	"io/fs"
-	"strconv"
-	"strings"
-	"sync"
 	"testing"
 	"time"
 
@@ -151,17 +146,6 @@ func Drop(tb testing.TB, databaseName string) {
 	require.NoError(tb, dropDatabase(context.WithoutCancel(tb.Context()), readTestDsn(tb), databaseName))
 }
 
-// GetDatabaseName returns the dbname of a keyword/value connection string, or "" when it has none.
-func GetDatabaseName(dsn string) string {
-	for dsnPart := range strings.FieldsSeq(dsn) {
-		if databaseName, isDatabaseName := strings.CutPrefix(dsnPart, "dbname="); isDatabaseName {
-			return databaseName
-		}
-	}
-
-	return ""
-}
-
 func dropDatabase(ctx context.Context, testDsn, databaseName string) error {
 	systemDb, err := database.Open(ctx, replaceDatabaseName(testDsn, systemDatabaseName))
 	if err != nil {
@@ -209,91 +193,9 @@ func readTestDsnVariable() (string, error) {
 	return testDsn, nil
 }
 
-func newTestDatabaseName(tb testing.TB) string {
-	tb.Helper()
-
-	databaseName, err := generateTestDatabaseName(time.Now())
-	require.NoError(tb, err)
-
-	return databaseName
-}
-
-// pg_database stores no creation time, so the name carries it for the abandoned-database cleanup.
-func generateTestDatabaseName(createdAt time.Time) (string, error) {
-	randomBytes := make([]byte, 4)
-
-	_, err := rand.Read(randomBytes)
-	if err != nil {
-		return "", fmt.Errorf("generate a test database name: %w", err)
-	}
-
-	return testDatabasePrefix + strconv.FormatInt(createdAt.Unix(), 10) + "_" + hex.EncodeToString(randomBytes), nil
-}
-
-func replaceDatabaseName(dsn, databaseName string) string {
-	dsnParts := strings.Fields(dsn)
-	for partIndex, dsnPart := range dsnParts {
-		if strings.HasPrefix(dsnPart, "dbname=") {
-			dsnParts[partIndex] = "dbname=" + databaseName
-		}
-	}
-
-	return strings.Join(dsnParts, " ")
-}
-
-func removePassword(dsn string) string {
-	dsnParts := strings.Fields(dsn)
-	keptParts := make([]string, 0, len(dsnParts))
-
-	for _, dsnPart := range dsnParts {
-		if !strings.HasPrefix(dsnPart, "password=") {
-			keptParts = append(keptParts, dsnPart)
-		}
-	}
-
-	return strings.Join(keptParts, " ")
-}
-
 func closeDatabase(db *gorm.DB) {
 	sqlDB, err := db.DB()
 	if err == nil {
 		_ = sqlDB.Close()
 	}
-}
-
-// A process builds or finds each template once, however many tests ask for it.
-var (
-	templatesMutex sync.Mutex
-	templates      = map[string]*templateResult{}
-)
-
-type templateResult struct {
-	once         sync.Once
-	templateName string
-	err          error
-}
-
-func ensureTemplateOncePerProcess(ctx context.Context, systemDb *gorm.DB, testDsn string, files fs.FS) (string, error) {
-	migrationsHash, err := hashMigrations(files)
-	if err != nil {
-		return "", err
-	}
-
-	templatesMutex.Lock()
-	result, isKnown := templates[migrationsHash]
-	if !isKnown {
-		result = &templateResult{templateName: templateDatabasePrefix + migrationsHash}
-		templates[migrationsHash] = result
-	}
-	templatesMutex.Unlock()
-
-	result.once.Do(func() {
-		result.err = buildTemplate(ctx, systemDb, testDsn, files, result.templateName)
-	})
-
-	if result.err != nil {
-		return "", result.err
-	}
-
-	return result.templateName, nil
 }

@@ -5,12 +5,10 @@ import (
 	"errors"
 	"log/slog"
 	"sync/atomic"
-	"syscall"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 const testFlushTimeout = 2 * time.Second
@@ -64,26 +62,6 @@ func TestDrain(t *testing.T) {
 
 		assert.True(t, isStepContextAlive.Load())
 		assert.Equal(t, int32(1), flushCount.Load())
-	})
-}
-
-// The test sends real signals to its own process, so it does not run in parallel with others.
-func TestListenForStopSignal(t *testing.T) {
-	t.Run("ends the context on the first signal and ignores the second", func(t *testing.T) {
-		stopSignalCtx, stopListening := ListenForStopSignal(t.Context())
-		defer stopListening()
-
-		require.NoError(t, syscall.Kill(syscall.Getpid(), syscall.SIGTERM))
-
-		select {
-		case <-stopSignalCtx.Done():
-		case <-time.After(3 * time.Second):
-			t.Fatal("the context did not end after the stop signal")
-		}
-
-		require.NoError(t, syscall.Kill(syscall.Getpid(), syscall.SIGTERM))
-
-		assert.ErrorIs(t, stopSignalCtx.Err(), context.Canceled)
 	})
 }
 

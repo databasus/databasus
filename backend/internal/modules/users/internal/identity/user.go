@@ -3,7 +3,6 @@
 package identity
 
 import (
-	"context"
 	"time"
 
 	"github.com/google/uuid"
@@ -55,26 +54,4 @@ func (u User) IsActive() bool {
 // GetAuditAuthor is the snapshot of the user an audit event keeps.
 func (u User) GetAuditAuthor() *audit.Author {
 	return &audit.Author{UserID: u.ID, Email: u.Email, Name: u.Name}
-}
-
-// Actor is the user a request runs for: the user ID and the global role.
-type Actor struct {
-	UserID uuid.UUID
-	Role   Role
-}
-
-func (a Actor) IsAdmin() bool {
-	return a.Role == RoleAdmin
-}
-
-type actorContextKey struct{}
-
-func WithActor(ctx context.Context, actor Actor) context.Context {
-	return context.WithValue(ctx, actorContextKey{}, actor)
-}
-
-func GetActor(ctx context.Context) (Actor, bool) {
-	actor, isFound := ctx.Value(actorContextKey{}).(Actor)
-
-	return actor, isFound
 }

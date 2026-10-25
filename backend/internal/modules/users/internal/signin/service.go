@@ -2,15 +2,10 @@ package signin
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
-	"strings"
-	"time"
 
 	"github.com/google/uuid"
-	"golang.org/x/crypto/bcrypt"
 
-	"databasus-backend/internal/lib/apierror"
 	"databasus-backend/internal/lib/audit"
 	"databasus-backend/internal/lib/clock"
 	"databasus-backend/internal/lib/crypto"
@@ -18,21 +13,10 @@ import (
 	"databasus-backend/internal/lib/mailer"
 	"databasus-backend/internal/lib/ratelimit"
 	"databasus-backend/internal/modules/users/internal/accounts"
-	"databasus-backend/internal/modules/users/internal/identity"
 	"databasus-backend/internal/modules/users/internal/oauth"
 	"databasus-backend/internal/modules/users/internal/settings"
 	"databasus-backend/internal/modules/users/internal/turnstile"
 )
-
-const (
-	signInRateLimitScope  = "signin"
-	signInRateLimit       = 10
-	signInRateLimitWindow = time.Minute
-)
-
-// unmatchableHash is the bcrypt hash of a random secret nobody knows. A sign-in for an address
-// without a usable password is compared against it, so it takes as long as a wrong password.
-const unmatchableHash = "$2a$10$J1I5VBn.teMq6ueky2hqy.ECHJ6JOS4AcT6kjk62wWxRONkvkj7n6"
 
 type Deps struct {
 	Repositories Repositories
@@ -84,19 +68,6 @@ func NewService(deps Deps) *Service {
 	}
 }
 
-type SignUpRequest struct {
-	Email           string
-	Password        string
-	Name            string
-	TurnstileAnswer *string
-}
-
-type SignInRequest struct {
-	Email           string
-	Password        string
-	TurnstileAnswer *string
-}
-
 // Session is a signed-in user with the token the operation returns once.
 type Session struct {
 	UserID uuid.UUID
@@ -121,121 +92,6 @@ type SignInOptions struct {
 	HasAnyUser bool
 }
 
-// SignUp creates the user and signs them in. An invited user finishes sign-up here even when
-// registration is closed; anyone else needs open registration, except the first user, who claims
-// the instance.
-func (s *Service) SignUp(ctx context.Context, request SignUpRequest) (Session, error) {
-	err := validateSignUp(request)
-	if err != nil {
-		return Session{}, err
-	}
-
-	err = s.turnstile.Verify(ctx, request.TurnstileAnswer)
-	if err != nil {
-		return Session{}, err
-	}
-
-	hashedPassword, err := identity.HashPassword(request.Password)
-	if err != nil {
-		return Session{}, err
-	}
-
-	var signedUpUser accounts.UserRecord
-
-	err = s.transactor.Transaction(ctx, func(ctx context.Context) error {
-		existingUser, isFound, err := s.accounts.GetRecordByEmail(ctx, request.Email)
-		if err != nil {
-			return err
-		}
-
-		if isFound && existingUser.Status != identity.StatusInvited {
-			return accounts.ErrEmailTaken
-		}
-
-		if isFound {
-			signedUpUser, err = s.accounts.ActivateInvitedUser(ctx, existingUser, request.Name, &hashedPassword)
-			if err != nil {
-				return err
-			}
-
-			return s.recordAuditEvent(ctx, signedUpUser, "Invited user completed registration: "+signedUpUser.Email)
-		}
-
-		signedUpUser, err = s.accounts.CreateUserClaimingEmptyInstance(ctx, accounts.NewUser{
-			Email:                    request.Email,
-			Name:                     request.Name,
-			HashedPassword:           &hashedPassword,
-			GitHubOAuthID:            nil,
-			GoogleOAuthID:            nil,
-			OrdinaryRole:             identity.RoleMember,
-			CheckOrdinaryUserAllowed: s.checkRegistrationOpen,
-		})
-		if err != nil {
-			return err
-		}
-
-		return s.recordAuditEvent(ctx, signedUpUser, "User registered with email: "+signedUpUser.Email)
-	})
-	if err != nil {
-		return Session{}, err
-	}
-
-	return s.issueSession(signedUpUser)
-}
-
-// SignIn refuses alike until the password is verified: an unknown address, a user who has not
-// finished sign-up, a user without a password and a wrong password all get invalid_credentials
-// after the same bcrypt comparison. Only then may the answer name a deactivated user. The log keeps
-// each reason, because failed sign-ins are the signal that someone guesses credentials.
-func (s *Service) SignIn(ctx context.Context, request SignInRequest) (SignInOutcome, error) {
-	err := s.turnstile.Verify(ctx, request.TurnstileAnswer)
-	if err != nil {
-		return SignInOutcome{}, err
-	}
-
-	err = s.checkRateLimit(ctx, ratelimit.Attempt{
-		Scope:      signInRateLimitScope,
-		Identifier: request.Email,
-		Limit:      signInRateLimit,
-		Window:     signInRateLimitWindow,
-	})
-	if err != nil {
-		return SignInOutcome{}, err
-	}
-
-	user, err := s.verifyPassword(ctx, request)
-	if err != nil {
-		return SignInOutcome{}, err
-	}
-
-	if !user.IsActive() {
-		s.logger.WarnContext(ctx, "sign-in refused: the user is deactivated", slog.String("user_id", user.ID.String()))
-
-		return SignInOutcome{}, ErrUserDeactivated
-	}
-
-	instanceSettings, err := s.settings.GetSettings(ctx)
-	if err != nil {
-		return SignInOutcome{}, err
-	}
-
-	if instanceSettings.IsTwoFactorAuthRequired {
-		pendingSignIn, err := s.startTwoFactorSignIn(ctx, user)
-		if err != nil {
-			return SignInOutcome{}, err
-		}
-
-		return SignInOutcome{Session: nil, PendingSignIn: &pendingSignIn}, nil
-	}
-
-	session, err := s.completeSignIn(ctx, user)
-	if err != nil {
-		return SignInOutcome{}, err
-	}
-
-	return SignInOutcome{Session: &session, PendingSignIn: nil}, nil
-}
-
 func (s *Service) GetSignInOptions(ctx context.Context) (SignInOptions, error) {
 	hasAnyUser, err := s.accounts.HasAnyUser(ctx)
 	if err != nil {
@@ -243,74 +99,6 @@ func (s *Service) GetSignInOptions(ctx context.Context) (SignInOptions, error) {
 	}
 
 	return SignInOptions{HasAnyUser: hasAnyUser}, nil
-}
-
-// Authenticate returns the actor of a session token. A token whose signature, expiry, user, user
-// status or password time does not hold answers ErrInvalidSession.
-func (s *Service) Authenticate(ctx context.Context, token string) (identity.Actor, error) {
-	claims, err := s.sessions.read(token)
-	if err != nil {
-		return identity.Actor{}, err
-	}
-
-	user, isFound, err := s.accounts.GetRecord(ctx, claims.userID)
-	if err != nil {
-		return identity.Actor{}, err
-	}
-
-	if !isFound {
-		return identity.Actor{}, fmt.Errorf("%w: the user does not exist", ErrInvalidSession)
-	}
-
-	if !user.IsActive() {
-		return identity.Actor{}, fmt.Errorf("%w: the user is not active", ErrInvalidSession)
-	}
-
-	if !user.PasswordCreationTime.Truncate(time.Second).Equal(claims.passwordCreationTime.Truncate(time.Second)) {
-		return identity.Actor{}, fmt.Errorf("%w: the password changed after the token was issued", ErrInvalidSession)
-	}
-
-	return user.ToActor(), nil
-}
-
-func (s *Service) verifyPassword(ctx context.Context, request SignInRequest) (accounts.UserRecord, error) {
-	user, isFound, err := s.accounts.GetRecordByEmail(ctx, request.Email)
-	if err != nil {
-		return accounts.UserRecord{}, err
-	}
-
-	refusal := ""
-
-	switch {
-	case !isFound:
-		refusal = "no user with this email"
-	case user.Status == identity.StatusInvited:
-		refusal = "the user has not finished sign-up"
-	case !user.HasPassword():
-		refusal = "the user has no password"
-	}
-
-	if refusal != "" {
-		_ = bcrypt.CompareHashAndPassword([]byte(unmatchableHash), []byte(request.Password))
-
-		s.logger.WarnContext(
-			ctx,
-			"sign-in refused",
-			slog.String("reason", refusal),
-			slog.String("email", request.Email),
-		)
-
-		return accounts.UserRecord{}, ErrInvalidCredentials
-	}
-
-	err = bcrypt.CompareHashAndPassword([]byte(*user.HashedPassword), []byte(request.Password))
-	if err != nil {
-		s.logger.WarnContext(ctx, "sign-in refused: incorrect password", slog.String("user_id", user.ID.String()))
-
-		return accounts.UserRecord{}, ErrInvalidCredentials
-	}
-
-	return user, nil
 }
 
 // completeSignIn records the sign-in where access is granted: the password step with one factor,
@@ -377,29 +165,4 @@ func (s *Service) recordAuditEvent(ctx context.Context, author accounts.UserReco
 		WorkspaceID: nil,
 		Message:     message,
 	})
-}
-
-func validateSignUp(request SignUpRequest) error {
-	var fieldErrors []apierror.FieldError
-
-	if !identity.IsEmailAddress(request.Email) {
-		fieldErrors = append(fieldErrors, apierror.FieldError{Field: "email", Detail: "is not an email address"})
-	}
-
-	if !identity.IsPasswordLongEnough(request.Password) {
-		fieldErrors = append(fieldErrors, apierror.FieldError{
-			Field:  "password",
-			Detail: fmt.Sprintf("must be at least %d characters long", identity.MinPasswordLength),
-		})
-	}
-
-	if strings.TrimSpace(request.Name) == "" {
-		fieldErrors = append(fieldErrors, apierror.FieldError{Field: "name", Detail: "is required"})
-	}
-
-	if len(fieldErrors) > 0 {
-		return apierror.NewInvalidFieldsProblem(fieldErrors)
-	}
-
-	return nil
 }

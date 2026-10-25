@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io/fs"
 	"slices"
+	"sync"
 
 	"gorm.io/gorm"
 
@@ -120,4 +121,41 @@ func hasDatabase(session *gorm.DB, databaseName string) (bool, error) {
 	}
 
 	return databaseCount > 0, nil
+}
+
+// A process builds or finds each template once, however many tests ask for it.
+var (
+	templatesMutex sync.Mutex
+	templates      = map[string]*templateResult{}
+)
+
+type templateResult struct {
+	once         sync.Once
+	templateName string
+	err          error
+}
+
+func ensureTemplateOncePerProcess(ctx context.Context, systemDb *gorm.DB, testDsn string, files fs.FS) (string, error) {
+	migrationsHash, err := hashMigrations(files)
+	if err != nil {
+		return "", err
+	}
+
+	templatesMutex.Lock()
+	result, isKnown := templates[migrationsHash]
+	if !isKnown {
+		result = &templateResult{templateName: templateDatabasePrefix + migrationsHash}
+		templates[migrationsHash] = result
+	}
+	templatesMutex.Unlock()
+
+	result.once.Do(func() {
+		result.err = buildTemplate(ctx, systemDb, testDsn, files, result.templateName)
+	})
+
+	if result.err != nil {
+		return "", result.err
+	}
+
+	return result.templateName, nil
 }

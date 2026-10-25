@@ -20,16 +20,16 @@ The hook test command below runs from the repository root: `python3 -m unittest 
 
 Each task below follows design.md decision 6: read every non-generated source file of the scope, split each file that mixes concepts into files named after them, move the tests with the code, and change no behavior. Before each task, skip any file that `git status` shows with someone else's uncommitted edits, and note it for the summary.
 
-- [ ] 4.1 `backend/internal/lib`. Verify with `mise run backend:test-package ./internal/lib/...`, `mise run backend:lint` and `GOFLAGS= go run ./tools/archlint` in `backend/` exiting with status 0.
-- [ ] 4.2 `backend/internal/app`, `backend/cmd` and `backend/tools/archlint`. Verify with `mise run backend:test-package ./internal/app/... ./cmd/... ./tools/archlint/...` and `mise run backend:lint` exiting with status 0.
-- [ ] 4.3 `backend/internal/modules`: `users` and `workspaces/module.go` from milestone 5a. Verify with `mise run backend:test-package ./internal/modules/...` and `mise run backend:lint` exiting with status 0.
-- [ ] 4.4 `backend/e2e/upgrade` and `upgradecheck`. The upgrade test itself runs only with release images, so verify with `go test -count=1 -run '^$' ./e2e/upgrade/` in `backend/` compiling the package, `mise run backend:test-package ./e2e/upgrade/upgradecheck/...` and `mise run backend:lint` exiting with status 0.
-- [ ] 4.5 The frontend files that `git show --name-only --format= b93d5e2d 3d92a5bb -- frontend/src` lists, without generated files and locale dictionaries. Re-export moved types from the slice `index.ts`. Verify with `pnpm --dir frontend test` and `mise run frontend:lint` exiting with status 0.
+- [x] 4.1 `backend/internal/lib`. Verify with `mise run backend:test-package ./internal/lib/...`, `mise run backend:lint` and `GOFLAGS= go run ./tools/archlint` in `backend/` exiting with status 0.
+- [x] 4.2 `backend/internal/app`, `backend/cmd` and `backend/tools/archlint`. Verify with `mise run backend:test-package ./internal/app/... ./cmd/... ./tools/archlint/...` and `mise run backend:lint` exiting with status 0.
+- [x] 4.3 `backend/internal/modules`: `users` and `workspaces/module.go` from milestone 5a. Verify with `mise run backend:test-package ./internal/modules/...` and `mise run backend:lint` exiting with status 0.
+- [x] 4.4 `backend/e2e/upgrade` and `upgradecheck`. The upgrade test itself runs only with release images, so verify with `go test -count=1 -run '^$' ./e2e/upgrade/` in `backend/` compiling the package, `mise run backend:test-package ./e2e/upgrade/upgradecheck/...` and `mise run backend:lint` exiting with status 0.
+- [x] 4.5 The frontend files that `git show --name-only --format= b93d5e2d 3d92a5bb -- frontend/src` lists, without generated files and locale dictionaries. Re-export moved types from the slice `index.ts`. Verify with `pnpm --dir frontend test` and `mise run frontend:lint` exiting with status 0.
 
 ## 5. Plan and checks
 
-- [ ] 5.1 Add the item `code-shape-rule` to `temp/refactor/plan.md` between 5a and 5b with one line about the rule, the gate and the pass, and check it. Verify with `rg -n 'code-shape-rule' temp/refactor/plan.md` showing a checked line between the `5a` and `5b` lines.
-- [ ] 5.2 Run `mise run lint` and the hook test command, and fix what they report. Verify that both exit with status 0.
+- [x] 5.1 Add the item `code-shape-rule` to `temp/refactor/plan.md` between 5a and 5b with one line about the rule, the gate and the pass, and check it. Verify with `rg -n 'code-shape-rule' temp/refactor/plan.md` showing a checked line between the `5a` and `5b` lines.
+- [x] 5.2 Run `mise run lint` and the hook test command, and fix what they report. Verify that both exit with status 0.
 
 ## Change verification
 

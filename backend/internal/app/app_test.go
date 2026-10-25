@@ -136,18 +136,6 @@ func TestNew(t *testing.T) {
 		})
 }
 
-func TestLoadEnvironment(t *testing.T) {
-	t.Run("returns an error naming the variable when a required one is empty", func(t *testing.T) {
-		t.Setenv("ENV_MODE", "")
-		t.Setenv("DATABASE_DSN", "host=localhost dbname=databasus")
-
-		_, err := LoadEnvironment(t.Context(), newIsolatedLoadSpec(t, true))
-
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "ENV_MODE")
-	})
-}
-
 func newTestApp(t *testing.T) *App {
 	t.Helper()
 

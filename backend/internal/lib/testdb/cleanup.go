@@ -3,9 +3,7 @@ package testdb
 import (
 	"context"
 	"fmt"
-	"regexp"
 	"slices"
-	"strconv"
 	"sync"
 	"time"
 
@@ -15,8 +13,6 @@ import (
 const abandonedDatabaseAge = time.Hour
 
 var (
-	testDatabaseNamePattern = regexp.MustCompile(`^databasus_test_([0-9]+)_[0-9a-f]{8}$`)
-
 	abandonedDatabasesCleanup sync.Once
 
 	// The tests of the cleanup itself move its clock forward and narrow it to databases they
@@ -77,18 +73,4 @@ func removeAbandonedDatabases(ctx context.Context, systemDb *gorm.DB, scope clea
 	}
 
 	return nil
-}
-
-func getTestDatabaseCreationTime(databaseName string) (time.Time, bool) {
-	nameMatch := testDatabaseNamePattern.FindStringSubmatch(databaseName)
-	if nameMatch == nil {
-		return time.Time{}, false
-	}
-
-	createdAtSeconds, err := strconv.ParseInt(nameMatch[1], 10, 64)
-	if err != nil {
-		return time.Time{}, false
-	}
-
-	return time.Unix(createdAtSeconds, 0), true
 }

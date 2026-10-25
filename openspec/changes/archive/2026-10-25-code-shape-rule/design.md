@@ -102,7 +102,7 @@ For each package or slice the agent reads every non-generated source file and ap
 
 These stay whole on purpose: generated files (`*.gen.go`, `schema.gen.ts`), `errors.go` of each package, an enum next to the entity whose field it types, the locale dictionaries, and `module.go`, which the architecture rules make the single public face of a module.
 
-Rejected: the whole backend. Old code under `internal/features` moves into the new layout milestone by milestone and comes under the check then; splitting it now means doing that work twice. Rejected: the files milestone 5a changed in `features/workspaces`, `role_actions.go` included. `workspaces-module` deletes them when it moves the module, so a split would be thrown away. From milestone 5a only `internal/modules/workspaces/module.go` is in the pass, as part of `internal/modules`, and `docs/architecture.md` already fixes what it holds.
+Rejected: the whole backend. Old code under `internal/features` moves into the new layout milestone by milestone and comes under the check then; splitting it now means doing that work twice. Rejected: the files milestone 5a changed in `features/workspaces`, `role_actions.go` included. `workspaces-module` deletes them when it moves the module, so a split would be thrown away. From milestone 5a only `internal/modules/workspaces/module.go` is in the pass, as part of `internal/modules`, and `docs/architecture.md` already fixes what it holds. Rejected for the same reason: splitting `frontend/src/features/workspaces/ui/WorkspaceMembershipComponent.tsx`, which milestone 4d touched. `workspaces-module` task 6.2 renames and reworks it for the generated client, so a split now would be redone there.
 
 ## Risks / Trade-offs
 

@@ -2034,6 +2034,21 @@ class QuickGatesDuringProposalReviewTest(unittest.TestCase):
         self.assertEqual(responses, [{}, {}, {}, {}])
         self.assertEqual(repository.reviewer_calls(), [])
 
+    def test_skips_code_shape_that_blocked_earlier_in_request_when_turn_leaves_only_ready_proposal(self):
+        repository = HookRepository(self)
+        repository.set_reviewer_result({"ok": False, "reason": "service.go mixes two concepts."})
+        repository.submit_prompt("Add a widget")
+        repository.write("backend/internal/features/widgets/service.go", "package widgets\n")
+        self.assertEqual(repository.stop("code-shape")["decision"], "block")
+        repository.clear_calls()
+        (repository.root / "backend/internal/features/widgets/service.go").unlink()
+        repository.write_proposal()
+
+        response = repository.stop("code-shape")
+
+        self.assertEqual(response, {})
+        self.assertEqual(repository.reviewer_calls(), [])
+
     def test_skips_quick_checks_in_summary_turn_after_accepted_review(self):
         repository = HookRepository(self)
         repository.set_reviewer_result({"findings": [finding("scope", "The settings screen can be dropped.")]})
