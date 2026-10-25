@@ -5,7 +5,7 @@ import (
 
 	"github.com/google/uuid"
 
-	users_enums "databasus-backend/internal/features/users/enums"
+	"databasus-backend/internal/modules/workspaces"
 )
 
 type AddMemberStatus string
@@ -26,7 +26,7 @@ type WorkspaceResponseDTO struct {
 	CreatedAt time.Time `json:"createdAt"`
 
 	// User's role in this workspace (populated when fetching for specific user)
-	UserRole *users_enums.WorkspaceRole `json:"userRole,omitempty"`
+	UserRole *workspaces.Role `json:"userRole,omitempty"`
 }
 
 type ListWorkspacesResponseDTO struct {
@@ -35,8 +35,8 @@ type ListWorkspacesResponseDTO struct {
 
 // Membership DTOs
 type AddMemberRequestDTO struct {
-	Email string                    `json:"email" binding:"required,email"`
-	Role  users_enums.WorkspaceRole `json:"role"  binding:"required"`
+	Email string          `json:"email" binding:"required,email"`
+	Role  workspaces.Role `json:"role"  binding:"required"`
 }
 
 type AddMemberResponseDTO struct {
@@ -44,7 +44,7 @@ type AddMemberResponseDTO struct {
 }
 
 type ChangeMemberRoleRequestDTO struct {
-	Role users_enums.WorkspaceRole `json:"role" binding:"required"`
+	Role workspaces.Role `json:"role" binding:"required"`
 }
 
 type TransferOwnershipRequestDTO struct {
@@ -52,12 +52,12 @@ type TransferOwnershipRequestDTO struct {
 }
 
 type WorkspaceMemberResponseDTO struct {
-	ID        uuid.UUID                 `json:"id"`
-	UserID    uuid.UUID                 `json:"userId"`
-	Email     string                    `json:"email"` // Populated from user join
-	Name      string                    `json:"name"`  // Populated from user join
-	Role      users_enums.WorkspaceRole `json:"role"`
-	CreatedAt time.Time                 `json:"createdAt"`
+	ID        uuid.UUID       `json:"id"`
+	UserID    uuid.UUID       `json:"userId"`
+	Email     string          `json:"email"` // Populated from user join
+	Name      string          `json:"name"`  // Populated from user join
+	Role      workspaces.Role `json:"role"`
+	CreatedAt time.Time       `json:"createdAt"`
 }
 
 type GetMembersResponseDTO struct {

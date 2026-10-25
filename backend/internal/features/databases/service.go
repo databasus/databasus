@@ -16,6 +16,7 @@ import (
 	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
 	"databasus-backend/internal/features/notifiers"
 	"databasus-backend/internal/modules/users"
+	"databasus-backend/internal/modules/workspaces"
 	"databasus-backend/internal/util/encryption"
 )
 
@@ -76,11 +77,11 @@ func (s *DatabaseService) CreateDatabase(
 	workspaceID uuid.UUID,
 	database *Database,
 ) (*Database, error) {
-	canManage, err := s.workspaceService.CanUserManageDBs(ctx, workspaceID, actor)
+	isAllowed, err := s.workspaceService.IsActorAllowed(ctx, actor, workspaceID, workspaces.ActionEditContent)
 	if err != nil {
 		return nil, err
 	}
-	if !canManage {
+	if !isAllowed {
 		return nil, errors.New("insufficient permissions to create database in this workspace")
 	}
 
@@ -158,11 +159,16 @@ func (s *DatabaseService) UpdateDatabase(
 		return errors.New("cannot update database without workspace")
 	}
 
-	canManage, err := s.workspaceService.CanUserManageDBs(ctx, *existingDatabase.WorkspaceID, actor)
+	isAllowed, err := s.workspaceService.IsActorAllowed(
+		ctx,
+		actor,
+		*existingDatabase.WorkspaceID,
+		workspaces.ActionEditContent,
+	)
 	if err != nil {
 		return err
 	}
-	if !canManage {
+	if !isAllowed {
 		return errors.New("insufficient permissions to update this database")
 	}
 
@@ -262,11 +268,16 @@ func (s *DatabaseService) DeleteDatabase(
 		return errors.New("cannot delete database without workspace")
 	}
 
-	canManage, err := s.workspaceService.CanUserManageDBs(ctx, *existingDatabase.WorkspaceID, actor)
+	isAllowed, err := s.workspaceService.IsActorAllowed(
+		ctx,
+		actor,
+		*existingDatabase.WorkspaceID,
+		workspaces.ActionEditContent,
+	)
 	if err != nil {
 		return err
 	}
-	if !canManage {
+	if !isAllowed {
 		return errors.New("insufficient permissions to delete this database")
 	}
 
@@ -299,11 +310,11 @@ func (s *DatabaseService) GetDatabase(
 		return nil, errors.New("cannot access database without workspace")
 	}
 
-	canAccess, _, err := s.workspaceService.CanUserAccessWorkspace(ctx, *database.WorkspaceID, actor)
+	isAllowed, err := s.workspaceService.IsActorAllowed(ctx, actor, *database.WorkspaceID, workspaces.ActionView)
 	if err != nil {
 		return nil, err
 	}
-	if !canAccess {
+	if !isAllowed {
 		return nil, errors.New("insufficient permissions to access this database")
 	}
 
@@ -316,11 +327,11 @@ func (s *DatabaseService) GetDatabasesByWorkspace(
 	actor users.Actor,
 	workspaceID uuid.UUID,
 ) ([]*Database, error) {
-	canAccess, _, err := s.workspaceService.CanUserAccessWorkspace(ctx, workspaceID, actor)
+	isAllowed, err := s.workspaceService.IsActorAllowed(ctx, actor, workspaceID, workspaces.ActionView)
 	if err != nil {
 		return nil, err
 	}
-	if !canAccess {
+	if !isAllowed {
 		return nil, errors.New("insufficient permissions to access this workspace")
 	}
 
@@ -383,11 +394,11 @@ func (s *DatabaseService) TestDatabaseConnection(
 		return errors.New("cannot test connection for database without workspace")
 	}
 
-	canAccess, _, err := s.workspaceService.CanUserAccessWorkspace(ctx, *database.WorkspaceID, actor)
+	isAllowed, err := s.workspaceService.IsActorAllowed(ctx, actor, *database.WorkspaceID, workspaces.ActionView)
 	if err != nil {
 		return err
 	}
-	if !canAccess {
+	if !isAllowed {
 		return errors.New("insufficient permissions to test connection for this database")
 	}
 
@@ -494,11 +505,16 @@ func (s *DatabaseService) CopyDatabase(
 		return nil, errors.New("cannot copy database without workspace")
 	}
 
-	canManage, err := s.workspaceService.CanUserManageDBs(ctx, *existingDatabase.WorkspaceID, actor)
+	isAllowed, err := s.workspaceService.IsActorAllowed(
+		ctx,
+		actor,
+		*existingDatabase.WorkspaceID,
+		workspaces.ActionEditContent,
+	)
 	if err != nil {
 		return nil, err
 	}
-	if !canManage {
+	if !isAllowed {
 		return nil, errors.New("insufficient permissions to copy this database")
 	}
 
@@ -630,15 +646,16 @@ func (s *DatabaseService) ShouldSuggestReadOnlyUser(
 			return false, nil, errors.New("cannot check user for database without workspace")
 		}
 
-		canAccess, _, err := s.workspaceService.CanUserAccessWorkspace(
+		isAllowed, err := s.workspaceService.IsActorAllowed(
 			ctx,
-			*existingDatabase.WorkspaceID,
 			actor,
+			*existingDatabase.WorkspaceID,
+			workspaces.ActionView,
 		)
 		if err != nil {
 			return false, nil, err
 		}
-		if !canAccess {
+		if !isAllowed {
 			return false, nil, errors.New("insufficient permissions to access this database")
 		}
 
@@ -655,15 +672,16 @@ func (s *DatabaseService) ShouldSuggestReadOnlyUser(
 		usingDatabase = existingDatabase
 	} else {
 		if database.WorkspaceID != nil {
-			canAccess, _, err := s.workspaceService.CanUserAccessWorkspace(
+			isAllowed, err := s.workspaceService.IsActorAllowed(
 				ctx,
-				*database.WorkspaceID,
 				actor,
+				*database.WorkspaceID,
+				workspaces.ActionView,
 			)
 			if err != nil {
 				return false, nil, err
 			}
-			if !canAccess {
+			if !isAllowed {
 				return false, nil, errors.New("insufficient permissions to access this workspace")
 			}
 		}
@@ -707,11 +725,16 @@ func (s *DatabaseService) CreateReadOnlyUser(
 			return "", "", errors.New("cannot create user for database without workspace")
 		}
 
-		canManage, err := s.workspaceService.CanUserManageDBs(ctx, *existingDatabase.WorkspaceID, actor)
+		isAllowed, err := s.workspaceService.IsActorAllowed(
+			ctx,
+			actor,
+			*existingDatabase.WorkspaceID,
+			workspaces.ActionEditContent,
+		)
 		if err != nil {
 			return "", "", err
 		}
-		if !canManage {
+		if !isAllowed {
 			return "", "", errors.New("insufficient permissions to manage this database")
 		}
 
@@ -728,11 +751,16 @@ func (s *DatabaseService) CreateReadOnlyUser(
 		usingDatabase = existingDatabase
 	} else {
 		if database.WorkspaceID != nil {
-			canManage, err := s.workspaceService.CanUserManageDBs(ctx, *database.WorkspaceID, actor)
+			isAllowed, err := s.workspaceService.IsActorAllowed(
+				ctx,
+				actor,
+				*database.WorkspaceID,
+				workspaces.ActionEditContent,
+			)
 			if err != nil {
 				return "", "", err
 			}
-			if !canManage {
+			if !isAllowed {
 				return "", "", errors.New("insufficient permissions to manage this workspace")
 			}
 		}
@@ -820,11 +848,16 @@ func (s *DatabaseService) CreateReplicationOnlyUser(
 			return nil, errors.New("cannot create user for database without workspace")
 		}
 
-		canManage, err := s.workspaceService.CanUserManageDBs(ctx, *existingDatabase.WorkspaceID, actor)
+		isAllowed, err := s.workspaceService.IsActorAllowed(
+			ctx,
+			actor,
+			*existingDatabase.WorkspaceID,
+			workspaces.ActionEditContent,
+		)
 		if err != nil {
 			return nil, err
 		}
-		if !canManage {
+		if !isAllowed {
 			return nil, errors.New("insufficient permissions to manage this database")
 		}
 
@@ -841,11 +874,16 @@ func (s *DatabaseService) CreateReplicationOnlyUser(
 		usingDatabase = existingDatabase
 	} else {
 		if database.WorkspaceID != nil {
-			canManage, err := s.workspaceService.CanUserManageDBs(ctx, *database.WorkspaceID, actor)
+			isAllowed, err := s.workspaceService.IsActorAllowed(
+				ctx,
+				actor,
+				*database.WorkspaceID,
+				workspaces.ActionEditContent,
+			)
 			if err != nil {
 				return nil, err
 			}
-			if !canManage {
+			if !isAllowed {
 				return nil, errors.New("insufficient permissions to manage this workspace")
 			}
 		}
@@ -966,11 +1004,16 @@ func (s *DatabaseService) resolveAuthorizedConnectionTarget(
 			return nil, errors.New("workspaceId is required")
 		}
 
-		canManage, err := s.workspaceService.CanUserManageDBs(ctx, *database.WorkspaceID, actor)
+		isAllowed, err := s.workspaceService.IsActorAllowed(
+			ctx,
+			actor,
+			*database.WorkspaceID,
+			workspaces.ActionEditContent,
+		)
 		if err != nil {
 			return nil, errors.Join(ErrDatabaseConnectionAuthorizationLookup, err)
 		}
-		if !canManage {
+		if !isAllowed {
 			return nil, ErrInsufficientPermissionsToTestDatabaseConnection
 		}
 
@@ -990,11 +1033,16 @@ func (s *DatabaseService) resolveAuthorizedConnectionTarget(
 		return nil, ErrInsufficientPermissionsToTestDatabaseConnection
 	}
 
-	canManage, err := s.workspaceService.CanUserManageDBs(ctx, *existingDatabase.WorkspaceID, actor)
+	isAllowed, err := s.workspaceService.IsActorAllowed(
+		ctx,
+		actor,
+		*existingDatabase.WorkspaceID,
+		workspaces.ActionEditContent,
+	)
 	if err != nil {
 		return nil, errors.Join(ErrDatabaseConnectionAuthorizationLookup, err)
 	}
-	if !canManage {
+	if !isAllowed {
 		return nil, ErrInsufficientPermissionsToTestDatabaseConnection
 	}
 

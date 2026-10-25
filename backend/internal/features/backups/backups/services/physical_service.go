@@ -26,6 +26,7 @@ import (
 	workspaces_services "databasus-backend/internal/features/workspaces/services"
 	"databasus-backend/internal/lib/crypto"
 	"databasus-backend/internal/modules/users"
+	"databasus-backend/internal/modules/workspaces"
 )
 
 // ErrNoExtendableChain is returned when an incremental backup is requested but
@@ -564,12 +565,12 @@ func (s *PhysicalBackupService) authorizeManage(
 		return nil, errors.New("cannot manage backups for a database without a workspace")
 	}
 
-	canManage, err := s.workspaceService.CanUserManageDBs(ctx, *database.WorkspaceID, actor)
+	isAllowed, err := s.workspaceService.IsActorAllowed(ctx, actor, *database.WorkspaceID, workspaces.ActionEditContent)
 	if err != nil {
 		return nil, err
 	}
 
-	if !canManage {
+	if !isAllowed {
 		return nil, errors.New("insufficient permissions to manage backups for this database")
 	}
 

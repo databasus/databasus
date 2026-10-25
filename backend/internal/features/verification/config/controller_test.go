@@ -11,11 +11,11 @@ import (
 
 	"databasus-backend/internal/features/databases"
 	"databasus-backend/internal/features/intervals"
-	users_enums "databasus-backend/internal/features/users/enums"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_controllers "databasus-backend/internal/features/workspaces/controllers"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
 	"databasus-backend/internal/modules/users"
+	"databasus-backend/internal/modules/workspaces"
 	test_utils "databasus-backend/internal/util/testing"
 )
 
@@ -197,7 +197,7 @@ func Test_Save_AsViewer_RejectedWithPermissionError(t *testing.T) {
 	workspaces_testing.AddMemberToWorkspace(
 		workspace,
 		viewer,
-		users_enums.WorkspaceRoleViewer,
+		workspaces.RoleViewer,
 		owner.Token,
 		router,
 	)

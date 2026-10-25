@@ -22,6 +22,7 @@ import (
 	verification_config "databasus-backend/internal/features/verification/config"
 	workspaces_services "databasus-backend/internal/features/workspaces/services"
 	"databasus-backend/internal/modules/users"
+	"databasus-backend/internal/modules/workspaces"
 	"databasus-backend/internal/storage"
 )
 
@@ -59,11 +60,11 @@ func (s *VerificationService) EnqueueManualVerification(
 		return nil, errors.New("cannot verify backup for database without workspace")
 	}
 
-	canManage, err := s.workspaceService.CanUserManageDBs(ctx, *database.WorkspaceID, actor)
+	isAllowed, err := s.workspaceService.IsActorAllowed(ctx, actor, *database.WorkspaceID, workspaces.ActionEditContent)
 	if err != nil {
 		return nil, err
 	}
-	if !canManage {
+	if !isAllowed {
 		return nil, errors.New("insufficient permissions to trigger verification for this database")
 	}
 
@@ -144,11 +145,11 @@ func (s *VerificationService) CancelVerification(
 		return errors.New("cannot cancel verification for database without workspace")
 	}
 
-	canManage, err := s.workspaceService.CanUserManageDBs(ctx, *database.WorkspaceID, actor)
+	isAllowed, err := s.workspaceService.IsActorAllowed(ctx, actor, *database.WorkspaceID, workspaces.ActionEditContent)
 	if err != nil {
 		return err
 	}
-	if !canManage {
+	if !isAllowed {
 		return errors.New("insufficient permissions to cancel verification for this database")
 	}
 
@@ -186,11 +187,11 @@ func (s *VerificationService) GetVerificationsByDatabaseID(
 		return nil, errors.New("cannot list verifications for database without workspace")
 	}
 
-	canAccess, _, err := s.workspaceService.CanUserAccessWorkspace(ctx, *database.WorkspaceID, actor)
+	isAllowed, err := s.workspaceService.IsActorAllowed(ctx, actor, *database.WorkspaceID, workspaces.ActionView)
 	if err != nil {
 		return nil, err
 	}
-	if !canAccess {
+	if !isAllowed {
 		return nil, errors.New("insufficient permissions to view verifications for this database")
 	}
 
@@ -242,11 +243,11 @@ func (s *VerificationService) GetVerificationByID(
 		return nil, errors.New("cannot view verification for database without workspace")
 	}
 
-	canAccess, _, err := s.workspaceService.CanUserAccessWorkspace(ctx, *database.WorkspaceID, actor)
+	isAllowed, err := s.workspaceService.IsActorAllowed(ctx, actor, *database.WorkspaceID, workspaces.ActionView)
 	if err != nil {
 		return nil, err
 	}
-	if !canAccess {
+	if !isAllowed {
 		return nil, errors.New("insufficient permissions to view this verification")
 	}
 

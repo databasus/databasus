@@ -6,9 +6,9 @@ import (
 	"github.com/google/uuid"
 
 	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
-	users_enums "databasus-backend/internal/features/users/enums"
 	workspaces_models "databasus-backend/internal/features/workspaces/models"
 	"databasus-backend/internal/modules/users"
+	"databasus-backend/internal/modules/workspaces"
 )
 
 type databaseStore interface {
@@ -23,12 +23,12 @@ type databaseStore interface {
 }
 
 type workspaceService interface {
-	CanUserAccessWorkspace(
+	IsActorAllowed(
 		ctx context.Context,
-		workspaceID uuid.UUID,
 		actor users.Actor,
-	) (bool, *users_enums.WorkspaceRole, error)
-	CanUserManageDBs(ctx context.Context, workspaceID uuid.UUID, actor users.Actor) (bool, error)
+		workspaceID uuid.UUID,
+		action workspaces.Action,
+	) (bool, error)
 	GetWorkspaceByID(workspaceID uuid.UUID) (*workspaces_models.Workspace, error)
 }
 

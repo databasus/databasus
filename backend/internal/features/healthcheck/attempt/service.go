@@ -10,6 +10,7 @@ import (
 	"databasus-backend/internal/features/databases"
 	workspaces_services "databasus-backend/internal/features/workspaces/services"
 	"databasus-backend/internal/modules/users"
+	"databasus-backend/internal/modules/workspaces"
 )
 
 type HealthcheckAttemptService struct {
@@ -33,11 +34,11 @@ func (s *HealthcheckAttemptService) GetAttemptsByDatabase(
 		return nil, errors.New("cannot access healthcheck attempts for databases without workspace")
 	}
 
-	canAccess, _, err := s.workspaceService.CanUserAccessWorkspace(ctx, *database.WorkspaceID, actor)
+	isAllowed, err := s.workspaceService.IsActorAllowed(ctx, actor, *database.WorkspaceID, workspaces.ActionView)
 	if err != nil {
 		return nil, err
 	}
-	if !canAccess {
+	if !isAllowed {
 		return nil, errors.New("forbidden")
 	}
 

@@ -10,6 +10,7 @@ import (
 	audit_logs_models "databasus-backend/internal/features/audit_logs/models"
 	workspaces_services "databasus-backend/internal/features/workspaces/services"
 	"databasus-backend/internal/modules/users"
+	"databasus-backend/internal/modules/workspaces"
 	"databasus-backend/internal/util/encryption"
 )
 
@@ -114,11 +115,11 @@ func (s *StorageService) SaveStorage(
 	workspaceID uuid.UUID,
 	storage *Storage,
 ) error {
-	canManage, err := s.workspaceService.CanUserManageDBs(ctx, workspaceID, actor)
+	isAllowed, err := s.workspaceService.IsActorAllowed(ctx, actor, workspaceID, workspaces.ActionEditContent)
 	if err != nil {
 		return err
 	}
-	if !canManage {
+	if !isAllowed {
 		return ErrInsufficientPermissionsToManageStorage
 	}
 
@@ -204,11 +205,11 @@ func (s *StorageService) DeleteStorage(
 		return err
 	}
 
-	canManage, err := s.workspaceService.CanUserManageDBs(ctx, storage.WorkspaceID, actor)
+	isAllowed, err := s.workspaceService.IsActorAllowed(ctx, actor, storage.WorkspaceID, workspaces.ActionEditContent)
 	if err != nil {
 		return err
 	}
-	if !canManage {
+	if !isAllowed {
 		return ErrInsufficientPermissionsToManageStorage
 	}
 
@@ -255,11 +256,11 @@ func (s *StorageService) GetStorage(
 		return nil, err
 	}
 
-	canView, _, err := s.workspaceService.CanUserAccessWorkspace(ctx, storage.WorkspaceID, actor)
+	isAllowed, err := s.workspaceService.IsActorAllowed(ctx, actor, storage.WorkspaceID, workspaces.ActionView)
 	if err != nil {
 		return nil, err
 	}
-	if !canView {
+	if !isAllowed {
 		return nil, ErrInsufficientPermissionsToViewStorage
 	}
 
@@ -273,11 +274,11 @@ func (s *StorageService) GetStorages(
 	actor users.Actor,
 	workspaceID uuid.UUID,
 ) ([]*Storage, error) {
-	canView, _, err := s.workspaceService.CanUserAccessWorkspace(ctx, workspaceID, actor)
+	isAllowed, err := s.workspaceService.IsActorAllowed(ctx, actor, workspaceID, workspaces.ActionView)
 	if err != nil {
 		return nil, err
 	}
-	if !canView {
+	if !isAllowed {
 		return nil, ErrInsufficientPermissionsToViewStorages
 	}
 
@@ -303,11 +304,11 @@ func (s *StorageService) TestStorageConnection(
 		return err
 	}
 
-	canView, _, err := s.workspaceService.CanUserAccessWorkspace(ctx, storage.WorkspaceID, actor)
+	isAllowed, err := s.workspaceService.IsActorAllowed(ctx, actor, storage.WorkspaceID, workspaces.ActionView)
 	if err != nil {
 		return err
 	}
-	if !canView {
+	if !isAllowed {
 		return ErrInsufficientPermissionsToTestStorage
 	}
 
@@ -385,19 +386,29 @@ func (s *StorageService) TransferStorageToWorkspace(
 		return err
 	}
 
-	canManageSource, err := s.workspaceService.CanUserManageDBs(ctx, existingStorage.WorkspaceID, actor)
+	isAllowedInSource, err := s.workspaceService.IsActorAllowed(
+		ctx,
+		actor,
+		existingStorage.WorkspaceID,
+		workspaces.ActionEditContent,
+	)
 	if err != nil {
 		return err
 	}
-	if !canManageSource {
+	if !isAllowedInSource {
 		return ErrInsufficientPermissionsInSourceWorkspace
 	}
 
-	canManageTarget, err := s.workspaceService.CanUserManageDBs(ctx, targetWorkspaceID, actor)
+	isAllowedInTarget, err := s.workspaceService.IsActorAllowed(
+		ctx,
+		actor,
+		targetWorkspaceID,
+		workspaces.ActionEditContent,
+	)
 	if err != nil {
 		return err
 	}
-	if !canManageTarget {
+	if !isAllowedInTarget {
 		return ErrInsufficientPermissionsInTargetWorkspace
 	}
 

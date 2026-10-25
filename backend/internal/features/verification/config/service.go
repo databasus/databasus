@@ -14,6 +14,7 @@ import (
 	"databasus-backend/internal/features/intervals"
 	workspaces_services "databasus-backend/internal/features/workspaces/services"
 	"databasus-backend/internal/modules/users"
+	"databasus-backend/internal/modules/workspaces"
 )
 
 type VerificationConfigService struct {
@@ -38,11 +39,11 @@ func (s *VerificationConfigService) GetByDatabaseID(
 		return nil, errors.New("cannot access verification config for databases without workspace")
 	}
 
-	canAccess, _, err := s.workspaceService.CanUserAccessWorkspace(ctx, *database.WorkspaceID, actor)
+	isAllowed, err := s.workspaceService.IsActorAllowed(ctx, actor, *database.WorkspaceID, workspaces.ActionView)
 	if err != nil {
 		return nil, err
 	}
-	if !canAccess {
+	if !isAllowed {
 		return nil, errors.New("insufficient permissions to view verification config")
 	}
 
@@ -80,11 +81,11 @@ func (s *VerificationConfigService) Save(
 		return nil, errors.New("cannot modify verification config for databases without workspace")
 	}
 
-	canManage, err := s.workspaceService.CanUserManageDBs(ctx, *database.WorkspaceID, actor)
+	isAllowed, err := s.workspaceService.IsActorAllowed(ctx, actor, *database.WorkspaceID, workspaces.ActionEditContent)
 	if err != nil {
 		return nil, err
 	}
-	if !canManage {
+	if !isAllowed {
 		return nil, errors.New("insufficient permissions to modify verification config")
 	}
 

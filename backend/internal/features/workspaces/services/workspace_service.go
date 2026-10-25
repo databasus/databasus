@@ -9,13 +9,13 @@ import (
 
 	audit_logs "databasus-backend/internal/features/audit_logs"
 	audit_logs_models "databasus-backend/internal/features/audit_logs/models"
-	users_enums "databasus-backend/internal/features/users/enums"
 	workspaces_dto "databasus-backend/internal/features/workspaces/dto"
 	workspaces_errors "databasus-backend/internal/features/workspaces/errors"
 	workspaces_interfaces "databasus-backend/internal/features/workspaces/interfaces"
 	workspaces_models "databasus-backend/internal/features/workspaces/models"
 	workspaces_repositories "databasus-backend/internal/features/workspaces/repositories"
 	"databasus-backend/internal/modules/users"
+	"databasus-backend/internal/modules/workspaces"
 )
 
 type WorkspaceService struct {
@@ -60,7 +60,7 @@ func (s *WorkspaceService) CreateWorkspace(
 	membership := &workspaces_models.WorkspaceMembership{
 		UserID:      creator.UserID,
 		WorkspaceID: workspace.ID,
-		Role:        users_enums.WorkspaceRoleOwner,
+		Role:        workspaces.RoleOwner,
 		CreatedAt:   time.Now().UTC(),
 	}
 
@@ -74,7 +74,7 @@ func (s *WorkspaceService) CreateWorkspace(
 		WorkspaceID: &workspace.ID,
 	})
 
-	ownerRole := users_enums.WorkspaceRoleOwner
+	ownerRole := workspaces.RoleOwner
 	return &workspaces_dto.WorkspaceResponseDTO{
 		ID:        workspace.ID,
 		Name:      workspace.Name,
@@ -88,11 +88,11 @@ func (s *WorkspaceService) GetWorkspace(
 	workspaceID uuid.UUID,
 	actor users.Actor,
 ) (*workspaces_models.Workspace, error) {
-	canView, _, err := s.CanUserAccessWorkspace(ctx, workspaceID, actor)
+	isAllowed, err := s.IsActorAllowed(ctx, actor, workspaceID, workspaces.ActionView)
 	if err != nil {
 		return nil, err
 	}
-	if !canView {
+	if !isAllowed {
 		return nil, workspaces_errors.ErrInsufficientPermissionsToViewWorkspace
 	}
 
@@ -103,13 +103,13 @@ func (s *WorkspaceService) GetUserWorkspaces(
 	ctx context.Context,
 	actor users.Actor,
 ) (*workspaces_dto.ListWorkspacesResponseDTO, error) {
-	workspaces, err := s.membershipRepository.GetWorkspacesWithRolesByUserID(ctx, actor.Role, actor.UserID)
+	workspacesWithRoles, err := s.membershipRepository.GetWorkspacesWithRolesByUserID(ctx, actor.Role, actor.UserID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get user workspaces: %w", err)
 	}
 
 	return &workspaces_dto.ListWorkspacesResponseDTO{
-		Workspaces: workspaces,
+		Workspaces: workspacesWithRoles,
 	}, nil
 }
 
@@ -119,11 +119,11 @@ func (s *WorkspaceService) UpdateWorkspace(
 	updateDTO *workspaces_models.Workspace,
 	actor users.Actor,
 ) (*workspaces_models.Workspace, error) {
-	canManage, err := s.CanUserManageWorkspace(ctx, workspaceID, actor)
+	isAllowed, err := s.IsActorAllowed(ctx, actor, workspaceID, workspaces.ActionUpdateWorkspace)
 	if err != nil {
 		return nil, err
 	}
-	if !canManage {
+	if !isAllowed {
 		return nil, workspaces_errors.ErrInsufficientPermissionsToUpdateWorkspace
 	}
 
@@ -161,15 +161,12 @@ func (s *WorkspaceService) UpdateWorkspace(
 }
 
 func (s *WorkspaceService) DeleteWorkspace(ctx context.Context, workspaceID uuid.UUID, actor users.Actor) error {
-	if actor.Role != users.RoleAdmin {
-		userWorkspaceRole, err := s.GetUserWorkspaceRole(ctx, workspaceID, actor.UserID)
-		if err != nil {
-			return fmt.Errorf("failed to get user role: %w", err)
-		}
-
-		if userWorkspaceRole == nil || *userWorkspaceRole != users_enums.WorkspaceRoleOwner {
-			return workspaces_errors.ErrOnlyOwnerOrAdminCanDeleteWorkspace
-		}
+	isAllowed, err := s.IsActorAllowed(ctx, actor, workspaceID, workspaces.ActionDeleteWorkspace)
+	if err != nil {
+		return err
+	}
+	if !isAllowed {
+		return workspaces_errors.ErrOnlyOwnerOrAdminCanDeleteWorkspace
 	}
 
 	workspace, err := s.workspaceRepository.GetWorkspaceByID(workspaceID)
@@ -196,116 +193,28 @@ func (s *WorkspaceService) DeleteWorkspace(ctx context.Context, workspaceID uuid
 	return nil
 }
 
-func (s *WorkspaceService) GetUserWorkspaceRole(
+// IsActorAllowed answers false for a user who is not a member of the workspace. An instance admin
+// is allowed every action in every workspace.
+func (s *WorkspaceService) IsActorAllowed(
 	ctx context.Context,
-	workspaceID uuid.UUID,
-	userID uuid.UUID,
-) (*users_enums.WorkspaceRole, error) {
-	return s.membershipRepository.GetUserWorkspaceRole(ctx, workspaceID, userID)
-}
-
-func (s *WorkspaceService) CanUserAccessWorkspace(
-	ctx context.Context,
-	workspaceID uuid.UUID,
 	actor users.Actor,
-) (bool, *users_enums.WorkspaceRole, error) {
-	if actor.Role == users.RoleAdmin {
-		adminRole := users_enums.WorkspaceRoleOwner
-		return true, &adminRole, nil
-	}
-
-	role, err := s.membershipRepository.GetUserWorkspaceRole(ctx, workspaceID, actor.UserID)
-	if err != nil {
-		return false, nil, nil
-	}
-
-	return role != nil, role, nil
-}
-
-func (s *WorkspaceService) CanUserManageWorkspace(
-	ctx context.Context,
 	workspaceID uuid.UUID,
-	actor users.Actor,
+	action workspaces.Action,
 ) (bool, error) {
-	if actor.Role == users.RoleAdmin {
+	if actor.IsAdmin() {
 		return true, nil
 	}
 
 	role, err := s.membershipRepository.GetUserWorkspaceRole(ctx, workspaceID, actor.UserID)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("failed to get workspace role: %w", err)
 	}
 
 	if role == nil {
 		return false, nil
 	}
 
-	return *role == users_enums.WorkspaceRoleOwner ||
-		*role == users_enums.WorkspaceRoleAdmin, nil
-}
-
-func (s *WorkspaceService) CanUserManageDBs(
-	ctx context.Context,
-	workspaceID uuid.UUID,
-	actor users.Actor,
-) (bool, error) {
-	if actor.Role == users.RoleAdmin {
-		return true, nil
-	}
-
-	role, err := s.membershipRepository.GetUserWorkspaceRole(ctx, workspaceID, actor.UserID)
-	if err != nil {
-		return false, err
-	}
-
-	if role == nil {
-		return false, nil
-	}
-
-	return *role == users_enums.WorkspaceRoleOwner ||
-		*role == users_enums.WorkspaceRoleAdmin || *role == users_enums.WorkspaceRoleMember, nil
-}
-
-func (s *WorkspaceService) CanUserManageMembership(
-	ctx context.Context,
-	workspaceID uuid.UUID,
-	actor users.Actor,
-) (bool, error) {
-	if actor.Role == users.RoleAdmin {
-		return true, nil
-	}
-
-	role, err := s.membershipRepository.GetUserWorkspaceRole(ctx, workspaceID, actor.UserID)
-	if err != nil {
-		return false, err
-	}
-
-	if role == nil {
-		return false, nil
-	}
-
-	return *role == users_enums.WorkspaceRoleOwner || *role == users_enums.WorkspaceRoleAdmin, nil
-}
-
-func (s *WorkspaceService) CanUserManageAdmins(
-	ctx context.Context,
-	workspaceID uuid.UUID,
-	actor users.Actor,
-) (bool, error) {
-	if actor.Role == users.RoleAdmin {
-		return true, nil
-	}
-
-	role, err := s.membershipRepository.GetUserWorkspaceRole(ctx, workspaceID, actor.UserID)
-	if err != nil {
-		return false, err
-	}
-
-	if role == nil {
-		return false, nil
-	}
-
-	return *role == users_enums.WorkspaceRoleOwner, nil
+	return isRoleAllowed(*role, action), nil
 }
 
 func (s *WorkspaceService) GetWorkspaceAuditLogs(
@@ -314,11 +223,11 @@ func (s *WorkspaceService) GetWorkspaceAuditLogs(
 	actor users.Actor,
 	request *audit_logs.GetAuditLogsRequest,
 ) (*audit_logs.GetAuditLogsResponse, error) {
-	canView, _, err := s.CanUserAccessWorkspace(ctx, workspaceID, actor)
+	isAllowed, err := s.IsActorAllowed(ctx, actor, workspaceID, workspaces.ActionView)
 	if err != nil {
 		return nil, err
 	}
-	if !canView {
+	if !isAllowed {
 		return nil, workspaces_errors.ErrInsufficientPermissionsToViewWorkspaceAuditLogs
 	}
 

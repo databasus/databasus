@@ -15,6 +15,7 @@ import (
 	"databasus-backend/internal/features/storages"
 	workspaces_services "databasus-backend/internal/features/workspaces/services"
 	"databasus-backend/internal/modules/users"
+	"databasus-backend/internal/modules/workspaces"
 )
 
 type BackupConfigService struct {
@@ -66,11 +67,11 @@ func (s *BackupConfigService) SaveBackupConfigWithAuth(
 		return nil, errors.New("cannot save backup config for database without workspace")
 	}
 
-	canManage, err := s.workspaceService.CanUserManageDBs(ctx, *database.WorkspaceID, actor)
+	isAllowed, err := s.workspaceService.IsActorAllowed(ctx, actor, *database.WorkspaceID, workspaces.ActionEditContent)
 	if err != nil {
 		return nil, err
 	}
-	if !canManage {
+	if !isAllowed {
 		return nil, errors.New("insufficient permissions to modify backup configuration")
 	}
 
@@ -326,19 +327,29 @@ func (s *BackupConfigService) TransferDatabaseToWorkspace(
 		return ErrDatabaseHasNoWorkspace
 	}
 
-	canManageSource, err := s.workspaceService.CanUserManageDBs(ctx, *database.WorkspaceID, actor)
+	isAllowedInSource, err := s.workspaceService.IsActorAllowed(
+		ctx,
+		actor,
+		*database.WorkspaceID,
+		workspaces.ActionEditContent,
+	)
 	if err != nil {
 		return err
 	}
-	if !canManageSource {
+	if !isAllowedInSource {
 		return ErrInsufficientPermissionsInSourceWorkspace
 	}
 
-	canManageTarget, err := s.workspaceService.CanUserManageDBs(ctx, request.TargetWorkspaceID, actor)
+	isAllowedInTarget, err := s.workspaceService.IsActorAllowed(
+		ctx,
+		actor,
+		request.TargetWorkspaceID,
+		workspaces.ActionEditContent,
+	)
 	if err != nil {
 		return err
 	}
-	if !canManageTarget {
+	if !isAllowedInTarget {
 		return ErrInsufficientPermissionsInTargetWorkspace
 	}
 

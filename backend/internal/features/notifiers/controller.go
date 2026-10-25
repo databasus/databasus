@@ -9,6 +9,7 @@ import (
 
 	workspaces_services "databasus-backend/internal/features/workspaces/services"
 	"databasus-backend/internal/modules/users"
+	"databasus-backend/internal/modules/workspaces"
 )
 
 type NotifierController struct {
@@ -225,12 +226,17 @@ func (c *NotifierController) SendTestNotificationDirect(ctx *gin.Context) {
 		return
 	}
 
-	canView, _, err := c.workspaceService.CanUserAccessWorkspace(ctx.Request.Context(), request.WorkspaceID, actor)
+	isAllowed, err := c.workspaceService.IsActorAllowed(
+		ctx.Request.Context(),
+		actor,
+		request.WorkspaceID,
+		workspaces.ActionView,
+	)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	if !canView {
+	if !isAllowed {
 		ctx.JSON(
 			http.StatusForbidden,
 			gin.H{"error": "insufficient permissions to test notifier in this workspace"},

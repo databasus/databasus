@@ -12,6 +12,7 @@ import (
 	notifier_models "databasus-backend/internal/features/notifiers/models"
 	workspaces_services "databasus-backend/internal/features/workspaces/services"
 	"databasus-backend/internal/modules/users"
+	"databasus-backend/internal/modules/workspaces"
 	"databasus-backend/internal/util/encryption"
 )
 
@@ -36,11 +37,11 @@ func (s *NotifierService) SaveNotifier(
 	workspaceID uuid.UUID,
 	notifier *Notifier,
 ) error {
-	canManage, err := s.workspaceService.CanUserManageDBs(ctx, workspaceID, actor)
+	isAllowed, err := s.workspaceService.IsActorAllowed(ctx, actor, workspaceID, workspaces.ActionEditContent)
 	if err != nil {
 		return err
 	}
-	if !canManage {
+	if !isAllowed {
 		return ErrInsufficientPermissionsToManageNotifier
 	}
 
@@ -127,11 +128,11 @@ func (s *NotifierService) DeleteNotifier(
 		return err
 	}
 
-	canManage, err := s.workspaceService.CanUserManageDBs(ctx, notifier.WorkspaceID, actor)
+	isAllowed, err := s.workspaceService.IsActorAllowed(ctx, actor, notifier.WorkspaceID, workspaces.ActionEditContent)
 	if err != nil {
 		return err
 	}
-	if !canManage {
+	if !isAllowed {
 		return ErrInsufficientPermissionsToManageNotifier
 	}
 
@@ -169,11 +170,11 @@ func (s *NotifierService) GetNotifier(
 		return nil, err
 	}
 
-	canView, _, err := s.workspaceService.CanUserAccessWorkspace(ctx, notifier.WorkspaceID, actor)
+	isAllowed, err := s.workspaceService.IsActorAllowed(ctx, actor, notifier.WorkspaceID, workspaces.ActionView)
 	if err != nil {
 		return nil, err
 	}
-	if !canView {
+	if !isAllowed {
 		return nil, ErrInsufficientPermissionsToViewNotifier
 	}
 
@@ -194,11 +195,11 @@ func (s *NotifierService) GetNotifiers(
 	actor users.Actor,
 	workspaceID uuid.UUID,
 ) ([]*Notifier, error) {
-	canView, _, err := s.workspaceService.CanUserAccessWorkspace(ctx, workspaceID, actor)
+	isAllowed, err := s.workspaceService.IsActorAllowed(ctx, actor, workspaceID, workspaces.ActionView)
 	if err != nil {
 		return nil, err
 	}
-	if !canView {
+	if !isAllowed {
 		return nil, ErrInsufficientPermissionsToViewNotifiers
 	}
 
@@ -224,11 +225,11 @@ func (s *NotifierService) SendTestNotification(
 		return err
 	}
 
-	canView, _, err := s.workspaceService.CanUserAccessWorkspace(ctx, notifier.WorkspaceID, actor)
+	isAllowed, err := s.workspaceService.IsActorAllowed(ctx, actor, notifier.WorkspaceID, workspaces.ActionView)
 	if err != nil {
 		return err
 	}
-	if !canView {
+	if !isAllowed {
 		return ErrInsufficientPermissionsToTestNotifier
 	}
 
@@ -348,19 +349,29 @@ func (s *NotifierService) TransferNotifierToWorkspace(
 		return err
 	}
 
-	canManageSource, err := s.workspaceService.CanUserManageDBs(ctx, existingNotifier.WorkspaceID, actor)
+	isAllowedInSource, err := s.workspaceService.IsActorAllowed(
+		ctx,
+		actor,
+		existingNotifier.WorkspaceID,
+		workspaces.ActionEditContent,
+	)
 	if err != nil {
 		return err
 	}
-	if !canManageSource {
+	if !isAllowedInSource {
 		return ErrInsufficientPermissionsInSourceWorkspace
 	}
 
-	canManageTarget, err := s.workspaceService.CanUserManageDBs(ctx, targetWorkspaceID, actor)
+	isAllowedInTarget, err := s.workspaceService.IsActorAllowed(
+		ctx,
+		actor,
+		targetWorkspaceID,
+		workspaces.ActionEditContent,
+	)
 	if err != nil {
 		return err
 	}
-	if !canManageTarget {
+	if !isAllowedInTarget {
 		return ErrInsufficientPermissionsInTargetWorkspace
 	}
 

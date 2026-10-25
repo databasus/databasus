@@ -14,6 +14,11 @@ This is the project's common language. Each concept has one term in the document
 | Provider | provider | One implementation of a storage or notifier type, with its own settings table. |
 | Workspace | workspace | A group of users and the databases, storages and notifiers they share. |
 | Member | member | A user in a workspace, with a workspace role. |
+| Workspace role | workspace role, `workspaces.Role`, `WORKSPACE_OWNER`, `WORKSPACE_ADMIN`, `WORKSPACE_MEMBER`, `WORKSPACE_VIEWER` | What a member may do in a workspace. `WORKSPACE_MEMBER` is the role that may edit the workspace content; the word "member" alone means any user in a workspace, whatever the role. |
+| Workspace admin | workspace admin, `WORKSPACE_ADMIN`, `workspaces.RoleAdmin` | A member who may also rename the workspace and manage the members who are not admins or the owner. The word `admin` alone in code and text means the instance admin; `workspaces.RoleAdmin` and `ActionManageAdmins` name workspace admins. |
+| Owner | owner, `WORKSPACE_OWNER`, `workspaces.RoleOwner` | The member who may also manage workspace admins, transfer ownership and delete the workspace. |
+| Workspace content | workspace content | The databases, storages and notifiers of a workspace and everything attached to them: backup configs, backups, restores, healthchecks and verification configs. |
+| Workspace action | workspace action, `workspaces.Action` | One thing a member can be allowed to do in a workspace, such as viewing it or editing its content. Each workspace role allows a fixed set of actions. |
 | Instance admin | admin | A user with the global admin role, who manages users and instance settings. |
 | Global role | global role, `ADMIN`, `MEMBER` | A user's role on the whole instance: `ADMIN` makes the user an instance admin, and `MEMBER` grants nothing beyond the user's workspace memberships. The word "member" alone means a member of a workspace. |
 | User | user | A person with an account on the instance: email, name, global role and status (`INVITED`, `ACTIVE` or `INACTIVE`). |

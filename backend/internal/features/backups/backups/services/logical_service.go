@@ -27,6 +27,7 @@ import (
 	workspaces_services "databasus-backend/internal/features/workspaces/services"
 	"databasus-backend/internal/lib/crypto"
 	"databasus-backend/internal/modules/users"
+	"databasus-backend/internal/modules/workspaces"
 	util_encryption "databasus-backend/internal/util/encryption"
 	files_utils "databasus-backend/internal/util/files"
 )
@@ -104,11 +105,11 @@ func (s *LogicalBackupService) MakeBackupWithAuth(
 		return errors.New("cannot create backup for database without workspace")
 	}
 
-	canAccess, _, err := s.workspaceService.CanUserAccessWorkspace(ctx, *database.WorkspaceID, actor)
+	isAllowed, err := s.workspaceService.IsActorAllowed(ctx, actor, *database.WorkspaceID, workspaces.ActionView)
 	if err != nil {
 		return err
 	}
-	if !canAccess {
+	if !isAllowed {
 		return errors.New("insufficient permissions to create backup for this database")
 	}
 
@@ -139,11 +140,11 @@ func (s *LogicalBackupService) GetBackups(
 		return nil, errors.New("cannot get backups for database without workspace")
 	}
 
-	canAccess, _, err := s.workspaceService.CanUserAccessWorkspace(ctx, *database.WorkspaceID, actor)
+	isAllowed, err := s.workspaceService.IsActorAllowed(ctx, actor, *database.WorkspaceID, workspaces.ActionView)
 	if err != nil {
 		return nil, err
 	}
-	if !canAccess {
+	if !isAllowed {
 		return nil, errors.New("insufficient permissions to access backups for this database")
 	}
 
@@ -193,11 +194,11 @@ func (s *LogicalBackupService) DeleteBackup(
 		return errors.New("cannot delete backup for database without workspace")
 	}
 
-	canManage, err := s.workspaceService.CanUserManageDBs(ctx, *database.WorkspaceID, actor)
+	isAllowed, err := s.workspaceService.IsActorAllowed(ctx, actor, *database.WorkspaceID, workspaces.ActionEditContent)
 	if err != nil {
 		return err
 	}
-	if !canManage {
+	if !isAllowed {
 		return errors.New("insufficient permissions to delete backup for this database")
 	}
 
@@ -244,11 +245,11 @@ func (s *LogicalBackupService) CancelBackup(
 		return errors.New("cannot cancel backup for database without workspace")
 	}
 
-	canManage, err := s.workspaceService.CanUserManageDBs(ctx, *database.WorkspaceID, actor)
+	isAllowed, err := s.workspaceService.IsActorAllowed(ctx, actor, *database.WorkspaceID, workspaces.ActionEditContent)
 	if err != nil {
 		return err
 	}
-	if !canManage {
+	if !isAllowed {
 		return errors.New("insufficient permissions to cancel backup for this database")
 	}
 
@@ -368,11 +369,11 @@ func (s *LogicalBackupService) GenerateDownloadToken(
 		return nil, errors.New("cannot download backup for database without workspace")
 	}
 
-	canAccess, _, err := s.workspaceService.CanUserAccessWorkspace(ctx, *database.WorkspaceID, actor)
+	isAllowed, err := s.workspaceService.IsActorAllowed(ctx, actor, *database.WorkspaceID, workspaces.ActionView)
 	if err != nil {
 		return nil, err
 	}
-	if !canAccess {
+	if !isAllowed {
 		return nil, errors.New("insufficient permissions to download backup for this database")
 	}
 

@@ -31,11 +31,11 @@ import (
 	"databasus-backend/internal/features/notifiers"
 	"databasus-backend/internal/features/sshtunnel"
 	"databasus-backend/internal/features/storages"
-	users_enums "databasus-backend/internal/features/users/enums"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_controllers "databasus-backend/internal/features/workspaces/controllers"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
 	"databasus-backend/internal/modules/users"
+	"databasus-backend/internal/modules/workspaces"
 	"databasus-backend/internal/util/encryption"
 	test_utils "databasus-backend/internal/util/testing"
 	"databasus-backend/internal/util/testing/bastion"
@@ -47,28 +47,28 @@ import (
 func Test_CreateDatabase_PermissionsEnforced(t *testing.T) {
 	tests := []struct {
 		name               string
-		workspaceRole      *users_enums.WorkspaceRole
+		workspaceRole      *workspaces.Role
 		isGlobalAdmin      bool
 		expectSuccess      bool
 		expectedStatusCode int
 	}{
 		{
 			name:               "workspace owner can create database",
-			workspaceRole:      func() *users_enums.WorkspaceRole { r := users_enums.WorkspaceRoleOwner; return &r }(),
+			workspaceRole:      func() *workspaces.Role { r := workspaces.RoleOwner; return &r }(),
 			isGlobalAdmin:      false,
 			expectSuccess:      true,
 			expectedStatusCode: http.StatusCreated,
 		},
 		{
 			name:               "workspace member can create database",
-			workspaceRole:      func() *users_enums.WorkspaceRole { r := users_enums.WorkspaceRoleMember; return &r }(),
+			workspaceRole:      func() *workspaces.Role { r := workspaces.RoleMember; return &r }(),
 			isGlobalAdmin:      false,
 			expectSuccess:      true,
 			expectedStatusCode: http.StatusCreated,
 		},
 		{
 			name:               "workspace viewer cannot create database",
-			workspaceRole:      func() *users_enums.WorkspaceRole { r := users_enums.WorkspaceRoleViewer; return &r }(),
+			workspaceRole:      func() *workspaces.Role { r := workspaces.RoleViewer; return &r }(),
 			isGlobalAdmin:      false,
 			expectSuccess:      false,
 			expectedStatusCode: http.StatusBadRequest,
@@ -93,7 +93,7 @@ func Test_CreateDatabase_PermissionsEnforced(t *testing.T) {
 			if tt.isGlobalAdmin {
 				admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 				testUserToken = admin.Token
-			} else if tt.workspaceRole != nil && *tt.workspaceRole == users_enums.WorkspaceRoleOwner {
+			} else if tt.workspaceRole != nil && *tt.workspaceRole == workspaces.RoleOwner {
 				testUserToken = owner.Token
 			} else if tt.workspaceRole != nil {
 				member := users_testing.CreateTestUser(t.Context(), users.RoleMember)
@@ -193,28 +193,28 @@ func Test_CreateDatabase_WithoutConnectionFields_ValidationFails(t *testing.T) {
 func Test_UpdateDatabase_PermissionsEnforced(t *testing.T) {
 	tests := []struct {
 		name               string
-		workspaceRole      *users_enums.WorkspaceRole
+		workspaceRole      *workspaces.Role
 		isGlobalAdmin      bool
 		expectSuccess      bool
 		expectedStatusCode int
 	}{
 		{
 			name:               "workspace owner can update database",
-			workspaceRole:      func() *users_enums.WorkspaceRole { r := users_enums.WorkspaceRoleOwner; return &r }(),
+			workspaceRole:      func() *workspaces.Role { r := workspaces.RoleOwner; return &r }(),
 			isGlobalAdmin:      false,
 			expectSuccess:      true,
 			expectedStatusCode: http.StatusOK,
 		},
 		{
 			name:               "workspace member can update database",
-			workspaceRole:      func() *users_enums.WorkspaceRole { r := users_enums.WorkspaceRoleMember; return &r }(),
+			workspaceRole:      func() *workspaces.Role { r := workspaces.RoleMember; return &r }(),
 			isGlobalAdmin:      false,
 			expectSuccess:      true,
 			expectedStatusCode: http.StatusOK,
 		},
 		{
 			name:               "workspace viewer cannot update database",
-			workspaceRole:      func() *users_enums.WorkspaceRole { r := users_enums.WorkspaceRoleViewer; return &r }(),
+			workspaceRole:      func() *workspaces.Role { r := workspaces.RoleViewer; return &r }(),
 			isGlobalAdmin:      false,
 			expectSuccess:      false,
 			expectedStatusCode: http.StatusBadRequest,
@@ -242,7 +242,7 @@ func Test_UpdateDatabase_PermissionsEnforced(t *testing.T) {
 			if tt.isGlobalAdmin {
 				admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 				testUserToken = admin.Token
-			} else if tt.workspaceRole != nil && *tt.workspaceRole == users_enums.WorkspaceRoleOwner {
+			} else if tt.workspaceRole != nil && *tt.workspaceRole == workspaces.RoleOwner {
 				testUserToken = owner.Token
 			} else if tt.workspaceRole != nil {
 				member := users_testing.CreateTestUser(t.Context(), users.RoleMember)
@@ -328,28 +328,28 @@ func Test_UpdateDatabase_WhenDatabaseTypeChanged_ReturnsBadRequest(t *testing.T)
 func Test_DeleteDatabase_PermissionsEnforced(t *testing.T) {
 	tests := []struct {
 		name               string
-		workspaceRole      *users_enums.WorkspaceRole
+		workspaceRole      *workspaces.Role
 		isGlobalAdmin      bool
 		expectSuccess      bool
 		expectedStatusCode int
 	}{
 		{
 			name:               "workspace owner can delete database",
-			workspaceRole:      func() *users_enums.WorkspaceRole { r := users_enums.WorkspaceRoleOwner; return &r }(),
+			workspaceRole:      func() *workspaces.Role { r := workspaces.RoleOwner; return &r }(),
 			isGlobalAdmin:      false,
 			expectSuccess:      true,
 			expectedStatusCode: http.StatusNoContent,
 		},
 		{
 			name:               "workspace member can delete database",
-			workspaceRole:      func() *users_enums.WorkspaceRole { r := users_enums.WorkspaceRoleMember; return &r }(),
+			workspaceRole:      func() *workspaces.Role { r := workspaces.RoleMember; return &r }(),
 			isGlobalAdmin:      false,
 			expectSuccess:      true,
 			expectedStatusCode: http.StatusNoContent,
 		},
 		{
 			name:               "workspace viewer cannot delete database",
-			workspaceRole:      func() *users_enums.WorkspaceRole { r := users_enums.WorkspaceRoleViewer; return &r }(),
+			workspaceRole:      func() *workspaces.Role { r := workspaces.RoleViewer; return &r }(),
 			isGlobalAdmin:      false,
 			expectSuccess:      false,
 			expectedStatusCode: http.StatusInternalServerError,
@@ -376,7 +376,7 @@ func Test_DeleteDatabase_PermissionsEnforced(t *testing.T) {
 			if tt.isGlobalAdmin {
 				admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 				testUserToken = admin.Token
-			} else if tt.workspaceRole != nil && *tt.workspaceRole == users_enums.WorkspaceRoleOwner {
+			} else if tt.workspaceRole != nil && *tt.workspaceRole == workspaces.RoleOwner {
 				testUserToken = owner.Token
 			} else if tt.workspaceRole != nil {
 				member := users_testing.CreateTestUser(t.Context(), users.RoleMember)
@@ -407,10 +407,10 @@ func Test_DeleteDatabase_PermissionsEnforced(t *testing.T) {
 }
 
 func Test_GetDatabase_PermissionsEnforced(t *testing.T) {
-	memberRole := users_enums.WorkspaceRoleViewer
+	memberRole := workspaces.RoleViewer
 	tests := []struct {
 		name               string
-		userRole           *users_enums.WorkspaceRole
+		userRole           *workspaces.Role
 		isGlobalAdmin      bool
 		expectSuccess      bool
 		expectedStatusCode int
@@ -723,28 +723,28 @@ func Test_GetDatabasesByWorkspace_EnsuresCrossWorkspaceIsolation(t *testing.T) {
 func Test_CopyDatabase_PermissionsEnforced(t *testing.T) {
 	tests := []struct {
 		name               string
-		workspaceRole      *users_enums.WorkspaceRole
+		workspaceRole      *workspaces.Role
 		isGlobalAdmin      bool
 		expectSuccess      bool
 		expectedStatusCode int
 	}{
 		{
 			name:               "workspace owner can copy database",
-			workspaceRole:      func() *users_enums.WorkspaceRole { r := users_enums.WorkspaceRoleOwner; return &r }(),
+			workspaceRole:      func() *workspaces.Role { r := workspaces.RoleOwner; return &r }(),
 			isGlobalAdmin:      false,
 			expectSuccess:      true,
 			expectedStatusCode: http.StatusCreated,
 		},
 		{
 			name:               "workspace member can copy database",
-			workspaceRole:      func() *users_enums.WorkspaceRole { r := users_enums.WorkspaceRoleMember; return &r }(),
+			workspaceRole:      func() *workspaces.Role { r := workspaces.RoleMember; return &r }(),
 			isGlobalAdmin:      false,
 			expectSuccess:      true,
 			expectedStatusCode: http.StatusCreated,
 		},
 		{
 			name:               "workspace viewer cannot copy database",
-			workspaceRole:      func() *users_enums.WorkspaceRole { r := users_enums.WorkspaceRoleViewer; return &r }(),
+			workspaceRole:      func() *workspaces.Role { r := workspaces.RoleViewer; return &r }(),
 			isGlobalAdmin:      false,
 			expectSuccess:      false,
 			expectedStatusCode: http.StatusBadRequest,
@@ -772,7 +772,7 @@ func Test_CopyDatabase_PermissionsEnforced(t *testing.T) {
 			if tt.isGlobalAdmin {
 				admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 				testUserToken = admin.Token
-			} else if tt.workspaceRole != nil && *tt.workspaceRole == users_enums.WorkspaceRoleOwner {
+			} else if tt.workspaceRole != nil && *tt.workspaceRole == workspaces.RoleOwner {
 				testUserToken = owner.Token
 			} else if tt.workspaceRole != nil {
 				member := users_testing.CreateTestUser(t.Context(), users.RoleMember)
@@ -2242,10 +2242,11 @@ type connectionTestWorkspaceService struct {
 	permissionError error
 }
 
-func (s *connectionTestWorkspaceService) CanUserManageDBs(
+func (s *connectionTestWorkspaceService) IsActorAllowed(
 	_ context.Context,
-	_ uuid.UUID,
 	_ users.Actor,
+	_ uuid.UUID,
+	_ workspaces.Action,
 ) (bool, error) {
 	return false, s.permissionError
 }
@@ -2373,12 +2374,12 @@ func Test_TestDatabaseConnectionDirect_ForUnauthorizedSavedDatabase_ReturnsForbi
 	testCases := []struct {
 		name                 string
 		shouldAddToWorkspace bool
-		unauthorizedRole     users_enums.WorkspaceRole
+		unauthorizedRole     workspaces.Role
 	}{
 		{
 			name:                 "workspace viewer",
 			shouldAddToWorkspace: true,
-			unauthorizedRole:     users_enums.WorkspaceRoleViewer,
+			unauthorizedRole:     workspaces.RoleViewer,
 		},
 		{
 			name:                 "nonmember",
@@ -2466,7 +2467,7 @@ func Test_TestDatabaseConnectionDirect_ForWorkspaceMember_ReturnsSuccess(t *test
 	workspaces_testing.AddMemberToWorkspace(
 		workspace,
 		member,
-		users_enums.WorkspaceRoleMember,
+		workspaces.RoleMember,
 		owner.Token,
 		router,
 	)

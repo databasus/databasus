@@ -15,11 +15,11 @@ import (
 	"github.com/google/uuid"
 
 	users_bridge "databasus-backend/internal/features/users"
-	users_enums "databasus-backend/internal/features/users/enums"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_dto "databasus-backend/internal/features/workspaces/dto"
 	workspaces_models "databasus-backend/internal/features/workspaces/models"
 	workspaces_repositories "databasus-backend/internal/features/workspaces/repositories"
+	"databasus-backend/internal/modules/workspaces"
 )
 
 // setGinTestMode runs once because gin.SetMode writes a process-wide variable, and parallel tests build
@@ -167,7 +167,7 @@ func createTestWorkspaceWithToken(
 func AddMemberToWorkspace(
 	workspace *workspaces_models.Workspace,
 	member *users_testing.TestUser,
-	role users_enums.WorkspaceRole,
+	role workspaces.Role,
 	ownerToken string,
 	router *gin.Engine,
 ) {
@@ -193,7 +193,7 @@ func AddMemberToWorkspaceViaOwner(
 	ctx context.Context,
 	workspace *workspaces_models.Workspace,
 	member *users_testing.TestUser,
-	role users_enums.WorkspaceRole,
+	role workspaces.Role,
 	router *gin.Engine,
 ) {
 	membershipRepo := &workspaces_repositories.MembershipRepository{}
@@ -204,7 +204,7 @@ func AddMemberToWorkspaceViaOwner(
 
 	var ownerToken string
 	for _, m := range workspaceMembers {
-		if m.Role == users_enums.WorkspaceRoleOwner {
+		if m.Role == workspaces.RoleOwner {
 			ownerToken = users_testing.IssueTestToken(ctx, m.UserID)
 
 			break
@@ -221,7 +221,7 @@ func AddMemberToWorkspaceViaOwner(
 func InviteMemberToWorkspace(
 	workspace *workspaces_models.Workspace,
 	email string,
-	role users_enums.WorkspaceRole,
+	role workspaces.Role,
 	inviterToken string,
 	router *gin.Engine,
 ) *workspaces_dto.AddMemberResponseDTO {
@@ -253,7 +253,7 @@ func InviteMemberToWorkspace(
 func ChangeMemberRole(
 	workspace *workspaces_models.Workspace,
 	memberUserID uuid.UUID,
-	newRole users_enums.WorkspaceRole,
+	newRole workspaces.Role,
 	changerToken string,
 	router *gin.Engine,
 ) {
@@ -389,7 +389,7 @@ func RemoveTestWorkspace(ctx context.Context, workspace *workspaces_models.Works
 
 	var ownerToken string
 	for _, m := range workspaceMembers {
-		if m.Role == users_enums.WorkspaceRoleOwner {
+		if m.Role == workspaces.RoleOwner {
 			_, isOwnerFound, err := users_bridge.GetModule().GetUser(ctx, m.UserID)
 			if err != nil || !isOwnerFound {
 				// Owner user not found, workspace might be in inconsistent state, try direct deletion
@@ -465,7 +465,7 @@ func CreateTestWorkspaceDirect(
 	membership := &workspaces_models.WorkspaceMembership{
 		WorkspaceID: workspace.ID,
 		UserID:      ownerID,
-		Role:        users_enums.WorkspaceRoleOwner,
+		Role:        workspaces.RoleOwner,
 	}
 
 	err = membershipRepo.CreateMembership(membership)

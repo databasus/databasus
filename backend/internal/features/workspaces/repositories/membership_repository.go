@@ -8,10 +8,10 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	users_enums "databasus-backend/internal/features/users/enums"
 	workspaces_dto "databasus-backend/internal/features/workspaces/dto"
 	workspaces_models "databasus-backend/internal/features/workspaces/models"
 	"databasus-backend/internal/modules/users"
+	"databasus-backend/internal/modules/workspaces"
 	"databasus-backend/internal/storage"
 )
 
@@ -63,7 +63,7 @@ func (r *MembershipRepository) GetWorkspaceMembers(
 
 func (r *MembershipRepository) UpdateMemberRole(
 	userID, workspaceID uuid.UUID,
-	role users_enums.WorkspaceRole,
+	role workspaces.Role,
 ) error {
 	return storage.GetDb().
 		Model(&workspaces_models.WorkspaceMembership{}).
@@ -80,7 +80,7 @@ func (r *MembershipRepository) RemoveMember(userID, workspaceID uuid.UUID) error
 func (r *MembershipRepository) GetUserWorkspaceRole(
 	ctx context.Context,
 	workspaceID, userID uuid.UUID,
-) (*users_enums.WorkspaceRole, error) {
+) (*workspaces.Role, error) {
 	var membership workspaces_models.WorkspaceMembership
 	err := storage.GetDb().WithContext(ctx).
 		Where("workspace_id = ? AND user_id = ?", workspaceID, userID).
@@ -102,7 +102,7 @@ func (r *MembershipRepository) GetWorkspaceOwner(
 	var membership workspaces_models.WorkspaceMembership
 
 	err := storage.GetDb().
-		Where("workspace_id = ? AND role = ?", workspaceID, users_enums.WorkspaceRoleOwner).
+		Where("workspace_id = ? AND role = ?", workspaceID, workspaces.RoleOwner).
 		First(&membership).Error
 	if err != nil {
 		return nil, err

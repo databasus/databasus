@@ -20,11 +20,11 @@ import (
 	"databasus-backend/internal/features/notifiers"
 	"databasus-backend/internal/features/storages"
 	local_storage "databasus-backend/internal/features/storages/models/local"
-	users_enums "databasus-backend/internal/features/users/enums"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_controllers "databasus-backend/internal/features/workspaces/controllers"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
 	"databasus-backend/internal/modules/users"
+	"databasus-backend/internal/modules/workspaces"
 	"databasus-backend/internal/storage"
 	test_utils "databasus-backend/internal/util/testing"
 	"databasus-backend/internal/util/tools"
@@ -130,32 +130,32 @@ func validPhysicalConfigForFullOnly(databaseID uuid.UUID) PhysicalBackupConfig {
 func Test_SaveBackupConfig_PhysicalWithDifferentRoles_EnforcesPermissions(t *testing.T) {
 	tests := []struct {
 		name               string
-		workspaceRole      *users_enums.WorkspaceRole
+		workspaceRole      *workspaces.Role
 		isGlobalAdmin      bool
 		expectSuccess      bool
 		expectedStatusCode int
 	}{
 		{
 			name:               "workspace owner can save physical backup config",
-			workspaceRole:      new(users_enums.WorkspaceRoleOwner),
+			workspaceRole:      new(workspaces.RoleOwner),
 			expectSuccess:      true,
 			expectedStatusCode: http.StatusOK,
 		},
 		{
 			name:               "workspace admin can save physical backup config",
-			workspaceRole:      new(users_enums.WorkspaceRoleAdmin),
+			workspaceRole:      new(workspaces.RoleAdmin),
 			expectSuccess:      true,
 			expectedStatusCode: http.StatusOK,
 		},
 		{
 			name:               "workspace member can save physical backup config",
-			workspaceRole:      new(users_enums.WorkspaceRoleMember),
+			workspaceRole:      new(workspaces.RoleMember),
 			expectSuccess:      true,
 			expectedStatusCode: http.StatusOK,
 		},
 		{
 			name:               "workspace viewer cannot save physical backup config",
-			workspaceRole:      new(users_enums.WorkspaceRoleViewer),
+			workspaceRole:      new(workspaces.RoleViewer),
 			expectSuccess:      false,
 			expectedStatusCode: http.StatusBadRequest,
 		},
@@ -195,7 +195,7 @@ func Test_SaveBackupConfig_PhysicalWithDifferentRoles_EnforcesPermissions(t *tes
 			case tt.isGlobalAdmin:
 				admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 				testUserToken = admin.Token
-			case tt.workspaceRole != nil && *tt.workspaceRole == users_enums.WorkspaceRoleOwner:
+			case tt.workspaceRole != nil && *tt.workspaceRole == workspaces.RoleOwner:
 				testUserToken = owner.Token
 			case tt.workspaceRole != nil:
 				member := users_testing.CreateTestUser(t.Context(), users.RoleMember)

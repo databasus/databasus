@@ -12,12 +12,12 @@ import (
 
 	audit_logs "databasus-backend/internal/features/audit_logs"
 	audit_logs_models "databasus-backend/internal/features/audit_logs/models"
-	users_enums "databasus-backend/internal/features/users/enums"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_dto "databasus-backend/internal/features/workspaces/dto"
 	workspaces_models "databasus-backend/internal/features/workspaces/models"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
 	"databasus-backend/internal/modules/users"
+	"databasus-backend/internal/modules/workspaces"
 	test_utils "databasus-backend/internal/util/testing"
 )
 
@@ -91,7 +91,7 @@ func Test_CreateWorkspace_PermissionsEnforced(t *testing.T) {
 
 				assert.Equal(t, workspaceName, response.Name)
 				assert.NotEqual(t, uuid.Nil, response.ID)
-				assert.Equal(t, users_enums.WorkspaceRoleOwner, *response.UserRole)
+				assert.Equal(t, workspaces.RoleOwner, *response.UserRole)
 
 				// Cleanup created workspace
 				workspace := &workspaces_models.Workspace{ID: response.ID}
@@ -205,35 +205,35 @@ func Test_GetUserWorkspaces_WithoutAuthToken_ReturnsUnauthorized(t *testing.T) {
 func Test_GetSingleWorkspace_PermissionsEnforced(t *testing.T) {
 	tests := []struct {
 		name               string
-		workspaceRole      *users_enums.WorkspaceRole
+		workspaceRole      *workspaces.Role
 		isGlobalAdmin      bool
 		expectSuccess      bool
 		expectedStatusCode int
 	}{
 		{
 			name:               "workspace owner can get workspace",
-			workspaceRole:      func() *users_enums.WorkspaceRole { r := users_enums.WorkspaceRoleOwner; return &r }(),
+			workspaceRole:      func() *workspaces.Role { r := workspaces.RoleOwner; return &r }(),
 			isGlobalAdmin:      false,
 			expectSuccess:      true,
 			expectedStatusCode: http.StatusOK,
 		},
 		{
 			name:               "workspace admin can get workspace",
-			workspaceRole:      func() *users_enums.WorkspaceRole { r := users_enums.WorkspaceRoleAdmin; return &r }(),
+			workspaceRole:      func() *workspaces.Role { r := workspaces.RoleAdmin; return &r }(),
 			isGlobalAdmin:      false,
 			expectSuccess:      true,
 			expectedStatusCode: http.StatusOK,
 		},
 		{
 			name:               "workspace member can get workspace",
-			workspaceRole:      func() *users_enums.WorkspaceRole { r := users_enums.WorkspaceRoleMember; return &r }(),
+			workspaceRole:      func() *workspaces.Role { r := workspaces.RoleMember; return &r }(),
 			isGlobalAdmin:      false,
 			expectSuccess:      true,
 			expectedStatusCode: http.StatusOK,
 		},
 		{
 			name:               "workspace viewer can get workspace",
-			workspaceRole:      func() *users_enums.WorkspaceRole { r := users_enums.WorkspaceRoleViewer; return &r }(),
+			workspaceRole:      func() *workspaces.Role { r := workspaces.RoleViewer; return &r }(),
 			isGlobalAdmin:      false,
 			expectSuccess:      true,
 			expectedStatusCode: http.StatusOK,
@@ -272,7 +272,7 @@ func Test_GetSingleWorkspace_PermissionsEnforced(t *testing.T) {
 			if tt.isGlobalAdmin {
 				admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 				testUserToken = admin.Token
-			} else if tt.workspaceRole != nil && *tt.workspaceRole == users_enums.WorkspaceRoleOwner {
+			} else if tt.workspaceRole != nil && *tt.workspaceRole == workspaces.RoleOwner {
 				testUserToken = owner.Token
 			} else if tt.workspaceRole != nil {
 				member := users_testing.CreateTestUser(t.Context(), users.RoleMember)
@@ -336,31 +336,31 @@ func Test_GetSingleWorkspace_WithInvalidWorkspaceID_ReturnsBadRequest(t *testing
 func Test_UpdateWorkspace_PermissionsEnforced(t *testing.T) {
 	tests := []struct {
 		name               string
-		workspaceRole      users_enums.WorkspaceRole
+		workspaceRole      workspaces.Role
 		expectSuccess      bool
 		expectedStatusCode int
 	}{
 		{
 			name:               "workspace owner can update workspace",
-			workspaceRole:      users_enums.WorkspaceRoleOwner,
+			workspaceRole:      workspaces.RoleOwner,
 			expectSuccess:      true,
 			expectedStatusCode: http.StatusOK,
 		},
 		{
 			name:               "workspace admin can update workspace",
-			workspaceRole:      users_enums.WorkspaceRoleAdmin,
+			workspaceRole:      workspaces.RoleAdmin,
 			expectSuccess:      true,
 			expectedStatusCode: http.StatusOK,
 		},
 		{
 			name:               "workspace member cannot update workspace",
-			workspaceRole:      users_enums.WorkspaceRoleMember,
+			workspaceRole:      workspaces.RoleMember,
 			expectSuccess:      false,
 			expectedStatusCode: http.StatusForbidden,
 		},
 		{
 			name:               "workspace viewer cannot update workspace",
-			workspaceRole:      users_enums.WorkspaceRoleViewer,
+			workspaceRole:      workspaces.RoleViewer,
 			expectSuccess:      false,
 			expectedStatusCode: http.StatusForbidden,
 		},
@@ -381,7 +381,7 @@ func Test_UpdateWorkspace_PermissionsEnforced(t *testing.T) {
 			defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
 
 			var testUserToken string
-			if tt.workspaceRole == users_enums.WorkspaceRoleOwner {
+			if tt.workspaceRole == workspaces.RoleOwner {
 				testUserToken = owner.Token
 			} else {
 				member := users_testing.CreateTestUser(t.Context(), users.RoleMember)
@@ -435,14 +435,14 @@ func Test_UpdateWorkspace_PermissionsEnforced(t *testing.T) {
 func Test_DeleteWorkspace_PermissionsEnforced(t *testing.T) {
 	tests := []struct {
 		name               string
-		workspaceRole      *users_enums.WorkspaceRole
+		workspaceRole      *workspaces.Role
 		isGlobalAdmin      bool
 		expectSuccess      bool
 		expectedStatusCode int
 	}{
 		{
 			name:               "workspace owner can delete workspace",
-			workspaceRole:      func() *users_enums.WorkspaceRole { r := users_enums.WorkspaceRoleOwner; return &r }(),
+			workspaceRole:      func() *workspaces.Role { r := workspaces.RoleOwner; return &r }(),
 			isGlobalAdmin:      false,
 			expectSuccess:      true,
 			expectedStatusCode: http.StatusOK,
@@ -456,14 +456,14 @@ func Test_DeleteWorkspace_PermissionsEnforced(t *testing.T) {
 		},
 		{
 			name:               "workspace member cannot delete workspace",
-			workspaceRole:      func() *users_enums.WorkspaceRole { r := users_enums.WorkspaceRoleViewer; return &r }(),
+			workspaceRole:      func() *workspaces.Role { r := workspaces.RoleViewer; return &r }(),
 			isGlobalAdmin:      false,
 			expectSuccess:      false,
 			expectedStatusCode: http.StatusForbidden,
 		},
 		{
 			name:               "workspace admin cannot delete workspace",
-			workspaceRole:      func() *users_enums.WorkspaceRole { r := users_enums.WorkspaceRoleMember; return &r }(),
+			workspaceRole:      func() *workspaces.Role { r := workspaces.RoleMember; return &r }(),
 			isGlobalAdmin:      false,
 			expectSuccess:      false,
 			expectedStatusCode: http.StatusForbidden,
@@ -491,7 +491,7 @@ func Test_DeleteWorkspace_PermissionsEnforced(t *testing.T) {
 			if tt.isGlobalAdmin {
 				admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 				testUserToken = admin.Token
-			} else if tt.workspaceRole != nil && *tt.workspaceRole == users_enums.WorkspaceRoleOwner {
+			} else if tt.workspaceRole != nil && *tt.workspaceRole == workspaces.RoleOwner {
 				testUserToken = owner.Token
 			} else if tt.workspaceRole != nil {
 				member := users_testing.CreateTestUser(t.Context(), users.RoleMember)
@@ -545,7 +545,7 @@ func Test_GetWorkspaceAuditLogs_WhenUserIsWorkspaceAdmin_ReturnsAuditLogs(t *tes
 	workspaces_testing.AddMemberToWorkspace(
 		workspace,
 		workspaceAdmin,
-		users_enums.WorkspaceRoleMember,
+		workspaces.RoleMember,
 		owner.Token,
 		router,
 	)
@@ -712,7 +712,7 @@ func Test_GetWorkspaceAuditLogs_WithDifferentUserRoles_EnforcesPermissionsCorrec
 	workspaces_testing.AddMemberToWorkspace(
 		workspace,
 		member,
-		users_enums.WorkspaceRoleViewer,
+		workspaces.RoleViewer,
 		owner.Token,
 		router,
 	)

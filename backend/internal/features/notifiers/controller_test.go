@@ -22,12 +22,12 @@ import (
 	teams_notifier "databasus-backend/internal/features/notifiers/models/teams"
 	telegram_notifier "databasus-backend/internal/features/notifiers/models/telegram"
 	webhook_notifier "databasus-backend/internal/features/notifiers/models/webhook"
-	users_enums "databasus-backend/internal/features/users/enums"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_controllers "databasus-backend/internal/features/workspaces/controllers"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
 	"databasus-backend/internal/lib/mailer"
 	"databasus-backend/internal/modules/users"
+	"databasus-backend/internal/modules/workspaces"
 	"databasus-backend/internal/storage"
 	test_utils "databasus-backend/internal/util/testing"
 	"databasus-backend/internal/util/testing/containers"
@@ -217,7 +217,7 @@ func Test_SendTestNotificationExisting_NotificationSent(t *testing.T) {
 func Test_WorkspaceRolePermissions_Notifiers(t *testing.T) {
 	tests := []struct {
 		name          string
-		workspaceRole *users_enums.WorkspaceRole
+		workspaceRole *workspaces.Role
 		isGlobalAdmin bool
 		canCreate     bool
 		canUpdate     bool
@@ -225,7 +225,7 @@ func Test_WorkspaceRolePermissions_Notifiers(t *testing.T) {
 	}{
 		{
 			name:          "owner can manage notifiers",
-			workspaceRole: func() *users_enums.WorkspaceRole { r := users_enums.WorkspaceRoleOwner; return &r }(),
+			workspaceRole: func() *workspaces.Role { r := workspaces.RoleOwner; return &r }(),
 			isGlobalAdmin: false,
 			canCreate:     true,
 			canUpdate:     true,
@@ -233,7 +233,7 @@ func Test_WorkspaceRolePermissions_Notifiers(t *testing.T) {
 		},
 		{
 			name:          "admin can manage notifiers",
-			workspaceRole: func() *users_enums.WorkspaceRole { r := users_enums.WorkspaceRoleAdmin; return &r }(),
+			workspaceRole: func() *workspaces.Role { r := workspaces.RoleAdmin; return &r }(),
 			isGlobalAdmin: false,
 			canCreate:     true,
 			canUpdate:     true,
@@ -241,7 +241,7 @@ func Test_WorkspaceRolePermissions_Notifiers(t *testing.T) {
 		},
 		{
 			name:          "member can manage notifiers",
-			workspaceRole: func() *users_enums.WorkspaceRole { r := users_enums.WorkspaceRoleMember; return &r }(),
+			workspaceRole: func() *workspaces.Role { r := workspaces.RoleMember; return &r }(),
 			isGlobalAdmin: false,
 			canCreate:     true,
 			canUpdate:     true,
@@ -249,7 +249,7 @@ func Test_WorkspaceRolePermissions_Notifiers(t *testing.T) {
 		},
 		{
 			name:          "viewer can view but cannot modify notifiers",
-			workspaceRole: func() *users_enums.WorkspaceRole { r := users_enums.WorkspaceRoleViewer; return &r }(),
+			workspaceRole: func() *workspaces.Role { r := workspaces.RoleViewer; return &r }(),
 			isGlobalAdmin: false,
 			canCreate:     false,
 			canUpdate:     false,
@@ -277,7 +277,7 @@ func Test_WorkspaceRolePermissions_Notifiers(t *testing.T) {
 			if tt.isGlobalAdmin {
 				admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 				testUserToken = admin.Token
-			} else if tt.workspaceRole != nil && *tt.workspaceRole == users_enums.WorkspaceRoleOwner {
+			} else if tt.workspaceRole != nil && *tt.workspaceRole == workspaces.RoleOwner {
 				testUserToken = owner.Token
 			} else if tt.workspaceRole != nil {
 				testUser := users_testing.CreateTestUser(t.Context(), users.RoleMember)
@@ -1204,40 +1204,40 @@ func Test_CreateNotifier_AllSensitiveFieldsEncryptedInDB(t *testing.T) {
 func Test_TransferNotifier_PermissionsEnforced(t *testing.T) {
 	tests := []struct {
 		name               string
-		sourceRole         *users_enums.WorkspaceRole
-		targetRole         *users_enums.WorkspaceRole
+		sourceRole         *workspaces.Role
+		targetRole         *workspaces.Role
 		isGlobalAdmin      bool
 		expectSuccess      bool
 		expectedStatusCode int
 	}{
 		{
 			name:               "owner in both workspaces can transfer",
-			sourceRole:         func() *users_enums.WorkspaceRole { r := users_enums.WorkspaceRoleOwner; return &r }(),
-			targetRole:         func() *users_enums.WorkspaceRole { r := users_enums.WorkspaceRoleOwner; return &r }(),
+			sourceRole:         func() *workspaces.Role { r := workspaces.RoleOwner; return &r }(),
+			targetRole:         func() *workspaces.Role { r := workspaces.RoleOwner; return &r }(),
 			isGlobalAdmin:      false,
 			expectSuccess:      true,
 			expectedStatusCode: http.StatusOK,
 		},
 		{
 			name:               "admin in both workspaces can transfer",
-			sourceRole:         func() *users_enums.WorkspaceRole { r := users_enums.WorkspaceRoleAdmin; return &r }(),
-			targetRole:         func() *users_enums.WorkspaceRole { r := users_enums.WorkspaceRoleAdmin; return &r }(),
+			sourceRole:         func() *workspaces.Role { r := workspaces.RoleAdmin; return &r }(),
+			targetRole:         func() *workspaces.Role { r := workspaces.RoleAdmin; return &r }(),
 			isGlobalAdmin:      false,
 			expectSuccess:      true,
 			expectedStatusCode: http.StatusOK,
 		},
 		{
 			name:               "member in both workspaces can transfer",
-			sourceRole:         func() *users_enums.WorkspaceRole { r := users_enums.WorkspaceRoleMember; return &r }(),
-			targetRole:         func() *users_enums.WorkspaceRole { r := users_enums.WorkspaceRoleMember; return &r }(),
+			sourceRole:         func() *workspaces.Role { r := workspaces.RoleMember; return &r }(),
+			targetRole:         func() *workspaces.Role { r := workspaces.RoleMember; return &r }(),
 			isGlobalAdmin:      false,
 			expectSuccess:      true,
 			expectedStatusCode: http.StatusOK,
 		},
 		{
 			name:               "viewer in both workspaces cannot transfer",
-			sourceRole:         func() *users_enums.WorkspaceRole { r := users_enums.WorkspaceRoleViewer; return &r }(),
-			targetRole:         func() *users_enums.WorkspaceRole { r := users_enums.WorkspaceRoleViewer; return &r }(),
+			sourceRole:         func() *workspaces.Role { r := workspaces.RoleViewer; return &r }(),
+			targetRole:         func() *workspaces.Role { r := workspaces.RoleViewer; return &r }(),
 			isGlobalAdmin:      false,
 			expectSuccess:      false,
 			expectedStatusCode: http.StatusForbidden,

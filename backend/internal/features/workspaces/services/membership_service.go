@@ -10,13 +10,13 @@ import (
 	"databasus-backend/internal/config"
 	audit_logs "databasus-backend/internal/features/audit_logs"
 	audit_logs_models "databasus-backend/internal/features/audit_logs/models"
-	users_enums "databasus-backend/internal/features/users/enums"
 	workspaces_dto "databasus-backend/internal/features/workspaces/dto"
 	workspaces_errors "databasus-backend/internal/features/workspaces/errors"
 	workspaces_interfaces "databasus-backend/internal/features/workspaces/interfaces"
 	workspaces_models "databasus-backend/internal/features/workspaces/models"
 	workspaces_repositories "databasus-backend/internal/features/workspaces/repositories"
 	"databasus-backend/internal/modules/users"
+	"databasus-backend/internal/modules/workspaces"
 )
 
 type MembershipService struct {
@@ -39,11 +39,11 @@ func (s *MembershipService) GetMembers(
 	workspaceID uuid.UUID,
 	actor users.Actor,
 ) (*workspaces_dto.GetMembersResponseDTO, error) {
-	canView, _, err := s.workspaceService.CanUserAccessWorkspace(ctx, workspaceID, actor)
+	isAllowed, err := s.workspaceService.IsActorAllowed(ctx, actor, workspaceID, workspaces.ActionView)
 	if err != nil {
 		return nil, err
 	}
-	if !canView {
+	if !isAllowed {
 		return nil, workspaces_errors.ErrInsufficientPermissionsToViewMembers
 	}
 
@@ -192,7 +192,7 @@ func (s *MembershipService) ChangeMemberRole(
 		return workspaces_errors.ErrUserNotMemberOfWorkspace
 	}
 
-	if existingMembership.Role == users_enums.WorkspaceRoleOwner {
+	if existingMembership.Role == workspaces.RoleOwner {
 		return workspaces_errors.ErrCannotChangeOwnerRole
 	}
 
@@ -233,12 +233,12 @@ func (s *MembershipService) RemoveMember(
 	memberUserID uuid.UUID,
 	removedBy users.Actor,
 ) error {
-	canManage, err := s.workspaceService.CanUserManageMembership(ctx, workspaceID, removedBy)
+	isAllowed, err := s.workspaceService.IsActorAllowed(ctx, removedBy, workspaceID, workspaces.ActionManageMembers)
 	if err != nil {
 		return err
 	}
 
-	if !canManage {
+	if !isAllowed {
 		return workspaces_errors.ErrInsufficientPermissionsToRemoveMembers
 	}
 
@@ -250,16 +250,21 @@ func (s *MembershipService) RemoveMember(
 		return workspaces_errors.ErrUserNotMemberOfWorkspace
 	}
 
-	if existingMembership.Role == users_enums.WorkspaceRoleOwner {
+	if existingMembership.Role == workspaces.RoleOwner {
 		return workspaces_errors.ErrCannotRemoveWorkspaceOwner
 	}
 
-	if existingMembership.Role == users_enums.WorkspaceRoleAdmin {
-		canManageAdmins, err := s.workspaceService.CanUserManageAdmins(ctx, workspaceID, removedBy)
+	if existingMembership.Role == workspaces.RoleAdmin {
+		isAllowedToManageAdmins, err := s.workspaceService.IsActorAllowed(
+			ctx,
+			removedBy,
+			workspaceID,
+			workspaces.ActionManageAdmins,
+		)
 		if err != nil {
 			return err
 		}
-		if !canManageAdmins {
+		if !isAllowedToManageAdmins {
 			return workspaces_errors.ErrOnlyOwnerCanRemoveAdmins
 		}
 	}
@@ -292,13 +297,12 @@ func (s *MembershipService) TransferOwnership(
 	request *workspaces_dto.TransferOwnershipRequestDTO,
 	actor users.Actor,
 ) error {
-	currentRole, err := s.membershipRepository.GetUserWorkspaceRole(ctx, workspaceID, actor.UserID)
+	isAllowed, err := s.workspaceService.IsActorAllowed(ctx, actor, workspaceID, workspaces.ActionTransferOwnership)
 	if err != nil {
-		return fmt.Errorf("failed to get current user role: %w", err)
+		return err
 	}
 
-	if actor.Role != users.RoleAdmin &&
-		(currentRole == nil || *currentRole != users_enums.WorkspaceRoleOwner) {
+	if !isAllowed {
 		return workspaces_errors.ErrOnlyOwnerOrAdminCanTransferOwnership
 	}
 
@@ -328,7 +332,7 @@ func (s *MembershipService) TransferOwnership(
 	if err := s.membershipRepository.UpdateMemberRole(
 		newOwner.ID,
 		workspaceID,
-		users_enums.WorkspaceRoleOwner,
+		workspaces.RoleOwner,
 	); err != nil {
 		return fmt.Errorf("failed to update new owner role: %w", err)
 	}
@@ -336,7 +340,7 @@ func (s *MembershipService) TransferOwnership(
 	if err := s.membershipRepository.UpdateMemberRole(
 		currentOwner.UserID,
 		workspaceID,
-		users_enums.WorkspaceRoleAdmin,
+		workspaces.RoleAdmin,
 	); err != nil {
 		return fmt.Errorf("failed to update previous owner role: %w", err)
 	}
@@ -354,25 +358,25 @@ func (s *MembershipService) validateCanManageMembership(
 	ctx context.Context,
 	workspaceID uuid.UUID,
 	actor users.Actor,
-	changesRoleTo users_enums.WorkspaceRole,
+	changesRoleTo workspaces.Role,
 ) error {
-	if changesRoleTo == users_enums.WorkspaceRoleAdmin {
-		canManageAdmins, err := s.workspaceService.CanUserManageAdmins(ctx, workspaceID, actor)
+	if changesRoleTo == workspaces.RoleAdmin {
+		isAllowed, err := s.workspaceService.IsActorAllowed(ctx, actor, workspaceID, workspaces.ActionManageAdmins)
 		if err != nil {
 			return err
 		}
-		if !canManageAdmins {
+		if !isAllowed {
 			return workspaces_errors.ErrOnlyOwnerCanAddManageAdmins
 		}
 		return nil
 	}
 
-	canManageMembership, err := s.workspaceService.CanUserManageMembership(ctx, workspaceID, actor)
+	isAllowed, err := s.workspaceService.IsActorAllowed(ctx, actor, workspaceID, workspaces.ActionManageMembers)
 	if err != nil {
 		return err
 	}
 
-	if !canManageMembership {
+	if !isAllowed {
 		return workspaces_errors.ErrInsufficientPermissionsToManageMembers
 	}
 

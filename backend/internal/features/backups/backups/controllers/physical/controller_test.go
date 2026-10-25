@@ -42,12 +42,12 @@ import (
 	"databasus-backend/internal/features/notifiers"
 	"databasus-backend/internal/features/storages"
 	storage_files "databasus-backend/internal/features/storages/files"
-	users_enums "databasus-backend/internal/features/users/enums"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_controllers "databasus-backend/internal/features/workspaces/controllers"
 	workspaces_models "databasus-backend/internal/features/workspaces/models"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
 	"databasus-backend/internal/modules/users"
+	"databasus-backend/internal/modules/workspaces"
 	"databasus-backend/internal/storage"
 	"databasus-backend/internal/util/encryption"
 	"databasus-backend/internal/util/logger"
@@ -1321,7 +1321,7 @@ func runRolePermissionMatrix(
 
 	member := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspaces_testing.AddMemberToWorkspace(
-		prereqs.workspace, member, users_enums.WorkspaceRoleMember, prereqs.user.Token, prereqs.router)
+		prereqs.workspace, member, workspaces.RoleMember, prereqs.user.Token, prereqs.router)
 
 	viewer := addWorkspaceViewer(t, prereqs)
 	nonMember := users_testing.CreateTestUser(t.Context(), users.RoleMember)
@@ -1361,7 +1361,7 @@ func addWorkspaceViewer(t *testing.T, prereqs *physicalControllerPrereqs) *users
 
 	viewer := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspaces_testing.AddMemberToWorkspace(
-		prereqs.workspace, viewer, users_enums.WorkspaceRoleViewer, prereqs.user.Token, prereqs.router)
+		prereqs.workspace, viewer, workspaces.RoleViewer, prereqs.user.Token, prereqs.router)
 
 	return viewer
 }

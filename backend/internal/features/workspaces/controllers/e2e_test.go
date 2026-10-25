@@ -7,12 +7,12 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 
-	users_enums "databasus-backend/internal/features/users/enums"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_dto "databasus-backend/internal/features/workspaces/dto"
 	workspaces_models "databasus-backend/internal/features/workspaces/models"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
 	"databasus-backend/internal/modules/users"
+	"databasus-backend/internal/modules/workspaces"
 	test_utils "databasus-backend/internal/util/testing"
 )
 
@@ -44,13 +44,13 @@ func Test_WorkspaceLifecycleE2E_CompletesSuccessfully(t *testing.T) {
 	)
 
 	assert.Equal(t, "E2E Test Workspace", workspaceResponse.Name)
-	assert.Equal(t, users_enums.WorkspaceRoleOwner, *workspaceResponse.UserRole)
+	assert.Equal(t, workspaces.RoleOwner, *workspaceResponse.UserRole)
 	workspaceID := workspaceResponse.ID
 
 	// 3. Owner invites a new user
 	inviteRequest := workspaces_dto.AddMemberRequestDTO{
 		Email: "invited" + uuid.New().String() + "@example.com",
-		Role:  users_enums.WorkspaceRoleViewer,
+		Role:  workspaces.RoleViewer,
 	}
 
 	var inviteResponse workspaces_dto.AddMemberResponseDTO
@@ -70,7 +70,7 @@ func Test_WorkspaceLifecycleE2E_CompletesSuccessfully(t *testing.T) {
 	existingMember := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	addMemberRequest := workspaces_dto.AddMemberRequestDTO{
 		Email: existingMember.Email,
-		Role:  users_enums.WorkspaceRoleViewer,
+		Role:  workspaces.RoleViewer,
 	}
 
 	var addMemberResponse workspaces_dto.AddMemberResponseDTO
@@ -99,16 +99,16 @@ func Test_WorkspaceLifecycleE2E_CompletesSuccessfully(t *testing.T) {
 
 	assert.GreaterOrEqual(t, len(membersResponse.Members), 2) // owner + added member
 
-	roles := make([]users_enums.WorkspaceRole, len(membersResponse.Members))
+	roles := make([]workspaces.Role, len(membersResponse.Members))
 	for i, m := range membersResponse.Members {
 		roles[i] = m.Role
 	}
-	assert.Contains(t, roles, users_enums.WorkspaceRoleOwner)
-	assert.Contains(t, roles, users_enums.WorkspaceRoleViewer)
+	assert.Contains(t, roles, workspaces.RoleOwner)
+	assert.Contains(t, roles, workspaces.RoleViewer)
 
 	// 6. Promote member to admin
 	promoteRequest := workspaces_dto.ChangeMemberRoleRequestDTO{
-		Role: users_enums.WorkspaceRoleMember,
+		Role: workspaces.RoleMember,
 	}
 
 	resp := test_utils.MakePutRequest(

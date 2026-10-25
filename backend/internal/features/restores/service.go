@@ -23,6 +23,7 @@ import (
 	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
 	workspaces_services "databasus-backend/internal/features/workspaces/services"
 	"databasus-backend/internal/modules/users"
+	"databasus-backend/internal/modules/workspaces"
 	"databasus-backend/internal/util/encryption"
 	"databasus-backend/internal/util/tools"
 )
@@ -82,15 +83,11 @@ func (s *RestoreService) GetRestores(
 		return nil, errors.New("cannot get restores for database without workspace")
 	}
 
-	canAccess, _, err := s.workspaceService.CanUserAccessWorkspace(
-		ctx,
-		*database.WorkspaceID,
-		actor,
-	)
+	isAllowed, err := s.workspaceService.IsActorAllowed(ctx, actor, *database.WorkspaceID, workspaces.ActionView)
 	if err != nil {
 		return nil, err
 	}
-	if !canAccess {
+	if !isAllowed {
 		return nil, errors.New("insufficient permissions to access restores for this backup")
 	}
 
@@ -117,15 +114,11 @@ func (s *RestoreService) RestoreBackupWithAuth(
 		return errors.New("cannot restore backup for database without workspace")
 	}
 
-	canAccess, _, err := s.workspaceService.CanUserAccessWorkspace(
-		ctx,
-		*database.WorkspaceID,
-		actor,
-	)
+	isAllowed, err := s.workspaceService.IsActorAllowed(ctx, actor, *database.WorkspaceID, workspaces.ActionView)
 	if err != nil {
 		return err
 	}
-	if !canAccess {
+	if !isAllowed {
 		return errors.New("insufficient permissions to restore this backup")
 	}
 
@@ -225,11 +218,11 @@ func (s *RestoreService) CancelRestore(
 		return errors.New("cannot cancel restore for database without workspace")
 	}
 
-	canManage, err := s.workspaceService.CanUserManageDBs(ctx, *database.WorkspaceID, actor)
+	isAllowed, err := s.workspaceService.IsActorAllowed(ctx, actor, *database.WorkspaceID, workspaces.ActionEditContent)
 	if err != nil {
 		return err
 	}
-	if !canManage {
+	if !isAllowed {
 		return errors.New("insufficient permissions to cancel restore for this database")
 	}
 
