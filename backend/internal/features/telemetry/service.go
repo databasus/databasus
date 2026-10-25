@@ -99,7 +99,7 @@ func (s *TelemetryService) BuildAndSend(ctx context.Context) error {
 		return err
 	}
 
-	userCount, err := s.userService.GetUsersCount()
+	userCount, err := s.userService.GetUserCount(ctx)
 	if err != nil {
 		return err
 	}

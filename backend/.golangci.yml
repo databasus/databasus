@@ -88,6 +88,8 @@ linters:
             - "!$test"
             - "!**/internal/lib/testdb/**"
             - "!**/internal/lib/testwait/**"
+            - "!**/internal/lib/cache/cachetest/**"
+            - "!**/internal/lib/ratelimit/ratelimittest/**"
             - "!**/internal/lib/testcontainers/**"
             - "!**/internal/lib/apiclient/**"
             - "!**/internal/lib/agentclienttest/**"

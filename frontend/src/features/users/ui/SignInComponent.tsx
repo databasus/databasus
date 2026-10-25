@@ -77,8 +77,8 @@ export function SignInComponent({
           cloudflareTurnstileToken: token,
         });
 
-        if (!outcome.isCompleted) {
-          onCodeRequired?.(outcome.pendingSignIn);
+        if (outcome.outcome === 'CODE_REQUIRED') {
+          onCodeRequired?.({ pendingSignInId: outcome.pendingSignInId, email: outcome.email });
         }
       } catch (e) {
         setSignInError(e);

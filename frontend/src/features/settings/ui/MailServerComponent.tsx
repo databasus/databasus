@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
 import { settingsApi } from '../../../entity/users';
+import { type ApiComponents } from '../../../shared/api';
 import { getWebsitePageUrl, translateApiError, useLocale } from '../../../shared/i18n';
 
 interface Props {
@@ -15,14 +16,25 @@ export function MailServerComponent({ isEmailConfigured }: Props) {
   const { message } = App.useApp();
   const [isSendingTestEmail, setIsSendingTestEmail] = useState(false);
   const [testEmailError, setTestEmailError] = useState<unknown>(undefined);
+  const [undeliveredTestEmail, setUndeliveredTestEmail] = useState<
+    ApiComponents['schemas']['TestEmail'] | undefined
+  >(undefined);
 
   const sendTestEmail = async () => {
     setIsSendingTestEmail(true);
     setTestEmailError(undefined);
+    setUndeliveredTestEmail(undefined);
 
     try {
-      const response = await settingsApi.sendTestEmail();
-      message.success(t('settings.mailServer.testEmailSent', { email: response.recipientEmail }));
+      const testEmail = await settingsApi.sendTestEmail();
+
+      if (testEmail.isDelivered) {
+        message.success(
+          t('settings.mailServer.testEmailSent', { email: testEmail.recipientEmail }),
+        );
+      } else {
+        setUndeliveredTestEmail(testEmail);
+      }
     } catch (error: unknown) {
       setTestEmailError(error);
     } finally {
@@ -86,6 +98,18 @@ export function MailServerComponent({ isEmailConfigured }: Props) {
 
       {testEmailError !== undefined && (
         <div className="mt-2 break-words text-red-600">{translateApiError(testEmailError, t)}</div>
+      )}
+
+      {undeliveredTestEmail && (
+        <div className="mt-2 break-words text-red-600">
+          <Trans
+            i18nKey="settings.mailServer.testEmailNotDelivered"
+            components={{
+              email: <span>{undeliveredTestEmail.recipientEmail}</span>,
+              failureDetail: <span>{undeliveredTestEmail.failureDetail}</span>,
+            }}
+          />
+        </div>
       )}
     </section>
   );

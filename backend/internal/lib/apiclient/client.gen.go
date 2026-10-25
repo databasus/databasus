@@ -4,30 +4,159 @@
 package apiclient
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
+
+	"github.com/oapi-codegen/runtime"
+	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
 // Defines values for ProblemCode.
 const (
-	ProblemCodeInternal       ProblemCode = "internal"
-	ProblemCodeInvalidRequest ProblemCode = "invalid_request"
-	ProblemCodeNotFound       ProblemCode = "not_found"
+	ProblemCodeAdminEmailMissing       ProblemCode = "admin_email_missing"
+	ProblemCodeEmailNotConfigured      ProblemCode = "email_not_configured"
+	ProblemCodeEmailTaken              ProblemCode = "email_taken"
+	ProblemCodeHumanVerificationFailed ProblemCode = "human_verification_failed"
+	ProblemCodeInternal                ProblemCode = "internal"
+	ProblemCodeInvalidCredentials      ProblemCode = "invalid_credentials"
+	ProblemCodeInvalidRequest          ProblemCode = "invalid_request"
+	ProblemCodeInvalidResetCode        ProblemCode = "invalid_reset_code"
+	ProblemCodeNotFound                ProblemCode = "not_found"
+	ProblemCodeOauthFailed             ProblemCode = "oauth_failed"
+	ProblemCodeOauthNotConfigured      ProblemCode = "oauth_not_configured"
+	ProblemCodePendingSignInNotUsable  ProblemCode = "pending_sign_in_not_usable"
+	ProblemCodePermissionDenied        ProblemCode = "permission_denied"
+	ProblemCodeRateLimited             ProblemCode = "rate_limited"
+	ProblemCodeRegistrationClosed      ProblemCode = "registration_closed"
+	ProblemCodeSignInCodeIncorrect     ProblemCode = "sign_in_code_incorrect"
+	ProblemCodeSignInCodeNotSent       ProblemCode = "sign_in_code_not_sent"
+	ProblemCodeSignInCodeResentTooSoon ProblemCode = "sign_in_code_resent_too_soon"
+	ProblemCodeTooManySignInCodes      ProblemCode = "too_many_sign_in_codes"
+	ProblemCodeUnauthenticated         ProblemCode = "unauthenticated"
+	ProblemCodeUserDeactivated         ProblemCode = "user_deactivated"
 )
 
 // Valid indicates whether the value is a known member of the ProblemCode enum.
 func (e ProblemCode) Valid() bool {
 	switch e {
+	case ProblemCodeAdminEmailMissing:
+		return true
+	case ProblemCodeEmailNotConfigured:
+		return true
+	case ProblemCodeEmailTaken:
+		return true
+	case ProblemCodeHumanVerificationFailed:
+		return true
 	case ProblemCodeInternal:
+		return true
+	case ProblemCodeInvalidCredentials:
 		return true
 	case ProblemCodeInvalidRequest:
 		return true
+	case ProblemCodeInvalidResetCode:
+		return true
 	case ProblemCodeNotFound:
+		return true
+	case ProblemCodeOauthFailed:
+		return true
+	case ProblemCodeOauthNotConfigured:
+		return true
+	case ProblemCodePendingSignInNotUsable:
+		return true
+	case ProblemCodePermissionDenied:
+		return true
+	case ProblemCodeRateLimited:
+		return true
+	case ProblemCodeRegistrationClosed:
+		return true
+	case ProblemCodeSignInCodeIncorrect:
+		return true
+	case ProblemCodeSignInCodeNotSent:
+		return true
+	case ProblemCodeSignInCodeResentTooSoon:
+		return true
+	case ProblemCodeTooManySignInCodes:
+		return true
+	case ProblemCodeUnauthenticated:
+		return true
+	case ProblemCodeUserDeactivated:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SignInCodeRequiredOutcome.
+const (
+	SignInCodeRequiredOutcomeCODEREQUIRED SignInCodeRequiredOutcome = "CODE_REQUIRED"
+)
+
+// Valid indicates whether the value is a known member of the SignInCodeRequiredOutcome enum.
+func (e SignInCodeRequiredOutcome) Valid() bool {
+	switch e {
+	case SignInCodeRequiredOutcomeCODEREQUIRED:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SignInCompletedOutcome.
+const (
+	SignInCompletedOutcomeCOMPLETED SignInCompletedOutcome = "COMPLETED"
+)
+
+// Valid indicates whether the value is a known member of the SignInCompletedOutcome enum.
+func (e SignInCompletedOutcome) Valid() bool {
+	switch e {
+	case SignInCompletedOutcomeCOMPLETED:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for UserRole.
+const (
+	UserRoleADMIN  UserRole = "ADMIN"
+	UserRoleMEMBER UserRole = "MEMBER"
+)
+
+// Valid indicates whether the value is a known member of the UserRole enum.
+func (e UserRole) Valid() bool {
+	switch e {
+	case UserRoleADMIN:
+		return true
+	case UserRoleMEMBER:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for UserStatus.
+const (
+	UserStatusACTIVE   UserStatus = "ACTIVE"
+	UserStatusINACTIVE UserStatus = "INACTIVE"
+	UserStatusINVITED  UserStatus = "INVITED"
+)
+
+// Valid indicates whether the value is a known member of the UserStatus enum.
+func (e UserStatus) Valid() bool {
+	switch e {
+	case UserStatusACTIVE:
+		return true
+	case UserStatusINACTIVE:
+		return true
+	case UserStatusINVITED:
 		return true
 	default:
 		return false
@@ -41,6 +170,84 @@ type FieldError struct {
 
 	// Field The path of the field in the request, such as `name` or `settings.bucket`
 	Field string `json:"field"`
+}
+
+// InstanceSettings The settings of the instance
+type InstanceSettings struct {
+	// IsAllowExternalRegistrations Anyone may sign up without an invitation
+	IsAllowExternalRegistrations bool `json:"isAllowExternalRegistrations"`
+
+	// IsAllowMemberInvitations A user who is not an instance admin may invite users
+	IsAllowMemberInvitations bool `json:"isAllowMemberInvitations"`
+
+	// IsEmailConfigured Whether the operator configured a mail server; it cannot be changed here
+	IsEmailConfigured bool `json:"isEmailConfigured"`
+
+	// IsMemberAllowedToCreateWorkspaces A user who is not an instance admin may create workspaces
+	IsMemberAllowedToCreateWorkspaces bool `json:"isMemberAllowedToCreateWorkspaces"`
+
+	// IsTwoFactorAuthRequired A password sign-in also needs a code emailed to the user
+	IsTwoFactorAuthRequired bool `json:"isTwoFactorAuthRequired"`
+}
+
+// InstanceSettingsUpdate The editable instance settings
+type InstanceSettingsUpdate struct {
+	// IsAllowExternalRegistrations Anyone may sign up without an invitation
+	IsAllowExternalRegistrations bool `json:"isAllowExternalRegistrations"`
+
+	// IsAllowMemberInvitations A user who is not an instance admin may invite users
+	IsAllowMemberInvitations bool `json:"isAllowMemberInvitations"`
+
+	// IsMemberAllowedToCreateWorkspaces A user who is not an instance admin may create workspaces
+	IsMemberAllowedToCreateWorkspaces bool `json:"isMemberAllowedToCreateWorkspaces"`
+
+	// IsTwoFactorAuthRequired A password sign-in also needs a code emailed to the user
+	IsTwoFactorAuthRequired bool `json:"isTwoFactorAuthRequired"`
+}
+
+// OAuthSignInRequest The answer of an identity provider's authorization page
+type OAuthSignInRequest struct {
+	// Code The authorization code the provider issued
+	Code string `json:"code"`
+
+	// RedirectUri The redirect URI the code was issued for
+	RedirectUri string `json:"redirectUri"`
+}
+
+// PasswordChange A new password
+type PasswordChange struct {
+	// NewPassword The new password, at least 8 characters
+	NewPassword *string `json:"newPassword,omitempty"`
+}
+
+// PasswordResetCompletion A mailed reset code and the password that replaces the old one
+type PasswordResetCompletion struct {
+	// Code The code from the email
+	Code string `json:"code"`
+
+	// Email The address the code was sent to
+	Email string `json:"email"`
+
+	// NewPassword The new password, at least 8 characters
+	NewPassword *string `json:"newPassword,omitempty"`
+}
+
+// PasswordResetRequest A request for a password reset code
+type PasswordResetRequest struct {
+	// CloudflareTurnstileToken The answer to the human-verification challenge, required when the instance has one
+	CloudflareTurnstileToken *string `json:"cloudflareTurnstileToken,omitempty"`
+
+	// Email The address the user signs in with
+	Email string `json:"email"`
+}
+
+// PendingSignIn A password sign-in that waits for the emailed code
+type PendingSignIn struct {
+	// Email The address the code went to
+	Email string `json:"email"`
+
+	// PendingSignInId The pending sign-in that the code completes
+	PendingSignInId openapi_types.UUID `json:"pendingSignInId"`
 }
 
 // Problem An error in the RFC 9457 format. The client chooses its text by `code`
@@ -67,10 +274,326 @@ type Problem struct {
 // ProblemCode The cause of the error for programs; a value never changes its meaning
 type ProblemCode string
 
+// ResendSignInCodeRequest A request for a new code
+type ResendSignInCodeRequest struct {
+	// CloudflareTurnstileToken The answer to the human-verification challenge, required when the instance has one
+	CloudflareTurnstileToken *string `json:"cloudflareTurnstileToken,omitempty"`
+}
+
+// Session A session of a signed-in user. The operation that creates it returns the token once; no other operation returns it
+type Session struct {
+	// Email The address of the signed-in user
+	Email string `json:"email"`
+
+	// Token The session token to send as `Authorization: Bearer <token>`
+	Token string `json:"token"`
+
+	// UserId The ID of the signed-in user
+	UserId openapi_types.UUID `json:"userId"`
+}
+
+// SignInCodeRequired The password was correct, and a code went to the user's address
+type SignInCodeRequired struct {
+	// Email The address the code went to
+	Email string `json:"email"`
+
+	// Outcome Always `CODE_REQUIRED`
+	Outcome SignInCodeRequiredOutcome `json:"outcome"`
+
+	// PendingSignInId The pending sign-in that the code completes
+	PendingSignInId openapi_types.UUID `json:"pendingSignInId"`
+}
+
+// SignInCodeRequiredOutcome Always `CODE_REQUIRED`
+type SignInCodeRequiredOutcome string
+
+// SignInCompleted The user is signed in
+type SignInCompleted struct {
+	// Email The address of the signed-in user
+	Email string `json:"email"`
+
+	// Outcome Always `COMPLETED`
+	Outcome SignInCompletedOutcome `json:"outcome"`
+
+	// Token The session token to send as `Authorization: Bearer <token>`, returned once
+	Token string `json:"token"`
+
+	// UserId The ID of the signed-in user
+	UserId openapi_types.UUID `json:"userId"`
+}
+
+// SignInCompletedOutcome Always `COMPLETED`
+type SignInCompletedOutcome string
+
+// SignInOptions What the sign-in page offers
+type SignInOptions struct {
+	// HasAnyUser Whether the instance has a user; without one the page offers the first registration
+	HasAnyUser bool `json:"hasAnyUser"`
+}
+
+// SignInOutcome The session, or the pending sign-in that waits for the emailed code
+type SignInOutcome struct {
+	union json.RawMessage
+}
+
+// SignInRequest The credentials of a password sign-in
+type SignInRequest struct {
+	// CloudflareTurnstileToken The answer to the human-verification challenge, required when the instance has one
+	CloudflareTurnstileToken *string `json:"cloudflareTurnstileToken,omitempty"`
+
+	// Email The address the user signs in with
+	Email string `json:"email"`
+
+	// Password The password
+	Password *string `json:"password,omitempty"`
+}
+
+// SignUpRequest The user to create
+type SignUpRequest struct {
+	// CloudflareTurnstileToken The answer to the human-verification challenge, required when the instance has one
+	CloudflareTurnstileToken *string `json:"cloudflareTurnstileToken,omitempty"`
+
+	// Email The address the user signs in with
+	Email openapi_types.Email `json:"email"`
+
+	// Name The name other users see
+	Name string `json:"name"`
+
+	// Password The password, at least 8 characters
+	Password *string `json:"password,omitempty"`
+}
+
+// TestEmail A test email the instance tried to deliver
+type TestEmail struct {
+	// FailureDetail The error of the delivery with the mail server's response, present when it failed
+	FailureDetail *string `json:"failureDetail,omitempty"`
+
+	// IsDelivered Whether the mail server accepted the message
+	IsDelivered bool `json:"isDelivered"`
+
+	// RecipientEmail The address of the administrator the message went to
+	RecipientEmail string `json:"recipientEmail"`
+}
+
+// User A user of the instance
+type User struct {
+	// CreatedAt When the user was created
+	CreatedAt time.Time `json:"createdAt"`
+
+	// Email The address the user signs in with
+	Email string `json:"email"`
+
+	// Id The ID of the user
+	Id openapi_types.UUID `json:"id"`
+
+	// Name The name other users see
+	Name string `json:"name"`
+
+	// Role The global role; an instance admin administers the instance
+	Role UserRole `json:"role"`
+
+	// Status `INVITED` for a user who was invited and has not finished sign-up, `ACTIVE`, or `INACTIVE` for a deactivated user
+	Status UserStatus `json:"status"`
+}
+
+// UserPage One page of users, the newest first
+type UserPage struct {
+	// Items The users on the page
+	Items []User `json:"items"`
+
+	// NextCursor The `after` of the next page, absent on the last page
+	NextCursor *string `json:"nextCursor,omitempty"`
+}
+
+// UserRole The global role; an instance admin administers the instance
+type UserRole string
+
+// UserRoleChange A new global role
+type UserRoleChange struct {
+	// Role The global role; an instance admin administers the instance
+	Role UserRole `json:"role"`
+}
+
+// UserStatus `INVITED` for a user who was invited and has not finished sign-up, `ACTIVE`, or `INACTIVE` for a deactivated user
+type UserStatus string
+
+// UserUpdate The editable fields of a user
+type UserUpdate struct {
+	// Email The address the user signs in with
+	Email string `json:"email"`
+
+	// Name The name other users see
+	Name string `json:"name"`
+}
+
+// VerifySignInCodeRequest The code emailed for a pending sign-in
+type VerifySignInCodeRequest struct {
+	// CloudflareTurnstileToken The answer to the human-verification challenge, required when the instance has one
+	CloudflareTurnstileToken *string `json:"cloudflareTurnstileToken,omitempty"`
+
+	// Code The six digits from the message
+	Code *string `json:"code,omitempty"`
+}
+
 // VersionResponse The body of the version operation
 type VersionResponse struct {
 	// Version The version of the running instance, such as `3.26.0`
 	Version string `json:"version"`
+}
+
+// PendingSignInId defines model for PendingSignInId.
+type PendingSignInId = openapi_types.UUID
+
+// UserId defines model for UserId.
+type UserId = openapi_types.UUID
+
+// ListUsersParams defines parameters for ListUsers.
+type ListUsersParams struct {
+	// Limit The largest number of users on the page
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// After The `nextCursor` of the previous page
+	After *string `form:"after,omitempty" json:"after,omitempty"`
+
+	// Query The text the email address or the name contains
+	Query *string `form:"query,omitempty" json:"query,omitempty"`
+}
+
+// SignInWithGitHubJSONRequestBody defines body for SignInWithGitHub for application/json ContentType.
+type SignInWithGitHubJSONRequestBody = OAuthSignInRequest
+
+// SignInWithGoogleJSONRequestBody defines body for SignInWithGoogle for application/json ContentType.
+type SignInWithGoogleJSONRequestBody = OAuthSignInRequest
+
+// UpdateInstanceSettingsJSONRequestBody defines body for UpdateInstanceSettings for application/json ContentType.
+type UpdateInstanceSettingsJSONRequestBody = InstanceSettingsUpdate
+
+// CompletePasswordResetJSONRequestBody defines body for CompletePasswordReset for application/json ContentType.
+type CompletePasswordResetJSONRequestBody = PasswordResetCompletion
+
+// RequestPasswordResetJSONRequestBody defines body for RequestPasswordReset for application/json ContentType.
+type RequestPasswordResetJSONRequestBody = PasswordResetRequest
+
+// ResendSignInCodeJSONRequestBody defines body for ResendSignInCode for application/json ContentType.
+type ResendSignInCodeJSONRequestBody = ResendSignInCodeRequest
+
+// VerifySignInCodeJSONRequestBody defines body for VerifySignInCode for application/json ContentType.
+type VerifySignInCodeJSONRequestBody = VerifySignInCodeRequest
+
+// SignInJSONRequestBody defines body for SignIn for application/json ContentType.
+type SignInJSONRequestBody = SignInRequest
+
+// SignUpJSONRequestBody defines body for SignUp for application/json ContentType.
+type SignUpJSONRequestBody = SignUpRequest
+
+// UpdateUserJSONRequestBody defines body for UpdateUser for application/json ContentType.
+type UpdateUserJSONRequestBody = UserUpdate
+
+// ChangeUserPasswordJSONRequestBody defines body for ChangeUserPassword for application/json ContentType.
+type ChangeUserPasswordJSONRequestBody = PasswordChange
+
+// ChangeUserRoleJSONRequestBody defines body for ChangeUserRole for application/json ContentType.
+type ChangeUserRoleJSONRequestBody = UserRoleChange
+
+// AsSignInCompleted returns the union data inside the SignInOutcome as a SignInCompleted
+func (t SignInOutcome) AsSignInCompleted() (SignInCompleted, error) {
+	var body SignInCompleted
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromSignInCompleted overwrites any union data inside the SignInOutcome as the provided SignInCompleted
+func (t *SignInOutcome) FromSignInCompleted(v SignInCompleted) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"outcome":"COMPLETED"}`))
+	t.union = b
+	return err
+}
+
+// MergeSignInCompleted performs a merge with any union data inside the SignInOutcome, using the provided SignInCompleted
+func (t *SignInOutcome) MergeSignInCompleted(v SignInCompleted) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"outcome":"COMPLETED"}`))
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsSignInCodeRequired returns the union data inside the SignInOutcome as a SignInCodeRequired
+func (t SignInOutcome) AsSignInCodeRequired() (SignInCodeRequired, error) {
+	var body SignInCodeRequired
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromSignInCodeRequired overwrites any union data inside the SignInOutcome as the provided SignInCodeRequired
+func (t *SignInOutcome) FromSignInCodeRequired(v SignInCodeRequired) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"outcome":"CODE_REQUIRED"}`))
+	t.union = b
+	return err
+}
+
+// MergeSignInCodeRequired performs a merge with any union data inside the SignInOutcome, using the provided SignInCodeRequired
+func (t *SignInOutcome) MergeSignInCodeRequired(v SignInCodeRequired) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"outcome":"CODE_REQUIRED"}`))
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t SignInOutcome) Discriminator() (string, error) {
+	var discriminator struct {
+		Discriminator string `json:"outcome"`
+	}
+	err := json.Unmarshal(t.union, &discriminator)
+	return discriminator.Discriminator, err
+}
+
+func (t SignInOutcome) ValueByDiscriminator() (interface{}, error) {
+	discriminator, err := t.Discriminator()
+	if err != nil {
+		return nil, err
+	}
+	switch discriminator {
+	case "CODE_REQUIRED":
+		return t.AsSignInCodeRequired()
+	case "COMPLETED":
+		return t.AsSignInCompleted()
+	default:
+		return nil, errors.New("unknown discriminator value: " + discriminator)
+	}
+}
+
+func (t SignInOutcome) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *SignInOutcome) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
 }
 
 // RequestEditorFn is the function signature for the RequestEditor callback function
@@ -147,12 +670,615 @@ func WithRequestEditorFn(fn RequestEditorFn) ClientOption {
 // The interface specification for the client above.
 type ClientInterface interface {
 
+	// SignInWithGitHubWithBody Sign in with GitHub
+	//
+	// Public, because it creates the session the caller does not have yet. The code from GitHub's authorization page signs in the user linked to the GitHub account, or the user with the same email address, linking the account and finishing the sign-up of an invited user. An unknown address creates a user under the same rules as sign-up. The second factor does not apply, because GitHub verified the user. A deactivated user gets 403 `user_deactivated`, an instance without the GitHub client gets 409 `oauth_not_configured`, and a code GitHub refuses or an account without an email address gets 400 `oauth_failed`.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /github-sessions (the `SignInWithGitHub` operationId).
+	SignInWithGitHubWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// SignInWithGitHub Sign in with GitHub
+	//
+	// Public, because it creates the session the caller does not have yet. The code from GitHub's authorization page signs in the user linked to the GitHub account, or the user with the same email address, linking the account and finishing the sign-up of an invited user. An unknown address creates a user under the same rules as sign-up. The second factor does not apply, because GitHub verified the user. A deactivated user gets 403 `user_deactivated`, an instance without the GitHub client gets 409 `oauth_not_configured`, and a code GitHub refuses or an account without an email address gets 400 `oauth_failed`.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /github-sessions (the `SignInWithGitHub` operationId).
+	SignInWithGitHub(ctx context.Context, body SignInWithGitHubJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// SignInWithGoogleWithBody Sign in with Google
+	//
+	// Public, because it creates the session the caller does not have yet. The code from Google's authorization page signs in the user linked to the Google account, or the user with the same email address, linking the account and finishing the sign-up of an invited user. An unknown address creates a user under the same rules as sign-up. The second factor does not apply, because Google verified the user. A deactivated user gets 403 `user_deactivated`, an instance without the Google client gets 409 `oauth_not_configured`, and a code Google refuses or an account without an email address gets 400 `oauth_failed`.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /google-sessions (the `SignInWithGoogle` operationId).
+	SignInWithGoogleWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// SignInWithGoogle Sign in with Google
+	//
+	// Public, because it creates the session the caller does not have yet. The code from Google's authorization page signs in the user linked to the Google account, or the user with the same email address, linking the account and finishing the sign-up of an invited user. An unknown address creates a user under the same rules as sign-up. The second factor does not apply, because Google verified the user. A deactivated user gets 403 `user_deactivated`, an instance without the Google client gets 409 `oauth_not_configured`, and a code Google refuses or an account without an email address gets 400 `oauth_failed`.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /google-sessions (the `SignInWithGoogle` operationId).
+	SignInWithGoogle(ctx context.Context, body SignInWithGoogleJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetInstanceSettings Get the instance settings
+	//
+	// Every signed-in user reads them, because the interface offers registration, invitations and new workspaces by them. `isEmailConfigured` is the instance's own judgement about its mail server.
+	//
+	// Corresponds with GET /instance-settings (the `GetInstanceSettings` operationId).
+	GetInstanceSettings(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpdateInstanceSettingsWithBody Replace the instance settings
+	//
+	// Turning the second factor on is refused with 409 `email_not_configured` when the instance has no mail server, and with 409 `admin_email_missing` naming the administrator when an active administrator has no valid email address. Turning it off is never refused.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with PUT /instance-settings (the `UpdateInstanceSettings` operationId).
+	UpdateInstanceSettingsWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpdateInstanceSettings Replace the instance settings
+	//
+	// Turning the second factor on is refused with 409 `email_not_configured` when the instance has no mail server, and with 409 `admin_email_missing` naming the administrator when an active administrator has no valid email address. Turning it off is never refused.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with PUT /instance-settings (the `UpdateInstanceSettings` operationId).
+	UpdateInstanceSettings(ctx context.Context, body UpdateInstanceSettingsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CompletePasswordResetWithBody Replace the password with a mailed reset code
+	//
+	// Public, because the caller cannot sign in. A wrong, used or expired code and an address without an active user all get 400 `invalid_reset_code`. Every session issued before the reset stops working.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /password-reset-completions (the `CompletePasswordReset` operationId).
+	CompletePasswordResetWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CompletePasswordReset Replace the password with a mailed reset code
+	//
+	// Public, because the caller cannot sign in. A wrong, used or expired code and an address without an active user all get 400 `invalid_reset_code`. Every session issued before the reset stops working.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /password-reset-completions (the `CompletePasswordReset` operationId).
+	CompletePasswordReset(ctx context.Context, body CompletePasswordResetJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// RequestPasswordResetWithBody Mail a password reset code
+	//
+	// Public, because the caller cannot sign in. The answer is the same for an active user, a user who is not active and an address without a user; only an active user gets a code, valid for an hour. Three requests an hour per address, whether a user holds it or not.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /password-resets (the `RequestPasswordReset` operationId).
+	RequestPasswordResetWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// RequestPasswordReset Mail a password reset code
+	//
+	// Public, because the caller cannot sign in. The answer is the same for an active user, a user who is not active and an address without a user; only an active user gets a code, valid for an hour. Three requests an hour per address, whether a user holds it or not.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /password-resets (the `RequestPasswordReset` operationId).
+	RequestPasswordReset(ctx context.Context, body RequestPasswordResetJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ResendSignInCodeWithBody Send a new code that replaces the pending sign-in
+	//
+	// Public, because the caller is still signing in. The answer names the new pending sign-in, and the previous code stops working. One resend a minute and five codes an hour per user.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /pending-sign-ins/{pendingSignInId}/resend (the `ResendSignInCode` operationId).
+	ResendSignInCodeWithBody(ctx context.Context, pendingSignInId PendingSignInId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ResendSignInCode Send a new code that replaces the pending sign-in
+	//
+	// Public, because the caller is still signing in. The answer names the new pending sign-in, and the previous code stops working. One resend a minute and five codes an hour per user.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /pending-sign-ins/{pendingSignInId}/resend (the `ResendSignInCode` operationId).
+	ResendSignInCode(ctx context.Context, pendingSignInId PendingSignInId, body ResendSignInCodeJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// VerifySignInCodeWithBody Complete a pending sign-in with the emailed code
+	//
+	// Public, because it creates the session the caller does not have yet. A pending sign-in expires ten minutes after its code was sent and is destroyed by the fifth wrong code; then it answers 410 `pending_sign_in_not_usable`. Ten attempts a minute per pending sign-in.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /pending-sign-ins/{pendingSignInId}/verify (the `VerifySignInCode` operationId).
+	VerifySignInCodeWithBody(ctx context.Context, pendingSignInId PendingSignInId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// VerifySignInCode Complete a pending sign-in with the emailed code
+	//
+	// Public, because it creates the session the caller does not have yet. A pending sign-in expires ten minutes after its code was sent and is destroyed by the fifth wrong code; then it answers 410 `pending_sign_in_not_usable`. Ten attempts a minute per pending sign-in.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /pending-sign-ins/{pendingSignInId}/verify (the `VerifySignInCode` operationId).
+	VerifySignInCode(ctx context.Context, pendingSignInId PendingSignInId, body VerifySignInCodeJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// SignInWithBody Sign in with an email address and a password
+	//
+	// Public, because it creates the session the caller does not have yet. A wrong password, an unknown address, a user who has not finished sign-up and a user without a password all get 401 `invalid_credentials`. A deactivated user gets 403 `user_deactivated` only after the correct password. When the instance requires the second factor, the answer names a pending sign-in and the code goes to the user's address.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /sessions (the `SignIn` operationId).
+	SignInWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// SignIn Sign in with an email address and a password
+	//
+	// Public, because it creates the session the caller does not have yet. A wrong password, an unknown address, a user who has not finished sign-up and a user without a password all get 401 `invalid_credentials`. A deactivated user gets 403 `user_deactivated` only after the correct password. When the instance requires the second factor, the answer names a pending sign-in and the code goes to the user's address.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /sessions (the `SignIn` operationId).
+	SignIn(ctx context.Context, body SignInJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetSignInOptions Get what the sign-in page offers
+	//
+	// Public, because the sign-in page reads it before anyone signs in. It tells whether the instance has a user yet, so the page offers the registration that claims the instance.
+	//
+	// Corresponds with GET /sign-in-options (the `GetSignInOptions` operationId).
+	GetSignInOptions(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// GetVersion Get the version of the running instance
 	//
 	// Public, because installed verification agents call it without a token to decide whether to update themselves. Its path and its body never change.
 	//
 	// Corresponds with GET /system/version (the `GetVersion` operationId).
 	GetVersion(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// SendTestEmail Send a test email to the signed-in administrator
+	//
+	// Refused with 409 `email_not_configured` without a mail server and with 409 `admin_email_missing` when the administrator has no valid email address. A message the mail server refuses is still a test that ran: the answer says it was not delivered and carries the mail server's response. Five per administrator in ten minutes.
+	//
+	// Corresponds with POST /test-emails (the `SendTestEmail` operationId).
+	SendTestEmail(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListUsers List the users of the instance
+	//
+	// The newest users come first. `query` keeps the users whose email address or name contains it, ignoring case.
+	//
+	// Corresponds with GET /users (the `ListUsers` operationId).
+	ListUsers(ctx context.Context, params *ListUsersParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// SignUpWithBody Sign up and sign in as the new user
+	//
+	// Public, because it creates the user and the session the caller does not have yet. The first user of an instance administers it, even when registration is closed. An invited user finishes sign-up through it.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /users (the `SignUp` operationId).
+	SignUpWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// SignUp Sign up and sign in as the new user
+	//
+	// Public, because it creates the user and the session the caller does not have yet. The first user of an instance administers it, even when registration is closed. An invited user finishes sign-up through it.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /users (the `SignUp` operationId).
+	SignUp(ctx context.Context, body SignUpJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetUser Get a user
+	//
+	// A user reads their own user; an instance admin reads any user. Anyone else gets 403 `permission_denied`.
+	//
+	// Corresponds with GET /users/{userId} (the `GetUser` operationId).
+	GetUser(ctx context.Context, userId UserId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpdateUserWithBody Replace the name and the email address of the signed-in user
+	//
+	// Only the user's own ID is accepted; any other gets 403 `permission_denied`. A new address must be a valid email address that no other user holds, or the answer is 400 `invalid_request` or 409 `email_taken`. The current session survives the change, and the next sign-in uses the new address.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with PUT /users/{userId} (the `UpdateUser` operationId).
+	UpdateUserWithBody(ctx context.Context, userId UserId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpdateUser Replace the name and the email address of the signed-in user
+	//
+	// Only the user's own ID is accepted; any other gets 403 `permission_denied`. A new address must be a valid email address that no other user holds, or the answer is 400 `invalid_request` or 409 `email_taken`. The current session survives the change, and the next sign-in uses the new address.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with PUT /users/{userId} (the `UpdateUser` operationId).
+	UpdateUser(ctx context.Context, userId UserId, body UpdateUserJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ActivateUser Activate a user
+	//
+	// The user signs in again. Only the bootstrap administrator activates an instance admin; anyone else gets 403 `permission_denied`.
+	//
+	// Corresponds with POST /users/{userId}/activate (the `ActivateUser` operationId).
+	ActivateUser(ctx context.Context, userId UserId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DeactivateUser Deactivate a user
+	//
+	// Every session of the user stops working, and sign-in answers `user_deactivated`. Deactivating yourself or the bootstrap administrator gets 403 `permission_denied`, and so does deactivating an instance admin for anyone but the bootstrap administrator.
+	//
+	// Corresponds with POST /users/{userId}/deactivate (the `DeactivateUser` operationId).
+	DeactivateUser(ctx context.Context, userId UserId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ChangeUserPasswordWithBody Replace the password of the signed-in user
+	//
+	// Only the user's own ID is accepted; any other gets 403 `permission_denied`. Every session issued before the change stops working, the caller's own included, so the client signs in again with the new password.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with PUT /users/{userId}/password (the `ChangeUserPassword` operationId).
+	ChangeUserPasswordWithBody(ctx context.Context, userId UserId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ChangeUserPassword Replace the password of the signed-in user
+	//
+	// Only the user's own ID is accepted; any other gets 403 `permission_denied`. Every session issued before the change stops working, the caller's own included, so the client signs in again with the new password.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with PUT /users/{userId}/password (the `ChangeUserPassword` operationId).
+	ChangeUserPassword(ctx context.Context, userId UserId, body ChangeUserPasswordJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ChangeUserRoleWithBody Replace the global role of a user
+	//
+	// Only the bootstrap administrator grants or revokes the admin role; anyone else gets 403 `permission_denied`. Nobody changes their own role or the role of the bootstrap administrator.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with PUT /users/{userId}/role (the `ChangeUserRole` operationId).
+	ChangeUserRoleWithBody(ctx context.Context, userId UserId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ChangeUserRole Replace the global role of a user
+	//
+	// Only the bootstrap administrator grants or revokes the admin role; anyone else gets 403 `permission_denied`. Nobody changes their own role or the role of the bootstrap administrator.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with PUT /users/{userId}/role (the `ChangeUserRole` operationId).
+	ChangeUserRole(ctx context.Context, userId UserId, body ChangeUserRoleJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+}
+
+// SignInWithGitHubWithBody Sign in with GitHub
+//
+// Public, because it creates the session the caller does not have yet. The code from GitHub's authorization page signs in the user linked to the GitHub account, or the user with the same email address, linking the account and finishing the sign-up of an invited user. An unknown address creates a user under the same rules as sign-up. The second factor does not apply, because GitHub verified the user. A deactivated user gets 403 `user_deactivated`, an instance without the GitHub client gets 409 `oauth_not_configured`, and a code GitHub refuses or an account without an email address gets 400 `oauth_failed`.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /github-sessions (the `SignInWithGitHub` operationId).
+func (c *Client) SignInWithGitHubWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSignInWithGitHubRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// SignInWithGitHub Sign in with GitHub
+//
+// Public, because it creates the session the caller does not have yet. The code from GitHub's authorization page signs in the user linked to the GitHub account, or the user with the same email address, linking the account and finishing the sign-up of an invited user. An unknown address creates a user under the same rules as sign-up. The second factor does not apply, because GitHub verified the user. A deactivated user gets 403 `user_deactivated`, an instance without the GitHub client gets 409 `oauth_not_configured`, and a code GitHub refuses or an account without an email address gets 400 `oauth_failed`.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /github-sessions (the `SignInWithGitHub` operationId).
+func (c *Client) SignInWithGitHub(ctx context.Context, body SignInWithGitHubJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSignInWithGitHubRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// SignInWithGoogleWithBody Sign in with Google
+//
+// Public, because it creates the session the caller does not have yet. The code from Google's authorization page signs in the user linked to the Google account, or the user with the same email address, linking the account and finishing the sign-up of an invited user. An unknown address creates a user under the same rules as sign-up. The second factor does not apply, because Google verified the user. A deactivated user gets 403 `user_deactivated`, an instance without the Google client gets 409 `oauth_not_configured`, and a code Google refuses or an account without an email address gets 400 `oauth_failed`.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /google-sessions (the `SignInWithGoogle` operationId).
+func (c *Client) SignInWithGoogleWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSignInWithGoogleRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// SignInWithGoogle Sign in with Google
+//
+// Public, because it creates the session the caller does not have yet. The code from Google's authorization page signs in the user linked to the Google account, or the user with the same email address, linking the account and finishing the sign-up of an invited user. An unknown address creates a user under the same rules as sign-up. The second factor does not apply, because Google verified the user. A deactivated user gets 403 `user_deactivated`, an instance without the Google client gets 409 `oauth_not_configured`, and a code Google refuses or an account without an email address gets 400 `oauth_failed`.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /google-sessions (the `SignInWithGoogle` operationId).
+func (c *Client) SignInWithGoogle(ctx context.Context, body SignInWithGoogleJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSignInWithGoogleRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetInstanceSettings Get the instance settings
+//
+// Every signed-in user reads them, because the interface offers registration, invitations and new workspaces by them. `isEmailConfigured` is the instance's own judgement about its mail server.
+//
+// Corresponds with GET /instance-settings (the `GetInstanceSettings` operationId).
+func (c *Client) GetInstanceSettings(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetInstanceSettingsRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// UpdateInstanceSettingsWithBody Replace the instance settings
+//
+// Turning the second factor on is refused with 409 `email_not_configured` when the instance has no mail server, and with 409 `admin_email_missing` naming the administrator when an active administrator has no valid email address. Turning it off is never refused.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with PUT /instance-settings (the `UpdateInstanceSettings` operationId).
+func (c *Client) UpdateInstanceSettingsWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateInstanceSettingsRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// UpdateInstanceSettings Replace the instance settings
+//
+// Turning the second factor on is refused with 409 `email_not_configured` when the instance has no mail server, and with 409 `admin_email_missing` naming the administrator when an active administrator has no valid email address. Turning it off is never refused.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with PUT /instance-settings (the `UpdateInstanceSettings` operationId).
+func (c *Client) UpdateInstanceSettings(ctx context.Context, body UpdateInstanceSettingsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateInstanceSettingsRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// CompletePasswordResetWithBody Replace the password with a mailed reset code
+//
+// Public, because the caller cannot sign in. A wrong, used or expired code and an address without an active user all get 400 `invalid_reset_code`. Every session issued before the reset stops working.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /password-reset-completions (the `CompletePasswordReset` operationId).
+func (c *Client) CompletePasswordResetWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCompletePasswordResetRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// CompletePasswordReset Replace the password with a mailed reset code
+//
+// Public, because the caller cannot sign in. A wrong, used or expired code and an address without an active user all get 400 `invalid_reset_code`. Every session issued before the reset stops working.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /password-reset-completions (the `CompletePasswordReset` operationId).
+func (c *Client) CompletePasswordReset(ctx context.Context, body CompletePasswordResetJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCompletePasswordResetRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// RequestPasswordResetWithBody Mail a password reset code
+//
+// Public, because the caller cannot sign in. The answer is the same for an active user, a user who is not active and an address without a user; only an active user gets a code, valid for an hour. Three requests an hour per address, whether a user holds it or not.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /password-resets (the `RequestPasswordReset` operationId).
+func (c *Client) RequestPasswordResetWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRequestPasswordResetRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// RequestPasswordReset Mail a password reset code
+//
+// Public, because the caller cannot sign in. The answer is the same for an active user, a user who is not active and an address without a user; only an active user gets a code, valid for an hour. Three requests an hour per address, whether a user holds it or not.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /password-resets (the `RequestPasswordReset` operationId).
+func (c *Client) RequestPasswordReset(ctx context.Context, body RequestPasswordResetJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRequestPasswordResetRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ResendSignInCodeWithBody Send a new code that replaces the pending sign-in
+//
+// Public, because the caller is still signing in. The answer names the new pending sign-in, and the previous code stops working. One resend a minute and five codes an hour per user.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /pending-sign-ins/{pendingSignInId}/resend (the `ResendSignInCode` operationId).
+func (c *Client) ResendSignInCodeWithBody(ctx context.Context, pendingSignInId PendingSignInId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewResendSignInCodeRequestWithBody(c.Server, pendingSignInId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ResendSignInCode Send a new code that replaces the pending sign-in
+//
+// Public, because the caller is still signing in. The answer names the new pending sign-in, and the previous code stops working. One resend a minute and five codes an hour per user.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /pending-sign-ins/{pendingSignInId}/resend (the `ResendSignInCode` operationId).
+func (c *Client) ResendSignInCode(ctx context.Context, pendingSignInId PendingSignInId, body ResendSignInCodeJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewResendSignInCodeRequest(c.Server, pendingSignInId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// VerifySignInCodeWithBody Complete a pending sign-in with the emailed code
+//
+// Public, because it creates the session the caller does not have yet. A pending sign-in expires ten minutes after its code was sent and is destroyed by the fifth wrong code; then it answers 410 `pending_sign_in_not_usable`. Ten attempts a minute per pending sign-in.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /pending-sign-ins/{pendingSignInId}/verify (the `VerifySignInCode` operationId).
+func (c *Client) VerifySignInCodeWithBody(ctx context.Context, pendingSignInId PendingSignInId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewVerifySignInCodeRequestWithBody(c.Server, pendingSignInId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// VerifySignInCode Complete a pending sign-in with the emailed code
+//
+// Public, because it creates the session the caller does not have yet. A pending sign-in expires ten minutes after its code was sent and is destroyed by the fifth wrong code; then it answers 410 `pending_sign_in_not_usable`. Ten attempts a minute per pending sign-in.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /pending-sign-ins/{pendingSignInId}/verify (the `VerifySignInCode` operationId).
+func (c *Client) VerifySignInCode(ctx context.Context, pendingSignInId PendingSignInId, body VerifySignInCodeJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewVerifySignInCodeRequest(c.Server, pendingSignInId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// SignInWithBody Sign in with an email address and a password
+//
+// Public, because it creates the session the caller does not have yet. A wrong password, an unknown address, a user who has not finished sign-up and a user without a password all get 401 `invalid_credentials`. A deactivated user gets 403 `user_deactivated` only after the correct password. When the instance requires the second factor, the answer names a pending sign-in and the code goes to the user's address.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /sessions (the `SignIn` operationId).
+func (c *Client) SignInWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSignInRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// SignIn Sign in with an email address and a password
+//
+// Public, because it creates the session the caller does not have yet. A wrong password, an unknown address, a user who has not finished sign-up and a user without a password all get 401 `invalid_credentials`. A deactivated user gets 403 `user_deactivated` only after the correct password. When the instance requires the second factor, the answer names a pending sign-in and the code goes to the user's address.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /sessions (the `SignIn` operationId).
+func (c *Client) SignIn(ctx context.Context, body SignInJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSignInRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetSignInOptions Get what the sign-in page offers
+//
+// Public, because the sign-in page reads it before anyone signs in. It tells whether the instance has a user yet, so the page offers the registration that claims the instance.
+//
+// Corresponds with GET /sign-in-options (the `GetSignInOptions` operationId).
+func (c *Client) GetSignInOptions(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetSignInOptionsRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
 }
 
 // GetVersion Get the version of the running instance
@@ -170,6 +1296,631 @@ func (c *Client) GetVersion(ctx context.Context, reqEditors ...RequestEditorFn) 
 		return nil, err
 	}
 	return c.Client.Do(req)
+}
+
+// SendTestEmail Send a test email to the signed-in administrator
+//
+// Refused with 409 `email_not_configured` without a mail server and with 409 `admin_email_missing` when the administrator has no valid email address. A message the mail server refuses is still a test that ran: the answer says it was not delivered and carries the mail server's response. Five per administrator in ten minutes.
+//
+// Corresponds with POST /test-emails (the `SendTestEmail` operationId).
+func (c *Client) SendTestEmail(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSendTestEmailRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ListUsers List the users of the instance
+//
+// The newest users come first. `query` keeps the users whose email address or name contains it, ignoring case.
+//
+// Corresponds with GET /users (the `ListUsers` operationId).
+func (c *Client) ListUsers(ctx context.Context, params *ListUsersParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListUsersRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// SignUpWithBody Sign up and sign in as the new user
+//
+// Public, because it creates the user and the session the caller does not have yet. The first user of an instance administers it, even when registration is closed. An invited user finishes sign-up through it.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /users (the `SignUp` operationId).
+func (c *Client) SignUpWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSignUpRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// SignUp Sign up and sign in as the new user
+//
+// Public, because it creates the user and the session the caller does not have yet. The first user of an instance administers it, even when registration is closed. An invited user finishes sign-up through it.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /users (the `SignUp` operationId).
+func (c *Client) SignUp(ctx context.Context, body SignUpJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSignUpRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetUser Get a user
+//
+// A user reads their own user; an instance admin reads any user. Anyone else gets 403 `permission_denied`.
+//
+// Corresponds with GET /users/{userId} (the `GetUser` operationId).
+func (c *Client) GetUser(ctx context.Context, userId UserId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetUserRequest(c.Server, userId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// UpdateUserWithBody Replace the name and the email address of the signed-in user
+//
+// Only the user's own ID is accepted; any other gets 403 `permission_denied`. A new address must be a valid email address that no other user holds, or the answer is 400 `invalid_request` or 409 `email_taken`. The current session survives the change, and the next sign-in uses the new address.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with PUT /users/{userId} (the `UpdateUser` operationId).
+func (c *Client) UpdateUserWithBody(ctx context.Context, userId UserId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateUserRequestWithBody(c.Server, userId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// UpdateUser Replace the name and the email address of the signed-in user
+//
+// Only the user's own ID is accepted; any other gets 403 `permission_denied`. A new address must be a valid email address that no other user holds, or the answer is 400 `invalid_request` or 409 `email_taken`. The current session survives the change, and the next sign-in uses the new address.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with PUT /users/{userId} (the `UpdateUser` operationId).
+func (c *Client) UpdateUser(ctx context.Context, userId UserId, body UpdateUserJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateUserRequest(c.Server, userId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ActivateUser Activate a user
+//
+// The user signs in again. Only the bootstrap administrator activates an instance admin; anyone else gets 403 `permission_denied`.
+//
+// Corresponds with POST /users/{userId}/activate (the `ActivateUser` operationId).
+func (c *Client) ActivateUser(ctx context.Context, userId UserId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewActivateUserRequest(c.Server, userId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// DeactivateUser Deactivate a user
+//
+// Every session of the user stops working, and sign-in answers `user_deactivated`. Deactivating yourself or the bootstrap administrator gets 403 `permission_denied`, and so does deactivating an instance admin for anyone but the bootstrap administrator.
+//
+// Corresponds with POST /users/{userId}/deactivate (the `DeactivateUser` operationId).
+func (c *Client) DeactivateUser(ctx context.Context, userId UserId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeactivateUserRequest(c.Server, userId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ChangeUserPasswordWithBody Replace the password of the signed-in user
+//
+// Only the user's own ID is accepted; any other gets 403 `permission_denied`. Every session issued before the change stops working, the caller's own included, so the client signs in again with the new password.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with PUT /users/{userId}/password (the `ChangeUserPassword` operationId).
+func (c *Client) ChangeUserPasswordWithBody(ctx context.Context, userId UserId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewChangeUserPasswordRequestWithBody(c.Server, userId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ChangeUserPassword Replace the password of the signed-in user
+//
+// Only the user's own ID is accepted; any other gets 403 `permission_denied`. Every session issued before the change stops working, the caller's own included, so the client signs in again with the new password.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with PUT /users/{userId}/password (the `ChangeUserPassword` operationId).
+func (c *Client) ChangeUserPassword(ctx context.Context, userId UserId, body ChangeUserPasswordJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewChangeUserPasswordRequest(c.Server, userId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ChangeUserRoleWithBody Replace the global role of a user
+//
+// Only the bootstrap administrator grants or revokes the admin role; anyone else gets 403 `permission_denied`. Nobody changes their own role or the role of the bootstrap administrator.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with PUT /users/{userId}/role (the `ChangeUserRole` operationId).
+func (c *Client) ChangeUserRoleWithBody(ctx context.Context, userId UserId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewChangeUserRoleRequestWithBody(c.Server, userId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ChangeUserRole Replace the global role of a user
+//
+// Only the bootstrap administrator grants or revokes the admin role; anyone else gets 403 `permission_denied`. Nobody changes their own role or the role of the bootstrap administrator.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with PUT /users/{userId}/role (the `ChangeUserRole` operationId).
+func (c *Client) ChangeUserRole(ctx context.Context, userId UserId, body ChangeUserRoleJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewChangeUserRoleRequest(c.Server, userId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// NewSignInWithGitHubRequest calls the generic SignInWithGitHub builder with application/json body
+func NewSignInWithGitHubRequest(server string, body SignInWithGitHubJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewSignInWithGitHubRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewSignInWithGitHubRequestWithBody constructs an http.Request for the SignInWithGitHub method, with any body, and a specified content type
+func NewSignInWithGitHubRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/github-sessions")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewSignInWithGoogleRequest calls the generic SignInWithGoogle builder with application/json body
+func NewSignInWithGoogleRequest(server string, body SignInWithGoogleJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewSignInWithGoogleRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewSignInWithGoogleRequestWithBody constructs an http.Request for the SignInWithGoogle method, with any body, and a specified content type
+func NewSignInWithGoogleRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/google-sessions")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewGetInstanceSettingsRequest constructs an http.Request for the GetInstanceSettings method
+func NewGetInstanceSettingsRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/instance-settings")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewUpdateInstanceSettingsRequest calls the generic UpdateInstanceSettings builder with application/json body
+func NewUpdateInstanceSettingsRequest(server string, body UpdateInstanceSettingsJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewUpdateInstanceSettingsRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewUpdateInstanceSettingsRequestWithBody constructs an http.Request for the UpdateInstanceSettings method, with any body, and a specified content type
+func NewUpdateInstanceSettingsRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/instance-settings")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPut, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewCompletePasswordResetRequest calls the generic CompletePasswordReset builder with application/json body
+func NewCompletePasswordResetRequest(server string, body CompletePasswordResetJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCompletePasswordResetRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewCompletePasswordResetRequestWithBody constructs an http.Request for the CompletePasswordReset method, with any body, and a specified content type
+func NewCompletePasswordResetRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/password-reset-completions")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewRequestPasswordResetRequest calls the generic RequestPasswordReset builder with application/json body
+func NewRequestPasswordResetRequest(server string, body RequestPasswordResetJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewRequestPasswordResetRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewRequestPasswordResetRequestWithBody constructs an http.Request for the RequestPasswordReset method, with any body, and a specified content type
+func NewRequestPasswordResetRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/password-resets")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewResendSignInCodeRequest calls the generic ResendSignInCode builder with application/json body
+func NewResendSignInCodeRequest(server string, pendingSignInId PendingSignInId, body ResendSignInCodeJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewResendSignInCodeRequestWithBody(server, pendingSignInId, "application/json", bodyReader)
+}
+
+// NewResendSignInCodeRequestWithBody constructs an http.Request for the ResendSignInCode method, with any body, and a specified content type
+func NewResendSignInCodeRequestWithBody(server string, pendingSignInId PendingSignInId, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "pendingSignInId", pendingSignInId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/pending-sign-ins/%s/resend", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewVerifySignInCodeRequest calls the generic VerifySignInCode builder with application/json body
+func NewVerifySignInCodeRequest(server string, pendingSignInId PendingSignInId, body VerifySignInCodeJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewVerifySignInCodeRequestWithBody(server, pendingSignInId, "application/json", bodyReader)
+}
+
+// NewVerifySignInCodeRequestWithBody constructs an http.Request for the VerifySignInCode method, with any body, and a specified content type
+func NewVerifySignInCodeRequestWithBody(server string, pendingSignInId PendingSignInId, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "pendingSignInId", pendingSignInId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/pending-sign-ins/%s/verify", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewSignInRequest calls the generic SignIn builder with application/json body
+func NewSignInRequest(server string, body SignInJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewSignInRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewSignInRequestWithBody constructs an http.Request for the SignIn method, with any body, and a specified content type
+func NewSignInRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/sessions")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewGetSignInOptionsRequest constructs an http.Request for the GetSignInOptions method
+func NewGetSignInOptionsRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/sign-in-options")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
 }
 
 // NewGetVersionRequest constructs an http.Request for the GetVersion method
@@ -195,6 +1946,394 @@ func NewGetVersionRequest(server string) (*http.Request, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	return req, nil
+}
+
+// NewSendTestEmailRequest constructs an http.Request for the SendTestEmail method
+func NewSendTestEmailRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/test-emails")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewListUsersRequest constructs an http.Request for the ListUsers method
+func NewListUsersRequest(server string, params *ListUsersParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/users")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "limit", *params.Limit, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.After != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "after", *params.After, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Query != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "query", *params.Query, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewSignUpRequest calls the generic SignUp builder with application/json body
+func NewSignUpRequest(server string, body SignUpJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewSignUpRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewSignUpRequestWithBody constructs an http.Request for the SignUp method, with any body, and a specified content type
+func NewSignUpRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/users")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewGetUserRequest constructs an http.Request for the GetUser method
+func NewGetUserRequest(server string, userId UserId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "userId", userId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/users/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewUpdateUserRequest calls the generic UpdateUser builder with application/json body
+func NewUpdateUserRequest(server string, userId UserId, body UpdateUserJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewUpdateUserRequestWithBody(server, userId, "application/json", bodyReader)
+}
+
+// NewUpdateUserRequestWithBody constructs an http.Request for the UpdateUser method, with any body, and a specified content type
+func NewUpdateUserRequestWithBody(server string, userId UserId, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "userId", userId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/users/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPut, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewActivateUserRequest constructs an http.Request for the ActivateUser method
+func NewActivateUserRequest(server string, userId UserId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "userId", userId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/users/%s/activate", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewDeactivateUserRequest constructs an http.Request for the DeactivateUser method
+func NewDeactivateUserRequest(server string, userId UserId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "userId", userId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/users/%s/deactivate", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewChangeUserPasswordRequest calls the generic ChangeUserPassword builder with application/json body
+func NewChangeUserPasswordRequest(server string, userId UserId, body ChangeUserPasswordJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewChangeUserPasswordRequestWithBody(server, userId, "application/json", bodyReader)
+}
+
+// NewChangeUserPasswordRequestWithBody constructs an http.Request for the ChangeUserPassword method, with any body, and a specified content type
+func NewChangeUserPasswordRequestWithBody(server string, userId UserId, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "userId", userId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/users/%s/password", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPut, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewChangeUserRoleRequest calls the generic ChangeUserRole builder with application/json body
+func NewChangeUserRoleRequest(server string, userId UserId, body ChangeUserRoleJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewChangeUserRoleRequestWithBody(server, userId, "application/json", bodyReader)
+}
+
+// NewChangeUserRoleRequestWithBody constructs an http.Request for the ChangeUserRole method, with any body, and a specified content type
+func NewChangeUserRoleRequestWithBody(server string, userId UserId, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "userId", userId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/users/%s/role", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPut, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
 
 	return req, nil
 }
@@ -243,6 +2382,168 @@ func WithBaseURL(baseURL string) ClientOption {
 // ClientWithResponsesInterface is the interface specification for the client with responses above.
 type ClientWithResponsesInterface interface {
 
+	// SignInWithGitHubWithBodyWithResponse Sign in with GitHub
+	//
+	// Public, because it creates the session the caller does not have yet. The code from GitHub's authorization page signs in the user linked to the GitHub account, or the user with the same email address, linking the account and finishing the sign-up of an invited user. An unknown address creates a user under the same rules as sign-up. The second factor does not apply, because GitHub verified the user. A deactivated user gets 403 `user_deactivated`, an instance without the GitHub client gets 409 `oauth_not_configured`, and a code GitHub refuses or an account without an email address gets 400 `oauth_failed`.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /github-sessions (the `SignInWithGitHub` operationId).
+	SignInWithGitHubWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SignInWithGitHubResponse, error)
+
+	// SignInWithGitHubWithResponse Sign in with GitHub
+	//
+	// Public, because it creates the session the caller does not have yet. The code from GitHub's authorization page signs in the user linked to the GitHub account, or the user with the same email address, linking the account and finishing the sign-up of an invited user. An unknown address creates a user under the same rules as sign-up. The second factor does not apply, because GitHub verified the user. A deactivated user gets 403 `user_deactivated`, an instance without the GitHub client gets 409 `oauth_not_configured`, and a code GitHub refuses or an account without an email address gets 400 `oauth_failed`.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /github-sessions (the `SignInWithGitHub` operationId).
+	SignInWithGitHubWithResponse(ctx context.Context, body SignInWithGitHubJSONRequestBody, reqEditors ...RequestEditorFn) (*SignInWithGitHubResponse, error)
+
+	// SignInWithGoogleWithBodyWithResponse Sign in with Google
+	//
+	// Public, because it creates the session the caller does not have yet. The code from Google's authorization page signs in the user linked to the Google account, or the user with the same email address, linking the account and finishing the sign-up of an invited user. An unknown address creates a user under the same rules as sign-up. The second factor does not apply, because Google verified the user. A deactivated user gets 403 `user_deactivated`, an instance without the Google client gets 409 `oauth_not_configured`, and a code Google refuses or an account without an email address gets 400 `oauth_failed`.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /google-sessions (the `SignInWithGoogle` operationId).
+	SignInWithGoogleWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SignInWithGoogleResponse, error)
+
+	// SignInWithGoogleWithResponse Sign in with Google
+	//
+	// Public, because it creates the session the caller does not have yet. The code from Google's authorization page signs in the user linked to the Google account, or the user with the same email address, linking the account and finishing the sign-up of an invited user. An unknown address creates a user under the same rules as sign-up. The second factor does not apply, because Google verified the user. A deactivated user gets 403 `user_deactivated`, an instance without the Google client gets 409 `oauth_not_configured`, and a code Google refuses or an account without an email address gets 400 `oauth_failed`.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /google-sessions (the `SignInWithGoogle` operationId).
+	SignInWithGoogleWithResponse(ctx context.Context, body SignInWithGoogleJSONRequestBody, reqEditors ...RequestEditorFn) (*SignInWithGoogleResponse, error)
+
+	// GetInstanceSettingsWithResponse Get the instance settings
+	//
+	// Every signed-in user reads them, because the interface offers registration, invitations and new workspaces by them. `isEmailConfigured` is the instance's own judgement about its mail server.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /instance-settings (the `GetInstanceSettings` operationId).
+	GetInstanceSettingsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetInstanceSettingsResponse, error)
+
+	// UpdateInstanceSettingsWithBodyWithResponse Replace the instance settings
+	//
+	// Turning the second factor on is refused with 409 `email_not_configured` when the instance has no mail server, and with 409 `admin_email_missing` naming the administrator when an active administrator has no valid email address. Turning it off is never refused.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /instance-settings (the `UpdateInstanceSettings` operationId).
+	UpdateInstanceSettingsWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateInstanceSettingsResponse, error)
+
+	// UpdateInstanceSettingsWithResponse Replace the instance settings
+	//
+	// Turning the second factor on is refused with 409 `email_not_configured` when the instance has no mail server, and with 409 `admin_email_missing` naming the administrator when an active administrator has no valid email address. Turning it off is never refused.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /instance-settings (the `UpdateInstanceSettings` operationId).
+	UpdateInstanceSettingsWithResponse(ctx context.Context, body UpdateInstanceSettingsJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateInstanceSettingsResponse, error)
+
+	// CompletePasswordResetWithBodyWithResponse Replace the password with a mailed reset code
+	//
+	// Public, because the caller cannot sign in. A wrong, used or expired code and an address without an active user all get 400 `invalid_reset_code`. Every session issued before the reset stops working.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /password-reset-completions (the `CompletePasswordReset` operationId).
+	CompletePasswordResetWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CompletePasswordResetResponse, error)
+
+	// CompletePasswordResetWithResponse Replace the password with a mailed reset code
+	//
+	// Public, because the caller cannot sign in. A wrong, used or expired code and an address without an active user all get 400 `invalid_reset_code`. Every session issued before the reset stops working.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /password-reset-completions (the `CompletePasswordReset` operationId).
+	CompletePasswordResetWithResponse(ctx context.Context, body CompletePasswordResetJSONRequestBody, reqEditors ...RequestEditorFn) (*CompletePasswordResetResponse, error)
+
+	// RequestPasswordResetWithBodyWithResponse Mail a password reset code
+	//
+	// Public, because the caller cannot sign in. The answer is the same for an active user, a user who is not active and an address without a user; only an active user gets a code, valid for an hour. Three requests an hour per address, whether a user holds it or not.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /password-resets (the `RequestPasswordReset` operationId).
+	RequestPasswordResetWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*RequestPasswordResetResponse, error)
+
+	// RequestPasswordResetWithResponse Mail a password reset code
+	//
+	// Public, because the caller cannot sign in. The answer is the same for an active user, a user who is not active and an address without a user; only an active user gets a code, valid for an hour. Three requests an hour per address, whether a user holds it or not.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /password-resets (the `RequestPasswordReset` operationId).
+	RequestPasswordResetWithResponse(ctx context.Context, body RequestPasswordResetJSONRequestBody, reqEditors ...RequestEditorFn) (*RequestPasswordResetResponse, error)
+
+	// ResendSignInCodeWithBodyWithResponse Send a new code that replaces the pending sign-in
+	//
+	// Public, because the caller is still signing in. The answer names the new pending sign-in, and the previous code stops working. One resend a minute and five codes an hour per user.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /pending-sign-ins/{pendingSignInId}/resend (the `ResendSignInCode` operationId).
+	ResendSignInCodeWithBodyWithResponse(ctx context.Context, pendingSignInId PendingSignInId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ResendSignInCodeResponse, error)
+
+	// ResendSignInCodeWithResponse Send a new code that replaces the pending sign-in
+	//
+	// Public, because the caller is still signing in. The answer names the new pending sign-in, and the previous code stops working. One resend a minute and five codes an hour per user.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /pending-sign-ins/{pendingSignInId}/resend (the `ResendSignInCode` operationId).
+	ResendSignInCodeWithResponse(ctx context.Context, pendingSignInId PendingSignInId, body ResendSignInCodeJSONRequestBody, reqEditors ...RequestEditorFn) (*ResendSignInCodeResponse, error)
+
+	// VerifySignInCodeWithBodyWithResponse Complete a pending sign-in with the emailed code
+	//
+	// Public, because it creates the session the caller does not have yet. A pending sign-in expires ten minutes after its code was sent and is destroyed by the fifth wrong code; then it answers 410 `pending_sign_in_not_usable`. Ten attempts a minute per pending sign-in.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /pending-sign-ins/{pendingSignInId}/verify (the `VerifySignInCode` operationId).
+	VerifySignInCodeWithBodyWithResponse(ctx context.Context, pendingSignInId PendingSignInId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*VerifySignInCodeResponse, error)
+
+	// VerifySignInCodeWithResponse Complete a pending sign-in with the emailed code
+	//
+	// Public, because it creates the session the caller does not have yet. A pending sign-in expires ten minutes after its code was sent and is destroyed by the fifth wrong code; then it answers 410 `pending_sign_in_not_usable`. Ten attempts a minute per pending sign-in.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /pending-sign-ins/{pendingSignInId}/verify (the `VerifySignInCode` operationId).
+	VerifySignInCodeWithResponse(ctx context.Context, pendingSignInId PendingSignInId, body VerifySignInCodeJSONRequestBody, reqEditors ...RequestEditorFn) (*VerifySignInCodeResponse, error)
+
+	// SignInWithBodyWithResponse Sign in with an email address and a password
+	//
+	// Public, because it creates the session the caller does not have yet. A wrong password, an unknown address, a user who has not finished sign-up and a user without a password all get 401 `invalid_credentials`. A deactivated user gets 403 `user_deactivated` only after the correct password. When the instance requires the second factor, the answer names a pending sign-in and the code goes to the user's address.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /sessions (the `SignIn` operationId).
+	SignInWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SignInResponse, error)
+
+	// SignInWithResponse Sign in with an email address and a password
+	//
+	// Public, because it creates the session the caller does not have yet. A wrong password, an unknown address, a user who has not finished sign-up and a user without a password all get 401 `invalid_credentials`. A deactivated user gets 403 `user_deactivated` only after the correct password. When the instance requires the second factor, the answer names a pending sign-in and the code goes to the user's address.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /sessions (the `SignIn` operationId).
+	SignInWithResponse(ctx context.Context, body SignInJSONRequestBody, reqEditors ...RequestEditorFn) (*SignInResponse, error)
+
+	// GetSignInOptionsWithResponse Get what the sign-in page offers
+	//
+	// Public, because the sign-in page reads it before anyone signs in. It tells whether the instance has a user yet, so the page offers the registration that claims the instance.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /sign-in-options (the `GetSignInOptions` operationId).
+	GetSignInOptionsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetSignInOptionsResponse, error)
+
 	// GetVersionWithResponse Get the version of the running instance
 	//
 	// Public, because installed verification agents call it without a token to decide whether to update themselves. Its path and its body never change.
@@ -251,6 +2552,764 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with GET /system/version (the `GetVersion` operationId).
 	GetVersionWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetVersionResponse, error)
+
+	// SendTestEmailWithResponse Send a test email to the signed-in administrator
+	//
+	// Refused with 409 `email_not_configured` without a mail server and with 409 `admin_email_missing` when the administrator has no valid email address. A message the mail server refuses is still a test that ran: the answer says it was not delivered and carries the mail server's response. Five per administrator in ten minutes.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /test-emails (the `SendTestEmail` operationId).
+	SendTestEmailWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*SendTestEmailResponse, error)
+
+	// ListUsersWithResponse List the users of the instance
+	//
+	// The newest users come first. `query` keeps the users whose email address or name contains it, ignoring case.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /users (the `ListUsers` operationId).
+	ListUsersWithResponse(ctx context.Context, params *ListUsersParams, reqEditors ...RequestEditorFn) (*ListUsersResponse, error)
+
+	// SignUpWithBodyWithResponse Sign up and sign in as the new user
+	//
+	// Public, because it creates the user and the session the caller does not have yet. The first user of an instance administers it, even when registration is closed. An invited user finishes sign-up through it.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /users (the `SignUp` operationId).
+	SignUpWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SignUpResponse, error)
+
+	// SignUpWithResponse Sign up and sign in as the new user
+	//
+	// Public, because it creates the user and the session the caller does not have yet. The first user of an instance administers it, even when registration is closed. An invited user finishes sign-up through it.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /users (the `SignUp` operationId).
+	SignUpWithResponse(ctx context.Context, body SignUpJSONRequestBody, reqEditors ...RequestEditorFn) (*SignUpResponse, error)
+
+	// GetUserWithResponse Get a user
+	//
+	// A user reads their own user; an instance admin reads any user. Anyone else gets 403 `permission_denied`.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /users/{userId} (the `GetUser` operationId).
+	GetUserWithResponse(ctx context.Context, userId UserId, reqEditors ...RequestEditorFn) (*GetUserResponse, error)
+
+	// UpdateUserWithBodyWithResponse Replace the name and the email address of the signed-in user
+	//
+	// Only the user's own ID is accepted; any other gets 403 `permission_denied`. A new address must be a valid email address that no other user holds, or the answer is 400 `invalid_request` or 409 `email_taken`. The current session survives the change, and the next sign-in uses the new address.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /users/{userId} (the `UpdateUser` operationId).
+	UpdateUserWithBodyWithResponse(ctx context.Context, userId UserId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateUserResponse, error)
+
+	// UpdateUserWithResponse Replace the name and the email address of the signed-in user
+	//
+	// Only the user's own ID is accepted; any other gets 403 `permission_denied`. A new address must be a valid email address that no other user holds, or the answer is 400 `invalid_request` or 409 `email_taken`. The current session survives the change, and the next sign-in uses the new address.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /users/{userId} (the `UpdateUser` operationId).
+	UpdateUserWithResponse(ctx context.Context, userId UserId, body UpdateUserJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateUserResponse, error)
+
+	// ActivateUserWithResponse Activate a user
+	//
+	// The user signs in again. Only the bootstrap administrator activates an instance admin; anyone else gets 403 `permission_denied`.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /users/{userId}/activate (the `ActivateUser` operationId).
+	ActivateUserWithResponse(ctx context.Context, userId UserId, reqEditors ...RequestEditorFn) (*ActivateUserResponse, error)
+
+	// DeactivateUserWithResponse Deactivate a user
+	//
+	// Every session of the user stops working, and sign-in answers `user_deactivated`. Deactivating yourself or the bootstrap administrator gets 403 `permission_denied`, and so does deactivating an instance admin for anyone but the bootstrap administrator.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /users/{userId}/deactivate (the `DeactivateUser` operationId).
+	DeactivateUserWithResponse(ctx context.Context, userId UserId, reqEditors ...RequestEditorFn) (*DeactivateUserResponse, error)
+
+	// ChangeUserPasswordWithBodyWithResponse Replace the password of the signed-in user
+	//
+	// Only the user's own ID is accepted; any other gets 403 `permission_denied`. Every session issued before the change stops working, the caller's own included, so the client signs in again with the new password.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /users/{userId}/password (the `ChangeUserPassword` operationId).
+	ChangeUserPasswordWithBodyWithResponse(ctx context.Context, userId UserId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ChangeUserPasswordResponse, error)
+
+	// ChangeUserPasswordWithResponse Replace the password of the signed-in user
+	//
+	// Only the user's own ID is accepted; any other gets 403 `permission_denied`. Every session issued before the change stops working, the caller's own included, so the client signs in again with the new password.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /users/{userId}/password (the `ChangeUserPassword` operationId).
+	ChangeUserPasswordWithResponse(ctx context.Context, userId UserId, body ChangeUserPasswordJSONRequestBody, reqEditors ...RequestEditorFn) (*ChangeUserPasswordResponse, error)
+
+	// ChangeUserRoleWithBodyWithResponse Replace the global role of a user
+	//
+	// Only the bootstrap administrator grants or revokes the admin role; anyone else gets 403 `permission_denied`. Nobody changes their own role or the role of the bootstrap administrator.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /users/{userId}/role (the `ChangeUserRole` operationId).
+	ChangeUserRoleWithBodyWithResponse(ctx context.Context, userId UserId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ChangeUserRoleResponse, error)
+
+	// ChangeUserRoleWithResponse Replace the global role of a user
+	//
+	// Only the bootstrap administrator grants or revokes the admin role; anyone else gets 403 `permission_denied`. Nobody changes their own role or the role of the bootstrap administrator.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /users/{userId}/role (the `ChangeUserRole` operationId).
+	ChangeUserRoleWithResponse(ctx context.Context, userId UserId, body ChangeUserRoleJSONRequestBody, reqEditors ...RequestEditorFn) (*ChangeUserRoleResponse, error)
+}
+
+type SignInWithGitHubResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *Session
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON409 the response for an HTTP 409 `application/problem+json` response
+	ApplicationproblemJSON409 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r SignInWithGitHubResponse) GetJSON200() *Session {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r SignInWithGitHubResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r SignInWithGitHubResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON409 returns the response for an HTTP 409 `application/problem+json` response
+func (r SignInWithGitHubResponse) GetApplicationproblemJSON409() *Problem {
+	return r.ApplicationproblemJSON409
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r SignInWithGitHubResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r SignInWithGitHubResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r SignInWithGitHubResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r SignInWithGitHubResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r SignInWithGitHubResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type SignInWithGoogleResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *Session
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON409 the response for an HTTP 409 `application/problem+json` response
+	ApplicationproblemJSON409 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r SignInWithGoogleResponse) GetJSON200() *Session {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r SignInWithGoogleResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r SignInWithGoogleResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON409 returns the response for an HTTP 409 `application/problem+json` response
+func (r SignInWithGoogleResponse) GetApplicationproblemJSON409() *Problem {
+	return r.ApplicationproblemJSON409
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r SignInWithGoogleResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r SignInWithGoogleResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r SignInWithGoogleResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r SignInWithGoogleResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r SignInWithGoogleResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetInstanceSettingsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *InstanceSettings
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetInstanceSettingsResponse) GetJSON200() *InstanceSettings {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r GetInstanceSettingsResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r GetInstanceSettingsResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r GetInstanceSettingsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetInstanceSettingsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetInstanceSettingsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetInstanceSettingsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type UpdateInstanceSettingsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *InstanceSettings
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON409 the response for an HTTP 409 `application/problem+json` response
+	ApplicationproblemJSON409 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r UpdateInstanceSettingsResponse) GetJSON200() *InstanceSettings {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r UpdateInstanceSettingsResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r UpdateInstanceSettingsResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON409 returns the response for an HTTP 409 `application/problem+json` response
+func (r UpdateInstanceSettingsResponse) GetApplicationproblemJSON409() *Problem {
+	return r.ApplicationproblemJSON409
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r UpdateInstanceSettingsResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r UpdateInstanceSettingsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r UpdateInstanceSettingsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r UpdateInstanceSettingsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r UpdateInstanceSettingsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type CompletePasswordResetResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r CompletePasswordResetResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r CompletePasswordResetResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r CompletePasswordResetResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r CompletePasswordResetResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CompletePasswordResetResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r CompletePasswordResetResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type RequestPasswordResetResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON429 the response for an HTTP 429 `application/problem+json` response
+	ApplicationproblemJSON429 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r RequestPasswordResetResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON429 returns the response for an HTTP 429 `application/problem+json` response
+func (r RequestPasswordResetResponse) GetApplicationproblemJSON429() *Problem {
+	return r.ApplicationproblemJSON429
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r RequestPasswordResetResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r RequestPasswordResetResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r RequestPasswordResetResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r RequestPasswordResetResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r RequestPasswordResetResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type ResendSignInCodeResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *PendingSignIn
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON410 the response for an HTTP 410 `application/problem+json` response
+	ApplicationproblemJSON410 *Problem
+	// ApplicationproblemJSON429 the response for an HTTP 429 `application/problem+json` response
+	ApplicationproblemJSON429 *Problem
+	// ApplicationproblemJSON503 the response for an HTTP 503 `application/problem+json` response
+	ApplicationproblemJSON503 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ResendSignInCodeResponse) GetJSON200() *PendingSignIn {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r ResendSignInCodeResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON410 returns the response for an HTTP 410 `application/problem+json` response
+func (r ResendSignInCodeResponse) GetApplicationproblemJSON410() *Problem {
+	return r.ApplicationproblemJSON410
+}
+
+// GetApplicationproblemJSON429 returns the response for an HTTP 429 `application/problem+json` response
+func (r ResendSignInCodeResponse) GetApplicationproblemJSON429() *Problem {
+	return r.ApplicationproblemJSON429
+}
+
+// GetApplicationproblemJSON503 returns the response for an HTTP 503 `application/problem+json` response
+func (r ResendSignInCodeResponse) GetApplicationproblemJSON503() *Problem {
+	return r.ApplicationproblemJSON503
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r ResendSignInCodeResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r ResendSignInCodeResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ResendSignInCodeResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ResendSignInCodeResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ResendSignInCodeResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type VerifySignInCodeResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *Session
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON410 the response for an HTTP 410 `application/problem+json` response
+	ApplicationproblemJSON410 *Problem
+	// ApplicationproblemJSON429 the response for an HTTP 429 `application/problem+json` response
+	ApplicationproblemJSON429 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r VerifySignInCodeResponse) GetJSON200() *Session {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r VerifySignInCodeResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON410 returns the response for an HTTP 410 `application/problem+json` response
+func (r VerifySignInCodeResponse) GetApplicationproblemJSON410() *Problem {
+	return r.ApplicationproblemJSON410
+}
+
+// GetApplicationproblemJSON429 returns the response for an HTTP 429 `application/problem+json` response
+func (r VerifySignInCodeResponse) GetApplicationproblemJSON429() *Problem {
+	return r.ApplicationproblemJSON429
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r VerifySignInCodeResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r VerifySignInCodeResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r VerifySignInCodeResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r VerifySignInCodeResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r VerifySignInCodeResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type SignInResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *SignInOutcome
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON429 the response for an HTTP 429 `application/problem+json` response
+	ApplicationproblemJSON429 *Problem
+	// ApplicationproblemJSON503 the response for an HTTP 503 `application/problem+json` response
+	ApplicationproblemJSON503 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r SignInResponse) GetJSON200() *SignInOutcome {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r SignInResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r SignInResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r SignInResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON429 returns the response for an HTTP 429 `application/problem+json` response
+func (r SignInResponse) GetApplicationproblemJSON429() *Problem {
+	return r.ApplicationproblemJSON429
+}
+
+// GetApplicationproblemJSON503 returns the response for an HTTP 503 `application/problem+json` response
+func (r SignInResponse) GetApplicationproblemJSON503() *Problem {
+	return r.ApplicationproblemJSON503
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r SignInResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r SignInResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r SignInResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r SignInResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r SignInResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetSignInOptionsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *SignInOptions
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetSignInOptionsResponse) GetJSON200() *SignInOptions {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r GetSignInOptionsResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r GetSignInOptionsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetSignInOptionsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetSignInOptionsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetSignInOptionsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
 }
 
 type GetVersionResponse struct {
@@ -301,6 +3360,911 @@ func (r GetVersionResponse) ContentType() string {
 	return ""
 }
 
+type SendTestEmailResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON201 the response for an HTTP 201 `application/json` response
+	JSON201 *TestEmail
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON409 the response for an HTTP 409 `application/problem+json` response
+	ApplicationproblemJSON409 *Problem
+	// ApplicationproblemJSON429 the response for an HTTP 429 `application/problem+json` response
+	ApplicationproblemJSON429 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON201 returns the response for an HTTP 201 `application/json` response
+func (r SendTestEmailResponse) GetJSON201() *TestEmail {
+	return r.JSON201
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r SendTestEmailResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r SendTestEmailResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON409 returns the response for an HTTP 409 `application/problem+json` response
+func (r SendTestEmailResponse) GetApplicationproblemJSON409() *Problem {
+	return r.ApplicationproblemJSON409
+}
+
+// GetApplicationproblemJSON429 returns the response for an HTTP 429 `application/problem+json` response
+func (r SendTestEmailResponse) GetApplicationproblemJSON429() *Problem {
+	return r.ApplicationproblemJSON429
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r SendTestEmailResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r SendTestEmailResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r SendTestEmailResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r SendTestEmailResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r SendTestEmailResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type ListUsersResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *UserPage
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ListUsersResponse) GetJSON200() *UserPage {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r ListUsersResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r ListUsersResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r ListUsersResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r ListUsersResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r ListUsersResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ListUsersResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListUsersResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ListUsersResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type SignUpResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON201 the response for an HTTP 201 `application/json` response
+	JSON201 *Session
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON409 the response for an HTTP 409 `application/problem+json` response
+	ApplicationproblemJSON409 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON201 returns the response for an HTTP 201 `application/json` response
+func (r SignUpResponse) GetJSON201() *Session {
+	return r.JSON201
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r SignUpResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r SignUpResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON409 returns the response for an HTTP 409 `application/problem+json` response
+func (r SignUpResponse) GetApplicationproblemJSON409() *Problem {
+	return r.ApplicationproblemJSON409
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r SignUpResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r SignUpResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r SignUpResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r SignUpResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r SignUpResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetUserResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *User
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetUserResponse) GetJSON200() *User {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r GetUserResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r GetUserResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r GetUserResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r GetUserResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r GetUserResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetUserResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetUserResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetUserResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type UpdateUserResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *User
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON409 the response for an HTTP 409 `application/problem+json` response
+	ApplicationproblemJSON409 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r UpdateUserResponse) GetJSON200() *User {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r UpdateUserResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r UpdateUserResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r UpdateUserResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON409 returns the response for an HTTP 409 `application/problem+json` response
+func (r UpdateUserResponse) GetApplicationproblemJSON409() *Problem {
+	return r.ApplicationproblemJSON409
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r UpdateUserResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r UpdateUserResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r UpdateUserResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r UpdateUserResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r UpdateUserResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type ActivateUserResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *User
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ActivateUserResponse) GetJSON200() *User {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r ActivateUserResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r ActivateUserResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r ActivateUserResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r ActivateUserResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r ActivateUserResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ActivateUserResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ActivateUserResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ActivateUserResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type DeactivateUserResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *User
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r DeactivateUserResponse) GetJSON200() *User {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r DeactivateUserResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r DeactivateUserResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r DeactivateUserResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r DeactivateUserResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r DeactivateUserResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r DeactivateUserResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DeactivateUserResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r DeactivateUserResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type ChangeUserPasswordResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r ChangeUserPasswordResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r ChangeUserPasswordResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r ChangeUserPasswordResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r ChangeUserPasswordResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r ChangeUserPasswordResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ChangeUserPasswordResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ChangeUserPasswordResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ChangeUserPasswordResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type ChangeUserRoleResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *User
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ChangeUserRoleResponse) GetJSON200() *User {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r ChangeUserRoleResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r ChangeUserRoleResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r ChangeUserRoleResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r ChangeUserRoleResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r ChangeUserRoleResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r ChangeUserRoleResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ChangeUserRoleResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ChangeUserRoleResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ChangeUserRoleResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// SignInWithGitHubWithBodyWithResponse Sign in with GitHub
+//
+// Public, because it creates the session the caller does not have yet. The code from GitHub's authorization page signs in the user linked to the GitHub account, or the user with the same email address, linking the account and finishing the sign-up of an invited user. An unknown address creates a user under the same rules as sign-up. The second factor does not apply, because GitHub verified the user. A deactivated user gets 403 `user_deactivated`, an instance without the GitHub client gets 409 `oauth_not_configured`, and a code GitHub refuses or an account without an email address gets 400 `oauth_failed`.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /github-sessions (the `SignInWithGitHub` operationId).
+func (c *ClientWithResponses) SignInWithGitHubWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SignInWithGitHubResponse, error) {
+	rsp, err := c.SignInWithGitHubWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseSignInWithGitHubResponse(rsp)
+}
+
+// SignInWithGitHubWithResponse Sign in with GitHub
+//
+// Public, because it creates the session the caller does not have yet. The code from GitHub's authorization page signs in the user linked to the GitHub account, or the user with the same email address, linking the account and finishing the sign-up of an invited user. An unknown address creates a user under the same rules as sign-up. The second factor does not apply, because GitHub verified the user. A deactivated user gets 403 `user_deactivated`, an instance without the GitHub client gets 409 `oauth_not_configured`, and a code GitHub refuses or an account without an email address gets 400 `oauth_failed`.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /github-sessions (the `SignInWithGitHub` operationId).
+func (c *ClientWithResponses) SignInWithGitHubWithResponse(ctx context.Context, body SignInWithGitHubJSONRequestBody, reqEditors ...RequestEditorFn) (*SignInWithGitHubResponse, error) {
+	rsp, err := c.SignInWithGitHub(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseSignInWithGitHubResponse(rsp)
+}
+
+// SignInWithGoogleWithBodyWithResponse Sign in with Google
+//
+// Public, because it creates the session the caller does not have yet. The code from Google's authorization page signs in the user linked to the Google account, or the user with the same email address, linking the account and finishing the sign-up of an invited user. An unknown address creates a user under the same rules as sign-up. The second factor does not apply, because Google verified the user. A deactivated user gets 403 `user_deactivated`, an instance without the Google client gets 409 `oauth_not_configured`, and a code Google refuses or an account without an email address gets 400 `oauth_failed`.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /google-sessions (the `SignInWithGoogle` operationId).
+func (c *ClientWithResponses) SignInWithGoogleWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SignInWithGoogleResponse, error) {
+	rsp, err := c.SignInWithGoogleWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseSignInWithGoogleResponse(rsp)
+}
+
+// SignInWithGoogleWithResponse Sign in with Google
+//
+// Public, because it creates the session the caller does not have yet. The code from Google's authorization page signs in the user linked to the Google account, or the user with the same email address, linking the account and finishing the sign-up of an invited user. An unknown address creates a user under the same rules as sign-up. The second factor does not apply, because Google verified the user. A deactivated user gets 403 `user_deactivated`, an instance without the Google client gets 409 `oauth_not_configured`, and a code Google refuses or an account without an email address gets 400 `oauth_failed`.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /google-sessions (the `SignInWithGoogle` operationId).
+func (c *ClientWithResponses) SignInWithGoogleWithResponse(ctx context.Context, body SignInWithGoogleJSONRequestBody, reqEditors ...RequestEditorFn) (*SignInWithGoogleResponse, error) {
+	rsp, err := c.SignInWithGoogle(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseSignInWithGoogleResponse(rsp)
+}
+
+// GetInstanceSettingsWithResponse Get the instance settings
+//
+// Every signed-in user reads them, because the interface offers registration, invitations and new workspaces by them. `isEmailConfigured` is the instance's own judgement about its mail server.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /instance-settings (the `GetInstanceSettings` operationId).
+func (c *ClientWithResponses) GetInstanceSettingsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetInstanceSettingsResponse, error) {
+	rsp, err := c.GetInstanceSettings(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetInstanceSettingsResponse(rsp)
+}
+
+// UpdateInstanceSettingsWithBodyWithResponse Replace the instance settings
+//
+// Turning the second factor on is refused with 409 `email_not_configured` when the instance has no mail server, and with 409 `admin_email_missing` naming the administrator when an active administrator has no valid email address. Turning it off is never refused.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /instance-settings (the `UpdateInstanceSettings` operationId).
+func (c *ClientWithResponses) UpdateInstanceSettingsWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateInstanceSettingsResponse, error) {
+	rsp, err := c.UpdateInstanceSettingsWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateInstanceSettingsResponse(rsp)
+}
+
+// UpdateInstanceSettingsWithResponse Replace the instance settings
+//
+// Turning the second factor on is refused with 409 `email_not_configured` when the instance has no mail server, and with 409 `admin_email_missing` naming the administrator when an active administrator has no valid email address. Turning it off is never refused.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /instance-settings (the `UpdateInstanceSettings` operationId).
+func (c *ClientWithResponses) UpdateInstanceSettingsWithResponse(ctx context.Context, body UpdateInstanceSettingsJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateInstanceSettingsResponse, error) {
+	rsp, err := c.UpdateInstanceSettings(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateInstanceSettingsResponse(rsp)
+}
+
+// CompletePasswordResetWithBodyWithResponse Replace the password with a mailed reset code
+//
+// Public, because the caller cannot sign in. A wrong, used or expired code and an address without an active user all get 400 `invalid_reset_code`. Every session issued before the reset stops working.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /password-reset-completions (the `CompletePasswordReset` operationId).
+func (c *ClientWithResponses) CompletePasswordResetWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CompletePasswordResetResponse, error) {
+	rsp, err := c.CompletePasswordResetWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCompletePasswordResetResponse(rsp)
+}
+
+// CompletePasswordResetWithResponse Replace the password with a mailed reset code
+//
+// Public, because the caller cannot sign in. A wrong, used or expired code and an address without an active user all get 400 `invalid_reset_code`. Every session issued before the reset stops working.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /password-reset-completions (the `CompletePasswordReset` operationId).
+func (c *ClientWithResponses) CompletePasswordResetWithResponse(ctx context.Context, body CompletePasswordResetJSONRequestBody, reqEditors ...RequestEditorFn) (*CompletePasswordResetResponse, error) {
+	rsp, err := c.CompletePasswordReset(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCompletePasswordResetResponse(rsp)
+}
+
+// RequestPasswordResetWithBodyWithResponse Mail a password reset code
+//
+// Public, because the caller cannot sign in. The answer is the same for an active user, a user who is not active and an address without a user; only an active user gets a code, valid for an hour. Three requests an hour per address, whether a user holds it or not.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /password-resets (the `RequestPasswordReset` operationId).
+func (c *ClientWithResponses) RequestPasswordResetWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*RequestPasswordResetResponse, error) {
+	rsp, err := c.RequestPasswordResetWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseRequestPasswordResetResponse(rsp)
+}
+
+// RequestPasswordResetWithResponse Mail a password reset code
+//
+// Public, because the caller cannot sign in. The answer is the same for an active user, a user who is not active and an address without a user; only an active user gets a code, valid for an hour. Three requests an hour per address, whether a user holds it or not.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /password-resets (the `RequestPasswordReset` operationId).
+func (c *ClientWithResponses) RequestPasswordResetWithResponse(ctx context.Context, body RequestPasswordResetJSONRequestBody, reqEditors ...RequestEditorFn) (*RequestPasswordResetResponse, error) {
+	rsp, err := c.RequestPasswordReset(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseRequestPasswordResetResponse(rsp)
+}
+
+// ResendSignInCodeWithBodyWithResponse Send a new code that replaces the pending sign-in
+//
+// Public, because the caller is still signing in. The answer names the new pending sign-in, and the previous code stops working. One resend a minute and five codes an hour per user.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /pending-sign-ins/{pendingSignInId}/resend (the `ResendSignInCode` operationId).
+func (c *ClientWithResponses) ResendSignInCodeWithBodyWithResponse(ctx context.Context, pendingSignInId PendingSignInId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ResendSignInCodeResponse, error) {
+	rsp, err := c.ResendSignInCodeWithBody(ctx, pendingSignInId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseResendSignInCodeResponse(rsp)
+}
+
+// ResendSignInCodeWithResponse Send a new code that replaces the pending sign-in
+//
+// Public, because the caller is still signing in. The answer names the new pending sign-in, and the previous code stops working. One resend a minute and five codes an hour per user.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /pending-sign-ins/{pendingSignInId}/resend (the `ResendSignInCode` operationId).
+func (c *ClientWithResponses) ResendSignInCodeWithResponse(ctx context.Context, pendingSignInId PendingSignInId, body ResendSignInCodeJSONRequestBody, reqEditors ...RequestEditorFn) (*ResendSignInCodeResponse, error) {
+	rsp, err := c.ResendSignInCode(ctx, pendingSignInId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseResendSignInCodeResponse(rsp)
+}
+
+// VerifySignInCodeWithBodyWithResponse Complete a pending sign-in with the emailed code
+//
+// Public, because it creates the session the caller does not have yet. A pending sign-in expires ten minutes after its code was sent and is destroyed by the fifth wrong code; then it answers 410 `pending_sign_in_not_usable`. Ten attempts a minute per pending sign-in.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /pending-sign-ins/{pendingSignInId}/verify (the `VerifySignInCode` operationId).
+func (c *ClientWithResponses) VerifySignInCodeWithBodyWithResponse(ctx context.Context, pendingSignInId PendingSignInId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*VerifySignInCodeResponse, error) {
+	rsp, err := c.VerifySignInCodeWithBody(ctx, pendingSignInId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseVerifySignInCodeResponse(rsp)
+}
+
+// VerifySignInCodeWithResponse Complete a pending sign-in with the emailed code
+//
+// Public, because it creates the session the caller does not have yet. A pending sign-in expires ten minutes after its code was sent and is destroyed by the fifth wrong code; then it answers 410 `pending_sign_in_not_usable`. Ten attempts a minute per pending sign-in.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /pending-sign-ins/{pendingSignInId}/verify (the `VerifySignInCode` operationId).
+func (c *ClientWithResponses) VerifySignInCodeWithResponse(ctx context.Context, pendingSignInId PendingSignInId, body VerifySignInCodeJSONRequestBody, reqEditors ...RequestEditorFn) (*VerifySignInCodeResponse, error) {
+	rsp, err := c.VerifySignInCode(ctx, pendingSignInId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseVerifySignInCodeResponse(rsp)
+}
+
+// SignInWithBodyWithResponse Sign in with an email address and a password
+//
+// Public, because it creates the session the caller does not have yet. A wrong password, an unknown address, a user who has not finished sign-up and a user without a password all get 401 `invalid_credentials`. A deactivated user gets 403 `user_deactivated` only after the correct password. When the instance requires the second factor, the answer names a pending sign-in and the code goes to the user's address.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /sessions (the `SignIn` operationId).
+func (c *ClientWithResponses) SignInWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SignInResponse, error) {
+	rsp, err := c.SignInWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseSignInResponse(rsp)
+}
+
+// SignInWithResponse Sign in with an email address and a password
+//
+// Public, because it creates the session the caller does not have yet. A wrong password, an unknown address, a user who has not finished sign-up and a user without a password all get 401 `invalid_credentials`. A deactivated user gets 403 `user_deactivated` only after the correct password. When the instance requires the second factor, the answer names a pending sign-in and the code goes to the user's address.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /sessions (the `SignIn` operationId).
+func (c *ClientWithResponses) SignInWithResponse(ctx context.Context, body SignInJSONRequestBody, reqEditors ...RequestEditorFn) (*SignInResponse, error) {
+	rsp, err := c.SignIn(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseSignInResponse(rsp)
+}
+
+// GetSignInOptionsWithResponse Get what the sign-in page offers
+//
+// Public, because the sign-in page reads it before anyone signs in. It tells whether the instance has a user yet, so the page offers the registration that claims the instance.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /sign-in-options (the `GetSignInOptions` operationId).
+func (c *ClientWithResponses) GetSignInOptionsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetSignInOptionsResponse, error) {
+	rsp, err := c.GetSignInOptions(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetSignInOptionsResponse(rsp)
+}
+
 // GetVersionWithResponse Get the version of the running instance
 //
 // Public, because installed verification agents call it without a token to decide whether to update themselves. Its path and its body never change.
@@ -314,6 +4278,698 @@ func (c *ClientWithResponses) GetVersionWithResponse(ctx context.Context, reqEdi
 		return nil, err
 	}
 	return ParseGetVersionResponse(rsp)
+}
+
+// SendTestEmailWithResponse Send a test email to the signed-in administrator
+//
+// Refused with 409 `email_not_configured` without a mail server and with 409 `admin_email_missing` when the administrator has no valid email address. A message the mail server refuses is still a test that ran: the answer says it was not delivered and carries the mail server's response. Five per administrator in ten minutes.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /test-emails (the `SendTestEmail` operationId).
+func (c *ClientWithResponses) SendTestEmailWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*SendTestEmailResponse, error) {
+	rsp, err := c.SendTestEmail(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseSendTestEmailResponse(rsp)
+}
+
+// ListUsersWithResponse List the users of the instance
+//
+// The newest users come first. `query` keeps the users whose email address or name contains it, ignoring case.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /users (the `ListUsers` operationId).
+func (c *ClientWithResponses) ListUsersWithResponse(ctx context.Context, params *ListUsersParams, reqEditors ...RequestEditorFn) (*ListUsersResponse, error) {
+	rsp, err := c.ListUsers(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListUsersResponse(rsp)
+}
+
+// SignUpWithBodyWithResponse Sign up and sign in as the new user
+//
+// Public, because it creates the user and the session the caller does not have yet. The first user of an instance administers it, even when registration is closed. An invited user finishes sign-up through it.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /users (the `SignUp` operationId).
+func (c *ClientWithResponses) SignUpWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SignUpResponse, error) {
+	rsp, err := c.SignUpWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseSignUpResponse(rsp)
+}
+
+// SignUpWithResponse Sign up and sign in as the new user
+//
+// Public, because it creates the user and the session the caller does not have yet. The first user of an instance administers it, even when registration is closed. An invited user finishes sign-up through it.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /users (the `SignUp` operationId).
+func (c *ClientWithResponses) SignUpWithResponse(ctx context.Context, body SignUpJSONRequestBody, reqEditors ...RequestEditorFn) (*SignUpResponse, error) {
+	rsp, err := c.SignUp(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseSignUpResponse(rsp)
+}
+
+// GetUserWithResponse Get a user
+//
+// A user reads their own user; an instance admin reads any user. Anyone else gets 403 `permission_denied`.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /users/{userId} (the `GetUser` operationId).
+func (c *ClientWithResponses) GetUserWithResponse(ctx context.Context, userId UserId, reqEditors ...RequestEditorFn) (*GetUserResponse, error) {
+	rsp, err := c.GetUser(ctx, userId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetUserResponse(rsp)
+}
+
+// UpdateUserWithBodyWithResponse Replace the name and the email address of the signed-in user
+//
+// Only the user's own ID is accepted; any other gets 403 `permission_denied`. A new address must be a valid email address that no other user holds, or the answer is 400 `invalid_request` or 409 `email_taken`. The current session survives the change, and the next sign-in uses the new address.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /users/{userId} (the `UpdateUser` operationId).
+func (c *ClientWithResponses) UpdateUserWithBodyWithResponse(ctx context.Context, userId UserId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateUserResponse, error) {
+	rsp, err := c.UpdateUserWithBody(ctx, userId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateUserResponse(rsp)
+}
+
+// UpdateUserWithResponse Replace the name and the email address of the signed-in user
+//
+// Only the user's own ID is accepted; any other gets 403 `permission_denied`. A new address must be a valid email address that no other user holds, or the answer is 400 `invalid_request` or 409 `email_taken`. The current session survives the change, and the next sign-in uses the new address.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /users/{userId} (the `UpdateUser` operationId).
+func (c *ClientWithResponses) UpdateUserWithResponse(ctx context.Context, userId UserId, body UpdateUserJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateUserResponse, error) {
+	rsp, err := c.UpdateUser(ctx, userId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateUserResponse(rsp)
+}
+
+// ActivateUserWithResponse Activate a user
+//
+// The user signs in again. Only the bootstrap administrator activates an instance admin; anyone else gets 403 `permission_denied`.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /users/{userId}/activate (the `ActivateUser` operationId).
+func (c *ClientWithResponses) ActivateUserWithResponse(ctx context.Context, userId UserId, reqEditors ...RequestEditorFn) (*ActivateUserResponse, error) {
+	rsp, err := c.ActivateUser(ctx, userId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseActivateUserResponse(rsp)
+}
+
+// DeactivateUserWithResponse Deactivate a user
+//
+// Every session of the user stops working, and sign-in answers `user_deactivated`. Deactivating yourself or the bootstrap administrator gets 403 `permission_denied`, and so does deactivating an instance admin for anyone but the bootstrap administrator.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /users/{userId}/deactivate (the `DeactivateUser` operationId).
+func (c *ClientWithResponses) DeactivateUserWithResponse(ctx context.Context, userId UserId, reqEditors ...RequestEditorFn) (*DeactivateUserResponse, error) {
+	rsp, err := c.DeactivateUser(ctx, userId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDeactivateUserResponse(rsp)
+}
+
+// ChangeUserPasswordWithBodyWithResponse Replace the password of the signed-in user
+//
+// Only the user's own ID is accepted; any other gets 403 `permission_denied`. Every session issued before the change stops working, the caller's own included, so the client signs in again with the new password.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /users/{userId}/password (the `ChangeUserPassword` operationId).
+func (c *ClientWithResponses) ChangeUserPasswordWithBodyWithResponse(ctx context.Context, userId UserId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ChangeUserPasswordResponse, error) {
+	rsp, err := c.ChangeUserPasswordWithBody(ctx, userId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseChangeUserPasswordResponse(rsp)
+}
+
+// ChangeUserPasswordWithResponse Replace the password of the signed-in user
+//
+// Only the user's own ID is accepted; any other gets 403 `permission_denied`. Every session issued before the change stops working, the caller's own included, so the client signs in again with the new password.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /users/{userId}/password (the `ChangeUserPassword` operationId).
+func (c *ClientWithResponses) ChangeUserPasswordWithResponse(ctx context.Context, userId UserId, body ChangeUserPasswordJSONRequestBody, reqEditors ...RequestEditorFn) (*ChangeUserPasswordResponse, error) {
+	rsp, err := c.ChangeUserPassword(ctx, userId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseChangeUserPasswordResponse(rsp)
+}
+
+// ChangeUserRoleWithBodyWithResponse Replace the global role of a user
+//
+// Only the bootstrap administrator grants or revokes the admin role; anyone else gets 403 `permission_denied`. Nobody changes their own role or the role of the bootstrap administrator.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /users/{userId}/role (the `ChangeUserRole` operationId).
+func (c *ClientWithResponses) ChangeUserRoleWithBodyWithResponse(ctx context.Context, userId UserId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ChangeUserRoleResponse, error) {
+	rsp, err := c.ChangeUserRoleWithBody(ctx, userId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseChangeUserRoleResponse(rsp)
+}
+
+// ChangeUserRoleWithResponse Replace the global role of a user
+//
+// Only the bootstrap administrator grants or revokes the admin role; anyone else gets 403 `permission_denied`. Nobody changes their own role or the role of the bootstrap administrator.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /users/{userId}/role (the `ChangeUserRole` operationId).
+func (c *ClientWithResponses) ChangeUserRoleWithResponse(ctx context.Context, userId UserId, body ChangeUserRoleJSONRequestBody, reqEditors ...RequestEditorFn) (*ChangeUserRoleResponse, error) {
+	rsp, err := c.ChangeUserRole(ctx, userId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseChangeUserRoleResponse(rsp)
+}
+
+// ParseSignInWithGitHubResponse parses an HTTP response from a SignInWithGitHubWithResponse call
+func ParseSignInWithGitHubResponse(rsp *http.Response) (*SignInWithGitHubResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &SignInWithGitHubResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Session
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseSignInWithGoogleResponse parses an HTTP response from a SignInWithGoogleWithResponse call
+func ParseSignInWithGoogleResponse(rsp *http.Response) (*SignInWithGoogleResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &SignInWithGoogleResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Session
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetInstanceSettingsResponse parses an HTTP response from a GetInstanceSettingsWithResponse call
+func ParseGetInstanceSettingsResponse(rsp *http.Response) (*GetInstanceSettingsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetInstanceSettingsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest InstanceSettings
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseUpdateInstanceSettingsResponse parses an HTTP response from a UpdateInstanceSettingsWithResponse call
+func ParseUpdateInstanceSettingsResponse(rsp *http.Response) (*UpdateInstanceSettingsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &UpdateInstanceSettingsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest InstanceSettings
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCompletePasswordResetResponse parses an HTTP response from a CompletePasswordResetWithResponse call
+func ParseCompletePasswordResetResponse(rsp *http.Response) (*CompletePasswordResetResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CompletePasswordResetResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case rsp.StatusCode == 204:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseRequestPasswordResetResponse parses an HTTP response from a RequestPasswordResetWithResponse call
+func ParseRequestPasswordResetResponse(rsp *http.Response) (*RequestPasswordResetResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &RequestPasswordResetResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case rsp.StatusCode == 204:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseResendSignInCodeResponse parses an HTTP response from a ResendSignInCodeWithResponse call
+func ParseResendSignInCodeResponse(rsp *http.Response) (*ResendSignInCodeResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ResendSignInCodeResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest PendingSignIn
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 410:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON410 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON503 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseVerifySignInCodeResponse parses an HTTP response from a VerifySignInCodeWithResponse call
+func ParseVerifySignInCodeResponse(rsp *http.Response) (*VerifySignInCodeResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &VerifySignInCodeResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Session
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 410:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON410 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseSignInResponse parses an HTTP response from a SignInWithResponse call
+func ParseSignInResponse(rsp *http.Response) (*SignInResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &SignInResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest SignInOutcome
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON503 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetSignInOptionsResponse parses an HTTP response from a GetSignInOptionsWithResponse call
+func ParseGetSignInOptionsResponse(rsp *http.Response) (*GetSignInOptionsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetSignInOptionsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest SignInOptions
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
 }
 
 // ParseGetVersionResponse parses an HTTP response from a GetVersionWithResponse call
@@ -336,6 +4992,509 @@ func ParseGetVersionResponse(rsp *http.Response) (*GetVersionResponse, error) {
 			return nil, err
 		}
 		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseSendTestEmailResponse parses an HTTP response from a SendTestEmailWithResponse call
+func ParseSendTestEmailResponse(rsp *http.Response) (*SendTestEmailResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &SendTestEmailResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest TestEmail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListUsersResponse parses an HTTP response from a ListUsersWithResponse call
+func ParseListUsersResponse(rsp *http.Response) (*ListUsersResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListUsersResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest UserPage
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseSignUpResponse parses an HTTP response from a SignUpWithResponse call
+func ParseSignUpResponse(rsp *http.Response) (*SignUpResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &SignUpResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest Session
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetUserResponse parses an HTTP response from a GetUserWithResponse call
+func ParseGetUserResponse(rsp *http.Response) (*GetUserResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetUserResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest User
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseUpdateUserResponse parses an HTTP response from a UpdateUserWithResponse call
+func ParseUpdateUserResponse(rsp *http.Response) (*UpdateUserResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &UpdateUserResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest User
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseActivateUserResponse parses an HTTP response from a ActivateUserWithResponse call
+func ParseActivateUserResponse(rsp *http.Response) (*ActivateUserResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ActivateUserResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest User
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseDeactivateUserResponse parses an HTTP response from a DeactivateUserWithResponse call
+func ParseDeactivateUserResponse(rsp *http.Response) (*DeactivateUserResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeactivateUserResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest User
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseChangeUserPasswordResponse parses an HTTP response from a ChangeUserPasswordWithResponse call
+func ParseChangeUserPasswordResponse(rsp *http.Response) (*ChangeUserPasswordResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ChangeUserPasswordResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case rsp.StatusCode == 204:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseChangeUserRoleResponse parses an HTTP response from a ChangeUserRoleWithResponse call
+func ParseChangeUserRoleResponse(rsp *http.Response) (*ChangeUserRoleResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ChangeUserRoleResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest User
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest Problem

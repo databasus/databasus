@@ -3,22 +3,19 @@ import { App, Button, Input, Spin } from 'antd';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { USER_ROLE_LABEL_KEYS } from '../../../entity/users';
-import { userApi } from '../../../entity/users/api/userApi';
-import type { ChangePasswordRequest } from '../../../entity/users/model/ChangePasswordRequest';
-import type { SignInRequest } from '../../../entity/users/model/SignInRequest';
-import type { UpdateUserInfoRequest } from '../../../entity/users/model/UpdateUserInfoRequest';
-import type { UserProfile } from '../../../entity/users/model/UserProfile';
+import { USER_ROLE_LABEL_KEYS, type User, userApi } from '../../../entity/users';
 import { translateApiError } from '../../../shared/i18n';
 
 interface Props {
   contentHeight: number;
 }
 
+const MIN_PASSWORD_LENGTH = 8;
+
 export function ProfileComponent({ contentHeight }: Props) {
   const { t } = useTranslation();
   const { message } = App.useApp();
-  const [user, setUser] = useState<UserProfile | undefined>(undefined);
+  const [user, setUser] = useState<User | undefined>(undefined);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
 
   // Profile edit state
@@ -61,9 +58,9 @@ export function ProfileComponent({ contentHeight }: Props) {
     if (!newPassword) {
       setNewPasswordError(true);
       isValid = false;
-    } else if (newPassword.length < 6) {
+    } else if (newPassword.length < MIN_PASSWORD_LENGTH) {
       setNewPasswordError(true);
-      message.error(t('users.validation.passwordTooShort', { minLength: 6 }));
+      message.error(t('users.validation.passwordTooShort', { minLength: MIN_PASSWORD_LENGTH }));
       isValid = false;
     } else {
       setNewPasswordError(false);
@@ -91,11 +88,7 @@ export function ProfileComponent({ contentHeight }: Props) {
     setIsChangingPassword(true);
 
     try {
-      const request: ChangePasswordRequest = {
-        newPassword,
-      };
-
-      await userApi.changePassword(request);
+      await userApi.changePassword({ newPassword });
 
       // Reset form fields
       setNewPassword('');
@@ -104,11 +97,7 @@ export function ProfileComponent({ contentHeight }: Props) {
       // Sign in again with new password
       if (user?.email) {
         try {
-          const signInRequest: SignInRequest = {
-            email: user.email,
-            password: newPassword,
-          };
-          await userApi.signIn(signInRequest);
+          await userApi.signIn({ email: user.email, password: newPassword });
           message.success(t('users.profile.changePassword.signedInWithNewPassword'));
         } catch (signInError: unknown) {
           message.error(translateApiError(signInError, t));
@@ -144,24 +133,13 @@ export function ProfileComponent({ contentHeight }: Props) {
     setIsUpdatingProfile(true);
 
     try {
-      const request: UpdateUserInfoRequest = {};
-
-      // Only include fields that changed
-      if (editName !== user?.name) {
-        request.name = editName;
-      }
-      if (editEmail !== user?.email) {
-        request.email = editEmail;
-      }
-
-      // If nothing changed, just show a message
-      if (Object.keys(request).length === 0) {
+      if (editName === user?.name && editEmail === user?.email) {
         message.info(t('users.profile.noChanges'));
         setIsUpdatingProfile(false);
         return;
       }
 
-      await userApi.updateUserInfo(request);
+      await userApi.updateUserInfo({ name: editName, email: editEmail });
       message.success(t('users.profile.updated'));
 
       // Reload user profile

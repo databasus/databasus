@@ -1,71 +1,38 @@
-import { getApplicationServer } from '../../../constants';
-import { apiHelper } from '../../../shared/api/apiHelper';
-import RequestOptions from '../../../shared/api/RequestOptions';
-import type { ChangeUserRoleRequest } from '../model/ChangeUserRoleRequest';
-import type { ListUsersRequest } from '../model/ListUsersRequest';
-import type { ListUsersResponse } from '../model/ListUsersResponse';
-import type { UserProfile } from '../model/UserProfile';
+import { type ApiComponents, type ApiPaths, getApiClient, requireData } from '../../../shared/api';
+import type { User } from '../model/User';
+import type { UserRole } from '../model/UserRole';
+
+type UserListQuery = NonNullable<ApiPaths['/users']['get']['parameters']['query']>;
 
 export const userManagementApi = {
-  async getUsers(request?: ListUsersRequest): Promise<ListUsersResponse> {
-    const requestOptions: RequestOptions = new RequestOptions();
-
-    let url = `${getApplicationServer()}/api/v1/users`;
-    const params = new URLSearchParams();
-
-    if (request?.limit) {
-      params.append('limit', request.limit.toString());
-    }
-    if (request?.offset) {
-      params.append('offset', request.offset.toString());
-    }
-    if (request?.beforeDate) {
-      params.append('beforeDate', request.beforeDate);
-    }
-    if (request?.query) {
-      params.append('query', request.query);
-    }
-
-    if (params.toString()) {
-      url += `?${params.toString()}`;
-    }
-
-    return apiHelper.fetchGetJson(url, requestOptions);
+  async getUsers(listQuery: UserListQuery): Promise<ApiComponents['schemas']['UserPage']> {
+    return requireData(await getApiClient().GET('/users', { params: { query: listQuery } }));
   },
 
-  async getUserProfile(userId: string): Promise<UserProfile> {
-    const requestOptions: RequestOptions = new RequestOptions();
-    return apiHelper.fetchGetJson(
-      `${getApplicationServer()}/api/v1/users/${userId}`,
-      requestOptions,
+  async getUserProfile(userId: string): Promise<User> {
+    return requireData(
+      await getApiClient().GET('/users/{userId}', { params: { path: { userId } } }),
     );
   },
 
-  async deactivateUser(userId: string): Promise<{ message: string }> {
-    const requestOptions: RequestOptions = new RequestOptions();
-    return apiHelper.fetchPostJson(
-      `${getApplicationServer()}/api/v1/users/${userId}/deactivate`,
-      requestOptions,
+  async deactivateUser(userId: string): Promise<User> {
+    return requireData(
+      await getApiClient().POST('/users/{userId}/deactivate', { params: { path: { userId } } }),
     );
   },
 
-  async activateUser(userId: string): Promise<{ message: string }> {
-    const requestOptions: RequestOptions = new RequestOptions();
-    return apiHelper.fetchPostJson(
-      `${getApplicationServer()}/api/v1/users/${userId}/activate`,
-      requestOptions,
+  async activateUser(userId: string): Promise<User> {
+    return requireData(
+      await getApiClient().POST('/users/{userId}/activate', { params: { path: { userId } } }),
     );
   },
 
-  async changeUserRole(
-    userId: string,
-    roleRequest: ChangeUserRoleRequest,
-  ): Promise<{ message: string }> {
-    const requestOptions: RequestOptions = new RequestOptions();
-    requestOptions.setBody(JSON.stringify(roleRequest));
-    return apiHelper.fetchPutJson(
-      `${getApplicationServer()}/api/v1/users/${userId}/role`,
-      requestOptions,
+  async changeUserRole(userId: string, role: UserRole): Promise<User> {
+    return requireData(
+      await getApiClient().PUT('/users/{userId}/role', {
+        params: { path: { userId } },
+        body: { role },
+      }),
     );
   },
 };

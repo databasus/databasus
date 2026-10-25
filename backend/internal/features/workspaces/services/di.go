@@ -5,7 +5,7 @@ import (
 
 	"databasus-backend/internal/features/audit_logs"
 	"databasus-backend/internal/features/email"
-	users_services "databasus-backend/internal/features/users/services"
+	users_bridge "databasus-backend/internal/features/users"
 	workspaces_interfaces "databasus-backend/internal/features/workspaces/interfaces"
 	workspaces_repositories "databasus-backend/internal/features/workspaces/repositories"
 	"databasus-backend/internal/util/logger"
@@ -24,9 +24,8 @@ var getWorkspaceService = sync.OnceValue(func() *WorkspaceService {
 	return &WorkspaceService{
 		getWorkspaceRepository(),
 		getMembershipRepository(),
-		users_services.GetUserService(),
 		audit_logs.GetAuditLogService(),
-		users_services.GetSettingsService(),
+		users_bridge.GetModule,
 		[]workspaces_interfaces.WorkspaceDeletionListener{},
 	}
 })
@@ -35,10 +34,9 @@ var getMembershipService = sync.OnceValue(func() *MembershipService {
 	return &MembershipService{
 		getMembershipRepository(),
 		getWorkspaceRepository(),
-		users_services.GetUserService(),
 		audit_logs.GetAuditLogService(),
 		getWorkspaceService(),
-		users_services.GetSettingsService(),
+		users_bridge.GetModule,
 		email.GetInstanceSender(),
 		logger.GetLogger(),
 	}

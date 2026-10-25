@@ -15,7 +15,7 @@ import (
 	restores_core "databasus-backend/internal/features/restores/core"
 	"databasus-backend/internal/features/storages"
 	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
-	"databasus-backend/internal/util/cache"
+	"databasus-backend/internal/lib/cache"
 	util_encryption "databasus-backend/internal/util/encryption"
 )
 

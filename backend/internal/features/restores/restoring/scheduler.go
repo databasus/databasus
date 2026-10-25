@@ -10,7 +10,7 @@ import (
 	"github.com/google/uuid"
 
 	restores_core "databasus-backend/internal/features/restores/core"
-	"databasus-backend/internal/util/cache"
+	"databasus-backend/internal/lib/cache"
 )
 
 const jobName = "restore_scheduler"

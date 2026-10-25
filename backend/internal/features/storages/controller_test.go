@@ -11,7 +11,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	audit_logs "databasus-backend/internal/features/audit_logs"
 	storage_files "databasus-backend/internal/features/storages/files"
 	azure_blob_storage "databasus-backend/internal/features/storages/models/azure_blob"
 	ftp_storage "databasus-backend/internal/features/storages/models/ftp"
@@ -21,8 +20,6 @@ import (
 	s3_storage "databasus-backend/internal/features/storages/models/s3"
 	sftp_storage "databasus-backend/internal/features/storages/models/sftp"
 	users_enums "databasus-backend/internal/features/users/enums"
-	users_middleware "databasus-backend/internal/features/users/middleware"
-	users_services "databasus-backend/internal/features/users/services"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_controllers "databasus-backend/internal/features/workspaces/controllers"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
@@ -1276,7 +1273,7 @@ func createRouter() *gin.Engine {
 	router := gin.New()
 
 	v1 := router.Group("/api/v1")
-	protected := v1.Group("").Use(users_middleware.AuthMiddleware(users_services.GetUserService()))
+	protected := v1.Group("").Use(users_testing.GetSessionMiddleware())
 
 	if routerGroup, ok := protected.(*gin.RouterGroup); ok {
 		GetStorageController().RegisterRoutes(routerGroup)
@@ -1284,7 +1281,6 @@ func createRouter() *gin.Engine {
 		workspaces_controllers.GetMembershipController().RegisterRoutes(routerGroup)
 	}
 
-	audit_logs.SetupDependencies()
 	SetupDependencies()
 	SetStorageDatabaseCountersForTest(&mockStorageDatabaseCounter{})
 

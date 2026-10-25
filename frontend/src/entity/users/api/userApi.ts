@@ -1,24 +1,14 @@
-import { getApplicationServer } from '../../../constants';
-import { accessTokenHelper } from '../../../shared/api/accessTokenHelper';
-import { apiHelper } from '../../../shared/api/apiHelper';
-import RequestOptions from '../../../shared/api/RequestOptions';
-import type { ChangePasswordRequest } from '../model/ChangePasswordRequest';
-import type { InviteUserRequest } from '../model/InviteUserRequest';
-import type { InviteUserResponse } from '../model/InviteUserResponse';
-import type { OAuthCallbackRequest } from '../model/OAuthCallbackRequest';
-import type { OAuthCallbackResponse } from '../model/OAuthCallbackResponse';
-import type { PendingSignIn } from '../model/PendingSignIn';
-import type { ResendSignInCodeRequest } from '../model/ResendSignInCodeRequest';
-import type { ResetPasswordRequest } from '../model/ResetPasswordRequest';
-import type { SendResetPasswordCodeRequest } from '../model/SendResetPasswordCodeRequest';
+import {
+  type ApiComponents,
+  accessTokenHelper,
+  getApiClient,
+  requireData,
+  requireSuccess,
+} from '../../../shared/api';
 import type { SignInOutcome } from '../model/SignInOutcome';
-import type { SignInRequest } from '../model/SignInRequest';
-import type { SignInResponse } from '../model/SignInResponse';
-import type { SignUpRequest } from '../model/SignUpRequest';
-import type { UpdateUserInfoRequest } from '../model/UpdateUserInfoRequest';
-import type { UserProfile } from '../model/UserProfile';
-import type { VerifySignInCodeRequest } from '../model/VerifySignInCodeRequest';
-import { readSignInOutcome } from './readSignInOutcome';
+import type { User } from '../model/User';
+
+type Schemas = ApiComponents['schemas'];
 
 const listeners: (() => void)[] = [];
 
@@ -33,147 +23,115 @@ const notifyAuthListeners = () => {
   }
 };
 
+const startSession = (session: Schemas['Session']): Schemas['Session'] => {
+  saveAuthorizedData(session.token, session.userId);
+  notifyAuthListeners();
+
+  return session;
+};
+
+// The current user is the one the stored session belongs to, so its operations take the ID saved
+// at sign-in.
+const getSignedInUserId = (): string => {
+  const userId = accessTokenHelper.getUserId();
+  if (!userId) {
+    throw new Error('no signed-in user is stored');
+  }
+
+  return userId;
+};
+
 export const userApi = {
-  async signUp(signUpRequest: SignUpRequest): Promise<SignInResponse> {
-    const requestOptions: RequestOptions = new RequestOptions();
-    requestOptions.setBody(JSON.stringify(signUpRequest));
-
-    return apiHelper
-      .fetchPostJson(`${getApplicationServer()}/api/v1/users/signup`, requestOptions)
-      .then((response: unknown): SignInResponse => {
-        const typedResponse = response as SignInResponse;
-        saveAuthorizedData(typedResponse.token, typedResponse.userId);
-        notifyAuthListeners();
-        return typedResponse;
-      });
+  async signUp(request: Schemas['SignUpRequest']): Promise<Schemas['Session']> {
+    return startSession(requireData(await getApiClient().POST('/users', { body: request })));
   },
 
-  async signIn(signInRequest: SignInRequest): Promise<SignInOutcome> {
-    const requestOptions: RequestOptions = new RequestOptions();
-    requestOptions.setBody(JSON.stringify(signInRequest));
+  async signIn(request: Schemas['SignInRequest']): Promise<SignInOutcome> {
+    const outcome = requireData(await getApiClient().POST('/sessions', { body: request }));
 
-    return apiHelper
-      .fetchPostJson(`${getApplicationServer()}/api/v1/users/signin`, requestOptions)
-      .then((response: unknown): SignInOutcome => {
-        const outcome = readSignInOutcome(response);
+    if (outcome.outcome === 'COMPLETED') {
+      startSession(outcome);
+    }
 
-        if (outcome.isCompleted) {
-          saveAuthorizedData(outcome.signIn.token, outcome.signIn.userId);
-          notifyAuthListeners();
-        }
-
-        return outcome;
-      });
+    return outcome;
   },
 
-  async verifySignInCode(request: VerifySignInCodeRequest): Promise<SignInResponse> {
-    const requestOptions: RequestOptions = new RequestOptions();
-    requestOptions.setBody(JSON.stringify(request));
+  async verifySignInCode(
+    pendingSignInId: string,
+    request: Schemas['VerifySignInCodeRequest'],
+  ): Promise<Schemas['Session']> {
+    const session = requireData(
+      await getApiClient().POST('/pending-sign-ins/{pendingSignInId}/verify', {
+        params: { path: { pendingSignInId } },
+        body: request,
+      }),
+    );
 
-    return apiHelper
-      .fetchPostJson(`${getApplicationServer()}/api/v1/users/verify-signin-code`, requestOptions)
-      .then((response: unknown): SignInResponse => {
-        const typedResponse = response as SignInResponse;
-        saveAuthorizedData(typedResponse.token, typedResponse.userId);
-        notifyAuthListeners();
-        return typedResponse;
-      });
+    return startSession(session);
   },
 
-  async resendSignInCode(request: ResendSignInCodeRequest): Promise<PendingSignIn> {
-    const requestOptions: RequestOptions = new RequestOptions();
-    requestOptions.setBody(JSON.stringify(request));
-
-    return apiHelper.fetchPostJson(
-      `${getApplicationServer()}/api/v1/users/resend-signin-code`,
-      requestOptions,
+  async resendSignInCode(
+    pendingSignInId: string,
+    request: Schemas['ResendSignInCodeRequest'],
+  ): Promise<Schemas['PendingSignIn']> {
+    return requireData(
+      await getApiClient().POST('/pending-sign-ins/{pendingSignInId}/resend', {
+        params: { path: { pendingSignInId } },
+        body: request,
+      }),
     );
   },
 
   async isAnyUserExists(): Promise<boolean> {
-    const requestOptions: RequestOptions = new RequestOptions();
-    return apiHelper
-      .fetchGetJson(
-        `${getApplicationServer()}/api/v1/users/is-any-user-exist`,
-        requestOptions,
-        true,
-      )
-      .then((response: unknown) => {
-        const typedResponse = response as { isExist: boolean };
-        return typedResponse.isExist;
-      });
+    const signInOptions = requireData(await getApiClient().GET('/sign-in-options'));
+
+    return signInOptions.hasAnyUser;
   },
 
-  async changePassword(request: ChangePasswordRequest): Promise<{ message: string }> {
-    const requestOptions: RequestOptions = new RequestOptions();
-    requestOptions.setBody(JSON.stringify(request));
-    return apiHelper.fetchPutJson(
-      `${getApplicationServer()}/api/v1/users/change-password`,
-      requestOptions,
+  async changePassword(request: Schemas['PasswordChange']): Promise<void> {
+    requireSuccess(
+      await getApiClient().PUT('/users/{userId}/password', {
+        params: { path: { userId: getSignedInUserId() } },
+        body: request,
+      }),
     );
   },
 
-  async inviteUser(request: InviteUserRequest): Promise<InviteUserResponse> {
-    const requestOptions: RequestOptions = new RequestOptions();
-    requestOptions.setBody(JSON.stringify(request));
-    return apiHelper.fetchPostJson(`${getApplicationServer()}/api/v1/users/invite`, requestOptions);
-  },
-
-  async getCurrentUser(): Promise<UserProfile> {
-    const requestOptions: RequestOptions = new RequestOptions();
-    return apiHelper.fetchGetJson(`${getApplicationServer()}/api/v1/users/me`, requestOptions);
-  },
-
-  async updateUserInfo(request: UpdateUserInfoRequest): Promise<{ message: string }> {
-    const requestOptions: RequestOptions = new RequestOptions();
-    requestOptions.setBody(JSON.stringify(request));
-    return apiHelper.fetchPutJson(`${getApplicationServer()}/api/v1/users/me`, requestOptions);
-  },
-
-  async handleGitHubOAuth(request: OAuthCallbackRequest): Promise<OAuthCallbackResponse> {
-    const requestOptions: RequestOptions = new RequestOptions();
-    requestOptions.setBody(JSON.stringify(request));
-
-    return apiHelper
-      .fetchPostJson(`${getApplicationServer()}/api/v1/auth/github/callback`, requestOptions)
-      .then((response: unknown): OAuthCallbackResponse => {
-        const typedResponse = response as OAuthCallbackResponse;
-        saveAuthorizedData(typedResponse.token, typedResponse.userId);
-        notifyAuthListeners();
-        return typedResponse;
-      });
-  },
-
-  async handleGoogleOAuth(request: OAuthCallbackRequest): Promise<OAuthCallbackResponse> {
-    const requestOptions: RequestOptions = new RequestOptions();
-    requestOptions.setBody(JSON.stringify(request));
-
-    return apiHelper
-      .fetchPostJson(`${getApplicationServer()}/api/v1/auth/google/callback`, requestOptions)
-      .then((response: unknown): OAuthCallbackResponse => {
-        const typedResponse = response as OAuthCallbackResponse;
-        saveAuthorizedData(typedResponse.token, typedResponse.userId);
-        notifyAuthListeners();
-        return typedResponse;
-      });
-  },
-
-  async sendResetPasswordCode(request: SendResetPasswordCodeRequest): Promise<{ message: string }> {
-    const requestOptions: RequestOptions = new RequestOptions();
-    requestOptions.setBody(JSON.stringify(request));
-    return apiHelper.fetchPostJson(
-      `${getApplicationServer()}/api/v1/users/send-reset-password-code`,
-      requestOptions,
+  async getCurrentUser(): Promise<User> {
+    return requireData(
+      await getApiClient().GET('/users/{userId}', {
+        params: { path: { userId: getSignedInUserId() } },
+      }),
     );
   },
 
-  async resetPassword(request: ResetPasswordRequest): Promise<{ message: string }> {
-    const requestOptions: RequestOptions = new RequestOptions();
-    requestOptions.setBody(JSON.stringify(request));
-    return apiHelper.fetchPostJson(
-      `${getApplicationServer()}/api/v1/users/reset-password`,
-      requestOptions,
+  async updateUserInfo(request: Schemas['UserUpdate']): Promise<User> {
+    return requireData(
+      await getApiClient().PUT('/users/{userId}', {
+        params: { path: { userId: getSignedInUserId() } },
+        body: request,
+      }),
     );
+  },
+
+  async handleGitHubOAuth(request: Schemas['OAuthSignInRequest']): Promise<Schemas['Session']> {
+    return startSession(
+      requireData(await getApiClient().POST('/github-sessions', { body: request })),
+    );
+  },
+
+  async handleGoogleOAuth(request: Schemas['OAuthSignInRequest']): Promise<Schemas['Session']> {
+    return startSession(
+      requireData(await getApiClient().POST('/google-sessions', { body: request })),
+    );
+  },
+
+  async sendResetPasswordCode(request: Schemas['PasswordResetRequest']): Promise<void> {
+    requireSuccess(await getApiClient().POST('/password-resets', { body: request }));
+  },
+
+  async resetPassword(request: Schemas['PasswordResetCompletion']): Promise<void> {
+    requireSuccess(await getApiClient().POST('/password-reset-completions', { body: request }));
   },
 
   isAuthorized: (): boolean => !!accessTokenHelper.getAccessToken(),
@@ -181,8 +139,6 @@ export const userApi = {
   logout: () => {
     accessTokenHelper.cleanAccessToken();
   },
-
-  // listeners
 
   addAuthListener: (listener: () => void) => {
     listeners.push(listener);
@@ -192,11 +148,7 @@ export const userApi = {
     listeners.splice(listeners.indexOf(listener), 1);
   },
 
-  notifyAuthListeners: (): void => {
-    for (const listener of listeners) {
-      listener();
-    }
-  },
+  notifyAuthListeners,
 
   saveAuthorizedData,
 };

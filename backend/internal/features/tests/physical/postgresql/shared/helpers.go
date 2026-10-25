@@ -36,8 +36,7 @@ import (
 	"databasus-backend/internal/features/intervals"
 	"databasus-backend/internal/features/notifiers"
 	"databasus-backend/internal/features/storages"
-	users_middleware "databasus-backend/internal/features/users/middleware"
-	users_services "databasus-backend/internal/features/users/services"
+	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_controllers "databasus-backend/internal/features/workspaces/controllers"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
 	"databasus-backend/internal/util/encryption"
@@ -215,7 +214,7 @@ func newPhysicalTestRouter() *gin.Engine {
 
 	backups_controllers_physical.GetPhysicalBackupController().RegisterPublicRoutes(v1)
 
-	protected := v1.Group("").Use(users_middleware.AuthMiddleware(users_services.GetUserService()))
+	protected := v1.Group("").Use(users_testing.GetSessionMiddleware())
 	if routerGroup, ok := protected.(*gin.RouterGroup); ok {
 		workspaces_controllers.GetWorkspaceController().RegisterRoutes(routerGroup)
 		workspaces_controllers.GetMembershipController().RegisterRoutes(routerGroup)

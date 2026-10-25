@@ -11,11 +11,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"databasus-backend/internal/lib/background"
 	"databasus-backend/internal/lib/config"
+	"databasus-backend/internal/lib/httpserver"
 	"databasus-backend/internal/lib/testwait"
 )
 
@@ -127,6 +129,29 @@ func TestRouter(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestNewRouter(t *testing.T) {
+	t.Run("lets a handler read the client ip through the context it receives", func(t *testing.T) {
+		testApp := newTestApp(t)
+		router := testApp.newRouter()
+		clientIPByRequest := make(chan string, 1)
+		router.GET("/api/v1/probe", func(ginContext *gin.Context) {
+			var handlerContext context.Context = ginContext
+
+			clientIPByRequest <- httpserver.GetClientIP(handlerContext)
+			ginContext.Status(http.StatusNoContent)
+		})
+
+		request := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/api/v1/probe", nil)
+		request.RemoteAddr = "203.0.113.7:51234"
+
+		response := httptest.NewRecorder()
+		router.ServeHTTP(response, request)
+
+		require.Equal(t, http.StatusNoContent, response.Code)
+		assert.Equal(t, "203.0.113.7", <-clientIPByRequest)
+	})
 }
 
 func reserveFreeAddress(t *testing.T) string {

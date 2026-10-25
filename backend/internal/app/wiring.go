@@ -1,7 +1,6 @@
 package app
 
 import (
-	"databasus-backend/internal/features/audit_logs"
 	backuping_physical "databasus-backend/internal/features/backups/backups/backuping/physical"
 	backups_services "databasus-backend/internal/features/backups/backups/services"
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
@@ -24,7 +23,6 @@ func setUpDependencies() {
 	backups_services.SetupDependencies()
 	restores.SetupDependencies()
 	healthcheck_config.SetupDependencies()
-	audit_logs.SetupDependencies()
 	notifiers.SetupDependencies()
 	storages.SetupDependencies()
 	backups_config_logical.SetupDependencies()

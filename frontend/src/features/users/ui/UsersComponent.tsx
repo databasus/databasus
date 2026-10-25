@@ -5,11 +5,12 @@ import dayjs from 'dayjs';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { USER_ROLE_LABEL_KEYS, UserRole } from '../../../entity/users';
-import { userManagementApi } from '../../../entity/users/api/userManagementApi';
-import type { ChangeUserRoleRequest } from '../../../entity/users/model/ChangeUserRoleRequest';
-import type { ListUsersRequest } from '../../../entity/users/model/ListUsersRequest';
-import type { UserProfile } from '../../../entity/users/model/UserProfile';
+import {
+  USER_ROLE_LABEL_KEYS,
+  type User,
+  UserRole,
+  userManagementApi,
+} from '../../../entity/users';
 import { useIsMobile } from '../../../shared/hooks';
 import { translateApiError, useLocale } from '../../../shared/i18n';
 import { getUserTimeFormat } from '../../../shared/time';
@@ -18,6 +19,18 @@ import { UserAuditLogsSidebarComponent } from './UserAuditLogsSidebarComponent';
 interface Props {
   contentHeight: number;
 }
+
+const isUserActive = (user: User): boolean => user.status === 'ACTIVE';
+
+const withUserId = (userIds: Set<string>, userId: string): Set<string> =>
+  new Set(userIds).add(userId);
+
+const withoutUserId = (userIds: Set<string>, userId: string): Set<string> => {
+  const remainingUserIds = new Set(userIds);
+  remainingUserIds.delete(userId);
+
+  return remainingUserIds;
+};
 
 const getRoleColor = (role: UserRole): string => {
   switch (role) {
@@ -35,11 +48,11 @@ export function UsersComponent({ contentHeight }: Props) {
   const { formatRelativeTime } = useLocale();
   const { message } = App.useApp();
   const isMobile = useIsMobile();
-  const [users, setUsers] = useState<UserProfile[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [nextCursor, setNextCursor] = useState<string | undefined>(undefined);
   const [hasMore, setHasMore] = useState(true);
-  const [total, setTotal] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [inputValue, setInputValue] = useState('');
 
@@ -48,7 +61,7 @@ export function UsersComponent({ contentHeight }: Props) {
   const [processingUsers, setProcessingUsers] = useState<Set<string>>(new Set());
   const [changingRoleUsers, setChangingRoleUsers] = useState<Set<string>>(new Set());
 
-  const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -79,7 +92,7 @@ export function UsersComponent({ contentHeight }: Props) {
     if (scrollHeight - scrollTop - clientHeight < threshold) {
       loadUsers(false);
     }
-  }, [isLoadingMore, hasMore]);
+  }, [isLoadingMore, hasMore, nextCursor, searchQuery]);
 
   useEffect(() => {
     const scrollContainer = scrollContainerRef.current;
@@ -104,28 +117,25 @@ export function UsersComponent({ contentHeight }: Props) {
     }
 
     try {
-      const offset = isInitialLoad ? 0 : users.length;
       const currentQuery = query !== undefined ? query : searchQuery;
-      const request: ListUsersRequest = {
+      const response = await userManagementApi.getUsers({
         limit: pageSize,
-        offset: offset,
+        after: isInitialLoad ? undefined : nextCursor,
         query: currentQuery || undefined,
-      };
-
-      const response = await userManagementApi.getUsers(request);
+      });
 
       if (isInitialLoad) {
-        setUsers(response.users);
+        setUsers(response.items);
       } else {
         setUsers((prev) => {
           const existingIds = new Set(prev.map((user) => user.id));
-          const newUsers = response.users.filter((user) => !existingIds.has(user.id));
+          const newUsers = response.items.filter((user) => !existingIds.has(user.id));
           return [...prev, ...newUsers];
         });
       }
 
-      setTotal(response.total);
-      setHasMore(response.users.length === pageSize);
+      setNextCursor(response.nextCursor);
+      setHasMore(response.nextCursor !== undefined);
     } catch (error: unknown) {
       message.error(translateApiError(error, t));
     } finally {
@@ -135,33 +145,30 @@ export function UsersComponent({ contentHeight }: Props) {
     }
   };
 
-  const handleActivationToggle = async (userId: string, isActive: boolean) => {
-    setUsers((prev) =>
-      prev.map((user) => (user.id === userId ? { ...user, isActive: !isActive } : user)),
-    );
+  const replaceUser = (changedUser: User) => {
+    setUsers((prev) => prev.map((user) => (user.id === changedUser.id ? changedUser : user)));
+  };
 
-    setProcessingUsers((prev) => new Set(prev).add(userId));
+  const handleActivationToggle = async (toggledUser: User) => {
+    const userId = toggledUser.id;
+    const isActive = isUserActive(toggledUser);
+
+    replaceUser({ ...toggledUser, status: isActive ? 'INACTIVE' : 'ACTIVE' });
+    setProcessingUsers((prev) => withUserId(prev, userId));
 
     try {
       if (isActive) {
-        await userManagementApi.deactivateUser(userId);
+        replaceUser(await userManagementApi.deactivateUser(userId));
         message.success(t('users.list.deactivated'));
       } else {
-        await userManagementApi.activateUser(userId);
+        replaceUser(await userManagementApi.activateUser(userId));
         message.success(t('users.list.activated'));
       }
     } catch (error: unknown) {
       message.error(translateApiError(error, t));
-
-      setUsers((prev) =>
-        prev.map((user) => (user.id === userId ? { ...user, isActive: isActive } : user)),
-      );
+      replaceUser(toggledUser);
     } finally {
-      setProcessingUsers((prev) => {
-        const newSet = new Set(prev);
-        newSet.delete(userId);
-        return newSet;
-      });
+      setProcessingUsers((prev) => withoutUserId(prev, userId));
     }
   };
 
@@ -173,11 +180,10 @@ export function UsersComponent({ contentHeight }: Props) {
       prev.map((user) => (user.id === userId ? { ...user, role: newRole } : user)),
     );
 
-    setChangingRoleUsers((prev) => new Set(prev).add(userId));
+    setChangingRoleUsers((prev) => withUserId(prev, userId));
 
     try {
-      const request: ChangeUserRoleRequest = { role: newRole };
-      await userManagementApi.changeUserRole(userId, request);
+      await userManagementApi.changeUserRole(userId, newRole);
       message.success(t('users.list.roleChanged'));
     } catch (error: unknown) {
       message.error(translateApiError(error, t));
@@ -188,15 +194,11 @@ export function UsersComponent({ contentHeight }: Props) {
         );
       }
     } finally {
-      setChangingRoleUsers((prev) => {
-        const newSet = new Set(prev);
-        newSet.delete(userId);
-        return newSet;
-      });
+      setChangingRoleUsers((prev) => withoutUserId(prev, userId));
     }
   };
 
-  const handleRowClick = (user: UserProfile) => {
+  const handleRowClick = (user: User) => {
     setSelectedUser(user);
     setIsDrawerOpen(true);
   };
@@ -211,12 +213,12 @@ export function UsersComponent({ contentHeight }: Props) {
     value: role,
   }));
 
-  const columns: ColumnsType<UserProfile> = [
+  const columns: ColumnsType<User> = [
     {
       title: t('users.list.columns.user'),
       key: 'user',
       width: 350,
-      render: (_, record: UserProfile) => (
+      render: (_, record: User) => (
         <div>
           {record.name} ({record.email})
         </div>
@@ -227,7 +229,7 @@ export function UsersComponent({ contentHeight }: Props) {
       dataIndex: 'role',
       key: 'role',
       width: 200,
-      render: (role: UserRole, record: UserProfile) => (
+      render: (role: UserRole, record: User) => (
         <Select
           value={role}
           onChange={(value) => handleRoleChange(record.id, value)}
@@ -244,18 +246,17 @@ export function UsersComponent({ contentHeight }: Props) {
     },
     {
       title: t('users.list.columns.isActive'),
-      dataIndex: 'isActive',
       key: 'isActive',
       width: 200,
-      render: (isActive: boolean, record: UserProfile) => (
+      render: (_, record: User) => (
         <Switch
-          checked={isActive}
-          onChange={() => handleActivationToggle(record.id, isActive)}
+          checked={isUserActive(record)}
+          onChange={() => handleActivationToggle(record)}
           loading={processingUsers.has(record.id)}
           disabled={processingUsers.has(record.id)}
           size="small"
           style={{
-            backgroundColor: isActive ? '#155dfc' : undefined,
+            backgroundColor: isUserActive(record) ? '#155dfc' : undefined,
           }}
         />
       ),
@@ -281,7 +282,7 @@ export function UsersComponent({ contentHeight }: Props) {
     {
       title: '',
       key: 'empty',
-      render: (_, record: UserProfile) => (
+      render: (_, record: User) => (
         <div>
           <Button type="primary" ghost size="small" onClick={() => handleRowClick(record)}>
             {t('users.list.viewAuditLogs')}
@@ -291,7 +292,7 @@ export function UsersComponent({ contentHeight }: Props) {
     },
   ];
 
-  const renderUserCard = (user: UserProfile) => {
+  const renderUserCard = (user: User) => {
     const date = dayjs(user.createdAt);
     const timeFormat = getUserTimeFormat();
 
@@ -334,13 +335,13 @@ export function UsersComponent({ contentHeight }: Props) {
               {t('users.list.activeLabel')}
             </span>
             <Switch
-              checked={user.isActive}
-              onChange={() => handleActivationToggle(user.id, user.isActive)}
+              checked={isUserActive(user)}
+              onChange={() => handleActivationToggle(user)}
               loading={processingUsers.has(user.id)}
               disabled={processingUsers.has(user.id)}
               size="small"
               style={{
-                backgroundColor: user.isActive ? '#155dfc' : undefined,
+                backgroundColor: isUserActive(user) ? '#155dfc' : undefined,
               }}
             />
           </div>
@@ -372,7 +373,7 @@ export function UsersComponent({ contentHeight }: Props) {
             <div className="text-sm text-gray-500 dark:text-gray-400">
               {isLoading
                 ? t('common.states.loading')
-                : t('users.list.loadedOfTotal', { loaded: users.length, total })}
+                : t('users.list.loaded', { count: users.length })}
             </div>
           </div>
 
@@ -417,7 +418,7 @@ export function UsersComponent({ contentHeight }: Props) {
 
               {!hasMore && users.length > 0 && (
                 <div className="py-4 text-center text-sm text-gray-500 dark:text-gray-400">
-                  {t('users.list.allLoaded', { count: total })}
+                  {t('users.list.allLoaded', { count: users.length })}
                 </div>
               )}
             </>

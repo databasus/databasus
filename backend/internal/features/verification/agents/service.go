@@ -13,14 +13,14 @@ import (
 
 	audit_logs "databasus-backend/internal/features/audit_logs"
 	audit_logs_models "databasus-backend/internal/features/audit_logs/models"
+	"databasus-backend/internal/lib/ratelimit"
 	"databasus-backend/internal/modules/users"
-	"databasus-backend/internal/util/ratelimiter"
 )
 
 type AgentService struct {
 	agentRepository *AgentRepository
 	auditLogService *audit_logs.AuditLogService
-	rateLimiter     ratelimiter.Counter
+	rateLimiter     ratelimit.Counter
 	logger          *slog.Logger
 
 	heartbeatListeners []AgentHeartbeatedListener

@@ -4,6 +4,359 @@
  */
 
 export interface paths {
+    "/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the users of the instance
+         * @description The newest users come first. `query` keeps the users whose email address or name contains it, ignoring case.
+         */
+        get: operations["listUsers"];
+        put?: never;
+        /**
+         * Sign up and sign in as the new user
+         * @description Public, because it creates the user and the session the caller does not have yet. The first user of an instance administers it, even when registration is closed. An invited user finishes sign-up through it.
+         */
+        post: operations["signUp"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/{userId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the user */
+                userId: components["parameters"]["UserId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Get a user
+         * @description A user reads their own user; an instance admin reads any user. Anyone else gets 403 `permission_denied`.
+         */
+        get: operations["getUser"];
+        /**
+         * Replace the name and the email address of the signed-in user
+         * @description Only the user's own ID is accepted; any other gets 403 `permission_denied`. A new address must be a valid email address that no other user holds, or the answer is 400 `invalid_request` or 409 `email_taken`. The current session survives the change, and the next sign-in uses the new address.
+         */
+        put: operations["updateUser"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/{userId}/password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the user */
+                userId: components["parameters"]["UserId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Replace the password of the signed-in user
+         * @description Only the user's own ID is accepted; any other gets 403 `permission_denied`. Every session issued before the change stops working, the caller's own included, so the client signs in again with the new password.
+         */
+        put: operations["changeUserPassword"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/{userId}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the user */
+                userId: components["parameters"]["UserId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Activate a user
+         * @description The user signs in again. Only the bootstrap administrator activates an instance admin; anyone else gets 403 `permission_denied`.
+         */
+        post: operations["activateUser"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/{userId}/deactivate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the user */
+                userId: components["parameters"]["UserId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Deactivate a user
+         * @description Every session of the user stops working, and sign-in answers `user_deactivated`. Deactivating yourself or the bootstrap administrator gets 403 `permission_denied`, and so does deactivating an instance admin for anyone but the bootstrap administrator.
+         */
+        post: operations["deactivateUser"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/{userId}/role": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the user */
+                userId: components["parameters"]["UserId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Replace the global role of a user
+         * @description Only the bootstrap administrator grants or revokes the admin role; anyone else gets 403 `permission_denied`. Nobody changes their own role or the role of the bootstrap administrator.
+         */
+        put: operations["changeUserRole"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Sign in with an email address and a password
+         * @description Public, because it creates the session the caller does not have yet. A wrong password, an unknown address, a user who has not finished sign-up and a user without a password all get 401 `invalid_credentials`. A deactivated user gets 403 `user_deactivated` only after the correct password. When the instance requires the second factor, the answer names a pending sign-in and the code goes to the user's address.
+         */
+        post: operations["signIn"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/github-sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Sign in with GitHub
+         * @description Public, because it creates the session the caller does not have yet. The code from GitHub's authorization page signs in the user linked to the GitHub account, or the user with the same email address, linking the account and finishing the sign-up of an invited user. An unknown address creates a user under the same rules as sign-up. The second factor does not apply, because GitHub verified the user. A deactivated user gets 403 `user_deactivated`, an instance without the GitHub client gets 409 `oauth_not_configured`, and a code GitHub refuses or an account without an email address gets 400 `oauth_failed`.
+         */
+        post: operations["signInWithGitHub"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/google-sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Sign in with Google
+         * @description Public, because it creates the session the caller does not have yet. The code from Google's authorization page signs in the user linked to the Google account, or the user with the same email address, linking the account and finishing the sign-up of an invited user. An unknown address creates a user under the same rules as sign-up. The second factor does not apply, because Google verified the user. A deactivated user gets 403 `user_deactivated`, an instance without the Google client gets 409 `oauth_not_configured`, and a code Google refuses or an account without an email address gets 400 `oauth_failed`.
+         */
+        post: operations["signInWithGoogle"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/password-resets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mail a password reset code
+         * @description Public, because the caller cannot sign in. The answer is the same for an active user, a user who is not active and an address without a user; only an active user gets a code, valid for an hour. Three requests an hour per address, whether a user holds it or not.
+         */
+        post: operations["requestPasswordReset"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/password-reset-completions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Replace the password with a mailed reset code
+         * @description Public, because the caller cannot sign in. A wrong, used or expired code and an address without an active user all get 400 `invalid_reset_code`. Every session issued before the reset stops working.
+         */
+        post: operations["completePasswordReset"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/instance-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get the instance settings
+         * @description Every signed-in user reads them, because the interface offers registration, invitations and new workspaces by them. `isEmailConfigured` is the instance's own judgement about its mail server.
+         */
+        get: operations["getInstanceSettings"];
+        /**
+         * Replace the instance settings
+         * @description Turning the second factor on is refused with 409 `email_not_configured` when the instance has no mail server, and with 409 `admin_email_missing` naming the administrator when an active administrator has no valid email address. Turning it off is never refused.
+         */
+        put: operations["updateInstanceSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/test-emails": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send a test email to the signed-in administrator
+         * @description Refused with 409 `email_not_configured` without a mail server and with 409 `admin_email_missing` when the administrator has no valid email address. A message the mail server refuses is still a test that ran: the answer says it was not delivered and carries the mail server's response. Five per administrator in ten minutes.
+         */
+        post: operations["sendTestEmail"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pending-sign-ins/{pendingSignInId}/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The pending sign-in that the latest password step or resend named */
+                pendingSignInId: components["parameters"]["PendingSignInId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Complete a pending sign-in with the emailed code
+         * @description Public, because it creates the session the caller does not have yet. A pending sign-in expires ten minutes after its code was sent and is destroyed by the fifth wrong code; then it answers 410 `pending_sign_in_not_usable`. Ten attempts a minute per pending sign-in.
+         */
+        post: operations["verifySignInCode"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pending-sign-ins/{pendingSignInId}/resend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The pending sign-in that the latest password step or resend named */
+                pendingSignInId: components["parameters"]["PendingSignInId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send a new code that replaces the pending sign-in
+         * @description Public, because the caller is still signing in. The answer names the new pending sign-in, and the previous code stops working. One resend a minute and five codes an hour per user.
+         */
+        post: operations["resendSignInCode"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/sign-in-options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get what the sign-in page offers
+         * @description Public, because the sign-in page reads it before anyone signs in. It tells whether the instance has a user yet, so the page offers the registration that claims the instance.
+         */
+        get: operations["getSignInOptions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/system/version": {
         parameters: {
             query?: never;
@@ -28,6 +381,210 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @description The user to create */
+        SignUpRequest: {
+            /**
+             * Format: email
+             * @description The address the user signs in with
+             */
+            email: string;
+            /** @description The password, at least 8 characters */
+            password: string;
+            /** @description The name other users see */
+            name: string;
+            /** @description The answer to the human-verification challenge, required when the instance has one */
+            cloudflareTurnstileToken?: string;
+        };
+        /** @description The credentials of a password sign-in */
+        SignInRequest: {
+            /** @description The address the user signs in with */
+            email: string;
+            /** @description The password */
+            password: string;
+            /** @description The answer to the human-verification challenge, required when the instance has one */
+            cloudflareTurnstileToken?: string;
+        };
+        /** @description A session of a signed-in user. The operation that creates it returns the token once; no other operation returns it */
+        Session: {
+            /**
+             * Format: uuid
+             * @description The ID of the signed-in user
+             */
+            userId: string;
+            /** @description The address of the signed-in user */
+            email: string;
+            /** @description The session token to send as `Authorization: Bearer <token>` */
+            token: string;
+        };
+        /** @description The answer of an identity provider's authorization page */
+        OAuthSignInRequest: {
+            /** @description The authorization code the provider issued */
+            code: string;
+            /** @description The redirect URI the code was issued for */
+            redirectUri: string;
+        };
+        /** @description The session, or the pending sign-in that waits for the emailed code */
+        SignInOutcome: components["schemas"]["SignInCompleted"] | components["schemas"]["SignInCodeRequired"];
+        /** @description The user is signed in */
+        SignInCompleted: {
+            /**
+             * @description Always `COMPLETED` (enum property replaced by openapi-typescript)
+             * @enum {string}
+             */
+            outcome: "COMPLETED";
+            /**
+             * Format: uuid
+             * @description The ID of the signed-in user
+             */
+            userId: string;
+            /** @description The address of the signed-in user */
+            email: string;
+            /** @description The session token to send as `Authorization: Bearer <token>`, returned once */
+            token: string;
+        };
+        /** @description The password was correct, and a code went to the user's address */
+        SignInCodeRequired: {
+            /**
+             * @description Always `CODE_REQUIRED` (enum property replaced by openapi-typescript)
+             * @enum {string}
+             */
+            outcome: "CODE_REQUIRED";
+            /**
+             * Format: uuid
+             * @description The pending sign-in that the code completes
+             */
+            pendingSignInId: string;
+            /** @description The address the code went to */
+            email: string;
+        };
+        /** @description The code emailed for a pending sign-in */
+        VerifySignInCodeRequest: {
+            /** @description The six digits from the message */
+            code: string;
+            /** @description The answer to the human-verification challenge, required when the instance has one */
+            cloudflareTurnstileToken?: string;
+        };
+        /** @description A request for a new code */
+        ResendSignInCodeRequest: {
+            /** @description The answer to the human-verification challenge, required when the instance has one */
+            cloudflareTurnstileToken?: string;
+        };
+        /** @description A password sign-in that waits for the emailed code */
+        PendingSignIn: {
+            /**
+             * Format: uuid
+             * @description The pending sign-in that the code completes
+             */
+            pendingSignInId: string;
+            /** @description The address the code went to */
+            email: string;
+        };
+        /** @description What the sign-in page offers */
+        SignInOptions: {
+            /** @description Whether the instance has a user; without one the page offers the first registration */
+            hasAnyUser: boolean;
+        };
+        /** @description A user of the instance */
+        User: {
+            /**
+             * Format: uuid
+             * @description The ID of the user
+             */
+            id: string;
+            /** @description The address the user signs in with */
+            email: string;
+            /** @description The name other users see */
+            name: string;
+            role: components["schemas"]["UserRole"];
+            status: components["schemas"]["UserStatus"];
+            /**
+             * Format: date-time
+             * @description When the user was created
+             */
+            createdAt: string;
+        };
+        /** @description A request for a password reset code */
+        PasswordResetRequest: {
+            /** @description The address the user signs in with */
+            email: string;
+            /** @description The answer to the human-verification challenge, required when the instance has one */
+            cloudflareTurnstileToken?: string;
+        };
+        /** @description A mailed reset code and the password that replaces the old one */
+        PasswordResetCompletion: {
+            /** @description The address the code was sent to */
+            email: string;
+            /** @description The code from the email */
+            code: string;
+            /** @description The new password, at least 8 characters */
+            newPassword: string;
+        };
+        /** @description One page of users, the newest first */
+        UserPage: {
+            /** @description The users on the page */
+            items: components["schemas"]["User"][];
+            /** @description The `after` of the next page, absent on the last page */
+            nextCursor?: string;
+        };
+        /** @description A new global role */
+        UserRoleChange: {
+            role: components["schemas"]["UserRole"];
+        };
+        /** @description The editable fields of a user */
+        UserUpdate: {
+            /** @description The name other users see */
+            name: string;
+            /** @description The address the user signs in with */
+            email: string;
+        };
+        /** @description A new password */
+        PasswordChange: {
+            /** @description The new password, at least 8 characters */
+            newPassword: string;
+        };
+        /**
+         * @description The global role; an instance admin administers the instance
+         * @enum {string}
+         */
+        UserRole: "ADMIN" | "MEMBER";
+        /**
+         * @description `INVITED` for a user who was invited and has not finished sign-up, `ACTIVE`, or `INACTIVE` for a deactivated user
+         * @enum {string}
+         */
+        UserStatus: "INVITED" | "ACTIVE" | "INACTIVE";
+        /** @description The settings of the instance */
+        InstanceSettings: {
+            /** @description Anyone may sign up without an invitation */
+            isAllowExternalRegistrations: boolean;
+            /** @description A user who is not an instance admin may invite users */
+            isAllowMemberInvitations: boolean;
+            /** @description A user who is not an instance admin may create workspaces */
+            isMemberAllowedToCreateWorkspaces: boolean;
+            /** @description A password sign-in also needs a code emailed to the user */
+            isTwoFactorAuthRequired: boolean;
+            /** @description Whether the operator configured a mail server; it cannot be changed here */
+            isEmailConfigured: boolean;
+        };
+        /** @description The editable instance settings */
+        InstanceSettingsUpdate: {
+            /** @description Anyone may sign up without an invitation */
+            isAllowExternalRegistrations: boolean;
+            /** @description A user who is not an instance admin may invite users */
+            isAllowMemberInvitations: boolean;
+            /** @description A user who is not an instance admin may create workspaces */
+            isMemberAllowedToCreateWorkspaces: boolean;
+            /** @description A password sign-in also needs a code emailed to the user */
+            isTwoFactorAuthRequired: boolean;
+        };
+        /** @description A test email the instance tried to deliver */
+        TestEmail: {
+            /** @description The address of the administrator the message went to */
+            recipientEmail: string;
+            /** @description Whether the mail server accepted the message */
+            isDelivered: boolean;
+            /** @description The error of the delivery with the mail server's response, present when it failed */
+            failureDetail?: string;
+        };
         /** @description The body of the version operation */
         VersionResponse: {
             /** @description The version of the running instance, such as `3.26.0` */
@@ -51,7 +608,7 @@ export interface components {
          * @description The cause of the error for programs; a value never changes its meaning
          * @enum {string}
          */
-        ProblemCode: "invalid_request" | "not_found" | "internal";
+        ProblemCode: "invalid_request" | "unauthenticated" | "permission_denied" | "not_found" | "rate_limited" | "human_verification_failed" | "invalid_credentials" | "user_deactivated" | "registration_closed" | "email_taken" | "invalid_reset_code" | "oauth_not_configured" | "oauth_failed" | "pending_sign_in_not_usable" | "sign_in_code_not_sent" | "too_many_sign_in_codes" | "sign_in_code_resent_too_soon" | "sign_in_code_incorrect" | "email_not_configured" | "admin_email_missing" | "internal";
         /** @description A field of the request that breaks the contract or a validation rule */
         FieldError: {
             /** @description The path of the field in the request, such as `name` or `settings.bucket` */
@@ -71,13 +628,557 @@ export interface components {
             };
         };
     };
-    parameters: never;
+    parameters: {
+        /** @description The ID of the user */
+        UserId: string;
+        /** @description The pending sign-in that the latest password step or resend named */
+        PendingSignInId: string;
+    };
     requestBodies: never;
     headers: never;
     pathItems: never;
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    listUsers: {
+        parameters: {
+            query?: {
+                /** @description The largest number of users on the page */
+                limit?: number;
+                /** @description The `nextCursor` of the previous page */
+                after?: string;
+                /** @description The text the email address or the name contains */
+                query?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page of users */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserPage"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    signUp: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The new account and the answer to the human-verification challenge. */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SignUpRequest"];
+            };
+        };
+        responses: {
+            /** @description The user exists and is signed in */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Session"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    getUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the user */
+                userId: components["parameters"]["UserId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The user */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    updateUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the user */
+                userId: components["parameters"]["UserId"];
+            };
+            cookie?: never;
+        };
+        /** @description The name and the email address the user keeps after the change. */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UserUpdate"];
+            };
+        };
+        responses: {
+            /** @description The user after the change */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    changeUserPassword: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the user */
+                userId: components["parameters"]["UserId"];
+            };
+            cookie?: never;
+        };
+        /** @description The new password. */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordChange"];
+            };
+        };
+        responses: {
+            /** @description The password is changed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    activateUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the user */
+                userId: components["parameters"]["UserId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The user after the change */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    deactivateUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the user */
+                userId: components["parameters"]["UserId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The user after the change */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    changeUserRole: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the user */
+                userId: components["parameters"]["UserId"];
+            };
+            cookie?: never;
+        };
+        /** @description The new role. */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UserRoleChange"];
+            };
+        };
+        responses: {
+            /** @description The user after the change */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    signIn: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The credentials and the answer to the human-verification challenge. */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SignInRequest"];
+            };
+        };
+        responses: {
+            /** @description The session, or the pending sign-in that waits for the emailed code */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignInOutcome"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            429: components["responses"]["Problem"];
+            503: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    signInWithGitHub: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The authorization code and the redirect URI it was issued for. */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OAuthSignInRequest"];
+            };
+        };
+        responses: {
+            /** @description The user is signed in */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Session"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    signInWithGoogle: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The authorization code and the redirect URI it was issued for. */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OAuthSignInRequest"];
+            };
+        };
+        responses: {
+            /** @description The user is signed in */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Session"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    requestPasswordReset: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The address and the answer to the human-verification challenge. */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordResetRequest"];
+            };
+        };
+        responses: {
+            /** @description The request is accepted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["Problem"];
+            429: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    completePasswordReset: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The address, the code from the email and the new password. */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordResetCompletion"];
+            };
+        };
+        responses: {
+            /** @description The password is replaced */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    getInstanceSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The instance settings */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstanceSettings"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    updateInstanceSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Every instance setting; settings left as they were stay unchanged. */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InstanceSettingsUpdate"];
+            };
+        };
+        responses: {
+            /** @description The instance settings after the change */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstanceSettings"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    sendTestEmail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The test email that was attempted */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TestEmail"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+            429: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    verifySignInCode: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The pending sign-in that the latest password step or resend named */
+                pendingSignInId: components["parameters"]["PendingSignInId"];
+            };
+            cookie?: never;
+        };
+        /** @description The code from the email and the answer to the human-verification challenge. */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VerifySignInCodeRequest"];
+            };
+        };
+        responses: {
+            /** @description The user is signed in */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Session"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            410: components["responses"]["Problem"];
+            429: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    resendSignInCode: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The pending sign-in that the latest password step or resend named */
+                pendingSignInId: components["parameters"]["PendingSignInId"];
+            };
+            cookie?: never;
+        };
+        /** @description The answer to the human-verification challenge. */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResendSignInCodeRequest"];
+            };
+        };
+        responses: {
+            /** @description The pending sign-in that the new code completes */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PendingSignIn"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            410: components["responses"]["Problem"];
+            429: components["responses"]["Problem"];
+            503: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    getSignInOptions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The options of the sign-in page */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignInOptions"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
     getVersion: {
         parameters: {
             query?: never;

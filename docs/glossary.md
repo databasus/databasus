@@ -16,6 +16,13 @@ This is the project's common language. Each concept has one term in the document
 | Member | member | A user in a workspace, with a workspace role. |
 | Instance admin | admin | A user with the global admin role, who manages users and instance settings. |
 | Global role | global role, `ADMIN`, `MEMBER` | A user's role on the whole instance: `ADMIN` makes the user an instance admin, and `MEMBER` grants nothing beyond the user's workspace memberships. The word "member" alone means a member of a workspace. |
+| User | user | A person with an account on the instance: email, name, global role and status (`INVITED`, `ACTIVE` or `INACTIVE`). |
+| Session | session | A signed-in user's right to call the API, carried as a token the sign-in returns once. A password change ends the sessions issued before it. |
+| Pending sign-in | pending sign-in, `pendingSignInId` | A password sign-in that waits for the code emailed to the user, when the instance requires two-factor sign-in. |
+| Instance settings | instance settings | The settings an instance admin sets for the whole instance: open registration, member invitations, workspace creation by members and two-factor sign-in. |
+| Sign-in options | sign-in options | What the sign-in page offers, such as the first registration on an instance without users. |
+| Invitation | invitation | A user with the status `INVITED`, created when a workspace adds an address that has no user. The user finishes the sign-up with that address. |
+| Password reset | password reset | Replacing a forgotten password with a code emailed to the user. |
 | Actor | actor | The user on whose behalf a request runs: user ID and global role. |
 | Audit event | audit event | A record of who did what to which object, written in the transaction of the action. |
 | Audit author | audit author | The user an audit event names as the one who acted, kept in the event as a snapshot of user ID, email and name. |
@@ -53,6 +60,7 @@ This is the project's common language. Each concept has one term in the document
 | Problem | Problem | The RFC 9457 error body that every operation of the contract answers with. |
 | Error code | `code` | The machine-readable cause in a `Problem`, such as `not_found`. The frontend chooses the text it shows by it. |
 | Contract-checking test client | `apiclient` | The client backend tests call the API through. It fails the test on any response that differs from the contract. |
+| Access mark | `x-access` | The mark of a contract operation that says who may call it: `public`, `admin`, or a signed-in user when the mark is absent. The contract guard reads it, and the users module enforces it. |
 | Handler | handler | Code that decodes a request, calls a service and encodes the response. |
 | Service | service | Code that holds the rules of a module's operations. |
 | Repository | repository | Code that holds the queries of a module's tables. |

@@ -11,8 +11,9 @@ import (
 	"strings"
 )
 
-// The backend answers a refusal with {"error": "..."} and an unhealthy check with
-// {"status": "..."}; either text is the reason the developer needs to see.
+// The contract routes answer a refusal with a Problem {"detail": "..."}, the old routes with
+// {"error": "..."} and an unhealthy check with {"status": "..."}; each text is the reason the
+// developer needs to see.
 type apiError struct {
 	StatusCode int
 	Reason     string
@@ -87,11 +88,16 @@ func (c *apiClient) send(ctx context.Context, method, path string, body, respons
 
 func readRefusalReason(statusCode int, responseBody []byte) string {
 	var refusal struct {
+		Detail string `json:"detail"`
 		Error  string `json:"error"`
 		Status string `json:"status"`
 	}
 
 	if json.Unmarshal(responseBody, &refusal) == nil {
+		if refusal.Detail != "" {
+			return refusal.Detail
+		}
+
 		if refusal.Error != "" {
 			return refusal.Error
 		}

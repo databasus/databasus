@@ -8,12 +8,12 @@ import { useTranslation } from 'react-i18next';
 import { auditLogApi } from '../../../entity/audit-logs/api/auditLogApi';
 import type { AuditLog } from '../../../entity/audit-logs/model/AuditLog';
 import type { GetAuditLogsRequest } from '../../../entity/audit-logs/model/GetAuditLogsRequest';
-import type { UserProfile } from '../../../entity/users/model/UserProfile';
+import type { User } from '../../../entity/users';
 import { translateApiError, useLocale } from '../../../shared/i18n';
 import { getUserTimeFormat } from '../../../shared/time';
 
 interface Props {
-  user: UserProfile;
+  user: User;
 }
 
 export function UserAuditLogsSidebarComponent({ user }: Props) {

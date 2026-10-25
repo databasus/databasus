@@ -11,7 +11,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"databasus-backend/internal/util/cache"
+	"databasus-backend/internal/lib/cache"
+	"databasus-backend/internal/lib/clock"
 )
 
 type failingStore struct {
@@ -43,7 +44,7 @@ func (s failingStore) Clear(context.Context) error {
 }
 
 func Test_Tracker_AcquireDownloadLock_ConcurrentCallersAcquireOneLock(t *testing.T) {
-	tracker := NewTracker(cache.NewMemoryStore(4096))
+	tracker := NewTracker(cache.NewMemoryStore(cache.Deps{PayloadBudgetBytes: 4096, Clock: clock.NewSystem()}))
 	userID := uuid.New()
 
 	const callerCount = 32
@@ -74,7 +75,7 @@ func Test_Tracker_WhenStoreFails_FailsClosed(t *testing.T) {
 }
 
 func Test_Tracker_ReleasedLockCanBeAcquiredAgain(t *testing.T) {
-	memoryStore := cache.NewMemoryStore(4096)
+	memoryStore := cache.NewMemoryStore(cache.Deps{PayloadBudgetBytes: 4096, Clock: clock.NewSystem()})
 	tracker := NewTracker(memoryStore)
 	userID := uuid.New()
 

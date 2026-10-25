@@ -21,7 +21,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"databasus-backend/internal/config"
-	"databasus-backend/internal/features/audit_logs"
 	physical_testing "databasus-backend/internal/features/backups/backups/core/physical/testing"
 	"databasus-backend/internal/features/databases/databases/mariadb"
 	"databasus-backend/internal/features/databases/databases/mongodb"
@@ -33,8 +32,6 @@ import (
 	"databasus-backend/internal/features/sshtunnel"
 	"databasus-backend/internal/features/storages"
 	users_enums "databasus-backend/internal/features/users/enums"
-	users_middleware "databasus-backend/internal/features/users/middleware"
-	users_services "databasus-backend/internal/features/users/services"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_controllers "databasus-backend/internal/features/workspaces/controllers"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
@@ -1514,15 +1511,13 @@ func createTestRouter() *gin.Engine {
 	router := gin.New()
 
 	v1 := router.Group("/api/v1")
-	protected := v1.Group("").Use(users_middleware.AuthMiddleware(users_services.GetUserService()))
+	protected := v1.Group("").Use(users_testing.GetSessionMiddleware())
 
 	workspaces_controllers.GetWorkspaceController().RegisterRoutes(protected.(*gin.RouterGroup))
 	workspaces_controllers.GetMembershipController().RegisterRoutes(protected.(*gin.RouterGroup))
 	GetDatabaseController().RegisterRoutes(protected.(*gin.RouterGroup))
 
 	GetDatabaseController().RegisterPublicRoutes(v1)
-
-	audit_logs.SetupDependencies()
 
 	return router
 }
@@ -2273,7 +2268,7 @@ func createDirectConnectionErrorTestRouter(
 		nil,
 		nil,
 	}
-	controller := &DatabaseController{service, nil, nil}
+	controller := &DatabaseController{service, nil}
 	router := gin.New()
 	router.POST("/api/v1/databases/test-connection-direct", func(ctx *gin.Context) {
 		ctx.Request = ctx.Request.WithContext(users.WithActor(ctx.Request.Context(), actor))

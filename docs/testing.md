@@ -23,6 +23,8 @@ Paths under `internal/` are inside `backend/`.
 | Filesystem tests | the image on the host filesystems and permission setups that users run | `e2e/docker-storage/` | Docker on the host |
 | Frontend tests | screens for every answer the contract allows | `frontend/src/**/*.test.tsx` | the components; the network is mocked through `mockApi`, typed by the contract |
 
+A frontend screen test runs in a browser-like DOM, which it selects with `// @vitest-environment happy-dom` on its first line, and renders the screen through `renderScreen` from `shared/lib/test`, which adds the language and the antd `App` the application wraps it in. Testing Library drives it the way a user does, by labels, placeholders and button names. The other frontend tests run in node.
+
 Module API tests cover most behavior. A unit test without the application is used only for pure logic that has no HTTP entry point, or that is too slow to enumerate through HTTP. Examples are the scheduler's decision function, retention arithmetic, WAL position math, manifest reconstruction and parsers.
 
 ## The test application

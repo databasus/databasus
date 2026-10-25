@@ -14,6 +14,7 @@ import (
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	usecases_logical "databasus-backend/internal/features/backups/backups/usecases/logical"
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
+	"databasus-backend/internal/features/caching"
 	"databasus-backend/internal/features/databases"
 	"databasus-backend/internal/features/notifiers"
 	"databasus-backend/internal/features/storages"
@@ -23,7 +24,6 @@ import (
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/storage"
-	"databasus-backend/internal/util/cache"
 	"databasus-backend/internal/util/logger"
 )
 
@@ -92,7 +92,7 @@ type BackupTestFixture struct {
 func CreateBackupTestFixture(t *testing.T, workspaceName string) *BackupTestFixture {
 	t.Helper()
 
-	if err := cache.GetStore().Clear(t.Context()); err != nil {
+	if err := caching.GetStore().Clear(t.Context()); err != nil {
 		t.Fatalf("clear cache before backup fixture: %v", err)
 	}
 

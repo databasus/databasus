@@ -74,7 +74,7 @@ type latestPhysicalBackupReader interface {
 }
 
 type userCounter interface {
-	GetUsersCount() (int64, error)
+	GetUserCount(ctx context.Context) (int64, error)
 }
 
 type verificationAgentLister interface {

@@ -7,9 +7,13 @@ import (
 	"fmt"
 	"log/slog"
 
+	"golang.org/x/oauth2/github"
+	"golang.org/x/oauth2/google"
+
 	"databasus-backend/internal/lib/clock"
 	"databasus-backend/internal/lib/config"
 	"databasus-backend/internal/lib/logging"
+	"databasus-backend/internal/lib/mailer"
 	"databasus-backend/internal/util/logger"
 )
 
@@ -17,6 +21,38 @@ type Environment struct {
 	Config  config.Config
 	Logging *logging.Logging
 	Clock   clock.Source
+	// Mailer sends the instance's own mail through the operator's server. A test application
+	// records the messages instead.
+	Mailer mailer.Sender
+	// ExternalEndpoints are the addresses of the services sign-in calls. A test application points
+	// them at fakes.
+	ExternalEndpoints ExternalEndpoints
+}
+
+// ExternalEndpoints are the addresses of the identity providers and of Cloudflare Turnstile.
+type ExternalEndpoints struct {
+	GitHubAuthURL      string
+	GitHubTokenURL     string
+	GitHubUserURL      string
+	GitHubEmailsURL    string
+	GoogleAuthURL      string
+	GoogleTokenURL     string
+	GoogleUserInfoURL  string
+	TurnstileVerifyURL string
+}
+
+// GetPublicExternalEndpoints returns the real addresses of the services sign-in calls.
+func GetPublicExternalEndpoints() ExternalEndpoints {
+	return ExternalEndpoints{
+		GitHubAuthURL:      github.Endpoint.AuthURL,
+		GitHubTokenURL:     github.Endpoint.TokenURL,
+		GitHubUserURL:      "https://api.github.com/user",
+		GitHubEmailsURL:    "https://api.github.com/user/emails",
+		GoogleAuthURL:      google.Endpoint.AuthURL,
+		GoogleTokenURL:     google.Endpoint.TokenURL,
+		GoogleUserInfoURL:  "https://www.googleapis.com/oauth2/v2/userinfo",
+		TurnstileVerifyURL: "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+	}
 }
 
 // LoadEnvironment reads the configuration and builds the logging. When the configuration cannot be
@@ -44,8 +80,9 @@ func LoadEnvironment(ctx context.Context, spec config.LoadSpec) (*Environment, e
 	return environment, nil
 }
 
-// NewEnvironment builds the logging for a configuration that is already loaded, such as the one a
-// test application assembles with a clock it moves.
+// NewEnvironment builds the logging and the mailer for a configuration that is already loaded,
+// such as the one a test application assembles with a clock it moves, and points sign-in at the
+// public external endpoints.
 func NewEnvironment(ctx context.Context, loadedConfig config.Config, clockSource clock.Source) (*Environment, error) {
 	loadedLogging, err := logging.New(ctx, loadedConfig)
 	if err != nil {
@@ -56,7 +93,16 @@ func NewEnvironment(ctx context.Context, loadedConfig config.Config, clockSource
 
 	logger.Install(loadedLogging)
 
-	return &Environment{Config: loadedConfig, Logging: loadedLogging, Clock: clockSource}, nil
+	return &Environment{
+		Config:  loadedConfig,
+		Logging: loadedLogging,
+		Clock:   clockSource,
+		Mailer: mailer.NewInstanceSender(mailer.Deps{
+			Settings: loadedConfig.GetInstanceMailSettings(),
+			Logger:   loadedLogging.GetLogger(),
+		}),
+		ExternalEndpoints: GetPublicExternalEndpoints(),
+	}, nil
 }
 
 func logReport(ctx context.Context, reportLogger *slog.Logger, report config.LoadReport) {

@@ -30,7 +30,6 @@ import (
 	"databasus-backend/internal/features/notifiers"
 	"databasus-backend/internal/features/storages"
 	storage_files "databasus-backend/internal/features/storages/files"
-	users_dto "databasus-backend/internal/features/users/dto"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_controllers "databasus-backend/internal/features/workspaces/controllers"
 	workspaces_models "databasus-backend/internal/features/workspaces/models"
@@ -50,7 +49,7 @@ import (
 // most tests need; the rest are kept so tests can mutate config or hit the
 // source PG.
 type PhysicalDBFixture struct {
-	Owner     *users_dto.SignInResponseDTO
+	Owner     *users_testing.TestUser
 	Workspace *workspaces_models.Workspace
 	Storage   *storages.Storage
 	Notifier  *notifiers.Notifier

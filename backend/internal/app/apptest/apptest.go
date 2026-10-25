@@ -12,9 +12,12 @@ import (
 	"testing"
 	"time"
 
+	"gorm.io/gorm"
+
 	"databasus-backend/internal/app"
 	"databasus-backend/internal/lib/clock"
 	"databasus-backend/internal/lib/config"
+	"databasus-backend/internal/lib/database"
 	"databasus-backend/internal/lib/testdb"
 )
 
@@ -23,6 +26,12 @@ type App struct {
 	URL string
 	// Clock starts at the real time and moves only when the test moves it.
 	Clock *clock.Manual
+	// Mail holds every message the application sent.
+	Mail *MailRecorder
+	// GitHub and Google are the fake identity providers of WithGitHub and WithGoogle, nil without
+	// the option.
+	GitHub *FakeGitHub
+	Google *FakeGoogle
 
 	databaseDsn string
 	app         *app.App
@@ -49,11 +58,60 @@ var getProcessRootDirectory = sync.OnceValues(func() (string, error) {
 	return rootDirectory, nil
 })
 
+// Option changes the test application before it is built.
+type Option func(*settings)
+
+type settings struct {
+	isMailServerMissing bool
+	isTurnstileEnabled  bool
+	isGitHubEnabled     bool
+	isGoogleEnabled     bool
+}
+
+// WithoutMailServer builds an instance whose operator configured no mail server.
+func WithoutMailServer() Option {
+	return func(applied *settings) {
+		applied.isMailServerMissing = true
+	}
+}
+
+// WithTurnstile builds an instance with a human-verification challenge served by a fake Cloudflare
+// Turnstile that accepts only TurnstileValidAnswer.
+func WithTurnstile() Option {
+	return func(applied *settings) {
+		applied.isTurnstileEnabled = true
+	}
+}
+
+// WithGitHub builds an instance that offers GitHub sign-in through a fake GitHub.
+func WithGitHub() Option {
+	return func(applied *settings) {
+		applied.isGitHubEnabled = true
+	}
+}
+
+// WithGoogle builds an instance that offers Google sign-in through a fake Google.
+func WithGoogle() Option {
+	return func(applied *settings) {
+		applied.isGoogleEnabled = true
+	}
+}
+
 // New builds the application through app.New with a database from testdb.Open and serves it until
 // the test ends. The API tests of one package run one at a time while the old code is wired through
 // process-wide state, so they never call t.Parallel.
-func New(tb testing.TB) *App {
+func New(tb testing.TB, options ...Option) *App {
 	tb.Helper()
+
+	applied := settings{
+		isMailServerMissing: false,
+		isTurnstileEnabled:  false,
+		isGitHubEnabled:     false,
+		isGoogleEnabled:     false,
+	}
+	for _, option := range options {
+		option(&applied)
+	}
 
 	if !aliveApp.TryLock() {
 		tb.Fatalf("another test application is alive in this process: the API tests of one package " +
@@ -66,10 +124,50 @@ func New(tb testing.TB) *App {
 
 	manualClock := clock.NewManual(time.Now())
 
-	environment, err := app.NewEnvironment(tb.Context(), newConfig(tb, databaseDsn), manualClock)
+	appConfig := newConfig(tb, databaseDsn)
+
+	if applied.isTurnstileEnabled {
+		appConfig.CloudflareTurnstileSecretKey = turnstileSecretKey
+	}
+
+	if applied.isGitHubEnabled {
+		appConfig.GitHubClientID = gitHubClientID
+		appConfig.GitHubClientSecret = gitHubClientSecret
+	}
+
+	if applied.isGoogleEnabled {
+		appConfig.GoogleClientID = googleClientID
+		appConfig.GoogleClientSecret = googleClientSecret
+	}
+
+	environment, err := app.NewEnvironment(tb.Context(), appConfig, manualClock)
 	if err != nil {
 		tb.Fatalf("build the environment of the test application: %v", err)
 	}
+
+	if applied.isTurnstileEnabled {
+		environment.ExternalEndpoints.TurnstileVerifyURL = startFakeTurnstile(tb)
+	}
+
+	var fakeGitHub *FakeGitHub
+	if applied.isGitHubEnabled {
+		fakeGitHub = startFakeGitHub(tb)
+		environment.ExternalEndpoints.GitHubAuthURL = fakeGitHub.URL + "/login/oauth/authorize"
+		environment.ExternalEndpoints.GitHubTokenURL = fakeGitHub.URL + "/login/oauth/access_token"
+		environment.ExternalEndpoints.GitHubUserURL = fakeGitHub.URL + "/user"
+		environment.ExternalEndpoints.GitHubEmailsURL = fakeGitHub.URL + "/user/emails"
+	}
+
+	var fakeGoogle *FakeGoogle
+	if applied.isGoogleEnabled {
+		fakeGoogle = startFakeGoogle(tb)
+		environment.ExternalEndpoints.GoogleAuthURL = fakeGoogle.URL + "/auth"
+		environment.ExternalEndpoints.GoogleTokenURL = fakeGoogle.URL + "/token"
+		environment.ExternalEndpoints.GoogleUserInfoURL = fakeGoogle.URL + "/userinfo"
+	}
+
+	mailRecorder := newMailRecorder(!applied.isMailServerMissing)
+	environment.Mailer = mailRecorder
 
 	createdApp, err := app.New(tb.Context(), environment)
 	if err != nil {
@@ -86,7 +184,51 @@ func New(tb testing.TB) *App {
 	server := httptest.NewServer(handler)
 	tb.Cleanup(server.Close)
 
-	return &App{URL: server.URL, Clock: manualClock, databaseDsn: databaseDsn, app: createdApp}
+	return &App{
+		URL:         server.URL,
+		Clock:       manualClock,
+		Mail:        mailRecorder,
+		GitHub:      fakeGitHub,
+		Google:      fakeGoogle,
+		databaseDsn: databaseDsn,
+		app:         createdApp,
+	}
+}
+
+// ExecuteSQL runs a statement on the database of the test application. A test uses it only for a
+// state the API cannot create.
+func (a *App) ExecuteSQL(tb testing.TB, statement string, values ...any) {
+	tb.Helper()
+
+	db, err := database.Open(tb.Context(), a.databaseDsn)
+	if err != nil {
+		tb.Fatalf("open the database of the test application: %v", err)
+	}
+
+	defer closeConnections(db)
+
+	err = db.WithContext(tb.Context()).Exec(statement, values...).Error
+	if err != nil {
+		tb.Fatalf("run %q: %v", statement, err)
+	}
+}
+
+// QuerySQL reads rows of the database of the test application into destination. A test uses it
+// only for data the API does not return.
+func (a *App) QuerySQL(tb testing.TB, destination any, query string, values ...any) {
+	tb.Helper()
+
+	db, err := database.Open(tb.Context(), a.databaseDsn)
+	if err != nil {
+		tb.Fatalf("open the database of the test application: %v", err)
+	}
+
+	defer closeConnections(db)
+
+	err = db.WithContext(tb.Context()).Raw(query, values...).Scan(destination).Error
+	if err != nil {
+		tb.Fatalf("run %q: %v", query, err)
+	}
 }
 
 // RunJobPass runs one pass of the named background job and fails the test when the pass fails or
@@ -121,5 +263,20 @@ func newConfig(tb testing.TB, databaseDsn string) config.Config {
 
 	loadedConfig.DatabaseDsn = databaseDsn
 
+	// Settings of the developer's environment must not reach a test: each fake is turned on by an
+	// option of New.
+	loadedConfig.CloudflareTurnstileSecretKey = ""
+	loadedConfig.GitHubClientID = ""
+	loadedConfig.GitHubClientSecret = ""
+	loadedConfig.GoogleClientID = ""
+	loadedConfig.GoogleClientSecret = ""
+
 	return loadedConfig
+}
+
+func closeConnections(db *gorm.DB) {
+	sqlDB, err := db.DB()
+	if err == nil {
+		_ = sqlDB.Close()
+	}
 }

@@ -7,7 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
-	users_middleware "databasus-backend/internal/features/users/middleware"
+	users_bridge "databasus-backend/internal/features/users"
 	"databasus-backend/internal/modules/users"
 )
 
@@ -20,7 +20,7 @@ func (c *AgentController) RegisterRoutes(router *gin.RouterGroup) {
 	publicAuth.GET("/availability", c.GetAvailability)
 
 	adminOnly := router.Group("/verification/agents")
-	adminOnly.Use(users_middleware.RequireRole(users.RoleAdmin))
+	adminOnly.Use(users_bridge.RequireAdmin())
 
 	adminOnly.POST("", c.CreateAgent)
 	adminOnly.GET("", c.ListAgents)

@@ -10,6 +10,7 @@ import (
 
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
+	"databasus-backend/internal/features/caching"
 	"databasus-backend/internal/features/databases"
 	"databasus-backend/internal/features/intervals"
 	"databasus-backend/internal/features/notifiers"
@@ -18,7 +19,6 @@ import (
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
 	"databasus-backend/internal/modules/users"
-	cache "databasus-backend/internal/util/cache"
 	"databasus-backend/internal/util/logger"
 	"databasus-backend/internal/util/period"
 	"databasus-backend/internal/util/testing/containers"
@@ -59,7 +59,7 @@ func Test_RunPendingBackups_ByDatabaseType_OnlySchedulesNonAgentManagedBackups(t
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			cache.GetStore().Clear(t.Context())
+			caching.GetStore().Clear(t.Context())
 
 			user := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 			router := CreateTestRouter()
@@ -128,7 +128,7 @@ func Test_RunPendingBackups_ByDatabaseType_OnlySchedulesNonAgentManagedBackups(t
 }
 
 func Test_RunPendingBackups_WhenLastBackupWasYesterday_CreatesNewBackup(t *testing.T) {
-	cache.GetStore().Clear(t.Context())
+	caching.GetStore().Clear(t.Context())
 	// setup data
 	user := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 	router := CreateTestRouter()
@@ -194,7 +194,7 @@ func Test_RunPendingBackups_WhenLastBackupWasYesterday_CreatesNewBackup(t *testi
 }
 
 func Test_RunPendingBackups_WhenLastBackupWasRecentlyCompleted_SkipsBackup(t *testing.T) {
-	cache.GetStore().Clear(t.Context())
+	caching.GetStore().Clear(t.Context())
 	// setup data
 	user := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 	router := CreateTestRouter()
@@ -258,7 +258,7 @@ func Test_RunPendingBackups_WhenLastBackupWasRecentlyCompleted_SkipsBackup(t *te
 }
 
 func Test_RunPendingBackups_WhenLastBackupFailedAndRetriesDisabled_SkipsBackup(t *testing.T) {
-	cache.GetStore().Clear(t.Context())
+	caching.GetStore().Clear(t.Context())
 	// setup data
 	user := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 	router := CreateTestRouter()
@@ -326,7 +326,7 @@ func Test_RunPendingBackups_WhenLastBackupFailedAndRetriesDisabled_SkipsBackup(t
 }
 
 func Test_RunPendingBackups_WhenLastBackupFailedAndRetriesEnabled_CreatesNewBackup(t *testing.T) {
-	cache.GetStore().Clear(t.Context())
+	caching.GetStore().Clear(t.Context())
 	// setup data
 	user := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 	router := CreateTestRouter()
@@ -396,7 +396,7 @@ func Test_RunPendingBackups_WhenLastBackupFailedAndRetriesEnabled_CreatesNewBack
 }
 
 func Test_RunPendingBackups_WhenFailedBackupsExceedMaxRetries_SkipsBackup(t *testing.T) {
-	cache.GetStore().Clear(t.Context())
+	caching.GetStore().Clear(t.Context())
 	// setup data
 	user := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 	router := CreateTestRouter()
@@ -467,7 +467,7 @@ func Test_RunPendingBackups_WhenFailedBackupsExceedMaxRetries_SkipsBackup(t *tes
 }
 
 func Test_RunPendingBackups_WhenBackupsDisabled_SkipsBackup(t *testing.T) {
-	cache.GetStore().Clear(t.Context())
+	caching.GetStore().Clear(t.Context())
 	user := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 	router := CreateTestRouter()
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", user, router)
@@ -528,7 +528,7 @@ func Test_RunPendingBackups_WhenBackupsDisabled_SkipsBackup(t *testing.T) {
 }
 
 func Test_FailBackupsInProgress_WhenSchedulerStarts_CancelsBackupsAndUpdatesStatus(t *testing.T) {
-	cache.GetStore().Clear(t.Context())
+	caching.GetStore().Clear(t.Context())
 
 	user := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 	router := CreateTestRouter()
@@ -549,7 +549,7 @@ func Test_FailBackupsInProgress_WhenSchedulerStarts_CancelsBackupsAndUpdatesStat
 		notifiers.RemoveTestNotifier(notifier)
 		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
 
-		cache.GetStore().Clear(t.Context())
+		caching.GetStore().Clear(t.Context())
 	}()
 
 	backupConfig, err := backups_config_logical.GetBackupConfigService().GetBackupConfigByDbId(database.ID)
@@ -635,7 +635,7 @@ func Test_FailBackupsInProgress_WhenSchedulerStarts_CancelsBackupsAndUpdatesStat
 }
 
 func Test_StartBackup_WhenBackupAlreadyInProgress_SkipsNewBackup(t *testing.T) {
-	cache.GetStore().Clear(t.Context())
+	caching.GetStore().Clear(t.Context())
 	user := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 	router := CreateTestRouter()
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", user, router)
@@ -702,7 +702,7 @@ func Test_StartBackup_WhenBackupAlreadyInProgress_SkipsNewBackup(t *testing.T) {
 func Test_RunPendingBackups_WhenLastBackupFailedWithIsSkipRetry_SkipsBackupEvenWithRetriesEnabled(
 	t *testing.T,
 ) {
-	cache.GetStore().Clear(t.Context())
+	caching.GetStore().Clear(t.Context())
 	user := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 	router := CreateTestRouter()
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", user, router)
@@ -778,7 +778,7 @@ func Test_RunPendingBackups_WhenLastBackupFailedWithIsSkipRetry_SkipsBackupEvenW
 }
 
 func Test_StartBackup_When2BackupsStartedForDifferentDatabases_BothUseCasesAreCalled(t *testing.T) {
-	cache.GetStore().Clear(t.Context())
+	caching.GetStore().Clear(t.Context())
 
 	// Create mock tracking use case
 	mockUseCase := NewMockTrackingBackupUsecase()

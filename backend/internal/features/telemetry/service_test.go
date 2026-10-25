@@ -139,7 +139,7 @@ type fakeUserCounter struct {
 	err   error
 }
 
-func (f *fakeUserCounter) GetUsersCount() (int64, error) {
+func (f *fakeUserCounter) GetUserCount(context.Context) (int64, error) {
 	if f.err != nil {
 		return 0, f.err
 	}

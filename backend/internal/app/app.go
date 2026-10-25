@@ -11,12 +11,16 @@ import (
 
 	old_config "databasus-backend/internal/config"
 	"databasus-backend/internal/features/audit_logs"
+	"databasus-backend/internal/features/caching"
 	"databasus-backend/internal/features/email"
+	users_bridge "databasus-backend/internal/features/users"
 	"databasus-backend/internal/lib/audit"
 	"databasus-backend/internal/lib/background"
+	"databasus-backend/internal/lib/cache"
 	"databasus-backend/internal/lib/crypto"
 	"databasus-backend/internal/lib/database"
-	"databasus-backend/internal/lib/mailer"
+	"databasus-backend/internal/lib/ratelimit"
+	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/storage"
 	"databasus-backend/internal/util/encryption"
 	files_utils "databasus-backend/internal/util/files"
@@ -31,6 +35,7 @@ const olderVersionRefusal = "Returning to an older Databasus version after an up
 	"Start the image of the newer version instead"
 
 type App struct {
+	usersModule users.Module
 	environment *Environment
 	db          *gorm.DB
 	transactor  *database.Transactor
@@ -107,10 +112,14 @@ func New(ctx context.Context, environment *Environment) (*App, error) {
 	}
 
 	encryption.Install(masterKey, crypto.NewFieldEncryptor(masterKey))
-	email.Install(mailer.NewInstanceSender(mailer.Deps{
-		Settings: environment.Config.GetInstanceMailSettings(),
-		Logger:   appLogger,
-	}))
+	email.Install(environment.Mailer)
+
+	cacheStore := cache.NewMemoryStore(cache.Deps{
+		PayloadBudgetBytes: cache.DefaultPayloadBudgetBytes,
+		Clock:              environment.Clock,
+	})
+	rateLimiter := ratelimit.NewMemoryCounter(ratelimit.Deps{Store: cacheStore, Clock: environment.Clock})
+	caching.Install(cacheStore, rateLimiter)
 
 	auditLog := audit.New(audit.Deps{
 		DB:          db,
@@ -119,14 +128,44 @@ func New(ctx context.Context, environment *Environment) (*App, error) {
 	})
 	audit_logs.InstallAuditLog(auditLog)
 
+	usersModule := users.New(users.Deps{
+		DB:          db,
+		Transactor:  transactor,
+		Clock:       environment.Clock,
+		Logger:      appLogger,
+		MasterKey:   masterKey,
+		Mailer:      environment.Mailer,
+		AuditLog:    auditLog,
+		RateLimiter: rateLimiter,
+		Turnstile: users.TurnstileSettings{
+			SecretKey: environment.Config.CloudflareTurnstileSecretKey,
+			VerifyURL: environment.ExternalEndpoints.TurnstileVerifyURL,
+		},
+		GitHub: users.GitHubSettings{
+			ClientID:     environment.Config.GitHubClientID,
+			ClientSecret: environment.Config.GitHubClientSecret,
+			AuthURL:      environment.ExternalEndpoints.GitHubAuthURL,
+			TokenURL:     environment.ExternalEndpoints.GitHubTokenURL,
+			UserURL:      environment.ExternalEndpoints.GitHubUserURL,
+			EmailsURL:    environment.ExternalEndpoints.GitHubEmailsURL,
+		},
+		Google: users.GoogleSettings{
+			ClientID:     environment.Config.GoogleClientID,
+			ClientSecret: environment.Config.GoogleClientSecret,
+			AuthURL:      environment.ExternalEndpoints.GoogleAuthURL,
+			TokenURL:     environment.ExternalEndpoints.GoogleTokenURL,
+			UserInfoURL:  environment.ExternalEndpoints.GoogleUserInfoURL,
+		},
+	})
+	users_bridge.Install(usersModule)
+
 	setUpDependenciesOnce.Do(setUpDependencies)
 
-	runner := background.NewRunner(
-		background.RunnerDeps{Logger: appLogger, Clock: environment.Clock},
-		newAuditEventsCleanupJob(auditLog, appLogger),
-	)
+	jobs := append([]background.Job{newAuditEventsCleanupJob(auditLog, appLogger)}, usersModule.GetJobs()...)
+	runner := background.NewRunner(background.RunnerDeps{Logger: appLogger, Clock: environment.Clock}, jobs...)
 
 	return &App{
+		usersModule:     usersModule,
 		environment:     environment,
 		db:              db,
 		transactor:      transactor,

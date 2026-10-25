@@ -134,12 +134,24 @@ export const en = {
       'Too many sign-in codes were requested for this account in the last hour. Try again later.',
     signInCodeResentTooSoon:
       'A code was sent less than a minute ago. Wait a minute before requesting another.',
-    rateLimitExceeded: 'Too many attempts. Wait a little and try again.',
+    rateLimited: 'Too many attempts. Wait a little and try again.',
     emailNotConfigured: 'The instance has no mail server configured.',
     adminEmailMissing: 'Your account has no valid email address to send a test email to.',
     invalidRequest: 'The server rejected the request as invalid. Reload the page and try again.',
     notFound: 'The requested item was not found. It may have been deleted.',
     internal: 'An internal server error occurred. Please try again later.',
+    unauthenticated: 'Your session has ended. Sign in again.',
+    permissionDenied: 'You do not have permission to do this.',
+    humanVerificationFailed: 'The human verification failed. Complete the check and try again.',
+    invalidCredentials: 'The email or password is incorrect.',
+    userDeactivated: 'This account is deactivated. Ask an administrator to activate it.',
+    registrationClosed:
+      'Registration is closed on this instance. Ask an administrator for an invitation.',
+    emailTaken: 'This email address is already in use.',
+    invalidResetCode: 'The reset code is incorrect or has expired. Request a new one.',
+    oauthNotConfigured: 'Sign-in with this provider is not configured on this instance.',
+    oauthFailed:
+      'The sign-in provider did not confirm your account. Make sure your email address there is verified and try again.',
   },
   status: {
     logicalBackup: {
@@ -266,6 +278,8 @@ export const en = {
       docs: 'See <docsLink>the SMTP documentation</docsLink> for how to connect a mail server.',
       sendTestEmail: 'Send test email',
       testEmailSent: 'Test email sent to {{email}}',
+      testEmailNotDelivered:
+        'The mail server did not accept the test email to <email/>: <failureDetail/>',
     },
     healthcheck: {
       title: 'Health-check',
@@ -954,7 +968,7 @@ export const en = {
     },
     list: {
       title: 'Databasus users',
-      loadedOfTotal: 'Users: {{loaded}} of {{total}}',
+      loaded: 'Users loaded: {{count}}',
       searchPlaceholder: 'Search by email or name...',
       empty: 'No users found.',
       allLoaded: 'All users loaded ({{count}} total)',

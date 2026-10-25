@@ -7,8 +7,8 @@ import (
 	"databasus-backend/internal/features/backups/backups/download/restore_stream"
 	"databasus-backend/internal/features/backups/backups/download/restore_token"
 	"databasus-backend/internal/features/backups/backups/download/stream_guard"
+	"databasus-backend/internal/features/caching"
 	"databasus-backend/internal/features/storages"
-	"databasus-backend/internal/util/cache"
 	util_encryption "databasus-backend/internal/util/encryption"
 	"databasus-backend/internal/util/logger"
 )
@@ -25,7 +25,7 @@ type streamServices struct {
 }
 
 var getStreamServices = sync.OnceValue(func() streamServices {
-	cacheStore := cache.GetStore()
+	cacheStore := caching.GetStore()
 
 	guard := stream_guard.NewGuard(
 		stream_guard.NewTracker(cacheStore),

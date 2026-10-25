@@ -29,8 +29,9 @@ var loadContractRouter = sync.OnceValues(func() (routers.Router, error) {
 
 // New returns a client of the API served at baseURL, the address of the server without /api/v1.
 // Every response that differs from the contract fails the test through tb.Errorf, and still reaches
-// the test, so the output shows both the difference and the test's own assertions.
-func New(tb testing.TB, baseURL string) *ClientWithResponses {
+// the test, so the output shows both the difference and the test's own assertions. Options such as
+// WithSessionToken apply to every request.
+func New(tb testing.TB, baseURL string, options ...ClientOption) *ClientWithResponses {
 	tb.Helper()
 
 	contractRouter, err := loadContractRouter()
@@ -40,12 +41,22 @@ func New(tb testing.TB, baseURL string) *ClientWithResponses {
 
 	checkingDoer := &contractCheckingDoer{tb: tb, contractRouter: contractRouter, httpClient: &http.Client{}}
 
-	client, err := NewClientWithResponses(baseURL+apiBasePath, WithHTTPClient(checkingDoer))
+	client, err := NewClientWithResponses(baseURL+apiBasePath, append([]ClientOption{WithHTTPClient(checkingDoer)},
+		options...)...)
 	if err != nil {
 		tb.Fatalf("create the API client: %v", err)
 	}
 
 	return client
+}
+
+// WithSessionToken signs every request in with the session token a sign-in operation returned.
+func WithSessionToken(token string) ClientOption {
+	return WithRequestEditorFn(func(_ context.Context, request *http.Request) error {
+		request.Header.Set("Authorization", "Bearer "+token)
+
+		return nil
+	})
 }
 
 type contractCheckingDoer struct {

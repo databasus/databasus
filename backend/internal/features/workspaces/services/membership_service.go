@@ -10,9 +10,7 @@ import (
 	"databasus-backend/internal/config"
 	audit_logs "databasus-backend/internal/features/audit_logs"
 	audit_logs_models "databasus-backend/internal/features/audit_logs/models"
-	users_dto "databasus-backend/internal/features/users/dto"
 	users_enums "databasus-backend/internal/features/users/enums"
-	users_services "databasus-backend/internal/features/users/services"
 	workspaces_dto "databasus-backend/internal/features/workspaces/dto"
 	workspaces_errors "databasus-backend/internal/features/workspaces/errors"
 	workspaces_interfaces "databasus-backend/internal/features/workspaces/interfaces"
@@ -24,12 +22,12 @@ import (
 type MembershipService struct {
 	membershipRepository *workspaces_repositories.MembershipRepository
 	workspaceRepository  *workspaces_repositories.WorkspaceRepository
-	userService          *users_services.UserService
 	auditLogService      *audit_logs.AuditLogService
 	workspaceService     *WorkspaceService
-	settingsService      *users_services.SettingsService
-	emailSender          workspaces_interfaces.EmailSender
-	logger               *slog.Logger
+	// getUsersModule is read per call: each test application installs its own module.
+	getUsersModule func() users.Module
+	emailSender    workspaces_interfaces.EmailSender
+	logger         *slog.Logger
 }
 
 func (s *MembershipService) SetEmailSender(sender workspaces_interfaces.EmailSender) {
@@ -74,14 +72,14 @@ func (s *MembershipService) AddMember(
 		return nil, err
 	}
 
-	targetUser, err := s.userService.GetUserByEmail(ctx, request.Email)
+	targetUser, isTargetUserFound, err := s.getUsersModule().GetUserByEmail(ctx, request.Email)
 	if err != nil {
 		return nil, err
 	}
 
-	if targetUser == nil {
+	if !isTargetUserFound {
 		// User doesn't exist, invite them
-		canInviteUsers, err := s.settingsService.CanInviteUsers(ctx, addedBy)
+		canInviteUsers, err := s.getUsersModule().CanInviteUsers(ctx, addedBy)
 		if err != nil {
 			return nil, err
 		}
@@ -90,9 +88,13 @@ func (s *MembershipService) AddMember(
 			return nil, workspaces_errors.ErrInsufficientPermissionsToInviteUsers
 		}
 
-		inviter, err := s.userService.GetUserByID(ctx, addedBy.UserID)
+		inviter, isInviterFound, err := s.getUsersModule().GetUser(ctx, addedBy.UserID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get inviter: %w", err)
+		}
+
+		if !isInviterFound {
+			return nil, fmt.Errorf("inviter %s not found", addedBy.UserID)
 		}
 
 		// Get workspace details for email
@@ -101,13 +103,10 @@ func (s *MembershipService) AddMember(
 			return nil, fmt.Errorf("failed to get workspace: %w", err)
 		}
 
-		inviteRequest := &users_dto.InviteUserRequestDTO{
-			Email:                 request.Email,
-			IntendedWorkspaceID:   &workspaceID,
-			IntendedWorkspaceRole: &request.Role,
-		}
-
-		inviteResponse, err := s.userService.InviteUser(ctx, inviteRequest, addedBy)
+		invitedUser, err := s.getUsersModule().InviteUser(ctx, addedBy, users.Invitation{
+			Email:       request.Email,
+			WorkspaceID: workspaceID,
+		})
 		if err != nil {
 			return nil, err
 		}
@@ -121,7 +120,7 @@ func (s *MembershipService) AddMember(
 		}
 
 		membership := &workspaces_models.WorkspaceMembership{
-			UserID:      inviteResponse.ID,
+			UserID:      invitedUser.ID,
 			WorkspaceID: workspaceID,
 			Role:        request.Role,
 		}
@@ -197,8 +196,12 @@ func (s *MembershipService) ChangeMemberRole(
 		return workspaces_errors.ErrCannotChangeOwnerRole
 	}
 
-	targetUser, err := s.userService.GetUserByID(ctx, memberUserID)
+	targetUser, isTargetUserFound, err := s.getUsersModule().GetUser(ctx, memberUserID)
 	if err != nil {
+		return fmt.Errorf("failed to get the member: %w", err)
+	}
+
+	if !isTargetUserFound {
 		return workspaces_errors.ErrUserNotFound
 	}
 
@@ -261,8 +264,12 @@ func (s *MembershipService) RemoveMember(
 		}
 	}
 
-	targetUser, err := s.userService.GetUserByID(ctx, memberUserID)
+	targetUser, isTargetUserFound, err := s.getUsersModule().GetUser(ctx, memberUserID)
 	if err != nil {
+		return fmt.Errorf("failed to get the member: %w", err)
+	}
+
+	if !isTargetUserFound {
 		return workspaces_errors.ErrUserNotFound
 	}
 
@@ -295,12 +302,12 @@ func (s *MembershipService) TransferOwnership(
 		return workspaces_errors.ErrOnlyOwnerOrAdminCanTransferOwnership
 	}
 
-	newOwner, err := s.userService.GetUserByEmail(ctx, request.NewOwnerEmail)
+	newOwner, isNewOwnerFound, err := s.getUsersModule().GetUserByEmail(ctx, request.NewOwnerEmail)
 	if err != nil {
-		return workspaces_errors.ErrNewOwnerNotFound
+		return fmt.Errorf("failed to get the new owner: %w", err)
 	}
 
-	if newOwner == nil {
+	if !isNewOwnerFound {
 		return workspaces_errors.ErrNewOwnerNotFound
 	}
 

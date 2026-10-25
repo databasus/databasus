@@ -59,8 +59,7 @@ export function SignInCodeComponent({
     setLoading(true);
 
     try {
-      await userApi.verifySignInCode({
-        pendingSignInId: pendingSignIn.pendingSignInId,
+      await userApi.verifySignInCode(pendingSignIn.pendingSignInId, {
         code,
         cloudflareTurnstileToken: token,
       });
@@ -77,8 +76,7 @@ export function SignInCodeComponent({
     setResending(true);
 
     try {
-      const resentSignIn = await userApi.resendSignInCode({
-        pendingSignInId: pendingSignIn.pendingSignInId,
+      const resentSignIn = await userApi.resendSignInCode(pendingSignIn.pendingSignInId, {
         cloudflareTurnstileToken: token,
       });
 

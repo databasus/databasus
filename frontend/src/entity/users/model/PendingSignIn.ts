@@ -1,4 +1,3 @@
-export interface PendingSignIn {
-  pendingSignInId: string;
-  email: string;
-}
+import type { ApiComponents } from '../../../shared/api';
+
+export type PendingSignIn = ApiComponents['schemas']['PendingSignIn'];

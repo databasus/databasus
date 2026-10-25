@@ -138,7 +138,7 @@ export const pt: typeof en = {
       'Foram solicitados códigos de acesso demais para esta conta na última hora. Tente mais tarde.',
     signInCodeResentTooSoon:
       'Um código foi enviado há menos de um minuto. Espere um minuto antes de pedir outro.',
-    rateLimitExceeded: 'Tentativas demais. Espere um pouco e tente novamente.',
+    rateLimited: 'Tentativas demais. Espere um pouco e tente novamente.',
     emailNotConfigured: 'A instância não tem um servidor de e-mail configurado.',
     adminEmailMissing:
       'Sua conta não tem um endereço de e-mail válido para receber o e-mail de teste.',
@@ -146,6 +146,19 @@ export const pt: typeof en = {
       'O servidor recusou a solicitação por ser inválida. Recarregue a página e tente novamente.',
     notFound: 'O item solicitado não foi encontrado. Ele pode ter sido excluído.',
     internal: 'Ocorreu um erro interno no servidor. Tente novamente mais tarde.',
+    unauthenticated: 'Sua sessão terminou. Entre novamente.',
+    permissionDenied: 'Você não tem permissão para fazer isso.',
+    humanVerificationFailed:
+      'A verificação humana falhou. Conclua a verificação e tente novamente.',
+    invalidCredentials: 'E-mail ou senha incorretos.',
+    userDeactivated: 'Esta conta está desativada. Peça a um administrador para ativá-la.',
+    registrationClosed:
+      'O cadastro está fechado nesta instância. Peça um convite a um administrador.',
+    emailTaken: 'Este endereço de e-mail já está em uso.',
+    invalidResetCode: 'O código de redefinição está incorreto ou expirou. Solicite um novo.',
+    oauthNotConfigured: 'O login com este provedor não está configurado nesta instância.',
+    oauthFailed:
+      'O provedor de login não confirmou sua conta. Verifique se o seu e-mail está confirmado lá e tente novamente.',
   },
   status: {
     logicalBackup: {
@@ -273,6 +286,8 @@ export const pt: typeof en = {
       docs: 'Veja como conectar um servidor de e-mail na <docsLink>documentação de SMTP</docsLink>.',
       sendTestEmail: 'Enviar e-mail de teste',
       testEmailSent: 'E-mail de teste enviado para {{email}}',
+      testEmailNotDelivered:
+        'O servidor de e-mail não aceitou o e-mail de teste para <email/>: <failureDetail/>',
     },
     healthcheck: {
       title: 'Verificação de disponibilidade',
@@ -974,7 +989,7 @@ export const pt: typeof en = {
     },
     list: {
       title: 'Usuários do Databasus',
-      loadedOfTotal: 'Usuários: {{loaded}} de {{total}}',
+      loaded: 'Usuários carregados: {{count}}',
       searchPlaceholder: 'Buscar por e-mail ou nome...',
       empty: 'Nenhum usuário encontrado.',
       allLoaded: 'Todos os usuários foram carregados (total: {{count}})',

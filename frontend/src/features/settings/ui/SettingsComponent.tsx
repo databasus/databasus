@@ -4,7 +4,11 @@ import { useEffect, useRef, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
 import { getApplicationServer } from '../../../constants';
-import { type UsersSettings, type UsersSettingsResponse, settingsApi } from '../../../entity/users';
+import {
+  type InstanceSettings,
+  type InstanceSettingsUpdate,
+  settingsApi,
+} from '../../../entity/users';
 import { getWebsitePageUrl, translateApiError, useLocale } from '../../../shared/i18n';
 import { ClipboardHelper } from '../../../shared/lib/ClipboardHelper';
 import { VerificationAgentsComponent } from '../../verification/agents';
@@ -17,7 +21,7 @@ interface Props {
 
 // The response carries the instance's answer about its mail server, which the
 // form neither edits nor sends back.
-const toFormSettings = (settings: UsersSettingsResponse): UsersSettings => ({
+const toFormSettings = (settings: InstanceSettings): InstanceSettingsUpdate => ({
   isAllowExternalRegistrations: settings.isAllowExternalRegistrations,
   isAllowMemberInvitations: settings.isAllowMemberInvitations,
   isMemberAllowedToCreateWorkspaces: settings.isMemberAllowedToCreateWorkspaces,
@@ -28,7 +32,7 @@ export function SettingsComponent({ contentHeight }: Props) {
   const { t } = useTranslation();
   const { locale } = useLocale();
   const { message } = App.useApp();
-  const [settings, setSettings] = useState<UsersSettingsResponse | undefined>(undefined);
+  const [settings, setSettings] = useState<InstanceSettings | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
@@ -37,7 +41,7 @@ export function SettingsComponent({ contentHeight }: Props) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Form state to track changes
-  const [formSettings, setFormSettings] = useState<UsersSettings>({
+  const [formSettings, setFormSettings] = useState<InstanceSettingsUpdate>({
     isAllowExternalRegistrations: false,
     isAllowMemberInvitations: false,
     isMemberAllowedToCreateWorkspaces: false,
@@ -63,7 +67,7 @@ export function SettingsComponent({ contentHeight }: Props) {
     }
   };
 
-  const handleSettingChange = (key: keyof UsersSettings, value: boolean) => {
+  const handleSettingChange = (key: keyof InstanceSettingsUpdate, value: boolean) => {
     const newFormSettings = { ...formSettings, [key]: value };
     setFormSettings(newFormSettings);
 
@@ -71,8 +75,8 @@ export function SettingsComponent({ contentHeight }: Props) {
     if (settings) {
       const hasAnyChanges = Object.keys(newFormSettings).some(
         (settingKey) =>
-          newFormSettings[settingKey as keyof UsersSettings] !==
-          settings[settingKey as keyof UsersSettings],
+          newFormSettings[settingKey as keyof InstanceSettingsUpdate] !==
+          settings[settingKey as keyof InstanceSettingsUpdate],
       );
       setHasChanges(hasAnyChanges);
     }

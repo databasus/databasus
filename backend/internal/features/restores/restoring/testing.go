@@ -23,7 +23,7 @@ import (
 	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
 	workspaces_controllers "databasus-backend/internal/features/workspaces/controllers"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
-	"databasus-backend/internal/util/cache"
+	"databasus-backend/internal/lib/cache"
 	"databasus-backend/internal/util/encryption"
 	"databasus-backend/internal/util/logger"
 )

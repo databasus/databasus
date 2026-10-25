@@ -15,7 +15,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	audit_logs "databasus-backend/internal/features/audit_logs"
 	discord_notifier "databasus-backend/internal/features/notifiers/models/discord"
 	email_notifier "databasus-backend/internal/features/notifiers/models/email_notifier"
 	mattermost_notifier "databasus-backend/internal/features/notifiers/models/mattermost"
@@ -24,8 +23,6 @@ import (
 	telegram_notifier "databasus-backend/internal/features/notifiers/models/telegram"
 	webhook_notifier "databasus-backend/internal/features/notifiers/models/webhook"
 	users_enums "databasus-backend/internal/features/users/enums"
-	users_middleware "databasus-backend/internal/features/users/middleware"
-	users_services "databasus-backend/internal/features/users/services"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_controllers "databasus-backend/internal/features/workspaces/controllers"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
@@ -1407,7 +1404,7 @@ func createRouter() *gin.Engine {
 	router := gin.New()
 
 	v1 := router.Group("/api/v1")
-	protected := v1.Group("").Use(users_middleware.AuthMiddleware(users_services.GetUserService()))
+	protected := v1.Group("").Use(users_testing.GetSessionMiddleware())
 
 	if routerGroup, ok := protected.(*gin.RouterGroup); ok {
 		GetNotifierController().RegisterRoutes(routerGroup)
@@ -1415,7 +1412,6 @@ func createRouter() *gin.Engine {
 		workspaces_controllers.GetMembershipController().RegisterRoutes(routerGroup)
 	}
 
-	audit_logs.SetupDependencies()
 	GetNotifierService().SetNotifierDatabaseCounter(&mockNotifierDatabaseCounter{})
 
 	return router

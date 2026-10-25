@@ -18,7 +18,6 @@ import (
 	"databasus-backend/internal/features/databases"
 	"databasus-backend/internal/features/notifiers"
 	"databasus-backend/internal/features/storages"
-	users_dto "databasus-backend/internal/features/users/dto"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_controllers "databasus-backend/internal/features/workspaces/controllers"
 	workspaces_models "databasus-backend/internal/features/workspaces/models"
@@ -35,7 +34,7 @@ const (
 )
 
 type chainViewTestPrereqs struct {
-	user      *users_dto.SignInResponseDTO
+	user      *users_testing.TestUser
 	workspace *workspaces_models.Workspace
 	storage   *storages.Storage
 	notifier  *notifiers.Notifier

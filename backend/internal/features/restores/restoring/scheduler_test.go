@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	postgresql_logical "databasus-backend/internal/features/databases/databases/postgresql/logical"
-	"databasus-backend/internal/util/cache"
+	"databasus-backend/internal/lib/cache"
 )
 
 type restoreExecution struct {

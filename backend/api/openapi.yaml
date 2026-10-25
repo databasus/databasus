@@ -7,10 +7,596 @@ info:
     answers with a `Problem` body whose `code` tells the cause apart.
 servers:
   - url: /api/v1
+security:
+  - sessionToken: []
 tags:
   - name: system
     description: The running Databasus instance itself
+  - name: users
+    description: Users, sign-in, password reset and the instance settings
 paths:
+  /users:
+    get:
+      operationId: listUsers
+      tags: [users]
+      summary: List the users of the instance
+      description: >-
+        The newest users come first. `query` keeps the users whose email address or name contains
+        it, ignoring case.
+      x-access: admin
+      parameters:
+        - name: limit
+          in: query
+          description: The largest number of users on the page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: after
+          in: query
+          description: The `nextCursor` of the previous page
+          schema:
+            type: string
+        - name: query
+          in: query
+          description: The text the email address or the name contains
+          schema:
+            type: string
+      responses:
+        "200":
+          description: One page of users
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserPage"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+    post:
+      operationId: signUp
+      tags: [users]
+      summary: Sign up and sign in as the new user
+      description: >-
+        Public, because it creates the user and the session the caller does not have yet. The
+        first user of an instance administers it, even when registration is closed. An invited
+        user finishes sign-up through it.
+      x-access: public
+      security: []
+      requestBody:
+        description: The new account and the answer to the human-verification challenge.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SignUpRequest"
+      responses:
+        "201":
+          description: The user exists and is signed in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Session"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "409":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /users/{userId}:
+    parameters:
+      - $ref: "#/components/parameters/UserId"
+    get:
+      operationId: getUser
+      tags: [users]
+      summary: Get a user
+      description: >-
+        A user reads their own user; an instance admin reads any user. Anyone else gets 403
+        `permission_denied`.
+      responses:
+        "200":
+          description: The user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+    put:
+      operationId: updateUser
+      tags: [users]
+      summary: Replace the name and the email address of the signed-in user
+      description: >-
+        Only the user's own ID is accepted; any other gets 403 `permission_denied`. A new address
+        must be a valid email address that no other user holds, or the answer is 400
+        `invalid_request` or 409 `email_taken`. The current session survives the change, and the
+        next sign-in uses the new address.
+      requestBody:
+        description: The name and the email address the user keeps after the change.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserUpdate"
+      responses:
+        "200":
+          description: The user after the change
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "409":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /users/{userId}/password:
+    parameters:
+      - $ref: "#/components/parameters/UserId"
+    put:
+      operationId: changeUserPassword
+      tags: [users]
+      summary: Replace the password of the signed-in user
+      description: >-
+        Only the user's own ID is accepted; any other gets 403 `permission_denied`. Every session
+        issued before the change stops working, the caller's own included, so the client signs in
+        again with the new password.
+      requestBody:
+        description: The new password.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PasswordChange"
+      responses:
+        "204":
+          description: The password is changed
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /users/{userId}/activate:
+    parameters:
+      - $ref: "#/components/parameters/UserId"
+    post:
+      operationId: activateUser
+      tags: [users]
+      summary: Activate a user
+      description: >-
+        The user signs in again. Only the bootstrap administrator activates an instance admin; anyone else gets 403 `permission_denied`.
+      x-access: admin
+      responses:
+        "200":
+          description: The user after the change
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /users/{userId}/deactivate:
+    parameters:
+      - $ref: "#/components/parameters/UserId"
+    post:
+      operationId: deactivateUser
+      tags: [users]
+      summary: Deactivate a user
+      description: >-
+        Every session of the user stops working, and sign-in answers `user_deactivated`. Deactivating yourself or the bootstrap administrator gets 403 `permission_denied`, and so does deactivating an instance admin for anyone but the bootstrap administrator.
+      x-access: admin
+      responses:
+        "200":
+          description: The user after the change
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /users/{userId}/role:
+    parameters:
+      - $ref: "#/components/parameters/UserId"
+    put:
+      operationId: changeUserRole
+      tags: [users]
+      summary: Replace the global role of a user
+      description: >-
+        Only the bootstrap administrator grants or revokes the admin role; anyone else gets 403
+        `permission_denied`. Nobody changes their own role or the role of the bootstrap
+        administrator.
+      x-access: admin
+      requestBody:
+        description: The new role.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserRoleChange"
+      responses:
+        "200":
+          description: The user after the change
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /sessions:
+    post:
+      operationId: signIn
+      tags: [users]
+      summary: Sign in with an email address and a password
+      description: >-
+        Public, because it creates the session the caller does not have yet. A wrong password, an
+        unknown address, a user who has not finished sign-up and a user without a password all get
+        401 `invalid_credentials`. A deactivated user gets 403 `user_deactivated` only after the
+        correct password. When the instance requires the second factor, the answer names a
+        pending sign-in and the code goes to the user's address.
+      x-access: public
+      security: []
+      requestBody:
+        description: The credentials and the answer to the human-verification challenge.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SignInRequest"
+      responses:
+        "200":
+          description: The session, or the pending sign-in that waits for the emailed code
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SignInOutcome"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "429":
+          $ref: "#/components/responses/Problem"
+        "503":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /github-sessions:
+    post:
+      operationId: signInWithGitHub
+      tags: [users]
+      summary: Sign in with GitHub
+      description: >-
+        Public, because it creates the session the caller does not have yet. The code from GitHub's
+        authorization page signs in the user linked to the GitHub account, or the user with the same
+        email address, linking the account and finishing the sign-up of an invited user. An unknown
+        address creates a user under the same rules as sign-up. The second factor does not apply,
+        because GitHub verified the user. A deactivated user gets 403 `user_deactivated`, an instance
+        without the GitHub client gets 409 `oauth_not_configured`, and a code GitHub refuses or an
+        account without an email address gets 400 `oauth_failed`.
+      x-access: public
+      security: []
+      requestBody:
+        description: The authorization code and the redirect URI it was issued for.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OAuthSignInRequest"
+      responses:
+        "200":
+          description: The user is signed in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Session"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "409":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /google-sessions:
+    post:
+      operationId: signInWithGoogle
+      tags: [users]
+      summary: Sign in with Google
+      description: >-
+        Public, because it creates the session the caller does not have yet. The code from Google's
+        authorization page signs in the user linked to the Google account, or the user with the same
+        email address, linking the account and finishing the sign-up of an invited user. An unknown
+        address creates a user under the same rules as sign-up. The second factor does not apply,
+        because Google verified the user. A deactivated user gets 403 `user_deactivated`, an instance
+        without the Google client gets 409 `oauth_not_configured`, and a code Google refuses or an
+        account without an email address gets 400 `oauth_failed`.
+      x-access: public
+      security: []
+      requestBody:
+        description: The authorization code and the redirect URI it was issued for.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OAuthSignInRequest"
+      responses:
+        "200":
+          description: The user is signed in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Session"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "409":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /password-resets:
+    post:
+      operationId: requestPasswordReset
+      tags: [users]
+      summary: Mail a password reset code
+      description: >-
+        Public, because the caller cannot sign in. The answer is the same for an active user, a
+        user who is not active and an address without a user; only an active user gets a code, valid
+        for an hour. Three requests an hour per address, whether a user holds it or not.
+      x-access: public
+      security: []
+      requestBody:
+        description: The address and the answer to the human-verification challenge.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PasswordResetRequest"
+      responses:
+        "204":
+          description: The request is accepted
+        "400":
+          $ref: "#/components/responses/Problem"
+        "429":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /password-reset-completions:
+    post:
+      operationId: completePasswordReset
+      tags: [users]
+      summary: Replace the password with a mailed reset code
+      description: >-
+        Public, because the caller cannot sign in. A wrong, used or expired code and an address
+        without an active user all get 400 `invalid_reset_code`. Every session issued before the
+        reset stops working.
+      x-access: public
+      security: []
+      requestBody:
+        description: The address, the code from the email and the new password.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PasswordResetCompletion"
+      responses:
+        "204":
+          description: The password is replaced
+        "400":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /instance-settings:
+    get:
+      operationId: getInstanceSettings
+      tags: [users]
+      summary: Get the instance settings
+      description: >-
+        Every signed-in user reads them, because the interface offers registration, invitations and
+        new workspaces by them. `isEmailConfigured` is the instance's own judgement about its mail
+        server.
+      responses:
+        "200":
+          description: The instance settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InstanceSettings"
+        "401":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+    put:
+      operationId: updateInstanceSettings
+      tags: [users]
+      summary: Replace the instance settings
+      description: >-
+        Turning the second factor on is refused with 409 `email_not_configured` when the instance
+        has no mail server, and with 409 `admin_email_missing` naming the administrator when an
+        active administrator has no valid email address. Turning it off is never refused.
+      x-access: admin
+      requestBody:
+        description: Every instance setting; settings left as they were stay unchanged.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InstanceSettingsUpdate"
+      responses:
+        "200":
+          description: The instance settings after the change
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InstanceSettings"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "409":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /test-emails:
+    post:
+      operationId: sendTestEmail
+      tags: [users]
+      summary: Send a test email to the signed-in administrator
+      description: >-
+        Refused with 409 `email_not_configured` without a mail server and with 409
+        `admin_email_missing` when the administrator has no valid email address. A message the mail
+        server refuses is still a test that ran: the answer says it was not delivered and carries
+        the mail server's response. Five per administrator in ten minutes.
+      x-access: admin
+      responses:
+        "201":
+          description: The test email that was attempted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TestEmail"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "409":
+          $ref: "#/components/responses/Problem"
+        "429":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /pending-sign-ins/{pendingSignInId}/verify:
+    parameters:
+      - $ref: "#/components/parameters/PendingSignInId"
+    post:
+      operationId: verifySignInCode
+      tags: [users]
+      summary: Complete a pending sign-in with the emailed code
+      description: >-
+        Public, because it creates the session the caller does not have yet. A pending sign-in
+        expires ten minutes after its code was sent and is destroyed by the fifth wrong code; then
+        it answers 410 `pending_sign_in_not_usable`. Ten attempts a minute per pending sign-in.
+      x-access: public
+      security: []
+      requestBody:
+        description: The code from the email and the answer to the human-verification challenge.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VerifySignInCodeRequest"
+      responses:
+        "200":
+          description: The user is signed in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Session"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "410":
+          $ref: "#/components/responses/Problem"
+        "429":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /pending-sign-ins/{pendingSignInId}/resend:
+    parameters:
+      - $ref: "#/components/parameters/PendingSignInId"
+    post:
+      operationId: resendSignInCode
+      tags: [users]
+      summary: Send a new code that replaces the pending sign-in
+      description: >-
+        Public, because the caller is still signing in. The answer names the new pending sign-in,
+        and the previous code stops working. One resend a minute and five codes an hour per user.
+      x-access: public
+      security: []
+      requestBody:
+        description: The answer to the human-verification challenge.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResendSignInCodeRequest"
+      responses:
+        "200":
+          description: The pending sign-in that the new code completes
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PendingSignIn"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "410":
+          $ref: "#/components/responses/Problem"
+        "429":
+          $ref: "#/components/responses/Problem"
+        "503":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /sign-in-options:
+    get:
+      operationId: getSignInOptions
+      tags: [users]
+      summary: Get what the sign-in page offers
+      description: >-
+        Public, because the sign-in page reads it before anyone signs in. It tells whether the
+        instance has a user yet, so the page offers the registration that claims the instance.
+      x-access: public
+      security: []
+      responses:
+        "200":
+          description: The options of the sign-in page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SignInOptions"
+        default:
+          $ref: "#/components/responses/Problem"
   /system/version:
     get:
       operationId: getVersion
@@ -20,6 +606,7 @@ paths:
         Public, because installed verification agents call it without a token to decide whether to
         update themselves. Its path and its body never change.
       x-access: public
+      security: []
       responses:
         "200":
           description: The version of the running instance
@@ -30,6 +617,31 @@ paths:
         default:
           $ref: "#/components/responses/Problem"
 components:
+  parameters:
+    UserId:
+      name: userId
+      in: path
+      required: true
+      description: The ID of the user
+      schema:
+        type: string
+        format: uuid
+    PendingSignInId:
+      name: pendingSignInId
+      in: path
+      required: true
+      description: The pending sign-in that the latest password step or resend named
+      schema:
+        type: string
+        format: uuid
+  securitySchemes:
+    sessionToken:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: >-
+        The session token that a sign-in operation returns. An operation without `x-access: public`
+        answers 401 `unauthenticated` without a valid one.
   responses:
     Problem:
       description: An error in the RFC 9457 format
@@ -38,6 +650,318 @@ components:
           schema:
             $ref: "#/components/schemas/Problem"
   schemas:
+    SignUpRequest:
+      type: object
+      description: The user to create
+      required: [email, password, name]
+      properties:
+        email:
+          type: string
+          format: email
+          description: The address the user signs in with
+        password:
+          type: string
+          writeOnly: true
+          minLength: 8
+          description: The password, at least 8 characters
+        name:
+          type: string
+          minLength: 1
+          description: The name other users see
+        cloudflareTurnstileToken:
+          type: string
+          description: The answer to the human-verification challenge, required when the instance has one
+    SignInRequest:
+      type: object
+      description: The credentials of a password sign-in
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          description: The address the user signs in with
+        password:
+          type: string
+          writeOnly: true
+          description: The password
+        cloudflareTurnstileToken:
+          type: string
+          description: The answer to the human-verification challenge, required when the instance has one
+    Session:
+      type: object
+      description: >-
+        A session of a signed-in user. The operation that creates it returns the token once; no
+        other operation returns it
+      required: [userId, email, token]
+      properties:
+        userId:
+          type: string
+          format: uuid
+          description: The ID of the signed-in user
+        email:
+          type: string
+          description: The address of the signed-in user
+        token:
+          type: string
+          description: "The session token to send as `Authorization: Bearer <token>`"
+    OAuthSignInRequest:
+      type: object
+      description: The answer of an identity provider's authorization page
+      required: [code, redirectUri]
+      properties:
+        code:
+          type: string
+          minLength: 1
+          description: The authorization code the provider issued
+        redirectUri:
+          type: string
+          minLength: 1
+          description: The redirect URI the code was issued for
+    SignInOutcome:
+      description: The session, or the pending sign-in that waits for the emailed code
+      oneOf:
+        - $ref: "#/components/schemas/SignInCompleted"
+        - $ref: "#/components/schemas/SignInCodeRequired"
+      discriminator:
+        propertyName: outcome
+        mapping:
+          COMPLETED: "#/components/schemas/SignInCompleted"
+          CODE_REQUIRED: "#/components/schemas/SignInCodeRequired"
+    SignInCompleted:
+      type: object
+      description: The user is signed in
+      required: [outcome, userId, email, token]
+      properties:
+        outcome:
+          type: string
+          enum: [COMPLETED]
+          description: Always `COMPLETED`
+        userId:
+          type: string
+          format: uuid
+          description: The ID of the signed-in user
+        email:
+          type: string
+          description: The address of the signed-in user
+        token:
+          type: string
+          description: "The session token to send as `Authorization: Bearer <token>`, returned once"
+    SignInCodeRequired:
+      type: object
+      description: The password was correct, and a code went to the user's address
+      required: [outcome, pendingSignInId, email]
+      properties:
+        outcome:
+          type: string
+          enum: [CODE_REQUIRED]
+          description: Always `CODE_REQUIRED`
+        pendingSignInId:
+          type: string
+          format: uuid
+          description: The pending sign-in that the code completes
+        email:
+          type: string
+          description: The address the code went to
+    VerifySignInCodeRequest:
+      type: object
+      description: The code emailed for a pending sign-in
+      required: [code]
+      properties:
+        code:
+          type: string
+          writeOnly: true
+          description: The six digits from the message
+        cloudflareTurnstileToken:
+          type: string
+          description: The answer to the human-verification challenge, required when the instance has one
+    ResendSignInCodeRequest:
+      type: object
+      description: A request for a new code
+      properties:
+        cloudflareTurnstileToken:
+          type: string
+          description: The answer to the human-verification challenge, required when the instance has one
+    PendingSignIn:
+      type: object
+      description: A password sign-in that waits for the emailed code
+      required: [pendingSignInId, email]
+      properties:
+        pendingSignInId:
+          type: string
+          format: uuid
+          description: The pending sign-in that the code completes
+        email:
+          type: string
+          description: The address the code went to
+    SignInOptions:
+      type: object
+      description: What the sign-in page offers
+      required: [hasAnyUser]
+      properties:
+        hasAnyUser:
+          type: boolean
+          description: Whether the instance has a user; without one the page offers the first registration
+    User:
+      type: object
+      description: A user of the instance
+      required: [id, email, name, role, status, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: The ID of the user
+        email:
+          type: string
+          description: The address the user signs in with
+        name:
+          type: string
+          description: The name other users see
+        role:
+          $ref: "#/components/schemas/UserRole"
+        status:
+          $ref: "#/components/schemas/UserStatus"
+        createdAt:
+          type: string
+          format: date-time
+          description: When the user was created
+    PasswordResetRequest:
+      type: object
+      description: A request for a password reset code
+      required: [email]
+      properties:
+        email:
+          type: string
+          description: The address the user signs in with
+        cloudflareTurnstileToken:
+          type: string
+          description: The answer to the human-verification challenge, required when the instance has one
+    PasswordResetCompletion:
+      type: object
+      description: A mailed reset code and the password that replaces the old one
+      required: [email, code, newPassword]
+      properties:
+        email:
+          type: string
+          description: The address the code was sent to
+        code:
+          type: string
+          description: The code from the email
+        newPassword:
+          type: string
+          writeOnly: true
+          minLength: 8
+          description: The new password, at least 8 characters
+    UserPage:
+      type: object
+      description: One page of users, the newest first
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/User"
+          description: The users on the page
+        nextCursor:
+          type: string
+          description: The `after` of the next page, absent on the last page
+    UserRoleChange:
+      type: object
+      description: A new global role
+      required: [role]
+      properties:
+        role:
+          $ref: "#/components/schemas/UserRole"
+    UserUpdate:
+      type: object
+      description: The editable fields of a user
+      required: [name, email]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          description: The name other users see
+        email:
+          type: string
+          description: The address the user signs in with
+    PasswordChange:
+      type: object
+      description: A new password
+      required: [newPassword]
+      properties:
+        newPassword:
+          type: string
+          writeOnly: true
+          minLength: 8
+          description: The new password, at least 8 characters
+    UserRole:
+      type: string
+      description: The global role; an instance admin administers the instance
+      enum: [ADMIN, MEMBER]
+    UserStatus:
+      type: string
+      description: >-
+        `INVITED` for a user who was invited and has not finished sign-up, `ACTIVE`, or `INACTIVE`
+        for a deactivated user
+      enum: [INVITED, ACTIVE, INACTIVE]
+    InstanceSettings:
+      type: object
+      description: The settings of the instance
+      required:
+        - isAllowExternalRegistrations
+        - isAllowMemberInvitations
+        - isMemberAllowedToCreateWorkspaces
+        - isTwoFactorAuthRequired
+        - isEmailConfigured
+      properties:
+        isAllowExternalRegistrations:
+          type: boolean
+          description: Anyone may sign up without an invitation
+        isAllowMemberInvitations:
+          type: boolean
+          description: A user who is not an instance admin may invite users
+        isMemberAllowedToCreateWorkspaces:
+          type: boolean
+          description: A user who is not an instance admin may create workspaces
+        isTwoFactorAuthRequired:
+          type: boolean
+          description: A password sign-in also needs a code emailed to the user
+        isEmailConfigured:
+          type: boolean
+          description: Whether the operator configured a mail server; it cannot be changed here
+    InstanceSettingsUpdate:
+      type: object
+      description: The editable instance settings
+      required:
+        - isAllowExternalRegistrations
+        - isAllowMemberInvitations
+        - isMemberAllowedToCreateWorkspaces
+        - isTwoFactorAuthRequired
+      properties:
+        isAllowExternalRegistrations:
+          type: boolean
+          description: Anyone may sign up without an invitation
+        isAllowMemberInvitations:
+          type: boolean
+          description: A user who is not an instance admin may invite users
+        isMemberAllowedToCreateWorkspaces:
+          type: boolean
+          description: A user who is not an instance admin may create workspaces
+        isTwoFactorAuthRequired:
+          type: boolean
+          description: A password sign-in also needs a code emailed to the user
+    TestEmail:
+      type: object
+      description: A test email the instance tried to deliver
+      required: [recipientEmail, isDelivered]
+      properties:
+        recipientEmail:
+          type: string
+          description: The address of the administrator the message went to
+        isDelivered:
+          type: boolean
+          description: Whether the mail server accepted the message
+        failureDetail:
+          type: string
+          description: The error of the delivery with the mail server's response, present when it failed
     VersionResponse:
       type: object
       description: The body of the version operation
@@ -75,7 +999,25 @@ components:
       description: The cause of the error for programs; a value never changes its meaning
       enum:
         - invalid_request
+        - unauthenticated
+        - permission_denied
         - not_found
+        - rate_limited
+        - human_verification_failed
+        - invalid_credentials
+        - user_deactivated
+        - registration_closed
+        - email_taken
+        - invalid_reset_code
+        - oauth_not_configured
+        - oauth_failed
+        - pending_sign_in_not_usable
+        - sign_in_code_not_sent
+        - too_many_sign_in_codes
+        - sign_in_code_resent_too_soon
+        - sign_in_code_incorrect
+        - email_not_configured
+        - admin_email_missing
         - internal
     FieldError:
       type: object

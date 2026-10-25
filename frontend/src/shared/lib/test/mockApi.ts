@@ -2,7 +2,7 @@ import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import { afterAll, afterEach, beforeAll, vi } from 'vitest';
 
-import { API_BASE_PATH, type ApiPaths } from '../../api';
+import { API_BASE_PATH, type ApiComponents, type ApiPaths } from '../../api';
 
 type Method = 'get' | 'post' | 'put' | 'delete';
 
@@ -46,19 +46,36 @@ const respond =
 // status, and a Problem for any other, so a mock of the wrong shape fails pnpm typecheck.
 export const mockApi = {
   get: respond('get'),
+  post: respond('post'),
+  put: respond('put'),
 
   // An answer the contract cannot describe, such as the empty 502 of a proxy.
   getWithoutBody: (path: PathWith<'get'>, status: number) =>
     http.get(toMswPath(path), () => new HttpResponse(null, { status })),
 };
 
-// Starts the network mock for the test file. Requests without a mock fail the test, and the
-// application server resolves to localhost, because the tests run without a browser window.
+// A Problem body for a refusal, so a test names only the code and the status it mocks.
+export const buildProblem = (
+  code: ApiComponents['schemas']['ProblemCode'],
+  status: number,
+): ApiComponents['schemas']['Problem'] => ({
+  type: `urn:databasus:problem:${code}`,
+  title: code,
+  status,
+  detail: code,
+  code,
+});
+
+// Starts the network mock for the test file. Requests without a mock fail the test. A test without
+// a DOM environment gets a window whose application server resolves to localhost.
 export const setUpMockApi = () => {
   const server = setupServer();
 
   beforeAll(() => {
-    vi.stubGlobal('window', { location: new URL('http://localhost') });
+    if (typeof document === 'undefined') {
+      vi.stubGlobal('window', { location: new URL('http://localhost') });
+    }
+
     server.listen({ onUnhandledRequest: 'error' });
   });
 

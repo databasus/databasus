@@ -11,23 +11,78 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
 // Defines values for ProblemCode.
 const (
-	ProblemCodeInternal       ProblemCode = "internal"
-	ProblemCodeInvalidRequest ProblemCode = "invalid_request"
-	ProblemCodeNotFound       ProblemCode = "not_found"
+	ProblemCodeAdminEmailMissing       ProblemCode = "admin_email_missing"
+	ProblemCodeEmailNotConfigured      ProblemCode = "email_not_configured"
+	ProblemCodeEmailTaken              ProblemCode = "email_taken"
+	ProblemCodeHumanVerificationFailed ProblemCode = "human_verification_failed"
+	ProblemCodeInternal                ProblemCode = "internal"
+	ProblemCodeInvalidCredentials      ProblemCode = "invalid_credentials"
+	ProblemCodeInvalidRequest          ProblemCode = "invalid_request"
+	ProblemCodeInvalidResetCode        ProblemCode = "invalid_reset_code"
+	ProblemCodeNotFound                ProblemCode = "not_found"
+	ProblemCodeOauthFailed             ProblemCode = "oauth_failed"
+	ProblemCodeOauthNotConfigured      ProblemCode = "oauth_not_configured"
+	ProblemCodePendingSignInNotUsable  ProblemCode = "pending_sign_in_not_usable"
+	ProblemCodePermissionDenied        ProblemCode = "permission_denied"
+	ProblemCodeRateLimited             ProblemCode = "rate_limited"
+	ProblemCodeRegistrationClosed      ProblemCode = "registration_closed"
+	ProblemCodeSignInCodeIncorrect     ProblemCode = "sign_in_code_incorrect"
+	ProblemCodeSignInCodeNotSent       ProblemCode = "sign_in_code_not_sent"
+	ProblemCodeSignInCodeResentTooSoon ProblemCode = "sign_in_code_resent_too_soon"
+	ProblemCodeTooManySignInCodes      ProblemCode = "too_many_sign_in_codes"
+	ProblemCodeUnauthenticated         ProblemCode = "unauthenticated"
+	ProblemCodeUserDeactivated         ProblemCode = "user_deactivated"
 )
 
 // Valid indicates whether the value is a known member of the ProblemCode enum.
 func (e ProblemCode) Valid() bool {
 	switch e {
+	case ProblemCodeAdminEmailMissing:
+		return true
+	case ProblemCodeEmailNotConfigured:
+		return true
+	case ProblemCodeEmailTaken:
+		return true
+	case ProblemCodeHumanVerificationFailed:
+		return true
 	case ProblemCodeInternal:
+		return true
+	case ProblemCodeInvalidCredentials:
 		return true
 	case ProblemCodeInvalidRequest:
 		return true
+	case ProblemCodeInvalidResetCode:
+		return true
 	case ProblemCodeNotFound:
+		return true
+	case ProblemCodeOauthFailed:
+		return true
+	case ProblemCodeOauthNotConfigured:
+		return true
+	case ProblemCodePendingSignInNotUsable:
+		return true
+	case ProblemCodePermissionDenied:
+		return true
+	case ProblemCodeRateLimited:
+		return true
+	case ProblemCodeRegistrationClosed:
+		return true
+	case ProblemCodeSignInCodeIncorrect:
+		return true
+	case ProblemCodeSignInCodeNotSent:
+		return true
+	case ProblemCodeSignInCodeResentTooSoon:
+		return true
+	case ProblemCodeTooManySignInCodes:
+		return true
+	case ProblemCodeUnauthenticated:
+		return true
+	case ProblemCodeUserDeactivated:
 		return true
 	default:
 		return false
@@ -72,6 +127,12 @@ type VersionResponse struct {
 	// Version The version of the running instance, such as `3.26.0`
 	Version string `json:"version"`
 }
+
+// PendingSignInId defines model for PendingSignInId.
+type PendingSignInId = openapi_types.UUID
+
+// UserId defines model for UserId.
+type UserId = openapi_types.UUID
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {

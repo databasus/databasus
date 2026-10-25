@@ -9,7 +9,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"databasus-backend/internal/util/cache"
+	"databasus-backend/internal/lib/cache"
+	"databasus-backend/internal/lib/clock"
 )
 
 type failingStore struct {
@@ -41,7 +42,7 @@ func (s failingStore) Clear(context.Context) error {
 }
 
 func Test_Store_IssueAndConsume_ConsumesTokenOnce(t *testing.T) {
-	tokenStore := newStore(cache.NewMemoryStore(4096))
+	tokenStore := newStore(cache.NewMemoryStore(cache.Deps{PayloadBudgetBytes: 4096, Clock: clock.NewSystem()}))
 	restoreToken := Token{DatabaseID: uuid.New(), UserID: uuid.New()}
 
 	require.NoError(t, tokenStore.issue(t.Context(), "token", restoreToken))

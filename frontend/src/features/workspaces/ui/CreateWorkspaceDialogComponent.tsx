@@ -4,14 +4,14 @@ import { Spin } from 'antd';
 import { useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
-import { type UserProfile, UserRole, type UsersSettings } from '../../../entity/users';
+import { type User, UserRole, type InstanceSettings } from '../../../entity/users';
 import type { WorkspaceResponse } from '../../../entity/workspaces';
 import { workspaceApi } from '../../../entity/workspaces';
 import { translateApiError } from '../../../shared/i18n';
 
 interface Props {
-  user: UserProfile;
-  globalSettings: UsersSettings;
+  user: User;
+  globalSettings: InstanceSettings;
 
   onClose: () => void;
   onWorkspaceCreated: (workspace: WorkspaceResponse) => void;

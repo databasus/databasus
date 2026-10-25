@@ -1,6 +1,7 @@
 package telemetry
 
 import (
+	"context"
 	"sync"
 
 	"databasus-backend/internal/config"
@@ -10,7 +11,7 @@ import (
 	"databasus-backend/internal/features/notifiers"
 	"databasus-backend/internal/features/storages"
 	system_version "databasus-backend/internal/features/system/version"
-	users_services "databasus-backend/internal/features/users/services"
+	users_bridge "databasus-backend/internal/features/users"
 	verification_agents "databasus-backend/internal/features/verification/agents"
 	verification_config "databasus-backend/internal/features/verification/config"
 	"databasus-backend/internal/util/logger"
@@ -39,7 +40,7 @@ var (
 			physical_service.GetPhysicalBackupService(),
 			verification_agents.GetAgentService(),
 			verification_config.GetVerificationConfigService(),
-			users_services.GetUserService(),
+			installedUserCounter{},
 			system_version.GetAppVersion(),
 			getTelemetryLogger(),
 		)
@@ -64,3 +65,10 @@ func GetTelemetryBackgroundService() *TelemetryBackgroundService {
 var SetupDependencies = sync.OnceFunc(func() {
 	getInstanceLoader().path = config.GetEnv().TelemetryInstancePath
 })
+
+// installedUserCounter reads the module per call: each test application installs its own module.
+type installedUserCounter struct{}
+
+func (installedUserCounter) GetUserCount(ctx context.Context) (int64, error) {
+	return users_bridge.GetModule().GetUserCount(ctx)
+}

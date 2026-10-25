@@ -12,9 +12,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	audit_logs_models "databasus-backend/internal/features/audit_logs/models"
-	users_middleware "databasus-backend/internal/features/users/middleware"
-	users_repositories "databasus-backend/internal/features/users/repositories"
-	users_services "databasus-backend/internal/features/users/services"
 	users_testing "databasus-backend/internal/features/users/testing"
 	"databasus-backend/internal/modules/users"
 	test_utils "databasus-backend/internal/util/testing"
@@ -180,8 +177,7 @@ func TestGetAuditLogs(t *testing.T) {
 		func(t *testing.T) {
 			adminUser := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 			author := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-			authorBeforeChange, err := users_repositories.GetUserRepository().GetUserByID(t.Context(), author.UserID)
-			require.NoError(t, err)
+			authorBeforeChange := users_testing.GetTestUser(t.Context(), author.UserID)
 			router := createRouter()
 			message := "Storage created: " + uuid.NewString()
 
@@ -225,10 +221,9 @@ func findLogWithMessage(t *testing.T, listedLogs []*AuditLogDTO, message string)
 func createRouter() *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
-	SetupDependencies()
 
 	v1 := router.Group("/api/v1")
-	protected := v1.Group("").Use(users_middleware.AuthMiddleware(users_services.GetUserService()))
+	protected := v1.Group("").Use(users_testing.GetSessionMiddleware())
 	GetAuditLogController().RegisterRoutes(protected.(*gin.RouterGroup))
 
 	return router

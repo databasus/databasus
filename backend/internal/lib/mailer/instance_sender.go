@@ -23,6 +23,15 @@ type Deps struct {
 	Logger   *slog.Logger
 }
 
+// Sender sends the instance's own mail. InstanceSender is the one the server uses; a test
+// application records the messages instead.
+type Sender interface {
+	// IsConfigured reports whether the operator configured a mail server. SendEmail reports no error
+	// without one, so a caller that must not admit a silent skip asks this first.
+	IsConfigured() bool
+	SendEmail(ctx context.Context, to, subject, htmlBody string) error
+}
+
 // InstanceSender sends the instance's own mail, such as sign-in codes and invitations, through the
 // operator's server. Notification channels carry their own server and call Send instead.
 type InstanceSender struct {

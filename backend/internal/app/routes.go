@@ -20,9 +20,6 @@ import (
 	system_agent "databasus-backend/internal/features/system/agent"
 	system_healthcheck "databasus-backend/internal/features/system/healthcheck"
 	system_version "databasus-backend/internal/features/system/version"
-	users_controllers "databasus-backend/internal/features/users/controllers"
-	users_middleware "databasus-backend/internal/features/users/middleware"
-	users_services "databasus-backend/internal/features/users/services"
 	verification_agents "databasus-backend/internal/features/verification/agents"
 	verification_config "databasus-backend/internal/features/verification/config"
 	verification_runs "databasus-backend/internal/features/verification/runs"
@@ -39,8 +36,10 @@ func (a *App) registerContractRoutes(router *gin.Engine) error {
 		return err
 	}
 
-	contractRoutes := router.Group("/api/v1", contractGuard)
+	contractRoutes := router.Group("/api/v1", contractGuard, a.usersModule.GetAccessMiddleware())
 	errorHooks := apierror.NewHooks(apierror.Deps{Logger: a.logger})
+
+	a.usersModule.RegisterRoutes(contractRoutes, errorHooks)
 
 	systemHandler := systemhttpapi.NewHandler(systemhttpapi.Deps{Version: system_version.GetAppVersion()})
 	systemhttpapi.RegisterHandlersWithOptions(
@@ -56,12 +55,10 @@ func (a *App) registerContractRoutes(router *gin.Engine) error {
 	return nil
 }
 
-func registerRoutes(router *gin.Engine) {
+func (a *App) registerRoutes(router *gin.Engine) {
 	v1 := router.Group("/api/v1")
 
 	// Public routes: only the user sign-in routes, the health check and the agent-facing routes.
-	userController := users_controllers.GetUserController()
-	userController.RegisterRoutes(v1)
 	system_healthcheck.GetHealthcheckController().RegisterRoutes(v1)
 	system_agent.GetAgentController().RegisterRoutes(v1)
 	backups_controllers_logical.GetBackupController().RegisterPublicRoutes(v1)
@@ -71,9 +68,8 @@ func registerRoutes(router *gin.Engine) {
 	verification_runs.GetVerificationAgentController().RegisterRoutes(v1)
 
 	protected := v1.Group("")
-	protected.Use(users_middleware.AuthMiddleware(users_services.GetUserService()))
+	protected.Use(a.usersModule.GetSessionMiddleware())
 
-	userController.RegisterProtectedRoutes(protected)
 	workspaces_controllers.GetWorkspaceController().RegisterRoutes(protected)
 	workspaces_controllers.GetMembershipController().RegisterRoutes(protected)
 	disk.GetDiskController().RegisterRoutes(protected)
@@ -88,8 +84,6 @@ func registerRoutes(router *gin.Engine) {
 	backups_config_logical.GetBackupConfigController().RegisterRoutes(protected)
 	backups_config_physical.GetBackupConfigController().RegisterRoutes(protected)
 	audit_logs.GetAuditLogController().RegisterRoutes(protected)
-	users_controllers.GetManagementController().RegisterRoutes(protected)
-	users_controllers.GetSettingsController().RegisterRoutes(protected)
 	verification_agents.GetAgentController().RegisterRoutes(protected)
 	verification_config.GetVerificationConfigController().RegisterRoutes(protected)
 	verification_runs.GetVerificationController().RegisterRoutes(protected)

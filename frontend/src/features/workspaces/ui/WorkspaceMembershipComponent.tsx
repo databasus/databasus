@@ -24,10 +24,10 @@ import dayjs from 'dayjs';
 import { useEffect, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
-import { type UserProfile, WORKSPACE_ROLE_LABEL_KEYS } from '../../../entity/users';
-import { userManagementApi } from '../../../entity/users/api/userManagementApi';
-import { UserRole } from '../../../entity/users/model/UserRole';
-import { WorkspaceRole } from '../../../entity/users/model/WorkspaceRole';
+import { type User, WORKSPACE_ROLE_LABEL_KEYS } from '../../../entity/users';
+import { userManagementApi } from '../../../entity/users';
+import { UserRole } from '../../../entity/users';
+import { WorkspaceRole } from '../../../entity/users';
 import type {
   AddMemberRequest,
   AddMemberResponse,
@@ -44,7 +44,7 @@ import { getUserShortTimeFormat } from '../../../shared/time';
 
 interface Props {
   workspaceResponse: WorkspaceResponse;
-  user: UserProfile;
+  user: User;
 }
 
 type RoleTagColor = 'purple' | 'orange' | 'blue' | 'green' | 'default';
@@ -76,7 +76,7 @@ export function WorkspaceMembershipComponent({ workspaceResponse, user }: Props)
 
   const [removingMembers, setRemovingMembers] = useState<Set<string>>(new Set());
 
-  const [userSearchResults, setUserSearchResults] = useState<UserProfile[]>([]);
+  const [userSearchResults, setUserSearchResults] = useState<User[]>([]);
   const [isSearchingUsers, setIsSearchingUsers] = useState(false);
   const [searchInputValue, setSearchInputValue] = useState('');
 
@@ -123,7 +123,7 @@ export function WorkspaceMembershipComponent({ workspaceResponse, user }: Props)
         limit: 10,
         query: query || undefined,
       });
-      const activeUsers = response.users.filter((u) => u.isActive);
+      const activeUsers = response.items.filter((foundUser) => foundUser.status === 'ACTIVE');
       setUserSearchResults(activeUsers);
     } catch (error: unknown) {
       message.error(translateApiError(error, t));

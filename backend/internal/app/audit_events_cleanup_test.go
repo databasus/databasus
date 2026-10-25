@@ -17,7 +17,7 @@ import (
 func TestAuditEventsCleanup(t *testing.T) {
 	t.Run("deletes an event older than one year and keeps a younger one", func(t *testing.T) {
 		testApp := apptest.New(t)
-		token := signUpThroughOldAPI(t, testApp)
+		token := testApp.CreateAdmin(t).Token
 		expiringWorkspaceID := createWorkspaceThroughOldAPI(t, testApp, token, "expiring-"+uuid.NewString())
 
 		testApp.Clock.Advance(366 * 24 * time.Hour)
@@ -28,27 +28,6 @@ func TestAuditEventsCleanup(t *testing.T) {
 		assert.Empty(t, listWorkspaceAuditMessages(t, testApp, token, expiringWorkspaceID))
 		assert.NotEmpty(t, listWorkspaceAuditMessages(t, testApp, token, keptWorkspaceID))
 	})
-}
-
-func signUpThroughOldAPI(t *testing.T, testApp *apptest.App) string {
-	t.Helper()
-
-	var signedUp struct {
-		Token string `json:"token"`
-	}
-	callOldAPI(t, testApp, oldAPICall{
-		method: http.MethodPost,
-		path:   "/api/v1/users/signup",
-		token:  "",
-		body: map[string]string{
-			"email":    "owner-" + uuid.NewString() + "@example.com",
-			"password": "correct-horse-battery",
-			"name":     "Owner",
-		},
-	}, &signedUp)
-	require.NotEmpty(t, signedUp.Token)
-
-	return signedUp.Token
 }
 
 func createWorkspaceThroughOldAPI(t *testing.T, testApp *apptest.App, token, name string) uuid.UUID {

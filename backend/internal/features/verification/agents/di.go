@@ -4,8 +4,8 @@ import (
 	"sync"
 
 	audit_logs "databasus-backend/internal/features/audit_logs"
+	"databasus-backend/internal/features/caching"
 	"databasus-backend/internal/util/logger"
-	"databasus-backend/internal/util/ratelimiter"
 )
 
 var getAgentRepository = sync.OnceValue(func() *AgentRepository {
@@ -16,7 +16,7 @@ var getAgentService = sync.OnceValue(func() *AgentService {
 	return &AgentService{
 		getAgentRepository(),
 		audit_logs.GetAuditLogService(),
-		ratelimiter.GetCounter(),
+		caching.GetRateLimiter(),
 		logger.GetLogger(),
 		nil,
 	}

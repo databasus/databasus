@@ -4,9 +4,9 @@ import { useEffect, useRef, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
 import { databaseApi } from '../../../entity/databases/api/databaseApi';
-import type { UserProfile } from '../../../entity/users/model/UserProfile';
-import { UserRole } from '../../../entity/users/model/UserRole';
-import { WorkspaceRole } from '../../../entity/users/model/WorkspaceRole';
+import type { User } from '../../../entity/users';
+import { UserRole } from '../../../entity/users';
+import { WorkspaceRole } from '../../../entity/users';
 import { workspaceApi } from '../../../entity/workspaces/api/workspaceApi';
 import type { Workspace } from '../../../entity/workspaces/model/Workspace';
 import type { WorkspaceResponse } from '../../../entity/workspaces/model/WorkspaceResponse';
@@ -17,7 +17,7 @@ import { WorkspaceMembershipComponent } from './WorkspaceMembershipComponent';
 
 interface Props {
   workspaceResponse: WorkspaceResponse;
-  user: UserProfile;
+  user: User;
   contentHeight: number;
 }
 

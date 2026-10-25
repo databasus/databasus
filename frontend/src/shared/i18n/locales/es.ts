@@ -138,7 +138,7 @@ export const es: typeof en = {
       'Se han pedido demasiados códigos de acceso para esta cuenta en la última hora. Inténtelo más tarde.',
     signInCodeResentTooSoon:
       'Se envió un código hace menos de un minuto. Espere un minuto antes de pedir otro.',
-    rateLimitExceeded: 'Demasiados intentos. Espere un poco e inténtelo de nuevo.',
+    rateLimited: 'Demasiados intentos. Espere un poco e inténtelo de nuevo.',
     emailNotConfigured: 'La instancia no tiene un servidor de correo configurado.',
     adminEmailMissing:
       'Su cuenta no tiene una dirección de correo válida a la que enviar un correo de prueba.',
@@ -146,6 +146,20 @@ export const es: typeof en = {
       'El servidor rechazó la solicitud por no ser válida. Recargue la página e inténtelo de nuevo.',
     notFound: 'No se encontró el elemento solicitado. Es posible que se haya eliminado.',
     internal: 'Se produjo un error interno en el servidor. Inténtelo de nuevo más tarde.',
+    unauthenticated: 'Su sesión ha terminado. Vuelva a iniciar sesión.',
+    permissionDenied: 'No tiene permiso para hacer esto.',
+    humanVerificationFailed: 'La verificación humana falló. Complétela e inténtelo de nuevo.',
+    invalidCredentials: 'El correo electrónico o la contraseña no son correctos.',
+    userDeactivated: 'Esta cuenta está desactivada. Pida a un administrador que la active.',
+    registrationClosed:
+      'El registro está cerrado en esta instancia. Pida una invitación a un administrador.',
+    emailTaken: 'Esta dirección de correo electrónico ya está en uso.',
+    invalidResetCode:
+      'El código de restablecimiento no es correcto o ha caducado. Solicite uno nuevo.',
+    oauthNotConfigured:
+      'El inicio de sesión con este proveedor no está configurado en esta instancia.',
+    oauthFailed:
+      'El proveedor de inicio de sesión no confirmó su cuenta. Compruebe que su correo electrónico está verificado allí e inténtelo de nuevo.',
   },
   status: {
     logicalBackup: {
@@ -273,6 +287,8 @@ export const es: typeof en = {
       docs: 'La <docsLink>documentación de SMTP</docsLink> explica cómo conectar un servidor de correo.',
       sendTestEmail: 'Enviar correo de prueba',
       testEmailSent: 'Correo de prueba enviado a {{email}}',
+      testEmailNotDelivered:
+        'El servidor de correo no aceptó el correo de prueba para <email/>: <failureDetail/>',
     },
     healthcheck: {
       title: 'Comprobación de disponibilidad',
@@ -979,7 +995,7 @@ export const es: typeof en = {
     },
     list: {
       title: 'Usuarios de Databasus',
-      loadedOfTotal: 'Usuarios: {{loaded}} de {{total}}',
+      loaded: 'Usuarios cargados: {{count}}',
       searchPlaceholder: 'Buscar por correo electrónico o nombre...',
       empty: 'No se encontraron usuarios.',
       allLoaded: 'Todos los usuarios cargados ({{count}} en total)',

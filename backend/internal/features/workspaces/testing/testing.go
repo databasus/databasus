@@ -14,11 +14,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
-	"databasus-backend/internal/features/audit_logs"
-	users_dto "databasus-backend/internal/features/users/dto"
+	users_bridge "databasus-backend/internal/features/users"
 	users_enums "databasus-backend/internal/features/users/enums"
-	users_middleware "databasus-backend/internal/features/users/middleware"
-	users_services "databasus-backend/internal/features/users/services"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_dto "databasus-backend/internal/features/workspaces/dto"
 	workspaces_models "databasus-backend/internal/features/workspaces/models"
@@ -34,7 +31,7 @@ func CreateTestRouter(controllers ...ControllerInterface) *gin.Engine {
 	router := gin.New()
 
 	v1 := router.Group("/api/v1")
-	protected := v1.Group("").Use(users_middleware.AuthMiddleware(users_services.GetUserService()))
+	protected := v1.Group("").Use(users_testing.GetSessionMiddleware())
 
 	for _, controller := range controllers {
 		if routerGroup, ok := protected.(*gin.RouterGroup); ok {
@@ -42,15 +39,13 @@ func CreateTestRouter(controllers ...ControllerInterface) *gin.Engine {
 		}
 	}
 
-	audit_logs.SetupDependencies()
-
 	return router
 }
 
 func CreateTestWorkspace(
 	ctx context.Context,
 	name string,
-	owner *users_dto.SignInResponseDTO,
+	owner *users_testing.TestUser,
 	router *gin.Engine,
 ) *workspaces_models.Workspace {
 	workspace, _ := CreateTestWorkspaceViaAPI(ctx, name, owner, router)
@@ -60,7 +55,7 @@ func CreateTestWorkspace(
 func CreateTestWorkspaceViaAPI(
 	ctx context.Context,
 	name string,
-	owner *users_dto.SignInResponseDTO,
+	owner *users_testing.TestUser,
 	router *gin.Engine,
 ) (*workspaces_models.Workspace, string) {
 	return createTestWorkspaceViaAPI(ctx, name, owner, router, true)
@@ -69,7 +64,7 @@ func CreateTestWorkspaceViaAPI(
 func CreateTestWorkspaceViaAPIWithoutSettingsChange(
 	ctx context.Context,
 	name string,
-	owner *users_dto.SignInResponseDTO,
+	owner *users_testing.TestUser,
 	router *gin.Engine,
 ) (*workspaces_models.Workspace, string) {
 	return createTestWorkspaceViaAPI(ctx, name, owner, router, false)
@@ -78,7 +73,7 @@ func CreateTestWorkspaceViaAPIWithoutSettingsChange(
 func createTestWorkspaceViaAPI(
 	ctx context.Context,
 	name string,
-	owner *users_dto.SignInResponseDTO,
+	owner *users_testing.TestUser,
 	router *gin.Engine,
 	enableMemberCreation bool,
 ) (*workspaces_models.Workspace, string) {
@@ -171,7 +166,7 @@ func createTestWorkspaceWithToken(
 
 func AddMemberToWorkspace(
 	workspace *workspaces_models.Workspace,
-	member *users_dto.SignInResponseDTO,
+	member *users_testing.TestUser,
 	role users_enums.WorkspaceRole,
 	ownerToken string,
 	router *gin.Engine,
@@ -197,7 +192,7 @@ func AddMemberToWorkspace(
 func AddMemberToWorkspaceViaOwner(
 	ctx context.Context,
 	workspace *workspaces_models.Workspace,
-	member *users_dto.SignInResponseDTO,
+	member *users_testing.TestUser,
 	role users_enums.WorkspaceRole,
 	router *gin.Engine,
 ) {
@@ -210,19 +205,7 @@ func AddMemberToWorkspaceViaOwner(
 	var ownerToken string
 	for _, m := range workspaceMembers {
 		if m.Role == users_enums.WorkspaceRoleOwner {
-			userService := users_services.GetUserService()
-
-			owner, err := userService.GetUserByID(ctx, m.UserID)
-			if err != nil {
-				panic("Failed to get owner user: " + err.Error())
-			}
-
-			tokenResponse, err := userService.GenerateAccessToken(ctx, owner)
-			if err != nil {
-				panic("Failed to generate owner token: " + err.Error())
-			}
-
-			ownerToken = tokenResponse.Token
+			ownerToken = users_testing.IssueTestToken(ctx, m.UserID)
 
 			break
 		}
@@ -407,23 +390,14 @@ func RemoveTestWorkspace(ctx context.Context, workspace *workspaces_models.Works
 	var ownerToken string
 	for _, m := range workspaceMembers {
 		if m.Role == users_enums.WorkspaceRoleOwner {
-			userService := users_services.GetUserService()
-
-			owner, err := userService.GetUserByID(ctx, m.UserID)
-			if err != nil {
+			_, isOwnerFound, err := users_bridge.GetModule().GetUser(ctx, m.UserID)
+			if err != nil || !isOwnerFound {
 				// Owner user not found, workspace might be in inconsistent state, try direct deletion
 				_ = RemoveTestWorkspaceDirect(workspace.ID)
 				return
 			}
 
-			tokenResponse, err := userService.GenerateAccessToken(ctx, owner)
-			if err != nil {
-				// Cannot generate token, try direct deletion
-				_ = RemoveTestWorkspaceDirect(workspace.ID)
-				return
-			}
-
-			ownerToken = tokenResponse.Token
+			ownerToken = users_testing.IssueTestToken(ctx, m.UserID)
 			break
 		}
 	}

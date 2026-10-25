@@ -19,16 +19,27 @@ const isProblem = (body: unknown): body is Problem => {
   return typeof candidate.code === 'string' && typeof candidate.detail === 'string';
 };
 
+const toApiError = ({ error, response }: FetchResult<unknown>): ApiError => {
+  if (isProblem(error)) {
+    return new ApiError({ message: error.detail, code: error.code, status: response.status });
+  }
+
+  return new ApiError({ code: API_ERROR_CODES.requestFailed, status: response.status });
+};
+
 // Turns the result of a contract operation into its data, or throws the ApiError that
 // translateApiError shows by code. An answer without a Problem body becomes request_failed.
-export const requireData = <Data>({ data, error, response }: FetchResult<Data>): Data => {
-  if (response.ok && data !== undefined) {
-    return data;
+export const requireData = <Data>(result: FetchResult<Data>): Data => {
+  if (result.response.ok && result.data !== undefined) {
+    return result.data;
   }
 
-  if (isProblem(error)) {
-    throw new ApiError({ message: error.detail, code: error.code, status: response.status });
-  }
+  throw toApiError(result);
+};
 
-  throw new ApiError({ code: API_ERROR_CODES.requestFailed, status: response.status });
+// The same for an operation that answers 204 without a body.
+export const requireSuccess = (result: FetchResult<unknown>): void => {
+  if (!result.response.ok) {
+    throw toApiError(result);
+  }
 };

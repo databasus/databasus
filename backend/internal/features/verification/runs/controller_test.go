@@ -11,14 +11,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"databasus-backend/internal/features/audit_logs"
 	backuping_logical "databasus-backend/internal/features/backups/backups/backuping/logical"
 	backups_controllers_logical "databasus-backend/internal/features/backups/backups/controllers/logical"
 	"databasus-backend/internal/features/databases"
 	"databasus-backend/internal/features/notifiers"
 	"databasus-backend/internal/features/storages"
-	users_middleware "databasus-backend/internal/features/users/middleware"
-	users_services "databasus-backend/internal/features/users/services"
 	users_testing "databasus-backend/internal/features/users/testing"
 	verification_agents "databasus-backend/internal/features/verification/agents"
 	verification_config "databasus-backend/internal/features/verification/config"
@@ -34,7 +31,7 @@ func createTestRouter() *gin.Engine {
 	router := gin.New()
 
 	v1 := router.Group("/api/v1")
-	protected := v1.Group("").Use(users_middleware.AuthMiddleware(users_services.GetUserService()))
+	protected := v1.Group("").Use(users_testing.GetSessionMiddleware())
 
 	if routerGroup, ok := protected.(*gin.RouterGroup); ok {
 		workspaces_controllers.GetWorkspaceController().RegisterRoutes(routerGroup)
@@ -49,7 +46,6 @@ func createTestRouter() *gin.Engine {
 	verification_agents.GetAgentFacingController().RegisterRoutes(v1)
 	GetVerificationAgentController().RegisterRoutes(v1)
 
-	audit_logs.SetupDependencies()
 	verification_config.SetupDependencies()
 	SetupDependencies()
 

@@ -2,22 +2,20 @@ package audit_logs
 
 import (
 	"context"
-	"errors"
 	"log/slog"
 
 	"github.com/google/uuid"
-	"gorm.io/gorm"
 
 	audit_logs_models "databasus-backend/internal/features/audit_logs/models"
-	users_repositories "databasus-backend/internal/features/users/repositories"
 	"databasus-backend/internal/lib/audit"
 	"databasus-backend/internal/modules/users"
 )
 
 type AuditLogService struct {
 	auditLogRepository *AuditLogRepository
-	userRepository     *users_repositories.UserRepository
-	logger             *slog.Logger
+	// getUsersModule is read per call: each test application installs its own module.
+	getUsersModule func() users.Module
+	logger         *slog.Logger
 }
 
 // WriteAuditLog records the entry through lib/audit with its author's email and name as they are
@@ -148,17 +146,17 @@ func (s *AuditLogService) findAuthor(ctx context.Context, userID *uuid.UUID) *au
 		return nil
 	}
 
-	user, err := s.userRepository.GetUserByID(ctx, *userID)
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		s.logger.WarnContext(ctx, "audit author not found, recording the event without an author",
-			"user_id", userID)
+	user, isFound, err := s.getUsersModule().GetUser(ctx, *userID)
+	if err != nil {
+		s.logger.ErrorContext(ctx, "failed to read the audit author, recording the event without an author",
+			"error", err, "user_id", userID)
 
 		return nil
 	}
 
-	if err != nil {
-		s.logger.ErrorContext(ctx, "failed to read the audit author, recording the event without an author",
-			"error", err, "user_id", userID)
+	if !isFound {
+		s.logger.WarnContext(ctx, "audit author not found, recording the event without an author",
+			"user_id", userID)
 
 		return nil
 	}

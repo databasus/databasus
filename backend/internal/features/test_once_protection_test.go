@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"databasus-backend/internal/features/audit_logs"
 	backuping_logical "databasus-backend/internal/features/backups/backups/backuping/logical"
 	backuping_physical "databasus-backend/internal/features/backups/backups/backuping/physical"
 	backups_services "databasus-backend/internal/features/backups/backups/services"
@@ -23,8 +22,6 @@ import (
 // Test_SetupDependencies_CalledTwice_LogsWarning verifies SetupDependencies is idempotent
 func Test_SetupDependencies_CalledTwice_LogsWarning(t *testing.T) {
 	// Call each SetupDependencies twice - should not panic, only log warnings
-	audit_logs.SetupDependencies()
-	audit_logs.SetupDependencies()
 
 	backups_services.SetupDependencies()
 	backups_services.SetupDependencies()
@@ -67,7 +64,6 @@ func Test_SetupDependencies_ConcurrentCalls_Safe(t *testing.T) {
 	// Call SetupDependencies concurrently from 10 goroutines
 	for range 10 {
 		wg.Go(func() {
-			audit_logs.SetupDependencies()
 		})
 	}
 

@@ -11,9 +11,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	audit_logs "databasus-backend/internal/features/audit_logs"
-	users_middleware "databasus-backend/internal/features/users/middleware"
-	users_services "databasus-backend/internal/features/users/services"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_controllers "databasus-backend/internal/features/workspaces/controllers"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
@@ -27,7 +24,7 @@ func createTestRouter() *gin.Engine {
 	router := gin.New()
 
 	v1 := router.Group("/api/v1")
-	protected := v1.Group("").Use(users_middleware.AuthMiddleware(users_services.GetUserService()))
+	protected := v1.Group("").Use(users_testing.GetSessionMiddleware())
 
 	if routerGroup, ok := protected.(*gin.RouterGroup); ok {
 		GetAgentController().RegisterRoutes(routerGroup)
@@ -36,8 +33,6 @@ func createTestRouter() *gin.Engine {
 	}
 
 	GetAgentFacingController().RegisterRoutes(v1)
-
-	audit_logs.SetupDependencies()
 
 	return router
 }

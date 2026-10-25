@@ -10,7 +10,7 @@ import (
 	"github.com/google/uuid"
 
 	"databasus-backend/internal/lib/logging"
-	"databasus-backend/internal/util/ratelimiter"
+	"databasus-backend/internal/lib/ratelimit"
 )
 
 const (
@@ -39,7 +39,7 @@ func (s *AgentService) RequireAgentAuth() gin.HandlerFunc {
 
 		isAllowed, rateLimitErr := s.rateLimiter.RecordAttemptAndCheckIsAllowed(
 			ctx.Request.Context(),
-			ratelimiter.Attempt{
+			ratelimit.Attempt{
 				Scope:      rateLimitAgentEndpoint,
 				Identifier: agentID.String(),
 				Limit:      rateLimitAgentMax,

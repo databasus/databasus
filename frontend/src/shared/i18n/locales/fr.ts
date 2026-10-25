@@ -137,7 +137,7 @@ export const fr: typeof en = {
       'Trop de codes de connexion ont été demandés pour ce compte au cours de la dernière heure. Réessayez plus tard.',
     signInCodeResentTooSoon:
       "Un code a été envoyé il y a moins d'une minute. Attendez une minute avant d'en demander un autre.",
-    rateLimitExceeded: 'Trop de tentatives. Patientez un peu et réessayez.',
+    rateLimited: 'Trop de tentatives. Patientez un peu et réessayez.',
     emailNotConfigured: "L'instance n'a pas de serveur de messagerie configuré.",
     adminEmailMissing:
       "Votre compte n'a pas d'adresse e-mail valide à laquelle envoyer un e-mail de test.",
@@ -145,6 +145,19 @@ export const fr: typeof en = {
       "Le serveur a refusé la requête car elle n'est pas valide. Rechargez la page et réessayez.",
     notFound: "L'élément demandé est introuvable. Il a peut-être été supprimé.",
     internal: "Une erreur interne s'est produite sur le serveur. Réessayez plus tard.",
+    unauthenticated: 'Votre session a pris fin. Reconnectez-vous.',
+    permissionDenied: "Vous n'avez pas l'autorisation de faire cela.",
+    humanVerificationFailed: 'La vérification anti-robot a échoué. Effectuez-la et réessayez.',
+    invalidCredentials: "L'adresse e-mail ou le mot de passe est incorrect.",
+    userDeactivated: 'Ce compte est désactivé. Demandez à un administrateur de le réactiver.',
+    registrationClosed:
+      'Les inscriptions sont fermées sur cette instance. Demandez une invitation à un administrateur.',
+    emailTaken: 'Cette adresse e-mail est déjà utilisée.',
+    invalidResetCode:
+      'Le code de réinitialisation est incorrect ou a expiré. Demandez-en un nouveau.',
+    oauthNotConfigured: "La connexion avec ce fournisseur n'est pas configurée sur cette instance.",
+    oauthFailed:
+      "Le fournisseur de connexion n'a pas confirmé votre compte. Vérifiez que votre adresse e-mail y est validée et réessayez.",
   },
   status: {
     logicalBackup: {
@@ -273,6 +286,8 @@ export const fr: typeof en = {
       docs: 'La <docsLink>documentation SMTP</docsLink> explique comment connecter un serveur de messagerie.',
       sendTestEmail: 'Envoyer un e-mail de test',
       testEmailSent: 'E-mail de test envoyé à {{email}}',
+      testEmailNotDelivered:
+        "Le serveur de messagerie n'a pas accepté l'e-mail de test pour <email/> : <failureDetail/>",
     },
     healthcheck: {
       title: 'Vérification de disponibilité',
@@ -987,7 +1002,7 @@ export const fr: typeof en = {
     },
     list: {
       title: 'Utilisateurs de Databasus',
-      loadedOfTotal: 'Utilisateurs : {{loaded}} sur {{total}}',
+      loaded: 'Utilisateurs chargés : {{count}}',
       searchPlaceholder: 'Rechercher par e-mail ou par nom...',
       empty: 'Aucun utilisateur trouvé.',
       allLoaded: 'Tous les utilisateurs sont chargés ({{count}} au total)',

@@ -17,7 +17,7 @@ import { translateApiError } from '../shared/i18n';
 
 export function AuthPageComponent() {
   const { t } = useTranslation();
-  const [isAnyUserExist, setIsAnyUserExist] = useState(true);
+  const [hasAnyUser, setHasAnyUser] = useState(true);
   const [authMode, setAuthMode] = useState<
     'signIn' | 'signUp' | 'requestReset' | 'resetPassword' | 'signInCode'
   >('signUp');
@@ -36,8 +36,8 @@ export function AuthPageComponent() {
 
     userApi
       .isAnyUserExists()
-      .then((isExist) => {
-        setIsAnyUserExist(isExist);
+      .then((isAnyUserFound) => {
+        setHasAnyUser(isAnyUserFound);
         setLoading(false);
       })
       .catch((e) => {
@@ -60,8 +60,8 @@ export function AuthPageComponent() {
             <div className="mt-10 flex justify-center sm:mt-[10vh]">
               {authMode === 'signUp' ? (
                 <SignUpComponent
-                  onSwitchToSignIn={isAnyUserExist ? () => setAuthMode('signIn') : undefined}
-                  isClaimingInstance={!isAnyUserExist}
+                  onSwitchToSignIn={hasAnyUser ? () => setAuthMode('signIn') : undefined}
+                  isClaimingInstance={!hasAnyUser}
                 />
               ) : authMode === 'signIn' ? (
                 <SignInComponent

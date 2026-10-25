@@ -9,7 +9,7 @@ import (
 	"github.com/google/uuid"
 
 	"databasus-backend/internal/features/backups/backups/download/stream_guard"
-	"databasus-backend/internal/util/cache"
+	"databasus-backend/internal/lib/cache"
 )
 
 // Service issues and consumes single-use tokens authorizing a physical restore

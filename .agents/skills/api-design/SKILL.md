@@ -29,7 +29,7 @@ Every operation has an `operationId` and exactly one tag. The tag is the name of
 
 - Names are `camelCase`. Enum values are `UPPER_SNAKE_CASE`, except the error codes of `ProblemCode`, which are lower `snake_case` as the table in [Errors](#errors) shows. IDs are strings with `format: uuid`. Times are RFC 3339 in UTC with `format: date-time`. Sizes and durations carry the unit in the name: `sizeBytes`, `intervalSeconds`.
 - A field that may be missing is optional. A field that is present with an empty value is `nullable`. One meaning never uses both.
-- Secrets (passwords, keys, tokens) are `writeOnly`. A response never carries them. On `PUT`, an omitted secret keeps its stored value.
+- Secrets (passwords, keys, tokens) are `writeOnly`. A response never carries them. On `PUT`, an omitted secret keeps its stored value. The one exception is a credential an operation itself issues, such as a session token or a single-use download token: it is returned once in that operation's response and in no other.
 - Some resources have settings that depend on their type: a storage, a notifier and a database. Such a resource puts its settings into a `oneOf` with the discriminator `type` and one schema per provider.
 
 ## Errors

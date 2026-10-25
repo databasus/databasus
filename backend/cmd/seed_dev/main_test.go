@@ -16,8 +16,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	contract "databasus-backend/api"
 	"databasus-backend/internal/config"
-	audit_logs "databasus-backend/internal/features/audit_logs"
 	backuping_logical "databasus-backend/internal/features/backups/backups/backuping/logical"
 	backuping_physical "databasus-backend/internal/features/backups/backups/backuping/physical"
 	backups_controllers_logical "databasus-backend/internal/features/backups/backups/controllers/logical"
@@ -27,20 +27,21 @@ import (
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
 	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
 	"databasus-backend/internal/features/databases"
-	"databasus-backend/internal/features/email"
 	"databasus-backend/internal/features/notifiers"
 	"databasus-backend/internal/features/storages"
 	local_storage "databasus-backend/internal/features/storages/models/local"
 	system_healthcheck "databasus-backend/internal/features/system/healthcheck"
-	users_controllers "databasus-backend/internal/features/users/controllers"
-	users_dto "databasus-backend/internal/features/users/dto"
-	users_middleware "databasus-backend/internal/features/users/middleware"
-	users_services "databasus-backend/internal/features/users/services"
+	users_bridge "databasus-backend/internal/features/users"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_controllers "databasus-backend/internal/features/workspaces/controllers"
 	workspaces_dto "databasus-backend/internal/features/workspaces/dto"
 	workspaces_errors "databasus-backend/internal/features/workspaces/errors"
+	"databasus-backend/internal/lib/apiclient"
+	"databasus-backend/internal/lib/apierror"
+	"databasus-backend/internal/lib/httpserver"
 	"databasus-backend/internal/modules/users"
+	"databasus-backend/internal/storage"
+	"databasus-backend/internal/util/logger"
 	test_utils "databasus-backend/internal/util/testing"
 )
 
@@ -57,7 +58,7 @@ func Test_Seed_WhenAccountIsNew_CreatesWorkspaceStorageAndDatabasesWithBackups(t
 	exitCode, output := runSeedForTest(t, params)
 	require.Equal(t, 0, exitCode, output)
 
-	token := signInForTest(t, router, params.Email, seedPassword)
+	token := signInForTest(t, router, params.Email, seedPassword).Token
 	workspaceID := findWorkspaceID(t, router, token, params.WorkspaceName)
 	require.NotEqual(t, uuid.Nil, workspaceID, "workspace %q was not created", params.WorkspaceName)
 
@@ -106,7 +107,7 @@ func Test_Seed_WhenRunTwice_CreatesNothingAndKeepsEditedDatabase(t *testing.T) {
 	exitCode, output := runSeedForTest(t, params)
 	require.Equal(t, 0, exitCode, output)
 
-	token := signInForTest(t, router, params.Email, seedPassword)
+	token := signInForTest(t, router, params.Email, seedPassword).Token
 	workspaceID := findWorkspaceID(t, router, token, params.WorkspaceName)
 	logicalDatabaseID := findDatabaseID(t, router, token, workspaceID, params.LogicalDatabaseName)
 	waitForLogicalBackups(t, logicalDatabaseID)
@@ -143,7 +144,7 @@ func Test_Seed_WhenSeededDatabaseWasDeleted_RecreatesOnlyThatDatabase(t *testing
 	exitCode, output := runSeedForTest(t, params)
 	require.Equal(t, 0, exitCode, output)
 
-	token := signInForTest(t, router, params.Email, seedPassword)
+	token := signInForTest(t, router, params.Email, seedPassword).Token
 	workspaceID := findWorkspaceID(t, router, token, params.WorkspaceName)
 	storageID := findStorageID(t, router, token, workspaceID, params.StorageName)
 	logicalDatabaseID := findDatabaseID(t, router, token, workspaceID, params.LogicalDatabaseName)
@@ -175,8 +176,8 @@ func Test_Seed_WhenAccountHasAnotherPassword_FailsAndLeavesAccountUnchanged(t *t
 	router, params := setUpSeedTest(t)
 
 	signUpForTest(t, router, params.Email, otherPassword)
-	token := signInForTest(t, router, params.Email, otherPassword)
-	profileBefore := getProfile(t, router, token)
+	sessionBefore := signInForTest(t, router, params.Email, otherPassword)
+	profileBefore := getProfile(t, router, sessionBefore.UserId, sessionBefore.Token)
 
 	exitCode, output := runSeedForTest(t, params)
 
@@ -184,9 +185,9 @@ func Test_Seed_WhenAccountHasAnotherPassword_FailsAndLeavesAccountUnchanged(t *t
 	assert.Contains(t, output, params.Email)
 	assert.Contains(t, output, "password is incorrect")
 
-	tokenAfter := signInForTest(t, router, params.Email, otherPassword)
-	assert.Equal(t, profileBefore, getProfile(t, router, tokenAfter))
-	assert.Empty(t, listSeededItems(t, router, tokenAfter).workspaceIDs)
+	sessionAfter := signInForTest(t, router, params.Email, otherPassword)
+	assert.Equal(t, profileBefore, getProfile(t, router, sessionAfter.UserId, sessionAfter.Token))
+	assert.Empty(t, listSeededItems(t, router, sessionAfter.Token).workspaceIDs)
 }
 
 func Test_Seed_WhenAnotherAccountExists_LeavesThatAccountUnchanged(t *testing.T) {
@@ -196,27 +197,24 @@ func Test_Seed_WhenAnotherAccountExists_LeavesThatAccountUnchanged(t *testing.T)
 	signUpForTest(t, router, otherEmail, otherPassword)
 	t.Cleanup(func() { removeAccountWithItems(t, router, otherEmail) })
 
-	otherProfileBefore := getProfile(t, router, signInForTest(t, router, otherEmail, otherPassword))
+	otherSessionBefore := signInForTest(t, router, otherEmail, otherPassword)
+	otherProfileBefore := getProfile(t, router, otherSessionBefore.UserId, otherSessionBefore.Token)
 
 	exitCode, output := runSeedForTest(t, params)
 	require.Equal(t, 0, exitCode, output)
 
-	otherToken := signInForTest(t, router, otherEmail, otherPassword)
-	assert.Equal(t, otherProfileBefore, getProfile(t, router, otherToken))
-	assert.Empty(t, listSeededItems(t, router, otherToken).workspaceIDs)
+	otherSession := signInForTest(t, router, otherEmail, otherPassword)
+	assert.Equal(t, otherProfileBefore, getProfile(t, router, otherSession.UserId, otherSession.Token))
+	assert.Empty(t, listSeededItems(t, router, otherSession.Token).workspaceIDs)
 }
 
 func Test_Seed_WhenTwoFactorSignInIsRequired_FailsAndCreatesNothing(t *testing.T) {
 	router, params := setUpSeedTest(t)
 
-	token := signUpForTest(t, router, params.Email, seedPassword)
+	token := signUpForTest(t, router, params.Email, seedPassword).Token
 
-	users_services.GetUserService().SetEmailSender(users_testing.NewMockEmailSender())
 	users_testing.EnableTwoFactorAuth(t.Context())
-	t.Cleanup(func() {
-		users_services.GetUserService().SetEmailSender(email.GetInstanceSender())
-		users_testing.ResetSettingsToDefaults(context.Background())
-	})
+	t.Cleanup(func() { users_testing.ResetSettingsToDefaults(context.Background()) })
 
 	exitCode, output := runSeedForTest(t, params)
 
@@ -229,8 +227,9 @@ func Test_Seed_WhenTwoFactorSignInIsRequired_FailsAndCreatesNothing(t *testing.T
 func Test_Seed_WhenMemberMayNotCreateWorkspaces_FailsNamingWorkspace(t *testing.T) {
 	router, params := setUpSeedTest(t)
 
-	token := signUpForTest(t, router, params.Email, seedPassword)
-	require.Equal(t, users.RoleMember, getProfile(t, router, token).Role)
+	session := signUpForTest(t, router, params.Email, seedPassword)
+	token := session.Token
+	require.Equal(t, apiclient.UserRoleMEMBER, getProfile(t, router, session.UserId, session.Token).Role)
 
 	var existingWorkspace workspaces_dto.WorkspaceResponseDTO
 	test_utils.MakePostRequestAndUnmarshal(t, router, "/api/v1/workspaces", "Bearer "+token,
@@ -332,14 +331,23 @@ func newSeedTestRouter() *gin.Engine {
 
 	v1 := router.Group("/api/v1")
 
-	userController := users_controllers.GetUserController()
-	userController.RegisterRoutes(v1)
+	contractGuard, err := httpserver.RequireContractOperation(contract.OpenAPI, logger.GetLogger())
+	if err != nil {
+		panic(err)
+	}
+
+	usersModule := users_bridge.NewModuleWithoutApp(acceptingMailer{})
+	users_bridge.Install(usersModule)
+	usersModule.RegisterRoutes(
+		router.Group("/api/v1", contractGuard, usersModule.GetAccessMiddleware()),
+		apierror.NewHooks(apierror.Deps{Logger: logger.GetLogger()}),
+	)
+
 	system_healthcheck.GetHealthcheckController().RegisterRoutes(v1)
 
 	protected := v1.Group("")
-	protected.Use(users_middleware.AuthMiddleware(users_services.GetUserService()))
+	protected.Use(users_testing.GetSessionMiddleware())
 
-	userController.RegisterProtectedRoutes(protected)
 	workspaces_controllers.GetWorkspaceController().RegisterRoutes(protected)
 	storages.GetStorageController().RegisterRoutes(protected)
 	databases.GetDatabaseController().RegisterRoutes(protected)
@@ -350,7 +358,6 @@ func newSeedTestRouter() *gin.Engine {
 
 	databases.SetupDependencies()
 	backups_services.SetupDependencies()
-	audit_logs.SetupDependencies()
 	notifiers.SetupDependencies()
 	storages.SetupDependencies()
 	backups_config_logical.SetupDependencies()
@@ -358,6 +365,18 @@ func newSeedTestRouter() *gin.Engine {
 	backuping_physical.SetupDependencies()
 
 	return router
+}
+
+// acceptingMailer is a mail server that accepts every message, so an instance that requires
+// two-factor sign-in answers the seed with a code request instead of a refusal to send the code.
+type acceptingMailer struct{}
+
+func (acceptingMailer) IsConfigured() bool {
+	return true
+}
+
+func (acceptingMailer) SendEmail(context.Context, string, string, string) error {
+	return nil
 }
 
 func buildTestSeedParams(baseURL string) seedParams {
@@ -407,33 +426,33 @@ func runSeedForTest(t *testing.T, params seedParams) (int, string) {
 	return exitCode, output.String()
 }
 
-func signUpForTest(t *testing.T, router *gin.Engine, email, password string) string {
+func signUpForTest(t *testing.T, router *gin.Engine, email, password string) apiclient.Session {
 	t.Helper()
 
-	var signUp users_dto.SignInResponseDTO
-	test_utils.MakePostRequestAndUnmarshal(t, router, "/api/v1/users/signup", "",
-		users_dto.SignUpRequestDTO{Email: email, Password: password, Name: "Seed Test"},
-		http.StatusOK, &signUp)
+	var signUp apiclient.Session
+	test_utils.MakePostRequestAndUnmarshal(t, router, "/api/v1/users", "",
+		signUpRequest{Email: email, Password: password, Name: "Seed Test"},
+		http.StatusCreated, &signUp)
 
-	return signUp.Token
+	return signUp
 }
 
-func signInForTest(t *testing.T, router *gin.Engine, email, password string) string {
+func signInForTest(t *testing.T, router *gin.Engine, email, password string) apiclient.SignInCompleted {
 	t.Helper()
 
-	var signIn users_dto.SignInResponseDTO
-	test_utils.MakePostRequestAndUnmarshal(t, router, "/api/v1/users/signin", "",
-		users_dto.SignInRequestDTO{Email: email, Password: password}, http.StatusOK, &signIn)
+	var signIn apiclient.SignInCompleted
+	test_utils.MakePostRequestAndUnmarshal(t, router, "/api/v1/sessions", "",
+		signInRequest{Email: email, Password: password}, http.StatusOK, &signIn)
 	require.NotEmpty(t, signIn.Token)
 
-	return signIn.Token
+	return signIn
 }
 
-func getProfile(t *testing.T, router *gin.Engine, token string) users_dto.UserProfileResponseDTO {
+func getProfile(t *testing.T, router *gin.Engine, userID uuid.UUID, token string) apiclient.User {
 	t.Helper()
 
-	var profile users_dto.UserProfileResponseDTO
-	test_utils.MakeGetRequestAndUnmarshal(t, router, "/api/v1/users/me", "Bearer "+token,
+	var profile apiclient.User
+	test_utils.MakeGetRequestAndUnmarshal(t, router, "/api/v1/users/"+userID.String(), "Bearer "+token,
 		http.StatusOK, &profile)
 
 	return profile
@@ -538,15 +557,15 @@ func removeAccountWithItems(t *testing.T, router *gin.Engine, email string) {
 
 	ctx := context.Background()
 
-	user, err := users_services.GetUserService().GetUserByEmail(ctx, email)
-	if err != nil || user == nil {
+	var userIDs []uuid.UUID
+	require.NoError(t, storage.GetDb().WithContext(ctx).
+		Raw("SELECT id FROM users WHERE email = ?", email).Scan(&userIDs).Error)
+	if len(userIDs) == 0 {
 		return
 	}
 
-	access, err := users_services.GetUserService().GenerateAccessToken(ctx, user)
-	require.NoError(t, err)
-
-	token := access.Token
+	userID := userIDs[0]
+	token := users_testing.IssueTestToken(ctx, userID)
 	items := listSeededItems(t, router, token)
 
 	for _, workspaceID := range items.workspaceIDs {
@@ -568,5 +587,5 @@ func removeAccountWithItems(t *testing.T, router *gin.Engine, email string) {
 			"Bearer "+token, http.StatusOK)
 	}
 
-	users_testing.DeleteTestUser(ctx, user.ID)
+	users_testing.DeleteTestUser(ctx, userID)
 }

@@ -8,14 +8,12 @@ import (
 	"github.com/google/uuid"
 
 	postgresql_shared "databasus-backend/internal/features/databases/databases/postgresql/shared"
-	users_services "databasus-backend/internal/features/users/services"
 	workspaces_services "databasus-backend/internal/features/workspaces/services"
 	"databasus-backend/internal/modules/users"
 )
 
 type DatabaseController struct {
 	databaseService  *DatabaseService
-	userService      *users_services.UserService
 	workspaceService *workspaces_services.WorkspaceService
 }
 

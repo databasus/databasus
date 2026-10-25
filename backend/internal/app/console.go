@@ -5,8 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 
-	users_dto "databasus-backend/internal/features/users/dto"
-	users_services "databasus-backend/internal/features/users/services"
+	"databasus-backend/internal/modules/users"
 )
 
 type ConsoleCommandKind string
@@ -48,7 +47,7 @@ func (a *App) RunConsoleCommand(ctx context.Context, command ConsoleCommand) (st
 // The listing and the created account are printed rather than logged: the owner runs these to
 // read the addresses, and the logger masks them as the PII they otherwise are.
 func (a *App) listAdmins(ctx context.Context) (string, error) {
-	listing, err := users_services.GetManagementService().RenderAdminListing(ctx)
+	listing, err := a.usersModule.RenderAdminListing(ctx)
 	if err != nil {
 		a.logger.ErrorContext(ctx, "failed to list administrators", slog.Any("error", err))
 
@@ -59,28 +58,28 @@ func (a *App) listAdmins(ctx context.Context) (string, error) {
 }
 
 func (a *App) createUser(ctx context.Context, command ConsoleCommand) (string, error) {
-	outcome, err := users_services.GetUserService().CreateUserFromConsole(
-		ctx,
-		&users_dto.CreateConsoleAccountRequest{
-			Email:    command.Email,
-			Password: command.Password,
-			Role:     command.Role,
-			Name:     command.Name,
-		},
-	)
+	outcome, err := a.usersModule.CreateUserFromConsole(ctx, users.ConsoleUserRequest{
+		Email:    command.Email,
+		Password: command.Password,
+		Role:     command.Role,
+		Name:     command.Name,
+	})
 	if err != nil {
 		a.logger.ErrorContext(ctx, "failed to create the account", slog.Any("error", err))
 
 		return "", fmt.Errorf("create the account: %w", err)
 	}
 
-	return users_services.RenderConsoleAccountOutcome(outcome), nil
+	return renderConsoleUserOutcome(outcome), nil
 }
 
 func (a *App) resetPassword(ctx context.Context, command ConsoleCommand) (string, error) {
 	a.logger.InfoContext(ctx, "resetting password")
 
-	err := users_services.GetUserService().ChangeUserPasswordByEmail(ctx, command.Email, command.NewPassword)
+	err := a.usersModule.ChangePasswordFromConsole(ctx, users.ConsolePasswordChange{
+		Email:    command.Email,
+		Password: command.NewPassword,
+	})
 	if err != nil {
 		a.logger.ErrorContext(ctx, "failed to reset password", slog.Any("error", err))
 
@@ -93,7 +92,7 @@ func (a *App) resetPassword(ctx context.Context, command ConsoleCommand) (string
 }
 
 func (a *App) disableTwoFactor(ctx context.Context) (string, error) {
-	isChanged, err := users_services.GetSettingsService().DisableTwoFactorAuth(ctx)
+	isChanged, err := a.usersModule.DisableTwoFactorAuth(ctx)
 	if err != nil {
 		a.logger.ErrorContext(ctx, "failed to switch the second factor off", slog.Any("error", err))
 
@@ -105,4 +104,23 @@ func (a *App) disableTwoFactor(ctx context.Context) (string, error) {
 	}
 
 	return "Two-factor authentication was already off. Nothing changed.", nil
+}
+
+// renderConsoleUserOutcome is the line the operator reads. A rerun says the password was not
+// changed, because that is how a deployment learns a rerun did not rotate its secret.
+func renderConsoleUserOutcome(outcome users.ConsoleUserOutcome) string {
+	if !outcome.IsCreated {
+		return fmt.Sprintf(
+			"Account %s already exists with the %s role. Nothing changed, and its password was not changed.",
+			outcome.User.Email,
+			outcome.User.Role,
+		)
+	}
+
+	line := fmt.Sprintf("Created account %s with the %s role.", outcome.User.Email, outcome.User.Role)
+	if outcome.IsBootstrapAdmin {
+		line += " It is the administrator of this instance."
+	}
+
+	return line
 }

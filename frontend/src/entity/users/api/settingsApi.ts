@@ -1,33 +1,19 @@
-import { getApplicationServer } from '../../../constants';
-import { apiHelper } from '../../../shared/api/apiHelper';
-import RequestOptions from '../../../shared/api/RequestOptions';
-import type { SendTestEmailResponse } from '../model/SendTestEmailResponse';
-import type { UsersSettings } from '../model/UsersSettings';
-import type { UsersSettingsResponse } from '../model/UsersSettingsResponse';
+import { type ApiComponents, getApiClient, requireData } from '../../../shared/api';
+import type { InstanceSettings } from '../model/InstanceSettings';
+import type { InstanceSettingsUpdate } from '../model/InstanceSettingsUpdate';
+
+type Schemas = ApiComponents['schemas'];
 
 export const settingsApi = {
-  async getSettings(): Promise<UsersSettingsResponse> {
-    const requestOptions: RequestOptions = new RequestOptions();
-    return apiHelper.fetchGetJson(
-      `${getApplicationServer()}/api/v1/users/settings`,
-      requestOptions,
-    );
+  async getSettings(): Promise<InstanceSettings> {
+    return requireData(await getApiClient().GET('/instance-settings'));
   },
 
-  async updateSettings(settings: UsersSettings): Promise<UsersSettingsResponse> {
-    const requestOptions: RequestOptions = new RequestOptions();
-    requestOptions.setBody(JSON.stringify(settings));
-    return apiHelper.fetchPutJson(
-      `${getApplicationServer()}/api/v1/users/settings`,
-      requestOptions,
-    );
+  async updateSettings(settings: InstanceSettingsUpdate): Promise<InstanceSettings> {
+    return requireData(await getApiClient().PUT('/instance-settings', { body: settings }));
   },
 
-  // No retry: every attempt sends a message and counts against the rate limit.
-  async sendTestEmail(): Promise<SendTestEmailResponse> {
-    return apiHelper.fetchPostJson(
-      `${getApplicationServer()}/api/v1/users/settings/test-email`,
-      new RequestOptions(),
-    );
+  async sendTestEmail(): Promise<Schemas['TestEmail']> {
+    return requireData(await getApiClient().POST('/test-emails'));
   },
 };

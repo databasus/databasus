@@ -6,8 +6,8 @@ import { Trans, useTranslation } from 'react-i18next';
 import { APP_VERSION, CONTAINER_ARCH } from '../../constants';
 import { type DiskUsage, diskApi } from '../../entity/disk';
 import {
-  type UserProfile,
-  type UsersSettings,
+  type User,
+  type InstanceSettings,
   WorkspaceRole,
   settingsApi,
   userApi,
@@ -42,8 +42,8 @@ export const MainScreenComponent = () => {
 
   const [selectedTab, setSelectedTab] = useState<MainTab>('databases');
   const [diskUsage, setDiskUsage] = useState<DiskUsage | undefined>(undefined);
-  const [user, setUser] = useState<UserProfile | undefined>(undefined);
-  const [globalSettings, setGlobalSettings] = useState<UsersSettings | undefined>(undefined);
+  const [user, setUser] = useState<User | undefined>(undefined);
+  const [globalSettings, setGlobalSettings] = useState<InstanceSettings | undefined>(undefined);
 
   const [workspaces, setWorkspaces] = useState<WorkspaceResponse[]>([]);
   const [selectedWorkspace, setSelectedWorkspace] = useState<WorkspaceResponse | undefined>(

@@ -16,8 +16,8 @@ import (
 
 	users_testing "databasus-backend/internal/features/users/testing"
 	"databasus-backend/internal/lib/logging"
+	"databasus-backend/internal/lib/ratelimit"
 	"databasus-backend/internal/modules/users"
-	"databasus-backend/internal/util/ratelimiter"
 )
 
 type failingRateLimitCounter struct {
@@ -26,7 +26,7 @@ type failingRateLimitCounter struct {
 
 func (c failingRateLimitCounter) RecordAttemptAndCheckIsAllowed(
 	context.Context,
-	ratelimiter.Attempt,
+	ratelimit.Attempt,
 ) (bool, error) {
 	return false, c.err
 }

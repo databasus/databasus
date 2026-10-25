@@ -9,7 +9,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	audit_logs_models "databasus-backend/internal/features/audit_logs/models"
-	users_repositories "databasus-backend/internal/features/users/repositories"
 	users_testing "databasus-backend/internal/features/users/testing"
 	"databasus-backend/internal/modules/users"
 )
@@ -108,8 +107,7 @@ func TestWriteAuditLog(t *testing.T) {
 
 	t.Run("keeps the author's email and name when the user changes both afterwards", func(t *testing.T) {
 		author := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-		authorBeforeChange, err := users_repositories.GetUserRepository().GetUserByID(t.Context(), author.UserID)
-		require.NoError(t, err)
+		authorBeforeChange := users_testing.GetTestUser(t.Context(), author.UserID)
 		workspaceID := uuid.New()
 
 		GetAuditLogService().WriteAuditLog(t.Context(), audit_logs_models.AuditEntry{
@@ -173,7 +171,8 @@ func renameUser(t *testing.T, userID uuid.UUID) {
 
 	changedName := "Renamed " + uuid.NewString()
 	changedEmail := "renamed-" + uuid.NewString() + "@example.com"
-	require.NoError(t, users_repositories.GetUserRepository().UpdateUserInfo(userID, &changedName, &changedEmail))
+	users_testing.SetTestUserName(t.Context(), userID, changedName)
+	users_testing.SetTestUserEmail(t.Context(), userID, changedEmail)
 }
 
 func createAuditLog(t *testing.T, service *AuditLogService, entry audit_logs_models.AuditEntry) {

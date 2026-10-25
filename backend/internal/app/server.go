@@ -89,10 +89,30 @@ func (a *App) Serve(ctx context.Context, address string) error {
 // NewHandler builds the router with every route and middleware of the server. Serve and the test
 // application share it, and it starts no background loop.
 func (a *App) NewHandler() (http.Handler, error) {
+	router := a.newRouter()
+
+	err := a.registerContractRoutes(router)
+	if err != nil {
+		return nil, err
+	}
+
+	a.registerRoutes(router)
+
+	router.NoRoute(httpserver.HandleUnknownPath(frontendDirectory))
+
+	return router, nil
+}
+
+// newRouter builds the engine with the middleware every route shares. The strict handlers receive
+// the *gin.Context as their context.Context, so ContextWithFallback lets them read the values the
+// middleware put into the request context, such as the actor and the client IP.
+func (a *App) newRouter() *gin.Engine {
 	gin.SetMode(gin.ReleaseMode)
 
 	router := gin.New()
+	router.ContextWithFallback = true
 	router.Use(httpserver.AssignRequestID())
+	router.Use(httpserver.RememberClientIP())
 	router.Use(httpserver.LogAccess(a.logger))
 	router.Use(httpserver.Recover(a.logger))
 	router.Use(httpserver.NoStoreCacheControl())
@@ -102,14 +122,5 @@ func (a *App) NewHandler() (http.Handler, error) {
 		router.Use(httpserver.AllowAnyOrigin([]string{httpserver.RequestIDHeader}))
 	}
 
-	err := a.registerContractRoutes(router)
-	if err != nil {
-		return nil, err
-	}
-
-	registerRoutes(router)
-
-	router.NoRoute(httpserver.HandleUnknownPath(frontendDirectory))
-
-	return router, nil
+	return router
 }

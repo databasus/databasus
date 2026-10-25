@@ -8,7 +8,7 @@ import (
 	"databasus-backend/internal/util/logger"
 )
 
-func loadWithoutApp() *mailer.InstanceSender {
+func loadWithoutApp() mailer.Sender {
 	return mailer.NewInstanceSender(mailer.Deps{
 		Settings: config.GetEnv().GetInstanceMailSettings(),
 		Logger:   logger.GetLogger(),

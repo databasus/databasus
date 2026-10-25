@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
 
 	"github.com/getkin/kin-openapi/openapi3"
@@ -54,9 +55,74 @@ func TestWrite(t *testing.T) {
 func TestCode(t *testing.T) {
 	t.Parallel()
 
+	codeStatuses := []struct {
+		code           apierror.Code
+		expectedStatus int
+	}{
+		{apierror.CodeInvalidRequest, http.StatusBadRequest},
+		{apierror.CodeUnauthenticated, http.StatusUnauthorized},
+		{apierror.CodePermissionDenied, http.StatusForbidden},
+		{apierror.CodeNotFound, http.StatusNotFound},
+		{apierror.CodeRateLimited, http.StatusTooManyRequests},
+		{apierror.CodeHumanVerificationFailed, http.StatusBadRequest},
+		{apierror.CodeInvalidCredentials, http.StatusUnauthorized},
+		{apierror.CodeUserDeactivated, http.StatusForbidden},
+		{apierror.CodeRegistrationClosed, http.StatusForbidden},
+		{apierror.CodeEmailTaken, http.StatusConflict},
+		{apierror.CodeInvalidResetCode, http.StatusBadRequest},
+		{apierror.CodeOAuthNotConfigured, http.StatusConflict},
+		{apierror.CodeOAuthFailed, http.StatusBadRequest},
+		{apierror.CodePendingSignInNotUsable, http.StatusGone},
+		{apierror.CodeSignInCodeNotSent, http.StatusServiceUnavailable},
+		{apierror.CodeTooManySignInCodes, http.StatusTooManyRequests},
+		{apierror.CodeSignInCodeResentTooSoon, http.StatusTooManyRequests},
+		{apierror.CodeSignInCodeIncorrect, http.StatusBadRequest},
+		{apierror.CodeEmailNotConfigured, http.StatusConflict},
+		{apierror.CodeAdminEmailMissing, http.StatusConflict},
+		{apierror.CodeInternal, http.StatusInternalServerError},
+	}
+
+	for _, codeStatus := range codeStatuses {
+		t.Run("answers "+strconv.Itoa(codeStatus.expectedStatus)+" when the code is "+string(codeStatus.code),
+			func(t *testing.T) {
+				t.Parallel()
+				router := gin.New()
+				router.GET("/api/v1/items", func(ctx *gin.Context) {
+					apierror.Write(ctx, &apierror.Problem{Code: codeStatus.code, Detail: "detail", Errors: nil})
+				})
+
+				response := serve(t, router, "/api/v1/items")
+
+				require.Equal(t, codeStatus.expectedStatus, response.Code)
+				assert.Equal(t, string(codeStatus.code), decodeProblem(t, response).Code)
+			})
+	}
+
 	t.Run("equals the ProblemCode enum of the contract", func(t *testing.T) {
 		t.Parallel()
-		goCodes := []apierror.Code{apierror.CodeInvalidRequest, apierror.CodeNotFound, apierror.CodeInternal}
+		goCodes := []apierror.Code{
+			apierror.CodeInvalidRequest,
+			apierror.CodeUnauthenticated,
+			apierror.CodePermissionDenied,
+			apierror.CodeNotFound,
+			apierror.CodeRateLimited,
+			apierror.CodeHumanVerificationFailed,
+			apierror.CodeInvalidCredentials,
+			apierror.CodeUserDeactivated,
+			apierror.CodeRegistrationClosed,
+			apierror.CodeEmailTaken,
+			apierror.CodeInvalidResetCode,
+			apierror.CodeOAuthNotConfigured,
+			apierror.CodeOAuthFailed,
+			apierror.CodePendingSignInNotUsable,
+			apierror.CodeSignInCodeNotSent,
+			apierror.CodeTooManySignInCodes,
+			apierror.CodeSignInCodeResentTooSoon,
+			apierror.CodeSignInCodeIncorrect,
+			apierror.CodeEmailNotConfigured,
+			apierror.CodeAdminEmailMissing,
+			apierror.CodeInternal,
+		}
 
 		loadedContract, err := openapi3.NewLoader().LoadFromData(contract.OpenAPI)
 		require.NoError(t, err)

@@ -42,10 +42,7 @@ import (
 	"databasus-backend/internal/features/notifiers"
 	"databasus-backend/internal/features/storages"
 	storage_files "databasus-backend/internal/features/storages/files"
-	users_dto "databasus-backend/internal/features/users/dto"
 	users_enums "databasus-backend/internal/features/users/enums"
-	users_middleware "databasus-backend/internal/features/users/middleware"
-	users_services "databasus-backend/internal/features/users/services"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_controllers "databasus-backend/internal/features/workspaces/controllers"
 	workspaces_models "databasus-backend/internal/features/workspaces/models"
@@ -61,7 +58,7 @@ import (
 const segmentBytes = 16 * 1024 * 1024
 
 type physicalControllerPrereqs struct {
-	user      *users_dto.SignInResponseDTO
+	user      *users_testing.TestUser
 	workspace *workspaces_models.Workspace
 	storage   *storages.Storage
 	notifier  *notifiers.Notifier
@@ -119,7 +116,7 @@ func newPhysicalControllerRouter() *gin.Engine {
 
 	backups_controllers_physical.GetPhysicalBackupController().RegisterPublicRoutes(v1)
 
-	protected := v1.Group("").Use(users_middleware.AuthMiddleware(users_services.GetUserService()))
+	protected := v1.Group("").Use(users_testing.GetSessionMiddleware())
 	if routerGroup, ok := protected.(*gin.RouterGroup); ok {
 		workspaces_controllers.GetWorkspaceController().RegisterRoutes(routerGroup)
 		workspaces_controllers.GetMembershipController().RegisterRoutes(routerGroup)
@@ -1359,7 +1356,7 @@ func occupyUserStreamSlot(t *testing.T, userID uuid.UUID) {
 	})
 }
 
-func addWorkspaceViewer(t *testing.T, prereqs *physicalControllerPrereqs) *users_dto.SignInResponseDTO {
+func addWorkspaceViewer(t *testing.T, prereqs *physicalControllerPrereqs) *users_testing.TestUser {
 	t.Helper()
 
 	viewer := users_testing.CreateTestUser(t.Context(), users.RoleMember)

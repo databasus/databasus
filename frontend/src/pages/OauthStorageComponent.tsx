@@ -4,14 +4,14 @@ import { useTranslation } from 'react-i18next';
 
 import { type Storage, StorageType } from '../entity/storages';
 import type { StorageOauthDto } from '../entity/storages/models/StorageOauthDto';
-import type { UserProfile } from '../entity/users';
+import type { User } from '../entity/users';
 import { userApi } from '../entity/users';
 import { EditStorageComponent } from '../features/storages/ui/edit/EditStorageComponent';
 
 export function OauthStorageComponent() {
   const { t } = useTranslation();
   const [storage, setStorage] = useState<Storage | undefined>();
-  const [user, setUser] = useState<UserProfile | undefined>();
+  const [user, setUser] = useState<User | undefined>();
 
   const exchangeGoogleOauthCode = async (oauthDto: StorageOauthDto) => {
     if (!oauthDto.storage.googleDriveStorage) {

@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { type DiskUsage } from '../../entity/disk';
-import { type UserProfile, UserRole } from '../../entity/users';
+import { type User, UserRole } from '../../entity/users';
 import { useIsMobile } from '../../shared/hooks';
 import { getWebsitePageUrl, useLocale } from '../../shared/i18n';
 import { useTheme } from '../../shared/theme';
@@ -37,7 +37,7 @@ interface Props {
   onClose: () => void;
   selectedTab: MainTab;
   tabs: SidebarTab[];
-  user?: UserProfile;
+  user?: User;
   diskUsage?: DiskUsage;
   contentHeight: number;
 }

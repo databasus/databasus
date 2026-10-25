@@ -120,7 +120,7 @@ type currentRestore struct {
 func readUpgradeData(ctx context.Context, api *apiClient) ([]upgradecheck.Item, error) {
 	var signIn currentSignInResponse
 
-	err := api.post(ctx, "/users/signin", currentSignInRequest{Email: accountEmail, Password: accountPassword}, &signIn)
+	err := api.post(ctx, "/sessions", currentSignInRequest{Email: accountEmail, Password: accountPassword}, &signIn)
 	if err != nil {
 		return nil, fmt.Errorf("sign in with the password set before the upgrade: %w", err)
 	}

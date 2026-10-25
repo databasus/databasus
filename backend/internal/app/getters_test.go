@@ -26,6 +26,7 @@ import (
 	backups_backups_usecases_logical_postgresql "databasus-backend/internal/features/backups/backups/usecases/logical/postgresql"
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
 	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
+	caching "databasus-backend/internal/features/caching"
 	databases "databasus-backend/internal/features/databases"
 	disk "databasus-backend/internal/features/disk"
 	email "databasus-backend/internal/features/email"
@@ -44,9 +45,7 @@ import (
 	system_healthcheck "databasus-backend/internal/features/system/healthcheck"
 	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
 	telemetry "databasus-backend/internal/features/telemetry"
-	users_controllers "databasus-backend/internal/features/users/controllers"
-	users_repositories "databasus-backend/internal/features/users/repositories"
-	users_services "databasus-backend/internal/features/users/services"
+	users_bridge "databasus-backend/internal/features/users"
 	verification_agents "databasus-backend/internal/features/verification/agents"
 	verification_config "databasus-backend/internal/features/verification/config"
 	verification_runs "databasus-backend/internal/features/verification/runs"
@@ -211,6 +210,8 @@ func getOldCodeGetters() []oldCodeGetter {
 		{"features/databases.GetDatabaseController", func() any { return databases.GetDatabaseController() }},
 		{"features/disk.GetDiskService", func() any { return disk.GetDiskService() }},
 		{"features/disk.GetDiskController", func() any { return disk.GetDiskController() }},
+		{"features/caching.GetStore", func() any { return caching.GetStore() }},
+		{"features/caching.GetRateLimiter", func() any { return caching.GetRateLimiter() }},
 		{"features/email.GetInstanceSender", func() any { return email.GetInstanceSender() }},
 		{
 			"features/healthcheck/attempt.GetHealthcheckAttemptRepository",
@@ -285,35 +286,7 @@ func getOldCodeGetters() []oldCodeGetter {
 			"features/telemetry.GetTelemetryBackgroundService",
 			func() any { return telemetry.GetTelemetryBackgroundService() },
 		},
-		{"features/users/controllers.GetUserController", func() any { return users_controllers.GetUserController() }},
-		{
-			"features/users/controllers.GetSettingsController",
-			func() any { return users_controllers.GetSettingsController() },
-		},
-		{
-			"features/users/controllers.GetManagementController",
-			func() any { return users_controllers.GetManagementController() },
-		},
-		{"features/users/repositories.GetUserRepository", func() any { return users_repositories.GetUserRepository() }},
-		{
-			"features/users/repositories.GetUsersSettingsRepository",
-			func() any { return users_repositories.GetUsersSettingsRepository() },
-		},
-		{
-			"features/users/repositories.GetPasswordResetRepository",
-			func() any { return users_repositories.GetPasswordResetRepository() },
-		},
-		{
-			"features/users/repositories.GetTwoFactorRepository",
-			func() any { return users_repositories.GetTwoFactorRepository() },
-		},
-		{"features/users/services.GetUserService", func() any { return users_services.GetUserService() }},
-		{"features/users/services.GetSettingsService", func() any { return users_services.GetSettingsService() }},
-		{"features/users/services.GetManagementService", func() any { return users_services.GetManagementService() }},
-		{
-			"features/users/services.GetSignInCodeBackgroundService",
-			func() any { return users_services.GetSignInCodeBackgroundService() },
-		},
+		{"features/users.GetModule", func() any { return users_bridge.GetModule() }},
 		{"features/verification/agents.GetAgentService", func() any { return verification_agents.GetAgentService() }},
 		{
 			"features/verification/agents.GetAgentController",

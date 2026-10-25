@@ -13,7 +13,6 @@ import (
 	"databasus-backend/internal/config"
 	"databasus-backend/internal/features/email"
 	users_enums "databasus-backend/internal/features/users/enums"
-	users_repositories "databasus-backend/internal/features/users/repositories"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_dto "databasus-backend/internal/features/workspaces/dto"
 	workspaces_services "databasus-backend/internal/features/workspaces/services"
@@ -385,7 +384,7 @@ func TestAddMemberInvitationEmail(t *testing.T) {
 		owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
 		inviterName := "Inviter " + uuid.New().String()
-		require.NoError(t, users_repositories.GetUserRepository().UpdateUserInfo(owner.UserID, &inviterName, nil))
+		users_testing.SetTestUserName(t.Context(), owner.UserID, inviterName)
 
 		workspace, _ := workspaces_testing.CreateTestWorkspaceViaAPI(t.Context(), "Test Workspace", owner, router)
 		defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)

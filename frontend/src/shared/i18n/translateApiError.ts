@@ -8,7 +8,25 @@ import type { TranslationKey } from './TranslationKey';
 // pnpm typecheck, so it never reaches the user as raw text.
 const CONTRACT_ERROR_CODE_KEYS = {
   invalid_request: 'errors.invalidRequest',
+  unauthenticated: 'errors.unauthenticated',
+  permission_denied: 'errors.permissionDenied',
   not_found: 'errors.notFound',
+  rate_limited: 'errors.rateLimited',
+  human_verification_failed: 'errors.humanVerificationFailed',
+  invalid_credentials: 'errors.invalidCredentials',
+  user_deactivated: 'errors.userDeactivated',
+  registration_closed: 'errors.registrationClosed',
+  email_taken: 'errors.emailTaken',
+  invalid_reset_code: 'errors.invalidResetCode',
+  oauth_not_configured: 'errors.oauthNotConfigured',
+  oauth_failed: 'errors.oauthFailed',
+  pending_sign_in_not_usable: 'errors.pendingSignInNotUsable',
+  sign_in_code_not_sent: 'errors.signInCodeNotSent',
+  too_many_sign_in_codes: 'errors.tooManySignInCodes',
+  sign_in_code_resent_too_soon: 'errors.signInCodeResentTooSoon',
+  sign_in_code_incorrect: 'errors.signInCodeIncorrect',
+  email_not_configured: 'errors.emailNotConfigured',
+  admin_email_missing: 'errors.adminEmailMissing',
   internal: 'errors.internal',
 } as const satisfies Record<ApiComponents['schemas']['ProblemCode'], TranslationKey>;
 
@@ -18,14 +36,6 @@ const API_ERROR_CODE_KEYS: Record<string, TranslationKey> = {
   ...CONTRACT_ERROR_CODE_KEYS,
   [API_ERROR_CODES.networkUnreachable]: 'errors.networkUnreachable',
   [API_ERROR_CODES.requestFailed]: 'errors.requestFailed',
-  rate_limit_exceeded: 'errors.rateLimitExceeded',
-  sign_in_code_incorrect: 'errors.signInCodeIncorrect',
-  pending_sign_in_not_usable: 'errors.pendingSignInNotUsable',
-  sign_in_code_not_sent: 'errors.signInCodeNotSent',
-  too_many_sign_in_codes: 'errors.tooManySignInCodes',
-  sign_in_code_resent_too_soon: 'errors.signInCodeResentTooSoon',
-  email_not_configured: 'errors.emailNotConfigured',
-  admin_email_missing: 'errors.adminEmailMissing',
 };
 
 // The one way an error reaches the screen. The message of anything that is not an ApiError comes

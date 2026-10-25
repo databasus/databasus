@@ -13,7 +13,6 @@ import (
 	audit_logs "databasus-backend/internal/features/audit_logs"
 	audit_logs_models "databasus-backend/internal/features/audit_logs/models"
 	users_enums "databasus-backend/internal/features/users/enums"
-	users_repositories "databasus-backend/internal/features/users/repositories"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_dto "databasus-backend/internal/features/workspaces/dto"
 	workspaces_models "databasus-backend/internal/features/workspaces/models"
@@ -569,17 +568,15 @@ func TestGetWorkspaceAuditLogs(t *testing.T) {
 				GetMembershipController(),
 			)
 			owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-			ownerBeforeChange, err := users_repositories.GetUserRepository().GetUserByID(t.Context(), owner.UserID)
-			require.NoError(t, err)
+			ownerBeforeChange := users_testing.GetTestUser(t.Context(), owner.UserID)
 			workspace, _ := workspaces_testing.CreateTestWorkspaceWithToken(t.Context(),
 				"Snapshot Test "+uuid.NewString()[:8], owner.Token, router)
 			defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
 
 			changedName := "Renamed " + uuid.NewString()
 			changedEmail := "renamed-" + uuid.NewString() + "@example.com"
-			require.NoError(t, users_repositories.GetUserRepository().UpdateUserInfo(
-				owner.UserID, &changedName, &changedEmail,
-			))
+			users_testing.SetTestUserName(t.Context(), owner.UserID, changedName)
+			users_testing.SetTestUserEmail(t.Context(), owner.UserID, changedEmail)
 
 			var listedLogs audit_logs.GetAuditLogsResponse
 			test_utils.MakeGetRequestAndUnmarshal(t, router,

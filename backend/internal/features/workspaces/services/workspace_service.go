@@ -10,7 +10,6 @@ import (
 	audit_logs "databasus-backend/internal/features/audit_logs"
 	audit_logs_models "databasus-backend/internal/features/audit_logs/models"
 	users_enums "databasus-backend/internal/features/users/enums"
-	users_services "databasus-backend/internal/features/users/services"
 	workspaces_dto "databasus-backend/internal/features/workspaces/dto"
 	workspaces_errors "databasus-backend/internal/features/workspaces/errors"
 	workspaces_interfaces "databasus-backend/internal/features/workspaces/interfaces"
@@ -20,11 +19,11 @@ import (
 )
 
 type WorkspaceService struct {
-	workspaceRepository        *workspaces_repositories.WorkspaceRepository
-	membershipRepository       *workspaces_repositories.MembershipRepository
-	userService                *users_services.UserService
-	auditLogService            *audit_logs.AuditLogService
-	settingsService            *users_services.SettingsService
+	workspaceRepository  *workspaces_repositories.WorkspaceRepository
+	membershipRepository *workspaces_repositories.MembershipRepository
+	auditLogService      *audit_logs.AuditLogService
+	// getUsersModule is read per call: each test application installs its own module.
+	getUsersModule             func() users.Module
 	workspaceDeletionListeners []workspaces_interfaces.WorkspaceDeletionListener
 }
 
@@ -39,7 +38,7 @@ func (s *WorkspaceService) CreateWorkspace(
 	request *workspaces_dto.CreateWorkspaceRequestDTO,
 	creator users.Actor,
 ) (*workspaces_dto.WorkspaceResponseDTO, error) {
-	canCreateWorkspaces, err := s.settingsService.CanCreateWorkspaces(ctx, creator)
+	canCreateWorkspaces, err := s.getUsersModule().CanCreateWorkspaces(ctx, creator)
 	if err != nil {
 		return nil, err
 	}

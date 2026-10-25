@@ -34,9 +34,7 @@ import (
 	storage_files "databasus-backend/internal/features/storages/files"
 	local_storage "databasus-backend/internal/features/storages/models/local"
 	task_cancellation "databasus-backend/internal/features/tasks/cancellation"
-	users_dto "databasus-backend/internal/features/users/dto"
 	users_enums "databasus-backend/internal/features/users/enums"
-	users_services "databasus-backend/internal/features/users/services"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_models "databasus-backend/internal/features/workspaces/models"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
@@ -802,15 +800,10 @@ func Test_DownloadBackup_WithExpiredToken_Unauthorized(t *testing.T) {
 
 	database, backup, storage := createTestDatabaseWithBackups(t.Context(), workspace, owner, router)
 
-	// Get user for token generation
-	userService := users_services.GetUserService()
-	user, err := userService.GetUserFromToken(t.Context(), owner.Token)
-	assert.NoError(t, err)
-
 	// Create an expired token directly in the database
 	expiredToken := createExpiredDownloadToken(
 		t.Context(),
-		expiredDownloadTokenSpec{BackupID: backup.ID, UserID: user.ID},
+		expiredDownloadTokenSpec{BackupID: backup.ID, UserID: owner.UserID},
 	)
 
 	// Try to download with expired token
@@ -1513,7 +1506,7 @@ func enableBackupForDatabase(ctx context.Context, databaseID uuid.UUID) {
 func createTestDatabaseWithBackups(
 	ctx context.Context,
 	workspace *workspaces_models.Workspace,
-	owner *users_dto.SignInResponseDTO,
+	owner *users_testing.TestUser,
 	router *gin.Engine,
 ) (*databases.Database, *backups_core_logical.LogicalBackup, *storages.Storage) {
 	database := createTestDatabase("Test Database", workspace.ID, owner.Token, router)
@@ -1541,13 +1534,9 @@ func createTestDatabaseWithBackups(
 func createTestBackup(
 	ctx context.Context,
 	database *databases.Database,
-	owner *users_dto.SignInResponseDTO,
+	owner *users_testing.TestUser,
 ) *backups_core_logical.LogicalBackup {
-	userService := users_services.GetUserService()
-	user, err := userService.GetUserFromToken(ctx, owner.Token)
-	if err != nil {
-		panic(err)
-	}
+	user := users_testing.GetTestUser(ctx, owner.UserID)
 
 	loadedStorages, err := storages.GetStorageService().GetStorages(
 		ctx,

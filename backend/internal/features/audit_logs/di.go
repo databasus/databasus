@@ -3,8 +3,7 @@ package audit_logs
 import (
 	"sync"
 
-	users_repositories "databasus-backend/internal/features/users/repositories"
-	users_services "databasus-backend/internal/features/users/services"
+	users_bridge "databasus-backend/internal/features/users"
 	"databasus-backend/internal/util/logger"
 )
 
@@ -15,7 +14,7 @@ var (
 	getAuditLogService = sync.OnceValue(func() *AuditLogService {
 		return &AuditLogService{
 			auditLogRepository: getAuditLogRepository(),
-			userRepository:     users_repositories.GetUserRepository(),
+			getUsersModule:     users_bridge.GetModule,
 			logger:             logger.GetLogger(),
 		}
 	})
@@ -34,9 +33,3 @@ func GetAuditLogService() *AuditLogService {
 func GetAuditLogController() *AuditLogController {
 	return getAuditLogController()
 }
-
-var SetupDependencies = sync.OnceFunc(func() {
-	users_services.GetUserService().SetAuditLogWriter(getAuditLogService())
-	users_services.GetSettingsService().SetAuditLogWriter(getAuditLogService())
-	users_services.GetManagementService().SetAuditLogWriter(getAuditLogService())
-})

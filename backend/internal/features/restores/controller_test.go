@@ -20,6 +20,7 @@ import (
 	backups_controllers_logical "databasus-backend/internal/features/backups/backups/controllers/logical"
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
+	"databasus-backend/internal/features/caching"
 	"databasus-backend/internal/features/databases"
 	"databasus-backend/internal/features/databases/databases/mysql"
 	postgresql_logical "databasus-backend/internal/features/databases/databases/postgresql/logical"
@@ -29,12 +30,10 @@ import (
 	"databasus-backend/internal/features/storages"
 	local_storage "databasus-backend/internal/features/storages/models/local"
 	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
-	users_dto "databasus-backend/internal/features/users/dto"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_models "databasus-backend/internal/features/workspaces/models"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
 	"databasus-backend/internal/modules/users"
-	"databasus-backend/internal/util/cache"
 	util_encryption "databasus-backend/internal/util/encryption"
 	test_utils "databasus-backend/internal/util/testing"
 	"databasus-backend/internal/util/testing/containers"
@@ -389,7 +388,7 @@ func Test_RestoreBackup_DiskSpaceValidation(t *testing.T) {
 }
 
 func Test_CancelRestore_InProgressRestore_SuccessfullyCancelled(t *testing.T) {
-	cache.GetStore().Clear(t.Context())
+	caching.GetStore().Clear(t.Context())
 	tasks_cancellation.SetupDependencies()
 
 	user := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
@@ -422,7 +421,7 @@ func Test_CancelRestore_InProgressRestore_SuccessfullyCancelled(t *testing.T) {
 		notifiers.RemoveTestNotifier(notifier)
 		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
 
-		cache.GetStore().Clear(t.Context())
+		caching.GetStore().Clear(t.Context())
 	}()
 
 	backups_config_logical.EnableBackupsForTestDatabase(t.Context(), database.ID, storage)
@@ -574,7 +573,7 @@ func createTestRouter() *gin.Engine {
 func createTestDatabaseWithBackupForRestore(
 	ctx context.Context,
 	workspace *workspaces_models.Workspace,
-	owner *users_dto.SignInResponseDTO,
+	owner *users_testing.TestUser,
 	router *gin.Engine,
 ) (*databases.Database, *backups_core_logical.LogicalBackup) {
 	database := createTestDatabase("Test Database", workspace.ID, owner.Token, router)

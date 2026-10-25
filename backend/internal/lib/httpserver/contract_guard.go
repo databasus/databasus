@@ -15,16 +15,25 @@ import (
 // RequireContractOperation guards the routes served from the contract: a request whose method and
 // path the contract does not describe gets 500 and never reaches its handler. A route mounted by
 // mistake therefore cannot expose an operation that skips the contract's access mark. The lookup
-// runs per request, because the access check reads the found operation's mark.
+// runs per request and puts the found operation's mark into the request context, where
+// GetAccessMark reads it for the access check. An unknown mark fails here, at startup.
 func RequireContractOperation(contract []byte, logger *slog.Logger) (gin.HandlerFunc, error) {
 	contractRouter, err := NewContractRouter(contract)
 	if err != nil {
 		return nil, err
 	}
 
+	err = checkAccessMarks(contract)
+	if err != nil {
+		return nil, err
+	}
+
 	return func(ginContext *gin.Context) {
-		_, _, err := contractRouter.FindRoute(ginContext.Request)
+		route, _, err := contractRouter.FindRoute(ginContext.Request)
 		if err == nil {
+			mark, _ := readAccessMark(route.Operation)
+			ginContext.Request = ginContext.Request.WithContext(withAccessMark(ginContext.Request.Context(), mark))
+
 			ginContext.Next()
 
 			return
@@ -40,6 +49,24 @@ func RequireContractOperation(contract []byte, logger *slog.Logger) (gin.Handler
 
 		apierror.Write(ginContext, apierror.NewInternalProblem())
 	}, nil
+}
+
+func checkAccessMarks(contract []byte) error {
+	loadedContract, err := openapi3.NewLoader().LoadFromData(contract)
+	if err != nil {
+		return fmt.Errorf("parse the API contract: %w", err)
+	}
+
+	for _, pathItem := range loadedContract.Paths.Map() {
+		for _, operation := range pathItem.Operations() {
+			_, err := readAccessMark(operation)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
 
 // NewContractRouter finds the operation of the contract that a request calls.

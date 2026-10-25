@@ -17,6 +17,7 @@ import (
 	backups_controllers_logical "databasus-backend/internal/features/backups/backups/controllers/logical"
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
+	"databasus-backend/internal/features/caching"
 	"databasus-backend/internal/features/databases"
 	postgresql_logical "databasus-backend/internal/features/databases/databases/postgresql/logical"
 	"databasus-backend/internal/features/notifiers"
@@ -25,8 +26,8 @@ import (
 	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
+	"databasus-backend/internal/lib/cache"
 	"databasus-backend/internal/modules/users"
-	"databasus-backend/internal/util/cache"
 )
 
 func Test_GetRestoreDatabaseCache_WhenProviderFails_UsesSuppliedMetadata(t *testing.T) {
@@ -55,7 +56,7 @@ func Test_GetRestoreDatabaseCache_WhenProviderFails_UsesSuppliedMetadata(t *test
 }
 
 func Test_MakeRestore_WhenCacheMissed_RestoreFails(t *testing.T) {
-	cache.GetStore().Clear(t.Context())
+	caching.GetStore().Clear(t.Context())
 
 	user := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 	router := CreateTestRouter()
@@ -88,7 +89,7 @@ func Test_MakeRestore_WhenCacheMissed_RestoreFails(t *testing.T) {
 		storages.RemoveTestStorage(t.Context(), storage.ID)
 		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
 
-		cache.GetStore().Clear(t.Context())
+		caching.GetStore().Clear(t.Context())
 	}()
 
 	backup := backups_controllers_logical.CreateTestBackup(database.ID, storage.ID)
@@ -119,7 +120,7 @@ func Test_MakeRestore_WhenCacheMissed_RestoreFails(t *testing.T) {
 }
 
 func Test_MakeRestore_WhenTaskStarts_CacheDeletedImmediately(t *testing.T) {
-	cache.GetStore().Clear(t.Context())
+	caching.GetStore().Clear(t.Context())
 
 	user := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 	router := CreateTestRouter()
@@ -156,7 +157,7 @@ func Test_MakeRestore_WhenTaskStarts_CacheDeletedImmediately(t *testing.T) {
 		storages.RemoveTestStorage(t.Context(), storage.ID)
 		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
 
-		cache.GetStore().Clear(t.Context())
+		caching.GetStore().Clear(t.Context())
 	}()
 
 	backup := backups_controllers_logical.CreateTestBackup(database.ID, storage.ID)

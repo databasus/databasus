@@ -18,11 +18,15 @@ type signUpRequest struct {
 	Name     string `json:"name"`
 }
 
-// A sign-in answers with a token, or with a pending sign-in when the instance requires a second
-// factor; a sign-up always answers with a token.
+// A sign-in answers with a token, or with the outcome CODE_REQUIRED and no token when the instance
+// requires a second factor.
 type signInResponse struct {
-	Token           string `json:"token"`
-	PendingSignInID string `json:"pendingSignInId"`
+	Outcome string `json:"outcome"`
+	Token   string `json:"token"`
+}
+
+type sessionResponse struct {
+	Token string `json:"token"`
 }
 
 type namedItem struct {

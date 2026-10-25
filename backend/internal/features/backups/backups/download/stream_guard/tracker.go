@@ -6,7 +6,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"databasus-backend/internal/util/cache"
+	"databasus-backend/internal/lib/cache"
 )
 
 const (

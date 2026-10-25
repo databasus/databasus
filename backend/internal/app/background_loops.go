@@ -10,7 +10,6 @@ import (
 	"databasus-backend/internal/features/restores/restoring"
 	"databasus-backend/internal/features/storages"
 	"databasus-backend/internal/features/telemetry"
-	users_services "databasus-backend/internal/features/users/services"
 	verification_runs "databasus-backend/internal/features/verification/runs"
 )
 
@@ -31,7 +30,6 @@ func (a *App) startBackgroundLoops(ctx context.Context) {
 		{"download token cleanup background service", backups_download.GetDownloadTokenBackgroundService().Run},
 		{"physical wal stream supervisor background service", backuping_physical.GetPhysicalWalStreamSupervisor().Run},
 		{"storage file deletion background service", storages.GetStorageFileDeletionWorker().Run},
-		{"sign-in code cleanup background service", users_services.GetSignInCodeBackgroundService().Run},
 		{"telemetry background service", telemetry.GetTelemetryBackgroundService().Run},
 	}
 

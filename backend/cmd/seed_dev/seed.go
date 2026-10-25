@@ -113,10 +113,10 @@ func signInOrSignUp(
 ) (string, error) {
 	var signIn signInResponse
 
-	signInErr := client.post(ctx, "/users/signin",
+	signInErr := client.post(ctx, "/sessions",
 		signInRequest{Email: params.Email, Password: params.Password}, &signIn)
 	if signInErr == nil {
-		if signIn.Token == "" {
+		if signIn.Outcome != "COMPLETED" {
 			return "", fmt.Errorf(
 				"cannot sign in as %s: the instance requires two-factor sign-in", params.Email)
 		}
@@ -128,9 +128,9 @@ func signInOrSignUp(
 		return "", fmt.Errorf("sign in as %s: %w", params.Email, signInErr)
 	}
 
-	var signUp signInResponse
+	var signUp sessionResponse
 
-	signUpErr := client.post(ctx, "/users/signup", signUpRequest{
+	signUpErr := client.post(ctx, "/users", signUpRequest{
 		Email:    params.Email,
 		Password: params.Password,
 		Name:     "Dev",

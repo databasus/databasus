@@ -6,133 +6,140 @@ import (
 	"strings"
 	"time"
 
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
 
-	users_dto "databasus-backend/internal/features/users/dto"
-	users_enums "databasus-backend/internal/features/users/enums"
-	users_models "databasus-backend/internal/features/users/models"
-	users_repositories "databasus-backend/internal/features/users/repositories"
-	users_services "databasus-backend/internal/features/users/services"
+	users_bridge "databasus-backend/internal/features/users"
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/storage"
+	"databasus-backend/internal/util/encryption"
 )
 
-func CreateTestUser(ctx context.Context, role users.Role) *users_dto.SignInResponseDTO {
-	user := insertTestUser(role, false)
+// testSessionLifetime outlives any test run.
+const testSessionLifetime = 24 * time.Hour
 
-	response, err := users_services.GetUserService().GenerateAccessToken(ctx, user)
+// testPasswordHash matches no password, so a test user signs in only with the token it gets.
+const testPasswordHash = "$2a$10$test"
+
+// TestUser is a user the helpers inserted, with a session token the users module accepts.
+type TestUser struct {
+	UserID uuid.UUID
+	Email  string
+	Token  string
+}
+
+func CreateTestUser(ctx context.Context, role users.Role) *TestUser {
+	return insertTestUser(ctx, role, false)
+}
+
+// CreateTestUserWithEmail reaches an address the profile update would refuse, such as the
+// placeholder address of an upgraded instance.
+func CreateTestUserWithEmail(ctx context.Context, role users.Role, email string) *TestUser {
+	testUser := insertTestUser(ctx, role, false)
+
+	SetTestUserEmail(ctx, testUser.UserID, email)
+	testUser.Email = email
+
+	return testUser
+}
+
+func GetTestUser(ctx context.Context, userID uuid.UUID) users.User {
+	user, isFound, err := users_bridge.GetModule().GetUser(ctx, userID)
 	if err != nil {
-		panic(err)
+		panic(fmt.Sprintf("failed to read test user: %v", err))
 	}
 
-	response.Email = user.Email
-
-	return response
-}
-
-// An address the profile form would refuse is only reachable this way: the API
-// binds the address of every account it creates.
-func CreateTestUserWithEmail(
-	ctx context.Context,
-	role users.Role,
-	email string,
-) *users_dto.SignInResponseDTO {
-	user := insertTestUser(role, false)
-
-	if err := storage.GetDb().WithContext(ctx).Model(&users_models.User{}).
-		Where("id = ?", user.ID).
-		Update("email", email).Error; err != nil {
-		panic(fmt.Errorf("failed to set the address of a test user: %w", err))
-	}
-
-	response, err := users_services.GetUserService().GenerateAccessToken(ctx, user)
-	if err != nil {
-		panic(err)
-	}
-
-	response.Email = email
-
-	return response
-}
-
-func DeactivateTestUser(ctx context.Context, userID uuid.UUID) {
-	userRepository := &users_repositories.UserRepository{}
-	if err := userRepository.UpdateUserStatus(userID, users_enums.UserStatusInactive); err != nil {
-		panic(fmt.Errorf("failed to deactivate a test user: %w", err))
-	}
-}
-
-func DeleteTestUser(ctx context.Context, userID uuid.UUID) {
-	if err := storage.GetDb().WithContext(ctx).
-		Where("id = ?", userID).
-		Delete(&users_models.User{}).Error; err != nil {
-		panic(fmt.Errorf("failed to delete a test user: %w", err))
-	}
-}
-
-// The token is minted from the account RecreateInitialAdmin just created rather
-// than read back by address, which would hand a nil user to GenerateAccessToken
-// once that address changes.
-func RecreateInitAdminAndGetAccess(ctx context.Context) *users_dto.SignInResponseDTO {
-	user := RecreateInitialAdmin(ctx)
-
-	response, err := users_services.GetUserService().GenerateAccessToken(ctx, user)
-	if err != nil {
-		panic(err)
-	}
-
-	response.Email = user.Email
-
-	return response
-}
-
-// The outgoing account is found by the bootstrap-administrator record, not by
-// its address: a test that moves the bootstrap administrator to a real address
-// would otherwise leave the record behind, and the partial unique index would
-// refuse the next bootstrap account.
-func RecreateInitialAdmin(ctx context.Context) *users_models.User {
-	err := storage.GetDb().WithContext(ctx).Model(&users_models.User{}).
-		Where("is_root_admin").
-		Updates(map[string]any{
-			"email":         "retired-admin-" + uuid.New().String(),
-			"is_root_admin": false,
-		}).Error
-	if err != nil {
-		panic(fmt.Errorf("failed to retire the current bootstrap administrator: %w", err))
-	}
-
-	return insertTestUser(users.RoleAdmin, true)
-}
-
-// No test may assume an instance that holds no account: the tests of one package
-// share the database of their test process and carry whatever earlier ones left
-// in it, so a test keyed on the account-creation rule has to say so.
-func DeleteAllUsers() {
-	if err := storage.GetDb().Exec("DELETE FROM users").Error; err != nil {
-		panic(fmt.Errorf("failed to empty the users table: %w", err))
-	}
-}
-
-func insertTestUser(role users.Role, isRootAdmin bool) *users_models.User {
-	userID := uuid.New()
-	hashedPassword := "$2a$10$test"
-
-	user := &users_models.User{
-		ID:                   userID,
-		Email:                fmt.Sprintf("%s-%s@test.com", strings.ToLower(string(role)), userID.String()[:8]),
-		Name:                 "Test User",
-		HashedPassword:       &hashedPassword,
-		PasswordCreationTime: time.Now().UTC(),
-		CreatedAt:            time.Now().UTC(),
-		Role:                 role,
-		Status:               users_enums.UserStatusActive,
-		IsRootAdmin:          isRootAdmin,
-	}
-
-	userRepository := &users_repositories.UserRepository{}
-	if err := userRepository.CreateUser(user); err != nil {
-		panic(fmt.Errorf("failed to create a test user: %w", err))
+	if !isFound {
+		panic("test user not found: " + userID.String())
 	}
 
 	return user
+}
+
+func SetTestUserEmail(ctx context.Context, userID uuid.UUID, email string) {
+	executeSQL(ctx, "UPDATE users SET email = ? WHERE id = ?", email, userID)
+}
+
+func SetTestUserName(ctx context.Context, userID uuid.UUID, name string) {
+	executeSQL(ctx, "UPDATE users SET name = ? WHERE id = ?", name, userID)
+}
+
+func DeactivateTestUser(ctx context.Context, userID uuid.UUID) {
+	executeSQL(ctx, "UPDATE users SET status = ? WHERE id = ?", users.StatusInactive, userID)
+}
+
+func DeleteTestUser(ctx context.Context, userID uuid.UUID) {
+	executeSQL(ctx, "DELETE FROM users WHERE id = ?", userID)
+}
+
+func RecreateInitAdminAndGetAccess(ctx context.Context) *TestUser {
+	return RecreateInitialAdmin(ctx)
+}
+
+// RecreateInitialAdmin finds the outgoing bootstrap administrator by its record, not by its
+// address: a test that moved it to another address would otherwise leave the record behind, and the
+// partial unique index would refuse the next one.
+func RecreateInitialAdmin(ctx context.Context) *TestUser {
+	executeSQL(ctx, "UPDATE users SET email = ?, is_root_admin = FALSE WHERE is_root_admin",
+		"retired-admin-"+uuid.NewString())
+
+	return insertTestUser(ctx, users.RoleAdmin, true)
+}
+
+// DeleteAllUsers empties the users table. The tests of one package share the database of their
+// test process, so a test keyed on the first-user rule has to make the instance empty itself.
+func DeleteAllUsers() {
+	executeSQL(context.Background(), "DELETE FROM users")
+}
+
+// IssueTestToken signs a session token for a stored user with the claims the users module issues.
+func IssueTestToken(ctx context.Context, userID uuid.UUID) string {
+	var storedUser struct {
+		Role                 string
+		PasswordCreationTime time.Time
+	}
+
+	err := storage.GetDb().WithContext(ctx).
+		Raw("SELECT role, password_creation_time FROM users WHERE id = ?", userID).
+		Scan(&storedUser).Error
+	if err != nil {
+		panic(fmt.Errorf("read a test user: %w", err))
+	}
+
+	now := time.Now().UTC()
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"sub":                  userID.String(),
+		"exp":                  now.Add(testSessionLifetime).Unix(),
+		"iat":                  now.Unix(),
+		"role":                 storedUser.Role,
+		"passwordCreationTime": storedUser.PasswordCreationTime.Unix(),
+	})
+
+	signedToken, err := token.SignedString([]byte(encryption.GetMasterKey().GetSecret()))
+	if err != nil {
+		panic(fmt.Errorf("sign a test session token: %w", err))
+	}
+
+	return signedToken
+}
+
+func insertTestUser(ctx context.Context, role users.Role, isBootstrapAdmin bool) *TestUser {
+	userID := uuid.New()
+	email := fmt.Sprintf("%s-%s@test.com", strings.ToLower(string(role)), userID.String()[:8])
+	now := time.Now().UTC()
+
+	executeSQL(ctx,
+		`INSERT INTO users (id, email, name, hashed_password, password_creation_time, role, status, is_root_admin,
+			created_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		userID, email, "Test User", testPasswordHash, now, role, users.StatusActive, isBootstrapAdmin, now)
+
+	return &TestUser{UserID: userID, Email: email, Token: IssueTestToken(ctx, userID)}
+}
+
+func executeSQL(ctx context.Context, statement string, values ...any) {
+	err := storage.GetDb().WithContext(ctx).Exec(statement, values...).Error
+	if err != nil {
+		panic(fmt.Errorf("run %q: %w", statement, err))
+	}
 }
