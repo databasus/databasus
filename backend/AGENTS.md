@@ -21,7 +21,7 @@ Rules for writing Go code in `backend/`, which holds the server and the verifica
 - Code that knows a database engine but no tables goes into `internal/engines/<engine>`.
 - Code with no domain knowledge goes into `internal/lib/<name>`.
 - Wiring goes into `internal/app` and nowhere else.
-- A file holds one role, and its name says which: `service.go`, `*_repository.go`, `<entity>.go`, `errors.go`. Test files mirror the source split. Create a file only when it has content.
+- Code is split into files per [Code is split into logical units](../AGENTS.md#code-is-split-into-logical-units). On the backend a role file is named after its role: `service.go`, `*_repository.go`, `<entity>.go`, and every error of a package sits in `errors.go`. Create a file only when it has content.
 
 ## Dependencies
 

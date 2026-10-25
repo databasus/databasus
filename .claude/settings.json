@@ -65,8 +65,8 @@
             "type": "command"
           },
           {
-            "command": "\"$(git -C \"${CLAUDE_PROJECT_DIR}\" rev-parse --show-toplevel)/.agent-hooks/run.sh\" naming",
-            "statusMessage": "Checking names",
+            "command": "\"$(git -C \"${CLAUDE_PROJECT_DIR}\" rev-parse --show-toplevel)/.agent-hooks/run.sh\" code-shape",
+            "statusMessage": "Checking code shape",
             "timeout": 600,
             "type": "command"
           },

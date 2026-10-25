@@ -23,4 +23,6 @@ Check only architecture:
 
 If the change edits `docs/architecture.md` or an architecture section of a module doc, check that the edit agrees with the code and with the latest user request.
 
+Judge which package, module, layer and role a unit belongs to, and leave the split of code into files and functions inside a package to the code-shape check.
+
 Do not check names, style, prose or general correctness. Other reviewers do that.

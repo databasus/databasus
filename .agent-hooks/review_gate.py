@@ -14,9 +14,9 @@ Actions:
   necessity      Checks a plan or an OpenSpec proposal: is the task needed, is there a much simpler option.
   diff           Reviews a finished change.
   architecture   Checks a plan or a change against docs/architecture.md and the architecture rules of the module docs.
-  naming         Checks names and comments in code the request changed against the naming and
-                 comment rules of AGENTS.md and the module docs. Runs when a .go, .ts or .tsx file
-                 under backend/, agent/, frontend/src/ or website/ changed.
+  code-shape     Checks how code the request changed is split into files and functions, and its names
+                 and comments, against AGENTS.md and the module docs. Runs when a .go, .ts or .tsx
+                 file under backend/, agent/, frontend/src/ or website/ changed.
   implementation Full review of an OpenSpec change whose tasks are all checked: first the read-only
                  checks of the touched modules, then the commands of the "Change verification"
                  section of tasks.md, then parallel reviewers: one per delta spec, and one each for
@@ -26,7 +26,7 @@ Actions:
                  check of the "Change verification" section without running it, then
                  openspec validate --strict, then parallel reviewers: one per delta spec, and one each
                  for necessity, architecture, names, proposal and design, and tasks. While it runs,
-                 necessity, diff, architecture and naming skip a turn that only wrote the artifacts.
+                 necessity, diff, architecture and code-shape skip a turn that only wrote the artifacts.
   doctor         Reports whether Python, git, openspec and a reviewer CLI are found, one line per tool,
                  and exits with a non-zero code when one is missing. `mise run doctor` runs it.
 
@@ -72,8 +72,8 @@ CHECK_OUTPUT_LINES = 80
 OPENSPEC_TIMEOUT_SECONDS = 60
 REVIEWER_ACTIVE_ENV = "AGENT_REVIEW_HOOK_ACTIVE"
 HOOKS_DIR = Path(__file__).resolve().parent
-GATES = ("plan", "necessity", "diff", "architecture", "naming", "implementation", "proposal")
-GATES_YIELDING_TO_PROPOSAL_REVIEW = ("necessity", "diff", "architecture", "naming")
+GATES = ("plan", "necessity", "diff", "architecture", "code-shape", "implementation", "proposal")
+GATES_YIELDING_TO_PROPOSAL_REVIEW = ("necessity", "diff", "architecture", "code-shape")
 CODE_DIRS = ("backend/", "agent/", "frontend/src/", "website/")
 CODE_SUFFIXES = (".go", ".ts", ".tsx")
 TASK_PATTERN = re.compile(r"^\s*[-*] \[([ xX])\]", re.MULTILINE)
@@ -683,7 +683,7 @@ def gate_plan_tool(session, gate):
 # A plan reaches the reviewer through ExitPlanMode, which has its own check, so a finished turn
 # never carries one.
 def get_stop_subject(gate, is_openspec_turn, is_workspace_changed, blocks, is_code_changed=False):
-    if gate == "naming":
+    if gate == "code-shape":
         return "finished change" if is_code_changed or blocks > 0 else None
 
     if gate == "necessity":
@@ -710,7 +710,7 @@ def gate_stop(session, gate):
         is_openspec_planning(request, session.root),
         request.get("baseline") != fingerprint,
         blocks,
-        gate == "naming" and is_code_changed_since_request(session.root, request),
+        gate == "code-shape" and is_code_changed_since_request(session.root, request),
     )
 
     if subject is None or (state.get("accepted") == fingerprint and blocks == 0):
@@ -823,7 +823,7 @@ def is_code_path(path):
 
 
 # Changed code is found by file hashes, as in is_proposal_review_turn: someone else's changed
-# file that was already in the tree before the request does not start the naming reviewer.
+# file that was already in the tree before the request does not start the code-shape reviewer.
 def is_code_changed_since_request(root, request):
     current_files = get_file_hashes(root, get_changed_paths(root))
     changed_paths = get_paths_changed_since(request.get("baseline_files") or {}, current_files)

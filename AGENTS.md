@@ -163,6 +163,17 @@ Short names stay where the convention is well established: Go receivers (`s *Not
 - Four or more parameters, or two adjacent parameters of one type, become a named struct: `SpawnSpec`, not `spawn(name, image string, ...)`.
 - A type name is neither generic nor stuttering: not `Helper` or `Processor`, not `container.ContainerManager`. When the only honest name stutters, the variable carries the noun: `containerManager := container.NewManager(...)`.
 
+## Code is split into logical units
+
+Code is split into units that each hold one concept: a type with its methods, a function with its private helpers, or a few types and functions that only make sense together. What changes together sits together; what changes for a different reason lives apart. A file holds one such unit, so the file tree of a package tells what the package does without opening a file.
+
+- A part that can be reused, tested or changed on its own is a unit of its own and gets its own file. A private helper serving one unit stays with it.
+- If the honest name of a file or a function needs "and", it holds two units and is split.
+- Split by concept, not by length: one long concept stays whole, two short unrelated concepts are split.
+- A file is named after its unit in domain words, never `utils`, `helpers`, `common`, `types` or `misc`. A test file mirrors the file it tests.
+
+Where a unit belongs across packages, modules and layers is decided by [`docs/architecture.md`](docs/architecture.md). A file whose content `docs/architecture.md` or a module doc fixes follows that rule instead: `module.go` holds the whole public contract of a module, `errors.go` holds every error of its package, an enum sits next to the entity whose field it types, and a role file holds its role. The module docs add the other conventions of their stack.
+
 ## Comments are a last resort
 
 The default is **no comment**. Before writing one, reach for a clearer name or a smaller function first — self-explanatory code beats commented code every time. A comment is justified only when it carries something the code cannot: a *why* (business rule, hidden cross-system constraint, non-obvious algorithm or optimisation, a reference to `docs/architecture.md` or a spec). Never write a comment that restates *what* the code does or narrates the obvious — if a `// Foo does X` comment sits above the code, that's a naming bug: rename until the comment is redundant, then delete it. This applies everywhere, tests included — a well-named test needs no header comment explaining what it checks.

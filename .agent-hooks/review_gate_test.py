@@ -421,7 +421,7 @@ class LauncherTest(unittest.TestCase):
         launcher.install_mise(launcher.home / ".local" / "bin")
         payload = json.dumps({"hook_event_name": "Stop", "session_id": "session-1"})
 
-        process = launcher.run("naming", stdin=payload)
+        process = launcher.run("code-shape", stdin=payload)
 
         self.assertEqual(process.returncode, 0)
         self.assertEqual(json.loads(process.stdout), {})
@@ -432,7 +432,7 @@ class LauncherTest(unittest.TestCase):
             ["-C", root, "ls", "--current", "--missing", "--no-truncate", "python", "npm:@fission-ai/openspec"],
         )
         [call] = launcher.mise_calls("exec")
-        self.assertEqual(call["arguments"], ["-C", root, "exec", "--", "python3", str(HOOK_PATH), "naming"])
+        self.assertEqual(call["arguments"], ["-C", root, "exec", "--", "python3", str(HOOK_PATH), "code-shape"])
         self.assertEqual(call["exec_auto_install"], "false")
         self.assertEqual(call["stdin"], payload)
 
@@ -847,6 +847,19 @@ class ArchitectureGateTest(unittest.TestCase):
             call["prompt"],
         )
 
+    def test_architecture_prompt_leaves_split_inside_package_to_code_shape_check(self):
+        repository = HookRepository(self)
+        repository.submit_prompt("Add a widget")
+        repository.write("src/widgets.py", "WIDGETS = []\n")
+
+        repository.stop("architecture")
+
+        [call] = repository.reviewer_calls()
+        self.assertIn(
+            "leave the split of code into files and functions inside a package to the code-shape check.",
+            call["prompt"],
+        )
+
 
 class FullReviewSchemaTest(unittest.TestCase):
     def test_reviewer_schemas_allow_exactly_the_categories_of_their_full_review(self):
@@ -857,24 +870,24 @@ class FullReviewSchemaTest(unittest.TestCase):
                 self.assertEqual(tuple(category_enum), full_review.categories)
 
 
-class NamingGateTest(unittest.TestCase):
+class CodeShapeGateTest(unittest.TestCase):
     def test_runs_reviewer_when_turn_changes_backend_go_file(self):
         repository = HookRepository(self)
         repository.submit_prompt("Add a widget")
         repository.write("backend/internal/features/widgets/service.go", "package widgets\n")
 
-        response = repository.stop("naming")
+        response = repository.stop("code-shape")
 
         self.assertEqual(response, {})
         [call] = repository.reviewer_calls()
-        self.assertIn("## Names and comments review", call["prompt"])
+        self.assertIn("## Code shape review", call["prompt"])
 
     def test_runs_reviewer_when_turn_changes_agent_go_file(self):
         repository = HookRepository(self)
         repository.submit_prompt("Add a heartbeat field")
         repository.write("agent/verification/internal/heartbeat/heartbeat.go", "package heartbeat\n")
 
-        repository.stop("naming")
+        repository.stop("code-shape")
 
         self.assertEqual(len(repository.reviewer_calls()), 1)
 
@@ -883,7 +896,7 @@ class NamingGateTest(unittest.TestCase):
         repository.submit_prompt("Add a widget")
         repository.write("frontend/src/pages/widgets/ui/WidgetsPage.tsx", "export {};\n")
 
-        repository.stop("naming")
+        repository.stop("code-shape")
 
         self.assertEqual(len(repository.reviewer_calls()), 1)
 
@@ -892,7 +905,7 @@ class NamingGateTest(unittest.TestCase):
         repository.submit_prompt("Add a page")
         repository.write("website/app/[lang]/pricing/page.tsx", "export {};\n")
 
-        repository.stop("naming")
+        repository.stop("code-shape")
 
         self.assertEqual(len(repository.reviewer_calls()), 1)
 
@@ -902,7 +915,7 @@ class NamingGateTest(unittest.TestCase):
         repository.submit_prompt("Add a widget")
         repository.write("backend/internal/features/widgets/service.go", "package widgets\n")
 
-        response = repository.stop("naming")
+        response = repository.stop("code-shape")
 
         self.assertEqual(response["decision"], "block")
         self.assertIn("GetRunningVerificationIDs", response["reason"])
@@ -912,7 +925,7 @@ class NamingGateTest(unittest.TestCase):
         repository.submit_prompt("Fix the docs")
         repository.write("backend/AGENTS.md", "# AGENTS.md\n")
 
-        response = repository.stop("naming")
+        response = repository.stop("code-shape")
 
         self.assertEqual(response, {})
         self.assertEqual(repository.reviewer_calls(), [])
@@ -922,7 +935,7 @@ class NamingGateTest(unittest.TestCase):
         repository.submit_prompt("Bump Vite")
         repository.write("frontend/vite.config.ts", "export default {};\n")
 
-        repository.stop("naming")
+        repository.stop("code-shape")
 
         self.assertEqual(repository.reviewer_calls(), [])
 
@@ -932,7 +945,7 @@ class NamingGateTest(unittest.TestCase):
         repository.submit_prompt("Fix the docs")
         repository.write("backend/AGENTS.md", "# AGENTS.md\n")
 
-        repository.stop("naming")
+        repository.stop("code-shape")
 
         self.assertEqual(repository.reviewer_calls(), [])
 
@@ -941,7 +954,7 @@ class NamingGateTest(unittest.TestCase):
         repository.submit_prompt("Write a spec")
         repository.write_proposal()
 
-        response = repository.stop("naming")
+        response = repository.stop("code-shape")
 
         self.assertEqual(response, {})
         self.assertEqual(repository.reviewer_calls(), [])
@@ -951,10 +964,61 @@ class NamingGateTest(unittest.TestCase):
         repository.submit_prompt("Add a widget")
         repository.write("backend/internal/features/widgets/service.go", "package widgets\n")
 
-        repository.stop("naming")
+        repository.stop("code-shape")
 
         [call] = repository.calls("claude")
         self.assertIn("--model opus --effort low", " ".join(call["arguments"]))
+
+    def test_prompt_holds_code_to_logical_units_rule_and_reads_created_files_in_full(self):
+        prompt = self.get_finished_turn_prompt()
+
+        self.assertIn('"Code is split into logical units"', prompt)
+        self.assertIn("Read every source file the turn created in full", prompt)
+
+    def test_prompt_rejects_new_file_or_function_with_two_concepts_and_concept_added_to_other_file(self):
+        prompt = self.get_finished_turn_prompt()
+
+        self.assertIn(
+            "Reject a new file or a new function that holds more than one concept, "
+            "and a concept the turn added to an existing file that holds a different one.",
+            prompt,
+        )
+
+    def test_prompt_leaves_placement_across_packages_to_architecture_check(self):
+        prompt = self.get_finished_turn_prompt()
+
+        self.assertIn(
+            "Do not judge which package, module, layer or role a unit belongs to; the architecture check does that.",
+            prompt,
+        )
+
+    def test_prompt_accepts_additions_to_files_whose_content_architecture_fixes(self):
+        prompt = self.get_finished_turn_prompt()
+
+        self.assertIn(
+            "an event or a contract type in `module.go`, an error in `errors.go`, "
+            "an enum next to its entity, a method in its role file.",
+            prompt,
+        )
+
+    def test_prompt_does_not_judge_concepts_mixed_before_turn(self):
+        prompt = self.get_finished_turn_prompt()
+
+        self.assertIn("Do not judge concepts that were already mixed in a file before the turn.", prompt)
+
+    def test_prompt_treats_comment_that_restates_code_as_naming_problem(self):
+        prompt = self.get_finished_turn_prompt()
+
+        self.assertIn("A comment that restates what the code does is a naming problem", prompt)
+
+    def get_finished_turn_prompt(self):
+        repository = HookRepository(self)
+        repository.submit_prompt("Add a widget")
+        repository.write("backend/internal/features/widgets/service.go", "package widgets\n")
+        repository.stop("code-shape")
+        [call] = repository.reviewer_calls()
+        return call["prompt"]
+
 
 class ImplementationGateStartTest(unittest.TestCase):
     def test_runs_full_review_when_agent_completes_last_task(self):
@@ -1965,9 +2029,9 @@ class QuickGatesDuringProposalReviewTest(unittest.TestCase):
         repository.submit_prompt("Write a spec")
         repository.write_proposal()
 
-        responses = [repository.stop(gate) for gate in ("necessity", "architecture", "diff")]
+        responses = [repository.stop(gate) for gate in ("necessity", "architecture", "diff", "code-shape")]
 
-        self.assertEqual(responses, [{}, {}, {}])
+        self.assertEqual(responses, [{}, {}, {}, {}])
         self.assertEqual(repository.reviewer_calls(), [])
 
     def test_skips_quick_checks_in_summary_turn_after_accepted_review(self):
@@ -1978,9 +2042,9 @@ class QuickGatesDuringProposalReviewTest(unittest.TestCase):
         repository.stop("proposal")
         repository.clear_calls()
 
-        responses = [repository.stop(gate, message="Proposal summary.") for gate in ("necessity", "architecture", "diff")]
+        responses = [repository.stop(gate, message="Proposal summary.") for gate in ("necessity", "architecture", "diff", "code-shape")]
 
-        self.assertEqual(responses, [{}, {}, {}])
+        self.assertEqual(responses, [{}, {}, {}, {}])
         self.assertEqual(repository.reviewer_calls(), [])
 
     def test_runs_necessity_when_agent_wrote_only_proposal(self):
