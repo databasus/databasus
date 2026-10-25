@@ -53,6 +53,12 @@ func NewStdout() *Logging {
 	return assemble(builtSinks{handlers: []slog.Handler{newStdoutHandler()}}, slog.LevelInfo)
 }
 
+// NewWithSinks logs every level to the given sinks after the same masking and context attributes
+// as New, so a test that captures records sees what a real sink would.
+func NewWithSinks(sinks ...slog.Handler) *Logging {
+	return assemble(builtSinks{handlers: sinks}, slog.LevelDebug)
+}
+
 func (l *Logging) GetLogger() *slog.Logger {
 	return l.logger
 }

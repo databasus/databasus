@@ -14,7 +14,6 @@ import (
 	"databasus-backend/internal/lib/config"
 	"databasus-backend/internal/lib/httpserver"
 	"databasus-backend/internal/lib/shutdown"
-	"databasus-backend/internal/middleware"
 	files_utils "databasus-backend/internal/util/files"
 	"databasus-backend/internal/util/tools"
 )
@@ -28,9 +27,10 @@ const (
 
 const frontendDirectory = "./ui/build"
 
-// Serve opens the port, starts the background loops and the HTTP server and blocks until ctx ends.
-// Then it stops accepting work and waits for requests, registered tasks and loops within the
-// shutdown limit. A busy port returns an error before any loop starts.
+// Serve opens the port, starts the background loops, the background jobs and the HTTP server and
+// blocks until ctx ends. Then it stops accepting work and waits for requests, registered tasks,
+// loops and job passes within the shutdown limit. A busy port returns an error before any loop
+// starts.
 func (a *App) Serve(ctx context.Context, address string) error {
 	tools.LogAndExitIfClientToolsBroken(a.logger, a.environment.Config.ShowDbInstallationVerificationLogs)
 
@@ -57,6 +57,7 @@ func (a *App) Serve(ctx context.Context, address string) error {
 	defer cancelLoops()
 
 	a.startBackgroundLoops(loopsCtx)
+	a.runner.Start(loopsCtx)
 
 	a.backgroundGroup.Go(loopsCtx, "http server", func(context.Context) error {
 		return server.Serve()
@@ -74,6 +75,7 @@ func (a *App) Serve(ctx context.Context, address string) error {
 			{Name: "http server", Run: server.Shutdown},
 			{Name: "running tasks", Run: task_cancellation.GetRegistry().WaitUntilNoTasksRegistered},
 			{Name: "background loops", Run: a.backgroundGroup.Wait},
+			{Name: "background jobs", Run: a.runner.Wait},
 		},
 		DrainTimeout: shutdownDrainTimeout,
 		FlushLogs:    a.environment.Logging.Shutdown,
@@ -90,14 +92,14 @@ func (a *App) NewHandler() (http.Handler, error) {
 	gin.SetMode(gin.ReleaseMode)
 
 	router := gin.New()
-	router.Use(middleware.AssignRequestID())
-	router.Use(middleware.LogAccess(a.logger))
+	router.Use(httpserver.AssignRequestID())
+	router.Use(httpserver.LogAccess(a.logger))
 	router.Use(httpserver.Recover(a.logger))
-	router.Use(middleware.NoStoreCacheControl())
+	router.Use(httpserver.NoStoreCacheControl())
 	router.Use(httpserver.Compress())
 
 	if a.environment.Config.EnvMode == config.EnvModeDevelopment {
-		router.Use(httpserver.AllowAnyOrigin([]string{middleware.RequestIDHeader}))
+		router.Use(httpserver.AllowAnyOrigin([]string{httpserver.RequestIDHeader}))
 	}
 
 	err := a.registerContractRoutes(router)

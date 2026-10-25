@@ -1,6 +1,7 @@
 package verification_agents
 
 import (
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -8,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
+	"databasus-backend/internal/lib/logging"
 	"databasus-backend/internal/util/ratelimiter"
 )
 
@@ -83,6 +85,9 @@ func (s *AgentService) RequireAgentAuth() gin.HandlerFunc {
 		}
 
 		ctx.Set(agentContextKey, agent)
+		ctx.Request = ctx.Request.WithContext(
+			logging.With(ctx.Request.Context(), slog.String("agent_id", agent.ID.String())),
+		)
 		ctx.Next()
 	}
 }

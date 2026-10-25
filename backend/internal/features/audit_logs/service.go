@@ -2,37 +2,39 @@ package audit_logs
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"log/slog"
-	"time"
 
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 
 	audit_logs_models "databasus-backend/internal/features/audit_logs/models"
 	user_enums "databasus-backend/internal/features/users/enums"
 	user_models "databasus-backend/internal/features/users/models"
+	users_repositories "databasus-backend/internal/features/users/repositories"
+	"databasus-backend/internal/lib/audit"
 )
 
 type AuditLogService struct {
 	auditLogRepository *AuditLogRepository
+	userRepository     *users_repositories.UserRepository
 	logger             *slog.Logger
-	auditLogger        *slog.Logger
 }
 
-// The log-pipeline write is what makes the trail survive the database it describes: an operator
-// who wipes audit_logs cannot erase what already left for the file and the remote backend.
+// WriteAuditLog records the entry through lib/audit with its author's email and name as they are
+// now. The callers pass only the user ID, so the bridge looks the account up. The write ignores the
+// caller's cancellation: the event of an action that already happened must be kept even if the
+// client disconnected mid-request.
 func (s *AuditLogService) WriteAuditLog(ctx context.Context, entry audit_logs_models.AuditEntry) {
-	auditLog := &AuditLog{
-		UserID:      entry.UserID,
+	ctx = context.WithoutCancel(ctx)
+
+	err := getAuditLog().Record(ctx, audit.Event{
+		Author:      s.findAuthor(ctx, entry.UserID),
 		WorkspaceID: entry.WorkspaceID,
 		Message:     entry.Message,
-		CreatedAt:   time.Now().UTC(),
-	}
-
-	s.auditLogger.InfoContext(ctx, entry.Message, "user_id", entry.UserID, "workspace_id", entry.WorkspaceID)
-
-	if err := s.auditLogRepository.Create(auditLog); err != nil {
-		s.logger.ErrorContext(ctx, "failed to create audit log",
+	})
+	if err != nil {
+		s.logger.ErrorContext(ctx, "failed to record audit event",
 			"error", err, "user_id", entry.UserID, "workspace_id", entry.WorkspaceID)
 	}
 }
@@ -139,19 +141,28 @@ func (s *AuditLogService) GetWorkspaceAuditLogs(
 	}, nil
 }
 
-func (s *AuditLogService) CleanOldAuditLogs(ctx context.Context, logger *slog.Logger) error {
-	oneYearAgo := time.Now().UTC().Add(-365 * 24 * time.Hour)
-
-	deletedCount, err := s.auditLogRepository.DeleteOlderThan(ctx, oneYearAgo)
-	if err != nil {
-		logger.ErrorContext(ctx, "failed to delete old audit logs", "error", err)
-
-		return err
+// findAuthor returns nil for an entry without a user and for an account that is gone, which only a
+// test that deletes the account before the write can cause; the event is then kept without an
+// author rather than lost.
+func (s *AuditLogService) findAuthor(ctx context.Context, userID *uuid.UUID) *audit.Author {
+	if userID == nil {
+		return nil
 	}
 
-	// Logged even at zero, so that "ran and found nothing" stays distinguishable from "never ran".
-	logger.InfoContext(ctx, fmt.Sprintf("deleted %d audit logs older than a year", deletedCount),
-		"older_than", oneYearAgo)
+	user, err := s.userRepository.GetUserByID(ctx, *userID)
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		s.logger.WarnContext(ctx, "audit author not found, recording the event without an author",
+			"user_id", userID)
 
-	return nil
+		return nil
+	}
+
+	if err != nil {
+		s.logger.ErrorContext(ctx, "failed to read the audit author, recording the event without an author",
+			"error", err, "user_id", userID)
+
+		return nil
+	}
+
+	return &audit.Author{UserID: user.ID, Email: user.Email, Name: user.Name}
 }

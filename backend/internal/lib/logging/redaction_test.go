@@ -192,15 +192,3 @@ func Test_RedactMessage_WithTimestampsAndRatios_LeavesThemIntact(t *testing.T) {
 		assert.Equal(t, message, redactMessage(message))
 	}
 }
-
-// Services hold a process-wide logger, so the principal has to ride the context the controllers
-// already pass down; without it only the access line knows who made the request.
-func Test_ContextWithUserID_WhenReadBack_ReturnsTheSamePrincipal(t *testing.T) {
-	ctx := ContextWithUserID(t.Context(), "user-42")
-
-	assert.Equal(t, "user-42", GetUserID(ctx))
-}
-
-func Test_GetUserID_WithNoPrincipalOnTheContext_ReturnsEmpty(t *testing.T) {
-	assert.Empty(t, GetUserID(t.Context()))
-}

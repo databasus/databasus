@@ -442,7 +442,7 @@ func Test_DeleteAgent_Twice_SecondCallReturns404(t *testing.T) {
 	// Confirm that the second (failed) delete did NOT write a duplicate audit log.
 	var deleteAuditCount int64
 	storage.GetDb().
-		Raw(`SELECT count(*) FROM audit_logs WHERE message LIKE ?`,
+		Raw(`SELECT count(*) FROM lib_audit_events WHERE message LIKE ?`,
 			"verification agent deleted: "+createdAgent.Agent.Name).
 		Scan(&deleteAuditCount)
 	assert.Equal(t, int64(1), deleteAuditCount,
@@ -509,7 +509,7 @@ func Test_CreateAgent_WritesAuditLog(t *testing.T) {
 		Message     string
 	}
 	err := storage.GetDb().
-		Raw(`SELECT user_id, workspace_id, message FROM audit_logs WHERE message = ?`,
+		Raw(`SELECT author_user_id AS user_id, workspace_id, message FROM lib_audit_events WHERE message = ?`,
 			"verification agent created: "+name).
 		Scan(&auditRow).Error
 	require.NoError(t, err)

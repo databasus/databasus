@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	"databasus-backend/internal/lib/clock"
 	"databasus-backend/internal/lib/config"
 	"databasus-backend/internal/lib/logging"
 	"databasus-backend/internal/util/logger"
@@ -15,6 +16,7 @@ import (
 type Environment struct {
 	Config  config.Config
 	Logging *logging.Logging
+	Clock   clock.Source
 }
 
 // LoadEnvironment reads the configuration and builds the logging. When the configuration cannot be
@@ -30,7 +32,7 @@ func LoadEnvironment(ctx context.Context, spec config.LoadSpec) (*Environment, e
 		return nil, fmt.Errorf("load the configuration: %w", err)
 	}
 
-	environment, err := NewEnvironment(ctx, loadedConfig)
+	environment, err := NewEnvironment(ctx, loadedConfig, clock.NewSystem())
 	if err != nil {
 		return nil, err
 	}
@@ -43,8 +45,8 @@ func LoadEnvironment(ctx context.Context, spec config.LoadSpec) (*Environment, e
 }
 
 // NewEnvironment builds the logging for a configuration that is already loaded, such as the one a
-// test application assembles.
-func NewEnvironment(ctx context.Context, loadedConfig config.Config) (*Environment, error) {
+// test application assembles with a clock it moves.
+func NewEnvironment(ctx context.Context, loadedConfig config.Config, clockSource clock.Source) (*Environment, error) {
 	loadedLogging, err := logging.New(ctx, loadedConfig)
 	if err != nil {
 		logging.NewStdout().GetLogger().ErrorContext(ctx, "logging could not be configured", slog.Any("error", err))
@@ -54,7 +56,7 @@ func NewEnvironment(ctx context.Context, loadedConfig config.Config) (*Environme
 
 	logger.Install(loadedLogging)
 
-	return &Environment{Config: loadedConfig, Logging: loadedLogging}, nil
+	return &Environment{Config: loadedConfig, Logging: loadedLogging, Clock: clockSource}, nil
 }
 
 func logReport(ctx context.Context, reportLogger *slog.Logger, report config.LoadReport) {

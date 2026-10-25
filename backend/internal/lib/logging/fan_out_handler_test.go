@@ -109,24 +109,6 @@ func Test_WithLevelBypass_WhenDerived_LeavesOriginalHandlerFiltering(t *testing.
 	assert.Empty(t, sinks.secondSink.String())
 }
 
-func Test_Handle_WithRequestIDInContext_AddsRequestIDToEverySink(t *testing.T) {
-	handler, sinks := newTestFanOutHandler(slog.LevelInfo)
-
-	ctx := ContextWithRequestID(t.Context(), "6f1c2b7e-0a3d-4c8f-9b21-5d7e4a1c3f90")
-	slog.New(handler).InfoContext(ctx, "storage created")
-
-	assert.Equal(t, "6f1c2b7e-0a3d-4c8f-9b21-5d7e4a1c3f90", decodeSingleRecord(t, sinks.firstSink)[requestIDKey])
-	assert.Equal(t, "6f1c2b7e-0a3d-4c8f-9b21-5d7e4a1c3f90", decodeSingleRecord(t, sinks.secondSink)[requestIDKey])
-}
-
-func Test_Handle_WithoutRequestIDInContext_OmitsRequestID(t *testing.T) {
-	handler, sinks := newTestFanOutHandler(slog.LevelInfo)
-
-	slog.New(handler).InfoContext(t.Context(), "storage created")
-
-	assert.NotContains(t, decodeSingleRecord(t, sinks.firstSink), requestIDKey)
-}
-
 func Test_Handle_WithSensitiveAttrs_RedactsBeforeReachingSinks(t *testing.T) {
 	handler, sinks := newTestFanOutHandler(slog.LevelInfo)
 
@@ -144,22 +126,4 @@ func Test_WithAttrs_WithSensitiveAttrs_RedactsScopedAttrsToo(t *testing.T) {
 	slog.New(handler).With(slog.String("api_key", "sk-live-1234")).InfoContext(t.Context(), "calling storage")
 
 	assert.Equal(t, redactedValue, decodeSingleRecord(t, sinks.firstSink)["api_key"])
-}
-
-func Test_Handle_WithUserIDInContext_AddsUserIDToEverySink(t *testing.T) {
-	handler, sinks := newTestFanOutHandler(slog.LevelInfo)
-
-	ctx := ContextWithUserID(t.Context(), "1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed")
-	slog.New(handler).InfoContext(ctx, "storage created")
-
-	assert.Equal(t, "1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed", decodeSingleRecord(t, sinks.firstSink)[userIDKey])
-	assert.Equal(t, "1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed", decodeSingleRecord(t, sinks.secondSink)[userIDKey])
-}
-
-func Test_Handle_WithoutUserIDInContext_OmitsUserID(t *testing.T) {
-	handler, sinks := newTestFanOutHandler(slog.LevelInfo)
-
-	slog.New(handler).InfoContext(t.Context(), "storage created")
-
-	assert.NotContains(t, decodeSingleRecord(t, sinks.firstSink), userIDKey)
 }

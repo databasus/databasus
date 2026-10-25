@@ -68,6 +68,22 @@ func TestNew(t *testing.T) {
 	})
 }
 
+func TestRunJobPass(t *testing.T) {
+	t.Run("fails the test when no job has the name", func(t *testing.T) {
+		testApp := New(t)
+		recordingTest := &fatalRecorder{TB: t, failure: "", mutex: sync.Mutex{}}
+
+		isFinished := make(chan struct{})
+		go func() {
+			defer close(isFinished)
+			testApp.RunJobPass(recordingTest, "no_such_job")
+		}()
+		<-isFinished
+
+		assert.Contains(t, recordingTest.getFailure(), "no_such_job")
+	})
+}
+
 func closeDatabase(t *testing.T, db *gorm.DB) {
 	t.Helper()
 

@@ -18,6 +18,7 @@ import (
 const (
 	accountEmail     = "upgrade-owner@databasus.local"
 	accountPassword  = "upgrade-owner-password"
+	accountName      = "Upgrade Owner"
 	workspaceName    = "upgrade workspace"
 	storageName      = "upgrade local storage"
 	notifierName     = "upgrade webhook"
@@ -101,6 +102,18 @@ type previousBackupList struct {
 	Backups []previousBackup `json:"backups"`
 }
 
+type previousAuditLogList struct {
+	AuditLogs []previousAuditLog `json:"auditLogs"`
+}
+
+type previousAuditLog struct {
+	ID          string  `json:"id"`
+	UserID      *string `json:"userId"`
+	WorkspaceID *string `json:"workspaceId"`
+	Message     string  `json:"message"`
+	CreatedAt   string  `json:"createdAt"`
+}
+
 type previousBackup struct {
 	ID          string  `json:"id"`
 	Status      string  `json:"status"`
@@ -121,7 +134,7 @@ func writeUpgradeData(t *testing.T, api *apiClient) (writtenUpgradeData, error) 
 	err := api.post(ctx, "/users/signup", previousSignUpRequest{
 		Email:    accountEmail,
 		Password: accountPassword,
-		Name:     "Upgrade Owner",
+		Name:     accountName,
 	}, &signUp)
 	if err != nil {
 		return writtenUpgradeData{}, fmt.Errorf("sign up: %w", err)
@@ -192,8 +205,13 @@ func writeUpgradeData(t *testing.T, api *apiClient) (writtenUpgradeData, error) 
 		return writtenUpgradeData{}, err
 	}
 
+	auditEventItems, err := readAuditEventItems(ctx, api)
+	if err != nil {
+		return writtenUpgradeData{}, err
+	}
+
 	return writtenUpgradeData{
-		items: []upgradecheck.Item{
+		items: append([]upgradecheck.Item{
 			{Kind: "account", Name: accountEmail, Values: map[string]string{}},
 			{Kind: "workspace", Name: workspaceName, Values: map[string]string{"id": workspace.ID}},
 			{Kind: "storage", Name: storageName, Values: map[string]string{"id": storage.ID, "type": "LOCAL"}},
@@ -221,7 +239,7 @@ func writeUpgradeData(t *testing.T, api *apiClient) (writtenUpgradeData, error) 
 				"status":     backup.Status,
 				"encryption": backupEncryption,
 			}},
-		},
+		}, auditEventItems...),
 		databaseID: database.ID,
 		backupID:   backup.ID,
 	}, nil
@@ -303,4 +321,44 @@ func makeBackup(t *testing.T, api *apiClient, databaseID string) (previousBackup
 	}
 
 	return finishedBackup, nil
+}
+
+// readAuditEventItems lists the global audit log the account sees as the first account of the
+// instance, which makes it the admin. Every event the account wrote is expected to show its email
+// and name after the upgrade, and an event without an author is expected to stay without one.
+func readAuditEventItems(ctx context.Context, api *apiClient) ([]upgradecheck.Item, error) {
+	var auditLogList previousAuditLogList
+
+	err := api.get(ctx, "/audit-logs/global?limit=1000", &auditLogList)
+	if err != nil {
+		return nil, fmt.Errorf("list the global audit log: %w", err)
+	}
+
+	auditEventItems := make([]upgradecheck.Item, 0, len(auditLogList.AuditLogs))
+
+	for _, auditLog := range auditLogList.AuditLogs {
+		createdAt, err := normalizeAuditTime(auditLog.CreatedAt)
+		if err != nil {
+			return nil, err
+		}
+
+		authorEmail, authorName := "", ""
+		if auditLog.UserID != nil {
+			authorEmail, authorName = accountEmail, accountName
+		}
+
+		auditEventItems = append(auditEventItems, upgradecheck.Item{
+			Kind: "audit event",
+			Name: auditLog.ID,
+			Values: map[string]string{
+				"message":     auditLog.Message,
+				"createdAt":   createdAt,
+				"workspaceId": getOptionalValue(auditLog.WorkspaceID),
+				"authorEmail": authorEmail,
+				"authorName":  authorName,
+			},
+		})
+	}
+
+	return auditEventItems, nil
 }

@@ -212,7 +212,7 @@ func hasAuditRecordContaining(t *testing.T, messagePart string) bool {
 
 	var isPresent bool
 	require.NoError(t, storage.GetDb().WithContext(t.Context()).Raw(
-		"SELECT EXISTS (SELECT 1 FROM audit_logs WHERE strpos(message, ?) > 0)", messagePart,
+		"SELECT EXISTS (SELECT 1 FROM lib_audit_events WHERE strpos(message, ?) > 0)", messagePart,
 	).Scan(&isPresent).Error)
 
 	return isPresent
@@ -223,8 +223,8 @@ func countPasswordChangeRecords(t *testing.T, email string) int64 {
 
 	var recordCount int64
 	require.NoError(t, storage.GetDb().WithContext(t.Context()).Raw(
-		`SELECT COUNT(*) FROM audit_logs
-		 WHERE message = 'Password changed' AND user_id = (SELECT id FROM users WHERE email = ?)`,
+		`SELECT COUNT(*) FROM lib_audit_events
+		 WHERE message = 'Password changed' AND author_email = ?`,
 		email,
 	).Scan(&recordCount).Error)
 

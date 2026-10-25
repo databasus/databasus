@@ -72,7 +72,7 @@ func TestHooks(t *testing.T) {
 		func(t *testing.T) {
 			t.Parallel()
 			capturedRecords := &recordCapturer{records: nil, mutex: sync.Mutex{}}
-			hooks := apierror.NewHooks(apierror.Deps{Logger: slog.New(capturedRecords)})
+			hooks := apierror.NewHooks(apierror.Deps{Logger: logging.NewWithSinks(capturedRecords).GetLogger()})
 			router := gin.New()
 			router.Use(assignRequestID)
 			router.GET("/api/v1/items", func(ctx *gin.Context) {
@@ -141,7 +141,7 @@ func assignRequestID(ctx *gin.Context) {
 	requestID := uuid.NewString()
 
 	ctx.Header(requestIDHeader, requestID)
-	ctx.Request = ctx.Request.WithContext(logging.ContextWithRequestID(ctx.Request.Context(), requestID))
+	ctx.Request = ctx.Request.WithContext(logging.With(ctx.Request.Context(), slog.String("request_id", requestID)))
 
 	ctx.Next()
 }
@@ -163,10 +163,10 @@ func (c *recordCapturer) WithAttrs([]slog.Attr) slog.Handler { return c }
 
 func (c *recordCapturer) WithGroup(string) slog.Handler { return c }
 
-func (c *recordCapturer) Handle(ctx context.Context, record slog.Record) error {
+func (c *recordCapturer) Handle(_ context.Context, record slog.Record) error {
 	captured := capturedRecord{
 		level:      record.Level,
-		requestID:  logging.GetRequestID(ctx),
+		requestID:  "",
 		attributes: map[string]string{},
 	}
 
@@ -175,6 +175,8 @@ func (c *recordCapturer) Handle(ctx context.Context, record slog.Record) error {
 
 		return true
 	})
+
+	captured.requestID = captured.attributes["request_id"]
 
 	c.mutex.Lock()
 	defer c.mutex.Unlock()

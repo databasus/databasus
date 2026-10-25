@@ -1,6 +1,11 @@
 package background
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
+
+var ErrUnknownJob = errors.New("unknown background job")
 
 type PanicError struct {
 	Value any

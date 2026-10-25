@@ -26,6 +26,7 @@ import (
 	users_enums "databasus-backend/internal/features/users/enums"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
+	"databasus-backend/internal/lib/logging"
 	"databasus-backend/internal/util/cache"
 	"databasus-backend/internal/util/encryption"
 	util_logger "databasus-backend/internal/util/logger"
@@ -201,15 +202,15 @@ func Test_MakeBackup_WhenCallerContextCarriesRequestID_FinishLineIsAttributed(t 
 	backuper := CreateTestBackuper()
 	backuper.notificationSender = mockNotificationSender
 	backuper.createBackupUseCase = &CreateSuccessBackupUsecase{}
-	backuper.logger = slog.New(capturingHandler)
+	backuper.logger = logging.NewWithSinks(capturingHandler).GetLogger()
 
 	backup := SeedInProgressTestBackup(t, fixture.Database.ID, fixture.Storage.ID)
 
 	const requestID = "request-id-under-test"
 
-	backuper.MakeBackup(util_logger.ContextWithRequestID(t.Context(), requestID), backup.ID, true)
+	backuper.MakeBackup(logging.With(t.Context(), slog.String("request_id", requestID)), backup.ID, true)
 
-	capturedRequestID, isLogged := capturingHandler.GetRequestIDForMessagePrefix("logical backup finished")
+	capturedRequestID, isLogged := capturingHandler.FindRequestIDByMessagePrefix("logical backup finished")
 
 	assert.True(t, isLogged, "the backup finish line was never logged")
 	assert.Equal(t, requestID, capturedRequestID)
@@ -254,11 +255,18 @@ type requestIDCapturingHandler struct {
 
 func (h *requestIDCapturingHandler) Enabled(context.Context, slog.Level) bool { return true }
 
-func (h *requestIDCapturingHandler) Handle(ctx context.Context, record slog.Record) error {
+func (h *requestIDCapturingHandler) Handle(_ context.Context, record slog.Record) error {
 	h.mutex.Lock()
 	defer h.mutex.Unlock()
 
-	h.requestIDByMessage[record.Message] = util_logger.GetRequestID(ctx)
+	h.requestIDByMessage[record.Message] = ""
+	record.Attrs(func(attr slog.Attr) bool {
+		if attr.Key == "request_id" {
+			h.requestIDByMessage[record.Message] = attr.Value.String()
+		}
+
+		return true
+	})
 
 	return nil
 }
@@ -267,7 +275,7 @@ func (h *requestIDCapturingHandler) WithAttrs([]slog.Attr) slog.Handler { return
 
 func (h *requestIDCapturingHandler) WithGroup(string) slog.Handler { return h }
 
-func (h *requestIDCapturingHandler) GetRequestIDForMessagePrefix(prefix string) (string, bool) {
+func (h *requestIDCapturingHandler) FindRequestIDByMessagePrefix(prefix string) (string, bool) {
 	h.mutex.Lock()
 	defer h.mutex.Unlock()
 

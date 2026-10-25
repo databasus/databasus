@@ -9,10 +9,12 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	audit_logs_models "databasus-backend/internal/features/audit_logs/models"
 	user_enums "databasus-backend/internal/features/users/enums"
 	users_middleware "databasus-backend/internal/features/users/middleware"
+	users_repositories "databasus-backend/internal/features/users/repositories"
 	users_services "databasus-backend/internal/features/users/services"
 	users_testing "databasus-backend/internal/features/users/testing"
 	test_utils "databasus-backend/internal/util/testing"
@@ -171,6 +173,53 @@ func Test_GetGlobalAuditLogs_WithBeforeDateFilter_ReturnsFilteredLogs(t *testing
 			fmt.Sprintf("Log created at %s should be before filter time %s",
 				log.CreatedAt.Format(time.RFC3339), beforeTime.Format(time.RFC3339)))
 	}
+}
+
+func TestGetAuditLogs(t *testing.T) {
+	t.Run("shows the author's email and name from the event when the user changed both afterwards",
+		func(t *testing.T) {
+			adminUser := users_testing.CreateTestUser(t.Context(), user_enums.UserRoleAdmin)
+			author := users_testing.CreateTestUser(t.Context(), user_enums.UserRoleMember)
+			authorBeforeChange, err := users_repositories.GetUserRepository().GetUserByID(t.Context(), author.UserID)
+			require.NoError(t, err)
+			router := createRouter()
+			message := "Storage created: " + uuid.NewString()
+
+			createAuditLog(t, GetAuditLogService(), audit_logs_models.AuditEntry{
+				Message:     message,
+				UserID:      &author.UserID,
+				WorkspaceID: nil,
+			})
+			renameUser(t, author.UserID)
+
+			for _, path := range []string{
+				"/api/v1/audit-logs/global?limit=1000",
+				fmt.Sprintf("/api/v1/audit-logs/users/%s?limit=100", author.UserID),
+			} {
+				var listedLogs GetAuditLogsResponse
+				test_utils.MakeGetRequestAndUnmarshal(t, router, path, "Bearer "+adminUser.Token, http.StatusOK,
+					&listedLogs)
+
+				listedLog := findLogWithMessage(t, listedLogs.AuditLogs, message)
+				assert.Equal(t, &authorBeforeChange.Email, listedLog.UserEmail, path)
+				assert.Equal(t, &authorBeforeChange.Name, listedLog.UserName, path)
+			}
+		},
+	)
+}
+
+func findLogWithMessage(t *testing.T, listedLogs []*AuditLogDTO, message string) *AuditLogDTO {
+	t.Helper()
+
+	for _, listedLog := range listedLogs {
+		if listedLog.Message == message {
+			return listedLog
+		}
+	}
+
+	require.Failf(t, "audit log not listed", "no log with message %q", message)
+
+	return nil
 }
 
 func createRouter() *gin.Engine {

@@ -1,4 +1,5 @@
-// Package background runs goroutines that stop with their context and that shutdown can wait for.
+// Package background runs goroutines and periodic jobs that stop with their context and that
+// shutdown can wait for.
 package background
 
 import (

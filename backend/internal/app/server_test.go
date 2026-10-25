@@ -3,15 +3,18 @@ package app
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"databasus-backend/internal/lib/background"
 	"databasus-backend/internal/lib/config"
 	"databasus-backend/internal/lib/testwait"
 )
@@ -40,6 +43,45 @@ func TestServe(t *testing.T) {
 
 		assert.Less(t, time.Since(stoppedAt), 8*time.Second)
 		assert.Zero(t, testApp.backgroundGroup.GetRunningCount())
+	})
+
+	t.Run("returns after the running job pass ends when its context ends", func(t *testing.T) {
+		testApp := newTestApp(t)
+		var isPassStarted, isPassFinished atomic.Bool
+		testApp.runner = background.NewRunner(
+			background.RunnerDeps{Logger: testApp.logger, Clock: testApp.environment.Clock},
+			background.Job{
+				Name:     "slow_cleanup",
+				Interval: time.Hour,
+				Run: func(ctx context.Context, _ time.Time) error {
+					isPassStarted.Store(true)
+					<-ctx.Done()
+					<-time.After(200 * time.Millisecond)
+					isPassFinished.Store(true)
+
+					return nil
+				},
+			},
+		)
+		serveCtx, stopServing := context.WithCancel(t.Context())
+		serveErrors := make(chan error, 1)
+
+		address := reserveFreeAddress(t)
+
+		go func() { serveErrors <- testApp.Serve(serveCtx, address) }()
+
+		testwait.Until(t, "the job pass to start", func(context.Context) error {
+			if !isPassStarted.Load() {
+				return errors.New("the pass has not started")
+			}
+
+			return nil
+		})
+
+		stopServing()
+
+		require.NoError(t, <-serveErrors)
+		assert.True(t, isPassFinished.Load())
 	})
 
 	t.Run("returns an error before any loop starts when the port is busy", func(t *testing.T) {

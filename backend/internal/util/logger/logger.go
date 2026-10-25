@@ -66,22 +66,6 @@ func Redact(message string) string {
 	return logging.Redact(message)
 }
 
-func ContextWithRequestID(ctx context.Context, requestID string) context.Context {
-	return logging.ContextWithRequestID(ctx, requestID)
-}
-
-func GetRequestID(ctx context.Context) string {
-	return logging.GetRequestID(ctx)
-}
-
-func ContextWithUserID(ctx context.Context, userID string) context.Context {
-	return logging.ContextWithUserID(ctx, userID)
-}
-
-func GetUserID(ctx context.Context) string {
-	return logging.GetUserID(ctx)
-}
-
 func getLogging() *logging.Logging {
 	if loadedLogging := currentLogging.Load(); loadedLogging != nil {
 		return loadedLogging

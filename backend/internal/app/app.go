@@ -10,7 +10,9 @@ import (
 	"gorm.io/gorm"
 
 	old_config "databasus-backend/internal/config"
+	"databasus-backend/internal/features/audit_logs"
 	"databasus-backend/internal/features/email"
+	"databasus-backend/internal/lib/audit"
 	"databasus-backend/internal/lib/background"
 	"databasus-backend/internal/lib/crypto"
 	"databasus-backend/internal/lib/database"
@@ -35,6 +37,9 @@ type App struct {
 	logger      *slog.Logger
 	// backgroundGroup exists only while Serve runs, so a console command cannot start a loop.
 	backgroundGroup *background.Group
+	// runner is started only by Serve; a console command and a test application run its passes
+	// through RunJobPass.
+	runner *background.Runner
 }
 
 // New prepares everything the server and the console commands share: the schema of the current
@@ -101,7 +106,19 @@ func New(ctx context.Context, environment *Environment) (*App, error) {
 		Logger:   appLogger,
 	}))
 
+	auditLog := audit.New(audit.Deps{
+		DB:          db,
+		Clock:       environment.Clock,
+		AuditLogger: environment.Logging.GetAuditLogger(),
+	})
+	audit_logs.InstallAuditLog(auditLog)
+
 	setUpDependenciesOnce.Do(setUpDependencies)
+
+	runner := background.NewRunner(
+		background.RunnerDeps{Logger: appLogger, Clock: environment.Clock},
+		newAuditEventsCleanupJob(auditLog, appLogger),
+	)
 
 	return &App{
 		environment:     environment,
@@ -109,7 +126,13 @@ func New(ctx context.Context, environment *Environment) (*App, error) {
 		transactor:      transactor,
 		logger:          appLogger,
 		backgroundGroup: nil,
+		runner:          runner,
 	}, nil
+}
+
+// RunJobPass runs one pass of the named background job and returns its error.
+func (a *App) RunJobPass(ctx context.Context, name string) error {
+	return a.runner.RunPass(ctx, name)
 }
 
 // moveLegacyAndOpenMasterKey runs before the old code is wired, so nothing encrypts with a key that a

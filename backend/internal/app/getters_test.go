@@ -68,10 +68,6 @@ func getOldCodeGetters() []oldCodeGetter {
 		{"features/audit_logs.GetAuditLogService", func() any { return audit_logs.GetAuditLogService() }},
 		{"features/audit_logs.GetAuditLogController", func() any { return audit_logs.GetAuditLogController() }},
 		{
-			"features/audit_logs.GetAuditLogBackgroundService",
-			func() any { return audit_logs.GetAuditLogBackgroundService() },
-		},
-		{
 			"features/backups/backups/backuping/logical.GetBackupsScheduler",
 			func() any { return backups_backups_backuping_logical.GetBackupsScheduler() },
 		},

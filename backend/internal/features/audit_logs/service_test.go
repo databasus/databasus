@@ -1,11 +1,6 @@
 package audit_logs
 
 import (
-	"bytes"
-	"context"
-	"encoding/json"
-	"io"
-	"log/slog"
 	"testing"
 	"time"
 
@@ -15,8 +10,8 @@ import (
 
 	audit_logs_models "databasus-backend/internal/features/audit_logs/models"
 	user_enums "databasus-backend/internal/features/users/enums"
+	users_repositories "databasus-backend/internal/features/users/repositories"
 	users_testing "databasus-backend/internal/features/users/testing"
-	"databasus-backend/internal/util/logger"
 )
 
 func Test_AuditLogs_WorkspaceSpecificLogs(t *testing.T) {
@@ -93,71 +88,92 @@ func Test_AuditLogs_WorkspaceSpecificLogs(t *testing.T) {
 	}
 }
 
-func Test_WriteAuditLog_PersistsRowAndEmitsToLogPipeline(t *testing.T) {
-	capturedRecords := &bytes.Buffer{}
-	user := users_testing.CreateTestUser(t.Context(), user_enums.UserRoleMember)
-	workspaceID := uuid.New()
+func TestWriteAuditLog(t *testing.T) {
+	t.Run("stores the author's email and name when the entry has a user ID", func(t *testing.T) {
+		author := users_testing.CreateTestUser(t.Context(), user_enums.UserRoleMember)
+		workspaceID := uuid.New()
 
-	service := &AuditLogService{
-		GetAuditLogService().auditLogRepository,
-		slog.New(slog.NewJSONHandler(io.Discard, nil)),
-		slog.New(slog.NewJSONHandler(capturedRecords, nil)),
-	}
+		GetAuditLogService().WriteAuditLog(t.Context(), audit_logs_models.AuditEntry{
+			Message:     "Storage created: nightly-backups",
+			UserID:      &author.UserID,
+			WorkspaceID: &workspaceID,
+		})
 
-	service.WriteAuditLog(t.Context(), audit_logs_models.AuditEntry{
-		Message:     "Storage created: nightly-backups",
-		UserID:      &user.UserID,
-		WorkspaceID: &workspaceID,
+		storedLog := getSingleWorkspaceLog(t, workspaceID)
+		assert.Equal(t, "Storage created: nightly-backups", storedLog.Message)
+		assert.Equal(t, &author.UserID, storedLog.UserID)
+		assert.Equal(t, &author.Email, storedLog.UserEmail)
+		assert.NotNil(t, storedLog.UserName)
 	})
 
-	var auditRecord map[string]any
-	require.NoError(t, json.Unmarshal(capturedRecords.Bytes(), &auditRecord))
-	assert.Equal(t, "Storage created: nightly-backups", auditRecord["msg"])
-	assert.Equal(t, user.UserID.String(), auditRecord["user_id"])
-	assert.Equal(t, workspaceID.String(), auditRecord["workspace_id"])
+	t.Run("keeps the author's email and name when the user changes both afterwards", func(t *testing.T) {
+		author := users_testing.CreateTestUser(t.Context(), user_enums.UserRoleMember)
+		authorBeforeChange, err := users_repositories.GetUserRepository().GetUserByID(t.Context(), author.UserID)
+		require.NoError(t, err)
+		workspaceID := uuid.New()
 
-	persistedLogs, err := service.GetWorkspaceAuditLogs(t.Context(), workspaceID, &GetAuditLogsRequest{Limit: 10})
+		GetAuditLogService().WriteAuditLog(t.Context(), audit_logs_models.AuditEntry{
+			Message:     "Storage created: nightly-backups",
+			UserID:      &author.UserID,
+			WorkspaceID: &workspaceID,
+		})
+		renameUser(t, author.UserID)
+
+		storedLog := getSingleWorkspaceLog(t, workspaceID)
+		assert.Equal(t, &authorBeforeChange.Email, storedLog.UserEmail)
+		assert.Equal(t, &authorBeforeChange.Name, storedLog.UserName)
+	})
+
+	t.Run("stores no author when the entry has no user ID", func(t *testing.T) {
+		workspaceID := uuid.New()
+
+		GetAuditLogService().WriteAuditLog(t.Context(), audit_logs_models.AuditEntry{
+			Message:     "Backup failed: payments",
+			UserID:      nil,
+			WorkspaceID: &workspaceID,
+		})
+
+		storedLog := getSingleWorkspaceLog(t, workspaceID)
+		assert.Nil(t, storedLog.UserID)
+		assert.Nil(t, storedLog.UserEmail)
+		assert.Nil(t, storedLog.UserName)
+	})
+
+	t.Run("stores the event without an author when the account no longer exists", func(t *testing.T) {
+		removedUser := users_testing.CreateTestUser(t.Context(), user_enums.UserRoleMember)
+		users_testing.DeleteTestUser(t.Context(), removedUser.UserID)
+		workspaceID := uuid.New()
+
+		GetAuditLogService().WriteAuditLog(t.Context(), audit_logs_models.AuditEntry{
+			Message:     "Storage deleted: nightly-backups",
+			UserID:      &removedUser.UserID,
+			WorkspaceID: &workspaceID,
+		})
+
+		storedLog := getSingleWorkspaceLog(t, workspaceID)
+		assert.Equal(t, "Storage deleted: nightly-backups", storedLog.Message)
+		assert.Nil(t, storedLog.UserID)
+	})
+}
+
+func getSingleWorkspaceLog(t *testing.T, workspaceID uuid.UUID) *AuditLogDTO {
+	t.Helper()
+
+	listedLogs, err := GetAuditLogService().GetWorkspaceAuditLogs(
+		t.Context(), workspaceID, &GetAuditLogsRequest{Limit: 10, Offset: 0, BeforeDate: nil},
+	)
 	require.NoError(t, err)
-	assert.Contains(t, extractMessages(persistedLogs.AuditLogs), "Storage created: nightly-backups")
+	require.Len(t, listedLogs.AuditLogs, 1)
+
+	return listedLogs.AuditLogs[0]
 }
 
-// A JSON sink cannot show this: the request id is attached by the fan-out handler from the context
-// it is handed, so the capturing handler asserts on the context instead of the output.
-func Test_WriteAuditLog_WhenRequestIsInFlight_EmitsUnderThatRequestID(t *testing.T) {
-	loggedRequestIDs := &[]string{}
-	user := users_testing.CreateTestUser(t.Context(), user_enums.UserRoleMember)
-	workspaceID := uuid.New()
+func renameUser(t *testing.T, userID uuid.UUID) {
+	t.Helper()
 
-	service := &AuditLogService{
-		GetAuditLogService().auditLogRepository,
-		slog.New(slog.NewJSONHandler(io.Discard, nil)),
-		slog.New(requestIDCapturer{loggedRequestIDs}),
-	}
-
-	ctx := logger.ContextWithRequestID(t.Context(), "3b0f7a52-6c11-4e39-9f7d-2a5c8e4b1d06")
-	service.WriteAuditLog(ctx, audit_logs_models.AuditEntry{
-		Message:     "Database deleted: payments",
-		UserID:      &user.UserID,
-		WorkspaceID: &workspaceID,
-	})
-
-	assert.Equal(t, []string{"3b0f7a52-6c11-4e39-9f7d-2a5c8e4b1d06"}, *loggedRequestIDs)
-}
-
-type requestIDCapturer struct {
-	requestIDs *[]string
-}
-
-func (h requestIDCapturer) Enabled(context.Context, slog.Level) bool { return true }
-
-func (h requestIDCapturer) WithAttrs([]slog.Attr) slog.Handler { return h }
-
-func (h requestIDCapturer) WithGroup(string) slog.Handler { return h }
-
-func (h requestIDCapturer) Handle(ctx context.Context, _ slog.Record) error {
-	*h.requestIDs = append(*h.requestIDs, logger.GetRequestID(ctx))
-
-	return nil
+	changedName := "Renamed " + uuid.NewString()
+	changedEmail := "renamed-" + uuid.NewString() + "@example.com"
+	require.NoError(t, users_repositories.GetUserRepository().UpdateUserInfo(userID, &changedName, &changedEmail))
 }
 
 func createAuditLog(t *testing.T, service *AuditLogService, entry audit_logs_models.AuditEntry) {

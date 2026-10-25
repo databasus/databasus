@@ -8,12 +8,14 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	audit_logs "databasus-backend/internal/features/audit_logs"
 	audit_logs_models "databasus-backend/internal/features/audit_logs/models"
 	users_dto "databasus-backend/internal/features/users/dto"
 	users_enums "databasus-backend/internal/features/users/enums"
 	users_models "databasus-backend/internal/features/users/models"
+	users_repositories "databasus-backend/internal/features/users/repositories"
 	users_services "databasus-backend/internal/features/users/services"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_dto "databasus-backend/internal/features/workspaces/dto"
@@ -559,6 +561,41 @@ func Test_GetWorkspaceAuditLogs_WhenUserIsWorkspaceAdmin_ReturnsAuditLogs(t *tes
 	for _, log := range response.AuditLogs {
 		assert.Equal(t, &workspace.ID, log.WorkspaceID)
 	}
+}
+
+func TestGetWorkspaceAuditLogs(t *testing.T) {
+	t.Run("shows the author's email and name from the event when the user changed both afterwards",
+		func(t *testing.T) {
+			router := workspaces_testing.CreateTestRouter(
+				GetWorkspaceController(),
+				GetMembershipController(),
+			)
+			owner := users_testing.CreateTestUser(t.Context(), users_enums.UserRoleMember)
+			ownerBeforeChange, err := users_repositories.GetUserRepository().GetUserByID(t.Context(), owner.UserID)
+			require.NoError(t, err)
+			workspace, _ := workspaces_testing.CreateTestWorkspaceWithToken(t.Context(),
+				"Snapshot Test "+uuid.NewString()[:8], owner.Token, router)
+			defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
+
+			changedName := "Renamed " + uuid.NewString()
+			changedEmail := "renamed-" + uuid.NewString() + "@example.com"
+			require.NoError(t, users_repositories.GetUserRepository().UpdateUserInfo(
+				owner.UserID, &changedName, &changedEmail,
+			))
+
+			var listedLogs audit_logs.GetAuditLogsResponse
+			test_utils.MakeGetRequestAndUnmarshal(t, router,
+				"/api/v1/workspaces/"+workspace.ID.String()+"/audit-logs",
+				"Bearer "+owner.Token, http.StatusOK, &listedLogs)
+
+			require.NotEmpty(t, listedLogs.AuditLogs)
+			for _, listedLog := range listedLogs.AuditLogs {
+				require.Equal(t, &owner.UserID, listedLog.UserID)
+				assert.Equal(t, &ownerBeforeChange.Email, listedLog.UserEmail)
+				assert.Equal(t, &ownerBeforeChange.Name, listedLog.UserName)
+			}
+		},
+	)
 }
 
 func Test_GetWorkspaceAuditLogs_WithMultipleWorkspaces_ReturnsOnlyWorkspaceSpecificLogs(

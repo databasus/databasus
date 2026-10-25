@@ -1,5 +1,6 @@
 // Package apptest builds the real application for backend API tests: the routes and middleware of
-// the server, an internal database of the test's own and no background loop.
+// the server, an internal database of the test's own, a clock the test moves and background jobs
+// that run only when the test runs their passes.
 package apptest
 
 import (
@@ -9,8 +10,10 @@ import (
 	"path/filepath"
 	"sync"
 	"testing"
+	"time"
 
 	"databasus-backend/internal/app"
+	"databasus-backend/internal/lib/clock"
 	"databasus-backend/internal/lib/config"
 	"databasus-backend/internal/lib/testdb"
 )
@@ -18,8 +21,11 @@ import (
 type App struct {
 	// URL is the address of the server without /api/v1, the base URL apiclient.New takes.
 	URL string
+	// Clock starts at the real time and moves only when the test moves it.
+	Clock *clock.Manual
 
 	databaseDsn string
+	app         *app.App
 }
 
 // The old code reaches its configuration and database through process-wide state, so one test
@@ -58,7 +64,9 @@ func New(tb testing.TB) *App {
 
 	databaseDsn := testdb.Open(tb)
 
-	environment, err := app.NewEnvironment(tb.Context(), newConfig(tb, databaseDsn))
+	manualClock := clock.NewManual(time.Now())
+
+	environment, err := app.NewEnvironment(tb.Context(), newConfig(tb, databaseDsn), manualClock)
 	if err != nil {
 		tb.Fatalf("build the environment of the test application: %v", err)
 	}
@@ -78,7 +86,18 @@ func New(tb testing.TB) *App {
 	server := httptest.NewServer(handler)
 	tb.Cleanup(server.Close)
 
-	return &App{URL: server.URL, databaseDsn: databaseDsn}
+	return &App{URL: server.URL, Clock: manualClock, databaseDsn: databaseDsn, app: createdApp}
+}
+
+// RunJobPass runs one pass of the named background job and fails the test when the pass fails or
+// no job has the name.
+func (a *App) RunJobPass(tb testing.TB, name string) {
+	tb.Helper()
+
+	err := a.app.RunJobPass(tb.Context(), name)
+	if err != nil {
+		tb.Fatalf("run a pass of the background job %s: %v", name, err)
+	}
 }
 
 // newConfig sets the database after loading, so a DATABASE_DSN in the environment of the test run

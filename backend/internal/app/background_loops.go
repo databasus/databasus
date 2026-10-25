@@ -3,7 +3,6 @@ package app
 import (
 	"context"
 
-	"databasus-backend/internal/features/audit_logs"
 	backuping_logical "databasus-backend/internal/features/backups/backups/backuping/logical"
 	backuping_physical "databasus-backend/internal/features/backups/backups/backuping/physical"
 	backups_download "databasus-backend/internal/features/backups/backups/download"
@@ -29,7 +28,6 @@ func (a *App) startBackgroundLoops(ctx context.Context) {
 		{"physical backup cleaner background service", backuping_physical.GetPhysicalBackupCleaner().Run},
 		{"restore background service", restoring.GetRestoresScheduler().Run},
 		{"healthcheck attempt background service", healthcheck_attempt.GetHealthcheckAttemptBackgroundService().Run},
-		{"audit log cleanup background service", audit_logs.GetAuditLogBackgroundService().Run},
 		{"download token cleanup background service", backups_download.GetDownloadTokenBackgroundService().Run},
 		{"physical wal stream supervisor background service", backuping_physical.GetPhysicalWalStreamSupervisor().Run},
 		{"storage file deletion background service", storages.GetStorageFileDeletionWorker().Run},

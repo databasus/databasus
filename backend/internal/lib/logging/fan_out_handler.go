@@ -37,12 +37,8 @@ func (h *fanOutHandler) Handle(ctx context.Context, record slog.Record) error {
 		return true
 	})
 
-	if requestID := GetRequestID(ctx); requestID != "" {
-		redactedRecord.AddAttrs(slog.String(requestIDKey, requestID))
-	}
-
-	if userID := GetUserID(ctx); userID != "" {
-		redactedRecord.AddAttrs(slog.String(userIDKey, userID))
+	for _, contextAttr := range getContextAttrs(ctx) {
+		redactedRecord.AddAttrs(redactAttr(contextAttr))
 	}
 
 	var sinkErrors []error

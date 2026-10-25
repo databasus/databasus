@@ -1,6 +1,7 @@
 package users_middleware
 
 import (
+	"log/slog"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -8,6 +9,7 @@ import (
 	users_enums "databasus-backend/internal/features/users/enums"
 	users_models "databasus-backend/internal/features/users/models"
 	users_services "databasus-backend/internal/features/users/services"
+	"databasus-backend/internal/lib/logging"
 	"databasus-backend/internal/util/logger"
 )
 
@@ -40,10 +42,8 @@ func AuthMiddleware(userService *users_services.UserService) gin.HandlerFunc {
 
 		ctx.Set("user", user)
 
-		// Puts the principal on the context the controllers already pass into services, so every
-		// downstream record carries it without a scoped logger.
 		ctx.Request = ctx.Request.WithContext(
-			logger.ContextWithUserID(ctx.Request.Context(), user.ID.String()),
+			logging.With(ctx.Request.Context(), slog.String("user_id", user.ID.String())),
 		)
 
 		ctx.Next()

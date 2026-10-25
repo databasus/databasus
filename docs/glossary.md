@@ -17,6 +17,7 @@ This is the project's common language. Each concept has one term in the document
 | Instance admin | admin | A user with the global admin role, who manages users and instance settings. |
 | Actor | actor | The user on whose behalf a request runs: user ID and global role. |
 | Audit event | audit event | A record of who did what to which object, written in the transaction of the action. |
+| Audit author | audit author | The user an audit event names as the one who acted, kept in the event as a snapshot of user ID, email and name. |
 | Backup config | backup config | The settings that say how a database is backed up: type, schedule, storage, retention, encryption. A database has at most one logical and one physical backup config. |
 | Logical backup | logical backup | A dump produced by the engine's dump tool (`pg_dump`, `mysqldump`, `mariadb-dump`, `mongodump`). |
 | Physical backup | physical backup | A copy of a PostgreSQL cluster's files taken over the replication protocol. Either full or incremental. |

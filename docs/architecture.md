@@ -72,8 +72,8 @@ Go's `internal/` rule makes the rest of the module unreachable from outside.
 
 | Module | Owns |
 |---|---|
-| `users` | accounts, sign-in (password, GitHub and Google OAuth, email codes), password reset, instance settings, global roles, the request's `Actor`, the instance admin area including the global audit log |
-| `workspaces` | workspaces, memberships, workspace roles, invitations, `Authorize`, the workspace audit log |
+| `users` | accounts, sign-in (password, GitHub and Google OAuth, email codes), password reset, instance settings, global roles, the request's `Actor`, the instance admin area |
+| `workspaces` | workspaces, memberships, workspace roles, invitations, `Authorize`, every audit log view: the global one, a user's and a workspace's |
 | `notifiers` | notification channels and sending a notification |
 | `storages` | storages, the file lifecycle (write receipts, pending deletions and the deletion worker) |
 | `databases` | connections to user databases, connection tests, read-only and replication users, the last backup time and health status shown in the list |
@@ -147,7 +147,7 @@ Settings stay in columns rather than in a JSON document for two reasons. The dat
 
 Test support lives in `lib` too: `testdb`, `testwait`, the contract-checking test clients `apiclient` and `agentclienttest`, and `testcontainers` with the containers of every engine and storage.
 
-Audit events are written through `lib/audit` in the transaction of the operation they describe. Each event stores a snapshot of its actor's ID and email. The event stays readable after the user is deleted, and reading it needs no join with `users`. `users` serves the global audit log and `workspaces` serves a workspace's audit log, because each of them owns the access rule for its view.
+Audit events are written through `lib/audit` in the transaction of the operation they describe. Each event stores a snapshot of its audit author's user ID, email and name as they were at the time of the action. The event reads the same after the user changes or is deleted, and reading it needs no join with `users`. `workspaces` serves every audit log view, the global one included: each view shows the name of the workspace an event belongs to, which only `workspaces` can read, and `workspaces` can apply each view's access rule.
 
 ## Data
 
@@ -252,7 +252,7 @@ Settings come from environment variables, with `.env` as an optional local sourc
 - The first middleware gives every request a fresh `request_id` and returns it as `X-Request-Id`. An incoming `X-Request-Id` is ignored, so a client cannot stitch its actions into another trace.
 - Attributes of an operation travel in the context: `request_id` from the middleware, `job_name` and `job_id` from the runner, and entity IDs added with `logging.With`. The log handler adds them to every record.
 - A message is a constant lowercase phrase. Values go into attributes with `snake_case` keys, never into the message.
-- Before any sink sees a record, the log handler masks the values of attributes whose names mark a secret (password, token, secret, key, authorization, cookie), secrets that match known patterns inside messages, such as a password in a connection string, and email addresses. Audit records identify the actor by user ID, so masking emails does not cost the file its forensic value.
+- Before any sink sees a record, the log handler masks the values of attributes whose names mark a secret (password, token, secret, key, authorization, cookie), secrets that match known patterns inside messages, such as a password in a connection string, and email addresses. Audit records identify the audit author by user ID, so masking emails does not cost the file its forensic value.
 
 ## Verification agent
 

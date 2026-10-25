@@ -4,8 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"strconv"
 	"testing"
+	"time"
 
 	"databasus-backend/e2e/upgrade/upgradecheck"
 	"databasus-backend/internal/lib/testwait"
@@ -81,6 +83,19 @@ type currentBackupConfig struct {
 	Encryption       string  `json:"encryption"`
 }
 
+type currentAuditLogList struct {
+	AuditLogs []currentAuditLog `json:"auditLogs"`
+}
+
+type currentAuditLog struct {
+	ID          string  `json:"id"`
+	WorkspaceID *string `json:"workspaceId"`
+	Message     string  `json:"message"`
+	CreatedAt   string  `json:"createdAt"`
+	UserEmail   *string `json:"userEmail"`
+	UserName    *string `json:"userName"`
+}
+
 type currentBackupList struct {
 	Backups []currentBackup `json:"backups"`
 }
@@ -145,7 +160,64 @@ func readUpgradeData(ctx context.Context, api *apiClient) ([]upgradecheck.Item, 
 		return nil, err
 	}
 
-	return append(listedItems, workspaceItems...), nil
+	auditEventItems, err := listAuditEventItems(ctx, api)
+	if err != nil {
+		return nil, err
+	}
+
+	return slices.Concat(listedItems, workspaceItems, auditEventItems), nil
+}
+
+func listAuditEventItems(ctx context.Context, api *apiClient) ([]upgradecheck.Item, error) {
+	var auditLogList currentAuditLogList
+
+	err := api.get(ctx, "/audit-logs/global?limit=1000", &auditLogList)
+	if err != nil {
+		return nil, fmt.Errorf("list the global audit log: %w", err)
+	}
+
+	auditEventItems := make([]upgradecheck.Item, 0, len(auditLogList.AuditLogs))
+
+	for _, auditLog := range auditLogList.AuditLogs {
+		createdAt, err := normalizeAuditTime(auditLog.CreatedAt)
+		if err != nil {
+			return nil, err
+		}
+
+		auditEventItems = append(auditEventItems, upgradecheck.Item{
+			Kind: "audit event",
+			Name: auditLog.ID,
+			Values: map[string]string{
+				"message":     auditLog.Message,
+				"createdAt":   createdAt,
+				"workspaceId": getOptionalValue(auditLog.WorkspaceID),
+				"authorEmail": getOptionalValue(auditLog.UserEmail),
+				"authorName":  getOptionalValue(auditLog.UserName),
+			},
+		})
+	}
+
+	return auditEventItems, nil
+}
+
+// normalizeAuditTime writes a time in UTC, because the release before the upgrade stored a time
+// without a zone and the current code stores one with it, so the two serialize the same instant
+// differently.
+func normalizeAuditTime(serializedTime string) (string, error) {
+	parsedTime, err := time.Parse(time.RFC3339Nano, serializedTime)
+	if err != nil {
+		return "", fmt.Errorf("parse the audit event time %q: %w", serializedTime, err)
+	}
+
+	return parsedTime.UTC().Format(time.RFC3339Nano), nil
+}
+
+func getOptionalValue(value *string) string {
+	if value == nil {
+		return ""
+	}
+
+	return *value
 }
 
 func readWorkspaceItems(ctx context.Context, api *apiClient, workspaceID string) ([]upgradecheck.Item, error) {

@@ -1,7 +1,6 @@
 package features
 
 import (
-	"fmt"
 	"sync"
 	"testing"
 	"time"
@@ -74,39 +73,6 @@ func Test_SetupDependencies_ConcurrentCalls_Safe(t *testing.T) {
 
 	wg.Wait()
 	t.Log("Concurrent SetupDependencies calls completed successfully")
-}
-
-// Test_BackgroundService_Run_CalledTwice_Panics verifies Run() panics on duplicate calls
-func Test_BackgroundService_Run_CalledTwice_Panics(t *testing.T) {
-	ctx := t.Context()
-
-	// Create a test background service
-	backgroundService := audit_logs.GetAuditLogBackgroundService()
-
-	// Start first Run() in goroutine
-	go func() {
-		backgroundService.Run(ctx)
-	}()
-
-	// Give first call time to initialize
-	time.Sleep(100 * time.Millisecond)
-
-	// Second call should panic
-	defer func() {
-		if r := recover(); r != nil {
-			expectedMsg := "*audit_logs.AuditLogBackgroundService.Run() called multiple times"
-			panicMsg := fmt.Sprintf("%v", r)
-			if panicMsg == expectedMsg {
-				t.Logf("Successfully caught panic: %v", r)
-			} else {
-				t.Errorf("Expected panic message '%s', got '%s'", expectedMsg, panicMsg)
-			}
-		} else {
-			t.Error("Expected panic on second Run() call, but did not panic")
-		}
-	}()
-
-	backgroundService.Run(ctx)
 }
 
 // Test_BackupsScheduler_Run_CalledTwice_Panics verifies scheduler panics on duplicate calls
