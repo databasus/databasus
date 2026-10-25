@@ -32,7 +32,7 @@ Rules for writing Go code in `backend/`, which holds the server and the verifica
 ## Handlers, services, repositories
 
 - A handler implements the generated strict server interface: it takes the decoded request, calls one service method with the request context and returns the generated response type. It holds no logic, and it checks nothing beyond what the contract already enforces.
-- A service checks access first: it looks the object up, answers "not found" when it is missing, then calls `workspaces.Authorize`. It opens transactions with `database.Transaction(ctx, fn)` and writes the audit event inside the same transaction.
+- A service checks access first: it looks the object up, answers "not found" when it is missing, then calls `workspaces.Authorize`. It opens transactions with `Transaction(ctx, fn)` of the `*database.Transactor` from `Deps` and writes the audit event inside the same transaction.
 - A repository runs every query through `database.Conn(ctx, r.db)`. A lookup that finds nothing returns `false` as its second value, never `gorm.ErrRecordNotFound`. A repository changes one column with one `UPDATE`, never by saving the whole row. It uses no GORM associations and no `Preload` across tables.
 
 ## Errors

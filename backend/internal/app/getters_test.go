@@ -29,7 +29,6 @@ import (
 	databases "databasus-backend/internal/features/databases"
 	disk "databasus-backend/internal/features/disk"
 	email "databasus-backend/internal/features/email"
-	encryption_secrets "databasus-backend/internal/features/encryption/secrets"
 	healthcheck_attempt "databasus-backend/internal/features/healthcheck/attempt"
 	healthcheck_config "databasus-backend/internal/features/healthcheck/config"
 	notifiers "databasus-backend/internal/features/notifiers"
@@ -216,11 +215,7 @@ func getOldCodeGetters() []oldCodeGetter {
 		{"features/databases.GetDatabaseController", func() any { return databases.GetDatabaseController() }},
 		{"features/disk.GetDiskService", func() any { return disk.GetDiskService() }},
 		{"features/disk.GetDiskController", func() any { return disk.GetDiskController() }},
-		{"features/email.GetEmailSMTPSender", func() any { return email.GetEmailSMTPSender() }},
-		{
-			"features/encryption/secrets.GetSecretKeyService",
-			func() any { return encryption_secrets.GetSecretKeyService() },
-		},
+		{"features/email.GetInstanceSender", func() any { return email.GetInstanceSender() }},
 		{
 			"features/healthcheck/attempt.GetHealthcheckAttemptRepository",
 			func() any { return healthcheck_attempt.GetHealthcheckAttemptRepository() },
@@ -377,6 +372,7 @@ func getOldCodeGetters() []oldCodeGetter {
 			func() any { return util_cloudflare_turnstile.GetCloudflareTurnstileService() },
 		},
 		{"util/encryption.GetFieldEncryptor", func() any { return util_encryption.GetFieldEncryptor() }},
+		{"util/encryption.GetMasterKey", func() any { return util_encryption.GetMasterKey() }},
 	}
 }
 

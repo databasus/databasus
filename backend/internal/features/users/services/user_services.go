@@ -21,13 +21,13 @@ import (
 
 	"databasus-backend/internal/config"
 	audit_logs_models "databasus-backend/internal/features/audit_logs/models"
-	"databasus-backend/internal/features/encryption/secrets"
 	users_dto "databasus-backend/internal/features/users/dto"
 	users_enums "databasus-backend/internal/features/users/enums"
 	users_errors "databasus-backend/internal/features/users/errors"
 	users_interfaces "databasus-backend/internal/features/users/interfaces"
 	users_models "databasus-backend/internal/features/users/models"
 	users_repositories "databasus-backend/internal/features/users/repositories"
+	"databasus-backend/internal/lib/crypto"
 	"databasus-backend/internal/util/ratelimiter"
 )
 
@@ -38,7 +38,7 @@ const bootstrapAdminIndexName = "idx_users_is_root_admin"
 
 type UserService struct {
 	userRepository          *users_repositories.UserRepository
-	secretKeyService        *secrets.SecretKeyService
+	masterKey               *crypto.MasterKey
 	settingsService         *SettingsService
 	auditLogWriter          users_interfaces.AuditLogWriter
 	emailSender             users_interfaces.EmailSender
@@ -213,10 +213,7 @@ func (s *UserService) SignIn(
 }
 
 func (s *UserService) GetUserFromToken(ctx context.Context, token string) (*users_models.User, error) {
-	secretKey, err := s.secretKeyService.GetSecretKey()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get secret key: %w", err)
-	}
+	secretKey := s.masterKey.GetSecret()
 
 	parsedToken, err := jwt.Parse(token, func(token *jwt.Token) (any, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -272,10 +269,7 @@ func (s *UserService) GenerateAccessToken(
 	ctx context.Context,
 	user *users_models.User,
 ) (*users_dto.SignInResponseDTO, error) {
-	secretKey, err := s.secretKeyService.GetSecretKey()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get secret key: %w", err)
-	}
+	secretKey := s.masterKey.GetSecret()
 
 	tenYearsExpiration := time.Now().UTC().Add(time.Hour * 24 * 365 * 10)
 

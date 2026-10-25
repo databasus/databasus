@@ -17,7 +17,6 @@ import (
 	postgresql_executor "databasus-backend/internal/features/backups/backups/usecases/physical/postgresql"
 	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
 	"databasus-backend/internal/features/databases"
-	encryption_secrets "databasus-backend/internal/features/encryption/secrets"
 	"databasus-backend/internal/features/notifiers"
 	"databasus-backend/internal/features/storages"
 	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
@@ -49,7 +48,7 @@ func CreateTestPhysicalBackuper(notificationSender NotificationSender) *Physical
 		storages.GetStorageFileStore(),
 		sender,
 		tasks_cancellation.GetRegistry(),
-		encryption_secrets.GetSecretKeyService(),
+		encryption.GetMasterKey(),
 		logger.GetLogger(),
 		postgresql_executor.NewCreateFullBackupUsecase(),
 		postgresql_executor.NewCreateIncrementalBackupUsecase(),
@@ -112,7 +111,7 @@ func CreateTestWalStreamSupervisor(spec WalStreamSupervisorTestSpec) *PhysicalWa
 		physical_repositories.GetWalStreamSampleRepository(),
 		spec.NotificationSender,
 		taskCancellationRegistry,
-		encryption_secrets.GetSecretKeyService(),
+		encryption.GetMasterKey(),
 		encryption.GetFieldEncryptor(),
 		logger.GetLogger(),
 		chainAlertMinInterval,

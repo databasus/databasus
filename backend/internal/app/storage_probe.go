@@ -43,7 +43,9 @@ type probedStorage interface {
 
 func probeStorage(ctx context.Context, environment *Environment, localStorage probedStorage) error {
 	probeLogger := environment.Logging.GetLogger()
-	fieldEncryptor := encryption.GetFieldEncryptor()
+	// Local storage stores no secret, and the master key is opened only by New, after the move of a
+	// legacy key from the database.
+	var fieldEncryptor encryption.FieldEncryptor
 	probeFileName := ".databasus-storage-test-" + uuid.NewString()
 
 	err := localStorage.SaveFile(

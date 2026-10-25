@@ -39,7 +39,7 @@ var getMembershipService = sync.OnceValue(func() *MembershipService {
 		audit_logs.GetAuditLogService(),
 		getWorkspaceService(),
 		users_services.GetSettingsService(),
-		email.GetEmailSMTPSender(),
+		email.GetInstanceSender(),
 		logger.GetLogger(),
 	}
 })

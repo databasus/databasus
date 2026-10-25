@@ -22,11 +22,11 @@ import (
 	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
 	"databasus-backend/internal/features/databases"
 	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
-	encryption_secrets "databasus-backend/internal/features/encryption/secrets"
 	notifier_models "databasus-backend/internal/features/notifiers/models"
 	"databasus-backend/internal/features/storages"
 	storage_files "databasus-backend/internal/features/storages/files"
 	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
+	"databasus-backend/internal/lib/crypto"
 	util_encryption "databasus-backend/internal/util/encryption"
 	"databasus-backend/internal/util/walmath"
 )
@@ -45,7 +45,7 @@ type PhysicalWalStreamSupervisor struct {
 	walStreamSampleRepo      *physical_repositories.PhysicalWalStreamSampleRepository
 	notificationSender       NotificationSender
 	taskCancellationRegistry *tasks_cancellation.Registry
-	secretKeyService         *encryption_secrets.SecretKeyService
+	masterKey                *crypto.MasterKey
 	fieldEncryptor           util_encryption.FieldEncryptor
 	logger                   *slog.Logger
 
@@ -357,12 +357,7 @@ func (s *PhysicalWalStreamSupervisor) resolveMasterKey(
 		return "", true
 	}
 
-	key, err := s.secretKeyService.GetSecretKey()
-	if err != nil {
-		logger.Error("failed to fetch master key", "error", err)
-
-		return "", false
-	}
+	key := s.masterKey.GetSecret()
 
 	return key, true
 }

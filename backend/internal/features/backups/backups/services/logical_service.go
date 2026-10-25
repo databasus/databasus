@@ -21,12 +21,12 @@ import (
 	"databasus-backend/internal/features/backups/backups/encryption"
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
 	"databasus-backend/internal/features/databases"
-	encryption_secrets "databasus-backend/internal/features/encryption/secrets"
 	"databasus-backend/internal/features/notifiers"
 	"databasus-backend/internal/features/storages"
 	task_cancellation "databasus-backend/internal/features/tasks/cancellation"
 	users_models "databasus-backend/internal/features/users/models"
 	workspaces_services "databasus-backend/internal/features/workspaces/services"
+	"databasus-backend/internal/lib/crypto"
 	util_encryption "databasus-backend/internal/util/encryption"
 	files_utils "databasus-backend/internal/util/files"
 )
@@ -38,7 +38,7 @@ type LogicalBackupService struct {
 	notifierService     *notifiers.NotifierService
 	notificationSender  backups_core_logical.NotificationSender
 	backupConfigService *backups_config_logical.BackupConfigService
-	secretKeyService    *encryption_secrets.SecretKeyService
+	masterKey           *crypto.MasterKey
 	fieldEncryptor      util_encryption.FieldEncryptor
 
 	createBackupUseCase backups_core_logical.CreateBackupUsecase
@@ -309,13 +309,7 @@ func (s *LogicalBackupService) GetBackupReader(
 		return nil, fmt.Errorf("backup marked as encrypted but missing encryption metadata")
 	}
 
-	masterKey, err := s.secretKeyService.GetSecretKey()
-	if err != nil {
-		if closeErr := fileReader.Close(); closeErr != nil {
-			logger.ErrorContext(ctx, "failed to close file reader", "error", closeErr)
-		}
-		return nil, fmt.Errorf("failed to get master key: %w", err)
-	}
+	masterKey := s.masterKey.GetSecret()
 
 	salt, err := base64.StdEncoding.DecodeString(*backup.EncryptionSalt)
 	if err != nil {

@@ -10,21 +10,21 @@ import (
 
 	"databasus-backend/internal/config"
 	notifier_models "databasus-backend/internal/features/notifiers/models"
+	"databasus-backend/internal/lib/mailer"
 	"databasus-backend/internal/util/encryption"
-	"databasus-backend/internal/util/smtp_transport"
 )
 
 type EmailNotifier struct {
-	NotifierID           uuid.UUID               `json:"notifierId"           gorm:"primaryKey;type:uuid;column:notifier_id"`
-	TargetEmail          string                  `json:"targetEmail"          gorm:"not null;type:varchar(255);column:target_email"`
-	SMTPHost             string                  `json:"smtpHost"             gorm:"not null;type:varchar(255);column:smtp_host"`
-	SMTPPort             int                     `json:"smtpPort"             gorm:"not null;column:smtp_port"`
-	SMTPUser             string                  `json:"smtpUser"             gorm:"type:varchar(255);column:smtp_user"`
-	SMTPPassword         string                  `json:"smtpPassword"         gorm:"type:varchar(255);column:smtp_password"`
-	From                 string                  `json:"from"                 gorm:"type:varchar(255);column:from_email"`
-	IsInsecureSkipVerify bool                    `json:"isInsecureSkipVerify" gorm:"default:false;column:is_insecure_skip_verify"`
-	Security             smtp_transport.Security `json:"security"             gorm:"not null;type:varchar(16);column:security"`
-	HeloName             string                  `json:"heloName"             gorm:"not null;type:varchar(255);column:helo_name"`
+	NotifierID           uuid.UUID       `json:"notifierId"           gorm:"primaryKey;type:uuid;column:notifier_id"`
+	TargetEmail          string          `json:"targetEmail"          gorm:"not null;type:varchar(255);column:target_email"`
+	SMTPHost             string          `json:"smtpHost"             gorm:"not null;type:varchar(255);column:smtp_host"`
+	SMTPPort             int             `json:"smtpPort"             gorm:"not null;column:smtp_port"`
+	SMTPUser             string          `json:"smtpUser"             gorm:"type:varchar(255);column:smtp_user"`
+	SMTPPassword         string          `json:"smtpPassword"         gorm:"type:varchar(255);column:smtp_password"`
+	From                 string          `json:"from"                 gorm:"type:varchar(255);column:from_email"`
+	IsInsecureSkipVerify bool            `json:"isInsecureSkipVerify" gorm:"default:false;column:is_insecure_skip_verify"`
+	Security             mailer.Security `json:"security"             gorm:"not null;type:varchar(16);column:security"`
+	HeloName             string          `json:"heloName"             gorm:"not null;type:varchar(255);column:helo_name"`
 }
 
 func (e *EmailNotifier) TableName() string {
@@ -33,7 +33,7 @@ func (e *EmailNotifier) TableName() string {
 
 func (e *EmailNotifier) FillDefaults() {
 	if e.Security == "" {
-		e.Security = smtp_transport.GetDefaultSecurityForPort(e.SMTPPort)
+		e.Security = mailer.GetDefaultSecurityForPort(e.SMTPPort)
 	}
 }
 
@@ -42,7 +42,7 @@ func (e *EmailNotifier) Validate(encryptor encryption.FieldEncryptor) error {
 		return errors.New("target email is required")
 	}
 
-	if _, err := smtp_transport.ParseRecipient(e.TargetEmail); err != nil {
+	if _, err := mailer.ParseRecipient(e.TargetEmail); err != nil {
 		return err
 	}
 
@@ -55,7 +55,7 @@ func (e *EmailNotifier) Validate(encryptor encryption.FieldEncryptor) error {
 	}
 
 	if !e.Security.IsValid() {
-		return smtp_transport.ErrUnknownSecurity
+		return mailer.ErrUnknownSecurity
 	}
 
 	// Authentication is optional - both user and password must be provided together or both empty
@@ -64,13 +64,13 @@ func (e *EmailNotifier) Validate(encryptor encryption.FieldEncryptor) error {
 	}
 
 	if e.From != "" {
-		if _, err := smtp_transport.ParseSender(e.From); err != nil {
+		if _, err := mailer.ParseSender(e.From); err != nil {
 			return err
 		}
 	}
 
 	if e.HeloName != "" {
-		if err := smtp_transport.ValidateHeloName(e.HeloName); err != nil {
+		if err := mailer.ValidateHeloName(e.HeloName); err != nil {
 			return err
 		}
 	}
@@ -92,17 +92,17 @@ func (e *EmailNotifier) Send(
 		smtpPassword = decrypted
 	}
 
-	sender, err := smtp_transport.ResolveSender(e.From, e.SMTPUser, e.SMTPHost)
+	sender, err := mailer.ResolveSender(e.From, e.SMTPUser, e.SMTPHost)
 	if err != nil {
 		return err
 	}
 
 	heloName := e.HeloName
 	if heloName == "" {
-		heloName = smtp_transport.GetDefaultHeloName(config.GetEnv().DatabasusURL)
+		heloName = mailer.GetDefaultHeloName(config.GetEnv().DatabasusURL)
 	}
 
-	connection := smtp_transport.Connection{
+	connection := mailer.Connection{
 		Host:                 e.SMTPHost,
 		Port:                 e.SMTPPort,
 		Security:             e.Security,
@@ -112,7 +112,7 @@ func (e *EmailNotifier) Send(
 		IsInsecureSkipVerify: e.IsInsecureSkipVerify,
 	}
 
-	return smtp_transport.Send(context.Background(), connection, smtp_transport.Message{
+	return mailer.Send(context.Background(), connection, mailer.Message{
 		Sender:    sender,
 		Recipient: e.TargetEmail,
 		Subject:   notification.Heading,

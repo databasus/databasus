@@ -19,12 +19,12 @@ import (
 	postgresql_executor "databasus-backend/internal/features/backups/backups/usecases/physical/postgresql"
 	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
 	"databasus-backend/internal/features/databases"
-	encryption_secrets "databasus-backend/internal/features/encryption/secrets"
 	notifier_models "databasus-backend/internal/features/notifiers/models"
 	"databasus-backend/internal/features/storages"
 	storage_files "databasus-backend/internal/features/storages/files"
 	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
 	workspaces_services "databasus-backend/internal/features/workspaces/services"
+	"databasus-backend/internal/lib/crypto"
 	"databasus-backend/internal/storage"
 	util_encryption "databasus-backend/internal/util/encryption"
 	"databasus-backend/internal/util/walmath"
@@ -48,7 +48,7 @@ type PhysicalBackuper struct {
 	fileStore                *storage_files.Store
 	notificationSender       NotificationSender
 	taskCancellationRegistry *tasks_cancellation.Registry
-	secretKeyService         *encryption_secrets.SecretKeyService
+	masterKey                *crypto.MasterKey
 	logger                   *slog.Logger
 	fullExecutor             FullBackupExecutor
 	incrExecutor             IncrementalBackupExecutor
@@ -310,12 +310,7 @@ func (b *PhysicalBackuper) openBackupContext(
 
 	masterKey := ""
 	if cfg.Encryption == backups_core_enums.BackupEncryptionEncrypted {
-		key, secretErr := b.secretKeyService.GetSecretKey()
-		if secretErr != nil {
-			logger.ErrorContext(ctx, "failed to fetch master key", "error", secretErr)
-
-			return nil, false
-		}
+		key := b.masterKey.GetSecret()
 
 		masterKey = key
 	}

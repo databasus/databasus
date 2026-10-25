@@ -15,7 +15,6 @@ import (
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
 	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
 	"databasus-backend/internal/features/databases"
-	encryption_secrets "databasus-backend/internal/features/encryption/secrets"
 	"databasus-backend/internal/features/notifiers"
 	"databasus-backend/internal/features/storages"
 	task_cancellation "databasus-backend/internal/features/tasks/cancellation"
@@ -34,7 +33,7 @@ var getBackupService = sync.OnceValue(func() *LogicalBackupService {
 		notifiers.GetNotifierService(),
 		notifiers.GetNotifierService(),
 		backups_config_logical.GetBackupConfigService(),
-		encryption_secrets.GetSecretKeyService(),
+		encryption.GetMasterKey(),
 		encryption.GetFieldEncryptor(),
 		usecases_logical.GetCreateBackupUsecase(),
 		logger.GetLogger(),
@@ -66,7 +65,7 @@ var getPhysicalBackupService = sync.OnceValue(func() *PhysicalBackupService {
 		backuping_physical.GetPhysicalWalStreamSupervisor(),
 		backups_download.GetRestoreStreamWriter(),
 		backups_download.GetRestoreTokenService(),
-		encryption_secrets.GetSecretKeyService(),
+		encryption.GetMasterKey(),
 		audit_logs.GetAuditLogService(),
 		logger.GetLogger(),
 	}

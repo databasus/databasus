@@ -23,8 +23,8 @@ import (
 	"databasus-backend/internal/features/databases"
 	pgtypes "databasus-backend/internal/features/databases/databases/postgresql/logical"
 	postgresql_shared "databasus-backend/internal/features/databases/databases/postgresql/shared"
-	encryption_secrets "databasus-backend/internal/features/encryption/secrets"
 	storage_files "databasus-backend/internal/features/storages/files"
+	"databasus-backend/internal/lib/crypto"
 	"databasus-backend/internal/util/encryption"
 	"databasus-backend/internal/util/namelist"
 	"databasus-backend/internal/util/tools"
@@ -41,9 +41,9 @@ const (
 )
 
 type CreatePostgresqlBackupUsecase struct {
-	logger           *slog.Logger
-	secretKeyService *encryption_secrets.SecretKeyService
-	fieldEncryptor   encryption.FieldEncryptor
+	logger         *slog.Logger
+	masterKey      *crypto.MasterKey
+	fieldEncryptor encryption.FieldEncryptor
 }
 
 type writeResult struct {
@@ -446,10 +446,7 @@ func (uc *CreatePostgresqlBackupUsecase) setupBackupEncryption(
 		return storageWriter, nil, metadata, nil
 	}
 
-	masterKey, err := uc.secretKeyService.GetSecretKey()
-	if err != nil {
-		return nil, nil, metadata, fmt.Errorf("failed to get master key: %w", err)
-	}
+	masterKey := uc.masterKey.GetSecret()
 
 	encSetup, err := backup_encryption.SetupEncryptionWriter(storageWriter, masterKey, backupID)
 	if err != nil {

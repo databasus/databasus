@@ -23,8 +23,8 @@ import (
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
 	"databasus-backend/internal/features/databases"
 	mysqltypes "databasus-backend/internal/features/databases/databases/mysql"
-	encryption_secrets "databasus-backend/internal/features/encryption/secrets"
 	storage_files "databasus-backend/internal/features/storages/files"
+	"databasus-backend/internal/lib/crypto"
 	"databasus-backend/internal/util/encryption"
 	io_utils "databasus-backend/internal/util/io"
 	"databasus-backend/internal/util/namelist"
@@ -40,9 +40,9 @@ const (
 )
 
 type CreateMysqlBackupUsecase struct {
-	logger           *slog.Logger
-	secretKeyService *encryption_secrets.SecretKeyService
-	fieldEncryptor   encryption.FieldEncryptor
+	logger         *slog.Logger
+	masterKey      *crypto.MasterKey
+	fieldEncryptor encryption.FieldEncryptor
 }
 
 type writeResult struct {
@@ -443,10 +443,7 @@ func (uc *CreateMysqlBackupUsecase) setupBackupEncryption(
 		return storageWriter, nil, metadata, nil
 	}
 
-	masterKey, err := uc.secretKeyService.GetSecretKey()
-	if err != nil {
-		return nil, nil, metadata, fmt.Errorf("failed to get master key: %w", err)
-	}
+	masterKey := uc.masterKey.GetSecret()
 
 	encSetup, err := backup_encryption.SetupEncryptionWriter(storageWriter, masterKey, backupID)
 	if err != nil {

@@ -11,10 +11,10 @@ import (
 	old_config "databasus-backend/internal/config"
 	task_cancellation "databasus-backend/internal/features/tasks/cancellation"
 	"databasus-backend/internal/lib/background"
+	"databasus-backend/internal/lib/config"
 	"databasus-backend/internal/lib/httpserver"
 	"databasus-backend/internal/lib/shutdown"
 	"databasus-backend/internal/middleware"
-	env_utils "databasus-backend/internal/util/env"
 	files_utils "databasus-backend/internal/util/files"
 	"databasus-backend/internal/util/tools"
 )
@@ -96,7 +96,7 @@ func (a *App) NewHandler() (http.Handler, error) {
 	router.Use(middleware.NoStoreCacheControl())
 	router.Use(httpserver.Compress())
 
-	if a.environment.Config.EnvMode == env_utils.EnvModeDevelopment {
+	if a.environment.Config.EnvMode == config.EnvModeDevelopment {
 		router.Use(httpserver.AllowAnyOrigin([]string{middleware.RequestIDHeader}))
 	}
 

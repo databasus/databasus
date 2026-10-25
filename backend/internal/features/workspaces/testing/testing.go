@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"sync"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -24,8 +25,12 @@ import (
 	workspaces_repositories "databasus-backend/internal/features/workspaces/repositories"
 )
 
+// setGinTestMode runs once because gin.SetMode writes a process-wide variable, and parallel tests build
+// their routers at the same time.
+var setGinTestMode = sync.OnceFunc(func() { gin.SetMode(gin.TestMode) })
+
 func CreateTestRouter(controllers ...ControllerInterface) *gin.Engine {
-	gin.SetMode(gin.TestMode)
+	setGinTestMode()
 	router := gin.New()
 
 	v1 := router.Group("/api/v1")

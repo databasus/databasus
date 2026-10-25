@@ -8,6 +8,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"databasus-backend/internal/lib/mailer"
 )
 
 const (
@@ -185,6 +187,50 @@ func TestIsLogFileEnabled(t *testing.T) {
 			assert.Equal(t, testCase.isEnabled, loadedConfig.IsLogFileEnabled())
 		})
 	}
+}
+
+func TestGetInstanceMailSettings(t *testing.T) {
+	t.Parallel()
+
+	t.Run("picks tls for port 465 and starttls for other ports without a security mode", func(t *testing.T) {
+		t.Parallel()
+
+		implicitTLSSettings := Config{SMTPHost: "smtp.example.com", SMTPPort: 465}.GetInstanceMailSettings()
+		upgradeSettings := Config{SMTPHost: "smtp.example.com", SMTPPort: 587}.GetInstanceMailSettings()
+
+		assert.Equal(t, mailer.SecurityTLS, implicitTLSSettings.Security)
+		assert.Equal(t, mailer.SecurityStartTLS, upgradeSettings.Security)
+	})
+
+	t.Run("uses starttls without credentials for a relay without credentials", func(t *testing.T) {
+		t.Parallel()
+
+		relaySettings := Config{SMTPHost: "relay.example.com", SMTPPort: 25}.GetInstanceMailSettings()
+
+		assert.Equal(t, mailer.SecurityStartTLS, relaySettings.Security)
+		assert.Empty(t, relaySettings.Username)
+		assert.Empty(t, relaySettings.Password)
+	})
+
+	t.Run("greets with the host of the public address without a greeting name", func(t *testing.T) {
+		t.Parallel()
+
+		mailSettings := Config{
+			SMTPHost:     "smtp.example.com",
+			SMTPPort:     587,
+			DatabasusURL: "https://backup.example.com",
+		}.GetInstanceMailSettings()
+
+		assert.Equal(t, "backup.example.com", mailSettings.HeloName)
+	})
+
+	t.Run("returns empty settings without a host", func(t *testing.T) {
+		t.Parallel()
+
+		mailSettings := Config{SMTPPort: 587, SMTPSecurity: mailer.SecurityTLS}.GetInstanceMailSettings()
+
+		assert.Equal(t, mailer.Settings{}, mailSettings)
+	})
 }
 
 func TestValidateSMTPSettings(t *testing.T) {

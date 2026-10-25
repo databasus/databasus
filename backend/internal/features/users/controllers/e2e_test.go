@@ -221,7 +221,7 @@ func createSettingsTestRouterWithMailSender(
 	// The services are process-global, so a mock left installed would decide
 	// what every later test in the package believes about the mail server.
 	t.Cleanup(func() {
-		users_services.GetSettingsService().SetEmailSender(email.GetEmailSMTPSender())
+		users_services.GetSettingsService().SetEmailSender(email.GetInstanceSender())
 		users_testing.ResetSettingsToDefaults(context.Background())
 	})
 

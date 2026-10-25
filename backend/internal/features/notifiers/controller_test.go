@@ -29,8 +29,8 @@ import (
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_controllers "databasus-backend/internal/features/workspaces/controllers"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
+	"databasus-backend/internal/lib/mailer"
 	"databasus-backend/internal/storage"
-	"databasus-backend/internal/util/smtp_transport"
 	test_utils "databasus-backend/internal/util/testing"
 	"databasus-backend/internal/util/testing/containers"
 )
@@ -1490,24 +1490,24 @@ func Test_SaveEmailNotifier_WithUnusableSettings_Refused(t *testing.T) {
 		{
 			name:                 "sender without an address",
 			applyUnusableSetting: func(emailNotifier *email_notifier.EmailNotifier) { emailNotifier.From = "ops at example" },
-			expectedError:        smtp_transport.ErrInvalidSender.Error(),
+			expectedError:        mailer.ErrInvalidSender.Error(),
 		},
 		{
 			name:                 "unknown security mode",
 			applyUnusableSetting: func(emailNotifier *email_notifier.EmailNotifier) { emailNotifier.Security = "ssl" },
-			expectedError:        smtp_transport.ErrUnknownSecurity.Error(),
+			expectedError:        mailer.ErrUnknownSecurity.Error(),
 		},
 		{
 			name: "recipient without an address",
 			applyUnusableSetting: func(emailNotifier *email_notifier.EmailNotifier) {
 				emailNotifier.TargetEmail = "ops at example"
 			},
-			expectedError: smtp_transport.ErrInvalidRecipient.Error(),
+			expectedError: mailer.ErrInvalidRecipient.Error(),
 		},
 		{
 			name:                 "greeting name with a space",
 			applyUnusableSetting: func(emailNotifier *email_notifier.EmailNotifier) { emailNotifier.HeloName = "my relay" },
-			expectedError:        smtp_transport.ErrInvalidHeloName.Error(),
+			expectedError:        mailer.ErrInvalidHeloName.Error(),
 		},
 	}
 
@@ -1532,7 +1532,7 @@ func Test_SaveEmailNotifier_WithDisplayNameSenderAndConnectionOptions_ReturnedAs
 
 	notifier := createEmailNotifier(workspace.ID)
 	notifier.EmailNotifier.From = "Acme Backups <noreply@example.com>"
-	notifier.EmailNotifier.Security = smtp_transport.SecurityNone
+	notifier.EmailNotifier.Security = mailer.SecurityNone
 	notifier.EmailNotifier.HeloName = "mail.example.com"
 
 	var savedNotifier Notifier
@@ -1551,7 +1551,7 @@ func Test_SaveEmailNotifier_WithDisplayNameSenderAndConnectionOptions_ReturnedAs
 	)
 
 	assert.Equal(t, "Acme Backups <noreply@example.com>", retrievedNotifier.EmailNotifier.From)
-	assert.Equal(t, smtp_transport.SecurityNone, retrievedNotifier.EmailNotifier.Security)
+	assert.Equal(t, mailer.SecurityNone, retrievedNotifier.EmailNotifier.Security)
 	assert.Equal(t, "mail.example.com", retrievedNotifier.EmailNotifier.HeloName)
 
 	deleteNotifier(t, router, savedNotifier.ID, workspace.ID, owner.Token)
@@ -1569,9 +1569,9 @@ func Test_SaveEmailNotifier_WithoutSecurity_CreatesWithPortDefaultAndUpdateKeeps
 	test_utils.MakePostRequestAndUnmarshal(
 		t, router, "/api/v1/notifiers", "Bearer "+owner.Token, *notifier, http.StatusOK, &createdNotifier,
 	)
-	assert.Equal(t, smtp_transport.SecurityStartTLS, createdNotifier.EmailNotifier.Security)
+	assert.Equal(t, mailer.SecurityStartTLS, createdNotifier.EmailNotifier.Security)
 
-	createdNotifier.EmailNotifier.Security = smtp_transport.SecurityNone
+	createdNotifier.EmailNotifier.Security = mailer.SecurityNone
 	var notifierSwitchedToNone Notifier
 	test_utils.MakePostRequestAndUnmarshal(
 		t, router, "/api/v1/notifiers", "Bearer "+owner.Token, createdNotifier, http.StatusOK, &notifierSwitchedToNone,
@@ -1594,7 +1594,7 @@ func Test_SaveEmailNotifier_WithoutSecurity_CreatesWithPortDefaultAndUpdateKeeps
 	)
 
 	assert.Equal(t, 465, retrievedNotifier.EmailNotifier.SMTPPort)
-	assert.Equal(t, smtp_transport.SecurityNone, retrievedNotifier.EmailNotifier.Security)
+	assert.Equal(t, mailer.SecurityNone, retrievedNotifier.EmailNotifier.Security)
 
 	deleteNotifier(t, router, createdNotifier.ID, workspace.ID, owner.Token)
 	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
@@ -1615,7 +1615,7 @@ func Test_SendTestNotificationDirect_EmailWithoutSecurity_SendsWithPortDefault(t
 		t, router, "/api/v1/notifiers/direct-test", "Bearer "+owner.Token, *notifier, http.StatusBadRequest,
 	)
 
-	assert.Contains(t, string(response.Body), smtp_transport.ErrStartTLSNotOffered.Error())
+	assert.Contains(t, string(response.Body), mailer.ErrStartTLSNotOffered.Error())
 
 	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace, router)
 }

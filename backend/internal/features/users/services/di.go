@@ -5,8 +5,8 @@ import (
 	"sync/atomic"
 
 	"databasus-backend/internal/features/email"
-	"databasus-backend/internal/features/encryption/secrets"
 	users_repositories "databasus-backend/internal/features/users/repositories"
+	"databasus-backend/internal/util/encryption"
 	"databasus-backend/internal/util/logger"
 	"databasus-backend/internal/util/ratelimiter"
 )
@@ -14,10 +14,10 @@ import (
 var getUserService = sync.OnceValue(func() *UserService {
 	return &UserService{
 		users_repositories.GetUserRepository(),
-		secrets.GetSecretKeyService(),
+		encryption.GetMasterKey(),
 		getSettingsService(),
 		nil,
-		email.GetEmailSMTPSender(),
+		email.GetInstanceSender(),
 		users_repositories.GetPasswordResetRepository(),
 		users_repositories.GetTwoFactorRepository(),
 		ratelimiter.GetCounter(),
@@ -30,7 +30,7 @@ var getSettingsService = sync.OnceValue(func() *SettingsService {
 		users_repositories.GetUsersSettingsRepository(),
 		users_repositories.GetUserRepository(),
 		nil,
-		email.GetEmailSMTPSender(),
+		email.GetInstanceSender(),
 	}
 })
 

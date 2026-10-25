@@ -10,9 +10,9 @@ import (
 	"github.com/stretchr/testify/require"
 
 	notifier_models "databasus-backend/internal/features/notifiers/models"
+	"databasus-backend/internal/lib/mailer"
 	"databasus-backend/internal/util/encryption"
 	"databasus-backend/internal/util/logger"
-	"databasus-backend/internal/util/smtp_transport"
 	"databasus-backend/internal/util/testing/containers"
 	"databasus-backend/internal/util/testing/mailpit"
 )
@@ -23,7 +23,7 @@ func Test_EmailNotifierSend_WithNoneAgainstMailpit_DeliversMessageToRecipient(t 
 		fmt.Sprintf("%s:%d", mailpitEndpoint.HTTP.Host, mailpitEndpoint.HTTP.Port),
 	)
 
-	notifier := newMailpitEmailNotifier(mailpitEndpoint, smtp_transport.SecurityNone)
+	notifier := newMailpitEmailNotifier(mailpitEndpoint, mailer.SecurityNone)
 
 	err := notifier.Send(encryption.GetFieldEncryptor(), logger.GetLogger(), newBackupNotification())
 	require.NoError(t, err)
@@ -49,16 +49,16 @@ func Test_EmailNotifierSend_WithNoneAgainstMailpit_DeliversMessageToRecipient(t 
 func Test_EmailNotifierSend_WithStartTLSAgainstMailpit_FailsBecauseUpgradeIsNotOffered(t *testing.T) {
 	mailpitEndpoint := containers.StartMailpit(t)
 
-	notifier := newMailpitEmailNotifier(mailpitEndpoint, smtp_transport.SecurityStartTLS)
+	notifier := newMailpitEmailNotifier(mailpitEndpoint, mailer.SecurityStartTLS)
 
 	err := notifier.Send(encryption.GetFieldEncryptor(), logger.GetLogger(), newBackupNotification())
 
-	require.ErrorIs(t, err, smtp_transport.ErrStartTLSNotOffered)
+	require.ErrorIs(t, err, mailer.ErrStartTLSNotOffered)
 }
 
 func newMailpitEmailNotifier(
 	mailpitEndpoint containers.MailpitEndpoint,
-	security smtp_transport.Security,
+	security mailer.Security,
 ) *EmailNotifier {
 	return &EmailNotifier{
 		NotifierID:  uuid.New(),

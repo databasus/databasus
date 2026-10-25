@@ -14,8 +14,7 @@ import (
 	"github.com/caarlos0/env/v11"
 	"github.com/joho/godotenv"
 
-	env_utils "databasus-backend/internal/util/env"
-	"databasus-backend/internal/util/smtp_transport"
+	"databasus-backend/internal/lib/mailer"
 )
 
 const databaseDsnVariable = "DATABASE_DSN"
@@ -27,7 +26,7 @@ const databaseDsnVariable = "DATABASE_DSN"
 const defaultPublishedDatabaseDsnPath = "/dev/shm/databasus-database-dsn"
 
 type Config struct {
-	EnvMode env_utils.EnvMode `env:"ENV_MODE,required"`
+	EnvMode EnvMode `env:"ENV_MODE,required"`
 
 	DatabaseDsn string `env:"DATABASE_DSN"`
 
@@ -43,14 +42,14 @@ type Config struct {
 	CloudflareTurnstileSecretKey string `env:"CLOUDFLARE_TURNSTILE_SECRET_KEY"`
 	CloudflareTurnstileSiteKey   string `env:"CLOUDFLARE_TURNSTILE_SITE_KEY"`
 
-	SMTPHost               string                  `env:"SMTP_HOST"`
-	SMTPPort               int                     `env:"SMTP_PORT"`
-	SMTPUser               string                  `env:"SMTP_USER"`
-	SMTPPassword           string                  `env:"SMTP_PASSWORD"`
-	SMTPFrom               string                  `env:"SMTP_FROM"`
-	SMTPSecurity           smtp_transport.Security `env:"SMTP_SECURITY"`
-	SMTPHeloName           string                  `env:"SMTP_HELO_NAME"`
-	SMTPInsecureSkipVerify bool                    `env:"SMTP_INSECURE_SKIP_VERIFY"`
+	SMTPHost               string          `env:"SMTP_HOST"`
+	SMTPPort               int             `env:"SMTP_PORT"`
+	SMTPUser               string          `env:"SMTP_USER"`
+	SMTPPassword           string          `env:"SMTP_PASSWORD"`
+	SMTPFrom               string          `env:"SMTP_FROM"`
+	SMTPSecurity           mailer.Security `env:"SMTP_SECURITY"`
+	SMTPHeloName           string          `env:"SMTP_HELO_NAME"`
+	SMTPInsecureSkipVerify bool            `env:"SMTP_INSECURE_SKIP_VERIFY"`
 
 	// DatabasusURL is the address email links point to.
 	DatabasusURL string `env:"DATABASUS_URL"`
@@ -99,6 +98,42 @@ type LoadReport struct {
 func (c Config) IsLogFileEnabled() bool {
 	return !strings.EqualFold(strings.TrimSpace(c.LogFileIsEnabled), "false")
 }
+
+// GetInstanceMailSettings fills an unset security mode from the port and an unset greeting name from
+// the public address, so the instance's own mail works with only SMTP_HOST and SMTP_PORT set.
+func (c Config) GetInstanceMailSettings() mailer.Settings {
+	if c.SMTPHost == "" {
+		return mailer.Settings{}
+	}
+
+	security := c.SMTPSecurity
+	if security == "" {
+		security = mailer.GetDefaultSecurityForPort(c.SMTPPort)
+	}
+
+	heloName := c.SMTPHeloName
+	if heloName == "" {
+		heloName = mailer.GetDefaultHeloName(c.DatabasusURL)
+	}
+
+	return mailer.Settings{
+		Host:                 c.SMTPHost,
+		Port:                 c.SMTPPort,
+		Security:             security,
+		Username:             c.SMTPUser,
+		Password:             c.SMTPPassword,
+		From:                 c.SMTPFrom,
+		HeloName:             heloName,
+		IsInsecureSkipVerify: c.SMTPInsecureSkipVerify,
+	}
+}
+
+type EnvMode string
+
+const (
+	EnvModeDevelopment EnvMode = "development"
+	EnvModeProduction  EnvMode = "production"
+)
 
 func Load(spec LoadSpec) (Config, LoadReport, error) {
 	var loadedConfig Config
@@ -204,7 +239,7 @@ func validate(loadedConfig Config, spec LoadSpec) error {
 		return fmt.Errorf("%w: %s", ErrRequiredVariableNotSet, databaseDsnVariable)
 	}
 
-	if loadedConfig.EnvMode != env_utils.EnvModeDevelopment && loadedConfig.EnvMode != env_utils.EnvModeProduction {
+	if loadedConfig.EnvMode != EnvModeDevelopment && loadedConfig.EnvMode != EnvModeProduction {
 		return fmt.Errorf(
 			"%w: ENV_MODE %q is neither development nor production",
 			ErrInvalidVariable,
@@ -224,17 +259,17 @@ func validateSMTPSettings(loadedConfig Config) error {
 	}
 
 	if loadedConfig.SMTPSecurity != "" && !loadedConfig.SMTPSecurity.IsValid() {
-		return fmt.Errorf("SMTP_SECURITY %q: %w", loadedConfig.SMTPSecurity, smtp_transport.ErrUnknownSecurity)
+		return fmt.Errorf("SMTP_SECURITY %q: %w", loadedConfig.SMTPSecurity, mailer.ErrUnknownSecurity)
 	}
 
 	if loadedConfig.SMTPHeloName != "" {
-		if err := smtp_transport.ValidateHeloName(loadedConfig.SMTPHeloName); err != nil {
+		if err := mailer.ValidateHeloName(loadedConfig.SMTPHeloName); err != nil {
 			return fmt.Errorf("SMTP_HELO_NAME %q: %w", loadedConfig.SMTPHeloName, err)
 		}
 	}
 
 	if loadedConfig.SMTPFrom != "" {
-		if _, err := smtp_transport.ParseSender(loadedConfig.SMTPFrom); err != nil {
+		if _, err := mailer.ParseSender(loadedConfig.SMTPFrom); err != nil {
 			return fmt.Errorf("SMTP_FROM %q: %w", loadedConfig.SMTPFrom, err)
 		}
 	}

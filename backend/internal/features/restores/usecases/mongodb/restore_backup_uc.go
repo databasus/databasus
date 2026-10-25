@@ -20,9 +20,9 @@ import (
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
 	"databasus-backend/internal/features/databases"
 	mongodbtypes "databasus-backend/internal/features/databases/databases/mongodb"
-	encryption_secrets "databasus-backend/internal/features/encryption/secrets"
 	restores_core "databasus-backend/internal/features/restores/core"
 	"databasus-backend/internal/features/storages"
+	"databasus-backend/internal/lib/crypto"
 	util_encryption "databasus-backend/internal/util/encryption"
 	io_utils "databasus-backend/internal/util/io"
 	"databasus-backend/internal/util/tools"
@@ -33,8 +33,8 @@ const (
 )
 
 type RestoreMongodbBackupUsecase struct {
-	logger           *slog.Logger
-	secretKeyService *encryption_secrets.SecretKeyService
+	logger    *slog.Logger
+	masterKey *crypto.MasterKey
 }
 
 func (uc *RestoreMongodbBackupUsecase) Execute(
@@ -244,10 +244,7 @@ func (uc *RestoreMongodbBackupUsecase) setupDecryption(
 		return nil, fmt.Errorf("failed to decode encryption IV: %w", err)
 	}
 
-	masterKey, err := uc.secretKeyService.GetSecretKey()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get secret key: %w", err)
-	}
+	masterKey := uc.masterKey.GetSecret()
 
 	decryptReader, err := encryption.NewDecryptionReader(
 		reader,

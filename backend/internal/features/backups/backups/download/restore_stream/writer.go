@@ -40,8 +40,8 @@ func NewWriter(
 	return &Writer{storageService, fieldEncryptor, logger}
 }
 
-// masterKey may be empty when no artifact is encrypted; an encrypted artifact with an empty key is
-// a hard error rather than a silently-corrupt download.
+// Write fails on an encrypted artifact when masterKey is empty, rather than streaming a corrupt
+// download.
 func (rw *Writer) Write(
 	ctx context.Context,
 	w io.Writer,

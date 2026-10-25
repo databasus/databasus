@@ -20,8 +20,8 @@ import (
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
 	"databasus-backend/internal/features/databases"
 	mongodbtypes "databasus-backend/internal/features/databases/databases/mongodb"
-	encryption_secrets "databasus-backend/internal/features/encryption/secrets"
 	storage_files "databasus-backend/internal/features/storages/files"
+	"databasus-backend/internal/lib/crypto"
 	"databasus-backend/internal/util/encryption"
 	"databasus-backend/internal/util/namelist"
 	"databasus-backend/internal/util/tools"
@@ -33,9 +33,9 @@ const (
 )
 
 type CreateMongodbBackupUsecase struct {
-	logger           *slog.Logger
-	secretKeyService *encryption_secrets.SecretKeyService
-	fieldEncryptor   encryption.FieldEncryptor
+	logger         *slog.Logger
+	masterKey      *crypto.MasterKey
+	fieldEncryptor encryption.FieldEncryptor
 }
 
 type writeResult struct {
@@ -269,10 +269,7 @@ func (uc *CreateMongodbBackupUsecase) setupBackupEncryption(
 		return storageWriter, nil, backupMetadata, nil
 	}
 
-	masterKey, err := uc.secretKeyService.GetSecretKey()
-	if err != nil {
-		return nil, nil, backupMetadata, fmt.Errorf("failed to get master key: %w", err)
-	}
+	masterKey := uc.masterKey.GetSecret()
 
 	encSetup, err := backup_encryption.SetupEncryptionWriter(storageWriter, masterKey, backupID)
 	if err != nil {

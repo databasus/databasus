@@ -2,6 +2,7 @@ package encryption
 
 import (
 	"crypto/rand"
+	"fmt"
 	"math/big"
 )
 
@@ -40,20 +41,23 @@ func GenerateComplexPassword() string {
 }
 
 func randomChar(charset string) byte {
-	n, err := rand.Int(rand.Reader, big.NewInt(int64(len(charset))))
-	if err != nil {
-		return charset[0]
-	}
-	return charset[n.Int64()]
+	return charset[randomIndex(len(charset))]
 }
 
 func shuffleBytes(b []byte) {
 	for i := len(b) - 1; i > 0; i-- {
-		n, err := rand.Int(rand.Reader, big.NewInt(int64(i+1)))
-		if err != nil {
-			continue
-		}
-		j := n.Int64()
+		j := randomIndex(i + 1)
 		b[i], b[j] = b[j], b[i]
 	}
+}
+
+// randomIndex panics when crypto/rand fails, as the standard library does itself since Go 1.24: a
+// weaker password is worse than a stopped operation.
+func randomIndex(upperBound int) int {
+	n, err := rand.Int(rand.Reader, big.NewInt(int64(upperBound)))
+	if err != nil {
+		panic(fmt.Sprintf("read crypto/rand: %v", err))
+	}
+
+	return int(n.Int64())
 }

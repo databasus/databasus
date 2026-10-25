@@ -24,17 +24,17 @@ import (
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
 	"databasus-backend/internal/features/databases"
 	mysqltypes "databasus-backend/internal/features/databases/databases/mysql"
-	encryption_secrets "databasus-backend/internal/features/encryption/secrets"
 	restores_core "databasus-backend/internal/features/restores/core"
 	"databasus-backend/internal/features/storages"
+	"databasus-backend/internal/lib/crypto"
 	util_encryption "databasus-backend/internal/util/encryption"
 	io_utils "databasus-backend/internal/util/io"
 	"databasus-backend/internal/util/tools"
 )
 
 type RestoreMysqlBackupUsecase struct {
-	logger           *slog.Logger
-	secretKeyService *encryption_secrets.SecretKeyService
+	logger    *slog.Logger
+	masterKey *crypto.MasterKey
 }
 
 func (uc *RestoreMysqlBackupUsecase) Execute(
@@ -226,10 +226,7 @@ func (uc *RestoreMysqlBackupUsecase) setupDecryption(
 		return nil, fmt.Errorf("backup is encrypted but missing encryption metadata")
 	}
 
-	masterKey, err := uc.secretKeyService.GetSecretKey()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get master key for decryption: %w", err)
-	}
+	masterKey := uc.masterKey.GetSecret()
 
 	salt, err := base64.StdEncoding.DecodeString(*backup.EncryptionSalt)
 	if err != nil {

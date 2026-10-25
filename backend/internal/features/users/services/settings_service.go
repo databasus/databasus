@@ -12,7 +12,7 @@ import (
 	users_interfaces "databasus-backend/internal/features/users/interfaces"
 	users_models "databasus-backend/internal/features/users/models"
 	users_repositories "databasus-backend/internal/features/users/repositories"
-	"databasus-backend/internal/util/smtp_transport"
+	"databasus-backend/internal/lib/mailer"
 )
 
 const (
@@ -234,7 +234,7 @@ func isDeliverableAddress(address string) bool {
 		return false
 	}
 
-	_, err := smtp_transport.ParseRecipient(address)
+	_, err := mailer.ParseRecipient(address)
 
 	return err == nil
 }

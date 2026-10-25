@@ -214,7 +214,7 @@ func Test_Seed_WhenTwoFactorSignInIsRequired_FailsAndCreatesNothing(t *testing.T
 	users_services.GetUserService().SetEmailSender(users_testing.NewMockEmailSender())
 	users_testing.EnableTwoFactorAuth(t.Context())
 	t.Cleanup(func() {
-		users_services.GetUserService().SetEmailSender(email.GetEmailSMTPSender())
+		users_services.GetUserService().SetEmailSender(email.GetInstanceSender())
 		users_testing.ResetSettingsToDefaults(context.Background())
 	})
 

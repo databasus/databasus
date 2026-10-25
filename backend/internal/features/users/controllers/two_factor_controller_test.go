@@ -631,7 +631,7 @@ func createTwoFactorTestRouter(t *testing.T) (*gin.Engine, *users_testing.MockEm
 	users_testing.ResetSettingsToDefaults(t.Context())
 	users_testing.EnableTwoFactorAuth(t.Context())
 	t.Cleanup(func() {
-		users_services.GetUserService().SetEmailSender(email.GetEmailSMTPSender())
+		users_services.GetUserService().SetEmailSender(email.GetInstanceSender())
 		users_testing.ResetSettingsToDefaults(context.Background())
 	})
 

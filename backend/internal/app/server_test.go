@@ -12,8 +12,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"databasus-backend/internal/lib/config"
 	"databasus-backend/internal/lib/testwait"
-	env_utils "databasus-backend/internal/util/env"
 )
 
 func TestServe(t *testing.T) {
@@ -60,7 +60,7 @@ func TestServe(t *testing.T) {
 func TestRouter(t *testing.T) {
 	swaggerPaths := []string{"/api/v1/docs/swagger/index.html", "/api/v1/docs/swagger/doc.json"}
 
-	for _, envMode := range []env_utils.EnvMode{env_utils.EnvModeProduction, env_utils.EnvModeDevelopment} {
+	for _, envMode := range []config.EnvMode{config.EnvModeProduction, config.EnvModeDevelopment} {
 		t.Run("answers Problem 404 for the API documentation in "+string(envMode)+" mode", func(t *testing.T) {
 			testApp := newTestApp(t)
 			testApp.environment.Config.EnvMode = envMode

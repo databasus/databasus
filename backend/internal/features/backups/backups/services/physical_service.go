@@ -13,7 +13,6 @@ import (
 	audit_logs "databasus-backend/internal/features/audit_logs"
 	audit_logs_models "databasus-backend/internal/features/audit_logs/models"
 	backuping_physical "databasus-backend/internal/features/backups/backups/backuping/physical"
-	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	"databasus-backend/internal/features/backups/backups/core/physical/chain_view"
 	physical_enums "databasus-backend/internal/features/backups/backups/core/physical/enums"
 	physical_models "databasus-backend/internal/features/backups/backups/core/physical/models"
@@ -24,9 +23,9 @@ import (
 	backups_dto_physical "databasus-backend/internal/features/backups/backups/dto/physical"
 	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
 	"databasus-backend/internal/features/databases"
-	encryption_secrets "databasus-backend/internal/features/encryption/secrets"
 	users_models "databasus-backend/internal/features/users/models"
 	workspaces_services "databasus-backend/internal/features/workspaces/services"
+	"databasus-backend/internal/lib/crypto"
 )
 
 // ErrNoExtendableChain is returned when an incremental backup is requested but
@@ -66,7 +65,7 @@ type PhysicalBackupService struct {
 	walStreamSupervisor         *backuping_physical.PhysicalWalStreamSupervisor
 	restoreStreamWriter         *restore_stream.Writer
 	restoreTokenService         *restore_token.Service
-	secretKeyService            *encryption_secrets.SecretKeyService
+	masterKey                   *crypto.MasterKey
 	auditLogService             *audit_logs.AuditLogService
 	logger                      *slog.Logger
 }
@@ -447,12 +446,7 @@ func (s *PhysicalBackupService) writeRestoreStream(
 	set *chain_view.RestoreSet,
 	w io.Writer,
 ) error {
-	masterKey, err := s.resolveMasterKey(set)
-	if err != nil {
-		return err
-	}
-
-	return s.restoreStreamWriter.Write(ctx, w, set, masterKey)
+	return s.restoreStreamWriter.Write(ctx, w, set, s.masterKey.GetSecret())
 }
 
 func (s *PhysicalBackupService) deleteFull(ctx context.Context, full *physical_models.PhysicalFullBackup) error {
@@ -622,16 +616,6 @@ func (s *PhysicalBackupService) resolveBackupDatabaseAndStatus(
 	return uuid.Nil, "", false, nil
 }
 
-// resolveMasterKey fetches the master key only when the set actually contains an
-// encrypted artifact, so non-encrypted restores don't depend on a configured key.
-func (s *PhysicalBackupService) resolveMasterKey(set *chain_view.RestoreSet) (string, error) {
-	if !restoreSetHasEncryption(set) {
-		return "", nil
-	}
-
-	return s.secretKeyService.GetSecretKey()
-}
-
 func rowToListItem(row physical_core_service.PhysicalBackupListRow) backups_dto_physical.PhysicalBackupListItem {
 	return backups_dto_physical.PhysicalBackupListItem{
 		ID:                        row.ID,
@@ -688,28 +672,4 @@ func normalizeBackupsPageLimit(limit int) int {
 	}
 
 	return limit
-}
-
-func restoreSetHasEncryption(set *chain_view.RestoreSet) bool {
-	if set.RootFull.Encryption == backups_core_enums.BackupEncryptionEncrypted {
-		return true
-	}
-
-	for _, incremental := range set.Incrementals {
-		if incremental.Encryption == backups_core_enums.BackupEncryptionEncrypted {
-			return true
-		}
-	}
-
-	for _, segment := range set.WalSegments {
-		if segment.Encryption == backups_core_enums.BackupEncryptionEncrypted {
-			return true
-		}
-	}
-
-	// History files carry their encryption flag only in their sidecar, so a
-	// non-encrypted catalog with encrypted history is theoretically possible; the
-	// stream writer reads the sidecar and a master key is cheap to fetch when any
-	// history exists.
-	return len(set.HistoryFiles) > 0
 }

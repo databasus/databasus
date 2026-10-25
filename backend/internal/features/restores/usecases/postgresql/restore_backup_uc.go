@@ -25,17 +25,17 @@ import (
 	"databasus-backend/internal/features/databases"
 	pgtypes "databasus-backend/internal/features/databases/databases/postgresql/logical"
 	postgresql_shared "databasus-backend/internal/features/databases/databases/postgresql/shared"
-	encryption_secrets "databasus-backend/internal/features/encryption/secrets"
 	restores_core "databasus-backend/internal/features/restores/core"
 	"databasus-backend/internal/features/storages"
+	"databasus-backend/internal/lib/crypto"
 	util_encryption "databasus-backend/internal/util/encryption"
 	io_utils "databasus-backend/internal/util/io"
 	"databasus-backend/internal/util/tools"
 )
 
 type RestorePostgresqlBackupUsecase struct {
-	logger           *slog.Logger
-	secretKeyService *encryption_secrets.SecretKeyService
+	logger    *slog.Logger
+	masterKey *crypto.MasterKey
 }
 
 func (uc *RestorePostgresqlBackupUsecase) Execute(
@@ -222,10 +222,7 @@ func (uc *RestorePostgresqlBackupUsecase) restoreViaStdin(
 			return fmt.Errorf("backup is encrypted but missing encryption metadata")
 		}
 
-		masterKey, err := uc.secretKeyService.GetSecretKey()
-		if err != nil {
-			return fmt.Errorf("failed to get master key for decryption: %w", err)
-		}
+		masterKey := uc.masterKey.GetSecret()
 
 		salt, err := base64.StdEncoding.DecodeString(*backup.EncryptionSalt)
 		if err != nil {
@@ -563,11 +560,7 @@ func (uc *RestorePostgresqlBackupUsecase) downloadBackupToTempFile(
 			return "", nil, fmt.Errorf("backup is encrypted but missing encryption metadata")
 		}
 
-		masterKey, err := uc.secretKeyService.GetSecretKey()
-		if err != nil {
-			cleanupFunc()
-			return "", nil, fmt.Errorf("failed to get master key for decryption: %w", err)
-		}
+		masterKey := uc.masterKey.GetSecret()
 
 		salt, err := base64.StdEncoding.DecodeString(*backup.EncryptionSalt)
 		if err != nil {

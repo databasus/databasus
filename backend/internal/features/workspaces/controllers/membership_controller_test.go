@@ -377,7 +377,7 @@ func useMockMembershipEmailSender(t *testing.T) *workspaces_testing.MockEmailSen
 	mockEmailSender := workspaces_testing.NewMockEmailSender()
 	workspaces_services.GetMembershipService().SetEmailSender(mockEmailSender)
 	t.Cleanup(func() {
-		workspaces_services.GetMembershipService().SetEmailSender(email.GetEmailSMTPSender())
+		workspaces_services.GetMembershipService().SetEmailSender(email.GetInstanceSender())
 	})
 
 	return mockEmailSender
