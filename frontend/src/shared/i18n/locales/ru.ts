@@ -244,10 +244,9 @@ export const ru: typeof en = {
       created: 'Время',
     },
     systemUser: 'Система',
-    loadedOfTotal: 'Загружено: {{loaded}} из {{total}}',
     empty: 'Записей в журнале нет.',
     loadingMore: 'Загружаем еще записи...',
-    allLoaded: 'Все записи загружены (всего {{count}})',
+    allLoaded: 'Все записи загружены',
   },
   settings: {
     title: 'Настройки Databasus',

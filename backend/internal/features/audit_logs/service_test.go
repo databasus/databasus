@@ -2,7 +2,6 @@ package audit_logs
 
 import (
 	"testing"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -10,82 +9,9 @@ import (
 
 	audit_logs_models "databasus-backend/internal/features/audit_logs/models"
 	users_testing "databasus-backend/internal/features/users/testing"
+	"databasus-backend/internal/lib/audit"
 	"databasus-backend/internal/modules/users"
 )
-
-func Test_AuditLogs_WorkspaceSpecificLogs(t *testing.T) {
-	service := GetAuditLogService()
-	user1 := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	user2 := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace1ID, workspace2ID := uuid.New(), uuid.New()
-
-	createAuditLog(t, service, audit_logs_models.AuditEntry{
-		Message:     "Test workspace1 log first",
-		UserID:      &user1.UserID,
-		WorkspaceID: &workspace1ID,
-	})
-	createAuditLog(t, service, audit_logs_models.AuditEntry{
-		Message:     "Test workspace1 log second",
-		UserID:      &user2.UserID,
-		WorkspaceID: &workspace1ID,
-	})
-	createAuditLog(t, service, audit_logs_models.AuditEntry{
-		Message:     "Test workspace2 log first",
-		UserID:      &user1.UserID,
-		WorkspaceID: &workspace2ID,
-	})
-	createAuditLog(t, service, audit_logs_models.AuditEntry{
-		Message:     "Test workspace2 log second",
-		UserID:      &user2.UserID,
-		WorkspaceID: &workspace2ID,
-	})
-	createAuditLog(t, service, audit_logs_models.AuditEntry{
-		Message:     "Test no workspace log",
-		UserID:      &user1.UserID,
-		WorkspaceID: nil,
-	})
-
-	request := &GetAuditLogsRequest{Limit: 10, Offset: 0}
-
-	workspace1Response, err := service.GetWorkspaceAuditLogs(t.Context(), workspace1ID, request)
-	assert.NoError(t, err)
-	assert.Equal(t, 2, len(workspace1Response.AuditLogs))
-
-	messages := extractMessages(workspace1Response.AuditLogs)
-	assert.Contains(t, messages, "Test workspace1 log first")
-	assert.Contains(t, messages, "Test workspace1 log second")
-	for _, log := range workspace1Response.AuditLogs {
-		assert.Equal(t, &workspace1ID, log.WorkspaceID)
-	}
-
-	workspace2Response, err := service.GetWorkspaceAuditLogs(t.Context(), workspace2ID, request)
-	assert.NoError(t, err)
-	assert.Equal(t, 2, len(workspace2Response.AuditLogs))
-
-	messages2 := extractMessages(workspace2Response.AuditLogs)
-	assert.Contains(t, messages2, "Test workspace2 log first")
-	assert.Contains(t, messages2, "Test workspace2 log second")
-
-	limitedResponse, err := service.GetWorkspaceAuditLogs(t.Context(), workspace1ID,
-		&GetAuditLogsRequest{Limit: 1, Offset: 0})
-	assert.NoError(t, err)
-	assert.Equal(t, 1, len(limitedResponse.AuditLogs))
-	assert.Equal(t, 1, limitedResponse.Limit)
-
-	beforeTime := time.Now().UTC().Add(-1 * time.Minute)
-	filteredResponse, err := service.GetWorkspaceAuditLogs(t.Context(), workspace1ID,
-		&GetAuditLogsRequest{Limit: 10, BeforeDate: &beforeTime})
-	assert.NoError(t, err)
-	for _, log := range filteredResponse.AuditLogs {
-		assert.True(t, log.CreatedAt.Before(beforeTime))
-		assert.NotNil(t, log.UserEmail, "User email should be present for logs with user_id")
-		assert.NotNil(
-			t,
-			log.WorkspaceName,
-			"Workspace name should be present for logs with workspace_id",
-		)
-	}
-}
 
 func TestWriteAuditLog(t *testing.T) {
 	t.Run("stores the author's email and name when the entry has a user ID", func(t *testing.T) {
@@ -98,11 +24,12 @@ func TestWriteAuditLog(t *testing.T) {
 			WorkspaceID: &workspaceID,
 		})
 
-		storedLog := getSingleWorkspaceLog(t, workspaceID)
-		assert.Equal(t, "Storage created: nightly-backups", storedLog.Message)
-		assert.Equal(t, &author.UserID, storedLog.UserID)
-		assert.Equal(t, &author.Email, storedLog.UserEmail)
-		assert.NotNil(t, storedLog.UserName)
+		storedEvent := getSingleWorkspaceEvent(t, workspaceID)
+		assert.Equal(t, "Storage created: nightly-backups", storedEvent.Message)
+		require.NotNil(t, storedEvent.Author)
+		assert.Equal(t, author.UserID, storedEvent.Author.UserID)
+		assert.Equal(t, author.Email, storedEvent.Author.Email)
+		assert.NotEmpty(t, storedEvent.Author.Name)
 	})
 
 	t.Run("keeps the author's email and name when the user changes both afterwards", func(t *testing.T) {
@@ -117,9 +44,10 @@ func TestWriteAuditLog(t *testing.T) {
 		})
 		renameUser(t, author.UserID)
 
-		storedLog := getSingleWorkspaceLog(t, workspaceID)
-		assert.Equal(t, &authorBeforeChange.Email, storedLog.UserEmail)
-		assert.Equal(t, &authorBeforeChange.Name, storedLog.UserName)
+		storedEvent := getSingleWorkspaceEvent(t, workspaceID)
+		require.NotNil(t, storedEvent.Author)
+		assert.Equal(t, authorBeforeChange.Email, storedEvent.Author.Email)
+		assert.Equal(t, authorBeforeChange.Name, storedEvent.Author.Name)
 	})
 
 	t.Run("stores no author when the entry has no user ID", func(t *testing.T) {
@@ -131,10 +59,8 @@ func TestWriteAuditLog(t *testing.T) {
 			WorkspaceID: &workspaceID,
 		})
 
-		storedLog := getSingleWorkspaceLog(t, workspaceID)
-		assert.Nil(t, storedLog.UserID)
-		assert.Nil(t, storedLog.UserEmail)
-		assert.Nil(t, storedLog.UserName)
+		storedEvent := getSingleWorkspaceEvent(t, workspaceID)
+		assert.Nil(t, storedEvent.Author)
 	})
 
 	t.Run("stores the event without an author when the account no longer exists", func(t *testing.T) {
@@ -148,22 +74,20 @@ func TestWriteAuditLog(t *testing.T) {
 			WorkspaceID: &workspaceID,
 		})
 
-		storedLog := getSingleWorkspaceLog(t, workspaceID)
-		assert.Equal(t, "Storage deleted: nightly-backups", storedLog.Message)
-		assert.Nil(t, storedLog.UserID)
+		storedEvent := getSingleWorkspaceEvent(t, workspaceID)
+		assert.Equal(t, "Storage deleted: nightly-backups", storedEvent.Message)
+		assert.Nil(t, storedEvent.Author)
 	})
 }
 
-func getSingleWorkspaceLog(t *testing.T, workspaceID uuid.UUID) *AuditLogDTO {
+func getSingleWorkspaceEvent(t *testing.T, workspaceID uuid.UUID) audit.RecordedEvent {
 	t.Helper()
 
-	listedLogs, err := GetAuditLogService().GetWorkspaceAuditLogs(
-		t.Context(), workspaceID, &GetAuditLogsRequest{Limit: 10, Offset: 0, BeforeDate: nil},
-	)
+	listedEvents, err := ListTestWorkspaceEvents(t.Context(), workspaceID)
 	require.NoError(t, err)
-	require.Len(t, listedLogs.AuditLogs, 1)
+	require.Len(t, listedEvents, 1)
 
-	return listedLogs.AuditLogs[0]
+	return listedEvents[0]
 }
 
 func renameUser(t *testing.T, userID uuid.UUID) {
@@ -173,18 +97,4 @@ func renameUser(t *testing.T, userID uuid.UUID) {
 	changedEmail := "renamed-" + uuid.NewString() + "@example.com"
 	users_testing.SetTestUserName(t.Context(), userID, changedName)
 	users_testing.SetTestUserEmail(t.Context(), userID, changedEmail)
-}
-
-func createAuditLog(t *testing.T, service *AuditLogService, entry audit_logs_models.AuditEntry) {
-	t.Helper()
-
-	service.WriteAuditLog(t.Context(), entry)
-}
-
-func extractMessages(logs []*AuditLogDTO) []string {
-	messages := make([]string, len(logs))
-	for i, log := range logs {
-		messages[i] = log.Message
-	}
-	return messages
 }

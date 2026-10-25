@@ -1,5 +1,6 @@
 // Package workspaces owns workspaces, their members, the workspace roles, invitations to a
-// workspace and ownership transfer. Other modules reach it only through this file.
+// workspace, ownership transfer and the audit log views, which show the names of workspaces. Other
+// modules reach it only through this file.
 package workspaces
 
 import (
@@ -17,6 +18,7 @@ import (
 	"databasus-backend/internal/lib/mailer"
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/modules/workspaces/internal/access"
+	"databasus-backend/internal/modules/workspaces/internal/auditlog"
 	workspaceshttpapi "databasus-backend/internal/modules/workspaces/internal/httpapi"
 	"databasus-backend/internal/modules/workspaces/internal/members"
 	"databasus-backend/internal/modules/workspaces/internal/module"
@@ -105,12 +107,19 @@ func New(deps Deps) Module {
 		PublicURL:    deps.PublicURL,
 	})
 
+	auditLogService := auditlog.NewService(auditlog.Deps{
+		AuditLog:   deps.AuditLog,
+		Authorizer: authorizer,
+		Workspaces: workspaceService,
+	})
+
 	return module.New(module.Deps{
 		Authorizer: authorizer,
 		Workspaces: workspaceService,
 		Handler: workspaceshttpapi.NewHandler(workspaceshttpapi.Deps{
 			Workspaces: workspaceService,
 			Members:    memberService,
+			AuditLog:   auditLogService,
 		}),
 	})
 }

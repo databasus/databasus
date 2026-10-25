@@ -21,7 +21,7 @@ type Deps struct {
 	AuditLogger *slog.Logger
 }
 
-// Log is the only code that writes and deletes audit events.
+// Log is the only code that touches lib_audit_events: it writes, reads and deletes the events.
 type Log struct {
 	repository  *eventRepository
 	clock       clock.Source
@@ -57,4 +57,38 @@ func (l *Log) Record(ctx context.Context, event Event) error {
 // DeleteExpired deletes the events older than one year before now and returns how many it deleted.
 func (l *Log) DeleteExpired(ctx context.Context, now time.Time) (int64, error) {
 	return l.repository.DeleteCreatedBefore(ctx, now.AddDate(-retentionYears, 0, 0))
+}
+
+// ListEvents reads one page of events, newest first, with the ID ordering events of the same time.
+// Limit must be positive; the caller checks its upper bound.
+func (l *Log) ListEvents(ctx context.Context, query EventListQuery) (EventPage, error) {
+	var after *eventCursor
+
+	if query.After != "" {
+		cursor, err := decodeEventCursor(query.After)
+		if err != nil {
+			return EventPage{}, err
+		}
+
+		after = &cursor
+	}
+
+	listedEvents, err := l.repository.List(ctx, eventListFilter{
+		workspaceID:  query.WorkspaceID,
+		authorUserID: query.AuthorUserID,
+		limit:        query.Limit + 1,
+		after:        after,
+	})
+	if err != nil {
+		return EventPage{}, err
+	}
+
+	page := EventPage{Events: listedEvents[:min(len(listedEvents), query.Limit)], NextCursor: ""}
+
+	if len(listedEvents) > query.Limit {
+		lastEvent := listedEvents[query.Limit-1]
+		page.NextCursor = eventCursor{createdAt: lastEvent.CreatedAt, eventID: lastEvent.ID}.encode()
+	}
+
+	return page, nil
 }

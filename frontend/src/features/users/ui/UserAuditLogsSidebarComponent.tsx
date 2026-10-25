@@ -1,15 +1,17 @@
 import { LoadingOutlined } from '@ant-design/icons';
-import { App, Spin, Table } from 'antd';
+import { Spin, Table } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { auditLogApi } from '../../../entity/audit-logs/api/auditLogApi';
-import type { AuditLog } from '../../../entity/audit-logs/model/AuditLog';
-import type { GetAuditLogsRequest } from '../../../entity/audit-logs/model/GetAuditLogsRequest';
+import {
+  type AuditEvent,
+  getAuditEventWorkspaceLabel,
+  useAuditEventPages,
+} from '../../../entity/audit-logs';
 import type { User } from '../../../entity/users';
-import { translateApiError, useLocale } from '../../../shared/i18n';
+import { useLocale } from '../../../shared/i18n';
 import { getUserTimeFormat } from '../../../shared/time';
 
 interface Props {
@@ -19,86 +21,16 @@ interface Props {
 export function UserAuditLogsSidebarComponent({ user }: Props) {
   const { t } = useTranslation();
   const { formatRelativeTime } = useLocale();
-  const { message } = App.useApp();
-  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
-  const [total, setTotal] = useState(0);
-
-  const pageSize = 50;
-
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const loadingRef = useRef(false);
 
-  useEffect(() => {
-    loadAuditLogs(true);
-  }, [user.id]);
+  const {
+    items: auditEvents,
+    isLoading,
+    isLoadingMore,
+    hasMore,
+  } = useAuditEventPages({ authorUserId: user.id, pageSize: 50, scrollContainerRef });
 
-  const handleScroll = useCallback(() => {
-    if (!scrollContainerRef.current || isLoadingMore || !hasMore || loadingRef.current) return;
-
-    const { scrollTop, scrollHeight, clientHeight } = scrollContainerRef.current;
-    const threshold = 100;
-
-    if (scrollHeight - scrollTop - clientHeight < threshold) {
-      loadAuditLogs(false);
-    }
-  }, [isLoadingMore, hasMore]);
-
-  useEffect(() => {
-    const scrollContainer = scrollContainerRef.current;
-    if (scrollContainer) {
-      scrollContainer.addEventListener('scroll', handleScroll);
-      return () => scrollContainer.removeEventListener('scroll', handleScroll);
-    }
-  }, [handleScroll]);
-
-  const loadAuditLogs = async (isInitialLoad = false) => {
-    if (!isInitialLoad && loadingRef.current) {
-      return;
-    }
-
-    loadingRef.current = true;
-
-    if (isInitialLoad) {
-      setIsLoading(true);
-      setAuditLogs([]);
-    } else {
-      setIsLoadingMore(true);
-    }
-
-    try {
-      const offset = isInitialLoad ? 0 : auditLogs.length;
-      const request: GetAuditLogsRequest = {
-        limit: pageSize,
-        offset: offset,
-      };
-
-      const response = await auditLogApi.getUserAuditLogs(user.id, request);
-
-      if (isInitialLoad) {
-        setAuditLogs(response.auditLogs);
-      } else {
-        setAuditLogs((prev) => {
-          const existingIds = new Set(prev.map((log) => log.id));
-          const newLogs = response.auditLogs.filter((log) => !existingIds.has(log.id));
-          return [...prev, ...newLogs];
-        });
-      }
-
-      setTotal(response.total);
-      setHasMore(response.auditLogs.length === pageSize);
-    } catch (error: unknown) {
-      message.error(translateApiError(error, t));
-    } finally {
-      loadingRef.current = false;
-      setIsLoading(false);
-      setIsLoadingMore(false);
-    }
-  };
-
-  const columns: ColumnsType<AuditLog> = [
+  const columns: ColumnsType<AuditEvent> = [
     {
       title: t('auditLogs.columns.message'),
       dataIndex: 'message',
@@ -110,20 +42,23 @@ export function UserAuditLogsSidebarComponent({ user }: Props) {
     },
     {
       title: t('auditLogs.columns.workspace'),
-      dataIndex: 'workspaceName',
-      key: 'workspaceName',
+      key: 'workspace',
       width: 200,
-      render: (workspaceId: string | undefined) => (
-        <span
-          className={`inline-block rounded-full px-2 py-1 text-xs font-medium ${
-            workspaceId
-              ? 'bg-blue-100 text-blue-800'
-              : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-white'
-          }`}
-        >
-          {workspaceId || '-'}
-        </span>
-      ),
+      render: (_, event: AuditEvent) => {
+        const workspaceLabel = getAuditEventWorkspaceLabel(event);
+
+        return (
+          <span
+            className={`inline-block rounded-full px-2 py-1 text-xs font-medium ${
+              workspaceLabel
+                ? 'bg-blue-100 text-blue-800'
+                : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-white'
+            }`}
+          >
+            {workspaceLabel ?? '-'}
+          </span>
+        );
+      },
     },
     {
       title: t('auditLogs.columns.created'),
@@ -145,16 +80,6 @@ export function UserAuditLogsSidebarComponent({ user }: Props) {
   return (
     <div className="h-full">
       <div ref={scrollContainerRef} className="h-full overflow-y-auto">
-        <div className="mb-4 flex items-center justify-between">
-          <div className="text-sm text-gray-500 dark:text-gray-400">
-            {isLoading ? (
-              <Spin indicator={<LoadingOutlined spin />} />
-            ) : (
-              t('auditLogs.loadedOfTotal', { loaded: auditLogs.length, total })
-            )}
-          </div>
-        </div>
-
         {isLoading ? (
           <div className="flex h-64 items-center justify-center">
             <Spin indicator={<LoadingOutlined spin />} size="large" />
@@ -163,7 +88,7 @@ export function UserAuditLogsSidebarComponent({ user }: Props) {
           <>
             <Table
               columns={columns}
-              dataSource={auditLogs}
+              dataSource={auditEvents}
               pagination={false}
               rowKey="id"
               size="small"
@@ -179,13 +104,13 @@ export function UserAuditLogsSidebarComponent({ user }: Props) {
               </div>
             )}
 
-            {!hasMore && auditLogs.length > 0 && (
+            {!hasMore && auditEvents.length > 0 && (
               <div className="py-4 text-center text-sm text-gray-500 dark:text-gray-400">
-                {t('auditLogs.allLoaded', { count: total })}
+                {t('auditLogs.allLoaded')}
               </div>
             )}
 
-            {!isLoading && auditLogs.length === 0 && (
+            {auditEvents.length === 0 && (
               <div className="py-8 text-center text-sm text-gray-500 dark:text-gray-400">
                 {t('users.auditLogs.empty')}
               </div>

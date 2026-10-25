@@ -238,18 +238,11 @@ func Test_RestoreBackup_AuditLogWritten(t *testing.T) {
 
 	time.Sleep(100 * time.Millisecond)
 
-	auditLogService := audit_logs.GetAuditLogService()
-	auditLogs, err := auditLogService.GetWorkspaceAuditLogs(t.Context(),
-		workspace.ID,
-		&audit_logs.GetAuditLogsRequest{
-			Limit:  100,
-			Offset: 0,
-		},
-	)
+	workspaceEvents, err := audit_logs.ListTestWorkspaceEvents(t.Context(), workspace.ID)
 	assert.NoError(t, err)
 
 	found := false
-	for _, log := range auditLogs.AuditLogs {
+	for _, log := range workspaceEvents {
 		if strings.Contains(log.Message, "Database restored for database") &&
 			strings.Contains(log.Message, database.Name) {
 			found = true
@@ -502,15 +495,11 @@ func Test_CancelRestore_InProgressRestore_SuccessfullyCancelled(t *testing.T) {
 
 	assert.Equal(t, restores_core.RestoreStatusCanceled, restore.Status)
 
-	auditLogService := audit_logs.GetAuditLogService()
-	auditLogs, err := auditLogService.GetWorkspaceAuditLogs(t.Context(),
-		workspace.ID,
-		&audit_logs.GetAuditLogsRequest{Limit: 100, Offset: 0},
-	)
+	workspaceEvents, err := audit_logs.ListTestWorkspaceEvents(t.Context(), workspace.ID)
 	assert.NoError(t, err)
 
 	foundCancelLog := false
-	for _, log := range auditLogs.AuditLogs {
+	for _, log := range workspaceEvents {
 		if strings.Contains(log.Message, "Restore cancelled") &&
 			strings.Contains(log.Message, database.Name) {
 			foundCancelLog = true

@@ -425,3 +425,11 @@ func readAuditEventItems(ctx context.Context, api *apiClient) ([]upgradecheck.It
 
 	return auditEventItems, nil
 }
+
+func getOptionalValue(value *string) string {
+	if value == nil {
+		return ""
+	}
+
+	return *value
+}

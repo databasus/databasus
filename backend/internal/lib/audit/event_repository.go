@@ -38,6 +38,45 @@ func (r *eventRepository) Insert(ctx context.Context, event Event, createdAt tim
 	return nil
 }
 
+func (r *eventRepository) List(ctx context.Context, filter eventListFilter) ([]RecordedEvent, error) {
+	query := `SELECT id, author_user_id, author_email, author_name, workspace_id, message, created_at
+		FROM lib_audit_events
+		WHERE TRUE`
+	values := map[string]any{"limit": filter.limit}
+
+	if filter.workspaceID != nil {
+		query += " AND workspace_id = @workspaceID"
+		values["workspaceID"] = *filter.workspaceID
+	}
+
+	if filter.authorUserID != nil {
+		query += " AND author_user_id = @authorUserID"
+		values["authorUserID"] = *filter.authorUserID
+	}
+
+	if filter.after != nil {
+		query += " AND (created_at, id) < (@afterCreatedAt, @afterID)"
+		values["afterCreatedAt"] = filter.after.createdAt
+		values["afterID"] = filter.after.eventID
+	}
+
+	query += " ORDER BY created_at DESC, id DESC LIMIT @limit"
+
+	var rows []eventRow
+
+	err := database.Conn(ctx, r.db).Raw(query, values).Scan(&rows).Error
+	if err != nil {
+		return nil, fmt.Errorf("list the audit events: %w", err)
+	}
+
+	listedEvents := make([]RecordedEvent, 0, len(rows))
+	for _, row := range rows {
+		listedEvents = append(listedEvents, row.toRecordedEvent())
+	}
+
+	return listedEvents, nil
+}
+
 func (r *eventRepository) DeleteCreatedBefore(ctx context.Context, cutoff time.Time) (int64, error) {
 	result := database.Conn(ctx, r.db).Exec("DELETE FROM lib_audit_events WHERE created_at < ?", cutoff)
 	if result.Error != nil {
@@ -45,4 +84,39 @@ func (r *eventRepository) DeleteCreatedBefore(ctx context.Context, cutoff time.T
 	}
 
 	return result.RowsAffected, nil
+}
+
+type eventListFilter struct {
+	workspaceID  *uuid.UUID
+	authorUserID *uuid.UUID
+	limit        int
+	after        *eventCursor
+}
+
+type eventRow struct {
+	ID           uuid.UUID
+	AuthorUserID *uuid.UUID
+	AuthorEmail  *string
+	AuthorName   *string
+	WorkspaceID  *uuid.UUID
+	Message      string
+	CreatedAt    time.Time
+}
+
+// toRecordedEvent relies on ck_lib_audit_events_author, which keeps the author columns all set or
+// all empty.
+func (r eventRow) toRecordedEvent() RecordedEvent {
+	var author *Author
+
+	if r.AuthorUserID != nil {
+		author = &Author{UserID: *r.AuthorUserID, Email: *r.AuthorEmail, Name: *r.AuthorName}
+	}
+
+	return RecordedEvent{
+		ID:          r.ID,
+		Author:      author,
+		WorkspaceID: r.WorkspaceID,
+		Message:     r.Message,
+		CreatedAt:   r.CreatedAt.UTC(),
+	}
 }

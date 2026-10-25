@@ -1514,11 +1514,10 @@ func createSecondPhysicalDatabase(t *testing.T, prereqs *physicalControllerPrere
 func assertAuditLogContains(t *testing.T, workspaceID uuid.UUID, messageFragment, databaseName string) {
 	t.Helper()
 
-	logs, err := audit_logs.GetAuditLogService().GetWorkspaceAuditLogs(t.Context(),
-		workspaceID, &audit_logs.GetAuditLogsRequest{Limit: 100, Offset: 0})
+	workspaceEvents, err := audit_logs.ListTestWorkspaceEvents(t.Context(), workspaceID)
 	require.NoError(t, err)
 
-	for _, entry := range logs.AuditLogs {
+	for _, entry := range workspaceEvents {
 		if strings.Contains(entry.Message, messageFragment) && strings.Contains(entry.Message, databaseName) {
 			return
 		}

@@ -202,6 +202,54 @@ type AddedWorkspaceMemberOutcome string
 // AssignableWorkspaceRole A workspace role a request may set; the owner role changes hands only through a transfer
 type AssignableWorkspaceRole string
 
+// AuditEvent Who did what and when
+type AuditEvent struct {
+	// Author The user who acted, null for an action without a signed-in user
+	Author *AuditEventAuthor `json:"author"`
+
+	// CreatedAt When it happened
+	CreatedAt time.Time `json:"createdAt"`
+
+	// Id The ID of the event
+	Id openapi_types.UUID `json:"id"`
+
+	// Message What happened
+	Message string `json:"message"`
+
+	// Workspace The workspace the event belongs to, null for an event outside any workspace
+	Workspace *AuditEventWorkspace `json:"workspace"`
+}
+
+// AuditEventAuthor The user who acted, as they were at the time of the action
+type AuditEventAuthor struct {
+	// Email The address the user signed in with
+	Email string `json:"email"`
+
+	// Name The name of the user
+	Name string `json:"name"`
+
+	// UserId The ID of the user
+	UserId openapi_types.UUID `json:"userId"`
+}
+
+// AuditEventPage One page of audit events, the newest first
+type AuditEventPage struct {
+	// Items The events on the page
+	Items []AuditEvent `json:"items"`
+
+	// NextCursor The `after` of the next page, absent on the last page
+	NextCursor *string `json:"nextCursor,omitempty"`
+}
+
+// AuditEventWorkspace The workspace of an event
+type AuditEventWorkspace struct {
+	// Id The ID of the workspace
+	Id openapi_types.UUID `json:"id"`
+
+	// Name The current name of the workspace, null when the workspace has been deleted
+	Name *string `json:"name"`
+}
+
 // FieldError A field of the request that breaks the contract or a validation rule
 type FieldError struct {
 	// Detail What is wrong with the field
@@ -346,6 +394,21 @@ type UserId = openapi_types.UUID
 // WorkspaceId defines model for WorkspaceId.
 type WorkspaceId = openapi_types.UUID
 
+// ListAuditEventsParams defines parameters for ListAuditEvents.
+type ListAuditEventsParams struct {
+	// WorkspaceId The workspace whose events to list
+	WorkspaceId *openapi_types.UUID `form:"workspaceId,omitempty" json:"workspaceId,omitempty"`
+
+	// AuthorUserId The user whose events to list
+	AuthorUserId *openapi_types.UUID `form:"authorUserId,omitempty" json:"authorUserId,omitempty"`
+
+	// Limit The largest number of events on the page
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// After The `nextCursor` of the previous page
+	After *string `form:"after,omitempty" json:"after,omitempty"`
+}
+
 // ListWorkspaceMembersParams defines parameters for ListWorkspaceMembers.
 type ListWorkspaceMembersParams struct {
 	// WorkspaceId The workspace whose members to list
@@ -384,6 +447,9 @@ type TransferWorkspaceOwnershipJSONRequestBody = OwnershipTransfer
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// ListAuditEvents List audit events
+	// (GET /audit-events)
+	ListAuditEvents(c *gin.Context, params ListAuditEventsParams)
 	// ListWorkspaceMembers List the members of a workspace
 	// (GET /workspace-members)
 	ListWorkspaceMembers(c *gin.Context, params ListWorkspaceMembersParams)
@@ -424,6 +490,57 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(c *gin.Context)
+
+// ListAuditEvents operation middleware
+func (siw *ServerInterfaceWrapper) ListAuditEvents(c *gin.Context) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListAuditEventsParams
+
+	// ------------- Optional query parameter "workspaceId" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "workspaceId", c.Request.URL.Query(), &params.WorkspaceId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter workspaceId: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Optional query parameter "authorUserId" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "authorUserId", c.Request.URL.Query(), &params.AuthorUserId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter authorUserId: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", c.Request.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter limit: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Optional query parameter "after" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "after", c.Request.URL.Query(), &params.After, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter after: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.ListAuditEvents(c, params)
+}
 
 // ListWorkspaceMembers operation middleware
 func (siw *ServerInterfaceWrapper) ListWorkspaceMembers(c *gin.Context) {
@@ -716,9 +833,107 @@ func RegisterHandlersWithOptions(router gin.IRouter, si ServerInterface, options
 	router.POST(options.BaseURL+"/workspace-members", wrapper.AddWorkspaceMember)
 	router.DELETE(options.BaseURL+"/workspace-members/:memberId", wrapper.RemoveWorkspaceMember)
 	router.PUT(options.BaseURL+"/workspace-members/:memberId", wrapper.ChangeWorkspaceMemberRole)
+	router.GET(options.BaseURL+"/audit-events", wrapper.ListAuditEvents)
 }
 
 type ProblemApplicationProblemPlusJSONResponse Problem
+
+type ListAuditEventsRequestObject struct {
+	Params ListAuditEventsParams
+}
+
+type ListAuditEventsResponseObject interface {
+	VisitListAuditEventsResponse(w http.ResponseWriter) error
+}
+
+type ListAuditEvents200JSONResponse AuditEventPage
+
+func (response ListAuditEvents200JSONResponse) VisitListAuditEventsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListAuditEvents400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response ListAuditEvents400ApplicationProblemPlusJSONResponse) VisitListAuditEventsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListAuditEvents401ApplicationProblemPlusJSONResponse Problem
+
+func (response ListAuditEvents401ApplicationProblemPlusJSONResponse) VisitListAuditEventsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListAuditEvents403ApplicationProblemPlusJSONResponse Problem
+
+func (response ListAuditEvents403ApplicationProblemPlusJSONResponse) VisitListAuditEventsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListAuditEvents404ApplicationProblemPlusJSONResponse Problem
+
+func (response ListAuditEvents404ApplicationProblemPlusJSONResponse) VisitListAuditEventsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListAuditEventsdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response ListAuditEventsdefaultApplicationProblemPlusJSONResponse) VisitListAuditEventsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
 
 type ListWorkspaceMembersRequestObject struct {
 	Params ListWorkspaceMembersParams
@@ -1663,6 +1878,9 @@ func (response TransferWorkspaceOwnershipdefaultApplicationProblemPlusJSONRespon
 
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
+	// ListAuditEvents List audit events
+	// (GET /audit-events)
+	ListAuditEvents(ctx context.Context, request ListAuditEventsRequestObject) (ListAuditEventsResponseObject, error)
 	// ListWorkspaceMembers List the members of a workspace
 	// (GET /workspace-members)
 	ListWorkspaceMembers(ctx context.Context, request ListWorkspaceMembersRequestObject) (ListWorkspaceMembersResponseObject, error)
@@ -1750,6 +1968,32 @@ type strictHandler struct {
 	ssi         StrictServerInterface
 	middlewares []StrictMiddlewareFunc
 	options     StrictGinServerOptions
+}
+
+// ListAuditEvents operation middleware
+func (sh *strictHandler) ListAuditEvents(ctx *gin.Context, params ListAuditEventsParams) {
+	var request ListAuditEventsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListAuditEvents(ctx, request.(ListAuditEventsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListAuditEvents")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		sh.options.HandlerErrorFunc(ctx, err)
+	} else if validResponse, ok := response.(ListAuditEventsResponseObject); ok {
+		if err := validResponse.VisitListAuditEventsResponse(ctx.Writer); err != nil {
+			sh.options.ResponseErrorHandlerFunc(ctx, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(ctx, fmt.Errorf("unexpected response type: %T", response))
+	}
 }
 
 // ListWorkspaceMembers operation middleware

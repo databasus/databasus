@@ -64,7 +64,6 @@ type oldCodeGetter struct {
 func getOldCodeGetters() []oldCodeGetter {
 	return []oldCodeGetter{
 		{"features/audit_logs.GetAuditLogService", func() any { return audit_logs.GetAuditLogService() }},
-		{"features/audit_logs.GetAuditLogController", func() any { return audit_logs.GetAuditLogController() }},
 		{
 			"features/backups/backups/backuping/logical.GetBackupsScheduler",
 			func() any { return backups_backups_backuping_logical.GetBackupsScheduler() },

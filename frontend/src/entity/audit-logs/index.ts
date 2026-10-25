@@ -1,7 +1,13 @@
 // APIs
-export { auditLogApi } from './api/auditLogApi';
+export { auditEventApi } from './api/auditEventApi';
 
 // Types
-export type { AuditLog } from './model/AuditLog';
-export type { GetAuditLogsRequest } from './model/GetAuditLogsRequest';
-export type { GetAuditLogsResponse } from './model/GetAuditLogsResponse';
+export type { AuditEvent } from './model/AuditEvent';
+export type { AuditEventPage } from './model/AuditEventPage';
+export { getAuditEventWorkspaceLabel } from './model/getAuditEventWorkspaceLabel';
+
+// Hooks
+export { useAuditEventPages } from './model/useAuditEventPages';
+
+// UI
+export { AuditEventAuthorComponent } from './ui/AuditEventAuthorComponent';

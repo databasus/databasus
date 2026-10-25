@@ -249,10 +249,9 @@ export const pt: typeof en = {
       created: 'Data',
     },
     systemUser: 'Sistema',
-    loadedOfTotal: 'Carregados: {{loaded}} de {{total}}',
     empty: 'Nenhum log de auditoria encontrado.',
     loadingMore: 'Carregando mais logs...',
-    allLoaded: 'Todos os logs foram carregados (total: {{count}})',
+    allLoaded: 'Todos os logs foram carregados',
   },
   settings: {
     title: 'Configurações do Databasus',

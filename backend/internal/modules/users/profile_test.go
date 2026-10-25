@@ -48,7 +48,7 @@ func TestUpdateUser(t *testing.T) {
 		response := updateUser(t, admin.Client, admin.UserID, "Test User", changedEmail)
 		require.Equal(t, http.StatusOK, response.StatusCode(), string(response.Body))
 
-		assert.Contains(t, listGlobalAuditMessages(t, app, admin.Token),
+		assert.Contains(t, listGlobalAuditMessages(t, admin),
 			"Email changed from '"+admin.Email+"' to '"+changedEmail+"'")
 	})
 

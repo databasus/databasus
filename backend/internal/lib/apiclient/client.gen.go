@@ -274,6 +274,54 @@ type AddedWorkspaceMemberOutcome string
 // AssignableWorkspaceRole A workspace role a request may set; the owner role changes hands only through a transfer
 type AssignableWorkspaceRole string
 
+// AuditEvent Who did what and when
+type AuditEvent struct {
+	// Author The user who acted, null for an action without a signed-in user
+	Author *AuditEventAuthor `json:"author"`
+
+	// CreatedAt When it happened
+	CreatedAt time.Time `json:"createdAt"`
+
+	// Id The ID of the event
+	Id openapi_types.UUID `json:"id"`
+
+	// Message What happened
+	Message string `json:"message"`
+
+	// Workspace The workspace the event belongs to, null for an event outside any workspace
+	Workspace *AuditEventWorkspace `json:"workspace"`
+}
+
+// AuditEventAuthor The user who acted, as they were at the time of the action
+type AuditEventAuthor struct {
+	// Email The address the user signed in with
+	Email string `json:"email"`
+
+	// Name The name of the user
+	Name string `json:"name"`
+
+	// UserId The ID of the user
+	UserId openapi_types.UUID `json:"userId"`
+}
+
+// AuditEventPage One page of audit events, the newest first
+type AuditEventPage struct {
+	// Items The events on the page
+	Items []AuditEvent `json:"items"`
+
+	// NextCursor The `after` of the next page, absent on the last page
+	NextCursor *string `json:"nextCursor,omitempty"`
+}
+
+// AuditEventWorkspace The workspace of an event
+type AuditEventWorkspace struct {
+	// Id The ID of the workspace
+	Id openapi_types.UUID `json:"id"`
+
+	// Name The current name of the workspace, null when the workspace has been deleted
+	Name *string `json:"name"`
+}
+
 // FieldError A field of the request that breaks the contract or a validation rule
 type FieldError struct {
 	// Detail What is wrong with the field
@@ -663,6 +711,21 @@ type UserId = openapi_types.UUID
 // WorkspaceId defines model for WorkspaceId.
 type WorkspaceId = openapi_types.UUID
 
+// ListAuditEventsParams defines parameters for ListAuditEvents.
+type ListAuditEventsParams struct {
+	// WorkspaceId The workspace whose events to list
+	WorkspaceId *openapi_types.UUID `form:"workspaceId,omitempty" json:"workspaceId,omitempty"`
+
+	// AuthorUserId The user whose events to list
+	AuthorUserId *openapi_types.UUID `form:"authorUserId,omitempty" json:"authorUserId,omitempty"`
+
+	// Limit The largest number of events on the page
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// After The `nextCursor` of the previous page
+	After *string `form:"after,omitempty" json:"after,omitempty"`
+}
+
 // ListUsersParams defines parameters for ListUsers.
 type ListUsersParams struct {
 	// Limit The largest number of users on the page
@@ -921,6 +984,13 @@ func WithRequestEditorFn(fn RequestEditorFn) ClientOption {
 
 // The interface specification for the client above.
 type ClientInterface interface {
+
+	// ListAuditEvents List audit events
+	//
+	// Ordered by `createdAt`, the newest first, then by ID. The filters choose the view and its readers. With `workspaceId`, the events of that workspace, readable by its members of every role and by instance admins; a user who is not a member gets 404 `not_found`. With only `authorUserId`, the events that user authored, readable by that user and by instance admins. Without a filter, the events of the whole instance, readable only by instance admins. Any other reader gets 403 `permission_denied`. Both filters together list the events of one author in the workspace.
+	//
+	// Corresponds with GET /audit-events (the `ListAuditEvents` operationId).
+	ListAuditEvents(ctx context.Context, params *ListAuditEventsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// SignInWithGitHubWithBody Sign in with GitHub
 	//
@@ -1318,6 +1388,23 @@ type ClientInterface interface {
 	//
 	// Corresponds with POST /workspaces/{workspaceId}/transfer-ownership (the `TransferWorkspaceOwnership` operationId).
 	TransferWorkspaceOwnership(ctx context.Context, workspaceId WorkspaceId, body TransferWorkspaceOwnershipJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+}
+
+// ListAuditEvents List audit events
+//
+// Ordered by `createdAt`, the newest first, then by ID. The filters choose the view and its readers. With `workspaceId`, the events of that workspace, readable by its members of every role and by instance admins; a user who is not a member gets 404 `not_found`. With only `authorUserId`, the events that user authored, readable by that user and by instance admins. Without a filter, the events of the whole instance, readable only by instance admins. Any other reader gets 403 `permission_denied`. Both filters together list the events of one author in the workspace.
+//
+// Corresponds with GET /audit-events (the `ListAuditEvents` operationId).
+func (c *Client) ListAuditEvents(ctx context.Context, params *ListAuditEventsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListAuditEventsRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
 }
 
 // SignInWithGitHubWithBody Sign in with GitHub
@@ -2185,6 +2272,96 @@ func (c *Client) TransferWorkspaceOwnership(ctx context.Context, workspaceId Wor
 		return nil, err
 	}
 	return c.Client.Do(req)
+}
+
+// NewListAuditEventsRequest constructs an http.Request for the ListAuditEvents method
+func NewListAuditEventsRequest(server string, params *ListAuditEventsParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/audit-events")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.WorkspaceId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "workspaceId", *params.WorkspaceId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: "uuid"}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.AuthorUserId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "authorUserId", *params.AuthorUserId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: "uuid"}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "limit", *params.Limit, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.After != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "after", *params.After, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
 }
 
 // NewSignInWithGitHubRequest calls the generic SignInWithGitHub builder with application/json body
@@ -3497,6 +3674,15 @@ func WithBaseURL(baseURL string) ClientOption {
 // ClientWithResponsesInterface is the interface specification for the client with responses above.
 type ClientWithResponsesInterface interface {
 
+	// ListAuditEventsWithResponse List audit events
+	//
+	// Ordered by `createdAt`, the newest first, then by ID. The filters choose the view and its readers. With `workspaceId`, the events of that workspace, readable by its members of every role and by instance admins; a user who is not a member gets 404 `not_found`. With only `authorUserId`, the events that user authored, readable by that user and by instance admins. Without a filter, the events of the whole instance, readable only by instance admins. Any other reader gets 403 `permission_denied`. Both filters together list the events of one author in the workspace.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /audit-events (the `ListAuditEvents` operationId).
+	ListAuditEventsWithResponse(ctx context.Context, params *ListAuditEventsParams, reqEditors ...RequestEditorFn) (*ListAuditEventsResponse, error)
+
 	// SignInWithGitHubWithBodyWithResponse Sign in with GitHub
 	//
 	// Public, because it creates the session the caller does not have yet. The code from GitHub's authorization page signs in the user linked to the GitHub account, or the user with the same email address, linking the account and finishing the sign-up of an invited user. An unknown address creates a user under the same rules as sign-up. The second factor does not apply, because GitHub verified the user. A deactivated user gets 403 `user_deactivated`, an instance without the GitHub client gets 409 `oauth_not_configured`, and a code GitHub refuses or an account without an email address gets 400 `oauth_failed`.
@@ -3919,6 +4105,82 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with POST /workspaces/{workspaceId}/transfer-ownership (the `TransferWorkspaceOwnership` operationId).
 	TransferWorkspaceOwnershipWithResponse(ctx context.Context, workspaceId WorkspaceId, body TransferWorkspaceOwnershipJSONRequestBody, reqEditors ...RequestEditorFn) (*TransferWorkspaceOwnershipResponse, error)
+}
+
+type ListAuditEventsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *AuditEventPage
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ListAuditEventsResponse) GetJSON200() *AuditEventPage {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r ListAuditEventsResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r ListAuditEventsResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r ListAuditEventsResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r ListAuditEventsResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r ListAuditEventsResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r ListAuditEventsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ListAuditEventsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListAuditEventsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ListAuditEventsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
 }
 
 type SignInWithGitHubResponse struct {
@@ -5977,6 +6239,21 @@ func (r TransferWorkspaceOwnershipResponse) ContentType() string {
 	return ""
 }
 
+// ListAuditEventsWithResponse List audit events
+//
+// Ordered by `createdAt`, the newest first, then by ID. The filters choose the view and its readers. With `workspaceId`, the events of that workspace, readable by its members of every role and by instance admins; a user who is not a member gets 404 `not_found`. With only `authorUserId`, the events that user authored, readable by that user and by instance admins. Without a filter, the events of the whole instance, readable only by instance admins. Any other reader gets 403 `permission_denied`. Both filters together list the events of one author in the workspace.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /audit-events (the `ListAuditEvents` operationId).
+func (c *ClientWithResponses) ListAuditEventsWithResponse(ctx context.Context, params *ListAuditEventsParams, reqEditors ...RequestEditorFn) (*ListAuditEventsResponse, error) {
+	rsp, err := c.ListAuditEvents(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListAuditEventsResponse(rsp)
+}
+
 // SignInWithGitHubWithBodyWithResponse Sign in with GitHub
 //
 // Public, because it creates the session the caller does not have yet. The code from GitHub's authorization page signs in the user linked to the GitHub account, or the user with the same email address, linking the account and finishing the sign-up of an invited user. An unknown address creates a user under the same rules as sign-up. The second factor does not apply, because GitHub verified the user. A deactivated user gets 403 `user_deactivated`, an instance without the GitHub client gets 409 `oauth_not_configured`, and a code GitHub refuses or an account without an email address gets 400 `oauth_failed`.
@@ -6680,6 +6957,67 @@ func (c *ClientWithResponses) TransferWorkspaceOwnershipWithResponse(ctx context
 		return nil, err
 	}
 	return ParseTransferWorkspaceOwnershipResponse(rsp)
+}
+
+// ParseListAuditEventsResponse parses an HTTP response from a ListAuditEventsWithResponse call
+func ParseListAuditEventsResponse(rsp *http.Response) (*ListAuditEventsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListAuditEventsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest AuditEventPage
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
 }
 
 // ParseSignInWithGitHubResponse parses an HTTP response from a SignInWithGitHubWithResponse call

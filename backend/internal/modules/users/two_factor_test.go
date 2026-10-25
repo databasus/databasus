@@ -164,7 +164,7 @@ func TestTwoFactorSignIn(t *testing.T) {
 		pendingSignIn := startTwoFactorSignIn(t, app, admin.Email)
 		signedInMessage := "User signed in with email: " + admin.Email
 
-		assert.NotContains(t, listGlobalAuditMessages(t, app, admin.Token), signedInMessage)
+		assert.NotContains(t, listGlobalAuditMessages(t, admin), signedInMessage)
 
 		verifyResponse := verifySignInCode(
 			t,
@@ -173,7 +173,7 @@ func TestTwoFactorSignIn(t *testing.T) {
 			readLatestMailedCode(t, app, admin.Email),
 		)
 		require.Equal(t, http.StatusOK, verifyResponse.StatusCode(), string(verifyResponse.Body))
-		assert.Contains(t, listGlobalAuditMessages(t, app, admin.Token), signedInMessage)
+		assert.Contains(t, listGlobalAuditMessages(t, admin), signedInMessage)
 	})
 }
 

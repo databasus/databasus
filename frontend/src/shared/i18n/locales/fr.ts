@@ -248,10 +248,9 @@ export const fr: typeof en = {
       created: 'Date',
     },
     systemUser: 'Système',
-    loadedOfTotal: 'Chargées : {{loaded}} sur {{total}}',
     empty: "Aucune entrée d'audit trouvée.",
     loadingMore: "Chargement d'autres entrées...",
-    allLoaded: 'Toutes les entrées sont chargées ({{count}} au total)',
+    allLoaded: 'Toutes les entrées sont chargées',
   },
   settings: {
     title: 'Paramètres de Databasus',

@@ -233,10 +233,9 @@ export const zh: typeof en = {
       created: '时间',
     },
     systemUser: '系统',
-    loadedOfTotal: '已加载：{{loaded}} / {{total}}',
     empty: '没有审计日志。',
     loadingMore: '正在加载更多日志…',
-    allLoaded: '已加载全部日志（共 {{count}} 条）',
+    allLoaded: '已加载全部日志',
   },
   settings: {
     title: 'Databasus 设置',

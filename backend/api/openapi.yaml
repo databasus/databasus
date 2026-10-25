@@ -15,7 +15,7 @@ tags:
   - name: users
     description: Users, sign-in, password reset and the instance settings
   - name: workspaces
-    description: Workspaces, their members and the ownership of a workspace
+    description: Workspaces, their members, the ownership of a workspace and the audit log views
 paths:
   /users:
     get:
@@ -911,6 +911,62 @@ paths:
           $ref: "#/components/responses/Problem"
         default:
           $ref: "#/components/responses/Problem"
+  /audit-events:
+    get:
+      operationId: listAuditEvents
+      tags: [workspaces]
+      summary: List audit events
+      description: >-
+        Ordered by `createdAt`, the newest first, then by ID. The filters choose the view and its
+        readers. With `workspaceId`, the events of that workspace, readable by its members of every
+        role and by instance admins; a user who is not a member gets 404 `not_found`. With only
+        `authorUserId`, the events that user authored, readable by that user and by instance admins.
+        Without a filter, the events of the whole instance, readable only by instance admins. Any
+        other reader gets 403 `permission_denied`. Both filters together list the events of one
+        author in the workspace.
+      parameters:
+        - name: workspaceId
+          in: query
+          description: The workspace whose events to list
+          schema:
+            type: string
+            format: uuid
+        - name: authorUserId
+          in: query
+          description: The user whose events to list
+          schema:
+            type: string
+            format: uuid
+        - name: limit
+          in: query
+          description: The largest number of events on the page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+        - name: after
+          in: query
+          description: The `nextCursor` of the previous page
+          schema:
+            type: string
+      responses:
+        "200":
+          description: One page of audit events
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuditEventPage"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
   /system/version:
     get:
       operationId: getVersion
@@ -1456,6 +1512,73 @@ components:
       type: string
       description: A workspace role a request may set; the owner role changes hands only through a transfer
       enum: [WORKSPACE_ADMIN, WORKSPACE_MEMBER, WORKSPACE_VIEWER]
+    AuditEvent:
+      type: object
+      description: Who did what and when
+      required: [id, message, createdAt, author, workspace]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: The ID of the event
+        message:
+          type: string
+          description: What happened
+        createdAt:
+          type: string
+          format: date-time
+          description: When it happened
+        author:
+          allOf:
+            - $ref: "#/components/schemas/AuditEventAuthor"
+          nullable: true
+          description: The user who acted, null for an action without a signed-in user
+        workspace:
+          allOf:
+            - $ref: "#/components/schemas/AuditEventWorkspace"
+          nullable: true
+          description: The workspace the event belongs to, null for an event outside any workspace
+    AuditEventAuthor:
+      type: object
+      description: The user who acted, as they were at the time of the action
+      required: [userId, email, name]
+      properties:
+        userId:
+          type: string
+          format: uuid
+          description: The ID of the user
+        email:
+          type: string
+          description: The address the user signed in with
+        name:
+          type: string
+          description: The name of the user
+    AuditEventWorkspace:
+      type: object
+      description: The workspace of an event
+      required: [id, name]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: The ID of the workspace
+        name:
+          type: string
+          nullable: true
+          description: The current name of the workspace, null when the workspace has been deleted
+    AuditEventPage:
+      type: object
+      description: One page of audit events, the newest first
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/AuditEvent"
+          description: The events on the page
+        nextCursor:
+          type: string
+          description: The `after` of the next page, absent on the last page
     Problem:
       type: object
       description: An error in the RFC 9457 format. The client chooses its text by `code`

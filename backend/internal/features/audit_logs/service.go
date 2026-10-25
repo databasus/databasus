@@ -12,7 +12,6 @@ import (
 )
 
 type AuditLogService struct {
-	auditLogRepository *AuditLogRepository
 	// getUsersModule is read per call: each test application installs its own module.
 	getUsersModule func() users.Module
 	logger         *slog.Logger
@@ -34,108 +33,6 @@ func (s *AuditLogService) WriteAuditLog(ctx context.Context, entry audit_logs_mo
 		s.logger.ErrorContext(ctx, "failed to record audit event",
 			"error", err, "user_id", entry.UserID, "workspace_id", entry.WorkspaceID)
 	}
-}
-
-func (s *AuditLogService) GetGlobalAuditLogs(
-	ctx context.Context,
-	actor users.Actor,
-	request *GetAuditLogsRequest,
-) (*GetAuditLogsResponse, error) {
-	if actor.Role != users.RoleAdmin {
-		return nil, ErrOnlyAdminsCanViewGlobalLogs
-	}
-
-	limit := request.Limit
-	if limit <= 0 || limit > 1000 {
-		limit = 100
-	}
-
-	offset := max(request.Offset, 0)
-
-	auditLogs, err := s.auditLogRepository.GetGlobal(ctx, limit, offset, request.BeforeDate)
-	if err != nil {
-		return nil, err
-	}
-
-	total, err := s.auditLogRepository.CountGlobal(ctx, request.BeforeDate)
-	if err != nil {
-		return nil, err
-	}
-
-	return &GetAuditLogsResponse{
-		AuditLogs: auditLogs,
-		Total:     total,
-		Limit:     limit,
-		Offset:    offset,
-	}, nil
-}
-
-func (s *AuditLogService) GetUserAuditLogs(
-	ctx context.Context,
-	targetUserID uuid.UUID,
-	actor users.Actor,
-	request *GetAuditLogsRequest,
-) (*GetAuditLogsResponse, error) {
-	// Users can view their own logs, ADMIN can view any user's logs
-	if actor.Role != users.RoleAdmin && actor.UserID != targetUserID {
-		return nil, ErrInsufficientPermissionsToViewLogs
-	}
-
-	limit := request.Limit
-	if limit <= 0 || limit > 1000 {
-		limit = 100
-	}
-
-	offset := max(request.Offset, 0)
-
-	auditLogs, err := s.auditLogRepository.GetByUser(
-		ctx,
-		targetUserID,
-		limit,
-		offset,
-		request.BeforeDate,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	return &GetAuditLogsResponse{
-		AuditLogs: auditLogs,
-		Total:     int64(len(auditLogs)),
-		Limit:     limit,
-		Offset:    offset,
-	}, nil
-}
-
-func (s *AuditLogService) GetWorkspaceAuditLogs(
-	ctx context.Context,
-	workspaceID uuid.UUID,
-	request *GetAuditLogsRequest,
-) (*GetAuditLogsResponse, error) {
-	limit := request.Limit
-	if limit <= 0 || limit > 1000 {
-		limit = 100
-	}
-
-	offset := max(request.Offset, 0)
-
-	auditLogs, err := s.auditLogRepository.GetByWorkspace(
-		ctx,
-		workspaceID,
-		limit,
-		offset,
-		request.BeforeDate,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	return &GetAuditLogsResponse{
-		AuditLogs: auditLogs,
-		Total:     int64(len(auditLogs)),
-		Limit:     limit,
-		Offset:    offset,
-	}, nil
 }
 
 // findAuthor returns nil for an entry without a user and for an account that is gone, which only a

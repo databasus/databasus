@@ -242,10 +242,9 @@ export const en = {
       created: 'Created',
     },
     systemUser: 'System',
-    loadedOfTotal: 'Loaded: {{loaded}} of {{total}}',
     empty: 'No audit logs found.',
     loadingMore: 'Loading more logs...',
-    allLoaded: 'All logs loaded ({{count}} total)',
+    allLoaded: 'All logs loaded',
   },
   settings: {
     title: 'Databasus settings',

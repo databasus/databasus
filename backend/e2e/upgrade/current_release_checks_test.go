@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
 	"slices"
 	"strconv"
 	"testing"
@@ -92,17 +93,26 @@ type currentBackupConfig struct {
 	Encryption       string  `json:"encryption"`
 }
 
-type currentAuditLogList struct {
-	AuditLogs []currentAuditLog `json:"auditLogs"`
+type currentAuditEventPage struct {
+	Items      []currentAuditEvent `json:"items"`
+	NextCursor *string             `json:"nextCursor"`
 }
 
-type currentAuditLog struct {
-	ID          string  `json:"id"`
-	WorkspaceID *string `json:"workspaceId"`
-	Message     string  `json:"message"`
-	CreatedAt   string  `json:"createdAt"`
-	UserEmail   *string `json:"userEmail"`
-	UserName    *string `json:"userName"`
+type currentAuditEvent struct {
+	ID        string                      `json:"id"`
+	Message   string                      `json:"message"`
+	CreatedAt string                      `json:"createdAt"`
+	Author    *currentAuditEventAuthor    `json:"author"`
+	Workspace *currentAuditEventWorkspace `json:"workspace"`
+}
+
+type currentAuditEventAuthor struct {
+	Email string `json:"email"`
+	Name  string `json:"name"`
+}
+
+type currentAuditEventWorkspace struct {
+	ID string `json:"id"`
 }
 
 type currentBackupList struct {
@@ -177,36 +187,64 @@ func readUpgradeData(ctx context.Context, api *apiClient) ([]upgradecheck.Item, 
 	return slices.Concat(listedItems, workspaceItems, auditEventItems), nil
 }
 
+// listAuditEventItems follows the pages of the global audit log to the last, so every event is
+// checked and not only the first page.
 func listAuditEventItems(ctx context.Context, api *apiClient) ([]upgradecheck.Item, error) {
-	var auditLogList currentAuditLogList
+	auditEventItems := []upgradecheck.Item{}
+	query := url.Values{"limit": {"100"}}
 
-	err := api.get(ctx, "/audit-logs/global?limit=1000", &auditLogList)
-	if err != nil {
-		return nil, fmt.Errorf("list the global audit log: %w", err)
-	}
+	for {
+		var auditEventPage currentAuditEventPage
 
-	auditEventItems := make([]upgradecheck.Item, 0, len(auditLogList.AuditLogs))
-
-	for _, auditLog := range auditLogList.AuditLogs {
-		createdAt, err := normalizeAuditTime(auditLog.CreatedAt)
+		err := api.get(ctx, "/audit-events?"+query.Encode(), &auditEventPage)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("list the global audit log: %w", err)
 		}
 
-		auditEventItems = append(auditEventItems, upgradecheck.Item{
-			Kind: "audit event",
-			Name: auditLog.ID,
-			Values: map[string]string{
-				"message":     auditLog.Message,
-				"createdAt":   createdAt,
-				"workspaceId": getOptionalValue(auditLog.WorkspaceID),
-				"authorEmail": getOptionalValue(auditLog.UserEmail),
-				"authorName":  getOptionalValue(auditLog.UserName),
-			},
-		})
+		for _, auditEvent := range auditEventPage.Items {
+			auditEventItem, err := toAuditEventItem(auditEvent)
+			if err != nil {
+				return nil, err
+			}
+
+			auditEventItems = append(auditEventItems, auditEventItem)
+		}
+
+		if auditEventPage.NextCursor == nil {
+			return auditEventItems, nil
+		}
+
+		query.Set("after", *auditEventPage.NextCursor)
+	}
+}
+
+func toAuditEventItem(auditEvent currentAuditEvent) (upgradecheck.Item, error) {
+	createdAt, err := normalizeAuditTime(auditEvent.CreatedAt)
+	if err != nil {
+		return upgradecheck.Item{}, err
 	}
 
-	return auditEventItems, nil
+	authorEmail, authorName := "", ""
+	if auditEvent.Author != nil {
+		authorEmail, authorName = auditEvent.Author.Email, auditEvent.Author.Name
+	}
+
+	workspaceID := ""
+	if auditEvent.Workspace != nil {
+		workspaceID = auditEvent.Workspace.ID
+	}
+
+	return upgradecheck.Item{
+		Kind: "audit event",
+		Name: auditEvent.ID,
+		Values: map[string]string{
+			"message":     auditEvent.Message,
+			"createdAt":   createdAt,
+			"workspaceId": workspaceID,
+			"authorEmail": authorEmail,
+			"authorName":  authorName,
+		},
+	}, nil
 }
 
 // normalizeAuditTime writes a time in UTC, because the release before the upgrade stored a time
@@ -219,14 +257,6 @@ func normalizeAuditTime(serializedTime string) (string, error) {
 	}
 
 	return parsedTime.UTC().Format(time.RFC3339Nano), nil
-}
-
-func getOptionalValue(value *string) string {
-	if value == nil {
-		return ""
-	}
-
-	return *value
 }
 
 func readWorkspaceItems(ctx context.Context, api *apiClient, workspaceID string) ([]upgradecheck.Item, error) {

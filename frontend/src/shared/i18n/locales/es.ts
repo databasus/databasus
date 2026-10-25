@@ -250,10 +250,9 @@ export const es: typeof en = {
       created: 'Fecha',
     },
     systemUser: 'Sistema',
-    loadedOfTotal: 'Cargados: {{loaded}} de {{total}}',
     empty: 'No hay registros de auditoría.',
     loadingMore: 'Cargando más registros...',
-    allLoaded: 'Todos los registros cargados ({{count}} en total)',
+    allLoaded: 'Todos los registros cargados',
   },
   settings: {
     title: 'Ajustes de Databasus',

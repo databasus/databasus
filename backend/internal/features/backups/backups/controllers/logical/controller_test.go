@@ -427,18 +427,11 @@ func Test_CreateBackup_AuditLogWritten(t *testing.T) {
 
 	time.Sleep(100 * time.Millisecond)
 
-	auditLogService := audit_logs.GetAuditLogService()
-	auditLogs, err := auditLogService.GetWorkspaceAuditLogs(t.Context(),
-		workspace.ID,
-		&audit_logs.GetAuditLogsRequest{
-			Limit:  100,
-			Offset: 0,
-		},
-	)
+	workspaceEvents, err := audit_logs.ListTestWorkspaceEvents(t.Context(), workspace.ID)
 	assert.NoError(t, err)
 
 	found := false
-	for _, log := range auditLogs.AuditLogs {
+	for _, log := range workspaceEvents {
 		if strings.Contains(log.Message, "Backup manually initiated") &&
 			strings.Contains(log.Message, database.Name) {
 			found = true
@@ -571,18 +564,11 @@ func Test_DeleteBackup_AuditLogWritten(t *testing.T) {
 
 	time.Sleep(100 * time.Millisecond)
 
-	auditLogService := audit_logs.GetAuditLogService()
-	auditLogs, err := auditLogService.GetWorkspaceAuditLogs(t.Context(),
-		workspace.ID,
-		&audit_logs.GetAuditLogsRequest{
-			Limit:  100,
-			Offset: 0,
-		},
-	)
+	workspaceEvents, err := audit_logs.ListTestWorkspaceEvents(t.Context(), workspace.ID)
 	assert.NoError(t, err)
 
 	found := false
-	for _, log := range auditLogs.AuditLogs {
+	for _, log := range workspaceEvents {
 		if strings.Contains(log.Message, "Backup deleted") &&
 			strings.Contains(log.Message, database.Name) {
 			found = true
@@ -810,18 +796,11 @@ func Test_DownloadBackup_WithExpiredToken_Unauthorized(t *testing.T) {
 
 	// Verify audit log was NOT created for failed download
 	time.Sleep(100 * time.Millisecond)
-	auditLogService := audit_logs.GetAuditLogService()
-	auditLogs, err := auditLogService.GetWorkspaceAuditLogs(t.Context(),
-		workspace.ID,
-		&audit_logs.GetAuditLogsRequest{
-			Limit:  100,
-			Offset: 0,
-		},
-	)
+	workspaceEvents, err := audit_logs.ListTestWorkspaceEvents(t.Context(), workspace.ID)
 	assert.NoError(t, err)
 
 	found := false
-	for _, log := range auditLogs.AuditLogs {
+	for _, log := range workspaceEvents {
 		if strings.Contains(log.Message, "Backup file downloaded") &&
 			strings.Contains(log.Message, database.Name) {
 			found = true
@@ -974,18 +953,11 @@ func Test_DownloadBackup_AuditLogWritten(t *testing.T) {
 
 	time.Sleep(100 * time.Millisecond)
 
-	auditLogService := audit_logs.GetAuditLogService()
-	auditLogs, err := auditLogService.GetWorkspaceAuditLogs(t.Context(),
-		workspace.ID,
-		&audit_logs.GetAuditLogsRequest{
-			Limit:  100,
-			Offset: 0,
-		},
-	)
+	workspaceEvents, err := audit_logs.ListTestWorkspaceEvents(t.Context(), workspace.ID)
 	assert.NoError(t, err)
 
 	found := false
-	for _, log := range auditLogs.AuditLogs {
+	for _, log := range workspaceEvents {
 		if strings.Contains(log.Message, "Backup file downloaded") &&
 			strings.Contains(log.Message, database.Name) {
 			found = true
@@ -1176,17 +1148,11 @@ func Test_CancelBackup_InProgressBackup_SuccessfullyCancelled(t *testing.T) {
 	assert.Equal(t, http.StatusNoContent, resp.StatusCode)
 
 	// Verify audit log was created
-	admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
-
-	auditLogService := audit_logs.GetAuditLogService()
-	auditLogs, err := auditLogService.GetGlobalAuditLogs(t.Context(),
-		users.Actor{UserID: admin.UserID, Role: users.RoleAdmin},
-		&audit_logs.GetAuditLogsRequest{Limit: 100, Offset: 0},
-	)
+	workspaceEvents, err := audit_logs.ListTestWorkspaceEvents(t.Context(), workspace.ID)
 	assert.NoError(t, err)
 
 	foundCancelLog := false
-	for _, log := range auditLogs.AuditLogs {
+	for _, log := range workspaceEvents {
 		if strings.Contains(log.Message, "Backup cancelled") &&
 			strings.Contains(log.Message, database.Name) {
 			foundCancelLog = true

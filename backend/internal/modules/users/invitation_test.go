@@ -27,7 +27,7 @@ func TestInviteUser(t *testing.T) {
 		require.Equal(t, http.StatusCreated, response.StatusCode(), string(response.Body))
 		assert.Equal(t, apiclient.AddedWorkspaceMemberOutcomeINVITED, response.JSON201.Outcome)
 		assert.Equal(t, 1, countUsersWithStatus(t, app, invitedEmail, "INVITED"))
-		assert.Contains(t, listGlobalAuditMessages(t, app, admin.Token), "User invited: "+invitedEmail+" for workspace")
+		assert.Contains(t, listGlobalAuditMessages(t, admin), "User invited: "+invitedEmail+" for workspace")
 	})
 
 	t.Run("lets a member invite when the instance allows member invitations", func(t *testing.T) {

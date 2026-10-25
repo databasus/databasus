@@ -156,18 +156,18 @@ func TestUpdateInstanceSettings(t *testing.T) {
 		response := updateInstanceSettings(t, admin.Client, closedRegistration)
 
 		require.Equal(t, http.StatusOK, response.StatusCode(), string(response.Body))
-		assert.Contains(t, listGlobalAuditMessages(t, app, admin.Token), "isAllowExternalRegistrations: true -> false")
+		assert.Contains(t, listGlobalAuditMessages(t, admin), "isAllowExternalRegistrations: true -> false")
 	})
 
 	t.Run("records nothing in the audit log when no switch changes", func(t *testing.T) {
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
-		auditMessagesBefore := listGlobalAuditMessages(t, app, admin.Token)
+		auditMessagesBefore := listGlobalAuditMessages(t, admin)
 
 		response := updateInstanceSettings(t, admin.Client, defaultSettingsUpdate())
 
 		require.Equal(t, http.StatusOK, response.StatusCode(), string(response.Body))
-		assert.Len(t, listGlobalAuditMessages(t, app, admin.Token), len(auditMessagesBefore))
+		assert.Len(t, listGlobalAuditMessages(t, admin), len(auditMessagesBefore))
 	})
 }
 

@@ -486,6 +486,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/audit-events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List audit events
+         * @description Ordered by `createdAt`, the newest first, then by ID. The filters choose the view and its readers. With `workspaceId`, the events of that workspace, readable by its members of every role and by instance admins; a user who is not a member gets 404 `not_found`. With only `authorUserId`, the events that user authored, readable by that user and by instance admins. Without a filter, the events of the whole instance, readable only by instance admins. Any other reader gets 403 `permission_denied`. Both filters together list the events of one author in the workspace.
+         */
+        get: operations["listAuditEvents"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/system/version": {
         parameters: {
             query?: never;
@@ -834,6 +854,54 @@ export interface components {
          * @enum {string}
          */
         AssignableWorkspaceRole: "WORKSPACE_ADMIN" | "WORKSPACE_MEMBER" | "WORKSPACE_VIEWER";
+        /** @description Who did what and when */
+        AuditEvent: {
+            /**
+             * Format: uuid
+             * @description The ID of the event
+             */
+            id: string;
+            /** @description What happened */
+            message: string;
+            /**
+             * Format: date-time
+             * @description When it happened
+             */
+            createdAt: string;
+            /** @description The user who acted, null for an action without a signed-in user */
+            author: components["schemas"]["AuditEventAuthor"] | null;
+            /** @description The workspace the event belongs to, null for an event outside any workspace */
+            workspace: components["schemas"]["AuditEventWorkspace"] | null;
+        };
+        /** @description The user who acted, as they were at the time of the action */
+        AuditEventAuthor: {
+            /**
+             * Format: uuid
+             * @description The ID of the user
+             */
+            userId: string;
+            /** @description The address the user signed in with */
+            email: string;
+            /** @description The name of the user */
+            name: string;
+        };
+        /** @description The workspace of an event */
+        AuditEventWorkspace: {
+            /**
+             * Format: uuid
+             * @description The ID of the workspace
+             */
+            id: string;
+            /** @description The current name of the workspace, null when the workspace has been deleted */
+            name: string | null;
+        };
+        /** @description One page of audit events, the newest first */
+        AuditEventPage: {
+            /** @description The events on the page */
+            items: components["schemas"]["AuditEvent"][];
+            /** @description The `after` of the next page, absent on the last page */
+            nextCursor?: string;
+        };
         /** @description An error in the RFC 9457 format. The client chooses its text by `code` */
         Problem: {
             /** @description A URI that identifies the kind of error */
@@ -1722,6 +1790,40 @@ export interface operations {
             403: components["responses"]["Problem"];
             404: components["responses"]["Problem"];
             409: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    listAuditEvents: {
+        parameters: {
+            query?: {
+                /** @description The workspace whose events to list */
+                workspaceId?: string;
+                /** @description The user whose events to list */
+                authorUserId?: string;
+                /** @description The largest number of events on the page */
+                limit?: number;
+                /** @description The `nextCursor` of the previous page */
+                after?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page of audit events */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditEventPage"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
             default: components["responses"]["Problem"];
         };
     };

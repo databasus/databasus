@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"slices"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -197,6 +199,134 @@ func TestDeleteExpired(t *testing.T) {
 		require.NoError(t, err)
 		assert.Zero(t, deletedCount)
 	})
+}
+
+func TestListEvents(t *testing.T) {
+	t.Parallel()
+
+	t.Run("lists every event once newest first when following the pages to the last", func(t *testing.T) {
+		t.Parallel()
+		db := openMigratedDatabase(t)
+		testClock := newTestClock()
+		now := testClock.Now()
+		auditLog := newAuditLog(db, testClock, slog.New(slog.DiscardHandler))
+		recordEventsAt(t, db, map[string]time.Time{
+			"third":  now.Add(-time.Hour),
+			"first":  now.Add(-3 * time.Hour),
+			"fourth": now,
+			"second": now.Add(-2 * time.Hour),
+			"fifth":  now.Add(time.Hour),
+		})
+
+		listedEvents, pageCount := listAllEvents(t, auditLog, audit.EventListQuery{
+			WorkspaceID: nil, AuthorUserID: nil, Limit: 2, After: "",
+		})
+
+		listedMessages := []string{}
+		for _, event := range listedEvents {
+			listedMessages = append(listedMessages, event.Message)
+		}
+
+		assert.Equal(t, []string{"fifth", "fourth", "third", "second", "first"}, listedMessages)
+		assert.Equal(t, 3, pageCount)
+	})
+
+	t.Run("orders events of the same time by id across pages", func(t *testing.T) {
+		t.Parallel()
+		db := openMigratedDatabase(t)
+		testClock := newTestClock()
+		auditLog := newAuditLog(db, testClock, slog.New(slog.DiscardHandler))
+		for _, message := range []string{"a", "b", "c", "d", "e"} {
+			require.NoError(
+				t,
+				auditLog.Record(t.Context(), audit.Event{Author: nil, WorkspaceID: nil, Message: message}),
+			)
+		}
+
+		listedEvents, _ := listAllEvents(t, auditLog, audit.EventListQuery{
+			WorkspaceID: nil, AuthorUserID: nil, Limit: 2, After: "",
+		})
+
+		storedIDs := []uuid.UUID{}
+		for _, event := range listStoredEvents(t, db) {
+			storedIDs = append(storedIDs, event.ID)
+		}
+
+		slices.SortFunc(
+			storedIDs,
+			func(left, right uuid.UUID) int { return -strings.Compare(left.String(), right.String()) },
+		)
+		listedIDs := []uuid.UUID{}
+		for _, event := range listedEvents {
+			listedIDs = append(listedIDs, event.ID)
+		}
+
+		assert.Equal(t, storedIDs, listedIDs)
+	})
+
+	t.Run("lists only the events of the workspace and the author when both filters are set", func(t *testing.T) {
+		t.Parallel()
+		db := openMigratedDatabase(t)
+		auditLog := newAuditLog(db, newTestClock(), slog.New(slog.DiscardHandler))
+		alice := audit.Author{UserID: uuid.New(), Email: "alice@example.com", Name: "Alice"}
+		bob := audit.Author{UserID: uuid.New(), Email: "bob@example.com", Name: "Bob"}
+		workspaceID := uuid.New()
+		otherWorkspaceID := uuid.New()
+		for _, event := range []audit.Event{
+			{Author: &alice, WorkspaceID: &workspaceID, Message: "alice in the workspace"},
+			{Author: &bob, WorkspaceID: &workspaceID, Message: "bob in the workspace"},
+			{Author: &alice, WorkspaceID: &otherWorkspaceID, Message: "alice in another workspace"},
+			{Author: &alice, WorkspaceID: nil, Message: "alice outside any workspace"},
+		} {
+			require.NoError(t, auditLog.Record(t.Context(), event))
+		}
+
+		page, err := auditLog.ListEvents(t.Context(), audit.EventListQuery{
+			WorkspaceID: &workspaceID, AuthorUserID: &alice.UserID, Limit: 10, After: "",
+		})
+
+		require.NoError(t, err)
+		require.Len(t, page.Events, 1)
+		assert.Equal(t, "alice in the workspace", page.Events[0].Message)
+		assert.Equal(t, &alice, page.Events[0].Author)
+		assert.Equal(t, &workspaceID, page.Events[0].WorkspaceID)
+		assert.Empty(t, page.NextCursor)
+	})
+
+	t.Run("returns a field error on after when the cursor does not decode", func(t *testing.T) {
+		t.Parallel()
+		db := openMigratedDatabase(t)
+		auditLog := newAuditLog(db, newTestClock(), slog.New(slog.DiscardHandler))
+
+		_, err := auditLog.ListEvents(t.Context(), audit.EventListQuery{
+			WorkspaceID: nil, AuthorUserID: nil, Limit: 10, After: "not a cursor",
+		})
+
+		require.ErrorIs(t, err, audit.ErrInvalidCursor)
+	})
+}
+
+// listAllEvents follows the pages from the first to the last and returns the events in the order
+// they were listed with the number of pages read.
+func listAllEvents(t *testing.T, auditLog *audit.Log, query audit.EventListQuery) ([]audit.RecordedEvent, int) {
+	t.Helper()
+
+	listedEvents := []audit.RecordedEvent{}
+	pageCount := 0
+
+	for {
+		page, err := auditLog.ListEvents(t.Context(), query)
+		require.NoError(t, err)
+
+		pageCount++
+		listedEvents = append(listedEvents, page.Events...)
+
+		if page.NextCursor == "" {
+			return listedEvents, pageCount
+		}
+
+		query.After = page.NextCursor
+	}
 }
 
 func newAuditLog(db *gorm.DB, testClock clock.Source, auditLogger *slog.Logger) *audit.Log {

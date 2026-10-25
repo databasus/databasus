@@ -5,7 +5,6 @@ import (
 
 	contract "databasus-backend/api"
 	systemhttpapi "databasus-backend/internal/app/systemhttpapi"
-	"databasus-backend/internal/features/audit_logs"
 	backups_controllers_logical "databasus-backend/internal/features/backups/backups/controllers/logical"
 	backups_controllers_physical "databasus-backend/internal/features/backups/backups/controllers/physical"
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
@@ -81,7 +80,6 @@ func (a *App) registerRoutes(router *gin.Engine) {
 	healthcheck_attempt.GetHealthcheckAttemptController().RegisterRoutes(protected)
 	backups_config_logical.GetBackupConfigController().RegisterRoutes(protected)
 	backups_config_physical.GetBackupConfigController().RegisterRoutes(protected)
-	audit_logs.GetAuditLogController().RegisterRoutes(protected)
 	verification_agents.GetAgentController().RegisterRoutes(protected)
 	verification_config.GetVerificationConfigController().RegisterRoutes(protected)
 	verification_runs.GetVerificationController().RegisterRoutes(protected)

@@ -22,7 +22,7 @@ func TestSendTestEmail(t *testing.T) {
 		assert.Equal(t, admin.Email, response.JSON201.RecipientEmail)
 		assert.True(t, response.JSON201.IsDelivered)
 		assert.Len(t, app.Mail.GetMessagesTo(admin.Email), 1)
-		assert.Contains(t, listGlobalAuditMessages(t, app, admin.Token), "Test email sent to "+admin.Email)
+		assert.Contains(t, listGlobalAuditMessages(t, admin), "Test email sent to "+admin.Email)
 	})
 
 	t.Run("answers the mail server's error and records the failure when the server refuses the message",
@@ -37,7 +37,7 @@ func TestSendTestEmail(t *testing.T) {
 			assert.False(t, response.JSON201.IsDelivered)
 			require.NotNil(t, response.JSON201.FailureDetail)
 			assert.Contains(t, *response.JSON201.FailureDetail, "refuses the message")
-			assert.Contains(t, listGlobalAuditMessages(t, app, admin.Token), "Test email to "+admin.Email+" failed")
+			assert.Contains(t, listGlobalAuditMessages(t, admin), "Test email to "+admin.Email+" failed")
 		})
 
 	t.Run("returns 403 permission_denied and sends nothing when a member asks", func(t *testing.T) {

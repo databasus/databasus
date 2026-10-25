@@ -103,33 +103,14 @@ func defaultSettingsUpdate() apiclient.InstanceSettingsUpdate {
 	}
 }
 
-// listGlobalAuditMessages reads the global audit log through the old route, which the contract does
-// not describe yet.
-func listGlobalAuditMessages(t *testing.T, app *apptest.App, adminToken string) []string {
+func listGlobalAuditMessages(t *testing.T, admin apptest.Session) []string {
 	t.Helper()
 
-	request, err := http.NewRequestWithContext(t.Context(), http.MethodGet,
-		app.URL+"/api/v1/audit-logs/global?limit=1000", nil)
-	require.NoError(t, err)
-	request.Header.Set("Authorization", "Bearer "+adminToken)
+	globalEvents := apptest.ListAllAuditEvents(t, admin, apiclient.ListAuditEventsParams{})
 
-	response, err := http.DefaultClient.Do(request)
-	require.NoError(t, err)
-
-	defer func() { _ = response.Body.Close() }()
-
-	require.Equal(t, http.StatusOK, response.StatusCode)
-
-	var listedLogs struct {
-		AuditLogs []struct {
-			Message string `json:"message"`
-		} `json:"auditLogs"`
-	}
-	require.NoError(t, json.NewDecoder(response.Body).Decode(&listedLogs))
-
-	messages := make([]string, 0, len(listedLogs.AuditLogs))
-	for _, listedLog := range listedLogs.AuditLogs {
-		messages = append(messages, listedLog.Message)
+	messages := make([]string, 0, len(globalEvents))
+	for _, event := range globalEvents {
+		messages = append(messages, event.Message)
 	}
 
 	return messages
