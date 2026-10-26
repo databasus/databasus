@@ -34,7 +34,6 @@ import (
 	"databasus-backend/internal/features/databases"
 	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
 	"databasus-backend/internal/features/intervals"
-	"databasus-backend/internal/features/notifiers"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
 	"databasus-backend/internal/util/encryption"
@@ -303,7 +302,7 @@ func useReplicationOnlyUserViaAPI(
 		WorkspaceID: fixture.DB.WorkspaceID,
 		Name:        fixture.DB.Name,
 		Type:        databases.DatabaseTypePostgresPhysical,
-		Notifiers:   []notifiers.Notifier{*fixture.Notifier},
+		Notifiers:   []databases.DatabaseNotifier{{ID: fixture.Notifier.ID}},
 		PostgresqlPhysical: &postgresql_physical.PostgresqlPhysicalDatabase{
 			Version:    physical.Version,
 			Host:       physical.Host,

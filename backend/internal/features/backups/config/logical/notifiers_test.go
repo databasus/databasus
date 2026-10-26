@@ -1,7 +1,6 @@
 package backups_config_logical
 
 import (
-	"fmt"
 	"net/http"
 	"testing"
 
@@ -9,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"databasus-backend/internal/features/databases"
-	"databasus-backend/internal/features/notifiers"
+	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	"databasus-backend/internal/features/storages"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
@@ -23,15 +22,15 @@ func Test_AttachNotifierFromSameWorkspace_SuccessfullyAttached(t *testing.T) {
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
 
 	database := createTestDatabaseViaAPI("Test Database", workspace.ID, owner.Token, router)
-	notifier := notifiers.CreateTestNotifier(workspace.ID)
+	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
 
 	defer func() {
 		databases.RemoveTestDatabase(t.Context(), database)
-		notifiers.RemoveTestNotifier(notifier)
+		notifiers_bridge.RemoveTestNotifier(notifier)
 		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	}()
 
-	database.Notifiers = []notifiers.Notifier{*notifier}
+	database.Notifiers = []databases.DatabaseNotifier{{ID: notifier.ID}}
 
 	var response databases.Database
 	test_utils.MakePostRequestAndUnmarshal(
@@ -58,16 +57,16 @@ func Test_AttachNotifierFromDifferentWorkspace_ReturnsForbidden(t *testing.T) {
 
 	owner2 := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace2 := workspaces_testing.CreateTestWorkspace(t.Context(), "Workspace 2", owner2)
-	notifier := notifiers.CreateTestNotifier(workspace2.ID)
+	notifier := notifiers_bridge.CreateTestNotifier(workspace2.ID)
 
 	defer func() {
 		databases.RemoveTestDatabase(t.Context(), database)
-		notifiers.RemoveTestNotifier(notifier)
+		notifiers_bridge.RemoveTestNotifier(notifier)
 		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace1)
 		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace2)
 	}()
 
-	database.Notifiers = []notifiers.Notifier{*notifier}
+	database.Notifiers = []databases.DatabaseNotifier{{ID: notifier.ID}}
 
 	testResp := test_utils.MakePostRequest(
 		t,
@@ -81,103 +80,11 @@ func Test_AttachNotifierFromDifferentWorkspace_ReturnsForbidden(t *testing.T) {
 	assert.Contains(t, string(testResp.Body), "notifier does not belong to this workspace")
 }
 
-func Test_DeleteNotifierWithAttachedDatabases_CannotDelete(t *testing.T) {
-	router := createTestRouterWithNotifier()
-	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
-
-	database := createTestDatabaseViaAPI("Test Database", workspace.ID, owner.Token, router)
-	notifier := notifiers.CreateTestNotifier(workspace.ID)
-
-	defer func() {
-		databases.RemoveTestDatabase(t.Context(), database)
-		notifiers.RemoveTestNotifier(notifier)
-		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
-	}()
-
-	database.Notifiers = []notifiers.Notifier{*notifier}
-
-	var response databases.Database
-	test_utils.MakePostRequestAndUnmarshal(
-		t,
-		router,
-		"/api/v1/databases/update",
-		"Bearer "+owner.Token,
-		database,
-		http.StatusOK,
-		&response,
-	)
-
-	testResp := test_utils.MakeDeleteRequest(
-		t,
-		router,
-		fmt.Sprintf("/api/v1/notifiers/%s", notifier.ID.String()),
-		"Bearer "+owner.Token,
-		http.StatusBadRequest,
-	)
-
-	assert.Contains(
-		t,
-		string(testResp.Body),
-		"notifier has attached databases and cannot be deleted",
-	)
-}
-
-func Test_TransferNotifierWithAttachedDatabase_CannotTransfer(t *testing.T) {
-	router := createTestRouterWithNotifier()
-	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
-	targetWorkspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Target Workspace", owner)
-
-	database := createTestDatabaseViaAPI("Test Database", workspace.ID, owner.Token, router)
-	notifier := notifiers.CreateTestNotifier(workspace.ID)
-
-	defer func() {
-		databases.RemoveTestDatabase(t.Context(), database)
-		notifiers.RemoveTestNotifier(notifier)
-		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
-		workspaces_testing.RemoveTestWorkspace(t.Context(), targetWorkspace)
-	}()
-
-	database.Notifiers = []notifiers.Notifier{*notifier}
-
-	var response databases.Database
-	test_utils.MakePostRequestAndUnmarshal(
-		t,
-		router,
-		"/api/v1/databases/update",
-		"Bearer "+owner.Token,
-		database,
-		http.StatusOK,
-		&response,
-	)
-
-	transferRequest := notifiers.TransferNotifierRequest{
-		TargetWorkspaceID: targetWorkspace.ID,
-	}
-
-	testResp := test_utils.MakePostRequest(
-		t,
-		router,
-		fmt.Sprintf("/api/v1/notifiers/%s/transfer", notifier.ID.String()),
-		"Bearer "+owner.Token,
-		transferRequest,
-		http.StatusBadRequest,
-	)
-
-	assert.Contains(
-		t,
-		string(testResp.Body),
-		"notifier has attached databases and cannot be transferred",
-	)
-}
-
 func createTestRouterWithNotifier() *gin.Engine {
 	router := workspaces_testing.CreateTestRouter(
 		databases.GetDatabaseController(),
 		GetBackupConfigController(),
 		storages.GetStorageController(),
-		notifiers.GetNotifierController(),
 	)
 
 	databases.SetupDependencies()

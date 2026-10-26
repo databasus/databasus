@@ -2,12 +2,10 @@ package workspace
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"unicode/utf8"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgconn"
 
 	"databasus-backend/internal/lib/apierror"
 	"databasus-backend/internal/lib/audit"
@@ -17,11 +15,7 @@ import (
 	"databasus-backend/internal/modules/workspaces/internal/access"
 )
 
-const (
-	maxWorkspaceNameLength = 255
-	// foreignKeyViolationCode is the SQLSTATE of a row that another table still references.
-	foreignKeyViolationCode = "23503"
-)
+const maxWorkspaceNameLength = 255
 
 type Deps struct {
 	Repositories Repositories
@@ -88,10 +82,10 @@ func (s *Service) ListWorkspaces(
 		}})
 	}
 
-	var after *workspaceCursor
+	var after *database.NameCursor
 
 	if query.After != nil {
-		cursor, err := decodeWorkspaceCursor(*query.After)
+		cursor, err := database.DecodeNameCursor(*query.After)
 		if err != nil {
 			return WorkspacePage{}, err
 		}
@@ -113,7 +107,7 @@ func (s *Service) ListWorkspaces(
 
 	if len(listedWorkspaces) > limit {
 		lastWorkspace := listedWorkspaces[limit-1]
-		nextCursor := workspaceCursor{name: lastWorkspace.Name, workspaceID: lastWorkspace.ID}.encode()
+		nextCursor := database.NameCursor{Name: lastWorkspace.Name, ID: lastWorkspace.ID}.Encode()
 		page.NextCursor = &nextCursor
 	}
 
@@ -246,7 +240,7 @@ func (s *Service) DeleteWorkspace(ctx context.Context, actor users.Actor, worksp
 		}
 
 		err = s.repository.delete(ctx, workspaceID)
-		if isForeignKeyViolation(err) {
+		if database.IsForeignKeyViolation(err) {
 			return ErrWorkspaceNotEmpty
 		}
 
@@ -300,10 +294,4 @@ func validateName(name string) error {
 	}
 
 	return nil
-}
-
-func isForeignKeyViolation(err error) bool {
-	var pgError *pgconn.PgError
-
-	return errors.As(err, &pgError) && pgError.Code == foreignKeyViolationCode
 }

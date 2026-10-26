@@ -131,6 +131,7 @@ export const pt: typeof en = {
       'O proprietário não pode ser alterado nem removido. Primeiro transfira a propriedade para outro membro.',
     workspaceNotEmpty:
       'O espaço de trabalho ainda tem bancos de dados. Exclua-os primeiro e depois exclua o espaço de trabalho.',
+    inUse: 'Alguns bancos de dados ainda o usam. Remova-o desses bancos de dados primeiro.',
     unknown: 'Algo deu errado. Tente novamente.',
     networkUnreachable:
       'Não foi possível acessar o servidor do Databasus. Verifique sua conexão e tente novamente.',
@@ -1219,11 +1220,11 @@ export const pt: typeof en = {
         clearByNextNotification: '- aguarde a próxima notificação ser enviada sem erros;',
       },
       removeConfirmation: 'Remover este canal de notificação? Esta ação não pode ser desfeita.',
-      removeBlockedByDatabases:
-        'Este canal de notificação está em uso em alguns bancos de dados. Remova-o desses bancos de dados primeiro.',
     },
+    secretKeptPlaceholder: 'Salvo - deixe em branco para manter',
     testNotification: {
       send: 'Enviar notificação de teste',
+      notDelivered: 'A mensagem de teste não foi entregue: {{error}}',
       sent: {
         title: 'Notificação de teste enviada!',
         description: 'A notificação de teste foi enviada com sucesso',
@@ -1313,7 +1314,8 @@ export const pt: typeof en = {
       customHeaders: 'Cabeçalhos personalizados',
       customHeadersTooltip:
         'Adicione cabeçalhos HTTP personalizados à requisição do webhook (por exemplo, Authorization, X-API-Key)',
-      savedHeadersHidden: '*Os cabeçalhos salvos ficam ocultos por segurança',
+      savedHeadersHidden:
+        '*Os valores dos cabeçalhos salvos ficam ocultos. Deixe um valor em branco para mantê-lo',
       headers: 'Cabeçalhos',
       headerNamePlaceholder: 'Nome do cabeçalho',
       headerValuePlaceholder: 'Valor do cabeçalho',

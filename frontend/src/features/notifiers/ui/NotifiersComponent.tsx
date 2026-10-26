@@ -45,7 +45,7 @@ export const NotifiersComponent = ({ contentHeight, workspace, isCanManageNotifi
     }
 
     notifierApi
-      .getNotifiers(workspace.id)
+      .listAllNotifiers(workspace.id)
       .then((notifiers) => {
         setNotifiers(notifiers);
         if (selectNotifierId) {
@@ -132,7 +132,9 @@ export const NotifiersComponent = ({ contentHeight, workspace, isCanManageNotifi
                 ))
               : searchQuery && (
                   <div className="mb-4 text-center text-sm text-gray-500 dark:text-gray-400">
-                    {t('notifiers.list.noSearchResults', { query: searchQuery })}
+                    {t('notifiers.list.noSearchResults', {
+                      query: searchQuery,
+                    })}
                   </div>
                 )}
 

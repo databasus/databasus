@@ -1,15 +1,16 @@
 import { Input } from 'antd';
 import { useTranslation } from 'react-i18next';
 
-import type { Notifier } from '../../../../../entity/notifiers';
+import type { DiscordNotifierSettings } from '../../../../../entity/notifiers';
+import { toOptionalValue } from '../../../lib/toOptionalValue';
 
 interface Props {
-  notifier: Notifier;
-  setNotifier: (notifier: Notifier) => void;
-  setUnsaved: () => void;
+  settings: DiscordNotifierSettings;
+  isSaved: boolean;
+  onChange: (settings: DiscordNotifierSettings) => void;
 }
 
-export function EditDiscordNotifierComponent({ notifier, setNotifier, setUnsaved }: Props) {
+export function EditDiscordNotifierComponent({ settings, isSaved, onChange }: Props) {
   const { t } = useTranslation();
 
   return (
@@ -19,22 +20,21 @@ export function EditDiscordNotifierComponent({ notifier, setNotifier, setUnsaved
           {t('notifiers.discord.channelWebhookUrl')}
         </div>
         <Input
-          value={notifier?.discordNotifier?.channelWebhookUrl || ''}
-          onChange={(e) => {
-            if (!notifier?.discordNotifier) return;
-            setNotifier({
-              ...notifier,
-              discordNotifier: {
-                ...notifier.discordNotifier,
-                channelWebhookUrl: e.target.value.trim(),
-              },
-            });
-            setUnsaved();
-          }}
+          value={settings.channelWebhookUrl ?? ''}
+          onChange={(e) =>
+            onChange({
+              ...settings,
+              channelWebhookUrl: toOptionalValue(e.target.value.trim()),
+            })
+          }
           size="small"
           className="w-full max-w-[250px]"
-          // eslint-disable-next-line i18next/no-literal-string -- example token, not copy
-          placeholder="1234567890:ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+          placeholder={
+            isSaved
+              ? t('notifiers.secretKeptPlaceholder')
+              : // eslint-disable-next-line i18next/no-literal-string -- example URL, not copy
+                'https://discord.com/api/webhooks/...'
+          }
         />
       </div>
 

@@ -871,10 +871,11 @@ func Test_WithBackupSlot_WhenTheHeldConnectionDied_DropsTheSlotOverAFreshConnect
 
 	slotName := postgresql_executor.SlotName(fixture.DB.PostgresqlPhysical.ID)
 	adminConn := postgresql_executor.OpenAdminConn(t, fixture)
+	sourceDB := postgresql_executor.CreateReplicationOnlyRole(t, adminConn, fixture)
 
 	err := postgresql_executor.WithBackupSlot(
 		t.Context(),
-		fixture.DB.PostgresqlPhysical,
+		sourceDB,
 		encryption.GetFieldEncryptor(),
 		logger.GetLogger(),
 		func() error {
@@ -882,8 +883,8 @@ func Test_WithBackupSlot_WhenTheHeldConnectionDied_DropsTheSlotOverAFreshConnect
 				"the slot must be held while the backup runs")
 
 			_, terminateErr := adminConn.Exec(context.Background(),
-				`SELECT pg_terminate_backend(pid) FROM pg_stat_activity
-				 WHERE datname = 'postgres' AND pid <> pg_backend_pid()`)
+				`SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE usename = $1`,
+				sourceDB.Username)
 
 			return terminateErr
 		},

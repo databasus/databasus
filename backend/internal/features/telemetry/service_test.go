@@ -26,11 +26,11 @@ import (
 	postgresql_logical "databasus-backend/internal/features/databases/databases/postgresql/logical"
 	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
 	"databasus-backend/internal/features/intervals"
-	"databasus-backend/internal/features/notifiers"
 	"databasus-backend/internal/features/sshtunnel"
 	"databasus-backend/internal/features/storages"
 	verification_agents "databasus-backend/internal/features/verification/agents"
 	verification_config "databasus-backend/internal/features/verification/config"
+	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/util/tools"
 )
 
@@ -63,12 +63,12 @@ func (f *fakeStorageLister) GetAllStorages() ([]*storages.Storage, error) {
 }
 
 type fakeNotifierLister struct {
-	notifiers []*notifiers.Notifier
-	err       error
+	notifierTypes []notifiers.Type
+	err           error
 }
 
-func (f *fakeNotifierLister) GetAllNotifiers() ([]*notifiers.Notifier, error) {
-	return f.notifiers, f.err
+func (f *fakeNotifierLister) GetNotifierTypes(context.Context) ([]notifiers.Type, error) {
+	return f.notifierTypes, f.err
 }
 
 type fakeBackupChecker struct {
@@ -402,9 +402,9 @@ func Test_BuildAndSend_ProducesExpectedRequest(t *testing.T) {
 			{Type: storages.StorageTypeS3},
 			{Type: storages.StorageTypeLocal},
 		}},
-		notifierLister: &fakeNotifierLister{notifiers: []*notifiers.Notifier{
-			{NotifierType: notifiers.NotifierTypeEmail},
-			{NotifierType: notifiers.NotifierTypeTelegram},
+		notifierLister: &fakeNotifierLister{notifierTypes: []notifiers.Type{
+			notifiers.TypeEmail,
+			notifiers.TypeTelegram,
 		}},
 		sender: sender,
 	})
@@ -445,10 +445,10 @@ func Test_BuildAndSend_PreservesStorageAndNotifierDuplicates(t *testing.T) {
 			{Type: storages.StorageTypeS3},
 			{Type: storages.StorageTypeLocal},
 		}},
-		notifierLister: &fakeNotifierLister{notifiers: []*notifiers.Notifier{
-			{NotifierType: notifiers.NotifierTypeEmail},
-			{NotifierType: notifiers.NotifierTypeEmail},
-			{NotifierType: notifiers.NotifierTypeTelegram},
+		notifierLister: &fakeNotifierLister{notifierTypes: []notifiers.Type{
+			notifiers.TypeEmail,
+			notifiers.TypeEmail,
+			notifiers.TypeTelegram,
 		}},
 		sender: sender,
 	})
@@ -1057,7 +1057,7 @@ func Test_BuildAndSend_WhenPayloadSerialized_ContainsDocumentedContractKeys(t *t
 		databaseLister: &fakeDatabaseLister{databases: []*databases.Database{physicalDB}},
 		storageLister:  &fakeStorageLister{storages: []*storages.Storage{{Type: storages.StorageTypeLocal}}},
 		notifierLister: &fakeNotifierLister{
-			notifiers: []*notifiers.Notifier{{NotifierType: notifiers.NotifierTypeEmail}},
+			notifierTypes: []notifiers.Type{notifiers.TypeEmail},
 		},
 		physicalBackupReader: &fakeLatestPhysicalBackupReader{
 			fullBackups: map[uuid.UUID]*physical_models.PhysicalFullBackup{

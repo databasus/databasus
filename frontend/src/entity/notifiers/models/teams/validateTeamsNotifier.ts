@@ -1,16 +1,19 @@
-import type { TeamsNotifier } from './TeamsNotifier';
+import type { TeamsNotifierSettings } from './TeamsNotifierSettings';
 
-export const validateTeamsNotifier = (isCreate: boolean, notifier: TeamsNotifier): boolean => {
-  if (isCreate && !notifier?.powerAutomateUrl) {
-    return false;
+// A saved notifier keeps its stored URL when the form leaves it empty.
+export const validateTeamsNotifier = (
+  isCreate: boolean,
+  settings: TeamsNotifierSettings,
+): boolean => {
+  if (!settings.powerAutomateUrl) {
+    return !isCreate;
   }
 
   try {
-    const u = new URL(notifier.powerAutomateUrl);
-    if (u.protocol !== 'http:' && u.protocol !== 'https:') return false;
+    const powerAutomateUrl = new URL(settings.powerAutomateUrl);
+
+    return powerAutomateUrl.protocol === 'http:' || powerAutomateUrl.protocol === 'https:';
   } catch {
     return false;
   }
-
-  return true;
 };

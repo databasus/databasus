@@ -15,10 +15,10 @@ import (
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
 	"databasus-backend/internal/features/databases"
-	notifier_models "databasus-backend/internal/features/notifiers/models"
 	storage_files "databasus-backend/internal/features/storages/files"
 	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
 	workspaces_bridge "databasus-backend/internal/features/workspaces"
+	"databasus-backend/internal/modules/notifiers"
 	db "databasus-backend/internal/storage"
 )
 
@@ -258,71 +258,69 @@ func (b *Backuper) SendBackupNotification(
 		return
 	}
 
-	for _, notifier := range database.Notifiers {
-		if !slices.Contains(
-			backupConfig.SendNotificationsOn,
-			notificationType,
-		) {
-			logger.DebugContext(ctx, fmt.Sprintf("skipping %s notification, not in the configured set",
-				notificationType), "notifier_id", notifier.ID)
+	if !slices.Contains(
+		backupConfig.SendNotificationsOn,
+		notificationType,
+	) {
+		logger.DebugContext(ctx, fmt.Sprintf("skipping %s notification, not in the configured set",
+			notificationType))
 
-			continue
-		}
+		return
+	}
 
-		title := ""
-		sentNotificationType := notifier_models.NotificationTypeBackupSuccess
+	title := ""
+	sentNotificationType := notifiers.CategoryBackupSuccess
 
-		switch notificationType {
-		case backups_config_logical.NotificationBackupFailed:
-			sentNotificationType = notifier_models.NotificationTypeBackupFailed
-			title = fmt.Sprintf(
-				"❌ Backup failed for database \"%s\" (workspace \"%s\")",
-				database.Name,
-				workspace.Name,
-			)
-		case backups_config_logical.NotificationBackupSuccess:
-			title = fmt.Sprintf(
-				"✅ Backup completed for database \"%s\" (workspace \"%s\")",
-				database.Name,
-				workspace.Name,
-			)
-		}
-
-		message := ""
-		if errorMessage != nil {
-			message = *errorMessage
-		} else {
-			// Format size conditionally
-			var sizeStr string
-			if backup.BackupSizeMb < 1024 {
-				sizeStr = fmt.Sprintf("%.2f MB", backup.BackupSizeMb)
-			} else {
-				sizeGB := backup.BackupSizeMb / 1024
-				sizeStr = fmt.Sprintf("%.2f GB", sizeGB)
-			}
-
-			// Format duration as "0m 0s 0ms"
-			totalMs := backup.BackupDurationMs
-			minutes := totalMs / (1000 * 60)
-			seconds := (totalMs % (1000 * 60)) / 1000
-			durationStr := fmt.Sprintf("%dm %ds", minutes, seconds)
-
-			message = fmt.Sprintf(
-				"Backup completed successfully in %s.\nCompressed backup size: %s",
-				durationStr,
-				sizeStr,
-			)
-		}
-
-		b.notificationSender.SendNotification(ctx,
-			&notifier,
-			notifier_models.Notification{
-				Type:    sentNotificationType,
-				Heading: title,
-				Message: message,
-			},
+	switch notificationType {
+	case backups_config_logical.NotificationBackupFailed:
+		sentNotificationType = notifiers.CategoryBackupFailed
+		title = fmt.Sprintf(
+			"❌ Backup failed for database \"%s\" (workspace \"%s\")",
+			database.Name,
+			workspace.Name,
+		)
+	case backups_config_logical.NotificationBackupSuccess:
+		title = fmt.Sprintf(
+			"✅ Backup completed for database \"%s\" (workspace \"%s\")",
+			database.Name,
+			workspace.Name,
 		)
 	}
+
+	message := ""
+	if errorMessage != nil {
+		message = *errorMessage
+	} else {
+		// Format size conditionally
+		var sizeStr string
+		if backup.BackupSizeMb < 1024 {
+			sizeStr = fmt.Sprintf("%.2f MB", backup.BackupSizeMb)
+		} else {
+			sizeGB := backup.BackupSizeMb / 1024
+			sizeStr = fmt.Sprintf("%.2f GB", sizeGB)
+		}
+
+		// Format duration as "0m 0s 0ms"
+		totalMs := backup.BackupDurationMs
+		minutes := totalMs / (1000 * 60)
+		seconds := (totalMs % (1000 * 60)) / 1000
+		durationStr := fmt.Sprintf("%dm %ds", minutes, seconds)
+
+		message = fmt.Sprintf(
+			"Backup completed successfully in %s.\nCompressed backup size: %s",
+			durationStr,
+			sizeStr,
+		)
+	}
+
+	b.notificationSender.Notify(ctx,
+		database.GetNotifierIDs(),
+		notifiers.Notification{
+			Category: sentNotificationType,
+			Heading:  title,
+			Message:  message,
+		},
+	)
 }
 
 // The sidecar carries its own context because the dump already succeeded: a caller

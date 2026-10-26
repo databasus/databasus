@@ -1,33 +1,20 @@
 import { InfoCircleOutlined } from '@ant-design/icons';
 import { Input, Tooltip } from 'antd';
-import React from 'react';
 import { useTranslation } from 'react-i18next';
 
-import type { Notifier } from '../../../../../entity/notifiers';
+import type { TeamsNotifierSettings } from '../../../../../entity/notifiers';
 import { getWebsitePageUrl, useLocale } from '../../../../../shared/i18n';
+import { toOptionalValue } from '../../../lib/toOptionalValue';
 
 interface Props {
-  notifier: Notifier;
-  setNotifier: (notifier: Notifier) => void;
-  setUnsaved: () => void;
+  settings: TeamsNotifierSettings;
+  isSaved: boolean;
+  onChange: (settings: TeamsNotifierSettings) => void;
 }
 
-export function EditTeamsNotifierComponent({ notifier, setNotifier, setUnsaved }: Props) {
+export function EditTeamsNotifierComponent({ settings, isSaved, onChange }: Props) {
   const { t } = useTranslation();
   const { locale } = useLocale();
-  const value = notifier?.teamsNotifier?.powerAutomateUrl || '';
-
-  const onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const powerAutomateUrl = e.target.value.trim();
-    setNotifier({
-      ...notifier,
-      teamsNotifier: {
-        ...(notifier.teamsNotifier ?? {}),
-        powerAutomateUrl,
-      },
-    });
-    setUnsaved();
-  };
 
   return (
     <>
@@ -48,11 +35,20 @@ export function EditTeamsNotifierComponent({ notifier, setNotifier, setUnsaved }
         </div>
         <div className="flex items-center">
           <Input
-            value={value}
-            onChange={onChange}
+            value={settings.powerAutomateUrl ?? ''}
+            onChange={(e) =>
+              onChange({
+                ...settings,
+                powerAutomateUrl: toOptionalValue(e.target.value.trim()),
+              })
+            }
             size="small"
             className="w-full max-w-[250px]"
-            placeholder="https://prod-00.westeurope.logic.azure.com:443/workflows/....."
+            placeholder={
+              isSaved
+                ? t('notifiers.secretKeptPlaceholder')
+                : 'https://prod-00.westeurope.logic.azure.com:443/workflows/.....'
+            }
           />
 
           <Tooltip className="cursor-pointer" title={t('notifiers.teams.powerAutomateUrlTooltip')}>

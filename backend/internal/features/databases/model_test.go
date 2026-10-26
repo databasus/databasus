@@ -14,7 +14,6 @@ import (
 	postgresql_logical "databasus-backend/internal/features/databases/databases/postgresql/logical"
 	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
 	postgresql_shared "databasus-backend/internal/features/databases/databases/postgresql/shared"
-	"databasus-backend/internal/features/notifiers"
 	"databasus-backend/internal/features/sshtunnel"
 	"databasus-backend/internal/util/encryption"
 	"databasus-backend/internal/util/logger"
@@ -262,7 +261,7 @@ func filledSourceDatabase(databaseType DatabaseType) *Database {
 		WorkspaceID: &workspaceID,
 		Name:        "Source",
 		Type:        databaseType,
-		Notifiers: []notifiers.Notifier{
+		Notifiers: []DatabaseNotifier{
 			{ID: uuid.New(), WorkspaceID: workspaceID, Name: "Ops channel"},
 		},
 		LastBackupTime:         &lastBackupTime,

@@ -506,6 +506,127 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/notifiers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the notifiers of a workspace
+         * @description Ordered by name, then by ID. A user who is not a member of the workspace gets 404 `not_found`. Secrets are never returned.
+         */
+        get: operations["listNotifiers"];
+        put?: never;
+        /**
+         * Create a notifier in a workspace
+         * @description Needs the role `WORKSPACE_MEMBER` or higher in the workspace. The type in `settings` is fixed once the notifier exists. Settings the provider refuses get 400 `invalid_request` with the field in `errors`.
+         */
+        post: operations["createNotifier"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/notifiers/{notifierId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the notifier */
+                notifierId: components["parameters"]["NotifierId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Get a notifier without its secrets
+         * @description A user who is not a member of the notifier's workspace gets 404 `not_found`, as for a notifier that does not exist.
+         */
+        get: operations["getNotifier"];
+        /**
+         * Replace the name and the settings of a notifier
+         * @description Needs the role `WORKSPACE_MEMBER` or higher. A secret the request leaves out keeps its stored value, and a webhook header sent without a value keeps the stored value of the header with the same name. Settings of another type than the notifier's get 400 `invalid_request`, because the type is fixed when the notifier is created.
+         */
+        put: operations["updateNotifier"];
+        post?: never;
+        /**
+         * Delete a notifier
+         * @description Needs the role `WORKSPACE_MEMBER` or higher. A notifier that a database uses gets 409 `in_use`, and nothing is deleted.
+         */
+        delete: operations["deleteNotifier"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/notifiers/{notifierId}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the notifier */
+                notifierId: components["parameters"]["NotifierId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send a test message through a saved notifier
+         * @description Any member of the workspace may test, a viewer included. A message the channel refuses is still a 200 that reports the channel's error, and the outcome becomes the notifier's `lastSendError`.
+         */
+        post: operations["testNotifier"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/notifiers/{notifierId}/transfer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the notifier */
+                notifierId: components["parameters"]["NotifierId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Move a notifier to another workspace
+         * @description Needs the role `WORKSPACE_MEMBER` or higher in both workspaces. While a database outside the target workspace uses the notifier, the answer is 409 `in_use`, and the notifier stays.
+         */
+        post: operations["transferNotifier"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/notifier-tests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send a test message with settings that are not saved
+         * @description Any member of the workspace may test, a viewer included. With `notifierId`, a secret the request leaves out is taken from that notifier, which must belong to the same workspace; otherwise the answer is 404 `not_found` and nothing is sent. Nothing is saved, the notifier's `lastSendError` included.
+         */
+        post: operations["testNotifierSettings"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/system/version": {
         parameters: {
             query?: never;
@@ -902,6 +1023,226 @@ export interface components {
             /** @description The `after` of the next page, absent on the last page */
             nextCursor?: string;
         };
+        /** @description A notification channel of a workspace, without its secrets */
+        Notifier: {
+            /**
+             * Format: uuid
+             * @description The ID of the notifier
+             */
+            id: string;
+            /**
+             * Format: uuid
+             * @description The workspace the notifier belongs to
+             */
+            workspaceId: string;
+            /** @description The name of the notifier */
+            name: string;
+            /** @description The error of the latest send through the notifier, null when it was delivered */
+            lastSendError: string | null;
+            settings: components["schemas"]["NotifierSettings"];
+        };
+        /** @description One page of notifiers, ordered by name */
+        NotifierPage: {
+            /** @description The notifiers on the page */
+            items: components["schemas"]["Notifier"][];
+            /** @description The `after` of the next page, absent on the last page */
+            nextCursor?: string;
+        };
+        /** @description A new notifier */
+        NotifierCreate: {
+            /**
+             * Format: uuid
+             * @description The workspace the notifier belongs to
+             */
+            workspaceId: string;
+            /** @description The name of the notifier */
+            name: string;
+            settings: components["schemas"]["NotifierSettings"];
+        };
+        /** @description The editable fields of a notifier */
+        NotifierUpdate: {
+            /** @description The name of the notifier */
+            name: string;
+            settings: components["schemas"]["NotifierSettings"];
+        };
+        /** @description The workspace a notifier moves to */
+        NotifierTransfer: {
+            /**
+             * Format: uuid
+             * @description The ID of the target workspace
+             */
+            targetWorkspaceId: string;
+        };
+        /** @description Settings to send a test message with */
+        NotifierSettingsTest: {
+            /**
+             * Format: uuid
+             * @description The workspace the test is made in
+             */
+            workspaceId: string;
+            /**
+             * Format: uuid
+             * @description A saved notifier of the workspace whose stored secrets fill the ones left out
+             */
+            notifierId?: string;
+            settings: components["schemas"]["NotifierSettings"];
+        };
+        /** @description The outcome of a test send */
+        NotifierTestResult: {
+            /** @description Whether the channel accepted the test message */
+            isDelivered: boolean;
+            /** @description The error the channel gave, absent when the message was delivered */
+            error?: string;
+        };
+        /** @description The settings of the notifier's channel; `type` tells the channels apart */
+        NotifierSettings: components["schemas"]["EmailNotifierSettings"] | components["schemas"]["TelegramNotifierSettings"] | components["schemas"]["SlackNotifierSettings"] | components["schemas"]["DiscordNotifierSettings"] | components["schemas"]["TeamsNotifierSettings"] | components["schemas"]["MattermostNotifierSettings"] | components["schemas"]["WebhookNotifierSettings"];
+        /** @description Email through the SMTP server of the notifier */
+        EmailNotifierSettings: {
+            /**
+             * @description Always `EMAIL` (enum property replaced by openapi-typescript)
+             * @enum {string}
+             */
+            type: "EMAIL";
+            /** @description The address the notifications go to */
+            targetEmail: string;
+            /** @description The host of the SMTP server */
+            smtpHost: string;
+            /** @description The port of the SMTP server */
+            smtpPort: number;
+            /** @description The SMTP user, absent when the server needs no authentication */
+            smtpUser?: string;
+            /** @description The SMTP password, given together with `smtpUser` */
+            smtpPassword?: string;
+            /** @description The sender, absent to derive it from the user and the host */
+            from?: string;
+            /** @description Whether the TLS certificate of the server goes unchecked */
+            isInsecureSkipVerify: boolean;
+            security: components["schemas"]["SmtpSecurity"];
+            /** @description The name the greeting uses, absent for the host of the instance's public address */
+            heloName?: string;
+        };
+        /**
+         * @description How the connection to the SMTP server is encrypted
+         * @enum {string}
+         */
+        SmtpSecurity: "TLS" | "STARTTLS" | "NONE";
+        /** @description Messages of a Telegram bot */
+        TelegramNotifierSettings: {
+            /**
+             * @description Always `TELEGRAM` (enum property replaced by openapi-typescript)
+             * @enum {string}
+             */
+            type: "TELEGRAM";
+            /** @description The token of the bot */
+            botToken?: string;
+            /** @description The chat the bot writes to */
+            targetChatId: string;
+            /**
+             * Format: int64
+             * @description The topic of the chat, absent for a chat without topics
+             */
+            threadId?: number;
+            /** @description Whether the messages go through a proxy */
+            isProxyEnabled: boolean;
+            /** @description The http, https, socks5 or socks5h URL of the proxy, cleared when the proxy is off */
+            proxyUrl?: string;
+            /** @description The Bot API server, absent for the official one */
+            botApiUrl?: string;
+        };
+        /** @description Messages of a Slack bot */
+        SlackNotifierSettings: {
+            /**
+             * @description Always `SLACK` (enum property replaced by openapi-typescript)
+             * @enum {string}
+             */
+            type: "SLACK";
+            /** @description The token of the bot */
+            botToken?: string;
+            /** @description The channel ID, starting with C, G or D, or the user ID, starting with U */
+            targetChatId: string;
+        };
+        /** @description Messages to a Discord channel through its webhook */
+        DiscordNotifierSettings: {
+            /**
+             * @description Always `DISCORD` (enum property replaced by openapi-typescript)
+             * @enum {string}
+             */
+            type: "DISCORD";
+            /** @description The webhook URL of the channel */
+            channelWebhookUrl?: string;
+        };
+        /** @description Messages to Microsoft Teams through a Power Automate workflow */
+        TeamsNotifierSettings: {
+            /**
+             * @description Always `TEAMS` (enum property replaced by openapi-typescript)
+             * @enum {string}
+             */
+            type: "TEAMS";
+            /** @description The URL of the workflow */
+            powerAutomateUrl?: string;
+        };
+        /** @description Posts to Mattermost through an incoming webhook or a bot account */
+        MattermostNotifierSettings: {
+            /**
+             * @description Always `MATTERMOST` (enum property replaced by openapi-typescript)
+             * @enum {string}
+             */
+            type: "MATTERMOST";
+            /**
+             * @description Whether the posts go through an incoming webhook or a bot account
+             * @enum {string}
+             */
+            deliveryMode: "WEBHOOK" | "BOT";
+            /** @description The incoming webhook of the webhook mode */
+            webhookUrl?: string;
+            /** @description The server of the bot mode */
+            serverUrl?: string;
+            /** @description The token of the bot account */
+            botToken?: string;
+            /** @description The channel that overrides the incoming webhook's own */
+            targetChannelName?: string;
+            /** @description The 26-character ID of the channel the bot posts to */
+            targetChannelId?: string;
+            /** @description The name the posts show */
+            overrideUsername?: string;
+            /** @description The icon the posts show */
+            overrideIconUrl?: string;
+            /** @description Whether the TLS certificate of the server goes unchecked */
+            isInsecureSkipVerify: boolean;
+        };
+        /** @description Requests to an HTTP endpoint the user runs */
+        WebhookNotifierSettings: {
+            /**
+             * @description Always `WEBHOOK` (enum property replaced by openapi-typescript)
+             * @enum {string}
+             */
+            type: "WEBHOOK";
+            /** @description The endpoint */
+            webhookUrl: string;
+            /**
+             * @description GET carries the text in the query, POST in the body
+             * @enum {string}
+             */
+            webhookMethod: "POST" | "GET";
+            /** @description The body of a POST, where `{{heading}}` and `{{message}}` are replaced; absent for a JSON body with `heading` and `message` */
+            bodyTemplate?: string;
+            /** @description The headers every request carries */
+            headers: components["schemas"]["WebhookHeader"][];
+            /** @description The categories the webhook gets; `ALL` accepts every one */
+            acceptedCategories: components["schemas"]["NotificationCategory"][];
+        };
+        /** @description A header of the webhook's requests */
+        WebhookHeader: {
+            /** @description The name of the header */
+            name: string;
+            /** @description The value; left out on a change, it keeps the stored value of the header with this name */
+            value?: string;
+        };
+        /**
+         * @description What a notification is about
+         * @enum {string}
+         */
+        NotificationCategory: "ALL" | "BACKUP_SUCCESS" | "BACKUP_FAILED" | "HEALTHCHECK_SUCCESS" | "HEALTHCHECK_FAILED" | "VERIFICATION_SUCCESS" | "VERIFICATION_FAILED";
         /** @description An error in the RFC 9457 format. The client chooses its text by `code` */
         Problem: {
             /** @description A URI that identifies the kind of error */
@@ -920,7 +1261,7 @@ export interface components {
          * @description The cause of the error for programs; a value never changes its meaning
          * @enum {string}
          */
-        ProblemCode: "invalid_request" | "unauthenticated" | "permission_denied" | "not_found" | "rate_limited" | "human_verification_failed" | "invalid_credentials" | "user_deactivated" | "registration_closed" | "email_taken" | "invalid_reset_code" | "oauth_not_configured" | "oauth_failed" | "pending_sign_in_not_usable" | "sign_in_code_not_sent" | "too_many_sign_in_codes" | "sign_in_code_resent_too_soon" | "sign_in_code_incorrect" | "email_not_configured" | "admin_email_missing" | "already_member" | "cannot_change_own_role" | "owner_requires_transfer" | "workspace_not_empty" | "internal";
+        ProblemCode: "invalid_request" | "unauthenticated" | "permission_denied" | "not_found" | "rate_limited" | "human_verification_failed" | "invalid_credentials" | "user_deactivated" | "registration_closed" | "email_taken" | "invalid_reset_code" | "oauth_not_configured" | "oauth_failed" | "pending_sign_in_not_usable" | "sign_in_code_not_sent" | "too_many_sign_in_codes" | "sign_in_code_resent_too_soon" | "sign_in_code_incorrect" | "email_not_configured" | "admin_email_missing" | "already_member" | "cannot_change_own_role" | "owner_requires_transfer" | "workspace_not_empty" | "in_use" | "internal";
         /** @description A field of the request that breaks the contract or a validation rule */
         FieldError: {
             /** @description The path of the field in the request, such as `name` or `settings.bucket` */
@@ -949,6 +1290,8 @@ export interface components {
         WorkspaceId: string;
         /** @description The ID of the member, which names one user in one workspace */
         MemberId: string;
+        /** @description The ID of the notifier */
+        NotifierId: string;
     };
     requestBodies: never;
     headers: never;
@@ -1823,6 +2166,242 @@ export interface operations {
             400: components["responses"]["Problem"];
             401: components["responses"]["Problem"];
             403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    listNotifiers: {
+        parameters: {
+            query: {
+                /** @description The workspace whose notifiers to list */
+                workspaceId: string;
+                /** @description The largest number of notifiers on the page */
+                limit?: number;
+                /** @description The `nextCursor` of the previous page */
+                after?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page of notifiers */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotifierPage"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    createNotifier: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The notifier to create, with every secret its provider needs. */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NotifierCreate"];
+            };
+        };
+        responses: {
+            /** @description The notifier as it was saved, without its secrets */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Notifier"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    getNotifier: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the notifier */
+                notifierId: components["parameters"]["NotifierId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The notifier */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Notifier"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    updateNotifier: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the notifier */
+                notifierId: components["parameters"]["NotifierId"];
+            };
+            cookie?: never;
+        };
+        /** @description The editable fields of the notifier. */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NotifierUpdate"];
+            };
+        };
+        responses: {
+            /** @description The notifier after the change, without its secrets */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Notifier"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    deleteNotifier: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the notifier */
+                notifierId: components["parameters"]["NotifierId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The notifier is deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    testNotifier: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the notifier */
+                notifierId: components["parameters"]["NotifierId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Whether the test message was delivered */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotifierTestResult"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    transferNotifier: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the notifier */
+                notifierId: components["parameters"]["NotifierId"];
+            };
+            cookie?: never;
+        };
+        /** @description The workspace the notifier moves to. */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NotifierTransfer"];
+            };
+        };
+        responses: {
+            /** @description The notifier belongs to the target workspace */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    testNotifierSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The settings to test. */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NotifierSettingsTest"];
+            };
+        };
+        responses: {
+            /** @description Whether the test message was delivered */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotifierTestResult"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
             404: components["responses"]["Problem"];
             default: components["responses"]["Problem"];
         };

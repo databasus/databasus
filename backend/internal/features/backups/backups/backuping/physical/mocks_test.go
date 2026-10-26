@@ -13,11 +13,11 @@ import (
 	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
 	"databasus-backend/internal/features/databases"
 	"databasus-backend/internal/features/intervals"
-	"databasus-backend/internal/features/notifiers"
-	notifier_models "databasus-backend/internal/features/notifiers/models"
+	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	"databasus-backend/internal/features/storages"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
+	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/modules/users"
 )
 
@@ -55,8 +55,8 @@ func (e *fakeIncrementalExecutor) Execute(
 }
 
 type sentNotification struct {
-	Notifier     *notifiers.Notifier
-	Notification notifier_models.Notification
+	NotifierIDs  []uuid.UUID
+	Notification notifiers.Notification
 }
 
 // recordingNotificationSender captures every dispatched notification so tests
@@ -65,13 +65,13 @@ type recordingNotificationSender struct {
 	sentNotifications []sentNotification
 }
 
-func (s *recordingNotificationSender) SendNotification(
+func (s *recordingNotificationSender) Notify(
 	_ context.Context,
-	notifier *notifiers.Notifier,
-	notification notifier_models.Notification,
+	notifierIDs []uuid.UUID,
+	notification notifiers.Notification,
 ) {
 	s.sentNotifications = append(s.sentNotifications, sentNotification{
-		Notifier:     notifier,
+		NotifierIDs:  notifierIDs,
 		Notification: notification,
 	})
 }
@@ -117,8 +117,8 @@ func seedBackupPrereqsWithDatabase(
 	testStorage := storages.CreateTestStorage(workspace.ID)
 	t.Cleanup(func() { storages.RemoveTestStorage(t.Context(), testStorage.ID) })
 
-	notifier := notifiers.CreateTestNotifier(workspace.ID)
-	t.Cleanup(func() { notifiers.RemoveTestNotifier(notifier) })
+	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
+	t.Cleanup(func() { notifiers_bridge.RemoveTestNotifier(notifier) })
 
 	db := createDatabase(workspace.ID, notifier)
 	t.Cleanup(func() { databases.RemoveTestDatabase(t.Context(), db) })

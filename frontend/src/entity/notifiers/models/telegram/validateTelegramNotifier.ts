@@ -1,4 +1,4 @@
-import type { TelegramNotifier } from './TelegramNotifier';
+import type { TelegramNotifierSettings } from './TelegramNotifierSettings';
 
 // eslint-disable-next-line i18next/no-literal-string -- URL protocols, not copy
 const allowedProxyProtocols = ['http:', 'https:', 'socks5:', 'socks5h:'];
@@ -32,34 +32,34 @@ const isValidBotApiUrl = (rawBotApiUrl: string): boolean => {
   }
 };
 
+// A thread ID of 0 means the topic is switched on and its ID is not entered yet.
 export const validateTelegramNotifier = (
   isCreate: boolean,
-  notifier: TelegramNotifier,
+  settings: TelegramNotifierSettings,
 ): boolean => {
-  if (isCreate && !notifier.botToken) {
+  if (isCreate && !settings.botToken) {
     return false;
   }
 
-  if (!notifier.targetChatId) {
+  if (!settings.targetChatId) {
     return false;
   }
 
-  // If thread is enabled, thread ID must be present and valid
-  if (notifier.isSendToThreadEnabled && (!notifier.threadId || notifier.threadId <= 0)) {
+  if (settings.threadId !== undefined && settings.threadId <= 0) {
     return false;
   }
 
-  if (notifier.isProxyEnabled) {
-    if (isCreate && !notifier.proxyUrl) {
+  if (settings.isProxyEnabled) {
+    if (isCreate && !settings.proxyUrl) {
       return false;
     }
 
-    if (notifier.proxyUrl && !isValidProxyUrl(notifier.proxyUrl)) {
+    if (settings.proxyUrl && !isValidProxyUrl(settings.proxyUrl)) {
       return false;
     }
   }
 
-  if (notifier.botApiUrl && !isValidBotApiUrl(notifier.botApiUrl)) {
+  if (settings.botApiUrl && !isValidBotApiUrl(settings.botApiUrl)) {
     return false;
   }
 

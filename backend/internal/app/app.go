@@ -7,12 +7,14 @@ import (
 	"log/slog"
 	"sync"
 
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 
 	old_config "databasus-backend/internal/config"
 	"databasus-backend/internal/features/audit_logs"
 	"databasus-backend/internal/features/caching"
 	"databasus-backend/internal/features/email"
+	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	users_bridge "databasus-backend/internal/features/users"
 	workspaces_bridge "databasus-backend/internal/features/workspaces"
 	"databasus-backend/internal/lib/audit"
@@ -21,6 +23,7 @@ import (
 	"databasus-backend/internal/lib/crypto"
 	"databasus-backend/internal/lib/database"
 	"databasus-backend/internal/lib/ratelimit"
+	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/modules/workspaces"
 	"databasus-backend/internal/storage"
@@ -39,6 +42,7 @@ const olderVersionRefusal = "Returning to an older Databasus version after an up
 type App struct {
 	usersModule      users.Module
 	workspacesModule workspaces.Module
+	notifiersModule  notifiers.Module
 	environment      *Environment
 	db               *gorm.DB
 	transactor       *database.Transactor
@@ -114,7 +118,8 @@ func New(ctx context.Context, environment *Environment) (*App, error) {
 		return nil, err
 	}
 
-	encryption.Install(masterKey, crypto.NewFieldEncryptor(masterKey))
+	fieldEncryptor := crypto.NewFieldEncryptor(masterKey)
+	encryption.Install(masterKey, fieldEncryptor)
 	email.Install(environment.Mailer)
 
 	cacheStore := cache.NewMemoryStore(cache.Deps{
@@ -174,8 +179,26 @@ func New(ctx context.Context, environment *Environment) (*App, error) {
 	})
 	workspaces_bridge.Install(workspacesModule)
 
+	notifiersModule := notifiers.New(notifiers.Deps{
+		DB:              db,
+		Transactor:      transactor,
+		Logger:          appLogger,
+		AuditLog:        auditLog,
+		FieldEncryptor:  fieldEncryptor,
+		Users:           usersModule,
+		Workspaces:      workspacesModule,
+		DeliveryTimeout: environment.NotificationDeliveryTimeout,
+		Endpoints: notifiers.Endpoints{
+			SlackPostMessageURL: environment.ExternalEndpoints.SlackPostMessageURL,
+			TelegramBotAPIURL:   environment.ExternalEndpoints.TelegramBotAPIURL,
+		},
+		PublicURL: environment.Config.DatabasusURL,
+	})
+	notifiers_bridge.Install(notifiersModule)
+
 	setUpDependenciesOnce.Do(setUpDependencies)
-	subscribeToWorkspaceDeleting(workspacesModule)
+	subscribeToWorkspaceDeleting(workspacesModule, notifiersModule)
+	subscribeToNotifierTransferring(notifiersModule)
 
 	jobs := append([]background.Job{newAuditEventsCleanupJob(auditLog, appLogger)}, usersModule.GetJobs()...)
 	runner := background.NewRunner(background.RunnerDeps{Logger: appLogger, Clock: environment.Clock}, jobs...)
@@ -183,6 +206,7 @@ func New(ctx context.Context, environment *Environment) (*App, error) {
 	return &App{
 		usersModule:      usersModule,
 		workspacesModule: workspacesModule,
+		notifiersModule:  notifiersModule,
 		environment:      environment,
 		db:               db,
 		transactor:       transactor,
@@ -225,4 +249,10 @@ func closeDatabase(db *gorm.DB) {
 // application uses it to stand in for a higher module.
 func (a *App) SubscribeToWorkspaceDeleting(handler workspaces.WorkspaceDeletingHandler) {
 	a.workspacesModule.SubscribeToWorkspaceDeleting(handler)
+}
+
+// Notify hands a notification to the notifiers module. A test application uses it to stand in for
+// the old code that notifies.
+func (a *App) Notify(ctx context.Context, notifierIDs []uuid.UUID, notification notifiers.Notification) {
+	a.notifiersModule.Notify(ctx, notifierIDs, notification)
 }

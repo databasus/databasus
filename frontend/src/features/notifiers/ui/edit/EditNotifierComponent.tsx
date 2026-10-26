@@ -3,24 +3,17 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import {
-  MattermostDeliveryMode,
   NOTIFIER_TYPE_LABEL_KEYS,
   type Notifier,
+  type NotifierSettings,
   NotifierType,
-  WebhookMethod,
-  getDefaultEmailNotifierSecurity,
+  getNotifierLogoFromType,
   notifierApi,
-  validateDiscordNotifier,
-  validateEmailNotifier,
-  validateMattermostNotifier,
-  validateSlackNotifier,
-  validateTeamsNotifier,
-  validateTelegramNotifier,
-  validateWebhookNotifier,
 } from '../../../../entity/notifiers';
-import { getNotifierLogoFromType } from '../../../../entity/notifiers/models/getNotifierLogoFromType';
 import { translateApiError } from '../../../../shared/i18n';
 import { ToastHelper } from '../../../../shared/toast';
+import { createDefaultNotifierSettings } from '../../lib/createDefaultNotifierSettings';
+import { isNotifierSettingsFilled } from '../../lib/isNotifierSettingsFilled';
 import { EditDiscordNotifierComponent } from './notifiers/EditDiscordNotifierComponent';
 import { EditEmailNotifierComponent } from './notifiers/EditEmailNotifierComponent';
 import { EditMattermostNotifierComponent } from './notifiers/EditMattermostNotifierComponent';
@@ -41,7 +34,7 @@ interface Props {
   onChanged: (notifier: Notifier) => void;
 }
 
-const SELECTABLE_NOTIFIER_TYPES = [
+const SELECTABLE_NOTIFIER_TYPES: NotifierType[] = [
   NotifierType.TELEGRAM,
   NotifierType.EMAIL,
   NotifierType.WEBHOOK,
@@ -60,21 +53,30 @@ export function EditNotifierComponent({
   onChanged,
 }: Props) {
   const { t } = useTranslation();
-  const [notifier, setNotifier] = useState<Notifier | undefined>();
+  const [name, setName] = useState('');
+  const [settings, setSettings] = useState<NotifierSettings | undefined>();
   const [isUnsaved, setIsUnsaved] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   const [isSendingTestNotification, setIsSendingTestNotification] = useState(false);
   const [isTestNotificationSuccess, setIsTestNotificationSuccess] = useState(false);
 
+  const changeSettings = (changedSettings: NotifierSettings) => {
+    setSettings(changedSettings);
+    setIsUnsaved(true);
+    setIsTestNotificationSuccess(false);
+  };
+
   const save = async () => {
-    if (!notifier) return;
+    if (!settings) return;
 
     setIsSaving(true);
 
     try {
-      await notifierApi.saveNotifier(notifier);
-      onChanged(notifier);
+      const savedNotifier = editingNotifier
+        ? await notifierApi.updateNotifier(editingNotifier.id, name, settings)
+        : await notifierApi.createNotifier(workspaceId, name, settings);
+      onChanged(savedNotifier);
       setIsUnsaved(false);
     } catch (e) {
       alert(translateApiError(e, t));
@@ -84,170 +86,56 @@ export function EditNotifierComponent({
   };
 
   const sendTestNotification = async () => {
-    if (!notifier) return;
+    if (!settings) return;
 
     setIsSendingTestNotification(true);
 
     try {
-      await notifierApi.sendTestNotificationDirect(notifier);
-      setIsTestNotificationSuccess(true);
-      ToastHelper.showToast({
-        title: t('notifiers.testNotification.sent.title'),
-        description: t('notifiers.testNotification.sent.description'),
-      });
+      const testResult = await notifierApi.testNotifierSettings(
+        workspaceId,
+        settings,
+        editingNotifier?.id,
+      );
+
+      if (testResult.isDelivered) {
+        setIsTestNotificationSuccess(true);
+        ToastHelper.showToast({
+          title: t('notifiers.testNotification.sent.title'),
+          description: t('notifiers.testNotification.sent.description'),
+        });
+      } else {
+        alert(
+          t('notifiers.testNotification.notDelivered', {
+            error: testResult.error,
+          }),
+        );
+
+        if (settings.type === NotifierType.SLACK) {
+          alert(t('notifiers.slack.testFailedHint'));
+        }
+      }
     } catch (e) {
       alert(translateApiError(e, t));
-
-      if (notifier.notifierType === NotifierType.SLACK) {
-        alert(t('notifiers.slack.testFailedHint'));
-      }
     }
 
     setIsSendingTestNotification(false);
   };
 
-  const setNotifierType = (type: NotifierType) => {
-    if (!notifier) return;
-
-    notifier.emailNotifier = undefined;
-    notifier.telegramNotifier = undefined;
-    notifier.teamsNotifier = undefined;
-    notifier.webhookNotifier = undefined;
-    notifier.slackNotifier = undefined;
-    notifier.discordNotifier = undefined;
-    notifier.mattermostNotifier = undefined;
-
-    if (type === NotifierType.TELEGRAM) {
-      notifier.telegramNotifier = {
-        botToken: '',
-        targetChatId: '',
-      };
-    }
-
-    if (type === NotifierType.EMAIL) {
-      const defaultSmtpPort = 0;
-
-      notifier.emailNotifier = {
-        targetEmail: '',
-        smtpHost: '',
-        smtpPort: defaultSmtpPort,
-        smtpUser: '',
-        smtpPassword: '',
-        from: '',
-        isInsecureSkipVerify: false,
-        security: getDefaultEmailNotifierSecurity(defaultSmtpPort),
-        heloName: '',
-      };
-    }
-
-    if (type === NotifierType.WEBHOOK) {
-      notifier.webhookNotifier = {
-        webhookUrl: '',
-        webhookMethod: WebhookMethod.POST,
-        headers: [],
-      };
-    }
-
-    if (type === NotifierType.SLACK) {
-      notifier.slackNotifier = {
-        botToken: '',
-        targetChatId: '',
-      };
-    }
-
-    if (type === NotifierType.DISCORD) {
-      notifier.discordNotifier = {
-        channelWebhookUrl: '',
-      };
-    }
-
-    if (type === NotifierType.TEAMS) {
-      notifier.teamsNotifier = { powerAutomateUrl: '' };
-    }
-
-    if (type === NotifierType.MATTERMOST) {
-      notifier.mattermostNotifier = {
-        deliveryMode: MattermostDeliveryMode.WEBHOOK,
-        webhookUrl: '',
-        serverUrl: '',
-        botToken: '',
-        targetChannelName: '',
-        targetChannelId: '',
-        overrideUsername: '',
-        overrideIconUrl: '',
-        isInsecureSkipVerify: false,
-      };
-    }
-
-    setNotifier(
-      JSON.parse(
-        JSON.stringify({
-          ...notifier,
-          workspaceId,
-          notifierType: type,
-        }),
-      ),
-    );
-  };
-
   useEffect(() => {
     setIsUnsaved(false);
-    setNotifier(
+    setIsTestNotificationSuccess(false);
+    setName(editingNotifier?.name ?? '');
+    setSettings(
       editingNotifier
-        ? JSON.parse(JSON.stringify(editingNotifier))
-        : {
-            id: undefined as unknown as string,
-            name: '',
-            workspaceId,
-            notifierType: NotifierType.TELEGRAM,
-            telegramNotifier: {
-              botToken: '',
-              targetChatId: '',
-            },
-          },
+        ? structuredClone(editingNotifier.settings)
+        : createDefaultNotifierSettings(NotifierType.TELEGRAM),
     );
   }, [editingNotifier]);
 
-  useEffect(() => {
-    setIsTestNotificationSuccess(false);
-  }, [notifier]);
+  if (!settings) return <div />;
 
-  const isAllDataFilled = () => {
-    if (!notifier) return false;
-    if (!notifier.name) return false;
-
-    if (notifier.notifierType === NotifierType.TELEGRAM && notifier.telegramNotifier) {
-      return validateTelegramNotifier(!notifier.id, notifier.telegramNotifier);
-    }
-
-    if (notifier.notifierType === NotifierType.EMAIL && notifier.emailNotifier) {
-      return validateEmailNotifier(notifier.emailNotifier);
-    }
-
-    if (notifier.notifierType === NotifierType.WEBHOOK && notifier.webhookNotifier) {
-      return validateWebhookNotifier(!notifier.id, notifier.webhookNotifier);
-    }
-
-    if (notifier.notifierType === NotifierType.SLACK && notifier.slackNotifier) {
-      return validateSlackNotifier(!notifier.id, notifier.slackNotifier);
-    }
-
-    if (notifier.notifierType === NotifierType.DISCORD && notifier.discordNotifier) {
-      return validateDiscordNotifier(!notifier.id, notifier.discordNotifier);
-    }
-
-    if (notifier.notifierType === NotifierType.TEAMS && notifier.teamsNotifier) {
-      return validateTeamsNotifier(!notifier.id, notifier.teamsNotifier);
-    }
-
-    if (notifier.notifierType === NotifierType.MATTERMOST && notifier.mattermostNotifier) {
-      return validateMattermostNotifier(!notifier.id, notifier.mattermostNotifier);
-    }
-
-    return false;
-  };
-
-  if (!notifier) return <div />;
+  const isSaved = editingNotifier !== undefined;
+  const isAllDataFilled = !!name && isNotifierSettingsFilled(settings, isSaved);
 
   return (
     <div>
@@ -256,9 +144,9 @@ export function EditNotifierComponent({
           <div className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2">{t('common.fields.name')}</div>
 
           <Input
-            value={notifier?.name || ''}
+            value={name}
             onChange={(e) => {
-              setNotifier({ ...notifier, name: e.target.value });
+              setName(e.target.value);
               setIsUnsaved(true);
             }}
             size="small"
@@ -272,100 +160,81 @@ export function EditNotifierComponent({
         <div className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2">{t('common.fields.type')}</div>
 
         <div className="flex items-center">
-          <Select
-            value={notifier?.notifierType}
-            options={SELECTABLE_NOTIFIER_TYPES.map((type) => ({
-              label: t(NOTIFIER_TYPE_LABEL_KEYS[type]),
-              value: type,
-            }))}
-            onChange={(value) => {
-              setNotifierType(value);
-              setIsUnsaved(true);
-            }}
-            size="small"
-            className="w-[250px] max-w-[250px]"
-          />
+          {isSaved ? (
+            t(NOTIFIER_TYPE_LABEL_KEYS[settings.type])
+          ) : (
+            <Select
+              value={settings.type}
+              options={SELECTABLE_NOTIFIER_TYPES.map((type) => ({
+                label: t(NOTIFIER_TYPE_LABEL_KEYS[type]),
+                value: type,
+              }))}
+              onChange={(type: NotifierType) => changeSettings(createDefaultNotifierSettings(type))}
+              size="small"
+              className="w-[250px] max-w-[250px]"
+            />
+          )}
 
-          <img src={getNotifierLogoFromType(notifier?.notifierType)} className="ml-2 h-4 w-4" />
+          <img src={getNotifierLogoFromType(settings.type)} className="ml-2 h-4 w-4" />
         </div>
       </div>
 
       <div className="mt-5" />
 
       <div>
-        {notifier?.notifierType === NotifierType.TELEGRAM && (
+        {settings.type === NotifierType.TELEGRAM && (
           <EditTelegramNotifierComponent
-            notifier={notifier}
-            setNotifier={setNotifier}
-            setUnsaved={() => {
-              setIsUnsaved(true);
-              setIsTestNotificationSuccess(false);
-            }}
+            settings={settings}
+            isSaved={isSaved}
+            onChange={changeSettings}
           />
         )}
 
-        {notifier?.notifierType === NotifierType.EMAIL && (
+        {settings.type === NotifierType.EMAIL && (
           <EditEmailNotifierComponent
-            notifier={notifier}
-            setNotifier={setNotifier}
-            setUnsaved={() => {
-              setIsUnsaved(true);
-              setIsTestNotificationSuccess(false);
-            }}
+            settings={settings}
+            isSaved={isSaved}
+            onChange={changeSettings}
           />
         )}
 
-        {notifier?.notifierType === NotifierType.WEBHOOK && (
+        {settings.type === NotifierType.WEBHOOK && (
           <EditWebhookNotifierComponent
-            notifier={notifier}
-            setNotifier={setNotifier}
-            setUnsaved={() => {
-              setIsUnsaved(true);
-              setIsTestNotificationSuccess(false);
-            }}
+            settings={settings}
+            isSaved={isSaved}
+            onChange={changeSettings}
           />
         )}
 
-        {notifier?.notifierType === NotifierType.SLACK && (
+        {settings.type === NotifierType.SLACK && (
           <EditSlackNotifierComponent
-            notifier={notifier}
-            setNotifier={setNotifier}
-            setUnsaved={() => {
-              setIsUnsaved(true);
-              setIsTestNotificationSuccess(false);
-            }}
+            settings={settings}
+            isSaved={isSaved}
+            onChange={changeSettings}
           />
         )}
 
-        {notifier?.notifierType === NotifierType.DISCORD && (
+        {settings.type === NotifierType.DISCORD && (
           <EditDiscordNotifierComponent
-            notifier={notifier}
-            setNotifier={setNotifier}
-            setUnsaved={() => {
-              setIsUnsaved(true);
-              setIsTestNotificationSuccess(false);
-            }}
-          />
-        )}
-        {notifier?.notifierType === NotifierType.TEAMS && (
-          <EditTeamsNotifierComponent
-            notifier={notifier}
-            setNotifier={setNotifier}
-            setUnsaved={() => {
-              setIsUnsaved(true);
-              setIsTestNotificationSuccess(false);
-            }}
+            settings={settings}
+            isSaved={isSaved}
+            onChange={changeSettings}
           />
         )}
 
-        {notifier?.notifierType === NotifierType.MATTERMOST && (
+        {settings.type === NotifierType.TEAMS && (
+          <EditTeamsNotifierComponent
+            settings={settings}
+            isSaved={isSaved}
+            onChange={changeSettings}
+          />
+        )}
+
+        {settings.type === NotifierType.MATTERMOST && (
           <EditMattermostNotifierComponent
-            notifier={notifier}
-            setNotifier={setNotifier}
-            setUnsaved={() => {
-              setIsUnsaved(true);
-              setIsTestNotificationSuccess(false);
-            }}
+            settings={settings}
+            isSaved={isSaved}
+            onChange={changeSettings}
           />
         )}
       </div>
@@ -374,7 +243,7 @@ export function EditNotifierComponent({
         {isUnsaved && !isTestNotificationSuccess ? (
           <Button
             className="mr-1"
-            disabled={isSendingTestNotification || !isAllDataFilled()}
+            disabled={isSendingTestNotification || !isAllDataFilled}
             loading={isSendingTestNotification}
             type="primary"
             onClick={sendTestNotification}
@@ -388,7 +257,7 @@ export function EditNotifierComponent({
         {isUnsaved && isTestNotificationSuccess ? (
           <Button
             className="mr-1"
-            disabled={isSaving || !isAllDataFilled()}
+            disabled={isSaving || !isAllDataFilled}
             loading={isSaving}
             type="primary"
             onClick={save}

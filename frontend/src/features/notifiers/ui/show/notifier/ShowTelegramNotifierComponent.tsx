@@ -1,12 +1,12 @@
 import { useTranslation } from 'react-i18next';
 
-import type { Notifier } from '../../../../../entity/notifiers';
+import type { TelegramNotifierSettings } from '../../../../../entity/notifiers';
 
 interface Props {
-  notifier: Notifier;
+  settings: TelegramNotifierSettings;
 }
 
-export function ShowTelegramNotifierComponent({ notifier }: Props) {
+export function ShowTelegramNotifierComponent({ settings }: Props) {
   const { t } = useTranslation();
 
   return (
@@ -19,24 +19,24 @@ export function ShowTelegramNotifierComponent({ notifier }: Props) {
 
       <div className="mb-1 flex items-center">
         <div className="min-w-[110px] pr-2">{t('notifiers.fields.targetChatId')}</div>
-        {notifier?.telegramNotifier?.targetChatId}
+        {settings.targetChatId}
       </div>
 
-      {notifier?.telegramNotifier?.threadId && (
+      {settings.threadId && (
         <div className="mb-1 flex items-center">
           <div className="min-w-[110px] pr-2">{t('notifiers.telegram.topicId')}</div>
-          {notifier.telegramNotifier.threadId}
+          {settings.threadId}
         </div>
       )}
 
-      {notifier?.telegramNotifier?.botApiUrl && (
+      {settings.botApiUrl && (
         <div className="mb-1 flex items-center">
           <div className="min-w-[110px] pr-2">{t('notifiers.telegram.botApiUrl')}</div>
-          {notifier.telegramNotifier.botApiUrl}
+          {settings.botApiUrl}
         </div>
       )}
 
-      {notifier?.telegramNotifier?.isProxyEnabled && (
+      {settings.isProxyEnabled && (
         <div className="mb-1 flex items-center">
           <div className="min-w-[110px] pr-2">{t('notifiers.telegram.proxy')}</div>
           {t('common.states.enabled')}

@@ -32,6 +32,7 @@ const (
 	CodeCannotChangeOwnRole     Code = "cannot_change_own_role"
 	CodeOwnerRequiresTransfer   Code = "owner_requires_transfer"
 	CodeWorkspaceNotEmpty       Code = "workspace_not_empty"
+	CodeInUse                   Code = "in_use"
 	CodeInternal                Code = "internal"
 )
 
@@ -85,6 +86,8 @@ func describeCode(code Code) (int, string) {
 		return http.StatusConflict, "Owner requires transfer"
 	case CodeWorkspaceNotEmpty:
 		return http.StatusConflict, "Workspace not empty"
+	case CodeInUse:
+		return http.StatusConflict, "In use"
 	case CodeInternal:
 		return http.StatusInternalServerError, "Internal error"
 	}

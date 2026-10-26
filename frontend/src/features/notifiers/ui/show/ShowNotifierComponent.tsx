@@ -4,8 +4,8 @@ import {
   NOTIFIER_TYPE_LABEL_KEYS,
   type Notifier,
   NotifierType,
+  getNotifierLogoFromType,
 } from '../../../../entity/notifiers';
-import { getNotifierLogoFromType } from '../../../../entity/notifiers/models/getNotifierLogoFromType';
 import { ShowDiscordNotifierComponent } from './notifier/ShowDiscordNotifierComponent';
 import { ShowEmailNotifierComponent } from './notifier/ShowEmailNotifierComponent';
 import { ShowMattermostNotifierComponent } from './notifier/ShowMattermostNotifierComponent';
@@ -20,43 +20,36 @@ interface Props {
 
 export function ShowNotifierComponent({ notifier }: Props) {
   const { t } = useTranslation();
+  const { settings } = notifier;
 
   return (
     <div>
       <div className="mb-1 flex items-center">
         <div className="min-w-[110px] pr-2">{t('common.fields.type')}</div>
 
-        {t(NOTIFIER_TYPE_LABEL_KEYS[notifier.notifierType])}
-        <img src={getNotifierLogoFromType(notifier?.notifierType)} className="ml-1 h-4 w-4" />
+        {t(NOTIFIER_TYPE_LABEL_KEYS[settings.type])}
+        <img src={getNotifierLogoFromType(settings.type)} className="ml-1 h-4 w-4" />
       </div>
 
       <div>
-        {notifier?.notifierType === NotifierType.TELEGRAM && (
-          <ShowTelegramNotifierComponent notifier={notifier} />
+        {settings.type === NotifierType.TELEGRAM && (
+          <ShowTelegramNotifierComponent settings={settings} />
         )}
 
-        {notifier?.notifierType === NotifierType.EMAIL && (
-          <ShowEmailNotifierComponent notifier={notifier} />
+        {settings.type === NotifierType.EMAIL && <ShowEmailNotifierComponent settings={settings} />}
+
+        {settings.type === NotifierType.WEBHOOK && (
+          <ShowWebhookNotifierComponent settings={settings} />
         )}
 
-        {notifier?.notifierType === NotifierType.WEBHOOK && (
-          <ShowWebhookNotifierComponent notifier={notifier} />
-        )}
+        {settings.type === NotifierType.SLACK && <ShowSlackNotifierComponent settings={settings} />}
 
-        {notifier?.notifierType === NotifierType.SLACK && (
-          <ShowSlackNotifierComponent notifier={notifier} />
-        )}
+        {settings.type === NotifierType.DISCORD && <ShowDiscordNotifierComponent />}
 
-        {notifier?.notifierType === NotifierType.DISCORD && (
-          <ShowDiscordNotifierComponent notifier={notifier} />
-        )}
+        {settings.type === NotifierType.TEAMS && <ShowTeamsNotifierComponent />}
 
-        {notifier?.notifierType === NotifierType.TEAMS && (
-          <ShowTeamsNotifierComponent notifier={notifier} />
-        )}
-
-        {notifier?.notifierType === NotifierType.MATTERMOST && (
-          <ShowMattermostNotifierComponent notifier={notifier} />
+        {settings.type === NotifierType.MATTERMOST && (
+          <ShowMattermostNotifierComponent settings={settings} />
         )}
       </div>
     </div>

@@ -46,6 +46,7 @@ func TestCode(t *testing.T) {
 		{apierror.CodeCannotChangeOwnRole, http.StatusConflict},
 		{apierror.CodeOwnerRequiresTransfer, http.StatusConflict},
 		{apierror.CodeWorkspaceNotEmpty, http.StatusConflict},
+		{apierror.CodeInUse, http.StatusConflict},
 		{apierror.CodeInternal, http.StatusInternalServerError},
 	}
 
@@ -92,6 +93,7 @@ func TestCode(t *testing.T) {
 			apierror.CodeCannotChangeOwnRole,
 			apierror.CodeOwnerRequiresTransfer,
 			apierror.CodeWorkspaceNotEmpty,
+			apierror.CodeInUse,
 			apierror.CodeInternal,
 		}
 

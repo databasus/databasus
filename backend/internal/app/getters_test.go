@@ -32,7 +32,6 @@ import (
 	email "databasus-backend/internal/features/email"
 	healthcheck_attempt "databasus-backend/internal/features/healthcheck/attempt"
 	healthcheck_config "databasus-backend/internal/features/healthcheck/config"
-	notifiers "databasus-backend/internal/features/notifiers"
 	restores "databasus-backend/internal/features/restores"
 	restores_restoring "databasus-backend/internal/features/restores/restoring"
 	restores_usecases "databasus-backend/internal/features/restores/usecases"
@@ -235,9 +234,6 @@ func getOldCodeGetters() []oldCodeGetter {
 			"features/healthcheck/config.GetHealthcheckConfigController",
 			func() any { return healthcheck_config.GetHealthcheckConfigController() },
 		},
-		{"features/notifiers.GetNotifierController", func() any { return notifiers.GetNotifierController() }},
-		{"features/notifiers.GetNotifierService", func() any { return notifiers.GetNotifierService() }},
-		{"features/notifiers.GetNotifierRepository", func() any { return notifiers.GetNotifierRepository() }},
 		{"features/restores.GetRestoreController", func() any { return restores.GetRestoreController() }},
 		{
 			"features/restores/restoring.GetRestoresScheduler",

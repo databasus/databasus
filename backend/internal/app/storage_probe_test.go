@@ -20,6 +20,7 @@ func TestProbeStorage(t *testing.T) {
 	t.Run("saves and deletes the probe without a connection string", func(t *testing.T) {
 		t.Setenv("ENV_MODE", "production")
 		t.Setenv("DATABASE_DSN", "")
+		t.Setenv("LOG_FILE_IS_ENABLED", "false")
 
 		environment, err := LoadEnvironment(t.Context(), newIsolatedLoadSpec(t, false))
 		require.NoError(t, err)
@@ -40,6 +41,7 @@ func TestProbeStorage(t *testing.T) {
 
 		t.Setenv("ENV_MODE", "production")
 		t.Setenv("DATABASE_DSN", "")
+		t.Setenv("LOG_FILE_IS_ENABLED", "false")
 
 		environment, err := LoadEnvironment(t.Context(), newIsolatedLoadSpec(t, false))
 		require.NoError(t, err)
@@ -65,6 +67,7 @@ func TestProbeStorage(t *testing.T) {
 	t.Run("names the delete operation when the probe cannot be deleted", func(t *testing.T) {
 		t.Setenv("ENV_MODE", "production")
 		t.Setenv("DATABASE_DSN", "")
+		t.Setenv("LOG_FILE_IS_ENABLED", "false")
 
 		environment, err := LoadEnvironment(t.Context(), newIsolatedLoadSpec(t, false))
 		require.NoError(t, err)

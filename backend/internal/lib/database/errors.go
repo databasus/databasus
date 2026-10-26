@@ -1,5 +1,14 @@
 package database
 
-import "errors"
+import (
+	"errors"
 
-var ErrSchemaNewerThanBinary = errors.New("the internal database was migrated by a newer version")
+	"databasus-backend/internal/lib/apierror"
+)
+
+var (
+	ErrSchemaNewerThanBinary = errors.New("the internal database was migrated by a newer version")
+	ErrInvalidCursor         = apierror.NewInvalidFieldsProblem([]apierror.FieldError{
+		{Field: "after", Detail: "is not a cursor of this list"},
+	})
+)

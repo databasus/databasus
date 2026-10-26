@@ -8,7 +8,6 @@ import (
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
 	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
 	"databasus-backend/internal/features/databases"
-	"databasus-backend/internal/features/notifiers"
 	restores_core "databasus-backend/internal/features/restores/core"
 	"databasus-backend/internal/features/storages"
 	verification_runs "databasus-backend/internal/features/verification/runs"
@@ -21,7 +20,6 @@ func parseModelSchemas(db *gorm.DB) error {
 	models := []any{
 		&databases.Database{},
 		&storages.Storage{},
-		&notifiers.Notifier{},
 		&backups_config_logical.LogicalBackupConfig{},
 		&backups_config_physical.PhysicalBackupConfig{},
 		&restores_core.Restore{},

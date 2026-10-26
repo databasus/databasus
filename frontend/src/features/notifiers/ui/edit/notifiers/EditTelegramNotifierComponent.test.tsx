@@ -1,11 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
-import {
-  type Notifier,
-  NotifierType,
-  type TelegramNotifier,
-} from '../../../../../entity/notifiers';
+import type { TelegramNotifierSettings } from '../../../../../entity/notifiers';
 import { LocaleProvider } from '../../../../../shared/i18n';
 import { EditTelegramNotifierComponent } from './EditTelegramNotifierComponent';
 
@@ -19,32 +15,25 @@ vi.hoisted(() => {
   vi.stubGlobal('navigator', { language: 'en-US', languages: ['en-US'] });
 });
 
-const createTelegramNotifier = (change: Partial<TelegramNotifier>): Notifier => ({
-  id: 'notifier-id',
-  name: 'Telegram',
-  notifierType: NotifierType.TELEGRAM,
-  workspaceId: 'workspace-id',
-  telegramNotifier: {
-    botToken: '',
-    targetChatId: '-1001234567890',
-    ...change,
-  },
+const createTelegramSettings = (
+  change: Partial<TelegramNotifierSettings>,
+): TelegramNotifierSettings => ({
+  type: 'TELEGRAM',
+  targetChatId: '-1001234567890',
+  isProxyEnabled: false,
+  ...change,
 });
 
-const renderTelegramForm = (notifier: Notifier) =>
+const renderTelegramForm = (settings: TelegramNotifierSettings) =>
   renderToStaticMarkup(
     <LocaleProvider>
-      <EditTelegramNotifierComponent
-        notifier={notifier}
-        setNotifier={() => {}}
-        setUnsaved={() => {}}
-      />
+      <EditTelegramNotifierComponent settings={settings} isSaved onChange={() => {}} />
     </LocaleProvider>,
   );
 
 describe('EditTelegramNotifierComponent', () => {
   it('starts with the advanced settings collapsed for a new notifier', () => {
-    const markup = renderTelegramForm(createTelegramNotifier({}));
+    const markup = renderTelegramForm(createTelegramSettings({}));
 
     expect(markup).toContain('Advanced settings');
     expect(markup).toContain('Target chat ID');
@@ -53,7 +42,7 @@ describe('EditTelegramNotifierComponent', () => {
   });
 
   it('starts with the advanced settings expanded when a proxy is enabled', () => {
-    const markup = renderTelegramForm(createTelegramNotifier({ isProxyEnabled: true }));
+    const markup = renderTelegramForm(createTelegramSettings({ isProxyEnabled: true }));
 
     expect(markup).toContain('Bot API URL');
     expect(markup).toContain('Use proxy');
@@ -62,7 +51,9 @@ describe('EditTelegramNotifierComponent', () => {
 
   it('starts with the advanced settings expanded when a Bot API URL is set', () => {
     const markup = renderTelegramForm(
-      createTelegramNotifier({ botApiUrl: 'https://gateway.example.com/telegram' }),
+      createTelegramSettings({
+        botApiUrl: 'https://gateway.example.com/telegram',
+      }),
     );
 
     expect(markup).toContain('https://gateway.example.com/telegram');

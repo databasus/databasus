@@ -12,7 +12,7 @@ import (
 
 	backuping_logical "databasus-backend/internal/features/backups/backups/backuping/logical"
 	"databasus-backend/internal/features/databases"
-	"databasus-backend/internal/features/notifiers"
+	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	"databasus-backend/internal/features/storages"
 	users_testing "databasus-backend/internal/features/users/testing"
 	verification_agents "databasus-backend/internal/features/verification/agents"
@@ -44,8 +44,8 @@ func newReclaimFixture(
 	testStorage := storages.CreateTestStorage(workspace.ID)
 	t.Cleanup(func() { storages.RemoveTestStorage(t.Context(), testStorage.ID) })
 
-	notifier := notifiers.CreateTestNotifier(workspace.ID)
-	t.Cleanup(func() { notifiers.RemoveTestNotifier(notifier) })
+	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
+	t.Cleanup(func() { notifiers_bridge.RemoveTestNotifier(notifier) })
 
 	database = databases.CreateTestDatabase(workspace.ID, testStorage, notifier)
 	t.Cleanup(func() { databases.RemoveTestDatabase(t.Context(), database) })
@@ -222,8 +222,8 @@ func Test_OnAgentHeartbeated_WhenAgentDropsOneStillRunsAnother_ReclaimsOnlyDropp
 	testStorage := storages.CreateTestStorage(workspace.ID)
 	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
 
-	notifier := notifiers.CreateTestNotifier(workspace.ID)
-	defer notifiers.RemoveTestNotifier(notifier)
+	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
+	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
 	databaseKept := databases.CreateTestDatabase(workspace.ID, testStorage, notifier)
 	defer databases.RemoveTestDatabase(t.Context(), databaseKept)

@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"golang.org/x/oauth2/github"
 	"golang.org/x/oauth2/google"
@@ -24,12 +25,18 @@ type Environment struct {
 	// Mailer sends the instance's own mail through the operator's server. A test application
 	// records the messages instead.
 	Mailer mailer.Sender
-	// ExternalEndpoints are the addresses of the services sign-in calls. A test application points
-	// them at fakes.
+	// ExternalEndpoints are the addresses of the services sign-in and the notifiers call. A test
+	// application points them at fakes.
 	ExternalEndpoints ExternalEndpoints
+	// NotificationDeliveryTimeout ends a send to a notifier that its channel does not answer. A
+	// test application shortens it.
+	NotificationDeliveryTimeout time.Duration
 }
 
-// ExternalEndpoints are the addresses of the identity providers and of Cloudflare Turnstile.
+const notificationDeliveryTimeout = 30 * time.Second
+
+// ExternalEndpoints are the addresses of the identity providers, of Cloudflare Turnstile, of the
+// Slack API and of the official Telegram Bot API.
 type ExternalEndpoints struct {
 	GitHubAuthURL      string
 	GitHubTokenURL     string
@@ -39,19 +46,26 @@ type ExternalEndpoints struct {
 	GoogleTokenURL     string
 	GoogleUserInfoURL  string
 	TurnstileVerifyURL string
+	// SlackPostMessageURL is the chat.postMessage method of the Slack Web API.
+	SlackPostMessageURL string
+	// TelegramBotAPIURL is the Bot API a Telegram notifier uses when it names none of its own.
+	TelegramBotAPIURL string
 }
 
-// GetPublicExternalEndpoints returns the real addresses of the services sign-in calls.
+// GetPublicExternalEndpoints returns the real addresses of the services sign-in and the notifiers
+// call.
 func GetPublicExternalEndpoints() ExternalEndpoints {
 	return ExternalEndpoints{
-		GitHubAuthURL:      github.Endpoint.AuthURL,
-		GitHubTokenURL:     github.Endpoint.TokenURL,
-		GitHubUserURL:      "https://api.github.com/user",
-		GitHubEmailsURL:    "https://api.github.com/user/emails",
-		GoogleAuthURL:      google.Endpoint.AuthURL,
-		GoogleTokenURL:     google.Endpoint.TokenURL,
-		GoogleUserInfoURL:  "https://www.googleapis.com/oauth2/v2/userinfo",
-		TurnstileVerifyURL: "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+		GitHubAuthURL:       github.Endpoint.AuthURL,
+		GitHubTokenURL:      github.Endpoint.TokenURL,
+		GitHubUserURL:       "https://api.github.com/user",
+		GitHubEmailsURL:     "https://api.github.com/user/emails",
+		GoogleAuthURL:       google.Endpoint.AuthURL,
+		GoogleTokenURL:      google.Endpoint.TokenURL,
+		GoogleUserInfoURL:   "https://www.googleapis.com/oauth2/v2/userinfo",
+		TurnstileVerifyURL:  "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+		SlackPostMessageURL: "https://slack.com/api/chat.postMessage",
+		TelegramBotAPIURL:   "https://api.telegram.org",
 	}
 }
 
@@ -101,7 +115,8 @@ func NewEnvironment(ctx context.Context, loadedConfig config.Config, clockSource
 			Settings: loadedConfig.GetInstanceMailSettings(),
 			Logger:   loadedLogging.GetLogger(),
 		}),
-		ExternalEndpoints: GetPublicExternalEndpoints(),
+		ExternalEndpoints:           GetPublicExternalEndpoints(),
+		NotificationDeliveryTimeout: notificationDeliveryTimeout,
 	}, nil
 }
 

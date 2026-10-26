@@ -9,20 +9,19 @@ import (
 	"github.com/stretchr/testify/mock"
 
 	"databasus-backend/internal/features/databases"
-	"databasus-backend/internal/features/notifiers"
-	notifier_models "databasus-backend/internal/features/notifiers/models"
+	"databasus-backend/internal/modules/notifiers"
 )
 
 type MockHealthcheckAttemptSender struct {
 	mock.Mock
 }
 
-func (m *MockHealthcheckAttemptSender) SendNotification(
+func (m *MockHealthcheckAttemptSender) Notify(
 	_ context.Context,
-	notifier *notifiers.Notifier,
-	notification notifier_models.Notification,
+	notifierIDs []uuid.UUID,
+	notification notifiers.Notification,
 ) {
-	m.Called(notifier, notification)
+	m.Called(notifierIDs, notification)
 }
 
 type MockDatabaseService struct {

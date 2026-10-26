@@ -16,7 +16,7 @@ import (
 	physical_service "databasus-backend/internal/features/backups/backups/core/physical/service"
 	physical_testing "databasus-backend/internal/features/backups/backups/core/physical/testing"
 	"databasus-backend/internal/features/databases"
-	"databasus-backend/internal/features/notifiers"
+	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	"databasus-backend/internal/features/storages"
 	storage_files "databasus-backend/internal/features/storages/files"
 	users_testing "databasus-backend/internal/features/users/testing"
@@ -46,13 +46,13 @@ func createServiceTestPrereqs(t *testing.T) *serviceTestPrereqs {
 	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Phys Service "+uuid.NewString(), user)
 	storage := storages.CreateTestStorage(workspace.ID)
-	notifier := notifiers.CreateTestNotifier(workspace.ID)
+	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
 	database := databases.CreateTestPhysicalPostgresDatabase(workspace.ID, notifier, "17")
 
 	t.Cleanup(func() {
 		physical_testing.DeleteAllPhysicalCatalogForDatabase(t, database.ID)
 		databases.RemoveTestDatabase(t.Context(), database)
-		notifiers.RemoveTestNotifier(notifier)
+		notifiers_bridge.RemoveTestNotifier(notifier)
 		storages.RemoveTestStorage(t.Context(), storage.ID)
 	})
 

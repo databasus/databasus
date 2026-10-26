@@ -1,11 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
-import {
-  type Notifier,
-  NotifierType,
-  type TelegramNotifier,
-} from '../../../../../entity/notifiers';
+import type { TelegramNotifierSettings } from '../../../../../entity/notifiers';
 import { LocaleProvider } from '../../../../../shared/i18n';
 import { ShowTelegramNotifierComponent } from './ShowTelegramNotifierComponent';
 
@@ -19,29 +15,28 @@ vi.hoisted(() => {
   vi.stubGlobal('navigator', { language: 'en-US', languages: ['en-US'] });
 });
 
-const createTelegramNotifier = (change: Partial<TelegramNotifier>): Notifier => ({
-  id: 'notifier-id',
-  name: 'Telegram',
-  notifierType: NotifierType.TELEGRAM,
-  workspaceId: 'workspace-id',
-  telegramNotifier: {
-    botToken: '',
-    targetChatId: '-1001234567890',
-    ...change,
-  },
+const createTelegramSettings = (
+  change: Partial<TelegramNotifierSettings>,
+): TelegramNotifierSettings => ({
+  type: 'TELEGRAM',
+  targetChatId: '-1001234567890',
+  isProxyEnabled: false,
+  ...change,
 });
 
-const renderTelegramView = (notifier: Notifier) =>
+const renderTelegramView = (settings: TelegramNotifierSettings) =>
   renderToStaticMarkup(
     <LocaleProvider>
-      <ShowTelegramNotifierComponent notifier={notifier} />
+      <ShowTelegramNotifierComponent settings={settings} />
     </LocaleProvider>,
   );
 
 describe('ShowTelegramNotifierComponent', () => {
   it('shows the Bot API URL when it is set', () => {
     const markup = renderTelegramView(
-      createTelegramNotifier({ botApiUrl: 'https://gateway.example.com/telegram' }),
+      createTelegramSettings({
+        botApiUrl: 'https://gateway.example.com/telegram',
+      }),
     );
 
     expect(markup).toContain('Bot API URL');
@@ -49,7 +44,7 @@ describe('ShowTelegramNotifierComponent', () => {
   });
 
   it('omits the Bot API URL when the official API is used', () => {
-    const markup = renderTelegramView(createTelegramNotifier({}));
+    const markup = renderTelegramView(createTelegramSettings({}));
 
     expect(markup).not.toContain('Bot API URL');
   });

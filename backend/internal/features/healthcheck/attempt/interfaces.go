@@ -6,16 +6,11 @@ import (
 	"github.com/google/uuid"
 
 	"databasus-backend/internal/features/databases"
-	"databasus-backend/internal/features/notifiers"
-	notifier_models "databasus-backend/internal/features/notifiers/models"
+	"databasus-backend/internal/modules/notifiers"
 )
 
 type HealthcheckAttemptSender interface {
-	SendNotification(
-		ctx context.Context,
-		notifier *notifiers.Notifier,
-		notification notifier_models.Notification,
-	)
+	Notify(ctx context.Context, notifierIDs []uuid.UUID, notification notifiers.Notification)
 }
 
 type DatabaseService interface {

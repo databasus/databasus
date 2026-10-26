@@ -1,18 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
 import { MattermostDeliveryMode } from './MattermostDeliveryMode';
-import type { MattermostNotifier } from './MattermostNotifier';
+import type { MattermostNotifierSettings } from './MattermostNotifierSettings';
 import { validateMattermostNotifier } from './validateMattermostNotifier';
 
-const emptyNotifier: MattermostNotifier = {
+const emptyNotifier: MattermostNotifierSettings = {
+  type: 'MATTERMOST',
   deliveryMode: MattermostDeliveryMode.WEBHOOK,
-  webhookUrl: '',
-  serverUrl: '',
-  botToken: '',
-  targetChannelName: '',
-  targetChannelId: '',
-  overrideUsername: '',
-  overrideIconUrl: '',
   isInsecureSkipVerify: false,
 };
 
@@ -34,7 +28,7 @@ describe('validateMattermostNotifier', () => {
   });
 
   it('requires server URL, token and channel ID on create in bot mode', () => {
-    const botNotifier: MattermostNotifier = {
+    const botNotifier: MattermostNotifierSettings = {
       ...emptyNotifier,
       deliveryMode: MattermostDeliveryMode.BOT,
       serverUrl: 'https://mattermost.example.com',
@@ -44,8 +38,13 @@ describe('validateMattermostNotifier', () => {
 
     expect(validateMattermostNotifier(true, botNotifier)).toBe(true);
     expect(validateMattermostNotifier(true, { ...botNotifier, serverUrl: '' })).toBe(false);
-    expect(validateMattermostNotifier(true, { ...botNotifier, botToken: '' })).toBe(false);
-    expect(validateMattermostNotifier(false, { ...botNotifier, botToken: '' })).toBe(true);
+    expect(validateMattermostNotifier(true, { ...botNotifier, botToken: undefined })).toBe(false);
+    expect(
+      validateMattermostNotifier(false, {
+        ...botNotifier,
+        botToken: undefined,
+      }),
+    ).toBe(true);
   });
 
   it('rejects a channel name pasted into the channel ID field', () => {

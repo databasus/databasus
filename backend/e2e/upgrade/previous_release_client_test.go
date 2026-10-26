@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"strconv"
 	"testing"
 
@@ -28,8 +29,6 @@ const (
 	secondOwnerEmail = "upgrade-second-owner@databasus.local"
 	secondOwnerName  = "Upgrade Second Owner"
 	storageName      = "upgrade local storage"
-	notifierName     = "upgrade webhook"
-	notifierURL      = "http://upgrade-webhook.invalid/hook"
 	databaseName     = "upgrade source database"
 	backupEncryption = "ENCRYPTED"
 )
@@ -77,23 +76,12 @@ type previousStorageRequest struct {
 	LocalStorage struct{} `json:"localStorage"`
 }
 
-type previousNotifierRequest struct {
-	WorkspaceID     string                 `json:"workspaceId"`
-	Name            string                 `json:"name"`
-	NotifierType    string                 `json:"notifierType"`
-	WebhookNotifier previousWebhookRequest `json:"webhookNotifier"`
-}
-
-type previousWebhookRequest struct {
-	WebhookURL    string `json:"webhookUrl"`
-	WebhookMethod string `json:"webhookMethod"`
-}
-
 type previousDatabaseRequest struct {
 	WorkspaceID       string                       `json:"workspaceId"`
 	Name              string                       `json:"name"`
 	Type              string                       `json:"type"`
 	PostgresqlLogical previousPostgresqlConnection `json:"postgresqlLogical"`
+	Notifiers         []previousNotifierReference  `json:"notifiers"`
 }
 
 type previousPostgresqlConnection struct {
@@ -136,8 +124,8 @@ type previousBackup struct {
 }
 
 // writeUpgradeData creates through the previous release what a user has after a while: an account,
-// a workspace with two more members, one of them a second owner, a storage, a notifier, a database
-// with an encrypted backup config and one completed backup.
+// a workspace with two more members, one of them a second owner, a storage, one notifier of every
+// type, a database that uses all of them with an encrypted backup config, and one completed backup.
 func writeUpgradeData(t *testing.T, api *apiClient) (writtenUpgradeData, error) {
 	t.Helper()
 
@@ -180,16 +168,9 @@ func writeUpgradeData(t *testing.T, api *apiClient) (writtenUpgradeData, error) 
 		return writtenUpgradeData{}, fmt.Errorf("create the storage: %w", err)
 	}
 
-	var notifier previousCreatedItem
-
-	err = api.post(ctx, "/notifiers", previousNotifierRequest{
-		WorkspaceID:     workspace.ID,
-		Name:            notifierName,
-		NotifierType:    "WEBHOOK",
-		WebhookNotifier: previousWebhookRequest{WebhookURL: notifierURL, WebhookMethod: "POST"},
-	}, &notifier)
+	notifierItems, notifierReferences, err := createNotifiers(ctx, api, workspace.ID)
 	if err != nil {
-		return writtenUpgradeData{}, fmt.Errorf("create the notifier: %w", err)
+		return writtenUpgradeData{}, err
 	}
 
 	sourceConnection := previousPostgresqlConnection{
@@ -209,6 +190,7 @@ func writeUpgradeData(t *testing.T, api *apiClient) (writtenUpgradeData, error) 
 		Name:              databaseName,
 		Type:              "POSTGRES_LOGICAL",
 		PostgresqlLogical: sourceConnection,
+		Notifiers:         notifierReferences,
 	}, &database)
 	if err != nil {
 		return writtenUpgradeData{}, fmt.Errorf("create the database: %w", err)
@@ -230,19 +212,13 @@ func writeUpgradeData(t *testing.T, api *apiClient) (writtenUpgradeData, error) 
 	}
 
 	return writtenUpgradeData{
-		items: append([]upgradecheck.Item{
+		items: slices.Concat([]upgradecheck.Item{
 			{Kind: "account", Name: accountEmail, Values: map[string]string{}},
 			{Kind: "workspace", Name: workspaceName, Values: map[string]string{"id": workspace.ID}},
 			{Kind: "workspace member", Name: accountEmail, Values: map[string]string{"role": "WORKSPACE_OWNER"}},
 			{Kind: "workspace member", Name: memberEmail, Values: map[string]string{"role": memberRole}},
 			{Kind: "workspace member", Name: secondOwnerEmail, Values: map[string]string{"role": "WORKSPACE_ADMIN"}},
 			{Kind: "storage", Name: storageName, Values: map[string]string{"id": storage.ID, "type": "LOCAL"}},
-			{Kind: "notifier", Name: notifierName, Values: map[string]string{
-				"id":            notifier.ID,
-				"notifierType":  "WEBHOOK",
-				"webhookUrl":    notifierURL,
-				"webhookMethod": "POST",
-			}},
 			{Kind: "database", Name: databaseName, Values: map[string]string{
 				"id":       database.ID,
 				"type":     "POSTGRES_LOGICAL",
@@ -261,7 +237,8 @@ func writeUpgradeData(t *testing.T, api *apiClient) (writtenUpgradeData, error) 
 				"status":     backup.Status,
 				"encryption": backupEncryption,
 			}},
-		}, auditEventItems...),
+			newDatabaseNotifiersItem(notifierItems),
+		}, notifierItems, auditEventItems),
 		databaseID: database.ID,
 		backupID:   backup.ID,
 	}, nil

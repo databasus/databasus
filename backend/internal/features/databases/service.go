@@ -14,16 +14,17 @@ import (
 	audit_logs_models "databasus-backend/internal/features/audit_logs/models"
 	physical_core_service "databasus-backend/internal/features/backups/backups/core/physical/service"
 	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
-	"databasus-backend/internal/features/notifiers"
+	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/modules/workspaces"
 	"databasus-backend/internal/util/encryption"
 )
 
 type DatabaseService struct {
-	dbRepository    databaseStore
-	notifierService *notifiers.NotifierService
-	logger          *slog.Logger
+	dbRepository databaseStore
+	// getNotifiers is read per call: each test application installs its own module.
+	getNotifiers func() notifiers.Module
+	logger       *slog.Logger
 
 	dbCreationListener         []DatabaseCreationListener
 	dbRemoveListener           []DatabaseRemoveListener
@@ -60,17 +61,6 @@ func (s *DatabaseService) AddDbBackupTypeChangeListener(
 	s.dbBackupTypeChangeListener = append(s.dbBackupTypeChangeListener, dbBackupTypeChangeListener)
 }
 
-func (s *DatabaseService) GetNotifierAttachedDatabasesIDs(
-	notifierID uuid.UUID,
-) ([]uuid.UUID, error) {
-	databasesIDs, err := s.dbRepository.GetDatabasesIDsByNotifierID(notifierID)
-	if err != nil {
-		return nil, err
-	}
-
-	return databasesIDs, nil
-}
-
 func (s *DatabaseService) CreateDatabase(
 	ctx context.Context,
 	actor users.Actor,
@@ -88,6 +78,10 @@ func (s *DatabaseService) CreateDatabase(
 	database.WorkspaceID = &workspaceID
 
 	if err := database.Validate(); err != nil {
+		return nil, err
+	}
+
+	if err := s.validateNotifiersInWorkspace(ctx, database.GetNotifierIDs(), workspaceID); err != nil {
 		return nil, err
 	}
 
@@ -125,6 +119,10 @@ func (s *DatabaseService) CreateDatabase(
 
 	database, err = s.dbRepository.Save(database)
 	if err != nil {
+		return nil, err
+	}
+
+	if err := s.fillNotifiers(ctx, []*Database{database}); err != nil {
 		return nil, err
 	}
 
@@ -176,10 +174,9 @@ func (s *DatabaseService) UpdateDatabase(
 		return err
 	}
 
-	for _, notifier := range database.Notifiers {
-		if notifier.WorkspaceID != *existingDatabase.WorkspaceID {
-			return errors.New("notifier does not belong to this workspace")
-		}
+	err = s.validateNotifiersInWorkspace(ctx, database.GetNotifierIDs(), *existingDatabase.WorkspaceID)
+	if err != nil {
+		return err
 	}
 
 	oldBackupType := getPhysicalBackupType(existingDatabase)
@@ -319,6 +316,11 @@ func (s *DatabaseService) GetDatabase(
 	}
 
 	database.HideSensitiveData()
+
+	if err := s.fillNotifiers(ctx, []*Database{database}); err != nil {
+		return nil, err
+	}
+
 	return database, nil
 }
 
@@ -344,6 +346,10 @@ func (s *DatabaseService) GetDatabasesByWorkspace(
 		database.HideSensitiveData()
 	}
 
+	if err := s.fillNotifiers(ctx, databases); err != nil {
+		return nil, err
+	}
+
 	s.fillPhysicalLastBackupTimes(ctx, databases)
 
 	return databases, nil
@@ -354,7 +360,7 @@ func (s *DatabaseService) IsNotifierUsing(
 	actor users.Actor,
 	notifierID uuid.UUID,
 ) (bool, error) {
-	_, err := s.notifierService.GetNotifier(ctx, actor, notifierID)
+	err := s.checkNotifierVisible(ctx, actor, notifierID)
 	if err != nil {
 		return false, err
 	}
@@ -367,7 +373,7 @@ func (s *DatabaseService) CountDatabasesByNotifier(
 	actor users.Actor,
 	notifierID uuid.UUID,
 ) (int, error) {
-	_, err := s.notifierService.GetNotifier(ctx, actor, notifierID)
+	err := s.checkNotifierVisible(ctx, actor, notifierID)
 	if err != nil {
 		return 0, err
 	}
@@ -530,6 +536,10 @@ func (s *DatabaseService) CopyDatabase(
 		return nil, err
 	}
 
+	if err := s.fillNotifiers(ctx, []*Database{copiedDatabase}); err != nil {
+		return nil, err
+	}
+
 	for _, listener := range s.dbCreationListener {
 		listener.OnDatabaseCreated(ctx, copiedDatabase.ID)
 	}
@@ -591,14 +601,17 @@ func (s *DatabaseService) TransferDatabaseToWorkspace(
 
 func (s *DatabaseService) UpdateDatabaseNotifiers(
 	databaseID uuid.UUID,
-	newNotifiers []notifiers.Notifier,
+	notifierIDs []uuid.UUID,
 ) error {
 	database, err := s.dbRepository.FindByID(databaseID)
 	if err != nil {
 		return err
 	}
 
-	database.Notifiers = newNotifiers
+	database.Notifiers = make([]DatabaseNotifier, 0, len(notifierIDs))
+	for _, notifierID := range notifierIDs {
+		database.Notifiers = append(database.Notifiers, DatabaseNotifier{ID: notifierID})
+	}
 
 	_, err = s.dbRepository.Save(database)
 	return err
@@ -623,6 +636,23 @@ func (s *DatabaseService) OnWorkspaceDeleting(ctx context.Context, event workspa
 
 	if len(databases) > 0 {
 		return ErrWorkspaceHasDatabases
+	}
+
+	return nil
+}
+
+// OnNotifierTransferring refuses to move a notifier that a database outside the target workspace
+// uses. A database transfer moves the database first, so its own notifiers pass.
+func (s *DatabaseService) OnNotifierTransferring(ctx context.Context, event notifiers.NotifierTransferring) error {
+	count, err := s.dbRepository.CountDatabasesUsingNotifierOutsideWorkspace(
+		ctx, event.NotifierID, event.TargetWorkspaceID,
+	)
+	if err != nil {
+		return err
+	}
+
+	if count > 0 {
+		return ErrNotifierUsedOutsideTargetWorkspace
 	}
 
 	return nil
@@ -1065,4 +1095,89 @@ func getPhysicalBackupType(database *Database) postgresql_physical.BackupType {
 	}
 
 	return database.PostgresqlPhysical.BackupType
+}
+
+// fillNotifiers completes the notifiers of the databases from one batch read of the notifiers
+// module. A notifier the module no longer has is left out.
+func (s *DatabaseService) fillNotifiers(ctx context.Context, databases []*Database) error {
+	var notifierIDs []uuid.UUID
+	for _, database := range databases {
+		notifierIDs = append(notifierIDs, database.GetNotifierIDs()...)
+	}
+
+	foundNotifiers, err := s.getNotifiers().GetNotifiers(ctx, notifierIDs)
+	if err != nil {
+		return err
+	}
+
+	notifiersByID := make(map[uuid.UUID]notifiers.Notifier, len(foundNotifiers))
+	for _, foundNotifier := range foundNotifiers {
+		notifiersByID[foundNotifier.ID] = foundNotifier
+	}
+
+	for _, database := range databases {
+		filledNotifiers := make([]DatabaseNotifier, 0, len(database.Notifiers))
+		for _, databaseNotifier := range database.Notifiers {
+			foundNotifier, isFound := notifiersByID[databaseNotifier.ID]
+			if isFound {
+				filledNotifiers = append(filledNotifiers, newDatabaseNotifier(foundNotifier))
+			}
+		}
+
+		database.Notifiers = filledNotifiers
+	}
+
+	return nil
+}
+
+func (s *DatabaseService) validateNotifiersInWorkspace(
+	ctx context.Context,
+	notifierIDs []uuid.UUID,
+	workspaceID uuid.UUID,
+) error {
+	foundNotifiers, err := s.getNotifiers().GetNotifiers(ctx, notifierIDs)
+	if err != nil {
+		return err
+	}
+
+	uniqueNotifierIDs := make(map[uuid.UUID]bool, len(notifierIDs))
+	for _, notifierID := range notifierIDs {
+		uniqueNotifierIDs[notifierID] = true
+	}
+
+	if len(foundNotifiers) != len(uniqueNotifierIDs) {
+		return ErrNotifierNotFound
+	}
+
+	for _, foundNotifier := range foundNotifiers {
+		if foundNotifier.WorkspaceID != workspaceID {
+			return ErrNotifierNotInWorkspace
+		}
+	}
+
+	return nil
+}
+
+func (s *DatabaseService) checkNotifierVisible(ctx context.Context, actor users.Actor, notifierID uuid.UUID) error {
+	foundNotifiers, err := s.getNotifiers().GetNotifiers(ctx, []uuid.UUID{notifierID})
+	if err != nil {
+		return err
+	}
+
+	if len(foundNotifiers) == 0 {
+		return ErrNotifierNotFound
+	}
+
+	isAllowed, err := s.workspaceService.IsActorAllowed(
+		ctx, actor, foundNotifiers[0].WorkspaceID, workspaces.ActionView,
+	)
+	if err != nil {
+		return err
+	}
+
+	if !isAllowed {
+		return ErrInsufficientPermissionsToViewNotifier
+	}
+
+	return nil
 }

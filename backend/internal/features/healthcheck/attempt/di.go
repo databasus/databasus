@@ -5,7 +5,7 @@ import (
 
 	"databasus-backend/internal/features/databases"
 	healthcheck_config "databasus-backend/internal/features/healthcheck/config"
-	"databasus-backend/internal/features/notifiers"
+	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	workspaces_bridge "databasus-backend/internal/features/workspaces"
 	"databasus-backend/internal/util/logger"
 )
@@ -26,7 +26,7 @@ var (
 var getCheckDatabaseHealthUseCase = sync.OnceValue(func() *CheckDatabaseHealthUseCase {
 	return &CheckDatabaseHealthUseCase{
 		getHealthcheckAttemptRepository(),
-		notifiers.GetNotifierService(),
+		notifiers_bridge.GetSender(),
 		databases.GetDatabaseService(),
 	}
 })

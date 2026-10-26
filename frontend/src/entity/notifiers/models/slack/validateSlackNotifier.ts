@@ -1,13 +1,12 @@
-import type { SlackNotifier } from './SlackNotifier';
+import type { SlackNotifierSettings } from './SlackNotifierSettings';
 
-export const validateSlackNotifier = (isCreate: boolean, notifier: SlackNotifier): boolean => {
-  if (isCreate && !notifier.botToken) {
+export const validateSlackNotifier = (
+  isCreate: boolean,
+  settings: SlackNotifierSettings,
+): boolean => {
+  if (isCreate && !settings.botToken) {
     return false;
   }
 
-  if (!notifier.targetChatId) {
-    return false;
-  }
-
-  return true;
+  return !!settings.targetChatId;
 };

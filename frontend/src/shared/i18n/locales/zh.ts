@@ -125,6 +125,7 @@ export const zh: typeof en = {
     cannotChangeOwnRole: '你不能更改自己在工作区中的角色。',
     ownerRequiresTransfer: '不能更改或移除所有者。请先将所有权转让给其他成员。',
     workspaceNotEmpty: '工作区中仍有数据库。请先删除这些数据库，再删除工作区。',
+    inUse: '仍有数据库在使用它。请先在这些数据库中移除它。',
     unknown: '出了点问题，请重试。',
     networkUnreachable: '无法连接 Databasus 服务器。请检查网络连接后重试。',
     requestFailed: '服务器未能完成请求（HTTP {{status}}）。请稍后重试。',
@@ -1151,10 +1152,11 @@ export const zh: typeof en = {
         clearByNextNotification: '- 等待下一条通知成功发送；',
       },
       removeConfirmation: '确定要删除这个通知渠道吗？此操作无法撤销。',
-      removeBlockedByDatabases: '有数据库正在使用这个通知渠道。请先在这些数据库中移除它。',
     },
+    secretKeptPlaceholder: '已保存，留空则保持不变',
     testNotification: {
       send: '发送测试通知',
+      notDelivered: '测试消息未送达：{{error}}',
       sent: {
         title: '测试通知已发送',
         description: '测试通知发送成功',
@@ -1241,7 +1243,7 @@ export const zh: typeof en = {
       customHeaders: '自定义请求头',
       customHeadersTooltip:
         '为 Webhook 请求添加自定义 HTTP 请求头（例如 Authorization、X-API-Key）',
-      savedHeadersHidden: '*出于安全考虑，已保存的请求头不予显示',
+      savedHeadersHidden: '*已保存请求头的值不予显示。值留空则保持不变',
       headers: '请求头',
       headerNamePlaceholder: '请求头名称',
       headerValuePlaceholder: '请求头值',

@@ -14,7 +14,6 @@ import (
 	"databasus-backend/internal/features/databases/databases/mysql"
 	postgresql_logical "databasus-backend/internal/features/databases/databases/postgresql/logical"
 	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
-	"databasus-backend/internal/features/notifiers"
 	"databasus-backend/internal/features/sshtunnel"
 	"databasus-backend/internal/util/encryption"
 )
@@ -34,7 +33,7 @@ type Database struct {
 	Mariadb            *mariadb.MariadbDatabase                        `json:"mariadb,omitzero"            gorm:"foreignKey:DatabaseID"`
 	Mongodb            *mongodb.MongodbDatabase                        `json:"mongodb,omitzero"            gorm:"foreignKey:DatabaseID"`
 
-	Notifiers []notifiers.Notifier `json:"notifiers" gorm:"many2many:database_notifiers;"`
+	Notifiers []DatabaseNotifier `json:"notifiers" gorm:"-"`
 
 	// these fields are not reliable, but
 	// they are used for pretty UI
@@ -42,6 +41,16 @@ type Database struct {
 	LastBackupErrorMessage *string    `json:"lastBackupErrorMessage,omitempty" gorm:"column:last_backup_error_message;type:text"`
 
 	HealthStatus *HealthStatus `json:"healthStatus" gorm:"column:health_status;type:text;not null"`
+}
+
+// GetNotifierIDs returns the IDs of the notifiers the database uses.
+func (d *Database) GetNotifierIDs() []uuid.UUID {
+	notifierIDs := make([]uuid.UUID, 0, len(d.Notifiers))
+	for _, notifier := range d.Notifiers {
+		notifierIDs = append(notifierIDs, notifier.ID)
+	}
+
+	return notifierIDs
 }
 
 func (d *Database) Validate() error {

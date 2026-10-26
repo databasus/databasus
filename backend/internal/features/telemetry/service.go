@@ -89,7 +89,7 @@ func (s *TelemetryService) BuildAndSend(ctx context.Context) error {
 		return err
 	}
 
-	notifierTypes, err := s.collectNotifierTypes()
+	notifierTypes, err := s.collectNotifierTypes(ctx)
 	if err != nil {
 		return err
 	}
@@ -392,20 +392,15 @@ func (s *TelemetryService) collectStorageTypes() ([]string, error) {
 	return storageTypes, nil
 }
 
-func (s *TelemetryService) collectNotifierTypes() ([]string, error) {
-	allNotifiers, err := s.notifierService.GetAllNotifiers()
+func (s *TelemetryService) collectNotifierTypes(ctx context.Context) ([]string, error) {
+	allNotifierTypes, err := s.notifierService.GetNotifierTypes(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	notifierTypes := make([]string, 0, len(allNotifiers))
-
-	for _, notifier := range allNotifiers {
-		if notifier.NotifierType == "" {
-			continue
-		}
-
-		notifierTypes = append(notifierTypes, string(notifier.NotifierType))
+	notifierTypes := make([]string, 0, len(allNotifierTypes))
+	for _, notifierType := range allNotifierTypes {
+		notifierTypes = append(notifierTypes, string(notifierType))
 	}
 
 	slices.Sort(notifierTypes)

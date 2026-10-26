@@ -1,9 +1,7 @@
-import type { DiscordNotifier } from './DiscordNotifier';
+import type { DiscordNotifierSettings } from './DiscordNotifierSettings';
 
-export const validateDiscordNotifier = (isCreate: boolean, notifier: DiscordNotifier): boolean => {
-  if (isCreate && !notifier.channelWebhookUrl) {
-    return false;
-  }
-
-  return true;
-};
+// A saved notifier keeps its stored webhook URL when the form leaves it empty.
+export const validateDiscordNotifier = (
+  isCreate: boolean,
+  settings: DiscordNotifierSettings,
+): boolean => !isCreate || !!settings.channelWebhookUrl;

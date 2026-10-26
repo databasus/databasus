@@ -49,6 +49,7 @@ Code outside a family never switches on a database, storage or notifier type: on
 2. Add a migration with its table. Columns carry `NOT NULL`, `DEFAULT` and `CHECK` where they apply, and the row references the parent through the composite key `(id, type)`.
 3. Register it in the family's registry.
 4. Add its schema to the contract as one more variant of the type's `oneOf`.
+5. Add its conversion between that variant and its settings to the module's `httpapi`.
 
 ## Long-running work
 

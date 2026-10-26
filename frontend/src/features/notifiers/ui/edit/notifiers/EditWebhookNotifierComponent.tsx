@@ -3,14 +3,15 @@ import { Button, Input, Select, Tooltip } from 'antd';
 import { useMemo } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
-import type { Notifier, WebhookHeader } from '../../../../../entity/notifiers';
+import type { WebhookHeader, WebhookNotifierSettings } from '../../../../../entity/notifiers';
 import {
-  NOTIFICATION_TYPE_LABEL_KEYS,
-  NotificationType,
+  NOTIFICATION_CATEGORY_LABEL_KEYS,
+  NotificationCategory,
   WebhookMethod,
 } from '../../../../../entity/notifiers';
 import type { TranslationKey } from '../../../../../shared/i18n';
-import { DEFAULT_ACCEPT_NOTIFICATION_TYPES } from '../../../lib/defaultAcceptNotificationTypes';
+import { DEFAULT_ACCEPTED_CATEGORIES } from '../../../lib/defaultAcceptedCategories';
+import { toOptionalValue } from '../../../lib/toOptionalValue';
 import {
   EXAMPLE_GET_QUERY,
   getExamplePostBody,
@@ -18,9 +19,9 @@ import {
 } from '../../../lib/webhookExampleRequest';
 
 interface Props {
-  notifier: Notifier;
-  setNotifier: (notifier: Notifier) => void;
-  setUnsaved: () => void;
+  settings: WebhookNotifierSettings;
+  isSaved: boolean;
+  onChange: (settings: WebhookNotifierSettings) => void;
 }
 
 // eslint-disable-next-line i18next/no-literal-string -- JSON template with the backend's variables
@@ -48,56 +49,43 @@ function validateJsonTemplate(template: string): TranslationKey | null {
   }
 }
 
-export function EditWebhookNotifierComponent({ notifier, setNotifier, setUnsaved }: Props) {
+export function EditWebhookNotifierComponent({ settings, isSaved, onChange }: Props) {
   const { t } = useTranslation();
-  const headers = notifier?.webhookNotifier?.headers || [];
-  const bodyTemplate = notifier?.webhookNotifier?.bodyTemplate || '';
+  const headers = settings.headers;
+  const bodyTemplate = settings.bodyTemplate ?? '';
 
   const jsonErrorKey = useMemo(() => validateJsonTemplate(bodyTemplate), [bodyTemplate]);
 
-  const acceptNotificationTypes =
-    notifier?.webhookNotifier?.acceptNotificationTypes || DEFAULT_ACCEPT_NOTIFICATION_TYPES;
+  const acceptedCategories =
+    settings.acceptedCategories.length > 0
+      ? settings.acceptedCategories
+      : DEFAULT_ACCEPTED_CATEGORIES;
 
-  const updateWebhookNotifier = (updates: Partial<typeof notifier.webhookNotifier>) => {
-    setNotifier({
-      ...notifier,
-      webhookNotifier: {
-        ...(notifier.webhookNotifier || {
-          webhookUrl: '',
-          webhookMethod: WebhookMethod.POST,
-          acceptNotificationTypes: [...DEFAULT_ACCEPT_NOTIFICATION_TYPES],
-        }),
-        ...updates,
-      },
-    });
-    setUnsaved();
-  };
+  const updateWebhookSettings = (changes: Partial<WebhookNotifierSettings>) =>
+    onChange({ ...settings, ...changes });
 
-  const changeAcceptNotificationTypes = (selected: NotificationType[]) => {
+  const changeAcceptedCategories = (selected: NotificationCategory[]) => {
     const isAllSelected =
-      selected.length === 0 || selected[selected.length - 1] === NotificationType.ALL;
-    updateWebhookNotifier({
-      acceptNotificationTypes: isAllSelected
-        ? [NotificationType.ALL]
-        : selected.filter((type) => type !== NotificationType.ALL),
+      selected.length === 0 || selected[selected.length - 1] === NotificationCategory.ALL;
+    updateWebhookSettings({
+      acceptedCategories: isAllSelected
+        ? [NotificationCategory.ALL]
+        : selected.filter((category) => category !== NotificationCategory.ALL),
     });
   };
 
   const addHeader = () => {
-    updateWebhookNotifier({
-      headers: [...headers, { key: '', value: '' }],
-    });
+    updateWebhookSettings({ headers: [...headers, { name: '' }] });
   };
 
-  const updateHeader = (index: number, field: 'key' | 'value', value: string) => {
-    const newHeaders = [...headers];
-    newHeaders[index] = { ...newHeaders[index], [field]: value };
-    updateWebhookNotifier({ headers: newHeaders });
+  const updateHeader = (index: number, changes: Partial<WebhookHeader>) => {
+    const changedHeaders = [...headers];
+    changedHeaders[index] = { ...changedHeaders[index], ...changes };
+    updateWebhookSettings({ headers: changedHeaders });
   };
 
   const removeHeader = (index: number) => {
-    const newHeaders = headers.filter((_, i) => i !== index);
-    updateWebhookNotifier({ headers: newHeaders });
+    updateWebhookSettings({ headers: headers.filter((_, i) => i !== index) });
   };
 
   return (
@@ -105,10 +93,8 @@ export function EditWebhookNotifierComponent({ notifier, setNotifier, setUnsaved
       <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
         <div className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2">{t('notifiers.fields.webhookUrl')}</div>
         <Input
-          value={notifier?.webhookNotifier?.webhookUrl || ''}
-          onChange={(e) => {
-            updateWebhookNotifier({ webhookUrl: e.target.value.trim() });
-          }}
+          value={settings.webhookUrl}
+          onChange={(e) => updateWebhookSettings({ webhookUrl: e.target.value.trim() })}
           size="small"
           className="w-full max-w-[250px]"
           placeholder="https://example.com/webhook"
@@ -119,10 +105,8 @@ export function EditWebhookNotifierComponent({ notifier, setNotifier, setUnsaved
         <div className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2">{t('notifiers.webhook.method')}</div>
         <div className="flex items-center">
           <Select
-            value={notifier?.webhookNotifier?.webhookMethod || WebhookMethod.POST}
-            onChange={(value) => {
-              updateWebhookNotifier({ webhookMethod: value });
-            }}
+            value={settings.webhookMethod}
+            onChange={(webhookMethod) => updateWebhookSettings({ webhookMethod })}
             size="small"
             className="w-[100px] max-w-[250px]"
             options={[
@@ -137,13 +121,13 @@ export function EditWebhookNotifierComponent({ notifier, setNotifier, setUnsaved
         <div className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2">{t('notifiers.webhook.sendOn')}</div>
         <Select
           mode="multiple"
-          value={acceptNotificationTypes}
-          onChange={(value) => changeAcceptNotificationTypes(value as NotificationType[])}
+          value={acceptedCategories}
+          onChange={(categories: NotificationCategory[]) => changeAcceptedCategories(categories)}
           size="small"
           className="w-full max-w-[250px]"
-          options={Object.values(NotificationType).map((type) => ({
-            label: t(NOTIFICATION_TYPE_LABEL_KEYS[type]),
-            value: type,
+          options={Object.values(NotificationCategory).map((category: NotificationCategory) => ({
+            label: t(NOTIFICATION_CATEGORY_LABEL_KEYS[category]),
+            value: category,
           }))}
           placeholder={t('notifiers.webhook.sendOnPlaceholder')}
         />
@@ -159,7 +143,7 @@ export function EditWebhookNotifierComponent({ notifier, setNotifier, setUnsaved
           </span>
         </div>
 
-        {notifier.id && (
+        {isSaved && (
           <div className="mb-1 text-xs text-orange-700">
             {t('notifiers.webhook.savedHeadersHidden')}
           </div>
@@ -169,15 +153,19 @@ export function EditWebhookNotifierComponent({ notifier, setNotifier, setUnsaved
           {headers.map((header: WebhookHeader, index: number) => (
             <div key={index} className="mb-1 flex items-center gap-2">
               <Input
-                value={header.key}
-                onChange={(e) => updateHeader(index, 'key', e.target.value)}
+                value={header.name}
+                onChange={(e) => updateHeader(index, { name: e.target.value })}
                 size="small"
                 style={{ width: 150, flexShrink: 0 }}
                 placeholder={t('notifiers.webhook.headerNamePlaceholder')}
               />
               <Input
-                value={header.value}
-                onChange={(e) => updateHeader(index, 'value', e.target.value)}
+                value={header.value ?? ''}
+                onChange={(e) =>
+                  updateHeader(index, {
+                    value: toOptionalValue(e.target.value),
+                  })
+                }
                 size="small"
                 style={{ flex: 1, minWidth: 0 }}
                 placeholder={t('notifiers.webhook.headerValuePlaceholder')}
@@ -204,7 +192,7 @@ export function EditWebhookNotifierComponent({ notifier, setNotifier, setUnsaved
         </div>
       </div>
 
-      {notifier?.webhookNotifier?.webhookMethod === WebhookMethod.POST && (
+      {settings.webhookMethod === WebhookMethod.POST && (
         <div className="mt-3 mb-1 flex w-full flex-col items-start">
           <div className="mb-1 flex items-center">
             <span className="min-w-[150px] pr-2">{t('notifiers.webhook.bodyTemplate.title')}</span>
@@ -239,9 +227,11 @@ export function EditWebhookNotifierComponent({ notifier, setNotifier, setUnsaved
 
           <Input.TextArea
             value={bodyTemplate}
-            onChange={(e) => {
-              updateWebhookNotifier({ bodyTemplate: e.target.value });
-            }}
+            onChange={(e) =>
+              updateWebhookSettings({
+                bodyTemplate: toOptionalValue(e.target.value),
+              })
+            }
             className="w-full max-w-[500px] font-mono text-xs"
             rows={6}
             placeholder={DEFAULT_BODY_TEMPLATE}
@@ -251,15 +241,15 @@ export function EditWebhookNotifierComponent({ notifier, setNotifier, setUnsaved
         </div>
       )}
 
-      {notifier?.webhookNotifier?.webhookUrl && (
+      {settings.webhookUrl && (
         <div className="mt-4">
           <div className="mb-1 font-medium">{t('notifiers.webhook.exampleRequest.title')}</div>
 
-          {notifier?.webhookNotifier?.webhookMethod === WebhookMethod.GET && (
+          {settings.webhookMethod === WebhookMethod.GET && (
             <div className="rounded bg-gray-100 p-2 px-3 text-sm break-all dark:bg-gray-800">
               <div className="font-semibold text-blue-600 dark:text-blue-400">GET</div>
               <div className="mt-1">
-                {notifier?.webhookNotifier?.webhookUrl}
+                {settings.webhookUrl}
                 {EXAMPLE_GET_QUERY}
               </div>
               {headers.length > 0 && (
@@ -269,10 +259,10 @@ export function EditWebhookNotifierComponent({ notifier, setNotifier, setUnsaved
                   </div>
 
                   {headers
-                    .filter((h) => h.key)
-                    .map((h, i) => (
+                    .filter((header) => header.name)
+                    .map((header, i) => (
                       <div key={i} className="text-xs">
-                        {h.key}: {h.value || t('notifiers.webhook.hiddenHeaderValue')}
+                        {header.name}: {header.value || t('notifiers.webhook.hiddenHeaderValue')}
                       </div>
                     ))}
                 </div>
@@ -280,16 +270,16 @@ export function EditWebhookNotifierComponent({ notifier, setNotifier, setUnsaved
             </div>
           )}
 
-          {notifier?.webhookNotifier?.webhookMethod === WebhookMethod.POST && (
+          {settings.webhookMethod === WebhookMethod.POST && (
             <div className="rounded bg-gray-100 p-2 px-3 font-mono text-sm break-words whitespace-pre-wrap dark:bg-gray-800">
               <div className="font-semibold text-blue-600 dark:text-blue-400">
-                POST {notifier?.webhookNotifier?.webhookUrl}
+                POST {settings.webhookUrl}
               </div>
               <div className="mt-1 text-gray-600 dark:text-gray-400">
                 {getExamplePostHeaderLines(headers)}
               </div>
               <div className="mt-2 break-words whitespace-pre-wrap">
-                {getExamplePostBody(notifier?.webhookNotifier?.bodyTemplate)}
+                {getExamplePostBody(settings.bodyTemplate)}
               </div>
             </div>
           )}

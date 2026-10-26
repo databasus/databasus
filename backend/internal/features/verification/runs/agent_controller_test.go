@@ -13,7 +13,7 @@ import (
 	backuping_logical "databasus-backend/internal/features/backups/backups/backuping/logical"
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	"databasus-backend/internal/features/databases"
-	"databasus-backend/internal/features/notifiers"
+	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	"databasus-backend/internal/features/storages"
 	users_testing "databasus-backend/internal/features/users/testing"
 	verification_agents "databasus-backend/internal/features/verification/agents"
@@ -41,8 +41,8 @@ func Test_ClaimVerification_WhenPendingFitsBudget_ReturnsJobAssignment(t *testin
 	testStorage := storages.CreateTestStorage(workspace.ID)
 	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
 
-	notifier := notifiers.CreateTestNotifier(workspace.ID)
-	defer notifiers.RemoveTestNotifier(notifier)
+	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
+	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
 	database := databases.CreateTestDatabase(workspace.ID, testStorage, notifier)
 	defer databases.RemoveTestDatabase(t.Context(), database)
@@ -83,8 +83,8 @@ func Test_ClaimVerification_WhenAgentHasFiveGbAndBackupIsTiny_ReturnsJobAssignme
 	testStorage := storages.CreateTestStorage(workspace.ID)
 	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
 
-	notifier := notifiers.CreateTestNotifier(workspace.ID)
-	defer notifiers.RemoveTestNotifier(notifier)
+	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
+	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
 	database := databases.CreateTestDatabase(workspace.ID, testStorage, notifier)
 	defer databases.RemoveTestDatabase(t.Context(), database)
@@ -114,8 +114,8 @@ func Test_ClaimVerification_WhenBackupUsesTimescaleDB_ForwardsTimescaledbVersion
 	testStorage := storages.CreateTestStorage(workspace.ID)
 	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
 
-	notifier := notifiers.CreateTestNotifier(workspace.ID)
-	defer notifiers.RemoveTestNotifier(notifier)
+	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
+	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
 	database := databases.CreateTestDatabase(workspace.ID, testStorage, notifier)
 	defer databases.RemoveTestDatabase(t.Context(), database)
@@ -146,8 +146,8 @@ func Test_ClaimVerification_WhenBackupTooBigForBudget_DoNotAssignJobWithoutError
 	testStorage := storages.CreateTestStorage(workspace.ID)
 	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
 
-	notifier := notifiers.CreateTestNotifier(workspace.ID)
-	defer notifiers.RemoveTestNotifier(notifier)
+	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
+	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
 	database := databases.CreateTestDatabase(workspace.ID, testStorage, notifier)
 	defer databases.RemoveTestDatabase(t.Context(), database)
@@ -177,8 +177,8 @@ func Test_ClaimVerification_WhenMultiplePendingFit_ReturnsOldestThatFitsBudget(t
 	testStorage := storages.CreateTestStorage(workspace.ID)
 	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
 
-	notifier := notifiers.CreateTestNotifier(workspace.ID)
-	defer notifiers.RemoveTestNotifier(notifier)
+	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
+	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
 	databaseSmall := databases.CreateTestDatabase(workspace.ID, testStorage, notifier)
 	defer databases.RemoveTestDatabase(t.Context(), databaseSmall)
@@ -219,8 +219,8 @@ func Test_ClaimVerification_WhenAgentHasRunningRows_DeductsTheirSizeFromBudget(t
 	testStorage := storages.CreateTestStorage(workspace.ID)
 	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
 
-	notifier := notifiers.CreateTestNotifier(workspace.ID)
-	defer notifiers.RemoveTestNotifier(notifier)
+	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
+	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
 	databaseRunning := databases.CreateTestDatabase(workspace.ID, testStorage, notifier)
 	defer databases.RemoveTestDatabase(t.Context(), databaseRunning)
@@ -269,8 +269,8 @@ func Test_ClaimVerification_WhenAlreadyClaimedByAnotherAgent_OnlyReassignsAfterC
 	testStorage := storages.CreateTestStorage(workspace.ID)
 	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
 
-	notifier := notifiers.CreateTestNotifier(workspace.ID)
-	defer notifiers.RemoveTestNotifier(notifier)
+	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
+	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
 	database := databases.CreateTestDatabase(workspace.ID, testStorage, notifier)
 	defer databases.RemoveTestDatabase(t.Context(), database)
@@ -334,8 +334,8 @@ func Test_SubmitReport_WhenStatusCompleted_PersistsResultsAndTableStats(t *testi
 	testStorage := storages.CreateTestStorage(workspace.ID)
 	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
 
-	notifier := notifiers.CreateTestNotifier(workspace.ID)
-	defer notifiers.RemoveTestNotifier(notifier)
+	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
+	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
 	database := databases.CreateTestDatabase(workspace.ID, testStorage, notifier)
 	defer databases.RemoveTestDatabase(t.Context(), database)
@@ -404,8 +404,8 @@ func Test_SubmitReport_WhenCompletedWithNonZeroExitCode_MarksCompleted(t *testin
 	testStorage := storages.CreateTestStorage(workspace.ID)
 	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
 
-	notifier := notifiers.CreateTestNotifier(workspace.ID)
-	defer notifiers.RemoveTestNotifier(notifier)
+	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
+	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
 	database := databases.CreateTestDatabase(workspace.ID, testStorage, notifier)
 	defer databases.RemoveTestDatabase(t.Context(), database)
@@ -465,8 +465,8 @@ func Test_SubmitReport_WhenRowWasReapedWhileAgentWasSilent_Returns410(t *testing
 	testStorage := storages.CreateTestStorage(workspace.ID)
 	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
 
-	notifier := notifiers.CreateTestNotifier(workspace.ID)
-	defer notifiers.RemoveTestNotifier(notifier)
+	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
+	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
 	database := databases.CreateTestDatabase(workspace.ID, testStorage, notifier)
 	defer databases.RemoveTestDatabase(t.Context(), database)
@@ -502,8 +502,8 @@ func Test_SubmitReport_WhenAgentReportsBackupRejected_StoresMessageVerbatimAndTe
 	testStorage := storages.CreateTestStorage(workspace.ID)
 	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
 
-	notifier := notifiers.CreateTestNotifier(workspace.ID)
-	defer notifiers.RemoveTestNotifier(notifier)
+	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
+	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
 	database := databases.CreateTestDatabase(workspace.ID, testStorage, notifier)
 	defer databases.RemoveTestDatabase(t.Context(), database)
@@ -563,8 +563,8 @@ func Test_SubmitReport_WhenAgentReportsDiskLimitExceeded_MarksTerminalWithoutRet
 	testStorage := storages.CreateTestStorage(workspace.ID)
 	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
 
-	notifier := notifiers.CreateTestNotifier(workspace.ID)
-	defer notifiers.RemoveTestNotifier(notifier)
+	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
+	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
 	database := databases.CreateTestDatabase(workspace.ID, testStorage, notifier)
 	defer databases.RemoveTestDatabase(t.Context(), database)
@@ -627,8 +627,8 @@ func Test_SubmitReport_WhenAgentSetupFailedWithRetriesRemaining_RequeuesVerifica
 	testStorage := storages.CreateTestStorage(workspace.ID)
 	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
 
-	notifier := notifiers.CreateTestNotifier(workspace.ID)
-	defer notifiers.RemoveTestNotifier(notifier)
+	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
+	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
 	database := databases.CreateTestDatabase(workspace.ID, testStorage, notifier)
 	defer databases.RemoveTestDatabase(t.Context(), database)
@@ -679,8 +679,8 @@ func Test_SubmitReport_WhenAgentSetupFailedRepeatedly_MarksTerminalAfterMaxAttem
 	testStorage := storages.CreateTestStorage(workspace.ID)
 	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
 
-	notifier := notifiers.CreateTestNotifier(workspace.ID)
-	defer notifiers.RemoveTestNotifier(notifier)
+	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
+	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
 	database := databases.CreateTestDatabase(workspace.ID, testStorage, notifier)
 	defer databases.RemoveTestDatabase(t.Context(), database)
@@ -739,8 +739,8 @@ func Test_SubmitReport_WhenCompletedButRestoredSizeBelow20Percent_MarksTerminalW
 	testStorage := storages.CreateTestStorage(workspace.ID)
 	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
 
-	notifier := notifiers.CreateTestNotifier(workspace.ID)
-	defer notifiers.RemoveTestNotifier(notifier)
+	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
+	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
 	database := databases.CreateTestDatabase(workspace.ID, testStorage, notifier)
 	defer databases.RemoveTestDatabase(t.Context(), database)
@@ -801,8 +801,8 @@ func Test_Heartbeat_WhenReportedJobIsCanceledOrDeleted_ReturnsItAsAbortID(t *tes
 	testStorage := storages.CreateTestStorage(workspace.ID)
 	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
 
-	notifier := notifiers.CreateTestNotifier(workspace.ID)
-	defer notifiers.RemoveTestNotifier(notifier)
+	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
+	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
 	databaseRunning := databases.CreateTestDatabase(workspace.ID, testStorage, notifier)
 	defer databases.RemoveTestDatabase(t.Context(), databaseRunning)
@@ -867,8 +867,8 @@ func Test_CancelVerification_WhenRunning_AgentHeartbeatReturnsIDAsAbort(t *testi
 	testStorage := storages.CreateTestStorage(workspace.ID)
 	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
 
-	notifier := notifiers.CreateTestNotifier(workspace.ID)
-	defer notifiers.RemoveTestNotifier(notifier)
+	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
+	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
 	database := databases.CreateTestDatabase(workspace.ID, testStorage, notifier)
 	defer databases.RemoveTestDatabase(t.Context(), database)
@@ -928,8 +928,8 @@ func Test_GetBackups_WhenBackupNeverVerified_StatusIsNotVerified(t *testing.T) {
 	testStorage := storages.CreateTestStorage(workspace.ID)
 	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
 
-	notifier := notifiers.CreateTestNotifier(workspace.ID)
-	defer notifiers.RemoveTestNotifier(notifier)
+	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
+	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
 	database := databases.CreateTestDatabase(workspace.ID, testStorage, notifier)
 	defer databases.RemoveTestDatabase(t.Context(), database)

@@ -13,7 +13,7 @@ import (
 	postgresql_executor "databasus-backend/internal/features/backups/backups/usecases/physical/postgresql"
 	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
 	"databasus-backend/internal/features/databases"
-	"databasus-backend/internal/features/notifiers"
+	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	"databasus-backend/internal/features/storages"
 	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
 	workspaces_bridge "databasus-backend/internal/features/workspaces"
@@ -33,7 +33,7 @@ var getPhysicalBackuper = sync.OnceValue(func() *PhysicalBackuper {
 		backups_config_physical.GetBackupConfigService(),
 		storages.GetStorageService(),
 		storages.GetStorageFileStore(),
-		notifiers.GetNotifierService(),
+		notifiers_bridge.GetSender(),
 		tasks_cancellation.GetRegistry(),
 		encryption.GetMasterKey(),
 		logger.GetLogger(),
@@ -88,7 +88,7 @@ var getPhysicalWalStreamSupervisor = sync.OnceValue(func() *PhysicalWalStreamSup
 		physical_repositories.GetWalHistoryRepository(),
 		physical_repositories.GetWalStreamerRepository(),
 		physical_repositories.GetWalStreamSampleRepository(),
-		notifiers.GetNotifierService(),
+		notifiers_bridge.GetSender(),
 		tasks_cancellation.GetRegistry(),
 		encryption.GetMasterKey(),
 		encryption.GetFieldEncryptor(),

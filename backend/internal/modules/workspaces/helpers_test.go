@@ -200,95 +200,31 @@ func sendRawRequest(t *testing.T, app *apptest.App, session apptest.Session, met
 	return response.StatusCode, responseBody.Bytes()
 }
 
-// The content of a workspace still lives in the old features, whose operations the contract does
-// not describe yet, so the tests reach them through raw requests.
-
-type oldAPICall struct {
-	method string
-	path   string
-	body   any
-}
-
-func callOldAPI(t *testing.T, app *apptest.App, session apptest.Session, call oldAPICall) (int, []byte) {
+func createWebhookNotifier(t *testing.T, session apptest.Session, workspaceID uuid.UUID) {
 	t.Helper()
 
-	var requestBody bytes.Buffer
-	if call.body != nil {
-		require.NoError(t, json.NewEncoder(&requestBody).Encode(call.body))
-	}
+	var settings apiclient.NotifierSettings
+	require.NoError(t, settings.FromWebhookNotifierSettings(apiclient.WebhookNotifierSettings{
+		Type:               apiclient.WebhookNotifierSettingsTypeWEBHOOK,
+		WebhookUrl:         "https://example.com/hooks/databasus",
+		WebhookMethod:      apiclient.WebhookNotifierSettingsWebhookMethodPOST,
+		BodyTemplate:       nil,
+		Headers:            []apiclient.WebhookHeader{},
+		AcceptedCategories: []apiclient.NotificationCategory{apiclient.NotificationCategoryALL},
+	}))
 
-	request, err := http.NewRequestWithContext(t.Context(), call.method, app.URL+"/api/v1"+call.path, &requestBody)
-	require.NoError(t, err)
-	request.Header.Set("Content-Type", "application/json")
-	request.Header.Set("Authorization", "Bearer "+session.Token)
-
-	response, err := http.DefaultClient.Do(request)
-	require.NoError(t, err)
-
-	defer func() { _ = response.Body.Close() }()
-
-	var responseBody bytes.Buffer
-	_, err = responseBody.ReadFrom(response.Body)
-	require.NoError(t, err)
-
-	return response.StatusCode, responseBody.Bytes()
+	apptest.CreateNotifier(t, session, workspaceID, settings)
 }
 
-func createLocalStorage(t *testing.T, app *apptest.App, session apptest.Session, workspaceID uuid.UUID) {
-	t.Helper()
-
-	status, body := callOldAPI(t, app, session, oldAPICall{
-		method: http.MethodPost,
-		path:   "/storages",
-		body: map[string]any{
-			"workspaceId":  workspaceID,
-			"type":         "LOCAL",
-			"name":         "Storage " + uuid.NewString()[:8],
-			"localStorage": map[string]any{},
-		},
-	})
-	require.Equal(t, http.StatusOK, status, string(body))
-}
-
-func createWebhookNotifier(t *testing.T, app *apptest.App, session apptest.Session, workspaceID uuid.UUID) {
-	t.Helper()
-
-	status, body := callOldAPI(t, app, session, oldAPICall{
-		method: http.MethodPost,
-		path:   "/notifiers",
-		body: map[string]any{
-			"workspaceId":  workspaceID,
-			"name":         "Notifier " + uuid.NewString()[:8],
-			"notifierType": "WEBHOOK",
-			"webhookNotifier": map[string]any{
-				"webhookUrl":    "https://example.com/hooks/databasus",
-				"webhookMethod": "POST",
-			},
-		},
-	})
-	require.Equal(t, http.StatusOK, status, string(body))
-}
-
-// insertDatabase writes the row directly, because creating a database through the API connects to
-// a real database server.
-func insertDatabase(t *testing.T, app *apptest.App, workspaceID uuid.UUID) uuid.UUID {
-	t.Helper()
-
-	databaseID := uuid.New()
-	app.ExecuteSQL(t,
-		"INSERT INTO databases (id, workspace_id, name, type, health_status) VALUES (?, ?, ?, ?, ?)",
-		databaseID, workspaceID, "Database "+databaseID.String()[:8], "POSTGRES_LOGICAL", "AVAILABLE")
-
-	return databaseID
-}
-
-// countContent lists the workspace's content through the old routes and counts each kind.
+// countContent lists the workspace's content and counts each kind: the databases and storages
+// through their old routes, which the contract does not describe yet, and the notifiers through
+// listNotifiers.
 func countContent(t *testing.T, app *apptest.App, session apptest.Session, workspaceID uuid.UUID) workspaceContent {
 	t.Helper()
 
 	return workspaceContent{
 		databaseCount: countListed(t, app, session, "/databases?workspace_id="+workspaceID.String()),
-		notifierCount: countListed(t, app, session, "/notifiers?workspace_id="+workspaceID.String()),
+		notifierCount: countNotifiers(t, session, workspaceID),
 		storageCount:  countListed(t, app, session, "/storages?workspace_id="+workspaceID.String()),
 	}
 }
@@ -302,11 +238,25 @@ type workspaceContent struct {
 func countListed(t *testing.T, app *apptest.App, session apptest.Session, path string) int {
 	t.Helper()
 
-	status, body := callOldAPI(t, app, session, oldAPICall{method: http.MethodGet, path: path, body: nil})
+	status, body := app.CallOldAPI(t, session, apptest.OldAPICall{Method: http.MethodGet, Path: path, Body: nil})
 	require.Equal(t, http.StatusOK, status, string(body))
 
 	var listedItems []json.RawMessage
 	require.NoError(t, json.Unmarshal(body, &listedItems), string(body))
 
 	return len(listedItems)
+}
+
+func countNotifiers(t *testing.T, session apptest.Session, workspaceID uuid.UUID) int {
+	t.Helper()
+
+	response, err := session.Client.ListNotifiersWithResponse(t.Context(), &apiclient.ListNotifiersParams{
+		WorkspaceId: workspaceID,
+		Limit:       nil,
+		After:       nil,
+	})
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, response.StatusCode(), string(response.Body))
+
+	return len(response.JSON200.Items)
 }

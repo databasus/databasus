@@ -28,7 +28,7 @@ import (
 	postgresql_logical "databasus-backend/internal/features/databases/databases/postgresql/logical"
 	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
 	postgresql_shared "databasus-backend/internal/features/databases/databases/postgresql/shared"
-	"databasus-backend/internal/features/notifiers"
+	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	"databasus-backend/internal/features/sshtunnel"
 	"databasus-backend/internal/features/storages"
 	users_testing "databasus-backend/internal/features/users/testing"
@@ -597,8 +597,8 @@ func Test_GetDatabasesByWorkspace_WithPhysicalBackups_ReturnsNewestBackupTimeAcr
 
 	storage := storages.CreateTestStorage(workspace.ID)
 	defer storages.RemoveTestStorage(t.Context(), storage.ID)
-	notifier := notifiers.CreateTestNotifier(workspace.ID)
-	defer notifiers.RemoveTestNotifier(notifier)
+	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
+	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
 	backedUp := CreateTestPhysicalPostgresDatabase(workspace.ID, notifier, "17")
 	defer func() {

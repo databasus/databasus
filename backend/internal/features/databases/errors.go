@@ -23,3 +23,19 @@ var ErrWorkspaceHasDatabases = &apierror.Problem{
 	Detail: "the workspace still has databases, which must be deleted first",
 	Errors: nil,
 }
+
+// ErrNotifierUsedOutsideTargetWorkspace refuses a notifier transfer through the notifiers module,
+// which answers it as it is.
+var ErrNotifierUsedOutsideTargetWorkspace = &apierror.Problem{
+	Code:   apierror.CodeInUse,
+	Detail: "a database outside the target workspace uses the notifier",
+	Errors: nil,
+}
+
+var (
+	ErrNotifierNotFound                      = errors.New("notifier not found")
+	ErrNotifierNotInWorkspace                = errors.New("notifier does not belong to this workspace")
+	ErrInsufficientPermissionsToViewNotifier = errors.New(
+		"insufficient permissions to view notifier in this workspace",
+	)
+)

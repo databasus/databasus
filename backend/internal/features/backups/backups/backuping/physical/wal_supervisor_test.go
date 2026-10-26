@@ -21,9 +21,10 @@ import (
 	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
 	"databasus-backend/internal/features/databases"
 	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
-	"databasus-backend/internal/features/notifiers"
+	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	"databasus-backend/internal/features/storages"
 	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
+	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/storage"
 )
 
@@ -145,7 +146,7 @@ func Test_ClaimIfClaimable_WhenConcurrentClaims_ExactlyOneWins(t *testing.T) {
 
 func Test_PhysicalWalStreamSupervisorRun_WhenCalledTwice_Panics(t *testing.T) {
 	supervisor := CreateTestWalStreamSupervisor(WalStreamSupervisorTestSpec{
-		NotificationSender: notifiers.GetNotifierService(),
+		NotificationSender: notifiers_bridge.GetSender(),
 	})
 
 	ctx := t.Context()
@@ -170,7 +171,7 @@ func Test_PhysicalWalStreamSupervisorRun_WhenCalledTwice_Panics(t *testing.T) {
 func Test_StopStreamer_WhenOwnedStreamerStops_MarksRowFailed(t *testing.T) {
 	prereqs := seedBackupPrereqs(t)
 	supervisor := CreateTestWalStreamSupervisor(WalStreamSupervisorTestSpec{
-		NotificationSender: notifiers.GetNotifierService(),
+		NotificationSender: notifiers_bridge.GetSender(),
 	})
 	require.NoError(t, physical_repositories.GetWalStreamerRepository().Claim(prereqs.DB.ID))
 
@@ -201,7 +202,7 @@ func Test_RecoverStreamersOnStartup_WhenRunningRowStale_MarksFailed(t *testing.T
 	)
 
 	supervisor := CreateTestWalStreamSupervisor(WalStreamSupervisorTestSpec{
-		NotificationSender: notifiers.GetNotifierService(),
+		NotificationSender: notifiers_bridge.GetSender(),
 	})
 
 	require.NoError(t, supervisor.recoverStreamersOnStartup())
@@ -214,7 +215,7 @@ func Test_RecoverStreamersOnStartup_WhenRunningRowStale_MarksFailed(t *testing.T
 
 func Test_RemoveWatchDirIfRequested_WhenCleanupRequested_RemovesQueue(t *testing.T) {
 	supervisor := CreateTestWalStreamSupervisor(WalStreamSupervisorTestSpec{
-		NotificationSender: notifiers.GetNotifierService(),
+		NotificationSender: notifiers_bridge.GetSender(),
 	})
 	watchDir := filepath.Join(t.TempDir(), "wal-queue")
 	require.NoError(t, os.MkdirAll(watchDir, 0o700))
@@ -430,7 +431,7 @@ func startReconcilingSupervisor(t *testing.T) (*PhysicalWalStreamSupervisor, con
 	t.Helper()
 
 	supervisor := CreateTestWalStreamSupervisor(WalStreamSupervisorTestSpec{
-		NotificationSender: notifiers.GetNotifierService(),
+		NotificationSender: notifiers_bridge.GetSender(),
 	})
 
 	ctx, cancel := context.WithCancel(t.Context())
@@ -544,7 +545,7 @@ func Test_PhysicalWalStreamSupervisorRun_WhenContextCancelledWithRunningStreamer
 
 	registry := tasks_cancellation.NewRegistry()
 	supervisor := CreateTestWalStreamSupervisor(WalStreamSupervisorTestSpec{
-		NotificationSender:       notifiers.GetNotifierService(),
+		NotificationSender:       notifiers_bridge.GetSender(),
 		TaskCancellationRegistry: registry,
 	})
 

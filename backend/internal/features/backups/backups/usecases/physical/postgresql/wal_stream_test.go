@@ -3,11 +3,9 @@ package usecases_physical_postgresql
 import (
 	"context"
 	"errors"
-	"fmt"
 	"os"
 	"path/filepath"
 	"slices"
-	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -21,7 +19,6 @@ import (
 	"databasus-backend/internal/features/backups/backups/core/physical/chain_view"
 	physical_models "databasus-backend/internal/features/backups/backups/core/physical/models"
 	physical_repositories "databasus-backend/internal/features/backups/backups/core/physical/repositories"
-	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
 	"databasus-backend/internal/util/encryption"
 	"databasus-backend/internal/util/logger"
 	"databasus-backend/internal/util/walmath"
@@ -791,7 +788,7 @@ func Test_WalStream_WhenSwitchWalIsRefused_AlertsOnceAndStopsRotating(t *testing
 
 	adminConn := OpenAdminConn(t, fixture)
 
-	fixture.DB.PostgresqlPhysical = createReplicationOnlyRole(t, adminConn, fixture)
+	fixture.DB.PostgresqlPhysical = CreateReplicationOnlyRole(t, adminConn, fixture)
 
 	var chainRisks chainEventRecorder
 
@@ -824,42 +821,6 @@ func Test_WalStream_WhenSwitchWalIsRefused_AlertsOnceAndStopsRotating(t *testing
 	require.NoError(t, err)
 
 	WaitForCommittedWalSegmentCount(t, fixture.DB.ID, 1, 90*time.Second)
-}
-
-// The physical backup role only needs REPLICATION, and PostgreSQL restricts
-// pg_switch_wal to superusers unless EXECUTE is granted — so this is what a real
-// deployment looks like, not a contrived setup.
-func createReplicationOnlyRole(
-	t *testing.T,
-	adminConn *pgx.Conn,
-	fixture *PhysicalDBFixture,
-) *postgresql_physical.PostgresqlPhysicalDatabase {
-	t.Helper()
-
-	roleName := "databasus_no_switch_" + strings.ReplaceAll(uuid.New().String(), "-", "")[:12]
-
-	_, err := adminConn.Exec(t.Context(),
-		fmt.Sprintf("CREATE ROLE %s LOGIN REPLICATION PASSWORD 'switchless'", pgx.Identifier{roleName}.Sanitize()),
-	)
-	require.NoError(t, err)
-
-	t.Cleanup(func() {
-		_, _ = adminConn.Exec(context.Background(),
-			fmt.Sprintf(
-				"SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE usename = %s",
-				pgx.Identifier{roleName}.Sanitize(),
-			),
-		)
-		_, _ = adminConn.Exec(context.Background(),
-			fmt.Sprintf("DROP ROLE IF EXISTS %s", pgx.Identifier{roleName}.Sanitize()),
-		)
-	})
-
-	replicationOnlySourceDB := *fixture.DB.PostgresqlPhysical
-	replicationOnlySourceDB.Username = roleName
-	replicationOnlySourceDB.Password = "switchless"
-
-	return &replicationOnlySourceDB
 }
 
 func Test_WalStream_WhenUploadsKeepFailing_AlertsArchiveStaleOnce(t *testing.T) {

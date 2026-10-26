@@ -20,7 +20,7 @@ import (
 	"databasus-backend/internal/features/caching"
 	"databasus-backend/internal/features/databases"
 	postgresql_logical "databasus-backend/internal/features/databases/databases/postgresql/logical"
-	"databasus-backend/internal/features/notifiers"
+	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	restores_core "databasus-backend/internal/features/restores/core"
 	"databasus-backend/internal/features/storages"
 	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
@@ -61,7 +61,7 @@ func Test_MakeRestore_WhenCacheMissed_RestoreFails(t *testing.T) {
 	user := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", user)
 	storage := storages.CreateTestStorage(workspace.ID)
-	notifier := notifiers.CreateTestNotifier(workspace.ID)
+	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
 	database := databases.CreateTestDatabase(workspace.ID, storage, notifier)
 	backups_config_logical.EnableBackupsForTestDatabase(t.Context(), database.ID, storage)
 
@@ -84,7 +84,7 @@ func Test_MakeRestore_WhenCacheMissed_RestoreFails(t *testing.T) {
 
 		databases.RemoveTestDatabase(t.Context(), database)
 		time.Sleep(50 * time.Millisecond)
-		notifiers.RemoveTestNotifier(notifier)
+		notifiers_bridge.RemoveTestNotifier(notifier)
 		storages.RemoveTestStorage(t.Context(), storage.ID)
 		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
@@ -124,7 +124,7 @@ func Test_MakeRestore_WhenTaskStarts_CacheDeletedImmediately(t *testing.T) {
 	user := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", user)
 	storage := storages.CreateTestStorage(workspace.ID)
-	notifier := notifiers.CreateTestNotifier(workspace.ID)
+	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
 	database := databases.CreateTestDatabase(workspace.ID, storage, notifier)
 	backups_config_logical.EnableBackupsForTestDatabase(t.Context(), database.ID, storage)
 
@@ -151,7 +151,7 @@ func Test_MakeRestore_WhenTaskStarts_CacheDeletedImmediately(t *testing.T) {
 
 		databases.RemoveTestDatabase(t.Context(), database)
 		time.Sleep(50 * time.Millisecond)
-		notifiers.RemoveTestNotifier(notifier)
+		notifiers_bridge.RemoveTestNotifier(notifier)
 		storages.RemoveTestStorage(t.Context(), storage.ID)
 		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
@@ -315,7 +315,7 @@ func createRestoreWithConfigStorage(t *testing.T, configStorage configStorageCho
 	user := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", user)
 	backupStorage := storages.CreateTestStorage(workspace.ID)
-	notifier := notifiers.CreateTestNotifier(workspace.ID)
+	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
 	database := databases.CreateTestDatabase(workspace.ID, backupStorage, notifier)
 
 	var otherStorage *storages.Storage
@@ -341,7 +341,7 @@ func createRestoreWithConfigStorage(t *testing.T, configStorage configStorageCho
 		_ = getRestoreRepository().DeleteByID(restore.ID)
 		_ = (&backups_core_logical.BackupRepository{}).DeleteByID(backup.ID)
 		databases.RemoveTestDatabase(t.Context(), database)
-		notifiers.RemoveTestNotifier(notifier)
+		notifiers_bridge.RemoveTestNotifier(notifier)
 		storages.RemoveTestStorage(t.Context(), backupStorage.ID)
 		if otherStorage != nil {
 			storages.RemoveTestStorage(t.Context(), otherStorage.ID)

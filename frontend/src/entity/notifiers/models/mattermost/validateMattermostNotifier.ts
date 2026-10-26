@@ -1,27 +1,23 @@
 import { MattermostDeliveryMode } from './MattermostDeliveryMode';
-import type { MattermostNotifier } from './MattermostNotifier';
+import type { MattermostNotifierSettings } from './MattermostNotifierSettings';
 
 const MATTERMOST_CHANNEL_ID_LENGTH = 26;
 
 export const validateMattermostNotifier = (
   isCreate: boolean,
-  notifier: MattermostNotifier,
+  settings: MattermostNotifierSettings,
 ): boolean => {
-  if (notifier.deliveryMode === MattermostDeliveryMode.WEBHOOK) {
-    return !isCreate || !!notifier.webhookUrl;
+  if (settings.deliveryMode === MattermostDeliveryMode.WEBHOOK) {
+    return !isCreate || !!settings.webhookUrl;
   }
 
-  if (notifier.deliveryMode === MattermostDeliveryMode.BOT) {
-    if (!notifier.serverUrl) {
-      return false;
-    }
-
-    if (isCreate && !notifier.botToken) {
-      return false;
-    }
-
-    return notifier.targetChannelId.length === MATTERMOST_CHANNEL_ID_LENGTH;
+  if (!settings.serverUrl) {
+    return false;
   }
 
-  return false;
+  if (isCreate && !settings.botToken) {
+    return false;
+  }
+
+  return settings.targetChannelId?.length === MATTERMOST_CHANNEL_ID_LENGTH;
 };

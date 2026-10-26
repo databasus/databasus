@@ -13,7 +13,6 @@ import (
 	"databasus-backend/internal/features/disk"
 	healthcheck_attempt "databasus-backend/internal/features/healthcheck/attempt"
 	healthcheck_config "databasus-backend/internal/features/healthcheck/config"
-	"databasus-backend/internal/features/notifiers"
 	"databasus-backend/internal/features/restores"
 	"databasus-backend/internal/features/storages"
 	system_agent "databasus-backend/internal/features/system/agent"
@@ -39,6 +38,7 @@ func (a *App) registerContractRoutes(router *gin.Engine) error {
 
 	a.usersModule.RegisterRoutes(contractRoutes, errorHooks)
 	a.workspacesModule.RegisterRoutes(contractRoutes, errorHooks)
+	a.notifiersModule.RegisterRoutes(contractRoutes, errorHooks)
 
 	systemHandler := systemhttpapi.NewHandler(systemhttpapi.Deps{Version: system_version.GetAppVersion()})
 	systemhttpapi.RegisterHandlersWithOptions(
@@ -70,7 +70,6 @@ func (a *App) registerRoutes(router *gin.Engine) {
 	protected.Use(a.usersModule.GetSessionMiddleware())
 
 	disk.GetDiskController().RegisterRoutes(protected)
-	notifiers.GetNotifierController().RegisterRoutes(protected)
 	storages.GetStorageController().RegisterRoutes(protected)
 	databases.GetDatabaseController().RegisterRoutes(protected)
 	backups_controllers_logical.GetBackupController().RegisterRoutes(protected)

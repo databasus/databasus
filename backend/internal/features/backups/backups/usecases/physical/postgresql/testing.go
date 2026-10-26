@@ -26,11 +26,12 @@ import (
 	"databasus-backend/internal/features/databases"
 	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
 	"databasus-backend/internal/features/intervals"
-	"databasus-backend/internal/features/notifiers"
+	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	"databasus-backend/internal/features/storages"
 	storage_files "databasus-backend/internal/features/storages/files"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
+	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/storage"
 	"databasus-backend/internal/util/encryption"
@@ -217,8 +218,8 @@ func wirePhysicalDBFixture(
 	testStorage := storages.CreateTestStorage(workspace.ID)
 	t.Cleanup(func() { storages.RemoveTestStorage(t.Context(), testStorage.ID) })
 
-	notifier := notifiers.CreateTestNotifier(workspace.ID)
-	t.Cleanup(func() { notifiers.RemoveTestNotifier(notifier) })
+	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
+	t.Cleanup(func() { notifiers_bridge.RemoveTestNotifier(notifier) })
 
 	db := createDB(workspace.ID, notifier)
 	t.Cleanup(func() { databases.RemoveTestDatabase(t.Context(), db) })
@@ -1046,4 +1047,41 @@ func DropReplicationSlotExternally(t *testing.T, conn *pgx.Conn, slotName string
 	}
 
 	t.Fatalf("could not drop replication slot %s", slotName)
+}
+
+// The physical backup role only needs REPLICATION, and PostgreSQL restricts
+// pg_switch_wal to superusers unless EXECUTE is granted — so this is what a real
+// deployment looks like, not a contrived setup. The role is the test's own, so terminating its
+// backends never cuts the connections of other tests on the shared source server.
+func CreateReplicationOnlyRole(
+	t *testing.T,
+	adminConn *pgx.Conn,
+	fixture *PhysicalDBFixture,
+) *postgresql_physical.PostgresqlPhysicalDatabase {
+	t.Helper()
+
+	roleName := "databasus_no_switch_" + strings.ReplaceAll(uuid.New().String(), "-", "")[:12]
+
+	_, err := adminConn.Exec(t.Context(),
+		fmt.Sprintf("CREATE ROLE %s LOGIN REPLICATION PASSWORD 'switchless'", pgx.Identifier{roleName}.Sanitize()),
+	)
+	require.NoError(t, err)
+
+	t.Cleanup(func() {
+		_, _ = adminConn.Exec(context.Background(),
+			fmt.Sprintf(
+				"SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE usename = %s",
+				pgx.Identifier{roleName}.Sanitize(),
+			),
+		)
+		_, _ = adminConn.Exec(context.Background(),
+			fmt.Sprintf("DROP ROLE IF EXISTS %s", pgx.Identifier{roleName}.Sanitize()),
+		)
+	})
+
+	replicationOnlySourceDB := *fixture.DB.PostgresqlPhysical
+	replicationOnlySourceDB.Username = roleName
+	replicationOnlySourceDB.Password = "switchless"
+
+	return &replicationOnlySourceDB
 }

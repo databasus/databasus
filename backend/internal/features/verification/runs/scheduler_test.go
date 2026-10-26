@@ -13,7 +13,7 @@ import (
 	backuping_logical "databasus-backend/internal/features/backups/backups/backuping/logical"
 	"databasus-backend/internal/features/databases"
 	"databasus-backend/internal/features/intervals"
-	"databasus-backend/internal/features/notifiers"
+	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	"databasus-backend/internal/features/storages"
 	users_testing "databasus-backend/internal/features/users/testing"
 	verification_agents "databasus-backend/internal/features/verification/agents"
@@ -65,8 +65,8 @@ func Test_CreateScheduledRuns_WhenMultipleBackupsExist_PicksLatestForVerificatio
 	testStorage := storages.CreateTestStorage(workspace.ID)
 	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
 
-	notifier := notifiers.CreateTestNotifier(workspace.ID)
-	defer notifiers.RemoveTestNotifier(notifier)
+	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
+	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
 	database := databases.CreateTestDatabase(workspace.ID, testStorage, notifier)
 	defer databases.RemoveTestDatabase(t.Context(), database)
@@ -98,8 +98,8 @@ func Test_CreateScheduledRuns_WhenScheduledPendingAlreadyExists_DoesNotInsertNew
 	testStorage := storages.CreateTestStorage(workspace.ID)
 	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
 
-	notifier := notifiers.CreateTestNotifier(workspace.ID)
-	defer notifiers.RemoveTestNotifier(notifier)
+	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
+	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
 	database := databases.CreateTestDatabase(workspace.ID, testStorage, notifier)
 	defer databases.RemoveTestDatabase(t.Context(), database)
@@ -125,8 +125,8 @@ func Test_CreateScheduledRuns_WhenManualPendingExists_StillCreatesScheduledRun(t
 	testStorage := storages.CreateTestStorage(workspace.ID)
 	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
 
-	notifier := notifiers.CreateTestNotifier(workspace.ID)
-	defer notifiers.RemoveTestNotifier(notifier)
+	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
+	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
 	database := databases.CreateTestDatabase(workspace.ID, testStorage, notifier)
 	defer databases.RemoveTestDatabase(t.Context(), database)
@@ -169,8 +169,8 @@ func Test_ReapStaleRuns_WhenPendingExceedsMaxDuration_MarksFailedWithoutRetry(t 
 	testStorage := storages.CreateTestStorage(workspace.ID)
 	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
 
-	notifier := notifiers.CreateTestNotifier(workspace.ID)
-	defer notifiers.RemoveTestNotifier(notifier)
+	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
+	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
 	database := databases.CreateTestDatabase(workspace.ID, testStorage, notifier)
 	defer databases.RemoveTestDatabase(t.Context(), database)
@@ -203,8 +203,8 @@ func Test_ReapStaleRuns_WhenOwningAgentRemoved_RequeuesThenRetiresIfUnclaimed(t 
 	testStorage := storages.CreateTestStorage(workspace.ID)
 	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
 
-	notifier := notifiers.CreateTestNotifier(workspace.ID)
-	defer notifiers.RemoveTestNotifier(notifier)
+	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
+	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
 	database := databases.CreateTestDatabase(workspace.ID, testStorage, notifier)
 	defer databases.RemoveTestDatabase(t.Context(), database)
@@ -265,8 +265,8 @@ func Test_ReapStaleRuns_WhenAgentLostContactWithRetriesRemaining_RequeuesVerific
 	testStorage := storages.CreateTestStorage(workspace.ID)
 	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
 
-	notifier := notifiers.CreateTestNotifier(workspace.ID)
-	defer notifiers.RemoveTestNotifier(notifier)
+	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
+	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
 	database := databases.CreateTestDatabase(workspace.ID, testStorage, notifier)
 	defer databases.RemoveTestDatabase(t.Context(), database)
@@ -313,8 +313,8 @@ func Test_ReapStaleRuns_WhenPendingExceedsMaxDuration_MarksTerminalRegardlessOfP
 	testStorage := storages.CreateTestStorage(workspace.ID)
 	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
 
-	notifier := notifiers.CreateTestNotifier(workspace.ID)
-	defer notifiers.RemoveTestNotifier(notifier)
+	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
+	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
 	database := databases.CreateTestDatabase(workspace.ID, testStorage, notifier)
 	defer databases.RemoveTestDatabase(t.Context(), database)
@@ -349,8 +349,8 @@ func Test_CancelAutomaticVerificationsForDisabledSchedules_WhenScheduledVerifica
 	testStorage := storages.CreateTestStorage(workspace.ID)
 	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
 
-	notifier := notifiers.CreateTestNotifier(workspace.ID)
-	defer notifiers.RemoveTestNotifier(notifier)
+	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
+	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
 	database := databases.CreateTestDatabase(workspace.ID, testStorage, notifier)
 	defer databases.RemoveTestDatabase(t.Context(), database)
@@ -392,8 +392,8 @@ func Test_CancelAutomaticVerificationsForDisabledSchedules_WhenManualVerificatio
 	testStorage := storages.CreateTestStorage(workspace.ID)
 	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
 
-	notifier := notifiers.CreateTestNotifier(workspace.ID)
-	defer notifiers.RemoveTestNotifier(notifier)
+	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
+	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
 	database := databases.CreateTestDatabase(workspace.ID, testStorage, notifier)
 	defer databases.RemoveTestDatabase(t.Context(), database)
@@ -429,8 +429,8 @@ func Test_CancelAutomaticVerificationsForDisabledSchedules_WhenManualVerificatio
 	testStorage := storages.CreateTestStorage(workspace.ID)
 	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
 
-	notifier := notifiers.CreateTestNotifier(workspace.ID)
-	defer notifiers.RemoveTestNotifier(notifier)
+	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
+	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
 	database := databases.CreateTestDatabase(workspace.ID, testStorage, notifier)
 	defer databases.RemoveTestDatabase(t.Context(), database)
@@ -492,8 +492,8 @@ func Test_CancelAutomaticVerificationsForDisabledSchedules_WhenAutomaticVerifica
 			testStorage := storages.CreateTestStorage(workspace.ID)
 			defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
 
-			notifier := notifiers.CreateTestNotifier(workspace.ID)
-			defer notifiers.RemoveTestNotifier(notifier)
+			notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
+			defer notifiers_bridge.RemoveTestNotifier(notifier)
 
 			database := databases.CreateTestDatabase(workspace.ID, testStorage, notifier)
 			defer databases.RemoveTestDatabase(t.Context(), database)
@@ -570,8 +570,8 @@ func Test_CancelAutomaticVerificationsForDisabledSchedules_WhenManualAndAutomati
 	testStorage := storages.CreateTestStorage(workspace.ID)
 	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
 
-	notifier := notifiers.CreateTestNotifier(workspace.ID)
-	defer notifiers.RemoveTestNotifier(notifier)
+	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
+	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
 	database := databases.CreateTestDatabase(workspace.ID, testStorage, notifier)
 	defer databases.RemoveTestDatabase(t.Context(), database)
@@ -629,8 +629,8 @@ func Test_CreateScheduledRuns_AfterUserCancel_DoesNotImmediatelyRecreate(t *test
 	testStorage := storages.CreateTestStorage(workspace.ID)
 	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
 
-	notifier := notifiers.CreateTestNotifier(workspace.ID)
-	defer notifiers.RemoveTestNotifier(notifier)
+	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
+	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
 	database := databases.CreateTestDatabase(workspace.ID, testStorage, notifier)
 	defer databases.RemoveTestDatabase(t.Context(), database)
@@ -669,8 +669,8 @@ func Test_CreateScheduledRuns_AfterUserCancel_DoesNotRequeueOrRestart(t *testing
 	testStorage := storages.CreateTestStorage(workspace.ID)
 	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
 
-	notifier := notifiers.CreateTestNotifier(workspace.ID)
-	defer notifiers.RemoveTestNotifier(notifier)
+	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
+	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
 	database := databases.CreateTestDatabase(workspace.ID, testStorage, notifier)
 	defer databases.RemoveTestDatabase(t.Context(), database)

@@ -130,6 +130,7 @@ export const fr: typeof en = {
       "Le propriétaire ne peut être ni modifié ni retiré. Transférez d'abord la propriété à un autre membre.",
     workspaceNotEmpty:
       "L'espace de travail contient encore des bases de données. Supprimez-les d'abord, puis supprimez l'espace de travail.",
+    inUse: "Des bases de données l'utilisent encore. Retirez-le d'abord de ces bases de données.",
     unknown: "Une erreur s'est produite. Réessayez.",
     networkUnreachable:
       'Impossible de joindre le serveur Databasus. Vérifiez votre connexion et réessayez.',
@@ -1234,11 +1235,11 @@ export const fr: typeof en = {
       },
       removeConfirmation:
         'Voulez-vous vraiment supprimer ce canal de notification ? Cette action est irréversible.',
-      removeBlockedByDatabases:
-        "Ce canal de notification est utilisé par des bases de données. Retirez-le d'abord de ces bases de données.",
     },
+    secretKeptPlaceholder: 'Enregistré - laissez vide pour le conserver',
     testNotification: {
       send: 'Envoyer une notification de test',
+      notDelivered: "Le message de test n'a pas été remis : {{error}}",
       sent: {
         title: 'Notification de test envoyée !',
         description: 'La notification de test est bien partie',
@@ -1330,7 +1331,8 @@ export const fr: typeof en = {
       customHeaders: 'En-têtes personnalisés',
       customHeadersTooltip:
         'Ajoute des en-têtes HTTP personnalisés à la requête du webhook (par ex. Authorization, X-API-Key)',
-      savedHeadersHidden: '*Les en-têtes enregistrés sont masqués pour des raisons de sécurité',
+      savedHeadersHidden:
+        '*Les valeurs des en-têtes enregistrés sont masquées. Laissez une valeur vide pour la conserver',
       headers: 'En-têtes',
       headerNamePlaceholder: "Nom de l'en-tête",
       headerValuePlaceholder: "Valeur de l'en-tête",

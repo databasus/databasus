@@ -15,13 +15,13 @@ import (
 	backuping_logical "databasus-backend/internal/features/backups/backups/backuping/logical"
 	"databasus-backend/internal/features/databases"
 	"databasus-backend/internal/features/intervals"
-	"databasus-backend/internal/features/notifiers"
-	notifier_models "databasus-backend/internal/features/notifiers/models"
+	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	"databasus-backend/internal/features/storages"
 	users_testing "databasus-backend/internal/features/users/testing"
 	verification_agents "databasus-backend/internal/features/verification/agents"
 	verification_config "databasus-backend/internal/features/verification/config"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
+	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/storage"
 	"databasus-backend/internal/util/logger"
@@ -29,8 +29,8 @@ import (
 )
 
 type recordedNotification struct {
-	notifier     *notifiers.Notifier
-	notification notifier_models.Notification
+	notifierIDs  []uuid.UUID
+	notification notifiers.Notification
 }
 
 type recordingNotificationSender struct {
@@ -43,13 +43,13 @@ func newRecordingNotificationSender() *recordingNotificationSender {
 	return &recordingNotificationSender{notifyCh: make(chan struct{}, 16)}
 }
 
-func (s *recordingNotificationSender) SendNotification(
+func (s *recordingNotificationSender) Notify(
 	_ context.Context,
-	notifier *notifiers.Notifier,
-	notification notifier_models.Notification,
+	notifierIDs []uuid.UUID,
+	notification notifiers.Notification,
 ) {
 	s.mu.Lock()
-	s.recorded = append(s.recorded, recordedNotification{notifier, notification})
+	s.recorded = append(s.recorded, recordedNotification{notifierIDs, notification})
 	s.mu.Unlock()
 
 	s.notifyCh <- struct{}{}
@@ -120,8 +120,8 @@ func Test_SubmitReport_WhenBackupRejected_SendsFailureNotification(t *testing.T)
 	testStorage := storages.CreateTestStorage(workspace.ID)
 	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
 
-	notifier := notifiers.CreateTestNotifier(workspace.ID)
-	defer notifiers.RemoveTestNotifier(notifier)
+	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
+	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
 	database := databases.CreateTestDatabase(workspace.ID, testStorage, notifier)
 	defer databases.RemoveTestDatabase(t.Context(), database)
@@ -160,9 +160,8 @@ func Test_SubmitReport_WhenBackupRejected_SendsFailureNotification(t *testing.T)
 	)
 
 	sent := recorder.waitForNotification(t, 2*time.Second)
-	require.NotNil(t, sent.notifier)
-	assert.Equal(t, notifier.ID, sent.notifier.ID, "must dispatch to the database's notifier")
-	assert.Equal(t, notifier_models.NotificationTypeVerificationFailed, sent.notification.Type)
+	assert.Equal(t, []uuid.UUID{notifier.ID}, sent.notifierIDs, "must dispatch to the database's notifier")
+	assert.Equal(t, notifiers.CategoryVerificationFailed, sent.notification.Category)
 	assert.Contains(t, sent.notification.Heading, database.Name, "title must name the database")
 	assert.Contains(t, sent.notification.Heading, "failed", "title must convey failure")
 	assert.Contains(t, sent.notification.Message, failMessage,
@@ -178,8 +177,8 @@ func Test_SubmitReport_WhenRestoredTooSmall_SendsFailureNotification(t *testing.
 	testStorage := storages.CreateTestStorage(workspace.ID)
 	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
 
-	notifier := notifiers.CreateTestNotifier(workspace.ID)
-	defer notifiers.RemoveTestNotifier(notifier)
+	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
+	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
 	database := databases.CreateTestDatabase(workspace.ID, testStorage, notifier)
 	defer databases.RemoveTestDatabase(t.Context(), database)
@@ -212,9 +211,8 @@ func Test_SubmitReport_WhenRestoredTooSmall_SendsFailureNotification(t *testing.
 	)
 
 	sent := recorder.waitForNotification(t, 2*time.Second)
-	require.NotNil(t, sent.notifier)
-	assert.Equal(t, notifier.ID, sent.notifier.ID)
-	assert.Equal(t, notifier_models.NotificationTypeVerificationFailed, sent.notification.Type)
+	assert.Equal(t, []uuid.UUID{notifier.ID}, sent.notifierIDs)
+	assert.Equal(t, notifiers.CategoryVerificationFailed, sent.notification.Category)
 	assert.Contains(t, sent.notification.Heading, "failed", "size-guard terminal must be reported as a failure")
 	assert.Contains(t, sent.notification.Message, "less than 20%",
 		"notification body must explain why the restore was rejected")
@@ -229,8 +227,8 @@ func Test_SubmitReport_WhenAgentSetupFailedRepeatedly_SendsFailureNotificationOn
 	testStorage := storages.CreateTestStorage(workspace.ID)
 	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
 
-	notifier := notifiers.CreateTestNotifier(workspace.ID)
-	defer notifiers.RemoveTestNotifier(notifier)
+	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
+	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
 	database := databases.CreateTestDatabase(workspace.ID, testStorage, notifier)
 	defer databases.RemoveTestDatabase(t.Context(), database)
@@ -277,8 +275,8 @@ func Test_SubmitReport_WhenAgentSetupFailedRepeatedly_SendsFailureNotificationOn
 	}
 
 	sent := recorder.waitForNotification(t, 2*time.Second)
-	assert.Equal(t, notifier.ID, sent.notifier.ID)
-	assert.Equal(t, notifier_models.NotificationTypeVerificationFailed, sent.notification.Type)
+	assert.Equal(t, []uuid.UUID{notifier.ID}, sent.notifierIDs)
+	assert.Equal(t, notifiers.CategoryVerificationFailed, sent.notification.Category)
 	assert.Contains(t, sent.notification.Heading, "failed")
 	assert.Equal(t, 1, recorder.count(), "exactly one notification on terminal — not one per attempt")
 }
@@ -294,8 +292,8 @@ func Test_ReapStaleRuns_WhenAgentLostContact_SendsFailureNotificationOnlyAtTermi
 	testStorage := storages.CreateTestStorage(workspace.ID)
 	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
 
-	notifier := notifiers.CreateTestNotifier(workspace.ID)
-	defer notifiers.RemoveTestNotifier(notifier)
+	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
+	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
 	database := databases.CreateTestDatabase(workspace.ID, testStorage, notifier)
 	defer databases.RemoveTestDatabase(t.Context(), database)
@@ -336,8 +334,8 @@ func Test_ReapStaleRuns_WhenAgentLostContact_SendsFailureNotificationOnlyAtTermi
 	}
 
 	sent := recorder.waitForNotification(t, 2*time.Second)
-	assert.Equal(t, notifier.ID, sent.notifier.ID)
-	assert.Equal(t, notifier_models.NotificationTypeVerificationFailed, sent.notification.Type)
+	assert.Equal(t, []uuid.UUID{notifier.ID}, sent.notifierIDs)
+	assert.Equal(t, notifiers.CategoryVerificationFailed, sent.notification.Category)
 	assert.Contains(t, sent.notification.Heading, "failed")
 	assert.Contains(t, sent.notification.Message, "agent went silent")
 
@@ -354,8 +352,8 @@ func Test_SubmitReport_WhenFailureNotificationsDisabled_DoesNotSend(t *testing.T
 	testStorage := storages.CreateTestStorage(workspace.ID)
 	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
 
-	notifier := notifiers.CreateTestNotifier(workspace.ID)
-	defer notifiers.RemoveTestNotifier(notifier)
+	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
+	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
 	database := databases.CreateTestDatabase(workspace.ID, testStorage, notifier)
 	defer databases.RemoveTestDatabase(t.Context(), database)

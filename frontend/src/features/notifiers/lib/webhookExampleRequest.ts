@@ -15,13 +15,13 @@ export const EXAMPLE_GET_QUERY =
   '?heading=✅ Backup completed for database "my-database" (workspace "Production")&message=Backup completed successfully in 1m 23s.%0ACompressed backup size: 256.00 MB';
 
 export const getExamplePostHeaderLines = (headers: WebhookHeader[]): string => {
-  const contentTypeLine = headers.some((header) => header.key.toLowerCase() === 'content-type')
+  const contentTypeLine = headers.some((header) => header.name.toLowerCase() === 'content-type')
     ? ''
     : 'Content-Type: application/json';
 
   const customHeaderLines = headers
-    .filter((header) => header.key)
-    .map((header) => `\n${header.key}: ${header.value}`)
+    .filter((header) => header.name)
+    .map((header) => `\n${header.name}: ${header.value ?? ''}`)
     .join('');
 
   return `${contentTypeLine}${customHeaderLines}`;

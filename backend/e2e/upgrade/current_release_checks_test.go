@@ -58,23 +58,17 @@ type currentStorage struct {
 	Type string `json:"type"`
 }
 
-type currentNotifier struct {
-	ID              string                  `json:"id"`
-	Name            string                  `json:"name"`
-	NotifierType    string                  `json:"notifierType"`
-	WebhookNotifier *currentWebhookNotifier `json:"webhookNotifier"`
-}
-
-type currentWebhookNotifier struct {
-	WebhookURL    string `json:"webhookUrl"`
-	WebhookMethod string `json:"webhookMethod"`
-}
-
 type currentDatabase struct {
 	ID                string                       `json:"id"`
 	Name              string                       `json:"name"`
 	Type              string                       `json:"type"`
 	PostgresqlLogical *currentPostgresqlConnection `json:"postgresqlLogical"`
+	Notifiers         []currentDatabaseNotifier    `json:"notifiers"`
+}
+
+type currentDatabaseNotifier struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
 }
 
 type currentPostgresqlConnection struct {
@@ -288,16 +282,12 @@ func readWorkspaceItems(ctx context.Context, api *apiClient, workspaceID string)
 		})
 	}
 
-	var notifiers []currentNotifier
-
-	err = api.get(ctx, "/notifiers?workspace_id="+workspaceID, &notifiers)
+	notifierItems, err := listNotifierItems(ctx, api, workspaceID)
 	if err != nil {
-		return nil, fmt.Errorf("list notifiers: %w", err)
+		return nil, err
 	}
 
-	for _, notifier := range notifiers {
-		listedItems = append(listedItems, newNotifierItem(notifier))
-	}
+	listedItems = append(listedItems, notifierItems...)
 
 	var databases []currentDatabase
 
@@ -316,17 +306,6 @@ func readWorkspaceItems(ctx context.Context, api *apiClient, workspaceID string)
 	}
 
 	return listedItems, nil
-}
-
-func newNotifierItem(notifier currentNotifier) upgradecheck.Item {
-	values := map[string]string{"id": notifier.ID, "notifierType": notifier.NotifierType}
-
-	if notifier.WebhookNotifier != nil {
-		values["webhookUrl"] = notifier.WebhookNotifier.WebhookURL
-		values["webhookMethod"] = notifier.WebhookNotifier.WebhookMethod
-	}
-
-	return upgradecheck.Item{Kind: "notifier", Name: notifier.Name, Values: values}
 }
 
 func readDatabaseItems(ctx context.Context, api *apiClient, database currentDatabase) ([]upgradecheck.Item, error) {
@@ -361,8 +340,14 @@ func readDatabaseItems(ctx context.Context, api *apiClient, database currentData
 		return nil, fmt.Errorf("list backups of database %q: %w", database.Name, err)
 	}
 
+	usedNotifiers := make(map[string]string, len(database.Notifiers))
+	for _, notifier := range database.Notifiers {
+		usedNotifiers[notifier.Name] = notifier.ID
+	}
+
 	listedItems := []upgradecheck.Item{
 		{Kind: "database", Name: database.Name, Values: databaseValues},
+		{Kind: databaseNotifiersKind, Name: database.Name, Values: usedNotifiers},
 		{Kind: "backup config", Name: database.Name, Values: map[string]string{
 			"isBackupsEnabled": strconv.FormatBool(backupConfig.IsBackupsEnabled),
 			"storageId":        *backupConfig.StorageID,

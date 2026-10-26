@@ -1,9 +1,8 @@
 //go:build testhelpers
 
-package notifiers
+package notifiers_bridge
 
 import (
-	"context"
 	"net/http"
 	"net/http/httptest"
 	"sync"
@@ -11,7 +10,8 @@ import (
 
 	"github.com/google/uuid"
 
-	webhook_notifier "databasus-backend/internal/features/notifiers/models/webhook"
+	"databasus-backend/internal/modules/notifiers"
+	"databasus-backend/internal/storage"
 )
 
 type WebhookStub struct {
@@ -48,18 +48,32 @@ func (s *WebhookStub) ResetCalls() {
 	s.callCount.Store(0)
 }
 
-func CreateTestNotifier(workspaceID uuid.UUID) *Notifier {
-	notifier := &Notifier{
-		WorkspaceID:  workspaceID,
-		Name:         "test " + uuid.New().String(),
-		NotifierType: NotifierTypeWebhook,
-		WebhookNotifier: &webhook_notifier.WebhookNotifier{
-			WebhookURL:    GetWebhookStub().URL() + "/test-" + uuid.New().String(),
-			WebhookMethod: webhook_notifier.WebhookMethodPOST,
-		},
+// CreateTestNotifier writes a webhook notifier that posts to the shared webhook stub straight into
+// the tables of the notifiers module, because the old tests set up no workspace member to create
+// one through the API.
+func CreateTestNotifier(workspaceID uuid.UUID) *notifiers.Notifier {
+	notifier := &notifiers.Notifier{
+		ID:            uuid.New(),
+		WorkspaceID:   workspaceID,
+		Name:          "test " + uuid.New().String(),
+		Type:          notifiers.TypeWebhook,
+		LastSendError: nil,
 	}
 
-	notifier, err := getNotifierRepository().Save(notifier)
+	db := storage.GetDb()
+
+	err := db.Exec(
+		"INSERT INTO notifiers (id, workspace_id, name, type) VALUES (?, ?, ?, ?)",
+		notifier.ID, notifier.WorkspaceID, notifier.Name, notifier.Type,
+	).Error
+	if err != nil {
+		panic(err)
+	}
+
+	err = db.Exec(
+		"INSERT INTO notifiers_webhook (notifier_id, webhook_url, webhook_method) VALUES (?, ?, 'POST')",
+		notifier.ID, GetWebhookStub().URL()+"/test-"+uuid.New().String(),
+	).Error
 	if err != nil {
 		panic(err)
 	}
@@ -67,8 +81,8 @@ func CreateTestNotifier(workspaceID uuid.UUID) *Notifier {
 	return notifier
 }
 
-func RemoveTestNotifier(notifier *Notifier) {
-	err := getNotifierRepository().Delete(context.Background(), notifier)
+func RemoveTestNotifier(notifier *notifiers.Notifier) {
+	err := storage.GetDb().Exec("DELETE FROM notifiers WHERE id = ?", notifier.ID).Error
 	if err != nil {
 		panic(err)
 	}

@@ -31,7 +31,7 @@ func (r *DatabaseRepository) Save(database *Database) (*Database, error) {
 		}
 
 		withoutAssociations := tx.Omit(
-			"PostgresqlLogical", "PostgresqlPhysical", "Mysql", "Mariadb", "Mongodb", "Notifiers",
+			"PostgresqlLogical", "PostgresqlPhysical", "Mysql", "Mariadb", "Mongodb",
 		)
 
 		if isNew {
@@ -107,14 +107,7 @@ func (r *DatabaseRepository) Save(database *Database) (*Database, error) {
 			}
 		}
 
-		if err := tx.
-			Model(database).
-			Association("Notifiers").
-			Replace(database.Notifiers); err != nil {
-			return err
-		}
-
-		return nil
+		return replaceNotifierIDs(tx, database.ID, database.GetNotifierIDs())
 	})
 	if err != nil {
 		return nil, err
@@ -149,9 +142,12 @@ func (r *DatabaseRepository) FindByID(id uuid.UUID) (*Database, error) {
 		Preload("Mysql").
 		Preload("Mariadb").
 		Preload("Mongodb").
-		Preload("Notifiers").
 		Where("id = ?", id).
 		First(&database).Error; err != nil {
+		return nil, err
+	}
+
+	if err := fillNotifierIDs(storage.GetDb(), []*Database{&database}); err != nil {
 		return nil, err
 	}
 
@@ -167,10 +163,13 @@ func (r *DatabaseRepository) FindByWorkspaceID(ctx context.Context, workspaceID 
 		Preload("Mysql").
 		Preload("Mariadb").
 		Preload("Mongodb").
-		Preload("Notifiers").
 		Where("workspace_id = ?", workspaceID).
 		Order("CASE WHEN health_status = 'UNAVAILABLE' THEN 1 WHEN health_status = 'AVAILABLE' THEN 2 WHEN health_status IS NULL THEN 3 ELSE 4 END, name ASC").
 		Find(&databases).Error; err != nil {
+		return nil, err
+	}
+
+	if err := fillNotifierIDs(lib_database.Conn(ctx, storage.GetDb()), databases); err != nil {
 		return nil, err
 	}
 
@@ -186,7 +185,7 @@ func (r *DatabaseRepository) Delete(id uuid.UUID) error {
 			return err
 		}
 
-		if err := tx.Model(&database).Association("Notifiers").Clear(); err != nil {
+		if err := tx.Exec("DELETE FROM database_notifiers WHERE database_id = ?", id).Error; err != nil {
 			return err
 		}
 
@@ -249,8 +248,11 @@ func (r *DatabaseRepository) GetAllDatabases() ([]*Database, error) {
 		Preload("Mysql").
 		Preload("Mariadb").
 		Preload("Mongodb").
-		Preload("Notifiers").
 		Find(&databases).Error; err != nil {
+		return nil, err
+	}
+
+	if err := fillNotifierIDs(storage.GetDb(), databases); err != nil {
 		return nil, err
 	}
 
@@ -271,4 +273,83 @@ func (r *DatabaseRepository) GetDatabasesIDsByNotifierID(
 	}
 
 	return databasesIDs, nil
+}
+
+// CountDatabasesUsingNotifierOutsideWorkspace counts the databases that use the notifier and are
+// not in the workspace. It runs in the transaction ctx carries.
+func (r *DatabaseRepository) CountDatabasesUsingNotifierOutsideWorkspace(
+	ctx context.Context,
+	notifierID uuid.UUID,
+	workspaceID uuid.UUID,
+) (int64, error) {
+	var count int64
+
+	err := lib_database.Conn(ctx, storage.GetDb()).Raw(
+		`SELECT COUNT(*)
+		FROM database_notifiers dn
+		JOIN databases d ON d.id = dn.database_id
+		WHERE dn.notifier_id = ? AND d.workspace_id IS DISTINCT FROM ?`,
+		notifierID, workspaceID,
+	).Scan(&count).Error
+	if err != nil {
+		return 0, fmt.Errorf("count the databases using the notifier outside the workspace: %w", err)
+	}
+
+	return count, nil
+}
+
+func replaceNotifierIDs(tx *gorm.DB, databaseID uuid.UUID, notifierIDs []uuid.UUID) error {
+	if err := tx.Exec("DELETE FROM database_notifiers WHERE database_id = ?", databaseID).Error; err != nil {
+		return err
+	}
+
+	for _, notifierID := range notifierIDs {
+		err := tx.Exec(
+			"INSERT INTO database_notifiers (database_id, notifier_id) VALUES (?, ?) ON CONFLICT DO NOTHING",
+			databaseID, notifierID,
+		).Error
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// fillNotifierIDs sets the notifiers of the databases to the IDs they use; the service adds the
+// other fields from the notifiers module.
+func fillNotifierIDs(db *gorm.DB, databases []*Database) error {
+	if len(databases) == 0 {
+		return nil
+	}
+
+	databaseIDs := make([]uuid.UUID, 0, len(databases))
+	for _, database := range databases {
+		databaseIDs = append(databaseIDs, database.ID)
+	}
+
+	var attachments []struct {
+		DatabaseID uuid.UUID
+		NotifierID uuid.UUID
+	}
+
+	if err := db.Raw(
+		"SELECT database_id, notifier_id FROM database_notifiers WHERE database_id IN ? ORDER BY notifier_id",
+		databaseIDs,
+	).Scan(&attachments).Error; err != nil {
+		return err
+	}
+
+	notifiersByDatabaseID := make(map[uuid.UUID][]DatabaseNotifier, len(databases))
+	for _, attachment := range attachments {
+		notifiersByDatabaseID[attachment.DatabaseID] = append(
+			notifiersByDatabaseID[attachment.DatabaseID], DatabaseNotifier{ID: attachment.NotifierID},
+		)
+	}
+
+	for _, database := range databases {
+		database.Notifiers = notifiersByDatabaseID[database.ID]
+	}
+
+	return nil
 }

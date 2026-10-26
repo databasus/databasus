@@ -1,5 +1,7 @@
 package apptest
 
+import "time"
+
 // Option changes the test application before it is built.
 type Option func(*settings)
 
@@ -9,6 +11,38 @@ type settings struct {
 	isGitHubEnabled     bool
 	isGoogleEnabled     bool
 	publicURL           string
+	// notificationDeliveryTimeout is zero for the timeout the server uses.
+	notificationDeliveryTimeout time.Duration
+	notifierEndpoints           NotifierEndpoints
+}
+
+// NotifierEndpoints are the addresses a test points the Slack and Telegram notifiers at.
+type NotifierEndpoints struct {
+	SlackPostMessageURL string
+	TelegramBotAPIURL   string
+}
+
+// WithNotificationDeliveryTimeout builds an instance that gives up on a send after timeout, so a
+// test of an endpoint that never answers ends quickly.
+func WithNotificationDeliveryTimeout(timeout time.Duration) Option {
+	return func(applied *settings) {
+		applied.notificationDeliveryTimeout = timeout
+	}
+}
+
+// WithNotifierEndpoints builds an instance whose Slack notifiers post to endpoints.SlackPostMessageURL
+// and whose Telegram notifiers without a Bot API URL of their own use endpoints.TelegramBotAPIURL. An
+// empty address keeps the one that does not resolve.
+func WithNotifierEndpoints(endpoints NotifierEndpoints) Option {
+	return func(applied *settings) {
+		if endpoints.SlackPostMessageURL != "" {
+			applied.notifierEndpoints.SlackPostMessageURL = endpoints.SlackPostMessageURL
+		}
+
+		if endpoints.TelegramBotAPIURL != "" {
+			applied.notifierEndpoints.TelegramBotAPIURL = endpoints.TelegramBotAPIURL
+		}
+	}
 }
 
 // WithoutMailServer builds an instance whose operator configured no mail server.

@@ -1,4 +1,4 @@
-import type { Notifier } from '../../notifiers';
+import type { DatabaseNotifier } from './DatabaseNotifier';
 import type { DatabaseType } from './DatabaseType';
 import type { HealthStatus } from './HealthStatus';
 import type { MariadbDatabase } from './mariadb/MariadbDatabase';
@@ -19,7 +19,7 @@ export interface Database {
   mariadb?: MariadbDatabase;
   mongodb?: MongodbDatabase;
 
-  notifiers: Notifier[];
+  notifiers: DatabaseNotifier[];
 
   lastBackupTime?: Date;
   lastBackupErrorMessage?: string;

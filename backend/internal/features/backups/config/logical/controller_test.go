@@ -18,7 +18,7 @@ import (
 	"databasus-backend/internal/features/databases"
 	postgresql_logical "databasus-backend/internal/features/databases/databases/postgresql/logical"
 	"databasus-backend/internal/features/intervals"
-	"databasus-backend/internal/features/notifiers"
+	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	"databasus-backend/internal/features/storages"
 	local_storage "databasus-backend/internal/features/storages/models/local"
 	users_testing "databasus-backend/internal/features/users/testing"
@@ -1006,17 +1006,17 @@ func Test_TransferDatabase_WithNotifiers_NotifiersTransferred(t *testing.T) {
 	database := createTestDatabaseViaAPI("Test Database", sourceWorkspace.ID, owner.Token, router)
 	sourceStorage := createTestStorage(sourceWorkspace.ID)
 	targetStorage := createTestStorage(targetWorkspace.ID)
-	notifier := notifiers.CreateTestNotifier(sourceWorkspace.ID)
+	notifier := notifiers_bridge.CreateTestNotifier(sourceWorkspace.ID)
 
 	defer func() {
 		databases.RemoveTestDatabase(t.Context(), database)
 		time.Sleep(200 * time.Millisecond)
-		notifiers.RemoveTestNotifier(notifier)
+		notifiers_bridge.RemoveTestNotifier(notifier)
 		workspaces_testing.RemoveTestWorkspace(t.Context(), sourceWorkspace)
 		workspaces_testing.RemoveTestWorkspace(t.Context(), targetWorkspace)
 	}()
 
-	database.Notifiers = []notifiers.Notifier{*notifier}
+	database.Notifiers = []databases.DatabaseNotifier{{ID: notifier.ID}}
 	var updatedDatabase databases.Database
 	test_utils.MakePostRequestAndUnmarshal(
 		t,
@@ -1085,16 +1085,7 @@ func Test_TransferDatabase_WithNotifiers_NotifiersTransferred(t *testing.T) {
 	assert.Equal(t, targetWorkspace.ID, *retrievedDatabase.WorkspaceID)
 	assert.Len(t, retrievedDatabase.Notifiers, 1)
 
-	var retrievedNotifier notifiers.Notifier
-	test_utils.MakeGetRequestAndUnmarshal(
-		t,
-		router,
-		"/api/v1/notifiers/"+notifier.ID.String(),
-		"Bearer "+owner.Token,
-		http.StatusOK,
-		&retrievedNotifier,
-	)
-	assert.Equal(t, targetWorkspace.ID, retrievedNotifier.WorkspaceID)
+	assert.Equal(t, targetWorkspace.ID, getNotifierWorkspaceID(t, notifier.ID))
 }
 
 func Test_TransferDatabase_NotifierHasOtherDBs_NotifierSkipped(t *testing.T) {
@@ -1118,18 +1109,18 @@ func Test_TransferDatabase_NotifierHasOtherDBs_NotifierSkipped(t *testing.T) {
 	)
 	sourceStorage := createTestStorage(sourceWorkspace.ID)
 	targetStorage := createTestStorage(targetWorkspace.ID)
-	sharedNotifier := notifiers.CreateTestNotifier(sourceWorkspace.ID)
+	sharedNotifier := notifiers_bridge.CreateTestNotifier(sourceWorkspace.ID)
 
 	defer func() {
 		databases.RemoveTestDatabase(t.Context(), database1)
 		databases.RemoveTestDatabase(t.Context(), database2)
 		time.Sleep(200 * time.Millisecond)
-		notifiers.RemoveTestNotifier(sharedNotifier)
+		notifiers_bridge.RemoveTestNotifier(sharedNotifier)
 		workspaces_testing.RemoveTestWorkspace(t.Context(), sourceWorkspace)
 		workspaces_testing.RemoveTestWorkspace(t.Context(), targetWorkspace)
 	}()
 
-	database1.Notifiers = []notifiers.Notifier{*sharedNotifier}
+	database1.Notifiers = []databases.DatabaseNotifier{{ID: sharedNotifier.ID}}
 	test_utils.MakePostRequest(
 		t,
 		router,
@@ -1139,7 +1130,7 @@ func Test_TransferDatabase_NotifierHasOtherDBs_NotifierSkipped(t *testing.T) {
 		http.StatusOK,
 	)
 
-	database2.Notifiers = []notifiers.Notifier{*sharedNotifier}
+	database2.Notifiers = []databases.DatabaseNotifier{{ID: sharedNotifier.ID}}
 	test_utils.MakePostRequest(
 		t,
 		router,
@@ -1205,16 +1196,7 @@ func Test_TransferDatabase_NotifierHasOtherDBs_NotifierSkipped(t *testing.T) {
 	)
 	assert.Equal(t, targetWorkspace.ID, *retrievedDatabase.WorkspaceID)
 
-	var retrievedNotifier notifiers.Notifier
-	test_utils.MakeGetRequestAndUnmarshal(
-		t,
-		router,
-		"/api/v1/notifiers/"+sharedNotifier.ID.String(),
-		"Bearer "+owner.Token,
-		http.StatusOK,
-		&retrievedNotifier,
-	)
-	assert.Equal(t, sourceWorkspace.ID, retrievedNotifier.WorkspaceID)
+	assert.Equal(t, sourceWorkspace.ID, getNotifierWorkspaceID(t, sharedNotifier.ID))
 }
 
 func Test_TransferDatabase_WithMultipleNotifiers_OnlyExclusiveOnesTransferred(t *testing.T) {
@@ -1239,20 +1221,20 @@ func Test_TransferDatabase_WithMultipleNotifiers_OnlyExclusiveOnesTransferred(t 
 	sourceStorage := createTestStorage(sourceWorkspace.ID)
 	targetStorage := createTestStorage(targetWorkspace.ID)
 
-	exclusiveNotifier := notifiers.CreateTestNotifier(sourceWorkspace.ID)
-	sharedNotifier := notifiers.CreateTestNotifier(sourceWorkspace.ID)
+	exclusiveNotifier := notifiers_bridge.CreateTestNotifier(sourceWorkspace.ID)
+	sharedNotifier := notifiers_bridge.CreateTestNotifier(sourceWorkspace.ID)
 
 	defer func() {
 		databases.RemoveTestDatabase(t.Context(), database1)
 		databases.RemoveTestDatabase(t.Context(), database2)
 		time.Sleep(200 * time.Millisecond)
-		notifiers.RemoveTestNotifier(exclusiveNotifier)
-		notifiers.RemoveTestNotifier(sharedNotifier)
+		notifiers_bridge.RemoveTestNotifier(exclusiveNotifier)
+		notifiers_bridge.RemoveTestNotifier(sharedNotifier)
 		workspaces_testing.RemoveTestWorkspace(t.Context(), sourceWorkspace)
 		workspaces_testing.RemoveTestWorkspace(t.Context(), targetWorkspace)
 	}()
 
-	database1.Notifiers = []notifiers.Notifier{*exclusiveNotifier, *sharedNotifier}
+	database1.Notifiers = []databases.DatabaseNotifier{{ID: exclusiveNotifier.ID}, {ID: sharedNotifier.ID}}
 	test_utils.MakePostRequest(
 		t,
 		router,
@@ -1262,7 +1244,7 @@ func Test_TransferDatabase_WithMultipleNotifiers_OnlyExclusiveOnesTransferred(t 
 		http.StatusOK,
 	)
 
-	database2.Notifiers = []notifiers.Notifier{*sharedNotifier}
+	database2.Notifiers = []databases.DatabaseNotifier{{ID: sharedNotifier.ID}}
 	test_utils.MakePostRequest(
 		t,
 		router,
@@ -1329,27 +1311,9 @@ func Test_TransferDatabase_WithMultipleNotifiers_OnlyExclusiveOnesTransferred(t 
 	assert.Equal(t, targetWorkspace.ID, *retrievedDatabase.WorkspaceID)
 	assert.Len(t, retrievedDatabase.Notifiers, 2)
 
-	var retrievedExclusiveNotifier notifiers.Notifier
-	test_utils.MakeGetRequestAndUnmarshal(
-		t,
-		router,
-		"/api/v1/notifiers/"+exclusiveNotifier.ID.String(),
-		"Bearer "+owner.Token,
-		http.StatusOK,
-		&retrievedExclusiveNotifier,
-	)
-	assert.Equal(t, targetWorkspace.ID, retrievedExclusiveNotifier.WorkspaceID)
+	assert.Equal(t, targetWorkspace.ID, getNotifierWorkspaceID(t, exclusiveNotifier.ID))
 
-	var retrievedSharedNotifier notifiers.Notifier
-	test_utils.MakeGetRequestAndUnmarshal(
-		t,
-		router,
-		"/api/v1/notifiers/"+sharedNotifier.ID.String(),
-		"Bearer "+owner.Token,
-		http.StatusOK,
-		&retrievedSharedNotifier,
-	)
-	assert.Equal(t, sourceWorkspace.ID, retrievedSharedNotifier.WorkspaceID)
+	assert.Equal(t, sourceWorkspace.ID, getNotifierWorkspaceID(t, sharedNotifier.ID))
 }
 
 func Test_TransferDatabase_WithTargetNotifiers_NotifiersAssigned(t *testing.T) {
@@ -1362,12 +1326,12 @@ func Test_TransferDatabase_WithTargetNotifiers_NotifiersAssigned(t *testing.T) {
 	database := createTestDatabaseViaAPI("Test Database", sourceWorkspace.ID, owner.Token, router)
 	sourceStorage := createTestStorage(sourceWorkspace.ID)
 	targetStorage := createTestStorage(targetWorkspace.ID)
-	targetNotifier := notifiers.CreateTestNotifier(targetWorkspace.ID)
+	targetNotifier := notifiers_bridge.CreateTestNotifier(targetWorkspace.ID)
 
 	defer func() {
 		databases.RemoveTestDatabase(t.Context(), database)
 		time.Sleep(200 * time.Millisecond)
-		notifiers.RemoveTestNotifier(targetNotifier)
+		notifiers_bridge.RemoveTestNotifier(targetNotifier)
 		workspaces_testing.RemoveTestWorkspace(t.Context(), sourceWorkspace)
 		workspaces_testing.RemoveTestWorkspace(t.Context(), targetWorkspace)
 	}()
@@ -1442,12 +1406,12 @@ func Test_TransferDatabase_TargetNotifierFromDifferentWorkspace_ReturnsBadReques
 	database := createTestDatabaseViaAPI("Test Database", sourceWorkspace.ID, owner.Token, router)
 	sourceStorage := createTestStorage(sourceWorkspace.ID)
 	targetStorage := createTestStorage(targetWorkspace.ID)
-	wrongNotifier := notifiers.CreateTestNotifier(otherWorkspace.ID)
+	wrongNotifier := notifiers_bridge.CreateTestNotifier(otherWorkspace.ID)
 
 	defer func() {
 		databases.RemoveTestDatabase(t.Context(), database)
 		time.Sleep(200 * time.Millisecond)
-		notifiers.RemoveTestNotifier(wrongNotifier)
+		notifiers_bridge.RemoveTestNotifier(wrongNotifier)
 		workspaces_testing.RemoveTestWorkspace(t.Context(), sourceWorkspace)
 		workspaces_testing.RemoveTestWorkspace(t.Context(), targetWorkspace)
 		workspaces_testing.RemoveTestWorkspace(t.Context(), otherWorkspace)
@@ -1686,7 +1650,6 @@ func createTestRouterWithNotifiersForTransfer() *gin.Engine {
 		databases.GetDatabaseController(),
 		GetBackupConfigController(),
 		storages.GetStorageController(),
-		notifiers.GetNotifierController(),
 	)
 
 	databases.SetupDependencies()
@@ -1833,4 +1796,14 @@ func countStoragesInWorkspace(t *testing.T, workspaceID uuid.UUID) int64 {
 		Count(&storagesInWorkspace).Error)
 
 	return storagesInWorkspace
+}
+
+func getNotifierWorkspaceID(t *testing.T, notifierID uuid.UUID) uuid.UUID {
+	t.Helper()
+
+	foundNotifiers, err := notifiers_bridge.GetModule().GetNotifiers(t.Context(), []uuid.UUID{notifierID})
+	require.NoError(t, err)
+	require.Len(t, foundNotifiers, 1)
+
+	return foundNotifiers[0].WorkspaceID
 }

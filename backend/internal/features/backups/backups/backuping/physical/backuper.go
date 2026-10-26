@@ -19,12 +19,12 @@ import (
 	postgresql_executor "databasus-backend/internal/features/backups/backups/usecases/physical/postgresql"
 	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
 	"databasus-backend/internal/features/databases"
-	notifier_models "databasus-backend/internal/features/notifiers/models"
 	"databasus-backend/internal/features/storages"
 	storage_files "databasus-backend/internal/features/storages/files"
 	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
 	workspaces_bridge "databasus-backend/internal/features/workspaces"
 	"databasus-backend/internal/lib/crypto"
+	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/storage"
 	util_encryption "databasus-backend/internal/util/encryption"
 	"databasus-backend/internal/util/walmath"
@@ -747,15 +747,13 @@ func (b *PhysicalBackuper) sendFullBackupNotification(
 		return
 	}
 
-	notification := notifier_models.Notification{
-		Type:    toNotificationType(notificationType),
-		Heading: title,
-		Message: message,
+	notification := notifiers.Notification{
+		Category: toNotificationType(notificationType),
+		Heading:  title,
+		Message:  message,
 	}
 
-	for _, notifier := range db.Notifiers {
-		b.notificationSender.SendNotification(ctx, &notifier, notification)
-	}
+	b.notificationSender.Notify(ctx, db.GetNotifierIDs(), notification)
 }
 
 func (b *PhysicalBackuper) sendIncrBackupNotification(
@@ -780,25 +778,23 @@ func (b *PhysicalBackuper) sendIncrBackupNotification(
 		return
 	}
 
-	notification := notifier_models.Notification{
-		Type:    toNotificationType(notificationType),
-		Heading: title,
-		Message: message,
+	notification := notifiers.Notification{
+		Category: toNotificationType(notificationType),
+		Heading:  title,
+		Message:  message,
 	}
 
-	for _, notifier := range db.Notifiers {
-		b.notificationSender.SendNotification(ctx, &notifier, notification)
-	}
+	b.notificationSender.Notify(ctx, db.GetNotifierIDs(), notification)
 }
 
 func toNotificationType(
 	backupNotificationType backups_config_physical.BackupNotificationType,
-) notifier_models.NotificationType {
+) notifiers.Category {
 	if backupNotificationType == backups_config_physical.NotificationBackupSuccess {
-		return notifier_models.NotificationTypeBackupSuccess
+		return notifiers.CategoryBackupSuccess
 	}
 
-	return notifier_models.NotificationTypeBackupFailed
+	return notifiers.CategoryBackupFailed
 }
 
 func classifyFullBackupNotification(

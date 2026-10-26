@@ -16,6 +16,8 @@ tags:
     description: Users, sign-in, password reset and the instance settings
   - name: workspaces
     description: Workspaces, their members, the ownership of a workspace and the audit log views
+  - name: notifiers
+    description: The notification channels of a workspace and their test sends
 paths:
   /users:
     get:
@@ -967,6 +969,252 @@ paths:
           $ref: "#/components/responses/Problem"
         default:
           $ref: "#/components/responses/Problem"
+  /notifiers:
+    get:
+      operationId: listNotifiers
+      tags: [notifiers]
+      summary: List the notifiers of a workspace
+      description: >-
+        Ordered by name, then by ID. A user who is not a member of the workspace gets 404
+        `not_found`. Secrets are never returned.
+      parameters:
+        - name: workspaceId
+          in: query
+          required: true
+          description: The workspace whose notifiers to list
+          schema:
+            type: string
+            format: uuid
+        - name: limit
+          in: query
+          description: The largest number of notifiers on the page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: after
+          in: query
+          description: The `nextCursor` of the previous page
+          schema:
+            type: string
+      responses:
+        "200":
+          description: One page of notifiers
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotifierPage"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+    post:
+      operationId: createNotifier
+      tags: [notifiers]
+      summary: Create a notifier in a workspace
+      description: >-
+        Needs the role `WORKSPACE_MEMBER` or higher in the workspace. The type in `settings` is
+        fixed once the notifier exists. Settings the provider refuses get 400 `invalid_request`
+        with the field in `errors`.
+      requestBody:
+        description: The notifier to create, with every secret its provider needs.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NotifierCreate"
+      responses:
+        "201":
+          description: The notifier as it was saved, without its secrets
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Notifier"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /notifiers/{notifierId}:
+    parameters:
+      - $ref: "#/components/parameters/NotifierId"
+    get:
+      operationId: getNotifier
+      tags: [notifiers]
+      summary: Get a notifier without its secrets
+      description: >-
+        A user who is not a member of the notifier's workspace gets 404 `not_found`, as for a
+        notifier that does not exist.
+      responses:
+        "200":
+          description: The notifier
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Notifier"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+    put:
+      operationId: updateNotifier
+      tags: [notifiers]
+      summary: Replace the name and the settings of a notifier
+      description: >-
+        Needs the role `WORKSPACE_MEMBER` or higher. A secret the request leaves out keeps its
+        stored value, and a webhook header sent without a value keeps the stored value of the
+        header with the same name. Settings of another type than the notifier's get 400
+        `invalid_request`, because the type is fixed when the notifier is created.
+      requestBody:
+        description: The editable fields of the notifier.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NotifierUpdate"
+      responses:
+        "200":
+          description: The notifier after the change, without its secrets
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Notifier"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+    delete:
+      operationId: deleteNotifier
+      tags: [notifiers]
+      summary: Delete a notifier
+      description: >-
+        Needs the role `WORKSPACE_MEMBER` or higher. A notifier that a database uses gets 409
+        `in_use`, and nothing is deleted.
+      responses:
+        "204":
+          description: The notifier is deleted
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        "409":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /notifiers/{notifierId}/test:
+    parameters:
+      - $ref: "#/components/parameters/NotifierId"
+    post:
+      operationId: testNotifier
+      tags: [notifiers]
+      summary: Send a test message through a saved notifier
+      description: >-
+        Any member of the workspace may test, a viewer included. A message the channel refuses is
+        still a 200 that reports the channel's error, and the outcome becomes the notifier's
+        `lastSendError`.
+      responses:
+        "200":
+          description: Whether the test message was delivered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotifierTestResult"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /notifiers/{notifierId}/transfer:
+    parameters:
+      - $ref: "#/components/parameters/NotifierId"
+    post:
+      operationId: transferNotifier
+      tags: [notifiers]
+      summary: Move a notifier to another workspace
+      description: >-
+        Needs the role `WORKSPACE_MEMBER` or higher in both workspaces. While a database outside
+        the target workspace uses the notifier, the answer is 409 `in_use`, and the notifier stays.
+      requestBody:
+        description: The workspace the notifier moves to.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NotifierTransfer"
+      responses:
+        "204":
+          description: The notifier belongs to the target workspace
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        "409":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /notifier-tests:
+    post:
+      operationId: testNotifierSettings
+      tags: [notifiers]
+      summary: Send a test message with settings that are not saved
+      description: >-
+        Any member of the workspace may test, a viewer included. With `notifierId`, a secret the
+        request leaves out is taken from that notifier, which must belong to the same workspace;
+        otherwise the answer is 404 `not_found` and nothing is sent. Nothing is saved, the
+        notifier's `lastSendError` included.
+      requestBody:
+        description: The settings to test.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NotifierSettingsTest"
+      responses:
+        "200":
+          description: Whether the test message was delivered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotifierTestResult"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
   /system/version:
     get:
       operationId: getVersion
@@ -1017,6 +1265,14 @@ components:
       in: path
       required: true
       description: The ID of the member, which names one user in one workspace
+      schema:
+        type: string
+        format: uuid
+    NotifierId:
+      name: notifierId
+      in: path
+      required: true
+      description: The ID of the notifier
       schema:
         type: string
         format: uuid
@@ -1579,6 +1835,331 @@ components:
         nextCursor:
           type: string
           description: The `after` of the next page, absent on the last page
+    Notifier:
+      type: object
+      description: A notification channel of a workspace, without its secrets
+      required: [id, workspaceId, name, lastSendError, settings]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: The ID of the notifier
+        workspaceId:
+          type: string
+          format: uuid
+          description: The workspace the notifier belongs to
+        name:
+          type: string
+          description: The name of the notifier
+        lastSendError:
+          type: string
+          nullable: true
+          description: The error of the latest send through the notifier, null when it was delivered
+        settings:
+          $ref: "#/components/schemas/NotifierSettings"
+    NotifierPage:
+      type: object
+      description: One page of notifiers, ordered by name
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Notifier"
+          description: The notifiers on the page
+        nextCursor:
+          type: string
+          description: The `after` of the next page, absent on the last page
+    NotifierCreate:
+      type: object
+      description: A new notifier
+      required: [workspaceId, name, settings]
+      properties:
+        workspaceId:
+          type: string
+          format: uuid
+          description: The workspace the notifier belongs to
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: The name of the notifier
+        settings:
+          $ref: "#/components/schemas/NotifierSettings"
+    NotifierUpdate:
+      type: object
+      description: The editable fields of a notifier
+      required: [name, settings]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: The name of the notifier
+        settings:
+          $ref: "#/components/schemas/NotifierSettings"
+    NotifierTransfer:
+      type: object
+      description: The workspace a notifier moves to
+      required: [targetWorkspaceId]
+      properties:
+        targetWorkspaceId:
+          type: string
+          format: uuid
+          description: The ID of the target workspace
+    NotifierSettingsTest:
+      type: object
+      description: Settings to send a test message with
+      required: [workspaceId, settings]
+      properties:
+        workspaceId:
+          type: string
+          format: uuid
+          description: The workspace the test is made in
+        notifierId:
+          type: string
+          format: uuid
+          description: A saved notifier of the workspace whose stored secrets fill the ones left out
+        settings:
+          $ref: "#/components/schemas/NotifierSettings"
+    NotifierTestResult:
+      type: object
+      description: The outcome of a test send
+      required: [isDelivered]
+      properties:
+        isDelivered:
+          type: boolean
+          description: Whether the channel accepted the test message
+        error:
+          type: string
+          description: The error the channel gave, absent when the message was delivered
+    NotifierSettings:
+      description: The settings of the notifier's channel; `type` tells the channels apart
+      oneOf:
+        - $ref: "#/components/schemas/EmailNotifierSettings"
+        - $ref: "#/components/schemas/TelegramNotifierSettings"
+        - $ref: "#/components/schemas/SlackNotifierSettings"
+        - $ref: "#/components/schemas/DiscordNotifierSettings"
+        - $ref: "#/components/schemas/TeamsNotifierSettings"
+        - $ref: "#/components/schemas/MattermostNotifierSettings"
+        - $ref: "#/components/schemas/WebhookNotifierSettings"
+      discriminator:
+        propertyName: type
+        mapping:
+          EMAIL: "#/components/schemas/EmailNotifierSettings"
+          TELEGRAM: "#/components/schemas/TelegramNotifierSettings"
+          SLACK: "#/components/schemas/SlackNotifierSettings"
+          DISCORD: "#/components/schemas/DiscordNotifierSettings"
+          TEAMS: "#/components/schemas/TeamsNotifierSettings"
+          MATTERMOST: "#/components/schemas/MattermostNotifierSettings"
+          WEBHOOK: "#/components/schemas/WebhookNotifierSettings"
+    EmailNotifierSettings:
+      type: object
+      description: Email through the SMTP server of the notifier
+      required: [type, targetEmail, smtpHost, smtpPort, isInsecureSkipVerify, security]
+      properties:
+        type:
+          type: string
+          enum: [EMAIL]
+          description: Always `EMAIL`
+        targetEmail:
+          type: string
+          description: The address the notifications go to
+        smtpHost:
+          type: string
+          description: The host of the SMTP server
+        smtpPort:
+          type: integer
+          minimum: 1
+          maximum: 65535
+          description: The port of the SMTP server
+        smtpUser:
+          type: string
+          description: The SMTP user, absent when the server needs no authentication
+        smtpPassword:
+          type: string
+          writeOnly: true
+          description: The SMTP password, given together with `smtpUser`
+        from:
+          type: string
+          description: The sender, absent to derive it from the user and the host
+        isInsecureSkipVerify:
+          type: boolean
+          description: Whether the TLS certificate of the server goes unchecked
+        security:
+          $ref: "#/components/schemas/SmtpSecurity"
+        heloName:
+          type: string
+          description: The name the greeting uses, absent for the host of the instance's public address
+    SmtpSecurity:
+      type: string
+      description: How the connection to the SMTP server is encrypted
+      enum: [TLS, STARTTLS, NONE]
+    TelegramNotifierSettings:
+      type: object
+      description: Messages of a Telegram bot
+      required: [type, targetChatId, isProxyEnabled]
+      properties:
+        type:
+          type: string
+          enum: [TELEGRAM]
+          description: Always `TELEGRAM`
+        botToken:
+          type: string
+          writeOnly: true
+          description: The token of the bot
+        targetChatId:
+          type: string
+          description: The chat the bot writes to
+        threadId:
+          type: integer
+          format: int64
+          description: The topic of the chat, absent for a chat without topics
+        isProxyEnabled:
+          type: boolean
+          description: Whether the messages go through a proxy
+        proxyUrl:
+          type: string
+          writeOnly: true
+          description: The http, https, socks5 or socks5h URL of the proxy, cleared when the proxy is off
+        botApiUrl:
+          type: string
+          description: The Bot API server, absent for the official one
+    SlackNotifierSettings:
+      type: object
+      description: Messages of a Slack bot
+      required: [type, targetChatId]
+      properties:
+        type:
+          type: string
+          enum: [SLACK]
+          description: Always `SLACK`
+        botToken:
+          type: string
+          writeOnly: true
+          description: The token of the bot
+        targetChatId:
+          type: string
+          description: The channel ID, starting with C, G or D, or the user ID, starting with U
+    DiscordNotifierSettings:
+      type: object
+      description: Messages to a Discord channel through its webhook
+      required: [type]
+      properties:
+        type:
+          type: string
+          enum: [DISCORD]
+          description: Always `DISCORD`
+        channelWebhookUrl:
+          type: string
+          writeOnly: true
+          description: The webhook URL of the channel
+    TeamsNotifierSettings:
+      type: object
+      description: Messages to Microsoft Teams through a Power Automate workflow
+      required: [type]
+      properties:
+        type:
+          type: string
+          enum: [TEAMS]
+          description: Always `TEAMS`
+        powerAutomateUrl:
+          type: string
+          writeOnly: true
+          description: The URL of the workflow
+    MattermostNotifierSettings:
+      type: object
+      description: Posts to Mattermost through an incoming webhook or a bot account
+      required: [type, deliveryMode, isInsecureSkipVerify]
+      properties:
+        type:
+          type: string
+          enum: [MATTERMOST]
+          description: Always `MATTERMOST`
+        deliveryMode:
+          type: string
+          enum: [WEBHOOK, BOT]
+          description: Whether the posts go through an incoming webhook or a bot account
+        webhookUrl:
+          type: string
+          writeOnly: true
+          description: The incoming webhook of the webhook mode
+        serverUrl:
+          type: string
+          description: The server of the bot mode
+        botToken:
+          type: string
+          writeOnly: true
+          description: The token of the bot account
+        targetChannelName:
+          type: string
+          description: The channel that overrides the incoming webhook's own
+        targetChannelId:
+          type: string
+          description: The 26-character ID of the channel the bot posts to
+        overrideUsername:
+          type: string
+          description: The name the posts show
+        overrideIconUrl:
+          type: string
+          description: The icon the posts show
+        isInsecureSkipVerify:
+          type: boolean
+          description: Whether the TLS certificate of the server goes unchecked
+    WebhookNotifierSettings:
+      type: object
+      description: Requests to an HTTP endpoint the user runs
+      required: [type, webhookUrl, webhookMethod, headers, acceptedCategories]
+      properties:
+        type:
+          type: string
+          enum: [WEBHOOK]
+          description: Always `WEBHOOK`
+        webhookUrl:
+          type: string
+          description: The endpoint
+        webhookMethod:
+          type: string
+          enum: [POST, GET]
+          description: GET carries the text in the query, POST in the body
+        bodyTemplate:
+          type: string
+          description: >-
+            The body of a POST, where `{{heading}}` and `{{message}}` are replaced; absent for a
+            JSON body with `heading` and `message`
+        headers:
+          type: array
+          items:
+            $ref: "#/components/schemas/WebhookHeader"
+          description: The headers every request carries
+        acceptedCategories:
+          type: array
+          items:
+            $ref: "#/components/schemas/NotificationCategory"
+          description: The categories the webhook gets; `ALL` accepts every one
+    WebhookHeader:
+      type: object
+      description: A header of the webhook's requests
+      required: [name]
+      properties:
+        name:
+          type: string
+          description: The name of the header
+        value:
+          type: string
+          writeOnly: true
+          description: The value; left out on a change, it keeps the stored value of the header with this name
+    NotificationCategory:
+      type: string
+      description: What a notification is about
+      enum:
+        - ALL
+        - BACKUP_SUCCESS
+        - BACKUP_FAILED
+        - HEALTHCHECK_SUCCESS
+        - HEALTHCHECK_FAILED
+        - VERIFICATION_SUCCESS
+        - VERIFICATION_FAILED
     Problem:
       type: object
       description: An error in the RFC 9457 format. The client chooses its text by `code`
@@ -1631,6 +2212,7 @@ components:
         - cannot_change_own_role
         - owner_requires_transfer
         - workspace_not_empty
+        - in_use
         - internal
     FieldError:
       type: object

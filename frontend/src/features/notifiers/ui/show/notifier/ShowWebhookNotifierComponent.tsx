@@ -1,67 +1,59 @@
 import { useTranslation } from 'react-i18next';
 
-import type { Notifier, WebhookHeader } from '../../../../../entity/notifiers';
-import { NOTIFICATION_TYPE_LABEL_KEYS, WebhookMethod } from '../../../../../entity/notifiers';
-import { DEFAULT_ACCEPT_NOTIFICATION_TYPES } from '../../../lib/defaultAcceptNotificationTypes';
+import type { WebhookNotifierSettings } from '../../../../../entity/notifiers';
+import { NOTIFICATION_CATEGORY_LABEL_KEYS, WebhookMethod } from '../../../../../entity/notifiers';
 
 interface Props {
-  notifier: Notifier;
+  settings: WebhookNotifierSettings;
 }
 
-export function ShowWebhookNotifierComponent({ notifier }: Props) {
+export function ShowWebhookNotifierComponent({ settings }: Props) {
   const { t } = useTranslation();
-  const headers = notifier?.webhookNotifier?.headers || [];
-  const hasHeaders = headers.filter((h: WebhookHeader) => h.key).length > 0;
-
-  const acceptNotificationTypes =
-    notifier?.webhookNotifier?.acceptNotificationTypes || DEFAULT_ACCEPT_NOTIFICATION_TYPES;
+  const headers = settings.headers.filter((header) => header.name);
 
   return (
     <>
       <div className="flex items-center">
         <div className="min-w-[110px] pr-2">{t('notifiers.fields.webhookUrl')}</div>
-        <div className="max-w-[350px] truncate">{notifier?.webhookNotifier?.webhookUrl || '-'}</div>
+        <div className="max-w-[350px] truncate">{settings.webhookUrl}</div>
       </div>
 
       <div className="mt-1 mb-1 flex items-center">
         <div className="min-w-[110px] pr-2">{t('notifiers.webhook.method')}</div>
-        <div>{notifier?.webhookNotifier?.webhookMethod || '-'}</div>
+        <div>{settings.webhookMethod}</div>
       </div>
 
       <div className="mt-1 mb-1 flex items-center">
         <div className="min-w-[110px] pr-2">{t('notifiers.webhook.sendOn')}</div>
         <div>
-          {acceptNotificationTypes
-            .map((type) => t(NOTIFICATION_TYPE_LABEL_KEYS[type]))
+          {settings.acceptedCategories
+            .map((category) => t(NOTIFICATION_CATEGORY_LABEL_KEYS[category]))
             .join(t('common.listSeparator')) || '-'}
         </div>
       </div>
 
-      {hasHeaders && (
+      {headers.length > 0 && (
         <div className="mt-1 mb-1 flex items-start">
           <div className="min-w-[110px] pr-2">{t('notifiers.webhook.headers')}</div>
           <div className="flex flex-col text-sm">
-            {headers
-              .filter((h: WebhookHeader) => h.key)
-              .map((h: WebhookHeader, i: number) => (
-                <div key={i} className="text-gray-600">
-                  <span className="font-medium">{h.key}:</span>{' '}
-                  {h.value || t('notifiers.webhook.hiddenHeaderValue')}
-                </div>
-              ))}
+            {headers.map((header, i) => (
+              <div key={i} className="text-gray-600">
+                <span className="font-medium">{header.name}:</span>{' '}
+                {t('notifiers.webhook.hiddenHeaderValue')}
+              </div>
+            ))}
           </div>
         </div>
       )}
 
-      {notifier?.webhookNotifier?.webhookMethod === WebhookMethod.POST &&
-        notifier?.webhookNotifier?.bodyTemplate && (
-          <div className="mt-1 mb-1 flex items-start">
-            <div className="min-w-[110px] pr-2">{t('notifiers.webhook.bodyTemplate.title')}</div>
-            <div className="max-w-[350px] rounded bg-gray-50 p-2 font-mono text-xs whitespace-pre-wrap dark:bg-gray-700">
-              {notifier.webhookNotifier.bodyTemplate}
-            </div>
+      {settings.webhookMethod === WebhookMethod.POST && settings.bodyTemplate && (
+        <div className="mt-1 mb-1 flex items-start">
+          <div className="min-w-[110px] pr-2">{t('notifiers.webhook.bodyTemplate.title')}</div>
+          <div className="max-w-[350px] rounded bg-gray-50 p-2 font-mono text-xs whitespace-pre-wrap dark:bg-gray-700">
+            {settings.bodyTemplate}
           </div>
-        )}
+        </div>
+      )}
     </>
   );
 }

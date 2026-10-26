@@ -1,36 +1,36 @@
 import { describe, expect, it } from 'vitest';
 
+import type { TelegramNotifierSettings } from './TelegramNotifierSettings';
 import { validateTelegramNotifier } from './validateTelegramNotifier';
+
+const buildTelegram = (change: Partial<TelegramNotifierSettings>): TelegramNotifierSettings => ({
+  type: 'TELEGRAM',
+  botToken: 'token',
+  targetChatId: '123456',
+  isProxyEnabled: false,
+  ...change,
+});
 
 describe('validateTelegramNotifier', () => {
   it('requires proxy URL when proxy is enabled for a new notifier', () => {
-    expect(
-      validateTelegramNotifier(true, {
-        botToken: 'token',
-        targetChatId: '123456',
-        isProxyEnabled: true,
-      }),
-    ).toBe(false);
+    expect(validateTelegramNotifier(true, buildTelegram({ isProxyEnabled: true }))).toBe(false);
   });
 
   it('allows an empty proxy URL on update (keeps the existing one)', () => {
     expect(
-      validateTelegramNotifier(false, {
-        botToken: '',
-        targetChatId: '123456',
-        isProxyEnabled: true,
-      }),
+      validateTelegramNotifier(false, buildTelegram({ botToken: undefined, isProxyEnabled: true })),
     ).toBe(true);
   });
 
   it('rejects proxy URLs with an unsupported scheme', () => {
     expect(
-      validateTelegramNotifier(true, {
-        botToken: 'token',
-        targetChatId: '123456',
-        isProxyEnabled: true,
-        proxyUrl: 'ftp://proxy.example.com:3128',
-      }),
+      validateTelegramNotifier(
+        true,
+        buildTelegram({
+          isProxyEnabled: true,
+          proxyUrl: 'ftp://proxy.example.com:3128',
+        }),
+      ),
     ).toBe(false);
   });
 
@@ -42,12 +42,7 @@ describe('validateTelegramNotifier', () => {
       'socks5h://proxy.example.com:1080',
     ]) {
       expect(
-        validateTelegramNotifier(true, {
-          botToken: 'token',
-          targetChatId: '123456',
-          isProxyEnabled: true,
-          proxyUrl,
-        }),
+        validateTelegramNotifier(true, buildTelegram({ isProxyEnabled: true, proxyUrl })),
       ).toBe(true);
     }
   });
@@ -61,9 +56,7 @@ describe('validateTelegramNotifier', () => {
       'https://gateway.example.com',
       'https://gateway.example.com/telegram/',
     ]) {
-      expect(
-        validateTelegramNotifier(true, { botToken: 'token', targetChatId: '123456', botApiUrl }),
-      ).toBe(true);
+      expect(validateTelegramNotifier(true, buildTelegram({ botApiUrl }))).toBe(true);
     }
   });
 
@@ -80,9 +73,12 @@ describe('validateTelegramNotifier', () => {
       'https://gateway.example.com/#bot',
       'https://gateway.example.com/#',
     ]) {
-      expect(
-        validateTelegramNotifier(true, { botToken: 'token', targetChatId: '123456', botApiUrl }),
-      ).toBe(false);
+      expect(validateTelegramNotifier(true, buildTelegram({ botApiUrl }))).toBe(false);
     }
+  });
+
+  it('requires a positive thread ID once the topic is switched on', () => {
+    expect(validateTelegramNotifier(true, buildTelegram({ threadId: 0 }))).toBe(false);
+    expect(validateTelegramNotifier(true, buildTelegram({ threadId: 3 }))).toBe(true);
   });
 });

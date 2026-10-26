@@ -119,7 +119,7 @@ Databasus has three families of interchangeable implementations. Each family has
 
 Each provider owns its behavior, its repository and one table with its settings as explicit columns. The common fields and the type sit in a parent row, in `storages`, `notifiers` or `databases`. Every other table references the parent, never a provider table. The parent repository saves the parent row and, in the same transaction, hands the provider's settings to that provider's repository. A list loads the parents first, then the provider rows in one batch per type.
 
-Adding a provider takes a package, a migration with its table, a registry entry and the contract schema. Nothing else changes.
+Adding a provider takes a package, a migration with its table, a registry entry, the contract schema and its conversion in the module's `httpapi`, which turns the generated variant of the `oneOf` into the provider's settings and back. Nothing else changes.
 
 Settings stay in columns rather than in a JSON document for two reasons. The database keeps enforcing `NOT NULL`, `CHECK` and types. And when a field is added, existing rows get its value from `DEFAULT` in the migration instead of a zero value in Go.
 
@@ -129,7 +129,7 @@ Settings stay in columns rather than in a JSON document for two reasons. The dat
 
 | Package | Holds |
 |---|---|
-| `database` | the database pool and transactions |
+| `database` | the database pool, transactions, constraint errors and keyset cursors |
 | `config`, `logging` | configuration, logging |
 | `httpserver` | the HTTP server and its middleware |
 | `apierror` | `Problem` errors |
@@ -161,7 +161,7 @@ Audit events are written through `lib/audit` in the transaction of the operation
   - a composite foreign key `(id, type)`, so a provider row cannot attach to a parent of another type;
   - for a row that references one of two kinds of entities, two nullable foreign keys and `CHECK (num_nonnulls(a_id, b_id) = 1)`, never an untyped `(kind, id)` pair.
 - **Types.** Lists are `text[]`. JSON is stored as `JSONB`, and only for data we treat as opaque, such as an OAuth token or webhook headers. Time is `TIMESTAMPTZ`. All time is UTC: in Go, in the database session, in the API and in logs. Identifiers are UUIDs with `DEFAULT gen_random_uuid()`. A row that continues another row of the same module takes that row's ID as its primary key.
-- **Transactions travel in the context.** A service opens one with `Transaction(ctx, fn)` of the `*database.Transactor` it takes through `Deps`, and every repository call made with that context, in any module, joins it, because a repository runs its queries through `database.Conn(ctx, r.db)`. Transactions are never passed as parameters. The transactor is built in `internal/app` from the pool, so a service never holds the pool itself.
+- **Transactions travel in the context.** A service opens one with `Transaction(ctx, fn)` of the `*database.Transactor` it takes through `Deps`, and every repository call made with that context, in any module, joins it, because a repository runs its queries through `database.Conn(ctx, r.db)`. Transactions are never passed as parameters. Background work that outlives its caller, such as a notification delivery, detaches from the caller's transaction with `database.WithoutTransaction(ctx)` and runs its queries on the pool. The transactor is built in `internal/app` from the pool, so a service never holds the pool itself.
 - **Repository methods** are named after what their SQL does. When a lookup finds no row, or a conditional `UPDATE` touches none, the method returns `false` as its second value, as in `(Backup, bool, error)`. The service decides which error the client sees. A repository wraps a database error with the operation's name and never returns `gorm.ErrRecordNotFound`.
 - **One column changes with one `UPDATE`.** A status, a timestamp or a counter is never written by re-saving the whole row.
 - **Secrets** of providers and databases are encrypted per field with the master key before they are saved, and decrypted only where they are used. The cipher is AES-GCM, and an encrypted value starts with `enc:`. Account passwords and agent tokens are hashed, not encrypted.

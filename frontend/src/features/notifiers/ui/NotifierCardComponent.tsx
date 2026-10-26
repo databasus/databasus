@@ -1,8 +1,7 @@
 import { InfoCircleOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 
-import { type Notifier, NotifierType } from '../../../entity/notifiers';
-import { getNotifierLogoFromType } from '../../../entity/notifiers/models/getNotifierLogoFromType';
+import { type Notifier, NotifierType, getNotifierLogoFromType } from '../../../entity/notifiers';
 import type { TranslationKey } from '../../../shared/i18n';
 
 interface Props {
@@ -39,10 +38,14 @@ export const NotifierCardComponent = ({
 
       <div className="flex items-center">
         <div className="text-sm text-gray-500 dark:text-gray-400">
-          {t(NOTIFY_TO_KEYS[notifier.notifierType])}
+          {t(NOTIFY_TO_KEYS[notifier.settings.type])}
         </div>
 
-        <img src={getNotifierLogoFromType(notifier.notifierType)} alt="" className="ml-1 h-4 w-4" />
+        <img
+          src={getNotifierLogoFromType(notifier.settings.type)}
+          alt=""
+          className="ml-1 h-4 w-4"
+        />
       </div>
 
       {notifier.lastSendError && (

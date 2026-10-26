@@ -16,11 +16,12 @@ import (
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
 	"databasus-backend/internal/features/caching"
 	"databasus-backend/internal/features/databases"
-	"databasus-backend/internal/features/notifiers"
+	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	"databasus-backend/internal/features/storages"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_bridge "databasus-backend/internal/features/workspaces"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
+	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/storage"
 	"databasus-backend/internal/util/logger"
@@ -98,7 +99,7 @@ func CreateBackupTestFixture(t *testing.T, workspaceName string) *BackupTestFixt
 	user := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), workspaceName, user)
 	createdStorage := storages.CreateTestStorage(workspace.ID)
-	createdNotifier := notifiers.CreateTestNotifier(workspace.ID)
+	createdNotifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
 	createdDatabase := databases.CreateTestDatabase(workspace.ID, createdStorage, createdNotifier)
 
 	backups_config_logical.EnableBackupsForTestDatabase(t.Context(), createdDatabase.ID, createdStorage)
@@ -115,7 +116,7 @@ func CreateBackupTestFixture(t *testing.T, workspaceName string) *BackupTestFixt
 		// The database delete cascades; removing its storage and notifier before that lands leaves
 		// the rows behind.
 		time.Sleep(50 * time.Millisecond)
-		notifiers.RemoveTestNotifier(createdNotifier)
+		notifiers_bridge.RemoveTestNotifier(createdNotifier)
 		storages.RemoveTestStorage(t.Context(), createdStorage.ID)
 		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	})
@@ -150,7 +151,7 @@ func CreateTestBackuper() *Backuper {
 		getBackupRepository(),
 		backups_config_logical.GetBackupConfigService(),
 		storages.GetStorageFileStore(),
-		notifiers.GetNotifierService(),
+		notifiers_bridge.GetSender(),
 		getTaskCancellationRegistry(),
 		logger.GetLogger(),
 		usecases_logical.GetCreateBackupUsecase(),
@@ -164,7 +165,7 @@ func CreateTestBackuperWithUseCase(useCase backups_core_logical.CreateBackupUsec
 		getBackupRepository(),
 		backups_config_logical.GetBackupConfigService(),
 		storages.GetStorageFileStore(),
-		notifiers.GetNotifierService(),
+		notifiers_bridge.GetSender(),
 		getTaskCancellationRegistry(),
 		logger.GetLogger(),
 		useCase,

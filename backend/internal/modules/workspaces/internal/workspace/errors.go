@@ -20,9 +20,6 @@ var (
 		Detail: "the workspace still has content that must be deleted first",
 		Errors: nil,
 	}
-	ErrInvalidCursor = apierror.NewInvalidFieldsProblem([]apierror.FieldError{
-		{Field: "after", Detail: "is not a cursor of this list"},
-	})
 	ErrInvalidName = apierror.NewInvalidFieldsProblem([]apierror.FieldError{
 		{Field: "name", Detail: "must be between 1 and 255 characters long"},
 	})

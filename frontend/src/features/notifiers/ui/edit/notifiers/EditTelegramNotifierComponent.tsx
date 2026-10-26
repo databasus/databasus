@@ -1,62 +1,56 @@
 import { InfoCircleOutlined } from '@ant-design/icons';
 import { Input, Switch, Tooltip } from 'antd';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
-import type { Notifier } from '../../../../../entity/notifiers';
+import type { TelegramNotifierSettings } from '../../../../../entity/notifiers';
 import {
   AdvancedFieldRowComponent,
   AdvancedSettingsToggleComponent,
 } from '../../../../../shared/ui';
+import { toOptionalValue } from '../../../lib/toOptionalValue';
 
 interface Props {
-  notifier: Notifier;
-  setNotifier: (notifier: Notifier) => void;
-  setUnsaved: () => void;
+  settings: TelegramNotifierSettings;
+  isSaved: boolean;
+  onChange: (settings: TelegramNotifierSettings) => void;
 }
+
+// A thread ID of 0 keeps the topic switched on while its ID is not entered, and the form refuses
+// to save it.
+const TOPIC_WITHOUT_ID = 0;
 
 const chatIdBotLink = <a href="https://t.me/getmyid_bot" target="_blank" rel="noreferrer" />;
 
-export function EditTelegramNotifierComponent({ notifier, setNotifier, setUnsaved }: Props) {
+export function EditTelegramNotifierComponent({ settings, isSaved, onChange }: Props) {
   const { t } = useTranslation();
   const [isShowHowToGetChatId, setIsShowHowToGetChatId] = useState(false);
   const [isShowAdvanced, setIsShowAdvanced] = useState(
-    !!notifier.telegramNotifier?.botApiUrl || !!notifier.telegramNotifier?.isProxyEnabled,
+    !!settings.botApiUrl || settings.isProxyEnabled,
   );
 
-  useEffect(() => {
-    if (notifier.telegramNotifier?.threadId && !notifier.telegramNotifier.isSendToThreadEnabled) {
-      setNotifier({
-        ...notifier,
-        telegramNotifier: {
-          ...notifier.telegramNotifier,
-          isSendToThreadEnabled: true,
-        },
-      });
-    }
-  }, [notifier]);
+  const isSendToThreadEnabled = settings.threadId !== undefined;
 
   return (
     <>
       <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
         <div className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2">{t('notifiers.fields.botToken')}</div>
         <Input
-          value={notifier?.telegramNotifier?.botToken || ''}
-          onChange={(e) => {
-            if (!notifier?.telegramNotifier) return;
-            setNotifier({
-              ...notifier,
-              telegramNotifier: {
-                ...notifier.telegramNotifier,
-                botToken: e.target.value.trim(),
-              },
-            });
-            setUnsaved();
-          }}
+          value={settings.botToken ?? ''}
+          onChange={(e) =>
+            onChange({
+              ...settings,
+              botToken: toOptionalValue(e.target.value.trim()),
+            })
+          }
           size="small"
           className="w-full max-w-[250px]"
-          // eslint-disable-next-line i18next/no-literal-string -- example token, not copy
-          placeholder="1234567890:ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+          placeholder={
+            isSaved
+              ? t('notifiers.secretKeptPlaceholder')
+              : // eslint-disable-next-line i18next/no-literal-string -- example token, not copy
+                '1234567890:ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+          }
         />
       </div>
 
@@ -77,19 +71,8 @@ export function EditTelegramNotifierComponent({ notifier, setNotifier, setUnsave
         </div>
         <div className="flex items-center">
           <Input
-            value={notifier?.telegramNotifier?.targetChatId || ''}
-            onChange={(e) => {
-              if (!notifier?.telegramNotifier) return;
-
-              setNotifier({
-                ...notifier,
-                telegramNotifier: {
-                  ...notifier.telegramNotifier,
-                  targetChatId: e.target.value.trim(),
-                },
-              });
-              setUnsaved();
-            }}
+            value={settings.targetChatId}
+            onChange={(e) => onChange({ ...settings, targetChatId: e.target.value.trim() })}
             size="small"
             className="w-full max-w-[250px]"
             placeholder="-1001234567890"
@@ -131,21 +114,13 @@ export function EditTelegramNotifierComponent({ notifier, setNotifier, setUnsave
         </div>
         <div className="flex items-center">
           <Switch
-            checked={notifier?.telegramNotifier?.isSendToThreadEnabled || false}
-            onChange={(checked) => {
-              if (!notifier?.telegramNotifier) return;
-
-              setNotifier({
-                ...notifier,
-                telegramNotifier: {
-                  ...notifier.telegramNotifier,
-                  isSendToThreadEnabled: checked,
-                  // Clear thread ID if disabling
-                  threadId: checked ? notifier.telegramNotifier.threadId : undefined,
-                },
-              });
-              setUnsaved();
-            }}
+            checked={isSendToThreadEnabled}
+            onChange={(checked) =>
+              onChange({
+                ...settings,
+                threadId: checked ? TOPIC_WITHOUT_ID : undefined,
+              })
+            }
             size="small"
           />
 
@@ -158,7 +133,7 @@ export function EditTelegramNotifierComponent({ notifier, setNotifier, setUnsave
         </div>
       </div>
 
-      {notifier?.telegramNotifier?.isSendToThreadEnabled && (
+      {isSendToThreadEnabled && (
         <>
           <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
             <div className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2">
@@ -166,21 +141,14 @@ export function EditTelegramNotifierComponent({ notifier, setNotifier, setUnsave
             </div>
             <div className="flex items-center">
               <Input
-                value={notifier?.telegramNotifier?.threadId?.toString() || ''}
+                value={settings.threadId ? settings.threadId.toString() : ''}
                 onChange={(e) => {
-                  if (!notifier?.telegramNotifier) return;
+                  const threadId = parseInt(e.target.value.trim(), 10);
 
-                  const value = e.target.value.trim();
-                  const threadId = value ? parseInt(value, 10) : undefined;
-
-                  setNotifier({
-                    ...notifier,
-                    telegramNotifier: {
-                      ...notifier.telegramNotifier,
-                      threadId: !isNaN(threadId!) ? threadId : undefined,
-                    },
+                  onChange({
+                    ...settings,
+                    threadId: Number.isNaN(threadId) ? TOPIC_WITHOUT_ID : threadId,
                   });
-                  setUnsaved();
                 }}
                 size="small"
                 className="w-full max-w-[250px]"
@@ -231,19 +199,13 @@ export function EditTelegramNotifierComponent({ notifier, setNotifier, setUnsave
             tooltip={t('notifiers.telegram.botApiUrlTooltip')}
           >
             <Input
-              value={notifier?.telegramNotifier?.botApiUrl || ''}
-              onChange={(e) => {
-                if (!notifier?.telegramNotifier) return;
-
-                setNotifier({
-                  ...notifier,
-                  telegramNotifier: {
-                    ...notifier.telegramNotifier,
-                    botApiUrl: e.target.value.trim(),
-                  },
-                });
-                setUnsaved();
-              }}
+              value={settings.botApiUrl ?? ''}
+              onChange={(e) =>
+                onChange({
+                  ...settings,
+                  botApiUrl: toOptionalValue(e.target.value.trim()),
+                })
+              }
               size="small"
               className="w-full max-w-[250px]"
               // eslint-disable-next-line i18next/no-literal-string -- example URL, not copy
@@ -256,47 +218,39 @@ export function EditTelegramNotifierComponent({ notifier, setNotifier, setUnsave
             tooltip={t('notifiers.telegram.useProxyTooltip')}
           >
             <Switch
-              checked={notifier?.telegramNotifier?.isProxyEnabled || false}
-              onChange={(checked) => {
-                if (!notifier?.telegramNotifier) return;
-
-                setNotifier({
-                  ...notifier,
-                  telegramNotifier: {
-                    ...notifier.telegramNotifier,
-                    isProxyEnabled: checked,
-                    proxyUrl: checked ? notifier.telegramNotifier.proxyUrl : undefined,
-                  },
-                });
-                setUnsaved();
-              }}
+              checked={settings.isProxyEnabled}
+              onChange={(checked) =>
+                onChange({
+                  ...settings,
+                  isProxyEnabled: checked,
+                  proxyUrl: checked ? settings.proxyUrl : undefined,
+                })
+              }
               size="small"
             />
           </AdvancedFieldRowComponent>
 
-          {notifier?.telegramNotifier?.isProxyEnabled && (
+          {settings.isProxyEnabled && (
             <AdvancedFieldRowComponent
               label={t('notifiers.telegram.proxyUrl')}
               tooltip={t('notifiers.telegram.proxyUrlTooltip')}
             >
               <Input
-                value={notifier?.telegramNotifier?.proxyUrl || ''}
-                onChange={(e) => {
-                  if (!notifier?.telegramNotifier) return;
-
-                  setNotifier({
-                    ...notifier,
-                    telegramNotifier: {
-                      ...notifier.telegramNotifier,
-                      proxyUrl: e.target.value.trim(),
-                    },
-                  });
-                  setUnsaved();
-                }}
+                value={settings.proxyUrl ?? ''}
+                onChange={(e) =>
+                  onChange({
+                    ...settings,
+                    proxyUrl: toOptionalValue(e.target.value.trim()),
+                  })
+                }
                 size="small"
                 className="w-full max-w-[250px]"
-                // eslint-disable-next-line i18next/no-literal-string -- example proxy URL
-                placeholder="socks5://user:pass@host:1080"
+                placeholder={
+                  isSaved
+                    ? t('notifiers.secretKeptPlaceholder')
+                    : // eslint-disable-next-line i18next/no-literal-string -- example proxy URL
+                      'socks5://user:pass@host:1080'
+                }
               />
             </AdvancedFieldRowComponent>
           )}

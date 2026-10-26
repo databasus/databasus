@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"net"
@@ -12,6 +13,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -19,6 +21,7 @@ import (
 	"databasus-backend/internal/lib/config"
 	"databasus-backend/internal/lib/httpserver"
 	"databasus-backend/internal/lib/testwait"
+	"databasus-backend/internal/modules/notifiers"
 )
 
 func TestServe(t *testing.T) {
@@ -84,6 +87,38 @@ func TestServe(t *testing.T) {
 
 		require.NoError(t, <-serveErrors)
 		assert.True(t, isPassFinished.Load())
+	})
+
+	t.Run("lets a delivery in progress finish and record its outcome before it returns", func(t *testing.T) {
+		testApp := newTestApp(t)
+		var deliveredRequestCount atomic.Int64
+		slowWebhook := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
+			<-time.After(2 * time.Second)
+			deliveredRequestCount.Add(1)
+			writer.WriteHeader(http.StatusOK)
+		}))
+		t.Cleanup(slowWebhook.Close)
+		notifierID := insertWebhookNotifier(t, testApp, slowWebhook.URL)
+		serveCtx, stopServing := context.WithCancel(t.Context())
+		serveErrors := make(chan error, 1)
+		address := reserveFreeAddress(t)
+
+		go func() { serveErrors <- testApp.Serve(serveCtx, address) }()
+
+		requireStatus(t, "http://"+address+"/api/v1/system/version", http.StatusOK)
+		testApp.Notify(t.Context(), []uuid.UUID{notifierID}, notifiers.Notification{
+			Category: notifiers.CategoryBackupFailed,
+			Heading:  "Backup failed",
+			Message:  "The disk of the storage is full",
+		})
+		stopServing()
+
+		require.NoError(t, <-serveErrors)
+		assert.Equal(t, int64(1), deliveredRequestCount.Load())
+		var lastSendError sql.NullString
+		require.NoError(t, testApp.db.Raw("SELECT last_send_error FROM notifiers WHERE id = ?", notifierID).
+			Row().Scan(&lastSendError))
+		assert.False(t, lastSendError.Valid, lastSendError.String)
 	})
 
 	t.Run("returns an error before any loop starts when the port is busy", func(t *testing.T) {
@@ -152,6 +187,26 @@ func TestNewRouter(t *testing.T) {
 		require.Equal(t, http.StatusNoContent, response.Code)
 		assert.Equal(t, "203.0.113.7", <-clientIPByRequest)
 	})
+}
+
+// insertWebhookNotifier writes a workspace and a webhook notifier whose previous delivery failed into
+// the tables, because the server test has no API client to create them with.
+func insertWebhookNotifier(t *testing.T, testApp *App, webhookURL string) uuid.UUID {
+	t.Helper()
+
+	workspaceID := uuid.New()
+	notifierID := uuid.New()
+
+	require.NoError(t, testApp.db.Exec("INSERT INTO workspaces (id, name) VALUES (?, ?)",
+		workspaceID, "Shutdown workspace").Error)
+	require.NoError(t, testApp.db.Exec(
+		"INSERT INTO notifiers (id, workspace_id, name, type, last_send_error) VALUES (?, ?, ?, 'WEBHOOK', ?)",
+		notifierID, workspaceID, "Slow webhook", "the previous delivery failed").Error)
+	require.NoError(t, testApp.db.Exec(
+		"INSERT INTO notifiers_webhook (notifier_id, webhook_url, webhook_method) VALUES (?, ?, 'POST')",
+		notifierID, webhookURL).Error)
+
+	return notifierID
 }
 
 func reserveFreeAddress(t *testing.T) string {

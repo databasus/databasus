@@ -1,5 +1,6 @@
 export { databaseApi } from './api/databaseApi';
 export { type Database } from './model/Database';
+export { type DatabaseNotifier } from './model/DatabaseNotifier';
 export { DatabaseType } from './model/DatabaseType';
 export { getDatabaseLogoFromType } from './model/getDatabaseLogoFromType';
 export { isPostgresType } from './model/isPostgresType';

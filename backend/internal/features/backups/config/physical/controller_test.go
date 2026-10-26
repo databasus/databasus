@@ -17,7 +17,6 @@ import (
 	"databasus-backend/internal/features/databases"
 	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
 	"databasus-backend/internal/features/intervals"
-	"databasus-backend/internal/features/notifiers"
 	"databasus-backend/internal/features/storages"
 	local_storage "databasus-backend/internal/features/storages/models/local"
 	users_testing "databasus-backend/internal/features/users/testing"
@@ -34,7 +33,6 @@ func createPhysicalTestRouter() *gin.Engine {
 		databases.GetDatabaseController(),
 		GetBackupConfigController(),
 		storages.GetStorageController(),
-		notifiers.GetNotifierController(),
 	)
 
 	databases.SetupDependencies()

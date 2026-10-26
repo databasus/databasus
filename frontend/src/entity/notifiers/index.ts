@@ -1,35 +1,31 @@
 export { notifierApi } from './api/notifierApi';
 export type { Notifier } from './models/Notifier';
+export type { NotifierSettings } from './models/NotifierSettings';
+export type { NotifierTestResult } from './models/NotifierTestResult';
 export { NotifierType } from './models/NotifierType';
-export { NotificationType } from './models/NotificationType';
-
-export type { EmailNotifier } from './models/email/EmailNotifier';
+export { NotificationCategory } from './models/NotificationCategory';
+export { getNotifierLogoFromType } from './models/getNotifierLogoFromType';
+export type { EmailNotifierSettings } from './models/email/EmailNotifierSettings';
 export { validateEmailNotifier } from './models/email/validateEmailNotifier';
 export { EmailNotifierSecurity } from './models/email/EmailNotifierSecurity';
 export { EMAIL_NOTIFIER_SECURITY_LABEL_KEYS } from './models/email/EmailNotifierSecurityLabelKeys';
 export { getDefaultEmailNotifierSecurity } from './models/email/getDefaultEmailNotifierSecurity';
 export { getSecurityAfterPortChange } from './models/email/getSecurityAfterPortChange';
-
-export type { TelegramNotifier } from './models/telegram/TelegramNotifier';
+export type { TelegramNotifierSettings } from './models/telegram/TelegramNotifierSettings';
 export { validateTelegramNotifier } from './models/telegram/validateTelegramNotifier';
-
-export type { WebhookNotifier } from './models/webhook/WebhookNotifier';
+export type { WebhookNotifierSettings } from './models/webhook/WebhookNotifierSettings';
 export type { WebhookHeader } from './models/webhook/WebhookHeader';
 export { validateWebhookNotifier } from './models/webhook/validateWebhookNotifier';
 export { WebhookMethod } from './models/webhook/WebhookMethod';
-
-export type { SlackNotifier } from './models/slack/SlackNotifier';
+export type { SlackNotifierSettings } from './models/slack/SlackNotifierSettings';
 export { validateSlackNotifier } from './models/slack/validateSlackNotifier';
-
-export type { DiscordNotifier } from './models/discord/DiscordNotifier';
+export type { DiscordNotifierSettings } from './models/discord/DiscordNotifierSettings';
 export { validateDiscordNotifier } from './models/discord/validateDiscordNotifier';
-
-export type { TeamsNotifier } from './models/teams/TeamsNotifier';
+export type { TeamsNotifierSettings } from './models/teams/TeamsNotifierSettings';
 export { validateTeamsNotifier } from './models/teams/validateTeamsNotifier';
-
-export type { MattermostNotifier } from './models/mattermost/MattermostNotifier';
+export type { MattermostNotifierSettings } from './models/mattermost/MattermostNotifierSettings';
 export { MattermostDeliveryMode } from './models/mattermost/MattermostDeliveryMode';
 export { MATTERMOST_DELIVERY_MODE_LABEL_KEYS } from './models/mattermost/MattermostDeliveryModeLabelKeys';
 export { validateMattermostNotifier } from './models/mattermost/validateMattermostNotifier';
 export { NOTIFIER_TYPE_LABEL_KEYS } from './models/NotifierTypeLabelKeys';
-export { NOTIFICATION_TYPE_LABEL_KEYS } from './models/NotificationTypeLabelKeys';
+export { NOTIFICATION_CATEGORY_LABEL_KEYS } from './models/NotificationCategoryLabelKeys';

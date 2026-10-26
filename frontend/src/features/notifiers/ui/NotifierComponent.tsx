@@ -9,7 +9,6 @@ import { useState } from 'react';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { databaseApi } from '../../../entity/databases';
 import { notifierApi } from '../../../entity/notifiers';
 import type { Notifier } from '../../../entity/notifiers';
 import { translateApiError } from '../../../shared/i18n';
@@ -40,7 +39,7 @@ export const NotifierComponent = ({
   const [isEditName, setIsEditName] = useState(false);
   const [isEditSettings, setIsEditSettings] = useState(false);
 
-  const [editNotifier, setEditNotifier] = useState<Notifier | undefined>();
+  const [editName, setEditName] = useState('');
   const [isNameUnsaved, setIsNameUnsaved] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -51,29 +50,40 @@ export const NotifierComponent = ({
 
   const [isShowTransferDialog, setIsShowTransferDialog] = useState(false);
 
-  const sendTestNotification = () => {
+  const sendTestNotification = async () => {
     if (!notifier) return;
 
     setIsSendingTestNotification(true);
-    notifierApi
-      .sendTestNotification(notifier.id)
-      .then(() => {
+
+    try {
+      const testResult = await notifierApi.testNotifier(notifier.id);
+      const testedNotifier = {
+        ...notifier,
+        lastSendError: testResult.error ?? null,
+      };
+
+      if (testResult.isDelivered) {
         ToastHelper.showToast({
           title: t('notifiers.testNotification.sent.title'),
           description: t('notifiers.testNotification.sent.description'),
         });
+      } else {
+        alert(
+          t('notifiers.testNotification.notDelivered', {
+            error: testResult.error,
+          }),
+        );
+      }
 
-        if (notifier.lastSendError) {
-          setNotifier({ ...notifier, lastSendError: undefined });
-          onNotifierChanged(notifier);
-        }
-      })
-      .catch((e: unknown) => {
-        alert(translateApiError(e, t));
-      })
-      .finally(() => {
-        setIsSendingTestNotification(false);
-      });
+      if (testedNotifier.lastSendError !== notifier.lastSendError) {
+        setNotifier(testedNotifier);
+        onNotifierChanged(testedNotifier);
+      }
+    } catch (e) {
+      alert(translateApiError(e, t));
+    }
+
+    setIsSendingTestNotification(false);
   };
 
   const remove = async () => {
@@ -82,51 +92,52 @@ export const NotifierComponent = ({
     setIsRemoving(true);
 
     try {
-      const isNotifierUsing = await databaseApi.isNotifierUsing(notifier.id);
-      if (isNotifierUsing) {
-        alert(t('notifiers.config.removeBlockedByDatabases'));
-        setIsShowRemoveConfirm(false);
-      } else {
-        await notifierApi.deleteNotifier(notifier.id);
-        onNotifierDeleted();
-      }
+      await notifierApi.deleteNotifier(notifier.id);
+      onNotifierDeleted();
     } catch (e) {
       alert(translateApiError(e, t));
+      setIsShowRemoveConfirm(false);
     }
 
     setIsRemoving(false);
   };
 
   const startEdit = (type: 'name' | 'settings') => {
-    setEditNotifier(JSON.parse(JSON.stringify(notifier)));
+    setEditName(notifier?.name ?? '');
     setIsEditName(type === 'name');
     setIsEditSettings(type === 'settings');
     setIsNameUnsaved(false);
   };
 
-  const saveName = () => {
-    if (!editNotifier) return;
+  // The settings of the response carry no secrets, so the backend keeps the stored ones.
+  const saveName = async () => {
+    if (!notifier) return;
 
     setIsSaving(true);
-    notifierApi
-      .saveNotifier(editNotifier)
-      .then(() => {
-        setNotifier(editNotifier);
-        setIsSaving(false);
-        setIsNameUnsaved(false);
-        setIsEditName(false);
-        onNotifierChanged(editNotifier);
-      })
-      .catch((e: unknown) => {
-        alert(translateApiError(e, t));
-        setIsSaving(false);
-      });
+
+    try {
+      const savedNotifier = await notifierApi.updateNotifier(
+        notifier.id,
+        editName,
+        notifier.settings,
+      );
+      setNotifier(savedNotifier);
+      setIsNameUnsaved(false);
+      setIsEditName(false);
+      onNotifierChanged(savedNotifier);
+    } catch (e) {
+      alert(translateApiError(e, t));
+    }
+
+    setIsSaving(false);
   };
 
   const loadSettings = () => {
     setNotifier(undefined);
-    setEditNotifier(undefined);
-    notifierApi.getNotifier(notifierId).then(setNotifier);
+    notifierApi
+      .getNotifier(notifierId)
+      .then(setNotifier)
+      .catch((e: unknown) => alert(translateApiError(e, t)));
   };
 
   useEffect(() => {
@@ -156,11 +167,9 @@ export const NotifierComponent = ({
                 <div className="flex items-center">
                   <Input
                     className="max-w-[250px]"
-                    value={editNotifier?.name}
+                    value={editName}
                     onChange={(e) => {
-                      if (!editNotifier) return;
-
-                      setEditNotifier({ ...editNotifier, name: e.target.value });
+                      setEditName(e.target.value);
                       setIsNameUnsaved(true);
                     }}
                     placeholder={t('notifiers.config.namePlaceholder')}
@@ -174,7 +183,6 @@ export const NotifierComponent = ({
                       onClick={() => {
                         setIsEditName(false);
                         setIsNameUnsaved(false);
-                        setEditNotifier(undefined);
                       }}
                     >
                       <CloseOutlined className="text-gray-500 dark:text-gray-400" />
@@ -188,7 +196,7 @@ export const NotifierComponent = ({
                     type="primary"
                     onClick={() => saveName()}
                     loading={isSaving}
-                    disabled={!editNotifier?.name}
+                    disabled={!editName}
                   >
                     {t('common.actions.save')}
                   </Button>
@@ -238,12 +246,15 @@ export const NotifierComponent = ({
                   isShowClose
                   onClose={() => {
                     setIsEditSettings(false);
-                    setEditNotifier(undefined);
                     loadSettings();
                   }}
                   isShowName={false}
                   editingNotifier={notifier}
-                  onChanged={onNotifierChanged}
+                  onChanged={(savedNotifier) => {
+                    setNotifier(savedNotifier);
+                    setIsEditSettings(false);
+                    onNotifierChanged(savedNotifier);
+                  }}
                 />
               ) : (
                 <ShowNotifierComponent notifier={notifier} />

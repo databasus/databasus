@@ -58,6 +58,102 @@ func (e AssignableWorkspaceRole) Valid() bool {
 	}
 }
 
+// Defines values for DiscordNotifierSettingsType.
+const (
+	DiscordNotifierSettingsTypeDISCORD DiscordNotifierSettingsType = "DISCORD"
+)
+
+// Valid indicates whether the value is a known member of the DiscordNotifierSettingsType enum.
+func (e DiscordNotifierSettingsType) Valid() bool {
+	switch e {
+	case DiscordNotifierSettingsTypeDISCORD:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for EmailNotifierSettingsType.
+const (
+	EmailNotifierSettingsTypeEMAIL EmailNotifierSettingsType = "EMAIL"
+)
+
+// Valid indicates whether the value is a known member of the EmailNotifierSettingsType enum.
+func (e EmailNotifierSettingsType) Valid() bool {
+	switch e {
+	case EmailNotifierSettingsTypeEMAIL:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MattermostNotifierSettingsDeliveryMode.
+const (
+	MattermostNotifierSettingsDeliveryModeBOT     MattermostNotifierSettingsDeliveryMode = "BOT"
+	MattermostNotifierSettingsDeliveryModeWEBHOOK MattermostNotifierSettingsDeliveryMode = "WEBHOOK"
+)
+
+// Valid indicates whether the value is a known member of the MattermostNotifierSettingsDeliveryMode enum.
+func (e MattermostNotifierSettingsDeliveryMode) Valid() bool {
+	switch e {
+	case MattermostNotifierSettingsDeliveryModeBOT:
+		return true
+	case MattermostNotifierSettingsDeliveryModeWEBHOOK:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MattermostNotifierSettingsType.
+const (
+	MattermostNotifierSettingsTypeMATTERMOST MattermostNotifierSettingsType = "MATTERMOST"
+)
+
+// Valid indicates whether the value is a known member of the MattermostNotifierSettingsType enum.
+func (e MattermostNotifierSettingsType) Valid() bool {
+	switch e {
+	case MattermostNotifierSettingsTypeMATTERMOST:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for NotificationCategory.
+const (
+	NotificationCategoryALL                 NotificationCategory = "ALL"
+	NotificationCategoryBACKUPFAILED        NotificationCategory = "BACKUP_FAILED"
+	NotificationCategoryBACKUPSUCCESS       NotificationCategory = "BACKUP_SUCCESS"
+	NotificationCategoryHEALTHCHECKFAILED   NotificationCategory = "HEALTHCHECK_FAILED"
+	NotificationCategoryHEALTHCHECKSUCCESS  NotificationCategory = "HEALTHCHECK_SUCCESS"
+	NotificationCategoryVERIFICATIONFAILED  NotificationCategory = "VERIFICATION_FAILED"
+	NotificationCategoryVERIFICATIONSUCCESS NotificationCategory = "VERIFICATION_SUCCESS"
+)
+
+// Valid indicates whether the value is a known member of the NotificationCategory enum.
+func (e NotificationCategory) Valid() bool {
+	switch e {
+	case NotificationCategoryALL:
+		return true
+	case NotificationCategoryBACKUPFAILED:
+		return true
+	case NotificationCategoryBACKUPSUCCESS:
+		return true
+	case NotificationCategoryHEALTHCHECKFAILED:
+		return true
+	case NotificationCategoryHEALTHCHECKSUCCESS:
+		return true
+	case NotificationCategoryVERIFICATIONFAILED:
+		return true
+	case NotificationCategoryVERIFICATIONSUCCESS:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ProblemCode.
 const (
 	ProblemCodeAdminEmailMissing       ProblemCode = "admin_email_missing"
@@ -66,6 +162,7 @@ const (
 	ProblemCodeEmailNotConfigured      ProblemCode = "email_not_configured"
 	ProblemCodeEmailTaken              ProblemCode = "email_taken"
 	ProblemCodeHumanVerificationFailed ProblemCode = "human_verification_failed"
+	ProblemCodeInUse                   ProblemCode = "in_use"
 	ProblemCodeInternal                ProblemCode = "internal"
 	ProblemCodeInvalidCredentials      ProblemCode = "invalid_credentials"
 	ProblemCodeInvalidRequest          ProblemCode = "invalid_request"
@@ -101,6 +198,8 @@ func (e ProblemCode) Valid() bool {
 	case ProblemCodeEmailTaken:
 		return true
 	case ProblemCodeHumanVerificationFailed:
+		return true
+	case ProblemCodeInUse:
 		return true
 	case ProblemCodeInternal:
 		return true
@@ -175,6 +274,72 @@ func (e SignInCompletedOutcome) Valid() bool {
 	}
 }
 
+// Defines values for SlackNotifierSettingsType.
+const (
+	SlackNotifierSettingsTypeSLACK SlackNotifierSettingsType = "SLACK"
+)
+
+// Valid indicates whether the value is a known member of the SlackNotifierSettingsType enum.
+func (e SlackNotifierSettingsType) Valid() bool {
+	switch e {
+	case SlackNotifierSettingsTypeSLACK:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SmtpSecurity.
+const (
+	SmtpSecurityNONE     SmtpSecurity = "NONE"
+	SmtpSecuritySTARTTLS SmtpSecurity = "STARTTLS"
+	SmtpSecurityTLS      SmtpSecurity = "TLS"
+)
+
+// Valid indicates whether the value is a known member of the SmtpSecurity enum.
+func (e SmtpSecurity) Valid() bool {
+	switch e {
+	case SmtpSecurityNONE:
+		return true
+	case SmtpSecuritySTARTTLS:
+		return true
+	case SmtpSecurityTLS:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TeamsNotifierSettingsType.
+const (
+	TeamsNotifierSettingsTypeTEAMS TeamsNotifierSettingsType = "TEAMS"
+)
+
+// Valid indicates whether the value is a known member of the TeamsNotifierSettingsType enum.
+func (e TeamsNotifierSettingsType) Valid() bool {
+	switch e {
+	case TeamsNotifierSettingsTypeTEAMS:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TelegramNotifierSettingsType.
+const (
+	TelegramNotifierSettingsTypeTELEGRAM TelegramNotifierSettingsType = "TELEGRAM"
+)
+
+// Valid indicates whether the value is a known member of the TelegramNotifierSettingsType enum.
+func (e TelegramNotifierSettingsType) Valid() bool {
+	switch e {
+	case TelegramNotifierSettingsTypeTELEGRAM:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for UserRole.
 const (
 	UserRoleADMIN  UserRole = "ADMIN"
@@ -208,6 +373,39 @@ func (e UserStatus) Valid() bool {
 	case UserStatusINACTIVE:
 		return true
 	case UserStatusINVITED:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for WebhookNotifierSettingsType.
+const (
+	WebhookNotifierSettingsTypeWEBHOOK WebhookNotifierSettingsType = "WEBHOOK"
+)
+
+// Valid indicates whether the value is a known member of the WebhookNotifierSettingsType enum.
+func (e WebhookNotifierSettingsType) Valid() bool {
+	switch e {
+	case WebhookNotifierSettingsTypeWEBHOOK:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for WebhookNotifierSettingsWebhookMethod.
+const (
+	WebhookNotifierSettingsWebhookMethodGET  WebhookNotifierSettingsWebhookMethod = "GET"
+	WebhookNotifierSettingsWebhookMethodPOST WebhookNotifierSettingsWebhookMethod = "POST"
+)
+
+// Valid indicates whether the value is a known member of the WebhookNotifierSettingsWebhookMethod enum.
+func (e WebhookNotifierSettingsWebhookMethod) Valid() bool {
+	switch e {
+	case WebhookNotifierSettingsWebhookMethodGET:
+		return true
+	case WebhookNotifierSettingsWebhookMethodPOST:
 		return true
 	default:
 		return false
@@ -322,6 +520,54 @@ type AuditEventWorkspace struct {
 	Name *string `json:"name"`
 }
 
+// DiscordNotifierSettings Messages to a Discord channel through its webhook
+type DiscordNotifierSettings struct {
+	// ChannelWebhookUrl The webhook URL of the channel
+	ChannelWebhookUrl *string `json:"channelWebhookUrl,omitempty"`
+
+	// Type Always `DISCORD`
+	Type DiscordNotifierSettingsType `json:"type"`
+}
+
+// DiscordNotifierSettingsType Always `DISCORD`
+type DiscordNotifierSettingsType string
+
+// EmailNotifierSettings Email through the SMTP server of the notifier
+type EmailNotifierSettings struct {
+	// From The sender, absent to derive it from the user and the host
+	From *string `json:"from,omitempty"`
+
+	// HeloName The name the greeting uses, absent for the host of the instance's public address
+	HeloName *string `json:"heloName,omitempty"`
+
+	// IsInsecureSkipVerify Whether the TLS certificate of the server goes unchecked
+	IsInsecureSkipVerify bool `json:"isInsecureSkipVerify"`
+
+	// Security How the connection to the SMTP server is encrypted
+	Security SmtpSecurity `json:"security"`
+
+	// SmtpHost The host of the SMTP server
+	SmtpHost string `json:"smtpHost"`
+
+	// SmtpPassword The SMTP password, given together with `smtpUser`
+	SmtpPassword *string `json:"smtpPassword,omitempty"`
+
+	// SmtpPort The port of the SMTP server
+	SmtpPort int `json:"smtpPort"`
+
+	// SmtpUser The SMTP user, absent when the server needs no authentication
+	SmtpUser *string `json:"smtpUser,omitempty"`
+
+	// TargetEmail The address the notifications go to
+	TargetEmail string `json:"targetEmail"`
+
+	// Type Always `EMAIL`
+	Type EmailNotifierSettingsType `json:"type"`
+}
+
+// EmailNotifierSettingsType Always `EMAIL`
+type EmailNotifierSettingsType string
+
 // FieldError A field of the request that breaks the contract or a validation rule
 type FieldError struct {
 	// Detail What is wrong with the field
@@ -362,6 +608,128 @@ type InstanceSettingsUpdate struct {
 
 	// IsTwoFactorAuthRequired A password sign-in also needs a code emailed to the user
 	IsTwoFactorAuthRequired bool `json:"isTwoFactorAuthRequired"`
+}
+
+// MattermostNotifierSettings Posts to Mattermost through an incoming webhook or a bot account
+type MattermostNotifierSettings struct {
+	// BotToken The token of the bot account
+	BotToken *string `json:"botToken,omitempty"`
+
+	// DeliveryMode Whether the posts go through an incoming webhook or a bot account
+	DeliveryMode MattermostNotifierSettingsDeliveryMode `json:"deliveryMode"`
+
+	// IsInsecureSkipVerify Whether the TLS certificate of the server goes unchecked
+	IsInsecureSkipVerify bool `json:"isInsecureSkipVerify"`
+
+	// OverrideIconUrl The icon the posts show
+	OverrideIconUrl *string `json:"overrideIconUrl,omitempty"`
+
+	// OverrideUsername The name the posts show
+	OverrideUsername *string `json:"overrideUsername,omitempty"`
+
+	// ServerUrl The server of the bot mode
+	ServerUrl *string `json:"serverUrl,omitempty"`
+
+	// TargetChannelId The 26-character ID of the channel the bot posts to
+	TargetChannelId *string `json:"targetChannelId,omitempty"`
+
+	// TargetChannelName The channel that overrides the incoming webhook's own
+	TargetChannelName *string `json:"targetChannelName,omitempty"`
+
+	// Type Always `MATTERMOST`
+	Type MattermostNotifierSettingsType `json:"type"`
+
+	// WebhookUrl The incoming webhook of the webhook mode
+	WebhookUrl *string `json:"webhookUrl,omitempty"`
+}
+
+// MattermostNotifierSettingsDeliveryMode Whether the posts go through an incoming webhook or a bot account
+type MattermostNotifierSettingsDeliveryMode string
+
+// MattermostNotifierSettingsType Always `MATTERMOST`
+type MattermostNotifierSettingsType string
+
+// NotificationCategory What a notification is about
+type NotificationCategory string
+
+// Notifier A notification channel of a workspace, without its secrets
+type Notifier struct {
+	// Id The ID of the notifier
+	Id openapi_types.UUID `json:"id"`
+
+	// LastSendError The error of the latest send through the notifier, null when it was delivered
+	LastSendError *string `json:"lastSendError"`
+
+	// Name The name of the notifier
+	Name string `json:"name"`
+
+	// Settings The settings of the notifier's channel; `type` tells the channels apart
+	Settings NotifierSettings `json:"settings"`
+
+	// WorkspaceId The workspace the notifier belongs to
+	WorkspaceId openapi_types.UUID `json:"workspaceId"`
+}
+
+// NotifierCreate A new notifier
+type NotifierCreate struct {
+	// Name The name of the notifier
+	Name string `json:"name"`
+
+	// Settings The settings of the notifier's channel; `type` tells the channels apart
+	Settings NotifierSettings `json:"settings"`
+
+	// WorkspaceId The workspace the notifier belongs to
+	WorkspaceId openapi_types.UUID `json:"workspaceId"`
+}
+
+// NotifierPage One page of notifiers, ordered by name
+type NotifierPage struct {
+	// Items The notifiers on the page
+	Items []Notifier `json:"items"`
+
+	// NextCursor The `after` of the next page, absent on the last page
+	NextCursor *string `json:"nextCursor,omitempty"`
+}
+
+// NotifierSettings The settings of the notifier's channel; `type` tells the channels apart
+type NotifierSettings struct {
+	union json.RawMessage
+}
+
+// NotifierSettingsTest Settings to send a test message with
+type NotifierSettingsTest struct {
+	// NotifierId A saved notifier of the workspace whose stored secrets fill the ones left out
+	NotifierId *openapi_types.UUID `json:"notifierId,omitempty"`
+
+	// Settings The settings of the notifier's channel; `type` tells the channels apart
+	Settings NotifierSettings `json:"settings"`
+
+	// WorkspaceId The workspace the test is made in
+	WorkspaceId openapi_types.UUID `json:"workspaceId"`
+}
+
+// NotifierTestResult The outcome of a test send
+type NotifierTestResult struct {
+	// Error The error the channel gave, absent when the message was delivered
+	Error *string `json:"error,omitempty"`
+
+	// IsDelivered Whether the channel accepted the test message
+	IsDelivered bool `json:"isDelivered"`
+}
+
+// NotifierTransfer The workspace a notifier moves to
+type NotifierTransfer struct {
+	// TargetWorkspaceId The ID of the target workspace
+	TargetWorkspaceId openapi_types.UUID `json:"targetWorkspaceId"`
+}
+
+// NotifierUpdate The editable fields of a notifier
+type NotifierUpdate struct {
+	// Name The name of the notifier
+	Name string `json:"name"`
+
+	// Settings The settings of the notifier's channel; `type` tells the channels apart
+	Settings NotifierSettings `json:"settings"`
 }
 
 // OAuthSignInRequest The answer of an identity provider's authorization page
@@ -528,6 +896,63 @@ type SignUpRequest struct {
 	Password *string `json:"password,omitempty"`
 }
 
+// SlackNotifierSettings Messages of a Slack bot
+type SlackNotifierSettings struct {
+	// BotToken The token of the bot
+	BotToken *string `json:"botToken,omitempty"`
+
+	// TargetChatId The channel ID, starting with C, G or D, or the user ID, starting with U
+	TargetChatId string `json:"targetChatId"`
+
+	// Type Always `SLACK`
+	Type SlackNotifierSettingsType `json:"type"`
+}
+
+// SlackNotifierSettingsType Always `SLACK`
+type SlackNotifierSettingsType string
+
+// SmtpSecurity How the connection to the SMTP server is encrypted
+type SmtpSecurity string
+
+// TeamsNotifierSettings Messages to Microsoft Teams through a Power Automate workflow
+type TeamsNotifierSettings struct {
+	// PowerAutomateUrl The URL of the workflow
+	PowerAutomateUrl *string `json:"powerAutomateUrl,omitempty"`
+
+	// Type Always `TEAMS`
+	Type TeamsNotifierSettingsType `json:"type"`
+}
+
+// TeamsNotifierSettingsType Always `TEAMS`
+type TeamsNotifierSettingsType string
+
+// TelegramNotifierSettings Messages of a Telegram bot
+type TelegramNotifierSettings struct {
+	// BotApiUrl The Bot API server, absent for the official one
+	BotApiUrl *string `json:"botApiUrl,omitempty"`
+
+	// BotToken The token of the bot
+	BotToken *string `json:"botToken,omitempty"`
+
+	// IsProxyEnabled Whether the messages go through a proxy
+	IsProxyEnabled bool `json:"isProxyEnabled"`
+
+	// ProxyUrl The http, https, socks5 or socks5h URL of the proxy, cleared when the proxy is off
+	ProxyUrl *string `json:"proxyUrl,omitempty"`
+
+	// TargetChatId The chat the bot writes to
+	TargetChatId string `json:"targetChatId"`
+
+	// ThreadId The topic of the chat, absent for a chat without topics
+	ThreadId *int64 `json:"threadId,omitempty"`
+
+	// Type Always `TELEGRAM`
+	Type TelegramNotifierSettingsType `json:"type"`
+}
+
+// TelegramNotifierSettingsType Always `TELEGRAM`
+type TelegramNotifierSettingsType string
+
 // TestEmail A test email the instance tried to deliver
 type TestEmail struct {
 	// FailureDetail The error of the delivery with the mail server's response, present when it failed
@@ -605,6 +1030,42 @@ type VersionResponse struct {
 	// Version The version of the running instance, such as `3.26.0`
 	Version string `json:"version"`
 }
+
+// WebhookHeader A header of the webhook's requests
+type WebhookHeader struct {
+	// Name The name of the header
+	Name string `json:"name"`
+
+	// Value The value; left out on a change, it keeps the stored value of the header with this name
+	Value *string `json:"value,omitempty"`
+}
+
+// WebhookNotifierSettings Requests to an HTTP endpoint the user runs
+type WebhookNotifierSettings struct {
+	// AcceptedCategories The categories the webhook gets; `ALL` accepts every one
+	AcceptedCategories []NotificationCategory `json:"acceptedCategories"`
+
+	// BodyTemplate The body of a POST, where `{{heading}}` and `{{message}}` are replaced; absent for a JSON body with `heading` and `message`
+	BodyTemplate *string `json:"bodyTemplate,omitempty"`
+
+	// Headers The headers every request carries
+	Headers []WebhookHeader `json:"headers"`
+
+	// Type Always `WEBHOOK`
+	Type WebhookNotifierSettingsType `json:"type"`
+
+	// WebhookMethod GET carries the text in the query, POST in the body
+	WebhookMethod WebhookNotifierSettingsWebhookMethod `json:"webhookMethod"`
+
+	// WebhookUrl The endpoint
+	WebhookUrl string `json:"webhookUrl"`
+}
+
+// WebhookNotifierSettingsType Always `WEBHOOK`
+type WebhookNotifierSettingsType string
+
+// WebhookNotifierSettingsWebhookMethod GET carries the text in the query, POST in the body
+type WebhookNotifierSettingsWebhookMethod string
 
 // Workspace A workspace
 type Workspace struct {
@@ -702,6 +1163,9 @@ type WorkspaceUpdate struct {
 // MemberId defines model for MemberId.
 type MemberId = openapi_types.UUID
 
+// NotifierId defines model for NotifierId.
+type NotifierId = openapi_types.UUID
+
 // PendingSignInId defines model for PendingSignInId.
 type PendingSignInId = openapi_types.UUID
 
@@ -720,6 +1184,18 @@ type ListAuditEventsParams struct {
 	AuthorUserId *openapi_types.UUID `form:"authorUserId,omitempty" json:"authorUserId,omitempty"`
 
 	// Limit The largest number of events on the page
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// After The `nextCursor` of the previous page
+	After *string `form:"after,omitempty" json:"after,omitempty"`
+}
+
+// ListNotifiersParams defines parameters for ListNotifiers.
+type ListNotifiersParams struct {
+	// WorkspaceId The workspace whose notifiers to list
+	WorkspaceId openapi_types.UUID `form:"workspaceId" json:"workspaceId"`
+
+	// Limit The largest number of notifiers on the page
 	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
 
 	// After The `nextCursor` of the previous page
@@ -768,6 +1244,18 @@ type SignInWithGoogleJSONRequestBody = OAuthSignInRequest
 // UpdateInstanceSettingsJSONRequestBody defines body for UpdateInstanceSettings for application/json ContentType.
 type UpdateInstanceSettingsJSONRequestBody = InstanceSettingsUpdate
 
+// TestNotifierSettingsJSONRequestBody defines body for TestNotifierSettings for application/json ContentType.
+type TestNotifierSettingsJSONRequestBody = NotifierSettingsTest
+
+// CreateNotifierJSONRequestBody defines body for CreateNotifier for application/json ContentType.
+type CreateNotifierJSONRequestBody = NotifierCreate
+
+// UpdateNotifierJSONRequestBody defines body for UpdateNotifier for application/json ContentType.
+type UpdateNotifierJSONRequestBody = NotifierUpdate
+
+// TransferNotifierJSONRequestBody defines body for TransferNotifier for application/json ContentType.
+type TransferNotifierJSONRequestBody = NotifierTransfer
+
 // CompletePasswordResetJSONRequestBody defines body for CompletePasswordReset for application/json ContentType.
 type CompletePasswordResetJSONRequestBody = PasswordResetCompletion
 
@@ -809,6 +1297,287 @@ type UpdateWorkspaceJSONRequestBody = WorkspaceUpdate
 
 // TransferWorkspaceOwnershipJSONRequestBody defines body for TransferWorkspaceOwnership for application/json ContentType.
 type TransferWorkspaceOwnershipJSONRequestBody = OwnershipTransfer
+
+// AsEmailNotifierSettings returns the union data inside the NotifierSettings as a EmailNotifierSettings
+func (t NotifierSettings) AsEmailNotifierSettings() (EmailNotifierSettings, error) {
+	var body EmailNotifierSettings
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromEmailNotifierSettings overwrites any union data inside the NotifierSettings as the provided EmailNotifierSettings
+func (t *NotifierSettings) FromEmailNotifierSettings(v EmailNotifierSettings) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"EMAIL"}`))
+	t.union = b
+	return err
+}
+
+// MergeEmailNotifierSettings performs a merge with any union data inside the NotifierSettings, using the provided EmailNotifierSettings
+func (t *NotifierSettings) MergeEmailNotifierSettings(v EmailNotifierSettings) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"EMAIL"}`))
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsTelegramNotifierSettings returns the union data inside the NotifierSettings as a TelegramNotifierSettings
+func (t NotifierSettings) AsTelegramNotifierSettings() (TelegramNotifierSettings, error) {
+	var body TelegramNotifierSettings
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromTelegramNotifierSettings overwrites any union data inside the NotifierSettings as the provided TelegramNotifierSettings
+func (t *NotifierSettings) FromTelegramNotifierSettings(v TelegramNotifierSettings) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"TELEGRAM"}`))
+	t.union = b
+	return err
+}
+
+// MergeTelegramNotifierSettings performs a merge with any union data inside the NotifierSettings, using the provided TelegramNotifierSettings
+func (t *NotifierSettings) MergeTelegramNotifierSettings(v TelegramNotifierSettings) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"TELEGRAM"}`))
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsSlackNotifierSettings returns the union data inside the NotifierSettings as a SlackNotifierSettings
+func (t NotifierSettings) AsSlackNotifierSettings() (SlackNotifierSettings, error) {
+	var body SlackNotifierSettings
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromSlackNotifierSettings overwrites any union data inside the NotifierSettings as the provided SlackNotifierSettings
+func (t *NotifierSettings) FromSlackNotifierSettings(v SlackNotifierSettings) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"SLACK"}`))
+	t.union = b
+	return err
+}
+
+// MergeSlackNotifierSettings performs a merge with any union data inside the NotifierSettings, using the provided SlackNotifierSettings
+func (t *NotifierSettings) MergeSlackNotifierSettings(v SlackNotifierSettings) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"SLACK"}`))
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsDiscordNotifierSettings returns the union data inside the NotifierSettings as a DiscordNotifierSettings
+func (t NotifierSettings) AsDiscordNotifierSettings() (DiscordNotifierSettings, error) {
+	var body DiscordNotifierSettings
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromDiscordNotifierSettings overwrites any union data inside the NotifierSettings as the provided DiscordNotifierSettings
+func (t *NotifierSettings) FromDiscordNotifierSettings(v DiscordNotifierSettings) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"DISCORD"}`))
+	t.union = b
+	return err
+}
+
+// MergeDiscordNotifierSettings performs a merge with any union data inside the NotifierSettings, using the provided DiscordNotifierSettings
+func (t *NotifierSettings) MergeDiscordNotifierSettings(v DiscordNotifierSettings) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"DISCORD"}`))
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsTeamsNotifierSettings returns the union data inside the NotifierSettings as a TeamsNotifierSettings
+func (t NotifierSettings) AsTeamsNotifierSettings() (TeamsNotifierSettings, error) {
+	var body TeamsNotifierSettings
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromTeamsNotifierSettings overwrites any union data inside the NotifierSettings as the provided TeamsNotifierSettings
+func (t *NotifierSettings) FromTeamsNotifierSettings(v TeamsNotifierSettings) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"TEAMS"}`))
+	t.union = b
+	return err
+}
+
+// MergeTeamsNotifierSettings performs a merge with any union data inside the NotifierSettings, using the provided TeamsNotifierSettings
+func (t *NotifierSettings) MergeTeamsNotifierSettings(v TeamsNotifierSettings) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"TEAMS"}`))
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsMattermostNotifierSettings returns the union data inside the NotifierSettings as a MattermostNotifierSettings
+func (t NotifierSettings) AsMattermostNotifierSettings() (MattermostNotifierSettings, error) {
+	var body MattermostNotifierSettings
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromMattermostNotifierSettings overwrites any union data inside the NotifierSettings as the provided MattermostNotifierSettings
+func (t *NotifierSettings) FromMattermostNotifierSettings(v MattermostNotifierSettings) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"MATTERMOST"}`))
+	t.union = b
+	return err
+}
+
+// MergeMattermostNotifierSettings performs a merge with any union data inside the NotifierSettings, using the provided MattermostNotifierSettings
+func (t *NotifierSettings) MergeMattermostNotifierSettings(v MattermostNotifierSettings) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"MATTERMOST"}`))
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsWebhookNotifierSettings returns the union data inside the NotifierSettings as a WebhookNotifierSettings
+func (t NotifierSettings) AsWebhookNotifierSettings() (WebhookNotifierSettings, error) {
+	var body WebhookNotifierSettings
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromWebhookNotifierSettings overwrites any union data inside the NotifierSettings as the provided WebhookNotifierSettings
+func (t *NotifierSettings) FromWebhookNotifierSettings(v WebhookNotifierSettings) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"WEBHOOK"}`))
+	t.union = b
+	return err
+}
+
+// MergeWebhookNotifierSettings performs a merge with any union data inside the NotifierSettings, using the provided WebhookNotifierSettings
+func (t *NotifierSettings) MergeWebhookNotifierSettings(v WebhookNotifierSettings) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"WEBHOOK"}`))
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t NotifierSettings) Discriminator() (string, error) {
+	var discriminator struct {
+		Discriminator string `json:"type"`
+	}
+	err := json.Unmarshal(t.union, &discriminator)
+	return discriminator.Discriminator, err
+}
+
+func (t NotifierSettings) ValueByDiscriminator() (interface{}, error) {
+	discriminator, err := t.Discriminator()
+	if err != nil {
+		return nil, err
+	}
+	switch discriminator {
+	case "DISCORD":
+		return t.AsDiscordNotifierSettings()
+	case "EMAIL":
+		return t.AsEmailNotifierSettings()
+	case "MATTERMOST":
+		return t.AsMattermostNotifierSettings()
+	case "SLACK":
+		return t.AsSlackNotifierSettings()
+	case "TEAMS":
+		return t.AsTeamsNotifierSettings()
+	case "TELEGRAM":
+		return t.AsTelegramNotifierSettings()
+	case "WEBHOOK":
+		return t.AsWebhookNotifierSettings()
+	default:
+		return nil, errors.New("unknown discriminator value: " + discriminator)
+	}
+}
+
+func (t NotifierSettings) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *NotifierSettings) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
 
 // AsSignInCompleted returns the union data inside the SignInOutcome as a SignInCompleted
 func (t SignInOutcome) AsSignInCompleted() (SignInCompleted, error) {
@@ -1052,6 +1821,106 @@ type ClientInterface interface {
 	//
 	// Corresponds with PUT /instance-settings (the `UpdateInstanceSettings` operationId).
 	UpdateInstanceSettings(ctx context.Context, body UpdateInstanceSettingsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// TestNotifierSettingsWithBody Send a test message with settings that are not saved
+	//
+	// Any member of the workspace may test, a viewer included. With `notifierId`, a secret the request leaves out is taken from that notifier, which must belong to the same workspace; otherwise the answer is 404 `not_found` and nothing is sent. Nothing is saved, the notifier's `lastSendError` included.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /notifier-tests (the `TestNotifierSettings` operationId).
+	TestNotifierSettingsWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// TestNotifierSettings Send a test message with settings that are not saved
+	//
+	// Any member of the workspace may test, a viewer included. With `notifierId`, a secret the request leaves out is taken from that notifier, which must belong to the same workspace; otherwise the answer is 404 `not_found` and nothing is sent. Nothing is saved, the notifier's `lastSendError` included.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /notifier-tests (the `TestNotifierSettings` operationId).
+	TestNotifierSettings(ctx context.Context, body TestNotifierSettingsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListNotifiers List the notifiers of a workspace
+	//
+	// Ordered by name, then by ID. A user who is not a member of the workspace gets 404 `not_found`. Secrets are never returned.
+	//
+	// Corresponds with GET /notifiers (the `ListNotifiers` operationId).
+	ListNotifiers(ctx context.Context, params *ListNotifiersParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateNotifierWithBody Create a notifier in a workspace
+	//
+	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace. The type in `settings` is fixed once the notifier exists. Settings the provider refuses get 400 `invalid_request` with the field in `errors`.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /notifiers (the `CreateNotifier` operationId).
+	CreateNotifierWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateNotifier Create a notifier in a workspace
+	//
+	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace. The type in `settings` is fixed once the notifier exists. Settings the provider refuses get 400 `invalid_request` with the field in `errors`.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /notifiers (the `CreateNotifier` operationId).
+	CreateNotifier(ctx context.Context, body CreateNotifierJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DeleteNotifier Delete a notifier
+	//
+	// Needs the role `WORKSPACE_MEMBER` or higher. A notifier that a database uses gets 409 `in_use`, and nothing is deleted.
+	//
+	// Corresponds with DELETE /notifiers/{notifierId} (the `DeleteNotifier` operationId).
+	DeleteNotifier(ctx context.Context, notifierId NotifierId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetNotifier Get a notifier without its secrets
+	//
+	// A user who is not a member of the notifier's workspace gets 404 `not_found`, as for a notifier that does not exist.
+	//
+	// Corresponds with GET /notifiers/{notifierId} (the `GetNotifier` operationId).
+	GetNotifier(ctx context.Context, notifierId NotifierId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpdateNotifierWithBody Replace the name and the settings of a notifier
+	//
+	// Needs the role `WORKSPACE_MEMBER` or higher. A secret the request leaves out keeps its stored value, and a webhook header sent without a value keeps the stored value of the header with the same name. Settings of another type than the notifier's get 400 `invalid_request`, because the type is fixed when the notifier is created.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with PUT /notifiers/{notifierId} (the `UpdateNotifier` operationId).
+	UpdateNotifierWithBody(ctx context.Context, notifierId NotifierId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpdateNotifier Replace the name and the settings of a notifier
+	//
+	// Needs the role `WORKSPACE_MEMBER` or higher. A secret the request leaves out keeps its stored value, and a webhook header sent without a value keeps the stored value of the header with the same name. Settings of another type than the notifier's get 400 `invalid_request`, because the type is fixed when the notifier is created.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with PUT /notifiers/{notifierId} (the `UpdateNotifier` operationId).
+	UpdateNotifier(ctx context.Context, notifierId NotifierId, body UpdateNotifierJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// TestNotifier Send a test message through a saved notifier
+	//
+	// Any member of the workspace may test, a viewer included. A message the channel refuses is still a 200 that reports the channel's error, and the outcome becomes the notifier's `lastSendError`.
+	//
+	// Corresponds with POST /notifiers/{notifierId}/test (the `TestNotifier` operationId).
+	TestNotifier(ctx context.Context, notifierId NotifierId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// TransferNotifierWithBody Move a notifier to another workspace
+	//
+	// Needs the role `WORKSPACE_MEMBER` or higher in both workspaces. While a database outside the target workspace uses the notifier, the answer is 409 `in_use`, and the notifier stays.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /notifiers/{notifierId}/transfer (the `TransferNotifier` operationId).
+	TransferNotifierWithBody(ctx context.Context, notifierId NotifierId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// TransferNotifier Move a notifier to another workspace
+	//
+	// Needs the role `WORKSPACE_MEMBER` or higher in both workspaces. While a database outside the target workspace uses the notifier, the answer is 409 `in_use`, and the notifier stays.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /notifiers/{notifierId}/transfer (the `TransferNotifier` operationId).
+	TransferNotifier(ctx context.Context, notifierId NotifierId, body TransferNotifierJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// CompletePasswordResetWithBody Replace the password with a mailed reset code
 	//
@@ -1528,6 +2397,226 @@ func (c *Client) UpdateInstanceSettingsWithBody(ctx context.Context, contentType
 // Corresponds with PUT /instance-settings (the `UpdateInstanceSettings` operationId).
 func (c *Client) UpdateInstanceSettings(ctx context.Context, body UpdateInstanceSettingsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewUpdateInstanceSettingsRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// TestNotifierSettingsWithBody Send a test message with settings that are not saved
+//
+// Any member of the workspace may test, a viewer included. With `notifierId`, a secret the request leaves out is taken from that notifier, which must belong to the same workspace; otherwise the answer is 404 `not_found` and nothing is sent. Nothing is saved, the notifier's `lastSendError` included.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /notifier-tests (the `TestNotifierSettings` operationId).
+func (c *Client) TestNotifierSettingsWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewTestNotifierSettingsRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// TestNotifierSettings Send a test message with settings that are not saved
+//
+// Any member of the workspace may test, a viewer included. With `notifierId`, a secret the request leaves out is taken from that notifier, which must belong to the same workspace; otherwise the answer is 404 `not_found` and nothing is sent. Nothing is saved, the notifier's `lastSendError` included.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /notifier-tests (the `TestNotifierSettings` operationId).
+func (c *Client) TestNotifierSettings(ctx context.Context, body TestNotifierSettingsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewTestNotifierSettingsRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ListNotifiers List the notifiers of a workspace
+//
+// Ordered by name, then by ID. A user who is not a member of the workspace gets 404 `not_found`. Secrets are never returned.
+//
+// Corresponds with GET /notifiers (the `ListNotifiers` operationId).
+func (c *Client) ListNotifiers(ctx context.Context, params *ListNotifiersParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListNotifiersRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// CreateNotifierWithBody Create a notifier in a workspace
+//
+// Needs the role `WORKSPACE_MEMBER` or higher in the workspace. The type in `settings` is fixed once the notifier exists. Settings the provider refuses get 400 `invalid_request` with the field in `errors`.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /notifiers (the `CreateNotifier` operationId).
+func (c *Client) CreateNotifierWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateNotifierRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// CreateNotifier Create a notifier in a workspace
+//
+// Needs the role `WORKSPACE_MEMBER` or higher in the workspace. The type in `settings` is fixed once the notifier exists. Settings the provider refuses get 400 `invalid_request` with the field in `errors`.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /notifiers (the `CreateNotifier` operationId).
+func (c *Client) CreateNotifier(ctx context.Context, body CreateNotifierJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateNotifierRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// DeleteNotifier Delete a notifier
+//
+// Needs the role `WORKSPACE_MEMBER` or higher. A notifier that a database uses gets 409 `in_use`, and nothing is deleted.
+//
+// Corresponds with DELETE /notifiers/{notifierId} (the `DeleteNotifier` operationId).
+func (c *Client) DeleteNotifier(ctx context.Context, notifierId NotifierId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteNotifierRequest(c.Server, notifierId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetNotifier Get a notifier without its secrets
+//
+// A user who is not a member of the notifier's workspace gets 404 `not_found`, as for a notifier that does not exist.
+//
+// Corresponds with GET /notifiers/{notifierId} (the `GetNotifier` operationId).
+func (c *Client) GetNotifier(ctx context.Context, notifierId NotifierId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetNotifierRequest(c.Server, notifierId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// UpdateNotifierWithBody Replace the name and the settings of a notifier
+//
+// Needs the role `WORKSPACE_MEMBER` or higher. A secret the request leaves out keeps its stored value, and a webhook header sent without a value keeps the stored value of the header with the same name. Settings of another type than the notifier's get 400 `invalid_request`, because the type is fixed when the notifier is created.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with PUT /notifiers/{notifierId} (the `UpdateNotifier` operationId).
+func (c *Client) UpdateNotifierWithBody(ctx context.Context, notifierId NotifierId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateNotifierRequestWithBody(c.Server, notifierId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// UpdateNotifier Replace the name and the settings of a notifier
+//
+// Needs the role `WORKSPACE_MEMBER` or higher. A secret the request leaves out keeps its stored value, and a webhook header sent without a value keeps the stored value of the header with the same name. Settings of another type than the notifier's get 400 `invalid_request`, because the type is fixed when the notifier is created.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with PUT /notifiers/{notifierId} (the `UpdateNotifier` operationId).
+func (c *Client) UpdateNotifier(ctx context.Context, notifierId NotifierId, body UpdateNotifierJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateNotifierRequest(c.Server, notifierId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// TestNotifier Send a test message through a saved notifier
+//
+// Any member of the workspace may test, a viewer included. A message the channel refuses is still a 200 that reports the channel's error, and the outcome becomes the notifier's `lastSendError`.
+//
+// Corresponds with POST /notifiers/{notifierId}/test (the `TestNotifier` operationId).
+func (c *Client) TestNotifier(ctx context.Context, notifierId NotifierId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewTestNotifierRequest(c.Server, notifierId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// TransferNotifierWithBody Move a notifier to another workspace
+//
+// Needs the role `WORKSPACE_MEMBER` or higher in both workspaces. While a database outside the target workspace uses the notifier, the answer is 409 `in_use`, and the notifier stays.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /notifiers/{notifierId}/transfer (the `TransferNotifier` operationId).
+func (c *Client) TransferNotifierWithBody(ctx context.Context, notifierId NotifierId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewTransferNotifierRequestWithBody(c.Server, notifierId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// TransferNotifier Move a notifier to another workspace
+//
+// Needs the role `WORKSPACE_MEMBER` or higher in both workspaces. While a database outside the target workspace uses the notifier, the answer is 409 `in_use`, and the notifier stays.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /notifiers/{notifierId}/transfer (the `TransferNotifier` operationId).
+func (c *Client) TransferNotifier(ctx context.Context, notifierId NotifierId, body TransferNotifierJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewTransferNotifierRequest(c.Server, notifierId, body)
 	if err != nil {
 		return nil, err
 	}
@@ -2502,6 +3591,356 @@ func NewUpdateInstanceSettingsRequestWithBody(server string, contentType string,
 	}
 
 	req, err := http.NewRequest(http.MethodPut, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewTestNotifierSettingsRequest calls the generic TestNotifierSettings builder with application/json body
+func NewTestNotifierSettingsRequest(server string, body TestNotifierSettingsJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewTestNotifierSettingsRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewTestNotifierSettingsRequestWithBody constructs an http.Request for the TestNotifierSettings method, with any body, and a specified content type
+func NewTestNotifierSettingsRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/notifier-tests")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewListNotifiersRequest constructs an http.Request for the ListNotifiers method
+func NewListNotifiersRequest(server string, params *ListNotifiersParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/notifiers")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "workspaceId", params.WorkspaceId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: "uuid"}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "limit", *params.Limit, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.After != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "after", *params.After, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewCreateNotifierRequest calls the generic CreateNotifier builder with application/json body
+func NewCreateNotifierRequest(server string, body CreateNotifierJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCreateNotifierRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewCreateNotifierRequestWithBody constructs an http.Request for the CreateNotifier method, with any body, and a specified content type
+func NewCreateNotifierRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/notifiers")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewDeleteNotifierRequest constructs an http.Request for the DeleteNotifier method
+func NewDeleteNotifierRequest(server string, notifierId NotifierId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "notifierId", notifierId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/notifiers/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodDelete, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetNotifierRequest constructs an http.Request for the GetNotifier method
+func NewGetNotifierRequest(server string, notifierId NotifierId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "notifierId", notifierId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/notifiers/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewUpdateNotifierRequest calls the generic UpdateNotifier builder with application/json body
+func NewUpdateNotifierRequest(server string, notifierId NotifierId, body UpdateNotifierJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewUpdateNotifierRequestWithBody(server, notifierId, "application/json", bodyReader)
+}
+
+// NewUpdateNotifierRequestWithBody constructs an http.Request for the UpdateNotifier method, with any body, and a specified content type
+func NewUpdateNotifierRequestWithBody(server string, notifierId NotifierId, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "notifierId", notifierId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/notifiers/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPut, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewTestNotifierRequest constructs an http.Request for the TestNotifier method
+func NewTestNotifierRequest(server string, notifierId NotifierId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "notifierId", notifierId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/notifiers/%s/test", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewTransferNotifierRequest calls the generic TransferNotifier builder with application/json body
+func NewTransferNotifierRequest(server string, notifierId NotifierId, body TransferNotifierJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewTransferNotifierRequestWithBody(server, notifierId, "application/json", bodyReader)
+}
+
+// NewTransferNotifierRequestWithBody constructs an http.Request for the TransferNotifier method, with any body, and a specified content type
+func NewTransferNotifierRequestWithBody(server string, notifierId NotifierId, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "notifierId", notifierId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/notifiers/%s/transfer", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
 	if err != nil {
 		return nil, err
 	}
@@ -3746,6 +5185,114 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with PUT /instance-settings (the `UpdateInstanceSettings` operationId).
 	UpdateInstanceSettingsWithResponse(ctx context.Context, body UpdateInstanceSettingsJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateInstanceSettingsResponse, error)
 
+	// TestNotifierSettingsWithBodyWithResponse Send a test message with settings that are not saved
+	//
+	// Any member of the workspace may test, a viewer included. With `notifierId`, a secret the request leaves out is taken from that notifier, which must belong to the same workspace; otherwise the answer is 404 `not_found` and nothing is sent. Nothing is saved, the notifier's `lastSendError` included.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /notifier-tests (the `TestNotifierSettings` operationId).
+	TestNotifierSettingsWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*TestNotifierSettingsResponse, error)
+
+	// TestNotifierSettingsWithResponse Send a test message with settings that are not saved
+	//
+	// Any member of the workspace may test, a viewer included. With `notifierId`, a secret the request leaves out is taken from that notifier, which must belong to the same workspace; otherwise the answer is 404 `not_found` and nothing is sent. Nothing is saved, the notifier's `lastSendError` included.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /notifier-tests (the `TestNotifierSettings` operationId).
+	TestNotifierSettingsWithResponse(ctx context.Context, body TestNotifierSettingsJSONRequestBody, reqEditors ...RequestEditorFn) (*TestNotifierSettingsResponse, error)
+
+	// ListNotifiersWithResponse List the notifiers of a workspace
+	//
+	// Ordered by name, then by ID. A user who is not a member of the workspace gets 404 `not_found`. Secrets are never returned.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /notifiers (the `ListNotifiers` operationId).
+	ListNotifiersWithResponse(ctx context.Context, params *ListNotifiersParams, reqEditors ...RequestEditorFn) (*ListNotifiersResponse, error)
+
+	// CreateNotifierWithBodyWithResponse Create a notifier in a workspace
+	//
+	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace. The type in `settings` is fixed once the notifier exists. Settings the provider refuses get 400 `invalid_request` with the field in `errors`.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /notifiers (the `CreateNotifier` operationId).
+	CreateNotifierWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateNotifierResponse, error)
+
+	// CreateNotifierWithResponse Create a notifier in a workspace
+	//
+	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace. The type in `settings` is fixed once the notifier exists. Settings the provider refuses get 400 `invalid_request` with the field in `errors`.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /notifiers (the `CreateNotifier` operationId).
+	CreateNotifierWithResponse(ctx context.Context, body CreateNotifierJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateNotifierResponse, error)
+
+	// DeleteNotifierWithResponse Delete a notifier
+	//
+	// Needs the role `WORKSPACE_MEMBER` or higher. A notifier that a database uses gets 409 `in_use`, and nothing is deleted.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with DELETE /notifiers/{notifierId} (the `DeleteNotifier` operationId).
+	DeleteNotifierWithResponse(ctx context.Context, notifierId NotifierId, reqEditors ...RequestEditorFn) (*DeleteNotifierResponse, error)
+
+	// GetNotifierWithResponse Get a notifier without its secrets
+	//
+	// A user who is not a member of the notifier's workspace gets 404 `not_found`, as for a notifier that does not exist.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /notifiers/{notifierId} (the `GetNotifier` operationId).
+	GetNotifierWithResponse(ctx context.Context, notifierId NotifierId, reqEditors ...RequestEditorFn) (*GetNotifierResponse, error)
+
+	// UpdateNotifierWithBodyWithResponse Replace the name and the settings of a notifier
+	//
+	// Needs the role `WORKSPACE_MEMBER` or higher. A secret the request leaves out keeps its stored value, and a webhook header sent without a value keeps the stored value of the header with the same name. Settings of another type than the notifier's get 400 `invalid_request`, because the type is fixed when the notifier is created.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /notifiers/{notifierId} (the `UpdateNotifier` operationId).
+	UpdateNotifierWithBodyWithResponse(ctx context.Context, notifierId NotifierId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateNotifierResponse, error)
+
+	// UpdateNotifierWithResponse Replace the name and the settings of a notifier
+	//
+	// Needs the role `WORKSPACE_MEMBER` or higher. A secret the request leaves out keeps its stored value, and a webhook header sent without a value keeps the stored value of the header with the same name. Settings of another type than the notifier's get 400 `invalid_request`, because the type is fixed when the notifier is created.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /notifiers/{notifierId} (the `UpdateNotifier` operationId).
+	UpdateNotifierWithResponse(ctx context.Context, notifierId NotifierId, body UpdateNotifierJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateNotifierResponse, error)
+
+	// TestNotifierWithResponse Send a test message through a saved notifier
+	//
+	// Any member of the workspace may test, a viewer included. A message the channel refuses is still a 200 that reports the channel's error, and the outcome becomes the notifier's `lastSendError`.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /notifiers/{notifierId}/test (the `TestNotifier` operationId).
+	TestNotifierWithResponse(ctx context.Context, notifierId NotifierId, reqEditors ...RequestEditorFn) (*TestNotifierResponse, error)
+
+	// TransferNotifierWithBodyWithResponse Move a notifier to another workspace
+	//
+	// Needs the role `WORKSPACE_MEMBER` or higher in both workspaces. While a database outside the target workspace uses the notifier, the answer is 409 `in_use`, and the notifier stays.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /notifiers/{notifierId}/transfer (the `TransferNotifier` operationId).
+	TransferNotifierWithBodyWithResponse(ctx context.Context, notifierId NotifierId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*TransferNotifierResponse, error)
+
+	// TransferNotifierWithResponse Move a notifier to another workspace
+	//
+	// Needs the role `WORKSPACE_MEMBER` or higher in both workspaces. While a database outside the target workspace uses the notifier, the answer is 409 `in_use`, and the notifier stays.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /notifiers/{notifierId}/transfer (the `TransferNotifier` operationId).
+	TransferNotifierWithResponse(ctx context.Context, notifierId NotifierId, body TransferNotifierJSONRequestBody, reqEditors ...RequestEditorFn) (*TransferNotifierResponse, error)
+
 	// CompletePasswordResetWithBodyWithResponse Replace the password with a mailed reset code
 	//
 	// Public, because the caller cannot sign in. A wrong, used or expired code and an address without an active user all get 400 `invalid_reset_code`. Every session issued before the reset stops working.
@@ -4439,6 +5986,586 @@ func (r UpdateInstanceSettingsResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r UpdateInstanceSettingsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type TestNotifierSettingsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *NotifierTestResult
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r TestNotifierSettingsResponse) GetJSON200() *NotifierTestResult {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r TestNotifierSettingsResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r TestNotifierSettingsResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r TestNotifierSettingsResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r TestNotifierSettingsResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r TestNotifierSettingsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r TestNotifierSettingsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r TestNotifierSettingsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r TestNotifierSettingsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type ListNotifiersResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *NotifierPage
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ListNotifiersResponse) GetJSON200() *NotifierPage {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r ListNotifiersResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r ListNotifiersResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r ListNotifiersResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r ListNotifiersResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r ListNotifiersResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ListNotifiersResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListNotifiersResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ListNotifiersResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type CreateNotifierResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON201 the response for an HTTP 201 `application/json` response
+	JSON201 *Notifier
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON201 returns the response for an HTTP 201 `application/json` response
+func (r CreateNotifierResponse) GetJSON201() *Notifier {
+	return r.JSON201
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r CreateNotifierResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r CreateNotifierResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r CreateNotifierResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r CreateNotifierResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r CreateNotifierResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r CreateNotifierResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r CreateNotifierResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreateNotifierResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r CreateNotifierResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type DeleteNotifierResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSON409 the response for an HTTP 409 `application/problem+json` response
+	ApplicationproblemJSON409 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r DeleteNotifierResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r DeleteNotifierResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r DeleteNotifierResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r DeleteNotifierResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSON409 returns the response for an HTTP 409 `application/problem+json` response
+func (r DeleteNotifierResponse) GetApplicationproblemJSON409() *Problem {
+	return r.ApplicationproblemJSON409
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r DeleteNotifierResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r DeleteNotifierResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r DeleteNotifierResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DeleteNotifierResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r DeleteNotifierResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetNotifierResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *Notifier
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetNotifierResponse) GetJSON200() *Notifier {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r GetNotifierResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r GetNotifierResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r GetNotifierResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r GetNotifierResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r GetNotifierResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetNotifierResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetNotifierResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetNotifierResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type UpdateNotifierResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *Notifier
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r UpdateNotifierResponse) GetJSON200() *Notifier {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r UpdateNotifierResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r UpdateNotifierResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r UpdateNotifierResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r UpdateNotifierResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r UpdateNotifierResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r UpdateNotifierResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r UpdateNotifierResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r UpdateNotifierResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r UpdateNotifierResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type TestNotifierResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *NotifierTestResult
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r TestNotifierResponse) GetJSON200() *NotifierTestResult {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r TestNotifierResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r TestNotifierResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r TestNotifierResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r TestNotifierResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r TestNotifierResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r TestNotifierResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r TestNotifierResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r TestNotifierResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type TransferNotifierResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSON409 the response for an HTTP 409 `application/problem+json` response
+	ApplicationproblemJSON409 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r TransferNotifierResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r TransferNotifierResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r TransferNotifierResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r TransferNotifierResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSON409 returns the response for an HTTP 409 `application/problem+json` response
+func (r TransferNotifierResponse) GetApplicationproblemJSON409() *Problem {
+	return r.ApplicationproblemJSON409
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r TransferNotifierResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r TransferNotifierResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r TransferNotifierResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r TransferNotifierResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r TransferNotifierResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -6359,6 +8486,186 @@ func (c *ClientWithResponses) UpdateInstanceSettingsWithResponse(ctx context.Con
 	return ParseUpdateInstanceSettingsResponse(rsp)
 }
 
+// TestNotifierSettingsWithBodyWithResponse Send a test message with settings that are not saved
+//
+// Any member of the workspace may test, a viewer included. With `notifierId`, a secret the request leaves out is taken from that notifier, which must belong to the same workspace; otherwise the answer is 404 `not_found` and nothing is sent. Nothing is saved, the notifier's `lastSendError` included.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /notifier-tests (the `TestNotifierSettings` operationId).
+func (c *ClientWithResponses) TestNotifierSettingsWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*TestNotifierSettingsResponse, error) {
+	rsp, err := c.TestNotifierSettingsWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseTestNotifierSettingsResponse(rsp)
+}
+
+// TestNotifierSettingsWithResponse Send a test message with settings that are not saved
+//
+// Any member of the workspace may test, a viewer included. With `notifierId`, a secret the request leaves out is taken from that notifier, which must belong to the same workspace; otherwise the answer is 404 `not_found` and nothing is sent. Nothing is saved, the notifier's `lastSendError` included.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /notifier-tests (the `TestNotifierSettings` operationId).
+func (c *ClientWithResponses) TestNotifierSettingsWithResponse(ctx context.Context, body TestNotifierSettingsJSONRequestBody, reqEditors ...RequestEditorFn) (*TestNotifierSettingsResponse, error) {
+	rsp, err := c.TestNotifierSettings(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseTestNotifierSettingsResponse(rsp)
+}
+
+// ListNotifiersWithResponse List the notifiers of a workspace
+//
+// Ordered by name, then by ID. A user who is not a member of the workspace gets 404 `not_found`. Secrets are never returned.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /notifiers (the `ListNotifiers` operationId).
+func (c *ClientWithResponses) ListNotifiersWithResponse(ctx context.Context, params *ListNotifiersParams, reqEditors ...RequestEditorFn) (*ListNotifiersResponse, error) {
+	rsp, err := c.ListNotifiers(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListNotifiersResponse(rsp)
+}
+
+// CreateNotifierWithBodyWithResponse Create a notifier in a workspace
+//
+// Needs the role `WORKSPACE_MEMBER` or higher in the workspace. The type in `settings` is fixed once the notifier exists. Settings the provider refuses get 400 `invalid_request` with the field in `errors`.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /notifiers (the `CreateNotifier` operationId).
+func (c *ClientWithResponses) CreateNotifierWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateNotifierResponse, error) {
+	rsp, err := c.CreateNotifierWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateNotifierResponse(rsp)
+}
+
+// CreateNotifierWithResponse Create a notifier in a workspace
+//
+// Needs the role `WORKSPACE_MEMBER` or higher in the workspace. The type in `settings` is fixed once the notifier exists. Settings the provider refuses get 400 `invalid_request` with the field in `errors`.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /notifiers (the `CreateNotifier` operationId).
+func (c *ClientWithResponses) CreateNotifierWithResponse(ctx context.Context, body CreateNotifierJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateNotifierResponse, error) {
+	rsp, err := c.CreateNotifier(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateNotifierResponse(rsp)
+}
+
+// DeleteNotifierWithResponse Delete a notifier
+//
+// Needs the role `WORKSPACE_MEMBER` or higher. A notifier that a database uses gets 409 `in_use`, and nothing is deleted.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with DELETE /notifiers/{notifierId} (the `DeleteNotifier` operationId).
+func (c *ClientWithResponses) DeleteNotifierWithResponse(ctx context.Context, notifierId NotifierId, reqEditors ...RequestEditorFn) (*DeleteNotifierResponse, error) {
+	rsp, err := c.DeleteNotifier(ctx, notifierId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDeleteNotifierResponse(rsp)
+}
+
+// GetNotifierWithResponse Get a notifier without its secrets
+//
+// A user who is not a member of the notifier's workspace gets 404 `not_found`, as for a notifier that does not exist.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /notifiers/{notifierId} (the `GetNotifier` operationId).
+func (c *ClientWithResponses) GetNotifierWithResponse(ctx context.Context, notifierId NotifierId, reqEditors ...RequestEditorFn) (*GetNotifierResponse, error) {
+	rsp, err := c.GetNotifier(ctx, notifierId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetNotifierResponse(rsp)
+}
+
+// UpdateNotifierWithBodyWithResponse Replace the name and the settings of a notifier
+//
+// Needs the role `WORKSPACE_MEMBER` or higher. A secret the request leaves out keeps its stored value, and a webhook header sent without a value keeps the stored value of the header with the same name. Settings of another type than the notifier's get 400 `invalid_request`, because the type is fixed when the notifier is created.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /notifiers/{notifierId} (the `UpdateNotifier` operationId).
+func (c *ClientWithResponses) UpdateNotifierWithBodyWithResponse(ctx context.Context, notifierId NotifierId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateNotifierResponse, error) {
+	rsp, err := c.UpdateNotifierWithBody(ctx, notifierId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateNotifierResponse(rsp)
+}
+
+// UpdateNotifierWithResponse Replace the name and the settings of a notifier
+//
+// Needs the role `WORKSPACE_MEMBER` or higher. A secret the request leaves out keeps its stored value, and a webhook header sent without a value keeps the stored value of the header with the same name. Settings of another type than the notifier's get 400 `invalid_request`, because the type is fixed when the notifier is created.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /notifiers/{notifierId} (the `UpdateNotifier` operationId).
+func (c *ClientWithResponses) UpdateNotifierWithResponse(ctx context.Context, notifierId NotifierId, body UpdateNotifierJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateNotifierResponse, error) {
+	rsp, err := c.UpdateNotifier(ctx, notifierId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateNotifierResponse(rsp)
+}
+
+// TestNotifierWithResponse Send a test message through a saved notifier
+//
+// Any member of the workspace may test, a viewer included. A message the channel refuses is still a 200 that reports the channel's error, and the outcome becomes the notifier's `lastSendError`.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /notifiers/{notifierId}/test (the `TestNotifier` operationId).
+func (c *ClientWithResponses) TestNotifierWithResponse(ctx context.Context, notifierId NotifierId, reqEditors ...RequestEditorFn) (*TestNotifierResponse, error) {
+	rsp, err := c.TestNotifier(ctx, notifierId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseTestNotifierResponse(rsp)
+}
+
+// TransferNotifierWithBodyWithResponse Move a notifier to another workspace
+//
+// Needs the role `WORKSPACE_MEMBER` or higher in both workspaces. While a database outside the target workspace uses the notifier, the answer is 409 `in_use`, and the notifier stays.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /notifiers/{notifierId}/transfer (the `TransferNotifier` operationId).
+func (c *ClientWithResponses) TransferNotifierWithBodyWithResponse(ctx context.Context, notifierId NotifierId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*TransferNotifierResponse, error) {
+	rsp, err := c.TransferNotifierWithBody(ctx, notifierId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseTransferNotifierResponse(rsp)
+}
+
+// TransferNotifierWithResponse Move a notifier to another workspace
+//
+// Needs the role `WORKSPACE_MEMBER` or higher in both workspaces. While a database outside the target workspace uses the notifier, the answer is 409 `in_use`, and the notifier stays.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /notifiers/{notifierId}/transfer (the `TransferNotifier` operationId).
+func (c *ClientWithResponses) TransferNotifierWithResponse(ctx context.Context, notifierId NotifierId, body TransferNotifierJSONRequestBody, reqEditors ...RequestEditorFn) (*TransferNotifierResponse, error) {
+	rsp, err := c.TransferNotifier(ctx, notifierId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseTransferNotifierResponse(rsp)
+}
+
 // CompletePasswordResetWithBodyWithResponse Replace the password with a mailed reset code
 //
 // Public, because the caller cannot sign in. A wrong, used or expired code and an address without an active user all get 400 `invalid_reset_code`. Every session issued before the reset stops working.
@@ -7202,6 +9509,472 @@ func ParseUpdateInstanceSettingsResponse(rsp *http.Response) (*UpdateInstanceSet
 			return nil, err
 		}
 		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseTestNotifierSettingsResponse parses an HTTP response from a TestNotifierSettingsWithResponse call
+func ParseTestNotifierSettingsResponse(rsp *http.Response) (*TestNotifierSettingsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &TestNotifierSettingsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest NotifierTestResult
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListNotifiersResponse parses an HTTP response from a ListNotifiersWithResponse call
+func ParseListNotifiersResponse(rsp *http.Response) (*ListNotifiersResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListNotifiersResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest NotifierPage
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCreateNotifierResponse parses an HTTP response from a CreateNotifierWithResponse call
+func ParseCreateNotifierResponse(rsp *http.Response) (*CreateNotifierResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CreateNotifierResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest Notifier
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseDeleteNotifierResponse parses an HTTP response from a DeleteNotifierWithResponse call
+func ParseDeleteNotifierResponse(rsp *http.Response) (*DeleteNotifierResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeleteNotifierResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case rsp.StatusCode == 204:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetNotifierResponse parses an HTTP response from a GetNotifierWithResponse call
+func ParseGetNotifierResponse(rsp *http.Response) (*GetNotifierResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetNotifierResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Notifier
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseUpdateNotifierResponse parses an HTTP response from a UpdateNotifierWithResponse call
+func ParseUpdateNotifierResponse(rsp *http.Response) (*UpdateNotifierResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &UpdateNotifierResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Notifier
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseTestNotifierResponse parses an HTTP response from a TestNotifierWithResponse call
+func ParseTestNotifierResponse(rsp *http.Response) (*TestNotifierResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &TestNotifierResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest NotifierTestResult
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseTransferNotifierResponse parses an HTTP response from a TransferNotifierWithResponse call
+func ParseTransferNotifierResponse(rsp *http.Response) (*TransferNotifierResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &TransferNotifierResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case rsp.StatusCode == 204:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
 		var dest Problem

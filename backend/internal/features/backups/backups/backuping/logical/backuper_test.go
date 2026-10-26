@@ -20,13 +20,13 @@ import (
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
 	"databasus-backend/internal/features/caching"
 	"databasus-backend/internal/features/databases"
-	"databasus-backend/internal/features/notifiers"
-	notifier_models "databasus-backend/internal/features/notifiers/models"
+	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	"databasus-backend/internal/features/storages"
 	storage_files "databasus-backend/internal/features/storages/files"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
 	"databasus-backend/internal/lib/logging"
+	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/util/encryption"
 	util_logger "databasus-backend/internal/util/logger"
@@ -62,7 +62,7 @@ func Test_BackupExecuted_NotificationSent(t *testing.T) {
 	user := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", user)
 	storage := storages.CreateTestStorage(workspace.ID)
-	notifier := notifiers.CreateTestNotifier(workspace.ID)
+	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
 	database := databases.CreateTestDatabase(workspace.ID, storage, notifier)
 	backups_config_logical.EnableBackupsForTestDatabase(t.Context(), database.ID, storage)
 
@@ -75,7 +75,7 @@ func Test_BackupExecuted_NotificationSent(t *testing.T) {
 
 		databases.RemoveTestDatabase(t.Context(), database)
 		time.Sleep(50 * time.Millisecond) // Wait for cascading deletes
-		notifiers.RemoveTestNotifier(notifier)
+		notifiers_bridge.RemoveTestNotifier(notifier)
 		storages.RemoveTestStorage(t.Context(), storage.ID)
 		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	}()
@@ -98,10 +98,10 @@ func Test_BackupExecuted_NotificationSent(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Set up expectations
-		mockNotificationSender.On("SendNotification",
+		mockNotificationSender.On("Notify",
 			mock.Anything,
-			mock.MatchedBy(func(notification notifier_models.Notification) bool {
-				return notification.Type == notifier_models.NotificationTypeBackupFailed &&
+			mock.MatchedBy(func(notification notifiers.Notification) bool {
+				return notification.Category == notifiers.CategoryBackupFailed &&
 					strings.Contains(notification.Heading, "❌ Backup failed") &&
 					strings.Contains(notification.Message, "backup failed")
 			}),
@@ -131,10 +131,10 @@ func Test_BackupExecuted_NotificationSent(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Set up expectations
-		mockNotificationSender.On("SendNotification",
+		mockNotificationSender.On("Notify",
 			mock.Anything,
-			mock.MatchedBy(func(notification notifier_models.Notification) bool {
-				return notification.Type == notifier_models.NotificationTypeBackupSuccess &&
+			mock.MatchedBy(func(notification notifiers.Notification) bool {
+				return notification.Category == notifiers.CategoryBackupSuccess &&
 					strings.Contains(notification.Heading, "✅ Backup completed") &&
 					strings.Contains(notification.Message, "Backup completed successfully")
 			}),
@@ -164,15 +164,15 @@ func Test_BackupExecuted_NotificationSent(t *testing.T) {
 		assert.NoError(t, err)
 
 		// capture arguments
-		var capturedNotifier *notifiers.Notifier
-		var capturedNotification notifier_models.Notification
+		var capturedNotifierIDs []uuid.UUID
+		var capturedNotification notifiers.Notification
 
-		mockNotificationSender.On("SendNotification",
+		mockNotificationSender.On("Notify",
 			mock.Anything,
-			mock.AnythingOfType("notifier_models.Notification"),
+			mock.AnythingOfType("notification.Notification"),
 		).Run(func(args mock.Arguments) {
-			capturedNotifier = args.Get(0).(*notifiers.Notifier)
-			capturedNotification = args.Get(1).(notifier_models.Notification)
+			capturedNotifierIDs = args.Get(0).([]uuid.UUID)
+			capturedNotification = args.Get(1).(notifiers.Notification)
 		}).Once()
 
 		backuper.MakeBackup(t.Context(), backup.ID, true)
@@ -181,12 +181,12 @@ func Test_BackupExecuted_NotificationSent(t *testing.T) {
 		mockNotificationSender.AssertExpectations(t)
 
 		// Additional detailed assertions
-		assert.Equal(t, notifier_models.NotificationTypeBackupSuccess, capturedNotification.Type)
+		assert.Equal(t, notifiers.CategoryBackupSuccess, capturedNotification.Category)
 		assert.Contains(t, capturedNotification.Heading, "✅ Backup completed")
 		assert.Contains(t, capturedNotification.Heading, database.Name)
 		assert.Contains(t, capturedNotification.Message, "Backup completed successfully")
 		assert.Contains(t, capturedNotification.Message, "10.00 MB")
-		assert.Equal(t, notifier.ID, capturedNotifier.ID)
+		assert.Equal(t, []uuid.UUID{notifier.ID}, capturedNotifierIDs)
 	})
 }
 
@@ -196,7 +196,7 @@ func Test_MakeBackup_WhenCallerContextCarriesRequestID_FinishLineIsAttributed(t 
 	capturingHandler := &requestIDCapturingHandler{requestIDByMessage: map[string]string{}}
 
 	mockNotificationSender := &MockNotificationSender{}
-	mockNotificationSender.On("SendNotification", mock.Anything, mock.Anything).Maybe()
+	mockNotificationSender.On("Notify", mock.Anything, mock.Anything).Maybe()
 
 	backuper := CreateTestBackuper()
 	backuper.notificationSender = mockNotificationSender
@@ -222,7 +222,7 @@ func Test_MakeBackup_WhenUsecaseStoresArtifactThenFails_ArtifactRemoved(t *testi
 	require.NoError(t, getBackupRepository().Save(backup))
 
 	notificationSender := &MockNotificationSender{}
-	notificationSender.On("SendNotification", mock.Anything, mock.Anything).Maybe()
+	notificationSender.On("Notify", mock.Anything, mock.Anything).Maybe()
 
 	backuper := CreateTestBackuperWithUseCase(&createStoredArtifactThenFailBackupUsecase{})
 	backuper.notificationSender = notificationSender
@@ -433,10 +433,10 @@ func assertBackupFailsAndIsReported(t *testing.T, backupErr error, expectedFailM
 	backup := SeedInProgressTestBackup(t, fixture.Database.ID, fixture.Storage.ID)
 
 	notificationSender := &MockNotificationSender{}
-	notificationSender.On("SendNotification",
+	notificationSender.On("Notify",
 		mock.Anything,
-		mock.MatchedBy(func(notification notifier_models.Notification) bool {
-			return notification.Type == notifier_models.NotificationTypeBackupFailed &&
+		mock.MatchedBy(func(notification notifiers.Notification) bool {
+			return notification.Category == notifiers.CategoryBackupFailed &&
 				strings.Contains(notification.Message, expectedFailMessage)
 		}),
 	).Once()
@@ -461,7 +461,7 @@ func assertBackupFailsAndIsReported(t *testing.T, backupErr error, expectedFailM
 
 func createRecordingNotificationSender() *MockNotificationSender {
 	notificationSender := &MockNotificationSender{}
-	notificationSender.On("SendNotification", mock.Anything, mock.Anything).Maybe()
+	notificationSender.On("Notify", mock.Anything, mock.Anything).Maybe()
 
 	return notificationSender
 }
@@ -508,7 +508,7 @@ func assertBackupCancelledSilently(
 	require.NoError(t, err)
 	assert.Equal(t, backups_core_logical.BackupStatusCanceled, persistedBackup.Status)
 
-	notificationSender.AssertNotCalled(t, "SendNotification", mock.Anything, mock.Anything)
+	notificationSender.AssertNotCalled(t, "Notify", mock.Anything, mock.Anything)
 
 	persistedDatabase, err := databases.GetDatabaseService().GetDatabaseByID(fixture.Database.ID)
 	require.NoError(t, err)
@@ -520,7 +520,7 @@ func Test_MakeBackup_WhenMetadataIsUnusable_BackupFailsAndArtifactRemoved(t *tes
 	backup := SeedInProgressTestBackup(t, fixture.Database.ID, fixture.Storage.ID)
 
 	notificationSender := &MockNotificationSender{}
-	notificationSender.On("SendNotification", mock.Anything, mock.Anything).Maybe()
+	notificationSender.On("Notify", mock.Anything, mock.Anything).Maybe()
 
 	backuper := CreateTestBackuperWithUseCase(&createUnusableMetadataBackupUsecase{})
 	backuper.notificationSender = notificationSender
@@ -569,7 +569,7 @@ func Test_MakeBackup_WhenPublicationFails_EveryFileOfTheAttemptIsRemoved(t *test
 	backup := SeedInProgressTestBackup(t, fixture.Database.ID, fixture.Storage.ID)
 
 	notificationSender := &MockNotificationSender{}
-	notificationSender.On("SendNotification", mock.Anything, mock.Anything).Maybe()
+	notificationSender.On("Notify", mock.Anything, mock.Anything).Maybe()
 
 	backuper := CreateTestBackuperWithUseCase(&createStaleReceiptBackupUsecase{})
 	backuper.notificationSender = notificationSender

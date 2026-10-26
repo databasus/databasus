@@ -1,12 +1,12 @@
 import { useTranslation } from 'react-i18next';
 
-import type { Notifier } from '../../../../../entity/notifiers';
+import type { SlackNotifierSettings } from '../../../../../entity/notifiers';
 
 interface Props {
-  notifier: Notifier;
+  settings: SlackNotifierSettings;
 }
 
-export function ShowSlackNotifierComponent({ notifier }: Props) {
+export function ShowSlackNotifierComponent({ settings }: Props) {
   const { t } = useTranslation();
 
   return (
@@ -19,7 +19,7 @@ export function ShowSlackNotifierComponent({ notifier }: Props) {
 
       <div className="mb-1 flex items-center">
         <div className="min-w-[110px] pr-2">{t('notifiers.fields.targetChatId')}</div>
-        {notifier?.slackNotifier?.targetChatId}
+        {settings.targetChatId}
       </div>
     </>
   );

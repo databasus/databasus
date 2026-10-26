@@ -31,6 +31,7 @@ const CONTRACT_ERROR_CODE_KEYS = {
   cannot_change_own_role: 'errors.cannotChangeOwnRole',
   owner_requires_transfer: 'errors.ownerRequiresTransfer',
   workspace_not_empty: 'errors.workspaceNotEmpty',
+  in_use: 'errors.inUse',
   internal: 'errors.internal',
 } as const satisfies Record<ApiComponents['schemas']['ProblemCode'], TranslationKey>;
 

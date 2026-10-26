@@ -6,7 +6,12 @@ import { useTranslation } from 'react-i18next';
 import { logicalBackupConfigApi } from '../../../entity/backups/logical';
 import { physicalBackupConfigApi } from '../../../entity/backups/physical';
 import type { TransferDatabaseRequest } from '../../../entity/backups/shared';
-import { type Database, DatabaseType, databaseApi } from '../../../entity/databases';
+import {
+  type Database,
+  type DatabaseNotifier,
+  DatabaseType,
+  databaseApi,
+} from '../../../entity/databases';
 import type { Notifier } from '../../../entity/notifiers';
 import { notifierApi } from '../../../entity/notifiers';
 import { type Storage, getStorageLogoFromType, storageApi } from '../../../entity/storages';
@@ -24,7 +29,7 @@ interface Props {
 }
 
 interface NotifierUsageInfo {
-  notifier: Notifier;
+  notifier: DatabaseNotifier;
   databaseCount: number;
   canTransfer: boolean;
 }
@@ -123,7 +128,7 @@ export const DatabaseTransferDialogComponent = ({
     try {
       const [storages, notifiers] = await Promise.all([
         storageApi.getStorages(workspaceId),
-        notifierApi.getNotifiers(workspaceId),
+        notifierApi.listAllNotifiers(workspaceId),
       ]);
       setTargetStorages(storages);
       setTargetNotifiers(notifiers);
@@ -153,7 +158,9 @@ export const DatabaseTransferDialogComponent = ({
       }
       ToastHelper.showToast({
         title: t('databases.transfer.transferred.title'),
-        description: t('databases.transfer.transferred.description', { name: database.name }),
+        description: t('databases.transfer.transferred.description', {
+          name: database.name,
+        }),
       });
       onTransferred();
     } catch (e) {
@@ -253,7 +260,9 @@ export const DatabaseTransferDialogComponent = ({
                       <div className="flex items-center gap-2 rounded border border-red-300 bg-red-50 p-2 text-sm text-red-600 dark:border-red-600 dark:bg-red-900/20">
                         <ExclamationCircleOutlined />
                         <span>
-                          {t('databases.transfer.storage.blocked', { count: storageUsageCount })}
+                          {t('databases.transfer.storage.blocked', {
+                            count: storageUsageCount,
+                          })}
                         </span>
                       </div>
                     ) : (
@@ -281,7 +290,10 @@ export const DatabaseTransferDialogComponent = ({
                         className="w-full max-w-[300px]"
                         placeholder={t('databases.transfer.storage.selectPlaceholder')}
                         options={[
-                          ...targetStorages.map((s) => ({ label: s.name, value: s.id })),
+                          ...targetStorages.map((s) => ({
+                            label: s.name,
+                            value: s.id,
+                          })),
                           {
                             label: t('databases.transfer.storage.createNew'),
                             value: 'create-new-storage',
@@ -392,7 +404,10 @@ export const DatabaseTransferDialogComponent = ({
                         className="w-full max-w-[300px]"
                         placeholder={t('databases.transfer.notifiers.selectPlaceholder')}
                         options={[
-                          ...targetNotifiers.map((n) => ({ label: n.name, value: n.id })),
+                          ...targetNotifiers.map((n) => ({
+                            label: n.name,
+                            value: n.id,
+                          })),
                           {
                             label: t('databases.notifiers.createNew'),
                             value: 'create-new-notifier',

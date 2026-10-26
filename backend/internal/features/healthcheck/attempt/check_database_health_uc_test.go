@@ -12,28 +12,28 @@ import (
 
 	"databasus-backend/internal/features/databases"
 	healthcheck_config "databasus-backend/internal/features/healthcheck/config"
-	"databasus-backend/internal/features/notifiers"
-	notifier_models "databasus-backend/internal/features/notifiers/models"
+	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	"databasus-backend/internal/features/storages"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
+	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/util/logger"
 )
 
-func unavailableNotification(databaseName string) notifier_models.Notification {
-	return notifier_models.Notification{
-		Type:    notifier_models.NotificationTypeHealthcheckFailed,
-		Heading: fmt.Sprintf("❌ [%s] DB is unavailable", databaseName),
-		Message: fmt.Sprintf("❌ [%s] DB is currently unavailable", databaseName),
+func unavailableNotification(databaseName string) notifiers.Notification {
+	return notifiers.Notification{
+		Category: notifiers.CategoryHealthcheckFailed,
+		Heading:  fmt.Sprintf("❌ [%s] DB is unavailable", databaseName),
+		Message:  fmt.Sprintf("❌ [%s] DB is currently unavailable", databaseName),
 	}
 }
 
-func onlineNotification(databaseName string) notifier_models.Notification {
-	return notifier_models.Notification{
-		Type:    notifier_models.NotificationTypeHealthcheckSuccess,
-		Heading: fmt.Sprintf("✅ [%s] DB is online", databaseName),
-		Message: fmt.Sprintf("✅ [%s] DB is back online", databaseName),
+func onlineNotification(databaseName string) notifiers.Notification {
+	return notifiers.Notification{
+		Category: notifiers.CategoryHealthcheckSuccess,
+		Heading:  fmt.Sprintf("✅ [%s] DB is online", databaseName),
+		Message:  fmt.Sprintf("✅ [%s] DB is back online", databaseName),
 	}
 }
 
@@ -71,11 +71,11 @@ func Test_CheckDatabaseHealthUseCase(t *testing.T) {
 	}
 
 	storage := storages.CreateTestStorage(workspace.ID)
-	notifier := notifiers.CreateTestNotifier(workspace.ID)
+	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
 
 	defer func() {
 		storages.RemoveTestStorage(t.Context(), storage.ID)
-		notifiers.RemoveTestNotifier(notifier)
+		notifiers_bridge.RemoveTestNotifier(notifier)
 		workspaces_testing.RemoveTestWorkspaceDirect(workspace.ID)
 	}()
 
@@ -85,7 +85,7 @@ func Test_CheckDatabaseHealthUseCase(t *testing.T) {
 
 		// Setup mock notifier sender
 		mockSender := &MockHealthcheckAttemptSender{}
-		mockSender.On("SendNotification", mock.Anything, mock.Anything).Return()
+		mockSender.On("Notify", mock.Anything, mock.Anything).Return()
 
 		// Setup mock database service
 		mockDatabaseService := &MockDatabaseService{}
@@ -134,7 +134,7 @@ func Test_CheckDatabaseHealthUseCase(t *testing.T) {
 		// Verify notification was sent
 		mockSender.AssertCalled(
 			t,
-			"SendNotification",
+			"Notify",
 			mock.Anything,
 			unavailableNotification(database.Name),
 		)
@@ -194,7 +194,7 @@ func Test_CheckDatabaseHealthUseCase(t *testing.T) {
 			// Verify no notification was sent (not marked as down yet)
 			mockSender.AssertNotCalled(
 				t,
-				"SendNotification",
+				"Notify",
 				mock.Anything,
 				unavailableNotification(database.Name),
 			)
@@ -216,7 +216,7 @@ func Test_CheckDatabaseHealthUseCase(t *testing.T) {
 
 			// Setup mock notifier sender
 			mockSender := &MockHealthcheckAttemptSender{}
-			mockSender.On("SendNotification", mock.Anything, mock.Anything).Return()
+			mockSender.On("Notify", mock.Anything, mock.Anything).Return()
 
 			// Setup mock database service
 			mockDatabaseService := &MockDatabaseService{}
@@ -273,7 +273,7 @@ func Test_CheckDatabaseHealthUseCase(t *testing.T) {
 			// Verify notification was sent
 			mockSender.AssertCalled(
 				t,
-				"SendNotification",
+				"Notify",
 				mock.Anything,
 				unavailableNotification(database.Name),
 			)
@@ -293,7 +293,7 @@ func Test_CheckDatabaseHealthUseCase(t *testing.T) {
 
 		// Setup mock notifier sender
 		mockSender := &MockHealthcheckAttemptSender{}
-		mockSender.On("SendNotification", mock.Anything, mock.Anything).Return()
+		mockSender.On("Notify", mock.Anything, mock.Anything).Return()
 
 		// Setup mock database service - connection succeeds
 		mockDatabaseService := &MockDatabaseService{}
@@ -341,7 +341,7 @@ func Test_CheckDatabaseHealthUseCase(t *testing.T) {
 		// Verify notification was sent for recovery
 		mockSender.AssertCalled(
 			t,
-			"SendNotification",
+			"Notify",
 			mock.Anything,
 			onlineNotification(database.Name),
 		)
@@ -355,7 +355,7 @@ func Test_CheckDatabaseHealthUseCase(t *testing.T) {
 
 			// Setup mock notifier sender
 			mockSender := &MockHealthcheckAttemptSender{}
-			mockSender.On("SendNotification", mock.Anything, mock.Anything).Return()
+			mockSender.On("Notify", mock.Anything, mock.Anything).Return()
 
 			// Setup mock database service - connection succeeds
 			mockDatabaseService := &MockDatabaseService{}
@@ -461,7 +461,7 @@ func Test_CheckDatabaseHealthUseCase(t *testing.T) {
 					defer databases.RemoveTestDatabase(t.Context(), database)
 
 					mockSender := &MockHealthcheckAttemptSender{}
-					mockSender.On("SendNotification", mock.Anything, mock.Anything).Return()
+					mockSender.On("Notify", mock.Anything, mock.Anything).Return()
 
 					useCase := newTestUseCase(mockSender, databases.GetDatabaseService())
 
@@ -507,7 +507,7 @@ func Test_CheckDatabaseHealthUseCase(t *testing.T) {
 			defer databases.RemoveTestDatabase(t.Context(), database)
 
 			mockSender := &MockHealthcheckAttemptSender{}
-			mockSender.On("SendNotification", mock.Anything, mock.Anything).Return()
+			mockSender.On("Notify", mock.Anything, mock.Anything).Return()
 
 			mockDatabaseService := &MockDatabaseService{}
 			mockDatabaseService.On("ProbeDatabaseLiveness", database).
@@ -537,7 +537,7 @@ func Test_CheckDatabaseHealthUseCase(t *testing.T) {
 			mockDatabaseService.AssertCalled(t, "SetHealthStatus", database.ID, &unavailableStatus)
 			mockSender.AssertCalled(
 				t,
-				"SendNotification",
+				"Notify",
 				mock.Anything,
 				unavailableNotification(database.Name),
 			)

@@ -74,6 +74,7 @@ func (a *App) Serve(ctx context.Context, address string) error {
 		Steps: []shutdown.Step{
 			{Name: "http server", Run: server.Shutdown},
 			{Name: "running tasks", Run: task_cancellation.GetRegistry().WaitUntilNoTasksRegistered},
+			{Name: "notification deliveries", Run: a.notifiersModule.WaitForDeliveries},
 			{Name: "background loops", Run: a.backgroundGroup.Wait},
 			{Name: "background jobs", Run: a.runner.Wait},
 		},

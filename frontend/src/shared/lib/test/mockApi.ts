@@ -48,6 +48,7 @@ export const mockApi = {
   get: respond('get'),
   post: respond('post'),
   put: respond('put'),
+  delete: respond('delete'),
 
   // An answer the contract cannot describe, such as the empty 502 of a proxy.
   getWithoutBody: (path: PathWith<'get'>, status: number) =>

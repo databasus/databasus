@@ -21,7 +21,6 @@ import (
 	"databasus-backend/internal/features/backups/backups/encryption"
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
 	"databasus-backend/internal/features/databases"
-	"databasus-backend/internal/features/notifiers"
 	"databasus-backend/internal/features/storages"
 	task_cancellation "databasus-backend/internal/features/tasks/cancellation"
 	workspaces_bridge "databasus-backend/internal/features/workspaces"
@@ -36,7 +35,6 @@ type LogicalBackupService struct {
 	databaseService     *databases.DatabaseService
 	storageService      *storages.StorageService
 	backupRepository    *backups_core_logical.BackupRepository
-	notifierService     *notifiers.NotifierService
 	notificationSender  backups_core_logical.NotificationSender
 	backupConfigService *backups_config_logical.BackupConfigService
 	masterKey           *crypto.MasterKey

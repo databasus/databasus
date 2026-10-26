@@ -4,7 +4,7 @@ import (
 	"sync"
 
 	"databasus-backend/internal/features/databases"
-	"databasus-backend/internal/features/notifiers"
+	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	"databasus-backend/internal/features/storages"
 	workspaces_bridge "databasus-backend/internal/features/workspaces"
 	"databasus-backend/internal/util/logger"
@@ -19,7 +19,7 @@ var (
 			getBackupConfigRepository(),
 			databases.GetDatabaseService(),
 			storages.GetStorageService(),
-			notifiers.GetNotifierService(),
+			notifiers_bridge.GetModule,
 			workspaces_bridge.GetAccess(),
 			logger.GetLogger(),
 			nil,

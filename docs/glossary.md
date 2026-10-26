@@ -11,6 +11,9 @@ This is the project's common language. Each concept has one term in the document
 | Engine | engine | A kind of database server Databasus supports: PostgreSQL, MySQL, MariaDB or MongoDB. The term also names the code in `internal/engines` that drives it. |
 | Storage | storage | A place where backups are kept: local disk, S3, Google Drive, NAS, Azure Blob, FTP, SFTP, rclone. |
 | Notifier | notifier | A channel Databasus sends notifications to: email, Telegram, Slack, Discord, Teams, Mattermost, webhook. |
+| Notification | notification, `notifiers.Notification` | A message about an event of a database, with a category, a heading and a text, which Databasus sends to the notifiers of that database. |
+| Notification category | notification category, `notifiers.Category`; `NotificationCategory` in the API | What a notification is about, such as a failed backup. A webhook notifier can accept only some categories. |
+| Delivery | delivery | One send of one notification to one notifier, ended by a timeout. Its outcome becomes the notifier's last send error. |
 | Provider | provider | One implementation of a storage or notifier type, with its own settings table. |
 | Workspace | workspace | A group of users and the databases, storages and notifiers they share. |
 | Member | member | A user in a workspace, with a workspace role. |

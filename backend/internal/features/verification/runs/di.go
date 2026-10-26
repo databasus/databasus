@@ -8,7 +8,7 @@ import (
 	backuping_logical "databasus-backend/internal/features/backups/backups/backuping/logical"
 	backups_services "databasus-backend/internal/features/backups/backups/services"
 	"databasus-backend/internal/features/databases"
-	"databasus-backend/internal/features/notifiers"
+	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	verification_agents "databasus-backend/internal/features/verification/agents"
 	verification_config "databasus-backend/internal/features/verification/config"
 	workspaces_bridge "databasus-backend/internal/features/workspaces"
@@ -25,7 +25,7 @@ var getVerificationService = sync.OnceValue(func() *VerificationService {
 		databases.GetDatabaseService(),
 		backups_services.GetBackupService(),
 		verification_config.GetVerificationConfigService(),
-		notifiers.GetNotifierService(),
+		notifiers_bridge.GetSender(),
 		workspaces_bridge.GetAccess(),
 		audit_logs.GetAuditLogService(),
 		logger.GetLogger(),

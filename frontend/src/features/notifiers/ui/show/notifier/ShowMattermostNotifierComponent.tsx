@@ -3,20 +3,16 @@ import { useTranslation } from 'react-i18next';
 import {
   MATTERMOST_DELIVERY_MODE_LABEL_KEYS,
   MattermostDeliveryMode,
-  type Notifier,
+  type MattermostNotifierSettings,
 } from '../../../../../entity/notifiers';
 
 interface Props {
-  notifier: Notifier;
+  settings: MattermostNotifierSettings;
 }
 
-export function ShowMattermostNotifierComponent({ notifier }: Props) {
+export function ShowMattermostNotifierComponent({ settings }: Props) {
   const { t } = useTranslation();
-  const mattermostNotifier = notifier.mattermostNotifier;
-
-  if (!mattermostNotifier) return <div />;
-
-  const isWebhookMode = mattermostNotifier.deliveryMode === MattermostDeliveryMode.WEBHOOK;
+  const isWebhookMode = settings.deliveryMode === MattermostDeliveryMode.WEBHOOK;
 
   return (
     <>
@@ -24,7 +20,7 @@ export function ShowMattermostNotifierComponent({ notifier }: Props) {
         <div className="max-w-[110px] min-w-[110px] pr-3">
           {t('notifiers.mattermost.connectVia')}
         </div>
-        <div>{t(MATTERMOST_DELIVERY_MODE_LABEL_KEYS[mattermostNotifier.deliveryMode])}</div>
+        <div>{t(MATTERMOST_DELIVERY_MODE_LABEL_KEYS[settings.deliveryMode])}</div>
       </div>
 
       {isWebhookMode ? (
@@ -33,19 +29,15 @@ export function ShowMattermostNotifierComponent({ notifier }: Props) {
             <div className="max-w-[110px] min-w-[110px] pr-3">
               {t('notifiers.fields.webhookUrl')}
             </div>
-            <div className="break-all">
-              {mattermostNotifier.webhookUrl
-                ? `${mattermostNotifier.webhookUrl}*******`
-                : '*******'}
-            </div>
+            <div className="break-all">*********</div>
           </div>
 
-          {mattermostNotifier.targetChannelName && (
+          {settings.targetChannelName && (
             <div className="flex">
               <div className="max-w-[110px] min-w-[110px] pr-3">
                 {t('notifiers.mattermost.channel')}
               </div>
-              <div className="break-all">{mattermostNotifier.targetChannelName}</div>
+              <div className="break-all">{settings.targetChannelName}</div>
             </div>
           )}
         </>
@@ -55,14 +47,14 @@ export function ShowMattermostNotifierComponent({ notifier }: Props) {
             <div className="max-w-[110px] min-w-[110px] pr-3">
               {t('notifiers.mattermost.serverUrl')}
             </div>
-            <div className="break-all">{mattermostNotifier.serverUrl}</div>
+            <div className="break-all">{settings.serverUrl}</div>
           </div>
 
           <div className="flex">
             <div className="max-w-[110px] min-w-[110px] pr-3">
               {t('notifiers.fields.channelId')}
             </div>
-            <div className="break-all">{mattermostNotifier.targetChannelId}</div>
+            <div className="break-all">{settings.targetChannelId}</div>
           </div>
         </>
       )}

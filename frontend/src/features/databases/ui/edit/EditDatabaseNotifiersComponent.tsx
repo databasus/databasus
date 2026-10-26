@@ -2,7 +2,7 @@ import { Button, Modal, Select, Spin } from 'antd';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { type Database, databaseApi } from '../../../../entity/databases';
+import { type Database, type DatabaseNotifier, databaseApi } from '../../../../entity/databases';
 import { type Notifier, notifierApi } from '../../../../entity/notifiers';
 import { translateApiError } from '../../../../shared/i18n';
 import { EditNotifierComponent } from '../../../notifiers/ui/edit/EditNotifierComponent';
@@ -22,6 +22,14 @@ interface Props {
   isSaveToApi: boolean;
   onSaved: (database: Database) => void;
 }
+
+const toDatabaseNotifier = (notifier: Notifier): DatabaseNotifier => ({
+  id: notifier.id,
+  workspaceId: notifier.workspaceId,
+  name: notifier.name,
+  notifierType: notifier.settings.type,
+  lastSendError: notifier.lastSendError,
+});
 
 export const EditDatabaseNotifiersComponent = ({
   database,
@@ -71,8 +79,7 @@ export const EditDatabaseNotifiersComponent = ({
     setIsNotifiersLoading(true);
 
     try {
-      const notifiers = await notifierApi.getNotifiers(workspaceId);
-      setNotifiers(notifiers);
+      setNotifiers(await notifierApi.listAllNotifiers(workspaceId));
     } catch (e) {
       alert(translateApiError(e, t));
     }
@@ -119,8 +126,10 @@ export const EditDatabaseNotifiersComponent = ({
 
             setEditingDatabase({
               ...editingDatabase,
-              notifiers: notifiers.filter((n) => notifiersIds.includes(n.id)),
-            } as unknown as Database);
+              notifiers: notifiers
+                .filter((notifier) => notifiersIds.includes(notifier.id))
+                .map(toDatabaseNotifier),
+            });
 
             setIsUnsaved(true);
           }}
@@ -128,7 +137,10 @@ export const EditDatabaseNotifiersComponent = ({
           className="max-w-[200px] grow"
           options={[
             ...notifiers.map((n) => ({ label: n.name, value: n.id })),
-            { label: t('databases.notifiers.createNew'), value: 'create-new-notifier' },
+            {
+              label: t('databases.notifiers.createNew'),
+              value: 'create-new-notifier',
+            },
           ]}
           placeholder={t('databases.notifiers.selectPlaceholder')}
         />

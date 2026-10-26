@@ -16,21 +16,20 @@ import (
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
 	"databasus-backend/internal/features/databases"
-	"databasus-backend/internal/features/notifiers"
-	notifier_models "databasus-backend/internal/features/notifiers/models"
 	storage_files "databasus-backend/internal/features/storages/files"
+	"databasus-backend/internal/modules/notifiers"
 )
 
 type MockNotificationSender struct {
 	mock.Mock
 }
 
-func (m *MockNotificationSender) SendNotification(
+func (m *MockNotificationSender) Notify(
 	_ context.Context,
-	notifier *notifiers.Notifier,
-	notification notifier_models.Notification,
+	notifierIDs []uuid.UUID,
+	notification notifiers.Notification,
 ) {
-	m.Called(notifier, notification)
+	m.Called(notifierIDs, notification)
 }
 
 const FakeBackupArtifact = "fake logical backup"

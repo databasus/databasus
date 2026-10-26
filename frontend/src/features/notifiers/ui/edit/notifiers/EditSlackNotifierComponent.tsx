@@ -1,16 +1,17 @@
 import { Input } from 'antd';
 import { useTranslation } from 'react-i18next';
 
-import type { Notifier } from '../../../../../entity/notifiers';
+import type { SlackNotifierSettings } from '../../../../../entity/notifiers';
 import { getWebsitePageUrl, useLocale } from '../../../../../shared/i18n';
+import { toOptionalValue } from '../../../lib/toOptionalValue';
 
 interface Props {
-  notifier: Notifier;
-  setNotifier: (notifier: Notifier) => void;
-  setUnsaved: () => void;
+  settings: SlackNotifierSettings;
+  isSaved: boolean;
+  onChange: (settings: SlackNotifierSettings) => void;
 }
 
-export function EditSlackNotifierComponent({ notifier, setNotifier, setUnsaved }: Props) {
+export function EditSlackNotifierComponent({ settings, isSaved, onChange }: Props) {
   const { t } = useTranslation();
   const { locale } = useLocale();
 
@@ -30,23 +31,21 @@ export function EditSlackNotifierComponent({ notifier, setNotifier, setUnsaved }
       <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
         <div className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2">{t('notifiers.fields.botToken')}</div>
         <Input
-          value={notifier?.slackNotifier?.botToken || ''}
-          onChange={(e) => {
-            if (!notifier?.slackNotifier) return;
-
-            setNotifier({
-              ...notifier,
-              slackNotifier: {
-                ...notifier.slackNotifier,
-                botToken: e.target.value.trim(),
-              },
-            });
-            setUnsaved();
-          }}
+          value={settings.botToken ?? ''}
+          onChange={(e) =>
+            onChange({
+              ...settings,
+              botToken: toOptionalValue(e.target.value.trim()),
+            })
+          }
           size="small"
           className="w-full max-w-[250px]"
-          // eslint-disable-next-line i18next/no-literal-string -- example token prefix, not copy
-          placeholder="xoxb-..."
+          placeholder={
+            isSaved
+              ? t('notifiers.secretKeptPlaceholder')
+              : // eslint-disable-next-line i18next/no-literal-string -- example token prefix, not copy
+                'xoxb-...'
+          }
         />
       </div>
 
@@ -55,19 +54,8 @@ export function EditSlackNotifierComponent({ notifier, setNotifier, setUnsaved }
           {t('notifiers.fields.targetChatId')}
         </div>
         <Input
-          value={notifier?.slackNotifier?.targetChatId || ''}
-          onChange={(e) => {
-            if (!notifier?.slackNotifier) return;
-
-            setNotifier({
-              ...notifier,
-              slackNotifier: {
-                ...notifier.slackNotifier,
-                targetChatId: e.target.value.trim(),
-              },
-            });
-            setUnsaved();
-          }}
+          value={settings.targetChatId}
+          onChange={(e) => onChange({ ...settings, targetChatId: e.target.value.trim() })}
           size="small"
           className="w-full max-w-[250px]"
           // eslint-disable-next-line i18next/no-literal-string -- example channel ID

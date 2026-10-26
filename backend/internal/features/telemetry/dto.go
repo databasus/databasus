@@ -9,10 +9,10 @@ import (
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	physical_models "databasus-backend/internal/features/backups/backups/core/physical/models"
 	"databasus-backend/internal/features/databases"
-	"databasus-backend/internal/features/notifiers"
 	"databasus-backend/internal/features/storages"
 	verification_agents "databasus-backend/internal/features/verification/agents"
 	verification_config "databasus-backend/internal/features/verification/config"
+	"databasus-backend/internal/modules/notifiers"
 )
 
 type DatabaseEntry struct {
@@ -60,7 +60,7 @@ type storageLister interface {
 }
 
 type notifierLister interface {
-	GetAllNotifiers() ([]*notifiers.Notifier, error)
+	GetNotifierTypes(ctx context.Context) ([]notifiers.Type, error)
 }
 
 type backupChecker interface {

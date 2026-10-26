@@ -22,6 +22,7 @@ const (
 	ProblemCodeEmailNotConfigured      ProblemCode = "email_not_configured"
 	ProblemCodeEmailTaken              ProblemCode = "email_taken"
 	ProblemCodeHumanVerificationFailed ProblemCode = "human_verification_failed"
+	ProblemCodeInUse                   ProblemCode = "in_use"
 	ProblemCodeInternal                ProblemCode = "internal"
 	ProblemCodeInvalidCredentials      ProblemCode = "invalid_credentials"
 	ProblemCodeInvalidRequest          ProblemCode = "invalid_request"
@@ -57,6 +58,8 @@ func (e ProblemCode) Valid() bool {
 	case ProblemCodeEmailTaken:
 		return true
 	case ProblemCodeHumanVerificationFailed:
+		return true
+	case ProblemCodeInUse:
 		return true
 	case ProblemCodeInternal:
 		return true
@@ -142,6 +145,9 @@ type VersionResponse struct {
 
 // MemberId defines model for MemberId.
 type MemberId = openapi_types.UUID
+
+// NotifierId defines model for NotifierId.
+type NotifierId = openapi_types.UUID
 
 // PendingSignInId defines model for PendingSignInId.
 type PendingSignInId = openapi_types.UUID

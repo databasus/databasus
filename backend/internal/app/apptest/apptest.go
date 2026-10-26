@@ -33,8 +33,9 @@ type App struct {
 	GitHub *FakeGitHub
 	Google *FakeGoogle
 
-	databaseDsn string
-	app         *app.App
+	databaseDsn   string
+	secretKeyPath string
+	app           *app.App
 }
 
 // The old code reaches its configuration and database through process-wide state, so one test
@@ -65,11 +66,18 @@ func New(tb testing.TB, options ...Option) *App {
 	tb.Helper()
 
 	applied := settings{
-		isMailServerMissing: false,
-		isTurnstileEnabled:  false,
-		isGitHubEnabled:     false,
-		isGoogleEnabled:     false,
-		publicURL:           "",
+		isMailServerMissing:         false,
+		isTurnstileEnabled:          false,
+		isGitHubEnabled:             false,
+		isGoogleEnabled:             false,
+		publicURL:                   "",
+		notificationDeliveryTimeout: 0,
+		// A test never reaches the real Slack or Telegram: an unset address points at a host that
+		// does not resolve.
+		notifierEndpoints: NotifierEndpoints{
+			SlackPostMessageURL: "http://slack.invalid/api/chat.postMessage",
+			TelegramBotAPIURL:   "http://telegram.invalid",
+		},
 	}
 	for _, option := range options {
 		option(&applied)
@@ -129,6 +137,13 @@ func New(tb testing.TB, options ...Option) *App {
 		environment.ExternalEndpoints.GoogleUserInfoURL = fakeGoogle.URL + "/userinfo"
 	}
 
+	environment.ExternalEndpoints.SlackPostMessageURL = applied.notifierEndpoints.SlackPostMessageURL
+	environment.ExternalEndpoints.TelegramBotAPIURL = applied.notifierEndpoints.TelegramBotAPIURL
+
+	if applied.notificationDeliveryTimeout > 0 {
+		environment.NotificationDeliveryTimeout = applied.notificationDeliveryTimeout
+	}
+
 	mailRecorder := newMailRecorder(!applied.isMailServerMissing)
 	environment.Mailer = mailRecorder
 
@@ -148,13 +163,14 @@ func New(tb testing.TB, options ...Option) *App {
 	tb.Cleanup(server.Close)
 
 	return &App{
-		URL:         server.URL,
-		Clock:       manualClock,
-		Mail:        mailRecorder,
-		GitHub:      fakeGitHub,
-		Google:      fakeGoogle,
-		databaseDsn: databaseDsn,
-		app:         createdApp,
+		URL:           server.URL,
+		Clock:         manualClock,
+		Mail:          mailRecorder,
+		GitHub:        fakeGitHub,
+		Google:        fakeGoogle,
+		databaseDsn:   databaseDsn,
+		secretKeyPath: appConfig.SecretKeyPath,
+		app:           createdApp,
 	}
 }
 

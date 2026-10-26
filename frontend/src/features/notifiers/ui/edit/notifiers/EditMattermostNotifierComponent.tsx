@@ -6,43 +6,35 @@ import { useTranslation } from 'react-i18next';
 import {
   MATTERMOST_DELIVERY_MODE_LABEL_KEYS,
   MattermostDeliveryMode,
-  type MattermostNotifier,
-  type Notifier,
+  type MattermostNotifierSettings,
 } from '../../../../../entity/notifiers';
 import { getWebsitePageUrl, useLocale } from '../../../../../shared/i18n';
+import { toOptionalValue } from '../../../lib/toOptionalValue';
 
 interface Props {
-  notifier: Notifier;
-  setNotifier: (notifier: Notifier) => void;
-  setUnsaved: () => void;
+  settings: MattermostNotifierSettings;
+  isSaved: boolean;
+  onChange: (settings: MattermostNotifierSettings) => void;
 }
 
-export function EditMattermostNotifierComponent({ notifier, setNotifier, setUnsaved }: Props) {
+export function EditMattermostNotifierComponent({ settings, isSaved, onChange }: Props) {
   const { t } = useTranslation();
   const { locale } = useLocale();
-  const mattermostNotifier = notifier.mattermostNotifier;
 
   const [isShowOptional, setIsShowOptional] = useState(
     () =>
       !!(
-        mattermostNotifier?.targetChannelName ||
-        mattermostNotifier?.overrideUsername ||
-        mattermostNotifier?.overrideIconUrl ||
-        mattermostNotifier?.isInsecureSkipVerify
+        settings.targetChannelName ||
+        settings.overrideUsername ||
+        settings.overrideIconUrl ||
+        settings.isInsecureSkipVerify
       ),
   );
 
-  if (!mattermostNotifier) return <div />;
+  const updateMattermostSettings = (changes: Partial<MattermostNotifierSettings>) =>
+    onChange({ ...settings, ...changes });
 
-  const updateMattermostNotifier = (changes: Partial<MattermostNotifier>) => {
-    setNotifier({
-      ...notifier,
-      mattermostNotifier: { ...mattermostNotifier, ...changes },
-    });
-    setUnsaved();
-  };
-
-  const isWebhookMode = mattermostNotifier.deliveryMode === MattermostDeliveryMode.WEBHOOK;
+  const isWebhookMode = settings.deliveryMode === MattermostDeliveryMode.WEBHOOK;
 
   return (
     <>
@@ -62,12 +54,14 @@ export function EditMattermostNotifierComponent({ notifier, setNotifier, setUnsa
           {t('notifiers.mattermost.connectVia')}
         </div>
         <Select
-          value={mattermostNotifier.deliveryMode}
-          options={Object.values(MattermostDeliveryMode).map((deliveryMode) => ({
-            label: t(MATTERMOST_DELIVERY_MODE_LABEL_KEYS[deliveryMode]),
-            value: deliveryMode,
-          }))}
-          onChange={(deliveryMode) => updateMattermostNotifier({ deliveryMode })}
+          value={settings.deliveryMode}
+          options={Object.values(MattermostDeliveryMode).map(
+            (deliveryMode: MattermostDeliveryMode) => ({
+              label: t(MATTERMOST_DELIVERY_MODE_LABEL_KEYS[deliveryMode]),
+              value: deliveryMode,
+            }),
+          )}
+          onChange={(deliveryMode) => updateMattermostSettings({ deliveryMode })}
           size="small"
           className="w-full max-w-[250px]"
         />
@@ -79,11 +73,19 @@ export function EditMattermostNotifierComponent({ notifier, setNotifier, setUnsa
             {t('notifiers.mattermost.incomingWebhookUrl')}
           </div>
           <Input
-            value={mattermostNotifier.webhookUrl}
-            onChange={(e) => updateMattermostNotifier({ webhookUrl: e.target.value.trim() })}
+            value={settings.webhookUrl ?? ''}
+            onChange={(e) =>
+              updateMattermostSettings({
+                webhookUrl: toOptionalValue(e.target.value.trim()),
+              })
+            }
             size="small"
             className="w-full max-w-[250px]"
-            placeholder="https://mattermost.example.com/hooks/xxxxxxxx"
+            placeholder={
+              isSaved
+                ? t('notifiers.secretKeptPlaceholder')
+                : 'https://mattermost.example.com/hooks/xxxxxxxx'
+            }
           />
         </div>
       ) : (
@@ -93,8 +95,12 @@ export function EditMattermostNotifierComponent({ notifier, setNotifier, setUnsa
               {t('notifiers.mattermost.serverUrl')}
             </div>
             <Input
-              value={mattermostNotifier.serverUrl}
-              onChange={(e) => updateMattermostNotifier({ serverUrl: e.target.value.trim() })}
+              value={settings.serverUrl ?? ''}
+              onChange={(e) =>
+                updateMattermostSettings({
+                  serverUrl: toOptionalValue(e.target.value.trim()),
+                })
+              }
               size="small"
               className="w-full max-w-[250px]"
               placeholder="https://mattermost.example.com"
@@ -106,12 +112,20 @@ export function EditMattermostNotifierComponent({ notifier, setNotifier, setUnsa
               {t('notifiers.fields.botToken')}
             </div>
             <Input
-              value={mattermostNotifier.botToken}
-              onChange={(e) => updateMattermostNotifier({ botToken: e.target.value.trim() })}
+              value={settings.botToken ?? ''}
+              onChange={(e) =>
+                updateMattermostSettings({
+                  botToken: toOptionalValue(e.target.value.trim()),
+                })
+              }
               size="small"
               className="w-full max-w-[250px]"
-              // eslint-disable-next-line i18next/no-literal-string -- example token, not copy
-              placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxx"
+              placeholder={
+                isSaved
+                  ? t('notifiers.secretKeptPlaceholder')
+                  : // eslint-disable-next-line i18next/no-literal-string -- example token, not copy
+                    'xxxxxxxxxxxxxxxxxxxxxxxxxx'
+              }
             />
           </div>
 
@@ -121,9 +135,11 @@ export function EditMattermostNotifierComponent({ notifier, setNotifier, setUnsa
             </div>
             <div className="flex items-center">
               <Input
-                value={mattermostNotifier.targetChannelId}
+                value={settings.targetChannelId ?? ''}
                 onChange={(e) =>
-                  updateMattermostNotifier({ targetChannelId: e.target.value.trim() })
+                  updateMattermostSettings({
+                    targetChannelId: toOptionalValue(e.target.value.trim()),
+                  })
                 }
                 size="small"
                 className="w-full max-w-[250px]"
@@ -163,9 +179,11 @@ export function EditMattermostNotifierComponent({ notifier, setNotifier, setUnsa
               </div>
               <div className="flex items-center">
                 <Input
-                  value={mattermostNotifier.targetChannelName}
+                  value={settings.targetChannelName ?? ''}
                   onChange={(e) =>
-                    updateMattermostNotifier({ targetChannelName: e.target.value.trim() })
+                    updateMattermostSettings({
+                      targetChannelName: toOptionalValue(e.target.value.trim()),
+                    })
                   }
                   size="small"
                   className="w-full max-w-[250px]"
@@ -189,9 +207,11 @@ export function EditMattermostNotifierComponent({ notifier, setNotifier, setUnsa
             </div>
             <div className="flex items-center">
               <Input
-                value={mattermostNotifier.overrideUsername}
+                value={settings.overrideUsername ?? ''}
                 onChange={(e) =>
-                  updateMattermostNotifier({ overrideUsername: e.target.value.trim() })
+                  updateMattermostSettings({
+                    overrideUsername: toOptionalValue(e.target.value.trim()),
+                  })
                 }
                 size="small"
                 className="w-full max-w-[250px]"
@@ -214,9 +234,11 @@ export function EditMattermostNotifierComponent({ notifier, setNotifier, setUnsa
             </div>
             <div className="flex items-center">
               <Input
-                value={mattermostNotifier.overrideIconUrl}
+                value={settings.overrideIconUrl ?? ''}
                 onChange={(e) =>
-                  updateMattermostNotifier({ overrideIconUrl: e.target.value.trim() })
+                  updateMattermostSettings({
+                    overrideIconUrl: toOptionalValue(e.target.value.trim()),
+                  })
                 }
                 size="small"
                 className="w-full max-w-[250px]"
@@ -238,9 +260,11 @@ export function EditMattermostNotifierComponent({ notifier, setNotifier, setUnsa
             </div>
             <div className="flex items-center">
               <Checkbox
-                checked={mattermostNotifier.isInsecureSkipVerify}
+                checked={settings.isInsecureSkipVerify}
                 onChange={(e) =>
-                  updateMattermostNotifier({ isInsecureSkipVerify: e.target.checked })
+                  updateMattermostSettings({
+                    isInsecureSkipVerify: e.target.checked,
+                  })
                 }
               >
                 {t('notifiers.fields.skipTls')}

@@ -128,6 +128,7 @@ export const en = {
       'The owner cannot be changed or removed. Transfer the ownership to another member first.',
     workspaceNotEmpty:
       'The workspace still has databases. Delete them first, then delete the workspace.',
+    inUse: 'Databases still use it. Remove it from those databases first.',
     unknown: 'Something went wrong. Please try again.',
     networkUnreachable: 'Cannot reach the Databasus server. Check your connection and try again.',
     requestFailed:
@@ -1198,11 +1199,11 @@ export const en = {
       },
       removeConfirmation:
         'Are you sure you want to remove this notifier? This action cannot be undone.',
-      removeBlockedByDatabases:
-        'Notifier is used by some databases. Please remove the notifier from databases first.',
     },
+    secretKeptPlaceholder: 'Saved - leave empty to keep',
     testNotification: {
       send: 'Send test notification',
+      notDelivered: 'The test message was not delivered: {{error}}',
       sent: {
         title: 'Test notification sent!',
         description: 'Test notification sent successfully',
@@ -1291,7 +1292,7 @@ export const en = {
       customHeaders: 'Custom headers',
       customHeadersTooltip:
         'Add custom HTTP headers to the webhook request (e.g., Authorization, X-API-Key)',
-      savedHeadersHidden: '*Saved headers hidden for security reasons',
+      savedHeadersHidden: '*Saved header values are hidden. Leave a value empty to keep it',
       headers: 'Headers',
       headerNamePlaceholder: 'Header name',
       headerValuePlaceholder: 'Header value',

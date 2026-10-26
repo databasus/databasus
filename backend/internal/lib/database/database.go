@@ -1,4 +1,5 @@
-// Package database opens the pool of the internal database and applies its migrations.
+// Package database opens the pool of the internal database, applies its migrations, runs
+// transactions, recognizes constraint errors and encodes keyset cursors.
 package database
 
 import (

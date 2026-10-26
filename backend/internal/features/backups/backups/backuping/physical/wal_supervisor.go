@@ -22,11 +22,11 @@ import (
 	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
 	"databasus-backend/internal/features/databases"
 	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
-	notifier_models "databasus-backend/internal/features/notifiers/models"
 	"databasus-backend/internal/features/storages"
 	storage_files "databasus-backend/internal/features/storages/files"
 	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
 	"databasus-backend/internal/lib/crypto"
+	"databasus-backend/internal/modules/notifiers"
 	util_encryption "databasus-backend/internal/util/encryption"
 	"databasus-backend/internal/util/walmath"
 )
@@ -372,15 +372,13 @@ func (s *PhysicalWalStreamSupervisor) gapNotifier(
 			return
 		}
 
-		notification := notifier_models.Notification{
-			Type:    notifier_models.NotificationTypeBackupFailed,
-			Heading: fmt.Sprintf("Physical WAL gap detected for %q", db.Name),
-			Message: fmt.Sprintf("database_id=%s gap=[%s, %s)", db.ID, gapStart.String(), gapEnd.String()),
+		notification := notifiers.Notification{
+			Category: notifiers.CategoryBackupFailed,
+			Heading:  fmt.Sprintf("Physical WAL gap detected for %q", db.Name),
+			Message:  fmt.Sprintf("database_id=%s gap=[%s, %s)", db.ID, gapStart.String(), gapEnd.String()),
 		}
 
-		for _, notifier := range db.Notifiers {
-			s.notificationSender.SendNotification(ctx, &notifier, notification)
-		}
+		s.notificationSender.Notify(ctx, db.GetNotifierIDs(), notification)
 	}
 }
 
@@ -477,15 +475,13 @@ func (s *PhysicalWalStreamSupervisor) notifyChainBroken(
 		return
 	}
 
-	notification := notifier_models.Notification{
-		Type:    notifier_models.NotificationTypeBackupFailed,
-		Heading: alert.Heading,
-		Message: alert.Message,
+	notification := notifiers.Notification{
+		Category: notifiers.CategoryBackupFailed,
+		Heading:  alert.Heading,
+		Message:  alert.Message,
 	}
 
-	for _, notifier := range db.Notifiers {
-		s.notificationSender.SendNotification(ctx, &notifier, notification)
-	}
+	s.notificationSender.Notify(ctx, db.GetNotifierIDs(), notification)
 }
 
 func (s *PhysicalWalStreamSupervisor) recordChainAlertIfDue(key chainAlertKey) bool {

@@ -137,8 +137,8 @@ func (r *workspaceRepository) list(ctx context.Context, filter workspaceListFilt
 
 	if filter.after != nil {
 		query += " AND (w.name, w.id) > (@afterName, @afterID)"
-		values["afterName"] = filter.after.name
-		values["afterID"] = filter.after.workspaceID
+		values["afterName"] = filter.after.Name
+		values["afterID"] = filter.after.ID
 	}
 
 	query += " ORDER BY w.name, w.id LIMIT @limit"
@@ -181,5 +181,5 @@ type workspaceListFilter struct {
 	userID           uuid.UUID
 	isEveryWorkspace bool
 	limit            int
-	after            *workspaceCursor
+	after            *database.NameCursor
 }

@@ -9,9 +9,10 @@ import (
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	"databasus-backend/internal/features/databases"
 	"databasus-backend/internal/features/intervals"
-	"databasus-backend/internal/features/notifiers"
 	"databasus-backend/internal/features/storages"
 	workspaces_bridge "databasus-backend/internal/features/workspaces"
+	"databasus-backend/internal/lib/apierror"
+	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/modules/workspaces"
 	"databasus-backend/internal/util/period"
@@ -21,8 +22,9 @@ type BackupConfigService struct {
 	backupConfigRepository *BackupConfigRepository
 	databaseService        *databases.DatabaseService
 	storageService         *storages.StorageService
-	notifierService        *notifiers.NotifierService
-	workspaceService       *workspaces_bridge.Access
+	// getNotifiers is read per call: each test application installs its own module.
+	getNotifiers     func() notifiers.Module
+	workspaceService *workspaces_bridge.Access
 
 	dbStorageChangeListener BackupConfigStorageChangeListener
 }
@@ -252,10 +254,6 @@ func (s *BackupConfigService) TransferDatabaseToWorkspace(
 		return err
 	}
 
-	if request.IsTransferWithNotifiers {
-		s.transferNotifiers(ctx, actor, database, request.TargetWorkspaceID)
-	}
-
 	switch {
 	case request.IsTransferWithStorage:
 		if backupConfig.StorageID == nil {
@@ -311,8 +309,15 @@ func (s *BackupConfigService) TransferDatabaseToWorkspace(
 		return err
 	}
 
+	if request.IsTransferWithNotifiers {
+		err = s.transferNotifiers(ctx, actor, database, request.TargetWorkspaceID)
+		if err != nil {
+			return err
+		}
+	}
+
 	if len(request.TargetNotifierIDs) > 0 {
-		err = s.assignTargetNotifiers(ctx, databaseID, request.TargetNotifierIDs)
+		err = s.databaseService.UpdateDatabaseNotifiers(databaseID, request.TargetNotifierIDs)
 		if err != nil {
 			return err
 		}
@@ -347,54 +352,54 @@ func (s *BackupConfigService) initializeDefaultConfig(
 	return err
 }
 
+// transferNotifiers runs after the database moved, so the notifiers module lets through the
+// notifiers that only this database uses. A notifier that another database still uses is refused
+// with in_use and stays in its workspace.
 func (s *BackupConfigService) transferNotifiers(
 	ctx context.Context,
 	actor users.Actor,
 	database *databases.Database,
 	targetWorkspaceID uuid.UUID,
-) {
-	for _, notifier := range database.Notifiers {
-		_ = s.notifierService.TransferNotifierToWorkspace(
-			ctx,
-			actor,
-			notifier.ID,
-			targetWorkspaceID,
-			&database.ID,
-		)
-	}
-}
+) error {
+	for _, notifierID := range database.GetNotifierIDs() {
+		err := s.getNotifiers().TransferNotifier(ctx, actor, notifiers.NotifierTransfer{
+			NotifierID:        notifierID,
+			TargetWorkspaceID: targetWorkspaceID,
+		})
 
-func (s *BackupConfigService) validateTargetNotifiers(ctx context.Context, request *TransferDatabaseRequest) error {
-	for _, notifierID := range request.TargetNotifierIDs {
-		notifier, err := s.notifierService.GetNotifierByID(ctx, notifierID)
+		var problem *apierror.Problem
+		if errors.As(err, &problem) && problem.Code == apierror.CodeInUse {
+			continue
+		}
+
 		if err != nil {
 			return err
 		}
-
-		if notifier.WorkspaceID != request.TargetWorkspaceID {
-			return ErrTargetNotifierNotInTargetWorkspace
-		}
 	}
+
 	return nil
 }
 
-func (s *BackupConfigService) assignTargetNotifiers(
-	ctx context.Context,
-	databaseID uuid.UUID,
-	notifierIDs []uuid.UUID,
-) error {
-	targetNotifiers := make([]notifiers.Notifier, 0, len(notifierIDs))
-
-	for _, notifierID := range notifierIDs {
-		notifier, err := s.notifierService.GetNotifierByID(ctx, notifierID)
-		if err != nil {
-			return err
-		}
-
-		targetNotifiers = append(targetNotifiers, *notifier)
+func (s *BackupConfigService) validateTargetNotifiers(ctx context.Context, request *TransferDatabaseRequest) error {
+	targetNotifiers, err := s.getNotifiers().GetNotifiers(ctx, request.TargetNotifierIDs)
+	if err != nil {
+		return err
 	}
 
-	return s.databaseService.UpdateDatabaseNotifiers(databaseID, targetNotifiers)
+	targetNotifierIDs := make(map[uuid.UUID]bool, len(targetNotifiers))
+	for _, targetNotifier := range targetNotifiers {
+		if targetNotifier.WorkspaceID == request.TargetWorkspaceID {
+			targetNotifierIDs[targetNotifier.ID] = true
+		}
+	}
+
+	for _, notifierID := range request.TargetNotifierIDs {
+		if !targetNotifierIDs[notifierID] {
+			return ErrTargetNotifierNotInTargetWorkspace
+		}
+	}
+
+	return nil
 }
 
 // A configuration refers to a storage only by its identifier. The storage endpoints are the only

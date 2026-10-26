@@ -79,6 +79,24 @@ func TestConn(t *testing.T) {
 	})
 }
 
+func TestWithoutTransaction(t *testing.T) {
+	t.Parallel()
+
+	t.Run("writes outside the transaction when the context carried one", func(t *testing.T) {
+		t.Parallel()
+		db := openDatabaseWithNotesTable(t)
+
+		err := database.NewTransactor(db).Transaction(t.Context(), func(ctx context.Context) error {
+			require.NoError(t, insertNote(database.WithoutTransaction(ctx), db, "outside"))
+
+			return errRollback
+		})
+
+		require.ErrorIs(t, err, errRollback)
+		assert.Equal(t, []string{"outside"}, listNotes(t, db))
+	})
+}
+
 func openDatabaseWithNotesTable(t *testing.T) *gorm.DB {
 	t.Helper()
 

@@ -19,6 +19,11 @@ type databaseStore interface {
 	IsNotifierUsing(notifierID uuid.UUID) (bool, error)
 	GetAllDatabases() ([]*Database, error)
 	GetDatabasesIDsByNotifierID(notifierID uuid.UUID) ([]uuid.UUID, error)
+	CountDatabasesUsingNotifierOutsideWorkspace(
+		ctx context.Context,
+		notifierID uuid.UUID,
+		workspaceID uuid.UUID,
+	) (int64, error)
 }
 
 type workspaceService interface {

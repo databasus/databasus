@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import {
   EMAIL_NOTIFIER_SECURITY_LABEL_KEYS,
   EmailNotifierSecurity,
-  type Notifier,
+  type EmailNotifierSettings,
   getDefaultEmailNotifierSecurity,
   getSecurityAfterPortChange,
 } from '../../../../../entity/notifiers';
@@ -14,21 +14,20 @@ import {
   AdvancedFieldRowComponent,
   AdvancedSettingsToggleComponent,
 } from '../../../../../shared/ui';
+import { toOptionalValue } from '../../../lib/toOptionalValue';
 
 interface Props {
-  notifier: Notifier;
-  setNotifier: (notifier: Notifier) => void;
-  setUnsaved: () => void;
+  settings: EmailNotifierSettings;
+  isSaved: boolean;
+  onChange: (settings: EmailNotifierSettings) => void;
 }
 
-export function EditEmailNotifierComponent({ notifier, setNotifier, setUnsaved }: Props) {
+export function EditEmailNotifierComponent({ settings, isSaved, onChange }: Props) {
   const { t } = useTranslation();
-  const emailNotifier = notifier?.emailNotifier;
   const hasAdvancedValues =
-    !!emailNotifier?.isInsecureSkipVerify ||
-    !!emailNotifier?.heloName ||
-    (!!emailNotifier &&
-      emailNotifier.security !== getDefaultEmailNotifierSecurity(emailNotifier.smtpPort));
+    settings.isInsecureSkipVerify ||
+    !!settings.heloName ||
+    settings.security !== getDefaultEmailNotifierSecurity(settings.smtpPort);
   const [showAdvanced, setShowAdvanced] = useState(hasAdvancedValues);
 
   return (
@@ -37,19 +36,8 @@ export function EditEmailNotifierComponent({ notifier, setNotifier, setUnsaved }
         <div className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2">{t('notifiers.email.targetEmail')}</div>
         <div className="flex items-center">
           <Input
-            value={notifier?.emailNotifier?.targetEmail || ''}
-            onChange={(e) => {
-              if (!notifier?.emailNotifier) return;
-
-              setNotifier({
-                ...notifier,
-                emailNotifier: {
-                  ...notifier.emailNotifier,
-                  targetEmail: e.target.value.trim(),
-                },
-              });
-              setUnsaved();
-            }}
+            value={settings.targetEmail ?? ''}
+            onChange={(e) => onChange({ ...settings, targetEmail: e.target.value.trim() })}
             size="small"
             className="w-full max-w-[250px]"
             placeholder="example@gmail.com"
@@ -64,19 +52,8 @@ export function EditEmailNotifierComponent({ notifier, setNotifier, setUnsaved }
       <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
         <div className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2">{t('notifiers.email.smtpHost')}</div>
         <Input
-          value={notifier?.emailNotifier?.smtpHost || ''}
-          onChange={(e) => {
-            if (!notifier?.emailNotifier) return;
-
-            setNotifier({
-              ...notifier,
-              emailNotifier: {
-                ...notifier.emailNotifier,
-                smtpHost: e.target.value.trim(),
-              },
-            });
-            setUnsaved();
-          }}
+          value={settings.smtpHost ?? ''}
+          onChange={(e) => onChange({ ...settings, smtpHost: e.target.value.trim() })}
           size="small"
           className="w-full max-w-[250px]"
           // eslint-disable-next-line i18next/no-literal-string -- example hostname
@@ -88,25 +65,15 @@ export function EditEmailNotifierComponent({ notifier, setNotifier, setUnsaved }
         <div className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2">{t('notifiers.email.smtpPort')}</div>
         <Input
           type="number"
-          value={notifier?.emailNotifier?.smtpPort || ''}
+          value={settings.smtpPort ?? ''}
           onChange={(e) => {
-            if (!notifier?.emailNotifier) return;
-
             const nextPort = Number(e.target.value);
 
-            setNotifier({
-              ...notifier,
-              emailNotifier: {
-                ...notifier.emailNotifier,
-                smtpPort: nextPort,
-                security: getSecurityAfterPortChange(
-                  notifier.emailNotifier.security,
-                  notifier.emailNotifier.smtpPort,
-                  nextPort,
-                ),
-              },
+            onChange({
+              ...settings,
+              smtpPort: nextPort,
+              security: getSecurityAfterPortChange(settings.security, settings.smtpPort, nextPort),
             });
-            setUnsaved();
           }}
           size="small"
           className="w-full max-w-[250px]"
@@ -117,19 +84,13 @@ export function EditEmailNotifierComponent({ notifier, setNotifier, setUnsaved }
       <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
         <div className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2">{t('notifiers.email.smtpUser')}</div>
         <Input
-          value={notifier?.emailNotifier?.smtpUser || ''}
-          onChange={(e) => {
-            if (!notifier?.emailNotifier) return;
-
-            setNotifier({
-              ...notifier,
-              emailNotifier: {
-                ...notifier.emailNotifier,
-                smtpUser: e.target.value.trim(),
-              },
-            });
-            setUnsaved();
-          }}
+          value={settings.smtpUser ?? ''}
+          onChange={(e) =>
+            onChange({
+              ...settings,
+              smtpUser: toOptionalValue(e.target.value.trim()),
+            })
+          }
           size="small"
           className="w-full max-w-[250px]"
           placeholder="user@gmail.com"
@@ -142,22 +103,20 @@ export function EditEmailNotifierComponent({ notifier, setNotifier, setUnsaved }
         </div>
         <Input
           type="password"
-          value={notifier?.emailNotifier?.smtpPassword || ''}
-          onChange={(e) => {
-            if (!notifier?.emailNotifier) return;
-
-            setNotifier({
-              ...notifier,
-              emailNotifier: {
-                ...notifier.emailNotifier,
-                smtpPassword: e.target.value.trim(),
-              },
-            });
-            setUnsaved();
-          }}
+          value={settings.smtpPassword ?? ''}
+          onChange={(e) =>
+            onChange({
+              ...settings,
+              smtpPassword: toOptionalValue(e.target.value.trim()),
+            })
+          }
           size="small"
           className="w-full max-w-[250px]"
-          placeholder={t('notifiers.email.smtpPasswordPlaceholder')}
+          placeholder={
+            isSaved
+              ? t('notifiers.secretKeptPlaceholder')
+              : t('notifiers.email.smtpPasswordPlaceholder')
+          }
         />
       </div>
 
@@ -165,19 +124,13 @@ export function EditEmailNotifierComponent({ notifier, setNotifier, setUnsaved }
         <div className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2">{t('notifiers.email.from')}</div>
         <div className="flex items-center">
           <Input
-            value={notifier?.emailNotifier?.from || ''}
-            onChange={(e) => {
-              if (!notifier?.emailNotifier) return;
-
-              setNotifier({
-                ...notifier,
-                emailNotifier: {
-                  ...notifier.emailNotifier,
-                  from: e.target.value.trim(),
-                },
-              });
-              setUnsaved();
-            }}
+            value={settings.from ?? ''}
+            onChange={(e) =>
+              onChange({
+                ...settings,
+                from: toOptionalValue(e.target.value.trim()),
+              })
+            }
             size="small"
             className="w-full max-w-[250px]"
             placeholder="example@example.com"
@@ -202,22 +155,16 @@ export function EditEmailNotifierComponent({ notifier, setNotifier, setUnsaved }
             tooltip={t('notifiers.email.securityTooltip')}
           >
             <Select
-              value={notifier?.emailNotifier?.security}
-              onChange={(security: EmailNotifierSecurity) => {
-                if (!notifier?.emailNotifier) return;
-
-                setNotifier({
-                  ...notifier,
-                  emailNotifier: { ...notifier.emailNotifier, security },
-                });
-                setUnsaved();
-              }}
+              value={settings.security}
+              onChange={(security: EmailNotifierSecurity) => onChange({ ...settings, security })}
               size="small"
               className="w-[250px] max-w-[250px]"
-              options={Object.values(EmailNotifierSecurity).map((security) => ({
-                value: security,
-                label: t(EMAIL_NOTIFIER_SECURITY_LABEL_KEYS[security]),
-              }))}
+              options={Object.values(EmailNotifierSecurity).map(
+                (security: EmailNotifierSecurity) => ({
+                  value: security,
+                  label: t(EMAIL_NOTIFIER_SECURITY_LABEL_KEYS[security]),
+                }),
+              )}
             />
           </AdvancedFieldRowComponent>
 
@@ -226,16 +173,13 @@ export function EditEmailNotifierComponent({ notifier, setNotifier, setUnsaved }
             tooltip={t('notifiers.email.heloNameTooltip')}
           >
             <Input
-              value={notifier?.emailNotifier?.heloName || ''}
-              onChange={(e) => {
-                if (!notifier?.emailNotifier) return;
-
-                setNotifier({
-                  ...notifier,
-                  emailNotifier: { ...notifier.emailNotifier, heloName: e.target.value.trim() },
-                });
-                setUnsaved();
-              }}
+              value={settings.heloName ?? ''}
+              onChange={(e) =>
+                onChange({
+                  ...settings,
+                  heloName: toOptionalValue(e.target.value.trim()),
+                })
+              }
               size="small"
               className="w-full max-w-[250px]"
               placeholder={t('notifiers.email.heloNamePlaceholder')}
@@ -247,19 +191,13 @@ export function EditEmailNotifierComponent({ notifier, setNotifier, setUnsaved }
             tooltip={t('notifiers.email.skipTlsTooltip')}
           >
             <Checkbox
-              checked={notifier?.emailNotifier?.isInsecureSkipVerify || false}
-              onChange={(e) => {
-                if (!notifier?.emailNotifier) return;
-
-                setNotifier({
-                  ...notifier,
-                  emailNotifier: {
-                    ...notifier.emailNotifier,
-                    isInsecureSkipVerify: e.target.checked,
-                  },
-                });
-                setUnsaved();
-              }}
+              checked={settings.isInsecureSkipVerify}
+              onChange={(e) =>
+                onChange({
+                  ...settings,
+                  isInsecureSkipVerify: e.target.checked,
+                })
+              }
             >
               {t('notifiers.fields.skipTls')}
             </Checkbox>

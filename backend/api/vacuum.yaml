@@ -126,10 +126,12 @@ rules:
       functionOptions:
         match: ^[a-z][a-z0-9]*(_[a-z0-9]+)*$
 
+  # An integer ID can only identify something in another system, such as a Telegram topic,
+  # as the api-design skill allows.
   databasus-id-is-uuid:
-    description: An ID field has format uuid
+    description: An ID field has format uuid unless it is an integer of another system
     severity: error
-    given: $..properties[?(@property == 'id' || @property.match(/Id$/))]
+    given: $..properties[?((@property == 'id' || @property.match(/Id$/)) && @.type != 'integer')]
     then:
       field: format
       function: pattern

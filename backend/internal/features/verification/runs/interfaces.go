@@ -3,10 +3,11 @@ package verification_runs
 import (
 	"context"
 
-	"databasus-backend/internal/features/notifiers"
-	notifier_models "databasus-backend/internal/features/notifiers/models"
+	"github.com/google/uuid"
+
+	"databasus-backend/internal/modules/notifiers"
 )
 
 type NotificationSender interface {
-	SendNotification(ctx context.Context, notifier *notifiers.Notifier, notification notifier_models.Notification)
+	Notify(ctx context.Context, notifierIDs []uuid.UUID, notification notifiers.Notification)
 }

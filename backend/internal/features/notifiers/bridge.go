@@ -1,0 +1,31 @@
+// Package notifiers_bridge hands the notifiers module that internal/app built to the code that has
+// not moved into internal/modules yet. A test binary built with the testhelpers tag builds the
+// module on first use from the old access points instead.
+package notifiers_bridge
+
+import (
+	"sync"
+	"sync/atomic"
+
+	"databasus-backend/internal/modules/notifiers"
+)
+
+type installedModule struct {
+	module notifiers.Module
+}
+
+var installed atomic.Pointer[installedModule]
+
+var getModuleWithoutApp = sync.OnceValue(loadWithoutApp)
+
+func Install(module notifiers.Module) {
+	installed.Store(&installedModule{module: module})
+}
+
+func GetModule() notifiers.Module {
+	if module := installed.Load(); module != nil {
+		return module.module
+	}
+
+	return getModuleWithoutApp()
+}

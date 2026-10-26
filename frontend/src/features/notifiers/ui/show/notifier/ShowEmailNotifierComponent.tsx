@@ -1,34 +1,34 @@
 import { useTranslation } from 'react-i18next';
 
-import type { Notifier } from '../../../../../entity/notifiers';
+import type { EmailNotifierSettings } from '../../../../../entity/notifiers';
 
 interface Props {
-  notifier: Notifier;
+  settings: EmailNotifierSettings;
 }
 
-export function ShowEmailNotifierComponent({ notifier }: Props) {
+export function ShowEmailNotifierComponent({ settings }: Props) {
   const { t } = useTranslation();
 
   return (
     <>
       <div className="mb-1 flex items-center">
         <div className="min-w-[110px] pr-2">{t('notifiers.email.targetEmail')}</div>
-        {notifier?.emailNotifier?.targetEmail}
+        {settings.targetEmail}
       </div>
 
       <div className="mb-1 flex items-center">
         <div className="min-w-[110px] pr-2">{t('notifiers.email.smtpHost')}</div>
-        {notifier?.emailNotifier?.smtpHost}
+        {settings.smtpHost}
       </div>
 
       <div className="mb-1 flex items-center">
         <div className="min-w-[110px] pr-2">{t('notifiers.email.smtpPort')}</div>
-        {notifier?.emailNotifier?.smtpPort}
+        {settings.smtpPort}
       </div>
 
       <div className="mb-1 flex items-center">
         <div className="min-w-[110px] pr-2">{t('notifiers.email.smtpUser')}</div>
-        {notifier?.emailNotifier?.smtpUser}
+        {settings.smtpUser}
       </div>
 
       <div className="mb-1 flex items-center">
@@ -38,10 +38,10 @@ export function ShowEmailNotifierComponent({ notifier }: Props) {
 
       <div className="mb-1 flex items-center">
         <div className="min-w-[110px] pr-2">{t('notifiers.email.from')}</div>
-        {notifier?.emailNotifier?.from || t('notifiers.email.fromAuto')}
+        {settings.from || t('notifiers.email.fromAuto')}
       </div>
 
-      {notifier?.emailNotifier?.isInsecureSkipVerify && (
+      {settings.isInsecureSkipVerify && (
         <div className="mb-1 flex items-center">
           <div className="min-w-[110px] pr-2">{t('notifiers.fields.skipTls')}</div>
           {t('common.states.enabled')}

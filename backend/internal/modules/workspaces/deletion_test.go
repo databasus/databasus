@@ -21,9 +21,9 @@ func TestDeleteWorkspace(t *testing.T) {
 	t.Run("returns 409 and deletes nothing when the workspace has a database", func(t *testing.T) {
 		tm := newTeam(t)
 		tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEVIEWER)
-		createWebhookNotifier(t, tm.app, tm.owner, tm.workspace.Id)
-		createLocalStorage(t, tm.app, tm.owner, tm.workspace.Id)
-		insertDatabase(t, tm.app, tm.workspace.Id)
+		createWebhookNotifier(t, tm.owner, tm.workspace.Id)
+		tm.app.CreateLocalStorage(t, tm.owner, tm.workspace.Id)
+		tm.app.InsertDatabase(t, tm.workspace.Id)
 
 		response := deleteWorkspace(t, tm.owner, tm.workspace.Id)
 
@@ -38,8 +38,8 @@ func TestDeleteWorkspace(t *testing.T) {
 
 	t.Run("deletes the workspace with its notifier and storage when it has no databases", func(t *testing.T) {
 		tm := newTeam(t)
-		createWebhookNotifier(t, tm.app, tm.owner, tm.workspace.Id)
-		createLocalStorage(t, tm.app, tm.owner, tm.workspace.Id)
+		createWebhookNotifier(t, tm.owner, tm.workspace.Id)
+		tm.app.CreateLocalStorage(t, tm.owner, tm.workspace.Id)
 
 		response := deleteWorkspace(t, tm.owner, tm.workspace.Id)
 
@@ -85,8 +85,8 @@ func TestDeleteWorkspace(t *testing.T) {
 	t.Run("returns 500 and keeps everything when a later step fails", func(t *testing.T) {
 		tm := newTeam(t)
 		tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEVIEWER)
-		createWebhookNotifier(t, tm.app, tm.owner, tm.workspace.Id)
-		createLocalStorage(t, tm.app, tm.owner, tm.workspace.Id)
+		createWebhookNotifier(t, tm.owner, tm.workspace.Id)
+		tm.app.CreateLocalStorage(t, tm.owner, tm.workspace.Id)
 		tm.app.SubscribeToWorkspaceDeleting(func(context.Context, workspaces.WorkspaceDeleting) error {
 			return errLaterStepFailed
 		})
@@ -108,10 +108,10 @@ func TestDeleteWorkspace(t *testing.T) {
 		func(t *testing.T) {
 			tm := newTeam(t)
 			tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEVIEWER)
-			createWebhookNotifier(t, tm.app, tm.owner, tm.workspace.Id)
-			createLocalStorage(t, tm.app, tm.owner, tm.workspace.Id)
+			createWebhookNotifier(t, tm.owner, tm.workspace.Id)
+			tm.app.CreateLocalStorage(t, tm.owner, tm.workspace.Id)
 			tm.app.SubscribeToWorkspaceDeleting(func(_ context.Context, event workspaces.WorkspaceDeleting) error {
-				insertDatabase(t, tm.app, event.WorkspaceID)
+				tm.app.InsertDatabase(t, event.WorkspaceID)
 
 				return nil
 			})

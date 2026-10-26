@@ -17,10 +17,10 @@ import (
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	backups_services "databasus-backend/internal/features/backups/backups/services"
 	"databasus-backend/internal/features/databases"
-	notifier_models "databasus-backend/internal/features/notifiers/models"
 	verification_agents "databasus-backend/internal/features/verification/agents"
 	verification_config "databasus-backend/internal/features/verification/config"
 	workspaces_bridge "databasus-backend/internal/features/workspaces"
+	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/modules/workspaces"
 	"databasus-backend/internal/storage"
@@ -721,25 +721,16 @@ func (s *VerificationService) notifyTerminal(
 
 	title, body := buildNotificationCopy(verification, database, terminalStatus, failMessage)
 
-	sentNotificationType := notifier_models.NotificationTypeVerificationSuccess
+	sentNotificationType := notifiers.CategoryVerificationSuccess
 	if wantedType == verification_config.NotificationVerificationFailed {
-		sentNotificationType = notifier_models.NotificationTypeVerificationFailed
+		sentNotificationType = notifiers.CategoryVerificationFailed
 	}
 
-	notification := notifier_models.Notification{
-		Type:    sentNotificationType,
-		Heading: title,
-		Message: body,
-	}
-
-	// The goroutine outlives the request, so it must not inherit its cancellation: the handler
-	// returning would otherwise cancel the notifier lookup and drop the notification.
-	notifyCtx := context.WithoutCancel(ctx)
-
-	for i := range database.Notifiers {
-		notifier := database.Notifiers[i]
-		go s.notifierService.SendNotification(notifyCtx, &notifier, notification)
-	}
+	s.notifierService.Notify(ctx, database.GetNotifierIDs(), notifiers.Notification{
+		Category: sentNotificationType,
+		Heading:  title,
+		Message:  body,
+	})
 }
 
 func (s *VerificationService) guardBackupIsVerifiable(

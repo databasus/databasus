@@ -130,6 +130,7 @@ export const es: typeof en = {
       'No se puede cambiar ni quitar al propietario. Primero transfiera la propiedad a otro miembro.',
     workspaceNotEmpty:
       'El espacio de trabajo todavía tiene bases de datos. Elimínelas primero y después elimine el espacio de trabajo.',
+    inUse: 'Todavía lo usan algunas bases de datos. Quítelo primero de esas bases de datos.',
     unknown: 'Algo salió mal. Inténtelo de nuevo.',
     networkUnreachable:
       'No se puede conectar con el servidor de Databasus. Compruebe su conexión e inténtelo de nuevo.',
@@ -1227,11 +1228,11 @@ export const es: typeof en = {
       },
       removeConfirmation:
         '¿Seguro que desea eliminar este canal de notificación? Esta acción no se puede deshacer.',
-      removeBlockedByDatabases:
-        'Algunas bases de datos usan este canal de notificación. Quítelo primero de esas bases de datos.',
     },
+    secretKeptPlaceholder: 'Guardado: déjelo vacío para conservarlo',
     testNotification: {
       send: 'Enviar notificación de prueba',
+      notDelivered: 'El mensaje de prueba no se entregó: {{error}}',
       sent: {
         title: 'Notificación de prueba enviada',
         description: 'La notificación de prueba se envió correctamente',
@@ -1322,7 +1323,8 @@ export const es: typeof en = {
       customHeaders: 'Cabeceras personalizadas',
       customHeadersTooltip:
         'Añada cabeceras HTTP personalizadas a la solicitud del webhook (p. ej., Authorization, X-API-Key)',
-      savedHeadersHidden: '*Las cabeceras guardadas se ocultan por seguridad',
+      savedHeadersHidden:
+        '*Los valores de las cabeceras guardadas se ocultan. Deje un valor vacío para conservarlo',
       headers: 'Cabeceras',
       headerNamePlaceholder: 'Nombre de la cabecera',
       headerValuePlaceholder: 'Valor de la cabecera',

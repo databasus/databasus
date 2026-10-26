@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 
 import { type Database } from '../../../../entity/databases';
-import { getNotifierLogoFromType } from '../../../../entity/notifiers/models/getNotifierLogoFromType';
+import { getNotifierLogoFromType } from '../../../../entity/notifiers';
 
 interface Props {
   database: Database;
@@ -21,7 +21,7 @@ export const ShowDatabaseNotifiersComponent = ({ database }: Props) => {
               <div className="flex items-center" key={notifier.id}>
                 <div>- {notifier.name}</div>
                 <img
-                  src={getNotifierLogoFromType(notifier?.notifierType)}
+                  src={getNotifierLogoFromType(notifier.notifierType)}
                   className="ml-1 h-4 w-4"
                 />
               </div>

@@ -8,12 +8,13 @@ import (
 	physical_service "databasus-backend/internal/features/backups/backups/core/physical/service"
 	backups_services "databasus-backend/internal/features/backups/backups/services"
 	"databasus-backend/internal/features/databases"
-	"databasus-backend/internal/features/notifiers"
+	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	"databasus-backend/internal/features/storages"
 	system_version "databasus-backend/internal/features/system/version"
 	users_bridge "databasus-backend/internal/features/users"
 	verification_agents "databasus-backend/internal/features/verification/agents"
 	verification_config "databasus-backend/internal/features/verification/config"
+	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/util/logger"
 )
 
@@ -35,7 +36,7 @@ var (
 			getHttpSender(),
 			databases.GetDatabaseService(),
 			storages.GetStorageService(),
-			notifiers.GetNotifierService(),
+			installedNotifierTypes{},
 			backups_services.GetBackupService(),
 			physical_service.GetPhysicalBackupService(),
 			verification_agents.GetAgentService(),
@@ -71,4 +72,11 @@ type installedUserCounter struct{}
 
 func (installedUserCounter) GetUserCount(ctx context.Context) (int64, error) {
 	return users_bridge.GetModule().GetUserCount(ctx)
+}
+
+// installedNotifierTypes reads the module per call: each test application installs its own module.
+type installedNotifierTypes struct{}
+
+func (installedNotifierTypes) GetNotifierTypes(ctx context.Context) ([]notifiers.Type, error) {
+	return notifiers_bridge.GetModule().GetNotifierTypes(ctx)
 }

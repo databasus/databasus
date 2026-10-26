@@ -23,9 +23,9 @@ import (
 	postgresql_logical "databasus-backend/internal/features/databases/databases/postgresql/logical"
 	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
 	postgresql_shared "databasus-backend/internal/features/databases/databases/postgresql/shared"
-	"databasus-backend/internal/features/notifiers"
 	"databasus-backend/internal/features/sshtunnel"
 	"databasus-backend/internal/features/storages"
+	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/util/tools"
 )
 
@@ -199,9 +199,7 @@ func CreateTestPhysicalPostgresDatabaseMtls(
 		Name:               "test-physical-pg-mtls " + uuid.New().String(),
 		Type:               DatabaseTypePostgresPhysical,
 		PostgresqlPhysical: GetTestPhysicalPostgresConfigMtls(host, port),
-		Notifiers: []notifiers.Notifier{
-			*notifier,
-		},
+		Notifiers:          []DatabaseNotifier{{ID: notifier.ID}},
 	}
 
 	database, err := getDatabaseRepository().Save(database)
@@ -269,9 +267,7 @@ func CreateTestDatabase(
 		Name:              "test " + uuid.New().String(),
 		Type:              DatabaseTypePostgresLogical,
 		PostgresqlLogical: GetTestPostgresConfig(),
-		Notifiers: []notifiers.Notifier{
-			*notifier,
-		},
+		Notifiers:         []DatabaseNotifier{{ID: notifier.ID}},
 	}
 
 	database, err := getDatabaseRepository().Save(database)
@@ -312,9 +308,7 @@ func CreateTestPhysicalPostgresDatabaseWithType(
 		Name:               "test-physical-pg " + uuid.New().String(),
 		Type:               DatabaseTypePostgresPhysical,
 		PostgresqlPhysical: GetTestPhysicalPostgresConfigWithType(host, port, versionTag, backupType),
-		Notifiers: []notifiers.Notifier{
-			*notifier,
-		},
+		Notifiers:          []DatabaseNotifier{{ID: notifier.ID}},
 	}
 
 	database, err := getDatabaseRepository().Save(database)
@@ -350,9 +344,7 @@ func CreateTestPhysicalPostgresDatabaseWithTunnel(
 		Name:               "test-physical-pg-bastioned " + uuid.New().String(),
 		Type:               DatabaseTypePostgresPhysical,
 		PostgresqlPhysical: physicalConfig,
-		Notifiers: []notifiers.Notifier{
-			*notifier,
-		},
+		Notifiers:          []DatabaseNotifier{{ID: notifier.ID}},
 	}
 
 	database, err := getDatabaseRepository().Save(database)
@@ -378,9 +370,7 @@ func CreateTestPhysicalPostgresDatabaseNoSummary(
 		Name:               "test-physical-pg-no-summary " + uuid.New().String(),
 		Type:               DatabaseTypePostgresPhysical,
 		PostgresqlPhysical: GetTestPhysicalPostgresConfigNoSummary(host, port, versionTag),
-		Notifiers: []notifiers.Notifier{
-			*notifier,
-		},
+		Notifiers:          []DatabaseNotifier{{ID: notifier.ID}},
 	}
 
 	database, err := getDatabaseRepository().Save(database)
@@ -402,9 +392,7 @@ func CreateTestMariadbDatabase(
 		Name:        "test-mariadb " + uuid.New().String(),
 		Type:        DatabaseTypeMariadb,
 		Mariadb:     GetTestMariadbConfig(host, port),
-		Notifiers: []notifiers.Notifier{
-			*notifier,
-		},
+		Notifiers:   []DatabaseNotifier{{ID: notifier.ID}},
 	}
 
 	database, err := getDatabaseRepository().Save(database)
@@ -426,9 +414,7 @@ func CreateTestMongodbDatabase(
 		Name:        "test-mongodb " + uuid.New().String(),
 		Type:        DatabaseTypeMongodb,
 		Mongodb:     GetTestMongodbConfig(host, port),
-		Notifiers: []notifiers.Notifier{
-			*notifier,
-		},
+		Notifiers:   []DatabaseNotifier{{ID: notifier.ID}},
 	}
 
 	database, err := getDatabaseRepository().Save(database)

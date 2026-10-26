@@ -17,7 +17,7 @@ import (
 	postgresql_executor "databasus-backend/internal/features/backups/backups/usecases/physical/postgresql"
 	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
 	"databasus-backend/internal/features/databases"
-	"databasus-backend/internal/features/notifiers"
+	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	"databasus-backend/internal/features/storages"
 	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
 	workspaces_bridge "databasus-backend/internal/features/workspaces"
@@ -28,11 +28,11 @@ import (
 // CreateTestPhysicalBackuper returns a fully wired PhysicalBackuper for
 // tests. The notification sender is parameterized so tests that don't want
 // to exercise the notifier stack can inject a counting / no-op stub.
-// Pass nil to use the production notifier service.
+// Pass nil to use notifiers_bridge.GetSender(), which hands notifications to the notifiers module.
 func CreateTestPhysicalBackuper(notificationSender NotificationSender) *PhysicalBackuper {
 	sender := notificationSender
 	if sender == nil {
-		sender = notifiers.GetNotifierService()
+		sender = notifiers_bridge.GetSender()
 	}
 
 	return &PhysicalBackuper{
@@ -192,7 +192,7 @@ func StartPhysicalWalStreamSupervisorForTest(t *testing.T) context.CancelFunc {
 	t.Helper()
 
 	supervisor := CreateTestWalStreamSupervisor(WalStreamSupervisorTestSpec{
-		NotificationSender: notifiers.GetNotifierService(),
+		NotificationSender: notifiers_bridge.GetSender(),
 	})
 
 	ctx, cancel := context.WithCancel(context.Background())
