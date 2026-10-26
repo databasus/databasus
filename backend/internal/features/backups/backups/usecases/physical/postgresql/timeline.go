@@ -14,7 +14,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/klauspost/compress/zstd"
-	"gorm.io/gorm"
 
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	chain_view "databasus-backend/internal/features/backups/backups/core/physical/chain_view"
@@ -24,6 +23,7 @@ import (
 	backup_encryption "databasus-backend/internal/features/backups/backups/encryption"
 	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
 	storage_files "databasus-backend/internal/features/storages/files"
+	"databasus-backend/internal/lib/database"
 	db "databasus-backend/internal/storage"
 	util_encryption "databasus-backend/internal/util/encryption"
 	"databasus-backend/internal/util/walmath"
@@ -281,9 +281,9 @@ func UploadHistoryFile(
 	if err != nil {
 		// An artifact with no sidecar cannot be restored from, so the attempt gives
 		// the artifact back rather than leaving half a history file behind.
-		if discardErr := db.GetDb().Transaction(func(tx *gorm.DB) error {
+		if discardErr := db.GetTransactor().Transaction(ctx, func(ctx context.Context) error {
 			return spec.FileStore.RequestFileDeletions(
-				ctx, tx, []storage_files.StoredFileReference{artifactReference})
+				ctx, []storage_files.StoredFileReference{artifactReference})
 		}); discardErr != nil {
 			logger.WarnContext(ctx, "failed to discard a history artifact after its sidecar failed",
 				"file_name", storageObjectName,
@@ -304,12 +304,14 @@ func UploadHistoryFile(
 		CreatedAt:        sidecar.CreatedAt,
 	}
 
-	err = db.GetDb().Transaction(func(tx *gorm.DB) error {
+	err = db.GetTransactor().Transaction(ctx, func(ctx context.Context) error {
+		tx := database.Conn(ctx, db.GetDb())
+
 		if insertErr := historyRepo.InsertInTransaction(tx, row); insertErr != nil {
 			return insertErr
 		}
 
-		return spec.FileStore.ConfirmFileWrites(ctx, tx, []storage_files.WriteReceipt{
+		return spec.FileStore.ConfirmFileWrites(ctx, []storage_files.WriteReceipt{
 			artifactReceipt, sidecarReceipt,
 		})
 	})

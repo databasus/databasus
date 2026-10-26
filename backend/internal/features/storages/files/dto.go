@@ -29,6 +29,12 @@ type ClaimRequest struct {
 	ExcludedIDs []uuid.UUID
 }
 
+type DrainRequest struct {
+	Remover          FileRemover
+	PendingDeletions []PendingDeletion
+	Budget           time.Duration
+}
+
 type PendingDeletionSummary struct {
 	Pending     int64
 	Overdue     int64
@@ -66,6 +72,23 @@ type FileWriter interface {
 	) error
 }
 
+// The returned reader may keep fetching from the provider while it is read, so ctx must outlive the
+// stream, not just the call.
+type FileReader interface {
+	GetFile(
+		ctx context.Context,
+		encryptor encryption.FieldEncryptor,
+		logger *slog.Logger,
+		fileName string,
+	) (io.ReadCloser, error)
+}
+
+// StorageReader opens files of one storage. The returned reader may keep fetching from the provider
+// while it is read, so ctx must outlive the stream.
+type StorageReader interface {
+	OpenFile(ctx context.Context, fileName string) (io.ReadCloser, error)
+}
+
 type FileRemover interface {
 	DeleteFile(
 		ctx context.Context,
@@ -79,5 +102,6 @@ type FileRemover interface {
 // there and this package free of an import cycle.
 type StorageLocator interface {
 	GetFileWriter(ctx context.Context, storageID uuid.UUID) (FileWriter, error)
+	GetFileReader(ctx context.Context, storageID uuid.UUID) (FileReader, error)
 	GetFileRemover(ctx context.Context, storageID uuid.UUID) (FileRemover, error)
 }

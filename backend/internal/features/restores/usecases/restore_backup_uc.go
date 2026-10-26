@@ -12,7 +12,7 @@ import (
 	usecases_mongodb "databasus-backend/internal/features/restores/usecases/mongodb"
 	usecases_mysql "databasus-backend/internal/features/restores/usecases/mysql"
 	usecases_postgresql "databasus-backend/internal/features/restores/usecases/postgresql"
-	"databasus-backend/internal/features/storages"
+	storage_files "databasus-backend/internal/features/storages/files"
 )
 
 type RestoreBackupUsecase struct {
@@ -29,7 +29,7 @@ func (uc *RestoreBackupUsecase) Execute(
 	originalDB *databases.Database,
 	restoringToDB *databases.Database,
 	backup *backups_core_logical.LogicalBackup,
-	storage *storages.Storage,
+	storageReader storage_files.StorageReader,
 	options restores_core.RestoreOptions,
 ) error {
 	switch originalDB.Type {
@@ -41,7 +41,7 @@ func (uc *RestoreBackupUsecase) Execute(
 			backupConfig,
 			restore,
 			backup,
-			storage,
+			storageReader,
 			options,
 		)
 	case databases.DatabaseTypeMysql:
@@ -52,7 +52,7 @@ func (uc *RestoreBackupUsecase) Execute(
 			backupConfig,
 			restore,
 			backup,
-			storage,
+			storageReader,
 		)
 	case databases.DatabaseTypeMariadb:
 		return uc.restoreMariadbBackupUsecase.Execute(
@@ -62,7 +62,7 @@ func (uc *RestoreBackupUsecase) Execute(
 			backupConfig,
 			restore,
 			backup,
-			storage,
+			storageReader,
 		)
 	case databases.DatabaseTypeMongodb:
 		return uc.restoreMongodbBackupUsecase.Execute(
@@ -72,7 +72,7 @@ func (uc *RestoreBackupUsecase) Execute(
 			backupConfig,
 			restore,
 			backup,
-			storage,
+			storageReader,
 		)
 	default:
 		return errors.New("database type not supported")

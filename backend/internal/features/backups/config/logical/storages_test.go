@@ -169,11 +169,7 @@ func Test_DeleteStorageWithAttachedDatabases_CannotDelete(t *testing.T) {
 		http.StatusBadRequest,
 	)
 
-	assert.Contains(
-		t,
-		string(testResp.Body),
-		"storage has attached databases and cannot be deleted",
-	)
+	assert.Contains(t, string(testResp.Body), storages.ErrStorageInUse.Error())
 }
 
 func Test_TransferStorageWithAttachedDatabase_CannotTransfer(t *testing.T) {

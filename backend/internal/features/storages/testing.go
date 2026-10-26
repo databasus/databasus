@@ -29,10 +29,6 @@ func SetStorageDatabaseCountersForTest(counters ...StorageDatabaseCounter) {
 	getStorageService().storageDatabaseCounters = counters
 }
 
-func SetStorageBackupCountersForTest(counters ...StorageBackupCounter) {
-	getStorageService().storageBackupCounters = counters
-}
-
 func CreateTestStorage(workspaceID uuid.UUID) *Storage {
 	storage := &Storage{
 		WorkspaceID:  workspaceID,

@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log/slog"
 	"math"
 
 	"github.com/google/uuid"
@@ -17,8 +16,7 @@ import (
 	physical_dto "databasus-backend/internal/features/backups/backups/core/physical/dto"
 	physical_enums "databasus-backend/internal/features/backups/backups/core/physical/enums"
 	backup_encryption "databasus-backend/internal/features/backups/backups/encryption"
-	"databasus-backend/internal/features/storages"
-	util_encryption "databasus-backend/internal/util/encryption"
+	storage_files "databasus-backend/internal/features/storages/files"
 )
 
 // historyMetadataSuffix mirrors the ".metadata" sidecar the streamer writes next
@@ -82,13 +80,11 @@ type artifactSource struct {
 // caller.
 func openArtifact(
 	ctx context.Context,
-	store *storages.Storage,
-	logger *slog.Logger,
-	fieldEncryptor util_encryption.FieldEncryptor,
+	storageReader storage_files.StorageReader,
 	masterKey string,
 	src artifactSource,
 ) (io.Reader, func(), error) {
-	base, err := store.GetFile(ctx, fieldEncryptor, logger, src.fileName)
+	base, err := storageReader.OpenFile(ctx, src.fileName)
 	if err != nil {
 		return nil, nil, fmt.Errorf("open %q: %w", src.fileName, err)
 	}
@@ -183,12 +179,10 @@ func newDecryptingReader(
 
 func readHistoryMetadata(
 	ctx context.Context,
-	store *storages.Storage,
-	logger *slog.Logger,
-	fieldEncryptor util_encryption.FieldEncryptor,
+	storageReader storage_files.StorageReader,
 	historyFileName string,
 ) (*physical_dto.PhysicalWalHistoryMetadata, error) {
-	reader, err := store.GetFile(ctx, fieldEncryptor, logger, historyFileName+historyMetadataSuffix)
+	reader, err := storageReader.OpenFile(ctx, historyFileName+historyMetadataSuffix)
 	if err != nil {
 		return nil, fmt.Errorf("open history metadata: %w", err)
 	}

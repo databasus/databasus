@@ -1,6 +1,7 @@
 package restoring
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -23,6 +24,7 @@ import (
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	restores_core "databasus-backend/internal/features/restores/core"
 	"databasus-backend/internal/features/storages"
+	storage_files "databasus-backend/internal/features/storages/files"
 	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
@@ -262,9 +264,9 @@ const (
 )
 
 type restoreTestFixture struct {
-	restore         *restores_core.Restore
-	databaseCache   *RestoreDatabaseCache
-	backupStorageID uuid.UUID
+	restore       *restores_core.Restore
+	databaseCache *RestoreDatabaseCache
+	backupContent []byte
 }
 
 func Test_MakeRestore_WhenConfigNamesAnotherStorage_ReadsFromBackupStorage(t *testing.T) {
@@ -297,8 +299,7 @@ func assertRestoreCompletedFromStorage(
 	persistedRestore, err := getRestoreRepository().FindByID(fixture.restore.ID)
 	require.NoError(t, err)
 	assert.Equal(t, restores_core.RestoreStatusCompleted, persistedRestore.Status)
-	require.NotNil(t, storageCapturingUsecase.ReceivedStorage)
-	assert.Equal(t, fixture.backupStorageID, storageCapturingUsecase.ReceivedStorage.ID)
+	assert.Equal(t, fixture.backupContent, storageCapturingUsecase.ReadBackupContent)
 }
 
 func createRestoreForOutcomeTest(t *testing.T) (*restores_core.Restore, *RestoreDatabaseCache) {
@@ -330,6 +331,14 @@ func createRestoreWithConfigStorage(t *testing.T, configStorage configStorageCho
 	}
 
 	backup := backups_controllers_logical.CreateTestBackup(database.ID, backupStorage.ID)
+	backup.FileName = backup.ID.String()
+	require.NoError(t, (&backups_core_logical.BackupRepository{}).Save(backup))
+
+	backupContent := []byte("content of backup " + backup.ID.String())
+	_, err := storages.GetStorageFileStore().WriteFile(t.Context(),
+		storage_files.StoredFileReference{StorageID: backupStorage.ID, FileName: backup.FileName},
+		bytes.NewReader(backupContent))
+	require.NoError(t, err)
 
 	restore := &restores_core.Restore{
 		BackupID: backup.ID,
@@ -342,7 +351,13 @@ func createRestoreWithConfigStorage(t *testing.T, configStorage configStorageCho
 		_ = (&backups_core_logical.BackupRepository{}).DeleteByID(backup.ID)
 		databases.RemoveTestDatabase(t.Context(), database)
 		notifiers_bridge.RemoveTestNotifier(notifier)
-		storages.RemoveTestStorage(t.Context(), backupStorage.ID)
+		// The deletion drains the backup file this fixture wrote, which RemoveTestStorage would leave
+		// in the data folder.
+		require.NoError(t, storages.GetStorageService().DeleteStorage(
+			context.WithoutCancel(t.Context()),
+			users.Actor{UserID: user.UserID, Role: users.RoleAdmin},
+			backupStorage.ID,
+		))
 		if otherStorage != nil {
 			storages.RemoveTestStorage(t.Context(), otherStorage.ID)
 		}
@@ -350,9 +365,9 @@ func createRestoreWithConfigStorage(t *testing.T, configStorage configStorageCho
 	})
 
 	return restoreTestFixture{
-		restore:         restore,
-		databaseCache:   &RestoreDatabaseCache{PostgresqlLogicalDatabase: databases.GetTestPostgresConfig()},
-		backupStorageID: backupStorage.ID,
+		restore:       restore,
+		databaseCache: &RestoreDatabaseCache{PostgresqlLogicalDatabase: databases.GetTestPostgresConfig()},
+		backupContent: backupContent,
 	}
 }
 

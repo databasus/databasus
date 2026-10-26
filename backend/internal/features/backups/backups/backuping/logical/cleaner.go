@@ -8,12 +8,12 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"gorm.io/gorm"
 
 	"databasus-backend/internal/features/backups/backups/backuping/shared/gfs"
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
 	storage_files "databasus-backend/internal/features/storages/files"
+	"databasus-backend/internal/lib/database"
 	db "databasus-backend/internal/storage"
 	"databasus-backend/internal/util/period"
 )
@@ -86,8 +86,10 @@ func (c *BackupCleaner) DeleteBackup(ctx context.Context, backup *backups_core_l
 	// The row and the obligation to remove its files commit together, so an
 	// unreachable storage does not decide whether the row may go, and a rolled
 	// back removal leaves the files where the row still names them.
-	return db.GetDb().Transaction(func(tx *gorm.DB) error {
-		if err := c.fileStore.RequestFileDeletions(ctx, tx, references); err != nil {
+	return db.GetTransactor().Transaction(ctx, func(ctx context.Context) error {
+		tx := database.Conn(ctx, db.GetDb())
+
+		if err := c.fileStore.RequestFileDeletions(ctx, references); err != nil {
 			return err
 		}
 

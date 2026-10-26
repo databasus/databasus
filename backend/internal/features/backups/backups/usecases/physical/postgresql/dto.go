@@ -12,7 +12,6 @@ import (
 	physical_models "databasus-backend/internal/features/backups/backups/core/physical/models"
 	physical_repositories "databasus-backend/internal/features/backups/backups/core/physical/repositories"
 	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
-	"databasus-backend/internal/features/storages"
 	storage_files "databasus-backend/internal/features/storages/files"
 	util_encryption "databasus-backend/internal/util/encryption"
 	"databasus-backend/internal/util/walmath"
@@ -21,12 +20,9 @@ import (
 type timelineIdentityProbe func(context.Context, int) (*TimelineDecision, error)
 
 type CommonBackupSpec struct {
-	SourceDB     *postgresql_physical.PostgresqlPhysicalDatabase
-	DatabaseName string
-	StorageID    uuid.UUID
-	// Storage stays for the reads this package still does, the parent manifest
-	// fetch among them. Everything it writes goes through FileStore.
-	Storage        storages.StorageFileSaver
+	SourceDB       *postgresql_physical.PostgresqlPhysicalDatabase
+	DatabaseName   string
+	StorageID      uuid.UUID
 	FileStore      *storage_files.Store
 	Encryption     backups_core_enums.BackupEncryption
 	MasterKey      string
@@ -52,7 +48,9 @@ type IncrementalBackupSpec struct {
 
 	Backup         *physical_models.PhysicalIncrementalBackup
 	ParentManifest ParentManifestRef
-	IncrRepo       *physical_repositories.PhysicalIncrementalBackupRepository
+	// StorageReader reads the parent manifest, which sits in the same storage the increment goes to.
+	StorageReader storage_files.StorageReader
+	IncrRepo      *physical_repositories.PhysicalIncrementalBackupRepository
 
 	// IncrementalCadence is the configured INCR interval, used only to size the
 	// bounded summarizer wait window (min(cadence/4, cap)). Zero is acceptable —

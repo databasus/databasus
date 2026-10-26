@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"gorm.io/gorm"
 
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
@@ -18,6 +17,7 @@ import (
 	storage_files "databasus-backend/internal/features/storages/files"
 	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
 	workspaces_bridge "databasus-backend/internal/features/workspaces"
+	"databasus-backend/internal/lib/database"
 	"databasus-backend/internal/modules/notifiers"
 	db "databasus-backend/internal/storage"
 )
@@ -359,8 +359,10 @@ func (b *Backuper) publishBackup(
 	backup *backups_core_logical.LogicalBackup,
 	receipts []storage_files.WriteReceipt,
 ) error {
-	return db.GetDb().Transaction(func(tx *gorm.DB) error {
-		if err := b.fileStore.ConfirmFileWrites(ctx, tx, receipts); err != nil {
+	return db.GetTransactor().Transaction(ctx, func(ctx context.Context) error {
+		tx := database.Conn(ctx, db.GetDb())
+
+		if err := b.fileStore.ConfirmFileWrites(ctx, receipts); err != nil {
 			return err
 		}
 
@@ -383,8 +385,10 @@ func (b *Backuper) saveTerminalStateAndDiscardFiles(
 	// to be recorded even when that context is the one that was cancelled.
 	ctx = context.WithoutCancel(ctx)
 
-	return db.GetDb().Transaction(func(tx *gorm.DB) error {
-		if err := b.fileStore.RequestFileDeletions(ctx, tx, references); err != nil {
+	return db.GetTransactor().Transaction(ctx, func(ctx context.Context) error {
+		tx := database.Conn(ctx, db.GetDb())
+
+		if err := b.fileStore.RequestFileDeletions(ctx, references); err != nil {
 			return err
 		}
 

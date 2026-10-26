@@ -25,7 +25,7 @@ import (
 	"databasus-backend/internal/features/databases"
 	mysqltypes "databasus-backend/internal/features/databases/databases/mysql"
 	restores_core "databasus-backend/internal/features/restores/core"
-	"databasus-backend/internal/features/storages"
+	storage_files "databasus-backend/internal/features/storages/files"
 	"databasus-backend/internal/lib/crypto"
 	util_encryption "databasus-backend/internal/util/encryption"
 	io_utils "databasus-backend/internal/util/io"
@@ -44,7 +44,7 @@ func (uc *RestoreMysqlBackupUsecase) Execute(
 	backupConfig *backups_config_logical.LogicalBackupConfig,
 	restore restores_core.Restore,
 	backup *backups_core_logical.LogicalBackup,
-	storage *storages.Storage,
+	storageReader storage_files.StorageReader,
 ) error {
 	if originalDB.Type != databases.DatabaseTypeMysql {
 		return errors.New("database type not supported")
@@ -96,7 +96,7 @@ func (uc *RestoreMysqlBackupUsecase) Execute(
 		args,
 		my.Password,
 		backup,
-		storage,
+		storageReader,
 		my,
 	)
 }
@@ -108,7 +108,7 @@ func (uc *RestoreMysqlBackupUsecase) restoreFromStorage(
 	args []string,
 	password string,
 	backup *backups_core_logical.LogicalBackup,
-	storage *storages.Storage,
+	storageReader storage_files.StorageReader,
 	myConfig *mysqltypes.MysqlDatabase,
 ) error {
 	ctx, cancel := context.WithTimeout(parentCtx, 23*time.Hour)
@@ -128,7 +128,7 @@ func (uc *RestoreMysqlBackupUsecase) restoreFromStorage(
 	}
 	defer func() { _ = os.RemoveAll(filepath.Dir(myCnfFile)) }()
 
-	rawReader, err := storage.GetFile(ctx, fieldEncryptor, logger, backup.FileName)
+	rawReader, err := storageReader.OpenFile(ctx, backup.FileName)
 	if err != nil {
 		return fmt.Errorf("failed to get backup file from storage: %w", err)
 	}

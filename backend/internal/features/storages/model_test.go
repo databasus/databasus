@@ -22,7 +22,6 @@ import (
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gorm.io/gorm"
 
 	storage_files "databasus-backend/internal/features/storages/files"
 	azure_blob_storage "databasus-backend/internal/features/storages/models/azure_blob"
@@ -360,8 +359,8 @@ func requestDeletionAndDrain(t *testing.T, references []storage_files.StoredFile
 
 	ctx := context.WithoutCancel(t.Context())
 
-	err := db.GetDb().Transaction(func(tx *gorm.DB) error {
-		return GetStorageFileStore().RequestFileDeletions(ctx, tx, references)
+	err := db.GetTransactor().Transaction(ctx, func(ctx context.Context) error {
+		return GetStorageFileStore().RequestFileDeletions(ctx, references)
 	})
 	if err != nil {
 		t.Errorf("failed to request deletion of written files: %v", err)

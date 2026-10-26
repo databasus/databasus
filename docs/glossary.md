@@ -76,7 +76,7 @@ This is the project's common language. Each concept has one term in the document
 | Repository | repository | Code that holds the queries of a module's tables. |
 | Event | event | A notice a module publishes so that higher modules act in the same transaction, for example before a workspace is deleted. |
 | Background job | job | Work that `background.Runner` runs on a schedule. Each run of a job is called a pass. |
-| File store | file store | The storages module's only way to write and delete files in a storage. It records every write so that no file is left without an owner. |
+| File store | file store | The storages module's only way to write, read and delete files in a storage. It records every write so that no file is left without an owner. |
 | Write receipt | write receipt | What the file store returns for a written file. The transaction that publishes the backup spends it to keep the file. |
 | Pending deletion | pending deletion | A recorded obligation to delete a file from a storage, carried out by the deletion worker. |
 | Deletion worker | deletion worker | The background job of the storages module that deletes files with a pending deletion. |

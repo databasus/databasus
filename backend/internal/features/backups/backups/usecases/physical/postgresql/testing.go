@@ -795,6 +795,12 @@ func (l fixedStorageLocator) GetFileWriter(
 	return l.storage, nil
 }
 
+func (l fixedStorageLocator) GetFileReader(
+	context.Context, uuid.UUID,
+) (storage_files.FileReader, error) {
+	return l.storage, nil
+}
+
 func (l fixedStorageLocator) GetFileRemover(
 	context.Context, uuid.UUID,
 ) (storage_files.FileRemover, error) {

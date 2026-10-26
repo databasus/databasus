@@ -28,7 +28,7 @@ var getTaskCancellationRequester = sync.OnceValue(task_cancellation.GetRequester
 var getBackupService = sync.OnceValue(func() *LogicalBackupService {
 	return &LogicalBackupService{
 		databases.GetDatabaseService(),
-		storages.GetStorageService(),
+		storages.GetStorageFileStore(),
 		backups_core_logical.GetBackupRepository(),
 		notifiers_bridge.GetSender(),
 		backups_config_logical.GetBackupConfigService(),
@@ -83,6 +83,5 @@ var SetupDependencies = sync.OnceFunc(func() {
 		SetDatabaseStorageChangeListener(getPhysicalBackupService())
 
 	databases.GetDatabaseService().AddDbRemoveListener(getBackupService())
-	storages.GetStorageService().AddStorageBackupCounter(getBackupService())
 	databases.GetDatabaseService().AddDbCopyListener(backups_config_logical.GetBackupConfigService())
 })

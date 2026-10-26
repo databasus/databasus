@@ -163,6 +163,10 @@ func (m *mockWalStorage) GetFileWriter(context.Context, uuid.UUID) (storage_file
 	return m, nil
 }
 
+func (m *mockWalStorage) GetFileReader(context.Context, uuid.UUID) (storage_files.FileReader, error) {
+	return m, nil
+}
+
 func (m *mockWalStorage) GetFileRemover(context.Context, uuid.UUID) (storage_files.FileRemover, error) {
 	return m, nil
 }

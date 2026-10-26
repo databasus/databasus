@@ -86,7 +86,7 @@ func createTestRestorerWithShutdownSignal(
 		encryption.GetFieldEncryptor(),
 		getRestoreRepository(),
 		backups_config_logical.GetBackupConfigService(),
-		storages.GetStorageService(),
+		storages.GetStorageFileStore(),
 		logger.GetLogger(),
 		usecase,
 		getRestoreDatabaseCache(),

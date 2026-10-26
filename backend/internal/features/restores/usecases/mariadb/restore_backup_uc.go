@@ -25,7 +25,7 @@ import (
 	"databasus-backend/internal/features/databases"
 	mariadbtypes "databasus-backend/internal/features/databases/databases/mariadb"
 	restores_core "databasus-backend/internal/features/restores/core"
-	"databasus-backend/internal/features/storages"
+	storage_files "databasus-backend/internal/features/storages/files"
 	"databasus-backend/internal/lib/crypto"
 	util_encryption "databasus-backend/internal/util/encryption"
 	io_utils "databasus-backend/internal/util/io"
@@ -44,7 +44,7 @@ func (uc *RestoreMariadbBackupUsecase) Execute(
 	backupConfig *backups_config_logical.LogicalBackupConfig,
 	restore restores_core.Restore,
 	backup *backups_core_logical.LogicalBackup,
-	storage *storages.Storage,
+	storageReader storage_files.StorageReader,
 ) error {
 	if originalDB.Type != databases.DatabaseTypeMariadb {
 		return errors.New("database type not supported")
@@ -107,7 +107,7 @@ func (uc *RestoreMariadbBackupUsecase) Execute(
 		args,
 		mdb.Password,
 		backup,
-		storage,
+		storageReader,
 		mdb,
 	)
 }
@@ -119,7 +119,7 @@ func (uc *RestoreMariadbBackupUsecase) restoreFromStorage(
 	args []string,
 	password string,
 	backup *backups_core_logical.LogicalBackup,
-	storage *storages.Storage,
+	storageReader storage_files.StorageReader,
 	mdbConfig *mariadbtypes.MariadbDatabase,
 ) error {
 	ctx, cancel := context.WithTimeout(parentCtx, 23*time.Hour)
@@ -139,7 +139,7 @@ func (uc *RestoreMariadbBackupUsecase) restoreFromStorage(
 	}
 	defer func() { _ = os.RemoveAll(filepath.Dir(myCnfFile)) }()
 
-	rawReader, err := storage.GetFile(ctx, fieldEncryptor, logger, backup.FileName)
+	rawReader, err := storageReader.OpenFile(ctx, backup.FileName)
 	if err != nil {
 		return fmt.Errorf("failed to get backup file from storage: %w", err)
 	}

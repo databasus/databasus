@@ -3,7 +3,6 @@ package usecases_physical_postgresql
 import (
 	"context"
 	"encoding/base64"
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -262,14 +261,7 @@ func downloadParentManifest(
 
 	cleanupAll := func() { _ = os.RemoveAll(tmpDir) }
 
-	storageHandle, ok := spec.Storage.(parentManifestFetcher)
-	if !ok {
-		cleanupAll()
-
-		return "", func() {}, errors.New("storage does not support GetFile")
-	}
-
-	reader, err := storageHandle.GetFile(ctx, spec.FieldEncryptor, spec.Logger, spec.ParentManifest.FileName)
+	reader, err := spec.StorageReader.OpenFile(ctx, spec.ParentManifest.FileName)
 	if err != nil {
 		cleanupAll()
 

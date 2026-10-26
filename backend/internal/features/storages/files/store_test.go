@@ -1,6 +1,7 @@
 package storage_files
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"io"
@@ -21,6 +22,7 @@ type fakeProvider struct {
 	saveErr    error
 	deleteErr  error
 	saved      []string
+	contents   map[string][]byte
 	deleted    []string
 	onSave     func()
 	onDelete   func()
@@ -38,8 +40,9 @@ func (p *fakeProvider) SaveFile(
 		panic("provider exploded")
 	}
 
+	var content []byte
 	if file != nil {
-		_, _ = io.Copy(io.Discard, file)
+		content, _ = io.ReadAll(file)
 	}
 
 	if p.saveErr != nil {
@@ -47,6 +50,12 @@ func (p *fakeProvider) SaveFile(
 	}
 
 	p.saved = append(p.saved, fileName)
+
+	if p.contents == nil {
+		p.contents = map[string][]byte{}
+	}
+
+	p.contents[fileName] = content
 
 	return nil
 }
@@ -67,12 +76,31 @@ func (p *fakeProvider) DeleteFile(
 	return nil
 }
 
+func (p *fakeProvider) GetFile(
+	_ context.Context, _ encryption.FieldEncryptor, _ *slog.Logger, fileName string,
+) (io.ReadCloser, error) {
+	content, isSaved := p.contents[fileName]
+	if !isSaved {
+		return nil, errors.New("file not found")
+	}
+
+	return io.NopCloser(bytes.NewReader(content)), nil
+}
+
 type fakeLocator struct {
 	provider *fakeProvider
 	err      error
 }
 
 func (l *fakeLocator) GetFileWriter(_ context.Context, _ uuid.UUID) (FileWriter, error) {
+	if l.err != nil {
+		return nil, l.err
+	}
+
+	return l.provider, nil
+}
+
+func (l *fakeLocator) GetFileReader(_ context.Context, _ uuid.UUID) (FileReader, error) {
 	if l.err != nil {
 		return nil, l.err
 	}

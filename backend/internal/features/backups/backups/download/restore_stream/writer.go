@@ -5,15 +5,13 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log/slog"
 
 	"github.com/google/uuid"
 
 	"databasus-backend/internal/features/backups/backups/core/physical/chain_view"
 	physical_enums "databasus-backend/internal/features/backups/backups/core/physical/enums"
 	physical_models "databasus-backend/internal/features/backups/backups/core/physical/models"
-	"databasus-backend/internal/features/storages"
-	util_encryption "databasus-backend/internal/util/encryption"
+	storage_files "databasus-backend/internal/features/storages/files"
 )
 
 // Writer turns a resolved RestoreSet into the single tar stream the user (and,
@@ -27,17 +25,11 @@ import (
 // It is transport- and auth-agnostic: callers decide who may stream and where the
 // bytes go.
 type Writer struct {
-	storageService *storages.StorageService
-	fieldEncryptor util_encryption.FieldEncryptor
-	logger         *slog.Logger
+	fileStore *storage_files.Store
 }
 
-func NewWriter(
-	storageService *storages.StorageService,
-	fieldEncryptor util_encryption.FieldEncryptor,
-	logger *slog.Logger,
-) *Writer {
-	return &Writer{storageService, fieldEncryptor, logger}
+func NewWriter(fileStore *storage_files.Store) *Writer {
+	return &Writer{fileStore}
 }
 
 // Write fails on an encrypted artifact when masterKey is empty, rather than streaming a corrupt
@@ -50,7 +42,7 @@ func (rw *Writer) Write(
 ) error {
 	tarWriter := tar.NewWriter(w)
 
-	storageCache := make(map[uuid.UUID]*storages.Storage)
+	storageCache := make(map[uuid.UUID]storage_files.StorageReader)
 	checksums := newChecksumLedger()
 
 	fullSize, err := artifactSizeBytes(set.RootFull.ID, set.RootFull.BackupSizeMb)
@@ -124,7 +116,7 @@ func (rw *Writer) writeBackupDir(
 	dirName string,
 	artifact backupArtifact,
 	masterKey string,
-	storageCache map[uuid.UUID]*storages.Storage,
+	storageCache map[uuid.UUID]storage_files.StorageReader,
 	checksums *checksumLedger,
 ) error {
 	if artifact.FileName == "" {
@@ -134,21 +126,17 @@ func (rw *Writer) writeBackupDir(
 		return fmt.Errorf("backup %s has no reconstructed manifest sidecar", artifact.RowID)
 	}
 
-	store, err := rw.resolveStorage(ctx, artifact.StorageID, storageCache)
+	storageReader, err := rw.resolveStorage(ctx, artifact.StorageID, storageCache)
 	if err != nil {
 		return err
 	}
-
-	artifactLogger := rw.logger.With("backup_id", artifact.RowID)
 
 	// Ship as stored (decrypt only, still compressed); the recovery script
 	// decompresses on the restore side. Decompressing here would inflate the blob
 	// by its compression ratio and blow the download up by that factor.
 	reader, cleanup, err := openArtifact(
 		ctx,
-		store,
-		artifactLogger,
-		rw.fieldEncryptor,
+		storageReader,
 		masterKey,
 		artifactSource{
 			fileName:   artifact.FileName,
@@ -168,20 +156,19 @@ func (rw *Writer) writeBackupDir(
 		return err
 	}
 
-	return rw.writeManifest(ctx, tarWriter, artifactLogger, dirName, artifact, masterKey, storageCache, checksums)
+	return rw.writeManifest(ctx, tarWriter, dirName, artifact, masterKey, storageCache, checksums)
 }
 
 func (rw *Writer) writeManifest(
 	ctx context.Context,
 	tarWriter *tar.Writer,
-	artifactLogger *slog.Logger,
 	dirName string,
 	artifact backupArtifact,
 	masterKey string,
-	storageCache map[uuid.UUID]*storages.Storage,
+	storageCache map[uuid.UUID]storage_files.StorageReader,
 	checksums *checksumLedger,
 ) error {
-	store, err := rw.resolveStorage(ctx, artifact.StorageID, storageCache)
+	storageReader, err := rw.resolveStorage(ctx, artifact.StorageID, storageCache)
 	if err != nil {
 		return err
 	}
@@ -190,9 +177,7 @@ func (rw *Writer) writeManifest(
 	// row ID but a fresh salt/IV), never zstd-compressed.
 	reader, cleanup, err := openArtifact(
 		ctx,
-		store,
-		artifactLogger,
-		rw.fieldEncryptor,
+		storageReader,
 		masterKey,
 		artifactSource{
 			fileName:   *artifact.ManifestFileName,
@@ -215,14 +200,14 @@ func (rw *Writer) writeWalSegment(
 	tarWriter *tar.Writer,
 	segment *physical_models.PhysicalWalSegment,
 	masterKey string,
-	storageCache map[uuid.UUID]*storages.Storage,
+	storageCache map[uuid.UUID]storage_files.StorageReader,
 	checksums *checksumLedger,
 ) error {
 	if segment.FileName == nil {
 		return fmt.Errorf("wal segment %s has no stored file", segment.WalFilename)
 	}
 
-	store, err := rw.resolveStorage(ctx, segment.StorageID, storageCache)
+	storageReader, err := rw.resolveStorage(ctx, segment.StorageID, storageCache)
 	if err != nil {
 		return err
 	}
@@ -231,13 +216,9 @@ func (rw *Writer) writeWalSegment(
 	// the recovery script decompresses on demand at replay time. Decompressing
 	// here would re-inflate every near-empty segment back to a full 16 MB and
 	// blow the download up by orders of magnitude.
-	segmentLogger := rw.logger.With("wal_segment", segment.WalFilename)
-
 	reader, cleanup, err := openArtifact(
 		ctx,
-		store,
-		segmentLogger,
-		rw.fieldEncryptor,
+		storageReader,
 		masterKey,
 		artifactSource{
 			fileName:   *segment.FileName,
@@ -260,23 +241,19 @@ func (rw *Writer) writeHistoryFile(
 	tarWriter *tar.Writer,
 	history *physical_models.PhysicalWalHistoryFile,
 	masterKey string,
-	storageCache map[uuid.UUID]*storages.Storage,
+	storageCache map[uuid.UUID]storage_files.StorageReader,
 	checksums *checksumLedger,
 ) error {
-	store, err := rw.resolveStorage(ctx, history.StorageID, storageCache)
+	storageReader, err := rw.resolveStorage(ctx, history.StorageID, storageCache)
 	if err != nil {
 		return err
 	}
-
-	historyLogger := rw.logger.With("history_file", history.HistoryFilename)
 
 	// History files keep their encryption parameters only in the .metadata
 	// sidecar, not on the catalog row — read it to learn how to decrypt.
 	metadata, err := readHistoryMetadata(
 		ctx,
-		store,
-		historyLogger,
-		rw.fieldEncryptor,
+		storageReader,
 		history.FileName,
 	)
 	if err != nil {
@@ -285,9 +262,7 @@ func (rw *Writer) writeHistoryFile(
 
 	reader, cleanup, err := openArtifact(
 		ctx,
-		store,
-		historyLogger,
-		rw.fieldEncryptor,
+		storageReader,
 		masterKey,
 		artifactSource{
 			fileName:   history.FileName,
@@ -308,18 +283,18 @@ func (rw *Writer) writeHistoryFile(
 func (rw *Writer) resolveStorage(
 	ctx context.Context,
 	storageID uuid.UUID,
-	storageCache map[uuid.UUID]*storages.Storage,
-) (*storages.Storage, error) {
+	storageCache map[uuid.UUID]storage_files.StorageReader,
+) (storage_files.StorageReader, error) {
 	if cached, ok := storageCache[storageID]; ok {
 		return cached, nil
 	}
 
-	store, err := rw.storageService.GetStorageByID(ctx, storageID)
+	storageReader, err := rw.fileStore.GetStorageReader(ctx, storageID)
 	if err != nil {
 		return nil, fmt.Errorf("load storage %s: %w", storageID, err)
 	}
 
-	storageCache[storageID] = store
+	storageCache[storageID] = storageReader
 
-	return store, nil
+	return storageReader, nil
 }

@@ -1,43 +1,60 @@
 package storage_files
 
 import (
+	"context"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gorm.io/gorm"
 
 	db "databasus-backend/internal/storage"
 )
 
-// Both batch methods refuse a bare handle, so every call here goes through one.
-func inTransaction(t *testing.T, work func(tx *gorm.DB) error) error {
+// Both batch methods refuse to run outside a transaction, so every call here goes through one.
+func inTransaction(t *testing.T, work func(ctx context.Context) error) error {
 	t.Helper()
 
-	return db.GetDb().Transaction(work)
+	return db.GetTransactor().Transaction(t.Context(), work)
 }
 
-func Test_ConfirmFileWrites_WhenGivenNoTransaction_Refuses(t *testing.T) {
+func Test_ConfirmFileWrites_WhenContextCarriesNoTransaction_Refuses(t *testing.T) {
 	store := newTestStore(&fakeLocator{provider: &fakeProvider{}})
 	reference := StoredFileReference{StorageID: createStorageRow(t), FileName: "backup-1"}
 
 	receipt, err := store.WriteFile(t.Context(), reference, strings.NewReader("payload"))
 	require.NoError(t, err)
 
-	assert.ErrorIs(t,
-		store.ConfirmFileWrites(t.Context(), db.GetDb(), []WriteReceipt{receipt}), ErrTransactionRequired)
-	assert.ErrorIs(t, store.ConfirmFileWrites(t.Context(), nil, []WriteReceipt{receipt}), ErrTransactionRequired)
+	assert.ErrorIs(t, store.ConfirmFileWrites(t.Context(), []WriteReceipt{receipt}), ErrTransactionRequired)
 }
 
-func Test_RequestFileDeletions_WhenGivenNoTransaction_Refuses(t *testing.T) {
+func Test_RequestFileDeletions_WhenContextCarriesNoTransaction_Refuses(t *testing.T) {
 	store := newTestStore(&fakeLocator{provider: &fakeProvider{}})
 	references := []StoredFileReference{{StorageID: createStorageRow(t), FileName: "backup-1"}}
 
-	assert.ErrorIs(t,
-		store.RequestFileDeletions(t.Context(), db.GetDb(), references), ErrTransactionRequired)
-	assert.ErrorIs(t, store.RequestFileDeletions(t.Context(), nil, references), ErrTransactionRequired)
+	assert.ErrorIs(t, store.RequestFileDeletions(t.Context(), references), ErrTransactionRequired)
+}
+
+func Test_WriteFile_WhenCallerTransactionRollsBack_KeepsTheObligation(t *testing.T) {
+	provider := &fakeProvider{}
+	store := newTestStore(&fakeLocator{provider: provider})
+	reference := StoredFileReference{StorageID: createStorageRow(t), FileName: "backup-1"}
+
+	err := inTransaction(t, func(ctx context.Context) error {
+		if _, writeErr := store.WriteFile(ctx, reference, strings.NewReader("payload")); writeErr != nil {
+			return writeErr
+		}
+
+		return assert.AnError
+	})
+	require.ErrorIs(t, err, assert.AnError)
+
+	assert.Equal(t, []string{"backup-1"}, provider.saved)
+
+	pending, err := store.repository.FindByReference(db.GetDb(), reference)
+	require.NoError(t, err)
+	assert.NotNil(t, pending, "an uploaded file keeps its obligation when the caller's transaction rolls back")
 }
 
 func Test_ConfirmFileWrites_WhenTransactionCommits_KeepsTheFile(t *testing.T) {
@@ -52,8 +69,8 @@ func Test_ConfirmFileWrites_WhenTransactionCommits_KeepsTheFile(t *testing.T) {
 	sidecarReceipt, err := store.WriteFile(t.Context(), sidecar, strings.NewReader("meta"))
 	require.NoError(t, err)
 
-	require.NoError(t, db.GetDb().Transaction(func(tx *gorm.DB) error {
-		return store.ConfirmFileWrites(t.Context(), tx, []WriteReceipt{baseReceipt, sidecarReceipt})
+	require.NoError(t, inTransaction(t, func(ctx context.Context) error {
+		return store.ConfirmFileWrites(ctx, []WriteReceipt{baseReceipt, sidecarReceipt})
 	}))
 
 	for _, reference := range []StoredFileReference{base, sidecar} {
@@ -70,8 +87,8 @@ func Test_ConfirmFileWrites_WhenTransactionRollsBack_KeepsTheObligation(t *testi
 	receipt, err := store.WriteFile(t.Context(), reference, strings.NewReader("payload"))
 	require.NoError(t, err)
 
-	err = db.GetDb().Transaction(func(tx *gorm.DB) error {
-		if confirmErr := store.ConfirmFileWrites(t.Context(), tx, []WriteReceipt{receipt}); confirmErr != nil {
+	err = inTransaction(t, func(ctx context.Context) error {
+		if confirmErr := store.ConfirmFileWrites(ctx, []WriteReceipt{receipt}); confirmErr != nil {
 			return confirmErr
 		}
 
@@ -91,12 +108,12 @@ func Test_ConfirmFileWrites_WhenCalledTwice_FailsTheSecondTime(t *testing.T) {
 	receipt, err := store.WriteFile(t.Context(), reference, strings.NewReader("payload"))
 	require.NoError(t, err)
 
-	require.NoError(t, inTransaction(t, func(tx *gorm.DB) error {
-		return store.ConfirmFileWrites(t.Context(), tx, []WriteReceipt{receipt})
+	require.NoError(t, inTransaction(t, func(ctx context.Context) error {
+		return store.ConfirmFileWrites(ctx, []WriteReceipt{receipt})
 	}))
 
-	err = inTransaction(t, func(tx *gorm.DB) error {
-		return store.ConfirmFileWrites(t.Context(), tx, []WriteReceipt{receipt})
+	err = inTransaction(t, func(ctx context.Context) error {
+		return store.ConfirmFileWrites(ctx, []WriteReceipt{receipt})
 	})
 
 	assert.ErrorIs(t, err, ErrReceiptNoLongerValid)
@@ -109,12 +126,12 @@ func Test_ConfirmFileWrites_WhenDeletionWasRequestedMeanwhile_Fails(t *testing.T
 	receipt, err := store.WriteFile(t.Context(), reference, strings.NewReader("payload"))
 	require.NoError(t, err)
 
-	require.NoError(t, inTransaction(t, func(tx *gorm.DB) error {
-		return store.RequestFileDeletions(t.Context(), tx, []StoredFileReference{reference})
+	require.NoError(t, inTransaction(t, func(ctx context.Context) error {
+		return store.RequestFileDeletions(ctx, []StoredFileReference{reference})
 	}))
 
-	err = inTransaction(t, func(tx *gorm.DB) error {
-		return store.ConfirmFileWrites(t.Context(), tx, []WriteReceipt{receipt})
+	err = inTransaction(t, func(ctx context.Context) error {
+		return store.ConfirmFileWrites(ctx, []WriteReceipt{receipt})
 	})
 
 	assert.ErrorIs(t, err, ErrReceiptNoLongerValid)
@@ -136,12 +153,12 @@ func Test_ConfirmFileWrites_WhenOneReceiptIsStale_FailsTheWholeBatch(t *testing.
 	staleReceipt, err := store.WriteFile(t.Context(), stale, strings.NewReader("meta"))
 	require.NoError(t, err)
 
-	require.NoError(t, inTransaction(t, func(tx *gorm.DB) error {
-		return store.RequestFileDeletions(t.Context(), tx, []StoredFileReference{stale})
+	require.NoError(t, inTransaction(t, func(ctx context.Context) error {
+		return store.RequestFileDeletions(ctx, []StoredFileReference{stale})
 	}))
 
-	err = db.GetDb().Transaction(func(tx *gorm.DB) error {
-		return store.ConfirmFileWrites(t.Context(), tx, []WriteReceipt{goodReceipt, staleReceipt})
+	err = inTransaction(t, func(ctx context.Context) error {
+		return store.ConfirmFileWrites(ctx, []WriteReceipt{goodReceipt, staleReceipt})
 	})
 
 	require.ErrorIs(t, err, ErrReceiptNoLongerValid)
@@ -156,8 +173,8 @@ func Test_RequestFileDeletions_WhenRepeated_KeepsOneObligation(t *testing.T) {
 	reference := StoredFileReference{StorageID: createStorageRow(t), FileName: "backup-1"}
 
 	for range 2 {
-		require.NoError(t, inTransaction(t, func(tx *gorm.DB) error {
-			return store.RequestFileDeletions(t.Context(), tx, []StoredFileReference{reference})
+		require.NoError(t, inTransaction(t, func(ctx context.Context) error {
+			return store.RequestFileDeletions(ctx, []StoredFileReference{reference})
 		}))
 	}
 
@@ -176,8 +193,8 @@ func Test_RequestFileDeletions_WhenWriterIsRunning_Succeeds(t *testing.T) {
 	var requestErr error
 
 	provider := &fakeProvider{onSave: func() {
-		requestErr = inTransaction(t, func(tx *gorm.DB) error {
-			return store.RequestFileDeletions(t.Context(), tx, []StoredFileReference{reference})
+		requestErr = inTransaction(t, func(ctx context.Context) error {
+			return store.RequestFileDeletions(ctx, []StoredFileReference{reference})
 		})
 	}}
 	store.locator = &fakeLocator{provider: provider}
@@ -196,8 +213,8 @@ func Test_RequestFileDeletions_WhenWriterIsRunning_Succeeds(t *testing.T) {
 func Test_RequestFileDeletions_WhenBatchIsEmpty_Succeeds(t *testing.T) {
 	store := newTestStore(&fakeLocator{provider: &fakeProvider{}})
 
-	assert.NoError(t, inTransaction(t, func(tx *gorm.DB) error {
-		return store.RequestFileDeletions(t.Context(), tx, nil)
+	assert.NoError(t, inTransaction(t, func(ctx context.Context) error {
+		return store.RequestFileDeletions(ctx, nil)
 	}))
 }
 
@@ -220,8 +237,8 @@ func Test_WriteFile_WhenNobodyPublishes_TheFileIsRemovedAndConfirmedOnesAreKept(
 	publishedReceipt, err := store.WriteFile(t.Context(), published, strings.NewReader("payload"))
 	require.NoError(t, err)
 
-	require.NoError(t, inTransaction(t, func(tx *gorm.DB) error {
-		return store.ConfirmFileWrites(t.Context(), tx, []WriteReceipt{publishedReceipt})
+	require.NoError(t, inTransaction(t, func(ctx context.Context) error {
+		return store.ConfirmFileWrites(ctx, []WriteReceipt{publishedReceipt})
 	}))
 
 	worker.RunOnce(t.Context())

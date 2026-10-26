@@ -36,7 +36,7 @@ var getRestorer = sync.OnceValue(func() *Restorer {
 		encryption.GetFieldEncryptor(),
 		getRestoreRepository(),
 		backups_config_logical.GetBackupConfigService(),
-		storages.GetStorageService(),
+		storages.GetStorageFileStore(),
 		logger.GetLogger(),
 		usecases.GetRestoreBackupUsecase(),
 		getRestoreDatabaseCache(),

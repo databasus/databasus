@@ -14,7 +14,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/klauspost/compress/zstd"
-	"gorm.io/gorm"
 
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	physical_dto "databasus-backend/internal/features/backups/backups/core/physical/dto"
@@ -22,6 +21,7 @@ import (
 	physical_repositories "databasus-backend/internal/features/backups/backups/core/physical/repositories"
 	backup_encryption "databasus-backend/internal/features/backups/backups/encryption"
 	storage_files "databasus-backend/internal/features/storages/files"
+	"databasus-backend/internal/lib/database"
 	db "databasus-backend/internal/storage"
 	util_encryption "databasus-backend/internal/util/encryption"
 	"databasus-backend/internal/util/walmath"
@@ -466,8 +466,8 @@ func (u *WalUploader) discardAttempt(ctx context.Context, objectName string) {
 
 	ctx = context.WithoutCancel(ctx)
 
-	if err := db.GetDb().Transaction(func(tx *gorm.DB) error {
-		return u.deps.FileStore.RequestFileDeletions(ctx, tx, references)
+	if err := db.GetTransactor().Transaction(ctx, func(ctx context.Context) error {
+		return u.deps.FileStore.RequestFileDeletions(ctx, references)
 	}); err != nil {
 		u.deps.Logger.Warn("failed to discard a wal segment attempt", "file_name", objectName, "error", err)
 	}
@@ -487,7 +487,9 @@ type commitSegmentSpec struct {
 func (u *WalUploader) commitSegment(ctx context.Context, spec commitSegmentSpec) (bool, error) {
 	committed := false
 
-	err := db.GetDb().Transaction(func(tx *gorm.DB) error {
+	err := db.GetTransactor().Transaction(ctx, func(ctx context.Context) error {
+		tx := database.Conn(ctx, db.GetDb())
+
 		updated, err := u.deps.WalSegmentRepo.MarkUploadedInTransaction(tx, physical_repositories.WalSegmentUpload{
 			SegmentID:        spec.Claim.ID,
 			FileName:         spec.ObjectName,
@@ -504,7 +506,7 @@ func (u *WalUploader) commitSegment(ctx context.Context, spec commitSegmentSpec)
 			return nil
 		}
 
-		return u.deps.FileStore.ConfirmFileWrites(ctx, tx, spec.Receipts)
+		return u.deps.FileStore.ConfirmFileWrites(ctx, spec.Receipts)
 	})
 
 	return committed, err

@@ -21,7 +21,7 @@ import (
 	"databasus-backend/internal/features/databases"
 	mongodbtypes "databasus-backend/internal/features/databases/databases/mongodb"
 	restores_core "databasus-backend/internal/features/restores/core"
-	"databasus-backend/internal/features/storages"
+	storage_files "databasus-backend/internal/features/storages/files"
 	"databasus-backend/internal/lib/crypto"
 	util_encryption "databasus-backend/internal/util/encryption"
 	io_utils "databasus-backend/internal/util/io"
@@ -44,7 +44,7 @@ func (uc *RestoreMongodbBackupUsecase) Execute(
 	backupConfig *backups_config_logical.LogicalBackupConfig,
 	restore restores_core.Restore,
 	backup *backups_core_logical.LogicalBackup,
-	storage *storages.Storage,
+	storageReader storage_files.StorageReader,
 ) error {
 	if originalDB.Type != databases.DatabaseTypeMongodb {
 		return errors.New("database type not supported")
@@ -83,7 +83,7 @@ func (uc *RestoreMongodbBackupUsecase) Execute(
 		tools.GetMongodbExecutable(tools.MongodbExecutableMongorestore),
 		args,
 		backup,
-		storage,
+		storageReader,
 	)
 }
 
@@ -126,15 +126,14 @@ func (uc *RestoreMongodbBackupUsecase) restoreFromStorage(
 	mongorestoreBin string,
 	args []string,
 	backup *backups_core_logical.LogicalBackup,
-	storage *storages.Storage,
+	storageReader storage_files.StorageReader,
 ) error {
 	ctx, cancel := context.WithTimeout(parentCtx, restoreTimeout)
 	defer cancel()
 
 	logger := uc.logger.With("backup_id", backup.ID)
 
-	fieldEncryptor := util_encryption.GetFieldEncryptor()
-	rawReader, err := storage.GetFile(ctx, fieldEncryptor, logger, backup.FileName)
+	rawReader, err := storageReader.OpenFile(ctx, backup.FileName)
 	if err != nil {
 		return fmt.Errorf("failed to get backup file from storage: %w", err)
 	}

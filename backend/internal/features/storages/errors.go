@@ -1,6 +1,10 @@
 package storages
 
-import "errors"
+import (
+	"errors"
+
+	"databasus-backend/internal/lib/apierror"
+)
 
 var (
 	ErrInsufficientPermissionsToManageStorage = errors.New(
@@ -24,11 +28,9 @@ var (
 	ErrStorageDoesNotBelongToWorkspace = errors.New(
 		"storage does not belong to this workspace",
 	)
-	ErrStorageHasAttachedDatabases = errors.New(
-		"storage has attached databases and cannot be deleted",
-	)
-	ErrStorageHasBackups = errors.New(
-		"storage still holds backups; delete them first, they are the only record of the files they name",
+	ErrStorageInUse = errors.New(
+		"storage is used by a backup config or still holds backups; remove them first, " +
+			"they are the only record of the files it holds",
 	)
 	ErrStorageHasAttachedDatabasesCannotTransfer = errors.New(
 		"storage has attached databases and cannot be transferred",
@@ -46,3 +48,11 @@ var (
 		"rclone storage can only be managed by administrators",
 	)
 )
+
+// ErrWorkspaceStorageInUse names no backup and no other workspace, so a refused workspace deletion
+// reveals nothing its owner may not see.
+var ErrWorkspaceStorageInUse = &apierror.Problem{
+	Code:   apierror.CodeInUse,
+	Detail: "a storage of the workspace is still in use",
+	Errors: nil,
+}

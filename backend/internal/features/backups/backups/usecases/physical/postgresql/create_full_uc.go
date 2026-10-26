@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"gorm.io/gorm"
 
 	chain_view "databasus-backend/internal/features/backups/backups/core/physical/chain_view"
 	physical_enums "databasus-backend/internal/features/backups/backups/core/physical/enums"
@@ -203,8 +202,8 @@ func discardArtifactsAfterChainBroken(
 
 	ctx = context.WithoutCancel(ctx)
 
-	if err := db.GetDb().Transaction(func(tx *gorm.DB) error {
-		return fileStore.RequestFileDeletions(ctx, tx, references)
+	if err := db.GetTransactor().Transaction(ctx, func(ctx context.Context) error {
+		return fileStore.RequestFileDeletions(ctx, references)
 	}); err != nil {
 		logger.Warn("failed to discard artifacts after CHAIN_BROKEN", "file_name", fileName, "error", err)
 	}

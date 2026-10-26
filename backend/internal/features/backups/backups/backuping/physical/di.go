@@ -143,7 +143,6 @@ var SetupDependencies = sync.OnceFunc(func() {
 	// The cascade that would take the object names away runs only after every
 	// listener has returned.
 	databases.GetDatabaseService().AddDbRemoveListener(physical_service.GetPhysicalBackupService())
-	storages.GetStorageService().AddStorageBackupCounter(physical_service.GetPhysicalBackupService())
 	databases.GetDatabaseService().AddDbRemoveListener(getPhysicalSlotCleanupListener())
 	backups_config_physical.GetBackupConfigService().
 		SetBackupCancellationListener(getPhysicalBackupCancellationListener())

@@ -9,7 +9,6 @@ import (
 	"databasus-backend/internal/features/backups/backups/download/stream_guard"
 	"databasus-backend/internal/features/caching"
 	"databasus-backend/internal/features/storages"
-	util_encryption "databasus-backend/internal/util/encryption"
 	"databasus-backend/internal/util/logger"
 )
 
@@ -41,11 +40,7 @@ var getStreamServices = sync.OnceValue(func() streamServices {
 			downloadTokenService,
 			logger.GetLogger(),
 		),
-		restoreStreamWriter: restore_stream.NewWriter(
-			storages.GetStorageService(),
-			util_encryption.GetFieldEncryptor(),
-			logger.GetLogger(),
-		),
+		restoreStreamWriter: restore_stream.NewWriter(storages.GetStorageFileStore()),
 	}
 })
 

@@ -9,9 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
-	storage_files "databasus-backend/internal/features/storages/files"
 	azure_blob_storage "databasus-backend/internal/features/storages/models/azure_blob"
 	ftp_storage "databasus-backend/internal/features/storages/models/ftp"
 	local_storage "databasus-backend/internal/features/storages/models/local"
@@ -24,7 +22,6 @@ import (
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/modules/workspaces"
 	"databasus-backend/internal/util/encryption"
-	"databasus-backend/internal/util/logger"
 	test_utils "databasus-backend/internal/util/testing"
 )
 
@@ -1313,58 +1310,4 @@ func deleteStorage(
 		"Bearer "+token,
 		http.StatusOK,
 	)
-}
-
-func Test_DeleteStorage_WhenBackupsStillReferenceIt_IsRefused(t *testing.T) {
-	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Referenced Storage Workspace", owner)
-	storage := CreateTestStorage(workspace.ID)
-
-	SetStorageBackupCountersForTest(&countingBackupCounter{backupReferences: 3})
-
-	t.Cleanup(func() {
-		SetStorageBackupCountersForTest()
-		RemoveTestStorage(t.Context(), storage.ID)
-		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
-	})
-
-	err := GetStorageService().DeleteStorage(t.Context(), users.Actor{UserID: owner.UserID, Role: users.RoleMember}, storage.ID)
-
-	assert.ErrorIs(t, err, ErrStorageHasBackups,
-		"backup rows are the only record of the file names, so the storage cannot go while they exist")
-}
-
-func Test_DeleteStorage_WhenCleanupIsPending_DrainsItBeforeTheCredentialsGo(t *testing.T) {
-	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Draining Storage Workspace", owner)
-	storage := CreateTestStorage(workspace.ID)
-
-	t.Cleanup(func() { workspaces_testing.RemoveTestWorkspace(t.Context(), workspace) })
-
-	SetStorageDatabaseCountersForTest(&mockStorageDatabaseCounter{})
-
-	fileName := "drained-" + storage.ID.String()
-
-	_, err := GetStorageFileStore().WriteFile(
-		t.Context(),
-		storage_files.StoredFileReference{StorageID: storage.ID, FileName: fileName},
-		strings.NewReader("left behind"),
-	)
-	require.NoError(t, err)
-
-	require.NoError(
-		t,
-		GetStorageService().DeleteStorage(t.Context(), users.Actor{UserID: owner.UserID, Role: users.RoleMember}, storage.ID),
-	)
-
-	_, err = storage.GetFile(t.Context(), encryption.GetFieldEncryptor(), logger.GetLogger(), fileName)
-	assert.Error(t, err, "the drain runs while the credentials still exist, so the file goes with the storage")
-}
-
-type countingBackupCounter struct {
-	backupReferences int64
-}
-
-func (c *countingBackupCounter) GetStorageBackupReferenceCount(uuid.UUID) (int64, error) {
-	return c.backupReferences, nil
 }

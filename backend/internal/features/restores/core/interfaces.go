@@ -6,7 +6,7 @@ import (
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
 	"databasus-backend/internal/features/databases"
-	"databasus-backend/internal/features/storages"
+	storage_files "databasus-backend/internal/features/storages/files"
 )
 
 type RestoreBackupUsecase interface {
@@ -17,7 +17,7 @@ type RestoreBackupUsecase interface {
 		originalDB *databases.Database,
 		restoringToDB *databases.Database,
 		backup *backups_core_logical.LogicalBackup,
-		storage *storages.Storage,
+		storageReader storage_files.StorageReader,
 		options RestoreOptions,
 	) error
 }

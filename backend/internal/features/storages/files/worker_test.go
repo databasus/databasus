@@ -80,8 +80,8 @@ func Test_RunOnce_WhenObligationIsDue_DeletesTheFileAndReleasesIt(t *testing.T) 
 	worker := newTestWorker(t, store, locator)
 	reference := StoredFileReference{StorageID: createStorageRow(t), FileName: "backup-1"}
 
-	require.NoError(t, inTransaction(t, func(tx *gorm.DB) error {
-		return store.RequestFileDeletions(t.Context(), tx, []StoredFileReference{reference})
+	require.NoError(t, inTransaction(t, func(ctx context.Context) error {
+		return store.RequestFileDeletions(ctx, []StoredFileReference{reference})
 	}))
 
 	worker.RunOnce(t.Context())
@@ -103,8 +103,8 @@ func Test_RunOnce_WhenWriteIsLive_LeavesTheFileAloneUntilTheWriterIsGone(t *test
 	var deletedDuringWrite []string
 
 	provider.onSave = func() {
-		require.NoError(t, inTransaction(t, func(tx *gorm.DB) error {
-			return store.RequestFileDeletions(t.Context(), tx, []StoredFileReference{reference})
+		require.NoError(t, inTransaction(t, func(ctx context.Context) error {
+			return store.RequestFileDeletions(ctx, []StoredFileReference{reference})
 		}))
 
 		worker.RunOnce(t.Context())
@@ -149,8 +149,8 @@ func Test_RunOnce_WhenClaimingAFile_InvalidatesAnOutstandingReceipt(t *testing.T
 	makeDue(t, reference)
 	worker.RunOnce(t.Context())
 
-	err = inTransaction(t, func(tx *gorm.DB) error {
-		return store.ConfirmFileWrites(t.Context(), tx, []WriteReceipt{receipt})
+	err = inTransaction(t, func(ctx context.Context) error {
+		return store.ConfirmFileWrites(ctx, []WriteReceipt{receipt})
 	})
 
 	assert.ErrorIs(t, err, ErrReceiptNoLongerValid)
@@ -164,8 +164,8 @@ func Test_RunOnce_WhenProviderFailsThenRecovers_RetriesUntilTheFileIsGone(t *tes
 	worker := newTestWorker(t, store, locator)
 	reference := StoredFileReference{StorageID: createStorageRow(t), FileName: "backup-1"}
 
-	require.NoError(t, inTransaction(t, func(tx *gorm.DB) error {
-		return store.RequestFileDeletions(t.Context(), tx, []StoredFileReference{reference})
+	require.NoError(t, inTransaction(t, func(ctx context.Context) error {
+		return store.RequestFileDeletions(ctx, []StoredFileReference{reference})
 	}))
 
 	worker.RunOnce(t.Context())
@@ -195,8 +195,8 @@ func Test_RunOnce_WhenDeletionWasRequestedRepeatedly_CountsOnlyTheAttempt(t *tes
 	reference := StoredFileReference{StorageID: createStorageRow(t), FileName: "backup-1"}
 
 	for range 3 {
-		require.NoError(t, inTransaction(t, func(tx *gorm.DB) error {
-			return store.RequestFileDeletions(t.Context(), tx, []StoredFileReference{reference})
+		require.NoError(t, inTransaction(t, func(ctx context.Context) error {
+			return store.RequestFileDeletions(ctx, []StoredFileReference{reference})
 		}))
 	}
 
@@ -217,13 +217,13 @@ func Test_RunOnce_WhenAnotherCallerTakesTheFileMidAttempt_DoesNotReleaseTheirObl
 	worker := newTestWorker(t, store, locator)
 	reference := StoredFileReference{StorageID: createStorageRow(t), FileName: "backup-1"}
 
-	require.NoError(t, inTransaction(t, func(tx *gorm.DB) error {
-		return store.RequestFileDeletions(t.Context(), tx, []StoredFileReference{reference})
+	require.NoError(t, inTransaction(t, func(ctx context.Context) error {
+		return store.RequestFileDeletions(ctx, []StoredFileReference{reference})
 	}))
 
 	provider.onDelete = func() {
-		require.NoError(t, inTransaction(t, func(tx *gorm.DB) error {
-			return store.RequestFileDeletions(t.Context(), tx, []StoredFileReference{reference})
+		require.NoError(t, inTransaction(t, func(ctx context.Context) error {
+			return store.RequestFileDeletions(ctx, []StoredFileReference{reference})
 		}))
 	}
 
@@ -243,8 +243,8 @@ func Test_RunOnce_WhenStorageDisappearsMidAttempt_FinishesQuietly(t *testing.T) 
 	storageID := createStorageRow(t)
 	reference := StoredFileReference{StorageID: storageID, FileName: "backup-1"}
 
-	require.NoError(t, inTransaction(t, func(tx *gorm.DB) error {
-		return store.RequestFileDeletions(t.Context(), tx, []StoredFileReference{reference})
+	require.NoError(t, inTransaction(t, func(ctx context.Context) error {
+		return store.RequestFileDeletions(ctx, []StoredFileReference{reference})
 	}))
 
 	provider.onDelete = func() {
@@ -267,8 +267,8 @@ func Test_DrainForTest_WhenProviderFailsThenRecovers_ReturnsOnlyAfterTheFilesAre
 	first := StoredFileReference{StorageID: storageID, FileName: "backup-1"}
 	second := StoredFileReference{StorageID: storageID, FileName: "backup-2"}
 
-	require.NoError(t, inTransaction(t, func(tx *gorm.DB) error {
-		return store.RequestFileDeletions(t.Context(), tx, []StoredFileReference{first, second})
+	require.NoError(t, inTransaction(t, func(ctx context.Context) error {
+		return store.RequestFileDeletions(ctx, []StoredFileReference{first, second})
 	}))
 
 	// onDelete runs before DeleteFile reads deleteErr, so the first attempt has to
@@ -333,8 +333,8 @@ func Test_RunOnce_WhenAttemptFails_LogsJobStorageFileAndRetry(t *testing.T) {
 	worker.logger = slog.New(handler)
 	reference := StoredFileReference{StorageID: createStorageRow(t), FileName: "backup-1"}
 
-	require.NoError(t, inTransaction(t, func(tx *gorm.DB) error {
-		return store.RequestFileDeletions(t.Context(), tx, []StoredFileReference{reference})
+	require.NoError(t, inTransaction(t, func(ctx context.Context) error {
+		return store.RequestFileDeletions(ctx, []StoredFileReference{reference})
 	}))
 
 	worker.RunOnce(t.Context())
@@ -397,8 +397,8 @@ func Test_Run_WhenAPassIsSlow_DoesNotOverlapPasses(t *testing.T) {
 		concurrentPasses.Add(-1)
 	}
 
-	require.NoError(t, inTransaction(t, func(tx *gorm.DB) error {
-		return store.RequestFileDeletions(t.Context(), tx, references)
+	require.NoError(t, inTransaction(t, func(ctx context.Context) error {
+		return store.RequestFileDeletions(ctx, references)
 	}))
 
 	ctx, cancel := context.WithCancel(t.Context())
@@ -440,8 +440,8 @@ func Test_Run_WhenContextIsCancelledMidPass_FinishesTheProviderCallBeforeReturni
 		deleteReturned = true
 	}
 
-	require.NoError(t, inTransaction(t, func(tx *gorm.DB) error {
-		return store.RequestFileDeletions(t.Context(), tx, []StoredFileReference{reference})
+	require.NoError(t, inTransaction(t, func(ctx context.Context) error {
+		return store.RequestFileDeletions(ctx, []StoredFileReference{reference})
 	}))
 
 	stopped := make(chan struct{})

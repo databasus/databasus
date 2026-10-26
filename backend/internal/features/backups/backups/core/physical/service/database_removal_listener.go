@@ -9,6 +9,7 @@ import (
 
 	physical_models "databasus-backend/internal/features/backups/backups/core/physical/models"
 	storage_files "databasus-backend/internal/features/storages/files"
+	"databasus-backend/internal/lib/database"
 	db "databasus-backend/internal/storage"
 )
 
@@ -16,13 +17,15 @@ import (
 // rows that are the only record of its object names. This records the obligation
 // to remove those objects before the cascade can take the names away.
 func (s *PhysicalBackupService) OnBeforeDatabaseRemove(ctx context.Context, databaseID uuid.UUID) error {
-	return db.GetDb().Transaction(func(tx *gorm.DB) error {
+	return db.GetTransactor().Transaction(ctx, func(ctx context.Context) error {
+		tx := database.Conn(ctx, db.GetDb())
+
 		references, err := s.collectDatabaseFileReferences(tx, databaseID)
 		if err != nil {
 			return err
 		}
 
-		return s.fileStore.RequestFileDeletions(ctx, tx, references)
+		return s.fileStore.RequestFileDeletions(ctx, references)
 	})
 }
 

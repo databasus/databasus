@@ -24,6 +24,7 @@ import (
 	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
 	workspaces_bridge "databasus-backend/internal/features/workspaces"
 	"databasus-backend/internal/lib/crypto"
+	"databasus-backend/internal/lib/database"
 	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/storage"
 	util_encryption "databasus-backend/internal/util/encryption"
@@ -112,7 +113,6 @@ func (b *PhysicalBackuper) runFullBackup(
 			SourceDB:       backupCtx.Database.PostgresqlPhysical,
 			DatabaseName:   backupCtx.Database.Name,
 			StorageID:      backupCtx.Storage.ID,
-			Storage:        backupCtx.Storage,
 			FileStore:      b.fileStore,
 			Encryption:     backupCtx.Config.Encryption,
 			MasterKey:      backupCtx.MasterKey,
@@ -198,6 +198,16 @@ func (b *PhysicalBackuper) runIncrementalBackup(
 		return
 	}
 
+	storageReader, err := b.fileStore.GetStorageReader(ctx, backupCtx.Storage.ID)
+	if err != nil {
+		logger.ErrorContext(ctx, "failed to open the storage of the parent manifest", "error", err)
+
+		b.finalizeIncrAsError(incrBackup, physical_enums.PhysicalBackupErrorPgBasebackupFailed,
+			"failed to open the storage of the parent manifest")
+
+		return
+	}
+
 	executionCtx, cancel := context.WithCancel(context.Background())
 	b.taskCancellationRegistry.RegisterTask(incrBackup.ID, cancel)
 	defer b.taskCancellationRegistry.UnregisterTask(incrBackup.ID)
@@ -207,7 +217,6 @@ func (b *PhysicalBackuper) runIncrementalBackup(
 			SourceDB:       backupCtx.Database.PostgresqlPhysical,
 			DatabaseName:   backupCtx.Database.Name,
 			StorageID:      backupCtx.Storage.ID,
-			Storage:        backupCtx.Storage,
 			FileStore:      b.fileStore,
 			Encryption:     backupCtx.Config.Encryption,
 			MasterKey:      backupCtx.MasterKey,
@@ -223,6 +232,7 @@ func (b *PhysicalBackuper) runIncrementalBackup(
 		},
 		Backup:             incrBackup,
 		ParentManifest:     parentRef,
+		StorageReader:      storageReader,
 		IncrRepo:           b.incrRepo,
 		IncrementalCadence: backupCtx.Config.IncrementalBackupInterval.ApproxPeriod(),
 	}
@@ -581,7 +591,9 @@ type terminalPersistSpec struct {
 func (b *PhysicalBackuper) saveTerminalResultIfInProgress(ctx context.Context, spec terminalPersistSpec) error {
 	superseded := false
 
-	err := storage.GetDb().Transaction(func(tx *gorm.DB) error {
+	err := storage.GetTransactor().Transaction(ctx, func(ctx context.Context) error {
+		tx := database.Conn(ctx, storage.GetDb())
+
 		status, err := spec.LoadStatus(tx)
 		if err != nil {
 			return err
@@ -590,14 +602,14 @@ func (b *PhysicalBackuper) saveTerminalResultIfInProgress(ctx context.Context, s
 		if status != physical_enums.PhysicalBackupStatusInProgress {
 			superseded = true
 
-			return b.fileStore.RequestFileDeletions(ctx, tx, b.attemptFileReferences(spec))
+			return b.fileStore.RequestFileDeletions(ctx, b.attemptFileReferences(spec))
 		}
 
 		if spec.Result.Status == physical_enums.PhysicalBackupStatusCompleted {
-			if err := b.fileStore.ConfirmFileWrites(ctx, tx, spec.Result.Receipts); err != nil {
+			if err := b.fileStore.ConfirmFileWrites(ctx, spec.Result.Receipts); err != nil {
 				return err
 			}
-		} else if err := b.fileStore.RequestFileDeletions(ctx, tx, b.attemptFileReferences(spec)); err != nil {
+		} else if err := b.fileStore.RequestFileDeletions(ctx, b.attemptFileReferences(spec)); err != nil {
 			return err
 		}
 

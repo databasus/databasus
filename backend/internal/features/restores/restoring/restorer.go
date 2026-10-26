@@ -13,7 +13,7 @@ import (
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
 	"databasus-backend/internal/features/databases"
 	restores_core "databasus-backend/internal/features/restores/core"
-	"databasus-backend/internal/features/storages"
+	storage_files "databasus-backend/internal/features/storages/files"
 	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
 	"databasus-backend/internal/lib/cache"
 	util_encryption "databasus-backend/internal/util/encryption"
@@ -25,7 +25,7 @@ type Restorer struct {
 	fieldEncryptor           util_encryption.FieldEncryptor
 	restoreRepository        *restores_core.RestoreRepository
 	backupConfigService      *backups_config_logical.BackupConfigService
-	storageService           *storages.StorageService
+	fileStore                *storage_files.Store
 	logger                   *slog.Logger
 	restoreBackupUsecase     restores_core.RestoreBackupUsecase
 	restoreDatabaseCache     *cache.JSONStore[RestoreDatabaseCache]
@@ -96,9 +96,9 @@ func (r *Restorer) MakeRestore(
 	restoreCtx, cancelRestore := restores_core.NewRestoreContext(executionCtx, r.shutdownSignal)
 	defer cancelRestore(nil)
 
-	storage, err := r.storageService.GetStorageByID(restoreCtx, backup.StorageID)
+	storageReader, err := r.fileStore.GetStorageReader(restoreCtx, backup.StorageID)
 	if err != nil {
-		logger.ErrorContext(ctx, "failed to get storage by ID", "error", err)
+		logger.ErrorContext(ctx, "failed to open the backup's storage", "storage_id", backup.StorageID, "error", err)
 		return
 	}
 
@@ -165,7 +165,7 @@ func (r *Restorer) MakeRestore(
 	}
 
 	logger.InfoContext(ctx, fmt.Sprintf("restore started: %s database %q", database.Type, database.Name),
-		"backup_id", backup.ID, "database_id", databaseID, "storage_id", storage.ID)
+		"backup_id", backup.ID, "database_id", databaseID, "storage_id", backup.StorageID)
 
 	err = r.restoreBackupUsecase.Execute(
 		restoreCtx,
@@ -174,7 +174,7 @@ func (r *Restorer) MakeRestore(
 		database,
 		restoringToDBThroughTunnel,
 		backup,
-		storage,
+		storageReader,
 		restoreOptions,
 	)
 	if err != nil {
@@ -200,8 +200,7 @@ func (r *Restorer) MakeRestore(
 			"backup_id", backup.ID,
 			"database_id", databaseID,
 			"database_type", database.Type,
-			"storage_id", storage.ID,
-			"storage_type", storage.Type,
+			"storage_id", backup.StorageID,
 			"error", err,
 		)
 

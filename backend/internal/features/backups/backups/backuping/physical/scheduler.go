@@ -20,6 +20,7 @@ import (
 	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
 	storage_files "databasus-backend/internal/features/storages/files"
 	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
+	"databasus-backend/internal/lib/database"
 	"databasus-backend/internal/storage"
 )
 
@@ -784,7 +785,9 @@ func (s *PhysicalBackupsScheduler) failBackupAndReleaseClaim(
 		typedModel = &physical_models.PhysicalIncrementalBackup{}
 	}
 
-	return storage.GetDb().Transaction(func(tx *gorm.DB) error {
+	return storage.GetTransactor().Transaction(ctx, func(ctx context.Context) error {
+		tx := database.Conn(ctx, storage.GetDb())
+
 		// Guard on IN_PROGRESS so a late completion that already wrote a terminal
 		// status wins the race — the backuper's persist and this sweep both
 		// conditionally transition the row, so at most one of them takes effect.
@@ -812,7 +815,7 @@ func (s *PhysicalBackupsScheduler) failBackupAndReleaseClaim(
 					storage_files.StoredFileReference{StorageID: spec.StorageID, FileName: spec.ManifestFileName})
 			}
 
-			if err := s.fileStore.RequestFileDeletions(ctx, tx, references); err != nil {
+			if err := s.fileStore.RequestFileDeletions(ctx, references); err != nil {
 				return err
 			}
 		}

@@ -7,6 +7,8 @@ import (
 	"sync/atomic"
 
 	"gorm.io/gorm"
+
+	"databasus-backend/internal/lib/database"
 )
 
 var installedDb atomic.Pointer[gorm.DB]
@@ -23,4 +25,10 @@ func GetDb() *gorm.DB {
 	}
 
 	return getDbWithoutApp()
+}
+
+// GetTransactor opens transactions on the same pool, so the old code hands its transaction to a
+// module through the context instead of a *gorm.DB parameter.
+func GetTransactor() *database.Transactor {
+	return database.NewTransactor(GetDb())
 }

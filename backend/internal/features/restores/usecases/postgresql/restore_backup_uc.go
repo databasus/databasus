@@ -26,7 +26,7 @@ import (
 	pgtypes "databasus-backend/internal/features/databases/databases/postgresql/logical"
 	postgresql_shared "databasus-backend/internal/features/databases/databases/postgresql/shared"
 	restores_core "databasus-backend/internal/features/restores/core"
-	"databasus-backend/internal/features/storages"
+	storage_files "databasus-backend/internal/features/storages/files"
 	"databasus-backend/internal/lib/crypto"
 	util_encryption "databasus-backend/internal/util/encryption"
 	io_utils "databasus-backend/internal/util/io"
@@ -45,7 +45,7 @@ func (uc *RestorePostgresqlBackupUsecase) Execute(
 	backupConfig *backups_config_logical.LogicalBackupConfig,
 	restore restores_core.Restore,
 	backup *backups_core_logical.LogicalBackup,
-	storage *storages.Storage,
+	storageReader storage_files.StorageReader,
 	options restores_core.RestoreOptions,
 ) error {
 	if originalDB.Type != databases.DatabaseTypePostgresLogical {
@@ -77,7 +77,7 @@ func (uc *RestorePostgresqlBackupUsecase) Execute(
 		originalDB,
 		pgBin,
 		backup,
-		storage,
+		storageReader,
 		pg,
 		options,
 	)
@@ -89,7 +89,7 @@ func (uc *RestorePostgresqlBackupUsecase) restoreCustomType(
 	originalDB *databases.Database,
 	pgBin string,
 	backup *backups_core_logical.LogicalBackup,
-	storage *storages.Storage,
+	storageReader storage_files.StorageReader,
 	pg *pgtypes.PostgresqlLogicalDatabase,
 	options restores_core.RestoreOptions,
 ) error {
@@ -107,10 +107,10 @@ func (uc *RestorePostgresqlBackupUsecase) restoreCustomType(
 	// database-level GUC, so streaming is kept).
 	runRestore := func() error {
 		if options.IsExcludeExtensions || options.IsSkipUserMappings || pg.CpuCount > 1 {
-			return uc.restoreViaFile(parentCtx, originalDB, pgBin, backup, storage, pg, options)
+			return uc.restoreViaFile(parentCtx, originalDB, pgBin, backup, storageReader, pg, options)
 		}
 
-		return uc.restoreViaStdin(parentCtx, originalDB, pgBin, backup, storage, pg)
+		return uc.restoreViaStdin(parentCtx, originalDB, pgBin, backup, storageReader, pg)
 	}
 
 	if backup.TimescaledbVersion != "" {
@@ -159,7 +159,7 @@ func (uc *RestorePostgresqlBackupUsecase) restoreViaStdin(
 	originalDB *databases.Database,
 	pgBin string,
 	backup *backups_core_logical.LogicalBackup,
-	storage *storages.Storage,
+	storageReader storage_files.StorageReader,
 	pg *pgtypes.PostgresqlLogicalDatabase,
 ) error {
 	logger := uc.logger.With("backup_id", backup.ID)
@@ -204,7 +204,7 @@ func (uc *RestorePostgresqlBackupUsecase) restoreViaStdin(
 	}
 	defer credentials.Remove()
 
-	rawReader, err := storage.GetFile(ctx, fieldEncryptor, logger, backup.FileName)
+	rawReader, err := storageReader.OpenFile(ctx, backup.FileName)
 	if err != nil {
 		return fmt.Errorf("failed to get backup file from storage: %w", err)
 	}
@@ -373,7 +373,7 @@ func (uc *RestorePostgresqlBackupUsecase) restoreViaFile(
 	originalDB *databases.Database,
 	pgBin string,
 	backup *backups_core_logical.LogicalBackup,
-	storage *storages.Storage,
+	storageReader storage_files.StorageReader,
 	pg *pgtypes.PostgresqlLogicalDatabase,
 	options restores_core.RestoreOptions,
 ) error {
@@ -424,7 +424,7 @@ func (uc *RestorePostgresqlBackupUsecase) restoreViaFile(
 		args,
 		pg.Password,
 		backup,
-		storage,
+		storageReader,
 		pg,
 		options,
 	)
@@ -438,7 +438,7 @@ func (uc *RestorePostgresqlBackupUsecase) restoreFromStorage(
 	args []string,
 	password string,
 	backup *backups_core_logical.LogicalBackup,
-	storage *storages.Storage,
+	storageReader storage_files.StorageReader,
 	pgConfig *pgtypes.PostgresqlLogicalDatabase,
 	options restores_core.RestoreOptions,
 ) error {
@@ -471,7 +471,7 @@ func (uc *RestorePostgresqlBackupUsecase) restoreFromStorage(
 	defer credentials.Remove()
 
 	// Download backup to temporary file
-	tempBackupFile, cleanupFunc, err := uc.downloadBackupToTempFile(ctx, backup, storage)
+	tempBackupFile, cleanupFunc, err := uc.downloadBackupToTempFile(ctx, backup, storageReader)
 	if err != nil {
 		return fmt.Errorf("failed to download backup to temporary file: %w", err)
 	}
@@ -513,7 +513,7 @@ func (uc *RestorePostgresqlBackupUsecase) restoreFromStorage(
 func (uc *RestorePostgresqlBackupUsecase) downloadBackupToTempFile(
 	ctx context.Context,
 	backup *backups_core_logical.LogicalBackup,
-	storage *storages.Storage,
+	storageReader storage_files.StorageReader,
 ) (string, func(), error) {
 	// Create temporary directory for backup data
 	tempDir, err := os.MkdirTemp(config.GetEnv().TempFolder, "restore_"+uuid.New().String())
@@ -538,8 +538,7 @@ func (uc *RestorePostgresqlBackupUsecase) downloadBackupToTempFile(
 		backup.Encryption == backups_core_enums.BackupEncryptionEncrypted,
 	)
 
-	fieldEncryptor := util_encryption.GetFieldEncryptor()
-	rawReader, err := storage.GetFile(ctx, fieldEncryptor, logger, backup.FileName)
+	rawReader, err := storageReader.OpenFile(ctx, backup.FileName)
 	if err != nil {
 		cleanupFunc()
 		return "", nil, fmt.Errorf("failed to get backup file from storage: %w", err)

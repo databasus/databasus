@@ -48,10 +48,3 @@ type StorageFileSaver interface {
 type StorageDatabaseCounter interface {
 	GetStorageAttachedDatabasesIDs(storageID uuid.UUID) ([]uuid.UUID, error)
 }
-
-// Backup rows are the only record of the file names in a storage, so removing the
-// storage while they exist would make the objects unreachable. Each backup feature
-// counts its own rows, because the tables belong to it.
-type StorageBackupCounter interface {
-	GetStorageBackupReferenceCount(storageID uuid.UUID) (int64, error)
-}

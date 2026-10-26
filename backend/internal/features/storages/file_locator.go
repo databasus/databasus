@@ -18,6 +18,13 @@ func (s *StorageService) GetFileWriter(
 	return s.storageRepository.FindByID(ctx, storageID)
 }
 
+func (s *StorageService) GetFileReader(
+	ctx context.Context,
+	storageID uuid.UUID,
+) (storage_files.FileReader, error) {
+	return s.storageRepository.FindByID(ctx, storageID)
+}
+
 func (s *StorageService) GetFileRemover(
 	ctx context.Context,
 	storageID uuid.UUID,

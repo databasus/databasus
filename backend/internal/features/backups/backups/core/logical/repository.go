@@ -2,7 +2,6 @@ package backups_core_logical
 
 import (
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -196,19 +195,6 @@ func (r *BackupRepository) FindByDatabaseIdAndStatus(
 	}
 
 	return backups, nil
-}
-
-func (r *BackupRepository) CountByStorageID(storageID uuid.UUID) (int64, error) {
-	var count int64
-
-	if err := storage.GetDb().
-		Model(&LogicalBackup{}).
-		Where("storage_id = ?", storageID).
-		Count(&count).Error; err != nil {
-		return 0, fmt.Errorf("count backups of a storage: %w", err)
-	}
-
-	return count, nil
 }
 
 func (r *BackupRepository) DeleteByID(id uuid.UUID) error {

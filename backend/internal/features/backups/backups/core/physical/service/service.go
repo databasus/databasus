@@ -17,6 +17,7 @@ import (
 	physical_repositories "databasus-backend/internal/features/backups/backups/core/physical/repositories"
 	"databasus-backend/internal/features/storages"
 	storage_files "databasus-backend/internal/features/storages/files"
+	"databasus-backend/internal/lib/database"
 	"databasus-backend/internal/storage"
 	util_encryption "databasus-backend/internal/util/encryption"
 	"databasus-backend/internal/util/walmath"
@@ -142,7 +143,9 @@ func (s *PhysicalBackupService) DeleteWalSegmentsInSpan(
 	var deletedRows int
 	var deletedMB float64
 
-	txErr := storage.GetDb().WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+	txErr := storage.GetTransactor().Transaction(ctx, func(ctx context.Context) error {
+		tx := database.Conn(ctx, storage.GetDb())
+
 		rows, mb, _, err := s.deleteWalInSpanBudgeted(ctx, tx, databaseID, timelineID, span, walByteBudgetMB, true)
 		deletedRows = rows
 		deletedMB = mb
@@ -163,7 +166,9 @@ func (s *PhysicalBackupService) DeleteOrphanWalSegmentsInSpan(
 	var deletedRows int
 	var deletedMB float64
 
-	txErr := storage.GetDb().WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+	txErr := storage.GetTransactor().Transaction(ctx, func(ctx context.Context) error {
+		tx := database.Conn(ctx, storage.GetDb())
+
 		if err := physical_repositories.AcquireBackupAndOrphanCleanupLock(tx, spec.DatabaseID); err != nil {
 			return err
 		}
@@ -222,7 +227,9 @@ func (s *PhysicalBackupService) DeleteIncrementalCascade(
 ) (DeletedSummary, error) {
 	summary := DeletedSummary{}
 
-	txErr := storage.GetDb().WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+	txErr := storage.GetTransactor().Transaction(ctx, func(ctx context.Context) error {
+		tx := database.Conn(ctx, storage.GetDb())
+
 		var target physical_models.PhysicalIncrementalBackup
 
 		findErr := tx.Where("id = ?", incrementalID).First(&target).Error
@@ -663,7 +670,9 @@ func (s *PhysicalBackupService) cascadeDelete(
 		return summary, nil
 	}
 
-	txErr := storage.GetDb().WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+	txErr := storage.GetTransactor().Transaction(ctx, func(ctx context.Context) error {
+		tx := database.Conn(ctx, storage.GetDb())
+
 		if err := physical_repositories.AcquireBackupAndOrphanCleanupLock(
 			tx,
 			targetFull.DatabaseID,
@@ -919,7 +928,7 @@ func (s *PhysicalBackupService) deleteWalInSpanBudgeted(
 
 		for _, segment := range segments {
 			if segment.FileName != nil {
-				if delErr := s.requestFileDeletions(ctx, tx, segment.StorageID,
+				if delErr := s.requestFileDeletions(ctx, segment.StorageID,
 					*segment.FileName, *segment.FileName+metadataSuffix,
 				); delErr != nil {
 					return deletedRows, deletedMB, false, delErr
@@ -978,7 +987,7 @@ func (s *PhysicalBackupService) deleteIncrementalSet(
 
 	for _, incremental := range ordered {
 		if incremental.FileName != nil {
-			if err := s.requestFileDeletions(ctx, tx, incremental.StorageID,
+			if err := s.requestFileDeletions(ctx, incremental.StorageID,
 				*incremental.FileName,
 				*incremental.FileName+metadataSuffix,
 				valueOrEmptyString(incremental.ManifestFileName),
@@ -1070,7 +1079,7 @@ func (s *PhysicalBackupService) deleteOrphanedHistoryFiles(
 	deleted := 0
 
 	for _, historyFile := range historyFiles {
-		if err := s.requestFileDeletions(ctx, tx, historyFile.StorageID,
+		if err := s.requestFileDeletions(ctx, historyFile.StorageID,
 			historyFile.FileName, historyFile.FileName+metadataSuffix,
 		); err != nil {
 			return deleted, err
@@ -1092,7 +1101,7 @@ func (s *PhysicalBackupService) deleteFullArtifactAndRow(
 	full *physical_models.PhysicalFullBackup,
 ) error {
 	if full.FileName != nil {
-		if err := s.requestFileDeletions(ctx, tx, full.StorageID,
+		if err := s.requestFileDeletions(ctx, full.StorageID,
 			*full.FileName,
 			*full.FileName+metadataSuffix,
 			valueOrEmptyString(full.ManifestFileName),
@@ -1104,13 +1113,12 @@ func (s *PhysicalBackupService) deleteFullArtifactAndRow(
 	return tx.Delete(&physical_models.PhysicalFullBackup{}, "id = ?", full.ID).Error
 }
 
-// requestFileDeletions records the obligation to remove these files in the same
-// transaction that removes the rows naming them. Nothing reaches the provider
+// requestFileDeletions records the obligation to remove these files in the transaction
+// the context carries, the one that removes the rows naming them. Nothing reaches the provider
 // here, so a rolled back cascade leaves every object intact and a storage outage
 // does not decide whether a catalog row may go.
 func (s *PhysicalBackupService) requestFileDeletions(
 	ctx context.Context,
-	tx *gorm.DB,
 	storageID uuid.UUID,
 	fileNames ...string,
 ) error {
@@ -1121,7 +1129,7 @@ func (s *PhysicalBackupService) requestFileDeletions(
 			storage_files.StoredFileReference{StorageID: storageID, FileName: fileName})
 	}
 
-	return s.fileStore.RequestFileDeletions(ctx, tx, references)
+	return s.fileStore.RequestFileDeletions(ctx, references)
 }
 
 // reverseTopoOrderIncrementals orders incrementals leaves-first: an INCR is

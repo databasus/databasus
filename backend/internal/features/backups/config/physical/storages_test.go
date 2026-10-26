@@ -124,5 +124,5 @@ func Test_DeleteStorageWithAttachedPhysicalConfig_CannotDelete(t *testing.T) {
 		http.StatusBadRequest,
 	)
 
-	assert.Contains(t, string(testResp.Body), "storage has attached databases and cannot be deleted")
+	assert.Contains(t, string(testResp.Body), storages.ErrStorageInUse.Error())
 }

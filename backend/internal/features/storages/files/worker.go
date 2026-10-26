@@ -102,42 +102,44 @@ func (w *DeletionWorker) RunOnce(ctx context.Context) {
 	w.reportSummary(ctx, passLogger)
 }
 
-// DrainStorage empties one storage's obligations before the storage row, and the
-// credentials with it, disappear. It returns the names it could not remove, which
-// is what the caller has to tell the user about. The budget stops it starting more
-// files, because it runs in the request that deletes the storage; a call already
-// under way runs to the provider's own deadline.
-func (w *DeletionWorker) DrainStorage(
-	ctx context.Context,
-	storageID uuid.UUID,
-	budget time.Duration,
-) ([]string, error) {
-	pending, err := w.repository.FindByStorage(db.GetDb(), storageID)
-	if err != nil {
-		return nil, err
-	}
+// DrainFiles removes the files of a storage that is being deleted, because its
+// obligations go with its row and this is the last moment its credentials exist.
+// The caller hands over the remover and the list, since the storage row is already
+// gone from the deleting transaction's view. A file whose write is still running in
+// this process is skipped, so a deletion never pulls a file from under its writer.
+// It returns the names it skipped or could not remove, which the caller has to tell
+// the user about. The budget stops it starting more files, because it runs in the
+// request that deletes the storage; a call already under way runs to the
+// provider's own deadline.
+func (w *DeletionWorker) DrainFiles(ctx context.Context, request DrainRequest) []string {
+	liveWriteIDs := w.store.getLiveWriteIDs()
 
-	deadline := time.Now().Add(budget)
-	remaining := make([]string, 0, len(pending))
+	deadline := time.Now().Add(request.Budget)
+	remaining := make([]string, 0, len(request.PendingDeletions))
 
-	for _, obligation := range pending {
-		if time.Now().After(deadline) {
-			remaining = append(remaining, obligation.FileName)
+	for _, pending := range request.PendingDeletions {
+		if _, isLiveWrite := liveWriteIDs[pending.ID]; isLiveWrite || time.Now().After(deadline) {
+			remaining = append(remaining, pending.FileName)
 
 			continue
 		}
 
 		attemptCtx, cancel := context.WithTimeout(ctx, w.timings.AttemptLease)
-		deleteErr := w.deleteFromProvider(attemptCtx, w.logger, obligation)
+		deleteErr := request.Remover.DeleteFile(
+			attemptCtx, w.fieldEncryptor, w.logger.With("storage_id", pending.StorageID), pending.FileName,
+		)
 
 		cancel()
 
 		if deleteErr != nil {
-			remaining = append(remaining, obligation.FileName)
+			w.logger.WarnContext(ctx, "failed to remove a file of a deleted storage",
+				"storage_id", pending.StorageID, "file_name", pending.FileName, "error", deleteErr)
+
+			remaining = append(remaining, pending.FileName)
 		}
 	}
 
-	return remaining, nil
+	return remaining
 }
 
 func (w *DeletionWorker) claimDue() ([]PendingDeletion, error) {

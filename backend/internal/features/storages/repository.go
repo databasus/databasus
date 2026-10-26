@@ -2,6 +2,7 @@ package storages
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -184,6 +185,19 @@ func (r *StorageRepository) FindByWorkspaceID(ctx context.Context, workspaceID u
 	}
 
 	return storages, nil
+}
+
+// LockByID locks the storage row until the transaction the context carries ends.
+func (r *StorageRepository) LockByID(ctx context.Context, id uuid.UUID) error {
+	var lockedIDs []uuid.UUID
+
+	if err := database.Conn(ctx, db.GetDb()).
+		Raw("SELECT id FROM storages WHERE id = ? FOR UPDATE", id).
+		Scan(&lockedIDs).Error; err != nil {
+		return fmt.Errorf("lock storage: %w", err)
+	}
+
+	return nil
 }
 
 func (r *StorageRepository) Delete(ctx context.Context, s *Storage) error {

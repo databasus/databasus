@@ -61,7 +61,7 @@ func Test_StorageDeletion_WithPhysicalOnlyAttachment_BlocksDeletion(t *testing.T
 		http.StatusBadRequest,
 	)
 
-	assert.Contains(t, string(testResp.Body), "storage has attached databases")
+	assert.Contains(t, string(testResp.Body), storages.ErrStorageInUse.Error())
 }
 
 func Test_StorageDeletion_WithLogicalOnlyAttachment_BlocksDeletion(t *testing.T) {
@@ -89,7 +89,7 @@ func Test_StorageDeletion_WithLogicalOnlyAttachment_BlocksDeletion(t *testing.T)
 		http.StatusBadRequest,
 	)
 
-	assert.Contains(t, string(testResp.Body), "storage has attached databases")
+	assert.Contains(t, string(testResp.Body), storages.ErrStorageInUse.Error())
 }
 
 func Test_StorageIsUsing_WithPhysicalOnlyAttachment_ReportsTrue(t *testing.T) {

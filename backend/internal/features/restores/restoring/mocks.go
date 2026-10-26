@@ -5,12 +5,13 @@ package restoring
 import (
 	"context"
 	"errors"
+	"io"
 
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
 	"databasus-backend/internal/features/databases"
 	restores_core "databasus-backend/internal/features/restores/core"
-	"databasus-backend/internal/features/storages"
+	storage_files "databasus-backend/internal/features/storages/files"
 )
 
 type MockSuccessRestoreUsecase struct{}
@@ -22,7 +23,7 @@ func (uc *MockSuccessRestoreUsecase) Execute(
 	originalDB *databases.Database,
 	restoringToDB *databases.Database,
 	backup *backups_core_logical.LogicalBackup,
-	storage *storages.Storage,
+	storageReader storage_files.StorageReader,
 	options restores_core.RestoreOptions,
 ) error {
 	return nil
@@ -39,7 +40,7 @@ func (uc *MockFailedRestoreUsecase) Execute(
 	originalDB *databases.Database,
 	restoringToDB *databases.Database,
 	backup *backups_core_logical.LogicalBackup,
-	storage *storages.Storage,
+	storageReader storage_files.StorageReader,
 	options restores_core.RestoreOptions,
 ) error {
 	return uc.RestoreErr
@@ -57,7 +58,7 @@ func (uc *MockCaptureCredentialsRestoreUsecase) Execute(
 	originalDB *databases.Database,
 	restoringToDB *databases.Database,
 	backup *backups_core_logical.LogicalBackup,
-	storage *storages.Storage,
+	storageReader storage_files.StorageReader,
 	options restores_core.RestoreOptions,
 ) error {
 	uc.CalledChan <- restoringToDB
@@ -79,7 +80,7 @@ func (uc *MockBlockingRestoreUsecase) Execute(
 	originalDB *databases.Database,
 	restoringToDB *databases.Database,
 	backup *backups_core_logical.LogicalBackup,
-	storage *storages.Storage,
+	storageReader storage_files.StorageReader,
 	options restores_core.RestoreOptions,
 ) error {
 	if uc.StartedChan != nil {
@@ -92,7 +93,7 @@ func (uc *MockBlockingRestoreUsecase) Execute(
 }
 
 type MockCaptureStorageRestoreUsecase struct {
-	ReceivedStorage *storages.Storage
+	ReadBackupContent []byte
 }
 
 func (uc *MockCaptureStorageRestoreUsecase) Execute(
@@ -102,10 +103,16 @@ func (uc *MockCaptureStorageRestoreUsecase) Execute(
 	originalDB *databases.Database,
 	restoringToDB *databases.Database,
 	backup *backups_core_logical.LogicalBackup,
-	storage *storages.Storage,
+	storageReader storage_files.StorageReader,
 	options restores_core.RestoreOptions,
 ) error {
-	uc.ReceivedStorage = storage
+	backupFile, err := storageReader.OpenFile(ctx, backup.FileName)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = backupFile.Close() }()
 
-	return nil
+	uc.ReadBackupContent, err = io.ReadAll(backupFile)
+
+	return err
 }

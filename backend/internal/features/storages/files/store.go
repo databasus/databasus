@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
+	"databasus-backend/internal/lib/database"
 	db "databasus-backend/internal/storage"
 	"databasus-backend/internal/util/encryption"
 )
@@ -54,7 +55,11 @@ func (s *Store) WriteFile(
 	s.joinLiveWrites(pendingID)
 	defer s.leaveLiveWrites(pendingID)
 
-	pending, err := s.repository.InsertIfAbsent(db.GetDb(), pendingID, reference, s.timings.CommitWindow)
+	// The obligation commits on its own even when the caller writes from inside a transaction, because
+	// a rollback of that transaction must not take the obligation for an uploaded file with it.
+	pool := database.Conn(database.WithoutTransaction(ctx), db.GetDb())
+
+	pending, err := s.repository.InsertIfAbsent(pool, pendingID, reference, s.timings.CommitWindow)
 	if err != nil {
 		return WriteReceipt{}, err
 	}
@@ -75,7 +80,7 @@ func (s *Store) WriteFile(
 	}
 
 	kept, err := s.repository.SetNotBeforeIfGeneration(
-		db.GetDb(), pending.ID, pending.Generation, s.timings.CommitWindow,
+		pool, pending.ID, pending.Generation, s.timings.CommitWindow,
 	)
 	if err != nil {
 		return WriteReceipt{}, err
@@ -93,15 +98,17 @@ func (s *Store) WriteFile(
 }
 
 // Fails unless every receipt still matches its row, so a file that cleanup already
-// took cannot be published by the transaction that rolls back here.
-func (s *Store) ConfirmFileWrites(ctx context.Context, tx *gorm.DB, receipts []WriteReceipt) error {
+// took cannot be published by the transaction that rolls back here. It runs in the
+// transaction the context carries.
+func (s *Store) ConfirmFileWrites(ctx context.Context, receipts []WriteReceipt) error {
+	tx := database.Conn(ctx, db.GetDb())
 	if err := requireTransaction(tx); err != nil {
 		return err
 	}
 
 	for _, receipt := range receipts {
 		released, err := s.repository.CompleteIfGeneration(
-			tx.WithContext(ctx), receipt.PendingDeletionID, receipt.Generation,
+			tx, receipt.PendingDeletionID, receipt.Generation,
 		)
 		if err != nil {
 			return err
@@ -117,12 +124,8 @@ func (s *Store) ConfirmFileWrites(ctx context.Context, tx *gorm.DB, receipts []W
 
 // Never fails because a writer is still running or because the same file was
 // requested before: a caller removing catalog rows has no way to wait for an
-// upload it does not own.
-func (s *Store) RequestFileDeletions(
-	ctx context.Context,
-	tx *gorm.DB,
-	references []StoredFileReference,
-) error {
+// upload it does not own. It runs in the transaction the context carries.
+func (s *Store) RequestFileDeletions(ctx context.Context, references []StoredFileReference) error {
 	// A reference with no name cannot become an obligation, and a caller deriving
 	// names from a row should not have to know which of them the row carries.
 	named := make([]StoredFileReference, 0, len(references))
@@ -135,11 +138,12 @@ func (s *Store) RequestFileDeletions(
 
 	references = named
 
+	tx := database.Conn(ctx, db.GetDb())
 	if err := requireTransaction(tx); err != nil {
 		return err
 	}
 
-	return s.repository.InsertOrTake(tx.WithContext(ctx), references)
+	return s.repository.InsertOrTake(tx, references)
 }
 
 func (s *Store) GetTimings() Timings {
@@ -173,6 +177,22 @@ func (s *Store) leaveLiveWrites(id uuid.UUID) {
 	delete(s.liveWrites, id)
 }
 
+// The storage being deleted holds its row lock, so no new write to it can register
+// after this snapshot.
+func (s *Store) getLiveWriteIDs() map[uuid.UUID]struct{} {
+	liveWriteIDs := map[uuid.UUID]struct{}{}
+
+	_ = s.withLiveWrites(func(excluded []uuid.UUID) error {
+		for _, id := range excluded {
+			liveWriteIDs[id] = struct{}{}
+		}
+
+		return nil
+	})
+
+	return liveWriteIDs
+}
+
 // Holding the mutex across claim is what keeps the exclusion list from going stale
 // between reading it and running the statement.
 func (s *Store) withLiveWrites(claim func(excluded []uuid.UUID) error) error {
@@ -191,10 +211,6 @@ func (s *Store) withLiveWrites(claim func(excluded []uuid.UUID) error) error {
 // partway has already released the receipts it got through, stranding those files
 // forever.
 func requireTransaction(tx *gorm.DB) error {
-	if tx == nil {
-		return ErrTransactionRequired
-	}
-
 	if _, inTransaction := tx.Statement.ConnPool.(gorm.TxCommitter); !inTransaction {
 		return ErrTransactionRequired
 	}

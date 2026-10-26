@@ -2,6 +2,7 @@ package storages
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
@@ -20,30 +21,10 @@ type StorageService struct {
 	auditLogService         *audit_logs.AuditLogService
 	fieldEncryptor          encryption.FieldEncryptor
 	storageDatabaseCounters []StorageDatabaseCounter
-	storageBackupCounters   []StorageBackupCounter
 }
 
 func (s *StorageService) AddStorageDatabaseCounter(counter StorageDatabaseCounter) {
 	s.storageDatabaseCounters = append(s.storageDatabaseCounters, counter)
-}
-
-func (s *StorageService) AddStorageBackupCounter(counter StorageBackupCounter) {
-	s.storageBackupCounters = append(s.storageBackupCounters, counter)
-}
-
-func (s *StorageService) GetStorageBackupReferenceCount(storageID uuid.UUID) (int64, error) {
-	var total int64
-
-	for _, counter := range s.storageBackupCounters {
-		count, err := counter.GetStorageBackupReferenceCount(storageID)
-		if err != nil {
-			return 0, err
-		}
-
-		total += count
-	}
-
-	return total, nil
 }
 
 func (s *StorageService) GetStorageAttachedDatabasesIDs(
@@ -88,9 +69,11 @@ func (s *StorageService) CountDatabasesForStorage(ctx context.Context, storageID
 	return len(ids), nil
 }
 
-// OnWorkspaceDeleting drains the pending deletions of each storage before it deletes the storage.
-// The drain deletes files that are deleted whatever the outcome, so it stays correct when the
-// workspace deletion rolls back.
+// OnWorkspaceDeleting deletes each storage of the workspace the way a single deletion does. The
+// files it removes already had a pending deletion, so removing them stays correct when the
+// workspace deletion rolls back. A storage that still holds backups of a database in another
+// workspace refuses the whole deletion with in_use, because the workspaces module answers any
+// other error with 500.
 func (s *StorageService) OnWorkspaceDeleting(ctx context.Context, event workspaces.WorkspaceDeleting) error {
 	storages, err := s.storageRepository.FindByWorkspaceID(ctx, event.WorkspaceID)
 	if err != nil {
@@ -98,9 +81,12 @@ func (s *StorageService) OnWorkspaceDeleting(ctx context.Context, event workspac
 	}
 
 	for _, storage := range storages {
-		s.drainPendingDeletions(ctx, storage)
+		err := s.deleteStorageAndDrainFiles(ctx, storage, nil)
+		if errors.Is(err, ErrStorageInUse) {
+			return ErrWorkspaceStorageInUse
+		}
 
-		if err := s.storageRepository.Delete(ctx, storage); err != nil {
+		if err != nil {
 			return fmt.Errorf("failed to delete storage %s: %w", storage.ID, err)
 		}
 	}
@@ -212,37 +198,7 @@ func (s *StorageService) DeleteStorage(
 		return ErrInsufficientPermissionsToManageStorage
 	}
 
-	attachedDatabasesIDs, err := s.GetStorageAttachedDatabasesIDs(storage.ID)
-	if err != nil {
-		return err
-	}
-	if len(attachedDatabasesIDs) > 0 {
-		return ErrStorageHasAttachedDatabases
-	}
-
-	backupReferences, err := s.GetStorageBackupReferenceCount(storage.ID)
-	if err != nil {
-		return err
-	}
-
-	if backupReferences > 0 {
-		return ErrStorageHasBackups
-	}
-
-	s.drainPendingDeletions(ctx, storage)
-
-	err = s.storageRepository.Delete(ctx, storage)
-	if err != nil {
-		return err
-	}
-
-	s.auditLogService.WriteAuditLog(ctx, audit_logs_models.AuditEntry{
-		Message:     fmt.Sprintf("Storage deleted: %s", storage.Name),
-		UserID:      &actor.UserID,
-		WorkspaceID: &storage.WorkspaceID,
-	})
-
-	return nil
+	return s.deleteStorageAndDrainFiles(ctx, storage, &actor.UserID)
 }
 
 func (s *StorageService) GetStorage(

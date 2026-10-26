@@ -88,7 +88,6 @@ func Test_FullOverMtls_ProducesArtifactAndManifest(t *testing.T) {
 			SourceDB:       fixture.DB.PostgresqlPhysical,
 			DatabaseName:   fixture.DB.Name,
 			StorageID:      fixture.Storage.ID,
-			Storage:        fixture.Storage,
 			FileStore:      storages.GetStorageFileStore(),
 			Encryption:     fullRow.Encryption,
 			FieldEncryptor: encryption.GetFieldEncryptor(),

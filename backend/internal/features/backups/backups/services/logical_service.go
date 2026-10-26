@@ -21,7 +21,7 @@ import (
 	"databasus-backend/internal/features/backups/backups/encryption"
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
 	"databasus-backend/internal/features/databases"
-	"databasus-backend/internal/features/storages"
+	storage_files "databasus-backend/internal/features/storages/files"
 	task_cancellation "databasus-backend/internal/features/tasks/cancellation"
 	workspaces_bridge "databasus-backend/internal/features/workspaces"
 	"databasus-backend/internal/lib/crypto"
@@ -33,7 +33,7 @@ import (
 
 type LogicalBackupService struct {
 	databaseService     *databases.DatabaseService
-	storageService      *storages.StorageService
+	fileStore           *storage_files.Store
 	backupRepository    *backups_core_logical.BackupRepository
 	notificationSender  backups_core_logical.NotificationSender
 	backupConfigService *backups_config_logical.BackupConfigService
@@ -72,12 +72,6 @@ func (s *LogicalBackupService) OnBeforeBackupsStorageChange(ctx context.Context,
 	}
 
 	return nil
-}
-
-// The logical_backups rows are the only record of the file names in a storage, so
-// the storage cannot go while they exist.
-func (s *LogicalBackupService) GetStorageBackupReferenceCount(storageID uuid.UUID) (int64, error) {
-	return s.backupRepository.CountByStorageID(storageID)
 }
 
 func (s *LogicalBackupService) OnBeforeDatabaseRemove(ctx context.Context, databaseID uuid.UUID) error {
@@ -279,12 +273,12 @@ func (s *LogicalBackupService) GetBackupReader(
 		return nil, fmt.Errorf("failed to find backup: %w", err)
 	}
 
-	storage, err := s.storageService.GetStorageByID(ctx, backup.StorageID)
+	storageReader, err := s.fileStore.GetStorageReader(ctx, backup.StorageID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get storage: %w", err)
 	}
 
-	fileReader, err := storage.GetFile(ctx, s.fieldEncryptor, logger, backup.FileName)
+	fileReader, err := storageReader.OpenFile(ctx, backup.FileName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get backup file: %w", err)
 	}
