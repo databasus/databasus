@@ -132,15 +132,19 @@ The full review reviewers SHALL run on Opus with `medium` effort. The quick chec
 - **THEN** the reviewer runs on Opus with `low` effort
 
 ### Requirement: Which findings block the turn
-A reviewer SHALL return findings, each with a category (`bug`, `spec_mismatch`, `missing_test`, `architecture`, `docs`, `minor`), a path and a description. The hook SHALL block the turn when at least one finding is not `minor`, and pass the agent every finding with `minor` marked optional. When the turn is not blocked, the user SHALL see the `minor` findings. The block text SHALL require the agent to resolve every finding without asking the user: fix the code or, when the implementation is right, the change's delta spec; for an `architecture` finding, move the code to follow `docs/architecture.md`, or change `docs/architecture.md` in the same change when the rule itself is wrong. The block text SHALL also require the agent to finish the turn again with one short line about its fixes that names every rejected finding with the reason, and to leave the summary for the user until the review accepts the change. With no findings or only `minor` ones, the review SHALL count as accepted. When the review accepts the change after at least one block within this user request, the hook SHALL block the turn once and ask the agent to write the user a summary of the implementation as if there had been no review: what was done for the change's tasks, which decisions were made, which checks passed, which `minor` findings were left, and the next step, without review rounds, findings or the fixes made for them. The hook SHALL pass the `minor` findings in that request.
+A reviewer SHALL return findings, each with a category (`bug`, `spec_mismatch`, `missing_test`, `architecture`, `docs`, `minor`), a path and a description. The hook SHALL block the turn when at least one finding is not `minor`, and pass the agent every finding with `minor` marked optional. The block text SHALL require the agent to resolve every finding without asking the user: fix the code or, when the implementation is right, the change's delta spec; for an `architecture` finding, move the code to follow `docs/architecture.md`, or change `docs/architecture.md` in the same change when the rule itself is wrong. The block text SHALL also require the agent to finish the turn again with one short line about its fixes that names every rejected finding with the reason, and to leave the summary for the user until the review accepts the change. With no findings or only `minor` ones, the review SHALL count as accepted. When the review accepts the change, the hook SHALL block the turn once and ask the agent to write the user the full summary of the change. The summary SHALL open by saying that the automatic review passed and accepted the change in its current state, because the agent's reply before the review could not know the outcome. It SHALL then give what was done for the change's tasks, which decisions were made, which checks passed, which `minor` findings were left, and the next step, and SHALL end with a short list of what the review made the agent fix. The hook SHALL pass the `minor` findings in that request.
+
+#### Scenario: Accepted at the first review
+- **WHEN** every finding is `minor` or there are none, and no earlier review in this request blocked the turn
+- **THEN** the state is stored as accepted, and the hook blocks the turn once and asks the agent for a summary that opens with the accepted review and lists the `minor` findings
 
 #### Scenario: Only minor findings
-- **WHEN** every finding is `minor`, and no earlier review in this request blocked the turn
-- **THEN** the state is stored as accepted and the user sees the findings
+- **WHEN** every finding is `minor`
+- **THEN** the summary request passes them marked optional, and the next turn without edits is not blocked
 
 #### Scenario: Accepted after fixes
 - **WHEN** a repeat review accepts a change the previous review blocked
-- **THEN** the hook blocks the turn once and asks the agent for a summary of the implementation that leaves out review rounds and the fixes made for them, and the next turn without edits is not blocked
+- **THEN** the hook blocks the turn once and asks the agent for the full summary of the change that ends with a short list of the review's fixes, and the next turn without edits is not blocked
 
 #### Scenario: A bug is found
 - **WHEN** a reviewer returns a `bug` finding
@@ -163,7 +167,26 @@ After a blocked full review the next run SHALL check the previous findings and t
 
 #### Scenario: Repeat limit
 - **WHEN** the third review in a row within one user request blocks the turn again
-- **THEN** the hook stops the agent and shows the remaining findings
+- **THEN** the hook stops the agent and shows the remaining findings, says that the edits stay in the working tree without being accepted, and names `mise run review` for running the review again
+
+### Requirement: The whole review runs by hand
+The repository SHALL have a command, `mise run review [<change>]`, that runs the review a finished change gets from the hooks without a hook event: the quick checks `diff`, `architecture` and `code-shape` over the working tree, `code-shape` only when a code file changed, then the full implementation review of the named change, or of every active change whose tasks are all checked. The full review SHALL run even when the hook accepted this state. When an earlier review stored findings for the change, the full review SHALL be the repeat over those findings, as in the hook; otherwise it SHALL start from scratch. The command SHALL read no hook payload, print a report with every finding and a closing verdict, and exit with code 0 when everything accepted the change, 1 when something did not, and 2 when there is nothing to review. It SHALL store the full review's outcome per change like the hook does, so the next turn of the agent repeats the review over those findings. The command SHALL run through the launcher of the hooks; when the launcher cannot start it, the command SHALL print the reason and exit with a non-zero code instead of answering with a stop message for the agent.
+
+#### Scenario: Everything accepts
+- **WHEN** the user runs `mise run review` with an implemented change and every reviewer accepts
+- **THEN** the command prints that the review accepted the change in its current state and exits with code 0
+
+#### Scenario: A finding to fix
+- **WHEN** a reviewer of the manual run returns a `bug` finding, and the agent then fixes it and finishes its turn
+- **THEN** the command prints the finding and exits with code 1, and the hook of that turn runs the repeat review over the finding
+
+#### Scenario: A run after the fixes
+- **WHEN** a manual run stored findings, the agent fixed them, and the user runs `mise run review` again
+- **THEN** the full review is the repeat over those findings and the files changed since
+
+#### Scenario: Nothing to review
+- **WHEN** no active change has every task checked, or the named change does not exist
+- **THEN** the command says so, runs no reviewer and exits with code 2
 
 ### Requirement: The necessity check does not interfere with fixes
 While a change has an unaccepted full implementation review, the necessity check MUST NOT start because of edits to that change's artifacts.

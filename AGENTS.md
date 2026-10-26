@@ -48,6 +48,7 @@ The repository's skills live in `.agents/skills/`; `.claude/skills` is a symlink
 | `mise run lint` | Check every module without changing files; `mise run backend:lint`, `agent:lint` and `frontend:lint` check one |
 | `mise run format` | Format every module; `backend:format`, `agent:format` and `frontend:format` format one |
 | `mise run doctor` | Check that the review hooks find the tools they need |
+| `mise run review [<change>]` | Run every review hook of a finished OpenSpec change by hand: the quick checks, then the full implementation review |
 | `goose -dir backend/migrations create <name> sql` | Create a migration |
 | `goose -dir backend/migrations up` (or `down`), with `.env` exported | Apply or roll back migrations on the dev database; goose reads `GOOSE_DRIVER` and `GOOSE_DBSTRING` from the environment. The server also applies migrations itself at startup |
 | `mise run generate-api` | Regenerate the servers, the test clients and the frontend types from `backend/api/*.yaml` |
@@ -119,7 +120,8 @@ What the agent does with findings:
 - A `minor` finding is optional.
 - A `scope` finding proposes cutting the feature. The agent does not apply it; the summary shows the user what they lose and what they save, and the user decides.
 - After a full review blocks the turn, whether a reviewer found problems or a check before the reviewers failed, the agent finishes the turn again with one short line about its fixes that names every rejected finding with the reason. The repeat review reads that reply, and the summary for the user waits until the review accepts the result. After a quick check blocks a finished change, the next reply is that summary; after it blocks a plan, the agent revises the plan and shows it again.
-- The summary for the user describes the final state as if there had been no review: what was done, which decisions were made, which checks passed, what remains and the next step. It leaves out review rounds, the findings and the fixes made for them.
+- The summary for the user describes the final state: what was done, which decisions were made, which checks passed, what remains and the next step. It does not retell the review rounds; `openspec/config.yaml` adds what the summary of an OpenSpec change says about its review.
+- `mise run review` runs as a background command, because it can outlast a foreground one. The agent resolves its findings like those of a blocking full review.
 - Run the linter and formatter for each directory the diff touches before finishing.
 
 ## The best code is unwritten

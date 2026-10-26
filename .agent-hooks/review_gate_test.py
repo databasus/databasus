@@ -344,6 +344,12 @@ class SummaryAssertions:
         self.assertIn("Leave out review rounds, findings and the fixes made for them.", reason)
         self.assertNotIn("each round", reason)
 
+    def assert_accepts_change_and_asks_for_summary(self, response):
+        self.assertEqual(response["decision"], "block")
+        self.assertIn("Full implementation review accepted the change.", response["reason"])
+        self.assertIn("the automatic review passed and accepted the change in its current state", response["reason"])
+        self.assertIn("End with a short list of what the review made you fix", response["reason"])
+
 
 class SessionStartTest(unittest.TestCase):
     def test_tells_agent_to_load_communication_skill(self):
@@ -504,6 +510,26 @@ class LauncherTest(unittest.TestCase):
         self.assertEqual(process.returncode, 1)
         self.assertIn(MISSING_OPENSPEC_LINE, process.stderr)
         self.assertEqual(launcher.mise_calls("exec"), [])
+
+    def test_review_passes_change_and_exits_with_code_of_manual_review(self):
+        launcher = Launcher(self)
+        launcher.install_mise(launcher.bin_dir)
+        launcher.set_mise_answer("exec", stdout="Result: the review did not accept the change.\n", exit_code=1)
+
+        process = launcher.run("review", "add-widgets")
+
+        self.assertEqual(process.returncode, 1)
+        self.assertEqual(process.stdout, "Result: the review did not accept the change.\n")
+        [call] = launcher.mise_calls("exec")
+        self.assertEqual(call["arguments"][-3:], [str(HOOK_PATH), "review", "add-widgets"])
+
+    def test_review_exits_with_code_1_when_version_manager_is_missing(self):
+        launcher = Launcher(self)
+
+        process = launcher.run("review")
+
+        self.assertEqual(process.returncode, 1)
+        self.assertIn("could not find the version manager mise", process.stderr)
 
     def test_doctor_exits_with_code_1_when_version_manager_is_missing(self):
         launcher = Launcher(self)
@@ -1020,7 +1046,7 @@ class CodeShapeGateTest(unittest.TestCase):
         return call["prompt"]
 
 
-class ImplementationGateStartTest(unittest.TestCase):
+class ImplementationGateStartTest(SummaryAssertions, unittest.TestCase):
     def test_runs_full_review_when_agent_completes_last_task(self):
         repository = HookRepository(self)
         repository.submit_prompt("Continue")
@@ -1028,7 +1054,7 @@ class ImplementationGateStartTest(unittest.TestCase):
 
         response = repository.stop("implementation")
 
-        self.assertEqual(response, {})
+        self.assert_accepts_change_and_asks_for_summary(response)
         self.assertEqual(len(repository.reviewer_calls()), 4)
 
     def test_skips_review_when_tasks_remain_unchecked(self):
@@ -1115,7 +1141,7 @@ class ImplementationGateStartTest(unittest.TestCase):
         self.assertEqual(json.loads(process.stdout), {})
 
 
-class ImplementationGateChecksTest(ShortReplyAssertions, unittest.TestCase):
+class ImplementationGateChecksTest(ShortReplyAssertions, SummaryAssertions, unittest.TestCase):
     def test_runs_only_backend_linter_when_change_touches_backend(self):
         repository = HookRepository(self)
         repository.submit_prompt("Continue")
@@ -1126,7 +1152,7 @@ class ImplementationGateChecksTest(ShortReplyAssertions, unittest.TestCase):
 
         [call] = repository.check_calls()
         self.assertEqual(call["name"], "golangci-lint")
-        self.assertEqual(call["arguments"], ["run", "./cmd/...", "./internal/...", "./tools/..."])
+        self.assertEqual(call["arguments"], ["run", "./cmd/...", "./internal/...", "./migrations/...", "./tools/..."])
         self.assertEqual(Path(call["cwd"]), repository.root / "backend")
 
     def test_runs_agent_linter_in_verification_agent_directory(self):
@@ -1185,7 +1211,7 @@ class ImplementationGateChecksTest(ShortReplyAssertions, unittest.TestCase):
         response = repository.stop("implementation")
 
         self.assertEqual(response["decision"], "block")
-        self.assertIn("`golangci-lint run ./cmd/... ./internal/... ./tools/...` in `backend`", response["reason"])
+        self.assertIn("`golangci-lint run ./cmd/... ./internal/... ./migrations/... ./tools/...` in `backend`", response["reason"])
         self.assertIn("service.go:12:2: ineffectual assignment to err", response["reason"])
         self.assert_asks_for_short_reply(response["reason"])
         self.assertEqual(repository.reviewer_calls(), [])
@@ -1199,7 +1225,7 @@ class ImplementationGateChecksTest(ShortReplyAssertions, unittest.TestCase):
 
         response = repository.stop("implementation")
 
-        self.assertEqual(response, {})
+        self.assert_accepts_change_and_asks_for_summary(response)
         self.assertEqual([call["arguments"] for call in repository.calls("mise")], [["run", "backend:test-package", "./internal/features/widgets/..."]])
         arguments = [" ".join(call["arguments"]) for call in repository.check_calls()]
         self.assertEqual(len(arguments), 3)
@@ -1253,7 +1279,7 @@ class ImplementationGateChecksTest(ShortReplyAssertions, unittest.TestCase):
 
         response = repository.stop("implementation")
 
-        self.assertEqual(response, {})
+        self.assert_accepts_change_and_asks_for_summary(response)
         self.assertEqual([call["arguments"] for call in repository.check_calls()], [["--dir", "frontend", "lint"]])
         self.assertEqual(len(repository.reviewer_calls()), 4)
 
@@ -1280,7 +1306,7 @@ class ImplementationGateChecksTest(ShortReplyAssertions, unittest.TestCase):
 
         response = repository.stop("implementation")
 
-        self.assertEqual(response, {})
+        self.assert_accepts_change_and_asks_for_summary(response)
         self.assertEqual(len(repository.reviewer_calls()), 4)
 
     def test_blocks_turn_when_hook_tests_fail(self):
@@ -1296,7 +1322,7 @@ class ImplementationGateChecksTest(ShortReplyAssertions, unittest.TestCase):
         self.assertEqual(repository.reviewer_calls(), [])
 
 
-class ImplementationGateReviewTest(ShortReplyAssertions, unittest.TestCase):
+class ImplementationGateReviewTest(ShortReplyAssertions, SummaryAssertions, unittest.TestCase):
     def test_runs_reviewer_per_spec_and_for_architecture_docs_and_tests_on_claude_with_medium_effort(self):
         repository = HookRepository(self)
         repository.write_change(spec_names=("widgets", "gadgets"), tasks="- [x] 1.1 Build\n")
@@ -1407,7 +1433,7 @@ class ImplementationGateReviewTest(ShortReplyAssertions, unittest.TestCase):
             checks_timeout_seconds=TWO_WAVES_CHECKS_TIMEOUT_SECONDS,
         )
 
-        self.assertEqual(response, {})
+        self.assert_accepts_change_and_asks_for_summary(response)
         self.assertEqual(len(repository.calls("golangci-lint")), 1)
         self.assertEqual(len(repository.reviewer_calls()), 8)
 
@@ -1453,7 +1479,7 @@ class ImplementationGateReviewTest(ShortReplyAssertions, unittest.TestCase):
 
         self.assertIn("[minor] (optional) src/widgets.py:10: Long function.", response["reason"])
 
-    def test_accepts_change_and_shows_minor_findings_to_user(self):
+    def test_accepts_change_and_asks_for_summary_with_minor_findings_once(self):
         repository = HookRepository(self)
         repository.set_reviewer_result({"findings": [finding("minor", "Long function.")]})
         repository.submit_prompt("Continue")
@@ -1461,11 +1487,11 @@ class ImplementationGateReviewTest(ShortReplyAssertions, unittest.TestCase):
 
         response = repository.stop("implementation")
         repository.clear_calls()
-        repeated_response = repository.stop("implementation")
+        summary_response = repository.stop("implementation")
 
-        self.assertNotIn("decision", response)
-        self.assertIn("Long function.", response["systemMessage"])
-        self.assertEqual(repeated_response, {})
+        self.assert_accepts_change_and_asks_for_summary(response)
+        self.assertIn("[minor] (optional) src/widgets.py:10: Long function.", response["reason"])
+        self.assertEqual(summary_response, {})
         self.assertEqual(repository.calls(), [])
 
     def test_blocks_turn_when_reviewer_answer_does_not_match_schema(self):
@@ -1528,7 +1554,7 @@ class ImplementationGateRepeatTest(SummaryAssertions, unittest.TestCase):
 
         self.assertEqual(len(repository.reviewer_calls()), 4)
 
-    def test_asks_for_summary_without_review_once_after_repeat_accepts_change(self):
+    def test_asks_for_summary_with_review_fixes_once_after_repeat_accepts_change(self):
         repository = HookRepository(self)
         self.block_with_bug(repository)
         repository.set_reviewer_result({"findings": [finding("minor", "Long function.")]})
@@ -1538,10 +1564,7 @@ class ImplementationGateRepeatTest(SummaryAssertions, unittest.TestCase):
         repository.clear_calls()
         summary_response = repository.stop("implementation")
 
-        self.assertEqual(response["decision"], "block")
-        self.assertIn("accepted the change", response["reason"])
-        self.assertIn("summary of the implementation", response["reason"])
-        self.assert_asks_for_summary_without_review(response["reason"])
+        self.assert_accepts_change_and_asks_for_summary(response)
         self.assertIn("Long function.", response["reason"])
         self.assertEqual(summary_response, {})
         self.assertEqual(repository.calls(), [])
@@ -1558,6 +1581,127 @@ class ImplementationGateRepeatTest(SummaryAssertions, unittest.TestCase):
         self.assertEqual(second_response["decision"], "block")
         self.assertIs(third_response["continue"], False)
         self.assertIn("Race between the check and the write.", third_response["stopReason"])
+        self.assertIn("the change is not accepted", third_response["stopReason"])
+        self.assertIn("`mise run review`", third_response["stopReason"])
+
+
+def get_effort(call):
+    return call["arguments"][call["arguments"].index("--effort") + 1]
+
+
+class ManualReviewTest(unittest.TestCase):
+    def run_review(self, repository, *arguments):
+        return subprocess.run(
+            [sys.executable, str(HOOK_PATH), "review", *arguments],
+            cwd=repository.root,
+            env=repository.environment,
+            stdin=subprocess.DEVNULL,
+            text=True,
+            capture_output=True,
+        )
+
+    def test_runs_quick_checks_and_full_review_and_exits_with_code_0_when_everything_accepts(self):
+        repository = HookRepository(self)
+        repository.write("backend/internal/features/widgets/service.go", "package widgets\n")
+        repository.complete_tasks()
+
+        process = self.run_review(repository)
+
+        self.assertEqual(process.returncode, 0, process.stdout + process.stderr)
+        efforts = sorted(get_effort(call) for call in repository.reviewer_calls())
+        self.assertEqual(efforts, ["low"] * 3 + ["medium"] * 4)
+        quick_prompts = [call["prompt"] for call in repository.reviewer_calls() if get_effort(call) == "low"]
+        self.assertTrue(all("started `mise run review` by hand" in prompt for prompt in quick_prompts))
+        self.assertEqual(len(repository.calls("golangci-lint")), 1)
+        self.assertIn("Quick check `code-shape`: accepted.", process.stdout)
+        self.assertIn("Full implementation review accepted the change.", process.stdout)
+        self.assertIn("Result: the review accepted the change in its current state.", process.stdout)
+
+    def test_skips_code_shape_when_no_code_file_changed(self):
+        repository = HookRepository(self)
+        repository.complete_tasks()
+
+        process = self.run_review(repository)
+
+        self.assertEqual(process.returncode, 0, process.stdout + process.stderr)
+        self.assertEqual(len([call for call in repository.reviewer_calls() if get_effort(call) == "low"]), 2)
+        self.assertIn("Quick check `code-shape`: skipped", process.stdout)
+
+    def test_runs_whole_review_again_when_hook_already_accepted_state(self):
+        repository = HookRepository(self)
+        repository.submit_prompt("Continue")
+        repository.complete_tasks()
+        repository.stop("implementation")
+        repository.clear_calls()
+
+        process = self.run_review(repository, CHANGE_NAME)
+
+        self.assertEqual(process.returncode, 0, process.stdout + process.stderr)
+        full_prompts = [call["prompt"] for call in repository.reviewer_calls() if get_effort(call) == "medium"]
+        self.assertEqual(len(full_prompts), 4)
+        self.assertFalse(any("\nRole: repeat review\n" in prompt for prompt in full_prompts))
+
+    def test_exits_with_code_1_and_prints_findings_that_next_stop_hook_repeats(self):
+        repository = HookRepository(self)
+        repository.set_reviewer_result({"ok": True, "reason": "", "findings": [finding("bug", "Race between the check and the write.")]})
+        repository.complete_tasks()
+
+        process = self.run_review(repository)
+        repository.clear_calls()
+        repository.submit_prompt("Run mise review and fix what it finds")
+        repository.write("src/widgets.py", "WIDGETS = ()\n")
+        repository.stop("implementation")
+
+        self.assertEqual(process.returncode, 1)
+        self.assertIn("[bug] src/widgets.py:10: Race between the check and the write.", process.stdout)
+        self.assertIn("Result: the review did not accept the change.", process.stdout)
+        [call] = repository.reviewer_calls()
+        self.assertIn("Role: repeat review", call["prompt"])
+
+    def test_repeats_review_over_findings_of_previous_manual_run(self):
+        repository = HookRepository(self)
+        repository.set_reviewer_result({"ok": True, "reason": "", "findings": [finding("bug", "Race between the check and the write.")]})
+        repository.complete_tasks()
+        self.run_review(repository)
+        repository.clear_calls()
+        repository.set_reviewer_result({"ok": True, "reason": "", "findings": []})
+        repository.write("src/widgets.py", "WIDGETS = ()\n")
+
+        process = self.run_review(repository)
+
+        self.assertEqual(process.returncode, 0, process.stdout + process.stderr)
+        [full_prompt] = [call["prompt"] for call in repository.reviewer_calls() if get_effort(call) == "medium"]
+        self.assertIn("\nRole: repeat review\n", full_prompt)
+        self.assertIn("Race between the check and the write.", full_prompt)
+
+    def test_exits_with_code_1_and_names_failed_quick_check(self):
+        repository = HookRepository(self)
+        repository.set_reviewer_result({"ok": False, "reason": "README.md: the command is not documented.", "findings": []})
+        repository.complete_tasks()
+
+        process = self.run_review(repository)
+
+        self.assertEqual(process.returncode, 1)
+        self.assertIn("Quick check `diff`: not accepted.\nREADME.md: the command is not documented.", process.stdout)
+
+    def test_exits_with_code_2_without_reviewers_when_tasks_remain_unchecked(self):
+        repository = HookRepository(self)
+
+        process = self.run_review(repository)
+
+        self.assertEqual(process.returncode, 2)
+        self.assertIn(f"No active OpenSpec change has every task checked. Active changes: `{CHANGE_NAME}`.", process.stdout)
+        self.assertEqual(repository.calls(), [])
+
+    def test_exits_with_code_2_when_named_change_does_not_exist(self):
+        repository = HookRepository(self)
+        repository.complete_tasks()
+
+        process = self.run_review(repository, "add-gizmos")
+
+        self.assertEqual(process.returncode, 2)
+        self.assertIn("No active OpenSpec change is named `add-gizmos`.", process.stdout)
+        self.assertEqual(repository.calls(), [])
 
 
 class NecessityDuringImplementationReviewTest(unittest.TestCase):

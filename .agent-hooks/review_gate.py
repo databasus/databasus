@@ -3,6 +3,7 @@
 
 Usage: review_gate.py <action>
        review_gate.py doctor
+       review_gate.py review [change]
 
 Claude Code starts it through run.sh, which runs it with the Python and OpenSpec versions pinned
 in mise.toml and stops the agent with the reason when the hook cannot start or crashes.
@@ -29,6 +30,14 @@ Actions:
                  necessity, diff, architecture and code-shape skip a turn that only wrote the artifacts.
   doctor         Reports whether Python, git, openspec and a reviewer CLI are found, one line per tool,
                  and exits with a non-zero code when one is missing. `mise run doctor` runs it.
+  review [change]
+                 Manual run, `mise run review [change]`: the quick checks diff, architecture and code-shape
+                 over the whole working tree, then the full implementation review of the named change, or of
+                 every active change whose tasks are all checked: a repeat over stored findings, otherwise a
+                 fresh one even for a state the hook accepted. Reads no hook payload, prints a report for
+                 a person, and exits with 0 when everything accepted the change, 1 when something did not and
+                 2 when there is nothing to review. Its outcome is stored like the hook's, so the next Stop hook
+                 repeats over its findings or skips an accepted state.
 
 Both full reviews run within FULL_REVIEW_BUDGET_SECONDS from the hook's start: the checks share
 one total limit, and a reviewer starts only when the budget still holds its whole limit.
@@ -137,7 +146,7 @@ class Check:
 # agent is editing. Tests run only through the change verification commands a change names, and
 # their forms leave out `mise run test`, which takes too long for a hook and runs only when the user asks.
 MODULE_CHECKS = (
-    ("backend/", (Check("backend", ("golangci-lint", "run", "./cmd/...", "./internal/...", "./tools/...")),)),
+    ("backend/", (Check("backend", ("golangci-lint", "run", "./cmd/...", "./internal/...", "./migrations/...", "./tools/...")),)),
     (
         "agent/",
         (Check("agent/verification", ("golangci-lint", "run", "./cmd/...", "./internal/...", "./e2e/...")),),
@@ -940,6 +949,8 @@ class FullReview:
     block_instruction: str
     optional_findings_title: str
     summary_instruction: str
+    should_always_ask_for_summary: bool
+    repeat_limit_note: str
 
 
 @dataclass(frozen=True)
@@ -1044,7 +1055,7 @@ def block_full_review(session, full_review, report, instruction):
         emit(
             {
                 "continue": False,
-                "stopReason": f"{full_review.title} still fails after {MAX_FULL_REVIEW_REVISIONS} repeats.\n\n{report}",
+                "stopReason": f"{full_review.title} still fails after {MAX_FULL_REVIEW_REVISIONS} repeats.{full_review.repeat_limit_note}\n\n{report}",
                 "systemMessage": f"{full_review.title} reached its repeat limit. The result was not accepted.",
             }
         )
@@ -1053,34 +1064,25 @@ def block_full_review(session, full_review, report, instruction):
     emit({"decision": "block", "reason": f"{AUTOMATIC_REVIEW_PREFIX} {full_review.gate}\n{report}\n\n{instruction}"})
 
 
-def gate_full_review(session, full_review, deadline):
-    root = session.root
-    targets = full_review.select_targets(session)
-    if not targets:
-        emit({})
-        return
+@dataclass(frozen=True)
+class FullReviewOutcome:
+    is_accepted: bool
+    report: str
+    block_instruction: str = ""
+    has_summary_findings: bool = False
 
+
+def run_full_review(session, full_review, targets, deadline):
+    root = session.root
     try:
         checks = full_review.get_checks(root, targets)
     except ChangeVerificationError as error:
-        block_full_review(
-            session,
-            full_review,
-            f"{error}\n\nNo check or reviewer ran.",
-            "Fix the section. " + FULL_REVIEW_REPLY_INSTRUCTION,
-        )
-        return
+        return FullReviewOutcome(False, f"{error}\n\nNo check or reviewer ran.", "Fix the section. " + FULL_REVIEW_REPLY_INSTRUCTION)
 
     checks_timeout_seconds = min(CHECKS_TOTAL_TIMEOUT_SECONDS, max(deadline - time.monotonic(), 0))
     check_failure = run_checks(root, checks, total_timeout_seconds=checks_timeout_seconds)
     if check_failure:
-        block_full_review(
-            session,
-            full_review,
-            f"{check_failure}\n\nNo reviewer ran.",
-            "Fix the failure. " + FULL_REVIEW_REPLY_INSTRUCTION,
-        )
-        return
+        return FullReviewOutcome(False, f"{check_failure}\n\nNo reviewer ran.", "Fix the failure. " + FULL_REVIEW_REPLY_INSTRUCTION)
 
     jobs = [job for target in targets for job in build_review_jobs(session, full_review, target)]
     with ThreadPoolExecutor(max_workers=MAX_PARALLEL_REVIEWERS) as executor:
@@ -1114,16 +1116,30 @@ def gate_full_review(session, full_review, deadline):
 
     report = "\n\n".join(reports)
     if has_blocking:
-        block_full_review(session, full_review, f"{full_review.title} did not accept the {full_review.subject}.\n\n{report}", full_review.block_instruction)
+        return FullReviewOutcome(
+            False, f"{full_review.title} did not accept the {full_review.subject}.\n\n{report}", full_review.block_instruction
+        )
+    return FullReviewOutcome(True, report, has_summary_findings=has_summary_findings)
+
+
+def gate_full_review(session, full_review, deadline):
+    targets = full_review.select_targets(session)
+    if not targets:
+        emit({})
+        return
+
+    outcome = run_full_review(session, full_review, targets, deadline)
+    if not outcome.is_accepted:
+        block_full_review(session, full_review, outcome.report, outcome.block_instruction)
         return
 
     gate_path = session.gate_path(full_review.gate)
     previous_blocks = int(load_state(gate_path).get("blocks") or 0)
     save_state(gate_path, {"blocks": 0})
-    # After fix rounds the agent's last response covers only the fixes,
-    # so it writes the summary of the whole work in a separate turn.
-    if previous_blocks or has_summary_findings:
-        optional_findings = f"\n\n{full_review.optional_findings_title}:\n\n{report}" if report else ""
+    # After fix rounds the agent's last response covers only the fixes, and before the review it could
+    # not know the outcome, so the agent writes the summary of the whole work in a separate turn.
+    if full_review.should_always_ask_for_summary or previous_blocks or outcome.has_summary_findings:
+        optional_findings = f"\n\n{full_review.optional_findings_title}:\n\n{outcome.report}" if outcome.report else ""
         emit(
             {
                 "decision": "block",
@@ -1133,8 +1149,8 @@ def gate_full_review(session, full_review, deadline):
         )
         return
 
-    if report:
-        emit({"systemMessage": f"{full_review.title} accepted the {full_review.subject}. {full_review.optional_findings_title}:\n\n{report}"})
+    if outcome.report:
+        emit({"systemMessage": f"{full_review.title} accepted the {full_review.subject}. {full_review.optional_findings_title}:\n\n{outcome.report}"})
         return
     emit({})
 
@@ -1148,12 +1164,16 @@ def select_implementation_targets(session):
 
     change_dirs = [change_dir for change_dir in get_active_changes(root) if is_implemented(change_dir)]
     states = {change_dir: load_state(get_change_state_path(root, "implementation", change_dir.name)) for change_dir in change_dirs}
-    change_dirs = [change_dir for change_dir in change_dirs if states[change_dir].get("accepted") != fingerprint]
-    if not change_dirs:
+    unaccepted_states = {change_dir: state for change_dir, state in states.items() if state.get("accepted") != fingerprint}
+    return build_implementation_targets(root, fingerprint, unaccepted_states)
+
+
+def build_implementation_targets(root, fingerprint, states_by_change_dir):
+    if not states_by_change_dir:
         return []
 
     files = get_file_hashes(root, get_changed_paths(root))
-    return [ReviewTarget(change_dir, states[change_dir], fingerprint, files) for change_dir in change_dirs]
+    return [ReviewTarget(change_dir, state, fingerprint, files) for change_dir, state in states_by_change_dir.items()]
 
 
 def select_proposal_targets(session):
@@ -1211,10 +1231,14 @@ IMPLEMENTATION_REVIEW = FullReview(
     "Reject a false finding. Minor findings are optional. "
     "If a reviewer could not run, find the cause of the failure. " + FULL_REVIEW_REPLY_INSTRUCTION,
     optional_findings_title="Optional findings",
-    summary_instruction="Do not change files any more. Write the user a summary of the implementation as if there had been no review: "
-    "what was done for the change's tasks, which decisions were made, which checks passed, "
+    summary_instruction="Do not change files any more. Write the user the full summary of the change. "
+    "Open it by saying that the automatic review passed and accepted the change in its current state. "
+    "Then say what was done for the change's tasks, which decisions were made, which checks passed, "
     "which minor findings you left, and the next step. "
-    "Leave out review rounds, findings and the fixes made for them.",
+    "End with a short list of what the review made you fix, or say it found nothing to fix.",
+    should_always_ask_for_summary=True,
+    repeat_limit_note=" The edits stay in the working tree, but the change is not accepted. "
+    "Once the cause is fixed, `mise run review` runs the whole review again.",
 )
 PROPOSAL_REVIEW = FullReview(
     gate="proposal",
@@ -1239,8 +1263,111 @@ PROPOSAL_REVIEW = FullReview(
     "Leave out review rounds, findings and the fixes made for them. "
     "List every scope finding separately: what the user loses and what they save, the decision is theirs. "
     "End with the next step.",
+    should_always_ask_for_summary=False,
+    repeat_limit_note="",
 )
 FULL_REVIEWS = {full_review.gate: full_review for full_review in (IMPLEMENTATION_REVIEW, PROPOSAL_REVIEW)}
+
+
+MANUAL_REVIEW_SESSION_ID = "manual-review"
+MANUAL_REVIEW_REQUEST = (
+    "The user started `mise run review` by hand: review the current working tree as the finished implementation "
+    "of the change, as the hooks do when the agent finishes its last task."
+)
+MANUAL_REVIEW_CANDIDATE = "(none: the user started the review by hand, so there is no agent response to check)"
+# The Stop gates that review a finished change; necessity reviews only proposals, and the full
+# implementation review runs after them.
+MANUAL_REVIEW_QUICK_GATES = ("diff", "architecture", "code-shape")
+
+
+class ManualReviewError(Exception):
+    pass
+
+
+class ManualSession(Session):
+    def __init__(self, root):
+        super().__init__(
+            root, {"session_id": MANUAL_REVIEW_SESSION_ID, "last_assistant_message": MANUAL_REVIEW_CANDIDATE}
+        )
+
+    def load_request(self):
+        return {"prompt": MANUAL_REVIEW_REQUEST}
+
+
+# A manual run reviews even a state the hook already accepted, because the user asks for it when
+# they doubt the hook's result. Findings of an earlier review are repeated like the hook does,
+# so a run after the fixes checks them instead of starting a new review that finds new details.
+def select_manual_targets(root, change_name):
+    change_dirs = [change_dir for change_dir in get_active_changes(root) if change_name in (None, change_dir.name)]
+    if change_name and not change_dirs:
+        raise ManualReviewError(f"No active OpenSpec change is named `{change_name}`.")
+
+    implemented_dirs = [change_dir for change_dir in change_dirs if is_implemented(change_dir)]
+    if not implemented_dirs:
+        names = ", ".join(f"`{change_dir.name}`" for change_dir in change_dirs) or "none"
+        raise ManualReviewError(f"No active OpenSpec change has every task checked. Active changes: {names}.")
+
+    states = {}
+    for change_dir in implemented_dirs:
+        state = load_state(get_change_state_path(root, "implementation", change_dir.name))
+        states[change_dir] = state if state.get("findings") else {}
+    return build_implementation_targets(root, get_workspace_fingerprint(root), states)
+
+
+def run_manual_quick_gate(session, gate, changed_paths):
+    if gate == "code-shape" and not any(is_code_path(path) for path in changed_paths):
+        return gate, None
+    prompt = build_review_prompt(session, gate, "finished change", MANUAL_REVIEW_CANDIDATE, changed_paths)
+    return gate, review(session.root, prompt)
+
+
+def report_progress(message):
+    print(message, file=sys.stderr, flush=True)
+
+
+# Prints a report for a person or for the agent that reads the output of `! mise run review`,
+# and returns the exit code: 0 when every review accepted the change.
+def run_manual_review(change_name, deadline):
+    root = find_root({})
+    session = ManualSession(root)
+    try:
+        targets = select_manual_targets(root, change_name)
+    except ManualReviewError as error:
+        print(error)
+        return 2
+
+    change_names = ", ".join(f"`{target.change_dir.name}`" for target in targets)
+    changed_paths = get_changed_paths(root)
+    report_progress(f"Reviewing {change_names}: the quick checks {', '.join(MANUAL_REVIEW_QUICK_GATES)}, then the full implementation review.")
+    with ThreadPoolExecutor(max_workers=len(MANUAL_REVIEW_QUICK_GATES)) as executor:
+        quick_results = list(executor.map(lambda gate: run_manual_quick_gate(session, gate, changed_paths), MANUAL_REVIEW_QUICK_GATES))
+
+    sections = []
+    is_accepted = True
+    for gate, result in quick_results:
+        if result is None:
+            sections.append(f"Quick check `{gate}`: skipped, no code file changed.")
+            continue
+        is_gate_accepted, reason = result
+        is_accepted = is_accepted and is_gate_accepted
+        sections.append(f"Quick check `{gate}`: accepted." if is_gate_accepted else f"Quick check `{gate}`: not accepted.\n{reason}")
+
+    report_progress("Running the full implementation review: linters, change verification commands and reviewers.")
+    outcome = run_full_review(session, IMPLEMENTATION_REVIEW, targets, deadline)
+    is_accepted = is_accepted and outcome.is_accepted
+    if outcome.is_accepted:
+        optional_findings = f" {IMPLEMENTATION_REVIEW.optional_findings_title}:\n\n{outcome.report}" if outcome.report else ""
+        sections.append(f"{IMPLEMENTATION_REVIEW.title} accepted the change.{optional_findings}")
+    else:
+        sections.append(outcome.report)
+
+    verdict = (
+        "Result: the review accepted the change in its current state."
+        if is_accepted
+        else "Result: the review did not accept the change. Fix the findings above, then run `mise run review` again."
+    )
+    print("\n\n".join([*sections, verdict]))
+    return 0 if is_accepted else 1
 
 
 def check_environment():
@@ -1267,10 +1394,19 @@ def stop_for_missing_tool(error):
 def main():
     deadline = time.monotonic() + FULL_REVIEW_BUDGET_SECONDS
     parser = argparse.ArgumentParser()
-    parser.add_argument("action", choices=("session-start", "snapshot", "doctor", *GATES))
+    parser.add_argument("action", choices=("session-start", "snapshot", "doctor", "review", *GATES))
+    parser.add_argument("change", nargs="?", help="the OpenSpec change that `review` checks; all implemented ones when omitted")
     arguments = parser.parse_args()
     if arguments.action == "doctor":
         sys.exit(check_environment())
+    if arguments.change and arguments.action != "review":
+        parser.error("only the review action takes a change")
+    if arguments.action == "review":
+        try:
+            sys.exit(run_manual_review(arguments.change or None, deadline))
+        except MissingToolError as error:
+            print(f"The review could not find `{error.tool}`. Run `mise install`, then `mise run doctor`.")
+            sys.exit(2)
 
     try:
         run_action(arguments.action, deadline)

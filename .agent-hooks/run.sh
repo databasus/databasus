@@ -11,6 +11,12 @@ root="${hooks_dir%/*}"
 action="${1:-}"
 environment_check_hint="Run \`mise install\` to install the pinned tools and \`mise run doctor\` to check the environment."
 
+# A person starts doctor and review, not a hook, so they print text and exit with a code.
+is_terminal_action=false
+if [[ "$action" == "doctor" || "$action" == "review" ]]; then
+    is_terminal_action=true
+fi
+
 find_mise() {
     if command -v mise; then
         return 0
@@ -40,7 +46,7 @@ stop_agent() {
 
 if ! mise_path="$(find_mise)"; then
     reason="The review hooks could not find the version manager mise on PATH or in \$HOME/.local/bin."
-    if [[ "$action" == "doctor" ]]; then
+    if [[ "$is_terminal_action" == true ]]; then
         printf '%s\n' "$reason" >&2
         exit 1
     fi
@@ -59,7 +65,7 @@ if [[ $missing_check_exit_code -ne 0 || -n "$missing_tools" ]]; then
     fi
     reason="$reason
 $missing_tools"
-    if [[ "$action" == "doctor" ]]; then
+    if [[ "$is_terminal_action" == true ]]; then
         printf '%s\n' "$reason" >&2
         exit 1
     fi
@@ -71,7 +77,7 @@ fi
 export MISE_EXEC_AUTO_INSTALL=false
 command=("$mise_path" -C "$root" exec -- python3 "$hooks_dir/review_gate.py" "$@")
 
-if [[ "$action" == "doctor" ]]; then
+if [[ "$is_terminal_action" == true ]]; then
     exec "${command[@]}"
 fi
 

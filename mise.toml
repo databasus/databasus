@@ -61,14 +61,19 @@ run = "git ls-files -z --cached --others --exclude-standard '*.sh' tools/lsp mis
 description = "Check that the review hooks find the tools they need"
 run = ".agent-hooks/run.sh doctor"
 
+[tasks.review]
+description = "Run every review hook of a finished OpenSpec change by hand, e.g. mise run review notifiers-module"
+usage = 'arg "[change]" help="The OpenSpec change to review; every active change with all tasks checked when omitted"'
+run = '.agent-hooks/run.sh review "${usage_change:-}"'
+
 [tasks."backend:lint"]
 description = "Check the backend: contract rules, generated code, formatting, linters and go.mod"
 dir = "backend"
 depends = ["backend:check-generated"]
 run = [
   "vacuum lint --no-banner --no-style --no-update-check --fail-severity warn --details --all-results --no-clip --ruleset api/vacuum.yaml api/openapi.yaml",
-  "golangci-lint fmt --diff ./api/... ./cmd/... ./e2e/... ./internal/... ./tools/...",
-  "golangci-lint run ./api/... ./cmd/... ./e2e/... ./internal/... ./tools/...",
+  "golangci-lint fmt --diff ./api/... ./cmd/... ./e2e/... ./internal/... ./migrations/... ./tools/...",
+  "golangci-lint run ./api/... ./cmd/... ./e2e/... ./internal/... ./migrations/... ./tools/...",
   "go run ./tools/archlint",
   "go mod tidy -diff",
 ]
@@ -76,7 +81,7 @@ run = [
 [tasks."backend:format"]
 description = "Format the backend"
 dir = "backend"
-run = "golangci-lint fmt ./api/... ./cmd/... ./e2e/... ./internal/... ./tools/..."
+run = "golangci-lint fmt ./api/... ./cmd/... ./e2e/... ./internal/... ./migrations/... ./tools/..."
 
 [tasks."backend:generate-api"]
 description = "Regenerate the backend servers and test clients from backend/api/*.yaml"
