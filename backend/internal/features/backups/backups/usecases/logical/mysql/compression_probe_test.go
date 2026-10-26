@@ -10,17 +10,18 @@ import (
 
 	"github.com/google/uuid"
 
+	"databasus-backend/internal/config"
+	mysql_engine "databasus-backend/internal/engines/mysql"
 	mysqltypes "databasus-backend/internal/features/databases/databases/mysql"
 	"databasus-backend/internal/util/testing/containers"
-	"databasus-backend/internal/util/tools"
 )
 
 func Test_BuildMysqldumpArgs_ForEverySupportedVersion_OmitsCompressionFlags(t *testing.T) {
-	for _, version := range []tools.MysqlVersion{
-		tools.MysqlVersion57,
-		tools.MysqlVersion80,
-		tools.MysqlVersion84,
-		tools.MysqlVersion9,
+	for _, version := range []mysql_engine.Version{
+		mysql_engine.Version57,
+		mysql_engine.Version80,
+		mysql_engine.Version84,
+		mysql_engine.Version9,
 	} {
 		uc := &CreateMysqlBackupUsecase{}
 		database := &mysqltypes.MysqlDatabase{Version: version}
@@ -39,10 +40,10 @@ func Test_BuildMysqldumpArgs_ForEverySupportedVersion_OmitsCompressionFlags(t *t
 func Test_GetNetworkCompressionCandidates_OnMysql80AndNewer_TriesZstdThenZlibThenUncompressed(
 	t *testing.T,
 ) {
-	for _, version := range []tools.MysqlVersion{
-		tools.MysqlVersion80,
-		tools.MysqlVersion84,
-		tools.MysqlVersion9,
+	for _, version := range []mysql_engine.Version{
+		mysql_engine.Version80,
+		mysql_engine.Version84,
+		mysql_engine.Version9,
 	} {
 		candidates := getNetworkCompressionCandidates(version)
 
@@ -65,7 +66,7 @@ func Test_GetNetworkCompressionCandidates_OnMysql80AndNewer_TriesZstdThenZlibThe
 }
 
 func Test_GetNetworkCompressionCandidates_OnMysql57_TriesCompressThenUncompressed(t *testing.T) {
-	candidates := getNetworkCompressionCandidates(tools.MysqlVersion57)
+	candidates := getNetworkCompressionCandidates(mysql_engine.Version57)
 
 	if len(candidates) != 2 {
 		t.Fatalf("expected 2 candidates, got %v", candidates)
@@ -81,7 +82,7 @@ func Test_GetNetworkCompressionCandidates_OnMysql57_TriesCompressThenUncompresse
 }
 
 func Test_GetNetworkCompressionCandidates_OnMysql57_OmitsCompressionAlgorithms(t *testing.T) {
-	for _, candidate := range getNetworkCompressionCandidates(tools.MysqlVersion57) {
+	for _, candidate := range getNetworkCompressionCandidates(mysql_engine.Version57) {
 		for _, arg := range candidate {
 			if strings.HasPrefix(arg, "--compression-algorithms") {
 				t.Fatalf("the 5.7 client has no --compression-algorithms, got %q", arg)
@@ -121,7 +122,7 @@ func probeCompressionAgainstMysql(t *testing.T, endpoint containers.Endpoint) []
 
 	databaseName := containers.MysqlDatabase
 	database := &mysqltypes.MysqlDatabase{
-		Version:  tools.MysqlVersion80,
+		Version:  mysql_engine.Version80,
 		Host:     endpoint.Host,
 		Port:     endpoint.Port,
 		Username: containers.MysqlUsername,
@@ -136,7 +137,12 @@ func probeCompressionAgainstMysql(t *testing.T, endpoint containers.Endpoint) []
 
 	t.Cleanup(func() { _ = os.RemoveAll(filepath.Dir(myCnfFile)) })
 
-	mysqldumpBin, err := tools.GetMysqlExecutable(tools.MysqlVersion80, tools.MysqlExecutableMysqldump)
+	mysqldumpBin, err := mysql_engine.ClientTools{
+		Root: config.GetEnv().ClientToolsDir,
+	}.GetExecutable(
+		mysql_engine.Version80,
+		mysql_engine.ExecutableMysqldump,
+	)
 	if err != nil {
 		t.Fatalf("failed to resolve mysqldump: %v", err)
 	}
@@ -146,7 +152,7 @@ func probeCompressionAgainstMysql(t *testing.T, endpoint containers.Endpoint) []
 		MyCnfFile:    myCnfFile,
 		DatabaseName: databaseName,
 		DatabaseID:   uuid.New(),
-	}, tools.MysqlVersion80)
+	}, mysql_engine.Version80)
 }
 
 func Test_ProbeNetworkCompressionArgs_AgainstStockMysql80_SelectsZstd(t *testing.T) {

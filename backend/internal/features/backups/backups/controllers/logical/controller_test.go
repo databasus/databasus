@@ -19,6 +19,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"databasus-backend/internal/config"
+	pgshared "databasus-backend/internal/engines/postgresql/shared"
 	audit_logs "databasus-backend/internal/features/audit_logs"
 	backuping_logical "databasus-backend/internal/features/backups/backups/backuping/logical"
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
@@ -38,7 +39,6 @@ import (
 	"databasus-backend/internal/modules/workspaces"
 	files_utils "databasus-backend/internal/util/files"
 	test_utils "databasus-backend/internal/util/testing"
-	"databasus-backend/internal/util/tools"
 )
 
 func Test_GetBackups_PermissionsEnforced(t *testing.T) {
@@ -1386,7 +1386,7 @@ func createTestDatabase(
 		WorkspaceID: &workspaceID,
 		Type:        databases.DatabaseTypePostgresLogical,
 		PostgresqlLogical: &postgresql_logical.PostgresqlLogicalDatabase{
-			Version:  tools.PostgresqlVersion16,
+			Version:  pgshared.Version16,
 			Host:     config.GetEnv().TestLocalhost,
 			Port:     port,
 			Username: "testuser",

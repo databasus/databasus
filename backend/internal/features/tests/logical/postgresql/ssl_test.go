@@ -14,11 +14,11 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"databasus-backend/internal/config"
+	pgshared "databasus-backend/internal/engines/postgresql/shared"
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	"databasus-backend/internal/features/databases"
 	pgtypes "databasus-backend/internal/features/databases/databases/postgresql/logical"
-	postgresql_shared "databasus-backend/internal/features/databases/databases/postgresql/shared"
 	restores_core "databasus-backend/internal/features/restores/core"
 	storages_bridge "databasus-backend/internal/features/storages"
 	logicaltesting "databasus-backend/internal/features/tests/logical/shared"
@@ -125,7 +125,7 @@ func createPostgresqlSSLDatabaseViaAPI(
 			Username: username,
 			Password: password,
 			Database: &database,
-			SslMode:  postgresql_shared.PostgresSslModeRequire,
+			SslMode:  pgshared.SslModeRequire,
 			CpuCount: 1,
 		},
 	}
@@ -148,7 +148,7 @@ func createPostgresqlSSLRestoreViaAPI(
 			Username: username,
 			Password: password,
 			Database: &database,
-			SslMode:  postgresql_shared.PostgresSslModeRequire,
+			SslMode:  pgshared.SslModeRequire,
 			CpuCount: 1,
 		},
 	}

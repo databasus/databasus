@@ -1,9 +1,12 @@
+// Package sshtunnel holds the stored SSH tunnel settings of the old database models. The tunnel
+// itself lives in lib/sshtunnel.
 package sshtunnel
 
 import (
 	"errors"
 	"fmt"
 
+	libsshtunnel "databasus-backend/internal/lib/sshtunnel"
 	"databasus-backend/internal/util/encryption"
 )
 
@@ -133,6 +136,37 @@ func (c *Config) EncryptSensitiveFields(encryptor encryption.FieldEncryptor) err
 	return nil
 }
 
+// DecryptSettings builds the tunnel settings with the secrets in clear text. A restore target
+// config is never persisted, so it arrives in plaintext with a nil encryptor.
+func (c *Config) DecryptSettings(encryptor encryption.FieldEncryptor) (libsshtunnel.Settings, error) {
+	password, err := decryptIfNeeded(c.Password, encryptor)
+	if err != nil {
+		return libsshtunnel.Settings{}, fmt.Errorf("failed to decrypt the SSH tunnel password: %w", err)
+	}
+
+	privateKey, err := decryptIfNeeded(c.PrivateKey, encryptor)
+	if err != nil {
+		return libsshtunnel.Settings{}, fmt.Errorf("failed to decrypt the SSH tunnel private key: %w", err)
+	}
+
+	passphrase, err := decryptIfNeeded(c.PrivateKeyPassphrase, encryptor)
+	if err != nil {
+		return libsshtunnel.Settings{}, fmt.Errorf(
+			"failed to decrypt the SSH tunnel private key passphrase: %w", err,
+		)
+	}
+
+	return libsshtunnel.Settings{
+		Host:                 c.Host,
+		Port:                 c.Port,
+		Username:             c.Username,
+		AuthType:             libsshtunnel.AuthType(c.AuthType),
+		Password:             password,
+		PrivateKey:           privateKey,
+		PrivateKeyPassphrase: passphrase,
+	}, nil
+}
+
 // Without this the "blank keeps the stored one" rule above would leave the previous way of logging
 // in behind forever once the user switches the auth type.
 func (c *Config) clearSecretsOfUnusedAuthType() {
@@ -143,4 +177,12 @@ func (c *Config) clearSecretsOfUnusedAuthType() {
 	case AuthTypePrivateKey:
 		c.Password = ""
 	}
+}
+
+func decryptIfNeeded(value string, encryptor encryption.FieldEncryptor) (string, error) {
+	if encryptor == nil || value == "" {
+		return value, nil
+	}
+
+	return encryptor.Decrypt(value)
 }

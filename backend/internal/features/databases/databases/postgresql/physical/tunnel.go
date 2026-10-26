@@ -4,8 +4,9 @@ import (
 	"context"
 	"log/slog"
 
-	"databasus-backend/internal/features/sshtunnel"
+	pgphysical "databasus-backend/internal/engines/postgresql/physical"
 	"databasus-backend/internal/util/encryption"
+	"databasus-backend/internal/util/logger"
 )
 
 type OpenTunnelSpec struct {
@@ -19,7 +20,7 @@ type OpenTunnelSpec struct {
 type TunneledDatabase struct {
 	original              *PostgresqlPhysicalDatabase
 	databaseThroughTunnel *PostgresqlPhysicalDatabase
-	forwarder             *sshtunnel.Forwarder
+	tunnel                *pgphysical.Tunnel
 }
 
 // Ctx bounds opening the tunnel; the forwarder then lives until Close. With the tunnel disabled
@@ -35,17 +36,17 @@ func OpenTunnel(ctx context.Context, spec OpenTunnelSpec) (*TunneledDatabase, er
 		return &TunneledDatabase{original: spec.Database, databaseThroughTunnel: spec.Database}, nil
 	}
 
-	forwarder, err := sshtunnel.Open(ctx, sshtunnel.OpenSpec{
-		Config:    spec.Database.SshTunnel,
-		Target:    sshtunnel.Endpoint{Host: spec.Database.Host, Port: spec.Database.Port},
-		Encryptor: spec.Encryptor,
-		Logger:    spec.Logger,
-	})
+	source, err := spec.Database.newSource(spec.Encryptor)
 	if err != nil {
 		return nil, err
 	}
 
-	localEndpoint := forwarder.GetLocalEndpoint()
+	tunnel, err := source.OpenTunnel(ctx, getTunnelLogger(spec.Logger))
+	if err != nil {
+		return nil, err
+	}
+
+	localEndpoint, _ := tunnel.GetLocalEndpoint()
 
 	// The struct copy is what keeps ID, DatabaseID and ReplicationSlotName intact, and both slot
 	// families are named from those. Reaching for CopyForNewDatabase here would blank them and mint
@@ -62,7 +63,7 @@ func OpenTunnel(ctx context.Context, spec OpenTunnelSpec) (*TunneledDatabase, er
 	return &TunneledDatabase{
 		original:              spec.Database,
 		databaseThroughTunnel: &databaseThroughTunnel,
-		forwarder:             forwarder,
+		tunnel:                tunnel,
 	}, nil
 }
 
@@ -90,17 +91,26 @@ func (t *TunneledDatabase) CopyDiscoveredMetadataToOriginal() {
 // No forwarder means no bastion between us and the cluster, so nothing about the transport can be
 // at fault and the caller's failure is the source's own.
 func (t *TunneledDatabase) IsBastionReachable(ctx context.Context) bool {
-	if t == nil || t.forwarder == nil {
+	if t == nil || t.tunnel == nil {
 		return true
 	}
 
-	return t.forwarder.IsBastionReachable(ctx)
+	return t.tunnel.IsBastionReachable(ctx)
 }
 
 func (t *TunneledDatabase) Close() {
-	if t == nil || t.forwarder == nil {
+	if t == nil || t.tunnel == nil {
 		return
 	}
 
-	t.forwarder.Close()
+	t.tunnel.Close()
+}
+
+// The old callers and tests open a tunnel without a logger, and lib/sshtunnel requires one.
+func getTunnelLogger(tunnelLogger *slog.Logger) *slog.Logger {
+	if tunnelLogger == nil {
+		return logger.GetLogger()
+	}
+
+	return tunnelLogger
 }

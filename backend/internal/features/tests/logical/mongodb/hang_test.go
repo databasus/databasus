@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"testing"
 
+	mongodb_engine "databasus-backend/internal/engines/mongodb"
 	logicaltesting "databasus-backend/internal/features/tests/logical/shared"
 	"databasus-backend/internal/util/testing/containers"
-	"databasus-backend/internal/util/tools"
 )
 
 // Test_BackupShouldFailNotHang_Mongodb_RegressionForIssue582 asserts a MongoDB
@@ -17,7 +17,7 @@ func Test_BackupShouldFailNotHang_Mongodb_RegressionForIssue582(t *testing.T) {
 		t, "Issue 582 MongoDB Workspace", fmt.Sprintf("http://%s:%d", minioEndpoint.Host, minioEndpoint.Port),
 	)
 
-	container := connectToMongodbContainer(t, "mongo:7.0", tools.MongodbVersion7)
+	container := connectToMongodbContainer(t, "mongo:7.0", mongodb_engine.Version7)
 	defer func() { _ = container.Client.Disconnect(t.Context()) }()
 
 	setupMongodbTestData(t, container)

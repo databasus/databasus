@@ -11,8 +11,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 
+	pgshared "databasus-backend/internal/engines/postgresql/shared"
 	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
-	postgresql_shared "databasus-backend/internal/features/databases/databases/postgresql/shared"
 )
 
 func Test_NewReceivewalCommand_SetsParentDeathSignalAndApplicationName(t *testing.T) {
@@ -28,7 +28,7 @@ func Test_NewReceivewalCommand_SetsParentDeathSignalAndApplicationName(t *testin
 	cmd, err := newReceivewalCommand(t.Context(), receivewalCommandSpec{
 		PgBin:    "sh",
 		SourceDB: sourceDB,
-		Creds:    &postgresql_shared.CredentialTempFiles{PgpassPath: "/tmp/pgpass"},
+		Creds:    &pgshared.CredentialTempFiles{PgpassPath: "/tmp/pgpass"},
 		WatchDir: t.TempDir(),
 		SlotName: "slot",
 	})
@@ -89,7 +89,7 @@ func Test_NewReceivewalCommand_WhenTunneled_SendsPgHostAddrAndKeepsTheRealHostFl
 	cmd, err := newReceivewalCommand(t.Context(), receivewalCommandSpec{
 		PgBin:    "sh",
 		SourceDB: tunneledSourceDatabase(),
-		Creds:    &postgresql_shared.CredentialTempFiles{PgpassPath: "/tmp/pgpass"},
+		Creds:    &pgshared.CredentialTempFiles{PgpassPath: "/tmp/pgpass"},
 		WatchDir: t.TempDir(),
 		SlotName: "slot",
 	})
@@ -106,7 +106,7 @@ func Test_NewReceivewalCommand_WithoutATunnel_SendsNoPgHostAddr(t *testing.T) {
 	cmd, err := newReceivewalCommand(t.Context(), receivewalCommandSpec{
 		PgBin:    "sh",
 		SourceDB: sourceDB,
-		Creds:    &postgresql_shared.CredentialTempFiles{PgpassPath: "/tmp/pgpass"},
+		Creds:    &pgshared.CredentialTempFiles{PgpassPath: "/tmp/pgpass"},
 		WatchDir: t.TempDir(),
 		SlotName: "slot",
 	})

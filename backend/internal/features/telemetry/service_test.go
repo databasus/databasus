@@ -17,6 +17,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	mariadb_engine "databasus-backend/internal/engines/mariadb"
+	mongodb_engine "databasus-backend/internal/engines/mongodb"
+	mysql_engine "databasus-backend/internal/engines/mysql"
+	pgshared "databasus-backend/internal/engines/postgresql/shared"
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	physical_models "databasus-backend/internal/features/backups/backups/core/physical/models"
 	"databasus-backend/internal/features/databases"
@@ -31,7 +35,6 @@ import (
 	verification_config "databasus-backend/internal/features/verification/config"
 	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/modules/storages"
-	"databasus-backend/internal/util/tools"
 )
 
 type fakeSender struct {
@@ -254,7 +257,7 @@ func postgresDatabase(name string, status *databases.HealthStatus) *databases.Da
 		Type:         databases.DatabaseTypePostgresLogical,
 		HealthStatus: status,
 		PostgresqlLogical: &postgresql_logical.PostgresqlLogicalDatabase{
-			Version: tools.PostgresqlVersion("16"),
+			Version: pgshared.Version("16"),
 		},
 	}
 }
@@ -270,7 +273,7 @@ func physicalDatabase(
 		Type:         databases.DatabaseTypePostgresPhysical,
 		HealthStatus: status,
 		PostgresqlPhysical: &postgresql_physical.PostgresqlPhysicalDatabase{
-			Version:    tools.PostgresqlVersion("17"),
+			Version:    pgshared.Version("17"),
 			BackupType: backupType,
 		},
 	}
@@ -301,21 +304,21 @@ func databasesForEveryEngine(isSshTunnelEnabled bool) []*databases.Database {
 			Name:         "my",
 			Type:         databases.DatabaseTypeMysql,
 			HealthStatus: availableStatus(),
-			Mysql:        &mysql.MysqlDatabase{Version: tools.MysqlVersion("8.0"), SshTunnel: tunnel},
+			Mysql:        &mysql.MysqlDatabase{Version: mysql_engine.Version("8.0"), SshTunnel: tunnel},
 		},
 		{
 			ID:           uuid.New(),
 			Name:         "maria",
 			Type:         databases.DatabaseTypeMariadb,
 			HealthStatus: availableStatus(),
-			Mariadb:      &mariadb.MariadbDatabase{Version: tools.MariadbVersion("10.6"), SshTunnel: tunnel},
+			Mariadb:      &mariadb.MariadbDatabase{Version: mariadb_engine.Version("10.6"), SshTunnel: tunnel},
 		},
 		{
 			ID:           uuid.New(),
 			Name:         "mongo",
 			Type:         databases.DatabaseTypeMongodb,
 			HealthStatus: availableStatus(),
-			Mongodb:      &mongodb.MongodbDatabase{Version: tools.MongodbVersion("6.0"), SshTunnel: tunnel},
+			Mongodb:      &mongodb.MongodbDatabase{Version: mongodb_engine.Version("6.0"), SshTunnel: tunnel},
 		},
 	}
 }
@@ -378,21 +381,21 @@ func Test_BuildAndSend_ProducesExpectedRequest(t *testing.T) {
 		Name:         "my",
 		Type:         databases.DatabaseTypeMysql,
 		HealthStatus: availableStatus(),
-		Mysql:        &mysql.MysqlDatabase{Version: tools.MysqlVersion("8.0")},
+		Mysql:        &mysql.MysqlDatabase{Version: mysql_engine.Version("8.0")},
 	}
 	mariaDB := &databases.Database{
 		ID:           uuid.New(),
 		Name:         "maria",
 		Type:         databases.DatabaseTypeMariadb,
 		HealthStatus: availableStatus(),
-		Mariadb:      &mariadb.MariadbDatabase{Version: tools.MariadbVersion("10.6")},
+		Mariadb:      &mariadb.MariadbDatabase{Version: mariadb_engine.Version("10.6")},
 	}
 	mongoDB := &databases.Database{
 		ID:           uuid.New(),
 		Name:         "mongo",
 		Type:         databases.DatabaseTypeMongodb,
 		HealthStatus: availableStatus(),
-		Mongodb:      &mongodb.MongodbDatabase{Version: tools.MongodbVersion("6.0")},
+		Mongodb:      &mongodb.MongodbDatabase{Version: mongodb_engine.Version("6.0")},
 	}
 
 	sender := &fakeSender{}

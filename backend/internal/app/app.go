@@ -12,11 +12,13 @@ import (
 	"gorm.io/gorm"
 
 	old_config "databasus-backend/internal/config"
+	"databasus-backend/internal/engines/clienttools"
 	"databasus-backend/internal/features/audit_logs"
 	"databasus-backend/internal/features/caching"
 	"databasus-backend/internal/features/email"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	storages_bridge "databasus-backend/internal/features/storages"
+	system_healthcheck "databasus-backend/internal/features/system/healthcheck"
 	users_bridge "databasus-backend/internal/features/users"
 	workspaces_bridge "databasus-backend/internal/features/workspaces"
 	"databasus-backend/internal/lib/audit"
@@ -55,7 +57,8 @@ type App struct {
 	backgroundGroup *background.Group
 	// runner is started only by Serve; a console command and a test application run its passes
 	// through RunJobPass.
-	runner *background.Runner
+	runner             *background.Runner
+	clientToolsChecker *clienttools.Checker
 }
 
 // New prepares everything the server and the console commands share: the schema of the current
@@ -98,7 +101,7 @@ func New(ctx context.Context, environment *Environment) (*App, error) {
 		return nil, fmt.Errorf("ensure data directories: %w", err)
 	}
 
-	old_config.Install(environment.Config)
+	old_config.Install(environment.Config, environment.ClientToolsDir)
 	storage.Install(db)
 
 	if err := parseModelSchemas(db); err != nil {
@@ -217,6 +220,9 @@ func New(ctx context.Context, environment *Environment) (*App, error) {
 	})
 	storages_bridge.Install(storagesModule)
 
+	clientToolsChecker := newClientToolsChecker(environment.ClientToolsDir)
+	system_healthcheck.InstallClientToolsChecker(clientToolsChecker)
+
 	setUpDependenciesOnce.Do(setUpDependencies)
 	subscribeToWorkspaceDeleting(workspacesModule, notifiersModule, storagesModule)
 	subscribeToNotifierTransferring(notifiersModule)
@@ -227,16 +233,17 @@ func New(ctx context.Context, environment *Environment) (*App, error) {
 	runner := background.NewRunner(background.RunnerDeps{Logger: appLogger, Clock: environment.Clock}, jobs...)
 
 	return &App{
-		usersModule:      usersModule,
-		workspacesModule: workspacesModule,
-		notifiersModule:  notifiersModule,
-		storagesModule:   storagesModule,
-		environment:      environment,
-		db:               db,
-		transactor:       transactor,
-		logger:           appLogger,
-		backgroundGroup:  nil,
-		runner:           runner,
+		usersModule:        usersModule,
+		workspacesModule:   workspacesModule,
+		notifiersModule:    notifiersModule,
+		storagesModule:     storagesModule,
+		environment:        environment,
+		db:                 db,
+		transactor:         transactor,
+		logger:             appLogger,
+		backgroundGroup:    nil,
+		runner:             runner,
+		clientToolsChecker: clientToolsChecker,
 	}, nil
 }
 

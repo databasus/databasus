@@ -7,7 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
-	postgresql_shared "databasus-backend/internal/features/databases/databases/postgresql/shared"
+	pgshared "databasus-backend/internal/engines/postgresql/shared"
 	workspaces_bridge "databasus-backend/internal/features/workspaces"
 	"databasus-backend/internal/modules/users"
 )
@@ -214,7 +214,7 @@ func respondConnectionTestError(ctx *gin.Context, err error) {
 		return
 	}
 
-	if connErr, ok := errors.AsType[*postgresql_shared.ConnectionTestError](err); ok {
+	if connErr, ok := errors.AsType[*pgshared.ConnectionTestError](err); ok {
 		ctx.JSON(http.StatusBadRequest, gin.H{"code": connErr.Code})
 		return
 	}

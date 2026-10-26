@@ -18,6 +18,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/klauspost/compress/zstd"
 
+	"databasus-backend/internal/config"
+	mariadb_engine "databasus-backend/internal/engines/mariadb"
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	"databasus-backend/internal/features/backups/backups/encryption"
@@ -29,7 +31,6 @@ import (
 	"databasus-backend/internal/modules/storages"
 	util_encryption "databasus-backend/internal/util/encryption"
 	io_utils "databasus-backend/internal/util/io"
-	"databasus-backend/internal/util/tools"
 )
 
 type RestoreMariadbBackupUsecase struct {
@@ -78,7 +79,7 @@ func (uc *RestoreMariadbBackupUsecase) Execute(
 	// On non-Galera instances the variable still exists but is a no-op.
 	// Setting it requires the SUPER privilege, so it is skippable for managed
 	// clusters that deny SUPER (at the risk of writeset-size errors on big restores).
-	if mdb.Version != tools.MariadbVersion55 && !mdb.IsSkipGaleraDisable {
+	if mdb.Version != mariadb_engine.Version55 && !mdb.IsSkipGaleraDisable {
 		args = append(args, "--init-command=SET SESSION wsrep_on=OFF")
 	}
 
@@ -95,7 +96,12 @@ func (uc *RestoreMariadbBackupUsecase) Execute(
 		args = append(args, *mdb.Database)
 	}
 
-	mariadbBin, err := tools.GetMariadbExecutable(mdb.Version, tools.MariadbExecutableMariadb)
+	mariadbBin, err := mariadb_engine.ClientTools{
+		Root: config.GetEnv().ClientToolsDir,
+	}.GetExecutable(
+		mdb.Version,
+		mariadb_engine.ExecutableMariadb,
+	)
 	if err != nil {
 		return err
 	}
@@ -295,7 +301,7 @@ user=%s
 password="%s"
 host=%s
 port=%d
-`, mdbConfig.Username, tools.EscapeMariadbPassword(password), mdbConfig.Host, mdbConfig.Port)
+`, mdbConfig.Username, mariadb_engine.EscapePassword(password), mdbConfig.Host, mdbConfig.Port)
 
 	if mdbConfig.IsHttps {
 		content += "ssl=true\n"

@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
+	pgphysical "databasus-backend/internal/engines/postgresql/physical"
 	audit_logs "databasus-backend/internal/features/audit_logs"
 	audit_logs_models "databasus-backend/internal/features/audit_logs/models"
 	physical_core_service "databasus-backend/internal/features/backups/backups/core/physical/service"
@@ -103,11 +104,11 @@ func (s *DatabaseService) CreateDatabase(
 	// copy carries a loopback address, an ephemeral port and a disabled tunnel.
 	databaseThroughTunnel := tunneledDatabase.GetDatabaseThroughTunnel()
 
-	if err := databaseThroughTunnel.PopulateDbData(logger, s.fieldEncryptor); err != nil {
+	if err := databaseThroughTunnel.PopulateDbData(ctx, logger, s.fieldEncryptor); err != nil {
 		return nil, fmt.Errorf("failed to auto-detect database data: %w", err)
 	}
 
-	if err := databaseThroughTunnel.TestConnection(logger, s.fieldEncryptor); err != nil {
+	if err := databaseThroughTunnel.TestConnection(ctx, logger, s.fieldEncryptor); err != nil {
 		return nil, err
 	}
 
@@ -203,11 +204,11 @@ func (s *DatabaseService) UpdateDatabase(
 	// Never reassign existingDatabase here: it is what gets encrypted and saved below.
 	databaseThroughTunnel := tunneledDatabase.GetDatabaseThroughTunnel()
 
-	if err := databaseThroughTunnel.PopulateDbData(logger, s.fieldEncryptor); err != nil {
+	if err := databaseThroughTunnel.PopulateDbData(ctx, logger, s.fieldEncryptor); err != nil {
 		return fmt.Errorf("failed to auto-detect database data: %w", err)
 	}
 
-	if err := databaseThroughTunnel.TestConnection(logger, s.fieldEncryptor); err != nil {
+	if err := databaseThroughTunnel.TestConnection(ctx, logger, s.fieldEncryptor); err != nil {
 		return err
 	}
 
@@ -421,7 +422,7 @@ func (s *DatabaseService) TestDatabaseConnection(
 
 	defer tunneledDatabase.Close()
 
-	if err := tunneledDatabase.GetDatabaseThroughTunnel().TestConnection(logger, s.fieldEncryptor); err != nil {
+	if err := tunneledDatabase.GetDatabaseThroughTunnel().TestConnection(ctx, logger, s.fieldEncryptor); err != nil {
 		return err
 	}
 
@@ -864,7 +865,7 @@ func (s *DatabaseService) CreateReplicationOnlyUser(
 	ctx context.Context,
 	actor users.Actor,
 	database *Database,
-) (*postgresql_physical.ReplicationOnlyUser, error) {
+) (*pgphysical.ReplicationOnlyUser, error) {
 	var usingDatabase *Database
 
 	if database.ID != uuid.Nil {
@@ -985,7 +986,7 @@ func (s *DatabaseService) testDatabaseConnection(ctx context.Context, database *
 
 	defer tunneledDatabase.Close()
 
-	return tunneledDatabase.GetDatabaseThroughTunnel().TestConnection(logger, s.fieldEncryptor)
+	return tunneledDatabase.GetDatabaseThroughTunnel().TestConnection(ctx, logger, s.fieldEncryptor)
 }
 
 // fillPhysicalLastBackupTimes populates LastBackupTime for physical databases,

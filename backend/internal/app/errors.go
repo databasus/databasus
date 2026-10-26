@@ -6,7 +6,10 @@ import (
 	"os"
 )
 
-var ErrUnknownConsoleCommand = errors.New("unknown console command")
+var (
+	ErrUnknownConsoleCommand = errors.New("unknown console command")
+	ErrFatalClientTools      = errors.New("client tools of a fatal bundle are broken")
+)
 
 // StorageProbeError tells the operator which paths the process could not write to and how to fix
 // their permissions.

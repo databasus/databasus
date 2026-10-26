@@ -16,18 +16,17 @@ import (
 	"github.com/google/uuid"
 
 	"databasus-backend/internal/config"
+	pgshared "databasus-backend/internal/engines/postgresql/shared"
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	backup_encryption "databasus-backend/internal/features/backups/backups/encryption"
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
 	"databasus-backend/internal/features/databases"
 	pgtypes "databasus-backend/internal/features/databases/databases/postgresql/logical"
-	postgresql_shared "databasus-backend/internal/features/databases/databases/postgresql/shared"
 	"databasus-backend/internal/lib/crypto"
+	"databasus-backend/internal/lib/namelist"
 	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/util/encryption"
-	"databasus-backend/internal/util/namelist"
-	"databasus-backend/internal/util/tools"
 )
 
 const (
@@ -112,7 +111,7 @@ func (uc *CreatePostgresqlBackupUsecase) Execute(
 		ctx,
 		backup,
 		backupConfig,
-		tools.GetPostgresqlExecutable(pg.Version, "pg_dump"),
+		pgshared.ClientTools{Root: config.GetEnv().ClientToolsDir}.GetExecutable(pg.Version, "pg_dump"),
 		args,
 		decryptedPassword,
 		fileStore,
@@ -137,8 +136,7 @@ func (uc *CreatePostgresqlBackupUsecase) streamToStorage(
 	ctx, cancel := backups_core_logical.NewBackupContext(parentCtx, config.GetShutdownSignal())
 	defer cancel(nil)
 
-	credentials, err := postgresql_shared.WriteCredentialFilesToTempDir(
-		db.PostgresqlLogical.CredentialSpec(), password, uc.fieldEncryptor)
+	credentials, err := db.PostgresqlLogical.WriteCredentialFiles(password, uc.fieldEncryptor)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create credential files: %w", err)
 	}
@@ -152,7 +150,8 @@ func (uc *CreatePostgresqlBackupUsecase) streamToStorage(
 	if err := uc.setupPgEnvironment(
 		cmd,
 		credentials,
-		db.PostgresqlLogical.CredentialSpec(),
+		db.PostgresqlLogical.GetHostAddr(),
+		db.PostgresqlLogical.SslMode,
 		password,
 		db.PostgresqlLogical.CpuCount,
 		pgBin,
@@ -343,7 +342,7 @@ func (uc *CreatePostgresqlBackupUsecase) buildPgDumpArgs(pg *pgtypes.PostgresqlL
 		"-h", pg.Host,
 		"-p", strconv.Itoa(pg.Port),
 		"-U", pg.Username,
-		"-d", postgresql_shared.BuildDatabaseNameConninfo(*pg.Database),
+		"-d", pgshared.BuildDatabaseNameConninfo(*pg.Database),
 		"--verbose",
 	}
 
@@ -364,7 +363,7 @@ func (uc *CreatePostgresqlBackupUsecase) buildPgDumpArgs(pg *pgtypes.PostgresqlL
 }
 
 func (uc *CreatePostgresqlBackupUsecase) getCompressionArgs(
-	version tools.PostgresqlVersion,
+	version pgshared.Version,
 ) []string {
 	if uc.isOlderPostgresVersion(version) {
 		uc.logger.Info("using gzip compression level 5 (zstd not available)", "version", version)
@@ -376,25 +375,26 @@ func (uc *CreatePostgresqlBackupUsecase) getCompressionArgs(
 }
 
 func (uc *CreatePostgresqlBackupUsecase) isOlderPostgresVersion(
-	version tools.PostgresqlVersion,
+	version pgshared.Version,
 ) bool {
-	return version == tools.PostgresqlVersion12 ||
-		version == tools.PostgresqlVersion13 ||
-		version == tools.PostgresqlVersion14 ||
-		version == tools.PostgresqlVersion15
+	return version == pgshared.Version12 ||
+		version == pgshared.Version13 ||
+		version == pgshared.Version14 ||
+		version == pgshared.Version15
 }
 
 func (uc *CreatePostgresqlBackupUsecase) setupPgEnvironment(
 	cmd *exec.Cmd,
-	credentials *postgresql_shared.CredentialTempFiles,
-	credentialSpec postgresql_shared.CredentialSpec,
+	credentials *pgshared.CredentialTempFiles,
+	hostAddr string,
+	sslMode pgshared.SslMode,
 	password string,
 	cpuCount int,
 	pgBin string,
 ) error {
 	cmd.Env = os.Environ()
 	cmd.Env = append(cmd.Env, "PGPASSFILE="+credentials.PgpassPath)
-	cmd.Env = append(cmd.Env, postgresql_shared.GetPgHostAddrEnv(credentialSpec)...)
+	cmd.Env = append(cmd.Env, pgshared.GetPgHostAddrEnv(hostAddr)...)
 
 	uc.logger.Info("setting up PostgreSQL environment",
 		"pg_bin", pgBin,
@@ -408,9 +408,9 @@ func (uc *CreatePostgresqlBackupUsecase) setupPgEnvironment(
 		"LANG=C.UTF-8",
 	)
 
-	resolvedSslMode := credentialSpec.SslMode
+	resolvedSslMode := sslMode
 	if resolvedSslMode == "" {
-		resolvedSslMode = postgresql_shared.PostgresSslModeDisable
+		resolvedSslMode = pgshared.SslModeDisable
 	}
 
 	cmd.Env = append(cmd.Env,

@@ -17,6 +17,10 @@ const (
 type EnvVariables struct {
 	lib_config.Config
 
+	// ClientToolsDir is the client tool bundle root of this architecture, which internal/app found
+	// at startup.
+	ClientToolsDir string
+
 	IsTesting       bool
 	TestDatabaseDsn string `env:"TEST_DATABASE_DSN"`
 	TestLocalhost   string `env:"TEST_LOCALHOST"`
@@ -37,8 +41,8 @@ var installedEnv atomic.Pointer[EnvVariables]
 
 var getEnvWithoutApp = sync.OnceValue(loadWithoutApp)
 
-func Install(loadedConfig lib_config.Config) {
-	installedEnv.Store(&EnvVariables{Config: loadedConfig})
+func Install(loadedConfig lib_config.Config, clientToolsDir string) {
+	installedEnv.Store(&EnvVariables{Config: loadedConfig, ClientToolsDir: clientToolsDir})
 }
 
 func GetEnv() *EnvVariables {

@@ -13,12 +13,12 @@ import (
 
 	"github.com/google/uuid"
 
+	pgshared "databasus-backend/internal/engines/postgresql/shared"
 	physical_dto "databasus-backend/internal/features/backups/backups/core/physical/dto"
 	physical_enums "databasus-backend/internal/features/backups/backups/core/physical/enums"
 	physical_models "databasus-backend/internal/features/backups/backups/core/physical/models"
 	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
 	"databasus-backend/internal/modules/storages"
-	"databasus-backend/internal/util/tools"
 )
 
 // The `.metadata` sidecar is a few KB of JSON, so its deadline covers endpoint
@@ -140,11 +140,11 @@ func uploadMetadata(
 	return receipt, nil
 }
 
-// pgVersionFromTag converts the tools.PostgresqlVersion enum ("17", "18") into
+// pgVersionFromTag converts the pgshared.Version enum ("17", "18") into
 // the canonical server_version_num style (170000, 180000) so the metadata
 // carries a value pg_combinebackup can compare against on restore. The exact
 // patch level is unknown at this layer — major.minor is enough for the check.
-func pgVersionFromTag(v tools.PostgresqlVersion) int {
+func pgVersionFromTag(v pgshared.Version) int {
 	major, err := strconv.Atoi(strings.TrimSpace(string(v)))
 	if err != nil {
 		return 0

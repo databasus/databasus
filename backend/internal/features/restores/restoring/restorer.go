@@ -140,7 +140,7 @@ func (r *Restorer) MakeRestore(
 
 	restoringToDBThroughTunnel := tunneledDatabase.GetDatabaseThroughTunnel()
 
-	if err := restoringToDBThroughTunnel.PopulateDbData(logger, r.fieldEncryptor); err != nil {
+	if err := restoringToDBThroughTunnel.PopulateDbData(ctx, logger, r.fieldEncryptor); err != nil {
 		errMsg := fmt.Sprintf("failed to auto-detect database data: %v", err)
 		restore.FailMessage = &errMsg
 		restore.Status = restores_core.RestoreStatusFailed

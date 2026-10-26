@@ -15,17 +15,3 @@ func (t BackupType) IsRequireWalSummary() bool {
 func (t BackupType) IsWalStreaming() bool {
 	return t == BackupTypeFullIncrementalAndWalStream
 }
-
-// platform is the detected runtime classification of the source cluster.
-// Used to choose the right replication-grant SQL and to format actionable
-// fix messages — managed PG can't ALTER SYSTEM, so we tell the user where
-// to set the parameter instead.
-type platform string
-
-const (
-	platformSelfManaged    platform = "self_managed"
-	platformRds            platform = "rds"
-	platformAzure          platform = "azure"
-	platformGcp            platform = "gcp"
-	platformUnknownManaged platform = "unknown_managed"
-)

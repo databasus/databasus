@@ -66,6 +66,8 @@ This is the project's common language. Each concept has one term in the document
 | Module | module | A part of the backend that owns one domain area and its tables. Only its `module.go` is visible from outside. |
 | Shared code | lib | Packages in `internal/lib` without domain logic. |
 | Composition root | app | `internal/app`, which builds the whole object graph and wires modules together. |
+| Engine source | `Source` of an engine package | An engine's handle on one user database, built from plain connection settings with the secrets in clear text. |
+| Client tool bundle | `clienttools.Bundle` | The vendored client tools of one engine version: their directory and the commands they must hold. |
 | API contract | contract | `backend/api/openapi.yaml` and `backend/api/agent.yaml`, from which the servers, the test clients and the frontend types are generated. |
 | Problem | Problem | The RFC 9457 error body that every operation of the contract answers with. |
 | Error code | `code` | The machine-readable cause in a `Problem`, such as `not_found`. The frontend chooses the text it shows by it. |

@@ -14,6 +14,8 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	env_config "databasus-backend/internal/config"
+	mysql_engine "databasus-backend/internal/engines/mysql"
+	pgshared "databasus-backend/internal/engines/postgresql/shared"
 	audit_logs "databasus-backend/internal/features/audit_logs"
 	backups_controllers_logical "databasus-backend/internal/features/backups/backups/controllers/logical"
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
@@ -33,7 +35,6 @@ import (
 	"databasus-backend/internal/modules/users"
 	test_utils "databasus-backend/internal/util/testing"
 	"databasus-backend/internal/util/testing/containers"
-	"databasus-backend/internal/util/tools"
 )
 
 func Test_GetRestores_WhenUserIsWorkspaceMember_RestoresReturned(t *testing.T) {
@@ -118,7 +119,7 @@ func Test_RestoreBackup_WhenUserIsWorkspaceMember_RestoreInitiated(t *testing.T)
 
 	request := restores_core.RestoreBackupRequest{
 		PostgresqlLogicalDatabase: &postgresql_logical.PostgresqlLogicalDatabase{
-			Version:  tools.PostgresqlVersion16,
+			Version:  pgshared.Version16,
 			Host:     env_config.GetEnv().TestLocalhost,
 			Port:     5432,
 			Username: "postgres",
@@ -151,7 +152,7 @@ func Test_RestoreBackup_WhenUserIsNotWorkspaceMember_ReturnsForbidden(t *testing
 
 	request := restores_core.RestoreBackupRequest{
 		PostgresqlLogicalDatabase: &postgresql_logical.PostgresqlLogicalDatabase{
-			Version:  tools.PostgresqlVersion16,
+			Version:  pgshared.Version16,
 			Host:     env_config.GetEnv().TestLocalhost,
 			Port:     5432,
 			Username: "postgres",
@@ -183,7 +184,7 @@ func Test_RestoreBackup_WithIsExcludeExtensions_FlagPassedCorrectly(t *testing.T
 
 	request := restores_core.RestoreBackupRequest{
 		PostgresqlLogicalDatabase: &postgresql_logical.PostgresqlLogicalDatabase{
-			Version:             tools.PostgresqlVersion16,
+			Version:             pgshared.Version16,
 			Host:                env_config.GetEnv().TestLocalhost,
 			Port:                5432,
 			Username:            "postgres",
@@ -216,7 +217,7 @@ func Test_RestoreBackup_AuditLogWritten(t *testing.T) {
 
 	request := restores_core.RestoreBackupRequest{
 		PostgresqlLogicalDatabase: &postgresql_logical.PostgresqlLogicalDatabase{
-			Version:  tools.PostgresqlVersion16,
+			Version:  pgshared.Version16,
 			Host:     env_config.GetEnv().TestLocalhost,
 			Port:     5432,
 			Username: "postgres",
@@ -294,7 +295,7 @@ func Test_RestoreBackup_DiskSpaceValidation(t *testing.T) {
 				defer cleanupDatabaseWithBackup(t.Context(), database, backup)
 				request = restores_core.RestoreBackupRequest{
 					PostgresqlLogicalDatabase: &postgresql_logical.PostgresqlLogicalDatabase{
-						Version:  tools.PostgresqlVersion16,
+						Version:  pgshared.Version16,
 						Host:     env_config.GetEnv().TestLocalhost,
 						Port:     5432,
 						Username: "postgres",
@@ -335,7 +336,7 @@ func Test_RestoreBackup_DiskSpaceValidation(t *testing.T) {
 
 				request = restores_core.RestoreBackupRequest{
 					MysqlDatabase: &mysql.MysqlDatabase{
-						Version:  tools.MysqlVersion80,
+						Version:  mysql_engine.Version80,
 						Host:     env_config.GetEnv().TestLocalhost,
 						Port:     3306,
 						Username: "root",
@@ -428,7 +429,7 @@ func Test_CancelRestore_InProgressRestore_SuccessfullyCancelled(t *testing.T) {
 
 	restoreRequest := restores_core.RestoreBackupRequest{
 		PostgresqlLogicalDatabase: &postgresql_logical.PostgresqlLogicalDatabase{
-			Version:  tools.PostgresqlVersion16,
+			Version:  pgshared.Version16,
 			Host:     env_config.GetEnv().TestLocalhost,
 			Port:     5432,
 			Username: "postgres",
@@ -531,7 +532,7 @@ func Test_RestoreBackup_WithParallelRestoreInProgress_ReturnsError(t *testing.T)
 
 	request := restores_core.RestoreBackupRequest{
 		PostgresqlLogicalDatabase: &postgresql_logical.PostgresqlLogicalDatabase{
-			Version:  tools.PostgresqlVersion16,
+			Version:  pgshared.Version16,
 			Host:     env_config.GetEnv().TestLocalhost,
 			Port:     5432,
 			Username: "postgres",
@@ -633,7 +634,7 @@ func createTestMySQLDatabase(
 		Name:        name,
 		Type:        databases.DatabaseTypeMysql,
 		Mysql: &mysql.MysqlDatabase{
-			Version:  tools.MysqlVersion80,
+			Version:  mysql_engine.Version80,
 			Host:     endpoint.Host,
 			Port:     endpoint.Port,
 			Username: containers.MysqlUsername,
@@ -734,7 +735,7 @@ func Test_RestoreBackup_WithCpuCountMoreThanOne_RestoreInitiated(t *testing.T) {
 
 	request := restores_core.RestoreBackupRequest{
 		PostgresqlLogicalDatabase: &postgresql_logical.PostgresqlLogicalDatabase{
-			Version:  tools.PostgresqlVersion16,
+			Version:  pgshared.Version16,
 			Host:     env_config.GetEnv().TestLocalhost,
 			Port:     5432,
 			Username: "postgres",

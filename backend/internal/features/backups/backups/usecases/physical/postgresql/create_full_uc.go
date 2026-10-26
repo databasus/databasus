@@ -10,9 +10,9 @@ import (
 
 	chain_view "databasus-backend/internal/features/backups/backups/core/physical/chain_view"
 	physical_enums "databasus-backend/internal/features/backups/backups/core/physical/enums"
-	postgresql_shared "databasus-backend/internal/features/databases/databases/postgresql/shared"
 	"databasus-backend/internal/modules/storages"
 	db "databasus-backend/internal/storage"
+	"databasus-backend/internal/util/encryption"
 )
 
 type CreateFullBackupUsecase struct{}
@@ -22,13 +22,12 @@ func NewCreateFullBackupUsecase() *CreateFullBackupUsecase { return &CreateFullB
 func (uc *CreateFullBackupUsecase) Execute(ctx context.Context, spec FullBackupSpec) (PhysicalBackupResult, error) {
 	start := time.Now().UTC()
 
-	password, err := postgresql_shared.DecryptFieldIfNeeded(spec.SourceDB.Password, spec.FieldEncryptor)
+	password, err := encryption.DecryptFieldIfNeeded(spec.SourceDB.Password, spec.FieldEncryptor)
 	if err != nil {
 		return errorResult(physical_enums.PhysicalBackupErrorPgBasebackupFailed, "decrypt password", err), nil
 	}
 
-	creds, err := postgresql_shared.WriteCredentialFilesToTempDir(
-		spec.SourceDB.CredentialSpec(), password, spec.FieldEncryptor)
+	creds, err := spec.SourceDB.WriteCredentialFiles(password, spec.FieldEncryptor)
 	if err != nil {
 		return errorResult(physical_enums.PhysicalBackupErrorPgBasebackupFailed, "write credentials", err), nil
 	}

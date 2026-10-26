@@ -9,6 +9,10 @@ import (
 
 	"github.com/google/uuid"
 
+	mariadb_engine "databasus-backend/internal/engines/mariadb"
+	mongodb_engine "databasus-backend/internal/engines/mongodb"
+	mysql_engine "databasus-backend/internal/engines/mysql"
+	pgshared "databasus-backend/internal/engines/postgresql/shared"
 	audit_logs "databasus-backend/internal/features/audit_logs"
 	audit_logs_models "databasus-backend/internal/features/audit_logs/models"
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
@@ -24,7 +28,6 @@ import (
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/modules/workspaces"
 	"databasus-backend/internal/util/encryption"
-	"databasus-backend/internal/util/tools"
 )
 
 type RestoreService struct {
@@ -250,7 +253,7 @@ func (s *RestoreService) validateVersionCompatibility(
 		if requestDTO.PostgresqlLogicalDatabase == nil {
 			return errors.New("postgresql database configuration is required for restore")
 		}
-		if tools.IsBackupDbVersionHigherThanRestoreDbVersion(
+		if pgshared.IsBackupVersionHigherThanRestoreVersion(
 			backupDatabase.PostgresqlLogical.Version,
 			requestDTO.PostgresqlLogicalDatabase.Version,
 		) {
@@ -262,7 +265,7 @@ func (s *RestoreService) validateVersionCompatibility(
 		if requestDTO.MysqlDatabase == nil {
 			return errors.New("mysql database configuration is required for restore")
 		}
-		isMysqlDowngrade, err := tools.IsMysqlBackupVersionHigherThanRestoreVersion(
+		isMysqlDowngrade, err := mysql_engine.IsBackupVersionHigherThanRestoreVersion(
 			backupDatabase.Mysql.Version,
 			requestDTO.MysqlDatabase.Version,
 		)
@@ -278,7 +281,7 @@ func (s *RestoreService) validateVersionCompatibility(
 		if requestDTO.MariadbDatabase == nil {
 			return errors.New("mariadb database configuration is required for restore")
 		}
-		isMariadbDowngrade, err := tools.IsMariadbBackupVersionHigherThanRestoreVersion(
+		isMariadbDowngrade, err := mariadb_engine.IsBackupVersionHigherThanRestoreVersion(
 			backupDatabase.Mariadb.Version,
 			requestDTO.MariadbDatabase.Version,
 		)
@@ -294,7 +297,7 @@ func (s *RestoreService) validateVersionCompatibility(
 		if requestDTO.MongodbDatabase == nil {
 			return errors.New("mongodb database configuration is required for restore")
 		}
-		isMongodbDowngrade, err := tools.IsMongodbBackupVersionHigherThanRestoreVersion(
+		isMongodbDowngrade, err := mongodb_engine.IsBackupVersionHigherThanRestoreVersion(
 			backupDatabase.Mongodb.Version,
 			requestDTO.MongodbDatabase.Version,
 		)
@@ -338,6 +341,7 @@ func (s *RestoreService) populateRestoreTargetVersionThroughTunnel(
 	defer tunneledDatabase.Close()
 
 	if err := tunneledDatabase.GetDatabaseThroughTunnel().PopulateVersion(
+		ctx,
 		s.logger,
 		s.fieldEncryptor,
 	); err != nil {

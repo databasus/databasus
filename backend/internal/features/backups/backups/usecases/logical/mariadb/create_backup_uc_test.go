@@ -8,12 +8,12 @@ import (
 
 	"github.com/google/uuid"
 
+	mariadb_engine "databasus-backend/internal/engines/mariadb"
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
 	"databasus-backend/internal/features/databases"
 	mariadbtypes "databasus-backend/internal/features/databases/databases/mariadb"
 	"databasus-backend/internal/util/testing/containers"
-	"databasus-backend/internal/util/tools"
 )
 
 // One INSERT per row costs ~127x on restore and saves no memory: with --quick the
@@ -22,7 +22,7 @@ import (
 func Test_BuildMariadbDumpArgs_ForAnyDatabase_NeverSkipsExtendedInsert(t *testing.T) {
 	uc := &CreateMariadbBackupUsecase{}
 	database := &mariadbtypes.MariadbDatabase{
-		Version:       tools.MariadbVersion1011,
+		Version:       mariadb_engine.Version1011,
 		Database:      new("oa_db"),
 		ExcludeTables: []string{"personnel_real_time"},
 	}
@@ -38,7 +38,7 @@ func Test_BuildMariadbDumpArgs_WithExcludedTables_AddsQualifiedIgnoreTableArgs(t
 	uc := &CreateMariadbBackupUsecase{}
 	databaseName := "oa_db"
 	database := &mariadbtypes.MariadbDatabase{
-		Version:       tools.MariadbVersion114,
+		Version:       mariadb_engine.Version114,
 		Database:      &databaseName,
 		ExcludeTables: []string{"personnel_access_control_event", "personnel_real_time"},
 	}
@@ -55,7 +55,7 @@ func Test_BuildMariadbDumpArgs_WhenExcludedTablesArePastedMultiline_TrimsAndSpli
 	uc := &CreateMariadbBackupUsecase{}
 	databaseName := "oa_db"
 	database := &mariadbtypes.MariadbDatabase{
-		Version:  tools.MariadbVersion114,
+		Version:  mariadb_engine.Version114,
 		Database: &databaseName,
 		ExcludeTables: []string{
 			"personnel_access_control_event",
@@ -90,7 +90,7 @@ func Test_BuildMariadbDumpArgs_ForAnyDatabase_AlwaysSkipsTablespaces(t *testing.
 	uc := &CreateMariadbBackupUsecase{}
 	databaseName := "oa_db"
 	database := &mariadbtypes.MariadbDatabase{
-		Version:  tools.MariadbVersion1011,
+		Version:  mariadb_engine.Version1011,
 		Database: &databaseName,
 	}
 
@@ -105,7 +105,7 @@ func Test_BuildMariadbDumpArgs_WithTriggerPrivilege_KeepsTriggers(t *testing.T) 
 	uc := &CreateMariadbBackupUsecase{}
 	databaseName := "oa_db"
 	database := &mariadbtypes.MariadbDatabase{
-		Version:    tools.MariadbVersion1011,
+		Version:    mariadb_engine.Version1011,
 		Database:   &databaseName,
 		Privileges: "SELECT,SHOW VIEW,TRIGGER",
 	}
@@ -123,7 +123,7 @@ func Test_BuildMariadbDumpArgs_WithoutTriggerPrivilege_SkipsTriggers(t *testing.
 	uc := &CreateMariadbBackupUsecase{}
 	databaseName := "oa_db"
 	database := &mariadbtypes.MariadbDatabase{
-		Version:    tools.MariadbVersion1011,
+		Version:    mariadb_engine.Version1011,
 		Database:   &databaseName,
 		Privileges: "SELECT,SHOW VIEW",
 	}
@@ -139,7 +139,7 @@ func Test_BuildMariadbDumpArgs_WithoutExcludedTables_OmitsIgnoreTableArgs(t *tes
 	uc := &CreateMariadbBackupUsecase{}
 	databaseName := "oa_db"
 	database := &mariadbtypes.MariadbDatabase{
-		Version:  tools.MariadbVersion114,
+		Version:  mariadb_engine.Version114,
 		Database: &databaseName,
 	}
 
@@ -184,7 +184,7 @@ func Test_Execute_WhenMariadbDumpFailsBeforeProducingData_ReportsMariadbDumpErro
 	) error {
 		_, err := GetCreateMariadbBackupUsecase().streamToStorage(
 			ctx, backup, backupConfig, dumpToolBin, nil, "", fileStore, func(float64) {},
-			&mariadbtypes.MariadbDatabase{Version: tools.MariadbVersion1011, Database: new("orders_db")},
+			&mariadbtypes.MariadbDatabase{Version: mariadb_engine.Version1011, Database: new("orders_db")},
 		)
 
 		return err

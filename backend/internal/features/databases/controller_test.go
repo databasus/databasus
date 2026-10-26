@@ -21,13 +21,13 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"databasus-backend/internal/config"
+	pgshared "databasus-backend/internal/engines/postgresql/shared"
 	physical_testing "databasus-backend/internal/features/backups/backups/core/physical/testing"
 	"databasus-backend/internal/features/databases/databases/mariadb"
 	"databasus-backend/internal/features/databases/databases/mongodb"
 	"databasus-backend/internal/features/databases/databases/mysql"
 	postgresql_logical "databasus-backend/internal/features/databases/databases/postgresql/logical"
 	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
-	postgresql_shared "databasus-backend/internal/features/databases/databases/postgresql/shared"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	"databasus-backend/internal/features/sshtunnel"
 	storages_bridge "databasus-backend/internal/features/storages"
@@ -39,7 +39,6 @@ import (
 	test_utils "databasus-backend/internal/util/testing"
 	"databasus-backend/internal/util/testing/bastion"
 	"databasus-backend/internal/util/testing/containers"
-	"databasus-backend/internal/util/tools"
 	"databasus-backend/internal/util/walmath"
 )
 
@@ -1517,7 +1516,7 @@ func getTestPostgresConfig() *postgresql_logical.PostgresqlLogicalDatabase {
 
 	testDbName := "testdb"
 	return &postgresql_logical.PostgresqlLogicalDatabase{
-		Version:  tools.PostgresqlVersion16,
+		Version:  pgshared.Version16,
 		Host:     config.GetEnv().TestLocalhost,
 		Port:     port,
 		Username: "testuser",
@@ -1626,7 +1625,7 @@ func Test_CreateDatabase_FailsForPhysicalIncrementalWhenSummarizeWalOff(t *testi
 					http.StatusBadRequest,
 				)
 
-				assert.Contains(t, string(resp.Body), string(postgresql_shared.ConnErrWalSummaryDisabled))
+				assert.Contains(t, string(resp.Body), string(pgshared.ConnErrWalSummaryDisabled))
 			})
 		}
 	}
@@ -1671,7 +1670,7 @@ func Test_UpdateDatabase_FailsForSwitchToPhysicalIncrementalWhenSummarizeWalOff(
 				http.StatusBadRequest,
 			)
 
-			assert.Contains(t, string(updateResponse.Body), string(postgresql_shared.ConnErrWalSummaryDisabled))
+			assert.Contains(t, string(updateResponse.Body), string(pgshared.ConnErrWalSummaryDisabled))
 
 			var refetchedDatabase Database
 			test_utils.MakeGetRequestAndUnmarshal(
@@ -2169,11 +2168,11 @@ func buildPhysicalDatabaseRequestFor(t *testing.T, spec physicalDatabaseRequestS
 	return request
 }
 
-func getConnectionErrorCode(t *testing.T, body []byte) postgresql_shared.ConnectionErrorCode {
+func getConnectionErrorCode(t *testing.T, body []byte) pgshared.ConnectionErrorCode {
 	t.Helper()
 
 	var payload struct {
-		Code postgresql_shared.ConnectionErrorCode `json:"code"`
+		Code pgshared.ConnectionErrorCode `json:"code"`
 	}
 	require.NoError(t, json.Unmarshal(body, &payload))
 
@@ -2491,7 +2490,7 @@ func Test_TestDatabaseConnectionDirect_ForWalStreamWhenRoleCannotSwitchWal_Retur
 			)
 
 			assert.Equal(t,
-				postgresql_shared.ConnErrNoWalSwitchPrivilege,
+				pgshared.ConnErrNoWalSwitchPrivilege,
 				getConnectionErrorCode(t, connectionTestResponse.Body))
 		})
 	}
@@ -2574,7 +2573,7 @@ func Test_TestDatabaseConnection_WhenTheSourceRevokedTheWalSwitchPrivilege_Retur
 			)
 
 			assert.Equal(t,
-				postgresql_shared.ConnErrNoWalSwitchPrivilege,
+				pgshared.ConnErrNoWalSwitchPrivilege,
 				getConnectionErrorCode(t, connectionTestResponse.Body))
 		})
 	}

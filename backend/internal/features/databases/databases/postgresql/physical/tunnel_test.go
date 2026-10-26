@@ -9,9 +9,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	pgshared "databasus-backend/internal/engines/postgresql/shared"
 	"databasus-backend/internal/features/sshtunnel"
 	"databasus-backend/internal/util/testing/containers"
-	"databasus-backend/internal/util/tools"
 )
 
 const unreachableBastionTimeout = 2 * time.Second
@@ -22,7 +22,7 @@ func enabledTunnelDatabase() *PostgresqlPhysicalDatabase {
 	return &PostgresqlPhysicalDatabase{
 		ID:                  uuid.New(),
 		DatabaseID:          &parentDatabaseID,
-		Version:             tools.PostgresqlVersion17,
+		Version:             pgshared.Version17,
 		BackupType:          BackupTypeFullIncrementalAndWalStream,
 		Host:                "cluster.internal",
 		Port:                5432,
@@ -108,7 +108,7 @@ func Test_OpenTunnel_WhenTunneled_KeepsTheRealHostAndCarriesTheForwardedPort(t *
 	assert.Equal(t, "127.0.0.1", databaseThroughTunnel.LocalTunnelEndpoint.Host)
 	assert.Equal(t, databaseThroughTunnel.LocalTunnelEndpoint.Port, databaseThroughTunnel.Port)
 	assert.NotEqual(t, database.Port, databaseThroughTunnel.Port)
-	assert.Equal(t, "127.0.0.1", databaseThroughTunnel.CredentialSpec().HostAddr)
+	assert.Equal(t, "127.0.0.1", databaseThroughTunnel.GetHostAddr())
 }
 
 func Test_OpenTunnel_WhenTunneled_DisablesTheTunnelFlagOnTheCopy(t *testing.T) {
@@ -161,13 +161,13 @@ func Test_CopyDiscoveredMetadataToOriginal_AfterPopulateDbData_CarriesVersionAnd
 	discoveredWalSegmentSizeBytes := int64(16 * 1024 * 1024)
 
 	databaseThroughTunnel := tunneledDatabase.GetDatabaseThroughTunnel()
-	databaseThroughTunnel.Version = tools.PostgresqlVersion18
+	databaseThroughTunnel.Version = pgshared.Version18
 	databaseThroughTunnel.SystemIdentifier = &discoveredSystemIdentifier
 	databaseThroughTunnel.WalSegmentSizeBytes = &discoveredWalSegmentSizeBytes
 
 	tunneledDatabase.CopyDiscoveredMetadataToOriginal()
 
-	assert.Equal(t, tools.PostgresqlVersion18, database.Version)
+	assert.Equal(t, pgshared.Version18, database.Version)
 	require.NotNil(t, database.SystemIdentifier)
 	assert.Equal(t, discoveredSystemIdentifier, *database.SystemIdentifier)
 	require.NotNil(t, database.WalSegmentSizeBytes)

@@ -12,8 +12,9 @@ import (
 	"syscall"
 	"time"
 
+	pgshared "databasus-backend/internal/engines/postgresql/shared"
 	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
-	postgresql_shared "databasus-backend/internal/features/databases/databases/postgresql/shared"
+	"databasus-backend/internal/util/encryption"
 )
 
 const receivewalApplicationNamePrefix = "databasus_wal_receiver_"
@@ -38,7 +39,7 @@ type receiverRunResult struct {
 type receivewalCommandSpec struct {
 	PgBin    string
 	SourceDB *postgresql_physical.PostgresqlPhysicalDatabase
-	Creds    *postgresql_shared.CredentialTempFiles
+	Creds    *pgshared.CredentialTempFiles
 	WatchDir string
 	SlotName string
 }
@@ -48,16 +49,14 @@ func (s *WalStreamSupervisor) spawnAndSupervise(
 	logger *slog.Logger,
 	pgBin string,
 ) receiverRunResult {
-	password, err := postgresql_shared.DecryptFieldIfNeeded(s.spec.SourceDB.Password, s.spec.FieldEncryptor)
+	password, err := encryption.DecryptFieldIfNeeded(s.spec.SourceDB.Password, s.spec.FieldEncryptor)
 	if err != nil {
 		logger.ErrorContext(ctx, "decrypt source password for pg_receivewal", "error", err)
 
 		return receiverRunResult{Exit: receiverRetryable}
 	}
 
-	creds, err := postgresql_shared.WriteCredentialFilesToTempDir(
-		s.spec.SourceDB.CredentialSpec(), password, s.spec.FieldEncryptor,
-	)
+	creds, err := s.spec.SourceDB.WriteCredentialFiles(password, s.spec.FieldEncryptor)
 	if err != nil {
 		logger.ErrorContext(ctx, "write pg_receivewal credentials", "error", err)
 
@@ -222,11 +221,11 @@ func newReceivewalCommand(ctx context.Context, spec receivewalCommandSpec) (*exe
 		"LC_ALL=C.UTF-8",
 		"LANG=C.UTF-8",
 	)
-	cmd.Env = append(cmd.Env, postgresql_shared.GetPgHostAddrEnv(spec.SourceDB.CredentialSpec())...)
+	cmd.Env = append(cmd.Env, pgshared.GetPgHostAddrEnv(spec.SourceDB.GetHostAddr())...)
 
 	sslMode := spec.SourceDB.SslMode
 	if sslMode == "" {
-		sslMode = postgresql_shared.PostgresSslModeDisable
+		sslMode = pgshared.SslModeDisable
 	}
 
 	cmd.Env = append(cmd.Env,

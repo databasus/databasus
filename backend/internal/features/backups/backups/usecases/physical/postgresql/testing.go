@@ -239,7 +239,7 @@ func wirePhysicalDBFixture(
 	require.NoError(t, err)
 	t.Cleanup(tunneledDatabase.Close)
 
-	require.NoError(t, tunneledDatabase.GetDatabaseThroughTunnel().PopulateDbData(log, encryptor))
+	require.NoError(t, tunneledDatabase.GetDatabaseThroughTunnel().PopulateDbData(t.Context(), log, encryptor))
 	tunneledDatabase.CopyDiscoveredMetadataToOriginal()
 
 	// CreateTestPhysicalPostgresDatabase saved the row before PopulateDbData ran,

@@ -10,14 +10,15 @@ import (
 
 	"github.com/google/uuid"
 
+	"databasus-backend/internal/config"
+	mariadb_engine "databasus-backend/internal/engines/mariadb"
 	mariadbtypes "databasus-backend/internal/features/databases/databases/mariadb"
 	"databasus-backend/internal/util/testing/containers"
-	"databasus-backend/internal/util/tools"
 )
 
 func Test_BuildMariadbDumpArgs_WhenCalled_OmitsCompressionFlags(t *testing.T) {
 	uc := &CreateMariadbBackupUsecase{}
-	database := &mariadbtypes.MariadbDatabase{Version: tools.MariadbVersion1011}
+	database := &mariadbtypes.MariadbDatabase{Version: mariadb_engine.Version1011}
 
 	args := uc.buildMariadbDumpArgs(database)
 
@@ -73,7 +74,7 @@ func Test_ProbeNetworkCompressionArgs_AgainstStockMariadb_SelectsCompress(t *tes
 
 	databaseName := containers.MariadbDatabase
 	database := &mariadbtypes.MariadbDatabase{
-		Version:  tools.MariadbVersion1011,
+		Version:  mariadb_engine.Version1011,
 		Host:     endpoint.Host,
 		Port:     endpoint.Port,
 		Username: containers.MariadbUsername,
@@ -88,8 +89,8 @@ func Test_ProbeNetworkCompressionArgs_AgainstStockMariadb_SelectsCompress(t *tes
 
 	t.Cleanup(func() { _ = os.RemoveAll(filepath.Dir(myCnfFile)) })
 
-	mariadbDumpBin, err := tools.GetMariadbExecutable(
-		tools.MariadbVersion1011, tools.MariadbExecutableMariadbDump,
+	mariadbDumpBin, err := mariadb_engine.ClientTools{Root: config.GetEnv().ClientToolsDir}.GetExecutable(
+		mariadb_engine.Version1011, mariadb_engine.ExecutableMariadbDump,
 	)
 	if err != nil {
 		t.Fatalf("failed to resolve mariadb-dump: %v", err)

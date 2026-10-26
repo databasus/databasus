@@ -8,12 +8,12 @@ import (
 
 	"github.com/google/uuid"
 
+	mysql_engine "databasus-backend/internal/engines/mysql"
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
 	"databasus-backend/internal/features/databases"
 	mysqltypes "databasus-backend/internal/features/databases/databases/mysql"
 	"databasus-backend/internal/util/testing/containers"
-	"databasus-backend/internal/util/tools"
 )
 
 // One INSERT per row costs ~127x on restore and saves no memory: with --quick the
@@ -22,7 +22,7 @@ import (
 func Test_BuildMysqldumpArgs_ForAnyDatabase_NeverSkipsExtendedInsert(t *testing.T) {
 	uc := &CreateMysqlBackupUsecase{}
 	database := &mysqltypes.MysqlDatabase{
-		Version:       tools.MysqlVersion80,
+		Version:       mysql_engine.Version80,
 		Database:      new("oa_db"),
 		ExcludeTables: []string{"personnel_real_time"},
 	}
@@ -38,7 +38,7 @@ func Test_BuildMysqldumpArgs_WithExcludedTables_AddsQualifiedIgnoreTableArgs(t *
 	uc := &CreateMysqlBackupUsecase{}
 	databaseName := "oa_db"
 	database := &mysqltypes.MysqlDatabase{
-		Version:       tools.MysqlVersion80,
+		Version:       mysql_engine.Version80,
 		Database:      &databaseName,
 		ExcludeTables: []string{"personnel_access_control_event", "personnel_real_time"},
 	}
@@ -55,7 +55,7 @@ func Test_BuildMysqldumpArgs_WhenExcludedTablesArePastedMultiline_TrimsAndSplits
 	uc := &CreateMysqlBackupUsecase{}
 	databaseName := "oa_db"
 	database := &mysqltypes.MysqlDatabase{
-		Version:  tools.MysqlVersion80,
+		Version:  mysql_engine.Version80,
 		Database: &databaseName,
 		ExcludeTables: []string{
 			"personnel_access_control_event",
@@ -90,7 +90,7 @@ func Test_BuildMysqldumpArgs_ForAnyDatabase_AlwaysSkipsTablespaces(t *testing.T)
 	uc := &CreateMysqlBackupUsecase{}
 	databaseName := "oa_db"
 	database := &mysqltypes.MysqlDatabase{
-		Version:  tools.MysqlVersion80,
+		Version:  mysql_engine.Version80,
 		Database: &databaseName,
 	}
 
@@ -105,7 +105,7 @@ func Test_BuildMysqldumpArgs_WithTriggerPrivilege_KeepsTriggers(t *testing.T) {
 	uc := &CreateMysqlBackupUsecase{}
 	databaseName := "oa_db"
 	database := &mysqltypes.MysqlDatabase{
-		Version:    tools.MysqlVersion80,
+		Version:    mysql_engine.Version80,
 		Database:   &databaseName,
 		Privileges: "SELECT,SHOW VIEW,TRIGGER",
 	}
@@ -123,7 +123,7 @@ func Test_BuildMysqldumpArgs_WithoutTriggerPrivilege_SkipsTriggers(t *testing.T)
 	uc := &CreateMysqlBackupUsecase{}
 	databaseName := "oa_db"
 	database := &mysqltypes.MysqlDatabase{
-		Version:    tools.MysqlVersion80,
+		Version:    mysql_engine.Version80,
 		Database:   &databaseName,
 		Privileges: "SELECT,SHOW VIEW",
 	}
@@ -139,7 +139,7 @@ func Test_BuildMysqldumpArgs_WithoutExcludedTables_OmitsIgnoreTableArgs(t *testi
 	uc := &CreateMysqlBackupUsecase{}
 	databaseName := "oa_db"
 	database := &mysqltypes.MysqlDatabase{
-		Version:  tools.MysqlVersion80,
+		Version:  mysql_engine.Version80,
 		Database: &databaseName,
 	}
 
@@ -184,7 +184,7 @@ func Test_Execute_WhenMysqldumpFailsBeforeProducingData_ReportsMysqldumpError(t 
 	) error {
 		_, err := GetCreateMysqlBackupUsecase().streamToStorage(
 			ctx, backup, backupConfig, dumpToolBin, nil, "", fileStore, func(float64) {},
-			&mysqltypes.MysqlDatabase{Version: tools.MysqlVersion80, Database: new("orders_db")},
+			&mysqltypes.MysqlDatabase{Version: mysql_engine.Version80, Database: new("orders_db")},
 		)
 
 		return err

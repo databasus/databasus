@@ -8,12 +8,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	mariadb_engine "databasus-backend/internal/engines/mariadb"
 	"databasus-backend/internal/features/sshtunnel"
 	"databasus-backend/internal/util/testing/containers"
-	"databasus-backend/internal/util/tools"
 )
 
-const discoveredVersion = tools.MariadbVersion114
+const discoveredVersion = mariadb_engine.Version114
 
 const unreachableBastionTimeout = 2 * time.Second
 

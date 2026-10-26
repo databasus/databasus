@@ -8,16 +8,19 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	mariadb_engine "databasus-backend/internal/engines/mariadb"
+	mongodb_engine "databasus-backend/internal/engines/mongodb"
+	mysql_engine "databasus-backend/internal/engines/mysql"
+	pgshared "databasus-backend/internal/engines/postgresql/shared"
 	"databasus-backend/internal/features/databases/databases/mariadb"
 	"databasus-backend/internal/features/databases/databases/mongodb"
 	"databasus-backend/internal/features/databases/databases/mysql"
 	postgresql_logical "databasus-backend/internal/features/databases/databases/postgresql/logical"
 	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
-	postgresql_shared "databasus-backend/internal/features/databases/databases/postgresql/shared"
 	"databasus-backend/internal/features/sshtunnel"
+	libsshtunnel "databasus-backend/internal/lib/sshtunnel"
 	"databasus-backend/internal/util/encryption"
 	"databasus-backend/internal/util/logger"
-	"databasus-backend/internal/util/tools"
 )
 
 func Test_TestConnection_ForEveryDatabaseType_WithoutEngineConfig_ReturnsErrorInsteadOfPanicking(
@@ -40,6 +43,7 @@ func Test_TestConnection_ForEveryDatabaseType_WithoutEngineConfig_ReturnsErrorIn
 			databaseWithoutConfig := Database{Type: missingConfigCase.databaseType}
 
 			err := databaseWithoutConfig.TestConnection(
+				t.Context(),
 				logger.GetLogger(),
 				encryption.GetFieldEncryptor(),
 			)
@@ -142,6 +146,7 @@ func Test_PopulateVersion_ForEveryDatabaseType_WithoutEngineConfig_ReturnsErrorI
 			databaseWithoutConfig := Database{Type: missingConfigCase.databaseType}
 
 			err := databaseWithoutConfig.PopulateVersion(
+				t.Context(),
 				logger.GetLogger(),
 				encryption.GetFieldEncryptor(),
 			)
@@ -160,6 +165,7 @@ func Test_PopulateVersion_WhenTheDatabaseCarriesAStaleEngineConfig_DispatchesOnT
 	}
 
 	err := databaseWithStaleConfig.PopulateVersion(
+		t.Context(),
 		logger.GetLogger(),
 		encryption.GetFieldEncryptor(),
 	)
@@ -274,20 +280,20 @@ func filledSourceDatabase(databaseType DatabaseType) *Database {
 		database.PostgresqlLogical = &postgresql_logical.PostgresqlLogicalDatabase{
 			ID:            uuid.New(),
 			DatabaseID:    &databaseID,
-			Version:       tools.PostgresqlVersion16,
+			Version:       pgshared.Version16,
 			Host:          "db.internal",
 			Port:          5432,
 			Username:      "testuser",
 			Password:      "enc:testpassword",
 			Database:      &databaseName,
-			SslMode:       postgresql_shared.PostgresSslModeRequire,
+			SslMode:       pgshared.SslModeRequire,
 			SslClientCert: "clientcert",
 			SslClientKey:  "enc:clientkey",
 			SslRootCert:   "rootcert",
 			SshTunnel:     filledSshTunnel(),
 			// Set as if the source had just been reached through a tunnel, which is the state the
 			// copy must not inherit.
-			LocalTunnelEndpoint: &sshtunnel.Endpoint{Host: "127.0.0.1", Port: 41000},
+			LocalTunnelEndpoint: &libsshtunnel.Endpoint{Host: "127.0.0.1", Port: 41000},
 			IncludeSchemas:      []string{"public", "reporting"},
 			ExcludeTables:       []string{"audit_log"},
 			ExcludeTableData:    []string{"event_log"},
@@ -298,18 +304,18 @@ func filledSourceDatabase(databaseType DatabaseType) *Database {
 		database.PostgresqlPhysical = &postgresql_physical.PostgresqlPhysicalDatabase{
 			ID:                  uuid.New(),
 			DatabaseID:          &databaseID,
-			Version:             tools.PostgresqlVersion17,
+			Version:             pgshared.Version17,
 			BackupType:          postgresql_physical.BackupTypeFullOnly,
 			Host:                "db.internal",
 			Port:                5432,
 			Username:            "testuser",
 			Password:            "enc:testpassword",
-			SslMode:             postgresql_shared.PostgresSslModeRequire,
+			SslMode:             pgshared.SslModeRequire,
 			SslClientCert:       "clientcert",
 			SslClientKey:        "enc:clientkey",
 			SslRootCert:         "rootcert",
 			SshTunnel:           filledSshTunnel(),
-			LocalTunnelEndpoint: &sshtunnel.Endpoint{Host: "127.0.0.1", Port: 41000},
+			LocalTunnelEndpoint: &libsshtunnel.Endpoint{Host: "127.0.0.1", Port: 41000},
 			ReplicationSlotName: "databasus_slot_deadbeef",
 			SystemIdentifier:    &systemIdentifier,
 			WalSegmentSizeBytes: &walSegmentSizeBytes,
@@ -318,7 +324,7 @@ func filledSourceDatabase(databaseType DatabaseType) *Database {
 		database.Mysql = &mysql.MysqlDatabase{
 			ID:            uuid.New(),
 			DatabaseID:    &databaseID,
-			Version:       tools.MysqlVersion84,
+			Version:       mysql_engine.Version84,
 			Host:          "db.internal",
 			Port:          3306,
 			Username:      "testuser",
@@ -333,7 +339,7 @@ func filledSourceDatabase(databaseType DatabaseType) *Database {
 		database.Mariadb = &mariadb.MariadbDatabase{
 			ID:                  uuid.New(),
 			DatabaseID:          &databaseID,
-			Version:             tools.MariadbVersion114,
+			Version:             mariadb_engine.Version114,
 			Host:                "db.internal",
 			Port:                3306,
 			Username:            "testuser",
@@ -350,7 +356,7 @@ func filledSourceDatabase(databaseType DatabaseType) *Database {
 		database.Mongodb = &mongodb.MongodbDatabase{
 			ID:                 uuid.New(),
 			DatabaseID:         &databaseID,
-			Version:            tools.MongodbVersion7,
+			Version:            mongodb_engine.Version7,
 			Host:               "db.internal",
 			Port:               &mongodbPort,
 			Username:           "testuser",

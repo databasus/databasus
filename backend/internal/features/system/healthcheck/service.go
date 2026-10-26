@@ -12,7 +12,6 @@ import (
 	verification_agents "databasus-backend/internal/features/verification/agents"
 	verification_runs "databasus-backend/internal/features/verification/runs"
 	"databasus-backend/internal/storage"
-	"databasus-backend/internal/util/tools"
 )
 
 type HealthcheckService struct {
@@ -43,7 +42,7 @@ func (s *HealthcheckService) performHealthCheck(ctx context.Context) error {
 		return errors.New("more than 95% of the disk is used")
 	}
 
-	if err := tools.ClientToolsHealthError(); err != nil {
+	if err := getClientToolsChecker().GetHealthError(ctx); err != nil {
 		return err
 	}
 

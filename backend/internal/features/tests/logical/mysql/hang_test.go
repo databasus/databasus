@@ -6,9 +6,9 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 
+	mysql_engine "databasus-backend/internal/engines/mysql"
 	logicaltesting "databasus-backend/internal/features/tests/logical/shared"
 	"databasus-backend/internal/util/testing/containers"
-	"databasus-backend/internal/util/tools"
 )
 
 // Test_BackupShouldFailNotHang_Mysql_RegressionForIssue582 asserts a MySQL backup
@@ -19,7 +19,7 @@ func Test_BackupShouldFailNotHang_Mysql_RegressionForIssue582(t *testing.T) {
 		t, "Issue 582 MySQL Workspace", fmt.Sprintf("http://%s:%d", minioEndpoint.Host, minioEndpoint.Port),
 	)
 
-	container, err := connectToMysqlContainer(t, "mysql:8.0", tools.MysqlVersion80)
+	container, err := connectToMysqlContainer(t, "mysql:8.0", mysql_engine.Version80)
 	if err != nil {
 		t.Fatalf("failed to connect to MySQL test container: %v", err)
 	}

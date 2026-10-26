@@ -15,7 +15,6 @@ import (
 	"databasus-backend/internal/lib/httpserver"
 	"databasus-backend/internal/lib/shutdown"
 	files_utils "databasus-backend/internal/util/files"
-	"databasus-backend/internal/util/tools"
 )
 
 // The drain and the log flush together stay under 8 seconds, which leaves the embedded PostgreSQL
@@ -32,9 +31,12 @@ const frontendDirectory = "./ui/build"
 // loops and job passes within the shutdown limit. A busy port returns an error before any loop
 // starts.
 func (a *App) Serve(ctx context.Context, address string) error {
-	tools.LogAndExitIfClientToolsBroken(a.logger, a.environment.Config.ShowDbInstallationVerificationLogs)
+	err := a.checkClientTools(ctx)
+	if err != nil {
+		return err
+	}
 
-	err := files_utils.CleanFolder(a.environment.Config.TempFolder)
+	err = files_utils.CleanFolder(a.environment.Config.TempFolder)
 	if err != nil {
 		a.logger.ErrorContext(ctx, "failed to clean temp folder", slog.Any("error", err))
 	}

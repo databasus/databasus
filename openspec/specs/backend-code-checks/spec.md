@@ -12,11 +12,13 @@ The backend lint SHALL check these rules, taken from the architecture document a
 - no fixed sleeps or eventual assertions, no printing to standard output, no process exit, no environment reads and no background contexts outside the places the architecture document allows;
 - database access only in repository files;
 - log calls with attributes only, context-aware methods, constant messages and `snake_case` keys;
-- test libraries only in test code, and no HTTP framework or ORM in the verification agent;
+- test libraries only in test code, and no HTTP framework or ORM in the verification agent or in the engine drivers;
 - every field listed in a dependency struct literal;
 - every value handled in a switch on an enum;
 - no package initialization functions;
 - no lint suppression without a written reason.
+
+On production files in the target layout, the backend lint SHALL also check that external processes start only through the shared library's process helper, which ties a process to its operation and stops it with that operation. The helper itself is the only production code that starts a process directly. Test files are outside this rule, because they start the binary under test or the test binary itself rather than an external tool.
 
 A violation SHALL fail the lint with the file, the line and the rule. Three rules of the architecture document are outside this requirement: fixed import aliases, the ban on package-level dependency variables, and the checks of the HTTP contract and of generated code.
 
@@ -35,6 +37,18 @@ A violation SHALL fail the lint with the file, the line and the rule. Three rule
 #### Scenario: A suppression without a reason
 - **WHEN** code in the target layout suppresses a lint finding without a written reason
 - **THEN** the backend lint fails
+
+#### Scenario: An engine driver starts a client tool directly
+- **WHEN** production code of an engine driver starts an external program without the shared library's process helper
+- **THEN** the backend lint fails and names the process helper as the only way to start an external program
+
+#### Scenario: A test starts the binary under test
+- **WHEN** a test file in the target layout builds and starts the server binary directly
+- **THEN** the backend lint passes
+
+#### Scenario: An engine driver imports the ORM
+- **WHEN** a file of an engine driver imports the ORM or the HTTP framework
+- **THEN** the backend lint fails and names the rule that engine drivers know no tables and no HTTP
 
 ### Requirement: Code awaiting its move keeps the checks it had
 For the rules of the previous requirement, code outside the target layout SHALL be checked exactly as before this change: its production files by the linters that checked them before, and its test files by none. The lint configuration SHALL list the target layout explicitly, so code added outside it falls under the old checks and code added inside it falls under every rule. Two rules of the architecture check also cover code outside the target layout: the production binary contains no test code, and test helpers behind the test helper build tag exist only outside the target layout.

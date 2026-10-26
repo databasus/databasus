@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"databasus-backend/internal/config"
+	mysql_engine "databasus-backend/internal/engines/mysql"
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	"databasus-backend/internal/features/databases"
@@ -26,7 +27,6 @@ import (
 	test_utils "databasus-backend/internal/util/testing"
 	"databasus-backend/internal/util/testing/bastion"
 	"databasus-backend/internal/util/testing/containers"
-	"databasus-backend/internal/util/tools"
 )
 
 const bastionedMysqlImage = "mysql:8.4"
@@ -41,7 +41,7 @@ func bastionedMysqlConfig(
 		Username:  "root",
 		Password:  containers.MysqlRootPassword,
 		Database:  &databaseName,
-		Version:   tools.MysqlVersion84,
+		Version:   mysql_engine.Version84,
 		SshTunnel: bastion.GetTunnelConfig(topology),
 	}
 }

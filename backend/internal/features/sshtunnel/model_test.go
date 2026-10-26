@@ -6,6 +6,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	libsshtunnel "databasus-backend/internal/lib/sshtunnel"
 )
 
 // The real encryptor resolves its key through the secret-key service and a database; these tests
@@ -277,4 +279,32 @@ func Test_EncryptSensitiveFields_WhenCalled_EncryptsSecretsAndSkipsEmptyOnes(t *
 	decryptedPrivateKey, err := encryptor.Decrypt(config.PrivateKey)
 	require.NoError(t, err)
 	assert.Equal(t, "private-key", decryptedPrivateKey)
+}
+
+// Every tunnel test of lib/sshtunnel passes clear text, but a persisted database always holds
+// ciphertext. Handing it straight to the tunnel would leave those tests green and the feature dead.
+func Test_DecryptSettings_WithEncryptedSecrets_ReturnsThemInClearText(t *testing.T) {
+	encryptor := prefixingEncryptor{}
+
+	config := enabledPrivateKeyConfig()
+	require.NoError(t, config.EncryptSensitiveFields(encryptor))
+	require.NotEqual(t, "stored-passphrase", config.PrivateKeyPassphrase)
+
+	settings, err := config.DecryptSettings(encryptor)
+
+	require.NoError(t, err)
+	assert.Equal(t, libsshtunnel.AuthTypePrivateKey, settings.AuthType)
+	assert.Equal(t, "stored-private-key", settings.PrivateKey)
+	assert.Equal(t, "stored-passphrase", settings.PrivateKeyPassphrase)
+	assert.Equal(t, "bastion.example.com", settings.Host)
+}
+
+func Test_DecryptSettings_WithoutEncryptor_PassesSecretsThrough(t *testing.T) {
+	config := enabledConfig()
+
+	settings, err := config.DecryptSettings(nil)
+
+	require.NoError(t, err)
+	assert.Equal(t, libsshtunnel.AuthTypePassword, settings.AuthType)
+	assert.Equal(t, "tunnelpassword", settings.Password)
 }

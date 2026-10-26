@@ -8,12 +8,12 @@ import (
 
 	"github.com/google/uuid"
 
+	"databasus-backend/internal/config"
+	pgshared "databasus-backend/internal/engines/postgresql/shared"
 	physical_enums "databasus-backend/internal/features/backups/backups/core/physical/enums"
-	postgresql_shared "databasus-backend/internal/features/databases/databases/postgresql/shared"
 	"databasus-backend/internal/modules/storages"
 	db "databasus-backend/internal/storage"
 	files_utils "databasus-backend/internal/util/files"
-	"databasus-backend/internal/util/tools"
 )
 
 // runStreamParams builds the codec-independent parameters runStream needs from
@@ -43,7 +43,7 @@ func (s CommonBackupSpec) runStreamParams(
 type streamAttemptSpec struct {
 	Common   CommonBackupSpec
 	BackupID uuid.UUID
-	Creds    *postgresql_shared.CredentialTempFiles
+	Creds    *pgshared.CredentialTempFiles
 	Label    string
 	SystemID uint64
 	// "" for a FULL; a non-empty path is the downloaded parent-manifest temp file
@@ -66,7 +66,12 @@ func streamWithCodecFallback(
 	ctx context.Context,
 	spec streamAttemptSpec,
 ) (PhysicalBackupResult, error) {
-	pgBin := tools.GetPostgresqlExecutable(spec.Common.SourceDB.Version, tools.PostgresqlExecutablePgBasebackup)
+	pgBin := pgshared.ClientTools{
+		Root: config.GetEnv().ClientToolsDir,
+	}.GetExecutable(
+		spec.Common.SourceDB.Version,
+		pgshared.ExecutablePgBasebackup,
+	)
 
 	var (
 		settled         streamOutcome

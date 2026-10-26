@@ -6,11 +6,13 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"os"
 	"time"
 
 	"golang.org/x/oauth2/github"
 	"golang.org/x/oauth2/google"
 
+	"databasus-backend/internal/engines/clienttools"
 	"databasus-backend/internal/lib/clock"
 	"databasus-backend/internal/lib/config"
 	"databasus-backend/internal/lib/logging"
@@ -20,9 +22,14 @@ import (
 )
 
 type Environment struct {
-	Config  config.Config
-	Logging *logging.Logging
-	Clock   clock.Source
+	Config config.Config
+	// ClientToolsDir is the client tool bundle root of this architecture. It is empty when
+	// clientToolsDirErr says why the root was not found: the console commands run no client tool,
+	// so only Serve refuses to start without it.
+	ClientToolsDir    string
+	clientToolsDirErr error
+	Logging           *logging.Logging
+	Clock             clock.Source
 	// Mailer sends the instance's own mail through the operator's server. A test application
 	// records the messages instead.
 	Mailer mailer.Sender
@@ -111,10 +118,14 @@ func NewEnvironment(ctx context.Context, loadedConfig config.Config, clockSource
 
 	logger.Install(loadedLogging)
 
+	clientToolsDir, clientToolsDirErr := findClientToolsDir()
+
 	return &Environment{
-		Config:  loadedConfig,
-		Logging: loadedLogging,
-		Clock:   clockSource,
+		Config:            loadedConfig,
+		ClientToolsDir:    clientToolsDir,
+		clientToolsDirErr: clientToolsDirErr,
+		Logging:           loadedLogging,
+		Clock:             clockSource,
 		Mailer: mailer.NewInstanceSender(mailer.Deps{
 			Settings: loadedConfig.GetInstanceMailSettings(),
 			Logger:   loadedLogging.GetLogger(),
@@ -123,6 +134,20 @@ func NewEnvironment(ctx context.Context, loadedConfig config.Config, clockSource
 		NotificationDeliveryTimeout: notificationDeliveryTimeout,
 		StorageFileTimings:          storages.ProductionFileTimings(),
 	}, nil
+}
+
+func findClientToolsDir() (string, error) {
+	workingDir, err := os.Getwd()
+	if err != nil {
+		return "", fmt.Errorf("read the working directory: %w", err)
+	}
+
+	clientToolsDir, err := clienttools.FindBundleRoot(workingDir)
+	if err != nil {
+		return "", fmt.Errorf("find the client tool bundles: %w", err)
+	}
+
+	return clientToolsDir, nil
 }
 
 func logReport(ctx context.Context, reportLogger *slog.Logger, report config.LoadReport) {

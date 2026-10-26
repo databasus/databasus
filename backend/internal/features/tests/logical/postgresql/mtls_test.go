@@ -14,11 +14,11 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"databasus-backend/internal/config"
+	pgshared "databasus-backend/internal/engines/postgresql/shared"
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	"databasus-backend/internal/features/databases"
 	pgtypes "databasus-backend/internal/features/databases/databases/postgresql/logical"
-	postgresql_shared "databasus-backend/internal/features/databases/databases/postgresql/shared"
 	restores_core "databasus-backend/internal/features/restores/core"
 	storages_bridge "databasus-backend/internal/features/storages"
 	logicaltesting "databasus-backend/internal/features/tests/logical/shared"
@@ -129,7 +129,7 @@ func Test_CreatePostgresqlMtls_WhenClientCertMissing_IsRejected(t *testing.T) {
 			Username: "testuser",
 			Password: "testpassword",
 			Database: &dbName,
-			SslMode:  postgresql_shared.PostgresSslModeRequire,
+			SslMode:  pgshared.SslModeRequire,
 			CpuCount: 1,
 		},
 	}
@@ -208,7 +208,7 @@ func createPostgresqlMtlsDatabaseViaAPI(
 			Username:      username,
 			Password:      password,
 			Database:      &database,
-			SslMode:       postgresql_shared.PostgresSslModeVerifyCA,
+			SslMode:       pgshared.SslModeVerifyCA,
 			SslClientCert: clientCert,
 			SslClientKey:  clientKey,
 			SslRootCert:   rootCert,
@@ -235,7 +235,7 @@ func createPostgresqlMtlsRestoreViaAPI(
 			Username:      username,
 			Password:      password,
 			Database:      &database,
-			SslMode:       postgresql_shared.PostgresSslModeVerifyCA,
+			SslMode:       pgshared.SslModeVerifyCA,
 			SslClientCert: clientCert,
 			SslClientKey:  clientKey,
 			SslRootCert:   rootCert,

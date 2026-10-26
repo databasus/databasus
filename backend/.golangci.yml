@@ -50,6 +50,14 @@ linters:
           alias: apiclient
         - pkg: databasus-backend/api
           alias: contract
+        # Three PostgreSQL packages named shared, logical and physical would clash with each other
+        # and with the old engine packages in the same files.
+        - pkg: databasus-backend/internal/engines/postgresql/shared
+          alias: pgshared
+        - pkg: databasus-backend/internal/engines/postgresql/logical
+          alias: pglogical
+        - pkg: databasus-backend/internal/engines/postgresql/physical
+          alias: pgphysical
 
     errcheck:
       check-type-assertions: true
@@ -74,6 +82,9 @@ linters:
           msg: only repositories hold the database
         - pattern: ^database\.Conn$
           msg: only repositories run queries
+        - pattern: ^exec\.(Command|CommandContext)$
+          pkg: ^os/exec$
+          msg: start external tools through lib/process
 
     sloglint:
       attr-only: true
@@ -108,6 +119,14 @@ linters:
               desc: the verification agent has no HTTP server
             - pkg: gorm.io
               desc: the verification agent has no database schema
+        engines:
+          files:
+            - "**/internal/engines/**"
+          deny:
+            - pkg: github.com/gin-gonic/gin
+              desc: engine drivers know no HTTP
+            - pkg: gorm.io
+              desc: engine drivers know no tables
 
     exhaustruct:
       include:
@@ -179,6 +198,11 @@ linters:
       - path: ^internal/lib/clock/
         linters: [forbidigo]
         text: wait for a condition with testwait.Until or move the clock
+      # Test files start the binary under test or re-execute the test binary, not an external tool a
+      # cancelled operation could strand.
+      - path: (^internal/lib/process/|_test\.go$)
+        linters: [forbidigo]
+        text: start external tools through lib/process
       - path: (^internal/(app|lib)/|(^|/)module\.go$|(^|/)([a-z0-9_]+_)?repository(_test)?\.go$|_test\.go$)
         linters: [forbidigo]
         text: only repositories (hold the database|run queries)

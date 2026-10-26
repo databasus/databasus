@@ -16,6 +16,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"databasus-backend/internal/config"
+	mariadb_engine "databasus-backend/internal/engines/mariadb"
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	"databasus-backend/internal/features/databases"
@@ -28,7 +29,6 @@ import (
 	"databasus-backend/internal/modules/users"
 	test_utils "databasus-backend/internal/util/testing"
 	"databasus-backend/internal/util/testing/containers"
-	"databasus-backend/internal/util/tools"
 )
 
 const dropMariadbTestTableQuery = `DROP TABLE IF EXISTS test_data`
@@ -53,7 +53,7 @@ type MariadbContainer struct {
 	Username string
 	Password string
 	Database string
-	Version  tools.MariadbVersion
+	Version  mariadb_engine.Version
 	DB       *sqlx.DB
 }
 
@@ -66,7 +66,7 @@ type MariadbTestDataItem struct {
 
 type mariadbVersion struct {
 	name             string
-	version          tools.MariadbVersion
+	version          mariadb_engine.Version
 	image            string
 	runsExcludeTests bool // exclude-tables/exclude-events run only on 10.11 and 11.4
 }
@@ -74,14 +74,14 @@ type mariadbVersion struct {
 // 5.5 and 10.1 are here because they are the only servers the legacy client
 // tier serves: without them nothing dumps through that tier.
 var mariadbVersions = []mariadbVersion{
-	{"MariaDB 5.5", tools.MariadbVersion55, "mariadb:5.5", false},
-	{"MariaDB 10.1", tools.MariadbVersion101, "mariadb:10.1", false},
-	{"MariaDB 10.6", tools.MariadbVersion106, "mariadb:10.6", false},
-	{"MariaDB 10.11", tools.MariadbVersion1011, "mariadb:10.11", true},
-	{"MariaDB 11.4", tools.MariadbVersion114, "mariadb:11.4", true},
-	{"MariaDB 11.8", tools.MariadbVersion118, "mariadb:11.8", false},
-	{"MariaDB 12.0", tools.MariadbVersion120, "mariadb:12.0", false},
-	{"MariaDB 13.0", tools.MariadbVersion130, "mariadb:13.0", true},
+	{"MariaDB 5.5", mariadb_engine.Version55, "mariadb:5.5", false},
+	{"MariaDB 10.1", mariadb_engine.Version101, "mariadb:10.1", false},
+	{"MariaDB 10.6", mariadb_engine.Version106, "mariadb:10.6", false},
+	{"MariaDB 10.11", mariadb_engine.Version1011, "mariadb:10.11", true},
+	{"MariaDB 11.4", mariadb_engine.Version114, "mariadb:11.4", true},
+	{"MariaDB 11.8", mariadb_engine.Version118, "mariadb:11.8", false},
+	{"MariaDB 12.0", mariadb_engine.Version120, "mariadb:12.0", false},
+	{"MariaDB 13.0", mariadb_engine.Version130, "mariadb:13.0", true},
 }
 
 // Test_MariadbBackupRestore_AcrossSupportedVersions boots each MariaDB version once, runs every
@@ -120,7 +120,7 @@ func Test_MariadbBackupRestore_AcrossSupportedVersions(t *testing.T) {
 func testMariadbBackupRestoreForVersion(
 	t *testing.T,
 	endpoint containers.Endpoint,
-	mariadbVersion tools.MariadbVersion,
+	mariadbVersion mariadb_engine.Version,
 ) {
 	container, err := connectToMariadbEndpoint(t, endpoint, mariadbVersion)
 	if err != nil {
@@ -213,7 +213,7 @@ func testMariadbBackupRestoreForVersion(
 func testMariadbBackupRestoreWithEncryptionForVersion(
 	t *testing.T,
 	endpoint containers.Endpoint,
-	mariadbVersion tools.MariadbVersion,
+	mariadbVersion mariadb_engine.Version,
 ) {
 	container, err := connectToMariadbEndpoint(t, endpoint, mariadbVersion)
 	if err != nil {
@@ -309,7 +309,7 @@ func testMariadbBackupRestoreWithEncryptionForVersion(
 func testMariadbBackupRestoreWithReadOnlyUserForVersion(
 	t *testing.T,
 	endpoint containers.Endpoint,
-	mariadbVersion tools.MariadbVersion,
+	mariadbVersion mariadb_engine.Version,
 ) {
 	container, err := connectToMariadbEndpoint(t, endpoint, mariadbVersion)
 	if err != nil {
@@ -420,7 +420,7 @@ func createMariadbDatabaseViaAPI(
 	username string,
 	password string,
 	database string,
-	version tools.MariadbVersion,
+	version mariadb_engine.Version,
 	token string,
 ) *databases.Database {
 	request := databases.Database{
@@ -466,7 +466,7 @@ func createMariadbRestoreViaAPI(
 	username string,
 	password string,
 	database string,
-	version tools.MariadbVersion,
+	version mariadb_engine.Version,
 	token string,
 ) {
 	request := restores_core.RestoreBackupRequest{
@@ -562,7 +562,7 @@ func verifyMariadbDataIntegrity(t *testing.T, originalDB, restoredDB *sqlx.DB) {
 func connectToMariadbContainer(
 	t *testing.T,
 	image string,
-	version tools.MariadbVersion,
+	version mariadb_engine.Version,
 ) (*MariadbContainer, error) {
 	endpoint := containers.StartMariadb(t, image)
 
@@ -572,7 +572,7 @@ func connectToMariadbContainer(
 func connectToMariadbEndpoint(
 	t *testing.T,
 	endpoint containers.Endpoint,
-	version tools.MariadbVersion,
+	version mariadb_engine.Version,
 ) (*MariadbContainer, error) {
 	dbName := containers.MariadbDatabase
 	username := "root"
@@ -672,7 +672,7 @@ func updateMariadbDatabaseCredentialsViaAPI(
 func testMariadbBackupRestoreWithExcludeTablesForVersion(
 	t *testing.T,
 	endpoint containers.Endpoint,
-	mariadbVersion tools.MariadbVersion,
+	mariadbVersion mariadb_engine.Version,
 ) {
 	container, err := connectToMariadbEndpoint(t, endpoint, mariadbVersion)
 	if err != nil {
@@ -812,7 +812,7 @@ func testMariadbBackupRestoreWithExcludeTablesForVersion(
 func testMariadbBackupRestoreWithExcludeEventsForVersion(
 	t *testing.T,
 	endpoint containers.Endpoint,
-	mariadbVersion tools.MariadbVersion,
+	mariadbVersion mariadb_engine.Version,
 ) {
 	container, err := connectToMariadbEndpoint(t, endpoint, mariadbVersion)
 	if err != nil {

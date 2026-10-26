@@ -104,7 +104,7 @@ Files follow the role: `handler.go` or `*_handler.go`, `service.go` or `*_servic
 
 Databasus has three families of interchangeable implementations. Each family has a registry keyed by type, and code outside the family never switches on the type.
 
-- **Engines** live in `internal/engines/<engine>`: `postgresql`, `mysql`, `mariadb` and `mongodb`. `postgresql` is split into `logical`, `physical` and `shared`, and `mysqlfamily` holds what MySQL and MariaDB share.
+- **Engines** live in `internal/engines/<engine>`: `postgresql`, `mysql`, `mariadb` and `mongodb`. `postgresql` is split into `logical`, `physical` and `shared`, and `mysqlfamily` holds what MySQL and MariaDB share. `clienttools` is not an engine: it holds what the client tool sets of every engine share, namely the bundle descriptions each engine registers, the release-line comparison and the check that every shipped client starts.
 
   An engine knows how to:
 
@@ -144,6 +144,7 @@ Settings stay in columns rather than in a JSON document for two reasons. The dat
 | `sshtunnel` | SSH tunnels |
 | `diskusage` | disk usage |
 | `iox` | stream helpers |
+| `namelist` | the lists of object names a user enters, such as excluded tables |
 
 Test support lives in `lib` too: `testdb`, `testwait`, the contract-checking test clients `apiclient` and `agentclienttest`, and `testcontainers` with the containers of every engine and storage.
 
@@ -269,7 +270,8 @@ The verification agent is a CLI worker that runs on a machine the user provides.
 | A migration runs in its transaction: no `-- +goose NO TRANSACTION` | `archlint` |
 | `*gorm.DB` and `database.Conn` only in repositories; no `time.Sleep`, `Eventually`, `fmt.Print*`, `os.Exit`, `os.Getenv` or `context.Background()` outside the places allowed | `forbidigo` |
 | Log calls: attributes only, `...Context` methods, constant messages, `snake_case` keys | `sloglint` |
-| Imports of test libraries, Gin and GORM only where allowed; fixed import aliases | `depguard`, `importas` |
+| Imports of test libraries only in test code, and no Gin or GORM in the verification agent or the engines; fixed import aliases | `depguard`, `importas` |
+| Production code starts an external process only through `lib/process` | `forbidigo` |
 | No package-level dependency variables, no `init()`; every `Deps` literal lists all fields | `gochecknoglobals`, `gochecknoinits`, `exhaustruct` |
 | Exhaustive `switch` on enums | `exhaustive` |
 | The contract follows the API rules; generated code is up to date | `vacuum`; `backend:check-generated`, which `backend:lint` runs, and `check:api`, which `frontend:lint` runs |

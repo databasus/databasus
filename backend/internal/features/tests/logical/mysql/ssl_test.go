@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"databasus-backend/internal/config"
+	mysql_engine "databasus-backend/internal/engines/mysql"
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	"databasus-backend/internal/features/databases"
@@ -26,7 +27,6 @@ import (
 	"databasus-backend/internal/modules/users"
 	test_utils "databasus-backend/internal/util/testing"
 	"databasus-backend/internal/util/testing/containers"
-	"databasus-backend/internal/util/tools"
 )
 
 func Test_BackupAndRestoreMysqlSSL_Succeeds(t *testing.T) {
@@ -55,7 +55,7 @@ func Test_BackupAndRestoreMysqlSSL_Succeeds(t *testing.T) {
 	database := createMysqlSSLDatabaseViaAPI(
 		t, router, "MySQL SSL DB", workspace.ID,
 		host, portInt, "root", "rootpassword", dbName,
-		tools.MysqlVersion84, user.Token,
+		mysql_engine.Version84, user.Token,
 	)
 
 	logicaltesting.EnableBackupsViaAPI(
@@ -82,7 +82,7 @@ func Test_BackupAndRestoreMysqlSSL_Succeeds(t *testing.T) {
 	createMysqlSSLRestoreViaAPI(
 		t, router, backup.ID,
 		host, portInt, "root", "rootpassword", newDBName,
-		tools.MysqlVersion84, user.Token,
+		mysql_engine.Version84, user.Token,
 	)
 
 	restore := waitForMysqlRestoreCompletion(t, router, backup.ID, user.Token, 5*time.Minute)
@@ -107,7 +107,7 @@ func createMysqlSSLDatabaseViaAPI(
 	host string,
 	port int,
 	username, password, database string,
-	version tools.MysqlVersion,
+	version mysql_engine.Version,
 	token string,
 ) *databases.Database {
 	request := databases.Database{
@@ -135,7 +135,7 @@ func createMysqlSSLRestoreViaAPI(
 	host string,
 	port int,
 	username, password, database string,
-	version tools.MysqlVersion,
+	version mysql_engine.Version,
 	token string,
 ) {
 	request := restores_core.RestoreBackupRequest{

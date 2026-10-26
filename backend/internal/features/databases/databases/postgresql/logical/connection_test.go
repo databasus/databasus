@@ -4,8 +4,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
-	"databasus-backend/internal/features/sshtunnel"
+	"databasus-backend/internal/lib/sshtunnel"
 )
 
 func credentialSpecDatabase() *PostgresqlLogicalDatabase {
@@ -21,18 +22,20 @@ func credentialSpecDatabase() *PostgresqlLogicalDatabase {
 	}
 }
 
-func Test_CredentialSpec_WithoutATunnel_LeavesHostAddrEmpty(t *testing.T) {
-	spec := credentialSpecDatabase().CredentialSpec()
+func Test_DecryptCredentialSpec_WithoutATunnel_LeavesHostAddrEmpty(t *testing.T) {
+	spec, err := credentialSpecDatabase().DecryptCredentialSpec(nil)
+	require.NoError(t, err)
 
 	assert.Equal(t, "db.internal", spec.Host)
 	assert.Empty(t, spec.HostAddr)
 }
 
-func Test_CredentialSpec_WithALocalTunnelEndpoint_KeepsTheRealHostAndCarriesTheAddress(t *testing.T) {
+func Test_DecryptCredentialSpec_WithALocalTunnelEndpoint_KeepsTheRealHostAndCarriesTheAddress(t *testing.T) {
 	database := credentialSpecDatabase()
 	database.LocalTunnelEndpoint = &sshtunnel.Endpoint{Host: "127.0.0.1", Port: 41000}
 
-	spec := database.CredentialSpec()
+	spec, err := database.DecryptCredentialSpec(nil)
+	require.NoError(t, err)
 
 	assert.Equal(t, "db.internal", spec.Host)
 	assert.Equal(t, "127.0.0.1", spec.HostAddr)

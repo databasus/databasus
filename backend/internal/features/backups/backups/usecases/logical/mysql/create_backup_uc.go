@@ -17,6 +17,7 @@ import (
 	"github.com/klauspost/compress/zstd"
 
 	"databasus-backend/internal/config"
+	mysql_engine "databasus-backend/internal/engines/mysql"
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	backup_encryption "databasus-backend/internal/features/backups/backups/encryption"
@@ -24,11 +25,10 @@ import (
 	"databasus-backend/internal/features/databases"
 	mysqltypes "databasus-backend/internal/features/databases/databases/mysql"
 	"databasus-backend/internal/lib/crypto"
+	"databasus-backend/internal/lib/namelist"
 	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/util/encryption"
 	io_utils "databasus-backend/internal/util/io"
-	"databasus-backend/internal/util/namelist"
-	"databasus-backend/internal/util/tools"
 )
 
 const (
@@ -103,7 +103,12 @@ func (uc *CreateMysqlBackupUsecase) Execute(
 
 	args := uc.buildMysqldumpArgs(mysqlDatabase)
 
-	mysqldumpBin, err := tools.GetMysqlExecutable(mysqlDatabase.Version, tools.MysqlExecutableMysqldump)
+	mysqldumpBin, err := mysql_engine.ClientTools{
+		Root: config.GetEnv().ClientToolsDir,
+	}.GetExecutable(
+		mysqlDatabase.Version,
+		mysql_engine.ExecutableMysqldump,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -339,7 +344,7 @@ user=%s
 password="%s"
 host=%s
 port=%d
-`, myConfig.Username, tools.EscapeMysqlPassword(password), myConfig.Host, myConfig.Port)
+`, myConfig.Username, mysql_engine.EscapePassword(password), myConfig.Host, myConfig.Port)
 
 	if myConfig.IsHttps {
 		content += "ssl-mode=REQUIRED\n"

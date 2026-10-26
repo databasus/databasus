@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"databasus-backend/internal/config"
+	mariadb_engine "databasus-backend/internal/engines/mariadb"
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	"databasus-backend/internal/features/databases"
@@ -26,7 +27,6 @@ import (
 	test_utils "databasus-backend/internal/util/testing"
 	"databasus-backend/internal/util/testing/bastion"
 	"databasus-backend/internal/util/testing/containers"
-	"databasus-backend/internal/util/tools"
 )
 
 const bastionedMariadbImage = "mariadb:11.4"
@@ -41,7 +41,7 @@ func bastionedMariadbConfig(
 		Username:  "root",
 		Password:  containers.MariadbRootPassword,
 		Database:  &databaseName,
-		Version:   tools.MariadbVersion114,
+		Version:   mariadb_engine.Version114,
 		SshTunnel: bastion.GetTunnelConfig(topology),
 	}
 }

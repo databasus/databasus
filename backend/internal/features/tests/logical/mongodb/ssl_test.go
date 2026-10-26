@@ -16,6 +16,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 
 	"databasus-backend/internal/config"
+	mongodb_engine "databasus-backend/internal/engines/mongodb"
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	"databasus-backend/internal/features/databases"
@@ -28,7 +29,6 @@ import (
 	"databasus-backend/internal/modules/users"
 	test_utils "databasus-backend/internal/util/testing"
 	"databasus-backend/internal/util/testing/containers"
-	"databasus-backend/internal/util/tools"
 )
 
 func Test_BackupAndRestoreMongodbSSL_Succeeds(t *testing.T) {
@@ -61,7 +61,7 @@ func Test_BackupAndRestoreMongodbSSL_Succeeds(t *testing.T) {
 		Password:     "rootpassword",
 		Database:     "testdb",
 		AuthDatabase: "admin",
-		Version:      tools.MongodbVersion8,
+		Version:      mongodb_engine.Version8,
 		Client:       client,
 	}
 	setupMongodbTestData(t, container)
@@ -74,7 +74,7 @@ func Test_BackupAndRestoreMongodbSSL_Succeeds(t *testing.T) {
 	database := createMongodbSSLDatabaseViaAPI(
 		t, router, "MongoDB SSL DB", workspace.ID,
 		host, portInt, "root", "rootpassword",
-		"testdb", "admin", tools.MongodbVersion8, user.Token,
+		"testdb", "admin", mongodb_engine.Version8, user.Token,
 	)
 
 	logicaltesting.EnableBackupsViaAPI(
@@ -90,7 +90,7 @@ func Test_BackupAndRestoreMongodbSSL_Succeeds(t *testing.T) {
 	createMongodbSSLRestoreViaAPI(
 		t, router, backup.ID,
 		host, portInt, "root", "rootpassword",
-		newDBName, "admin", tools.MongodbVersion8, user.Token,
+		newDBName, "admin", mongodb_engine.Version8, user.Token,
 	)
 
 	restore := waitForMongodbRestoreCompletion(t, router, backup.ID, user.Token, 5*time.Minute)
@@ -116,7 +116,7 @@ func createMongodbSSLDatabaseViaAPI(
 	host string,
 	port int,
 	username, password, database, authDatabase string,
-	version tools.MongodbVersion,
+	version mongodb_engine.Version,
 	token string,
 ) *databases.Database {
 	request := databases.Database{
@@ -147,7 +147,7 @@ func createMongodbSSLRestoreViaAPI(
 	host string,
 	port int,
 	username, password, database, authDatabase string,
-	version tools.MongodbVersion,
+	version mongodb_engine.Version,
 	token string,
 ) {
 	request := restores_core.RestoreBackupRequest{

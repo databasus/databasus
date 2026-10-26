@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"databasus-backend/internal/config"
+	pgshared "databasus-backend/internal/engines/postgresql/shared"
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	"databasus-backend/internal/features/databases"
 	postgresql_logical "databasus-backend/internal/features/databases/databases/postgresql/logical"
@@ -28,7 +29,6 @@ import (
 	"databasus-backend/internal/storage"
 	"databasus-backend/internal/util/period"
 	test_utils "databasus-backend/internal/util/testing"
-	"databasus-backend/internal/util/tools"
 )
 
 func createTestRouter() *gin.Engine {
@@ -1591,7 +1591,7 @@ func createTestDatabaseViaAPI(
 		Name:        name,
 		Type:        databases.DatabaseTypePostgresLogical,
 		PostgresqlLogical: &postgresql_logical.PostgresqlLogicalDatabase{
-			Version:  tools.PostgresqlVersion16,
+			Version:  pgshared.Version16,
 			Host:     config.GetEnv().TestLocalhost,
 			Port:     port,
 			Username: "testuser",

@@ -12,7 +12,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"databasus-backend/internal/util/tools"
+	mysql_engine "databasus-backend/internal/engines/mysql"
 )
 
 const (
@@ -36,8 +36,8 @@ type CompressionProbeSpec struct {
 // The deprecated --compress flag belongs to 5.7 alone. Every later line is
 // named explicitly rather than reached by falling through, so a line added
 // later does not quietly inherit the legacy flag.
-func getNetworkCompressionCandidates(version tools.MysqlVersion) [][]string {
-	if version == tools.MysqlVersion57 {
+func getNetworkCompressionCandidates(version mysql_engine.Version) [][]string {
+	if version == mysql_engine.Version57 {
 		return [][]string{
 			{"--compress"},
 			{},
@@ -72,7 +72,7 @@ func isCompressionRejection(stderrStr string) bool {
 func (uc *CreateMysqlBackupUsecase) probeNetworkCompressionArgs(
 	ctx context.Context,
 	probe CompressionProbeSpec,
-	version tools.MysqlVersion,
+	version mysql_engine.Version,
 ) []string {
 	candidates := getNetworkCompressionCandidates(version)
 	compressedCandidates := candidates[:len(candidates)-1]

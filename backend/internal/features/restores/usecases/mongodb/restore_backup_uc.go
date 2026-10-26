@@ -14,6 +14,8 @@ import (
 	"strings"
 	"time"
 
+	"databasus-backend/internal/config"
+	mongodb_engine "databasus-backend/internal/engines/mongodb"
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	"databasus-backend/internal/features/backups/backups/encryption"
@@ -25,7 +27,6 @@ import (
 	"databasus-backend/internal/modules/storages"
 	util_encryption "databasus-backend/internal/util/encryption"
 	io_utils "databasus-backend/internal/util/io"
-	"databasus-backend/internal/util/tools"
 )
 
 const (
@@ -80,7 +81,11 @@ func (uc *RestoreMongodbBackupUsecase) Execute(
 
 	return uc.restoreFromStorage(
 		parentCtx,
-		tools.GetMongodbExecutable(tools.MongodbExecutableMongorestore),
+		mongodb_engine.ClientTools{
+			Root: config.GetEnv().ClientToolsDir,
+		}.GetExecutable(
+			mongodb_engine.ExecutableMongorestore,
+		),
 		args,
 		backup,
 		storageReader,

@@ -2,11 +2,11 @@ package mongodb
 
 import (
 	"context"
-	"errors"
 	"log/slog"
 
-	"databasus-backend/internal/features/sshtunnel"
+	mongodb_engine "databasus-backend/internal/engines/mongodb"
 	"databasus-backend/internal/util/encryption"
+	"databasus-backend/internal/util/logger"
 )
 
 type OpenTunnelSpec struct {
@@ -15,12 +15,12 @@ type OpenTunnelSpec struct {
 	Encryptor encryption.FieldEncryptor
 }
 
-// The tunnel belongs to the operation, not to the model: buildURI is called separately by every
-// method that reaches the server, so no method down there could own a Close.
+// The tunnel belongs to the operation, not to the model: every method of the model connects on its
+// own, so no method down there could own a Close.
 type TunneledDatabase struct {
 	original              *MongodbDatabase
 	databaseThroughTunnel *MongodbDatabase
-	forwarder             *sshtunnel.Forwarder
+	tunnel                *mongodb_engine.Tunnel
 }
 
 // Ctx bounds opening the tunnel; the forwarder then lives until Close. With the tunnel disabled
@@ -31,31 +31,26 @@ func OpenTunnel(ctx context.Context, spec OpenTunnelSpec) (*TunneledDatabase, er
 	}
 
 	// Restore targets arrive as bare models straight from the request DTO, so Validate has not
-	// necessarily run and the port may still be unset.
-	if spec.Database.Port == nil {
-		return nil, errors.New("SSH tunnel requires an explicit MongoDB port")
-	}
-
-	forwarder, err := sshtunnel.Open(ctx, sshtunnel.OpenSpec{
-		Config:    spec.Database.SshTunnel,
-		Target:    sshtunnel.Endpoint{Host: spec.Database.Host, Port: *spec.Database.Port},
-		Encryptor: spec.Encryptor,
-		Logger:    spec.Logger,
-	})
+	// necessarily run and the port may still be unset; the engine refuses a tunnel without one.
+	source, err := spec.Database.newSource(spec.Encryptor)
 	if err != nil {
 		return nil, err
 	}
 
-	localEndpoint := forwarder.GetLocalEndpoint()
+	tunnel, err := source.OpenTunnel(ctx, getTunnelLogger(spec.Logger))
+	if err != nil {
+		return nil, err
+	}
+
+	localEndpoint, _ := tunnel.GetLocalEndpoint()
 
 	databaseThroughTunnel := *spec.Database
 	databaseThroughTunnel.Host = localEndpoint.Host
 	// A fresh pointer, because the shallow copy shares the original's and the original is what gets
 	// persisted.
 	databaseThroughTunnel.Port = new(localEndpoint.Port)
-	// Topology discovery re-dials the addresses the replica set advertises, which leave the process
-	// directly and never reach the forwarded port. Only the copy is pinned, so the stored config
-	// keeps whatever failover behaviour the user chose.
+	// Only the copy is pinned to a direct connection, so the stored config keeps whatever failover
+	// behaviour the user chose.
 	databaseThroughTunnel.IsDirectConnection = true
 	// The copy describes an already forwarded connection; leaving this on would make anything that
 	// re-reads it open a second tunnel pointed at the first one's local port.
@@ -64,7 +59,7 @@ func OpenTunnel(ctx context.Context, spec OpenTunnelSpec) (*TunneledDatabase, er
 	return &TunneledDatabase{
 		original:              spec.Database,
 		databaseThroughTunnel: &databaseThroughTunnel,
-		forwarder:             forwarder,
+		tunnel:                tunnel,
 	}, nil
 }
 
@@ -87,9 +82,18 @@ func (t *TunneledDatabase) CopyDiscoveredMetadataToOriginal() {
 }
 
 func (t *TunneledDatabase) Close() {
-	if t == nil || t.forwarder == nil {
+	if t == nil || t.tunnel == nil {
 		return
 	}
 
-	t.forwarder.Close()
+	t.tunnel.Close()
+}
+
+// The old callers and tests open a tunnel without a logger, and lib/sshtunnel requires one.
+func getTunnelLogger(tunnelLogger *slog.Logger) *slog.Logger {
+	if tunnelLogger == nil {
+		return logger.GetLogger()
+	}
+
+	return tunnelLogger
 }

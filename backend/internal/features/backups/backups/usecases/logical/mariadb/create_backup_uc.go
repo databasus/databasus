@@ -17,6 +17,7 @@ import (
 	"github.com/klauspost/compress/zstd"
 
 	"databasus-backend/internal/config"
+	mariadb_engine "databasus-backend/internal/engines/mariadb"
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	backup_encryption "databasus-backend/internal/features/backups/backups/encryption"
@@ -24,11 +25,10 @@ import (
 	"databasus-backend/internal/features/databases"
 	mariadbtypes "databasus-backend/internal/features/databases/databases/mariadb"
 	"databasus-backend/internal/lib/crypto"
+	"databasus-backend/internal/lib/namelist"
 	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/util/encryption"
 	io_utils "databasus-backend/internal/util/io"
-	"databasus-backend/internal/util/namelist"
-	"databasus-backend/internal/util/tools"
 )
 
 const (
@@ -103,7 +103,12 @@ func (uc *CreateMariadbBackupUsecase) Execute(
 
 	args := uc.buildMariadbDumpArgs(mariadbDatabase)
 
-	mariadbDumpBin, err := tools.GetMariadbExecutable(mariadbDatabase.Version, tools.MariadbExecutableMariadbDump)
+	mariadbDumpBin, err := mariadb_engine.ClientTools{
+		Root: config.GetEnv().ClientToolsDir,
+	}.GetExecutable(
+		mariadbDatabase.Version,
+		mariadb_engine.ExecutableMariadbDump,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -342,7 +347,7 @@ user=%s
 password="%s"
 host=%s
 port=%d
-`, mdbConfig.Username, tools.EscapeMariadbPassword(password), mdbConfig.Host, mdbConfig.Port)
+`, mdbConfig.Username, mariadb_engine.EscapePassword(password), mdbConfig.Host, mdbConfig.Port)
 
 	if mdbConfig.IsHttps {
 		content += "ssl=true\n"

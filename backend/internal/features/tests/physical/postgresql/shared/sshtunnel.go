@@ -19,7 +19,7 @@ import (
 	postgresql_executor "databasus-backend/internal/features/backups/backups/usecases/physical/postgresql"
 	"databasus-backend/internal/features/databases"
 	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
-	"databasus-backend/internal/features/sshtunnel"
+	"databasus-backend/internal/lib/sshtunnel"
 	"databasus-backend/internal/util/logger"
 	"databasus-backend/internal/util/testing/bastion"
 	"databasus-backend/internal/util/testing/containers"
@@ -71,9 +71,9 @@ func openForwardedEndpoint(t *testing.T, topology containers.BastionedDatabase) 
 	t.Helper()
 
 	forwarder, err := sshtunnel.Open(t.Context(), sshtunnel.OpenSpec{
-		Config: bastion.GetTunnelConfig(topology),
-		Target: sshtunnel.Endpoint{Host: topology.Database.Host, Port: topology.Database.Port},
-		Logger: logger.GetLogger(),
+		Settings: bastion.GetTunnelSettings(topology),
+		Target:   sshtunnel.Endpoint{Host: topology.Database.Host, Port: topology.Database.Port},
+		Logger:   logger.GetLogger(),
 	})
 	require.NoError(t, err)
 	t.Cleanup(forwarder.Close)

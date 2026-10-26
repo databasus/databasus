@@ -18,6 +18,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 
 	"databasus-backend/internal/config"
+	mongodb_engine "databasus-backend/internal/engines/mongodb"
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	"databasus-backend/internal/features/databases"
@@ -30,7 +31,6 @@ import (
 	"databasus-backend/internal/modules/users"
 	test_utils "databasus-backend/internal/util/testing"
 	"databasus-backend/internal/util/testing/containers"
-	"databasus-backend/internal/util/tools"
 )
 
 type MongodbContainer struct {
@@ -40,7 +40,7 @@ type MongodbContainer struct {
 	Password     string
 	Database     string
 	AuthDatabase string
-	Version      tools.MongodbVersion
+	Version      mongodb_engine.Version
 	Client       *mongo.Client
 }
 
@@ -53,16 +53,16 @@ type MongodbTestDataItem struct {
 
 type mongodbVersion struct {
 	name    string
-	version tools.MongodbVersion
+	version mongodb_engine.Version
 	image   string
 }
 
 var mongodbVersions = []mongodbVersion{
-	{"MongoDB 5.0", tools.MongodbVersion5, "mongo:5.0"},
-	{"MongoDB 6.0", tools.MongodbVersion6, "mongo:6.0"},
-	{"MongoDB 7.0", tools.MongodbVersion7, "mongo:7.0"},
-	{"MongoDB 8.2", tools.MongodbVersion8, "mongo:8.2.3-noble"},
-	{"MongoDB 9.0", tools.MongodbVersion9, "mongo:9.0.2-noble"},
+	{"MongoDB 5.0", mongodb_engine.Version5, "mongo:5.0"},
+	{"MongoDB 6.0", mongodb_engine.Version6, "mongo:6.0"},
+	{"MongoDB 7.0", mongodb_engine.Version7, "mongo:7.0"},
+	{"MongoDB 8.2", mongodb_engine.Version8, "mongo:8.2.3-noble"},
+	{"MongoDB 9.0", mongodb_engine.Version9, "mongo:9.0.2-noble"},
 }
 
 // Test_MongodbBackupRestore_AcrossSupportedVersions boots each MongoDB version once, runs every
@@ -95,7 +95,7 @@ func Test_MongodbBackupRestore_AcrossSupportedVersions(t *testing.T) {
 func testMongodbBackupRestoreForVersion(
 	t *testing.T,
 	endpoint containers.Endpoint,
-	mongodbVersion tools.MongodbVersion,
+	mongodbVersion mongodb_engine.Version,
 ) {
 	container := connectToMongodbEndpoint(t, endpoint, mongodbVersion)
 	defer container.Client.Disconnect(t.Context())
@@ -165,7 +165,7 @@ func testMongodbBackupRestoreForVersion(
 func testMongodbBackupRestoreWithEncryptionForVersion(
 	t *testing.T,
 	endpoint containers.Endpoint,
-	mongodbVersion tools.MongodbVersion,
+	mongodbVersion mongodb_engine.Version,
 ) {
 	container := connectToMongodbEndpoint(t, endpoint, mongodbVersion)
 	defer container.Client.Disconnect(t.Context())
@@ -237,7 +237,7 @@ func testMongodbBackupRestoreWithEncryptionForVersion(
 func testMongodbBackupRestoreWithReadOnlyUserForVersion(
 	t *testing.T,
 	endpoint containers.Endpoint,
-	mongodbVersion tools.MongodbVersion,
+	mongodbVersion mongodb_engine.Version,
 ) {
 	container := connectToMongodbEndpoint(t, endpoint, mongodbVersion)
 	defer container.Client.Disconnect(t.Context())
@@ -320,7 +320,7 @@ func testMongodbBackupRestoreWithReadOnlyUserForVersion(
 func testMongodbBackupRestoreWithExcludeCollectionsForVersion(
 	t *testing.T,
 	endpoint containers.Endpoint,
-	mongodbVersion tools.MongodbVersion,
+	mongodbVersion mongodb_engine.Version,
 ) {
 	container := connectToMongodbEndpoint(t, endpoint, mongodbVersion)
 	defer container.Client.Disconnect(t.Context())
@@ -437,7 +437,7 @@ func createMongodbDatabaseViaAPI(
 	password string,
 	database string,
 	authDatabase string,
-	version tools.MongodbVersion,
+	version mongodb_engine.Version,
 	token string,
 ) *databases.Database {
 	request := databases.Database{
@@ -488,7 +488,7 @@ func createMongodbRestoreViaAPI(
 	password string,
 	database string,
 	authDatabase string,
-	version tools.MongodbVersion,
+	version mongodb_engine.Version,
 	token string,
 ) {
 	request := restores_core.RestoreBackupRequest{
@@ -604,7 +604,7 @@ func verifyMongodbDataIntegrity(t *testing.T, container *MongodbContainer, resto
 func connectToMongodbContainer(
 	t *testing.T,
 	image string,
-	version tools.MongodbVersion,
+	version mongodb_engine.Version,
 ) *MongodbContainer {
 	endpoint := containers.StartMongodb(t, image)
 
@@ -614,7 +614,7 @@ func connectToMongodbContainer(
 func connectToMongodbEndpoint(
 	t *testing.T,
 	endpoint containers.Endpoint,
-	version tools.MongodbVersion,
+	version mongodb_engine.Version,
 ) *MongodbContainer {
 	dbName := containers.MongodbDatabase
 	password := containers.MongodbPassword

@@ -8,9 +8,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	pgshared "databasus-backend/internal/engines/postgresql/shared"
 	"databasus-backend/internal/features/databases"
 	pgtypes "databasus-backend/internal/features/databases/databases/postgresql/logical"
-	postgresql_shared "databasus-backend/internal/features/databases/databases/postgresql/shared"
 	restores_core "databasus-backend/internal/features/restores/core"
 	io_utils "databasus-backend/internal/util/io"
 )
@@ -21,7 +21,7 @@ func newStubPgRestoreCommand(pgBin string) pgRestoreCommand {
 	return pgRestoreCommand{
 		database:    &databases.Database{},
 		pgBin:       pgBin,
-		credentials: &postgresql_shared.CredentialTempFiles{},
+		credentials: &pgshared.CredentialTempFiles{},
 		pgConfig:    &pgtypes.PostgresqlLogicalDatabase{},
 		logger:      slog.New(slog.DiscardHandler),
 	}

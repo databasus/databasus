@@ -12,11 +12,12 @@ import (
 
 	"github.com/google/uuid"
 
+	"databasus-backend/internal/config"
+	pgshared "databasus-backend/internal/engines/postgresql/shared"
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	physical_repositories "databasus-backend/internal/features/backups/backups/core/physical/repositories"
 	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
 	util_encryption "databasus-backend/internal/util/encryption"
-	"databasus-backend/internal/util/tools"
 	"databasus-backend/internal/util/walmath"
 )
 
@@ -350,7 +351,12 @@ func (s *WalStreamSupervisor) Run(ctx context.Context) error {
 // exit or a crash loop), so Run can mark the streamer FAILED for reclaim on a
 // later tick.
 func (s *WalStreamSupervisor) runReceivewalSupervision(ctx context.Context, logger *slog.Logger) error {
-	pgBin := tools.GetPostgresqlExecutable(s.spec.SourceDB.Version, tools.PostgresqlExecutablePgReceivewal)
+	pgBin := pgshared.ClientTools{
+		Root: config.GetEnv().ClientToolsDir,
+	}.GetExecutable(
+		s.spec.SourceDB.Version,
+		pgshared.ExecutablePgReceivewal,
+	)
 	respawnBackoff := receivewalRespawnBackoff
 
 	var (

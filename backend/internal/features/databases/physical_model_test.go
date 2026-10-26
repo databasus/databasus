@@ -12,24 +12,24 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"databasus-backend/internal/config"
+	pgshared "databasus-backend/internal/engines/postgresql/shared"
 	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
 	"databasus-backend/internal/modules/users"
 	test_utils "databasus-backend/internal/util/testing"
-	"databasus-backend/internal/util/tools"
 )
 
 type physicalFixture struct {
 	name    string
-	version tools.PostgresqlVersion
+	version pgshared.Version
 	port    func() string
 }
 
 func physicalFixtures() []physicalFixture {
 	return []physicalFixture{
-		{"pg17", tools.PostgresqlVersion17, func() string { return config.GetEnv().TestPhysicalPostgres17Port }},
-		{"pg18", tools.PostgresqlVersion18, func() string { return config.GetEnv().TestPhysicalPostgres18Port }},
+		{"pg17", pgshared.Version17, func() string { return config.GetEnv().TestPhysicalPostgres17Port }},
+		{"pg18", pgshared.Version18, func() string { return config.GetEnv().TestPhysicalPostgres18Port }},
 	}
 }
 
@@ -187,7 +187,7 @@ func Test_CreatePhysicalDatabase_DetectsVersionFromServer_OverridingPayloadVersi
 			workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
 
 			request := buildPhysicalDatabaseRequest(t, workspace.ID, fx)
-			request.PostgresqlPhysical.Version = tools.PostgresqlVersion16
+			request.PostgresqlPhysical.Version = pgshared.Version16
 
 			w := workspaces_testing.MakeAPIRequest(
 				router, "POST", "/api/v1/databases/create",
@@ -221,7 +221,7 @@ func Test_CreatePhysicalDatabase_OnUnsupportedServerVersion_ReturnsError(t *test
 		Name:        "Physical DB " + uuid.New().String(),
 		Type:        DatabaseTypePostgresPhysical,
 		PostgresqlPhysical: &postgresql_physical.PostgresqlPhysicalDatabase{
-			Version:    tools.PostgresqlVersion18,
+			Version:    pgshared.Version18,
 			Host:       config.GetEnv().TestLocalhost,
 			Port:       port,
 			Username:   "testuser",

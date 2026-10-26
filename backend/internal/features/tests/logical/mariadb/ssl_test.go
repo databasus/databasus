@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"databasus-backend/internal/config"
+	mariadb_engine "databasus-backend/internal/engines/mariadb"
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	"databasus-backend/internal/features/databases"
@@ -26,7 +27,6 @@ import (
 	"databasus-backend/internal/modules/users"
 	test_utils "databasus-backend/internal/util/testing"
 	"databasus-backend/internal/util/testing/containers"
-	"databasus-backend/internal/util/tools"
 )
 
 func Test_BackupAndRestoreMariadbSSL_Succeeds(t *testing.T) {
@@ -55,7 +55,7 @@ func Test_BackupAndRestoreMariadbSSL_Succeeds(t *testing.T) {
 	database := createMariadbSSLDatabaseViaAPI(
 		t, router, "MariaDB SSL DB", workspace.ID,
 		host, portInt, "root", "rootpassword", dbName,
-		tools.MariadbVersion118, user.Token,
+		mariadb_engine.Version118, user.Token,
 	)
 
 	logicaltesting.EnableBackupsViaAPI(
@@ -82,7 +82,7 @@ func Test_BackupAndRestoreMariadbSSL_Succeeds(t *testing.T) {
 	createMariadbSSLRestoreViaAPI(
 		t, router, backup.ID,
 		host, portInt, "root", "rootpassword", newDBName,
-		tools.MariadbVersion118, user.Token,
+		mariadb_engine.Version118, user.Token,
 	)
 
 	restore := waitForMariadbRestoreCompletion(t, router, backup.ID, user.Token, 5*time.Minute)
@@ -107,7 +107,7 @@ func createMariadbSSLDatabaseViaAPI(
 	host string,
 	port int,
 	username, password, database string,
-	version tools.MariadbVersion,
+	version mariadb_engine.Version,
 	token string,
 ) *databases.Database {
 	request := databases.Database{
@@ -135,7 +135,7 @@ func createMariadbSSLRestoreViaAPI(
 	host string,
 	port int,
 	username, password, database string,
-	version tools.MariadbVersion,
+	version mariadb_engine.Version,
 	token string,
 ) {
 	request := restores_core.RestoreBackupRequest{

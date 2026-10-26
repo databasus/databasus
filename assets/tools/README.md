@@ -22,7 +22,7 @@ assets/tools/<arch>/
     mongodump, mongorestore
 ```
 
-`<arch>` keys (mapping in `backend/internal/util/tools/paths.go`):
+`<arch>` keys (mapping in `backend/internal/engines/clienttools/bundle_root.go`):
 
 | GOOS / GOARCH     | key   | size    |
 |-------------------|-------|---------|
@@ -75,7 +75,7 @@ by `tools/refresh-mariadb-bundle.sh`:
 | `mariadb-13.0` | 13.0.2   | `repo/13.0/ubuntu`, `ubu2204`          |
 
 MariaDB ships three client tiers, mapped to server versions in
-`backend/internal/util/tools/mariadb.go`:
+`backend/internal/engines/mariadb/version.go`:
 
 - `10.6` (legacy) serves MariaDB 5.5 and 10.1. It exists because the newer
   clients query `generation_expression`, a column MariaDB added in 10.2.

@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"databasus-backend/internal/config"
+	mongodb_engine "databasus-backend/internal/engines/mongodb"
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	"databasus-backend/internal/features/databases"
@@ -24,7 +25,6 @@ import (
 	test_utils "databasus-backend/internal/util/testing"
 	"databasus-backend/internal/util/testing/bastion"
 	"databasus-backend/internal/util/testing/containers"
-	"databasus-backend/internal/util/tools"
 )
 
 const bastionedMongodbImage = "mongo:7.0"
@@ -41,7 +41,7 @@ func bastionedMongodbConfig(
 		Database:     databaseName,
 		AuthDatabase: containers.MongodbAuthDatabase,
 		CpuCount:     1,
-		Version:      tools.MongodbVersion7,
+		Version:      mongodb_engine.Version7,
 		SshTunnel:    bastion.GetTunnelConfig(topology),
 	}
 }
@@ -56,7 +56,7 @@ func openTestTunnelToMongodb(t *testing.T, topology containers.BastionedDatabase
 	return connectToMongodbEndpoint(t, containers.Endpoint{
 		Host: localEndpoint.Host,
 		Port: localEndpoint.Port,
-	}, tools.MongodbVersion7)
+	}, mongodb_engine.Version7)
 }
 
 func Test_MongodbBackupRestore_OverSshTunnel_RestoresData(t *testing.T) {

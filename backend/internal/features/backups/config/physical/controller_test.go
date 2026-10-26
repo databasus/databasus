@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"databasus-backend/internal/config"
+	pgshared "databasus-backend/internal/engines/postgresql/shared"
 	"databasus-backend/internal/features/databases"
 	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
 	"databasus-backend/internal/features/intervals"
@@ -25,7 +26,6 @@ import (
 	"databasus-backend/internal/modules/workspaces"
 	"databasus-backend/internal/storage"
 	test_utils "databasus-backend/internal/util/testing"
-	"databasus-backend/internal/util/tools"
 )
 
 func createPhysicalTestRouter() *gin.Engine {
@@ -54,15 +54,15 @@ func createPhysicalDatabaseViaAPI(
 	env := config.GetEnv()
 
 	var portStr string
-	var version tools.PostgresqlVersion
+	var version pgshared.Version
 
 	switch versionTag {
 	case "17":
 		portStr = env.TestPhysicalPostgres17Port
-		version = tools.PostgresqlVersion17
+		version = pgshared.Version17
 	case "18":
 		portStr = env.TestPhysicalPostgres18Port
-		version = tools.PostgresqlVersion18
+		version = pgshared.Version18
 	default:
 		t.Fatalf("unsupported physical postgres version tag: %s", versionTag)
 	}

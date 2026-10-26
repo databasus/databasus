@@ -6,9 +6,9 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 
+	mariadb_engine "databasus-backend/internal/engines/mariadb"
 	logicaltesting "databasus-backend/internal/features/tests/logical/shared"
 	"databasus-backend/internal/util/testing/containers"
-	"databasus-backend/internal/util/tools"
 )
 
 // Test_BackupShouldFailNotHang_Mariadb_RegressionForIssue582 asserts a MariaDB
@@ -19,7 +19,7 @@ func Test_BackupShouldFailNotHang_Mariadb_RegressionForIssue582(t *testing.T) {
 		t, "Issue 582 MariaDB Workspace", fmt.Sprintf("http://%s:%d", minioEndpoint.Host, minioEndpoint.Port),
 	)
 
-	container, err := connectToMariadbContainer(t, "mariadb:10.11", tools.MariadbVersion1011)
+	container, err := connectToMariadbContainer(t, "mariadb:10.11", mariadb_engine.Version1011)
 	if err != nil {
 		t.Fatalf("failed to connect to MariaDB test container: %v", err)
 	}

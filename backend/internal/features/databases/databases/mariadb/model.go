@@ -2,32 +2,27 @@ package mariadb
 
 import (
 	"context"
-	"crypto/tls"
-	"database/sql"
 	"errors"
-	"fmt"
 	"log/slog"
-	"regexp"
 	"slices"
-	"strings"
 	"time"
 
-	"github.com/go-sql-driver/mysql"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"databasus-backend/internal/features/databases/databases/mysqlfamily"
+	mariadb_engine "databasus-backend/internal/engines/mariadb"
 	"databasus-backend/internal/features/sshtunnel"
+	"databasus-backend/internal/lib/namelist"
 	"databasus-backend/internal/util/encryption"
-	"databasus-backend/internal/util/namelist"
-	"databasus-backend/internal/util/tools"
 )
+
+const connectionTimeout = 15 * time.Second
 
 type MariadbDatabase struct {
 	ID         uuid.UUID  `json:"id"         gorm:"primaryKey;type:uuid;default:gen_random_uuid()"`
 	DatabaseID *uuid.UUID `json:"databaseId" gorm:"type:uuid;column:database_id"`
 
-	Version tools.MariadbVersion `json:"version" gorm:"type:text;not null"`
+	Version mariadb_engine.Version `json:"version" gorm:"type:text;not null"`
 
 	Host                string  `json:"host"                gorm:"type:text;not null"`
 	Port                int     `json:"port"                gorm:"type:int;not null"`
@@ -80,64 +75,28 @@ func (m *MariadbDatabase) Validate() error {
 }
 
 func (m *MariadbDatabase) TestConnection(
+	ctx context.Context,
 	logger *slog.Logger,
 	encryptor encryption.FieldEncryptor,
 ) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, connectionTimeout)
 	defer cancel()
 
 	if m.Database == nil || *m.Database == "" {
-		return errors.New("database name is required for MariaDB backup")
+		return mariadb_engine.ErrDatabaseNameRequired
 	}
 
-	password, err := decryptPasswordIfNeeded(m.Password, encryptor)
-	if err != nil {
-		return fmt.Errorf("failed to decrypt password: %w", err)
-	}
-
-	dsn := m.buildDSN(password, *m.Database)
-
-	db, err := sql.Open("mysql", dsn)
-	if err != nil {
-		return fmt.Errorf("failed to connect to MariaDB database '%s': %w", *m.Database, err)
-	}
-	defer func() {
-		if closeErr := db.Close(); closeErr != nil {
-			logger.ErrorContext(ctx, "failed to close the mariadb connection", "error", closeErr)
-		}
-	}()
-
-	db.SetConnMaxLifetime(15 * time.Second)
-	db.SetMaxOpenConns(1)
-	db.SetMaxIdleConns(1)
-
-	if err := db.PingContext(ctx); err != nil {
-		logger.ErrorContext(ctx, "failed to ping the mariadb database", "database_name", *m.Database, "error", err)
-
-		return fmt.Errorf("failed to ping MariaDB database '%s': %w", *m.Database, err)
-	}
-
-	detectedVersion, err := detectMariadbVersion(ctx, db)
+	source, err := m.newSource(encryptor)
 	if err != nil {
 		return err
 	}
-	m.Version = detectedVersion
 
-	backupPrivileges, err := readBackupPrivileges(ctx, backupPrivilegesQuery{
-		DB:            db,
-		Logger:        logger,
-		Version:       m.Version,
-		SchemaName:    *m.Database,
-		ExcludeTables: m.ExcludeTables,
-	})
+	inspection, err := source.TestConnection(ctx, logger, m.ExcludeTables)
 	if err != nil {
 		return err
 	}
-	m.Privileges = backupPrivileges.GetEffectivePrivilegesCsv()
 
-	if !backupPrivileges.IsSufficientForDump() {
-		return backupPrivileges.NewInsufficiencyError()
-	}
+	m.writeInspection(inspection)
 
 	return nil
 }
@@ -151,39 +110,12 @@ func (m *MariadbDatabase) GetRawDbSizeMb(
 		return 0, nil
 	}
 
-	password, err := decryptPasswordIfNeeded(m.Password, encryptor)
+	source, err := m.newSource(encryptor)
 	if err != nil {
-		return 0, fmt.Errorf("failed to decrypt password: %w", err)
+		return 0, err
 	}
 
-	dsn := m.buildDSN(password, *m.Database)
-
-	db, err := sql.Open("mysql", dsn)
-	if err != nil {
-		return 0, fmt.Errorf("failed to connect to MariaDB database '%s': %w", *m.Database, err)
-	}
-	defer func() {
-		if closeErr := db.Close(); closeErr != nil {
-			logger.ErrorContext(ctx, "failed to close MariaDB connection", "error", closeErr)
-		}
-	}()
-
-	db.SetConnMaxLifetime(15 * time.Second)
-	db.SetMaxOpenConns(1)
-	db.SetMaxIdleConns(1)
-
-	const query = `
-		SELECT COALESCE(SUM(data_length + index_length), 0) / (1024 * 1024)
-		FROM information_schema.tables
-		WHERE table_schema = ?
-	`
-
-	var sizeMB float64
-	if err := db.QueryRowContext(ctx, query, *m.Database).Scan(&sizeMB); err != nil {
-		return 0, fmt.Errorf("failed to query MariaDB database size: %w", err)
-	}
-
-	return sizeMB, nil
+	return source.GetRawSizeMb(ctx, logger)
 }
 
 func (m *MariadbDatabase) HideSensitiveData() {
@@ -244,6 +176,7 @@ func (m *MariadbDatabase) EncryptSensitiveFields(
 }
 
 func (m *MariadbDatabase) PopulateDbData(
+	ctx context.Context,
 	logger *slog.Logger,
 	encryptor encryption.FieldEncryptor,
 ) error {
@@ -251,48 +184,26 @@ func (m *MariadbDatabase) PopulateDbData(
 		return nil
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, connectionTimeout)
 	defer cancel()
 
-	password, err := decryptPasswordIfNeeded(m.Password, encryptor)
-	if err != nil {
-		return fmt.Errorf("failed to decrypt password: %w", err)
-	}
-
-	dsn := m.buildDSN(password, *m.Database)
-
-	db, err := sql.Open("mysql", dsn)
-	if err != nil {
-		return fmt.Errorf("failed to connect to database: %w", err)
-	}
-	defer func() {
-		if closeErr := db.Close(); closeErr != nil {
-			logger.ErrorContext(ctx, "failed to close the connection", "error", closeErr)
-		}
-	}()
-
-	detectedVersion, err := detectMariadbVersion(ctx, db)
+	source, err := m.newSource(encryptor)
 	if err != nil {
 		return err
 	}
-	m.Version = detectedVersion
 
-	backupPrivileges, err := readBackupPrivileges(ctx, backupPrivilegesQuery{
-		DB:            db,
-		Logger:        logger,
-		Version:       m.Version,
-		SchemaName:    *m.Database,
-		ExcludeTables: m.ExcludeTables,
-	})
+	inspection, err := source.Inspect(ctx, logger, m.ExcludeTables)
 	if err != nil {
 		return err
 	}
-	m.Privileges = backupPrivileges.GetEffectivePrivilegesCsv()
+
+	m.writeInspection(inspection)
 
 	return nil
 }
 
 func (m *MariadbDatabase) PopulateVersion(
+	ctx context.Context,
 	logger *slog.Logger,
 	encryptor encryption.FieldEncryptor,
 ) error {
@@ -300,30 +211,19 @@ func (m *MariadbDatabase) PopulateVersion(
 		return nil
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, connectionTimeout)
 	defer cancel()
 
-	password, err := decryptPasswordIfNeeded(m.Password, encryptor)
-	if err != nil {
-		return fmt.Errorf("failed to decrypt password: %w", err)
-	}
-
-	dsn := m.buildDSN(password, *m.Database)
-
-	db, err := sql.Open("mysql", dsn)
-	if err != nil {
-		return fmt.Errorf("failed to connect to database: %w", err)
-	}
-	defer func() {
-		if closeErr := db.Close(); closeErr != nil {
-			logger.ErrorContext(ctx, "failed to close the connection", "error", closeErr)
-		}
-	}()
-
-	detectedVersion, err := detectMariadbVersion(ctx, db)
+	source, err := m.newSource(encryptor)
 	if err != nil {
 		return err
 	}
+
+	detectedVersion, err := source.DetectVersion(ctx, logger)
+	if err != nil {
+		return err
+	}
+
 	m.Version = detectedVersion
 
 	return nil
@@ -334,84 +234,12 @@ func (m *MariadbDatabase) ShouldSuggestReadOnlyUser(
 	logger *slog.Logger,
 	encryptor encryption.FieldEncryptor,
 ) (bool, []string, error) {
-	password, err := decryptPasswordIfNeeded(m.Password, encryptor)
+	source, err := m.newSource(encryptor)
 	if err != nil {
-		return false, nil, fmt.Errorf("failed to decrypt password: %w", err)
+		return false, nil, err
 	}
 
-	dsn := m.buildDSN(password, *m.Database)
-
-	db, err := sql.Open("mysql", dsn)
-	if err != nil {
-		return false, nil, fmt.Errorf("failed to connect to database: %w", err)
-	}
-	defer func() {
-		if closeErr := db.Close(); closeErr != nil {
-			logger.ErrorContext(ctx, "failed to close connection", "error", closeErr)
-		}
-	}()
-
-	rows, err := db.QueryContext(ctx, "SHOW GRANTS FOR CURRENT_USER()")
-	if err != nil {
-		return false, nil, fmt.Errorf("failed to check grants: %w", err)
-	}
-	defer func() { _ = rows.Close() }()
-
-	writePrivileges := map[string]bool{
-		"INSERT":            true,
-		"UPDATE":            true,
-		"DELETE":            true,
-		"CREATE":            true,
-		"DROP":              true,
-		"ALTER":             true,
-		"INDEX":             true,
-		"GRANT OPTION":      true,
-		"ALL PRIVILEGES":    true,
-		"SUPER":             true,
-		"EXECUTE":           true,
-		"FILE":              true,
-		"RELOAD":            true,
-		"SHUTDOWN":          true,
-		"CREATE ROUTINE":    true,
-		"ALTER ROUTINE":     true,
-		"CREATE USER":       true,
-		"CREATE TABLESPACE": true,
-		"DELETE HISTORY":    true,
-		"REFERENCES":        true,
-	}
-
-	detectedPrivileges := make(map[string]bool)
-
-	for rows.Next() {
-		var grant string
-		if err := rows.Scan(&grant); err != nil {
-			return false, nil, fmt.Errorf("failed to scan grant: %w", err)
-		}
-
-		parsedGrant := mysqlfamily.ParseGrantLine(grant)
-		if parsedGrant == nil {
-			continue
-		}
-
-		for _, privilege := range parsedGrant.Privileges {
-			if writePrivileges[privilege] {
-				detectedPrivileges[privilege] = true
-			}
-		}
-	}
-
-	if err := rows.Err(); err != nil {
-		return false, nil, fmt.Errorf("error iterating grants: %w", err)
-	}
-
-	privileges := make([]string, 0, len(detectedPrivileges))
-	for priv := range detectedPrivileges {
-		privileges = append(privileges, priv)
-	}
-
-	shouldSuggestReadOnlyUser := len(privileges) > 0
-
-	return shouldSuggestReadOnlyUser, privileges, nil
+	return source.ShouldSuggestReadOnlyUser(ctx, logger)
 }
 
 func (m *MariadbDatabase) CreateReadOnlyUser(
@@ -419,216 +247,10 @@ func (m *MariadbDatabase) CreateReadOnlyUser(
 	logger *slog.Logger,
 	encryptor encryption.FieldEncryptor,
 ) (string, string, error) {
-	password, err := decryptPasswordIfNeeded(m.Password, encryptor)
+	source, err := m.newSource(encryptor)
 	if err != nil {
-		return "", "", fmt.Errorf("failed to decrypt password: %w", err)
+		return "", "", err
 	}
 
-	dsn := m.buildDSN(password, *m.Database)
-
-	db, err := sql.Open("mysql", dsn)
-	if err != nil {
-		return "", "", fmt.Errorf("failed to connect to database: %w", err)
-	}
-	defer func() {
-		if closeErr := db.Close(); closeErr != nil {
-			logger.ErrorContext(ctx, "failed to close connection", "error", closeErr)
-		}
-	}()
-
-	maxRetries := 3
-	for attempt := range maxRetries {
-		// MariaDB 5.5 has a 16-character username limit, use shorter prefix
-		newUsername := fmt.Sprintf("pgs-%s", uuid.New().String()[:8])
-		newPassword := encryption.GenerateComplexPassword()
-
-		tx, err := db.BeginTx(ctx, nil)
-		if err != nil {
-			return "", "", fmt.Errorf("failed to begin transaction: %w", err)
-		}
-
-		success := false
-		defer func() {
-			if !success {
-				if rollbackErr := tx.Rollback(); rollbackErr != nil {
-					logger.ErrorContext(ctx, "failed to rollback transaction", "error", rollbackErr)
-				}
-			}
-		}()
-
-		_, err = tx.ExecContext(ctx, fmt.Sprintf(
-			"CREATE USER '%s'@'%%' IDENTIFIED BY '%s'",
-			newUsername,
-			newPassword,
-		))
-		if err != nil {
-			if attempt < maxRetries-1 {
-				continue
-			}
-			return "", "", fmt.Errorf("failed to create user: %w", err)
-		}
-
-		_, err = tx.ExecContext(ctx, fmt.Sprintf(
-			"GRANT SELECT, SHOW VIEW, LOCK TABLES, TRIGGER, EVENT ON `%s`.* TO '%s'@'%%'",
-			*m.Database,
-			newUsername,
-		))
-		if err != nil {
-			return "", "", fmt.Errorf("failed to grant database privileges: %w", err)
-		}
-
-		_, err = tx.ExecContext(ctx, "FLUSH PRIVILEGES")
-		if err != nil {
-			return "", "", fmt.Errorf("failed to flush privileges: %w", err)
-		}
-
-		if err := tx.Commit(); err != nil {
-			return "", "", fmt.Errorf("failed to commit transaction: %w", err)
-		}
-
-		success = true
-		logger.InfoContext(
-			ctx,
-			"read-only MariaDB user created successfully",
-			"username", newUsername,
-		)
-		return newUsername, newPassword, nil
-	}
-
-	return "", "", errors.New("failed to generate unique username after 3 attempts")
-}
-
-func (m *MariadbDatabase) buildDSN(password, database string) string {
-	tlsConfig := "false"
-
-	if m.IsHttps {
-		// The HTTPS option encrypts the connection without verifying the server certificate.
-		// nosemgrep: problem-based-packs.insecure-transport.go-stdlib.bypass-tls-verification.bypass-tls-verification
-		err := mysql.RegisterTLSConfig("mariadb-skip-verify", &tls.Config{
-			MinVersion:         tls.VersionTLS12,
-			InsecureSkipVerify: true,
-		})
-		if err != nil {
-			// Config might already be registered, which is fine
-			_ = err
-		}
-		tlsConfig = "mariadb-skip-verify"
-	}
-
-	return fmt.Sprintf(
-		"%s:%s@tcp(%s:%d)/%s?parseTime=true&timeout=15s&tls=%s&charset=utf8mb4",
-		m.Username,
-		password,
-		m.Host,
-		m.Port,
-		database,
-		tlsConfig,
-	)
-}
-
-// detectMariadbVersion parses VERSION() output to detect MariaDB version
-// MariaDB returns strings like "10.11.6-MariaDB" or "11.4.2-MariaDB-1:11.4.2+maria~ubu2204"
-// A version identity names a release line, so minors collapse onto it
-// (12.1 → 12.0, every 13.x → 13.0). A line no shipped client serves is
-// refused here rather than at backup time.
-func detectMariadbVersion(ctx context.Context, db *sql.DB) (tools.MariadbVersion, error) {
-	var versionStr string
-	err := db.QueryRowContext(ctx, "SELECT VERSION()").Scan(&versionStr)
-	if err != nil {
-		return "", fmt.Errorf("failed to query MariaDB version: %w", err)
-	}
-
-	return parseMariadbVersionString(versionStr)
-}
-
-// parseMariadbVersionString turns what a server answers VERSION() with into
-// the version identity that names its release line.
-func parseMariadbVersionString(versionStr string) (tools.MariadbVersion, error) {
-	if !strings.Contains(strings.ToLower(versionStr), "mariadb") {
-		return "", fmt.Errorf(
-			"not a MariaDB server (version: %s). Use MySQL database type instead",
-			versionStr,
-		)
-	}
-
-	matches := mariadbVersionPattern.FindStringSubmatch(versionStr)
-	if len(matches) < 3 {
-		return "", fmt.Errorf("could not parse MariaDB version: %s", versionStr)
-	}
-
-	version, err := mapMariadbVersion(matches[1], matches[2])
-	if err != nil {
-		return "", err
-	}
-
-	// A line we map is still unsupported where its client was never built.
-	if err := tools.RequireMariadbBundle(version); err != nil {
-		return "", err
-	}
-
-	return version, nil
-}
-
-var mariadbVersionPattern = regexp.MustCompile(`^(\d+)\.(\d+)`)
-
-func mapMariadbVersion(major, minor string) (tools.MariadbVersion, error) {
-	switch major {
-	case "5":
-		return tools.MariadbVersion55, nil
-	case "10":
-		return mapMariadb10xVersion(minor)
-	case "11":
-		return mapMariadb11xVersion(minor)
-	case "12":
-		return tools.MariadbVersion120, nil
-	// Every 13.x release belongs to one line, whatever its minor, and the
-	// 13.0 client serves all of them.
-	case "13":
-		return tools.MariadbVersion130, nil
-	default:
-		return "", fmt.Errorf(
-			"unsupported MariaDB major version: %s (supported: 5.x, 10.x, 11.x, 12.x, 13.x)",
-			major,
-		)
-	}
-}
-
-func mapMariadb10xVersion(minor string) (tools.MariadbVersion, error) {
-	switch minor {
-	case "1":
-		return tools.MariadbVersion101, nil
-	case "2":
-		return tools.MariadbVersion102, nil
-	case "3":
-		return tools.MariadbVersion103, nil
-	case "4":
-		return tools.MariadbVersion104, nil
-	case "5":
-		return tools.MariadbVersion105, nil
-	case "6", "7", "8", "9", "10":
-		return tools.MariadbVersion106, nil
-	default:
-		return tools.MariadbVersion1011, nil
-	}
-}
-
-func mapMariadb11xVersion(minor string) (tools.MariadbVersion, error) {
-	switch minor {
-	case "0", "1", "2", "3", "4":
-		return tools.MariadbVersion114, nil
-	case "5", "6", "7", "8":
-		return tools.MariadbVersion118, nil
-	default:
-		return tools.MariadbVersion118, nil
-	}
-}
-
-func decryptPasswordIfNeeded(
-	password string,
-	encryptor encryption.FieldEncryptor,
-) (string, error) {
-	if encryptor == nil {
-		return password, nil
-	}
-	return encryptor.Decrypt(password)
+	return source.CreateReadOnlyUser(ctx, logger)
 }

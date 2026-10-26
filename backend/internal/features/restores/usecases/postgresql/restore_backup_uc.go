@@ -18,19 +18,18 @@ import (
 	"github.com/google/uuid"
 
 	"databasus-backend/internal/config"
+	pgshared "databasus-backend/internal/engines/postgresql/shared"
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	"databasus-backend/internal/features/backups/backups/encryption"
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
 	"databasus-backend/internal/features/databases"
 	pgtypes "databasus-backend/internal/features/databases/databases/postgresql/logical"
-	postgresql_shared "databasus-backend/internal/features/databases/databases/postgresql/shared"
 	restores_core "databasus-backend/internal/features/restores/core"
 	"databasus-backend/internal/lib/crypto"
 	"databasus-backend/internal/modules/storages"
 	util_encryption "databasus-backend/internal/util/encryption"
 	io_utils "databasus-backend/internal/util/io"
-	"databasus-backend/internal/util/tools"
 )
 
 type RestorePostgresqlBackupUsecase struct {
@@ -69,7 +68,7 @@ func (uc *RestorePostgresqlBackupUsecase) Execute(
 		return fmt.Errorf("target database name is required for pg_restore")
 	}
 
-	pgBin := tools.GetPostgresqlExecutable(pg.Version, "pg_restore")
+	pgBin := pgshared.ClientTools{Root: config.GetEnv().ClientToolsDir}.GetExecutable(pg.Version, "pg_restore")
 
 	// All PostgreSQL backups are now custom format (-Fc)
 	return uc.restoreCustomType(
@@ -197,8 +196,7 @@ func (uc *RestorePostgresqlBackupUsecase) restoreViaStdin(
 		return fmt.Errorf("failed to decrypt password: %w", err)
 	}
 
-	credentials, err := postgresql_shared.WriteCredentialFilesToTempDir(
-		pg.CredentialSpec(), decryptedPassword, fieldEncryptor)
+	credentials, err := pg.WriteCredentialFiles(decryptedPassword, fieldEncryptor)
 	if err != nil {
 		return fmt.Errorf("failed to create credential files: %w", err)
 	}
@@ -460,11 +458,7 @@ func (uc *RestorePostgresqlBackupUsecase) restoreFromStorage(
 	defer cancel()
 
 	// Materialize connection credentials (.pgpass + optional client certificates)
-	credentials, err := postgresql_shared.WriteCredentialFilesToTempDir(
-		pgConfig.CredentialSpec(),
-		password,
-		util_encryption.GetFieldEncryptor(),
-	)
+	credentials, err := pgConfig.WriteCredentialFiles(password, util_encryption.GetFieldEncryptor())
 	if err != nil {
 		return fmt.Errorf("failed to create credential files: %w", err)
 	}
@@ -617,7 +611,7 @@ type pgRestoreCommand struct {
 	database    *databases.Database
 	pgBin       string
 	args        []string
-	credentials *postgresql_shared.CredentialTempFiles
+	credentials *pgshared.CredentialTempFiles
 	pgConfig    *pgtypes.PostgresqlLogicalDatabase
 	logger      *slog.Logger
 }
@@ -692,13 +686,13 @@ func (uc *RestorePostgresqlBackupUsecase) executePgRestore(
 
 func (uc *RestorePostgresqlBackupUsecase) setupPgRestoreEnvironment(
 	cmd *exec.Cmd,
-	credentials *postgresql_shared.CredentialTempFiles,
+	credentials *pgshared.CredentialTempFiles,
 	pgConfig *pgtypes.PostgresqlLogicalDatabase,
 ) {
 	cmd.Env = os.Environ()
 
 	cmd.Env = append(cmd.Env, "PGPASSFILE="+credentials.PgpassPath)
-	cmd.Env = append(cmd.Env, postgresql_shared.GetPgHostAddrEnv(pgConfig.CredentialSpec())...)
+	cmd.Env = append(cmd.Env, pgshared.GetPgHostAddrEnv(pgConfig.GetHostAddr())...)
 	uc.logger.Info(
 		"Using temporary .pgpass file for authentication",
 		"pgpass_file", credentials.PgpassPath,
@@ -713,7 +707,7 @@ func (uc *RestorePostgresqlBackupUsecase) setupPgRestoreEnvironment(
 
 	sslMode := pgConfig.SslMode
 	if sslMode == "" {
-		sslMode = postgresql_shared.PostgresSslModeDisable
+		sslMode = pgshared.SslModeDisable
 	}
 
 	cmd.Env = append(cmd.Env,
@@ -902,7 +896,7 @@ func (uc *RestorePostgresqlBackupUsecase) generateFilteredTocList(
 	ctx context.Context,
 	pgBin string,
 	backupFile string,
-	credentials *postgresql_shared.CredentialTempFiles,
+	credentials *pgshared.CredentialTempFiles,
 	pgConfig *pgtypes.PostgresqlLogicalDatabase,
 	options restores_core.RestoreOptions,
 ) (string, error) {

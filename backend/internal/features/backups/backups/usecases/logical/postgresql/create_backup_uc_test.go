@@ -10,17 +10,17 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 
+	pgshared "databasus-backend/internal/engines/postgresql/shared"
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
 	"databasus-backend/internal/features/databases"
 	pgtypes "databasus-backend/internal/features/databases/databases/postgresql/logical"
-	"databasus-backend/internal/util/tools"
 )
 
 func Test_BuildPgDumpArgs_TreatsDuplicateParameterAsLiteralDatabaseName(t *testing.T) {
 	databaseName := "postgres dbname=databasus"
 	postgresDatabase := &pgtypes.PostgresqlLogicalDatabase{
-		Version:  tools.PostgresqlVersion17,
+		Version:  pgshared.Version17,
 		Host:     "localhost",
 		Port:     5437,
 		Username: "postgres",
@@ -48,7 +48,7 @@ func Test_BuildPgDumpArgs_TreatsDuplicateParameterAsLiteralDatabaseName(t *testi
 func Test_BuildPgDumpArgs_WhenBothExclusionListsAreSet_AddsWholeTableThenDataFlagsNormalized(t *testing.T) {
 	databaseName := "appdb"
 	postgresDatabase := &pgtypes.PostgresqlLogicalDatabase{
-		Version:          tools.PostgresqlVersion17,
+		Version:          pgshared.Version17,
 		Host:             "localhost",
 		Port:             5437,
 		Username:         "postgres",

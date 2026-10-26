@@ -16,6 +16,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"databasus-backend/internal/config"
+	mysql_engine "databasus-backend/internal/engines/mysql"
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	"databasus-backend/internal/features/databases"
@@ -28,7 +29,6 @@ import (
 	"databasus-backend/internal/modules/users"
 	test_utils "databasus-backend/internal/util/testing"
 	"databasus-backend/internal/util/testing/containers"
-	"databasus-backend/internal/util/tools"
 )
 
 const dropMysqlTestTableQuery = `DROP TABLE IF EXISTS test_data`
@@ -53,7 +53,7 @@ type MysqlContainer struct {
 	Username string
 	Password string
 	Database string
-	Version  tools.MysqlVersion
+	Version  mysql_engine.Version
 	DB       *sqlx.DB
 }
 
@@ -66,16 +66,16 @@ type MysqlTestDataItem struct {
 
 type mysqlVersion struct {
 	name    string
-	version tools.MysqlVersion
+	version mysql_engine.Version
 	image   string
 }
 
 var mysqlVersions = []mysqlVersion{
-	{"MySQL 5.7", tools.MysqlVersion57, "mysql:5.7"},
-	{"MySQL 8.0", tools.MysqlVersion80, "mysql:8.0"},
-	{"MySQL 8.4", tools.MysqlVersion84, "mysql:8.4"},
-	{"MySQL 9", tools.MysqlVersion9, "mysql:9"},
-	{"MySQL 26", tools.MysqlVersion26, "mysql:26.7"},
+	{"MySQL 5.7", mysql_engine.Version57, "mysql:5.7"},
+	{"MySQL 8.0", mysql_engine.Version80, "mysql:8.0"},
+	{"MySQL 8.4", mysql_engine.Version84, "mysql:8.4"},
+	{"MySQL 9", mysql_engine.Version9, "mysql:9"},
+	{"MySQL 26", mysql_engine.Version26, "mysql:26.7"},
 }
 
 // Test_MysqlBackupRestore_AcrossSupportedVersions boots each MySQL version once, runs every
@@ -102,7 +102,7 @@ func Test_MysqlBackupRestore_AcrossSupportedVersions(t *testing.T) {
 	}
 }
 
-func testMysqlBackupRestoreForVersion(t *testing.T, endpoint containers.Endpoint, mysqlVersion tools.MysqlVersion) {
+func testMysqlBackupRestoreForVersion(t *testing.T, endpoint containers.Endpoint, mysqlVersion mysql_engine.Version) {
 	container, err := connectToMysqlEndpoint(t, endpoint, mysqlVersion)
 	if err != nil {
 		t.Fatalf("MySQL %s test failed: %v", mysqlVersion, err)
@@ -194,7 +194,7 @@ func testMysqlBackupRestoreForVersion(t *testing.T, endpoint containers.Endpoint
 func testMysqlBackupRestoreWithEncryptionForVersion(
 	t *testing.T,
 	endpoint containers.Endpoint,
-	mysqlVersion tools.MysqlVersion,
+	mysqlVersion mysql_engine.Version,
 ) {
 	container, err := connectToMysqlEndpoint(t, endpoint, mysqlVersion)
 	if err != nil {
@@ -290,7 +290,7 @@ func testMysqlBackupRestoreWithEncryptionForVersion(
 func testMysqlBackupRestoreWithReadOnlyUserForVersion(
 	t *testing.T,
 	endpoint containers.Endpoint,
-	mysqlVersion tools.MysqlVersion,
+	mysqlVersion mysql_engine.Version,
 ) {
 	container, err := connectToMysqlEndpoint(t, endpoint, mysqlVersion)
 	if err != nil {
@@ -394,7 +394,7 @@ func testMysqlBackupRestoreWithReadOnlyUserForVersion(
 func testMysqlBackupRestoreWithExcludeTablesForVersion(
 	t *testing.T,
 	endpoint containers.Endpoint,
-	mysqlVersion tools.MysqlVersion,
+	mysqlVersion mysql_engine.Version,
 ) {
 	container, err := connectToMysqlEndpoint(t, endpoint, mysqlVersion)
 	if err != nil {
@@ -541,7 +541,7 @@ func createMysqlDatabaseViaAPI(
 	username string,
 	password string,
 	database string,
-	version tools.MysqlVersion,
+	version mysql_engine.Version,
 	token string,
 ) *databases.Database {
 	request := databases.Database{
@@ -587,7 +587,7 @@ func createMysqlRestoreViaAPI(
 	username string,
 	password string,
 	database string,
-	version tools.MysqlVersion,
+	version mysql_engine.Version,
 	token string,
 ) {
 	request := restores_core.RestoreBackupRequest{
@@ -683,7 +683,7 @@ func verifyMysqlDataIntegrity(t *testing.T, originalDB, restoredDB *sqlx.DB) {
 func connectToMysqlContainer(
 	t *testing.T,
 	image string,
-	version tools.MysqlVersion,
+	version mysql_engine.Version,
 ) (*MysqlContainer, error) {
 	endpoint := containers.StartMysql(t, image)
 
@@ -693,7 +693,7 @@ func connectToMysqlContainer(
 func connectToMysqlEndpoint(
 	t *testing.T,
 	endpoint containers.Endpoint,
-	version tools.MysqlVersion,
+	version mysql_engine.Version,
 ) (*MysqlContainer, error) {
 	dbName := containers.MysqlDatabase
 	username := "root"

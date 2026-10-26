@@ -18,6 +18,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/klauspost/compress/zstd"
 
+	"databasus-backend/internal/config"
+	mysql_engine "databasus-backend/internal/engines/mysql"
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	"databasus-backend/internal/features/backups/backups/encryption"
@@ -29,7 +31,6 @@ import (
 	"databasus-backend/internal/modules/storages"
 	util_encryption "databasus-backend/internal/util/encryption"
 	io_utils "databasus-backend/internal/util/io"
-	"databasus-backend/internal/util/tools"
 )
 
 type RestoreMysqlBackupUsecase struct {
@@ -84,7 +85,12 @@ func (uc *RestoreMysqlBackupUsecase) Execute(
 		args = append(args, *my.Database)
 	}
 
-	mysqlBin, err := tools.GetMysqlExecutable(my.Version, tools.MysqlExecutableMysql)
+	mysqlBin, err := mysql_engine.ClientTools{
+		Root: config.GetEnv().ClientToolsDir,
+	}.GetExecutable(
+		my.Version,
+		mysql_engine.ExecutableMysql,
+	)
 	if err != nil {
 		return err
 	}
@@ -276,7 +282,7 @@ user=%s
 password="%s"
 host=%s
 port=%d
-`, myConfig.Username, tools.EscapeMysqlPassword(password), myConfig.Host, myConfig.Port)
+`, myConfig.Username, mysql_engine.EscapePassword(password), myConfig.Host, myConfig.Port)
 
 	if myConfig.IsHttps {
 		content += "ssl-mode=REQUIRED\n"

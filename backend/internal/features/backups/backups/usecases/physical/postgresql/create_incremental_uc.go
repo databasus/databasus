@@ -15,7 +15,7 @@ import (
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	physical_enums "databasus-backend/internal/features/backups/backups/core/physical/enums"
 	backup_encryption "databasus-backend/internal/features/backups/backups/encryption"
-	postgresql_shared "databasus-backend/internal/features/databases/databases/postgresql/shared"
+	"databasus-backend/internal/util/encryption"
 )
 
 type CreateIncrementalBackupUsecase struct{}
@@ -30,13 +30,12 @@ func (uc *CreateIncrementalBackupUsecase) Execute(
 ) (PhysicalBackupResult, error) {
 	start := time.Now().UTC()
 
-	password, err := postgresql_shared.DecryptFieldIfNeeded(spec.SourceDB.Password, spec.FieldEncryptor)
+	password, err := encryption.DecryptFieldIfNeeded(spec.SourceDB.Password, spec.FieldEncryptor)
 	if err != nil {
 		return errorResult(physical_enums.PhysicalBackupErrorPgBasebackupFailed, "decrypt password", err), nil
 	}
 
-	creds, err := postgresql_shared.WriteCredentialFilesToTempDir(
-		spec.SourceDB.CredentialSpec(), password, spec.FieldEncryptor)
+	creds, err := spec.SourceDB.WriteCredentialFiles(password, spec.FieldEncryptor)
 	if err != nil {
 		return errorResult(physical_enums.PhysicalBackupErrorPgBasebackupFailed, "write credentials", err), nil
 	}

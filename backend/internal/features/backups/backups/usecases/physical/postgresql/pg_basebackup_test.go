@@ -7,10 +7,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	pgshared "databasus-backend/internal/engines/postgresql/shared"
 	physical_enums "databasus-backend/internal/features/backups/backups/core/physical/enums"
 	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
-	postgresql_shared "databasus-backend/internal/features/databases/databases/postgresql/shared"
-	"databasus-backend/internal/features/sshtunnel"
+	"databasus-backend/internal/lib/sshtunnel"
 )
 
 const (
@@ -37,7 +37,7 @@ func Test_NewPgBasebackupCommand_WhenTunneled_SendsPgHostAddrAndKeepsTheRealHost
 		t.Context(),
 		"sh",
 		tunneledSourceDatabase(),
-		&postgresql_shared.CredentialTempFiles{PgpassPath: "/tmp/pgpass"},
+		&pgshared.CredentialTempFiles{PgpassPath: "/tmp/pgpass"},
 		"label",
 		physical_enums.PhysicalBackupCompressionNone,
 		"",
@@ -56,7 +56,7 @@ func Test_NewPgBasebackupCommand_WithoutATunnel_SendsNoPgHostAddr(t *testing.T) 
 		t.Context(),
 		"sh",
 		sourceDB,
-		&postgresql_shared.CredentialTempFiles{PgpassPath: "/tmp/pgpass"},
+		&pgshared.CredentialTempFiles{PgpassPath: "/tmp/pgpass"},
 		"label",
 		physical_enums.PhysicalBackupCompressionNone,
 		"",

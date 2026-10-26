@@ -115,6 +115,7 @@ func (d *Database) ValidateUpdate(old, new Database) error {
 }
 
 func (d *Database) TestConnection(
+	ctx context.Context,
 	logger *slog.Logger,
 	encryptor encryption.FieldEncryptor,
 ) error {
@@ -124,31 +125,31 @@ func (d *Database) TestConnection(
 			return errors.New("postgresql logical config is not set")
 		}
 
-		return d.PostgresqlLogical.TestConnection(logger, encryptor)
+		return d.PostgresqlLogical.TestConnection(ctx, logger, encryptor)
 	case DatabaseTypePostgresPhysical:
 		if d.PostgresqlPhysical == nil {
 			return errors.New("postgresql physical config is not set")
 		}
 
-		return d.PostgresqlPhysical.TestReplicationConnection(logger, encryptor)
+		return d.PostgresqlPhysical.TestReplicationConnection(ctx, logger, encryptor)
 	case DatabaseTypeMysql:
 		if d.Mysql == nil {
 			return errors.New("mysql config is not set")
 		}
 
-		return d.Mysql.TestConnection(logger, encryptor)
+		return d.Mysql.TestConnection(ctx, logger, encryptor)
 	case DatabaseTypeMariadb:
 		if d.Mariadb == nil {
 			return errors.New("mariadb config is not set")
 		}
 
-		return d.Mariadb.TestConnection(logger, encryptor)
+		return d.Mariadb.TestConnection(ctx, logger, encryptor)
 	case DatabaseTypeMongodb:
 		if d.Mongodb == nil {
 			return errors.New("mongodb config is not set")
 		}
 
-		return d.Mongodb.TestConnection(logger, encryptor)
+		return d.Mongodb.TestConnection(ctx, logger, encryptor)
 	default:
 		return errors.New("connection test not supported for database type: " + string(d.Type))
 	}
@@ -164,7 +165,7 @@ func (d *Database) ProbeLiveness(
 	encryptor encryption.FieldEncryptor,
 ) error {
 	if d.Type != DatabaseTypePostgresPhysical {
-		return d.TestConnection(logger, encryptor)
+		return d.TestConnection(ctx, logger, encryptor)
 	}
 
 	if d.PostgresqlPhysical == nil {
@@ -334,23 +335,24 @@ func (d *Database) EncryptSensitiveFields(encryptor encryption.FieldEncryptor) e
 }
 
 func (d *Database) PopulateDbData(
+	ctx context.Context,
 	logger *slog.Logger,
 	encryptor encryption.FieldEncryptor,
 ) error {
 	if d.PostgresqlLogical != nil {
-		return d.PostgresqlLogical.PopulateDbData(logger, encryptor)
+		return d.PostgresqlLogical.PopulateDbData(ctx, logger, encryptor)
 	}
 	if d.PostgresqlPhysical != nil {
-		return d.PostgresqlPhysical.PopulateDbData(logger, encryptor)
+		return d.PostgresqlPhysical.PopulateDbData(ctx, logger, encryptor)
 	}
 	if d.Mysql != nil {
-		return d.Mysql.PopulateDbData(logger, encryptor)
+		return d.Mysql.PopulateDbData(ctx, logger, encryptor)
 	}
 	if d.Mariadb != nil {
-		return d.Mariadb.PopulateDbData(logger, encryptor)
+		return d.Mariadb.PopulateDbData(ctx, logger, encryptor)
 	}
 	if d.Mongodb != nil {
-		return d.Mongodb.PopulateDbData(logger, encryptor)
+		return d.Mongodb.PopulateDbData(ctx, logger, encryptor)
 	}
 	return nil
 }
@@ -359,6 +361,7 @@ func (d *Database) PopulateDbData(
 // Type too: a row carrying two engine configs would otherwise open the tunnel for one and connect
 // with the other, straight past the bastion.
 func (d *Database) PopulateVersion(
+	ctx context.Context,
 	logger *slog.Logger,
 	encryptor encryption.FieldEncryptor,
 ) error {
@@ -368,25 +371,25 @@ func (d *Database) PopulateVersion(
 			return errors.New("postgresql logical config is not set")
 		}
 
-		return d.PostgresqlLogical.PopulateVersion(logger, encryptor)
+		return d.PostgresqlLogical.PopulateVersion(ctx, logger, encryptor)
 	case DatabaseTypeMysql:
 		if d.Mysql == nil {
 			return errors.New("mysql config is not set")
 		}
 
-		return d.Mysql.PopulateVersion(logger, encryptor)
+		return d.Mysql.PopulateVersion(ctx, logger, encryptor)
 	case DatabaseTypeMariadb:
 		if d.Mariadb == nil {
 			return errors.New("mariadb config is not set")
 		}
 
-		return d.Mariadb.PopulateVersion(logger, encryptor)
+		return d.Mariadb.PopulateVersion(ctx, logger, encryptor)
 	case DatabaseTypeMongodb:
 		if d.Mongodb == nil {
 			return errors.New("mongodb config is not set")
 		}
 
-		return d.Mongodb.PopulateVersion(logger, encryptor)
+		return d.Mongodb.PopulateVersion(ctx, logger, encryptor)
 	default:
 		return errors.New("version detection not supported for database type: " + string(d.Type))
 	}

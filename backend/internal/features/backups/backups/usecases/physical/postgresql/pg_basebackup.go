@@ -14,9 +14,9 @@ import (
 	"sync"
 	"time"
 
+	pgshared "databasus-backend/internal/engines/postgresql/shared"
 	physical_enums "databasus-backend/internal/features/backups/backups/core/physical/enums"
 	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
-	postgresql_shared "databasus-backend/internal/features/databases/databases/postgresql/shared"
 	"databasus-backend/internal/util/walmath"
 )
 
@@ -46,7 +46,7 @@ func newPgBasebackupCommand(
 	ctx context.Context,
 	pgBin string,
 	sourceDB *postgresql_physical.PostgresqlPhysicalDatabase,
-	creds *postgresql_shared.CredentialTempFiles,
+	creds *pgshared.CredentialTempFiles,
 	label string,
 	codec physical_enums.PhysicalBackupCompression,
 	incrementalManifestPath string,
@@ -101,11 +101,11 @@ func newPgBasebackupCommand(
 		"LC_ALL=C.UTF-8",
 		"LANG=C.UTF-8",
 	)
-	cmd.Env = append(cmd.Env, postgresql_shared.GetPgHostAddrEnv(sourceDB.CredentialSpec())...)
+	cmd.Env = append(cmd.Env, pgshared.GetPgHostAddrEnv(sourceDB.GetHostAddr())...)
 
 	sslMode := sourceDB.SslMode
 	if sslMode == "" {
-		sslMode = postgresql_shared.PostgresSslModeDisable
+		sslMode = pgshared.SslModeDisable
 	}
 
 	cmd.Env = append(cmd.Env,

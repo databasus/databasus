@@ -6,7 +6,7 @@ import (
 
 	"databasus-backend/internal/features/databases/databases/mariadb"
 	"databasus-backend/internal/features/databases/databases/mongodb"
-	"databasus-backend/internal/features/databases/databases/mysql"
+	mysql_database "databasus-backend/internal/features/databases/databases/mysql"
 	postgresql_logical "databasus-backend/internal/features/databases/databases/postgresql/logical"
 	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
 	"databasus-backend/internal/util/encryption"
@@ -156,7 +156,7 @@ func (t *TunneledDatabase) openMysqlTunnel(ctx context.Context, spec OpenTunnelS
 		return nil
 	}
 
-	tunneledEngine, err := mysql.OpenTunnel(ctx, mysql.OpenTunnelSpec{
+	tunneledEngine, err := mysql_database.OpenTunnel(ctx, mysql_database.OpenTunnelSpec{
 		Database:  spec.Database.Mysql,
 		Logger:    spec.Logger,
 		Encryptor: spec.Encryptor,

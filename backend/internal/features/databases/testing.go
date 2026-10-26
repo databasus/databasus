@@ -17,15 +17,17 @@ import (
 	"gorm.io/gorm"
 
 	"databasus-backend/internal/config"
+	mariadb_engine "databasus-backend/internal/engines/mariadb"
+	mongodb_engine "databasus-backend/internal/engines/mongodb"
+	mysql_engine "databasus-backend/internal/engines/mysql"
+	pgshared "databasus-backend/internal/engines/postgresql/shared"
 	"databasus-backend/internal/features/databases/databases/mariadb"
 	"databasus-backend/internal/features/databases/databases/mongodb"
 	"databasus-backend/internal/features/databases/databases/mysql"
 	postgresql_logical "databasus-backend/internal/features/databases/databases/postgresql/logical"
 	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
-	postgresql_shared "databasus-backend/internal/features/databases/databases/postgresql/shared"
 	"databasus-backend/internal/features/sshtunnel"
 	"databasus-backend/internal/modules/notifiers"
-	"databasus-backend/internal/util/tools"
 )
 
 var PhysicalPostgresVersionTags = []string{"17", "18"}
@@ -39,7 +41,7 @@ func GetTestPostgresConfig() *postgresql_logical.PostgresqlLogicalDatabase {
 
 	testDbName := "testdb"
 	return &postgresql_logical.PostgresqlLogicalDatabase{
-		Version:  tools.PostgresqlVersion16,
+		Version:  pgshared.Version16,
 		Host:     config.GetEnv().TestLocalhost,
 		Port:     port,
 		Username: "testuser",
@@ -50,12 +52,12 @@ func GetTestPostgresConfig() *postgresql_logical.PostgresqlLogicalDatabase {
 }
 
 // physicalPostgresVersion maps a "17"/"18" tag to the typed version enum.
-func physicalPostgresVersion(versionTag string) tools.PostgresqlVersion {
+func physicalPostgresVersion(versionTag string) pgshared.Version {
 	switch versionTag {
 	case "17":
-		return tools.PostgresqlVersion17
+		return pgshared.Version17
 	case "18":
-		return tools.PostgresqlVersion18
+		return pgshared.Version18
 	default:
 		panic(fmt.Sprintf(
 			"unsupported physical postgres version tag: %s (supported: %v)",
@@ -141,13 +143,13 @@ func GetTestPhysicalPostgresConfigMtls(host string, port int) *postgresql_physic
 	// constructs the streamer spec directly against this DB, so the declared
 	// backup type does not gate it.
 	return &postgresql_physical.PostgresqlPhysicalDatabase{
-		Version:       tools.PostgresqlVersion17,
+		Version:       pgshared.Version17,
 		Host:          host,
 		Port:          port,
 		Username:      "testuser",
 		Password:      "testpassword",
 		BackupType:    postgresql_physical.BackupTypeFullOnly,
-		SslMode:       postgresql_shared.PostgresSslModeVerifyCA,
+		SslMode:       pgshared.SslModeVerifyCA,
 		SslClientCert: clientCert,
 		SslClientKey:  clientKey,
 		SslRootCert:   rootCert,
@@ -215,7 +217,7 @@ func CreateTestPhysicalPostgresDatabaseMtls(
 func GetTestMariadbConfig(host string, port int) *mariadb.MariadbDatabase {
 	testDbName := "testdb"
 	return &mariadb.MariadbDatabase{
-		Version:  tools.MariadbVersion1011,
+		Version:  mariadb_engine.Version1011,
 		Host:     host,
 		Port:     port,
 		Username: "testuser",
@@ -229,7 +231,7 @@ func GetTestMariadbConfig(host string, port int) *mariadb.MariadbDatabase {
 func GetTestMysqlConfig(host string, port int) *mysql.MysqlDatabase {
 	testDbName := "testdb"
 	return &mysql.MysqlDatabase{
-		Version:  tools.MysqlVersion80,
+		Version:  mysql_engine.Version80,
 		Host:     host,
 		Port:     port,
 		Username: "testuser",
@@ -243,7 +245,7 @@ func GetTestMysqlConfig(host string, port int) *mysql.MysqlDatabase {
 // keeping this file free of the testcontainers dependency.
 func GetTestMongodbConfig(host string, port int) *mongodb.MongodbDatabase {
 	return &mongodb.MongodbDatabase{
-		Version:      tools.MongodbVersion7,
+		Version:      mongodb_engine.Version7,
 		Host:         host,
 		Port:         &port,
 		Username:     "root",

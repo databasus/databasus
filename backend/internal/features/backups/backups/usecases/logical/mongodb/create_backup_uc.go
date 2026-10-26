@@ -14,6 +14,7 @@ import (
 	"github.com/google/uuid"
 
 	"databasus-backend/internal/config"
+	mongodb_engine "databasus-backend/internal/engines/mongodb"
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	backup_encryption "databasus-backend/internal/features/backups/backups/encryption"
@@ -21,10 +22,9 @@ import (
 	"databasus-backend/internal/features/databases"
 	mongodbtypes "databasus-backend/internal/features/databases/databases/mongodb"
 	"databasus-backend/internal/lib/crypto"
+	"databasus-backend/internal/lib/namelist"
 	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/util/encryption"
-	"databasus-backend/internal/util/namelist"
-	"databasus-backend/internal/util/tools"
 )
 
 const (
@@ -93,7 +93,11 @@ func (uc *CreateMongodbBackupUsecase) Execute(
 		ctx,
 		backup,
 		backupConfig,
-		tools.GetMongodbExecutable(tools.MongodbExecutableMongodump),
+		mongodb_engine.ClientTools{
+			Root: config.GetEnv().ClientToolsDir,
+		}.GetExecutable(
+			mongodb_engine.ExecutableMongodump,
+		),
 		args,
 		fileStore,
 		backupProgressListener,

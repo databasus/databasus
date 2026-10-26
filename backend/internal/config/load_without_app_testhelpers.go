@@ -12,6 +12,7 @@ import (
 
 	"github.com/caarlos0/env/v11"
 
+	"databasus-backend/internal/engines/clienttools"
 	lib_config "databasus-backend/internal/lib/config"
 	"databasus-backend/internal/lib/testdb"
 )
@@ -52,6 +53,16 @@ func loadWithoutApp() *EnvVariables {
 	}
 
 	requireTestSettings(&testEnv)
+
+	workingDir, err := os.Getwd()
+	if err != nil {
+		panic(fmt.Sprintf("read the working directory: %v", err))
+	}
+
+	testEnv.ClientToolsDir, err = clienttools.FindBundleRoot(workingDir)
+	if err != nil {
+		panic(fmt.Sprintf("find the client tool bundles: %v", err))
+	}
 
 	testEnv.DatabaseDsn = testEnv.TestDatabaseDsn
 
