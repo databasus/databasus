@@ -14,9 +14,9 @@ import {
 import {
   type Database,
   DatabaseType,
-  Period,
+  changeDatabaseType,
+  createDefaultDatabaseSettings,
   databaseApi,
-  initializeDatabaseTypeData,
   isPostgresType,
 } from '../../../entity/databases';
 import { translateApiError } from '../../../shared/i18n';
@@ -36,20 +36,14 @@ interface Props {
   onWideStepChange?: (isWideStep: boolean) => void;
 }
 
-const createInitialDatabase = (workspaceId: string): Database =>
-  ({
-    id: undefined as unknown as string,
-    name: '',
-    workspaceId,
-    storePeriod: Period.MONTH,
-
-    type: DatabaseType.POSTGRES_LOGICAL,
-
-    storage: {} as unknown as Storage,
-
-    notifiers: [],
-    sendNotificationsOn: [],
-  }) as Database;
+// The wizard fills a Database before it exists; an empty ID marks it as not created yet.
+const createInitialDatabase = (workspaceId: string): Database => ({
+  id: '',
+  name: '',
+  workspaceId,
+  settings: createDefaultDatabaseSettings(DatabaseType.POSTGRES_LOGICAL),
+  notifierIds: [],
+});
 
 export const CreateDatabaseComponent = ({
   workspaceId,
@@ -70,18 +64,18 @@ export const CreateDatabaseComponent = ({
     | 'base-info'
     | 'postgres-backup-type'
     | 'db-settings'
-    | 'create-readonly-user'
+    | 'create-limited-user'
     | 'backup-config'
     | 'notifiers'
   >('base-info');
 
-  const isPhysical = database.type === DatabaseType.POSTGRES_PHYSICAL;
-  const isPostgres = isPostgresType(database.type);
+  const isPhysical = database.settings.type === DatabaseType.POSTGRES_PHYSICAL;
+  const isPostgres = isPostgresType(database.settings.type);
 
   // The read-only user step explains its choice in long sentences and puts three buttons in one
   // row, which the narrow wizard width cannot hold.
   useEffect(() => {
-    onWideStepChange?.(step === 'create-readonly-user');
+    onWideStepChange?.(step === 'create-limited-user');
   }, [step]);
 
   const createDatabase = async (database: Database) => {
@@ -129,9 +123,8 @@ export const CreateDatabaseComponent = ({
           saveButtonText={t('common.actions.continue')}
           onCancel={() => onClose()}
           onSaved={(db) => {
-            const initializedDb = initializeDatabaseTypeData(db);
-            setDatabase({ ...initializedDb });
-            setStep(isPostgresType(db.type) ? 'postgres-backup-type' : 'db-settings');
+            setDatabase(db);
+            setStep(isPostgresType(db.settings.type) ? 'postgres-backup-type' : 'db-settings');
           }}
         />
       </div>
@@ -145,8 +138,7 @@ export const CreateDatabaseComponent = ({
         saveButtonText={t('common.actions.continue')}
         onBack={() => setStep('base-info')}
         onSelected={(type) => {
-          const initializedDb = initializeDatabaseTypeData({ ...database, type });
-          setDatabase({ ...initializedDb });
+          setDatabase(changeDatabaseType(database, type));
           setStep('db-settings');
         }}
       />
@@ -166,13 +158,13 @@ export const CreateDatabaseComponent = ({
         onConnectionErrorChange={onConnectionErrorChange}
         onSaved={(database) => {
           setDatabase({ ...database });
-          setStep('create-readonly-user');
+          setStep('create-limited-user');
         }}
       />
     );
   }
 
-  if (step === 'create-readonly-user') {
+  if (step === 'create-limited-user') {
     return (
       <CreateReadOnlyComponent
         database={database}

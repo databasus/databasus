@@ -15,11 +15,12 @@ import (
 	physical_repositories "databasus-backend/internal/features/backups/backups/core/physical/repositories"
 	physical_service "databasus-backend/internal/features/backups/backups/core/physical/service"
 	physical_testing "databasus-backend/internal/features/backups/backups/core/physical/testing"
-	"databasus-backend/internal/features/databases"
+	databases_bridge "databasus-backend/internal/features/databases"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	storages_bridge "databasus-backend/internal/features/storages"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
+	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/storage"
@@ -35,7 +36,7 @@ const (
 
 type serviceTestPrereqs struct {
 	storage  storages.Storage
-	database *databases.Database
+	database databases.Database
 }
 
 func createServiceTestPrereqs(t *testing.T) *serviceTestPrereqs {
@@ -45,11 +46,11 @@ func createServiceTestPrereqs(t *testing.T) *serviceTestPrereqs {
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Phys Service "+uuid.NewString(), user)
 	storage := storages_bridge.CreateTestStorage(workspace.ID)
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
-	database := databases.CreateTestPhysicalPostgresDatabase(workspace.ID, notifier, "17")
+	database := databases_bridge.CreateTestPhysicalPostgresDatabase(workspace.ID, notifier, "17")
 
 	t.Cleanup(func() {
 		physical_testing.DeleteAllPhysicalCatalogForDatabase(t, database.ID)
-		databases.RemoveTestDatabase(t.Context(), database)
+		databases_bridge.RemoveTestDatabase(t.Context(), database)
 		notifiers_bridge.RemoveTestNotifier(notifier)
 		storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 	})
@@ -654,154 +655,7 @@ func Test_DeleteChainDependentsKeepFull_DropsIncrAndWalKeepsFull(t *testing.T) {
 
 // --- Last backup time ---
 
-func Test_GetLastBackupTimesByDatabaseIDs_WhenWalIsNewest_ReturnsWalReceivedAt(t *testing.T) {
-	prereqs := createServiceTestPrereqs(t)
-	databaseID := prereqs.database.ID
-	storageID := prereqs.storage.ID
-	service := physical_service.GetPhysicalBackupService()
-
-	base := time.Now().UTC().Add(-time.Hour)
-
-	fullModel := physical_testing.NewTestCompletedFullBackup(databaseID, storageID, 1, lsn(0), lsn(1))
-	fullModel.CreatedAt = base
-	fullModel.CompletedAt = new(base)
-	physical_testing.CreateTestFullBackup(t, fullModel)
-
-	incrModel := physical_testing.NewTestCompletedIncrementalBackup(
-		databaseID, storageID, fullModel.ID, nil, 1, lsn(1), lsn(2))
-	incrModel.CreatedAt = base.Add(10 * time.Minute)
-	physical_testing.CreateTestIncrementalBackup(t, incrModel)
-
-	walModel := physical_testing.NewTestWalSegment(
-		databaseID, storageID, 1, "000000010000000000000001", lsn(1), lsn(2))
-	walModel.ReceivedAt = base.Add(20 * time.Minute)
-	physical_testing.CreateTestWalSegment(t, walModel)
-
-	lastBackupTimes, err := service.GetLastBackupTimesByDatabaseIDs([]uuid.UUID{databaseID})
-	require.NoError(t, err)
-
-	assert.WithinDuration(t, walModel.ReceivedAt, lastBackupTimes[databaseID], time.Second)
-}
-
-func Test_GetLastBackupTimesByDatabaseIDs_WhenFullIsNewest_ReturnsFullCreatedAt(t *testing.T) {
-	prereqs := createServiceTestPrereqs(t)
-	databaseID := prereqs.database.ID
-	storageID := prereqs.storage.ID
-	service := physical_service.GetPhysicalBackupService()
-
-	base := time.Now().UTC().Add(-time.Hour)
-
-	walModel := physical_testing.NewTestWalSegment(
-		databaseID, storageID, 1, "000000010000000000000001", lsn(1), lsn(2))
-	walModel.ReceivedAt = base
-	physical_testing.CreateTestWalSegment(t, walModel)
-
-	fullModel := physical_testing.NewTestCompletedFullBackup(databaseID, storageID, 1, lsn(2), lsn(3))
-	fullModel.CreatedAt = base.Add(20 * time.Minute)
-	fullModel.CompletedAt = new(base.Add(20 * time.Minute))
-	physical_testing.CreateTestFullBackup(t, fullModel)
-
-	lastBackupTimes, err := service.GetLastBackupTimesByDatabaseIDs([]uuid.UUID{databaseID})
-	require.NoError(t, err)
-
-	assert.WithinDuration(t, fullModel.CreatedAt, lastBackupTimes[databaseID], time.Second)
-}
-
-func Test_GetLastBackupTimesByDatabaseIDs_WhenIncrementalIsNewest_ReturnsIncrementalCreatedAt(t *testing.T) {
-	prereqs := createServiceTestPrereqs(t)
-	databaseID := prereqs.database.ID
-	storageID := prereqs.storage.ID
-	service := physical_service.GetPhysicalBackupService()
-
-	base := time.Now().UTC().Add(-time.Hour)
-
-	fullModel := physical_testing.NewTestCompletedFullBackup(databaseID, storageID, 1, lsn(0), lsn(1))
-	fullModel.CreatedAt = base
-	fullModel.CompletedAt = new(base)
-	physical_testing.CreateTestFullBackup(t, fullModel)
-
-	incrModel := physical_testing.NewTestCompletedIncrementalBackup(
-		databaseID, storageID, fullModel.ID, nil, 1, lsn(1), lsn(2))
-	incrModel.CreatedAt = base.Add(30 * time.Minute)
-	physical_testing.CreateTestIncrementalBackup(t, incrModel)
-
-	lastBackupTimes, err := service.GetLastBackupTimesByDatabaseIDs([]uuid.UUID{databaseID})
-	require.NoError(t, err)
-
-	assert.WithinDuration(t, incrModel.CreatedAt, lastBackupTimes[databaseID], time.Second)
-}
-
-func Test_GetLastBackupTimesByDatabaseIDs_IgnoresNonCompletedFullIncr(t *testing.T) {
-	prereqs := createServiceTestPrereqs(t)
-	databaseID := prereqs.database.ID
-	storageID := prereqs.storage.ID
-	service := physical_service.GetPhysicalBackupService()
-
-	base := time.Now().UTC().Add(-time.Hour)
-
-	completedFull := physical_testing.NewTestCompletedFullBackup(databaseID, storageID, 1, lsn(0), lsn(1))
-	completedFull.CreatedAt = base
-	completedFull.CompletedAt = new(base)
-	physical_testing.CreateTestFullBackup(t, completedFull)
-
-	// A newer IN_PROGRESS full must not count as the last successful backup.
-	inProgressFull := physical_testing.NewTestInProgressFullBackup(databaseID, storageID, 1)
-	inProgressFull.CreatedAt = base.Add(40 * time.Minute)
-	physical_testing.CreateTestFullBackup(t, inProgressFull)
-
-	lastBackupTimes, err := service.GetLastBackupTimesByDatabaseIDs([]uuid.UUID{databaseID})
-	require.NoError(t, err)
-
-	assert.WithinDuration(t, completedFull.CreatedAt, lastBackupTimes[databaseID], time.Second)
-}
-
-func Test_GetLastBackupTimesByDatabaseIDs_NoBackups_OmitsDatabase(t *testing.T) {
-	prereqs := createServiceTestPrereqs(t)
-	service := physical_service.GetPhysicalBackupService()
-
-	lastBackupTimes, err := service.GetLastBackupTimesByDatabaseIDs([]uuid.UUID{prereqs.database.ID})
-	require.NoError(t, err)
-
-	_, hasBackup := lastBackupTimes[prereqs.database.ID]
-	assert.False(t, hasBackup, "a database with no backups must be absent from the map")
-}
-
-func Test_GetLastBackupTimesByDatabaseIDs_MultipleDatabases_KeyedPerDatabase(t *testing.T) {
-	first := createServiceTestPrereqs(t)
-	second := createServiceTestPrereqs(t)
-	service := physical_service.GetPhysicalBackupService()
-
-	base := time.Now().UTC().Add(-time.Hour)
-
-	firstFull := physical_testing.NewTestCompletedFullBackup(first.database.ID, first.storage.ID, 1, lsn(0), lsn(1))
-	firstFull.CreatedAt = base
-	firstFull.CompletedAt = new(base)
-	physical_testing.CreateTestFullBackup(t, firstFull)
-
-	secondFull := physical_testing.NewTestCompletedFullBackup(second.database.ID, second.storage.ID, 1, lsn(0), lsn(1))
-	secondFull.CreatedAt = base.Add(25 * time.Minute)
-	secondFull.CompletedAt = new(base.Add(25 * time.Minute))
-	physical_testing.CreateTestFullBackup(t, secondFull)
-
-	lastBackupTimes, err := service.GetLastBackupTimesByDatabaseIDs(
-		[]uuid.UUID{first.database.ID, second.database.ID})
-	require.NoError(t, err)
-
-	assert.WithinDuration(t, firstFull.CreatedAt, lastBackupTimes[first.database.ID], time.Second)
-	assert.WithinDuration(t, secondFull.CreatedAt, lastBackupTimes[second.database.ID], time.Second)
-}
-
-func Test_GetLastBackupTimesByDatabaseIDs_EmptyInput_ReturnsEmptyMap(t *testing.T) {
-	service := physical_service.GetPhysicalBackupService()
-
-	lastBackupTimes, err := service.GetLastBackupTimesByDatabaseIDs(nil)
-	require.NoError(t, err)
-
-	assert.NotNil(t, lastBackupTimes)
-	assert.Empty(t, lastBackupTimes)
-}
-
-func Test_OnBeforeDatabaseRemove_HandsEveryPhysicalArtifactBackToCleanup(t *testing.T) {
+func Test_OnDatabaseDeleting_HandsEveryPhysicalArtifactBackToCleanup(t *testing.T) {
 	prereqs := createServiceTestPrereqs(t)
 	databaseID := prereqs.database.ID
 	storageID := prereqs.storage.ID
@@ -819,10 +673,9 @@ func Test_OnBeforeDatabaseRemove_HandsEveryPhysicalArtifactBackToCleanup(t *test
 		saveObject(t, prereqs.storage, name)
 	}
 
-	// Every physical table cascades on databases.id, so this listener is the last
-	// moment the names exist anywhere.
-	require.NoError(t,
-		physical_service.GetPhysicalBackupService().OnBeforeDatabaseRemove(t.Context(), databaseID))
+	require.NoError(t, physical_service.GetPhysicalBackupService().OnDatabaseDeleting(
+		t.Context(), databases.DatabaseDeleting{DatabaseID: databaseID},
+	))
 
 	references := make([]storages.StoredFileReference, 0, len(names))
 	for _, name := range names {

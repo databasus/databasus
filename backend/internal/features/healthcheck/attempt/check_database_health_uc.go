@@ -10,15 +10,15 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"databasus-backend/internal/features/databases"
 	healthcheck_config "databasus-backend/internal/features/healthcheck/config"
+	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/notifiers"
 )
 
 type CheckDatabaseHealthUseCase struct {
 	healthcheckAttemptRepository *HealthcheckAttemptRepository
 	healthcheckAttemptSender     HealthcheckAttemptSender
-	databaseService              DatabaseService
+	databases                    HealthcheckedDatabases
 }
 
 func (uc *CheckDatabaseHealthUseCase) Execute(
@@ -27,7 +27,7 @@ func (uc *CheckDatabaseHealthUseCase) Execute(
 	now time.Time,
 	healthcheckConfig *healthcheck_config.HealthcheckConfig,
 ) error {
-	database, err := uc.databaseService.GetDatabaseByID(healthcheckConfig.DatabaseID)
+	database, err := uc.databases.GetDatabaseByID(ctx, healthcheckConfig.DatabaseID)
 	if err != nil {
 		return err
 	}
@@ -77,7 +77,7 @@ func (uc *CheckDatabaseHealthUseCase) Execute(
 
 func (uc *CheckDatabaseHealthUseCase) updateDatabaseHealthStatusIfChanged(
 	ctx context.Context,
-	database *databases.Database,
+	database databases.Database,
 	healthcheckConfig *healthcheck_config.HealthcheckConfig,
 	healthcheckAttempt *HealthcheckAttempt,
 ) error {
@@ -88,10 +88,7 @@ func (uc *CheckDatabaseHealthUseCase) updateDatabaseHealthStatusIfChanged(
 	if (database.HealthStatus == nil ||
 		*database.HealthStatus == databases.HealthStatusUnavailable) &&
 		healthcheckAttempt.Status == databases.HealthStatusAvailable {
-		err := uc.databaseService.SetHealthStatus(
-			database.ID,
-			&healthcheckAttempt.Status,
-		)
+		err := uc.databases.SetHealthStatus(ctx, database.ID, &healthcheckAttempt.Status)
 		if err != nil {
 			return err
 		}
@@ -126,10 +123,7 @@ func (uc *CheckDatabaseHealthUseCase) updateDatabaseHealthStatusIfChanged(
 			}
 		}
 
-		err := uc.databaseService.SetHealthStatus(
-			database.ID,
-			&healthcheckAttempt.Status,
-		)
+		err := uc.databases.SetHealthStatus(ctx, database.ID, &healthcheckAttempt.Status)
 		if err != nil {
 			return err
 		}
@@ -148,13 +142,13 @@ func (uc *CheckDatabaseHealthUseCase) healthcheckDatabase(
 	ctx context.Context,
 	logger *slog.Logger,
 	now time.Time,
-	database *databases.Database,
+	database databases.Database,
 ) (*HealthcheckAttempt, error) {
 	healthStatus := databases.HealthStatusAvailable
 
 	// A database being down is the condition this probe exists to detect, and the caller reports it
 	// too, so it is a tolerated finding here rather than something needing attention.
-	if err := uc.databaseService.ProbeDatabaseLiveness(ctx, database); err != nil {
+	if err := uc.databases.ProbeLiveness(ctx, database.ID); err != nil {
 		healthStatus = databases.HealthStatusUnavailable
 
 		logger.WarnContext(ctx, "database healthcheck probe failed", "error", err)
@@ -172,7 +166,7 @@ func (uc *CheckDatabaseHealthUseCase) healthcheckDatabase(
 
 func (uc *CheckDatabaseHealthUseCase) isReadyForNewAttempt(
 	now time.Time,
-	database *databases.Database,
+	database databases.Database,
 	healthcheckConfig *healthcheck_config.HealthcheckConfig,
 ) (bool, error) {
 	lastHealthcheckAttempt, err := uc.healthcheckAttemptRepository.FindLastByDatabaseID(database.ID)
@@ -195,7 +189,7 @@ func (uc *CheckDatabaseHealthUseCase) isReadyForNewAttempt(
 func (uc *CheckDatabaseHealthUseCase) sendDbStatusNotification(
 	ctx context.Context,
 	healthcheckConfig *healthcheck_config.HealthcheckConfig,
-	database *databases.Database,
+	database databases.Database,
 	newHealthStatus databases.HealthStatus,
 ) {
 	if !healthcheckConfig.IsSentNotificationWhenUnavailable {
@@ -216,5 +210,5 @@ func (uc *CheckDatabaseHealthUseCase) sendDbStatusNotification(
 		}
 	}
 
-	uc.healthcheckAttemptSender.Notify(ctx, database.GetNotifierIDs(), notification)
+	uc.healthcheckAttemptSender.Notify(ctx, database.NotifierIDs, notification)
 }

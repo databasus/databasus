@@ -6,6 +6,7 @@ import { Trans, useTranslation } from 'react-i18next';
 import {
   DATABASE_TYPE_LABEL_KEYS,
   type Database,
+  type MongodbSettings,
   DatabaseType,
   databaseApi,
   disableSrvWhenTunneled,
@@ -27,9 +28,11 @@ import {
   ClipboardPasteModalComponent,
 } from '../../../../shared/ui';
 import { EditSshTunnelComponent } from './EditSshTunnelComponent';
+import { toDatabaseSettingsTarget } from './toDatabaseSettingsTarget';
 
 interface Props {
   database: Database;
+  settings: MongodbSettings;
 
   isShowCancelButton?: boolean;
   onCancel: () => void;
@@ -46,6 +49,7 @@ interface Props {
 
 export const EditMongoDbSpecificDataComponent = ({
   database,
+  settings,
 
   isShowCancelButton,
   onCancel,
@@ -62,7 +66,7 @@ export const EditMongoDbSpecificDataComponent = ({
   const { locale } = useLocale();
   const { message } = App.useApp();
 
-  const [editingDatabase, setEditingDatabase] = useState<Database>();
+  const [editingSettings, setEditingSettings] = useState<MongodbSettings>(settings);
   const [isSaving, setIsSaving] = useState(false);
 
   const [isConnectionTested, setIsConnectionTested] = useState(false);
@@ -70,11 +74,11 @@ export const EditMongoDbSpecificDataComponent = ({
   const [isConnectionFailed, setIsConnectionFailed] = useState(false);
 
   const hasAdvancedValues =
-    !!database.mongodb?.authDatabase ||
-    !!database.mongodb?.isSrv ||
-    !!database.mongodb?.isDirectConnection ||
-    !!database.mongodb?.excludeCollections?.length ||
-    !!database.mongodb?.sshTunnel?.isEnabled;
+    !!settings.authDatabase ||
+    !!settings.isSrv ||
+    !!settings.isDirectConnection ||
+    !!settings.excludeCollections?.length ||
+    !!settings.sshTunnel?.isEnabled;
   const [isShowAdvanced, setShowAdvanced] = useState(hasAdvancedValues);
 
   const [isShowPasteModal, setIsShowPasteModal] = useState(false);
@@ -94,30 +98,25 @@ export const EditMongoDbSpecificDataComponent = ({
       return;
     }
 
-    if (!editingDatabase?.mongodb) return;
-
-    const updatedDatabase: Database = {
-      ...editingDatabase,
-      mongodb: disableSrvWhenTunneled({
-        ...editingDatabase.mongodb,
-        host: result.host,
-        port: result.port,
-        username: result.username,
-        password: result.password || '',
-        database: result.database,
-        authDatabase: result.authDatabase,
-        isHttps: result.useTls,
-        isSrv: result.isSrv,
-        isDirectConnection: result.isDirectConnection,
-        cpuCount: 1,
-      }),
-    };
+    const updatedSettings: MongodbSettings = disableSrvWhenTunneled({
+      ...editingSettings,
+      host: result.host,
+      port: result.port,
+      username: result.username,
+      password: result.password || '',
+      database: result.database,
+      authDatabase: result.authDatabase,
+      isHttps: result.useTls,
+      isSrv: result.isSrv,
+      isDirectConnection: result.isDirectConnection,
+      cpuCount: 1,
+    });
 
     if (result.isSrv || result.isDirectConnection) {
       setShowAdvanced(true);
     }
 
-    setEditingDatabase(updatedDatabase);
+    setEditingSettings(updatedSettings);
     setIsConnectionTested(false);
 
     if (!result.password) {
@@ -142,27 +141,25 @@ export const EditMongoDbSpecificDataComponent = ({
   };
 
   const testConnection = async () => {
-    if (!editingDatabase?.mongodb) return;
     setIsTestingConnection(true);
     setIsConnectionFailed(false);
 
-    const trimmedDatabase = {
-      ...editingDatabase,
-      mongodb: {
-        ...editingDatabase.mongodb,
-        password: editingDatabase.mongodb.password?.trim(),
-      },
-    };
-
     try {
-      await databaseApi.testDatabaseConnectionDirect(trimmedDatabase);
-      setIsConnectionTested(true);
-      ToastHelper.showToast({
-        title: t('databases.edit.connectionTestPassed.title'),
-        description: t('databases.edit.connectionTestPassed.description'),
-      });
+      const testResult = await databaseApi.testDatabaseSettings(
+        toDatabaseSettingsTarget(database, editingSettings),
+      );
+
+      if (testResult.isConnected) {
+        setIsConnectionTested(true);
+        ToastHelper.showToast({
+          title: t('databases.edit.connectionTestPassed.title'),
+          description: t('databases.edit.connectionTestPassed.description'),
+        });
+      } else {
+        setIsConnectionFailed(true);
+        alert(t('databases.edit.connectionTestFailed', { error: testResult.error }));
+      }
     } catch (e) {
-      setIsConnectionFailed(true);
       alert(translateApiError(e, t));
     }
 
@@ -170,29 +167,22 @@ export const EditMongoDbSpecificDataComponent = ({
   };
 
   const saveDatabase = async () => {
-    if (!editingDatabase?.mongodb) return;
+    const editedDatabase: Database = { ...database, settings: editingSettings };
 
-    const trimmedDatabase = {
-      ...editingDatabase,
-      mongodb: {
-        ...editingDatabase.mongodb,
-        password: editingDatabase.mongodb.password?.trim(),
-      },
-    };
-
-    if (isSaveToApi) {
-      setIsSaving(true);
-
-      try {
-        await databaseApi.updateDatabase(trimmedDatabase);
-      } catch (e) {
-        alert(translateApiError(e, t));
-      }
-
-      setIsSaving(false);
+    if (!isSaveToApi) {
+      onSaved(editedDatabase);
+      return;
     }
 
-    onSaved(trimmedDatabase);
+    setIsSaving(true);
+
+    try {
+      onSaved(await databaseApi.updateDatabase(database.id, editedDatabase));
+    } catch (e) {
+      alert(translateApiError(e, t));
+    }
+
+    setIsSaving(false);
   };
 
   useEffect(() => {
@@ -201,38 +191,35 @@ export const EditMongoDbSpecificDataComponent = ({
     setIsTestingConnection(false);
     setIsConnectionFailed(false);
 
-    setEditingDatabase({ ...database });
-  }, [database]);
-
-  if (!editingDatabase) return null;
+    setEditingSettings(settings);
+  }, [settings]);
 
   const engineName = t(DATABASE_TYPE_LABEL_KEYS[DatabaseType.MONGODB]);
 
-  const isSrvConnection = editingDatabase.mongodb?.isSrv || false;
+  const isSrvConnection = editingSettings.isSrv || false;
 
   const hasStoredSshSecrets = hasStoredSshTunnelSecretsForAuthType(
-    database.mongodb?.sshTunnel,
-    editingDatabase.mongodb?.sshTunnel?.authType,
+    settings.sshTunnel,
+    editingSettings.sshTunnel?.authType,
     database.id,
   );
 
   let isAllFieldsFilled = true;
-  if (!editingDatabase.mongodb?.host) isAllFieldsFilled = false;
-  if (!isSrvConnection && !editingDatabase.mongodb?.port) isAllFieldsFilled = false;
-  if (!editingDatabase.mongodb?.username) isAllFieldsFilled = false;
-  if (!editingDatabase.id && !editingDatabase.mongodb?.password) isAllFieldsFilled = false;
-  if (!editingDatabase.mongodb?.database) isAllFieldsFilled = false;
+  if (!editingSettings.host) isAllFieldsFilled = false;
+  if (!isSrvConnection && !editingSettings.port) isAllFieldsFilled = false;
+  if (!editingSettings.username) isAllFieldsFilled = false;
+  if (!database.id && !editingSettings.password) isAllFieldsFilled = false;
+  if (!editingSettings.database) isAllFieldsFilled = false;
 
-  if (!isSshTunnelReadyToTest(editingDatabase.mongodb?.sshTunnel, hasStoredSshSecrets))
+  if (!isSshTunnelReadyToTest(editingSettings.sshTunnel, hasStoredSshSecrets))
     isAllFieldsFilled = false;
 
   // Behind a bastion a loopback address names the database as the bastion sees it, so the hint
   // about reaching a local database would be wrong.
-  const isTunnelEnabled = !!editingDatabase.mongodb?.sshTunnel?.isEnabled;
+  const isTunnelEnabled = !!editingSettings.sshTunnel?.isEnabled;
   const isLocalhostDb =
     !isTunnelEnabled &&
-    (editingDatabase.mongodb?.host?.includes('localhost') ||
-      editingDatabase.mongodb?.host?.includes('127.0.0.1'));
+    (editingSettings.host?.includes('localhost') || editingSettings.host?.includes('127.0.0.1'));
 
   return (
     <div>
@@ -250,16 +237,11 @@ export const EditMongoDbSpecificDataComponent = ({
       <div className="mb-1 flex w-full items-center">
         <div className="min-w-[150px] pr-2">{t('common.fields.host')}</div>
         <Input
-          value={editingDatabase.mongodb?.host}
+          value={editingSettings.host}
           onChange={(e) => {
-            if (!editingDatabase.mongodb) return;
-
-            setEditingDatabase({
-              ...editingDatabase,
-              mongodb: {
-                ...editingDatabase.mongodb,
-                host: e.target.value.trim().replace('https://', '').replace('http://', ''),
-              },
+            setEditingSettings({
+              ...editingSettings,
+              host: e.target.value.trim().replace('https://', '').replace('http://', ''),
             });
             setIsConnectionTested(false);
           }}
@@ -295,14 +277,11 @@ export const EditMongoDbSpecificDataComponent = ({
           <div className="min-w-[150px] pr-2">{t('common.fields.port')}</div>
           <InputNumber
             type="number"
-            value={editingDatabase.mongodb?.port}
+            value={editingSettings.port}
             onChange={(e) => {
-              if (!editingDatabase.mongodb || e === null) return;
+              if (e === null) return;
 
-              setEditingDatabase({
-                ...editingDatabase,
-                mongodb: { ...editingDatabase.mongodb, port: e },
-              });
+              setEditingSettings({ ...editingSettings, port: e });
               setIsConnectionTested(false);
             }}
             size="small"
@@ -315,14 +294,9 @@ export const EditMongoDbSpecificDataComponent = ({
       <div className="mb-1 flex w-full items-center">
         <div className="min-w-[150px] pr-2">{t('common.fields.username')}</div>
         <Input
-          value={editingDatabase.mongodb?.username}
+          value={editingSettings.username}
           onChange={(e) => {
-            if (!editingDatabase.mongodb) return;
-
-            setEditingDatabase({
-              ...editingDatabase,
-              mongodb: { ...editingDatabase.mongodb, username: e.target.value.trim() },
-            });
+            setEditingSettings({ ...editingSettings, username: e.target.value.trim() });
             setIsConnectionTested(false);
           }}
           size="small"
@@ -334,14 +308,9 @@ export const EditMongoDbSpecificDataComponent = ({
       <div className="mb-1 flex w-full items-center">
         <div className="min-w-[150px] pr-2">{t('common.fields.password')}</div>
         <Input.Password
-          value={editingDatabase.mongodb?.password}
+          value={editingSettings.password}
           onChange={(e) => {
-            if (!editingDatabase.mongodb) return;
-
-            setEditingDatabase({
-              ...editingDatabase,
-              mongodb: { ...editingDatabase.mongodb, password: e.target.value },
-            });
+            setEditingSettings({ ...editingSettings, password: e.target.value });
             setIsConnectionTested(false);
           }}
           size="small"
@@ -358,14 +327,9 @@ export const EditMongoDbSpecificDataComponent = ({
         <div className="mb-1 flex w-full items-center">
           <div className="min-w-[150px] pr-2">{t('databases.fields.databaseName')}</div>
           <Input
-            value={editingDatabase.mongodb?.database}
+            value={editingSettings.database}
             onChange={(e) => {
-              if (!editingDatabase.mongodb) return;
-
-              setEditingDatabase({
-                ...editingDatabase,
-                mongodb: { ...editingDatabase.mongodb, database: e.target.value.trim() },
-              });
+              setEditingSettings({ ...editingSettings, database: e.target.value.trim() });
               setIsConnectionTested(false);
             }}
             size="small"
@@ -378,14 +342,9 @@ export const EditMongoDbSpecificDataComponent = ({
       <div className="mb-1 flex w-full items-center">
         <div className="min-w-[150px] pr-2">{t('databases.fields.useHttps')}</div>
         <Switch
-          checked={editingDatabase.mongodb?.isHttps}
+          checked={editingSettings.isHttps}
           onChange={(checked) => {
-            if (!editingDatabase.mongodb) return;
-
-            setEditingDatabase({
-              ...editingDatabase,
-              mongodb: { ...editingDatabase.mongodb, isHttps: checked },
-            });
+            setEditingSettings({ ...editingSettings, isHttps: checked });
             setIsConnectionTested(false);
           }}
           size="small"
@@ -398,14 +357,9 @@ export const EditMongoDbSpecificDataComponent = ({
           <InputNumber
             min={1}
             max={16}
-            value={editingDatabase.mongodb?.cpuCount}
+            value={editingSettings.cpuCount}
             onChange={(value) => {
-              if (!editingDatabase.mongodb) return;
-
-              setEditingDatabase({
-                ...editingDatabase,
-                mongodb: { ...editingDatabase.mongodb, cpuCount: value || 1 },
-              });
+              setEditingSettings({ ...editingSettings, cpuCount: value || 1 });
               setIsConnectionTested(false);
             }}
             size="small"
@@ -427,15 +381,10 @@ export const EditMongoDbSpecificDataComponent = ({
       {isShowAdvanced && (
         <>
           <EditSshTunnelComponent
-            sshTunnel={editingDatabase.mongodb?.sshTunnel}
+            sshTunnel={editingSettings.sshTunnel}
             hasStoredSecrets={hasStoredSshSecrets}
             onChange={(sshTunnel) => {
-              if (!editingDatabase.mongodb) return;
-
-              setEditingDatabase({
-                ...editingDatabase,
-                mongodb: disableSrvWhenTunneled({ ...editingDatabase.mongodb, sshTunnel }),
-              });
+              setEditingSettings(disableSrvWhenTunneled({ ...editingSettings, sshTunnel }));
               setIsConnectionTested(false);
             }}
           />
@@ -444,15 +393,10 @@ export const EditMongoDbSpecificDataComponent = ({
             <div className="min-w-[150px] pr-2">{t('databases.fields.useSrvConnection')}</div>
             <div className="flex items-center">
               <Switch
-                checked={editingDatabase.mongodb?.isSrv || false}
+                checked={editingSettings.isSrv || false}
                 disabled={isTunnelEnabled}
                 onChange={(checked) => {
-                  if (!editingDatabase.mongodb) return;
-
-                  setEditingDatabase({
-                    ...editingDatabase,
-                    mongodb: { ...editingDatabase.mongodb, isSrv: checked },
-                  });
+                  setEditingSettings({ ...editingSettings, isSrv: checked });
                   setIsConnectionTested(false);
                 }}
                 size="small"
@@ -476,15 +420,10 @@ export const EditMongoDbSpecificDataComponent = ({
               {/* Shown as on but never written: the backend forces it per connection, so the
                   stored value still applies once the tunnel is switched off. */}
               <Switch
-                checked={isTunnelEnabled || editingDatabase.mongodb?.isDirectConnection || false}
+                checked={isTunnelEnabled || editingSettings.isDirectConnection || false}
                 disabled={isTunnelEnabled}
                 onChange={(checked) => {
-                  if (!editingDatabase.mongodb) return;
-
-                  setEditingDatabase({
-                    ...editingDatabase,
-                    mongodb: { ...editingDatabase.mongodb, isDirectConnection: checked },
-                  });
+                  setEditingSettings({ ...editingSettings, isDirectConnection: checked });
                   setIsConnectionTested(false);
                 }}
                 size="small"
@@ -505,14 +444,9 @@ export const EditMongoDbSpecificDataComponent = ({
           <div className="mb-1 flex w-full items-center">
             <div className="min-w-[150px] pr-2">{t('databases.fields.authDatabase')}</div>
             <Input
-              value={editingDatabase.mongodb?.authDatabase}
+              value={editingSettings.authDatabase}
               onChange={(e) => {
-                if (!editingDatabase.mongodb) return;
-
-                setEditingDatabase({
-                  ...editingDatabase,
-                  mongodb: { ...editingDatabase.mongodb, authDatabase: e.target.value.trim() },
-                });
+                setEditingSettings({ ...editingSettings, authDatabase: e.target.value.trim() });
                 setIsConnectionTested(false);
               }}
               size="small"
@@ -526,16 +460,11 @@ export const EditMongoDbSpecificDataComponent = ({
             <div className="min-w-[150px] pr-2">{t('databases.fields.excludeCollections')}</div>
             <Select
               mode="tags"
-              value={editingDatabase.mongodb?.excludeCollections || []}
+              value={editingSettings.excludeCollections || []}
               onChange={(values) => {
-                if (!editingDatabase.mongodb) return;
-
-                setEditingDatabase({
-                  ...editingDatabase,
-                  mongodb: {
-                    ...editingDatabase.mongodb,
-                    excludeCollections: normalizeNameList(values),
-                  },
+                setEditingSettings({
+                  ...editingSettings,
+                  excludeCollections: normalizeNameList(values),
                 });
               }}
               size="small"

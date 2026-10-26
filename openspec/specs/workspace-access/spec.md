@@ -10,12 +10,12 @@ Defines who may see and change a workspace and what is inside it: what each work
 
 A member's workspace role SHALL decide what the member may do in the workspace, and the roles SHALL build on each other:
 
-- a viewer MAY see the workspace, its members and its content, MAY send test messages through the workspace's notifiers, and MAY test the connection of the workspace's saved storages;
-- a member MAY also create, change and delete the workspace's databases, storages and notifiers and everything attached to them, and MAY test storage settings that are not saved yet, except where the `storages` spec reserves rclone settings for instance admins;
+- a viewer MAY see the workspace, its members and its content, MAY send test messages through the workspace's notifiers, and MAY test the connection of the workspace's saved storages and saved databases;
+- a member MAY also create, change and delete the workspace's databases, storages and notifiers and everything attached to them, MAY test storage and database settings that are not saved yet, except where the `storages` spec reserves rclone settings for instance admins, and MAY check and create limited users of the workspace's databases;
 - an admin MAY also rename the workspace and add, change and remove members who are not admins or the owner;
 - the owner MAY also add, change and remove admins, transfer ownership and delete the workspace.
 
-The operations on workspaces, their members, their notifiers and their storages SHALL apply these rules with the answers of the requirements below. The operations on a workspace's databases SHALL apply the same rules, and SHALL keep their current error answers until that part of the product moves behind the API contract.
+The operations on workspaces, their members, their notifiers, their storages and their databases SHALL apply these rules with the answers of the requirements below. The transfer of a database to another workspace, which the backup configs still serve, SHALL apply the same rules and SHALL keep its current error answers until it moves behind the API contract with the backup configs.
 
 #### Scenario: Viewer reads the workspace
 
@@ -67,6 +67,21 @@ The operations on workspaces, their members, their notifiers and their storages 
 - **WHEN** a user with the role `WORKSPACE_MEMBER` creates, changes, tests unsaved settings of and deletes a storage of the workspace
 - **THEN** each request succeeds
 
+#### Scenario: Viewer reads and tests the workspace's databases
+
+- **WHEN** a viewer of a workspace lists its databases, reads one of them and tests its connection
+- **THEN** the list and the read succeed, and the test answers `200` and reports the outcome of the connection test
+
+#### Scenario: Member changes a database
+
+- **WHEN** a user with the role `WORKSPACE_MEMBER` creates, changes, copies, tests unsaved settings of and deletes a database of the workspace
+- **THEN** each request succeeds
+
+#### Scenario: Member checks and creates a limited user
+
+- **WHEN** a user with the role `WORKSPACE_MEMBER` checks whether a limited user is advisable for a database of the workspace and then creates one
+- **THEN** both requests succeed
+
 #### Scenario: Admin renames the workspace
 
 - **WHEN** an admin of a workspace renames it
@@ -93,7 +108,7 @@ An instance admin SHALL be allowed every action in every workspace, whether or n
 
 ### Requirement: A user outside a workspace learns nothing about it
 
-An operation on a workspace, on one of its members, on one of its notifiers or on one of its storages, asked by a user who is not a member and not an instance admin, SHALL get `404` with `code` `not_found`, the same answer as for a workspace, a notifier or a storage that does not exist. The response SHALL NOT reveal the workspace's name, its members, its notifiers or its storages.
+An operation on a workspace, on one of its members, on one of its notifiers, on one of its storages or on one of its databases, other than the database transfer that the first requirement exempts, asked by a user who is not a member and not an instance admin, SHALL get `404` with `code` `not_found`, the same answer as for a workspace, a notifier, a storage or a database that does not exist. The response SHALL NOT reveal the workspace's name, its members, its notifiers, its storages or its databases.
 
 #### Scenario: Reading another team's workspace
 
@@ -140,9 +155,24 @@ An operation on a workspace, on one of its members, on one of its notifiers or o
 - **WHEN** a member of a storage's workspace transfers the storage to a workspace they are not a member of, and then to a workspace ID that does not exist
 - **THEN** both responses are `404` with `code` `not_found` and the same body apart from the ID, and the storage stays in its workspace
 
+#### Scenario: Reading another team's database
+
+- **WHEN** a user who is not a member of a workspace reads one of its databases by ID and then a database ID that does not exist
+- **THEN** both responses are `404` with `code` `not_found` and the same body apart from the ID
+
+#### Scenario: Changing, testing and deleting another team's database
+
+- **WHEN** a user who is not a member of a workspace changes one of its databases, tests its connection and then deletes it
+- **THEN** each response is `404` with `code` `not_found`, no connection is attempted, and the database keeps its name and is still listed in its workspace
+
+#### Scenario: Listing another team's databases
+
+- **WHEN** a user who is not a member of a workspace lists the databases of that workspace
+- **THEN** the response is `404` with `code` `not_found`
+
 ### Requirement: A role too low for the action is refused without a change
 
-An operation on a workspace, on one of its members, on one of its notifiers or on one of its storages, asked by a member whose role does not allow it, SHALL get `403` with `code` `permission_denied` and SHALL change nothing.
+An operation on a workspace, on one of its members, on one of its notifiers, on one of its storages or on one of its databases, other than the database transfer that the first requirement exempts, asked by a member whose role does not allow it, SHALL get `403` with `code` `permission_denied` and SHALL change nothing.
 
 #### Scenario: Viewer adds a member
 
@@ -158,6 +188,11 @@ An operation on a workspace, on one of its members, on one of its notifiers or o
 
 - **WHEN** a viewer of a workspace renames one of its storages and then deletes it
 - **THEN** both responses are `403` with `code` `permission_denied`, and the storage keeps its name and is still listed
+
+#### Scenario: Viewer changes a database
+
+- **WHEN** a viewer of a workspace renames one of its databases, copies it and then deletes it
+- **THEN** each response is `403` with `code` `permission_denied`, and the database keeps its name, has no copy and is still listed
 
 ### Requirement: A user sees only their own workspaces
 

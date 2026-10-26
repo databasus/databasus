@@ -11,10 +11,8 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/stretchr/testify/require"
 
+	pgphysical "databasus-backend/internal/engines/postgresql/physical"
 	physical_enums "databasus-backend/internal/features/backups/backups/core/physical/enums"
-	"databasus-backend/internal/features/databases"
-	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
-	"databasus-backend/internal/util/encryption"
 	"databasus-backend/internal/util/testing/containers"
 )
 
@@ -310,10 +308,12 @@ func Test_ReadClusterIdentity_WhenTheControlFileLagsAPromotion_ReportsTheLiveTim
 func openPhysicalTestConn(t *testing.T, ctx context.Context, endpoint containers.Endpoint) *pgx.Conn {
 	t.Helper()
 
-	sourceDB := databases.GetTestPhysicalPostgresConfigWithType(
-		endpoint.Host, endpoint.Port, timelineTestPostgresVersion, postgresql_physical.BackupTypeFullOnly)
-
-	conn, err := sourceDB.OpenInspectionConn(ctx, encryption.GetFieldEncryptor())
+	conn, err := pgphysical.NewSource(pgphysical.Settings{
+		Host:     endpoint.Host,
+		Port:     endpoint.Port,
+		Username: "testuser",
+		Password: "testpassword",
+	}).OpenInspectionConn(ctx)
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = conn.Close(context.Background()) })
 

@@ -13,8 +13,7 @@ import (
 	"time"
 
 	pgshared "databasus-backend/internal/engines/postgresql/shared"
-	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
-	"databasus-backend/internal/util/encryption"
+	"databasus-backend/internal/modules/databases"
 )
 
 const receivewalApplicationNamePrefix = "databasus_wal_receiver_"
@@ -38,7 +37,7 @@ type receiverRunResult struct {
 
 type receivewalCommandSpec struct {
 	PgBin    string
-	SourceDB *postgresql_physical.PostgresqlPhysicalDatabase
+	SourceDB databases.PostgresqlPhysicalConnectionSettings
 	Creds    *pgshared.CredentialTempFiles
 	WatchDir string
 	SlotName string
@@ -49,14 +48,9 @@ func (s *WalStreamSupervisor) spawnAndSupervise(
 	logger *slog.Logger,
 	pgBin string,
 ) receiverRunResult {
-	password, err := encryption.DecryptFieldIfNeeded(s.spec.SourceDB.Password, s.spec.FieldEncryptor)
-	if err != nil {
-		logger.ErrorContext(ctx, "decrypt source password for pg_receivewal", "error", err)
-
-		return receiverRunResult{Exit: receiverRetryable}
-	}
-
-	creds, err := s.spec.SourceDB.WriteCredentialFiles(password, s.spec.FieldEncryptor)
+	creds, err := pgshared.WriteCredentialFilesToTempDir(
+		s.spec.SourceDB.Engine.GetCredentialSpec(), s.spec.SourceDB.Engine.Password,
+	)
 	if err != nil {
 		logger.ErrorContext(ctx, "write pg_receivewal credentials", "error", err)
 
@@ -202,9 +196,9 @@ func newReceivewalCommand(ctx context.Context, spec receivewalCommandSpec) (*exe
 		"--synchronous",
 		"--verbose",
 		"--no-password",
-		"-h", spec.SourceDB.Host,
-		"-p", strconv.Itoa(spec.SourceDB.Port),
-		"-U", spec.SourceDB.Username,
+		"-h", spec.SourceDB.Engine.Host,
+		"-p", strconv.Itoa(spec.SourceDB.Engine.Port),
+		"-U", spec.SourceDB.Engine.Username,
 	}
 
 	// The binary is a database client from the bundled tools directory, and the arguments go to it as a list, not through a shell.
@@ -221,9 +215,9 @@ func newReceivewalCommand(ctx context.Context, spec receivewalCommandSpec) (*exe
 		"LC_ALL=C.UTF-8",
 		"LANG=C.UTF-8",
 	)
-	cmd.Env = append(cmd.Env, pgshared.GetPgHostAddrEnv(spec.SourceDB.GetHostAddr())...)
+	cmd.Env = append(cmd.Env, pgshared.GetPgHostAddrEnv(spec.SourceDB.Engine.HostAddr)...)
 
-	sslMode := spec.SourceDB.SslMode
+	sslMode := spec.SourceDB.Engine.TLS.Mode
 	if sslMode == "" {
 		sslMode = pgshared.SslModeDisable
 	}
@@ -246,11 +240,7 @@ func newReceivewalCommand(ctx context.Context, spec receivewalCommandSpec) (*exe
 	return cmd, nil
 }
 
-func receivewalApplicationName(sourceDB *postgresql_physical.PostgresqlPhysicalDatabase) string {
-	if sourceDB.DatabaseID == nil {
-		return receivewalApplicationNamePrefix + sourceDB.ID.String()
-	}
-
+func receivewalApplicationName(sourceDB databases.PostgresqlPhysicalConnectionSettings) string {
 	return receivewalApplicationNamePrefix + sourceDB.DatabaseID.String()
 }
 

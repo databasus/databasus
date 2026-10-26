@@ -3,17 +3,17 @@ package restores
 import (
 	"sync"
 
+	"databasus-backend/internal/config"
 	audit_logs "databasus-backend/internal/features/audit_logs"
 	backuping_logical "databasus-backend/internal/features/backups/backups/backuping/logical"
 	backups_services "databasus-backend/internal/features/backups/backups/services"
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
-	"databasus-backend/internal/features/databases"
+	databases_bridge "databasus-backend/internal/features/databases"
 	"databasus-backend/internal/features/disk"
 	restores_core "databasus-backend/internal/features/restores/core"
 	"databasus-backend/internal/features/restores/usecases"
 	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
 	workspaces_bridge "databasus-backend/internal/features/workspaces"
-	"databasus-backend/internal/util/encryption"
 	"databasus-backend/internal/util/logger"
 )
 
@@ -27,11 +27,12 @@ var (
 			getRestoreRepository(),
 			backups_config_logical.GetBackupConfigService(),
 			usecases.GetRestoreBackupUsecase(),
-			databases.GetDatabaseService(),
+			databases_bridge.GetAccess(),
+			databases_bridge.GetModule,
 			logger.GetLogger(),
 			workspaces_bridge.GetAccess(),
 			audit_logs.GetAuditLogService(),
-			encryption.GetFieldEncryptor(),
+			config.GetEnv().ClientToolsDir,
 			disk.GetDiskService(),
 			tasks_cancellation.GetRequester(),
 		}

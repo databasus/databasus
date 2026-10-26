@@ -7,11 +7,11 @@ import (
 	backuping_physical "databasus-backend/internal/features/backups/backups/backuping/physical"
 )
 
-// SetupDependencies registers the PhysicalSlotCleanupListener on
-// DatabaseService.AddDbRemoveListener so RemoveTestDatabase drops
-// per-backup and WAL streamer slots when test databases are torn down.
+// The deletion handlers drop the per-backup and WAL streamer slots when RemoveTestDatabase tears a
+// test database down.
 func TestMain(m *testing.M) {
 	backuping_physical.SetupDependencies()
+	backuping_physical.SubscribeToDatabaseDeletingWithoutApp()
 
 	os.Exit(m.Run())
 }

@@ -3,7 +3,7 @@ package backups_config_physical
 import (
 	"sync"
 
-	"databasus-backend/internal/features/databases"
+	databases_bridge "databasus-backend/internal/features/databases"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	storages_bridge "databasus-backend/internal/features/storages"
 	workspaces_bridge "databasus-backend/internal/features/workspaces"
@@ -12,12 +12,13 @@ import (
 
 var (
 	getBackupConfigRepository = sync.OnceValue(func() *BackupConfigRepository {
-		return &BackupConfigRepository{}
+		return &BackupConfigRepository{getDatabases: databases_bridge.GetModule}
 	})
 	getBackupConfigService = sync.OnceValue(func() *BackupConfigService {
 		return &BackupConfigService{
 			getBackupConfigRepository(),
-			databases.GetDatabaseService(),
+			databases_bridge.GetAccess(),
+			databases_bridge.GetModule,
 			storages_bridge.GetModule,
 			notifiers_bridge.GetModule,
 			workspaces_bridge.GetAccess(),
@@ -41,7 +42,3 @@ func GetBackupConfigController() *BackupConfigController {
 func GetBackupConfigService() *BackupConfigService {
 	return getBackupConfigService()
 }
-
-var SetupDependencies = sync.OnceFunc(func() {
-	databases.GetDatabaseService().AddDbBackupTypeChangeListener(getBackupConfigService())
-})

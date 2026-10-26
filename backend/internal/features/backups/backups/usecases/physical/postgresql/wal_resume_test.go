@@ -8,8 +8,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 
-	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
-	"databasus-backend/internal/util/encryption"
+	pgphysical "databasus-backend/internal/engines/postgresql/physical"
+	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/util/logger"
 	"databasus-backend/internal/util/walmath"
 )
@@ -98,20 +98,21 @@ func Test_MovePendingUploadsOutOfResumePath_WhenSegmentIsShort_LeavesItForRestre
 }
 
 func Test_RealignResumePath_WhenSourceUnreachable_LeavesQueueUntouched(t *testing.T) {
-	unreachableSourceDB := &postgresql_physical.PostgresqlPhysicalDatabase{
-		Host:                "127.0.0.1",
-		Port:                1,
-		Username:            "streamer",
-		Password:            "streamer",
-		ReplicationSlotName: "databasus_unreachable_source",
+	unreachableSourceDB := databases.PostgresqlPhysicalConnectionSettings{
+		Engine: pgphysical.Settings{
+			Host:                "127.0.0.1",
+			Port:                1,
+			Username:            "streamer",
+			Password:            "streamer",
+			ReplicationSlotName: "databasus_unreachable_source",
+		},
 	}
 
 	supervisor := NewWalStreamSupervisor(WalStreamSpec{
-		DatabaseID:     uuid.New(),
-		SourceDB:       unreachableSourceDB,
-		FieldEncryptor: encryption.GetFieldEncryptor(),
-		WatchDirRoot:   t.TempDir(),
-		Logger:         logger.GetLogger(),
+		DatabaseID:   uuid.New(),
+		SourceDB:     unreachableSourceDB,
+		WatchDirRoot: t.TempDir(),
+		Logger:       logger.GetLogger(),
 	})
 
 	require.NoError(t, os.MkdirAll(supervisor.watchDir, 0o700))

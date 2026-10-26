@@ -10,16 +10,17 @@ import (
 
 	"databasus-backend/internal/features/audit_logs"
 	audit_logs_models "databasus-backend/internal/features/audit_logs/models"
-	"databasus-backend/internal/features/databases"
+	databases_bridge "databasus-backend/internal/features/databases"
 	"databasus-backend/internal/features/intervals"
 	workspaces_bridge "databasus-backend/internal/features/workspaces"
+	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/modules/workspaces"
 )
 
 type VerificationConfigService struct {
 	verificationConfigRepository *VerificationConfigRepository
-	databaseService              *databases.DatabaseService
+	databaseAccess               *databases_bridge.Access
 	workspaceService             *workspaces_bridge.Access
 	auditLogService              *audit_logs.AuditLogService
 	logger                       *slog.Logger
@@ -30,16 +31,12 @@ func (s *VerificationConfigService) GetByDatabaseID(
 	actor users.Actor,
 	databaseID uuid.UUID,
 ) (*BackupVerificationConfig, error) {
-	database, err := s.databaseService.GetDatabaseByID(databaseID)
+	database, err := s.databaseAccess.GetDatabaseByID(ctx, databaseID)
 	if err != nil {
 		return nil, err
 	}
 
-	if database.WorkspaceID == nil {
-		return nil, errors.New("cannot access verification config for databases without workspace")
-	}
-
-	isAllowed, err := s.workspaceService.IsActorAllowed(ctx, actor, *database.WorkspaceID, workspaces.ActionView)
+	isAllowed, err := s.workspaceService.IsActorAllowed(ctx, actor, database.WorkspaceID, workspaces.ActionView)
 	if err != nil {
 		return nil, err
 	}
@@ -53,7 +50,7 @@ func (s *VerificationConfigService) GetByDatabaseID(
 	}
 
 	if config == nil {
-		if err := s.initializeDefaultConfig(database.ID); err != nil {
+		if err := s.initializeDefaultConfig(ctx, database.ID); err != nil {
 			return nil, err
 		}
 
@@ -72,16 +69,12 @@ func (s *VerificationConfigService) Save(
 	databaseID uuid.UUID,
 	req *SaveBackupVerificationConfigDTO,
 ) (*BackupVerificationConfig, error) {
-	database, err := s.databaseService.GetDatabaseByID(databaseID)
+	database, err := s.databaseAccess.GetDatabaseByID(ctx, databaseID)
 	if err != nil {
 		return nil, err
 	}
 
-	if database.WorkspaceID == nil {
-		return nil, errors.New("cannot modify verification config for databases without workspace")
-	}
-
-	isAllowed, err := s.workspaceService.IsActorAllowed(ctx, actor, *database.WorkspaceID, workspaces.ActionEditContent)
+	isAllowed, err := s.workspaceService.IsActorAllowed(ctx, actor, database.WorkspaceID, workspaces.ActionEditContent)
 	if err != nil {
 		return nil, err
 	}
@@ -95,7 +88,7 @@ func (s *VerificationConfigService) Save(
 	}
 
 	if config == nil {
-		if err := s.initializeDefaultConfig(database.ID); err != nil {
+		if err := s.initializeDefaultConfig(ctx, database.ID); err != nil {
 			return nil, err
 		}
 
@@ -114,14 +107,14 @@ func (s *VerificationConfigService) Save(
 		return nil, err
 	}
 
-	if err := s.verificationConfigRepository.Save(config); err != nil {
+	if err := s.verificationConfigRepository.Save(ctx, config); err != nil {
 		return nil, err
 	}
 
 	s.auditLogService.WriteAuditLog(ctx, audit_logs_models.AuditEntry{
 		Message:     fmt.Sprintf("Backup verification config updated for database '%s'", database.Name),
 		UserID:      &actor.UserID,
-		WorkspaceID: database.WorkspaceID,
+		WorkspaceID: &database.WorkspaceID,
 	})
 
 	return config, nil
@@ -137,44 +130,23 @@ func (s *VerificationConfigService) ListEnabled() ([]*BackupVerificationConfig, 
 	return s.verificationConfigRepository.FindAllEnabled()
 }
 
-func (s *VerificationConfigService) OnDatabaseCopied(ctx context.Context, originalDatabaseID, newDatabaseID uuid.UUID) {
-	originalConfig, err := s.verificationConfigRepository.GetByDatabaseID(originalDatabaseID)
+// OnDatabaseCopied gives the copy the original's config in the copy's transaction, or the default one
+// when the original has none.
+func (s *VerificationConfigService) OnDatabaseCopied(ctx context.Context, event databases.DatabaseCopied) error {
+	originalConfig, err := s.verificationConfigRepository.GetByDatabaseID(event.OriginalDatabaseID)
 	if err != nil {
-		s.logger.ErrorContext(
-			ctx,
-			"failed to load source verification config on database copy",
-			"error", err,
-			"database_id", originalDatabaseID,
-		)
-		return
+		return err
 	}
 
 	if originalConfig == nil {
-		if err := s.initializeDefaultConfig(newDatabaseID); err != nil {
-			s.logger.ErrorContext(
-				ctx,
-				"failed to initialize default verification config on database copy",
-				"error", err,
-				"database_id", newDatabaseID,
-			)
-		}
-		return
+		return s.initializeDefaultConfig(ctx, event.CopiedDatabaseID)
 	}
 
-	newConfig := originalConfig.Copy(newDatabaseID)
-
-	if err := s.verificationConfigRepository.Save(newConfig); err != nil {
-		s.logger.ErrorContext(
-			ctx,
-			"failed to save verification config on database copy",
-			"error", err,
-			"database_id", newDatabaseID,
-		)
-	}
+	return s.verificationConfigRepository.Save(ctx, originalConfig.Copy(event.CopiedDatabaseID))
 }
 
-func (s *VerificationConfigService) initializeDefaultConfig(databaseID uuid.UUID) error {
-	return s.verificationConfigRepository.Save(&BackupVerificationConfig{
+func (s *VerificationConfigService) initializeDefaultConfig(ctx context.Context, databaseID uuid.UUID) error {
+	return s.verificationConfigRepository.Save(ctx, &BackupVerificationConfig{
 		DatabaseID:                     databaseID,
 		IsScheduledVerificationEnabled: false,
 		ScheduleType:                   VerificationScheduleAfterBackup,

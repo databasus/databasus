@@ -5,7 +5,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"databasus-backend/internal/features/databases"
+	"databasus-backend/internal/modules/databases"
 )
 
 type HealthcheckAttempt struct {

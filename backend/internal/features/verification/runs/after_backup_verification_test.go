@@ -11,7 +11,7 @@ import (
 
 	backuping_logical "databasus-backend/internal/features/backups/backups/backuping/logical"
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
-	"databasus-backend/internal/features/databases"
+	databases_bridge "databasus-backend/internal/features/databases"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	storages_bridge "databasus-backend/internal/features/storages"
 	users_testing "databasus-backend/internal/features/users/testing"
@@ -48,8 +48,8 @@ func Test_CreateScheduledRuns_WhenScheduleTypeAfterBackup_DoesNotCreateTimeBased
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
 	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
-	database := databases.CreateTestDatabase(workspace.ID, notifier)
-	defer databases.RemoveTestDatabase(t.Context(), database)
+	database := databases_bridge.CreateTestDatabase(workspace.ID, notifier)
+	defer databases_bridge.RemoveTestDatabase(t.Context(), database)
 
 	backuping_logical.SeedTestBackup(t, database.ID, testStorage.ID, 100)
 
@@ -74,8 +74,8 @@ func Test_OnBackupCompleted_WhenScheduleTypeAfterBackup_EnqueuesPendingRun(t *te
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
 	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
-	database := databases.CreateTestDatabase(workspace.ID, notifier)
-	defer databases.RemoveTestDatabase(t.Context(), database)
+	database := databases_bridge.CreateTestDatabase(workspace.ID, notifier)
+	defer databases_bridge.RemoveTestDatabase(t.Context(), database)
 
 	backup := backuping_logical.SeedTestBackup(t, database.ID, testStorage.ID, 100)
 
@@ -102,8 +102,8 @@ func Test_OnBackupCompleted_WhenPendingAfterBackupExists_CancelsOldAndEnqueuesNe
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
 	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
-	database := databases.CreateTestDatabase(workspace.ID, notifier)
-	defer databases.RemoveTestDatabase(t.Context(), database)
+	database := databases_bridge.CreateTestDatabase(workspace.ID, notifier)
+	defer databases_bridge.RemoveTestDatabase(t.Context(), database)
 
 	firstBackup := backuping_logical.SeedTestBackup(t, database.ID, testStorage.ID, 100)
 
@@ -153,8 +153,8 @@ func Test_OnBackupCompleted_WhenManualVerificationPending_LeavesItAndStillEnqueu
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
 	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
-	database := databases.CreateTestDatabase(workspace.ID, notifier)
-	defer databases.RemoveTestDatabase(t.Context(), database)
+	database := databases_bridge.CreateTestDatabase(workspace.ID, notifier)
+	defer databases_bridge.RemoveTestDatabase(t.Context(), database)
 
 	backup := backuping_logical.SeedTestBackup(t, database.ID, testStorage.ID, 100)
 
@@ -198,8 +198,8 @@ func Test_OnBackupCompleted_WhenScheduleTypeInterval_DoesNothing(t *testing.T) {
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
 	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
-	database := databases.CreateTestDatabase(workspace.ID, notifier)
-	defer databases.RemoveTestDatabase(t.Context(), database)
+	database := databases_bridge.CreateTestDatabase(workspace.ID, notifier)
+	defer databases_bridge.RemoveTestDatabase(t.Context(), database)
 
 	backup := backuping_logical.SeedTestBackup(t, database.ID, testStorage.ID, 100)
 
@@ -223,8 +223,8 @@ func Test_OnBackupCompleted_WhenDisabled_DoesNothing(t *testing.T) {
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
 	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
-	database := databases.CreateTestDatabase(workspace.ID, notifier)
-	defer databases.RemoveTestDatabase(t.Context(), database)
+	database := databases_bridge.CreateTestDatabase(workspace.ID, notifier)
+	defer databases_bridge.RemoveTestDatabase(t.Context(), database)
 
 	backup := backuping_logical.SeedTestBackup(t, database.ID, testStorage.ID, 100)
 
@@ -254,8 +254,8 @@ func Test_MakeBackup_WhenAfterBackupConfigured_SchedulesAndReplacesPendingVerifi
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
 	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
-	database := databases.CreateTestDatabase(workspace.ID, notifier)
-	defer databases.RemoveTestDatabase(t.Context(), database)
+	database := databases_bridge.CreateTestDatabase(workspace.ID, notifier)
+	defer databases_bridge.RemoveTestDatabase(t.Context(), database)
 
 	backups_config_logical.EnableBackupsForTestDatabase(t.Context(), database.ID, testStorage.ID)
 	enableAfterBackupVerificationViaAPI(t, router, owner.Token, database.ID)

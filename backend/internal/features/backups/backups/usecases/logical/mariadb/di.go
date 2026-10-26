@@ -3,6 +3,7 @@ package usecases_logical_mariadb
 import (
 	"sync"
 
+	databases_bridge "databasus-backend/internal/features/databases"
 	"databasus-backend/internal/util/encryption"
 	"databasus-backend/internal/util/logger"
 )
@@ -11,7 +12,7 @@ var getCreateMariadbBackupUsecase = sync.OnceValue(func() *CreateMariadbBackupUs
 	return &CreateMariadbBackupUsecase{
 		logger.GetLogger(),
 		encryption.GetMasterKey(),
-		encryption.GetFieldEncryptor(),
+		databases_bridge.GetModule,
 	}
 })
 

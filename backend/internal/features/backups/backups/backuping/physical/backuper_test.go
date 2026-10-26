@@ -2,6 +2,8 @@ package backuping_physical
 
 import (
 	"errors"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -17,9 +19,10 @@ import (
 	physical_testing "databasus-backend/internal/features/backups/backups/core/physical/testing"
 	postgresql_executor "databasus-backend/internal/features/backups/backups/usecases/physical/postgresql"
 	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
-	"databasus-backend/internal/features/databases"
+	databases_bridge "databasus-backend/internal/features/databases"
 	storages_bridge "databasus-backend/internal/features/storages"
 	workspaces_bridge "databasus-backend/internal/features/workspaces"
+	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/storage"
@@ -367,7 +370,7 @@ func Test_FinalizeIncrementalAsChainBroken_SetsChainBrokenStatusReasonAndRelease
 }
 
 func Test_ClassifyFullBackupNotification_WhenCompleted_ReturnsSuccessNotification(t *testing.T) {
-	database := &databases.Database{Name: "mydb"}
+	database := databases.Database{Name: "mydb"}
 	fullBackup := &physical_models.PhysicalFullBackup{
 		ID:     uuid.New(),
 		Status: physical_enums.PhysicalBackupStatusCompleted,
@@ -385,7 +388,7 @@ func Test_ClassifyFullBackupNotification_WhenCompleted_ReturnsSuccessNotificatio
 }
 
 func Test_ClassifyFullBackupNotification_WhenErrorStatus_ReturnsFailedNotification(t *testing.T) {
-	database := &databases.Database{Name: "mydb"}
+	database := databases.Database{Name: "mydb"}
 	fullBackup := &physical_models.PhysicalFullBackup{
 		ID:          uuid.New(),
 		Status:      physical_enums.PhysicalBackupStatusError,
@@ -402,7 +405,7 @@ func Test_ClassifyFullBackupNotification_WhenErrorStatus_ReturnsFailedNotificati
 }
 
 func Test_ClassifyFullBackupNotification_WhenChainBroken_ReturnsChainBrokenNotification(t *testing.T) {
-	database := &databases.Database{Name: "mydb"}
+	database := databases.Database{Name: "mydb"}
 	fullBackup := &physical_models.PhysicalFullBackup{
 		ID:     uuid.New(),
 		Status: physical_enums.PhysicalBackupStatusChainBroken,
@@ -417,7 +420,7 @@ func Test_ClassifyFullBackupNotification_WhenChainBroken_ReturnsChainBrokenNotif
 }
 
 func Test_ClassifyFullBackupNotification_WhenInProgress_ReturnsEmpty(t *testing.T) {
-	database := &databases.Database{Name: "mydb"}
+	database := databases.Database{Name: "mydb"}
 	fullBackup := &physical_models.PhysicalFullBackup{
 		ID:     uuid.New(),
 		Status: physical_enums.PhysicalBackupStatusInProgress,
@@ -440,9 +443,9 @@ func Test_SendFullBackupNotification_WhenTypeNotInSendOn_DoesNotSend(t *testing.
 			backups_config_physical.NotificationChainBroken,
 		},
 	}
-	database := &databases.Database{
-		Name:      "mydb",
-		Notifiers: []databases.DatabaseNotifier{{ID: uuid.New(), Name: "n1"}},
+	database := databases.Database{
+		Name:        "mydb",
+		NotifierIDs: []uuid.UUID{uuid.New()},
 	}
 	fullBackup := &physical_models.PhysicalFullBackup{
 		ID:     uuid.New(),
@@ -470,12 +473,9 @@ func Test_SendFullBackupNotification_WhenEnabled_NotifiesEveryNotifierInOneCall(
 		},
 	}
 	firstNotifierID, secondNotifierID := uuid.New(), uuid.New()
-	database := &databases.Database{
-		Name: "mydb",
-		Notifiers: []databases.DatabaseNotifier{
-			{ID: firstNotifierID, Name: "first"},
-			{ID: secondNotifierID, Name: "second"},
-		},
+	database := databases.Database{
+		Name:        "mydb",
+		NotifierIDs: []uuid.UUID{firstNotifierID, secondNotifierID},
 	}
 	fullBackup := &physical_models.PhysicalFullBackup{
 		ID:     uuid.New(),
@@ -1028,4 +1028,108 @@ func Test_PersistFullResult_WhenFailed_HandsTheFilesBackToCleanup(t *testing.T) 
 		storages.StoredFileReference{StorageID: prereqs.Storage.ID, FileName: fileName},
 	)
 	assert.Error(t, err, "a failed physical backup must not leave its artifact behind")
+}
+
+func TestPhysicalBackupRecordsLastBackupTime(t *testing.T) {
+	t.Run("shows the start of a full backup when it completes", func(t *testing.T) {
+		prereqs := seedBackupPrereqs(t)
+		fullBackupStartedAt := time.Now().UTC().Add(-2 * time.Hour).Truncate(time.Microsecond)
+
+		completeFullBackup(t, prereqs, fullBackupStartedAt)
+
+		lastBackupTime := getLastBackupTime(t, prereqs.DB.ID)
+		assert.True(t, fullBackupStartedAt.Equal(lastBackupTime), lastBackupTime)
+	})
+
+	t.Run("shows the time a WAL segment was received after the last full backup", func(t *testing.T) {
+		prereqs := seedBackupPrereqs(t)
+		completeFullBackup(t, prereqs, time.Now().UTC().Add(-2*time.Hour))
+
+		walSegmentReceivedAt := publishWalSegment(t, prereqs)
+
+		lastBackupTime := getLastBackupTime(t, prereqs.DB.ID)
+		assert.True(t, walSegmentReceivedAt.Equal(lastBackupTime), lastBackupTime)
+	})
+
+	t.Run("keeps the WAL segment time when a full backup that started before it completes later", func(t *testing.T) {
+		prereqs := seedBackupPrereqs(t)
+		fullBackupStartedAt := time.Now().UTC().Add(-time.Hour)
+		walSegmentReceivedAt := publishWalSegment(t, prereqs)
+
+		completeFullBackup(t, prereqs, fullBackupStartedAt)
+
+		lastBackupTime := getLastBackupTime(t, prereqs.DB.ID)
+		assert.True(t, walSegmentReceivedAt.Equal(lastBackupTime), lastBackupTime)
+	})
+}
+
+func completeFullBackup(t *testing.T, prereqs *backupPrereqs, startedAt time.Time) {
+	t.Helper()
+
+	fullBackup := physical_testing.CreateTestFullBackup(t, &physical_models.PhysicalFullBackup{
+		DatabaseID: prereqs.DB.ID,
+		StorageID:  prereqs.Storage.ID,
+		TimelineID: 1,
+		Status:     physical_enums.PhysicalBackupStatusInProgress,
+		Encryption: backups_core_enums.BackupEncryptionNone,
+		CreatedAt:  startedAt,
+	})
+	claimInFlight(t, prereqs.DB.ID, physical_enums.PhysicalBackupTypeFull, fullBackup.ID)
+
+	result := postgresql_executor.PhysicalBackupResult{
+		Status:      physical_enums.PhysicalBackupStatusCompleted,
+		CompletedAt: time.Now().UTC(),
+	}
+
+	require.NoError(t, CreateTestPhysicalBackuper(nil).persistFullResult(t.Context(), fullBackup, result, nil))
+}
+
+// publishWalSegment runs one segment through the uploader the WAL streamer uses and returns the
+// time its row says the segment was received.
+func publishWalSegment(t *testing.T, prereqs *backupPrereqs) time.Time {
+	t.Helper()
+
+	const walSegmentSizeBytes = int64(16 * 1024 * 1024)
+	const walSegmentName = "000000010000000000000005"
+
+	watchDir := t.TempDir()
+	segmentPath := filepath.Join(watchDir, walSegmentName)
+	segmentFile, err := os.Create(segmentPath)
+	require.NoError(t, err)
+	require.NoError(t, segmentFile.Truncate(walSegmentSizeBytes))
+	require.NoError(t, segmentFile.Close())
+
+	uploader := postgresql_executor.NewWalUploader(postgresql_executor.WalUploadDeps{
+		DatabaseID:          prereqs.DB.ID,
+		StorageID:           prereqs.Storage.ID,
+		FileStore:           storages_bridge.GetModule(),
+		BackupStatus:        databases_bridge.GetModule(),
+		Encryption:          backups_core_enums.BackupEncryptionNone,
+		MasterKey:           "",
+		WalSegmentRepo:      physical_repositories.GetWalSegmentRepository(),
+		WalSegmentSizeBytes: walSegmentSizeBytes,
+		Logger:              logger.GetLogger(),
+		WatchDir:            watchDir,
+		OnGapDetected:       nil,
+	})
+	require.NoError(t, uploader.ProcessSegment(t.Context(), segmentPath, walSegmentName))
+
+	segment, err := physical_repositories.GetWalSegmentRepository().FindByChainKey(
+		prereqs.DB.ID, 1, walmath.LSN(5*uint64(walSegmentSizeBytes)))
+	require.NoError(t, err)
+	require.NotNil(t, segment)
+	require.NotNil(t, segment.FileName, "the segment must be published")
+
+	return segment.ReceivedAt
+}
+
+func getLastBackupTime(t *testing.T, databaseID uuid.UUID) time.Time {
+	t.Helper()
+
+	foundDatabases, err := databases_bridge.GetModule().GetDatabases(t.Context(), []uuid.UUID{databaseID})
+	require.NoError(t, err)
+	require.Len(t, foundDatabases, 1)
+	require.NotNil(t, foundDatabases[0].LastBackupTime)
+
+	return *foundDatabases[0].LastBackupTime
 }

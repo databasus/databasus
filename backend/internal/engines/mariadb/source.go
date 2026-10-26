@@ -37,6 +37,12 @@ func NewSource(settings Settings, clientTools ClientTools) *Source {
 	}
 }
 
+// GetSettings returns the settings the source connects with. Through a tunnel they carry the local
+// end of the tunnel, so a client tool the caller starts reaches the same server.
+func (s *Source) GetSettings() Settings {
+	return s.settings
+}
+
 // Inspection is what the server reports about the database and the connecting account.
 type Inspection struct {
 	Version    Version

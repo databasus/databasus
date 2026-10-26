@@ -22,6 +22,7 @@ import (
 	logicaltesting "databasus-backend/internal/features/tests/logical/shared"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
+	"databasus-backend/internal/lib/apiclient"
 	"databasus-backend/internal/modules/users"
 	test_utils "databasus-backend/internal/util/testing"
 	"databasus-backend/internal/util/testing/containers"
@@ -60,26 +61,27 @@ func backupAndRestoreWithScope(
 
 	t.Cleanup(func() {
 		test_utils.MakeDeleteRequest(
-			t, router, "/api/v1/databases/"+database.ID.String(),
+			t, router, "/api/v1/databases/"+database.Id.String(),
 			"Bearer "+user.Token, http.StatusNoContent,
 		)
 		storages_bridge.RemoveTestStorage(context.Background(), storage.ID)
 		workspaces_testing.RemoveTestWorkspace(context.Background(), workspace)
 	})
 
-	database.PostgresqlLogical.IncludeSchemas = settings.IncludeSchemas
-	database.PostgresqlLogical.ExcludeTables = settings.ExcludeTables
-	database.PostgresqlLogical.ExcludeTableData = settings.ExcludeTableData
-	updateDatabaseViaAPI(t, router, database, user.Token)
+	updatePostgresqlSettingsViaAPI(t, router, database, func(databaseSettings *apiclient.PostgresqlLogicalSettings) {
+		databaseSettings.IncludeSchemas = getNonNilList(settings.IncludeSchemas)
+		databaseSettings.ExcludeTables = getNonNilList(settings.ExcludeTables)
+		databaseSettings.ExcludeTableData = getNonNilList(settings.ExcludeTableData)
+	}, user.Token)
 
 	logicaltesting.EnableBackupsViaAPI(
-		t, router, database.ID, storage.ID,
+		t, router, database.Id, storage.ID,
 		backups_core_enums.BackupEncryptionNone, user.Token,
 	)
 
-	logicaltesting.CreateBackupViaAPI(t, router, database.ID, user.Token)
+	logicaltesting.CreateBackupViaAPI(t, router, database.Id, user.Token)
 
-	backup := logicaltesting.WaitForBackupCompletion(t, router, database.ID, user.Token, 5*time.Minute)
+	backup := logicaltesting.WaitForBackupCompletion(t, router, database.Id, user.Token, 5*time.Minute)
 	require.Equal(t, backups_core_logical.BackupStatusCompleted, backup.Status)
 
 	t.Cleanup(func() {
@@ -112,6 +114,14 @@ func backupAndRestoreWithScope(
 	require.Equal(t, restores_core.RestoreStatusCompleted, restore.Status)
 
 	return restoredBackupScope{Backup: backup, RestoredDB: restoredDB}
+}
+
+func getNonNilList(list []string) []string {
+	if list == nil {
+		return []string{}
+	}
+
+	return list
 }
 
 func seedBackupScopeStatements(t *testing.T, container *PostgresContainer, statements string) {

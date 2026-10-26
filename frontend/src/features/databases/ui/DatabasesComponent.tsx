@@ -2,7 +2,7 @@ import { Button, Modal, Spin } from 'antd';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { databaseApi } from '../../../entity/databases';
+import { databaseApi, sortUnavailableDatabasesFirst } from '../../../entity/databases';
 import type { Database } from '../../../entity/databases';
 import type { Workspace } from '../../../entity/workspaces';
 import { useIsMobile } from '../../../shared/hooks';
@@ -54,8 +54,9 @@ export const DatabasesComponent = ({ contentHeight, workspace, isCanManageDBs }:
     }
 
     databaseApi
-      .getDatabases(workspace.id)
-      .then((databases) => {
+      .listAllDatabases(workspace.id)
+      .then((listedDatabases) => {
+        const databases = sortUnavailableDatabasesFirst(listedDatabases);
         setDatabases(databases);
         if (selectDatabaseId) {
           updateSelectedDatabaseId(selectDatabaseId);

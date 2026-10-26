@@ -11,4 +11,6 @@ import "errors"
 var (
 	errByteStall    = errors.New("byte-stall watcher cancelled pg_basebackup")
 	errManifestWalk = errors.New("manifest reconstruction failed")
+
+	errStreamedDatabaseDeleted = errors.New("the streamed database is deleted")
 )

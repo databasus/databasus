@@ -2,8 +2,6 @@ package verification_runs
 
 import (
 	"github.com/google/uuid"
-
-	"databasus-backend/internal/features/databases"
 )
 
 type EnqueueManualRequest struct {
@@ -34,12 +32,12 @@ type ClaimRequest struct {
 }
 
 type JobAssignment struct {
-	VerificationID     uuid.UUID           `json:"verificationId"`
-	BackupID           uuid.UUID           `json:"backupId"`
-	BackupSizeMb       float64             `json:"backupSizeMb"`
-	MaxContainerDiskMb float64             `json:"maxContainerDiskMb"`
-	Database           *databases.Database `json:"database"`
-	TimescaledbVersion string              `json:"timescaledbVersion"`
+	VerificationID     uuid.UUID        `json:"verificationId"`
+	BackupID           uuid.UUID        `json:"backupId"`
+	BackupSizeMb       float64          `json:"backupSizeMb"`
+	MaxContainerDiskMb float64          `json:"maxContainerDiskMb"`
+	Database           AssignedDatabase `json:"database"`
+	TimescaledbVersion string           `json:"timescaledbVersion"`
 }
 
 type ReportTableStat struct {

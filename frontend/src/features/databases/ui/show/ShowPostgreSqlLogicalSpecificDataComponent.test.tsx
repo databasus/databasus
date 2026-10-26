@@ -2,11 +2,10 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
-  type Database,
   DatabaseType,
-  type PostgresqlLogicalDatabase,
+  type PostgresqlLogicalSettings,
   PostgresSslMode,
-  PostgresqlVersion,
+  createDefaultDatabaseSettings,
 } from '../../../../entity/databases';
 import { LocaleProvider } from '../../../../shared/i18n';
 import { ShowPostgreSqlLogicalSpecificDataComponent } from './ShowPostgreSqlLogicalSpecificDataComponent';
@@ -21,37 +20,29 @@ vi.hoisted(() => {
   vi.stubGlobal('navigator', { language: 'en-US', languages: ['en-US'] });
 });
 
-const createPostgresqlDatabase = (change: Partial<PostgresqlLogicalDatabase>): Database => ({
-  id: 'database-id',
-  name: 'Orders',
-  workspaceId: 'workspace-id',
-  type: DatabaseType.POSTGRES_LOGICAL,
-  notifiers: [],
-  postgresqlLogical: {
-    id: 'postgresql-id',
-    version: PostgresqlVersion.PostgresqlVersion16,
-    host: 'db.example.com',
-    port: 5432,
-    username: 'backup',
-    password: '',
-    database: 'orders',
-    sslMode: PostgresSslMode.Require,
-    cpuCount: 1,
-    ...change,
-  },
+const createPostgresqlSettings = (
+  change: Partial<PostgresqlLogicalSettings>,
+): PostgresqlLogicalSettings => ({
+  ...createDefaultDatabaseSettings(DatabaseType.POSTGRES_LOGICAL),
+  version: '16',
+  host: 'db.example.com',
+  username: 'backup',
+  database: 'orders',
+  sslMode: PostgresSslMode.Require,
+  ...change,
 });
 
-const renderPostgresqlPage = (database: Database) =>
+const renderPostgresqlPage = (settings: PostgresqlLogicalSettings) =>
   renderToStaticMarkup(
     <LocaleProvider>
-      <ShowPostgreSqlLogicalSpecificDataComponent database={database} />
+      <ShowPostgreSqlLogicalSpecificDataComponent settings={settings} />
     </LocaleProvider>,
   );
 
 describe('ShowPostgreSqlLogicalSpecificDataComponent', () => {
   it('shows each exclusion list under its own label', () => {
     const markup = renderPostgresqlPage(
-      createPostgresqlDatabase({ excludeTables: ['audit_tmp'], excludeTableData: ['logs'] }),
+      createPostgresqlSettings({ excludeTables: ['audit_tmp'], excludeTableData: ['logs'] }),
     );
 
     const wholeTablesLabelIndex = markup.indexOf('Exclude whole tables');
@@ -64,7 +55,7 @@ describe('ShowPostgreSqlLogicalSpecificDataComponent', () => {
   });
 
   it('hides both exclusion rows when neither list is set', () => {
-    const markup = renderPostgresqlPage(createPostgresqlDatabase({}));
+    const markup = renderPostgresqlPage(createPostgresqlSettings({}));
 
     expect(markup).not.toContain('Exclude whole tables');
     expect(markup).not.toContain('Exclude table data');

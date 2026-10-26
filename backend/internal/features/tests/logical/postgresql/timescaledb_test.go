@@ -84,13 +84,13 @@ INSERT INTO public.%s (id, label) VALUES (1, 'alpha'), (2, 'beta'), (3, 'gamma')
 	)
 
 	logicaltesting.EnableBackupsViaAPI(
-		t, router, database.ID, storage.ID,
+		t, router, database.Id, storage.ID,
 		backups_core_enums.BackupEncryptionNone, user.Token,
 	)
 
-	logicaltesting.CreateBackupViaAPI(t, router, database.ID, user.Token)
+	logicaltesting.CreateBackupViaAPI(t, router, database.Id, user.Token)
 
-	backup := logicaltesting.WaitForBackupCompletion(t, router, database.ID, user.Token, 5*time.Minute)
+	backup := logicaltesting.WaitForBackupCompletion(t, router, database.Id, user.Token, 5*time.Minute)
 	require.Equal(t, backups_core_logical.BackupStatusCompleted, backup.Status)
 	require.NotEmpty(t, backup.TimescaledbVersion,
 		"the restore only skips --clean when the backup is timescaledb-flavoured")
@@ -133,7 +133,7 @@ INSERT INTO public.%s (id, label) VALUES (1, 'alpha'), (2, 'beta'), (3, 'gamma')
 
 	test_utils.MakeDeleteRequest(
 		t, router,
-		"/api/v1/databases/"+database.ID.String(),
+		"/api/v1/databases/"+database.Id.String(),
 		"Bearer "+user.Token,
 		http.StatusNoContent,
 	)
@@ -196,13 +196,13 @@ func testTimescaleBackupRestoreForCpuCount(t *testing.T, endpoint containers.End
 	)
 
 	logicaltesting.EnableBackupsViaAPI(
-		t, router, database.ID, storage.ID,
+		t, router, database.Id, storage.ID,
 		backups_core_enums.BackupEncryptionNone, user.Token,
 	)
 
-	logicaltesting.CreateBackupViaAPI(t, router, database.ID, user.Token)
+	logicaltesting.CreateBackupViaAPI(t, router, database.Id, user.Token)
 
-	backup := logicaltesting.WaitForBackupCompletion(t, router, database.ID, user.Token, 5*time.Minute)
+	backup := logicaltesting.WaitForBackupCompletion(t, router, database.Id, user.Token, 5*time.Minute)
 	assert.Equal(t, backups_core_logical.BackupStatusCompleted, backup.Status)
 	assert.NotEmpty(t, backup.TimescaledbVersion, "backup should record the source timescaledb version")
 
@@ -243,7 +243,7 @@ func testTimescaleBackupRestoreForCpuCount(t *testing.T, endpoint containers.End
 
 	test_utils.MakeDeleteRequest(
 		t, router,
-		"/api/v1/databases/"+database.ID.String(),
+		"/api/v1/databases/"+database.Id.String(),
 		"Bearer "+user.Token,
 		http.StatusNoContent,
 	)

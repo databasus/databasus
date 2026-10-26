@@ -5,7 +5,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"databasus-backend/internal/features/databases"
+	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/notifiers"
 )
 
@@ -13,13 +13,10 @@ type HealthcheckAttemptSender interface {
 	Notify(ctx context.Context, notifierIDs []uuid.UUID, notification notifiers.Notification)
 }
 
-type DatabaseService interface {
-	GetDatabaseByID(id uuid.UUID) (*databases.Database, error)
+type HealthcheckedDatabases interface {
+	GetDatabaseByID(ctx context.Context, id uuid.UUID) (databases.Database, error)
 
-	ProbeDatabaseLiveness(ctx context.Context, database *databases.Database) error
+	ProbeLiveness(ctx context.Context, databaseID uuid.UUID) error
 
-	SetHealthStatus(
-		databaseID uuid.UUID,
-		healthStatus *databases.HealthStatus,
-	) error
+	SetHealthStatus(ctx context.Context, databaseID uuid.UUID, healthStatus *databases.HealthStatus) error
 }

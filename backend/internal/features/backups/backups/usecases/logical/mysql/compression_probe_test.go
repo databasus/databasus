@@ -12,7 +12,7 @@ import (
 
 	"databasus-backend/internal/config"
 	mysql_engine "databasus-backend/internal/engines/mysql"
-	mysqltypes "databasus-backend/internal/features/databases/databases/mysql"
+	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/util/testing/containers"
 )
 
@@ -24,9 +24,12 @@ func Test_BuildMysqldumpArgs_ForEverySupportedVersion_OmitsCompressionFlags(t *t
 		mysql_engine.Version9,
 	} {
 		uc := &CreateMysqlBackupUsecase{}
-		database := &mysqltypes.MysqlDatabase{Version: version}
+		target := dumpTarget{
+			connectionSettings: databases.MysqlConnectionSettings{Version: version},
+			settings:           mysql_engine.Settings{},
+		}
 
-		args := uc.buildMysqldumpArgs(database)
+		args := uc.buildMysqldumpArgs(target)
 
 		for _, arg := range args {
 			if strings.Contains(arg, "compress") {
@@ -121,16 +124,16 @@ func probeCompressionAgainstMysql(t *testing.T, endpoint containers.Endpoint) []
 	t.Helper()
 
 	databaseName := containers.MysqlDatabase
-	database := &mysqltypes.MysqlDatabase{
-		Version:  mysql_engine.Version80,
+	settings := mysql_engine.Settings{
 		Host:     endpoint.Host,
 		Port:     endpoint.Port,
 		Username: containers.MysqlUsername,
-		Database: &databaseName,
+		Password: containers.MysqlPassword,
+		Database: databaseName,
 	}
 	uc := &CreateMysqlBackupUsecase{logger: slog.New(slog.NewTextHandler(os.Stdout, nil))}
 
-	myCnfFile, err := uc.createTempMyCnfFile(database, containers.MysqlPassword)
+	myCnfFile, err := uc.createTempMyCnfFile(settings)
 	if err != nil {
 		t.Fatalf("failed to create .my.cnf: %v", err)
 	}

@@ -76,7 +76,7 @@ func (r *notifierRepository) get(ctx context.Context, notifierID uuid.UUID) (Not
 }
 
 // lockForUpdate holds the row until the caller's transaction ends. FOR UPDATE conflicts with the
-// FOR KEY SHARE that the reference check of a database_notifiers insert takes, so an attach
+// FOR KEY SHARE that the reference check of a databases_notifiers insert takes, so an attach
 // still in flight finishes first or waits for the caller.
 func (r *notifierRepository) lockForUpdate(ctx context.Context, notifierID uuid.UUID) error {
 	var lockedIDs []uuid.UUID

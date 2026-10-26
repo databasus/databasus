@@ -29,6 +29,12 @@ func NewSource(settings Settings) *Source {
 	return &Source{settings: settings, generateUsername: generateReplicationUsername}
 }
 
+// GetSettings returns the settings the source connects with. Through a tunnel they carry the local
+// end of the tunnel, so a client tool the caller starts reaches the same server.
+func (s *Source) GetSettings() Settings {
+	return s.settings
+}
+
 // OpenInspectionConn opens an ordinary connection to the cluster. Replication connections cannot
 // run the SQL identity checks or read timeline history files, so inspection uses PostgreSQL's
 // regular protocol. The caller closes the connection.
@@ -79,7 +85,7 @@ func (s *Source) GetClusterSizeMb(ctx context.Context, logger *slog.Logger) (flo
 
 // The `postgres` database always exists, and a physical source has no per-database selection.
 func (s *Source) connect(ctx context.Context) (*pgx.Conn, error) {
-	credentialSpec := s.settings.getCredentialSpec()
+	credentialSpec := s.settings.GetCredentialSpec()
 
 	files, err := pgshared.WriteCredentialFilesToTempDir(credentialSpec, s.settings.Password)
 	if err != nil {
@@ -100,7 +106,7 @@ func (s *Source) connect(ctx context.Context) (*pgx.Conn, error) {
 // probe would wrongly accept a cluster that real backups cannot stream. It uses the low-level
 // pgconn because no ordinary SQL is allowed on a physical replication connection.
 func (s *Source) connectReplication(ctx context.Context) (*pgconn.PgConn, error) {
-	credentialSpec := s.settings.getCredentialSpec()
+	credentialSpec := s.settings.GetCredentialSpec()
 
 	files, err := pgshared.WriteCredentialFilesToTempDir(credentialSpec, s.settings.Password)
 	if err != nil {

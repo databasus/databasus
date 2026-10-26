@@ -28,7 +28,6 @@ func (s CommonBackupSpec) runStreamParams(
 	return runStreamParams{
 		FileStore:        s.FileStore,
 		StorageID:        s.StorageID,
-		FieldEncryptor:   s.FieldEncryptor,
 		Logger:           s.Logger,
 		FileName:         fileName,
 		Encryption:       s.Encryption,
@@ -216,7 +215,7 @@ func verifyFullTimelineCompatibility(
 	ctx context.Context,
 	common CommonBackupSpec,
 ) (refusal PhysicalBackupResult, liveTimelineID int, canProceed bool) {
-	conn, err := common.SourceDB.OpenInspectionConn(ctx, common.FieldEncryptor)
+	conn, err := openInspectionConn(ctx, common.SourceDB)
 	if err != nil {
 		return errorResult(physical_enums.PhysicalBackupErrorNetworkFailure,
 			"open inspection connection", err), 0, false
@@ -375,7 +374,7 @@ func inspectTimelineAgainstExpected(
 		return common.timelineProbe(ctx, expectedTimelineID)
 	}
 
-	conn, err := common.SourceDB.OpenInspectionConn(ctx, common.FieldEncryptor)
+	conn, err := openInspectionConn(ctx, common.SourceDB)
 	if err != nil {
 		return nil, fmt.Errorf("open inspection connection: %w", err)
 	}

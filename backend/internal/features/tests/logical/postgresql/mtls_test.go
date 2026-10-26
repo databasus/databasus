@@ -17,13 +17,12 @@ import (
 	pgshared "databasus-backend/internal/engines/postgresql/shared"
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
-	"databasus-backend/internal/features/databases"
-	pgtypes "databasus-backend/internal/features/databases/databases/postgresql/logical"
 	restores_core "databasus-backend/internal/features/restores/core"
 	storages_bridge "databasus-backend/internal/features/storages"
 	logicaltesting "databasus-backend/internal/features/tests/logical/shared"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
+	"databasus-backend/internal/lib/apiclient"
 	"databasus-backend/internal/modules/users"
 	test_utils "databasus-backend/internal/util/testing"
 	"databasus-backend/internal/util/testing/containers"
@@ -65,12 +64,12 @@ func Test_BackupAndRestorePostgresqlMtls_Succeeds(t *testing.T) {
 	)
 
 	logicaltesting.EnableBackupsViaAPI(
-		t, router, database.ID, storage.ID,
+		t, router, database.Id, storage.ID,
 		backups_core_enums.BackupEncryptionNone, user.Token,
 	)
-	logicaltesting.CreateBackupViaAPI(t, router, database.ID, user.Token)
+	logicaltesting.CreateBackupViaAPI(t, router, database.Id, user.Token)
 
-	backup := logicaltesting.WaitForBackupCompletion(t, router, database.ID, user.Token, 5*time.Minute)
+	backup := logicaltesting.WaitForBackupCompletion(t, router, database.Id, user.Token, 5*time.Minute)
 	assert.Equal(t, backups_core_logical.BackupStatusCompleted, backup.Status)
 
 	newDBName := "restoreddb_pg_mtls"
@@ -96,7 +95,7 @@ func Test_BackupAndRestorePostgresqlMtls_Succeeds(t *testing.T) {
 
 	_ = os.Remove(filepath.Join(config.GetEnv().DataFolder, backup.ID.String()))
 	test_utils.MakeDeleteRequest(
-		t, router, "/api/v1/databases/"+database.ID.String(),
+		t, router, "/api/v1/databases/"+database.Id.String(),
 		"Bearer "+user.Token, http.StatusNoContent,
 	)
 	storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
@@ -118,24 +117,13 @@ func Test_CreatePostgresqlMtls_WhenClientCertMissing_IsRejected(t *testing.T) {
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Postgres mTLS Reject Workspace", user)
 	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
-	dbName := "testdb"
-	request := databases.Database{
-		Name:        "Postgres mTLS no client cert",
-		WorkspaceID: &workspace.ID,
-		Type:        databases.DatabaseTypePostgresLogical,
-		PostgresqlLogical: &pgtypes.PostgresqlLogicalDatabase{
-			Host:     host,
-			Port:     portInt,
-			Username: "testuser",
-			Password: "testpassword",
-			Database: &dbName,
-			SslMode:  pgshared.SslModeRequire,
-			CpuCount: 1,
-		},
-	}
+	settings := newPostgresqlSettings(host, portInt, "testuser", "testpassword", "testdb")
+	settings.SslMode = apiclient.PostgresqlSslModeRequire
+
+	request := logicaltesting.NewDatabaseCreate(t, workspace.ID, settings)
 
 	response := workspaces_testing.MakeAPIRequest(
-		router, "POST", "/api/v1/databases/create", "Bearer "+user.Token, request,
+		router, "POST", "/api/v1/databases", "Bearer "+user.Token, request,
 	)
 	assert.NotEqual(
 		t, http.StatusCreated, response.Code,
@@ -197,26 +185,14 @@ func createPostgresqlMtlsDatabaseViaAPI(
 	port int,
 	username, password, database string,
 	clientCert, clientKey, rootCert, token string,
-) *databases.Database {
-	request := databases.Database{
-		Name:        name,
-		WorkspaceID: &workspaceID,
-		Type:        databases.DatabaseTypePostgresLogical,
-		PostgresqlLogical: &pgtypes.PostgresqlLogicalDatabase{
-			Host:          host,
-			Port:          port,
-			Username:      username,
-			Password:      password,
-			Database:      &database,
-			SslMode:       pgshared.SslModeVerifyCA,
-			SslClientCert: clientCert,
-			SslClientKey:  clientKey,
-			SslRootCert:   rootCert,
-			CpuCount:      1,
-		},
-	}
+) apiclient.Database {
+	settings := newPostgresqlSettings(host, port, username, password, database)
+	settings.SslMode = apiclient.PostgresqlSslModeVerifyCa
+	settings.SslClientCert = &clientCert
+	settings.SslClientKey = &clientKey
+	settings.SslRootCert = &rootCert
 
-	return logicaltesting.SubmitCreateDatabase(t, router, "Postgres mTLS", request, token)
+	return submitCreatePostgresqlDatabase(t, router, name, workspaceID, settings, token)
 }
 
 func createPostgresqlMtlsRestoreViaAPI(
@@ -229,7 +205,7 @@ func createPostgresqlMtlsRestoreViaAPI(
 	clientCert, clientKey, rootCert, token string,
 ) {
 	request := restores_core.RestoreBackupRequest{
-		PostgresqlLogicalDatabase: &pgtypes.PostgresqlLogicalDatabase{
+		PostgresqlLogicalDatabase: &restores_core.PostgresqlTargetDatabase{
 			Host:          host,
 			Port:          port,
 			Username:      username,

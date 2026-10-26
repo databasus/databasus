@@ -2,11 +2,11 @@ import { useTranslation } from 'react-i18next';
 
 import {
   SSH_TUNNEL_AUTH_TYPE_LABEL_KEYS,
-  type SshTunnelConfig,
+  type SshTunnelSettings,
 } from '../../../../entity/databases';
 
 interface Props {
-  sshTunnel: SshTunnelConfig | undefined;
+  sshTunnel: SshTunnelSettings;
 }
 
 export const ShowSshTunnelComponent = ({ sshTunnel }: Props) => {
@@ -33,7 +33,7 @@ export const ShowSshTunnelComponent = ({ sshTunnel }: Props) => {
 
       <div className="mb-1 flex w-full items-center">
         <div className="min-w-[150px] pr-2">{t('databases.sshTunnel.authType')}</div>
-        <div>{t(SSH_TUNNEL_AUTH_TYPE_LABEL_KEYS[sshTunnel.authType])}</div>
+        <div>{sshTunnel.authType && t(SSH_TUNNEL_AUTH_TYPE_LABEL_KEYS[sshTunnel.authType])}</div>
       </div>
 
       <div className="mb-1 flex w-full items-center">

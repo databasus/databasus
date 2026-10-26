@@ -128,6 +128,7 @@ export const en = {
       'The owner cannot be changed or removed. Transfer the ownership to another member first.',
     workspaceNotEmpty:
       'The workspace still has databases. Delete them first, then delete the workspace.',
+    databaseConnectionFailed: 'Could not connect to the database: {{detail}}',
     inUse: 'Databases still use it. Remove it from those databases first.',
     unknown: 'Something went wrong. Please try again.',
     networkUnreachable: 'Cannot reach the Databasus server. Check your connection and try again.',
@@ -416,6 +417,7 @@ export const en = {
       connectionStringParsed: 'Connection string parsed successfully',
       connectionStringParsedWithoutPassword:
         'Connection string parsed successfully. Please enter the password manually.',
+      connectionTestFailed: 'The database could not be reached: {{error}}',
       connectionTestPassed: {
         title: 'Connection test passed',
         description: 'You can continue with the next step',

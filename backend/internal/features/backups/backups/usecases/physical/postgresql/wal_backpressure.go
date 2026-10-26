@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"time"
 
-	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
+	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/util/walmath"
 )
 
@@ -40,7 +40,7 @@ func (s *WalStreamSupervisor) runBackpressureMonitor(ctx context.Context, _ *slo
 	}
 }
 
-func getDefaultLocalQueuePauseBytes(sourceDB *postgresql_physical.PostgresqlPhysicalDatabase) int64 {
+func getDefaultLocalQueuePauseBytes(sourceDB databases.PostgresqlPhysicalConnectionSettings) int64 {
 	return max(walLocalMinHighWatermarkBytes, 8*walSegmentSizeBytes(sourceDB))
 }
 

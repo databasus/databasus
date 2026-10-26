@@ -27,7 +27,7 @@ import (
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
 	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
 	caching "databasus-backend/internal/features/caching"
-	databases "databasus-backend/internal/features/databases"
+	databases_bridge "databasus-backend/internal/features/databases"
 	disk "databasus-backend/internal/features/disk"
 	email "databasus-backend/internal/features/email"
 	healthcheck_attempt "databasus-backend/internal/features/healthcheck/attempt"
@@ -202,8 +202,7 @@ func getOldCodeGetters() []oldCodeGetter {
 			"features/backups/config/physical.GetBackupConfigService",
 			func() any { return backups_config_physical.GetBackupConfigService() },
 		},
-		{"features/databases.GetDatabaseService", func() any { return databases.GetDatabaseService() }},
-		{"features/databases.GetDatabaseController", func() any { return databases.GetDatabaseController() }},
+		{"features/databases.GetAccess", func() any { return databases_bridge.GetAccess() }},
 		{"features/disk.GetDiskService", func() any { return disk.GetDiskService() }},
 		{"features/disk.GetDiskController", func() any { return disk.GetDiskController() }},
 		{"features/caching.GetStore", func() any { return caching.GetStore() }},

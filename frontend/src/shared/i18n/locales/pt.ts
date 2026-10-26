@@ -131,6 +131,7 @@ export const pt: typeof en = {
       'O proprietário não pode ser alterado nem removido. Primeiro transfira a propriedade para outro membro.',
     workspaceNotEmpty:
       'O espaço de trabalho ainda tem bancos de dados. Exclua-os primeiro e depois exclua o espaço de trabalho.',
+    databaseConnectionFailed: 'Não foi possível conectar ao banco de dados: {{detail}}',
     inUse: 'Alguns bancos de dados ainda o usam. Remova-o desses bancos de dados primeiro.',
     unknown: 'Algo deu errado. Tente novamente.',
     networkUnreachable:
@@ -425,6 +426,7 @@ export const pt: typeof en = {
       connectionStringParsed: 'Campos preenchidos a partir da string de conexão',
       connectionStringParsedWithoutPassword:
         'Campos preenchidos a partir da string de conexão. Digite a senha manualmente.',
+      connectionTestFailed: 'Não foi possível acessar o banco de dados: {{error}}',
       connectionTestPassed: {
         title: 'Conexão testada',
         description: 'Você já pode seguir para a próxima etapa',

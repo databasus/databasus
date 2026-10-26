@@ -130,6 +130,7 @@ export const es: typeof en = {
       'No se puede cambiar ni quitar al propietario. Primero transfiera la propiedad a otro miembro.',
     workspaceNotEmpty:
       'El espacio de trabajo todavía tiene bases de datos. Elimínelas primero y después elimine el espacio de trabajo.',
+    databaseConnectionFailed: 'No se pudo conectar a la base de datos: {{detail}}',
     inUse: 'Todavía lo usan algunas bases de datos. Quítelo primero de esas bases de datos.',
     unknown: 'Algo salió mal. Inténtelo de nuevo.',
     networkUnreachable:
@@ -427,6 +428,7 @@ export const es: typeof en = {
       connectionStringParsed: 'Campos rellenados a partir de la cadena de conexión',
       connectionStringParsedWithoutPassword:
         'Campos rellenados a partir de la cadena de conexión. Introduzca la contraseña manualmente.',
+      connectionTestFailed: 'No se pudo acceder a la base de datos: {{error}}',
       connectionTestPassed: {
         title: 'Conexión comprobada',
         description: 'Puede pasar al siguiente paso',

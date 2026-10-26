@@ -13,10 +13,11 @@ import (
 
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
-	"databasus-backend/internal/features/databases"
+	databases_bridge "databasus-backend/internal/features/databases"
 	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
 	workspaces_bridge "databasus-backend/internal/features/workspaces"
 	"databasus-backend/internal/lib/database"
+	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/modules/storages"
 	db "databasus-backend/internal/storage"
@@ -29,7 +30,9 @@ const (
 )
 
 type Backuper struct {
-	databaseService     *databases.DatabaseService
+	databaseAccess *databases_bridge.Access
+	// getDatabases is read per call: each test application installs its own module.
+	getDatabases        func() databases.Module
 	workspaceService    *workspaces_bridge.Access
 	backupRepository    *backups_core_logical.BackupRepository
 	backupConfigService *backups_config_logical.BackupConfigService
@@ -51,7 +54,7 @@ func (b *Backuper) MakeBackup(ctx context.Context, backupID uuid.UUID, isCallNot
 	databaseID := backup.DatabaseID
 	logger := b.logger.With("backup_id", backupID, "database_id", databaseID)
 
-	database, err := b.databaseService.GetDatabaseByID(databaseID)
+	database, err := b.databaseAccess.GetDatabaseByID(ctx, databaseID)
 	if err != nil {
 		logger.ErrorContext(ctx, "failed to get database by ID", "error", err)
 		return
@@ -151,7 +154,7 @@ func (b *Backuper) MakeBackup(ctx context.Context, backupID uuid.UUID, isCallNot
 		backup.BackupDurationMs = time.Since(start).Milliseconds()
 		backup.BackupSizeMb = 0
 
-		if updateErr := b.databaseService.SetBackupError(databaseID, errMsg); updateErr != nil {
+		if updateErr := b.getDatabases().RecordBackupFailure(ctx, databaseID, errMsg); updateErr != nil {
 			logger.ErrorContext(ctx,
 				"failed to update database last backup time",
 				"error",
@@ -205,7 +208,7 @@ func (b *Backuper) MakeBackup(ctx context.Context, backupID uuid.UUID, isCallNot
 
 	backup.Status = backups_core_logical.BackupStatusCompleted
 
-	if err := b.publishBackup(ctx, backup, receipts); err != nil {
+	if err := b.publishBackup(ctx, backup, receipts, time.Now().UTC()); err != nil {
 		b.failBackup(ctx, logger, backup, backupConfig, err)
 
 		return
@@ -213,16 +216,6 @@ func (b *Backuper) MakeBackup(ctx context.Context, backupID uuid.UUID, isCallNot
 
 	logger.InfoContext(ctx, fmt.Sprintf("logical backup finished: %.1f MB in %d ms",
 		backup.BackupSizeMb, backup.BackupDurationMs), "file_name", backup.FileName)
-
-	// Update database last backup time
-	now := time.Now().UTC()
-	if updateErr := b.databaseService.SetLastBackupTime(databaseID, now); updateErr != nil {
-		logger.ErrorContext(ctx,
-			"failed to update database last backup time",
-			"error",
-			updateErr,
-		)
-	}
 
 	if backup.Status != backups_core_logical.BackupStatusCompleted && !isCallNotifier {
 		return
@@ -245,14 +238,14 @@ func (b *Backuper) SendBackupNotification(
 ) {
 	logger := b.logger.With("backup_id", backup.ID, "database_id", backupConfig.DatabaseID)
 
-	database, err := b.databaseService.GetDatabaseByID(backupConfig.DatabaseID)
+	database, err := b.databaseAccess.GetDatabaseByID(ctx, backupConfig.DatabaseID)
 	if err != nil {
 		logger.ErrorContext(ctx, "failed to get database for the backup notification", "error", err)
 
 		return
 	}
 
-	workspace, err := b.workspaceService.GetWorkspaceByID(ctx, *database.WorkspaceID)
+	workspace, err := b.workspaceService.GetWorkspaceByID(ctx, database.WorkspaceID)
 	if err != nil {
 		logger.ErrorContext(ctx, "failed to get workspace for the backup notification", "error", err)
 
@@ -315,7 +308,7 @@ func (b *Backuper) SendBackupNotification(
 	}
 
 	b.notificationSender.Notify(ctx,
-		database.GetNotifierIDs(),
+		database.NotifierIDs,
 		notifiers.Notification{
 			Category: sentNotificationType,
 			Heading:  title,
@@ -355,10 +348,13 @@ func (b *Backuper) writeMetadataFile(
 
 // Every file the receipts name is kept only if the row marking the backup completed
 // commits with them.
+// publishBackup records the completion time as the database's last backup in the same transaction,
+// so a database deleted while the backup ran fails the publication instead of keeping a backup row.
 func (b *Backuper) publishBackup(
 	ctx context.Context,
 	backup *backups_core_logical.LogicalBackup,
 	receipts []storages.WriteReceipt,
+	completedAt time.Time,
 ) error {
 	return db.GetTransactor().Transaction(ctx, func(ctx context.Context) error {
 		tx := database.Conn(ctx, db.GetDb())
@@ -367,7 +363,11 @@ func (b *Backuper) publishBackup(
 			return err
 		}
 
-		return b.backupRepository.SaveInTransaction(tx, backup)
+		if err := b.backupRepository.SaveInTransaction(tx, backup); err != nil {
+			return err
+		}
+
+		return b.getDatabases().RecordBackupSuccess(ctx, backup.DatabaseID, completedAt)
 	})
 }
 
@@ -412,7 +412,7 @@ func (b *Backuper) failBackup(
 
 	logger.ErrorContext(ctx, "logical backup failed after the dump", "error", cause)
 
-	if err := b.databaseService.SetBackupError(backup.DatabaseID, message); err != nil {
+	if err := b.getDatabases().RecordBackupFailure(ctx, backup.DatabaseID, message); err != nil {
 		logger.ErrorContext(ctx, "failed to record the backup error on the database", "error", err)
 	}
 

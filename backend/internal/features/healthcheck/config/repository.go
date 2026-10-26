@@ -1,22 +1,23 @@
 package healthcheck_config
 
 import (
+	"context"
 	"errors"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
+	"databasus-backend/internal/lib/database"
 	"databasus-backend/internal/storage"
 )
 
 type HealthcheckConfigRepository struct{}
 
 func (r *HealthcheckConfigRepository) Save(
+	ctx context.Context,
 	config *HealthcheckConfig,
 ) error {
-	db := storage.GetDb()
-
-	return db.Save(config).Error
+	return database.Conn(ctx, storage.GetDb()).Save(config).Error
 }
 
 func (r *HealthcheckConfigRepository) GetDatabasesWithEnabledHealthcheck() (

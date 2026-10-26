@@ -1,7 +1,6 @@
 package postgresql_logical
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -14,17 +13,17 @@ import (
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"databasus-backend/internal/config"
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
-	"databasus-backend/internal/features/databases"
-	pgtypes "databasus-backend/internal/features/databases/databases/postgresql/logical"
 	restores_core "databasus-backend/internal/features/restores/core"
 	storages_bridge "databasus-backend/internal/features/storages"
 	logicaltesting "databasus-backend/internal/features/tests/logical/shared"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
+	"databasus-backend/internal/lib/apiclient"
 	"databasus-backend/internal/modules/users"
 	test_utils "databasus-backend/internal/util/testing"
 	"databasus-backend/internal/util/testing/containers"
@@ -246,13 +245,13 @@ func testBackupRestoreForVersion(t *testing.T, endpoint containers.Endpoint, pgV
 	)
 
 	logicaltesting.EnableBackupsViaAPI(
-		t, router, database.ID, storage.ID,
+		t, router, database.Id, storage.ID,
 		backups_core_enums.BackupEncryptionNone, user.Token,
 	)
 
-	logicaltesting.CreateBackupViaAPI(t, router, database.ID, user.Token)
+	logicaltesting.CreateBackupViaAPI(t, router, database.Id, user.Token)
 
-	backup := logicaltesting.WaitForBackupCompletion(t, router, database.ID, user.Token, 5*time.Minute)
+	backup := logicaltesting.WaitForBackupCompletion(t, router, database.Id, user.Token, 5*time.Minute)
 	assert.Equal(t, backups_core_logical.BackupStatusCompleted, backup.Status)
 	logicaltesting.AssertBackupSizeMatchesDownloadedBytes(t, router, backup, user.Token)
 
@@ -309,7 +308,7 @@ func testBackupRestoreForVersion(t *testing.T, endpoint containers.Endpoint, pgV
 	test_utils.MakeDeleteRequest(
 		t,
 		router,
-		"/api/v1/databases/"+database.ID.String(),
+		"/api/v1/databases/"+database.Id.String(),
 		"Bearer "+user.Token,
 		http.StatusNoContent,
 	)
@@ -364,13 +363,13 @@ func testSchemaSelectionAllSchemasForVersion(t *testing.T, endpoint containers.E
 	)
 
 	logicaltesting.EnableBackupsViaAPI(
-		t, router, database.ID, storage.ID,
+		t, router, database.Id, storage.ID,
 		backups_core_enums.BackupEncryptionNone, user.Token,
 	)
 
-	logicaltesting.CreateBackupViaAPI(t, router, database.ID, user.Token)
+	logicaltesting.CreateBackupViaAPI(t, router, database.Id, user.Token)
 
-	backup := logicaltesting.WaitForBackupCompletion(t, router, database.ID, user.Token, 5*time.Minute)
+	backup := logicaltesting.WaitForBackupCompletion(t, router, database.Id, user.Token, 5*time.Minute)
 	assert.Equal(t, backups_core_logical.BackupStatusCompleted, backup.Status)
 
 	newDBName := fmt.Sprintf("restored_all_schemas_%s_%s", pgVersion, uuid.New().String()[:8])
@@ -438,7 +437,7 @@ func testSchemaSelectionAllSchemasForVersion(t *testing.T, endpoint containers.E
 	test_utils.MakeDeleteRequest(
 		t,
 		router,
-		"/api/v1/databases/"+database.ID.String(),
+		"/api/v1/databases/"+database.Id.String(),
 		"Bearer "+user.Token,
 		http.StatusNoContent,
 	)
@@ -492,13 +491,13 @@ func testBackupRestoreWithExcludeExtensionsForVersion(t *testing.T, endpoint con
 	)
 
 	logicaltesting.EnableBackupsViaAPI(
-		t, router, database.ID, storage.ID,
+		t, router, database.Id, storage.ID,
 		backups_core_enums.BackupEncryptionNone, user.Token,
 	)
 
-	logicaltesting.CreateBackupViaAPI(t, router, database.ID, user.Token)
+	logicaltesting.CreateBackupViaAPI(t, router, database.Id, user.Token)
 
-	backup := logicaltesting.WaitForBackupCompletion(t, router, database.ID, user.Token, 5*time.Minute)
+	backup := logicaltesting.WaitForBackupCompletion(t, router, database.Id, user.Token, 5*time.Minute)
 	assert.Equal(t, backups_core_logical.BackupStatusCompleted, backup.Status)
 
 	newDBName := fmt.Sprintf("restored_exclude_ext_%s_%s", pgVersion, uuid.New().String()[:8])
@@ -566,7 +565,7 @@ func testBackupRestoreWithExcludeExtensionsForVersion(t *testing.T, endpoint con
 	test_utils.MakeDeleteRequest(
 		t,
 		router,
-		"/api/v1/databases/"+database.ID.String(),
+		"/api/v1/databases/"+database.Id.String(),
 		"Bearer "+user.Token,
 		http.StatusNoContent,
 	)
@@ -639,13 +638,13 @@ func testBackupRestoreSkipUserMappingsForVersion(t *testing.T, endpoint containe
 	)
 
 	logicaltesting.EnableBackupsViaAPI(
-		t, router, database.ID, storage.ID,
+		t, router, database.Id, storage.ID,
 		backups_core_enums.BackupEncryptionNone, user.Token,
 	)
 
-	logicaltesting.CreateBackupViaAPI(t, router, database.ID, user.Token)
+	logicaltesting.CreateBackupViaAPI(t, router, database.Id, user.Token)
 
-	backup := logicaltesting.WaitForBackupCompletion(t, router, database.ID, user.Token, 5*time.Minute)
+	backup := logicaltesting.WaitForBackupCompletion(t, router, database.Id, user.Token, 5*time.Minute)
 	assert.Equal(t, backups_core_logical.BackupStatusCompleted, backup.Status)
 
 	newDBName := fmt.Sprintf("restored_skip_um_%s_%s", pgVersion, suffix)
@@ -695,7 +694,7 @@ func testBackupRestoreSkipUserMappingsForVersion(t *testing.T, endpoint containe
 	test_utils.MakeDeleteRequest(
 		t,
 		router,
-		"/api/v1/databases/"+database.ID.String(),
+		"/api/v1/databases/"+database.Id.String(),
 		"Bearer "+user.Token,
 		http.StatusNoContent,
 	)
@@ -753,13 +752,13 @@ func testBackupRestoreWithoutExcludeExtensionsForVersion(
 	)
 
 	logicaltesting.EnableBackupsViaAPI(
-		t, router, database.ID, storage.ID,
+		t, router, database.Id, storage.ID,
 		backups_core_enums.BackupEncryptionNone, user.Token,
 	)
 
-	logicaltesting.CreateBackupViaAPI(t, router, database.ID, user.Token)
+	logicaltesting.CreateBackupViaAPI(t, router, database.Id, user.Token)
 
-	backup := logicaltesting.WaitForBackupCompletion(t, router, database.ID, user.Token, 5*time.Minute)
+	backup := logicaltesting.WaitForBackupCompletion(t, router, database.Id, user.Token, 5*time.Minute)
 	assert.Equal(t, backups_core_logical.BackupStatusCompleted, backup.Status)
 
 	newDBName := fmt.Sprintf("restored_with_ext_%s_%s", pgVersion, uuid.New().String()[:8])
@@ -843,7 +842,7 @@ func testBackupRestoreWithoutExcludeExtensionsForVersion(
 	test_utils.MakeDeleteRequest(
 		t,
 		router,
-		"/api/v1/databases/"+database.ID.String(),
+		"/api/v1/databases/"+database.Id.String(),
 		"Bearer "+user.Token,
 		http.StatusNoContent,
 	)
@@ -897,13 +896,13 @@ func testBackupRestoreWithRestoreOwnershipForVersion(t *testing.T, endpoint cont
 	)
 
 	logicaltesting.EnableBackupsViaAPI(
-		t, router, database.ID, storage.ID,
+		t, router, database.Id, storage.ID,
 		backups_core_enums.BackupEncryptionNone, user.Token,
 	)
 
-	logicaltesting.CreateBackupViaAPI(t, router, database.ID, user.Token)
+	logicaltesting.CreateBackupViaAPI(t, router, database.Id, user.Token)
 
-	backup := logicaltesting.WaitForBackupCompletion(t, router, database.ID, user.Token, 5*time.Minute)
+	backup := logicaltesting.WaitForBackupCompletion(t, router, database.Id, user.Token, 5*time.Minute)
 	assert.Equal(t, backups_core_logical.BackupStatusCompleted, backup.Status)
 
 	newDBName := fmt.Sprintf("restored_ownership_%s_%s", pgVersion, suffix)
@@ -956,7 +955,7 @@ func testBackupRestoreWithRestoreOwnershipForVersion(t *testing.T, endpoint cont
 	test_utils.MakeDeleteRequest(
 		t,
 		router,
-		"/api/v1/databases/"+database.ID.String(),
+		"/api/v1/databases/"+database.Id.String(),
 		"Bearer "+user.Token,
 		http.StatusNoContent,
 	)
@@ -1010,13 +1009,13 @@ func testBackupRestoreWithRestorePrivilegesForVersion(t *testing.T, endpoint con
 	)
 
 	logicaltesting.EnableBackupsViaAPI(
-		t, router, database.ID, storage.ID,
+		t, router, database.Id, storage.ID,
 		backups_core_enums.BackupEncryptionNone, user.Token,
 	)
 
-	logicaltesting.CreateBackupViaAPI(t, router, database.ID, user.Token)
+	logicaltesting.CreateBackupViaAPI(t, router, database.Id, user.Token)
 
-	backup := logicaltesting.WaitForBackupCompletion(t, router, database.ID, user.Token, 5*time.Minute)
+	backup := logicaltesting.WaitForBackupCompletion(t, router, database.Id, user.Token, 5*time.Minute)
 	assert.Equal(t, backups_core_logical.BackupStatusCompleted, backup.Status)
 
 	newDBName := fmt.Sprintf("restored_privileges_%s_%s", pgVersion, suffix)
@@ -1078,7 +1077,7 @@ func testBackupRestoreWithRestorePrivilegesForVersion(t *testing.T, endpoint con
 	test_utils.MakeDeleteRequest(
 		t,
 		router,
-		"/api/v1/databases/"+database.ID.String(),
+		"/api/v1/databases/"+database.Id.String(),
 		"Bearer "+user.Token,
 		http.StatusNoContent,
 	)
@@ -1116,7 +1115,7 @@ func testBackupRestoreWithReadOnlyUserForVersion(t *testing.T, endpoint containe
 		user.Token,
 	)
 
-	readOnlyUser := createReadOnlyUserViaAPI(t, router, database.ID, user.Token)
+	readOnlyUser := logicaltesting.CreateLimitedUserViaAPI(t, router, database, user.Token)
 	assert.NotEmpty(t, readOnlyUser.Username)
 	assert.NotEmpty(t, readOnlyUser.Password)
 
@@ -1127,13 +1126,13 @@ func testBackupRestoreWithReadOnlyUserForVersion(t *testing.T, endpoint containe
 	)
 
 	logicaltesting.EnableBackupsViaAPI(
-		t, router, updatedDatabase.ID, storage.ID,
+		t, router, updatedDatabase.Id, storage.ID,
 		backups_core_enums.BackupEncryptionNone, user.Token,
 	)
 
-	logicaltesting.CreateBackupViaAPI(t, router, updatedDatabase.ID, user.Token)
+	logicaltesting.CreateBackupViaAPI(t, router, updatedDatabase.Id, user.Token)
 
-	backup := logicaltesting.WaitForBackupCompletion(t, router, updatedDatabase.ID, user.Token, 5*time.Minute)
+	backup := logicaltesting.WaitForBackupCompletion(t, router, updatedDatabase.Id, user.Token, 5*time.Minute)
 	assert.Equal(t, backups_core_logical.BackupStatusCompleted, backup.Status)
 
 	newDBName := fmt.Sprintf("restoreddb_readonly_%s", uuid.New().String()[:8])
@@ -1188,7 +1187,7 @@ func testBackupRestoreWithReadOnlyUserForVersion(t *testing.T, endpoint containe
 	test_utils.MakeDeleteRequest(
 		t,
 		router,
-		"/api/v1/databases/"+updatedDatabase.ID.String(),
+		"/api/v1/databases/"+updatedDatabase.Id.String(),
 		"Bearer "+user.Token,
 		http.StatusNoContent,
 	)
@@ -1268,14 +1267,14 @@ func testBackupFailsWhenUserCannotReadSequencesForVersion(
 	assert.NoError(t, err)
 
 	logicaltesting.EnableBackupsViaAPI(
-		t, router, restrictedDatabase.ID, storage.ID,
+		t, router, restrictedDatabase.Id, storage.ID,
 		backups_core_enums.BackupEncryptionNone, user.Token,
 	)
 
-	logicaltesting.CreateBackupViaAPI(t, router, restrictedDatabase.ID, user.Token)
+	logicaltesting.CreateBackupViaAPI(t, router, restrictedDatabase.Id, user.Token)
 
 	backup := logicaltesting.WaitForBackupTerminalStatus(
-		t, router, restrictedDatabase.ID, user.Token, 5*time.Minute,
+		t, router, restrictedDatabase.Id, user.Token, 5*time.Minute,
 	)
 
 	assert.Equal(
@@ -1296,7 +1295,7 @@ func testBackupFailsWhenUserCannotReadSequencesForVersion(
 	test_utils.MakeDeleteRequest(
 		t,
 		router,
-		"/api/v1/databases/"+restrictedDatabase.ID.String(),
+		"/api/v1/databases/"+restrictedDatabase.Id.String(),
 		"Bearer "+user.Token,
 		http.StatusNoContent,
 	)
@@ -1357,13 +1356,13 @@ func testSchemaSelectionOnlySpecifiedSchemasForVersion(
 	)
 
 	logicaltesting.EnableBackupsViaAPI(
-		t, router, database.ID, storage.ID,
+		t, router, database.Id, storage.ID,
 		backups_core_enums.BackupEncryptionNone, user.Token,
 	)
 
-	logicaltesting.CreateBackupViaAPI(t, router, database.ID, user.Token)
+	logicaltesting.CreateBackupViaAPI(t, router, database.Id, user.Token)
 
-	backup := logicaltesting.WaitForBackupCompletion(t, router, database.ID, user.Token, 5*time.Minute)
+	backup := logicaltesting.WaitForBackupCompletion(t, router, database.Id, user.Token, 5*time.Minute)
 	assert.Equal(t, backups_core_logical.BackupStatusCompleted, backup.Status)
 
 	skippedSchemaTableSizeMb := measureTableSizeMb(
@@ -1444,7 +1443,7 @@ func testSchemaSelectionOnlySpecifiedSchemasForVersion(
 	test_utils.MakeDeleteRequest(
 		t,
 		router,
-		"/api/v1/databases/"+database.ID.String(),
+		"/api/v1/databases/"+database.Id.String(),
 		"Bearer "+user.Token,
 		http.StatusNoContent,
 	)
@@ -1498,17 +1497,18 @@ func testBackupRestoreWithExcludeTablesForVersion(t *testing.T, endpoint contain
 		user.Token,
 	)
 
-	database.PostgresqlLogical.ExcludeTables = []string{dropTable}
-	updateDatabaseViaAPI(t, router, database, user.Token)
+	updatePostgresqlSettingsViaAPI(t, router, database, func(settings *apiclient.PostgresqlLogicalSettings) {
+		settings.ExcludeTables = []string{dropTable}
+	}, user.Token)
 
 	logicaltesting.EnableBackupsViaAPI(
-		t, router, database.ID, storage.ID,
+		t, router, database.Id, storage.ID,
 		backups_core_enums.BackupEncryptionNone, user.Token,
 	)
 
-	logicaltesting.CreateBackupViaAPI(t, router, database.ID, user.Token)
+	logicaltesting.CreateBackupViaAPI(t, router, database.Id, user.Token)
 
-	backup := logicaltesting.WaitForBackupCompletion(t, router, database.ID, user.Token, 5*time.Minute)
+	backup := logicaltesting.WaitForBackupCompletion(t, router, database.Id, user.Token, 5*time.Minute)
 	assert.Equal(t, backups_core_logical.BackupStatusCompleted, backup.Status)
 
 	excludedTableSizeMb := measureTableSizeMb(
@@ -1579,7 +1579,7 @@ func testBackupRestoreWithExcludeTablesForVersion(t *testing.T, endpoint contain
 	test_utils.MakeDeleteRequest(
 		t,
 		router,
-		"/api/v1/databases/"+database.ID.String(),
+		"/api/v1/databases/"+database.Id.String(),
 		"Bearer "+user.Token,
 		http.StatusNoContent,
 	)
@@ -1637,18 +1637,19 @@ func testSchemasWithExcludeTablesForVersion(t *testing.T, endpoint containers.En
 		user.Token,
 	)
 
-	database.PostgresqlLogical.IncludeSchemas = []string{"public", "schema_a"}
-	database.PostgresqlLogical.ExcludeTables = []string{"schema_a.skip_me"}
-	updateDatabaseViaAPI(t, router, database, user.Token)
+	updatePostgresqlSettingsViaAPI(t, router, database, func(settings *apiclient.PostgresqlLogicalSettings) {
+		settings.IncludeSchemas = []string{"public", "schema_a"}
+		settings.ExcludeTables = []string{"schema_a.skip_me"}
+	}, user.Token)
 
 	logicaltesting.EnableBackupsViaAPI(
-		t, router, database.ID, storage.ID,
+		t, router, database.Id, storage.ID,
 		backups_core_enums.BackupEncryptionNone, user.Token,
 	)
 
-	logicaltesting.CreateBackupViaAPI(t, router, database.ID, user.Token)
+	logicaltesting.CreateBackupViaAPI(t, router, database.Id, user.Token)
 
-	backup := logicaltesting.WaitForBackupCompletion(t, router, database.ID, user.Token, 5*time.Minute)
+	backup := logicaltesting.WaitForBackupCompletion(t, router, database.Id, user.Token, 5*time.Minute)
 	assert.Equal(t, backups_core_logical.BackupStatusCompleted, backup.Status)
 
 	newDBName := fmt.Sprintf("restored_schemas_excl_%s_%s", pgVersion, uuid.New().String()[:8])
@@ -1730,7 +1731,7 @@ func testSchemasWithExcludeTablesForVersion(t *testing.T, endpoint containers.En
 	test_utils.MakeDeleteRequest(
 		t,
 		router,
-		"/api/v1/databases/"+database.ID.String(),
+		"/api/v1/databases/"+database.Id.String(),
 		"Bearer "+user.Token,
 		http.StatusNoContent,
 	)
@@ -1769,13 +1770,13 @@ func testBackupRestoreWithEncryptionForVersion(t *testing.T, endpoint containers
 	)
 
 	logicaltesting.EnableBackupsViaAPI(
-		t, router, database.ID, storage.ID,
+		t, router, database.Id, storage.ID,
 		backups_core_enums.BackupEncryptionEncrypted, user.Token,
 	)
 
-	logicaltesting.CreateBackupViaAPI(t, router, database.ID, user.Token)
+	logicaltesting.CreateBackupViaAPI(t, router, database.Id, user.Token)
 
-	backup := logicaltesting.WaitForBackupCompletion(t, router, database.ID, user.Token, 5*time.Minute)
+	backup := logicaltesting.WaitForBackupCompletion(t, router, database.Id, user.Token, 5*time.Minute)
 	assert.Equal(t, backups_core_logical.BackupStatusCompleted, backup.Status)
 	assert.Equal(t, backups_core_enums.BackupEncryptionEncrypted, backup.Encryption)
 
@@ -1831,7 +1832,7 @@ func testBackupRestoreWithEncryptionForVersion(t *testing.T, endpoint containers
 	test_utils.MakeDeleteRequest(
 		t,
 		router,
-		"/api/v1/databases/"+database.ID.String(),
+		"/api/v1/databases/"+database.Id.String(),
 		"Bearer "+user.Token,
 		http.StatusNoContent,
 	)
@@ -1892,7 +1893,7 @@ func createDatabaseViaAPI(
 	password string,
 	database string,
 	token string,
-) *databases.Database {
+) apiclient.Database {
 	return createDatabaseWithCpuCountViaAPI(
 		t, router, name, workspaceID,
 		host, port, username, password, database,
@@ -1913,39 +1914,11 @@ func createDatabaseWithCpuCountViaAPI(
 	database string,
 	cpuCount int,
 	token string,
-) *databases.Database {
-	request := databases.Database{
-		Name:        name,
-		WorkspaceID: &workspaceID,
-		Type:        databases.DatabaseTypePostgresLogical,
-		PostgresqlLogical: &pgtypes.PostgresqlLogicalDatabase{
-			Host:     host,
-			Port:     port,
-			Username: username,
-			Password: password,
-			Database: &database,
-			CpuCount: cpuCount,
-		},
-	}
+) apiclient.Database {
+	settings := newPostgresqlSettings(host, port, username, password, database)
+	settings.CpuCount = cpuCount
 
-	w := workspaces_testing.MakeAPIRequest(
-		router,
-		"POST",
-		"/api/v1/databases/create",
-		"Bearer "+token,
-		request,
-	)
-
-	if w.Code != http.StatusCreated {
-		t.Fatalf("Failed to create database. Status: %d, Body: %s", w.Code, w.Body.String())
-	}
-
-	var createdDatabase databases.Database
-	if err := json.Unmarshal(w.Body.Bytes(), &createdDatabase); err != nil {
-		t.Fatalf("Failed to unmarshal database response: %v", err)
-	}
-
-	return &createdDatabase
+	return submitCreatePostgresqlDatabase(t, router, name, workspaceID, settings, token)
 }
 
 func createDatabaseWithSkipUserMappingsViaAPI(
@@ -1959,40 +1932,47 @@ func createDatabaseWithSkipUserMappingsViaAPI(
 	password string,
 	database string,
 	token string,
-) *databases.Database {
-	request := databases.Database{
-		Name:        name,
-		WorkspaceID: &workspaceID,
-		Type:        databases.DatabaseTypePostgresLogical,
-		PostgresqlLogical: &pgtypes.PostgresqlLogicalDatabase{
-			Host:               host,
-			Port:               port,
-			Username:           username,
-			Password:           password,
-			Database:           &database,
-			CpuCount:           1,
-			IsSkipUserMappings: true,
-		},
+) apiclient.Database {
+	settings := newPostgresqlSettings(host, port, username, password, database)
+	settings.IsSkipUserMappings = true
+
+	return submitCreatePostgresqlDatabase(t, router, name, workspaceID, settings, token)
+}
+
+func newPostgresqlSettings(
+	host string,
+	port int,
+	username string,
+	password string,
+	database string,
+) apiclient.PostgresqlLogicalSettings {
+	return apiclient.PostgresqlLogicalSettings{
+		Host:             host,
+		Port:             port,
+		Username:         username,
+		Password:         &password,
+		Database:         &database,
+		SslMode:          apiclient.PostgresqlSslModeDisable,
+		SshTunnel:        apiclient.SshTunnelSettings{IsEnabled: false},
+		IncludeSchemas:   []string{},
+		ExcludeTables:    []string{},
+		ExcludeTableData: []string{},
+		CpuCount:         1,
 	}
+}
 
-	w := workspaces_testing.MakeAPIRequest(
-		router,
-		"POST",
-		"/api/v1/databases/create",
-		"Bearer "+token,
-		request,
-	)
+func submitCreatePostgresqlDatabase(
+	t *testing.T,
+	router *gin.Engine,
+	name string,
+	workspaceID uuid.UUID,
+	settings apiclient.PostgresqlLogicalSettings,
+	token string,
+) apiclient.Database {
+	request := logicaltesting.NewDatabaseCreate(t, workspaceID, settings)
+	request.Name = name
 
-	if w.Code != http.StatusCreated {
-		t.Fatalf("Failed to create database. Status: %d, Body: %s", w.Code, w.Body.String())
-	}
-
-	var createdDatabase databases.Database
-	if err := json.Unmarshal(w.Body.Bytes(), &createdDatabase); err != nil {
-		t.Fatalf("Failed to unmarshal database response: %v", err)
-	}
-
-	return &createdDatabase
+	return logicaltesting.SubmitCreateDatabase(t, router, "PostgreSQL", request, token)
 }
 
 func createRestoreViaAPI(
@@ -2033,7 +2013,7 @@ func createRestoreWithCpuCountViaAPI(
 	token string,
 ) {
 	request := restores_core.RestoreBackupRequest{
-		PostgresqlLogicalDatabase: &pgtypes.PostgresqlLogicalDatabase{
+		PostgresqlLogicalDatabase: &restores_core.PostgresqlTargetDatabase{
 			Host:     host,
 			Port:     port,
 			Username: username,
@@ -2043,14 +2023,7 @@ func createRestoreWithCpuCountViaAPI(
 		},
 	}
 
-	test_utils.MakePostRequest(
-		t,
-		router,
-		fmt.Sprintf("/api/v1/restores/%s/restore", backupID.String()),
-		"Bearer "+token,
-		request,
-		http.StatusOK,
-	)
+	logicaltesting.SubmitRestore(t, router, backupID, request, token)
 }
 
 func createRestoreWithOptionsViaAPI(
@@ -2066,7 +2039,7 @@ func createRestoreWithOptionsViaAPI(
 	token string,
 ) {
 	request := restores_core.RestoreBackupRequest{
-		PostgresqlLogicalDatabase: &pgtypes.PostgresqlLogicalDatabase{
+		PostgresqlLogicalDatabase: &restores_core.PostgresqlTargetDatabase{
 			Host:                host,
 			Port:                port,
 			Username:            username,
@@ -2077,14 +2050,7 @@ func createRestoreWithOptionsViaAPI(
 		},
 	}
 
-	test_utils.MakePostRequest(
-		t,
-		router,
-		fmt.Sprintf("/api/v1/restores/%s/restore", backupID.String()),
-		"Bearer "+token,
-		request,
-		http.StatusOK,
-	)
+	logicaltesting.SubmitRestore(t, router, backupID, request, token)
 }
 
 func createRestoreWithRestoreFlagsViaAPI(
@@ -2101,7 +2067,7 @@ func createRestoreWithRestoreFlagsViaAPI(
 	token string,
 ) {
 	request := restores_core.RestoreBackupRequest{
-		PostgresqlLogicalDatabase: &pgtypes.PostgresqlLogicalDatabase{
+		PostgresqlLogicalDatabase: &restores_core.PostgresqlTargetDatabase{
 			Host:                host,
 			Port:                port,
 			Username:            username,
@@ -2113,14 +2079,7 @@ func createRestoreWithRestoreFlagsViaAPI(
 		},
 	}
 
-	test_utils.MakePostRequest(
-		t,
-		router,
-		fmt.Sprintf("/api/v1/restores/%s/restore", backupID.String()),
-		"Bearer "+token,
-		request,
-		http.StatusOK,
-	)
+	logicaltesting.SubmitRestore(t, router, backupID, request, token)
 }
 
 func createDatabaseWithSchemasViaAPI(
@@ -2135,44 +2094,11 @@ func createDatabaseWithSchemasViaAPI(
 	database string,
 	includeSchemas []string,
 	token string,
-) *databases.Database {
-	request := databases.Database{
-		Name:        name,
-		WorkspaceID: &workspaceID,
-		Type:        databases.DatabaseTypePostgresLogical,
-		PostgresqlLogical: &pgtypes.PostgresqlLogicalDatabase{
-			Host:           host,
-			Port:           port,
-			Username:       username,
-			Password:       password,
-			Database:       &database,
-			IncludeSchemas: includeSchemas,
-			CpuCount:       1,
-		},
-	}
+) apiclient.Database {
+	settings := newPostgresqlSettings(host, port, username, password, database)
+	settings.IncludeSchemas = includeSchemas
 
-	w := workspaces_testing.MakeAPIRequest(
-		router,
-		"POST",
-		"/api/v1/databases/create",
-		"Bearer "+token,
-		request,
-	)
-
-	if w.Code != http.StatusCreated {
-		t.Fatalf(
-			"Failed to create database with schemas. Status: %d, Body: %s",
-			w.Code,
-			w.Body.String(),
-		)
-	}
-
-	var createdDatabase databases.Database
-	if err := json.Unmarshal(w.Body.Bytes(), &createdDatabase); err != nil {
-		t.Fatalf("Failed to unmarshal database response: %v", err)
-	}
-
-	return &createdDatabase
+	return submitCreatePostgresqlDatabase(t, router, name, workspaceID, settings, token)
 }
 
 func verifyDataIntegrity(t *testing.T, originalDB, restoredDB *sqlx.DB, tableName string) {
@@ -2196,91 +2122,33 @@ func verifyDataIntegrity(t *testing.T, originalDB, restoredDB *sqlx.DB, tableNam
 	}
 }
 
-func createReadOnlyUserViaAPI(
+func updatePostgresqlSettingsViaAPI(
 	t *testing.T,
 	router *gin.Engine,
-	databaseID uuid.UUID,
+	database apiclient.Database,
+	changeSettings func(settings *apiclient.PostgresqlLogicalSettings),
 	token string,
-) *databases.CreateReadOnlyUserResponse {
-	var database databases.Database
-	test_utils.MakeGetRequestAndUnmarshal(
-		t,
-		router,
-		fmt.Sprintf("/api/v1/databases/%s", databaseID.String()),
-		"Bearer "+token,
-		http.StatusOK,
-		&database,
-	)
+) apiclient.Database {
+	settings, err := database.Settings.AsPostgresqlLogicalSettings()
+	require.NoError(t, err)
 
-	var response databases.CreateReadOnlyUserResponse
-	test_utils.MakePostRequestAndUnmarshal(
-		t,
-		router,
-		"/api/v1/databases/create-readonly-user",
-		"Bearer "+token,
-		database,
-		http.StatusOK,
-		&response,
-	)
+	changeSettings(&settings)
 
-	return &response
-}
-
-func updateDatabaseViaAPI(
-	t *testing.T,
-	router *gin.Engine,
-	database *databases.Database,
-	token string,
-) *databases.Database {
-	w := workspaces_testing.MakeAPIRequest(
-		router,
-		"POST",
-		"/api/v1/databases/update",
-		"Bearer "+token,
-		database,
-	)
-
-	if w.Code != http.StatusOK {
-		t.Fatalf("Failed to update database. Status: %d, Body: %s", w.Code, w.Body.String())
-	}
-
-	var updatedDatabase databases.Database
-	if err := json.Unmarshal(w.Body.Bytes(), &updatedDatabase); err != nil {
-		t.Fatalf("Failed to unmarshal database response: %v", err)
-	}
-
-	return &updatedDatabase
+	return logicaltesting.UpdateDatabaseSettingsViaAPI(t, router, database, settings, token)
 }
 
 func updateDatabaseCredentialsViaAPI(
 	t *testing.T,
 	router *gin.Engine,
-	database *databases.Database,
+	database apiclient.Database,
 	username string,
 	password string,
 	token string,
-) *databases.Database {
-	database.PostgresqlLogical.Username = username
-	database.PostgresqlLogical.Password = password
-
-	w := workspaces_testing.MakeAPIRequest(
-		router,
-		"POST",
-		"/api/v1/databases/update",
-		"Bearer "+token,
-		database,
-	)
-
-	if w.Code != http.StatusOK {
-		t.Fatalf("Failed to update database. Status: %d, Body: %s", w.Code, w.Body.String())
-	}
-
-	var updatedDatabase databases.Database
-	if err := json.Unmarshal(w.Body.Bytes(), &updatedDatabase); err != nil {
-		t.Fatalf("Failed to unmarshal database response: %v", err)
-	}
-
-	return &updatedDatabase
+) apiclient.Database {
+	return updatePostgresqlSettingsViaAPI(t, router, database, func(settings *apiclient.PostgresqlLogicalSettings) {
+		settings.Username = username
+		settings.Password = &password
+	}, token)
 }
 
 func connectToPostgresContainer(t *testing.T, image string) (*PostgresContainer, error) {

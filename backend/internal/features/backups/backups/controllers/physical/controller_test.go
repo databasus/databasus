@@ -36,13 +36,13 @@ import (
 	backups_services "databasus-backend/internal/features/backups/backups/services"
 	postgresql_executor "databasus-backend/internal/features/backups/backups/usecases/physical/postgresql"
 	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
-	"databasus-backend/internal/features/databases"
-	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
+	databases_bridge "databasus-backend/internal/features/databases"
 	"databasus-backend/internal/features/intervals"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	storages_bridge "databasus-backend/internal/features/storages"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
+	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/modules/users"
@@ -60,7 +60,7 @@ type physicalControllerPrereqs struct {
 	workspace *workspaces_testing.TestWorkspace
 	storage   storages.Storage
 	notifier  *notifiers.Notifier
-	database  *databases.Database
+	database  databases.Database
 	router    *gin.Engine
 }
 
@@ -68,14 +68,14 @@ func createPhysicalControllerPrereqs(t *testing.T) *physicalControllerPrereqs {
 	t.Helper()
 
 	return createPhysicalControllerPrereqsWithDatabase(t,
-		func(workspaceID uuid.UUID, notifier *notifiers.Notifier) *databases.Database {
-			return databases.CreateTestPhysicalPostgresDatabase(workspaceID, notifier, "17")
+		func(workspaceID uuid.UUID, notifier *notifiers.Notifier) databases.Database {
+			return databases_bridge.CreateTestPhysicalPostgresDatabase(workspaceID, notifier, "17")
 		})
 }
 
 func createPhysicalControllerPrereqsWithDatabase(
 	t *testing.T,
-	createDatabase func(workspaceID uuid.UUID, notifier *notifiers.Notifier) *databases.Database,
+	createDatabase func(workspaceID uuid.UUID, notifier *notifiers.Notifier) databases.Database,
 ) *physicalControllerPrereqs {
 	t.Helper()
 
@@ -88,7 +88,7 @@ func createPhysicalControllerPrereqsWithDatabase(
 
 	t.Cleanup(func() {
 		physical_testing.DeleteAllPhysicalCatalogForDatabase(t, database.ID)
-		databases.RemoveTestDatabase(t.Context(), database)
+		databases_bridge.RemoveTestDatabase(t.Context(), database)
 		notifiers_bridge.RemoveTestNotifier(notifier)
 		storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 	})
@@ -116,14 +116,15 @@ func newPhysicalControllerRouter() *gin.Engine {
 
 	protected := v1.Group("").Use(users_testing.GetSessionMiddleware())
 	if routerGroup, ok := protected.(*gin.RouterGroup); ok {
-		databases.GetDatabaseController().RegisterRoutes(routerGroup)
+		databases_bridge.GetTestRoutes().RegisterRoutes(routerGroup)
 		backups_controllers_physical.GetPhysicalBackupController().RegisterRoutes(routerGroup)
 		backups_config_physical.GetBackupConfigController().RegisterRoutes(routerGroup)
 	}
 
-	databases.SetupDependencies()
+	databases_bridge.SetupDependencies()
 	backups_config_physical.SetupDependencies()
 	backuping_physical.SetupDependencies()
+	backuping_physical.SubscribeToDatabaseDeletingWithoutApp()
 
 	return router
 }
@@ -1499,13 +1500,13 @@ func seedWalAroundFull(t *testing.T, prereqs *physicalControllerPrereqs) (
 	return olderSegments, full, newerSegments
 }
 
-func createSecondPhysicalDatabase(t *testing.T, prereqs *physicalControllerPrereqs) *databases.Database {
+func createSecondPhysicalDatabase(t *testing.T, prereqs *physicalControllerPrereqs) databases.Database {
 	t.Helper()
 
-	database := databases.CreateTestPhysicalPostgresDatabase(prereqs.workspace.ID, prereqs.notifier, "17")
+	database := databases_bridge.CreateTestPhysicalPostgresDatabase(prereqs.workspace.ID, prereqs.notifier, "17")
 	t.Cleanup(func() {
 		physical_testing.DeleteAllPhysicalCatalogForDatabase(t, database.ID)
-		databases.RemoveTestDatabase(t.Context(), database)
+		databases_bridge.RemoveTestDatabase(t.Context(), database)
 	})
 
 	return database
@@ -1620,10 +1621,10 @@ func createWalStreamingControllerPrereqs(t *testing.T) *physicalControllerPrereq
 	require.NoError(t, err)
 
 	prereqs := createPhysicalControllerPrereqsWithDatabase(t,
-		func(workspaceID uuid.UUID, notifier *notifiers.Notifier) *databases.Database {
-			return databases.CreateTestPhysicalPostgresDatabaseWithType(
+		func(workspaceID uuid.UUID, notifier *notifiers.Notifier) databases.Database {
+			return databases_bridge.CreateTestPhysicalPostgresDatabaseWithType(
 				config.GetEnv().TestLocalhost, port, workspaceID, notifier, "17",
-				postgresql_physical.BackupTypeFullIncrementalAndWalStream,
+				databases.PhysicalBackupTypeFullIncrementalWalStream,
 			)
 		})
 
@@ -1749,8 +1750,8 @@ func Test_GetWalStreamStatistics_WhenRequestNotAllowed_RefusesWithoutStatistics(
 
 	outsider := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
-	logicalDatabase := databases.CreateTestDatabase(prereqs.workspace.ID, prereqs.notifier)
-	t.Cleanup(func() { databases.RemoveTestDatabase(context.Background(), logicalDatabase) })
+	logicalDatabase := databases_bridge.CreateTestDatabase(prereqs.workspace.ID, prereqs.notifier)
+	t.Cleanup(func() { databases_bridge.RemoveTestDatabase(context.Background(), logicalDatabase) })
 
 	testCases := []struct {
 		name           string
@@ -1849,8 +1850,8 @@ func Test_GetWalStreamLive_WhenRequestNotAllowed_RefusesWithoutValues(t *testing
 
 	outsider := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
-	logicalDatabase := databases.CreateTestDatabase(prereqs.workspace.ID, prereqs.notifier)
-	t.Cleanup(func() { databases.RemoveTestDatabase(context.Background(), logicalDatabase) })
+	logicalDatabase := databases_bridge.CreateTestDatabase(prereqs.workspace.ID, prereqs.notifier)
+	t.Cleanup(func() { databases_bridge.RemoveTestDatabase(context.Background(), logicalDatabase) })
 
 	testCases := []struct {
 		name           string
@@ -1898,7 +1899,7 @@ func registerTestRunningWalStreamer(t *testing.T, prereqs *physicalControllerPre
 
 	streamer := postgresql_executor.NewWalStreamSupervisor(postgresql_executor.WalStreamSpec{
 		DatabaseID:     prereqs.database.ID,
-		SourceDB:       prereqs.database.PostgresqlPhysical,
+		SourceDB:       postgresql_executor.OpenSourceDB(t, prereqs.database.ID),
 		WalSegmentRepo: physical_repositories.GetWalSegmentRepository(),
 		WatchDirRoot:   watchDirRoot,
 		Logger:         logger.GetLogger(),
@@ -2505,10 +2506,10 @@ func Test_GetWalStreamStatistics_WhenStreamingNotExpected_ReportsNotStreamingWit
 		{
 			name: "Switched out of WAL streaming",
 			stopStreaming: func(t *testing.T, prereqs *physicalControllerPrereqs) {
-				require.NoError(t, storage.GetDb().
-					Model(&postgresql_physical.PostgresqlPhysicalDatabase{}).
-					Where("database_id = ?", prereqs.database.ID).
-					Update("backup_type", postgresql_physical.BackupTypeFullAndIncremental).Error)
+				require.NoError(t, storage.GetDb().Exec(
+					"UPDATE databases_postgresql_physical SET backup_type = ? WHERE database_id = ?",
+					databases.PhysicalBackupTypeFullAndIncremental, prereqs.database.ID,
+				).Error)
 			},
 		},
 	}
@@ -2631,6 +2632,7 @@ func createStorageForStorageChange(t *testing.T, prereqs *physicalControllerPrer
 	t.Helper()
 
 	backups_services.SetupDependencies()
+	backups_services.SubscribeToDatabaseEventsWithoutApp()
 
 	newStorage := storages_bridge.CreateTestStorage(prereqs.workspace.ID)
 
@@ -2653,6 +2655,7 @@ func saveBackupConfigWithStorage(t *testing.T, prereqs *physicalControllerPrereq
 	t.Helper()
 
 	backups_services.SetupDependencies()
+	backups_services.SubscribeToDatabaseEventsWithoutApp()
 
 	backupConfig, err := backups_config_physical.GetBackupConfigService().GetBackupConfigByDbId(prereqs.database.ID)
 	require.NoError(t, err)

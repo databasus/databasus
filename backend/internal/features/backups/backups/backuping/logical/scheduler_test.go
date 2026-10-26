@@ -11,12 +11,13 @@ import (
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
 	"databasus-backend/internal/features/caching"
-	"databasus-backend/internal/features/databases"
+	databases_bridge "databasus-backend/internal/features/databases"
 	"databasus-backend/internal/features/intervals"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	storages_bridge "databasus-backend/internal/features/storages"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
+	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/modules/users"
@@ -28,31 +29,31 @@ import (
 func Test_RunPendingBackups_ByDatabaseType_OnlySchedulesNonAgentManagedBackups(t *testing.T) {
 	type testCase struct {
 		name             string
-		createDatabase   func(t *testing.T, workspaceID uuid.UUID, storage storages.Storage, notifier *notifiers.Notifier) *databases.Database
+		createDatabase   func(t *testing.T, workspaceID uuid.UUID, storage storages.Storage, notifier *notifiers.Notifier) databases.Database
 		isBackupExpected bool
 	}
 
 	testCases := []testCase{
 		{
 			name: "PostgreSQL PG_DUMP - backup runs",
-			createDatabase: func(_ *testing.T, workspaceID uuid.UUID, storage storages.Storage, notifier *notifiers.Notifier) *databases.Database {
-				return databases.CreateTestDatabase(workspaceID, notifier)
+			createDatabase: func(_ *testing.T, workspaceID uuid.UUID, storage storages.Storage, notifier *notifiers.Notifier) databases.Database {
+				return databases_bridge.CreateTestDatabase(workspaceID, notifier)
 			},
 			isBackupExpected: true,
 		},
 		{
 			name: "MariaDB - backup runs",
-			createDatabase: func(t *testing.T, workspaceID uuid.UUID, _ storages.Storage, notifier *notifiers.Notifier) *databases.Database {
+			createDatabase: func(t *testing.T, workspaceID uuid.UUID, _ storages.Storage, notifier *notifiers.Notifier) databases.Database {
 				endpoint := containers.StartMariadb(t, "mariadb:10.11")
-				return databases.CreateTestMariadbDatabase(endpoint.Host, endpoint.Port, workspaceID, notifier)
+				return databases_bridge.CreateTestMariadbDatabase(endpoint.Host, endpoint.Port, workspaceID, notifier)
 			},
 			isBackupExpected: true,
 		},
 		{
 			name: "MongoDB - backup runs",
-			createDatabase: func(t *testing.T, workspaceID uuid.UUID, _ storages.Storage, notifier *notifiers.Notifier) *databases.Database {
+			createDatabase: func(t *testing.T, workspaceID uuid.UUID, _ storages.Storage, notifier *notifiers.Notifier) databases.Database {
 				endpoint := containers.StartMongodb(t, "mongo:7.0")
-				return databases.CreateTestMongodbDatabase(endpoint.Host, endpoint.Port, workspaceID, notifier)
+				return databases_bridge.CreateTestMongodbDatabase(endpoint.Host, endpoint.Port, workspaceID, notifier)
 			},
 			isBackupExpected: true,
 		},
@@ -74,7 +75,7 @@ func Test_RunPendingBackups_ByDatabaseType_OnlySchedulesNonAgentManagedBackups(t
 					getBackupRepository().DeleteByID(backup.ID)
 				}
 
-				databases.RemoveTestDatabase(t.Context(), database)
+				databases_bridge.RemoveTestDatabase(t.Context(), database)
 				time.Sleep(50 * time.Millisecond)
 				storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 				notifiers_bridge.RemoveTestNotifier(notifier)
@@ -134,7 +135,7 @@ func Test_RunPendingBackups_WhenLastBackupWasYesterday_CreatesNewBackup(t *testi
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", user)
 	storage := storages_bridge.CreateTestStorage(workspace.ID)
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
-	database := databases.CreateTestDatabase(workspace.ID, notifier)
+	database := databases_bridge.CreateTestDatabase(workspace.ID, notifier)
 
 	defer func() {
 		// cleanup backups first
@@ -143,7 +144,7 @@ func Test_RunPendingBackups_WhenLastBackupWasYesterday_CreatesNewBackup(t *testi
 			getBackupRepository().DeleteByID(backup.ID)
 		}
 
-		databases.RemoveTestDatabase(t.Context(), database)
+		databases_bridge.RemoveTestDatabase(t.Context(), database)
 		time.Sleep(50 * time.Millisecond)
 		storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 		notifiers_bridge.RemoveTestNotifier(notifier)
@@ -199,7 +200,7 @@ func Test_RunPendingBackups_WhenLastBackupWasRecentlyCompleted_SkipsBackup(t *te
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", user)
 	storage := storages_bridge.CreateTestStorage(workspace.ID)
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
-	database := databases.CreateTestDatabase(workspace.ID, notifier)
+	database := databases_bridge.CreateTestDatabase(workspace.ID, notifier)
 
 	defer func() {
 		// cleanup backups first
@@ -208,7 +209,7 @@ func Test_RunPendingBackups_WhenLastBackupWasRecentlyCompleted_SkipsBackup(t *te
 			getBackupRepository().DeleteByID(backup.ID)
 		}
 
-		databases.RemoveTestDatabase(t.Context(), database)
+		databases_bridge.RemoveTestDatabase(t.Context(), database)
 		time.Sleep(50 * time.Millisecond)
 		storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 		notifiers_bridge.RemoveTestNotifier(notifier)
@@ -262,7 +263,7 @@ func Test_RunPendingBackups_WhenLastBackupFailedAndRetriesDisabled_SkipsBackup(t
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", user)
 	storage := storages_bridge.CreateTestStorage(workspace.ID)
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
-	database := databases.CreateTestDatabase(workspace.ID, notifier)
+	database := databases_bridge.CreateTestDatabase(workspace.ID, notifier)
 
 	defer func() {
 		// cleanup backups first
@@ -271,7 +272,7 @@ func Test_RunPendingBackups_WhenLastBackupFailedAndRetriesDisabled_SkipsBackup(t
 			getBackupRepository().DeleteByID(backup.ID)
 		}
 
-		databases.RemoveTestDatabase(t.Context(), database)
+		databases_bridge.RemoveTestDatabase(t.Context(), database)
 		time.Sleep(50 * time.Millisecond)
 		storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 		notifiers_bridge.RemoveTestNotifier(notifier)
@@ -329,7 +330,7 @@ func Test_RunPendingBackups_WhenLastBackupFailedAndRetriesEnabled_CreatesNewBack
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", user)
 	storage := storages_bridge.CreateTestStorage(workspace.ID)
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
-	database := databases.CreateTestDatabase(workspace.ID, notifier)
+	database := databases_bridge.CreateTestDatabase(workspace.ID, notifier)
 
 	defer func() {
 		// cleanup backups first
@@ -338,7 +339,7 @@ func Test_RunPendingBackups_WhenLastBackupFailedAndRetriesEnabled_CreatesNewBack
 			getBackupRepository().DeleteByID(backup.ID)
 		}
 
-		databases.RemoveTestDatabase(t.Context(), database)
+		databases_bridge.RemoveTestDatabase(t.Context(), database)
 		time.Sleep(50 * time.Millisecond)
 		storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 		notifiers_bridge.RemoveTestNotifier(notifier)
@@ -398,7 +399,7 @@ func Test_RunPendingBackups_WhenFailedBackupsExceedMaxRetries_SkipsBackup(t *tes
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", user)
 	storage := storages_bridge.CreateTestStorage(workspace.ID)
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
-	database := databases.CreateTestDatabase(workspace.ID, notifier)
+	database := databases_bridge.CreateTestDatabase(workspace.ID, notifier)
 
 	defer func() {
 		// cleanup backups first
@@ -407,7 +408,7 @@ func Test_RunPendingBackups_WhenFailedBackupsExceedMaxRetries_SkipsBackup(t *tes
 			getBackupRepository().DeleteByID(backup.ID)
 		}
 
-		databases.RemoveTestDatabase(t.Context(), database)
+		databases_bridge.RemoveTestDatabase(t.Context(), database)
 		time.Sleep(50 * time.Millisecond)
 		storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 		notifiers_bridge.RemoveTestNotifier(notifier)
@@ -467,7 +468,7 @@ func Test_RunPendingBackups_WhenBackupsDisabled_SkipsBackup(t *testing.T) {
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", user)
 	storage := storages_bridge.CreateTestStorage(workspace.ID)
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
-	database := databases.CreateTestDatabase(workspace.ID, notifier)
+	database := databases_bridge.CreateTestDatabase(workspace.ID, notifier)
 
 	defer func() {
 		backups, _ := getBackupRepository().FindByDatabaseID(database.ID)
@@ -475,7 +476,7 @@ func Test_RunPendingBackups_WhenBackupsDisabled_SkipsBackup(t *testing.T) {
 			getBackupRepository().DeleteByID(backup.ID)
 		}
 
-		databases.RemoveTestDatabase(t.Context(), database)
+		databases_bridge.RemoveTestDatabase(t.Context(), database)
 		time.Sleep(50 * time.Millisecond)
 		storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 		notifiers_bridge.RemoveTestNotifier(notifier)
@@ -528,7 +529,7 @@ func Test_FailBackupsInProgress_WhenSchedulerStarts_CancelsBackupsAndUpdatesStat
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", user)
 	storage := storages_bridge.CreateTestStorage(workspace.ID)
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
-	database := databases.CreateTestDatabase(workspace.ID, notifier)
+	database := databases_bridge.CreateTestDatabase(workspace.ID, notifier)
 
 	defer func() {
 		backups, _ := getBackupRepository().FindByDatabaseID(database.ID)
@@ -536,7 +537,7 @@ func Test_FailBackupsInProgress_WhenSchedulerStarts_CancelsBackupsAndUpdatesStat
 			getBackupRepository().DeleteByID(backup.ID)
 		}
 
-		databases.RemoveTestDatabase(t.Context(), database)
+		databases_bridge.RemoveTestDatabase(t.Context(), database)
 		time.Sleep(50 * time.Millisecond)
 		storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 		notifiers_bridge.RemoveTestNotifier(notifier)
@@ -633,7 +634,7 @@ func Test_StartBackup_WhenBackupAlreadyInProgress_SkipsNewBackup(t *testing.T) {
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", user)
 	storage := storages_bridge.CreateTestStorage(workspace.ID)
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
-	database := databases.CreateTestDatabase(workspace.ID, notifier)
+	database := databases_bridge.CreateTestDatabase(workspace.ID, notifier)
 
 	defer func() {
 		backups, _ := getBackupRepository().FindByDatabaseID(database.ID)
@@ -641,7 +642,7 @@ func Test_StartBackup_WhenBackupAlreadyInProgress_SkipsNewBackup(t *testing.T) {
 			getBackupRepository().DeleteByID(backup.ID)
 		}
 
-		databases.RemoveTestDatabase(t.Context(), database)
+		databases_bridge.RemoveTestDatabase(t.Context(), database)
 		time.Sleep(50 * time.Millisecond)
 		storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 		notifiers_bridge.RemoveTestNotifier(notifier)
@@ -699,7 +700,7 @@ func Test_RunPendingBackups_WhenLastBackupFailedWithIsSkipRetry_SkipsBackupEvenW
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", user)
 	storage := storages_bridge.CreateTestStorage(workspace.ID)
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
-	database := databases.CreateTestDatabase(workspace.ID, notifier)
+	database := databases_bridge.CreateTestDatabase(workspace.ID, notifier)
 
 	defer func() {
 		backups, _ := getBackupRepository().FindByDatabaseID(database.ID)
@@ -707,7 +708,7 @@ func Test_RunPendingBackups_WhenLastBackupFailedWithIsSkipRetry_SkipsBackupEvenW
 			getBackupRepository().DeleteByID(backup.ID)
 		}
 
-		databases.RemoveTestDatabase(t.Context(), database)
+		databases_bridge.RemoveTestDatabase(t.Context(), database)
 		time.Sleep(50 * time.Millisecond)
 		storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 		notifiers_bridge.RemoveTestNotifier(notifier)
@@ -790,8 +791,8 @@ func Test_StartBackup_When2BackupsStartedForDifferentDatabases_BothUseCasesAreCa
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
 
 	// Create 2 separate databases
-	database1 := databases.CreateTestDatabase(workspace.ID, notifier)
-	database2 := databases.CreateTestDatabase(workspace.ID, notifier)
+	database1 := databases_bridge.CreateTestDatabase(workspace.ID, notifier)
+	database2 := databases_bridge.CreateTestDatabase(workspace.ID, notifier)
 
 	defer func() {
 		// Cleanup backups for database1
@@ -806,8 +807,8 @@ func Test_StartBackup_When2BackupsStartedForDifferentDatabases_BothUseCasesAreCa
 			getBackupRepository().DeleteByID(backup.ID)
 		}
 
-		databases.RemoveTestDatabase(t.Context(), database1)
-		databases.RemoveTestDatabase(t.Context(), database2)
+		databases_bridge.RemoveTestDatabase(t.Context(), database1)
+		databases_bridge.RemoveTestDatabase(t.Context(), database2)
 		time.Sleep(50 * time.Millisecond)
 		storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 		notifiers_bridge.RemoveTestNotifier(notifier)

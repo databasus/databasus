@@ -17,13 +17,12 @@ import (
 	mariadb_engine "databasus-backend/internal/engines/mariadb"
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
-	"databasus-backend/internal/features/databases"
-	mariadbtypes "databasus-backend/internal/features/databases/databases/mariadb"
 	restores_core "databasus-backend/internal/features/restores/core"
 	storages_bridge "databasus-backend/internal/features/storages"
 	logicaltesting "databasus-backend/internal/features/tests/logical/shared"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
+	"databasus-backend/internal/lib/apiclient"
 	"databasus-backend/internal/modules/users"
 	test_utils "databasus-backend/internal/util/testing"
 	"databasus-backend/internal/util/testing/containers"
@@ -59,12 +58,12 @@ func Test_BackupAndRestoreMariadbSSL_Succeeds(t *testing.T) {
 	)
 
 	logicaltesting.EnableBackupsViaAPI(
-		t, router, database.ID, storage.ID,
+		t, router, database.Id, storage.ID,
 		backups_core_enums.BackupEncryptionNone, user.Token,
 	)
-	logicaltesting.CreateBackupViaAPI(t, router, database.ID, user.Token)
+	logicaltesting.CreateBackupViaAPI(t, router, database.Id, user.Token)
 
-	backup := logicaltesting.WaitForBackupCompletion(t, router, database.ID, user.Token, 5*time.Minute)
+	backup := logicaltesting.WaitForBackupCompletion(t, router, database.Id, user.Token, 5*time.Minute)
 	assert.Equal(t, backups_core_logical.BackupStatusCompleted, backup.Status)
 
 	newDBName := "restoreddb_mariadb_ssl"
@@ -92,7 +91,7 @@ func Test_BackupAndRestoreMariadbSSL_Succeeds(t *testing.T) {
 
 	_ = os.Remove(filepath.Join(config.GetEnv().DataFolder, backup.ID.String()))
 	test_utils.MakeDeleteRequest(
-		t, router, "/api/v1/databases/"+database.ID.String(),
+		t, router, "/api/v1/databases/"+database.Id.String(),
 		"Bearer "+user.Token, http.StatusNoContent,
 	)
 	storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
@@ -109,21 +108,21 @@ func createMariadbSSLDatabaseViaAPI(
 	username, password, database string,
 	version mariadb_engine.Version,
 	token string,
-) *databases.Database {
-	request := databases.Database{
-		Name:        name,
-		WorkspaceID: &workspaceID,
-		Type:        databases.DatabaseTypeMariadb,
-		Mariadb: &mariadbtypes.MariadbDatabase{
-			Host:     host,
-			Port:     port,
-			Username: username,
-			Password: password,
-			Database: &database,
-			Version:  version,
-			IsHttps:  true,
-		},
-	}
+) apiclient.Database {
+	mariadbVersion := apiclient.MariadbVersion(version)
+
+	request := logicaltesting.NewDatabaseCreate(t, workspaceID, apiclient.MariadbSettings{
+		Host:          host,
+		Port:          port,
+		Username:      username,
+		Password:      &password,
+		Database:      &database,
+		Version:       &mariadbVersion,
+		IsHttps:       true,
+		ExcludeTables: []string{},
+		SshTunnel:     apiclient.SshTunnelSettings{IsEnabled: false},
+	})
+	request.Name = name
 
 	return logicaltesting.SubmitCreateDatabase(t, router, "MariaDB SSL", request, token)
 }
@@ -139,7 +138,7 @@ func createMariadbSSLRestoreViaAPI(
 	token string,
 ) {
 	request := restores_core.RestoreBackupRequest{
-		MariadbDatabase: &mariadbtypes.MariadbDatabase{
+		MariadbDatabase: &restores_core.MariadbTargetDatabase{
 			Host:     host,
 			Port:     port,
 			Username: username,

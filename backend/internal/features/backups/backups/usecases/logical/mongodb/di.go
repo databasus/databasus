@@ -3,6 +3,7 @@ package usecases_logical_mongodb
 import (
 	"sync"
 
+	databases_bridge "databasus-backend/internal/features/databases"
 	"databasus-backend/internal/util/encryption"
 	"databasus-backend/internal/util/logger"
 )
@@ -11,7 +12,7 @@ var getCreateMongodbBackupUsecase = sync.OnceValue(func() *CreateMongodbBackupUs
 	return &CreateMongodbBackupUsecase{
 		logger.GetLogger(),
 		encryption.GetMasterKey(),
-		encryption.GetFieldEncryptor(),
+		databases_bridge.GetModule,
 	}
 })
 

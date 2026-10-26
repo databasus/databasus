@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	backuping_logical "databasus-backend/internal/features/backups/backups/backuping/logical"
-	"databasus-backend/internal/features/databases"
+	databases_bridge "databasus-backend/internal/features/databases"
 	"databasus-backend/internal/features/intervals"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	storages_bridge "databasus-backend/internal/features/storages"
@@ -123,8 +123,8 @@ func Test_SubmitReport_WhenBackupRejected_SendsFailureNotification(t *testing.T)
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
 	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
-	database := databases.CreateTestDatabase(workspace.ID, notifier)
-	defer databases.RemoveTestDatabase(t.Context(), database)
+	database := databases_bridge.CreateTestDatabase(workspace.ID, notifier)
+	defer databases_bridge.RemoveTestDatabase(t.Context(), database)
 
 	enableFailureNotificationsViaAPI(t, router, owner.Token, database.ID)
 
@@ -180,8 +180,8 @@ func Test_SubmitReport_WhenRestoredTooSmall_SendsFailureNotification(t *testing.
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
 	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
-	database := databases.CreateTestDatabase(workspace.ID, notifier)
-	defer databases.RemoveTestDatabase(t.Context(), database)
+	database := databases_bridge.CreateTestDatabase(workspace.ID, notifier)
+	defer databases_bridge.RemoveTestDatabase(t.Context(), database)
 
 	enableFailureNotificationsViaAPI(t, router, owner.Token, database.ID)
 
@@ -230,8 +230,8 @@ func Test_SubmitReport_WhenAgentSetupFailedRepeatedly_SendsFailureNotificationOn
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
 	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
-	database := databases.CreateTestDatabase(workspace.ID, notifier)
-	defer databases.RemoveTestDatabase(t.Context(), database)
+	database := databases_bridge.CreateTestDatabase(workspace.ID, notifier)
+	defer databases_bridge.RemoveTestDatabase(t.Context(), database)
 
 	enableFailureNotificationsViaAPI(t, router, owner.Token, database.ID)
 
@@ -295,8 +295,8 @@ func Test_ReapStaleRuns_WhenAgentLostContact_SendsFailureNotificationOnlyAtTermi
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
 	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
-	database := databases.CreateTestDatabase(workspace.ID, notifier)
-	defer databases.RemoveTestDatabase(t.Context(), database)
+	database := databases_bridge.CreateTestDatabase(workspace.ID, notifier)
+	defer databases_bridge.RemoveTestDatabase(t.Context(), database)
 
 	enableFailureNotificationsViaAPI(t, router, owner.Token, database.ID)
 
@@ -355,8 +355,8 @@ func Test_SubmitReport_WhenFailureNotificationsDisabled_DoesNotSend(t *testing.T
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
 	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
-	database := databases.CreateTestDatabase(workspace.ID, notifier)
-	defer databases.RemoveTestDatabase(t.Context(), database)
+	database := databases_bridge.CreateTestDatabase(workspace.ID, notifier)
+	defer databases_bridge.RemoveTestDatabase(t.Context(), database)
 
 	// Default config has IsScheduledVerificationEnabled=false and no notification types.
 	// Do not call enableFailureNotificationsViaAPI — failure notification must NOT fire.

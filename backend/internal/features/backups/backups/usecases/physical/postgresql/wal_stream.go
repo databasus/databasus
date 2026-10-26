@@ -2,6 +2,7 @@ package usecases_physical_postgresql
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -16,8 +17,7 @@ import (
 	pgshared "databasus-backend/internal/engines/postgresql/shared"
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	physical_repositories "databasus-backend/internal/features/backups/backups/core/physical/repositories"
-	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
-	util_encryption "databasus-backend/internal/util/encryption"
+	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/util/walmath"
 )
 
@@ -133,13 +133,17 @@ func (e *rapidFailureEscalator) reset() {
 }
 
 type WalStreamSpec struct {
-	DatabaseID     uuid.UUID
-	SourceDB       *postgresql_physical.PostgresqlPhysicalDatabase
-	StorageID      uuid.UUID
-	FileStore      FileStore
+	DatabaseID   uuid.UUID
+	SourceDB     databases.PostgresqlPhysicalConnectionSettings
+	StorageID    uuid.UUID
+	FileStore    FileStore
+	BackupStatus BackupStatusRecorder
+
+	// Checked after every slot creation, so a deleted database keeps no slot; nil checks nothing.
+	Databases StreamedDatabases
+
 	Encryption     backups_core_enums.BackupEncryption
 	MasterKey      string
-	FieldEncryptor util_encryption.FieldEncryptor
 	WalSegmentRepo *physical_repositories.PhysicalWalSegmentRepository
 	HistoryRepo    *physical_repositories.PhysicalWalHistoryRepository
 
@@ -255,16 +259,16 @@ func NewWalStreamSupervisor(spec WalStreamSpec) *WalStreamSupervisor {
 	// raw spec logger leaves every archiving line unattributable on a multi-database instance.
 	scopedLogger := spec.Logger.With(
 		"database_id", spec.DatabaseID,
-		"slot_name", spec.SourceDB.ReplicationSlotName,
+		"slot_name", spec.SourceDB.Engine.ReplicationSlotName,
 	)
 
 	uploader := NewWalUploader(WalUploadDeps{
 		DatabaseID:          spec.DatabaseID,
 		StorageID:           spec.StorageID,
 		FileStore:           spec.FileStore,
+		BackupStatus:        spec.BackupStatus,
 		Encryption:          spec.Encryption,
 		MasterKey:           spec.MasterKey,
-		FieldEncryptor:      spec.FieldEncryptor,
 		WalSegmentRepo:      spec.WalSegmentRepo,
 		WalSegmentSizeBytes: walSegmentSizeBytes(spec.SourceDB),
 		Logger:              scopedLogger,
@@ -277,7 +281,7 @@ func NewWalStreamSupervisor(spec WalStreamSpec) *WalStreamSupervisor {
 		logger:           scopedLogger,
 		uploader:         uploader,
 		watchDir:         watchDir,
-		slotName:         spec.SourceDB.ReplicationSlotName,
+		slotName:         spec.SourceDB.Engine.ReplicationSlotName,
 		sessionStartedAt: time.Now().UTC(),
 		restartSignal:    make(chan struct{}, 1),
 	}
@@ -301,7 +305,13 @@ func (s *WalStreamSupervisor) Run(ctx context.Context) error {
 		return fmt.Errorf("create pending upload dir: %w", err)
 	}
 
-	if err := s.spec.SourceDB.VerifyWalSlot(ctx, logger, s.spec.FieldEncryptor); err != nil {
+	if err := s.createSlotUnlessDatabaseDeleted(ctx, logger); err != nil {
+		if errors.Is(err, errStreamedDatabaseDeleted) {
+			logger.InfoContext(ctx, "wal stream supervisor not started because the database is deleted")
+
+			return nil
+		}
+
 		return fmt.Errorf("verify persistent replication slot: %w", err)
 	}
 
@@ -335,6 +345,12 @@ func (s *WalStreamSupervisor) Run(ctx context.Context) error {
 
 	cancelRun()
 	wg.Wait()
+
+	if errors.Is(fatalErr, errStreamedDatabaseDeleted) {
+		logger.InfoContext(ctx, "wal stream supervisor stopped because the database is deleted")
+
+		return nil
+	}
 
 	if fatalErr != nil {
 		logger.ErrorContext(ctx, "wal stream supervisor stopping with fatal error", "error", fatalErr)
@@ -558,7 +574,7 @@ func (s *WalStreamSupervisor) isReceiverRunning() bool {
 	return s.receiverRunStartedAtUnixNano.Load() != 0
 }
 
-func walSegmentSizeBytes(sourceDB *postgresql_physical.PostgresqlPhysicalDatabase) int64 {
+func walSegmentSizeBytes(sourceDB databases.PostgresqlPhysicalConnectionSettings) int64 {
 	if sourceDB.WalSegmentSizeBytes != nil && *sourceDB.WalSegmentSizeBytes > 0 {
 		return *sourceDB.WalSegmentSizeBytes
 	}

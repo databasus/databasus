@@ -17,8 +17,8 @@ import (
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	physical_models "databasus-backend/internal/features/backups/backups/core/physical/models"
 	physical_repositories "databasus-backend/internal/features/backups/backups/core/physical/repositories"
+	databases_bridge "databasus-backend/internal/features/databases"
 	"databasus-backend/internal/modules/storages"
-	"databasus-backend/internal/util/encryption"
 	"databasus-backend/internal/util/logger"
 	"databasus-backend/internal/util/walmath"
 )
@@ -47,10 +47,10 @@ func newTestUploaderWithStore(
 
 	return NewWalUploader(WalUploadDeps{
 		DatabaseID:          fixture.DB.ID,
+		BackupStatus:        databases_bridge.GetModule(),
 		StorageID:           fixture.Storage.ID,
 		FileStore:           fileStore,
 		Encryption:          backups_core_enums.BackupEncryptionNone,
-		FieldEncryptor:      encryption.GetFieldEncryptor(),
 		WalSegmentRepo:      physical_repositories.GetWalSegmentRepository(),
 		WalSegmentSizeBytes: testWalSegmentSize,
 		Logger:              logger.GetLogger(),

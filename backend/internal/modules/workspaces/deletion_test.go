@@ -232,7 +232,7 @@ func requireWorkspaceMembersAndContentListed(t *testing.T, tm team, expectedCont
 
 	require.Equal(t, http.StatusOK, getWorkspace(t, tm.owner, tm.workspace.Id).StatusCode())
 	assert.Len(t, listAllMembers(t, tm.owner.Client, tm.workspace.Id), 2)
-	assert.Equal(t, expectedContent, countContent(t, tm.app, tm.owner, tm.workspace.Id))
+	assert.Equal(t, expectedContent, countContent(t, tm.owner, tm.workspace.Id))
 }
 
 // listBackupIDs lists the backups of a database through the old backups route, which the contract

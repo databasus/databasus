@@ -7,13 +7,14 @@ import (
 	"databasus-backend/internal/config"
 	physical_service "databasus-backend/internal/features/backups/backups/core/physical/service"
 	backups_services "databasus-backend/internal/features/backups/backups/services"
-	"databasus-backend/internal/features/databases"
+	databases_bridge "databasus-backend/internal/features/databases"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	storages_bridge "databasus-backend/internal/features/storages"
 	system_version "databasus-backend/internal/features/system/version"
 	users_bridge "databasus-backend/internal/features/users"
 	verification_agents "databasus-backend/internal/features/verification/agents"
 	verification_config "databasus-backend/internal/features/verification/config"
+	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/util/logger"
@@ -35,7 +36,7 @@ var (
 		return NewTelemetryService(
 			getInstanceLoader(),
 			getHttpSender(),
-			databases.GetDatabaseService(),
+			installedDatabases{},
 			installedStorageTypes{},
 			installedNotifierTypes{},
 			backups_services.GetBackupService(),
@@ -73,6 +74,13 @@ type installedUserCounter struct{}
 
 func (installedUserCounter) GetUserCount(ctx context.Context) (int64, error) {
 	return users_bridge.GetModule().GetUserCount(ctx)
+}
+
+// installedDatabases reads the module per call: each test application installs its own module.
+type installedDatabases struct{}
+
+func (installedDatabases) GetTelemetry(ctx context.Context) ([]databases.TelemetryEntry, error) {
+	return databases_bridge.GetModule().GetTelemetry(ctx)
 }
 
 // installedStorageTypes reads the module per call: each test application installs its own module.

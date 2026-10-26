@@ -14,8 +14,9 @@ import (
 	"databasus-backend/internal/features/backups/backups/core/physical/wal_health"
 	backups_dto_physical "databasus-backend/internal/features/backups/backups/dto/physical"
 	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
-	"databasus-backend/internal/features/databases"
+	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/users"
+	"databasus-backend/internal/modules/workspaces"
 )
 
 var ErrWalStreamStatisticsNotPhysical = errors.New(
@@ -34,12 +35,12 @@ func (s *PhysicalBackupService) GetWalStreamStatistics(
 	databaseID uuid.UUID,
 	request *backups_dto_physical.GetWalStreamStatisticsRequest,
 ) (*backups_dto_physical.GetWalStreamStatisticsResponse, error) {
-	database, err := s.databaseService.GetDatabase(ctx, actor, databaseID)
+	database, err := s.databaseAccess.GetAuthorizedDatabase(ctx, actor, databaseID, workspaces.ActionView)
 	if err != nil {
 		return nil, err
 	}
 
-	if database.Type != databases.DatabaseTypePostgresPhysical {
+	if database.Type != databases.TypePostgresqlPhysical {
 		return nil, ErrWalStreamStatisticsNotPhysical
 	}
 

@@ -130,6 +130,7 @@ export const fr: typeof en = {
       "Le propriétaire ne peut être ni modifié ni retiré. Transférez d'abord la propriété à un autre membre.",
     workspaceNotEmpty:
       "L'espace de travail contient encore des bases de données. Supprimez-les d'abord, puis supprimez l'espace de travail.",
+    databaseConnectionFailed: 'Impossible de se connecter à la base de données : {{detail}}',
     inUse: "Des bases de données l'utilisent encore. Retirez-le d'abord de ces bases de données.",
     unknown: "Une erreur s'est produite. Réessayez.",
     networkUnreachable:
@@ -426,6 +427,7 @@ export const fr: typeof en = {
       connectionStringParsed: 'Champs remplis à partir de la chaîne de connexion',
       connectionStringParsedWithoutPassword:
         'Champs remplis à partir de la chaîne de connexion. Saisissez le mot de passe manuellement.',
+      connectionTestFailed: 'Impossible de joindre la base de données : {{error}}',
       connectionTestPassed: {
         title: 'Test de connexion réussi',
         description: "Vous pouvez passer à l'étape suivante",

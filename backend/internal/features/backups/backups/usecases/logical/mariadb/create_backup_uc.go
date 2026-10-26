@@ -22,12 +22,10 @@ import (
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	backup_encryption "databasus-backend/internal/features/backups/backups/encryption"
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
-	"databasus-backend/internal/features/databases"
-	mariadbtypes "databasus-backend/internal/features/databases/databases/mariadb"
 	"databasus-backend/internal/lib/crypto"
 	"databasus-backend/internal/lib/namelist"
+	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/storages"
-	"databasus-backend/internal/util/encryption"
 	io_utils "databasus-backend/internal/util/io"
 )
 
@@ -40,9 +38,10 @@ const (
 )
 
 type CreateMariadbBackupUsecase struct {
-	logger         *slog.Logger
-	masterKey      *crypto.MasterKey
-	fieldEncryptor encryption.FieldEncryptor
+	logger    *slog.Logger
+	masterKey *crypto.MasterKey
+	// getDatabases is read per call: each test application installs its own module.
+	getDatabases func() databases.Module
 }
 
 type writeResult struct {
@@ -61,7 +60,7 @@ func (uc *CreateMariadbBackupUsecase) Execute(
 	ctx context.Context,
 	backup *backups_core_logical.LogicalBackup,
 	backupConfig *backups_config_logical.LogicalBackupConfig,
-	db *databases.Database,
+	db databases.Database,
 	fileStore backups_core_logical.BackupFileStore,
 	backupProgressListener func(completedMBs float64),
 ) (*backups_core_logical.BackupArtifacts, error) {
@@ -69,46 +68,37 @@ func (uc *CreateMariadbBackupUsecase) Execute(
 
 	logger.InfoContext(ctx, "creating mariadb backup via mariadb-dump")
 
-	tunneledDatabase, err := databases.OpenTunnel(ctx, databases.OpenTunnelSpec{
-		Database:  db,
-		Logger:    logger,
-		Encryptor: uc.fieldEncryptor,
-	})
+	connectionSettings, err := uc.getDatabases().GetMariadbConnectionSettings(ctx, db.ID)
 	if err != nil {
 		return nil, err
 	}
 
-	defer tunneledDatabase.Close()
+	clientTools := mariadb_engine.ClientTools{Root: config.GetEnv().ClientToolsDir}
 
-	mariadbDatabase := tunneledDatabase.GetDatabaseThroughTunnel().Mariadb
-	if mariadbDatabase == nil {
-		return nil, fmt.Errorf("mariadb database configuration is required")
+	tunnel, err := mariadb_engine.NewSource(connectionSettings.Engine, clientTools).OpenTunnel(ctx, logger)
+	if err != nil {
+		return nil, err
 	}
 
-	if mariadbDatabase.Database == nil || *mariadbDatabase.Database == "" {
+	defer tunnel.Close()
+
+	source := tunnel.GetSource()
+	target := dumpTarget{connectionSettings: connectionSettings, settings: source.GetSettings()}
+
+	if target.settings.Database == "" {
 		return nil, fmt.Errorf("database name is required for mariadb-dump backups")
 	}
 
-	decryptedPassword, err := uc.fieldEncryptor.Decrypt(mariadbDatabase.Password)
-	if err != nil {
-		return nil, fmt.Errorf("failed to decrypt database password: %w", err)
-	}
-
-	rawSizeMB, err := mariadbDatabase.GetRawDbSizeMb(ctx, logger, uc.fieldEncryptor)
+	rawSizeMB, err := source.GetRawSizeMb(ctx, logger)
 	if err != nil {
 		logger.WarnContext(ctx, "failed to fetch raw db size before backup", "error", err)
 	} else {
 		backup.BackupRawDbSizeMb = rawSizeMB
 	}
 
-	args := uc.buildMariadbDumpArgs(mariadbDatabase)
+	args := uc.buildMariadbDumpArgs(target)
 
-	mariadbDumpBin, err := mariadb_engine.ClientTools{
-		Root: config.GetEnv().ClientToolsDir,
-	}.GetExecutable(
-		mariadbDatabase.Version,
-		mariadb_engine.ExecutableMariadbDump,
-	)
+	mariadbDumpBin, err := clientTools.GetExecutable(connectionSettings.Version, mariadb_engine.ExecutableMariadbDump)
 	if err != nil {
 		return nil, err
 	}
@@ -119,20 +109,23 @@ func (uc *CreateMariadbBackupUsecase) Execute(
 		backupConfig,
 		mariadbDumpBin,
 		args,
-		decryptedPassword,
 		fileStore,
 		backupProgressListener,
-		mariadbDatabase,
+		target,
 	)
 }
 
-func (uc *CreateMariadbBackupUsecase) buildMariadbDumpArgs(
-	mdb *mariadbtypes.MariadbDatabase,
-) []string {
+// dumpTarget is the database mariadb-dump reads: its options and the settings through the tunnel.
+type dumpTarget struct {
+	connectionSettings databases.MariadbConnectionSettings
+	settings           mariadb_engine.Settings
+}
+
+func (uc *CreateMariadbBackupUsecase) buildMariadbDumpArgs(target dumpTarget) []string {
 	args := []string{
-		"--host=" + mdb.Host,
-		"--port=" + strconv.Itoa(mdb.Port),
-		"--user=" + mdb.Username,
+		"--host=" + target.settings.Host,
+		"--port=" + strconv.Itoa(target.settings.Port),
+		"--user=" + target.settings.Username,
 		"--single-transaction",
 		"--routines",
 		"--quick",
@@ -146,36 +139,30 @@ func (uc *CreateMariadbBackupUsecase) buildMariadbDumpArgs(
 
 	// Triggers are on by default, so a role without the privilege has to be opted out explicitly
 	// or mariadb-dump fails on SHOW TRIGGERS instead of dumping without them.
-	if mdb.HasPrivilege("TRIGGER") {
+	if target.connectionSettings.HasPrivilege("TRIGGER") {
 		args = append(args, "--triggers")
 	} else {
 		args = append(args, "--skip-triggers")
 	}
 
-	if mdb.HasPrivilege("EVENT") && !mdb.IsExcludeEvents {
+	if target.connectionSettings.HasPrivilege("EVENT") && !target.connectionSettings.IsExcludeEvents {
 		args = append(args, "--events")
 	}
 
-	if mdb.Database != nil && *mdb.Database != "" {
-		for _, excludedTable := range namelist.NormalizeUniqueNames(mdb.ExcludeTables) {
-			args = append(args, "--ignore-table="+*mdb.Database+"."+excludedTable)
-		}
+	for _, excludedTable := range namelist.NormalizeUniqueNames(target.connectionSettings.ExcludeTables) {
+		args = append(args, "--ignore-table="+target.settings.Database+"."+excludedTable)
 	}
 
 	args = append(args, "--max-allowed-packet=1G")
 
-	if mdb.IsHttps {
+	if target.settings.IsHTTPS {
 		args = append(args, "--ssl")
 		args = append(args, "--skip-ssl-verify-server-cert")
 	} else {
 		args = append(args, "--skip-ssl")
 	}
 
-	if mdb.Database != nil && *mdb.Database != "" {
-		args = append(args, *mdb.Database)
-	}
-
-	return args
+	return append(args, target.settings.Database)
 }
 
 func (uc *CreateMariadbBackupUsecase) streamToStorage(
@@ -184,17 +171,16 @@ func (uc *CreateMariadbBackupUsecase) streamToStorage(
 	backupConfig *backups_config_logical.LogicalBackupConfig,
 	mariadbBin string,
 	args []string,
-	password string,
 	fileStore backups_core_logical.BackupFileStore,
 	backupProgressListener func(completedMBs float64),
-	mdbConfig *mariadbtypes.MariadbDatabase,
+	target dumpTarget,
 ) (*backups_core_logical.BackupArtifacts, error) {
 	uc.logger.InfoContext(parentCtx, "streaming MariaDB backup to storage", "mariadb_bin", mariadbBin)
 
 	ctx, cancel := backups_core_logical.NewBackupContext(parentCtx, config.GetShutdownSignal())
 	defer cancel(nil)
 
-	myCnfFile, err := uc.createTempMyCnfFile(mdbConfig, password)
+	myCnfFile, err := uc.createTempMyCnfFile(target.settings)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create .my.cnf: %w", err)
 	}
@@ -203,9 +189,9 @@ func (uc *CreateMariadbBackupUsecase) streamToStorage(
 	compressionArgs := uc.probeNetworkCompressionArgs(ctx, CompressionProbeSpec{
 		MariadbDumpBin: mariadbBin,
 		MyCnfFile:      myCnfFile,
-		DatabaseName:   *mdbConfig.Database,
+		DatabaseName:   target.settings.Database,
 		DatabaseID:     backup.DatabaseID,
-		IsHttps:        mdbConfig.IsHttps,
+		IsHttps:        target.settings.IsHTTPS,
 	})
 
 	fullArgs := append([]string{"--defaults-file=" + myCnfFile}, compressionArgs...)
@@ -324,10 +310,7 @@ func (uc *CreateMariadbBackupUsecase) streamToStorage(
 	}, nil
 }
 
-func (uc *CreateMariadbBackupUsecase) createTempMyCnfFile(
-	mdbConfig *mariadbtypes.MariadbDatabase,
-	password string,
-) (string, error) {
+func (uc *CreateMariadbBackupUsecase) createTempMyCnfFile(settings mariadb_engine.Settings) (string, error) {
 	// Credential files use OS temp dir (/tmp) because some filesystems
 	// (e.g. ZFS on TrueNAS) ignore chmod, causing "group or world access" errors.
 	tempDir, err := os.MkdirTemp(os.TempDir(), "mycnf_"+uuid.New().String())
@@ -347,9 +330,9 @@ user=%s
 password="%s"
 host=%s
 port=%d
-`, mdbConfig.Username, mariadb_engine.EscapePassword(password), mdbConfig.Host, mdbConfig.Port)
+`, settings.Username, mariadb_engine.EscapePassword(settings.Password), settings.Host, settings.Port)
 
-	if mdbConfig.IsHttps {
+	if settings.IsHTTPS {
 		content += "ssl=true\n"
 	} else {
 		content += "ssl=false\n"

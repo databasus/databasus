@@ -22,9 +22,10 @@ import (
 	"databasus-backend/internal/features/backups/backups/download/restore_token"
 	backups_dto_physical "databasus-backend/internal/features/backups/backups/dto/physical"
 	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
-	"databasus-backend/internal/features/databases"
+	databases_bridge "databasus-backend/internal/features/databases"
 	workspaces_bridge "databasus-backend/internal/features/workspaces"
 	"databasus-backend/internal/lib/crypto"
+	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/modules/workspaces"
 )
@@ -53,7 +54,7 @@ var ErrBackupNotInProgress = errors.New("backup is not in progress")
 // service, the in-flight canceller, and the shared restore stream writer.
 // OpenRestoreStream is the auth-free seam reused by restore verification.
 type PhysicalBackupService struct {
-	databaseService             *databases.DatabaseService
+	databaseAccess              *databases_bridge.Access
 	workspaceService            *workspaces_bridge.Access
 	backupConfigService         *backups_config_physical.BackupConfigService
 	chainViewService            *chain_view.ChainViewService
@@ -83,7 +84,7 @@ func (s *PhysicalBackupService) GetBackups(
 	databaseID uuid.UUID,
 	request *backups_dto_physical.GetPhysicalBackupsRequest,
 ) (*backups_dto_physical.GetPhysicalBackupsResponse, error) {
-	if _, err := s.databaseService.GetDatabase(ctx, actor, databaseID); err != nil {
+	if _, err := s.databaseAccess.GetAuthorizedDatabase(ctx, actor, databaseID, workspaces.ActionView); err != nil {
 		return nil, err
 	}
 
@@ -335,7 +336,7 @@ func (s *PhysicalBackupService) GenerateRestoreToken(
 	databaseID uuid.UUID,
 	request *backups_dto_physical.GenerateRestoreTokenRequest,
 ) (string, error) {
-	if _, err := s.databaseService.GetDatabase(ctx, actor, databaseID); err != nil {
+	if _, err := s.databaseAccess.GetAuthorizedDatabase(ctx, actor, databaseID, workspaces.ActionView); err != nil {
 		return "", err
 	}
 
@@ -363,7 +364,7 @@ func (s *PhysicalBackupService) GenerateBackupRestoreToken(
 		return "", ErrBackupNotFound
 	}
 
-	if _, err := s.databaseService.GetDatabase(ctx, actor, databaseID); err != nil {
+	if _, err := s.databaseAccess.GetAuthorizedDatabase(ctx, actor, databaseID, workspaces.ActionView); err != nil {
 		return "", err
 	}
 
@@ -530,7 +531,7 @@ func (s *PhysicalBackupService) requestSchedulerChoice(
 	databaseID uuid.UUID,
 	config *backups_config_physical.PhysicalBackupConfig,
 ) error {
-	if config.PostgresqlPhysical == nil || !config.PostgresqlPhysical.BackupType.IsRequireWalSummary() {
+	if !config.BackupType.IsRequiringWalSummary() {
 		return s.backupConfigService.RequestFullBackupNow(databaseID)
 	}
 
@@ -555,23 +556,19 @@ func (s *PhysicalBackupService) authorizeManage(
 	ctx context.Context,
 	actor users.Actor,
 	databaseID uuid.UUID,
-) (*databases.Database, error) {
-	database, err := s.databaseService.GetDatabase(ctx, actor, databaseID)
+) (databases.Database, error) {
+	database, err := s.databaseAccess.GetAuthorizedDatabase(ctx, actor, databaseID, workspaces.ActionView)
 	if err != nil {
-		return nil, err
+		return databases.Database{}, err
 	}
 
-	if database.WorkspaceID == nil {
-		return nil, errors.New("cannot manage backups for a database without a workspace")
-	}
-
-	isAllowed, err := s.workspaceService.IsActorAllowed(ctx, actor, *database.WorkspaceID, workspaces.ActionEditContent)
+	isAllowed, err := s.workspaceService.IsActorAllowed(ctx, actor, database.WorkspaceID, workspaces.ActionEditContent)
 	if err != nil {
-		return nil, err
+		return databases.Database{}, err
 	}
 
 	if !isAllowed {
-		return nil, errors.New("insufficient permissions to manage backups for this database")
+		return databases.Database{}, errors.New("insufficient permissions to manage backups for this database")
 	}
 
 	return database, nil
@@ -582,13 +579,13 @@ func (s *PhysicalBackupService) authorizeManage(
 func (s *PhysicalBackupService) writeBackupAuditLog(
 	ctx context.Context,
 	actor users.Actor,
-	database *databases.Database,
+	database databases.Database,
 	message string,
 ) {
 	s.auditLogService.WriteAuditLog(ctx, audit_logs_models.AuditEntry{
 		Message:     message,
 		UserID:      &actor.UserID,
-		WorkspaceID: database.WorkspaceID,
+		WorkspaceID: &database.WorkspaceID,
 	})
 }
 

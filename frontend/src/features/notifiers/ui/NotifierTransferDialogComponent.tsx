@@ -25,7 +25,10 @@ export const NotifierTransferDialogComponent = ({ notifier, onClose, onTransferr
     setIsLoading(true);
 
     try {
-      const isUsing = await databaseApi.isNotifierUsing(notifier.id);
+      const notifierDatabases = await databaseApi.listAllDatabases(notifier.workspaceId, {
+        notifierId: notifier.id,
+      });
+      const isUsing = notifierDatabases.length > 0;
       setIsNotifierInUse(isUsing);
 
       if (!isUsing) {

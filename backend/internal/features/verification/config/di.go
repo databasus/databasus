@@ -4,7 +4,7 @@ import (
 	"sync"
 
 	"databasus-backend/internal/features/audit_logs"
-	"databasus-backend/internal/features/databases"
+	databases_bridge "databasus-backend/internal/features/databases"
 	workspaces_bridge "databasus-backend/internal/features/workspaces"
 	"databasus-backend/internal/util/logger"
 )
@@ -16,7 +16,7 @@ var getVerificationConfigRepository = sync.OnceValue(func() *VerificationConfigR
 var getVerificationConfigService = sync.OnceValue(func() *VerificationConfigService {
 	return &VerificationConfigService{
 		getVerificationConfigRepository(),
-		databases.GetDatabaseService(),
+		databases_bridge.GetAccess(),
 		workspaces_bridge.GetAccess(),
 		audit_logs.GetAuditLogService(),
 		logger.GetLogger(),
@@ -36,7 +36,3 @@ func GetVerificationConfigService() *VerificationConfigService {
 func GetVerificationConfigController() *VerificationConfigController {
 	return getVerificationConfigController()
 }
-
-var SetupDependencies = sync.OnceFunc(func() {
-	databases.GetDatabaseService().AddDbCopyListener(getVerificationConfigService())
-})

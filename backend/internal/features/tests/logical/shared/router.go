@@ -7,14 +7,14 @@ import (
 
 	backups_controllers_logical "databasus-backend/internal/features/backups/backups/controllers/logical"
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
-	"databasus-backend/internal/features/databases"
+	databases_bridge "databasus-backend/internal/features/databases"
 	"databasus-backend/internal/features/restores"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
 )
 
 func CreateTestRouter() *gin.Engine {
 	router := workspaces_testing.CreateTestRouter(
-		databases.GetDatabaseController(),
+		databases_bridge.GetTestRoutes(),
 		backups_config_logical.GetBackupConfigController(),
 		backups_controllers_logical.GetBackupController(),
 		restores.GetRestoreController(),

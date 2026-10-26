@@ -1,15 +1,13 @@
 package healthcheck_config
 
 import (
-	"encoding/json"
 	"net/http"
 	"testing"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 
-	"databasus-backend/internal/features/databases"
+	databases_bridge "databasus-backend/internal/features/databases"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
 	"databasus-backend/internal/modules/users"
@@ -19,7 +17,7 @@ import (
 
 func createTestRouter() *gin.Engine {
 	router := workspaces_testing.CreateTestRouter(
-		databases.GetDatabaseController(),
+		databases_bridge.GetTestRoutes(),
 		GetHealthcheckConfigController(),
 	)
 	return router
@@ -76,7 +74,12 @@ func Test_SaveHealthcheckConfig_PermissionsEnforced(t *testing.T) {
 			owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 			workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
 
-			database := createTestDatabaseViaAPI("Test Database", workspace.ID, owner.Token, router)
+			database := databases_bridge.CreateTestDatabaseViaAPI(t,
+				router,
+				owner.Token,
+				workspace.ID,
+				"Test Database",
+			)
 
 			var testUserToken string
 			if tt.isGlobalAdmin {
@@ -128,7 +131,7 @@ func Test_SaveHealthcheckConfig_PermissionsEnforced(t *testing.T) {
 			}
 
 			// Cleanup
-			databases.RemoveTestDatabase(t.Context(), database)
+			databases_bridge.RemoveTestDatabase(t.Context(), database)
 			workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 		})
 	}
@@ -139,7 +142,7 @@ func Test_SaveHealthcheckConfig_WhenUserIsNotWorkspaceMember_ReturnsForbidden(t 
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
 
-	database := createTestDatabaseViaAPI("Test Database", workspace.ID, owner.Token, router)
+	database := databases_bridge.CreateTestDatabaseViaAPI(t, router, owner.Token, workspace.ID, "Test Database")
 
 	nonMember := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
@@ -164,7 +167,7 @@ func Test_SaveHealthcheckConfig_WhenUserIsNotWorkspaceMember_ReturnsForbidden(t 
 	assert.Contains(t, string(testResp.Body), "insufficient permissions")
 
 	// Cleanup
-	databases.RemoveTestDatabase(t.Context(), database)
+	databases_bridge.RemoveTestDatabase(t.Context(), database)
 	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 }
 
@@ -226,7 +229,12 @@ func Test_GetHealthcheckConfig_PermissionsEnforced(t *testing.T) {
 			owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 			workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
 
-			database := createTestDatabaseViaAPI("Test Database", workspace.ID, owner.Token, router)
+			database := databases_bridge.CreateTestDatabaseViaAPI(t,
+				router,
+				owner.Token,
+				workspace.ID,
+				"Test Database",
+			)
 
 			var testUserToken string
 			if tt.isGlobalAdmin {
@@ -272,7 +280,7 @@ func Test_GetHealthcheckConfig_PermissionsEnforced(t *testing.T) {
 			}
 
 			// Cleanup
-			databases.RemoveTestDatabase(t.Context(), database)
+			databases_bridge.RemoveTestDatabase(t.Context(), database)
 			workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 		})
 	}
@@ -283,7 +291,7 @@ func Test_GetHealthcheckConfig_ReturnsDefaultConfigForNewDatabase(t *testing.T) 
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
 
-	database := createTestDatabaseViaAPI("Test Database", workspace.ID, owner.Token, router)
+	database := databases_bridge.CreateTestDatabaseViaAPI(t, router, owner.Token, workspace.ID, "Test Database")
 
 	var response HealthcheckConfig
 	test_utils.MakeGetRequestAndUnmarshal(
@@ -303,38 +311,6 @@ func Test_GetHealthcheckConfig_ReturnsDefaultConfigForNewDatabase(t *testing.T) 
 	assert.Equal(t, 7, response.StoreAttemptsDays)
 
 	// Cleanup
-	databases.RemoveTestDatabase(t.Context(), database)
+	databases_bridge.RemoveTestDatabase(t.Context(), database)
 	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
-}
-
-func createTestDatabaseViaAPI(
-	name string,
-	workspaceID uuid.UUID,
-	token string,
-	router *gin.Engine,
-) *databases.Database {
-	request := databases.Database{
-		WorkspaceID:       &workspaceID,
-		Name:              name,
-		Type:              databases.DatabaseTypePostgresLogical,
-		PostgresqlLogical: databases.GetTestPostgresConfig(),
-	}
-
-	w := workspaces_testing.MakeAPIRequest(
-		router,
-		"POST",
-		"/api/v1/databases/create",
-		"Bearer "+token,
-		request,
-	)
-
-	if w.Code != http.StatusCreated {
-		panic("Failed to create database")
-	}
-
-	var database databases.Database
-	if err := json.Unmarshal(w.Body.Bytes(), &database); err != nil {
-		panic(err)
-	}
-	return &database
 }

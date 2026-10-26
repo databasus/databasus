@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"net/url"
 	"slices"
-	"strconv"
 	"testing"
 	"time"
 
@@ -21,7 +21,7 @@ var (
 	errSignInIncomplete     = errors.New("the sign-in did not complete")
 	errWorkspaceNotListed   = errors.New("the workspace is not listed")
 	errRestoreNotCompleted  = errors.New("the restore did not complete")
-	errBackupConfigIsAbsent = errors.New("the backup config names no storage")
+	errDatabaseNotConnected = errors.New("the database does not connect")
 )
 
 type currentSignInRequest struct {
@@ -52,35 +52,6 @@ type currentMember struct {
 	Role  string `json:"role"`
 }
 
-type currentDatabase struct {
-	ID                string                       `json:"id"`
-	Name              string                       `json:"name"`
-	Type              string                       `json:"type"`
-	PostgresqlLogical *currentPostgresqlConnection `json:"postgresqlLogical"`
-	Notifiers         []currentDatabaseNotifier    `json:"notifiers"`
-}
-
-type currentDatabaseNotifier struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
-}
-
-type currentPostgresqlConnection struct {
-	Version  string  `json:"version"`
-	Host     string  `json:"host"`
-	Port     int     `json:"port"`
-	Username string  `json:"username"`
-	Password string  `json:"password,omitempty"`
-	Database *string `json:"database"`
-	CPUCount int     `json:"cpuCount,omitempty"`
-}
-
-type currentBackupConfig struct {
-	IsBackupsEnabled bool    `json:"isBackupsEnabled"`
-	StorageID        *string `json:"storageId"`
-	Encryption       string  `json:"encryption"`
-}
-
 type currentAuditEventPage struct {
 	Items      []currentAuditEvent `json:"items"`
 	NextCursor *string             `json:"nextCursor"`
@@ -103,18 +74,24 @@ type currentAuditEventWorkspace struct {
 	ID string `json:"id"`
 }
 
-type currentBackupList struct {
-	Backups []currentBackup `json:"backups"`
-}
-
-type currentBackup struct {
-	ID         string `json:"id"`
-	Status     string `json:"status"`
-	Encryption string `json:"encryption"`
-}
-
 type currentRestoreRequest struct {
-	PostgresqlDatabase currentPostgresqlConnection `json:"postgresqlDatabase"`
+	PostgresqlDatabase currentRestoreTarget `json:"postgresqlDatabase"`
+}
+
+type currentRestoreTarget struct {
+	Version  string `json:"version"`
+	Host     string `json:"host"`
+	Port     int    `json:"port"`
+	Username string `json:"username"`
+	Password string `json:"password"`
+	Database string `json:"database"`
+	SslMode  string `json:"sslMode"`
+	CPUCount int    `json:"cpuCount"`
+}
+
+type currentDatabaseTestResult struct {
+	IsConnected bool    `json:"isConnected"`
+	Error       *string `json:"error"`
 }
 
 type currentRestore struct {
@@ -277,90 +254,29 @@ func readWorkspaceItems(ctx context.Context, api *apiClient, workspaceID string)
 
 	listedItems = append(listedItems, notifierItems...)
 
-	var databases []currentDatabase
-
-	err = api.get(ctx, "/databases?workspace_id="+workspaceID, &databases)
+	databaseItems, err := listDatabaseItems(ctx, api, workspaceID, notifierItems)
 	if err != nil {
-		return nil, fmt.Errorf("list databases: %w", err)
+		return nil, err
 	}
 
-	for _, database := range databases {
-		databaseItems, readErr := readDatabaseItems(ctx, api, database)
-		if readErr != nil {
-			return nil, readErr
-		}
-
-		listedItems = append(listedItems, databaseItems...)
-	}
-
-	return listedItems, nil
+	return append(listedItems, databaseItems...), nil
 }
 
-func readDatabaseItems(ctx context.Context, api *apiClient, database currentDatabase) ([]upgradecheck.Item, error) {
-	databaseValues := map[string]string{"id": database.ID, "type": database.Type}
-
-	if connection := database.PostgresqlLogical; connection != nil {
-		databaseValues["version"] = connection.Version
-		databaseValues["host"] = connection.Host
-		databaseValues["port"] = strconv.Itoa(connection.Port)
-		databaseValues["username"] = connection.Username
-
-		if connection.Database != nil {
-			databaseValues["database"] = *connection.Database
-		}
-	}
-
-	var backupConfig currentBackupConfig
-
-	err := api.get(ctx, "/backup-configs/database/"+database.ID, &backupConfig)
-	if err != nil {
-		return nil, fmt.Errorf("read the backup config of database %q: %w", database.Name, err)
-	}
-
-	if backupConfig.StorageID == nil {
-		return nil, fmt.Errorf("%w: database %q", errBackupConfigIsAbsent, database.Name)
-	}
-
-	var backupList currentBackupList
-
-	err = api.get(ctx, "/backups?database_id="+database.ID, &backupList)
-	if err != nil {
-		return nil, fmt.Errorf("list backups of database %q: %w", database.Name, err)
-	}
-
-	usedNotifiers := make(map[string]string, len(database.Notifiers))
-	for _, notifier := range database.Notifiers {
-		usedNotifiers[notifier.Name] = notifier.ID
-	}
-
-	listedItems := []upgradecheck.Item{
-		{Kind: "database", Name: database.Name, Values: databaseValues},
-		{Kind: databaseNotifiersKind, Name: database.Name, Values: usedNotifiers},
-		{Kind: "backup config", Name: database.Name, Values: map[string]string{
-			"isBackupsEnabled": strconv.FormatBool(backupConfig.IsBackupsEnabled),
-			"storageId":        *backupConfig.StorageID,
-			"encryption":       backupConfig.Encryption,
-		}},
-	}
-
-	for _, backup := range backupList.Backups {
-		listedItems = append(listedItems, upgradecheck.Item{
-			Kind:   "backup",
-			Name:   backup.ID,
-			Values: map[string]string{"status": backup.Status, "encryption": backup.Encryption},
-		})
-	}
-
-	return listedItems, nil
-}
-
-// checkStoredCredentials connects to the source with the password the previous release encrypted
+// checkStoredCredentials connects to every source with the password the previous release encrypted
 // and stored, because the restore below sends a password of its own.
-func checkStoredCredentials(ctx context.Context, api *apiClient, databaseID string) error {
-	err := api.post(ctx, "/databases/"+databaseID+"/test-connection", nil, nil)
-	if err != nil {
-		return fmt.Errorf("database %q cannot connect with the password stored before the upgrade: %w",
-			databaseName, err)
+func checkStoredCredentials(ctx context.Context, api *apiClient, databaseIDs map[string]string) error {
+	for _, storedDatabaseName := range slices.Sorted(maps.Keys(databaseIDs)) {
+		var testResult currentDatabaseTestResult
+
+		err := api.post(ctx, "/databases/"+databaseIDs[storedDatabaseName]+"/test", nil, &testResult)
+		if err != nil {
+			return fmt.Errorf("test the connection of database %q: %w", storedDatabaseName, err)
+		}
+
+		if !testResult.IsConnected {
+			return fmt.Errorf("%w with the password stored before the upgrade: database %q, %s",
+				errDatabaseNotConnected, storedDatabaseName, getOptionalValue(testResult.Error))
+		}
 	}
 
 	return nil
@@ -372,16 +288,15 @@ func checkStoredCredentials(ctx context.Context, api *apiClient, databaseID stri
 func restoreBackup(t *testing.T, api *apiClient, backupID string) error {
 	t.Helper()
 
-	restoredDatabaseName := restoredDatabase
-
 	err := api.post(t.Context(), "/restores/"+backupID+"/restore", currentRestoreRequest{
-		PostgresqlDatabase: currentPostgresqlConnection{
+		PostgresqlDatabase: currentRestoreTarget{
 			Version:  sourceVersion,
 			Host:     sourceNetworkAlias,
 			Port:     sourcePort,
 			Username: sourceUsername,
 			Password: sourcePassword,
-			Database: &restoredDatabaseName,
+			Database: restoredDatabase,
+			SslMode:  "disable",
 			CPUCount: 1,
 		},
 	}, nil)

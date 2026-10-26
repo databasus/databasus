@@ -37,7 +37,7 @@ export const ChoosePostgresBackupTypeComponent = ({
 }: Props) => {
   const { t } = useTranslation();
   const [selectedType, setSelectedType] = useState<DatabaseType>(
-    database.type === DatabaseType.POSTGRES_PHYSICAL
+    database.settings.type === DatabaseType.POSTGRES_PHYSICAL
       ? DatabaseType.POSTGRES_PHYSICAL
       : DatabaseType.POSTGRES_LOGICAL,
   );

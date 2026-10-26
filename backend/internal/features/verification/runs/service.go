@@ -16,10 +16,11 @@ import (
 	audit_logs_models "databasus-backend/internal/features/audit_logs/models"
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	backups_services "databasus-backend/internal/features/backups/backups/services"
-	"databasus-backend/internal/features/databases"
+	databases_bridge "databasus-backend/internal/features/databases"
 	verification_agents "databasus-backend/internal/features/verification/agents"
 	verification_config "databasus-backend/internal/features/verification/config"
 	workspaces_bridge "databasus-backend/internal/features/workspaces"
+	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/modules/workspaces"
@@ -28,13 +29,15 @@ import (
 
 type VerificationService struct {
 	verificationRepository *VerificationRepository
-	databaseService        *databases.DatabaseService
-	backupService          *backups_services.LogicalBackupService
-	configService          *verification_config.VerificationConfigService
-	notifierService        NotificationSender
-	workspaceService       *workspaces_bridge.Access
-	auditLogService        *audit_logs.AuditLogService
-	logger                 *slog.Logger
+	databaseAccess         *databases_bridge.Access
+	// getDatabases is read per call: each test application installs its own module.
+	getDatabases     func() databases.Module
+	backupService    *backups_services.LogicalBackupService
+	configService    *verification_config.VerificationConfigService
+	notifierService  NotificationSender
+	workspaceService *workspaces_bridge.Access
+	auditLogService  *audit_logs.AuditLogService
+	logger           *slog.Logger
 }
 
 func (s *VerificationService) EnqueueManualVerification(
@@ -51,16 +54,12 @@ func (s *VerificationService) EnqueueManualVerification(
 		return nil, errors.New("backup not found")
 	}
 
-	database, err := s.databaseService.GetDatabaseByID(backup.DatabaseID)
+	database, err := s.databaseAccess.GetDatabaseByID(ctx, backup.DatabaseID)
 	if err != nil {
 		return nil, err
 	}
 
-	if database.WorkspaceID == nil {
-		return nil, errors.New("cannot verify backup for database without workspace")
-	}
-
-	isAllowed, err := s.workspaceService.IsActorAllowed(ctx, actor, *database.WorkspaceID, workspaces.ActionEditContent)
+	isAllowed, err := s.workspaceService.IsActorAllowed(ctx, actor, database.WorkspaceID, workspaces.ActionEditContent)
 	if err != nil {
 		return nil, err
 	}
@@ -112,7 +111,7 @@ func (s *VerificationService) EnqueueManualVerification(
 	s.auditLogService.WriteAuditLog(ctx, audit_logs_models.AuditEntry{
 		Message:     fmt.Sprintf("manual backup verification enqueued for database %q", database.Name),
 		UserID:      &actor.UserID,
-		WorkspaceID: database.WorkspaceID,
+		WorkspaceID: &database.WorkspaceID,
 	})
 
 	return created, nil
@@ -136,16 +135,12 @@ func (s *VerificationService) CancelVerification(
 		return errors.New("verification not found")
 	}
 
-	database, err := s.databaseService.GetDatabaseByID(verification.DatabaseID)
+	database, err := s.databaseAccess.GetDatabaseByID(ctx, verification.DatabaseID)
 	if err != nil {
 		return err
 	}
 
-	if database.WorkspaceID == nil {
-		return errors.New("cannot cancel verification for database without workspace")
-	}
-
-	isAllowed, err := s.workspaceService.IsActorAllowed(ctx, actor, *database.WorkspaceID, workspaces.ActionEditContent)
+	isAllowed, err := s.workspaceService.IsActorAllowed(ctx, actor, database.WorkspaceID, workspaces.ActionEditContent)
 	if err != nil {
 		return err
 	}
@@ -166,7 +161,7 @@ func (s *VerificationService) CancelVerification(
 	s.auditLogService.WriteAuditLog(ctx, audit_logs_models.AuditEntry{
 		Message:     fmt.Sprintf("backup verification canceled for database %q", database.Name),
 		UserID:      &actor.UserID,
-		WorkspaceID: database.WorkspaceID,
+		WorkspaceID: &database.WorkspaceID,
 	})
 
 	return nil
@@ -178,16 +173,12 @@ func (s *VerificationService) GetVerificationsByDatabaseID(
 	databaseID uuid.UUID,
 	limit, offset int,
 ) (*GetVerificationsResponse, error) {
-	database, err := s.databaseService.GetDatabaseByID(databaseID)
+	database, err := s.databaseAccess.GetDatabaseByID(ctx, databaseID)
 	if err != nil {
 		return nil, err
 	}
 
-	if database.WorkspaceID == nil {
-		return nil, errors.New("cannot list verifications for database without workspace")
-	}
-
-	isAllowed, err := s.workspaceService.IsActorAllowed(ctx, actor, *database.WorkspaceID, workspaces.ActionView)
+	isAllowed, err := s.workspaceService.IsActorAllowed(ctx, actor, database.WorkspaceID, workspaces.ActionView)
 	if err != nil {
 		return nil, err
 	}
@@ -234,16 +225,12 @@ func (s *VerificationService) GetVerificationByID(
 		return nil, errors.New("verification not found")
 	}
 
-	database, err := s.databaseService.GetDatabaseByID(verification.DatabaseID)
+	database, err := s.databaseAccess.GetDatabaseByID(ctx, verification.DatabaseID)
 	if err != nil {
 		return nil, err
 	}
 
-	if database.WorkspaceID == nil {
-		return nil, errors.New("cannot view verification for database without workspace")
-	}
-
-	isAllowed, err := s.workspaceService.IsActorAllowed(ctx, actor, *database.WorkspaceID, workspaces.ActionView)
+	isAllowed, err := s.workspaceService.IsActorAllowed(ctx, actor, database.WorkspaceID, workspaces.ActionView)
 	if err != nil {
 		return nil, err
 	}
@@ -290,12 +277,17 @@ func (s *VerificationService) ClaimVerification(
 				continue
 			}
 
-			database, dbErr := s.databaseService.GetDatabaseByID(candidate.Verification.DatabaseID)
+			database, dbErr := s.databaseAccess.GetDatabaseByID(ctx, candidate.Verification.DatabaseID)
 			if dbErr != nil {
 				return dbErr
 			}
 
-			if validateErr := validateDatabaseIsVerifiable(database); validateErr != nil {
+			assignedDatabase, validateErr := readAssignedDatabase(ctx, s.getDatabases(), database)
+			if validateErr != nil {
+				if !errors.Is(validateErr, errDatabaseNotVerifiable) {
+					return validateErr
+				}
+
 				candidateLogger.WarnContext(
 					ctx,
 					"skipping claim: database not verifiable",
@@ -321,7 +313,7 @@ func (s *VerificationService) ClaimVerification(
 				BackupID:           candidate.Verification.BackupID,
 				BackupSizeMb:       candidate.Backup.BackupSizeMb,
 				MaxContainerDiskMb: float64(EstimateRequiredForRestoreDiskMb(candidate.Backup)),
-				Database:           sanitizeDatabaseForAgent(database),
+				Database:           assignedDatabase,
 				TimescaledbVersion: candidate.Backup.TimescaledbVersion,
 			}
 
@@ -498,6 +490,7 @@ func (s *VerificationService) reclaimDroppedRunningJobs(
 }
 
 func (s *VerificationService) scheduleVerificationForCompletedBackup(backupID uuid.UUID) {
+	ctx := context.Background()
 	logger := s.logger.With("backup_id", backupID)
 
 	backup, err := s.backupService.GetBackup(backupID)
@@ -531,13 +524,13 @@ func (s *VerificationService) scheduleVerificationForCompletedBackup(backupID uu
 		return
 	}
 
-	database, err := s.databaseService.GetDatabaseByID(databaseID)
+	database, err := s.databaseAccess.GetDatabaseByID(ctx, databaseID)
 	if err != nil {
 		logger.Error("failed to load database for after-backup verification", "error", err)
 		return
 	}
 
-	if err := validateDatabaseIsVerifiable(database); err != nil {
+	if _, err := readAssignedDatabase(ctx, s.getDatabases(), database); err != nil {
 		logger.Warn("skipping after-backup verification: database not verifiable", "error", err)
 		return
 	}
@@ -704,7 +697,7 @@ func (s *VerificationService) notifyTerminal(
 		return
 	}
 
-	database, err := s.databaseService.GetDatabaseByID(verification.DatabaseID)
+	database, err := s.databaseAccess.GetDatabaseByID(ctx, verification.DatabaseID)
 	if err != nil {
 		s.logger.ErrorContext(ctx,
 			"failed to load database for notification",
@@ -715,10 +708,6 @@ func (s *VerificationService) notifyTerminal(
 		return
 	}
 
-	if database.WorkspaceID == nil {
-		return
-	}
-
 	title, body := buildNotificationCopy(verification, database, terminalStatus, failMessage)
 
 	sentNotificationType := notifiers.CategoryVerificationSuccess
@@ -726,7 +715,7 @@ func (s *VerificationService) notifyTerminal(
 		sentNotificationType = notifiers.CategoryVerificationFailed
 	}
 
-	s.notifierService.Notify(ctx, database.GetNotifierIDs(), notifiers.Notification{
+	s.notifierService.Notify(ctx, database.NotifierIDs, notifiers.Notification{
 		Category: sentNotificationType,
 		Heading:  title,
 		Message:  body,
@@ -741,37 +730,6 @@ func (s *VerificationService) guardBackupIsVerifiable(
 	}
 
 	return nil
-}
-
-// validateDatabaseIsVerifiable rejects databases the agent cannot restore yet:
-// non-postgres engines (no agent support today) and postgres rows missing a
-// version (so the agent would have no client binary to pick). The scheduler
-// uses this to skip enqueueing; the claim path uses it to skip handing a
-// no-op job to an agent.
-func validateDatabaseIsVerifiable(database *databases.Database) error {
-	switch database.Type {
-	case databases.DatabaseTypePostgresLogical:
-		if database.PostgresqlLogical == nil || database.PostgresqlLogical.Version == "" {
-			return errors.New("postgresql sub-row missing or version empty")
-		}
-
-		return nil
-	default:
-		return fmt.Errorf("database type %q not supported for verification yet", database.Type)
-	}
-}
-
-// sanitizeDatabaseForAgent strips every field the agent has no business seeing
-// before the row goes over the wire: engine-specific credentials via the
-// existing HideSensitiveData contract and notifier secrets (webhook URLs, SMTP
-// creds). Mutates the passed row in place — gorm doesn't auto-save, and the
-// caller owns the row from GetDatabaseByID.
-func sanitizeDatabaseForAgent(database *databases.Database) *databases.Database {
-	database.HideSensitiveData()
-	database.Notifiers = nil
-	database.ClearSshTunnelConfig()
-
-	return database
 }
 
 const (
@@ -823,14 +781,11 @@ func failureMessageFor(reason FailureReason, agentMessage *string) string {
 
 func buildNotificationCopy(
 	verification *RestoreVerification,
-	database *databases.Database,
+	database databases.Database,
 	terminalStatus VerificationStatus,
 	failMessage *string,
 ) (title, body string) {
-	workspaceLabel := ""
-	if database.WorkspaceID != nil {
-		workspaceLabel = fmt.Sprintf(" (workspace %q)", database.WorkspaceID.String())
-	}
+	workspaceLabel := fmt.Sprintf(" (workspace %q)", database.WorkspaceID.String())
 
 	if terminalStatus == VerificationStatusCompleted {
 		title = fmt.Sprintf("backup verification passed for %q%s", database.Name, workspaceLabel)

@@ -8,9 +8,9 @@ import (
 
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	physical_models "databasus-backend/internal/features/backups/backups/core/physical/models"
-	"databasus-backend/internal/features/databases"
 	verification_agents "databasus-backend/internal/features/verification/agents"
 	verification_config "databasus-backend/internal/features/verification/config"
+	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/modules/storages"
 )
@@ -52,7 +52,7 @@ type CollectRequest struct {
 }
 
 type databaseLister interface {
-	GetAllDatabases() ([]*databases.Database, error)
+	GetTelemetry(ctx context.Context) ([]databases.TelemetryEntry, error)
 }
 
 type storageTypeLister interface {
@@ -70,7 +70,6 @@ type backupChecker interface {
 
 type latestPhysicalBackupReader interface {
 	GetLatestCompletedFullBackup(databaseID uuid.UUID) (*physical_models.PhysicalFullBackup, error)
-	GetLastBackupTimesByDatabaseIDs(databaseIDs []uuid.UUID) (map[uuid.UUID]time.Time, error)
 }
 
 type userCounter interface {

@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
-	"databasus-backend/internal/features/databases"
+	databases_bridge "databasus-backend/internal/features/databases"
 	"databasus-backend/internal/features/intervals"
 	storages_bridge "databasus-backend/internal/features/storages"
 	users_testing "databasus-backend/internal/features/users/testing"
@@ -23,11 +23,11 @@ func Test_AttachStorageFromSameWorkspace_SuccessfullyAttached(t *testing.T) {
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
 
-	database := createTestDatabaseViaAPI("Test Database", workspace.ID, owner.Token, router)
+	database := databases_bridge.CreateTestDatabaseViaAPI(t, router, owner.Token, workspace.ID, "Test Database")
 	storage := createTestStorage(workspace.ID)
 
 	defer func() {
-		databases.RemoveTestDatabase(t.Context(), database)
+		databases_bridge.RemoveTestDatabase(t.Context(), database)
 		storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	}()
@@ -72,14 +72,14 @@ func Test_AttachStorageFromDifferentWorkspace_ReturnsForbidden(t *testing.T) {
 
 	owner1 := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace1 := workspaces_testing.CreateTestWorkspace(t.Context(), "Workspace 1", owner1)
-	database := createTestDatabaseViaAPI("Test Database", workspace1.ID, owner1.Token, router)
+	database := databases_bridge.CreateTestDatabaseViaAPI(t, router, owner1.Token, workspace1.ID, "Test Database")
 
 	owner2 := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace2 := workspaces_testing.CreateTestWorkspace(t.Context(), "Workspace 2", owner2)
 	storage := createTestStorage(workspace2.ID)
 
 	defer func() {
-		databases.RemoveTestDatabase(t.Context(), database)
+		databases_bridge.RemoveTestDatabase(t.Context(), database)
 		storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace1)
 		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace2)
@@ -118,11 +118,11 @@ func Test_AttachStorageFromDifferentWorkspace_ReturnsForbidden(t *testing.T) {
 
 func createTestRouterWithStorage() *gin.Engine {
 	router := workspaces_testing.CreateTestRouter(
-		databases.GetDatabaseController(),
+		databases_bridge.GetTestRoutes(),
 		GetBackupConfigController(),
 	)
 
-	databases.SetupDependencies()
+	databases_bridge.SetupDependencies()
 	SetupDependencies()
 
 	return router

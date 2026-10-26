@@ -24,12 +24,9 @@ import (
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	"databasus-backend/internal/features/backups/backups/encryption"
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
-	"databasus-backend/internal/features/databases"
-	mariadbtypes "databasus-backend/internal/features/databases/databases/mariadb"
 	restores_core "databasus-backend/internal/features/restores/core"
 	"databasus-backend/internal/lib/crypto"
 	"databasus-backend/internal/modules/storages"
-	util_encryption "databasus-backend/internal/util/encryption"
 	io_utils "databasus-backend/internal/util/io"
 )
 
@@ -40,15 +37,15 @@ type RestoreMariadbBackupUsecase struct {
 
 func (uc *RestoreMariadbBackupUsecase) Execute(
 	parentCtx context.Context,
-	originalDB *databases.Database,
-	restoringToDB *databases.Database,
+	source restores_core.SourceDatabase,
+	target restores_core.RestoreBackupRequest,
 	backupConfig *backups_config_logical.LogicalBackupConfig,
 	restore restores_core.Restore,
 	backup *backups_core_logical.LogicalBackup,
 	storageReader storages.StorageReader,
 ) error {
-	if originalDB.Type != databases.DatabaseTypeMariadb {
-		return errors.New("database type not supported")
+	if source.Mariadb == nil {
+		return restores_core.ErrRestoreTypeNotSupported
 	}
 
 	uc.logger.InfoContext(parentCtx,
@@ -57,7 +54,7 @@ func (uc *RestoreMariadbBackupUsecase) Execute(
 		"backup_id", backup.ID,
 	)
 
-	mdb := restoringToDB.Mariadb
+	mdb := target.MariadbDatabase
 	if mdb == nil {
 		return fmt.Errorf("mariadb configuration is required for restore")
 	}
@@ -108,7 +105,7 @@ func (uc *RestoreMariadbBackupUsecase) Execute(
 
 	return uc.restoreFromStorage(
 		parentCtx,
-		originalDB,
+		source,
 		mariadbBin,
 		args,
 		mdb.Password,
@@ -120,26 +117,20 @@ func (uc *RestoreMariadbBackupUsecase) Execute(
 
 func (uc *RestoreMariadbBackupUsecase) restoreFromStorage(
 	parentCtx context.Context,
-	database *databases.Database,
+	source restores_core.SourceDatabase,
 	mariadbBin string,
 	args []string,
 	password string,
 	backup *backups_core_logical.LogicalBackup,
 	storageReader storages.StorageReader,
-	mdbConfig *mariadbtypes.MariadbDatabase,
+	mdbConfig *restores_core.MariadbTargetDatabase,
 ) error {
 	ctx, cancel := context.WithTimeout(parentCtx, 23*time.Hour)
 	defer cancel()
 
 	logger := uc.logger.With("backup_id", backup.ID)
 
-	fieldEncryptor := util_encryption.GetFieldEncryptor()
-	decryptedPassword, err := fieldEncryptor.Decrypt(password)
-	if err != nil {
-		return fmt.Errorf("failed to decrypt password: %w", err)
-	}
-
-	myCnfFile, err := uc.createTempMyCnfFile(mdbConfig, decryptedPassword)
+	myCnfFile, err := uc.createTempMyCnfFile(mdbConfig, password)
 	if err != nil {
 		return fmt.Errorf("failed to create .my.cnf: %w", err)
 	}
@@ -157,7 +148,7 @@ func (uc *RestoreMariadbBackupUsecase) restoreFromStorage(
 
 	return uc.executeMariadbRestore(
 		ctx,
-		database,
+		source,
 		mariadbBin,
 		args,
 		myCnfFile,
@@ -168,7 +159,7 @@ func (uc *RestoreMariadbBackupUsecase) restoreFromStorage(
 
 func (uc *RestoreMariadbBackupUsecase) executeMariadbRestore(
 	ctx context.Context,
-	database *databases.Database,
+	source restores_core.SourceDatabase,
 	mariadbBin string,
 	args []string,
 	myCnfFile string,
@@ -237,7 +228,7 @@ func (uc *RestoreMariadbBackupUsecase) executeMariadbRestore(
 	}
 
 	if waitErr != nil {
-		return uc.handleMariadbRestoreError(database, waitErr, stderrOutput.Bytes(), mariadbBin)
+		return uc.handleMariadbRestoreError(source, waitErr, stderrOutput.Bytes(), mariadbBin)
 	}
 
 	return nil
@@ -279,7 +270,7 @@ func (uc *RestoreMariadbBackupUsecase) setupDecryption(
 }
 
 func (uc *RestoreMariadbBackupUsecase) createTempMyCnfFile(
-	mdbConfig *mariadbtypes.MariadbDatabase,
+	mdbConfig *restores_core.MariadbTargetDatabase,
 	password string,
 ) (string, error) {
 	// Credential files use OS temp dir (/tmp) because some filesystems
@@ -319,7 +310,7 @@ port=%d
 }
 
 func (uc *RestoreMariadbBackupUsecase) handleMariadbRestoreError(
-	database *databases.Database,
+	source restores_core.SourceDatabase,
 	waitErr error,
 	stderrOutput []byte,
 	mariadbBin string,
@@ -348,9 +339,9 @@ func (uc *RestoreMariadbBackupUsecase) handleMariadbRestoreError(
 	}
 
 	if containsIgnoreCase(stderrStr, "unknown database") {
-		backupDbName := "unknown"
-		if database.Mariadb != nil && database.Mariadb.Database != nil {
-			backupDbName = *database.Mariadb.Database
+		backupDbName := source.GetDatabaseName()
+		if backupDbName == "" {
+			backupDbName = "unknown"
 		}
 
 		return fmt.Errorf(

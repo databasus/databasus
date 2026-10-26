@@ -7,11 +7,11 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	pgphysical "databasus-backend/internal/engines/postgresql/physical"
 	physical_repositories "databasus-backend/internal/features/backups/backups/core/physical/repositories"
-	"databasus-backend/internal/features/databases"
+	databases_bridge "databasus-backend/internal/features/databases"
 	storages_bridge "databasus-backend/internal/features/storages"
 	"databasus-backend/internal/modules/storages"
-	"databasus-backend/internal/util/encryption"
 	"databasus-backend/internal/util/logger"
 	"databasus-backend/internal/util/testing/containers"
 	"databasus-backend/internal/util/walmath"
@@ -23,7 +23,7 @@ import (
 func setupMtlsFixture(t *testing.T) *PhysicalDBFixture {
 	t.Helper()
 
-	source := containers.StartPhysicalPostgresMtls(t, databases.GetPhysicalMtlsTestdataDir())
+	source := containers.StartPhysicalPostgresMtls(t, databases_bridge.GetPhysicalMtlsTestdataDir())
 
 	return SetupPhysicalDBForStreamMtls(t, source.Host, source.Port)
 }
@@ -44,14 +44,14 @@ func Test_PhysicalMtls_ReplicationConnectionAndSlot_Succeeds(t *testing.T) {
 
 	logg := logger.GetLogger()
 	require.NoError(t,
-		fixture.DB.PostgresqlPhysical.VerifyWalSlot(context.Background(), logg, encryption.GetFieldEncryptor()),
+		pgphysical.NewSource(fixture.SourceDB.Engine).VerifySlot(context.Background(), logg),
 		"creating the persistent replication slot must work over mTLS")
 
-	require.True(t, SlotExists(t, conn, fixture.DB.PostgresqlPhysical.ReplicationSlotName),
+	require.True(t, SlotExists(t, conn, fixture.SourceDB.Engine.ReplicationSlotName),
 		"the persistent slot must exist after VerifyWalSlot over mTLS")
 
 	t.Cleanup(func() {
-		_ = fixture.DB.PostgresqlPhysical.DropWalSlot(context.Background(), logg, encryption.GetFieldEncryptor())
+		_ = pgphysical.NewSource(fixture.SourceDB.Engine).DropSlot(context.Background(), logg)
 	})
 }
 
@@ -61,11 +61,11 @@ func Test_PhysicalMtls_ReplicationConnectionAndSlot_Succeeds(t *testing.T) {
 func Test_PhysicalMtls_MissingClientCert_Rejected(t *testing.T) {
 	fixture := setupMtlsFixture(t)
 
-	noCert := *fixture.DB.PostgresqlPhysical
-	noCert.SslClientCert = ""
-	noCert.SslClientKey = ""
+	noCert := fixture.SourceDB
+	noCert.Engine.TLS.ClientCert = ""
+	noCert.Engine.TLS.ClientKey = ""
 
-	_, err := noCert.OpenInspectionConn(context.Background(), encryption.GetFieldEncryptor())
+	_, err := pgphysical.NewSource(noCert.Engine).OpenInspectionConn(context.Background())
 	require.Error(t, err, "a connection without the client certificate must be rejected by the mTLS cluster")
 }
 
@@ -86,15 +86,14 @@ func Test_FullOverMtls_ProducesArtifactAndManifest(t *testing.T) {
 
 	result, err := uc.Execute(ctx, FullBackupSpec{
 		CommonBackupSpec: CommonBackupSpec{
-			SourceDB:       fixture.DB.PostgresqlPhysical,
-			DatabaseName:   fixture.DB.Name,
-			StorageID:      fixture.Storage.ID,
-			FileStore:      storages_bridge.GetModule(),
-			Encryption:     fullRow.Encryption,
-			FieldEncryptor: encryption.GetFieldEncryptor(),
-			FullRepo:       physical_repositories.GetFullBackupRepository(),
-			HistoryRepo:    physical_repositories.GetWalHistoryRepository(),
-			Logger:         logger.GetLogger(),
+			SourceDB:     fixture.SourceDB,
+			DatabaseName: fixture.DB.Name,
+			StorageID:    fixture.Storage.ID,
+			FileStore:    storages_bridge.GetModule(),
+			Encryption:   fullRow.Encryption,
+			FullRepo:     physical_repositories.GetFullBackupRepository(),
+			HistoryRepo:  physical_repositories.GetWalHistoryRepository(),
+			Logger:       logger.GetLogger(),
 		},
 		Backup: fullRow,
 	})

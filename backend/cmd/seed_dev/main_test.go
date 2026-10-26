@@ -18,6 +18,7 @@ import (
 
 	contract "databasus-backend/api"
 	"databasus-backend/internal/config"
+	"databasus-backend/internal/engines/clienttools"
 	backuping_logical "databasus-backend/internal/features/backups/backups/backuping/logical"
 	backuping_physical "databasus-backend/internal/features/backups/backups/backuping/physical"
 	backups_controllers_logical "databasus-backend/internal/features/backups/backups/controllers/logical"
@@ -26,7 +27,7 @@ import (
 	backups_services "databasus-backend/internal/features/backups/backups/services"
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
 	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
-	"databasus-backend/internal/features/databases"
+	databases_bridge "databasus-backend/internal/features/databases"
 	storages_bridge "databasus-backend/internal/features/storages"
 	system_healthcheck "databasus-backend/internal/features/system/healthcheck"
 	users_bridge "databasus-backend/internal/features/users"
@@ -341,23 +342,26 @@ func newSeedTestRouter() *gin.Engine {
 	usersModule.RegisterRoutes(contractRoutes, errorHooks)
 	workspacesModule.RegisterRoutes(contractRoutes, errorHooks)
 	storages_bridge.GetModule().RegisterRoutes(contractRoutes, errorHooks)
+	databases_bridge.GetModule().RegisterRoutes(contractRoutes, errorHooks)
 
+	system_healthcheck.InstallClientToolsChecker(clienttools.NewChecker(nil))
 	system_healthcheck.GetHealthcheckController().RegisterRoutes(v1)
 
 	protected := v1.Group("")
 	protected.Use(users_testing.GetSessionMiddleware())
 
-	databases.GetDatabaseController().RegisterRoutes(protected)
 	backups_config_logical.GetBackupConfigController().RegisterRoutes(protected)
 	backups_config_physical.GetBackupConfigController().RegisterRoutes(protected)
 	backups_controllers_logical.GetBackupController().RegisterRoutes(protected)
 	backups_controllers_physical.GetPhysicalBackupController().RegisterRoutes(protected)
 
-	databases.SetupDependencies()
+	databases_bridge.SetupDependencies()
 	backups_services.SetupDependencies()
 	backups_config_logical.SetupDependencies()
 	backups_config_physical.SetupDependencies()
 	backuping_physical.SetupDependencies()
+	backups_services.SubscribeToDatabaseEventsWithoutApp()
+	backuping_physical.SubscribeToDatabaseDeletingWithoutApp()
 
 	return router
 }
@@ -492,7 +496,7 @@ func findDatabaseID(t *testing.T, router *gin.Engine, token string, workspaceID 
 
 	for _, database := range listDatabases(t, router, token, workspaceID) {
 		if database.Name == name {
-			return database.ID
+			return database.Id
 		}
 	}
 
@@ -511,14 +515,15 @@ func listStorages(t *testing.T, router *gin.Engine, token string, workspaceID uu
 	return storagePage.Items
 }
 
-func listDatabases(t *testing.T, router *gin.Engine, token string, workspaceID uuid.UUID) []databases.Database {
+// listDatabases reads one page of 100, more than a seeded workspace holds.
+func listDatabases(t *testing.T, router *gin.Engine, token string, workspaceID uuid.UUID) []apiclient.Database {
 	t.Helper()
 
-	var listedDatabases []databases.Database
-	test_utils.MakeGetRequestAndUnmarshal(t, router, "/api/v1/databases?workspace_id="+workspaceID.String(),
-		"Bearer "+token, http.StatusOK, &listedDatabases)
+	var databasePage apiclient.DatabasePage
+	test_utils.MakeGetRequestAndUnmarshal(t, router, "/api/v1/databases?limit=100&workspaceId="+workspaceID.String(),
+		"Bearer "+token, http.StatusOK, &databasePage)
 
-	return listedDatabases
+	return databasePage.Items
 }
 
 func listSeededItems(t *testing.T, router *gin.Engine, token string) seededItems {
@@ -534,7 +539,7 @@ func listSeededItems(t *testing.T, router *gin.Engine, token string) seededItems
 		}
 
 		for _, database := range listDatabases(t, router, token, workspace.Id) {
-			items.databaseIDs = append(items.databaseIDs, database.ID)
+			items.databaseIDs = append(items.databaseIDs, database.Id)
 		}
 	}
 
@@ -567,11 +572,14 @@ func removeAccountWithItems(t *testing.T, router *gin.Engine, email string) {
 
 	for _, workspaceID := range items.workspaceIDs {
 		for _, database := range listDatabases(t, router, token, workspaceID) {
-			if database.Type == databases.DatabaseTypePostgresLogical {
-				waitForLogicalBackups(t, database.ID)
+			databaseType, err := database.Settings.Discriminator()
+			require.NoError(t, err)
+
+			if databaseType == string(apiclient.PostgresqlLogicalSettingsTypePOSTGRESLOGICAL) {
+				waitForLogicalBackups(t, database.Id)
 			}
 
-			test_utils.MakeDeleteRequest(t, router, "/api/v1/databases/"+database.ID.String(),
+			test_utils.MakeDeleteRequest(t, router, "/api/v1/databases/"+database.Id.String(),
 				"Bearer "+token, http.StatusNoContent)
 		}
 

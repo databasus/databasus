@@ -1,6 +1,6 @@
 //go:build testhelpers
 
-package databases
+package databases_bridge
 
 import (
 	"context"
@@ -10,155 +10,304 @@ import (
 	"path/filepath"
 	"runtime"
 	"strconv"
-	"time"
+	"strings"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgconn"
-	"gorm.io/gorm"
 
 	"databasus-backend/internal/config"
-	mariadb_engine "databasus-backend/internal/engines/mariadb"
-	mongodb_engine "databasus-backend/internal/engines/mongodb"
-	mysql_engine "databasus-backend/internal/engines/mysql"
-	pgshared "databasus-backend/internal/engines/postgresql/shared"
-	"databasus-backend/internal/features/databases/databases/mariadb"
-	"databasus-backend/internal/features/databases/databases/mongodb"
-	"databasus-backend/internal/features/databases/databases/mysql"
-	postgresql_logical "databasus-backend/internal/features/databases/databases/postgresql/logical"
-	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
-	"databasus-backend/internal/features/sshtunnel"
+	"databasus-backend/internal/lib/sshtunnel"
+	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/notifiers"
+	"databasus-backend/internal/modules/users"
+	"databasus-backend/internal/modules/workspaces"
+	"databasus-backend/internal/storage"
 )
 
 var PhysicalPostgresVersionTags = []string{"17", "18"}
 
-func GetTestPostgresConfig() *postgresql_logical.PostgresqlLogicalDatabase {
+// PhysicalTestDatabaseSpec describes a physical PostgreSQL database for the helpers. Host and Port
+// address a bastioned cluster from inside the bastion's network when SshTunnel is set, so they are
+// unreachable from the host running the test: only the tunnel gets there.
+type PhysicalTestDatabaseSpec struct {
+	Host       string
+	Port       int
+	VersionTag string
+	BackupType databases.PhysicalBackupType
+	SshTunnel  *sshtunnel.Settings
+	TLS        *PhysicalTestTLS
+}
+
+// PhysicalTestTLS holds the certificates of a physical database reached over mutual TLS.
+type PhysicalTestTLS struct {
+	ClientCert string
+	ClientKey  string
+	RootCert   string
+}
+
+// CreateTestDatabase inserts a logical PostgreSQL database that points at the shared PostgreSQL 16
+// test server, as the old tests need a database without creating it through the contract.
+func CreateTestDatabase(workspaceID uuid.UUID, notifier *notifiers.Notifier) databases.Database {
 	env := config.GetEnv()
+
 	port, err := strconv.Atoi(env.TestLogicalPostgres16Port)
 	if err != nil {
-		panic(fmt.Sprintf("Failed to parse TEST_LOGICAL_POSTGRES_16_PORT: %v", err))
+		panic(fmt.Sprintf("failed to parse TEST_LOGICAL_POSTGRES_16_PORT: %v", err))
 	}
 
-	testDbName := "testdb"
-	return &postgresql_logical.PostgresqlLogicalDatabase{
-		Version:  pgshared.Version16,
-		Host:     config.GetEnv().TestLocalhost,
-		Port:     port,
-		Username: "testuser",
-		Password: "testpassword",
-		Database: &testDbName,
-		CpuCount: 1,
+	databaseID := insertTestDatabase("test "+uuid.NewString(), databases.TypePostgresqlLogical, workspaceID, notifier)
+	execute(`INSERT INTO databases_postgresql_logical (database_id, version, host, port, username, password, database)
+		VALUES (?, '16', ?, ?, 'testuser', 'testpassword', 'testdb')`,
+		databaseID, env.TestLocalhost, port)
+
+	return getTestDatabase(databaseID)
+}
+
+// CreateTestPhysicalPostgresDatabase inserts a FULL physical database that points at the shared
+// primary test server of the version.
+func CreateTestPhysicalPostgresDatabase(
+	workspaceID uuid.UUID,
+	notifier *notifiers.Notifier,
+	versionTag string,
+) databases.Database {
+	host, port := getPhysicalPrimaryEndpoint(versionTag)
+
+	return CreateTestPhysicalPostgresDatabaseWithType(
+		host, port, workspaceID, notifier, versionTag, databases.PhysicalBackupTypeFull,
+	)
+}
+
+// CreateTestPhysicalPostgresDatabaseWithType inserts a physical database at host:port with the backup
+// type, for scheduler-driven incremental and WAL stream chains whose eligibility the scheduler reads
+// from it. The caller owns the server.
+func CreateTestPhysicalPostgresDatabaseWithType(
+	host string,
+	port int,
+	workspaceID uuid.UUID,
+	notifier *notifiers.Notifier,
+	versionTag string,
+	backupType databases.PhysicalBackupType,
+) databases.Database {
+	return CreateTestPhysicalPostgresDatabaseFromSpec(PhysicalTestDatabaseSpec{
+		Host:       host,
+		Port:       port,
+		VersionTag: versionTag,
+		BackupType: backupType,
+		SshTunnel:  nil,
+		TLS:        nil,
+	}, workspaceID, notifier)
+}
+
+// CreateTestPhysicalPostgresDatabaseNoSummary inserts a FULL physical database at host:port that
+// points at a server with summarize_wal off, so an incremental pre-check reaches the SUMMARIZER_OFF
+// branch.
+func CreateTestPhysicalPostgresDatabaseNoSummary(
+	host string,
+	port int,
+	workspaceID uuid.UUID,
+	notifier *notifiers.Notifier,
+	versionTag string,
+) databases.Database {
+	return CreateTestPhysicalPostgresDatabaseWithType(
+		host, port, workspaceID, notifier, versionTag, databases.PhysicalBackupTypeFull,
+	)
+}
+
+// CreateTestPhysicalPostgresDatabaseMtls inserts a FULL physical PostgreSQL 17 database at host:port
+// that reaches the replication server over mutual TLS with the committed test certificates.
+func CreateTestPhysicalPostgresDatabaseMtls(
+	host string,
+	port int,
+	workspaceID uuid.UUID,
+	notifier *notifiers.Notifier,
+) databases.Database {
+	clientCert, clientKey, rootCert := readPhysicalMtlsCerts()
+
+	return CreateTestPhysicalPostgresDatabaseFromSpec(PhysicalTestDatabaseSpec{
+		Host:       host,
+		Port:       port,
+		VersionTag: "17",
+		BackupType: databases.PhysicalBackupTypeFull,
+		SshTunnel:  nil,
+		TLS:        &PhysicalTestTLS{ClientCert: clientCert, ClientKey: clientKey, RootCert: rootCert},
+	}, workspaceID, notifier)
+}
+
+// CreateTestPhysicalPostgresDatabaseFromSpec inserts a physical database as the spec describes. Its
+// replication slots get names of their own, as the provider gives a new database.
+func CreateTestPhysicalPostgresDatabaseFromSpec(
+	spec PhysicalTestDatabaseSpec,
+	workspaceID uuid.UUID,
+	notifier *notifiers.Notifier,
+) databases.Database {
+	databaseID := insertTestDatabase(
+		"test-physical-pg "+uuid.NewString(), databases.TypePostgresqlPhysical, workspaceID, notifier,
+	)
+
+	sslMode, clientCert, clientKey, rootCert := "disable", "", "", ""
+	if spec.TLS != nil {
+		sslMode, clientCert, clientKey, rootCert = "verify-ca", spec.TLS.ClientCert, spec.TLS.ClientKey, spec.TLS.RootCert
+	}
+
+	execute(`INSERT INTO databases_postgresql_physical (database_id, version, host, port, username, password,
+		backup_type, replication_slot_name, backup_slot_name, ssl_mode, ssl_client_cert, ssl_client_key, ssl_root_cert)
+		VALUES (?, ?, ?, ?, 'testuser', 'testpassword', ?, ?, ?, ?, ?, ?, ?)`,
+		databaseID, getPhysicalPostgresVersion(spec.VersionTag), spec.Host, spec.Port, spec.BackupType,
+		"databasus_slot_"+newSlotSuffix(), "databasus_basebackup_"+newSlotSuffix(),
+		sslMode, clientCert, clientKey, rootCert)
+
+	if spec.SshTunnel != nil {
+		execute(`UPDATE databases_postgresql_physical SET ssh_is_enabled = TRUE, ssh_host = ?, ssh_port = ?,
+			ssh_username = ?, ssh_auth_type = ?, ssh_password = ?, ssh_private_key = ?, ssh_private_key_passphrase = ?
+			WHERE database_id = ?`,
+			spec.SshTunnel.Host, spec.SshTunnel.Port, spec.SshTunnel.Username, spec.SshTunnel.AuthType,
+			spec.SshTunnel.Password, spec.SshTunnel.PrivateKey, spec.SshTunnel.PrivateKeyPassphrase, databaseID)
+	}
+
+	return getTestDatabase(databaseID)
+}
+
+// CreateTestMariadbDatabase inserts a MariaDB 10.11 database at host:port. The caller owns the server.
+func CreateTestMariadbDatabase(
+	host string,
+	port int,
+	workspaceID uuid.UUID,
+	notifier *notifiers.Notifier,
+) databases.Database {
+	databaseID := insertTestDatabase("test-mariadb "+uuid.NewString(), databases.TypeMariadb, workspaceID, notifier)
+	execute(`INSERT INTO databases_mariadb (database_id, version, host, port, username, password, database)
+		VALUES (?, '10.11', ?, ?, 'testuser', 'testpassword', 'testdb')`,
+		databaseID, host, port)
+
+	return getTestDatabase(databaseID)
+}
+
+// CreateTestMongodbDatabase inserts a MongoDB 7 database at host:port. The caller owns the server.
+func CreateTestMongodbDatabase(
+	host string,
+	port int,
+	workspaceID uuid.UUID,
+	notifier *notifiers.Notifier,
+) databases.Database {
+	databaseID := insertTestDatabase("test-mongodb "+uuid.NewString(), databases.TypeMongodb, workspaceID, notifier)
+	execute(`INSERT INTO databases_mongodb (database_id, version, host, port, username, password, database)
+		VALUES (?, '7', ?, ?, 'root', 'rootpassword', 'testdb')`,
+		databaseID, host, port)
+
+	return getTestDatabase(databaseID)
+}
+
+// GetPhysicalMtlsTestdataDir resolves the committed physical mTLS testdata directory (server and
+// client certificates, pg_hba.conf, Dockerfile) from this source file's location, so it does not
+// depend on the caller's working directory.
+func GetPhysicalMtlsTestdataDir() string {
+	_, thisFile, _, isResolved := runtime.Caller(0)
+	if !isResolved {
+		panic("cannot resolve physical mTLS testdata dir: runtime.Caller failed")
+	}
+
+	return filepath.Join(filepath.Dir(thisFile), "..", "tests", "physical", "testdata", "mtls")
+}
+
+// RemoveTestDatabase deletes the database through the module, so the subscribed handlers remove its
+// backups and drop its replication slots, as its workspace owner. A database the test already deleted
+// counts as removed. The context is stripped of cancellation because callers pass t.Context() from a
+// t.Cleanup, and the test context is already cancelled by the time cleanup runs.
+func RemoveTestDatabase(ctx context.Context, database databases.Database) {
+	ctx = context.WithoutCancel(ctx)
+
+	owner, isFound := findTestDatabaseOwner(ctx, database.ID)
+	if !isFound {
+		return
+	}
+
+	err := GetModule().DeleteDatabase(ctx, owner, database.ID)
+	if err != nil && !errors.Is(err, databases.ErrDatabaseNotFound) {
+		panic(fmt.Sprintf("failed to delete test database: %v", err))
 	}
 }
 
-// physicalPostgresVersion maps a "17"/"18" tag to the typed version enum.
-func physicalPostgresVersion(versionTag string) pgshared.Version {
-	switch versionTag {
-	case "17":
-		return pgshared.Version17
-	case "18":
-		return pgshared.Version18
-	default:
-		panic(fmt.Sprintf(
-			"unsupported physical postgres version tag: %s (supported: %v)",
-			versionTag, PhysicalPostgresVersionTags,
-		))
+func insertTestDatabase(
+	name string,
+	databaseType databases.Type,
+	workspaceID uuid.UUID,
+	notifier *notifiers.Notifier,
+) uuid.UUID {
+	databaseID := uuid.New()
+	execute("INSERT INTO databases (id, workspace_id, name, type) VALUES (?, ?, ?, ?)",
+		databaseID, workspaceID, name, databaseType)
+
+	if notifier != nil {
+		execute("INSERT INTO databases_notifiers (database_id, notifier_id) VALUES (?, ?)", databaseID, notifier.ID)
 	}
+
+	return databaseID
 }
 
-// physicalPrimaryEndpoint resolves the shared compose primary source's host and port for versionTag.
-// The ports are validated non-empty in config.go at startup (it os.Exit(1)s with the exact env var
-// when one is unset), so a missing DSN fails the run there, never here and never as a skip. Only the
-// shared-fixture callers use this — the throwaway testcontainers sources pass their own endpoint.
-func physicalPrimaryEndpoint(versionTag string) (string, int) {
+func getTestDatabase(databaseID uuid.UUID) databases.Database {
+	foundDatabases, err := GetModule().GetDatabases(context.Background(), []uuid.UUID{databaseID})
+	if err != nil {
+		panic(err)
+	}
+
+	if len(foundDatabases) != 1 {
+		panic(fmt.Sprintf("the inserted test database %s is not found", databaseID))
+	}
+
+	return foundDatabases[0]
+}
+
+func findTestDatabaseOwner(ctx context.Context, databaseID uuid.UUID) (users.Actor, bool) {
+	var ownerIDs []uuid.UUID
+
+	err := storage.GetDb().WithContext(ctx).Raw(`SELECT m.user_id
+		FROM databases d
+		JOIN workspaces_members m ON m.workspace_id = d.workspace_id AND m.role = ?
+		WHERE d.id = ?`, workspaces.RoleOwner, databaseID).Scan(&ownerIDs).Error
+	if err != nil {
+		panic(err)
+	}
+
+	if len(ownerIDs) == 0 {
+		return users.Actor{}, false
+	}
+
+	return users.Actor{UserID: ownerIDs[0], Role: users.RoleMember}, true
+}
+
+func getPhysicalPrimaryEndpoint(versionTag string) (string, int) {
 	env := config.GetEnv()
 
-	var portStr string
+	var portText string
 
 	switch versionTag {
 	case "17":
-		portStr = env.TestPhysicalPostgres17Port
+		portText = env.TestPhysicalPostgres17Port
 	case "18":
-		portStr = env.TestPhysicalPostgres18Port
+		portText = env.TestPhysicalPostgres18Port
 	default:
-		panic(fmt.Sprintf(
-			"unsupported physical postgres version tag: %s (supported: %v)",
-			versionTag, PhysicalPostgresVersionTags,
-		))
+		panic(fmt.Sprintf("unsupported physical postgres version tag: %s (supported: %v)",
+			versionTag, PhysicalPostgresVersionTags))
 	}
 
-	port, err := strconv.Atoi(portStr)
+	port, err := strconv.Atoi(portText)
 	if err != nil {
-		panic(fmt.Sprintf("Failed to parse physical postgres %s port: %v", versionTag, err))
+		panic(fmt.Sprintf("failed to parse physical postgres %s port: %v", versionTag, err))
 	}
 
 	return env.TestLocalhost, port
 }
 
-// GetTestPhysicalPostgresConfigWithType builds a physical config at host:port with an explicit
-// BackupType, so scheduler-driven tests can build chains (FULL_AND_INCREMENTAL) or stream WAL
-// (FULL_INCREMENTAL_AND_WAL_STREAM) — the scheduler's incremental decision keys off this DB-level
-// field, which the backup-config API cannot change. The caller owns the container lifecycle.
-func GetTestPhysicalPostgresConfigWithType(
-	host string,
-	port int,
-	versionTag string,
-	backupType postgresql_physical.BackupType,
-) *postgresql_physical.PostgresqlPhysicalDatabase {
-	return &postgresql_physical.PostgresqlPhysicalDatabase{
-		Version:    physicalPostgresVersion(versionTag),
-		Host:       host,
-		Port:       port,
-		Username:   "testuser",
-		Password:   "testpassword",
-		BackupType: backupType,
+func getPhysicalPostgresVersion(versionTag string) string {
+	if versionTag != "17" && versionTag != "18" {
+		panic(fmt.Sprintf("unsupported physical postgres version tag: %s (supported: %v)",
+			versionTag, PhysicalPostgresVersionTags))
 	}
+
+	return versionTag
 }
 
-// GetTestPhysicalPostgresConfigNoSummary builds a FULL_ONLY config at host:port pointed at a
-// summarize_wal=off cluster, so an incremental pre-check reaches the SUMMARIZER_OFF branch.
-func GetTestPhysicalPostgresConfigNoSummary(
-	host string,
-	port int,
-	versionTag string,
-) *postgresql_physical.PostgresqlPhysicalDatabase {
-	return &postgresql_physical.PostgresqlPhysicalDatabase{
-		Version:    physicalPostgresVersion(versionTag),
-		Host:       host,
-		Port:       port,
-		Username:   "testuser",
-		Password:   "testpassword",
-		BackupType: postgresql_physical.BackupTypeFullOnly,
-	}
-}
-
-// GetTestPhysicalPostgresConfigMtls builds a physical config at host:port pointed at the
-// replication-capable mTLS cluster, with client certs read from the physical testdata/mtls fixtures.
-// BackupType is FULL_ONLY; the WAL-stream-over-mTLS test constructs the streamer spec directly.
-func GetTestPhysicalPostgresConfigMtls(host string, port int) *postgresql_physical.PostgresqlPhysicalDatabase {
-	clientCert, clientKey, rootCert := readPhysicalMtlsCerts()
-
-	// FULL_ONLY keeps the shared fixture's config-save valid (WAL_STREAM would
-	// require CHAINS retention + a lag threshold). The WAL-stream-over-mTLS test
-	// constructs the streamer spec directly against this DB, so the declared
-	// backup type does not gate it.
-	return &postgresql_physical.PostgresqlPhysicalDatabase{
-		Version:       pgshared.Version17,
-		Host:          host,
-		Port:          port,
-		Username:      "testuser",
-		Password:      "testpassword",
-		BackupType:    postgresql_physical.BackupTypeFullOnly,
-		SslMode:       pgshared.SslModeVerifyCA,
-		SslClientCert: clientCert,
-		SslClientKey:  clientKey,
-		SslRootCert:   rootCert,
-	}
-}
-
-// readPhysicalMtlsCerts reads the committed client cert/key + CA from the
-// physical mTLS testdata. Paths are resolved relative to this package so the
-// helper works regardless of the calling test's directory.
+// readPhysicalMtlsCerts reads the committed client certificate, key and CA from the physical mTLS
+// testdata.
 func readPhysicalMtlsCerts() (clientCert, clientKey, rootCert string) {
 	read := func(name string) string {
 		content, err := os.ReadFile(filepath.Join(GetPhysicalMtlsTestdataDir(), name))
@@ -172,309 +321,13 @@ func readPhysicalMtlsCerts() (clientCert, clientKey, rootCert string) {
 	return read("client.crt"), read("client.key"), read("ca.crt")
 }
 
-// GetPhysicalMtlsTestdataDir resolves the committed physical mTLS testdata directory (server +
-// client certs, pg_hba.conf, Dockerfile) from this source file's location, so it is independent of
-// the caller's working directory. It is the single resolver for that directory: both the client-cert
-// reader here and the mTLS server-image build context in the backup tests use it.
-func GetPhysicalMtlsTestdataDir() string {
-	_, thisFile, _, ok := runtime.Caller(0)
-	if !ok {
-		panic("cannot resolve physical mTLS testdata dir: runtime.Caller failed")
-	}
-
-	return filepath.Join(
-		filepath.Dir(thisFile), "..", "tests", "physical", "testdata", "mtls",
-	)
+func newSlotSuffix() string {
+	return strings.ReplaceAll(uuid.NewString(), "-", "")
 }
 
-// CreateTestPhysicalPostgresDatabaseMtls persists a physical DB row pointed at
-// the mTLS replication cluster at host:port, for FULL- and WAL-stream-over-mTLS tests.
-func CreateTestPhysicalPostgresDatabaseMtls(
-	host string,
-	port int,
-	workspaceID uuid.UUID,
-	notifier *notifiers.Notifier,
-) *Database {
-	database := &Database{
-		WorkspaceID:        &workspaceID,
-		Name:               "test-physical-pg-mtls " + uuid.New().String(),
-		Type:               DatabaseTypePostgresPhysical,
-		PostgresqlPhysical: GetTestPhysicalPostgresConfigMtls(host, port),
-		Notifiers:          []DatabaseNotifier{{ID: notifier.ID}},
-	}
-
-	database, err := getDatabaseRepository().Save(database)
+func execute(statement string, values ...any) {
+	err := storage.GetDb().Exec(statement, values...).Error
 	if err != nil {
 		panic(err)
 	}
-
-	return database
-}
-
-// GetTestMariadbConfig builds a MariaDB 10.11 database config pointing at host:port. The
-// caller owns the container lifecycle (host/port come from a testcontainers endpoint),
-// keeping this file free of the testcontainers dependency.
-func GetTestMariadbConfig(host string, port int) *mariadb.MariadbDatabase {
-	testDbName := "testdb"
-	return &mariadb.MariadbDatabase{
-		Version:  mariadb_engine.Version1011,
-		Host:     host,
-		Port:     port,
-		Username: "testuser",
-		Password: "testpassword",
-		Database: &testDbName,
-	}
-}
-
-// The caller owns the container lifecycle (host/port come from a testcontainers endpoint),
-// which keeps this file free of the testcontainers dependency.
-func GetTestMysqlConfig(host string, port int) *mysql.MysqlDatabase {
-	testDbName := "testdb"
-	return &mysql.MysqlDatabase{
-		Version:  mysql_engine.Version80,
-		Host:     host,
-		Port:     port,
-		Username: "testuser",
-		Password: "testpassword",
-		Database: &testDbName,
-	}
-}
-
-// GetTestMongodbConfig builds a Mongo 7.0 database config pointing at host:port. The
-// caller owns the container lifecycle (host/port come from a testcontainers endpoint),
-// keeping this file free of the testcontainers dependency.
-func GetTestMongodbConfig(host string, port int) *mongodb.MongodbDatabase {
-	return &mongodb.MongodbDatabase{
-		Version:      mongodb_engine.Version7,
-		Host:         host,
-		Port:         &port,
-		Username:     "root",
-		Password:     "rootpassword",
-		Database:     "testdb",
-		AuthDatabase: "admin",
-		IsHttps:      false,
-		IsSrv:        false,
-		CpuCount:     1,
-	}
-}
-
-func CreateTestDatabase(
-	workspaceID uuid.UUID,
-	notifier *notifiers.Notifier,
-) *Database {
-	database := &Database{
-		WorkspaceID:       &workspaceID,
-		Name:              "test " + uuid.New().String(),
-		Type:              DatabaseTypePostgresLogical,
-		PostgresqlLogical: GetTestPostgresConfig(),
-		Notifiers:         []DatabaseNotifier{{ID: notifier.ID}},
-	}
-
-	database, err := getDatabaseRepository().Save(database)
-	if err != nil {
-		panic(err)
-	}
-
-	return database
-}
-
-// CreateTestPhysicalPostgresDatabase persists a FULL_ONLY physical DB row pointed at the shared
-// compose primary source for versionTag (the cross-suite fixture, like the logical PG-16 fixture).
-func CreateTestPhysicalPostgresDatabase(
-	workspaceID uuid.UUID,
-	notifier *notifiers.Notifier,
-	versionTag string,
-) *Database {
-	host, port := physicalPrimaryEndpoint(versionTag)
-
-	return CreateTestPhysicalPostgresDatabaseWithType(
-		host, port, workspaceID, notifier, versionTag, postgresql_physical.BackupTypeFullOnly)
-}
-
-// CreateTestPhysicalPostgresDatabaseWithType persists a physical DB row at host:port with an explicit
-// BackupType, for scheduler-driven incremental / WAL-stream chains whose eligibility the scheduler
-// reads from this DB-level field. The caller owns the container lifecycle (host/port may be a
-// throwaway testcontainers endpoint), keeping this file free of the testcontainers dependency.
-func CreateTestPhysicalPostgresDatabaseWithType(
-	host string,
-	port int,
-	workspaceID uuid.UUID,
-	notifier *notifiers.Notifier,
-	versionTag string,
-	backupType postgresql_physical.BackupType,
-) *Database {
-	database := &Database{
-		WorkspaceID:        &workspaceID,
-		Name:               "test-physical-pg " + uuid.New().String(),
-		Type:               DatabaseTypePostgresPhysical,
-		PostgresqlPhysical: GetTestPhysicalPostgresConfigWithType(host, port, versionTag, backupType),
-		Notifiers:          []DatabaseNotifier{{ID: notifier.ID}},
-	}
-
-	database, err := getDatabaseRepository().Save(database)
-	if err != nil {
-		panic(err)
-	}
-
-	return database
-}
-
-// Host and Port address a bastioned cluster from inside the bastion's network, so they are
-// unreachable from the host running the test: only the tunnel gets there.
-type PhysicalTestDatabaseSpec struct {
-	Host       string
-	Port       int
-	VersionTag string
-	BackupType postgresql_physical.BackupType
-	SshTunnel  sshtunnel.Config
-}
-
-func CreateTestPhysicalPostgresDatabaseWithTunnel(
-	spec PhysicalTestDatabaseSpec,
-	workspaceID uuid.UUID,
-	notifier *notifiers.Notifier,
-) *Database {
-	physicalConfig := GetTestPhysicalPostgresConfigWithType(
-		spec.Host, spec.Port, spec.VersionTag, spec.BackupType,
-	)
-	physicalConfig.SshTunnel = spec.SshTunnel
-
-	database := &Database{
-		WorkspaceID:        &workspaceID,
-		Name:               "test-physical-pg-bastioned " + uuid.New().String(),
-		Type:               DatabaseTypePostgresPhysical,
-		PostgresqlPhysical: physicalConfig,
-		Notifiers:          []DatabaseNotifier{{ID: notifier.ID}},
-	}
-
-	database, err := getDatabaseRepository().Save(database)
-	if err != nil {
-		panic(err)
-	}
-
-	return database
-}
-
-// CreateTestPhysicalPostgresDatabaseNoSummary persists a physical DB row at host:port pointed at a
-// summarize_wal=off cluster, so incremental pre-checks reach the SUMMARIZER_OFF branch
-// deterministically (ALTER SYSTEM cannot override a command-line GUC on the standard fixture).
-func CreateTestPhysicalPostgresDatabaseNoSummary(
-	host string,
-	port int,
-	workspaceID uuid.UUID,
-	notifier *notifiers.Notifier,
-	versionTag string,
-) *Database {
-	database := &Database{
-		WorkspaceID:        &workspaceID,
-		Name:               "test-physical-pg-no-summary " + uuid.New().String(),
-		Type:               DatabaseTypePostgresPhysical,
-		PostgresqlPhysical: GetTestPhysicalPostgresConfigNoSummary(host, port, versionTag),
-		Notifiers:          []DatabaseNotifier{{ID: notifier.ID}},
-	}
-
-	database, err := getDatabaseRepository().Save(database)
-	if err != nil {
-		panic(err)
-	}
-
-	return database
-}
-
-func CreateTestMariadbDatabase(
-	host string,
-	port int,
-	workspaceID uuid.UUID,
-	notifier *notifiers.Notifier,
-) *Database {
-	database := &Database{
-		WorkspaceID: &workspaceID,
-		Name:        "test-mariadb " + uuid.New().String(),
-		Type:        DatabaseTypeMariadb,
-		Mariadb:     GetTestMariadbConfig(host, port),
-		Notifiers:   []DatabaseNotifier{{ID: notifier.ID}},
-	}
-
-	database, err := getDatabaseRepository().Save(database)
-	if err != nil {
-		panic(err)
-	}
-
-	return database
-}
-
-func CreateTestMongodbDatabase(
-	host string,
-	port int,
-	workspaceID uuid.UUID,
-	notifier *notifiers.Notifier,
-) *Database {
-	database := &Database{
-		WorkspaceID: &workspaceID,
-		Name:        "test-mongodb " + uuid.New().String(),
-		Type:        DatabaseTypeMongodb,
-		Mongodb:     GetTestMongodbConfig(host, port),
-		Notifiers:   []DatabaseNotifier{{ID: notifier.ID}},
-	}
-
-	database, err := getDatabaseRepository().Save(database)
-	if err != nil {
-		panic(err)
-	}
-
-	return database
-}
-
-// The context is stripped of cancellation because callers pass t.Context() from a t.Cleanup, and
-// the test context is already cancelled by the time cleanup runs.
-func RemoveTestDatabase(ctx context.Context, database *Database) {
-	if err := getDatabaseService().DeleteForTest(context.WithoutCancel(ctx), database.ID); err != nil {
-		panic(fmt.Sprintf("failed to delete test database: %v", err))
-	}
-}
-
-// DeleteForTest removes a database through the listener chain, which owns external cleanup such as
-// backup rows and replication slots, without permission checks or audit logging. A missing row
-// counts as success, so a fixture's teardown can re-delete a database the test already deleted.
-// Under the
-// parallel test suite (go test -p=N) the cascade can deadlock against a concurrent writer in
-// the same process (a backup scheduler still settling), surfacing as SQLSTATE 40P01. The
-// aborted transaction is transient, so the whole delete — idempotent on a re-run — is retried.
-func (s *DatabaseService) DeleteForTest(ctx context.Context, id uuid.UUID) error {
-	const maxAttempts = 5
-
-	deleteOnce := func() error {
-		for _, listener := range s.dbRemoveListener {
-			if err := listener.OnBeforeDatabaseRemove(ctx, id); err != nil {
-				return err
-			}
-		}
-
-		if err := s.dbRepository.Delete(id); err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-			return err
-		}
-
-		return nil
-	}
-
-	var err error
-	for attempt := range maxAttempts {
-		err = deleteOnce()
-		if err == nil || !isTransientSerializationError(err) {
-			return err
-		}
-
-		time.Sleep(time.Duration(attempt+1) * 20 * time.Millisecond)
-	}
-
-	return err
-}
-
-// isTransientSerializationError reports whether err is a PostgreSQL deadlock (40P01) or
-// serialization failure (40001) — both transient, where retrying the aborted transaction is
-// the correct response rather than failing.
-func isTransientSerializationError(err error) bool {
-	var pgErr *pgconn.PgError
-
-	return errors.As(err, &pgErr) && (pgErr.Code == "40P01" || pgErr.Code == "40001")
 }

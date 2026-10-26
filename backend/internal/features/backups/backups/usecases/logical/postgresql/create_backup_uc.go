@@ -16,17 +16,16 @@ import (
 	"github.com/google/uuid"
 
 	"databasus-backend/internal/config"
+	pglogical "databasus-backend/internal/engines/postgresql/logical"
 	pgshared "databasus-backend/internal/engines/postgresql/shared"
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	backup_encryption "databasus-backend/internal/features/backups/backups/encryption"
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
-	"databasus-backend/internal/features/databases"
-	pgtypes "databasus-backend/internal/features/databases/databases/postgresql/logical"
 	"databasus-backend/internal/lib/crypto"
 	"databasus-backend/internal/lib/namelist"
+	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/storages"
-	"databasus-backend/internal/util/encryption"
 )
 
 const (
@@ -40,9 +39,10 @@ const (
 )
 
 type CreatePostgresqlBackupUsecase struct {
-	logger         *slog.Logger
-	masterKey      *crypto.MasterKey
-	fieldEncryptor encryption.FieldEncryptor
+	logger    *slog.Logger
+	masterKey *crypto.MasterKey
+	// getDatabases is read per call: each test application installs its own module.
+	getDatabases func() databases.Module
 }
 
 type writeResult struct {
@@ -54,7 +54,7 @@ func (uc *CreatePostgresqlBackupUsecase) Execute(
 	ctx context.Context,
 	backup *backups_core_logical.LogicalBackup,
 	backupConfig *backups_config_logical.LogicalBackupConfig,
-	db *databases.Database,
+	db databases.Database,
 	fileStore backups_core_logical.BackupFileStore,
 	backupProgressListener func(
 		completedMBs float64,
@@ -64,43 +64,35 @@ func (uc *CreatePostgresqlBackupUsecase) Execute(
 
 	logger.InfoContext(ctx, "creating postgresql backup via pg_dump custom format")
 
-	if db.PostgresqlLogical == nil {
-		return nil, fmt.Errorf("postgresql database configuration is required for pg_dump backups")
-	}
-
-	tunneledDatabase, err := databases.OpenTunnel(ctx, databases.OpenTunnelSpec{
-		Database:  db,
-		Logger:    logger,
-		Encryptor: uc.fieldEncryptor,
-	})
+	connectionSettings, err := uc.getDatabases().GetPostgresqlLogicalConnectionSettings(ctx, db.ID)
 	if err != nil {
 		return nil, err
 	}
 
-	defer tunneledDatabase.Close()
+	tunnel, err := pglogical.NewSource(connectionSettings.Engine).OpenTunnel(ctx, logger)
+	if err != nil {
+		return nil, err
+	}
 
-	databaseThroughTunnel := tunneledDatabase.GetDatabaseThroughTunnel()
-	pg := databaseThroughTunnel.PostgresqlLogical
+	defer tunnel.Close()
 
-	if pg.Database == nil || *pg.Database == "" {
+	source := tunnel.GetSource()
+	settingsThroughTunnel := source.GetSettings()
+
+	if settingsThroughTunnel.Database == "" {
 		return nil, fmt.Errorf("database name is required for pg_dump backups")
 	}
 
-	args := uc.buildPgDumpArgs(pg)
+	args := uc.buildPgDumpArgs(connectionSettings, settingsThroughTunnel)
 
-	decryptedPassword, err := uc.fieldEncryptor.Decrypt(pg.Password)
-	if err != nil {
-		return nil, fmt.Errorf("failed to decrypt database password: %w", err)
-	}
-
-	rawSizeMB, err := pg.GetRawDbSizeMb(ctx, logger, uc.fieldEncryptor)
+	rawSizeMB, err := source.GetDumpedSizeMb(ctx, logger, connectionSettings.GetDumpFilter())
 	if err != nil {
 		logger.WarnContext(ctx, "failed to fetch raw db size before backup", "error", err)
 	} else {
 		backup.BackupRawDbSizeMb = rawSizeMB
 	}
 
-	timescaledbVersion, err := pg.GetTimescaleDBVersion(ctx, uc.fieldEncryptor)
+	timescaledbVersion, err := source.GetTimescaleDBVersion(ctx, logger)
 	if err != nil {
 		logger.WarnContext(ctx, "failed to detect timescaledb extension before backup", "error", err)
 	} else {
@@ -111,13 +103,19 @@ func (uc *CreatePostgresqlBackupUsecase) Execute(
 		ctx,
 		backup,
 		backupConfig,
-		pgshared.ClientTools{Root: config.GetEnv().ClientToolsDir}.GetExecutable(pg.Version, "pg_dump"),
+		pgshared.ClientTools{Root: config.GetEnv().ClientToolsDir}.GetExecutable(connectionSettings.Version, "pg_dump"),
 		args,
-		decryptedPassword,
 		fileStore,
-		databaseThroughTunnel,
+		dumpConnection{settings: settingsThroughTunnel, cpuCount: connectionSettings.CPUCount},
 		backupProgressListener,
 	)
+}
+
+// dumpConnection is what pg_dump connects with: the settings through the tunnel and the number of
+// parallel jobs.
+type dumpConnection struct {
+	settings pglogical.Settings
+	cpuCount int
 }
 
 func (uc *CreatePostgresqlBackupUsecase) streamToStorage(
@@ -126,9 +124,8 @@ func (uc *CreatePostgresqlBackupUsecase) streamToStorage(
 	backupConfig *backups_config_logical.LogicalBackupConfig,
 	pgBin string,
 	args []string,
-	password string,
 	fileStore backups_core_logical.BackupFileStore,
-	db *databases.Database,
+	connection dumpConnection,
 	backupProgressListener func(completedMBs float64),
 ) (*backups_core_logical.BackupArtifacts, error) {
 	uc.logger.InfoContext(parentCtx, "streaming PostgreSQL backup to storage", "pg_bin", pgBin, "args", args)
@@ -136,7 +133,9 @@ func (uc *CreatePostgresqlBackupUsecase) streamToStorage(
 	ctx, cancel := backups_core_logical.NewBackupContext(parentCtx, config.GetShutdownSignal())
 	defer cancel(nil)
 
-	credentials, err := db.PostgresqlLogical.WriteCredentialFiles(password, uc.fieldEncryptor)
+	password := connection.settings.Password
+
+	credentials, err := pgshared.WriteCredentialFilesToTempDir(connection.settings.GetCredentialSpec(), password)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create credential files: %w", err)
 	}
@@ -150,10 +149,10 @@ func (uc *CreatePostgresqlBackupUsecase) streamToStorage(
 	if err := uc.setupPgEnvironment(
 		cmd,
 		credentials,
-		db.PostgresqlLogical.GetHostAddr(),
-		db.PostgresqlLogical.SslMode,
+		connection.settings.HostAddr,
+		connection.settings.TLS.Mode,
 		password,
-		db.PostgresqlLogical.CpuCount,
+		connection.cpuCount,
 		pgBin,
 	); err != nil {
 		return nil, err
@@ -335,30 +334,33 @@ func (uc *CreatePostgresqlBackupUsecase) copyWithShutdownCheck(
 	return totalBytesWritten, nil
 }
 
-func (uc *CreatePostgresqlBackupUsecase) buildPgDumpArgs(pg *pgtypes.PostgresqlLogicalDatabase) []string {
+func (uc *CreatePostgresqlBackupUsecase) buildPgDumpArgs(
+	connectionSettings databases.PostgresqlLogicalConnectionSettings,
+	settingsThroughTunnel pglogical.Settings,
+) []string {
 	args := []string{
 		"-Fc",
 		"--no-password",
-		"-h", pg.Host,
-		"-p", strconv.Itoa(pg.Port),
-		"-U", pg.Username,
-		"-d", pgshared.BuildDatabaseNameConninfo(*pg.Database),
+		"-h", settingsThroughTunnel.Host,
+		"-p", strconv.Itoa(settingsThroughTunnel.Port),
+		"-U", settingsThroughTunnel.Username,
+		"-d", pgshared.BuildDatabaseNameConninfo(settingsThroughTunnel.Database),
 		"--verbose",
 	}
 
-	for _, includedSchema := range namelist.NormalizeUniqueNames(pg.IncludeSchemas) {
+	for _, includedSchema := range namelist.NormalizeUniqueNames(connectionSettings.IncludeSchemas) {
 		args = append(args, "-n", includedSchema)
 	}
 
-	for _, excludedTable := range namelist.NormalizeUniqueNames(pg.ExcludeTables) {
+	for _, excludedTable := range namelist.NormalizeUniqueNames(connectionSettings.ExcludeTables) {
 		args = append(args, "--exclude-table="+excludedTable)
 	}
 
-	for _, dataExcludedTable := range namelist.NormalizeUniqueNames(pg.ExcludeTableData) {
+	for _, dataExcludedTable := range namelist.NormalizeUniqueNames(connectionSettings.ExcludeTableData) {
 		args = append(args, "--exclude-table-data="+dataExcludedTable)
 	}
 
-	compressionArgs := uc.getCompressionArgs(pg.Version)
+	compressionArgs := uc.getCompressionArgs(connectionSettings.Version)
 	return append(args, compressionArgs...)
 }
 

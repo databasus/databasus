@@ -7,9 +7,9 @@ import (
 
 	"github.com/google/uuid"
 
-	"databasus-backend/internal/features/databases"
-	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
-	"databasus-backend/internal/util/encryption"
+	pgphysical "databasus-backend/internal/engines/postgresql/physical"
+	"databasus-backend/internal/lib/database"
+	"databasus-backend/internal/modules/databases"
 )
 
 // slotCleanupDeadline caps how long we wait on the source PG when a database
@@ -22,102 +22,108 @@ import (
 // larger than a plain query timeout.
 const slotCleanupDeadline = 20 * time.Second
 
-// PhysicalSlotCleanupListener drops the per-backup and WAL streamer slots
-// owned by a physical PostgreSQL database before the database row is
-// removed from the metadata DB. Wired in physical/di.go via
-// DatabaseService.AddDbRemoveListener so DeleteDatabase / DeleteForTest
-// fire it automatically.
+// PhysicalSlotCleanupListener drops the per-backup and WAL streamer slots of a
+// deleted physical PostgreSQL database once its deletion commits.
 //
 // Without this hook, slots would be orphaned on the source PG every time a
 // database is removed — pinning WAL forever. RunStartupCleanup catches
 // per-backup orphans only for databases that still exist; once the metadata
 // row is gone there is no record of which source to scan.
 type PhysicalSlotCleanupListener struct {
-	databaseService *databases.DatabaseService
-	fieldEncryptor  encryption.FieldEncryptor
-	logger          *slog.Logger
+	// getDatabases is read per call: each test application installs its own module.
+	getDatabases func() databases.Module
+	logger       *slog.Logger
 }
 
 func NewPhysicalSlotCleanupListener(
-	databaseService *databases.DatabaseService,
-	fieldEncryptor encryption.FieldEncryptor,
+	getDatabases func() databases.Module,
 	logger *slog.Logger,
 ) *PhysicalSlotCleanupListener {
 	return &PhysicalSlotCleanupListener{
-		databaseService: databaseService,
-		fieldEncryptor:  fieldEncryptor,
-		logger:          logger,
+		getDatabases: getDatabases,
+		logger:       logger,
 	}
 }
 
-func (l *PhysicalSlotCleanupListener) OnBeforeDatabaseRemove(ctx context.Context, databaseID uuid.UUID) error {
-	database, err := l.databaseService.GetDatabaseByID(databaseID)
+// OnDatabaseDeleting reads the connection settings while the rows still exist and drops the slots
+// after the commit, so a refused deletion keeps them.
+func (l *PhysicalSlotCleanupListener) OnDatabaseDeleting(ctx context.Context, event databases.DatabaseDeleting) error {
+	deletedDatabases, err := l.getDatabases().GetDatabases(ctx, []uuid.UUID{event.DatabaseID})
 	if err != nil {
+		return err
+	}
+
+	if len(deletedDatabases) == 0 || deletedDatabases[0].Type != databases.TypePostgresqlPhysical {
 		return nil
 	}
 
-	if database.Type != databases.DatabaseTypePostgresPhysical || database.PostgresqlPhysical == nil {
-		return nil
+	connectionSettings, err := l.getDatabases().GetPostgresqlPhysicalConnectionSettings(ctx, event.DatabaseID)
+	if err != nil {
+		return err
 	}
 
-	logger := l.logger.With("database_id", databaseID)
+	return database.AfterCommit(ctx, func(ctx context.Context) {
+		l.dropSlots(ctx, connectionSettings)
+	})
+}
 
-	// The database row is being deleted, so the slot drop must finish even if the caller goes
-	// away: RunStartupCleanup can never recover a slot whose database row is gone.
-	cleanupCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), slotCleanupDeadline)
+func (l *PhysicalSlotCleanupListener) dropSlots(
+	ctx context.Context,
+	connectionSettings databases.PostgresqlPhysicalConnectionSettings,
+) {
+	logger := l.logger.With("database_id", connectionSettings.DatabaseID)
+	slotName := connectionSettings.BackupSlotName
+	walSlotName := connectionSettings.Engine.ReplicationSlotName
+
+	cleanupCtx, cancel := context.WithTimeout(ctx, slotCleanupDeadline)
 	defer cancel()
 
-	// The per-backup slot is keyed by the PostgresqlPhysical ID (see
-	// WithBackupSlot / RunStartupCleanup), NOT the parent Database ID — the two are
-	// distinct UUIDs. Using databaseID here would drop a name that never existed and
-	// leave the real slot orphaned forever (the DB row is about to be deleted, so
-	// RunStartupCleanup can never recover it).
-	slotName := SlotName(database.PostgresqlPhysical.ID)
-	walSlotName := database.PostgresqlPhysical.ReplicationSlotName
-
-	tunneledDatabase, err := postgresql_physical.OpenTunnel(cleanupCtx, postgresql_physical.OpenTunnelSpec{
-		Database:  database.PostgresqlPhysical,
-		Logger:    logger,
-		Encryptor: l.fieldEncryptor,
-	})
+	tunnel, err := pgphysical.NewSource(connectionSettings.Engine).OpenTunnel(cleanupCtx, logger)
 	if err != nil {
-		// Both names go into the message: the row is about to disappear, and with it any record of
-		// which cluster to go looking on, so this line is the operator's only handle on them.
-		logger.Warn("physical slot cleanup: bastion unreachable, leaving slots orphaned",
+		// Both names go into the message: the row is gone, and with it any record of which cluster
+		// to go looking on, so this line is the operator's only handle on them.
+		logger.WarnContext(ctx, "physical slot cleanup: bastion unreachable, leaving slots orphaned",
 			"slot_name", slotName,
 			"wal_slot_name", walSlotName,
 			"error", err,
 		)
 
-		return nil
+		return
 	}
 
-	defer tunneledDatabase.Close()
+	defer tunnel.Close()
 
-	sourceDatabase := tunneledDatabase.GetDatabaseThroughTunnel()
+	source := tunnel.GetSource()
 
-	conn, err := sourceDatabase.OpenInspectionConn(cleanupCtx, l.fieldEncryptor)
+	conn, err := source.OpenInspectionConn(cleanupCtx)
 	if err != nil {
-		logger.Warn("physical slot cleanup: source PG unreachable, leaving slots orphaned",
+		logger.WarnContext(ctx, "physical slot cleanup: source PG unreachable, leaving slots orphaned",
 			"slot_name", slotName,
 			"wal_slot_name", walSlotName,
 			"error", err,
 		)
 
-		return nil
+		return
 	}
 	defer func() { _ = conn.Close(context.Background()) }()
 
-	if dropErr := dropBackupSlotIfExists(cleanupCtx, conn, slotName); dropErr != nil {
-		logger.Warn("physical slot cleanup: per-backup slot drop failed", "slot_name", slotName, "error", dropErr)
-	}
-
-	if dropErr := sourceDatabase.DropWalSlotForRemoval(cleanupCtx, logger, l.fieldEncryptor); dropErr != nil {
-		logger.Warn("physical slot cleanup: WAL streamer slot drop failed",
-			"slot_name", walSlotName,
-			"error", dropErr,
+	err = dropBackupSlotIfExists(cleanupCtx, conn, slotName)
+	if err != nil {
+		logger.WarnContext(
+			ctx,
+			"physical slot cleanup: per-backup slot drop failed",
+			"slot_name",
+			slotName,
+			"error",
+			err,
 		)
 	}
 
-	return nil
+	err = source.DropSlotForRemoval(cleanupCtx, logger)
+	if err != nil {
+		logger.WarnContext(ctx, "physical slot cleanup: WAL streamer slot drop failed",
+			"slot_name", walSlotName,
+			"error", err,
+		)
+	}
 }

@@ -1,7 +1,6 @@
 package healthcheck_attempt
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"testing"
@@ -11,9 +10,10 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 
-	"databasus-backend/internal/features/databases"
+	databases_bridge "databasus-backend/internal/features/databases"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
+	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/modules/workspaces"
 	test_utils "databasus-backend/internal/util/testing"
@@ -21,7 +21,7 @@ import (
 
 func createTestRouter() *gin.Engine {
 	router := workspaces_testing.CreateTestRouter(
-		databases.GetDatabaseController(),
+		databases_bridge.GetTestRoutes(),
 		GetHealthcheckAttemptController(),
 	)
 	return router
@@ -85,7 +85,12 @@ func Test_GetAttemptsByDatabase_PermissionsEnforced(t *testing.T) {
 			owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 			workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
 
-			database := createTestDatabaseViaAPI("Test Database", workspace.ID, owner.Token, router)
+			database := databases_bridge.CreateTestDatabaseViaAPI(t,
+				router,
+				owner.Token,
+				workspace.ID,
+				"Test Database",
+			)
 
 			pastTime := time.Now().UTC().Add(-1 * time.Hour)
 			createTestHealthcheckAttemptWithTime(
@@ -142,7 +147,7 @@ func Test_GetAttemptsByDatabase_PermissionsEnforced(t *testing.T) {
 			}
 
 			// Cleanup
-			databases.RemoveTestDatabase(t.Context(), database)
+			databases_bridge.RemoveTestDatabase(t.Context(), database)
 			workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 		})
 	}
@@ -153,7 +158,7 @@ func Test_GetAttemptsByDatabase_FiltersByAfterDate(t *testing.T) {
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
 
-	database := createTestDatabaseViaAPI("Test Database", workspace.ID, owner.Token, router)
+	database := databases_bridge.CreateTestDatabaseViaAPI(t, router, owner.Token, workspace.ID, "Test Database")
 
 	oldTime := time.Now().UTC().Add(-2 * time.Hour)
 	recentTime := time.Now().UTC().Add(-30 * time.Minute)
@@ -183,7 +188,7 @@ func Test_GetAttemptsByDatabase_FiltersByAfterDate(t *testing.T) {
 	}
 
 	// Cleanup
-	databases.RemoveTestDatabase(t.Context(), database)
+	databases_bridge.RemoveTestDatabase(t.Context(), database)
 	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 }
 
@@ -192,7 +197,7 @@ func Test_GetAttemptsByDatabase_ReturnsEmptyListForNewDatabase(t *testing.T) {
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
 
-	database := createTestDatabaseViaAPI("Test Database", workspace.ID, owner.Token, router)
+	database := databases_bridge.CreateTestDatabaseViaAPI(t, router, owner.Token, workspace.ID, "Test Database")
 
 	var response []*HealthcheckAttempt
 	test_utils.MakeGetRequestAndUnmarshal(
@@ -207,40 +212,8 @@ func Test_GetAttemptsByDatabase_ReturnsEmptyListForNewDatabase(t *testing.T) {
 	assert.Equal(t, 0, len(response))
 
 	// Cleanup
-	databases.RemoveTestDatabase(t.Context(), database)
+	databases_bridge.RemoveTestDatabase(t.Context(), database)
 	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
-}
-
-func createTestDatabaseViaAPI(
-	name string,
-	workspaceID uuid.UUID,
-	token string,
-	router *gin.Engine,
-) *databases.Database {
-	request := databases.Database{
-		WorkspaceID:       &workspaceID,
-		Name:              name,
-		Type:              databases.DatabaseTypePostgresLogical,
-		PostgresqlLogical: databases.GetTestPostgresConfig(),
-	}
-
-	w := workspaces_testing.MakeAPIRequest(
-		router,
-		"POST",
-		"/api/v1/databases/create",
-		"Bearer "+token,
-		request,
-	)
-
-	if w.Code != http.StatusCreated {
-		panic("Failed to create database")
-	}
-
-	var database databases.Database
-	if err := json.Unmarshal(w.Body.Bytes(), &database); err != nil {
-		panic(err)
-	}
-	return &database
 }
 
 func createTestHealthcheckAttempt(databaseID uuid.UUID, status databases.HealthStatus) {

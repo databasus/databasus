@@ -6,9 +6,9 @@ import {
   DATABASE_TYPE_LABEL_KEYS,
   type Database,
   DatabaseType,
+  changeDatabaseType,
   databaseApi,
   getDatabaseLogoFromType,
-  initializeDatabaseTypeData,
   isPostgresType,
 } from '../../../../entity/databases';
 import { translateApiError } from '../../../../shared/i18n';
@@ -58,26 +58,30 @@ export const EditDatabaseBaseInfoComponent = ({
   const handleTypeChange = (newType: DatabaseType) => {
     if (!editingDatabase) return;
 
-    setEditingDatabase(initializeDatabaseTypeData({ ...editingDatabase, type: newType }));
+    setEditingDatabase(changeDatabaseType(editingDatabase, newType));
     setIsUnsaved(true);
   };
 
   const saveDatabase = async () => {
     if (!editingDatabase) return;
-    if (isSaveToApi) {
-      setIsSaving(true);
 
-      try {
-        editingDatabase.name = editingDatabase.name?.trim();
-        await databaseApi.updateDatabase(editingDatabase);
-        setIsUnsaved(false);
-      } catch (e) {
-        alert(translateApiError(e, t));
-      }
+    const editedDatabase = { ...editingDatabase, name: editingDatabase.name.trim() };
 
-      setIsSaving(false);
+    if (!isSaveToApi) {
+      onSaved(editedDatabase);
+      return;
     }
-    onSaved(editingDatabase);
+
+    setIsSaving(true);
+
+    try {
+      onSaved(await databaseApi.updateDatabase(editedDatabase.id, editedDatabase));
+      setIsUnsaved(false);
+    } catch (e) {
+      alert(translateApiError(e, t));
+    }
+
+    setIsSaving(false);
   };
 
   useEffect(() => {
@@ -109,8 +113,8 @@ export const EditDatabaseBaseInfoComponent = ({
         <div className="grid grid-cols-2 gap-3">
           {databaseEngineTypes.map((engineType) => {
             const isSelected = isPostgresType(engineType)
-              ? isPostgresType(editingDatabase.type)
-              : editingDatabase.type === engineType;
+              ? isPostgresType(editingDatabase.settings.type)
+              : editingDatabase.settings.type === engineType;
             const engineLabel = t(DATABASE_TYPE_LABEL_KEYS[engineType]);
 
             return (

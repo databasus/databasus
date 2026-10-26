@@ -11,8 +11,9 @@ import (
 
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
-	"databasus-backend/internal/features/databases"
+	databases_bridge "databasus-backend/internal/features/databases"
 	task_cancellation "databasus-backend/internal/features/tasks/cancellation"
+	"databasus-backend/internal/modules/databases"
 )
 
 const (
@@ -28,7 +29,7 @@ type BackupsScheduler struct {
 	backupRepository          *backups_core_logical.BackupRepository
 	backupConfigService       *backups_config_logical.BackupConfigService
 	taskCancellationRequester *task_cancellation.Requester
-	databaseService           *databases.DatabaseService
+	databaseAccess            *databases_bridge.Access
 
 	lastBackupTime time.Time
 	logger         *slog.Logger
@@ -104,7 +105,7 @@ func (s *BackupsScheduler) IsSchedulerRunning() bool {
 	return s.lastBackupTime.After(time.Now().UTC().Add(-schedulerHealthcheckThreshold))
 }
 
-func (s *BackupsScheduler) StartBackup(ctx context.Context, database *databases.Database, isCallNotifier bool) {
+func (s *BackupsScheduler) StartBackup(ctx context.Context, database databases.Database, isCallNotifier bool) {
 	backupConfig, err := s.backupConfigService.GetBackupConfigByDbId(database.ID)
 	if err != nil {
 		s.logger.ErrorContext(ctx, "failed to get backup config by database ID", "error", err)
@@ -287,7 +288,7 @@ func (s *BackupsScheduler) runPendingBackups(ctx context.Context, logger *slog.L
 				backupConfig.BackupInterval.Type,
 			)
 
-			database, err := s.databaseService.GetDatabaseByID(backupConfig.DatabaseID)
+			database, err := s.databaseAccess.GetDatabaseByID(ctx, backupConfig.DatabaseID)
 			if err != nil {
 				logger.ErrorContext(ctx, "failed to get database by ID", "error", err)
 				continue

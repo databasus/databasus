@@ -4,7 +4,7 @@ import (
 	"sync"
 
 	"databasus-backend/internal/features/audit_logs"
-	"databasus-backend/internal/features/databases"
+	databases_bridge "databasus-backend/internal/features/databases"
 	workspaces_bridge "databasus-backend/internal/features/workspaces"
 	"databasus-backend/internal/util/logger"
 )
@@ -15,7 +15,8 @@ var (
 	})
 	getHealthcheckConfigService = sync.OnceValue(func() *HealthcheckConfigService {
 		return &HealthcheckConfigService{
-			databases.GetDatabaseService(),
+			databases_bridge.GetAccess(),
+			databases_bridge.GetModule,
 			getHealthcheckConfigRepository(),
 			workspaces_bridge.GetAccess(),
 			audit_logs.GetAuditLogService(),
@@ -37,9 +38,3 @@ func GetHealthcheckConfigService() *HealthcheckConfigService {
 func GetHealthcheckConfigController() *HealthcheckConfigController {
 	return getHealthcheckConfigController()
 }
-
-var SetupDependencies = sync.OnceFunc(func() {
-	databases.
-		GetDatabaseService().
-		AddDbCreationListener(getHealthcheckConfigService())
-})

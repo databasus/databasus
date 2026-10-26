@@ -1,131 +1,127 @@
-import { getApplicationServer } from '../../../constants';
-import { apiHelper } from '../../../shared/api/apiHelper';
-import RequestOptions from '../../../shared/api/RequestOptions';
-import type { CreateReadOnlyUserResponse } from '../model/CreateReadOnlyUserResponse';
-import type { CreateReplicationOnlyUserResponse } from '../model/CreateReplicationOnlyUserResponse';
+import { getApiClient, requireData, requireSuccess } from '../../../shared/api';
 import type { Database } from '../model/Database';
-import type { ShouldSuggestReadOnlyUserResponse } from '../model/ShouldSuggestReadOnlyUserResponse';
+import type { DatabaseCreate } from '../model/DatabaseCreate';
+import type { DatabaseSettingsTarget } from '../model/DatabaseSettingsTarget';
+import type { DatabaseTestResult } from '../model/DatabaseTestResult';
+import type { DatabaseUpdate } from '../model/DatabaseUpdate';
+import type { LimitedUser, LimitedUserCheck } from '../model/LimitedUser';
+import { toDatabaseSettingsRequest } from '../model/toDatabaseSettingsRequest';
+
+// The largest page the contract serves, so a workspace's databases arrive in as few requests as
+// possible.
+const DATABASE_PAGE_LIMIT = 100;
+
+const toSettingsTargetRequest = (target: DatabaseSettingsTarget): DatabaseSettingsTarget => ({
+  workspaceId: target.workspaceId,
+  databaseId: target.databaseId,
+  settings: toDatabaseSettingsRequest(target.settings),
+});
+
+// Narrows the list to the databases that send to one notifier.
+export interface DatabaseListFilter {
+  notifierId?: string;
+}
 
 export const databaseApi = {
-  async createDatabase(database: Database) {
-    const requestOptions: RequestOptions = new RequestOptions();
-    requestOptions.setBody(JSON.stringify(database));
-    return apiHelper.fetchPostJson<Database>(
-      `${getApplicationServer()}/api/v1/databases/create`,
-      requestOptions,
+  // The database screen and the transfer dialogs need every database of the workspace, or every
+  // database that sends to one notifier, so this follows the cursor to the last page.
+  async listAllDatabases(
+    workspaceId: string,
+    { notifierId }: DatabaseListFilter = {},
+  ): Promise<Database[]> {
+    const databases: Database[] = [];
+    let after: string | undefined;
+
+    do {
+      const page = requireData(
+        await getApiClient().GET('/databases', {
+          params: { query: { workspaceId, notifierId, limit: DATABASE_PAGE_LIMIT, after } },
+        }),
+      );
+
+      databases.push(...page.items);
+      after = page.nextCursor;
+    } while (after !== undefined);
+
+    return databases;
+  },
+
+  async getDatabase(databaseId: string): Promise<Database> {
+    return requireData(
+      await getApiClient().GET('/databases/{databaseId}', {
+        params: { path: { databaseId } },
+      }),
     );
   },
 
-  async updateDatabase(database: Database) {
-    const requestOptions: RequestOptions = new RequestOptions();
-    requestOptions.setBody(JSON.stringify(database));
-    return apiHelper.fetchPostJson<Database>(
-      `${getApplicationServer()}/api/v1/databases/update`,
-      requestOptions,
+  async createDatabase(databaseCreate: DatabaseCreate): Promise<Database> {
+    return requireData(
+      await getApiClient().POST('/databases', {
+        body: {
+          workspaceId: databaseCreate.workspaceId,
+          name: databaseCreate.name,
+          settings: toDatabaseSettingsRequest(databaseCreate.settings),
+          notifierIds: databaseCreate.notifierIds,
+        },
+      }),
     );
   },
 
-  async getDatabase(id: string) {
-    const requestOptions: RequestOptions = new RequestOptions();
-    return apiHelper.fetchGetJson<Database>(
-      `${getApplicationServer()}/api/v1/databases/${id}`,
-      requestOptions,
-      true,
+  // A secret the settings leave empty keeps its stored value. Only the editable fields are sent, so
+  // a whole Database can be passed.
+  async updateDatabase(databaseId: string, databaseUpdate: DatabaseUpdate): Promise<Database> {
+    return requireData(
+      await getApiClient().PUT('/databases/{databaseId}', {
+        params: { path: { databaseId } },
+        body: {
+          name: databaseUpdate.name,
+          settings: toDatabaseSettingsRequest(databaseUpdate.settings),
+          notifierIds: databaseUpdate.notifierIds,
+        },
+      }),
     );
   },
 
-  async getDatabases(workspaceId: string) {
-    const requestOptions: RequestOptions = new RequestOptions();
-    return apiHelper.fetchGetJson<Database[]>(
-      `${getApplicationServer()}/api/v1/databases?workspace_id=${workspaceId}`,
-      requestOptions,
-      true,
+  async deleteDatabase(databaseId: string): Promise<void> {
+    requireSuccess(
+      await getApiClient().DELETE('/databases/{databaseId}', {
+        params: { path: { databaseId } },
+      }),
     );
   },
 
-  async deleteDatabase(id: string) {
-    const requestOptions: RequestOptions = new RequestOptions();
-    return apiHelper.fetchDeleteRaw(
-      `${getApplicationServer()}/api/v1/databases/${id}`,
-      requestOptions,
+  async copyDatabase(databaseId: string): Promise<Database> {
+    return requireData(
+      await getApiClient().POST('/databases/{databaseId}/copy', {
+        params: { path: { databaseId } },
+      }),
     );
   },
 
-  async copyDatabase(id: string) {
-    const requestOptions: RequestOptions = new RequestOptions();
-    return apiHelper.fetchPostJson<Database>(
-      `${getApplicationServer()}/api/v1/databases/${id}/copy`,
-      requestOptions,
+  async testDatabase(databaseId: string): Promise<DatabaseTestResult> {
+    return requireData(
+      await getApiClient().POST('/databases/{databaseId}/test', {
+        params: { path: { databaseId } },
+      }),
     );
   },
 
-  async testDatabaseConnection(id: string) {
-    const requestOptions: RequestOptions = new RequestOptions();
-    return apiHelper.fetchPostJson(
-      `${getApplicationServer()}/api/v1/databases/${id}/test-connection`,
-      requestOptions,
+  // A secret the settings leave empty is taken from the saved database the target names.
+  async testDatabaseSettings(target: DatabaseSettingsTarget): Promise<DatabaseTestResult> {
+    return requireData(
+      await getApiClient().POST('/database-tests', { body: toSettingsTargetRequest(target) }),
     );
   },
 
-  async testDatabaseConnectionDirect(database: Database) {
-    const requestOptions: RequestOptions = new RequestOptions();
-    requestOptions.setBody(JSON.stringify(database));
-    return apiHelper.fetchPostJson(
-      `${getApplicationServer()}/api/v1/databases/test-connection-direct`,
-      requestOptions,
+  async checkLimitedUser(target: DatabaseSettingsTarget): Promise<LimitedUserCheck> {
+    return requireData(
+      await getApiClient().POST('/limited-user-checks', { body: toSettingsTargetRequest(target) }),
     );
   },
 
-  async isNotifierUsing(notifierId: string) {
-    const requestOptions: RequestOptions = new RequestOptions();
-    return apiHelper
-      .fetchGetJson<{
-        isUsing: boolean;
-      }>(
-        `${getApplicationServer()}/api/v1/databases/notifier/${notifierId}/is-using`,
-        requestOptions,
-        true,
-      )
-      .then((res) => res.isUsing);
-  },
-
-  async getDatabasesCountForNotifier(notifierId: string): Promise<number> {
-    const requestOptions: RequestOptions = new RequestOptions();
-    return apiHelper
-      .fetchGetJson<{
-        count: number;
-      }>(
-        `${getApplicationServer()}/api/v1/databases/notifier/${notifierId}/databases-count`,
-        requestOptions,
-        true,
-      )
-      .then((res) => res.count);
-  },
-
-  async shouldSuggestReadOnlyUser(database: Database) {
-    const requestOptions: RequestOptions = new RequestOptions();
-    requestOptions.setBody(JSON.stringify(database));
-    return apiHelper.fetchPostJson<ShouldSuggestReadOnlyUserResponse>(
-      `${getApplicationServer()}/api/v1/databases/should-suggest-readonly-user`,
-      requestOptions,
-    );
-  },
-
-  async createReadOnlyUser(database: Database) {
-    const requestOptions: RequestOptions = new RequestOptions();
-    requestOptions.setBody(JSON.stringify(database));
-    return apiHelper.fetchPostJson<CreateReadOnlyUserResponse>(
-      `${getApplicationServer()}/api/v1/databases/create-readonly-user`,
-      requestOptions,
-    );
-  },
-
-  async createReplicationOnlyUser(database: Database) {
-    const requestOptions: RequestOptions = new RequestOptions();
-    requestOptions.setBody(JSON.stringify(database));
-    return apiHelper.fetchPostJson<CreateReplicationOnlyUserResponse>(
-      `${getApplicationServer()}/api/v1/databases/create-replication-only-user`,
-      requestOptions,
+  async createLimitedUser(target: DatabaseSettingsTarget): Promise<LimitedUser> {
+    return requireData(
+      await getApiClient().POST('/limited-users', { body: toSettingsTargetRequest(target) }),
     );
   },
 };

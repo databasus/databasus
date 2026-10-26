@@ -1,5 +1,5 @@
 import type { SshTunnelAuthType } from './SshTunnelAuthType';
-import type { SshTunnelConfig } from './SshTunnelConfig';
+import type { SshTunnelSettings } from './SshTunnelSettings';
 
 /**
  * Answers from the saved database, never from the edited copy: a database that never had a tunnel
@@ -7,7 +7,7 @@ import type { SshTunnelConfig } from './SshTunnelConfig';
  * only counts for the auth type it was saved under - switching to the other one needs a new secret.
  */
 export function hasStoredSshTunnelSecretsForAuthType(
-  savedSshTunnel: SshTunnelConfig | undefined,
+  savedSshTunnel: SshTunnelSettings | undefined,
   editedAuthType: SshTunnelAuthType | undefined,
   databaseId: string | undefined,
 ): boolean {

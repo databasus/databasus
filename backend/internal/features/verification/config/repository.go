@@ -1,18 +1,20 @@
 package verification_config
 
 import (
+	"context"
 	"errors"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
+	"databasus-backend/internal/lib/database"
 	"databasus-backend/internal/storage"
 )
 
 type VerificationConfigRepository struct{}
 
-func (r *VerificationConfigRepository) Save(config *BackupVerificationConfig) error {
-	return storage.GetDb().Save(config).Error
+func (r *VerificationConfigRepository) Save(ctx context.Context, config *BackupVerificationConfig) error {
+	return database.Conn(ctx, storage.GetDb()).Save(config).Error
 }
 
 func (r *VerificationConfigRepository) GetByDatabaseID(

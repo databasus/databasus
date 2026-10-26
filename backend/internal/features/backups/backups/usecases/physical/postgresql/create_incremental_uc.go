@@ -12,10 +12,10 @@ import (
 
 	"github.com/google/uuid"
 
+	pgshared "databasus-backend/internal/engines/postgresql/shared"
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	physical_enums "databasus-backend/internal/features/backups/backups/core/physical/enums"
 	backup_encryption "databasus-backend/internal/features/backups/backups/encryption"
-	"databasus-backend/internal/util/encryption"
 )
 
 type CreateIncrementalBackupUsecase struct{}
@@ -30,12 +30,9 @@ func (uc *CreateIncrementalBackupUsecase) Execute(
 ) (PhysicalBackupResult, error) {
 	start := time.Now().UTC()
 
-	password, err := encryption.DecryptFieldIfNeeded(spec.SourceDB.Password, spec.FieldEncryptor)
-	if err != nil {
-		return errorResult(physical_enums.PhysicalBackupErrorPgBasebackupFailed, "decrypt password", err), nil
-	}
+	password := spec.SourceDB.Engine.Password
 
-	creds, err := spec.SourceDB.WriteCredentialFiles(password, spec.FieldEncryptor)
+	creds, err := pgshared.WriteCredentialFilesToTempDir(spec.SourceDB.Engine.GetCredentialSpec(), password)
 	if err != nil {
 		return errorResult(physical_enums.PhysicalBackupErrorPgBasebackupFailed, "write credentials", err), nil
 	}
@@ -56,7 +53,7 @@ func (uc *CreateIncrementalBackupUsecase) Execute(
 	}
 
 	// Manifest System-Identifier from the stored row (see create_full_uc.go Execute).
-	systemID := spec.SourceDB.SystemIdentifierUint64()
+	systemID := spec.SourceDB.GetSystemIdentifierUint64()
 
 	manifestPath, manifestCleanup, err := downloadParentManifest(ctx, spec)
 	if err != nil {
@@ -88,7 +85,7 @@ func (uc *CreateIncrementalBackupUsecase) Execute(
 
 	var result PhysicalBackupResult
 
-	slotErr := WithBackupSlot(ctx, spec.SourceDB, spec.FieldEncryptor, spec.Logger, func() error {
+	slotErr := WithBackupSlot(ctx, spec.SourceDB, spec.Logger, func() error {
 		streamResult, err := streamWithCodecFallback(ctx, streamAttemptSpec{
 			Common:                  spec.CommonBackupSpec,
 			BackupID:                spec.Backup.ID,
@@ -160,7 +157,7 @@ func verifyIncrTimelineCompatibility(
 		}, 0, false
 	}
 
-	conn, err := spec.SourceDB.OpenInspectionConn(ctx, spec.FieldEncryptor)
+	conn, err := openInspectionConn(ctx, spec.SourceDB)
 	if err != nil {
 		return errorResult(physical_enums.PhysicalBackupErrorNetworkFailure,
 			"open inspection connection", err), 0, false
@@ -187,7 +184,7 @@ func verifyIncrTimelineCompatibility(
 //   - DecisionFullNewChain     → CHAIN_BROKEN / SUMMARIZER_OFF | SUMMARIES_EXPIRED
 //   - ctx cancelled mid-wait   → CANCELED / CANCELED_BY_USER
 func runSummarizerPreCheck(ctx context.Context, spec IncrementalBackupSpec) (PhysicalBackupResult, bool) {
-	conn, err := spec.SourceDB.OpenInspectionConn(ctx, spec.FieldEncryptor)
+	conn, err := openInspectionConn(ctx, spec.SourceDB)
 	if err != nil {
 		return errorResult(physical_enums.PhysicalBackupErrorNetworkFailure,
 			"open inspection conn for summarizer pre-check", err), false

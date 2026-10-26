@@ -6,13 +6,14 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/google/uuid"
-
 	mariadb_engine "databasus-backend/internal/engines/mariadb"
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
-	"databasus-backend/internal/features/databases"
-	mariadbtypes "databasus-backend/internal/features/databases/databases/mariadb"
+	databases_bridge "databasus-backend/internal/features/databases"
+	users_testing "databasus-backend/internal/features/users/testing"
+	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
+	"databasus-backend/internal/modules/databases"
+	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/util/testing/containers"
 )
 
@@ -21,13 +22,16 @@ import (
 // however large the table is (issue #630).
 func Test_BuildMariadbDumpArgs_ForAnyDatabase_NeverSkipsExtendedInsert(t *testing.T) {
 	uc := &CreateMariadbBackupUsecase{}
-	database := &mariadbtypes.MariadbDatabase{
-		Version:       mariadb_engine.Version1011,
-		Database:      new("oa_db"),
-		ExcludeTables: []string{"personnel_real_time"},
+	target := dumpTarget{
+		connectionSettings: databases.MariadbConnectionSettings{
+			Version:       mariadb_engine.Version1011,
+			Engine:        mariadb_engine.Settings{Database: "oa_db"},
+			ExcludeTables: []string{"personnel_real_time"},
+		},
+		settings: mariadb_engine.Settings{Database: "oa_db"},
 	}
 
-	dumpArgs := uc.buildMariadbDumpArgs(database)
+	dumpArgs := uc.buildMariadbDumpArgs(target)
 
 	if slices.Contains(dumpArgs, "--skip-extended-insert") {
 		t.Fatalf("mariadb-dump args must never contain --skip-extended-insert: %v", dumpArgs)
@@ -36,14 +40,16 @@ func Test_BuildMariadbDumpArgs_ForAnyDatabase_NeverSkipsExtendedInsert(t *testin
 
 func Test_BuildMariadbDumpArgs_WithExcludedTables_AddsQualifiedIgnoreTableArgs(t *testing.T) {
 	uc := &CreateMariadbBackupUsecase{}
-	databaseName := "oa_db"
-	database := &mariadbtypes.MariadbDatabase{
-		Version:       mariadb_engine.Version114,
-		Database:      &databaseName,
-		ExcludeTables: []string{"personnel_access_control_event", "personnel_real_time"},
+	target := dumpTarget{
+		connectionSettings: databases.MariadbConnectionSettings{
+			Version:       mariadb_engine.Version114,
+			Engine:        mariadb_engine.Settings{Database: "oa_db"},
+			ExcludeTables: []string{"personnel_access_control_event", "personnel_real_time"},
+		},
+		settings: mariadb_engine.Settings{Database: "oa_db"},
 	}
 
-	args := uc.buildMariadbDumpArgs(database)
+	args := uc.buildMariadbDumpArgs(target)
 
 	if !slices.Contains(args, "--ignore-table=oa_db.personnel_access_control_event") ||
 		!slices.Contains(args, "--ignore-table=oa_db.personnel_real_time") {
@@ -53,19 +59,21 @@ func Test_BuildMariadbDumpArgs_WithExcludedTables_AddsQualifiedIgnoreTableArgs(t
 
 func Test_BuildMariadbDumpArgs_WhenExcludedTablesArePastedMultiline_TrimsAndSplitsThem(t *testing.T) {
 	uc := &CreateMariadbBackupUsecase{}
-	databaseName := "oa_db"
-	database := &mariadbtypes.MariadbDatabase{
-		Version:  mariadb_engine.Version114,
-		Database: &databaseName,
-		ExcludeTables: []string{
-			"personnel_access_control_event",
-			"\npersonnel_real_time",
-			" ",
-			"ext_alarm_message,\nmonitor_toxic_gas",
+	target := dumpTarget{
+		connectionSettings: databases.MariadbConnectionSettings{
+			Version: mariadb_engine.Version114,
+			Engine:  mariadb_engine.Settings{Database: "oa_db"},
+			ExcludeTables: []string{
+				"personnel_access_control_event",
+				"\npersonnel_real_time",
+				" ",
+				"ext_alarm_message,\nmonitor_toxic_gas",
+			},
 		},
+		settings: mariadb_engine.Settings{Database: "oa_db"},
 	}
 
-	args := uc.buildMariadbDumpArgs(database)
+	args := uc.buildMariadbDumpArgs(target)
 
 	ignoredTableArgs := []string{
 		"--ignore-table=oa_db.personnel_access_control_event",
@@ -88,13 +96,15 @@ func Test_BuildMariadbDumpArgs_WhenExcludedTablesArePastedMultiline_TrimsAndSpli
 // privilege the connection test no longer requires, so the flag has to stay in every dump.
 func Test_BuildMariadbDumpArgs_ForAnyDatabase_AlwaysSkipsTablespaces(t *testing.T) {
 	uc := &CreateMariadbBackupUsecase{}
-	databaseName := "oa_db"
-	database := &mariadbtypes.MariadbDatabase{
-		Version:  mariadb_engine.Version1011,
-		Database: &databaseName,
+	target := dumpTarget{
+		connectionSettings: databases.MariadbConnectionSettings{
+			Version: mariadb_engine.Version1011,
+			Engine:  mariadb_engine.Settings{Database: "oa_db"},
+		},
+		settings: mariadb_engine.Settings{Database: "oa_db"},
 	}
 
-	args := uc.buildMariadbDumpArgs(database)
+	args := uc.buildMariadbDumpArgs(target)
 
 	if !slices.Contains(args, "--no-tablespaces") {
 		t.Fatalf("expected --no-tablespaces, got %v", args)
@@ -103,14 +113,16 @@ func Test_BuildMariadbDumpArgs_ForAnyDatabase_AlwaysSkipsTablespaces(t *testing.
 
 func Test_BuildMariadbDumpArgs_WithTriggerPrivilege_KeepsTriggers(t *testing.T) {
 	uc := &CreateMariadbBackupUsecase{}
-	databaseName := "oa_db"
-	database := &mariadbtypes.MariadbDatabase{
-		Version:    mariadb_engine.Version1011,
-		Database:   &databaseName,
-		Privileges: "SELECT,SHOW VIEW,TRIGGER",
+	target := dumpTarget{
+		connectionSettings: databases.MariadbConnectionSettings{
+			Version:    mariadb_engine.Version1011,
+			Engine:     mariadb_engine.Settings{Database: "oa_db"},
+			Privileges: []string{"SELECT", "SHOW VIEW", "TRIGGER"},
+		},
+		settings: mariadb_engine.Settings{Database: "oa_db"},
 	}
 
-	args := uc.buildMariadbDumpArgs(database)
+	args := uc.buildMariadbDumpArgs(target)
 
 	if !slices.Contains(args, "--triggers") || slices.Contains(args, "--skip-triggers") {
 		t.Fatalf("expected --triggers and no --skip-triggers, got %v", args)
@@ -121,14 +133,16 @@ func Test_BuildMariadbDumpArgs_WithTriggerPrivilege_KeepsTriggers(t *testing.T) 
 // for a role that lacks the privilege instead of dumping without them.
 func Test_BuildMariadbDumpArgs_WithoutTriggerPrivilege_SkipsTriggers(t *testing.T) {
 	uc := &CreateMariadbBackupUsecase{}
-	databaseName := "oa_db"
-	database := &mariadbtypes.MariadbDatabase{
-		Version:    mariadb_engine.Version1011,
-		Database:   &databaseName,
-		Privileges: "SELECT,SHOW VIEW",
+	target := dumpTarget{
+		connectionSettings: databases.MariadbConnectionSettings{
+			Version:    mariadb_engine.Version1011,
+			Engine:     mariadb_engine.Settings{Database: "oa_db"},
+			Privileges: []string{"SELECT", "SHOW VIEW"},
+		},
+		settings: mariadb_engine.Settings{Database: "oa_db"},
 	}
 
-	args := uc.buildMariadbDumpArgs(database)
+	args := uc.buildMariadbDumpArgs(target)
 
 	if !slices.Contains(args, "--skip-triggers") || slices.Contains(args, "--triggers") {
 		t.Fatalf("expected --skip-triggers and no --triggers, got %v", args)
@@ -137,13 +151,15 @@ func Test_BuildMariadbDumpArgs_WithoutTriggerPrivilege_SkipsTriggers(t *testing.
 
 func Test_BuildMariadbDumpArgs_WithoutExcludedTables_OmitsIgnoreTableArgs(t *testing.T) {
 	uc := &CreateMariadbBackupUsecase{}
-	databaseName := "oa_db"
-	database := &mariadbtypes.MariadbDatabase{
-		Version:  mariadb_engine.Version114,
-		Database: &databaseName,
+	target := dumpTarget{
+		connectionSettings: databases.MariadbConnectionSettings{
+			Version: mariadb_engine.Version114,
+			Engine:  mariadb_engine.Settings{Database: "oa_db"},
+		},
+		settings: mariadb_engine.Settings{Database: "oa_db"},
 	}
 
-	args := uc.buildMariadbDumpArgs(database)
+	args := uc.buildMariadbDumpArgs(target)
 
 	for _, arg := range args {
 		if strings.HasPrefix(arg, "--ignore-table=") {
@@ -156,11 +172,7 @@ func Test_BuildMariadbDumpArgs_WithoutExcludedTables_OmitsIgnoreTableArgs(t *tes
 // MariaDB: a storage timeout that ended the backup context was reported as "backup cancelled".
 func Test_Execute_WhenStorageTimesOut_ReportsStorageFailure_RegressionForIssue816(t *testing.T) {
 	endpoint := containers.StartMariadb(t, "mariadb:10.11")
-	database := &databases.Database{
-		ID:      uuid.New(),
-		Type:    databases.DatabaseTypeMariadb,
-		Mariadb: databases.GetTestMariadbConfig(endpoint.Host, endpoint.Port),
-	}
+	database := createTestMariadbDatabase(t, endpoint)
 
 	backups_core_logical.AssertStorageTimeoutReportedAsStorageFailure(t, func(
 		ctx context.Context,
@@ -183,10 +195,28 @@ func Test_Execute_WhenMariadbDumpFailsBeforeProducingData_ReportsMariadbDumpErro
 		dumpToolBin string,
 	) error {
 		_, err := GetCreateMariadbBackupUsecase().streamToStorage(
-			ctx, backup, backupConfig, dumpToolBin, nil, "", fileStore, func(float64) {},
-			&mariadbtypes.MariadbDatabase{Version: mariadb_engine.Version1011, Database: new("orders_db")},
+			ctx, backup, backupConfig, dumpToolBin, nil, fileStore, func(float64) {},
+			dumpTarget{
+				connectionSettings: databases.MariadbConnectionSettings{Version: mariadb_engine.Version1011},
+				settings:           mariadb_engine.Settings{Database: "orders_db"},
+			},
 		)
 
 		return err
 	})
+}
+
+func createTestMariadbDatabase(t *testing.T, endpoint containers.Endpoint) databases.Database {
+	t.Helper()
+
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
+	database := databases_bridge.CreateTestMariadbDatabase(endpoint.Host, endpoint.Port, workspace.ID, nil)
+
+	t.Cleanup(func() {
+		databases_bridge.RemoveTestDatabase(t.Context(), database)
+		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
+	})
+
+	return database
 }

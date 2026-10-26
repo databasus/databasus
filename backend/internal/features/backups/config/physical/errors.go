@@ -3,6 +3,9 @@ package backups_config_physical
 import "errors"
 
 var (
+	errNotPhysicalDatabase = errors.New(
+		"physical backup config requires the owning database to be of type POSTGRES_PHYSICAL",
+	)
 	ErrInsufficientPermissionsInSourceWorkspace = errors.New(
 		"insufficient permissions to manage database in source workspace",
 	)

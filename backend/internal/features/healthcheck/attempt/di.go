@@ -3,7 +3,7 @@ package healthcheck_attempt
 import (
 	"sync"
 
-	"databasus-backend/internal/features/databases"
+	databases_bridge "databasus-backend/internal/features/databases"
 	healthcheck_config "databasus-backend/internal/features/healthcheck/config"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	workspaces_bridge "databasus-backend/internal/features/workspaces"
@@ -17,7 +17,7 @@ var (
 	getHealthcheckAttemptService = sync.OnceValue(func() *HealthcheckAttemptService {
 		return &HealthcheckAttemptService{
 			getHealthcheckAttemptRepository(),
-			databases.GetDatabaseService(),
+			databases_bridge.GetAccess(),
 			workspaces_bridge.GetAccess(),
 		}
 	})
@@ -27,7 +27,7 @@ var getCheckDatabaseHealthUseCase = sync.OnceValue(func() *CheckDatabaseHealthUs
 	return &CheckDatabaseHealthUseCase{
 		getHealthcheckAttemptRepository(),
 		notifiers_bridge.GetSender(),
-		databases.GetDatabaseService(),
+		moduleHealthcheckedDatabases{databases_bridge.GetAccess(), databases_bridge.GetModule},
 	}
 })
 

@@ -15,6 +15,7 @@ import (
 	"databasus-backend/internal/engines/clienttools"
 	"databasus-backend/internal/features/audit_logs"
 	"databasus-backend/internal/features/caching"
+	databases_bridge "databasus-backend/internal/features/databases"
 	"databasus-backend/internal/features/email"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	storages_bridge "databasus-backend/internal/features/storages"
@@ -27,6 +28,7 @@ import (
 	"databasus-backend/internal/lib/crypto"
 	"databasus-backend/internal/lib/database"
 	"databasus-backend/internal/lib/ratelimit"
+	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/modules/users"
@@ -49,6 +51,7 @@ type App struct {
 	workspacesModule workspaces.Module
 	notifiersModule  notifiers.Module
 	storagesModule   storages.Module
+	databasesModule  databases.Module
 	environment      *Environment
 	db               *gorm.DB
 	transactor       *database.Transactor
@@ -220,13 +223,27 @@ func New(ctx context.Context, environment *Environment) (*App, error) {
 	})
 	storages_bridge.Install(storagesModule)
 
+	databasesModule := databases.New(databases.Deps{
+		DB:             db,
+		Transactor:     transactor,
+		Logger:         appLogger,
+		AuditLog:       auditLog,
+		FieldEncryptor: fieldEncryptor,
+		ClientToolsDir: environment.ClientToolsDir,
+		Users:          usersModule,
+		Workspaces:     workspacesModule,
+		Notifiers:      notifiersModule,
+	})
+	databases_bridge.Install(databasesModule)
+
 	clientToolsChecker := newClientToolsChecker(environment.ClientToolsDir)
 	system_healthcheck.InstallClientToolsChecker(clientToolsChecker)
 
 	setUpDependenciesOnce.Do(setUpDependencies)
-	subscribeToWorkspaceDeleting(workspacesModule, notifiersModule, storagesModule)
-	subscribeToNotifierTransferring(notifiersModule)
+	subscribeToWorkspaceDeleting(workspacesModule, databasesModule, notifiersModule, storagesModule)
+	subscribeToNotifierTransferring(notifiersModule, databasesModule)
 	subscribeToStorageTransferring(storagesModule)
+	subscribeToDatabaseEvents(databasesModule)
 
 	jobs := append([]background.Job{newAuditEventsCleanupJob(auditLog, appLogger)}, usersModule.GetJobs()...)
 	jobs = append(jobs, storagesModule.GetJobs()...)
@@ -237,6 +254,7 @@ func New(ctx context.Context, environment *Environment) (*App, error) {
 		workspacesModule:   workspacesModule,
 		notifiersModule:    notifiersModule,
 		storagesModule:     storagesModule,
+		databasesModule:    databasesModule,
 		environment:        environment,
 		db:                 db,
 		transactor:         transactor,

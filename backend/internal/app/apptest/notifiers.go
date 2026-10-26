@@ -48,7 +48,7 @@ func CreateNotifier(
 func (a *App) AttachNotifierToDatabase(tb testing.TB, attachment NotifierAttachment) {
 	tb.Helper()
 
-	a.ExecuteSQL(tb, "INSERT INTO database_notifiers (database_id, notifier_id) VALUES (?, ?)",
+	a.ExecuteSQL(tb, "INSERT INTO databases_notifiers (database_id, notifier_id) VALUES (?, ?)",
 		attachment.DatabaseID, attachment.NotifierID)
 }
 
@@ -68,7 +68,7 @@ func (a *App) BeginNotifierAttachment(tb testing.TB, attachment NotifierAttachme
 		closeConnections(db)
 	})
 
-	err = transaction.Exec("INSERT INTO database_notifiers (database_id, notifier_id) VALUES (?, ?)",
+	err = transaction.Exec("INSERT INTO databases_notifiers (database_id, notifier_id) VALUES (?, ?)",
 		attachment.DatabaseID, attachment.NotifierID).Error
 	if err != nil {
 		tb.Fatalf("insert the attachment: %v", err)
@@ -88,4 +88,45 @@ func (a *App) Notify(tb testing.TB, notifierIDs []uuid.UUID, notification notifi
 	tb.Helper()
 
 	a.app.Notify(tb.Context(), notifierIDs, notification)
+}
+
+// NotifierTransfer names the notifier that moves and the workspace it moves to.
+type NotifierTransfer struct {
+	NotifierID        uuid.UUID
+	TargetWorkspaceID uuid.UUID
+}
+
+// HoldNotifierTransfer locks the notifier's row and moves it to the target workspace in a transaction
+// it leaves open, as a transfer that has not committed yet, and returns the function that commits it.
+func (a *App) HoldNotifierTransfer(tb testing.TB, transfer NotifierTransfer) func() {
+	tb.Helper()
+
+	db, err := database.Open(tb.Context(), a.databaseDsn)
+	if err != nil {
+		tb.Fatalf("open the database of the test application: %v", err)
+	}
+
+	transaction := db.WithContext(tb.Context()).Begin()
+	tb.Cleanup(func() {
+		transaction.Rollback()
+		closeConnections(db)
+	})
+
+	err = transaction.Exec("SELECT id FROM notifiers WHERE id = ? FOR UPDATE", transfer.NotifierID).Error
+	if err != nil {
+		tb.Fatalf("lock the notifier: %v", err)
+	}
+
+	err = transaction.Exec("UPDATE notifiers SET workspace_id = ? WHERE id = ?",
+		transfer.TargetWorkspaceID, transfer.NotifierID).Error
+	if err != nil {
+		tb.Fatalf("move the notifier: %v", err)
+	}
+
+	return func() {
+		err := transaction.Commit().Error
+		if err != nil {
+			tb.Fatalf("commit the transfer: %v", err)
+		}
+	}
 }

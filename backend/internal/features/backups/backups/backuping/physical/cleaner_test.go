@@ -35,7 +35,7 @@ func Test_RunStartupSlotCleanup_DropsOrphanSlot(t *testing.T) {
 	fixture := postgresql_executor.SetupPhysicalDBForBackup(t)
 	cleaner := CreateTestPhysicalCleaner()
 
-	slotName := postgresql_executor.SlotName(fixture.DB.PostgresqlPhysical.ID)
+	slotName := fixture.SourceDB.BackupSlotName
 	adminConn := postgresql_executor.OpenAdminConn(t, fixture)
 
 	_, err := adminConn.Exec(context.Background(),

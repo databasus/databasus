@@ -9,7 +9,6 @@ import (
 
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
-	"databasus-backend/internal/features/databases"
 	restores_core "databasus-backend/internal/features/restores/core"
 	"databasus-backend/internal/modules/storages"
 )
@@ -20,8 +19,8 @@ func (uc *MockSuccessRestoreUsecase) Execute(
 	ctx context.Context,
 	backupConfig *backups_config_logical.LogicalBackupConfig,
 	restore restores_core.Restore,
-	originalDB *databases.Database,
-	restoringToDB *databases.Database,
+	source restores_core.SourceDatabase,
+	target restores_core.RestoreBackupRequest,
 	backup *backups_core_logical.LogicalBackup,
 	storageReader storages.StorageReader,
 	options restores_core.RestoreOptions,
@@ -37,8 +36,8 @@ func (uc *MockFailedRestoreUsecase) Execute(
 	ctx context.Context,
 	backupConfig *backups_config_logical.LogicalBackupConfig,
 	restore restores_core.Restore,
-	originalDB *databases.Database,
-	restoringToDB *databases.Database,
+	source restores_core.SourceDatabase,
+	target restores_core.RestoreBackupRequest,
 	backup *backups_core_logical.LogicalBackup,
 	storageReader storages.StorageReader,
 	options restores_core.RestoreOptions,
@@ -47,7 +46,7 @@ func (uc *MockFailedRestoreUsecase) Execute(
 }
 
 type MockCaptureCredentialsRestoreUsecase struct {
-	CalledChan    chan *databases.Database
+	CalledChan    chan restores_core.RestoreBackupRequest
 	ShouldSucceed bool
 }
 
@@ -55,13 +54,13 @@ func (uc *MockCaptureCredentialsRestoreUsecase) Execute(
 	ctx context.Context,
 	backupConfig *backups_config_logical.LogicalBackupConfig,
 	restore restores_core.Restore,
-	originalDB *databases.Database,
-	restoringToDB *databases.Database,
+	source restores_core.SourceDatabase,
+	target restores_core.RestoreBackupRequest,
 	backup *backups_core_logical.LogicalBackup,
 	storageReader storages.StorageReader,
 	options restores_core.RestoreOptions,
 ) error {
-	uc.CalledChan <- restoringToDB
+	uc.CalledChan <- target
 
 	if uc.ShouldSucceed {
 		return nil
@@ -77,8 +76,8 @@ func (uc *MockBlockingRestoreUsecase) Execute(
 	ctx context.Context,
 	backupConfig *backups_config_logical.LogicalBackupConfig,
 	restore restores_core.Restore,
-	originalDB *databases.Database,
-	restoringToDB *databases.Database,
+	source restores_core.SourceDatabase,
+	target restores_core.RestoreBackupRequest,
 	backup *backups_core_logical.LogicalBackup,
 	storageReader storages.StorageReader,
 	options restores_core.RestoreOptions,
@@ -100,8 +99,8 @@ func (uc *MockCaptureStorageRestoreUsecase) Execute(
 	ctx context.Context,
 	backupConfig *backups_config_logical.LogicalBackupConfig,
 	restore restores_core.Restore,
-	originalDB *databases.Database,
-	restoringToDB *databases.Database,
+	source restores_core.SourceDatabase,
+	target restores_core.RestoreBackupRequest,
 	backup *backups_core_logical.LogicalBackup,
 	storageReader storages.StorageReader,
 	options restores_core.RestoreOptions,

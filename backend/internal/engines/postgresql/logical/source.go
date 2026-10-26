@@ -26,6 +26,12 @@ func NewSource(settings Settings) *Source {
 	return &Source{settings: settings, generateUsername: generateReadOnlyUsername}
 }
 
+// GetSettings returns the settings the source connects with. Through a tunnel they carry the local
+// end of the tunnel, so a client tool the caller starts reaches the same server.
+func (s *Source) GetSettings() Settings {
+	return s.settings
+}
+
 // DumpCheck is what a connection test checks beyond reaching the database: that the role can read
 // everything pg_dump would dump in this scope.
 type DumpCheck struct {
@@ -81,7 +87,7 @@ func (s *Source) DetectVersion(ctx context.Context, logger *slog.Logger) (pgshar
 // connect writes the credential files, opens a pgx connection to databaseName and removes the files
 // once the TLS handshake has completed.
 func (s *Source) connect(ctx context.Context, databaseName string) (*pgx.Conn, error) {
-	credentialSpec := s.settings.getCredentialSpec()
+	credentialSpec := s.settings.GetCredentialSpec()
 
 	files, err := pgshared.WriteCredentialFilesToTempDir(credentialSpec, s.settings.Password)
 	if err != nil {

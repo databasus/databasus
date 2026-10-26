@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"errors"
 	"log/slog"
-	"time"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -426,56 +425,6 @@ func (s *PhysicalBackupService) GetTotalUsageMBByDatabase(databaseID uuid.UUID) 
 	).Scan(&totalMB).Error
 
 	return totalMB, err
-}
-
-// GetLastBackupTimesByDatabaseIDs returns, per database, the newest successful
-// physical backup time across FULL, INCREMENTAL and committed WAL - the value the
-// UI shows as "last backup". FULL/INCR count only when COMPLETED; WAL counts once
-// committed (file_name written). Databases with no qualifying backup are absent
-// from the map. An empty input skips the query and returns an empty map.
-func (s *PhysicalBackupService) GetLastBackupTimesByDatabaseIDs(
-	databaseIDs []uuid.UUID,
-) (map[uuid.UUID]time.Time, error) {
-	lastBackupTimes := make(map[uuid.UUID]time.Time, len(databaseIDs))
-
-	if len(databaseIDs) == 0 {
-		return lastBackupTimes, nil
-	}
-
-	type lastBackupRow struct {
-		DatabaseID     uuid.UUID
-		LastBackupTime time.Time
-	}
-
-	var rows []lastBackupRow
-
-	err := storage.GetDb().Raw(`
-		SELECT database_id, MAX(ts) AS last_backup_time
-		FROM (
-			SELECT database_id, MAX(created_at) AS ts FROM physical_full_backups
-			    WHERE database_id IN ? AND status = ? GROUP BY database_id
-			UNION ALL
-			SELECT database_id, MAX(created_at) FROM physical_incremental_backups
-			    WHERE database_id IN ? AND status = ? GROUP BY database_id
-			UNION ALL
-			SELECT database_id, MAX(received_at) FROM physical_wal_segments
-			    WHERE database_id IN ? AND file_name IS NOT NULL GROUP BY database_id
-		) merged
-		GROUP BY database_id
-	`,
-		databaseIDs, physical_enums.PhysicalBackupStatusCompleted,
-		databaseIDs, physical_enums.PhysicalBackupStatusCompleted,
-		databaseIDs,
-	).Scan(&rows).Error
-	if err != nil {
-		return nil, err
-	}
-
-	for _, row := range rows {
-		lastBackupTimes[row.DatabaseID] = row.LastBackupTime
-	}
-
-	return lastBackupTimes, nil
 }
 
 // backupListItemsQuery builds the newest-first list items. Committed WAL

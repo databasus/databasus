@@ -1,6 +1,8 @@
 package verification_runs
 
 import (
+	"encoding/json"
+	"net/http"
 	"testing"
 
 	"github.com/google/uuid"
@@ -8,82 +10,55 @@ import (
 	"github.com/stretchr/testify/require"
 
 	backuping_logical "databasus-backend/internal/features/backups/backups/backuping/logical"
-	"databasus-backend/internal/features/databases"
+	databases_bridge "databasus-backend/internal/features/databases"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	storages_bridge "databasus-backend/internal/features/storages"
 	users_testing "databasus-backend/internal/features/users/testing"
 	verification_agents "databasus-backend/internal/features/verification/agents"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
 	"databasus-backend/internal/modules/users"
+	test_utils "databasus-backend/internal/util/testing"
 )
 
-// Test_ClaimVerification_AssignmentDatabase_StripsSensitiveData locks down the
-// agent-facing wire shape: anything that could leak credentials, tokens or
-// notifier secrets must be empty when the JobAssignment leaves the server.
-func Test_ClaimVerification_AssignmentDatabase_StripsSensitiveData(t *testing.T) {
-	router := createTestRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner)
-	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
+func TestClaimVerification(t *testing.T) {
+	t.Run("assigns only the type and the version of the database without connection settings", func(t *testing.T) {
+		router := createTestRouter()
+		owner := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
+		workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner)
+		defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
-	testStorage := storages_bridge.CreateTestStorage(workspace.ID)
-	defer storages_bridge.RemoveTestStorage(t.Context(), testStorage.ID)
+		testStorage := storages_bridge.CreateTestStorage(workspace.ID)
+		defer storages_bridge.RemoveTestStorage(t.Context(), testStorage.ID)
 
-	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
-	defer notifiers_bridge.RemoveTestNotifier(notifier)
+		notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
+		defer notifiers_bridge.RemoveTestNotifier(notifier)
 
-	database := databases.CreateTestDatabase(workspace.ID, notifier)
-	defer databases.RemoveTestDatabase(t.Context(), database)
+		database := databases_bridge.CreateTestDatabase(workspace.ID, notifier)
+		defer databases_bridge.RemoveTestDatabase(t.Context(), database)
 
-	require.NotNil(t, database.PostgresqlLogical)
-	require.NotEmpty(t, database.PostgresqlLogical.Password,
-		"fixture must persist a password so we can prove HideSensitiveData stripped it")
+		backup := backuping_logical.SeedTestBackup(t, database.ID, testStorage.ID, 100)
+		agent := verification_agents.CreateTestVerificationAgent(
+			t, router, owner.Token, "sanitize-"+uuid.New().String(),
+		)
+		defer verification_agents.RemoveTestVerificationAgent(t, router, owner.Token, agent.Agent.ID)
 
-	backup := backuping_logical.SeedTestBackup(t, database.ID, testStorage.ID, 100)
-	agent := verification_agents.CreateTestVerificationAgent(
-		t, router, owner.Token, "sanitize-"+uuid.New().String(),
-	)
-	defer verification_agents.RemoveTestVerificationAgent(t, router, owner.Token, agent.Agent.ID)
+		EnqueueManualVerificationViaAPI(t, router, owner.Token, backup.ID)
 
-	EnqueueManualVerificationViaAPI(t, router, owner.Token, backup.ID)
-	assignment := ClaimVerificationViaAPI(
-		t, router, agent.Agent.ID, agent.Token,
-		AgentCapacity{MaxCPU: 4, MaxRAMMb: 4096, MaxDiskGb: 50, MaxConcurrentJobs: 2},
-	)
+		claimResponse := test_utils.MakePostRequest(
+			t, router,
+			"/api/v1/agent/verifications/"+agent.Agent.ID.String()+"/claim",
+			"Bearer "+agent.Token,
+			ClaimRequest{Capacity: AgentCapacity{MaxCPU: 4, MaxRAMMb: 4096, MaxDiskGb: 50, MaxConcurrentJobs: 2}},
+			http.StatusOK,
+		)
 
-	require.NotNil(t, assignment.Database, "assignment must carry the database row")
+		var assignmentBody struct {
+			Database map[string]json.RawMessage `json:"database"`
+		}
+		require.NoError(t, json.Unmarshal(claimResponse.Body, &assignmentBody))
 
-	cases := []struct {
-		name  string
-		check func(t *testing.T, db *databases.Database)
-	}{
-		{
-			name: "postgres password is stripped",
-			check: func(t *testing.T, db *databases.Database) {
-				require.NotNil(t, db.PostgresqlLogical)
-				assert.Empty(t, db.PostgresqlLogical.Password)
-			},
-		},
-		{
-			name: "notifiers are stripped (carry webhook URLs and SMTP creds)",
-			check: func(t *testing.T, db *databases.Database) {
-				assert.Empty(t, db.Notifiers)
-			},
-		},
-		{
-			name: "non-sensitive identifying fields are preserved",
-			check: func(t *testing.T, db *databases.Database) {
-				assert.Equal(t, database.ID, db.ID)
-				assert.Equal(t, databases.DatabaseTypePostgresLogical, db.Type)
-				require.NotNil(t, db.PostgresqlLogical)
-				assert.Equal(t, "16", string(db.PostgresqlLogical.Version))
-			},
-		},
-	}
-
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			tc.check(t, assignment.Database)
-		})
-	}
+		assert.Len(t, assignmentBody.Database, 2)
+		assert.JSONEq(t, `"POSTGRES_LOGICAL"`, string(assignmentBody.Database["type"]))
+		assert.JSONEq(t, `{"version":"16"}`, string(assignmentBody.Database["postgresqlLogical"]))
+	})
 }

@@ -32,6 +32,7 @@ const CONTRACT_ERROR_CODE_KEYS = {
   owner_requires_transfer: 'errors.ownerRequiresTransfer',
   workspace_not_empty: 'errors.workspaceNotEmpty',
   in_use: 'errors.inUse',
+  database_connection_failed: 'errors.databaseConnectionFailed',
   internal: 'errors.internal',
 } as const satisfies Record<ApiComponents['schemas']['ProblemCode'], TranslationKey>;
 
@@ -52,7 +53,7 @@ export const translateApiError = (error: unknown, t: TFunction): string => {
 
   const codeKey = error.code ? API_ERROR_CODE_KEYS[error.code] : undefined;
   if (codeKey) {
-    return t(codeKey, { status: error.status ?? '' });
+    return t(codeKey, { status: error.status ?? '', detail: error.message });
   }
 
   // Backend messages start in lower case ("user is already a member")

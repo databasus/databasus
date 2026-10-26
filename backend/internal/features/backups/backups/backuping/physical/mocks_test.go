@@ -11,12 +11,13 @@ import (
 	physical_testing "databasus-backend/internal/features/backups/backups/core/physical/testing"
 	postgresql_executor "databasus-backend/internal/features/backups/backups/usecases/physical/postgresql"
 	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
-	"databasus-backend/internal/features/databases"
+	databases_bridge "databasus-backend/internal/features/databases"
 	"databasus-backend/internal/features/intervals"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	storages_bridge "databasus-backend/internal/features/storages"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
+	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/modules/users"
@@ -85,7 +86,7 @@ type backupPrereqs struct {
 	Workspace *workspaces_testing.TestWorkspace
 	Storage   storages.Storage
 	Notifier  *notifiers.Notifier
-	DB        *databases.Database
+	DB        databases.Database
 	Config    *backups_config_physical.PhysicalBackupConfig
 }
 
@@ -98,15 +99,15 @@ func seedBackupPrereqs(t *testing.T) *backupPrereqs {
 
 	return seedBackupPrereqsWithDatabase(
 		t,
-		func(workspaceID uuid.UUID, notifier *notifiers.Notifier) *databases.Database {
-			return databases.CreateTestPhysicalPostgresDatabase(workspaceID, notifier, "17")
+		func(workspaceID uuid.UUID, notifier *notifiers.Notifier) databases.Database {
+			return databases_bridge.CreateTestPhysicalPostgresDatabase(workspaceID, notifier, "17")
 		},
 	)
 }
 
 func seedBackupPrereqsWithDatabase(
 	t *testing.T,
-	createDatabase func(workspaceID uuid.UUID, notifier *notifiers.Notifier) *databases.Database,
+	createDatabase func(workspaceID uuid.UUID, notifier *notifiers.Notifier) databases.Database,
 ) *backupPrereqs {
 	t.Helper()
 
@@ -122,7 +123,7 @@ func seedBackupPrereqsWithDatabase(
 	t.Cleanup(func() { notifiers_bridge.RemoveTestNotifier(notifier) })
 
 	db := createDatabase(workspace.ID, notifier)
-	t.Cleanup(func() { databases.RemoveTestDatabase(t.Context(), db) })
+	t.Cleanup(func() { databases_bridge.RemoveTestDatabase(t.Context(), db) })
 
 	cfgService := backups_config_physical.GetBackupConfigService()
 
@@ -135,7 +136,6 @@ func seedBackupPrereqsWithDatabase(
 	cfg.StorageID = &testStorage.ID
 	cfg.Storage = &backups_config_physical.BackupConfigStorage{ID: testStorage.ID}
 	cfg.Encryption = backups_core_enums.BackupEncryptionNone
-	cfg.PostgresqlPhysical = db.PostgresqlPhysical
 	cfg.FullBackupInterval = intervals.Interval{
 		Type:      intervals.IntervalDaily,
 		TimeOfDay: &timeOfDay,

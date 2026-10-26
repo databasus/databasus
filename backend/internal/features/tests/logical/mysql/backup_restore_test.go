@@ -1,7 +1,6 @@
 package mysql_logical
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -14,18 +13,18 @@ import (
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"databasus-backend/internal/config"
 	mysql_engine "databasus-backend/internal/engines/mysql"
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
-	"databasus-backend/internal/features/databases"
-	mysqltypes "databasus-backend/internal/features/databases/databases/mysql"
 	restores_core "databasus-backend/internal/features/restores/core"
 	storages_bridge "databasus-backend/internal/features/storages"
 	logicaltesting "databasus-backend/internal/features/tests/logical/shared"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
+	"databasus-backend/internal/lib/apiclient"
 	"databasus-backend/internal/modules/users"
 	test_utils "databasus-backend/internal/util/testing"
 	"databasus-backend/internal/util/testing/containers"
@@ -130,13 +129,13 @@ func testMysqlBackupRestoreForVersion(t *testing.T, endpoint containers.Endpoint
 	)
 
 	logicaltesting.EnableBackupsViaAPI(
-		t, router, database.ID, storage.ID,
+		t, router, database.Id, storage.ID,
 		backups_core_enums.BackupEncryptionNone, user.Token,
 	)
 
-	logicaltesting.CreateBackupViaAPI(t, router, database.ID, user.Token)
+	logicaltesting.CreateBackupViaAPI(t, router, database.Id, user.Token)
 
-	backup := logicaltesting.WaitForBackupCompletion(t, router, database.ID, user.Token, 5*time.Minute)
+	backup := logicaltesting.WaitForBackupCompletion(t, router, database.Id, user.Token, 5*time.Minute)
 	assert.Equal(t, backups_core_logical.BackupStatusCompleted, backup.Status)
 	logicaltesting.AssertBackupSizeMatchesDownloadedBytes(t, router, backup, user.Token)
 
@@ -183,7 +182,7 @@ func testMysqlBackupRestoreForVersion(t *testing.T, endpoint containers.Endpoint
 	test_utils.MakeDeleteRequest(
 		t,
 		router,
-		"/api/v1/databases/"+database.ID.String(),
+		"/api/v1/databases/"+database.Id.String(),
 		"Bearer "+user.Token,
 		http.StatusNoContent,
 	)
@@ -225,13 +224,13 @@ func testMysqlBackupRestoreWithEncryptionForVersion(
 	)
 
 	logicaltesting.EnableBackupsViaAPI(
-		t, router, database.ID, storage.ID,
+		t, router, database.Id, storage.ID,
 		backups_core_enums.BackupEncryptionEncrypted, user.Token,
 	)
 
-	logicaltesting.CreateBackupViaAPI(t, router, database.ID, user.Token)
+	logicaltesting.CreateBackupViaAPI(t, router, database.Id, user.Token)
 
-	backup := logicaltesting.WaitForBackupCompletion(t, router, database.ID, user.Token, 5*time.Minute)
+	backup := logicaltesting.WaitForBackupCompletion(t, router, database.Id, user.Token, 5*time.Minute)
 	assert.Equal(t, backups_core_logical.BackupStatusCompleted, backup.Status)
 	assert.Equal(t, backups_core_enums.BackupEncryptionEncrypted, backup.Encryption)
 	logicaltesting.AssertBackupSizeMatchesDownloadedBytes(t, router, backup, user.Token)
@@ -279,7 +278,7 @@ func testMysqlBackupRestoreWithEncryptionForVersion(
 	test_utils.MakeDeleteRequest(
 		t,
 		router,
-		"/api/v1/databases/"+database.ID.String(),
+		"/api/v1/databases/"+database.Id.String(),
 		"Bearer "+user.Token,
 		http.StatusNoContent,
 	)
@@ -320,7 +319,7 @@ func testMysqlBackupRestoreWithReadOnlyUserForVersion(
 		user.Token,
 	)
 
-	readOnlyUser := createMysqlReadOnlyUserViaAPI(t, router, database.ID, user.Token)
+	readOnlyUser := logicaltesting.CreateLimitedUserViaAPI(t, router, database, user.Token)
 	assert.NotEmpty(t, readOnlyUser.Username)
 	assert.NotEmpty(t, readOnlyUser.Password)
 
@@ -331,13 +330,13 @@ func testMysqlBackupRestoreWithReadOnlyUserForVersion(
 	)
 
 	logicaltesting.EnableBackupsViaAPI(
-		t, router, updatedDatabase.ID, storage.ID,
+		t, router, updatedDatabase.Id, storage.ID,
 		backups_core_enums.BackupEncryptionNone, user.Token,
 	)
 
-	logicaltesting.CreateBackupViaAPI(t, router, updatedDatabase.ID, user.Token)
+	logicaltesting.CreateBackupViaAPI(t, router, updatedDatabase.Id, user.Token)
 
-	backup := logicaltesting.WaitForBackupCompletion(t, router, updatedDatabase.ID, user.Token, 5*time.Minute)
+	backup := logicaltesting.WaitForBackupCompletion(t, router, updatedDatabase.Id, user.Token, 5*time.Minute)
 	assert.Equal(t, backups_core_logical.BackupStatusCompleted, backup.Status)
 
 	newDBName := "restoreddb_mysql_readonly"
@@ -383,7 +382,7 @@ func testMysqlBackupRestoreWithReadOnlyUserForVersion(
 	test_utils.MakeDeleteRequest(
 		t,
 		router,
-		"/api/v1/databases/"+updatedDatabase.ID.String(),
+		"/api/v1/databases/"+updatedDatabase.Id.String(),
 		"Bearer "+user.Token,
 		http.StatusNoContent,
 	)
@@ -442,30 +441,20 @@ func testMysqlBackupRestoreWithExcludeTablesForVersion(
 		user.Token,
 	)
 
-	database.Mysql.ExcludeTables = []string{"\nextra_table"}
-	w := workspaces_testing.MakeAPIRequest(
-		router,
-		"POST",
-		"/api/v1/databases/update",
-		"Bearer "+user.Token,
-		database,
-	)
-	if w.Code != http.StatusOK {
-		t.Fatalf(
-			"Failed to update database with ExcludeTables. Status: %d, Body: %s",
-			w.Code,
-			w.Body.String(),
-		)
-	}
+	settings, err := database.Settings.AsMysqlSettings()
+	require.NoError(t, err)
+
+	settings.ExcludeTables = []string{"\nextra_table"}
+	logicaltesting.UpdateDatabaseSettingsViaAPI(t, router, database, settings, user.Token)
 
 	logicaltesting.EnableBackupsViaAPI(
-		t, router, database.ID, storage.ID,
+		t, router, database.Id, storage.ID,
 		backups_core_enums.BackupEncryptionNone, user.Token,
 	)
 
-	logicaltesting.CreateBackupViaAPI(t, router, database.ID, user.Token)
+	logicaltesting.CreateBackupViaAPI(t, router, database.Id, user.Token)
 
-	backup := logicaltesting.WaitForBackupCompletion(t, router, database.ID, user.Token, 5*time.Minute)
+	backup := logicaltesting.WaitForBackupCompletion(t, router, database.Id, user.Token, 5*time.Minute)
 	assert.Equal(t, backups_core_logical.BackupStatusCompleted, backup.Status)
 
 	newDBName := "restoreddb_mysql_excl_tables"
@@ -523,7 +512,7 @@ func testMysqlBackupRestoreWithExcludeTablesForVersion(
 	test_utils.MakeDeleteRequest(
 		t,
 		router,
-		"/api/v1/databases/"+database.ID.String(),
+		"/api/v1/databases/"+database.Id.String(),
 		"Bearer "+user.Token,
 		http.StatusNoContent,
 	)
@@ -543,39 +532,22 @@ func createMysqlDatabaseViaAPI(
 	database string,
 	version mysql_engine.Version,
 	token string,
-) *databases.Database {
-	request := databases.Database{
-		Name:        name,
-		WorkspaceID: &workspaceID,
-		Type:        databases.DatabaseTypeMysql,
-		Mysql: &mysqltypes.MysqlDatabase{
-			Host:     host,
-			Port:     port,
-			Username: username,
-			Password: password,
-			Database: &database,
-			Version:  version,
-		},
-	}
+) apiclient.Database {
+	mysqlVersion := apiclient.MysqlVersion(version)
 
-	w := workspaces_testing.MakeAPIRequest(
-		router,
-		"POST",
-		"/api/v1/databases/create",
-		"Bearer "+token,
-		request,
-	)
+	request := logicaltesting.NewDatabaseCreate(t, workspaceID, apiclient.MysqlSettings{
+		Host:          host,
+		Port:          port,
+		Username:      username,
+		Password:      &password,
+		Database:      &database,
+		Version:       &mysqlVersion,
+		ExcludeTables: []string{},
+		SshTunnel:     apiclient.SshTunnelSettings{IsEnabled: false},
+	})
+	request.Name = name
 
-	if w.Code != http.StatusCreated {
-		t.Fatalf("Failed to create MySQL database. Status: %d, Body: %s", w.Code, w.Body.String())
-	}
-
-	var createdDatabase databases.Database
-	if err := json.Unmarshal(w.Body.Bytes(), &createdDatabase); err != nil {
-		t.Fatalf("Failed to unmarshal database response: %v", err)
-	}
-
-	return &createdDatabase
+	return logicaltesting.SubmitCreateDatabase(t, router, "MySQL", request, token)
 }
 
 func createMysqlRestoreViaAPI(
@@ -591,7 +563,7 @@ func createMysqlRestoreViaAPI(
 	token string,
 ) {
 	request := restores_core.RestoreBackupRequest{
-		MysqlDatabase: &mysqltypes.MysqlDatabase{
+		MysqlDatabase: &restores_core.MysqlTargetDatabase{
 			Host:     host,
 			Port:     port,
 			Username: username,
@@ -601,14 +573,7 @@ func createMysqlRestoreViaAPI(
 		},
 	}
 
-	test_utils.MakePostRequest(
-		t,
-		router,
-		fmt.Sprintf("/api/v1/restores/%s/restore", backupID.String()),
-		"Bearer "+token,
-		request,
-		http.StatusOK,
-	)
+	logicaltesting.SubmitRestore(t, router, backupID, request, token)
 }
 
 func waitForMysqlRestoreCompletion(
@@ -729,63 +694,19 @@ func setupMysqlTestData(t *testing.T, db *sqlx.DB) {
 	assert.NoError(t, err)
 }
 
-func createMysqlReadOnlyUserViaAPI(
-	t *testing.T,
-	router *gin.Engine,
-	databaseID uuid.UUID,
-	token string,
-) *databases.CreateReadOnlyUserResponse {
-	var database databases.Database
-	test_utils.MakeGetRequestAndUnmarshal(
-		t,
-		router,
-		fmt.Sprintf("/api/v1/databases/%s", databaseID.String()),
-		"Bearer "+token,
-		http.StatusOK,
-		&database,
-	)
-
-	var response databases.CreateReadOnlyUserResponse
-	test_utils.MakePostRequestAndUnmarshal(
-		t,
-		router,
-		"/api/v1/databases/create-readonly-user",
-		"Bearer "+token,
-		database,
-		http.StatusOK,
-		&response,
-	)
-
-	return &response
-}
-
 func updateMysqlDatabaseCredentialsViaAPI(
 	t *testing.T,
 	router *gin.Engine,
-	database *databases.Database,
+	database apiclient.Database,
 	username string,
 	password string,
 	token string,
-) *databases.Database {
-	database.Mysql.Username = username
-	database.Mysql.Password = password
+) apiclient.Database {
+	settings, err := database.Settings.AsMysqlSettings()
+	require.NoError(t, err)
 
-	w := workspaces_testing.MakeAPIRequest(
-		router,
-		"POST",
-		"/api/v1/databases/update",
-		"Bearer "+token,
-		database,
-	)
+	settings.Username = username
+	settings.Password = &password
 
-	if w.Code != http.StatusOK {
-		t.Fatalf("Failed to update MySQL database. Status: %d, Body: %s", w.Code, w.Body.String())
-	}
-
-	var updatedDatabase databases.Database
-	if err := json.Unmarshal(w.Body.Bytes(), &updatedDatabase); err != nil {
-		t.Fatalf("Failed to unmarshal database response: %v", err)
-	}
-
-	return &updatedDatabase
+	return logicaltesting.UpdateDatabaseSettingsViaAPI(t, router, database, settings, token)
 }

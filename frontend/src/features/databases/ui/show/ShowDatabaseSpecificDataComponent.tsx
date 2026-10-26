@@ -10,18 +10,18 @@ interface Props {
 }
 
 export const ShowDatabaseSpecificDataComponent = ({ database }: Props) => {
-  switch (database.type) {
+  const { settings } = database;
+
+  switch (settings.type) {
     case DatabaseType.POSTGRES_LOGICAL:
-      return <ShowPostgreSqlLogicalSpecificDataComponent database={database} />;
+      return <ShowPostgreSqlLogicalSpecificDataComponent settings={settings} />;
     case DatabaseType.POSTGRES_PHYSICAL:
-      return <ShowPostgreSqlPhysicalSpecificDataComponent database={database} />;
+      return <ShowPostgreSqlPhysicalSpecificDataComponent settings={settings} />;
     case DatabaseType.MYSQL:
-      return <ShowMySqlSpecificDataComponent database={database} />;
+      return <ShowMySqlSpecificDataComponent settings={settings} />;
     case DatabaseType.MARIADB:
-      return <ShowMariaDbSpecificDataComponent database={database} />;
+      return <ShowMariaDbSpecificDataComponent settings={settings} />;
     case DatabaseType.MONGODB:
-      return <ShowMongoDbSpecificDataComponent database={database} />;
-    default:
-      return null;
+      return <ShowMongoDbSpecificDataComponent settings={settings} />;
   }
 };

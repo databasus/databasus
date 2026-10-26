@@ -14,7 +14,8 @@ This is the project's common language. Each concept has one term in the document
 | Notification | notification, `notifiers.Notification` | A message about an event of a database, with a category, a heading and a text, which Databasus sends to the notifiers of that database. |
 | Notification category | notification category, `notifiers.Category`; `NotificationCategory` in the API | What a notification is about, such as a failed backup. A webhook notifier can accept only some categories. |
 | Delivery | delivery | One send of one notification to one notifier, ended by a timeout. Its outcome becomes the notifier's last send error. |
-| Provider | provider | One implementation of a storage or notifier type, with its own settings table. |
+| Provider | provider | One implementation of a database, storage or notifier type, with its own settings table. |
+| Limited user | limited user, `limiteduser`, `checkLimitedUser`, `createLimitedUser` | A user that Databasus creates on the user's server for its backups: a read-only user, or for physical PostgreSQL a replication-only user. |
 | Workspace | workspace | A group of users and the databases, storages and notifiers they share. |
 | Member | member | A user in a workspace, with a workspace role. |
 | Member ID | member ID, `memberId` | The ID of one member of one workspace. The API uses it to change or remove that member and to name the new owner in an ownership transfer; it is not the user ID. |
@@ -66,6 +67,7 @@ This is the project's common language. Each concept has one term in the document
 | Module | module | A part of the backend that owns one domain area and its tables. Only its `module.go` is visible from outside. |
 | Shared code | lib | Packages in `internal/lib` without domain logic. |
 | Composition root | app | `internal/app`, which builds the whole object graph and wires modules together. |
+| Connection settings | `*ConnectionSettings` of `databases` | The decrypted settings of one database with its type's options, which the databases module hands to the code that connects. |
 | Engine source | `Source` of an engine package | An engine's handle on one user database, built from plain connection settings with the secrets in clear text. |
 | Client tool bundle | `clienttools.Bundle` | The vendored client tools of one engine version: their directory and the commands they must hold. |
 | API contract | contract | `backend/api/openapi.yaml` and `backend/api/agent.yaml`, from which the servers, the test clients and the frontend types are generated. |
@@ -77,6 +79,7 @@ This is the project's common language. Each concept has one term in the document
 | Service | service | Code that holds the rules of a module's operations. |
 | Repository | repository | Code that holds the queries of a module's tables. |
 | Event | event | A notice a module publishes so that higher modules act in the same transaction, for example before a workspace is deleted. |
+| After-commit hook | `database.AfterCommit` | Work outside the database, such as dropping a replication slot, that runs only after the transaction that registered it commits. |
 | Background job | job | Work that `background.Runner` runs on a schedule. Each run of a job is called a pass. |
 | File store | file store | The storages module's only way to write, read and delete files in a storage. It records every write so that no file is left without an owner. |
 | Write receipt | write receipt | What the file store returns for a written file. The transaction that publishes the backup spends it to keep the file. |

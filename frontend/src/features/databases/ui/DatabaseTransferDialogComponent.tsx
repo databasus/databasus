@@ -6,12 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { logicalBackupConfigApi } from '../../../entity/backups/logical';
 import { physicalBackupConfigApi } from '../../../entity/backups/physical';
 import type { TransferDatabaseRequest } from '../../../entity/backups/shared';
-import {
-  type Database,
-  type DatabaseNotifier,
-  DatabaseType,
-  databaseApi,
-} from '../../../entity/databases';
+import { type Database, DatabaseType, databaseApi } from '../../../entity/databases';
 import type { Notifier } from '../../../entity/notifiers';
 import { notifierApi } from '../../../entity/notifiers';
 import { type Storage, getStorageLogoFromType, storageApi } from '../../../entity/storages';
@@ -29,7 +24,7 @@ interface Props {
 }
 
 interface NotifierUsageInfo {
-  notifier: DatabaseNotifier;
+  notifier: Notifier;
   databaseCount: number;
   canTransfer: boolean;
 }
@@ -63,10 +58,10 @@ export const DatabaseTransferDialogComponent = ({
 
   const [isTransferring, setIsTransferring] = useState(false);
 
-  const isPhysicalDatabase = database.type === DatabaseType.POSTGRES_PHYSICAL;
+  const isPhysicalDatabase = database.settings.type === DatabaseType.POSTGRES_PHYSICAL;
 
   const hasCurrentStorage = !!currentStorageId;
-  const hasCurrentNotifiers = database.notifiers && database.notifiers.length > 0;
+  const hasCurrentNotifiers = database.notifierIds.length > 0;
 
   const loadWorkspaces = async () => {
     setIsLoading(true);
@@ -100,14 +95,23 @@ export const DatabaseTransferDialogComponent = ({
   };
 
   const loadNotifierUsageCounts = async () => {
-    if (!database.notifiers || database.notifiers.length === 0) return;
+    if (database.notifierIds.length === 0) return;
 
     setIsLoadingNotifierCounts(true);
 
     try {
+      const workspaceNotifiers = await notifierApi.listAllNotifiers(database.workspaceId);
+      const databaseNotifiers = workspaceNotifiers.filter((notifier) =>
+        database.notifierIds.includes(notifier.id),
+      );
+
       const usageInfo: NotifierUsageInfo[] = await Promise.all(
-        database.notifiers.map(async (notifier) => {
-          const count = await databaseApi.getDatabasesCountForNotifier(notifier.id);
+        databaseNotifiers.map(async (notifier) => {
+          const notifierDatabases = await databaseApi.listAllDatabases(database.workspaceId, {
+            notifierId: notifier.id,
+          });
+          const count = notifierDatabases.length;
+
           return {
             notifier,
             databaseCount: count,

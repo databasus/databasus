@@ -11,8 +11,9 @@ import { useEffect, useRef, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
 import type { LogicalBackup } from '../../../entity/backups/logical';
-import { type Database, DatabaseType } from '../../../entity/databases';
+import type { Database } from '../../../entity/databases';
 import {
+  type PostgresqlRestoreOptions,
   RESTORE_STATUS_LABEL_KEYS,
   type Restore,
   RestoreStatus,
@@ -23,52 +24,23 @@ import { ClipboardHelper } from '../../../shared/lib/ClipboardHelper';
 import { getUserTimeFormat } from '../../../shared/time';
 import { ConfirmationComponent } from '../../../shared/ui';
 import { EditDatabaseSpecificDataComponent } from '../../databases/ui/edit/EditDatabaseSpecificDataComponent';
+import { toRestoreBackupRequest } from './toRestoreBackupRequest';
 
 interface Props {
   database: Database;
   backup: LogicalBackup;
 }
 
-type DatabaseCredentials = {
-  username?: string;
-  host?: string;
-  port?: number;
-  password?: string;
-};
-
-const clearCredentials = <T extends DatabaseCredentials>(db: T | undefined): T | undefined => {
-  if (!db) return undefined;
-  return {
-    ...db,
-    username: undefined,
-    host: undefined,
-    port: undefined,
-    password: undefined,
-  } as T;
-};
-
+// The target is another server, so the form starts without the source's host and credentials.
 const createInitialEditingDatabase = (database: Database): Database => ({
   ...database,
-  postgresqlLogical: clearCredentials(database.postgresqlLogical),
-  mysql: clearCredentials(database.mysql),
-  mariadb: clearCredentials(database.mariadb),
-  mongodb: clearCredentials(database.mongodb),
+  settings: {
+    ...database.settings,
+    host: '',
+    username: '',
+    password: '',
+  },
 });
-
-const getRestorePayload = (database: Database, editingDatabase: Database) => {
-  switch (database.type) {
-    case DatabaseType.POSTGRES_LOGICAL:
-      return { postgresql: editingDatabase.postgresqlLogical };
-    case DatabaseType.MYSQL:
-      return { mysql: editingDatabase.mysql };
-    case DatabaseType.MARIADB:
-      return { mariadb: editingDatabase.mariadb };
-    case DatabaseType.MONGODB:
-      return { mongodb: editingDatabase.mongodb };
-    default:
-      return {};
-  }
-};
 
 export const RestoresComponent = ({ database, backup }: Props) => {
   const { t } = useTranslation();
@@ -109,12 +81,15 @@ export const RestoresComponent = ({ database, backup }: Props) => {
     isReloadInProgress.current = false;
   };
 
-  const restore = async (editingDatabase: Database) => {
+  const restore = async (
+    editingDatabase: Database,
+    restoreOptions: PostgresqlRestoreOptions | undefined,
+  ) => {
     try {
-      await restoreApi.restoreBackup({
-        backupId: backup.id,
-        ...getRestorePayload(database, editingDatabase),
-      });
+      await restoreApi.restoreBackup(
+        backup.id,
+        toRestoreBackupRequest(editingDatabase.settings, restoreOptions),
+      );
       await loadRestores();
 
       setIsShowRestore(false);
@@ -167,9 +142,9 @@ export const RestoresComponent = ({ database, backup }: Props) => {
           onBack={() => setIsShowRestore(false)}
           saveButtonText={t('restores.targetDatabase.submit')}
           isSaveToApi={false}
-          onSaved={(database) => {
+          onSaved={(database, restoreOptions) => {
             setEditingDatabase({ ...database });
-            restore(database);
+            restore(database, restoreOptions);
           }}
           isRestoreMode={true}
         />

@@ -11,8 +11,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 
-	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
-	"databasus-backend/internal/util/encryption"
+	pgphysical "databasus-backend/internal/engines/postgresql/physical"
+	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/util/logger"
 	"databasus-backend/internal/util/walmath"
 )
@@ -126,16 +126,15 @@ func Test_RecordSampleAndDetectStall_WhenReceiverNotRunning_DoesNotDetectStall(t
 
 func newProbeOnlySupervisor(
 	t *testing.T,
-	sourceDB *postgresql_physical.PostgresqlPhysicalDatabase,
+	sourceDB databases.PostgresqlPhysicalConnectionSettings,
 ) *WalStreamSupervisor {
 	t.Helper()
 
 	return NewWalStreamSupervisor(WalStreamSpec{
-		DatabaseID:     uuid.New(),
-		SourceDB:       sourceDB,
-		FieldEncryptor: encryption.GetFieldEncryptor(),
-		WatchDirRoot:   t.TempDir(),
-		Logger:         logger.GetLogger(),
+		DatabaseID:   uuid.New(),
+		SourceDB:     sourceDB,
+		WatchDirRoot: t.TempDir(),
+		Logger:       logger.GetLogger(),
 	})
 }
 
@@ -143,26 +142,30 @@ func Test_ProbeSlot_WhenSlotRemovedOnReachableSource_ReportsSlotMissing(t *testi
 	fixture := SetupPhysicalDBForBackup(t)
 	adminConn := OpenAdminConn(t, fixture)
 
-	sourceDB := *fixture.DB.PostgresqlPhysical
-	sourceDB.ReplicationSlotName = "databasus_probe_" + strings.ReplaceAll(uuid.New().String(), "-", "")[:12]
+	sourceDB := fixture.SourceDB
+	sourceDB.Engine.ReplicationSlotName = "databasus_probe_" + strings.ReplaceAll(uuid.New().String(), "-", "")[:12]
 
 	_, err := adminConn.Exec(
 		t.Context(),
 		"SELECT pg_create_physical_replication_slot($1, true)",
-		sourceDB.ReplicationSlotName,
+		sourceDB.Engine.ReplicationSlotName,
 	)
 	require.NoError(t, err)
 	t.Cleanup(func() {
-		_, _ = adminConn.Exec(context.Background(), "SELECT pg_drop_replication_slot($1)", sourceDB.ReplicationSlotName)
+		_, _ = adminConn.Exec(
+			context.Background(),
+			"SELECT pg_drop_replication_slot($1)",
+			sourceDB.Engine.ReplicationSlotName,
+		)
 	})
 
-	supervisor := newProbeOnlySupervisor(t, &sourceDB)
+	supervisor := newProbeOnlySupervisor(t, sourceDB)
 
 	probe := supervisor.probeSlot(t.Context(), logger.GetLogger())
 	require.Equal(t, slotProbeOutcomeReachable, probe.Outcome)
 	require.NotNil(t, probe.State)
 
-	DropReplicationSlotExternally(t, adminConn, sourceDB.ReplicationSlotName)
+	DropReplicationSlotExternally(t, adminConn, sourceDB.Engine.ReplicationSlotName)
 
 	probe = supervisor.probeSlot(t.Context(), logger.GetLogger())
 	require.Equal(t, slotProbeOutcomeSlotMissing, probe.Outcome,
@@ -173,12 +176,14 @@ func Test_ProbeSlot_WhenSlotRemovedOnReachableSource_ReportsSlotMissing(t *testi
 func Test_ProbeSlot_WhenSourceAcceptsButNeverAnswers_ReportsUnreachableWithinTimeout(t *testing.T) {
 	silentListener := startSilentListener(t)
 
-	supervisor := newProbeOnlySupervisor(t, &postgresql_physical.PostgresqlPhysicalDatabase{
-		Host:                "127.0.0.1",
-		Port:                silentListener.Addr().(*net.TCPAddr).Port,
-		Username:            "streamer",
-		Password:            "streamer",
-		ReplicationSlotName: "databasus_silent_source",
+	supervisor := newProbeOnlySupervisor(t, databases.PostgresqlPhysicalConnectionSettings{
+		Engine: pgphysical.Settings{
+			Host:                "127.0.0.1",
+			Port:                silentListener.Addr().(*net.TCPAddr).Port,
+			Username:            "streamer",
+			Password:            "streamer",
+			ReplicationSlotName: "databasus_silent_source",
+		},
 	})
 
 	probeStartedAt := time.Now().UTC()

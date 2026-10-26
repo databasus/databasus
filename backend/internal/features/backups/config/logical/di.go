@@ -3,7 +3,7 @@ package backups_config_logical
 import (
 	"sync"
 
-	"databasus-backend/internal/features/databases"
+	databases_bridge "databasus-backend/internal/features/databases"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	storages_bridge "databasus-backend/internal/features/storages"
 	workspaces_bridge "databasus-backend/internal/features/workspaces"
@@ -16,7 +16,8 @@ var (
 	getBackupConfigService = sync.OnceValue(func() *BackupConfigService {
 		return &BackupConfigService{
 			getBackupConfigRepository(),
-			databases.GetDatabaseService(),
+			databases_bridge.GetAccess(),
+			databases_bridge.GetModule,
 			storages_bridge.GetModule,
 			notifiers_bridge.GetModule,
 			workspaces_bridge.GetAccess(),

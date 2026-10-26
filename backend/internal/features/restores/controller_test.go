@@ -2,7 +2,6 @@ package restores
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
@@ -21,9 +20,7 @@ import (
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
 	"databasus-backend/internal/features/caching"
-	"databasus-backend/internal/features/databases"
-	"databasus-backend/internal/features/databases/databases/mysql"
-	postgresql_logical "databasus-backend/internal/features/databases/databases/postgresql/logical"
+	databases_bridge "databasus-backend/internal/features/databases"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	restores_core "databasus-backend/internal/features/restores/core"
 	"databasus-backend/internal/features/restores/restoring"
@@ -31,10 +28,10 @@ import (
 	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
+	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/modules/users"
 	test_utils "databasus-backend/internal/util/testing"
-	"databasus-backend/internal/util/testing/containers"
 )
 
 func Test_GetRestores_WhenUserIsWorkspaceMember_RestoresReturned(t *testing.T) {
@@ -43,7 +40,7 @@ func Test_GetRestores_WhenUserIsWorkspaceMember_RestoresReturned(t *testing.T) {
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
 	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
-	database, backup := createTestDatabaseWithBackupForRestore(t.Context(), workspace, owner, router)
+	database, backup := createTestDatabaseWithBackupForRestore(t.Context(), workspace)
 	defer cleanupDatabaseWithBackup(t.Context(), database, backup)
 
 	var restores []*restores_core.Restore
@@ -67,7 +64,7 @@ func Test_GetRestores_WhenUserIsNotWorkspaceMember_ReturnsForbidden(t *testing.T
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
 	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
-	database, backup := createTestDatabaseWithBackupForRestore(t.Context(), workspace, owner, router)
+	database, backup := createTestDatabaseWithBackupForRestore(t.Context(), workspace)
 	defer cleanupDatabaseWithBackup(t.Context(), database, backup)
 
 	nonMember := users_testing.CreateTestUser(t.Context(), users.RoleMember)
@@ -89,7 +86,7 @@ func Test_GetRestores_WhenUserIsGlobalAdmin_RestoresReturned(t *testing.T) {
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
 	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
-	database, backup := createTestDatabaseWithBackupForRestore(t.Context(), workspace, owner, router)
+	database, backup := createTestDatabaseWithBackupForRestore(t.Context(), workspace)
 	defer cleanupDatabaseWithBackup(t.Context(), database, backup)
 
 	admin := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
@@ -114,11 +111,11 @@ func Test_RestoreBackup_WhenUserIsWorkspaceMember_RestoreInitiated(t *testing.T)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
 	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
-	database, backup := createTestDatabaseWithBackupForRestore(t.Context(), workspace, owner, router)
+	database, backup := createTestDatabaseWithBackupForRestore(t.Context(), workspace)
 	defer cleanupDatabaseWithBackup(t.Context(), database, backup)
 
 	request := restores_core.RestoreBackupRequest{
-		PostgresqlLogicalDatabase: &postgresql_logical.PostgresqlLogicalDatabase{
+		PostgresqlLogicalDatabase: &restores_core.PostgresqlTargetDatabase{
 			Version:  pgshared.Version16,
 			Host:     env_config.GetEnv().TestLocalhost,
 			Port:     5432,
@@ -145,13 +142,13 @@ func Test_RestoreBackup_WhenUserIsNotWorkspaceMember_ReturnsForbidden(t *testing
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
 	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
-	database, backup := createTestDatabaseWithBackupForRestore(t.Context(), workspace, owner, router)
+	database, backup := createTestDatabaseWithBackupForRestore(t.Context(), workspace)
 	defer cleanupDatabaseWithBackup(t.Context(), database, backup)
 
 	nonMember := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
 	request := restores_core.RestoreBackupRequest{
-		PostgresqlLogicalDatabase: &postgresql_logical.PostgresqlLogicalDatabase{
+		PostgresqlLogicalDatabase: &restores_core.PostgresqlTargetDatabase{
 			Version:  pgshared.Version16,
 			Host:     env_config.GetEnv().TestLocalhost,
 			Port:     5432,
@@ -179,11 +176,11 @@ func Test_RestoreBackup_WithIsExcludeExtensions_FlagPassedCorrectly(t *testing.T
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
 	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
-	database, backup := createTestDatabaseWithBackupForRestore(t.Context(), workspace, owner, router)
+	database, backup := createTestDatabaseWithBackupForRestore(t.Context(), workspace)
 	defer cleanupDatabaseWithBackup(t.Context(), database, backup)
 
 	request := restores_core.RestoreBackupRequest{
-		PostgresqlLogicalDatabase: &postgresql_logical.PostgresqlLogicalDatabase{
+		PostgresqlLogicalDatabase: &restores_core.PostgresqlTargetDatabase{
 			Version:             pgshared.Version16,
 			Host:                env_config.GetEnv().TestLocalhost,
 			Port:                5432,
@@ -212,11 +209,11 @@ func Test_RestoreBackup_AuditLogWritten(t *testing.T) {
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
 	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
-	database, backup := createTestDatabaseWithBackupForRestore(t.Context(), workspace, owner, router)
+	database, backup := createTestDatabaseWithBackupForRestore(t.Context(), workspace)
 	defer cleanupDatabaseWithBackup(t.Context(), database, backup)
 
 	request := restores_core.RestoreBackupRequest{
-		PostgresqlLogicalDatabase: &postgresql_logical.PostgresqlLogicalDatabase{
+		PostgresqlLogicalDatabase: &restores_core.PostgresqlTargetDatabase{
 			Version:  pgshared.Version16,
 			Host:     env_config.GetEnv().TestLocalhost,
 			Port:     5432,
@@ -253,25 +250,25 @@ func Test_RestoreBackup_AuditLogWritten(t *testing.T) {
 func Test_RestoreBackup_DiskSpaceValidation(t *testing.T) {
 	tests := []struct {
 		name                string
-		dbType              databases.DatabaseType
+		dbType              databases.Type
 		cpuCount            int
 		expectDiskValidated bool
 	}{
 		{
 			name:                "PostgreSQL_CPU4_SpaceValidated",
-			dbType:              databases.DatabaseTypePostgresLogical,
+			dbType:              databases.TypePostgresqlLogical,
 			cpuCount:            4,
 			expectDiskValidated: true,
 		},
 		{
 			name:                "PostgreSQL_CPU1_SpaceNotValidated",
-			dbType:              databases.DatabaseTypePostgresLogical,
+			dbType:              databases.TypePostgresqlLogical,
 			cpuCount:            1,
 			expectDiskValidated: false,
 		},
 		{
 			name:                "MySQL_SpaceNotValidated",
-			dbType:              databases.DatabaseTypeMysql,
+			dbType:              databases.TypeMysql,
 			cpuCount:            3,
 			expectDiskValidated: false,
 		},
@@ -285,16 +282,16 @@ func Test_RestoreBackup_DiskSpaceValidation(t *testing.T) {
 			workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
 			defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
-			var database *databases.Database
+			var database databases.Database
 			var backup *backups_core_logical.LogicalBackup
 			var storage storages.Storage
 			var request restores_core.RestoreBackupRequest
 
-			if tc.dbType == databases.DatabaseTypePostgresLogical {
-				database, backup = createTestDatabaseWithBackupForRestore(t.Context(), workspace, owner, router)
+			if tc.dbType == databases.TypePostgresqlLogical {
+				database, backup = createTestDatabaseWithBackupForRestore(t.Context(), workspace)
 				defer cleanupDatabaseWithBackup(t.Context(), database, backup)
 				request = restores_core.RestoreBackupRequest{
-					PostgresqlLogicalDatabase: &postgresql_logical.PostgresqlLogicalDatabase{
+					PostgresqlLogicalDatabase: &restores_core.PostgresqlTargetDatabase{
 						Version:  pgshared.Version16,
 						Host:     env_config.GetEnv().TestLocalhost,
 						Port:     5432,
@@ -304,12 +301,8 @@ func Test_RestoreBackup_DiskSpaceValidation(t *testing.T) {
 					},
 				}
 			} else {
-				mysqlDB := createTestMySQLDatabase(
-					t,
-					"Test MySQL DB",
-					workspace.ID,
-					owner.Token,
-					router,
+				mysqlDB := databases_bridge.CreateTestMysqlDatabase(
+					env_config.GetEnv().TestLocalhost, 3306, workspace.ID, nil,
 				)
 				database = mysqlDB
 				storage = createTestStorage(workspace.ID)
@@ -317,7 +310,7 @@ func Test_RestoreBackup_DiskSpaceValidation(t *testing.T) {
 				defer func() {
 					// Cleanup in dependency order: backup -> database -> storage
 					cleanupBackup(backup)
-					databases.RemoveTestDatabase(t.Context(), mysqlDB)
+					databases_bridge.RemoveTestDatabase(t.Context(), mysqlDB)
 					time.Sleep(50 * time.Millisecond)
 					storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 				}()
@@ -335,7 +328,7 @@ func Test_RestoreBackup_DiskSpaceValidation(t *testing.T) {
 				backup = createTestBackup(mysqlDB, storage)
 
 				request = restores_core.RestoreBackupRequest{
-					MysqlDatabase: &mysql.MysqlDatabase{
+					MysqlDatabase: &restores_core.MysqlTargetDatabase{
 						Version:  mysql_engine.Version80,
 						Host:     env_config.GetEnv().TestLocalhost,
 						Port:     3306,
@@ -386,7 +379,7 @@ func Test_CancelRestore_InProgressRestore_SuccessfullyCancelled(t *testing.T) {
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", user)
 	storage := storages_bridge.CreateTestStorage(workspace.ID)
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
-	database := databases.CreateTestDatabase(workspace.ID, notifier)
+	database := databases_bridge.CreateTestDatabase(workspace.ID, notifier)
 
 	defer func() {
 		backupRepo := backups_core_logical.BackupRepository{}
@@ -405,7 +398,7 @@ func Test_CancelRestore_InProgressRestore_SuccessfullyCancelled(t *testing.T) {
 			restoreRepo.DeleteByID(restore.ID)
 		}
 
-		databases.RemoveTestDatabase(t.Context(), database)
+		databases_bridge.RemoveTestDatabase(t.Context(), database)
 		time.Sleep(50 * time.Millisecond)
 		storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 		notifiers_bridge.RemoveTestNotifier(notifier)
@@ -428,7 +421,7 @@ func Test_CancelRestore_InProgressRestore_SuccessfullyCancelled(t *testing.T) {
 	time.Sleep(200 * time.Millisecond)
 
 	restoreRequest := restores_core.RestoreBackupRequest{
-		PostgresqlLogicalDatabase: &postgresql_logical.PostgresqlLogicalDatabase{
+		PostgresqlLogicalDatabase: &restores_core.PostgresqlTargetDatabase{
 			Version:  pgshared.Version16,
 			Host:     env_config.GetEnv().TestLocalhost,
 			Port:     5432,
@@ -516,7 +509,7 @@ func Test_RestoreBackup_WithParallelRestoreInProgress_ReturnsError(t *testing.T)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
 	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
-	database, backup := createTestDatabaseWithBackupForRestore(t.Context(), workspace, owner, router)
+	database, backup := createTestDatabaseWithBackupForRestore(t.Context(), workspace)
 	defer cleanupDatabaseWithBackup(t.Context(), database, backup)
 
 	// Seeded rather than started for real: a restore dispatched over HTTP runs in a goroutine that
@@ -531,7 +524,7 @@ func Test_RestoreBackup_WithParallelRestoreInProgress_ReturnsError(t *testing.T)
 	}()
 
 	request := restores_core.RestoreBackupRequest{
-		PostgresqlLogicalDatabase: &postgresql_logical.PostgresqlLogicalDatabase{
+		PostgresqlLogicalDatabase: &restores_core.PostgresqlTargetDatabase{
 			Version:  pgshared.Version16,
 			Host:     env_config.GetEnv().TestLocalhost,
 			Port:     5432,
@@ -559,10 +552,8 @@ func createTestRouter() *gin.Engine {
 func createTestDatabaseWithBackupForRestore(
 	ctx context.Context,
 	workspace *workspaces_testing.TestWorkspace,
-	owner *users_testing.TestUser,
-	router *gin.Engine,
-) (*databases.Database, *backups_core_logical.LogicalBackup) {
-	database := createTestDatabase("Test Database", workspace.ID, owner.Token, router)
+) (databases.Database, *backups_core_logical.LogicalBackup) {
+	database := databases_bridge.CreateTestDatabase(workspace.ID, nil)
 	storage := createTestStorage(workspace.ID)
 
 	configService := backups_config_logical.GetBackupConfigService()
@@ -584,97 +575,12 @@ func createTestDatabaseWithBackupForRestore(
 	return database, backup
 }
 
-func createTestDatabase(
-	name string,
-	workspaceID uuid.UUID,
-	token string,
-	router *gin.Engine,
-) *databases.Database {
-	request := databases.Database{
-		WorkspaceID:       &workspaceID,
-		Name:              name,
-		Type:              databases.DatabaseTypePostgresLogical,
-		PostgresqlLogical: databases.GetTestPostgresConfig(),
-	}
-
-	w := workspaces_testing.MakeAPIRequest(
-		router,
-		"POST",
-		"/api/v1/databases/create",
-		"Bearer "+token,
-		request,
-	)
-
-	if w.Code != http.StatusCreated {
-		panic(
-			fmt.Sprintf("Failed to create database. Status: %d, Body: %s", w.Code, w.Body.String()),
-		)
-	}
-
-	var database databases.Database
-	if err := json.Unmarshal(w.Body.Bytes(), &database); err != nil {
-		panic(err)
-	}
-
-	return &database
-}
-
-func createTestMySQLDatabase(
-	t *testing.T,
-	name string,
-	workspaceID uuid.UUID,
-	token string,
-	router *gin.Engine,
-) *databases.Database {
-	endpoint := containers.StartMysql(t, "mysql:8.0")
-
-	testDbName := "testdb"
-	request := databases.Database{
-		WorkspaceID: &workspaceID,
-		Name:        name,
-		Type:        databases.DatabaseTypeMysql,
-		Mysql: &mysql.MysqlDatabase{
-			Version:  mysql_engine.Version80,
-			Host:     endpoint.Host,
-			Port:     endpoint.Port,
-			Username: containers.MysqlUsername,
-			Password: containers.MysqlPassword,
-			Database: &testDbName,
-		},
-	}
-
-	w := workspaces_testing.MakeAPIRequest(
-		router,
-		"POST",
-		"/api/v1/databases/create",
-		"Bearer "+token,
-		request,
-	)
-
-	if w.Code != http.StatusCreated {
-		panic(
-			fmt.Sprintf(
-				"Failed to create MySQL database. Status: %d, Body: %s",
-				w.Code,
-				w.Body.String(),
-			),
-		)
-	}
-
-	var database databases.Database
-	if err := json.Unmarshal(w.Body.Bytes(), &database); err != nil {
-		panic(err)
-	}
-
-	return &database
-}
-
 func createTestStorage(workspaceID uuid.UUID) storages.Storage {
 	return storages_bridge.CreateTestStorage(workspaceID)
 }
 
 func createTestBackup(
-	database *databases.Database,
+	database databases.Database,
 	storage storages.Storage,
 ) *backups_core_logical.LogicalBackup {
 	backup := &backups_core_logical.LogicalBackup{
@@ -707,12 +613,12 @@ func createTestBackup(
 
 func cleanupDatabaseWithBackup(
 	ctx context.Context,
-	database *databases.Database,
+	database databases.Database,
 	backup *backups_core_logical.LogicalBackup,
 ) {
 	// Clean up in reverse dependency order
 	cleanupBackup(backup)
-	databases.RemoveTestDatabase(ctx, database)
+	databases_bridge.RemoveTestDatabase(ctx, database)
 	time.Sleep(50 * time.Millisecond)
 
 	// Clean up storage last (after database and backup are removed)
@@ -730,11 +636,11 @@ func Test_RestoreBackup_WithCpuCountMoreThanOne_RestoreInitiated(t *testing.T) {
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
 	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
-	database, backup := createTestDatabaseWithBackupForRestore(t.Context(), workspace, owner, router)
+	database, backup := createTestDatabaseWithBackupForRestore(t.Context(), workspace)
 	defer cleanupDatabaseWithBackup(t.Context(), database, backup)
 
 	request := restores_core.RestoreBackupRequest{
-		PostgresqlLogicalDatabase: &postgresql_logical.PostgresqlLogicalDatabase{
+		PostgresqlLogicalDatabase: &restores_core.PostgresqlTargetDatabase{
 			Version:  pgshared.Version16,
 			Host:     env_config.GetEnv().TestLocalhost,
 			Port:     5432,

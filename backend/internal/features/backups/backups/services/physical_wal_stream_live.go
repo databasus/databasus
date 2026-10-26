@@ -8,8 +8,9 @@ import (
 
 	backups_dto_physical "databasus-backend/internal/features/backups/backups/dto/physical"
 	usecases_physical_postgresql "databasus-backend/internal/features/backups/backups/usecases/physical/postgresql"
-	"databasus-backend/internal/features/databases"
+	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/users"
+	"databasus-backend/internal/modules/workspaces"
 )
 
 // GetWalStreamLive returns the current values of a physical PostgreSQL
@@ -20,12 +21,12 @@ func (s *PhysicalBackupService) GetWalStreamLive(
 	actor users.Actor,
 	databaseID uuid.UUID,
 ) (*backups_dto_physical.GetWalStreamLiveResponse, error) {
-	database, err := s.databaseService.GetDatabase(ctx, actor, databaseID)
+	database, err := s.databaseAccess.GetAuthorizedDatabase(ctx, actor, databaseID, workspaces.ActionView)
 	if err != nil {
 		return nil, err
 	}
 
-	if database.Type != databases.DatabaseTypePostgresPhysical {
+	if database.Type != databases.TypePostgresqlPhysical {
 		return nil, ErrWalStreamStatisticsNotPhysical
 	}
 

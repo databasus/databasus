@@ -11,13 +11,14 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	pgphysical "databasus-backend/internal/engines/postgresql/physical"
 	physical_enums "databasus-backend/internal/features/backups/backups/core/physical/enums"
 	physical_models "databasus-backend/internal/features/backups/backups/core/physical/models"
 	physical_repositories "databasus-backend/internal/features/backups/backups/core/physical/repositories"
 	physical_testing "databasus-backend/internal/features/backups/backups/core/physical/testing"
 	"databasus-backend/internal/features/backups/backups/core/physical/wal_health"
-	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
-	"databasus-backend/internal/util/encryption"
+	databases_bridge "databasus-backend/internal/features/databases"
+	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/util/logger"
 	"databasus-backend/internal/util/walmath"
 )
@@ -586,16 +587,16 @@ var lagMonitorTickStartedAt = time.Date(2026, time.October, 18, 12, 0, 0, 0, tim
 func newLagMonitorTickSupervisor(
 	t *testing.T,
 	fixture *PhysicalDBFixture,
-	sourceDB *postgresql_physical.PostgresqlPhysicalDatabase,
+	sourceDB databases.PostgresqlPhysicalConnectionSettings,
 	walLagThresholdBytes int64,
 ) *WalStreamSupervisor {
 	t.Helper()
 
 	return NewWalStreamSupervisor(WalStreamSpec{
 		DatabaseID:           fixture.DB.ID,
+		BackupStatus:         databases_bridge.GetModule(),
 		SourceDB:             sourceDB,
 		StorageID:            fixture.Storage.ID,
-		FieldEncryptor:       encryption.GetFieldEncryptor(),
 		WalSegmentRepo:       physical_repositories.GetWalSegmentRepository(),
 		HistoryRepo:          physical_repositories.GetWalHistoryRepository(),
 		WalStreamSampleRepo:  physical_repositories.GetWalStreamSampleRepository(),
@@ -611,12 +612,10 @@ func createStreamerSlot(t *testing.T, fixture *PhysicalDBFixture) {
 
 	adminConn := OpenAdminConn(t, fixture)
 
-	require.NoError(t, fixture.DB.PostgresqlPhysical.VerifyWalSlot(
-		t.Context(), logger.GetLogger(), encryption.GetFieldEncryptor(),
-	))
+	require.NoError(t, pgphysical.NewSource(fixture.SourceDB.Engine).VerifySlot(t.Context(), logger.GetLogger()))
 
 	t.Cleanup(func() {
-		DropReplicationSlotExternally(t, adminConn, fixture.DB.PostgresqlPhysical.ReplicationSlotName)
+		DropReplicationSlotExternally(t, adminConn, fixture.SourceDB.Engine.ReplicationSlotName)
 	})
 }
 
@@ -628,7 +627,7 @@ func seedCommittedSegmentBelowCurrentPosition(t *testing.T, fixture *PhysicalDBF
 	currentLSN, err := readCurrentWalLSN(t.Context(), OpenAdminConn(t, fixture))
 	require.NoError(t, err)
 
-	segmentSizeBytes := walSegmentSizeBytes(fixture.DB.PostgresqlPhysical)
+	segmentSizeBytes := walSegmentSizeBytes(fixture.SourceDB)
 	segmentEndLSN := walmath.LSN(uint64(currentLSN) / uint64(segmentSizeBytes) * uint64(segmentSizeBytes))
 	segmentStartLSN := segmentEndLSN - walmath.LSN(segmentSizeBytes)
 
@@ -678,7 +677,7 @@ func Test_RunLagMonitorTick_WhenSourceHealthy_RecordsReachableSamplesWithSlotAnd
 	createStreamerSlot(t, fixture)
 	seedCommittedSegmentBelowCurrentPosition(t, fixture)
 
-	supervisor := newLagMonitorTickSupervisor(t, fixture, fixture.DB.PostgresqlPhysical, 0)
+	supervisor := newLagMonitorTickSupervisor(t, fixture, fixture.SourceDB, 0)
 
 	runLagMonitorTicks(t, supervisor, supervisor.newLagMonitorState(logger.GetLogger()), lagMonitorTickStartedAt, 4,
 		func() {
@@ -714,16 +713,16 @@ func Test_RunLagMonitorTick_WhenSourceHealthy_RecordsReachableSamplesWithSlotAnd
 func Test_RunLagMonitorTick_WhenSourceUnreachableAcrossSessions_KeepsOneUnreachableSinceTime(t *testing.T) {
 	fixture := SetupPhysicalDBForBackup(t)
 
-	unreachableSourceDB := *fixture.DB.PostgresqlPhysical
-	unreachableSourceDB.Host = "127.0.0.1"
-	unreachableSourceDB.Port = 1
+	unreachableSourceDB := fixture.SourceDB
+	unreachableSourceDB.Engine.Host = "127.0.0.1"
+	unreachableSourceDB.Engine.Port = 1
 
-	firstSession := newLagMonitorTickSupervisor(t, fixture, &unreachableSourceDB, 0)
+	firstSession := newLagMonitorTickSupervisor(t, fixture, unreachableSourceDB, 0)
 	runLagMonitorTicks(t, firstSession, firstSession.newLagMonitorState(logger.GetLogger()),
 		lagMonitorTickStartedAt, 3, nil)
 
 	secondSessionStartedAt := lagMonitorTickStartedAt.Add(5 * time.Minute)
-	secondSession := newLagMonitorTickSupervisor(t, fixture, &unreachableSourceDB, 0)
+	secondSession := newLagMonitorTickSupervisor(t, fixture, unreachableSourceDB, 0)
 	runLagMonitorTicks(t, secondSession, secondSession.newLagMonitorState(logger.GetLogger()),
 		secondSessionStartedAt, 1, nil)
 
@@ -750,7 +749,7 @@ func Test_RunLagMonitorTick_WhenSlotHeldExtended_RecordsTimeClassifierStartedIts
 	createStreamerSlot(t, fixture)
 	setMaxWalSizeForTest(t, adminConn, "32MB")
 
-	slotName := fixture.DB.PostgresqlPhysical.ReplicationSlotName
+	slotName := fixture.SourceDB.Engine.ReplicationSlotName
 
 	require.Eventually(t, func() bool {
 		ForceReplicationLag(t, adminConn, 16*1024*1024)
@@ -760,7 +759,7 @@ func Test_RunLagMonitorTick_WhenSlotHeldExtended_RecordsTimeClassifierStartedIts
 		return err == nil && slotState != nil && slotState.WalStatus == slotWalStatusExtendedForTest
 	}, 90*time.Second, time.Second, "a slot lagging past max_wal_size is reported as extended")
 
-	supervisor := newLagMonitorTickSupervisor(t, fixture, fixture.DB.PostgresqlPhysical, 0)
+	supervisor := newLagMonitorTickSupervisor(t, fixture, fixture.SourceDB, 0)
 	runLagMonitorTicks(
 		t,
 		supervisor,
@@ -806,11 +805,11 @@ func Test_RunLagMonitorTick_WhenTickRebuildsSlot_RecordsSlotAsProbedBeforeRebuil
 
 	const walLagThresholdBytes = 64 * 1024
 
-	slotName := fixture.DB.PostgresqlPhysical.ReplicationSlotName
+	slotName := fixture.SourceDB.Engine.ReplicationSlotName
 	ForceReplicationLag(t, adminConn, 4*walLagThresholdBytes)
 	WaitUntilSlotLag(t, adminConn, slotName, 2*walLagThresholdBytes, 30*time.Second)
 
-	supervisor := newLagMonitorTickSupervisor(t, fixture, fixture.DB.PostgresqlPhysical, walLagThresholdBytes)
+	supervisor := newLagMonitorTickSupervisor(t, fixture, fixture.SourceDB, walLagThresholdBytes)
 	supervisor.receiverRunStartedAtUnixNano.Store(lagMonitorTickStartedAt.UnixNano())
 
 	sampleCountAtRebuild := -1
@@ -861,7 +860,7 @@ func Test_RunLagMonitorTick_OnFirstSampleOfSession_ClearsStreamerFailingTime(t *
 
 	createStreamerSlot(t, fixture)
 
-	supervisor := newLagMonitorTickSupervisor(t, fixture, fixture.DB.PostgresqlPhysical, 0)
+	supervisor := newLagMonitorTickSupervisor(t, fixture, fixture.SourceDB, 0)
 	runLagMonitorTicks(
 		t,
 		supervisor,

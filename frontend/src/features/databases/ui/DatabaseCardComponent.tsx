@@ -5,8 +5,12 @@ import { Trans, useTranslation } from 'react-i18next';
 import { logicalBackupConfigApi } from '../../../entity/backups/logical';
 import { physicalBackupConfigApi } from '../../../entity/backups/physical';
 import type { BackupConfigStorage } from '../../../entity/backups/shared';
-import { type Database, DatabaseType, HEALTH_STATUS_LABEL_KEYS } from '../../../entity/databases';
-import { HealthStatus } from '../../../entity/databases/model/HealthStatus';
+import {
+  type Database,
+  DatabaseType,
+  HEALTH_STATUS_LABEL_KEYS,
+  HealthStatus,
+} from '../../../entity/databases';
 import { getStorageLogoFromType } from '../../../entity/storages';
 import { useLocale } from '../../../shared/i18n';
 
@@ -29,12 +33,12 @@ export const DatabaseCardComponent = ({
     if (!database.id) return;
 
     const backupConfigRequest =
-      database.type === DatabaseType.POSTGRES_PHYSICAL
+      database.settings.type === DatabaseType.POSTGRES_PHYSICAL
         ? physicalBackupConfigApi.getPhysicalBackupConfigByDbId(database.id)
         : logicalBackupConfigApi.getBackupConfigByDbID(database.id);
 
     backupConfigRequest.then((config) => setStorage(config?.storage));
-  }, [database.id, database.type]);
+  }, [database.id, database.settings.type]);
 
   return (
     <div

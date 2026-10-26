@@ -6,8 +6,8 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
-	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
 	"databasus-backend/internal/features/intervals"
+	"databasus-backend/internal/modules/databases"
 )
 
 func dailyAt(hhmm string) intervals.Interval {
@@ -39,9 +39,7 @@ func validFullOnlyConfig() *PhysicalBackupConfig {
 			GfsDays: 7,
 		},
 		Encryption: backups_core_enums.BackupEncryptionNone,
-		PostgresqlPhysical: &postgresql_physical.PostgresqlPhysicalDatabase{
-			BackupType: postgresql_physical.BackupTypeFullOnly,
-		},
+		BackupType: databases.PhysicalBackupTypeFull,
 	}
 }
 
@@ -53,9 +51,7 @@ func validFullIncrementalConfig() *PhysicalBackupConfig {
 		Retention:                 RetentionChains,
 		ChainsRetention:           ChainsRetention{Count: 3},
 		Encryption:                backups_core_enums.BackupEncryptionNone,
-		PostgresqlPhysical: &postgresql_physical.PostgresqlPhysicalDatabase{
-			BackupType: postgresql_physical.BackupTypeFullAndIncremental,
-		},
+		BackupType:                databases.PhysicalBackupTypeFullAndIncremental,
 	}
 }
 
@@ -68,9 +64,7 @@ func validFullIncrementalWalStreamConfig() *PhysicalBackupConfig {
 		ChainsRetention:           ChainsRetention{Count: 3},
 		WalLagThresholdBytes:      16 * 1024 * 1024,
 		Encryption:                backups_core_enums.BackupEncryptionNone,
-		PostgresqlPhysical: &postgresql_physical.PostgresqlPhysicalDatabase{
-			BackupType: postgresql_physical.BackupTypeFullIncrementalAndWalStream,
-		},
+		BackupType:                databases.PhysicalBackupTypeFullIncrementalWalStream,
 	}
 }
 
@@ -335,31 +329,31 @@ func Test_Validate_FullIncrementalWalStream_AcceptsValidConfig(t *testing.T) {
 
 func Test_Validate_RejectsUnknownBackupType(t *testing.T) {
 	c := validFullOnlyConfig()
-	c.PostgresqlPhysical.BackupType = "GIBBERISH"
+	c.BackupType = "GIBBERISH"
 
 	assert.Error(t, c.Validate())
 }
 
-func Test_Validate_RejectsMissingPostgresqlPhysicalPreload(t *testing.T) {
+func Test_Validate_RejectsConfigWithoutBackupType(t *testing.T) {
 	c := validFullOnlyConfig()
-	c.PostgresqlPhysical = nil
+	c.BackupType = ""
 
 	err := c.Validate()
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "preloaded")
+	assert.Contains(t, err.Error(), "must be read from the database")
 }
 
 func Test_CoerceFieldsForBackupType_AcrossEveryTransition_ProducesConfigValidForTheNewType(t *testing.T) {
 	transitions := []struct {
 		name                string
 		buildConfig         func() *PhysicalBackupConfig
-		newBackupType       postgresql_physical.BackupType
+		newBackupType       databases.PhysicalBackupType
 		assertCoercedConfig func(t *testing.T, coercedConfig *PhysicalBackupConfig)
 	}{
 		{
 			name:          "WAL_STREAM -> FULL_INCREMENTAL",
 			buildConfig:   validFullIncrementalWalStreamConfig,
-			newBackupType: postgresql_physical.BackupTypeFullAndIncremental,
+			newBackupType: databases.PhysicalBackupTypeFullAndIncremental,
 			assertCoercedConfig: func(t *testing.T, coercedConfig *PhysicalBackupConfig) {
 				assert.Zero(t, coercedConfig.WalLagThresholdBytes)
 				assert.Equal(t, RetentionChains, coercedConfig.Retention)
@@ -369,7 +363,7 @@ func Test_CoerceFieldsForBackupType_AcrossEveryTransition_ProducesConfigValidFor
 		{
 			name:          "WAL_STREAM -> FULL",
 			buildConfig:   validFullIncrementalWalStreamConfig,
-			newBackupType: postgresql_physical.BackupTypeFullOnly,
+			newBackupType: databases.PhysicalBackupTypeFull,
 			assertCoercedConfig: func(t *testing.T, coercedConfig *PhysicalBackupConfig) {
 				assert.Zero(t, coercedConfig.WalLagThresholdBytes)
 				assert.Equal(t, intervals.Interval{}, coercedConfig.IncrementalBackupInterval)
@@ -382,7 +376,7 @@ func Test_CoerceFieldsForBackupType_AcrossEveryTransition_ProducesConfigValidFor
 		{
 			name:          "FULL_INCREMENTAL -> WAL_STREAM",
 			buildConfig:   validFullIncrementalConfig,
-			newBackupType: postgresql_physical.BackupTypeFullIncrementalAndWalStream,
+			newBackupType: databases.PhysicalBackupTypeFullIncrementalWalStream,
 			assertCoercedConfig: func(t *testing.T, coercedConfig *PhysicalBackupConfig) {
 				assert.Equal(t, int64(defaultWalLagThresholdBytes), coercedConfig.WalLagThresholdBytes)
 				assert.Equal(t, RetentionChains, coercedConfig.Retention)
@@ -391,7 +385,7 @@ func Test_CoerceFieldsForBackupType_AcrossEveryTransition_ProducesConfigValidFor
 		{
 			name:          "FULL_INCREMENTAL -> FULL",
 			buildConfig:   validFullIncrementalConfig,
-			newBackupType: postgresql_physical.BackupTypeFullOnly,
+			newBackupType: databases.PhysicalBackupTypeFull,
 			assertCoercedConfig: func(t *testing.T, coercedConfig *PhysicalBackupConfig) {
 				assert.Equal(t, intervals.Interval{}, coercedConfig.IncrementalBackupInterval)
 				assert.Equal(t, RetentionFullBackups, coercedConfig.Retention)
@@ -401,7 +395,7 @@ func Test_CoerceFieldsForBackupType_AcrossEveryTransition_ProducesConfigValidFor
 		{
 			name:          "FULL -> FULL_INCREMENTAL",
 			buildConfig:   validFullOnlyConfig,
-			newBackupType: postgresql_physical.BackupTypeFullAndIncremental,
+			newBackupType: databases.PhysicalBackupTypeFullAndIncremental,
 			assertCoercedConfig: func(t *testing.T, coercedConfig *PhysicalBackupConfig) {
 				assert.Zero(t, coercedConfig.WalLagThresholdBytes)
 				assert.Equal(t, RetentionChainsAndFullBackups, coercedConfig.Retention)
@@ -412,7 +406,7 @@ func Test_CoerceFieldsForBackupType_AcrossEveryTransition_ProducesConfigValidFor
 		{
 			name:          "FULL -> WAL_STREAM",
 			buildConfig:   validFullOnlyConfig,
-			newBackupType: postgresql_physical.BackupTypeFullIncrementalAndWalStream,
+			newBackupType: databases.PhysicalBackupTypeFullIncrementalWalStream,
 			assertCoercedConfig: func(t *testing.T, coercedConfig *PhysicalBackupConfig) {
 				assert.Equal(t, int64(defaultWalLagThresholdBytes), coercedConfig.WalLagThresholdBytes)
 				assert.Equal(t, RetentionChainsAndFullBackups, coercedConfig.Retention)
@@ -426,7 +420,6 @@ func Test_CoerceFieldsForBackupType_AcrossEveryTransition_ProducesConfigValidFor
 			coercedConfig := transition.buildConfig()
 
 			coercedConfig.CoerceFieldsForBackupType(transition.newBackupType)
-			coercedConfig.PostgresqlPhysical.BackupType = transition.newBackupType
 
 			assert.NoError(t, coercedConfig.Validate())
 			transition.assertCoercedConfig(t, coercedConfig)
@@ -438,8 +431,7 @@ func Test_CoerceFieldsForBackupType_WhenFullCadenceIsHourly_LeavesIncrementalCad
 	promotedConfig := validFullOnlyConfig()
 	promotedConfig.FullBackupInterval = hourly()
 
-	promotedConfig.CoerceFieldsForBackupType(postgresql_physical.BackupTypeFullAndIncremental)
-	promotedConfig.PostgresqlPhysical.BackupType = postgresql_physical.BackupTypeFullAndIncremental
+	promotedConfig.CoerceFieldsForBackupType(databases.PhysicalBackupTypeFullAndIncremental)
 
 	assert.Equal(t, intervals.Interval{}, promotedConfig.IncrementalBackupInterval)
 	assert.Error(t, promotedConfig.Validate())
@@ -450,8 +442,7 @@ func Test_CoerceFieldsForBackupType_WhenIncrementalCadenceIsSlowerThanFull_Deriv
 	promotedConfig.FullBackupInterval = weeklyMondayAt("02:00")
 	promotedConfig.IncrementalBackupInterval = weeklyMondayAt("03:00")
 
-	promotedConfig.CoerceFieldsForBackupType(postgresql_physical.BackupTypeFullAndIncremental)
-	promotedConfig.PostgresqlPhysical.BackupType = postgresql_physical.BackupTypeFullAndIncremental
+	promotedConfig.CoerceFieldsForBackupType(databases.PhysicalBackupTypeFullAndIncremental)
 
 	assert.Equal(t, dailyAt("02:00"), promotedConfig.IncrementalBackupInterval)
 	assert.NoError(t, promotedConfig.Validate())

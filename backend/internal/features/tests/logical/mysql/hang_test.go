@@ -35,5 +35,5 @@ func Test_BackupShouldFailNotHang_Mysql_RegressionForIssue582(t *testing.T) {
 		token,
 	)
 
-	logicaltesting.AssertBackupFailsWithoutHanging(t, router, token, database.ID, storageID)
+	logicaltesting.AssertBackupFailsWithoutHanging(t, router, token, database.Id, storageID)
 }

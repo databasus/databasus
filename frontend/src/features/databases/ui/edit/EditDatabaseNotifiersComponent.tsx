@@ -2,7 +2,7 @@ import { Button, Modal, Select, Spin } from 'antd';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { type Database, type DatabaseNotifier, databaseApi } from '../../../../entity/databases';
+import { type Database, databaseApi } from '../../../../entity/databases';
 import { type Notifier, notifierApi } from '../../../../entity/notifiers';
 import { translateApiError } from '../../../../shared/i18n';
 import { EditNotifierComponent } from '../../../notifiers/ui/edit/EditNotifierComponent';
@@ -22,14 +22,6 @@ interface Props {
   isSaveToApi: boolean;
   onSaved: (database: Database) => void;
 }
-
-const toDatabaseNotifier = (notifier: Notifier): DatabaseNotifier => ({
-  id: notifier.id,
-  workspaceId: notifier.workspaceId,
-  name: notifier.name,
-  notifierType: notifier.settings.type,
-  lastSendError: notifier.lastSendError,
-});
 
 export const EditDatabaseNotifiersComponent = ({
   database,
@@ -59,20 +51,21 @@ export const EditDatabaseNotifiersComponent = ({
   const saveDatabase = async () => {
     if (!editingDatabase) return;
 
-    if (isSaveToApi) {
-      setIsSaving(true);
-
-      try {
-        await databaseApi.updateDatabase(editingDatabase);
-        setIsUnsaved(false);
-      } catch (e) {
-        alert(translateApiError(e, t));
-      }
-
-      setIsSaving(false);
+    if (!isSaveToApi) {
+      onSaved(editingDatabase);
+      return;
     }
 
-    onSaved(editingDatabase);
+    setIsSaving(true);
+
+    try {
+      onSaved(await databaseApi.updateDatabase(editingDatabase.id, editingDatabase));
+      setIsUnsaved(false);
+    } catch (e) {
+      alert(translateApiError(e, t));
+    }
+
+    setIsSaving(false);
   };
 
   const loadNotifiers = async () => {
@@ -117,19 +110,14 @@ export const EditDatabaseNotifiersComponent = ({
         <Select
           key={notifierSelectKey}
           mode="multiple"
-          value={editingDatabase.notifiers.map((n) => n.id)}
+          value={editingDatabase.notifierIds}
           onChange={(notifiersIds) => {
             if (notifiersIds.includes('create-new-notifier')) {
               setShowCreateNotifier(true);
               return;
             }
 
-            setEditingDatabase({
-              ...editingDatabase,
-              notifiers: notifiers
-                .filter((notifier) => notifiersIds.includes(notifier.id))
-                .map(toDatabaseNotifier),
-            });
+            setEditingDatabase({ ...editingDatabase, notifierIds: notifiersIds });
 
             setIsUnsaved(true);
           }}

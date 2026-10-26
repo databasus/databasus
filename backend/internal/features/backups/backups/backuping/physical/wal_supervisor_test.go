@@ -19,11 +19,11 @@ import (
 	"databasus-backend/internal/features/backups/backups/core/physical/wal_health"
 	postgresql_executor "databasus-backend/internal/features/backups/backups/usecases/physical/postgresql"
 	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
-	"databasus-backend/internal/features/databases"
-	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
+	databases_bridge "databasus-backend/internal/features/databases"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	storages_bridge "databasus-backend/internal/features/storages"
 	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
+	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/storage"
 )
@@ -393,7 +393,7 @@ func Test_ChainRiskNotifier_WhenReasonsDiffer_UsesSeparateThrottleKinds(t *testi
 	require.Contains(t, sender.sentNotifications[2].Notification.Message, "pg_switch_wal()")
 }
 
-func seedBackupPrereqsOnSharedSource(t *testing.T, backupType postgresql_physical.BackupType) *backupPrereqs {
+func seedBackupPrereqsOnSharedSource(t *testing.T, backupType databases.PhysicalBackupType) *backupPrereqs {
 	t.Helper()
 
 	port, err := strconv.Atoi(config.GetEnv().TestPhysicalPostgres17Port)
@@ -406,14 +406,14 @@ func seedBackupPrereqsOnEndpoint(
 	t *testing.T,
 	host string,
 	port int,
-	backupType postgresql_physical.BackupType,
+	backupType databases.PhysicalBackupType,
 ) *backupPrereqs {
 	t.Helper()
 
 	return seedBackupPrereqsWithDatabase(
 		t,
-		func(workspaceID uuid.UUID, notifier *notifiers.Notifier) *databases.Database {
-			return databases.CreateTestPhysicalPostgresDatabaseWithType(
+		func(workspaceID uuid.UUID, notifier *notifiers.Notifier) databases.Database {
+			return databases_bridge.CreateTestPhysicalPostgresDatabaseWithType(
 				host,
 				port,
 				workspaceID,
@@ -446,14 +446,14 @@ func startReconcilingSupervisor(t *testing.T) (*PhysicalWalStreamSupervisor, con
 func dropStreamerSlotOnCleanup(t *testing.T, prereqs *backupPrereqs) {
 	t.Helper()
 
-	adminConn := postgresql_executor.OpenAdminConn(t, &postgresql_executor.PhysicalDBFixture{DB: prereqs.DB})
+	sourceDB := postgresql_executor.OpenSourceDB(t, prereqs.DB.ID)
+	adminConn := postgresql_executor.OpenAdminConn(t, &postgresql_executor.PhysicalDBFixture{
+		DB:       prereqs.DB,
+		SourceDB: sourceDB,
+	})
 
 	t.Cleanup(func() {
-		postgresql_executor.DropReplicationSlotExternally(
-			t,
-			adminConn,
-			prereqs.DB.PostgresqlPhysical.ReplicationSlotName,
-		)
+		postgresql_executor.DropReplicationSlotExternally(t, adminConn, sourceDB.Engine.ReplicationSlotName)
 	})
 }
 
@@ -467,10 +467,10 @@ func countSamples(t *testing.T, databaseID uuid.UUID) int {
 }
 
 func Test_Reconcile_WhenDatabaseIsNotWalStreaming_RecordsNoSamplesForIt(t *testing.T) {
-	streamingPrereqs := seedBackupPrereqsOnSharedSource(t, postgresql_physical.BackupTypeFullIncrementalAndWalStream)
+	streamingPrereqs := seedBackupPrereqsOnSharedSource(t, databases.PhysicalBackupTypeFullIncrementalWalStream)
 	dropStreamerSlotOnCleanup(t, streamingPrereqs)
 
-	incrementalPrereqs := seedBackupPrereqsOnSharedSource(t, postgresql_physical.BackupTypeFullAndIncremental)
+	incrementalPrereqs := seedBackupPrereqsOnSharedSource(t, databases.PhysicalBackupTypeFullAndIncremental)
 
 	t.Cleanup(func() {
 		_ = physical_repositories.GetWalStreamerRepository().DeleteByDatabaseID(streamingPrereqs.DB.ID)
@@ -490,7 +490,7 @@ func Test_Reconcile_WhenDatabaseIsNotWalStreaming_RecordsNoSamplesForIt(t *testi
 
 func Test_Reconcile_WhenEverySessionFailsBeforeFirstSample_KeepsFirstFailingTime(t *testing.T) {
 	unreachablePrereqs := seedBackupPrereqsOnEndpoint(t, "127.0.0.1", 1,
-		postgresql_physical.BackupTypeFullIncrementalAndWalStream)
+		databases.PhysicalBackupTypeFullIncrementalWalStream)
 
 	streamerRepository := physical_repositories.GetWalStreamerRepository()
 	t.Cleanup(func() {
@@ -537,7 +537,7 @@ func Test_Reconcile_WhenEverySessionFailsBeforeFirstSample_KeepsFirstFailingTime
 func Test_PhysicalWalStreamSupervisorRun_WhenContextCancelledWithRunningStreamer_UnregistersStreamer(
 	t *testing.T,
 ) {
-	prereqs := seedBackupPrereqsOnSharedSource(t, postgresql_physical.BackupTypeFullIncrementalAndWalStream)
+	prereqs := seedBackupPrereqsOnSharedSource(t, databases.PhysicalBackupTypeFullIncrementalWalStream)
 	dropStreamerSlotOnCleanup(t, prereqs)
 	t.Cleanup(func() {
 		_ = physical_repositories.GetWalStreamerRepository().DeleteByDatabaseID(prereqs.DB.ID)
@@ -584,7 +584,7 @@ func Test_PhysicalWalStreamSupervisorRun_WhenContextCancelledWithRunningStreamer
 func Test_Reconcile_AfterBackupsStorageChanged_StartsStreamerOnNewStorage(t *testing.T) {
 	tasks_cancellation.SetupDependencies()
 
-	prereqs := seedBackupPrereqsOnSharedSource(t, postgresql_physical.BackupTypeFullIncrementalAndWalStream)
+	prereqs := seedBackupPrereqsOnSharedSource(t, databases.PhysicalBackupTypeFullIncrementalWalStream)
 	dropStreamerSlotOnCleanup(t, prereqs)
 
 	backupConfigService := backups_config_physical.GetBackupConfigService()

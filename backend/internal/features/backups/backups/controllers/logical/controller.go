@@ -15,7 +15,7 @@ import (
 	"databasus-backend/internal/features/backups/backups/download/stream_guard"
 	backups_dto_logical "databasus-backend/internal/features/backups/backups/dto/logical"
 	backups_services "databasus-backend/internal/features/backups/backups/services"
-	"databasus-backend/internal/features/databases"
+	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/users"
 	files_utils "databasus-backend/internal/util/files"
 )
@@ -248,7 +248,7 @@ func (c *BackupController) GetFile(ctx *gin.Context) {
 
 func (c *BackupController) generateBackupFilename(
 	backup *backups_core_logical.LogicalBackup,
-	database *databases.Database,
+	database databases.Database,
 ) string {
 	// Format timestamp as YYYY-MM-DD_HH-mm-ss
 	timestamp := backup.CreatedAt.Format("2006-01-02_15-04-05")
@@ -263,15 +263,15 @@ func (c *BackupController) generateBackupFilename(
 }
 
 func (c *BackupController) getBackupExtension(
-	dbType databases.DatabaseType,
+	dbType databases.Type,
 ) string {
 	switch dbType {
-	case databases.DatabaseTypeMysql, databases.DatabaseTypeMariadb:
+	case databases.TypeMysql, databases.TypeMariadb:
 		return ".sql.zst"
-	case databases.DatabaseTypePostgresLogical:
+	case databases.TypePostgresqlLogical:
 		// PostgreSQL custom format
 		return ".dump"
-	case databases.DatabaseTypeMongodb:
+	case databases.TypeMongodb:
 		return ".archive"
 	default:
 		return ".backup"

@@ -14,13 +14,13 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"databasus-backend/internal/config"
-	pgshared "databasus-backend/internal/engines/postgresql/shared"
-	"databasus-backend/internal/features/databases"
-	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
+	databases_bridge "databasus-backend/internal/features/databases"
 	"databasus-backend/internal/features/intervals"
 	storages_bridge "databasus-backend/internal/features/storages"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
+	"databasus-backend/internal/lib/apiclient"
+	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/modules/workspaces"
@@ -30,11 +30,11 @@ import (
 
 func createPhysicalTestRouter() *gin.Engine {
 	router := workspaces_testing.CreateTestRouter(
-		databases.GetDatabaseController(),
+		databases_bridge.GetTestRoutes(),
 		GetBackupConfigController(),
 	)
 
-	databases.SetupDependencies()
+	databases_bridge.SetupDependencies()
 	SetupDependencies()
 
 	return router
@@ -46,57 +46,58 @@ func createPhysicalDatabaseViaAPI(
 	workspaceID uuid.UUID,
 	token string,
 	router *gin.Engine,
-	backupType postgresql_physical.BackupType,
+	backupType databases.PhysicalBackupType,
 	versionTag string,
-) *databases.Database {
+) databases.Database {
 	t.Helper()
 
 	env := config.GetEnv()
 
-	var portStr string
-	var version pgshared.Version
+	var portText string
 
 	switch versionTag {
 	case "17":
-		portStr = env.TestPhysicalPostgres17Port
-		version = pgshared.Version17
+		portText = env.TestPhysicalPostgres17Port
 	case "18":
-		portStr = env.TestPhysicalPostgres18Port
-		version = pgshared.Version18
+		portText = env.TestPhysicalPostgres18Port
 	default:
 		t.Fatalf("unsupported physical postgres version tag: %s", versionTag)
 	}
 
-	port, err := strconv.Atoi(portStr)
+	port, err := strconv.Atoi(portText)
 	require.NoError(t, err)
 
-	request := databases.Database{
-		WorkspaceID: &workspaceID,
-		Name:        name,
-		Type:        databases.DatabaseTypePostgresPhysical,
-		PostgresqlPhysical: &postgresql_physical.PostgresqlPhysicalDatabase{
-			Version:    version,
-			Host:       env.TestLocalhost,
-			Port:       port,
-			Username:   "testuser",
-			Password:   "testpassword",
-			BackupType: backupType,
-		},
-	}
+	password := "testpassword"
 
-	w := workspaces_testing.MakeAPIRequest(
-		router,
-		"POST",
-		"/api/v1/databases/create",
-		"Bearer "+token,
-		request,
-	)
+	var settings apiclient.DatabaseSettings
+
+	require.NoError(t, settings.FromPostgresqlPhysicalSettings(apiclient.PostgresqlPhysicalSettings{
+		Type:       apiclient.PostgresqlPhysicalSettingsTypePOSTGRESPHYSICAL,
+		Host:       env.TestLocalhost,
+		Port:       port,
+		Username:   "testuser",
+		Password:   &password,
+		SslMode:    apiclient.PostgresqlSslModeDisable,
+		SshTunnel:  apiclient.SshTunnelSettings{IsEnabled: false},
+		BackupType: apiclient.PhysicalBackupType(backupType),
+	}))
+
+	w := workspaces_testing.MakeAPIRequest(router, http.MethodPost, "/api/v1/databases", "Bearer "+token,
+		apiclient.DatabaseCreate{
+			Name:        name,
+			NotifierIds: []uuid.UUID{},
+			Settings:    settings,
+			WorkspaceId: workspaceID,
+		})
 	require.Equal(t, http.StatusCreated, w.Code, "create physical database failed: %s", w.Body.String())
 
-	var database databases.Database
-	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &database))
+	var createdDatabase apiclient.Database
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &createdDatabase))
 
-	return &database
+	database, err := databases_bridge.GetAccess().GetDatabaseByID(t.Context(), createdDatabase.Id)
+	require.NoError(t, err)
+
+	return database
 }
 
 func validPhysicalConfigForFullOnly(databaseID uuid.UUID) PhysicalBackupConfig {
@@ -172,12 +173,12 @@ func Test_SaveBackupConfig_PhysicalWithDifferentRoles_EnforcesPermissions(t *tes
 				workspace.ID,
 				owner.Token,
 				router,
-				postgresql_physical.BackupTypeFullOnly,
+				databases.PhysicalBackupTypeFull,
 				"17",
 			)
 
 			defer func() {
-				databases.RemoveTestDatabase(t.Context(), database)
+				databases_bridge.RemoveTestDatabase(t.Context(), database)
 				workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 			}()
 
@@ -232,11 +233,11 @@ func Test_SaveBackupConfig_PhysicalFullOnlyWithChainsRetention_ReturnsBadRequest
 		workspace.ID,
 		owner.Token,
 		router,
-		postgresql_physical.BackupTypeFullOnly,
+		databases.PhysicalBackupTypeFull,
 		"17",
 	)
 	defer func() {
-		databases.RemoveTestDatabase(t.Context(), database)
+		databases_bridge.RemoveTestDatabase(t.Context(), database)
 		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	}()
 
@@ -268,11 +269,11 @@ func Test_SaveBackupConfig_PhysicalFullOnlyWithIncrementalInterval_ReturnsBadReq
 		workspace.ID,
 		owner.Token,
 		router,
-		postgresql_physical.BackupTypeFullOnly,
+		databases.PhysicalBackupTypeFull,
 		"17",
 	)
 	defer func() {
-		databases.RemoveTestDatabase(t.Context(), database)
+		databases_bridge.RemoveTestDatabase(t.Context(), database)
 		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	}()
 
@@ -306,11 +307,11 @@ func Test_GetBackupConfig_PhysicalWhenNoneExists_InitializesDefaults(t *testing.
 		workspace.ID,
 		owner.Token,
 		router,
-		postgresql_physical.BackupTypeFullOnly,
+		databases.PhysicalBackupTypeFull,
 		"17",
 	)
 	defer func() {
-		databases.RemoveTestDatabase(t.Context(), database)
+		databases_bridge.RemoveTestDatabase(t.Context(), database)
 		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	}()
 
@@ -388,27 +389,22 @@ func validPhysicalConfigForWalStream(databaseID uuid.UUID) PhysicalBackupConfig 
 type backupTypeUpdateSpec struct {
 	router     *gin.Engine
 	token      string
-	database   *databases.Database
-	backupType postgresql_physical.BackupType
+	database   databases.Database
+	backupType databases.PhysicalBackupType
 }
 
 func updateBackupTypeViaAPI(t *testing.T, spec backupTypeUpdateSpec) {
 	t.Helper()
 
-	physicalSettings := *spec.database.PostgresqlPhysical
-	physicalSettings.BackupType = spec.backupType
+	response := databases_bridge.UpdateTestDatabaseViaAPI(t, spec.router, spec.token, spec.database.ID,
+		func(update *apiclient.DatabaseUpdate) {
+			physicalSettings, err := update.Settings.AsPostgresqlPhysicalSettings()
+			require.NoError(t, err)
 
-	updateRequest := *spec.database
-	updateRequest.PostgresqlPhysical = &physicalSettings
-
-	test_utils.MakePostRequest(
-		t,
-		spec.router,
-		"/api/v1/databases/update",
-		"Bearer "+spec.token,
-		updateRequest,
-		http.StatusOK,
-	)
+			physicalSettings.BackupType = apiclient.PhysicalBackupType(spec.backupType)
+			require.NoError(t, update.Settings.FromPostgresqlPhysicalSettings(physicalSettings))
+		})
+	require.Equalf(t, http.StatusOK, response.Code, "update backup type: %s", response.Body.String())
 }
 
 // https://github.com/databasus/databasus/issues/746
@@ -423,11 +419,11 @@ func Test_SaveBackupConfig_AfterBackupTypeDemotedFromWalStream_ConfigSavesCleanl
 		workspace.ID,
 		owner.Token,
 		router,
-		postgresql_physical.BackupTypeFullIncrementalAndWalStream,
+		databases.PhysicalBackupTypeFullIncrementalWalStream,
 		"17",
 	)
 	defer func() {
-		databases.RemoveTestDatabase(t.Context(), database)
+		databases_bridge.RemoveTestDatabase(t.Context(), database)
 		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	}()
 
@@ -446,7 +442,7 @@ func Test_SaveBackupConfig_AfterBackupTypeDemotedFromWalStream_ConfigSavesCleanl
 		router:     router,
 		token:      owner.Token,
 		database:   database,
-		backupType: postgresql_physical.BackupTypeFullAndIncremental,
+		backupType: databases.PhysicalBackupTypeFullAndIncremental,
 	})
 
 	var demotedConfig PhysicalBackupConfig
@@ -484,11 +480,11 @@ func Test_SaveBackupConfig_AfterBackupTypePromotedFromFullOnly_ConfigSavesCleanl
 		workspace.ID,
 		owner.Token,
 		router,
-		postgresql_physical.BackupTypeFullOnly,
+		databases.PhysicalBackupTypeFull,
 		"17",
 	)
 	defer func() {
-		databases.RemoveTestDatabase(t.Context(), database)
+		databases_bridge.RemoveTestDatabase(t.Context(), database)
 		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	}()
 
@@ -505,7 +501,7 @@ func Test_SaveBackupConfig_AfterBackupTypePromotedFromFullOnly_ConfigSavesCleanl
 		router:     router,
 		token:      owner.Token,
 		database:   database,
-		backupType: postgresql_physical.BackupTypeFullIncrementalAndWalStream,
+		backupType: databases.PhysicalBackupTypeFullIncrementalWalStream,
 	})
 
 	var promotedConfig PhysicalBackupConfig
@@ -544,11 +540,11 @@ func Test_GetBackupConfig_PhysicalIncrementalWhenNoneExists_InitializesDefaultsT
 		workspace.ID,
 		owner.Token,
 		router,
-		postgresql_physical.BackupTypeFullAndIncremental,
+		databases.PhysicalBackupTypeFullAndIncremental,
 		"17",
 	)
 	defer func() {
-		databases.RemoveTestDatabase(t.Context(), database)
+		databases_bridge.RemoveTestDatabase(t.Context(), database)
 		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	}()
 
@@ -587,11 +583,11 @@ func Test_SaveBackupConfig_WhenBackupsGetDisabled_StandsBackupWorkDown(t *testin
 		workspace.ID,
 		owner.Token,
 		router,
-		postgresql_physical.BackupTypeFullOnly,
+		databases.PhysicalBackupTypeFull,
 		"17",
 	)
 	defer func() {
-		databases.RemoveTestDatabase(t.Context(), database)
+		databases_bridge.RemoveTestDatabase(t.Context(), database)
 		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	}()
 
@@ -637,11 +633,11 @@ func Test_GetBackupConfig_WhenStoredConfigPredatesTheBackupType_RepairsItOnRead(
 		workspace.ID,
 		owner.Token,
 		router,
-		postgresql_physical.BackupTypeFullIncrementalAndWalStream,
+		databases.PhysicalBackupTypeFullIncrementalWalStream,
 		"17",
 	)
 	defer func() {
-		databases.RemoveTestDatabase(t.Context(), database)
+		databases_bridge.RemoveTestDatabase(t.Context(), database)
 		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	}()
 
@@ -654,10 +650,10 @@ func Test_GetBackupConfig_WhenStoredConfigPredatesTheBackupType_RepairsItOnRead(
 		http.StatusOK,
 	)
 
-	require.NoError(t, storage.GetDb().
-		Model(&postgresql_physical.PostgresqlPhysicalDatabase{}).
-		Where("database_id = ?", database.ID).
-		Update("backup_type", postgresql_physical.BackupTypeFullAndIncremental).Error)
+	require.NoError(t, storage.GetDb().Exec(
+		"UPDATE databases_postgresql_physical SET backup_type = ? WHERE database_id = ?",
+		databases.PhysicalBackupTypeFullAndIncremental, database.ID,
+	).Error)
 
 	var repairedConfig PhysicalBackupConfig
 	test_utils.MakeGetRequestAndUnmarshal(
@@ -685,7 +681,7 @@ type physicalStorageReferenceFixture struct {
 	router    *gin.Engine
 	ownerAuth string
 	workspace uuid.UUID
-	database  *databases.Database
+	database  databases.Database
 	// Removed after the database, whose backup config refers to them.
 	createdStorageIDs []uuid.UUID
 }
@@ -709,7 +705,7 @@ func createPhysicalStorageReferenceFixture(t *testing.T) *physicalStorageReferen
 		workspace.ID,
 		owner.Token,
 		router,
-		postgresql_physical.BackupTypeFullOnly,
+		databases.PhysicalBackupTypeFull,
 		"17",
 	)
 
@@ -721,7 +717,7 @@ func createPhysicalStorageReferenceFixture(t *testing.T) *physicalStorageReferen
 	}
 
 	t.Cleanup(func() {
-		databases.RemoveTestDatabase(t.Context(), database)
+		databases_bridge.RemoveTestDatabase(t.Context(), database)
 		for _, storageID := range fixture.createdStorageIDs {
 			storages_bridge.RemoveTestStorage(t.Context(), storageID)
 		}

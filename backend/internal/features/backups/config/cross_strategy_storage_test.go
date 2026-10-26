@@ -11,7 +11,7 @@ import (
 	backuping_physical "databasus-backend/internal/features/backups/backups/backuping/physical"
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
 	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
-	"databasus-backend/internal/features/databases"
+	databases_bridge "databasus-backend/internal/features/databases"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	storages_bridge "databasus-backend/internal/features/storages"
 	users_testing "databasus-backend/internal/features/users/testing"
@@ -22,14 +22,15 @@ import (
 
 func createCrossStrategyRouter() *gin.Engine {
 	router := workspaces_testing.CreateTestRouter(
-		databases.GetDatabaseController(),
+		databases_bridge.GetTestRoutes(),
 		backups_config_logical.GetBackupConfigController(),
 		backups_config_physical.GetBackupConfigController(),
 	)
 
-	databases.SetupDependencies()
+	databases_bridge.SetupDependencies()
 	backups_config_physical.SetupDependencies()
 	backuping_physical.SetupDependencies()
+	backuping_physical.SubscribeToDatabaseDeletingWithoutApp()
 
 	return router
 }
@@ -40,11 +41,11 @@ func Test_StorageIsUsing_WithPhysicalOnlyAttachment_ReportsTrue(t *testing.T) {
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
 
-	physicalDatabase := databases.CreateTestPhysicalPostgresDatabase(workspace.ID, notifier, "17")
+	physicalDatabase := databases_bridge.CreateTestPhysicalPostgresDatabase(workspace.ID, notifier, "17")
 	storage := storages_bridge.CreateTestStorage(workspace.ID)
 
 	defer func() {
-		databases.RemoveTestDatabase(t.Context(), physicalDatabase)
+		databases_bridge.RemoveTestDatabase(t.Context(), physicalDatabase)
 		storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 		notifiers_bridge.RemoveTestNotifier(notifier)
 		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)

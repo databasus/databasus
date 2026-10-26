@@ -17,7 +17,11 @@ import {
   BACKUP_ENCRYPTION_OPTION_LABEL_KEYS,
   BackupEncryption,
 } from '../../../../entity/backups/shared';
-import { type Database, PhysicalDatabaseBackupType } from '../../../../entity/databases';
+import {
+  type Database,
+  DatabaseType,
+  PhysicalDatabaseBackupType,
+} from '../../../../entity/databases';
 import { type Interval, IntervalType } from '../../../../entity/intervals';
 import { type Storage, getStorageLogoFromType, storageApi } from '../../../../entity/storages';
 import { translateApiError } from '../../../../shared/i18n';
@@ -122,7 +126,10 @@ export const EditPhysicalBackupConfigComponent = ({
 
   // DB-level strategy lives on the database, not the config. It decides which
   // cadences and retention modes the config may use.
-  const backupType = database.postgresqlPhysical?.backupType ?? PhysicalDatabaseBackupType.FULL;
+  const backupType =
+    database.settings.type === DatabaseType.POSTGRES_PHYSICAL
+      ? database.settings.backupType
+      : PhysicalDatabaseBackupType.FULL;
   const isIncrementalAllowed = backupType !== PhysicalDatabaseBackupType.FULL;
   const isWalStream = backupType === PhysicalDatabaseBackupType.FULL_INCREMENTAL_WAL_STREAM;
 

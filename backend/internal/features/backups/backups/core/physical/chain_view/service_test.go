@@ -15,11 +15,12 @@ import (
 	physical_models "databasus-backend/internal/features/backups/backups/core/physical/models"
 	physical_repositories "databasus-backend/internal/features/backups/backups/core/physical/repositories"
 	physical_testing "databasus-backend/internal/features/backups/backups/core/physical/testing"
-	"databasus-backend/internal/features/databases"
+	databases_bridge "databasus-backend/internal/features/databases"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	storages_bridge "databasus-backend/internal/features/storages"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
+	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/modules/users"
@@ -38,7 +39,7 @@ type chainViewTestPrereqs struct {
 	workspace *workspaces_testing.TestWorkspace
 	storage   storages.Storage
 	notifier  *notifiers.Notifier
-	database  *databases.Database
+	database  databases.Database
 }
 
 func createChainViewTestPrereqs(t *testing.T) *chainViewTestPrereqs {
@@ -48,11 +49,11 @@ func createChainViewTestPrereqs(t *testing.T) *chainViewTestPrereqs {
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Chain View Test "+uuid.NewString(), user)
 	storage := storages_bridge.CreateTestStorage(workspace.ID)
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
-	database := databases.CreateTestPhysicalPostgresDatabase(workspace.ID, notifier, "17")
+	database := databases_bridge.CreateTestPhysicalPostgresDatabase(workspace.ID, notifier, "17")
 
 	t.Cleanup(func() {
 		physical_testing.DeleteAllPhysicalCatalogForDatabase(t, database.ID)
-		databases.RemoveTestDatabase(t.Context(), database)
+		databases_bridge.RemoveTestDatabase(t.Context(), database)
 		notifiers_bridge.RemoveTestNotifier(notifier)
 		storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 	})
@@ -68,7 +69,7 @@ func createChainViewTestPrereqs(t *testing.T) *chainViewTestPrereqs {
 
 func newChainViewTestRouter() *gin.Engine {
 	return workspaces_testing.CreateTestRouter(
-		databases.GetDatabaseController(),
+		databases_bridge.GetTestRoutes(),
 	)
 }
 

@@ -10,8 +10,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	physical_enums "databasus-backend/internal/features/backups/backups/core/physical/enums"
-	"databasus-backend/internal/features/databases"
-	"databasus-backend/internal/util/encryption"
 	"databasus-backend/internal/util/testing/containers"
 	"databasus-backend/internal/util/walmath"
 )
@@ -26,13 +24,9 @@ import (
 // SYSTEM cannot override a command-line GUC on the standard fixture.
 func Test_CheckSummarizerReadiness_WhenSummarizerOff_FallsBackToFullNewChain(t *testing.T) {
 	source := containers.StartPhysicalPostgres(t, "postgres:17", containers.WithoutSummarizer())
-	sourceDB := databases.GetTestPhysicalPostgresConfigNoSummary(source.Host, source.Port, "17")
-
 	ctx := context.Background()
 
-	conn, err := sourceDB.OpenInspectionConn(ctx, encryption.GetFieldEncryptor())
-	require.NoError(t, err)
-	t.Cleanup(func() { _ = conn.Close(context.Background()) })
+	conn := openPhysicalTestConn(t, ctx, source)
 
 	enabled, err := isSummarizerEnabled(ctx, conn)
 	require.NoError(t, err)
@@ -197,13 +191,9 @@ func Test_IsSummarizerRunning_OnClusterWithSummarizerOn_ReturnsTrue(t *testing.T
 
 func Test_IsSummarizerRunning_OnClusterWithoutSummarizer_ReturnsFalse(t *testing.T) {
 	source := containers.StartPhysicalPostgres(t, "postgres:17", containers.WithoutSummarizer())
-	sourceDB := databases.GetTestPhysicalPostgresConfigNoSummary(source.Host, source.Port, "17")
-
 	ctx := context.Background()
 
-	conn, err := sourceDB.OpenInspectionConn(ctx, encryption.GetFieldEncryptor())
-	require.NoError(t, err)
-	t.Cleanup(func() { _ = conn.Close(context.Background()) })
+	conn := openPhysicalTestConn(t, ctx, source)
 
 	isRunning, err := isSummarizerRunning(ctx, conn)
 

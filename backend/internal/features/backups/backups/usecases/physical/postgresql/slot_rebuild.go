@@ -8,6 +8,8 @@ import (
 	"slices"
 	"strings"
 	"time"
+
+	pgphysical "databasus-backend/internal/engines/postgresql/physical"
 )
 
 func (s *WalStreamSupervisor) rebuildSlot(ctx context.Context, logger *slog.Logger, reason walBreakReason) error {
@@ -63,11 +65,11 @@ func (s *WalStreamSupervisor) rebuildSlot(ctx context.Context, logger *slog.Logg
 		}
 	}
 
-	if err := s.spec.SourceDB.DropWalSlot(ctx, logger, s.spec.FieldEncryptor); err != nil {
+	if err := pgphysical.NewSource(s.spec.SourceDB.Engine).DropSlot(ctx, logger); err != nil {
 		return fmt.Errorf("drop slot: %w", err)
 	}
 
-	if err := s.spec.SourceDB.VerifyWalSlot(ctx, logger, s.spec.FieldEncryptor); err != nil {
+	if err := s.createSlotUnlessDatabaseDeleted(ctx, logger); err != nil {
 		return fmt.Errorf("recreate slot: %w", err)
 	}
 
@@ -94,7 +96,7 @@ func isOwnedReceiverBackend(state *SlotState) bool {
 }
 
 func (s *WalStreamSupervisor) terminateOwnedSlotBackend(ctx context.Context, logger *slog.Logger) (bool, error) {
-	conn, err := s.spec.SourceDB.OpenInspectionConn(ctx, s.spec.FieldEncryptor)
+	conn, err := openInspectionConn(ctx, s.spec.SourceDB)
 	if err != nil {
 		return false, fmt.Errorf("open inspection connection: %w", err)
 	}
@@ -143,7 +145,7 @@ func (s *WalStreamSupervisor) waitForSlotReleased(ctx context.Context, logger *s
 }
 
 func (s *WalStreamSupervisor) isSlotActive(ctx context.Context, logger *slog.Logger) (active, ok bool) {
-	conn, err := s.spec.SourceDB.OpenInspectionConn(ctx, s.spec.FieldEncryptor)
+	conn, err := openInspectionConn(ctx, s.spec.SourceDB)
 	if err != nil {
 		logger.DebugContext(ctx, "rebuild: source unreachable while waiting for slot release", "error", err)
 

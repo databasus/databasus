@@ -44,8 +44,8 @@ export const DatabaseComponent = ({
     setIsHealthcheckVisible(isVisible);
   };
 
-  const isLogicalDatabase = database?.type === DatabaseType.POSTGRES_LOGICAL;
-  const isPhysicalDatabase = database?.type === DatabaseType.POSTGRES_PHYSICAL;
+  const isLogicalDatabase = database?.settings.type === DatabaseType.POSTGRES_LOGICAL;
+  const isPhysicalDatabase = database?.settings.type === DatabaseType.POSTGRES_PHYSICAL;
   const isMonitoringShown = database !== undefined && isMonitoringTabShown(database);
 
   const loadSettings = () => {

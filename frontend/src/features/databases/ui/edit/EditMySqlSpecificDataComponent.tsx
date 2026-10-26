@@ -7,6 +7,7 @@ import {
   DATABASE_TYPE_LABEL_KEYS,
   type Database,
   DatabaseType,
+  type MysqlSettings,
   databaseApi,
   hasStoredSshTunnelSecretsForAuthType,
   isSshTunnelReadyToTest,
@@ -26,9 +27,11 @@ import {
   ClipboardPasteModalComponent,
 } from '../../../../shared/ui';
 import { EditSshTunnelComponent } from './EditSshTunnelComponent';
+import { toDatabaseSettingsTarget } from './toDatabaseSettingsTarget';
 
 interface Props {
   database: Database;
+  settings: MysqlSettings;
 
   isShowCancelButton?: boolean;
   onCancel: () => void;
@@ -45,6 +48,7 @@ interface Props {
 
 export const EditMySqlSpecificDataComponent = ({
   database,
+  settings,
 
   isShowCancelButton,
   onCancel,
@@ -61,15 +65,14 @@ export const EditMySqlSpecificDataComponent = ({
   const { locale } = useLocale();
   const { message } = App.useApp();
 
-  const [editingDatabase, setEditingDatabase] = useState<Database>({ ...database });
+  const [editingSettings, setEditingSettings] = useState<MysqlSettings>(settings);
   const [isSaving, setIsSaving] = useState(false);
 
   const [isConnectionTested, setIsConnectionTested] = useState(false);
   const [isTestingConnection, setIsTestingConnection] = useState(false);
   const [isConnectionFailed, setIsConnectionFailed] = useState(false);
 
-  const hasAdvancedValues =
-    !!database.mysql?.excludeTables?.length || !!database.mysql?.sshTunnel?.isEnabled;
+  const hasAdvancedValues = !!settings.excludeTables?.length || !!settings.sshTunnel?.isEnabled;
   const [isShowAdvanced, setShowAdvanced] = useState(hasAdvancedValues);
 
   const [isShowPasteModal, setIsShowPasteModal] = useState(false);
@@ -89,22 +92,15 @@ export const EditMySqlSpecificDataComponent = ({
       return;
     }
 
-    if (!editingDatabase?.mysql) return;
-
-    const updatedDatabase: Database = {
-      ...editingDatabase,
-      mysql: {
-        ...editingDatabase.mysql,
-        host: result.host,
-        port: result.port,
-        username: result.username,
-        password: result.password,
-        database: result.database,
-        isHttps: result.isHttps,
-      },
-    };
-
-    setEditingDatabase(updatedDatabase);
+    setEditingSettings({
+      ...editingSettings,
+      host: result.host,
+      port: result.port,
+      username: result.username,
+      password: result.password,
+      database: result.database,
+      isHttps: result.isHttps,
+    });
     setIsConnectionTested(false);
     message.success(t('databases.edit.connectionStringParsed'));
   };
@@ -124,27 +120,25 @@ export const EditMySqlSpecificDataComponent = ({
   };
 
   const testConnection = async () => {
-    if (!editingDatabase?.mysql) return;
     setIsTestingConnection(true);
     setIsConnectionFailed(false);
 
-    const trimmedDatabase = {
-      ...editingDatabase,
-      mysql: {
-        ...editingDatabase.mysql,
-        password: editingDatabase.mysql.password?.trim(),
-      },
-    };
-
     try {
-      await databaseApi.testDatabaseConnectionDirect(trimmedDatabase);
-      setIsConnectionTested(true);
-      ToastHelper.showToast({
-        title: t('databases.edit.connectionTestPassed.title'),
-        description: t('databases.edit.connectionTestPassed.description'),
-      });
+      const testResult = await databaseApi.testDatabaseSettings(
+        toDatabaseSettingsTarget(database, editingSettings),
+      );
+
+      if (testResult.isConnected) {
+        setIsConnectionTested(true);
+        ToastHelper.showToast({
+          title: t('databases.edit.connectionTestPassed.title'),
+          description: t('databases.edit.connectionTestPassed.description'),
+        });
+      } else {
+        setIsConnectionFailed(true);
+        alert(t('databases.edit.connectionTestFailed', { error: testResult.error }));
+      }
     } catch (e) {
-      setIsConnectionFailed(true);
       alert(translateApiError(e, t));
     }
 
@@ -152,29 +146,22 @@ export const EditMySqlSpecificDataComponent = ({
   };
 
   const saveDatabase = async () => {
-    if (!editingDatabase?.mysql) return;
+    const editedDatabase: Database = { ...database, settings: editingSettings };
 
-    const trimmedDatabase = {
-      ...editingDatabase,
-      mysql: {
-        ...editingDatabase.mysql,
-        password: editingDatabase.mysql.password?.trim(),
-      },
-    };
-
-    if (isSaveToApi) {
-      setIsSaving(true);
-
-      try {
-        await databaseApi.updateDatabase(trimmedDatabase);
-      } catch (e) {
-        alert(translateApiError(e, t));
-      }
-
-      setIsSaving(false);
+    if (!isSaveToApi) {
+      onSaved(editedDatabase);
+      return;
     }
 
-    onSaved(trimmedDatabase);
+    setIsSaving(true);
+
+    try {
+      onSaved(await databaseApi.updateDatabase(database.id, editedDatabase));
+    } catch (e) {
+      alert(translateApiError(e, t));
+    }
+
+    setIsSaving(false);
   };
 
   useEffect(() => {
@@ -183,33 +170,32 @@ export const EditMySqlSpecificDataComponent = ({
     setIsTestingConnection(false);
     setIsConnectionFailed(false);
 
-    setEditingDatabase({ ...database });
-  }, [database]);
+    setEditingSettings(settings);
+  }, [settings]);
 
   const engineName = t(DATABASE_TYPE_LABEL_KEYS[DatabaseType.MYSQL]);
 
   const hasStoredSshSecrets = hasStoredSshTunnelSecretsForAuthType(
-    database.mysql?.sshTunnel,
-    editingDatabase.mysql?.sshTunnel?.authType,
+    settings.sshTunnel,
+    editingSettings.sshTunnel?.authType,
     database.id,
   );
 
   let isAllFieldsFilled = true;
-  if (!editingDatabase.mysql?.host) isAllFieldsFilled = false;
-  if (!editingDatabase.mysql?.port) isAllFieldsFilled = false;
-  if (!editingDatabase.mysql?.username) isAllFieldsFilled = false;
-  if (!editingDatabase.id && !editingDatabase.mysql?.password) isAllFieldsFilled = false;
-  if (!editingDatabase.mysql?.database) isAllFieldsFilled = false;
-  if (!isSshTunnelReadyToTest(editingDatabase.mysql?.sshTunnel, hasStoredSshSecrets))
+  if (!editingSettings.host) isAllFieldsFilled = false;
+  if (!editingSettings.port) isAllFieldsFilled = false;
+  if (!editingSettings.username) isAllFieldsFilled = false;
+  if (!database.id && !editingSettings.password) isAllFieldsFilled = false;
+  if (!editingSettings.database) isAllFieldsFilled = false;
+  if (!isSshTunnelReadyToTest(editingSettings.sshTunnel, hasStoredSshSecrets))
     isAllFieldsFilled = false;
 
   // Behind a bastion a loopback address names the database as the bastion sees it, so the hint
   // about reaching a local database would be wrong.
-  const isTunnelEnabled = !!editingDatabase.mysql?.sshTunnel?.isEnabled;
+  const isTunnelEnabled = !!editingSettings.sshTunnel?.isEnabled;
   const isLocalhostDb =
     !isTunnelEnabled &&
-    (editingDatabase.mysql?.host?.includes('localhost') ||
-      editingDatabase.mysql?.host?.includes('127.0.0.1'));
+    (editingSettings.host?.includes('localhost') || editingSettings.host?.includes('127.0.0.1'));
 
   return (
     <div>
@@ -227,16 +213,11 @@ export const EditMySqlSpecificDataComponent = ({
       <div className="mb-1 flex w-full items-center">
         <div className="min-w-[150px] pr-2">{t('common.fields.host')}</div>
         <Input
-          value={editingDatabase.mysql?.host}
+          value={editingSettings.host}
           onChange={(e) => {
-            if (!editingDatabase.mysql) return;
-
-            setEditingDatabase({
-              ...editingDatabase,
-              mysql: {
-                ...editingDatabase.mysql,
-                host: e.target.value.trim().replace('https://', '').replace('http://', ''),
-              },
+            setEditingSettings({
+              ...editingSettings,
+              host: e.target.value.trim().replace('https://', '').replace('http://', ''),
             });
             setIsConnectionTested(false);
           }}
@@ -271,14 +252,11 @@ export const EditMySqlSpecificDataComponent = ({
         <div className="min-w-[150px] pr-2">{t('common.fields.port')}</div>
         <InputNumber
           type="number"
-          value={editingDatabase.mysql?.port}
+          value={editingSettings.port}
           onChange={(e) => {
-            if (!editingDatabase.mysql || e === null) return;
+            if (e === null) return;
 
-            setEditingDatabase({
-              ...editingDatabase,
-              mysql: { ...editingDatabase.mysql, port: e },
-            });
+            setEditingSettings({ ...editingSettings, port: e });
             setIsConnectionTested(false);
           }}
           size="small"
@@ -290,14 +268,9 @@ export const EditMySqlSpecificDataComponent = ({
       <div className="mb-1 flex w-full items-center">
         <div className="min-w-[150px] pr-2">{t('common.fields.username')}</div>
         <Input
-          value={editingDatabase.mysql?.username}
+          value={editingSettings.username}
           onChange={(e) => {
-            if (!editingDatabase.mysql) return;
-
-            setEditingDatabase({
-              ...editingDatabase,
-              mysql: { ...editingDatabase.mysql, username: e.target.value.trim() },
-            });
+            setEditingSettings({ ...editingSettings, username: e.target.value.trim() });
             setIsConnectionTested(false);
           }}
           size="small"
@@ -309,14 +282,9 @@ export const EditMySqlSpecificDataComponent = ({
       <div className="mb-1 flex w-full items-center">
         <div className="min-w-[150px] pr-2">{t('common.fields.password')}</div>
         <Input.Password
-          value={editingDatabase.mysql?.password}
+          value={editingSettings.password}
           onChange={(e) => {
-            if (!editingDatabase.mysql) return;
-
-            setEditingDatabase({
-              ...editingDatabase,
-              mysql: { ...editingDatabase.mysql, password: e.target.value },
-            });
+            setEditingSettings({ ...editingSettings, password: e.target.value });
             setIsConnectionTested(false);
           }}
           size="small"
@@ -333,14 +301,9 @@ export const EditMySqlSpecificDataComponent = ({
         <div className="mb-1 flex w-full items-center">
           <div className="min-w-[150px] pr-2">{t('databases.fields.databaseName')}</div>
           <Input
-            value={editingDatabase.mysql?.database}
+            value={editingSettings.database}
             onChange={(e) => {
-              if (!editingDatabase.mysql) return;
-
-              setEditingDatabase({
-                ...editingDatabase,
-                mysql: { ...editingDatabase.mysql, database: e.target.value.trim() },
-              });
+              setEditingSettings({ ...editingSettings, database: e.target.value.trim() });
               setIsConnectionTested(false);
             }}
             size="small"
@@ -353,14 +316,9 @@ export const EditMySqlSpecificDataComponent = ({
       <div className="mb-3 flex w-full items-center">
         <div className="min-w-[150px] pr-2">{t('databases.fields.useHttps')}</div>
         <Switch
-          checked={editingDatabase.mysql?.isHttps}
+          checked={editingSettings.isHttps}
           onChange={(checked) => {
-            if (!editingDatabase.mysql) return;
-
-            setEditingDatabase({
-              ...editingDatabase,
-              mysql: { ...editingDatabase.mysql, isHttps: checked },
-            });
+            setEditingSettings({ ...editingSettings, isHttps: checked });
             setIsConnectionTested(false);
           }}
           size="small"
@@ -376,15 +334,10 @@ export const EditMySqlSpecificDataComponent = ({
       {isShowAdvanced && (
         <>
           <EditSshTunnelComponent
-            sshTunnel={editingDatabase.mysql?.sshTunnel}
+            sshTunnel={editingSettings.sshTunnel}
             hasStoredSecrets={hasStoredSshSecrets}
             onChange={(sshTunnel) => {
-              if (!editingDatabase.mysql) return;
-
-              setEditingDatabase({
-                ...editingDatabase,
-                mysql: { ...editingDatabase.mysql, sshTunnel },
-              });
+              setEditingSettings({ ...editingSettings, sshTunnel });
               setIsConnectionTested(false);
             }}
           />
@@ -393,13 +346,11 @@ export const EditMySqlSpecificDataComponent = ({
             <div className="min-w-[150px] pr-2">{t('databases.fields.excludeTables')}</div>
             <Select
               mode="tags"
-              value={editingDatabase.mysql?.excludeTables || []}
+              value={editingSettings.excludeTables || []}
               onChange={(values) => {
-                if (!editingDatabase.mysql) return;
-
-                setEditingDatabase({
-                  ...editingDatabase,
-                  mysql: { ...editingDatabase.mysql, excludeTables: normalizeNameList(values) },
+                setEditingSettings({
+                  ...editingSettings,
+                  excludeTables: normalizeNameList(values),
                 });
               }}
               size="small"

@@ -24,7 +24,7 @@ type Settings struct {
 	SSHTunnel *sshtunnel.Settings
 }
 
-func (s Settings) getCredentialSpec() pgshared.CredentialSpec {
+func (s Settings) GetCredentialSpec() pgshared.CredentialSpec {
 	return pgshared.CredentialSpec{
 		Host:     s.Host,
 		HostAddr: s.HostAddr,

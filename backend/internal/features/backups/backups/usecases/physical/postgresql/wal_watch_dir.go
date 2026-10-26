@@ -105,7 +105,7 @@ func (s *WalStreamSupervisor) archiveTimelineHistoryFile(ctx context.Context, lo
 		return
 	}
 
-	conn, err := s.spec.SourceDB.OpenInspectionConn(ctx, s.spec.FieldEncryptor)
+	conn, err := openInspectionConn(ctx, s.spec.SourceDB)
 	if err != nil {
 		logger.WarnContext(ctx, "could not open connection to upload history file; will retry", "error", err)
 
@@ -114,16 +114,15 @@ func (s *WalStreamSupervisor) archiveTimelineHistoryFile(ctx context.Context, lo
 	defer func() { _ = conn.Close(context.Background()) }()
 
 	if _, err := UploadHistoryFile(ctx, HistoryUploadSpec{
-		Conn:           conn,
-		TimelineID:     timelineID,
-		FileStore:      s.spec.FileStore,
-		SourceDB:       s.spec.SourceDB,
-		StorageID:      s.spec.StorageID,
-		HistoryRepo:    s.spec.HistoryRepo,
-		Encryption:     s.spec.Encryption,
-		MasterKey:      s.spec.MasterKey,
-		FieldEncryptor: s.spec.FieldEncryptor,
-		Logger:         logger,
+		Conn:        conn,
+		TimelineID:  timelineID,
+		FileStore:   s.spec.FileStore,
+		SourceDB:    s.spec.SourceDB,
+		StorageID:   s.spec.StorageID,
+		HistoryRepo: s.spec.HistoryRepo,
+		Encryption:  s.spec.Encryption,
+		MasterKey:   s.spec.MasterKey,
+		Logger:      logger,
 	}); err != nil {
 		logger.WarnContext(ctx, "history upload failed; will retry next tick", "timeline_id", timelineID, "error", err)
 

@@ -8,10 +8,11 @@ import (
 
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	backups_config_storage_usage "databasus-backend/internal/features/backups/config/storage_usage"
-	"databasus-backend/internal/features/databases"
+	databases_bridge "databasus-backend/internal/features/databases"
 	"databasus-backend/internal/features/intervals"
 	workspaces_bridge "databasus-backend/internal/features/workspaces"
 	"databasus-backend/internal/lib/apierror"
+	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/modules/users"
@@ -22,8 +23,10 @@ import (
 
 type BackupConfigService struct {
 	backupConfigRepository *BackupConfigRepository
-	databaseService        *databases.DatabaseService
-	// getStorages and getNotifiers are read per call: each test application installs its own modules.
+	databaseAccess         *databases_bridge.Access
+	// getDatabases, getStorages and getNotifiers are read per call: each test application installs its
+	// own modules.
+	getDatabases     func() databases.Module
 	getStorages      func() storages.Module
 	getNotifiers     func() notifiers.Module
 	workspaceService *workspaces_bridge.Access
@@ -46,16 +49,12 @@ func (s *BackupConfigService) SaveBackupConfigWithAuth(
 		return nil, err
 	}
 
-	database, err := s.databaseService.GetDatabase(ctx, actor, backupConfig.DatabaseID)
+	database, err := s.databaseAccess.GetAuthorizedDatabase(ctx, actor, backupConfig.DatabaseID, workspaces.ActionView)
 	if err != nil {
 		return nil, err
 	}
 
-	if database.WorkspaceID == nil {
-		return nil, errors.New("cannot save backup config for database without workspace")
-	}
-
-	isAllowed, err := s.workspaceService.IsActorAllowed(ctx, actor, *database.WorkspaceID, workspaces.ActionEditContent)
+	isAllowed, err := s.workspaceService.IsActorAllowed(ctx, actor, database.WorkspaceID, workspaces.ActionEditContent)
 	if err != nil {
 		return nil, err
 	}
@@ -68,11 +67,11 @@ func (s *BackupConfigService) SaveBackupConfigWithAuth(
 	}
 
 	// Refused before the storage change listener deletes the backups of the previous storage.
-	if err := s.checkStorageWorkspace(ctx, backupConfig, *database.WorkspaceID); err != nil {
+	if err := s.checkStorageWorkspace(ctx, backupConfig, database.WorkspaceID); err != nil {
 		return nil, err
 	}
 
-	savedConfig, err := s.saveBackupConfig(ctx, backupConfig, database.WorkspaceID)
+	savedConfig, err := s.saveBackupConfig(ctx, backupConfig, &database.WorkspaceID)
 	if err != nil {
 		return nil, err
 	}
@@ -92,7 +91,7 @@ func (s *BackupConfigService) GetBackupConfigByDbIdWithAuth(
 	actor users.Actor,
 	databaseID uuid.UUID,
 ) (*LogicalBackupConfig, error) {
-	_, err := s.databaseService.GetDatabase(ctx, actor, databaseID)
+	_, err := s.databaseAccess.GetAuthorizedDatabase(ctx, actor, databaseID, workspaces.ActionView)
 	if err != nil {
 		return nil, err
 	}
@@ -160,12 +159,12 @@ func (s *BackupConfigService) OnStorageTransferring(ctx context.Context, event s
 	}
 
 	for _, databaseID := range databaseIDs {
-		usingDatabase, err := s.databaseService.GetDatabaseByID(databaseID)
+		usingDatabase, err := s.databaseAccess.GetDatabaseByID(ctx, databaseID)
 		if err != nil {
 			return err
 		}
 
-		if usingDatabase.WorkspaceID == nil || *usingDatabase.WorkspaceID != event.TargetWorkspaceID {
+		if usingDatabase.WorkspaceID != event.TargetWorkspaceID {
 			return ErrStorageUsedOutsideTargetWorkspace
 		}
 	}
@@ -177,18 +176,31 @@ func (s *BackupConfigService) GetBackupConfigsWithEnabledBackups() ([]*LogicalBa
 	return s.backupConfigRepository.GetWithEnabledBackups()
 }
 
-func (s *BackupConfigService) OnDatabaseCopied(ctx context.Context, originalDatabaseID, newDatabaseID uuid.UUID) {
-	originalConfig, err := s.GetBackupConfigByDbId(originalDatabaseID)
+// OnDatabaseCopied gives the copy the original's config in the copy's transaction. The copy is in the
+// original's workspace, so the original's storage is valid for it, and it has no backups whose storage
+// could change.
+// OnDatabaseCopied copies the original's logical backup config. A physical database has none, so its
+// copy starts without one.
+func (s *BackupConfigService) OnDatabaseCopied(ctx context.Context, event databases.DatabaseCopied) error {
+	originalConfig, err := s.backupConfigRepository.FindByDatabaseID(event.OriginalDatabaseID)
 	if err != nil {
-		return
+		return err
 	}
 
-	newConfig := originalConfig.Copy(newDatabaseID)
-
-	_, err = s.SaveBackupConfig(ctx, newConfig)
-	if err != nil {
-		return
+	if originalConfig == nil {
+		return nil
 	}
+
+	copiedConfig := originalConfig.Copy(event.CopiedDatabaseID)
+
+	err = copiedConfig.Validate()
+	if err != nil {
+		return err
+	}
+
+	_, err = s.backupConfigRepository.Save(ctx, copiedConfig)
+
+	return err
 }
 
 func (s *BackupConfigService) CreateDisabledBackupConfig(databaseID uuid.UUID) error {
@@ -201,19 +213,15 @@ func (s *BackupConfigService) TransferDatabaseToWorkspace(
 	databaseID uuid.UUID,
 	request *TransferDatabaseRequest,
 ) error {
-	database, err := s.databaseService.GetDatabaseByID(databaseID)
+	database, err := s.databaseAccess.GetDatabaseByID(ctx, databaseID)
 	if err != nil {
 		return err
-	}
-
-	if database.WorkspaceID == nil {
-		return ErrDatabaseHasNoWorkspace
 	}
 
 	isAllowedInSource, err := s.workspaceService.IsActorAllowed(
 		ctx,
 		actor,
-		*database.WorkspaceID,
+		database.WorkspaceID,
 		workspaces.ActionEditContent,
 	)
 	if err != nil {
@@ -257,7 +265,7 @@ func (s *BackupConfigService) TransferDatabaseToWorkspace(
 			return err
 		}
 
-		err = s.databaseService.TransferDatabaseToWorkspace(ctx, databaseID, request.TargetWorkspaceID)
+		err = s.getDatabases().TransferDatabaseToWorkspace(ctx, databaseID, request.TargetWorkspaceID)
 		if err != nil {
 			return err
 		}
@@ -273,7 +281,7 @@ func (s *BackupConfigService) TransferDatabaseToWorkspace(
 	}
 
 	if len(request.TargetNotifierIDs) > 0 {
-		err = s.databaseService.UpdateDatabaseNotifiers(databaseID, request.TargetNotifierIDs)
+		err = s.getDatabases().ReplaceDatabaseNotifiers(ctx, databaseID, request.TargetNotifierIDs)
 		if err != nil {
 			return err
 		}
@@ -369,7 +377,7 @@ func (s *BackupConfigService) transferDatabaseWithStorage(
 		}
 	}
 
-	err = s.databaseService.TransferDatabaseToWorkspace(ctx, backupConfig.DatabaseID, targetWorkspaceID)
+	err = s.getDatabases().TransferDatabaseToWorkspace(ctx, backupConfig.DatabaseID, targetWorkspaceID)
 	if err != nil {
 		return err
 	}
@@ -524,10 +532,10 @@ func (s *BackupConfigService) initializeDefaultConfig(
 func (s *BackupConfigService) transferNotifiers(
 	ctx context.Context,
 	actor users.Actor,
-	database *databases.Database,
+	database databases.Database,
 	targetWorkspaceID uuid.UUID,
 ) error {
-	for _, notifierID := range database.GetNotifierIDs() {
+	for _, notifierID := range database.NotifierIDs {
 		err := s.getNotifiers().TransferNotifier(ctx, actor, notifiers.NotifierTransfer{
 			NotifierID:        notifierID,
 			TargetWorkspaceID: targetWorkspaceID,

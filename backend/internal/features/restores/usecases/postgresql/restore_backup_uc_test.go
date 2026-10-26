@@ -9,8 +9,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	pgshared "databasus-backend/internal/engines/postgresql/shared"
-	"databasus-backend/internal/features/databases"
-	pgtypes "databasus-backend/internal/features/databases/databases/postgresql/logical"
 	restores_core "databasus-backend/internal/features/restores/core"
 	io_utils "databasus-backend/internal/util/io"
 )
@@ -19,10 +17,10 @@ const pgRestoreStubError = `pg_restore: error: could not execute query: ERROR:  
 
 func newStubPgRestoreCommand(pgBin string) pgRestoreCommand {
 	return pgRestoreCommand{
-		database:    &databases.Database{},
+		source:      restores_core.SourceDatabase{},
 		pgBin:       pgBin,
 		credentials: &pgshared.CredentialTempFiles{},
-		pgConfig:    &pgtypes.PostgresqlLogicalDatabase{},
+		pgConfig:    &restores_core.PostgresqlTargetDatabase{},
 		logger:      slog.New(slog.DiscardHandler),
 	}
 }

@@ -6,6 +6,7 @@ import { Trans, useTranslation } from 'react-i18next';
 import {
   DATABASE_TYPE_LABEL_KEYS,
   type Database,
+  type MariadbSettings,
   DatabaseType,
   databaseApi,
   hasStoredSshTunnelSecretsForAuthType,
@@ -26,9 +27,11 @@ import {
   ClipboardPasteModalComponent,
 } from '../../../../shared/ui';
 import { EditSshTunnelComponent } from './EditSshTunnelComponent';
+import { toDatabaseSettingsTarget } from './toDatabaseSettingsTarget';
 
 interface Props {
   database: Database;
+  settings: MariadbSettings;
 
   isShowCancelButton?: boolean;
   onCancel: () => void;
@@ -45,6 +48,7 @@ interface Props {
 
 export const EditMariaDbSpecificDataComponent = ({
   database,
+  settings,
 
   isShowCancelButton,
   onCancel,
@@ -61,7 +65,7 @@ export const EditMariaDbSpecificDataComponent = ({
   const { locale } = useLocale();
   const { message } = App.useApp();
 
-  const [editingDatabase, setEditingDatabase] = useState<Database>();
+  const [editingSettings, setEditingSettings] = useState<MariadbSettings>(settings);
   const [isSaving, setIsSaving] = useState(false);
 
   const [isConnectionTested, setIsConnectionTested] = useState(false);
@@ -69,10 +73,10 @@ export const EditMariaDbSpecificDataComponent = ({
   const [isConnectionFailed, setIsConnectionFailed] = useState(false);
 
   const hasAdvancedValues =
-    !!database.mariadb?.isExcludeEvents ||
-    !!database.mariadb?.isSkipGaleraDisable ||
-    !!database.mariadb?.excludeTables?.length ||
-    !!database.mariadb?.sshTunnel?.isEnabled;
+    !!settings.isExcludeEvents ||
+    !!settings.isSkipGaleraDisable ||
+    !!settings.excludeTables?.length ||
+    !!settings.sshTunnel?.isEnabled;
   const [isShowAdvanced, setShowAdvanced] = useState(hasAdvancedValues);
 
   const [isShowPasteModal, setIsShowPasteModal] = useState(false);
@@ -92,22 +96,17 @@ export const EditMariaDbSpecificDataComponent = ({
       return;
     }
 
-    if (!editingDatabase?.mariadb) return;
-
-    const updatedDatabase: Database = {
-      ...editingDatabase,
-      mariadb: {
-        ...editingDatabase.mariadb,
-        host: result.host,
-        port: result.port,
-        username: result.username,
-        password: result.password,
-        database: result.database,
-        isHttps: result.isHttps,
-      },
+    const updatedSettings: MariadbSettings = {
+      ...editingSettings,
+      host: result.host,
+      port: result.port,
+      username: result.username,
+      password: result.password,
+      database: result.database,
+      isHttps: result.isHttps,
     };
 
-    setEditingDatabase(updatedDatabase);
+    setEditingSettings(updatedSettings);
     setIsConnectionTested(false);
     message.success(t('databases.edit.connectionStringParsed'));
   };
@@ -127,27 +126,25 @@ export const EditMariaDbSpecificDataComponent = ({
   };
 
   const testConnection = async () => {
-    if (!editingDatabase?.mariadb) return;
     setIsTestingConnection(true);
     setIsConnectionFailed(false);
 
-    const trimmedDatabase = {
-      ...editingDatabase,
-      mariadb: {
-        ...editingDatabase.mariadb,
-        password: editingDatabase.mariadb.password?.trim(),
-      },
-    };
-
     try {
-      await databaseApi.testDatabaseConnectionDirect(trimmedDatabase);
-      setIsConnectionTested(true);
-      ToastHelper.showToast({
-        title: t('databases.edit.connectionTestPassed.title'),
-        description: t('databases.edit.connectionTestPassed.description'),
-      });
+      const testResult = await databaseApi.testDatabaseSettings(
+        toDatabaseSettingsTarget(database, editingSettings),
+      );
+
+      if (testResult.isConnected) {
+        setIsConnectionTested(true);
+        ToastHelper.showToast({
+          title: t('databases.edit.connectionTestPassed.title'),
+          description: t('databases.edit.connectionTestPassed.description'),
+        });
+      } else {
+        setIsConnectionFailed(true);
+        alert(t('databases.edit.connectionTestFailed', { error: testResult.error }));
+      }
     } catch (e) {
-      setIsConnectionFailed(true);
       alert(translateApiError(e, t));
     }
 
@@ -155,29 +152,22 @@ export const EditMariaDbSpecificDataComponent = ({
   };
 
   const saveDatabase = async () => {
-    if (!editingDatabase?.mariadb) return;
+    const editedDatabase: Database = { ...database, settings: editingSettings };
 
-    const trimmedDatabase = {
-      ...editingDatabase,
-      mariadb: {
-        ...editingDatabase.mariadb,
-        password: editingDatabase.mariadb.password?.trim(),
-      },
-    };
-
-    if (isSaveToApi) {
-      setIsSaving(true);
-
-      try {
-        await databaseApi.updateDatabase(trimmedDatabase);
-      } catch (e) {
-        alert(translateApiError(e, t));
-      }
-
-      setIsSaving(false);
+    if (!isSaveToApi) {
+      onSaved(editedDatabase);
+      return;
     }
 
-    onSaved(trimmedDatabase);
+    setIsSaving(true);
+
+    try {
+      onSaved(await databaseApi.updateDatabase(database.id, editedDatabase));
+    } catch (e) {
+      alert(translateApiError(e, t));
+    }
+
+    setIsSaving(false);
   };
 
   useEffect(() => {
@@ -186,36 +176,33 @@ export const EditMariaDbSpecificDataComponent = ({
     setIsTestingConnection(false);
     setIsConnectionFailed(false);
 
-    setEditingDatabase({ ...database });
-  }, [database]);
-
-  if (!editingDatabase) return null;
+    setEditingSettings(settings);
+  }, [settings]);
 
   const engineName = t(DATABASE_TYPE_LABEL_KEYS[DatabaseType.MARIADB]);
 
   const hasStoredSshSecrets = hasStoredSshTunnelSecretsForAuthType(
-    database.mariadb?.sshTunnel,
-    editingDatabase.mariadb?.sshTunnel?.authType,
+    settings.sshTunnel,
+    editingSettings.sshTunnel?.authType,
     database.id,
   );
 
   let isAllFieldsFilled = true;
-  if (!editingDatabase.mariadb?.host) isAllFieldsFilled = false;
-  if (!editingDatabase.mariadb?.port) isAllFieldsFilled = false;
-  if (!editingDatabase.mariadb?.username) isAllFieldsFilled = false;
-  if (!editingDatabase.id && !editingDatabase.mariadb?.password) isAllFieldsFilled = false;
-  if (!editingDatabase.mariadb?.database) isAllFieldsFilled = false;
+  if (!editingSettings.host) isAllFieldsFilled = false;
+  if (!editingSettings.port) isAllFieldsFilled = false;
+  if (!editingSettings.username) isAllFieldsFilled = false;
+  if (!database.id && !editingSettings.password) isAllFieldsFilled = false;
+  if (!editingSettings.database) isAllFieldsFilled = false;
 
-  if (!isSshTunnelReadyToTest(editingDatabase.mariadb?.sshTunnel, hasStoredSshSecrets))
+  if (!isSshTunnelReadyToTest(editingSettings.sshTunnel, hasStoredSshSecrets))
     isAllFieldsFilled = false;
 
   // Behind a bastion a loopback address names the database as the bastion sees it, so the hint
   // about reaching a local database would be wrong.
-  const isTunnelEnabled = !!editingDatabase.mariadb?.sshTunnel?.isEnabled;
+  const isTunnelEnabled = !!editingSettings.sshTunnel?.isEnabled;
   const isLocalhostDb =
     !isTunnelEnabled &&
-    (editingDatabase.mariadb?.host?.includes('localhost') ||
-      editingDatabase.mariadb?.host?.includes('127.0.0.1'));
+    (editingSettings.host?.includes('localhost') || editingSettings.host?.includes('127.0.0.1'));
 
   return (
     <div>
@@ -233,16 +220,11 @@ export const EditMariaDbSpecificDataComponent = ({
       <div className="mb-1 flex w-full items-center">
         <div className="min-w-[150px] pr-2">{t('common.fields.host')}</div>
         <Input
-          value={editingDatabase.mariadb?.host}
+          value={editingSettings.host}
           onChange={(e) => {
-            if (!editingDatabase.mariadb) return;
-
-            setEditingDatabase({
-              ...editingDatabase,
-              mariadb: {
-                ...editingDatabase.mariadb,
-                host: e.target.value.trim().replace('https://', '').replace('http://', ''),
-              },
+            setEditingSettings({
+              ...editingSettings,
+              host: e.target.value.trim().replace('https://', '').replace('http://', ''),
             });
             setIsConnectionTested(false);
           }}
@@ -277,14 +259,11 @@ export const EditMariaDbSpecificDataComponent = ({
         <div className="min-w-[150px] pr-2">{t('common.fields.port')}</div>
         <InputNumber
           type="number"
-          value={editingDatabase.mariadb?.port}
+          value={editingSettings.port}
           onChange={(e) => {
-            if (!editingDatabase.mariadb || e === null) return;
+            if (e === null) return;
 
-            setEditingDatabase({
-              ...editingDatabase,
-              mariadb: { ...editingDatabase.mariadb, port: e },
-            });
+            setEditingSettings({ ...editingSettings, port: e });
             setIsConnectionTested(false);
           }}
           size="small"
@@ -296,14 +275,9 @@ export const EditMariaDbSpecificDataComponent = ({
       <div className="mb-1 flex w-full items-center">
         <div className="min-w-[150px] pr-2">{t('common.fields.username')}</div>
         <Input
-          value={editingDatabase.mariadb?.username}
+          value={editingSettings.username}
           onChange={(e) => {
-            if (!editingDatabase.mariadb) return;
-
-            setEditingDatabase({
-              ...editingDatabase,
-              mariadb: { ...editingDatabase.mariadb, username: e.target.value.trim() },
-            });
+            setEditingSettings({ ...editingSettings, username: e.target.value.trim() });
             setIsConnectionTested(false);
           }}
           size="small"
@@ -315,14 +289,9 @@ export const EditMariaDbSpecificDataComponent = ({
       <div className="mb-1 flex w-full items-center">
         <div className="min-w-[150px] pr-2">{t('common.fields.password')}</div>
         <Input.Password
-          value={editingDatabase.mariadb?.password}
+          value={editingSettings.password}
           onChange={(e) => {
-            if (!editingDatabase.mariadb) return;
-
-            setEditingDatabase({
-              ...editingDatabase,
-              mariadb: { ...editingDatabase.mariadb, password: e.target.value },
-            });
+            setEditingSettings({ ...editingSettings, password: e.target.value });
             setIsConnectionTested(false);
           }}
           size="small"
@@ -339,14 +308,9 @@ export const EditMariaDbSpecificDataComponent = ({
         <div className="mb-1 flex w-full items-center">
           <div className="min-w-[150px] pr-2">{t('databases.fields.databaseName')}</div>
           <Input
-            value={editingDatabase.mariadb?.database}
+            value={editingSettings.database}
             onChange={(e) => {
-              if (!editingDatabase.mariadb) return;
-
-              setEditingDatabase({
-                ...editingDatabase,
-                mariadb: { ...editingDatabase.mariadb, database: e.target.value.trim() },
-              });
+              setEditingSettings({ ...editingSettings, database: e.target.value.trim() });
               setIsConnectionTested(false);
             }}
             size="small"
@@ -359,14 +323,9 @@ export const EditMariaDbSpecificDataComponent = ({
       <div className="mb-1 flex w-full items-center">
         <div className="min-w-[150px] pr-2">{t('databases.fields.useHttps')}</div>
         <Switch
-          checked={editingDatabase.mariadb?.isHttps}
+          checked={editingSettings.isHttps}
           onChange={(checked) => {
-            if (!editingDatabase.mariadb) return;
-
-            setEditingDatabase({
-              ...editingDatabase,
-              mariadb: { ...editingDatabase.mariadb, isHttps: checked },
-            });
+            setEditingSettings({ ...editingSettings, isHttps: checked });
             setIsConnectionTested(false);
           }}
           size="small"
@@ -382,15 +341,10 @@ export const EditMariaDbSpecificDataComponent = ({
       {isShowAdvanced && (
         <>
           <EditSshTunnelComponent
-            sshTunnel={editingDatabase.mariadb?.sshTunnel}
+            sshTunnel={editingSettings.sshTunnel}
             hasStoredSecrets={hasStoredSshSecrets}
             onChange={(sshTunnel) => {
-              if (!editingDatabase.mariadb) return;
-
-              setEditingDatabase({
-                ...editingDatabase,
-                mariadb: { ...editingDatabase.mariadb, sshTunnel },
-              });
+              setEditingSettings({ ...editingSettings, sshTunnel });
               setIsConnectionTested(false);
             }}
           />
@@ -399,17 +353,9 @@ export const EditMariaDbSpecificDataComponent = ({
             <div className="min-w-[150px] pr-2">{t('databases.fields.excludeEvents')}</div>
             <div className="flex items-center">
               <Checkbox
-                checked={editingDatabase.mariadb?.isExcludeEvents || false}
+                checked={editingSettings.isExcludeEvents || false}
                 onChange={(e) => {
-                  if (!editingDatabase.mariadb) return;
-
-                  setEditingDatabase({
-                    ...editingDatabase,
-                    mariadb: {
-                      ...editingDatabase.mariadb,
-                      isExcludeEvents: e.target.checked,
-                    },
-                  });
+                  setEditingSettings({ ...editingSettings, isExcludeEvents: e.target.checked });
                 }}
               >
                 {t('databases.edit.mariadb.skipEvents')}
@@ -428,17 +374,9 @@ export const EditMariaDbSpecificDataComponent = ({
             <div className="min-w-[150px] pr-2">{t('databases.fields.galeraReplication')}</div>
             <div className="flex items-center">
               <Checkbox
-                checked={editingDatabase.mariadb?.isSkipGaleraDisable || false}
+                checked={editingSettings.isSkipGaleraDisable || false}
                 onChange={(e) => {
-                  if (!editingDatabase.mariadb) return;
-
-                  setEditingDatabase({
-                    ...editingDatabase,
-                    mariadb: {
-                      ...editingDatabase.mariadb,
-                      isSkipGaleraDisable: e.target.checked,
-                    },
-                  });
+                  setEditingSettings({ ...editingSettings, isSkipGaleraDisable: e.target.checked });
                 }}
               >
                 {t('databases.edit.mariadb.skipGaleraDisable')}
@@ -457,13 +395,11 @@ export const EditMariaDbSpecificDataComponent = ({
             <div className="min-w-[150px] pr-2">{t('databases.fields.excludeTables')}</div>
             <Select
               mode="tags"
-              value={editingDatabase.mariadb?.excludeTables || []}
+              value={editingSettings.excludeTables || []}
               onChange={(values) => {
-                if (!editingDatabase.mariadb) return;
-
-                setEditingDatabase({
-                  ...editingDatabase,
-                  mariadb: { ...editingDatabase.mariadb, excludeTables: normalizeNameList(values) },
+                setEditingSettings({
+                  ...editingSettings,
+                  excludeTables: normalizeNameList(values),
                 });
               }}
               size="small"

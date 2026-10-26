@@ -8,11 +8,11 @@ import (
 
 	"github.com/google/uuid"
 
+	pgshared "databasus-backend/internal/engines/postgresql/shared"
 	chain_view "databasus-backend/internal/features/backups/backups/core/physical/chain_view"
 	physical_enums "databasus-backend/internal/features/backups/backups/core/physical/enums"
 	"databasus-backend/internal/modules/storages"
 	db "databasus-backend/internal/storage"
-	"databasus-backend/internal/util/encryption"
 )
 
 type CreateFullBackupUsecase struct{}
@@ -22,12 +22,9 @@ func NewCreateFullBackupUsecase() *CreateFullBackupUsecase { return &CreateFullB
 func (uc *CreateFullBackupUsecase) Execute(ctx context.Context, spec FullBackupSpec) (PhysicalBackupResult, error) {
 	start := time.Now().UTC()
 
-	password, err := encryption.DecryptFieldIfNeeded(spec.SourceDB.Password, spec.FieldEncryptor)
-	if err != nil {
-		return errorResult(physical_enums.PhysicalBackupErrorPgBasebackupFailed, "decrypt password", err), nil
-	}
+	password := spec.SourceDB.Engine.Password
 
-	creds, err := spec.SourceDB.WriteCredentialFiles(password, spec.FieldEncryptor)
+	creds, err := pgshared.WriteCredentialFilesToTempDir(spec.SourceDB.Engine.GetCredentialSpec(), password)
 	if err != nil {
 		return errorResult(physical_enums.PhysicalBackupErrorPgBasebackupFailed, "write credentials", err), nil
 	}
@@ -54,13 +51,13 @@ func (uc *CreateFullBackupUsecase) Execute(ctx context.Context, spec FullBackupS
 	}
 	var result PhysicalBackupResult
 
-	slotErr := WithBackupSlot(ctx, spec.SourceDB, spec.FieldEncryptor, spec.Logger, func() error {
+	slotErr := WithBackupSlot(ctx, spec.SourceDB, spec.Logger, func() error {
 		streamResult, err := streamWithCodecFallback(ctx, streamAttemptSpec{
 			Common:                  spec.CommonBackupSpec,
 			BackupID:                spec.Backup.ID,
 			Creds:                   creds,
 			Label:                   label,
-			SystemID:                spec.SourceDB.SystemIdentifierUint64(),
+			SystemID:                spec.SourceDB.GetSystemIdentifierUint64(),
 			IncrementalManifestPath: "",
 			Classify:                classifyFullStreamError,
 			MintAndSaveAttemptName:  mintAndSaveAttemptName,
@@ -77,7 +74,7 @@ func (uc *CreateFullBackupUsecase) Execute(ctx context.Context, spec FullBackupS
 		}
 
 		validation, valErr := ValidateStartLsnAgainstHistory(
-			spec.SourceDB.ParentDatabaseID(),
+			spec.SourceDB.DatabaseID,
 			streamResult.TimelineID,
 			streamResult.StartLSN,
 			spec.HistoryRepo,
@@ -146,7 +143,7 @@ func (uc *CreateFullBackupUsecase) Execute(ctx context.Context, spec FullBackupS
 // artifact itself is valid, and a missing .history only degrades later chain
 // validation, which the scheduler tolerates.
 func uploadHistoryForTimelineSwitch(ctx context.Context, common CommonBackupSpec, timelineID int) {
-	historyConn, err := common.SourceDB.OpenInspectionConn(ctx, common.FieldEncryptor)
+	historyConn, err := openInspectionConn(ctx, common.SourceDB)
 	if err != nil {
 		common.Logger.Warn("could not open connection for history upload; FULL stays COMPLETED",
 			"timeline_id", timelineID,
@@ -157,16 +154,15 @@ func uploadHistoryForTimelineSwitch(ctx context.Context, common CommonBackupSpec
 	defer func() { _ = historyConn.Close(ctx) }()
 
 	if _, err := UploadHistoryFile(ctx, HistoryUploadSpec{
-		Conn:           historyConn,
-		TimelineID:     timelineID,
-		FileStore:      common.FileStore,
-		SourceDB:       common.SourceDB,
-		StorageID:      common.StorageID,
-		HistoryRepo:    common.HistoryRepo,
-		Encryption:     common.Encryption,
-		MasterKey:      common.MasterKey,
-		FieldEncryptor: common.FieldEncryptor,
-		Logger:         common.Logger,
+		Conn:        historyConn,
+		TimelineID:  timelineID,
+		FileStore:   common.FileStore,
+		SourceDB:    common.SourceDB,
+		StorageID:   common.StorageID,
+		HistoryRepo: common.HistoryRepo,
+		Encryption:  common.Encryption,
+		MasterKey:   common.MasterKey,
+		Logger:      common.Logger,
 	}); err != nil {
 		common.Logger.Warn("history upload failed; FULL stays COMPLETED",
 			"timeline_id", timelineID,

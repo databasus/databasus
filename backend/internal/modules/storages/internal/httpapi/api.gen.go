@@ -111,32 +111,33 @@ func (e NasStorageSettingsType) Valid() bool {
 
 // Defines values for ProblemCode.
 const (
-	ProblemCodeAdminEmailMissing       ProblemCode = "admin_email_missing"
-	ProblemCodeAlreadyMember           ProblemCode = "already_member"
-	ProblemCodeCannotChangeOwnRole     ProblemCode = "cannot_change_own_role"
-	ProblemCodeEmailNotConfigured      ProblemCode = "email_not_configured"
-	ProblemCodeEmailTaken              ProblemCode = "email_taken"
-	ProblemCodeHumanVerificationFailed ProblemCode = "human_verification_failed"
-	ProblemCodeInUse                   ProblemCode = "in_use"
-	ProblemCodeInternal                ProblemCode = "internal"
-	ProblemCodeInvalidCredentials      ProblemCode = "invalid_credentials"
-	ProblemCodeInvalidRequest          ProblemCode = "invalid_request"
-	ProblemCodeInvalidResetCode        ProblemCode = "invalid_reset_code"
-	ProblemCodeNotFound                ProblemCode = "not_found"
-	ProblemCodeOauthFailed             ProblemCode = "oauth_failed"
-	ProblemCodeOauthNotConfigured      ProblemCode = "oauth_not_configured"
-	ProblemCodeOwnerRequiresTransfer   ProblemCode = "owner_requires_transfer"
-	ProblemCodePendingSignInNotUsable  ProblemCode = "pending_sign_in_not_usable"
-	ProblemCodePermissionDenied        ProblemCode = "permission_denied"
-	ProblemCodeRateLimited             ProblemCode = "rate_limited"
-	ProblemCodeRegistrationClosed      ProblemCode = "registration_closed"
-	ProblemCodeSignInCodeIncorrect     ProblemCode = "sign_in_code_incorrect"
-	ProblemCodeSignInCodeNotSent       ProblemCode = "sign_in_code_not_sent"
-	ProblemCodeSignInCodeResentTooSoon ProblemCode = "sign_in_code_resent_too_soon"
-	ProblemCodeTooManySignInCodes      ProblemCode = "too_many_sign_in_codes"
-	ProblemCodeUnauthenticated         ProblemCode = "unauthenticated"
-	ProblemCodeUserDeactivated         ProblemCode = "user_deactivated"
-	ProblemCodeWorkspaceNotEmpty       ProblemCode = "workspace_not_empty"
+	ProblemCodeAdminEmailMissing        ProblemCode = "admin_email_missing"
+	ProblemCodeAlreadyMember            ProblemCode = "already_member"
+	ProblemCodeCannotChangeOwnRole      ProblemCode = "cannot_change_own_role"
+	ProblemCodeDatabaseConnectionFailed ProblemCode = "database_connection_failed"
+	ProblemCodeEmailNotConfigured       ProblemCode = "email_not_configured"
+	ProblemCodeEmailTaken               ProblemCode = "email_taken"
+	ProblemCodeHumanVerificationFailed  ProblemCode = "human_verification_failed"
+	ProblemCodeInUse                    ProblemCode = "in_use"
+	ProblemCodeInternal                 ProblemCode = "internal"
+	ProblemCodeInvalidCredentials       ProblemCode = "invalid_credentials"
+	ProblemCodeInvalidRequest           ProblemCode = "invalid_request"
+	ProblemCodeInvalidResetCode         ProblemCode = "invalid_reset_code"
+	ProblemCodeNotFound                 ProblemCode = "not_found"
+	ProblemCodeOauthFailed              ProblemCode = "oauth_failed"
+	ProblemCodeOauthNotConfigured       ProblemCode = "oauth_not_configured"
+	ProblemCodeOwnerRequiresTransfer    ProblemCode = "owner_requires_transfer"
+	ProblemCodePendingSignInNotUsable   ProblemCode = "pending_sign_in_not_usable"
+	ProblemCodePermissionDenied         ProblemCode = "permission_denied"
+	ProblemCodeRateLimited              ProblemCode = "rate_limited"
+	ProblemCodeRegistrationClosed       ProblemCode = "registration_closed"
+	ProblemCodeSignInCodeIncorrect      ProblemCode = "sign_in_code_incorrect"
+	ProblemCodeSignInCodeNotSent        ProblemCode = "sign_in_code_not_sent"
+	ProblemCodeSignInCodeResentTooSoon  ProblemCode = "sign_in_code_resent_too_soon"
+	ProblemCodeTooManySignInCodes       ProblemCode = "too_many_sign_in_codes"
+	ProblemCodeUnauthenticated          ProblemCode = "unauthenticated"
+	ProblemCodeUserDeactivated          ProblemCode = "user_deactivated"
+	ProblemCodeWorkspaceNotEmpty        ProblemCode = "workspace_not_empty"
 )
 
 // Valid indicates whether the value is a known member of the ProblemCode enum.
@@ -147,6 +148,8 @@ func (e ProblemCode) Valid() bool {
 	case ProblemCodeAlreadyMember:
 		return true
 	case ProblemCodeCannotChangeOwnRole:
+		return true
+	case ProblemCodeDatabaseConnectionFailed:
 		return true
 	case ProblemCodeEmailNotConfigured:
 		return true
@@ -590,6 +593,9 @@ type StorageUpdate struct {
 	// Settings The settings of the storage's provider; `type` tells the providers apart
 	Settings StorageSettings `json:"settings"`
 }
+
+// DatabaseId defines model for DatabaseId.
+type DatabaseId = openapi_types.UUID
 
 // MemberId defines model for MemberId.
 type MemberId = openapi_types.UUID

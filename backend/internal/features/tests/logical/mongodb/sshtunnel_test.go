@@ -14,13 +14,12 @@ import (
 	mongodb_engine "databasus-backend/internal/engines/mongodb"
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
-	"databasus-backend/internal/features/databases"
-	mongodbtypes "databasus-backend/internal/features/databases/databases/mongodb"
 	restores_core "databasus-backend/internal/features/restores/core"
 	storages_bridge "databasus-backend/internal/features/storages"
 	logicaltesting "databasus-backend/internal/features/tests/logical/shared"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
+	"databasus-backend/internal/lib/apiclient"
 	"databasus-backend/internal/modules/users"
 	test_utils "databasus-backend/internal/util/testing"
 	"databasus-backend/internal/util/testing/bastion"
@@ -29,11 +28,29 @@ import (
 
 const bastionedMongodbImage = "mongo:7.0"
 
-func bastionedMongodbConfig(
+func bastionedMongodbSettings(topology containers.BastionedDatabase, databaseName string) apiclient.MongodbSettings {
+	password := containers.MongodbPassword
+	version := apiclient.MongodbVersionN7
+
+	return apiclient.MongodbSettings{
+		Host:               topology.Database.Host,
+		Port:               new(topology.Database.Port),
+		Username:           containers.MongodbUsername,
+		Password:           &password,
+		Database:           databaseName,
+		AuthDatabase:       containers.MongodbAuthDatabase,
+		CpuCount:           1,
+		Version:            &version,
+		ExcludeCollections: []string{},
+		SshTunnel:          logicaltesting.NewSshTunnelSettings(bastion.GetTunnelSettings(topology)),
+	}
+}
+
+func bastionedMongodbTarget(
 	topology containers.BastionedDatabase,
 	databaseName string,
-) *mongodbtypes.MongodbDatabase {
-	return &mongodbtypes.MongodbDatabase{
+) *restores_core.MongodbTargetDatabase {
+	return &restores_core.MongodbTargetDatabase{
 		Host:         topology.Database.Host,
 		Port:         new(topology.Database.Port),
 		Username:     containers.MongodbUsername,
@@ -42,7 +59,7 @@ func bastionedMongodbConfig(
 		AuthDatabase: containers.MongodbAuthDatabase,
 		CpuCount:     1,
 		Version:      mongodb_engine.Version7,
-		SshTunnel:    bastion.GetTunnelConfig(topology),
+		SshTunnel:    logicaltesting.NewTargetSshTunnel(bastion.GetTunnelSettings(topology)),
 	}
 }
 
@@ -73,24 +90,28 @@ func Test_MongodbBackupRestore_OverSshTunnel_RestoresData(t *testing.T) {
 	storage := storages_bridge.CreateTestStorage(workspace.ID)
 	t.Cleanup(func() { storages_bridge.RemoveTestStorage(t.Context(), storage.ID) })
 
-	database := logicaltesting.SubmitCreateDatabase(t, router, "MongoDB cycle over SSH tunnel",
-		databases.Database{
-			Name:        "Bastioned MongoDB cycle",
-			WorkspaceID: &workspace.ID,
-			Type:        databases.DatabaseTypeMongodb,
-			Mongodb:     bastionedMongodbConfig(topology, containers.MongodbDatabase),
-		}, user.Token)
+	database := logicaltesting.SubmitCreateDatabase(
+		t,
+		router,
+		"MongoDB cycle over SSH tunnel",
+		logicaltesting.NewDatabaseCreate(
+			t,
+			workspace.ID,
+			bastionedMongodbSettings(topology, containers.MongodbDatabase),
+		),
+		user.Token,
+	)
 
 	t.Cleanup(func() {
-		test_utils.MakeDeleteRequest(t, router, "/api/v1/databases/"+database.ID.String(),
+		test_utils.MakeDeleteRequest(t, router, "/api/v1/databases/"+database.Id.String(),
 			"Bearer "+user.Token, http.StatusNoContent)
 	})
 
-	logicaltesting.EnableBackupsViaAPI(t, router, database.ID, storage.ID,
+	logicaltesting.EnableBackupsViaAPI(t, router, database.Id, storage.ID,
 		backups_core_enums.BackupEncryptionNone, user.Token)
-	logicaltesting.CreateBackupViaAPI(t, router, database.ID, user.Token)
+	logicaltesting.CreateBackupViaAPI(t, router, database.Id, user.Token)
 
-	backup := logicaltesting.WaitForBackupCompletion(t, router, database.ID, user.Token, 5*time.Minute)
+	backup := logicaltesting.WaitForBackupCompletion(t, router, database.Id, user.Token, 5*time.Minute)
 	require.Equal(t, backups_core_logical.BackupStatusCompleted, backup.Status)
 
 	t.Cleanup(func() {
@@ -101,7 +122,7 @@ func Test_MongodbBackupRestore_OverSshTunnel_RestoresData(t *testing.T) {
 
 	logicaltesting.SubmitRestore(t, router, backup.ID,
 		restores_core.RestoreBackupRequest{
-			MongodbDatabase: bastionedMongodbConfig(topology, restoredDatabaseName),
+			MongodbDatabase: bastionedMongodbTarget(topology, restoredDatabaseName),
 		}, user.Token)
 
 	restore := waitForMongodbRestoreCompletion(t, router, backup.ID, user.Token, 5*time.Minute)

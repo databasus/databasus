@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { createEmptySshTunnelConfig } from './createEmptySshTunnelConfig';
+import { createEmptySshTunnelSettings } from './createEmptySshTunnelSettings';
 import { setSshTunnelAuthTypeAndClearUnusedSecrets } from './setSshTunnelAuthTypeAndClearUnusedSecrets';
 import { SshTunnelAuthType } from './SshTunnelAuthType';
-import type { SshTunnelConfig } from './SshTunnelConfig';
+import type { SshTunnelSettings } from './SshTunnelSettings';
 
-function tunnelWithBothSecrets(): SshTunnelConfig {
+function tunnelWithBothSecrets(): SshTunnelSettings {
   return {
-    ...createEmptySshTunnelConfig(),
+    ...createEmptySshTunnelSettings(),
     isEnabled: true,
     host: 'bastion.example.com',
     username: 'tunneluser',

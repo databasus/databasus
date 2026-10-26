@@ -7,11 +7,11 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 
-	"databasus-backend/internal/features/databases"
-	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
+	databases_bridge "databasus-backend/internal/features/databases"
 	storages_bridge "databasus-backend/internal/features/storages"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
+	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/users"
 	test_utils "databasus-backend/internal/util/testing"
 )
@@ -23,12 +23,12 @@ func Test_AttachStorageFromSameWorkspace_PhysicalConfig_SuccessfullyAttached(t *
 
 	database := createPhysicalDatabaseViaAPI(
 		t, "Physical DB "+uuid.New().String(), workspace.ID, owner.Token, router,
-		postgresql_physical.BackupTypeFullOnly, "17",
+		databases.PhysicalBackupTypeFull, "17",
 	)
 	storage := storages_bridge.CreateTestStorage(workspace.ID)
 
 	defer func() {
-		databases.RemoveTestDatabase(t.Context(), database)
+		databases_bridge.RemoveTestDatabase(t.Context(), database)
 		storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	}()
@@ -58,7 +58,7 @@ func Test_AttachStorageFromDifferentWorkspace_PhysicalConfig_ReturnsBadRequest(t
 	workspace1 := workspaces_testing.CreateTestWorkspace(t.Context(), "Workspace 1", owner1)
 	database := createPhysicalDatabaseViaAPI(
 		t, "Physical DB "+uuid.New().String(), workspace1.ID, owner1.Token, router,
-		postgresql_physical.BackupTypeFullOnly, "17",
+		databases.PhysicalBackupTypeFull, "17",
 	)
 
 	owner2 := users_testing.CreateTestUser(t.Context(), users.RoleMember)
@@ -66,7 +66,7 @@ func Test_AttachStorageFromDifferentWorkspace_PhysicalConfig_ReturnsBadRequest(t
 	storage := storages_bridge.CreateTestStorage(workspace2.ID)
 
 	defer func() {
-		databases.RemoveTestDatabase(t.Context(), database)
+		databases_bridge.RemoveTestDatabase(t.Context(), database)
 		storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace1)
 		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace2)

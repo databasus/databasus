@@ -76,7 +76,7 @@ Go's `internal/` rule makes the rest of the module unreachable from outside.
 | `workspaces` | workspaces, members, workspace roles, invitations, ownership transfer, `Authorize`, every audit log view: the global one, a user's and a workspace's |
 | `notifiers` | notification channels and sending a notification |
 | `storages` | storages, the file lifecycle (write receipts, pending deletions and the deletion worker) |
-| `databases` | connections to user databases, connection tests, read-only and replication users, the last backup time and health status shown in the list |
+| `databases` | connections to user databases, the notifiers attached to a database, connection tests, read-only and replication users, the last backup time and health status shown in the list |
 | `backups` | backup configs, logical backups, physical backups and WAL, restores, downloads and restore streams, retention |
 | `verification` | verification agents, verification configs and verification runs |
 | `healthcheck` | scheduled availability checks of user databases |
@@ -113,7 +113,7 @@ Databasus has three families of interchangeable implementations. Each family has
   - dump into an `io.Writer` and restore from an `io.Reader`;
   - find its client tool for a server version.
 
-  It exposes these as small capability interfaces, because a physical PostgreSQL source and a logical one support different sets. The backend's restore and the verification agent call the same engine code, so a verification restores exactly the way a restore does.
+  An engine's sources offer small sets of methods, because a physical PostgreSQL source and a logical one support different sets. A consumer that serves several engines through one shape declares the interface it needs, as `ConnectedDatabase` in the `databases` module does. The backend's restore and the verification agent call the same engine code, so a verification restores exactly the way a restore does.
 - **Storage providers** (`storages/internal/providers/<name>`) save, read and delete files and test a connection.
 - **Notifier providers** (`notifiers/internal/providers/<name>`) send a notification and test a channel.
 
@@ -162,7 +162,7 @@ Audit events are written through `lib/audit` in the transaction of the operation
   - a composite foreign key `(id, type)`, so a provider row cannot attach to a parent of another type;
   - for a row that references one of two kinds of entities, two nullable foreign keys and `CHECK (num_nonnulls(a_id, b_id) = 1)`, never an untyped `(kind, id)` pair.
 - **Types.** Lists are `text[]`. JSON is stored as `JSONB`, and only for data we treat as opaque and store in clear, such as webhook headers. Time is `TIMESTAMPTZ`. All time is UTC: in Go, in the database session, in the API and in logs. Identifiers are UUIDs with `DEFAULT gen_random_uuid()`. A row that continues another row of the same module takes that row's ID as its primary key.
-- **Transactions travel in the context.** A service opens one with `Transaction(ctx, fn)` of the `*database.Transactor` it takes through `Deps`, and every repository call made with that context, in any module, joins it, because a repository runs its queries through `database.Conn(ctx, r.db)`. Transactions are never passed as parameters. Background work that outlives its caller, such as a notification delivery, detaches from the caller's transaction with `database.WithoutTransaction(ctx)` and runs its queries on the pool. The transactor is built in `internal/app` from the pool, so a service never holds the pool itself.
+- **Transactions travel in the context.** A service opens one with `Transaction(ctx, fn)` of the `*database.Transactor` it takes through `Deps`, and every repository call made with that context, in any module, joins it, because a repository runs its queries through `database.Conn(ctx, r.db)`. Transactions are never passed as parameters. Background work that outlives its caller, such as a notification delivery, detaches from the caller's transaction with `database.WithoutTransaction(ctx)` and runs its queries on the pool. The transactor is built in `internal/app` from the pool, so a service never holds the pool itself. An effect outside the database, such as cancelling a process or dropping a replication slot, registers an after-commit hook with `database.AfterCommit(ctx, hook)`. The outermost transaction runs its hooks in order after it commits, with a context that no longer carries the transaction, and drops them when it rolls back.
 - **Repository methods** are named after what their SQL does. When a lookup finds no row, or a conditional `UPDATE` touches none, the method returns `false` as its second value, as in `(Backup, bool, error)`. The service decides which error the client sees. A repository wraps a database error with the operation's name and never returns `gorm.ErrRecordNotFound`.
 - **One column changes with one `UPDATE`.** A status, a timestamp or a counter is never written by re-saving the whole row.
 - **Secrets** of providers and databases are encrypted per field with the master key before they are saved, and decrypted only where they are used. The cipher is AES-GCM, and an encrypted value starts with `enc:`. Account passwords and agent tokens are hashed, not encrypted.

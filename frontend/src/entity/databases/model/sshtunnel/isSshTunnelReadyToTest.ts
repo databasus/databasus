@@ -1,12 +1,12 @@
 import { SshTunnelAuthType } from './SshTunnelAuthType';
-import type { SshTunnelConfig } from './SshTunnelConfig';
+import type { SshTunnelSettings } from './SshTunnelSettings';
 
 /**
  * Secrets are only required when creating: an existing database keeps the ones already stored, and
  * the edit form never receives them back from the API.
  */
 export function isSshTunnelReadyToTest(
-  sshTunnel: SshTunnelConfig | undefined,
+  sshTunnel: SshTunnelSettings | undefined,
   hasStoredSecrets: boolean,
 ): boolean {
   if (!sshTunnel?.isEnabled) return true;

@@ -94,16 +94,15 @@ func testRunStreamParams(
 	codec physical_enums.PhysicalBackupCompression,
 ) runStreamParams {
 	return runStreamParams{
-		FileStore:      NewFakeFileStore(storage),
-		StorageID:      uuid.New(),
-		FieldEncryptor: nil,
-		Logger:         slog.New(slog.NewTextHandler(io.Discard, nil)),
-		FileName:       "test-obj",
-		Encryption:     backups_core_enums.BackupEncryptionNone,
-		MasterKey:      "",
-		BackupID:       uuid.New(),
-		SystemID:       7361234567890123456,
-		Codec:          codec,
+		FileStore:  NewFakeFileStore(storage),
+		StorageID:  uuid.New(),
+		Logger:     slog.New(slog.NewTextHandler(io.Discard, nil)),
+		FileName:   "test-obj",
+		Encryption: backups_core_enums.BackupEncryptionNone,
+		MasterKey:  "",
+		BackupID:   uuid.New(),
+		SystemID:   7361234567890123456,
+		Codec:      codec,
 	}
 }
 

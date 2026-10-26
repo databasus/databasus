@@ -9,17 +9,17 @@ var ErrUnreadableClientVersion = errors.New("could not read a PostgreSQL version
 type ConnectionErrorCode string
 
 const (
-	ConnErrConnectionFailed         ConnectionErrorCode = "connection_failed"
-	ConnErrPgHbaNoEntry             ConnectionErrorCode = "pg_hba_no_entry"
-	ConnErrBadCredentials           ConnectionErrorCode = "bad_credentials"
-	ConnErrNoReplicationPrivilege   ConnectionErrorCode = "no_replication_privilege"
-	ConnErrWalLevelInvalid          ConnectionErrorCode = "wal_level_invalid"
-	ConnErrNoWalSenders             ConnectionErrorCode = "no_wal_senders"
-	ConnErrNoReplicationSlots       ConnectionErrorCode = "no_replication_slots"
-	ConnErrWalSummaryDisabled       ConnectionErrorCode = "wal_summary_disabled"
-	ConnErrCustomTablespaces        ConnectionErrorCode = "custom_tablespaces"
-	ConnErrSystemIdentifierMismatch ConnectionErrorCode = "system_identifier_mismatch"
-	ConnErrNoWalSwitchPrivilege     ConnectionErrorCode = "no_wal_switch_privilege"
+	ConnErrConnectionFailed         ConnectionErrorCode = "CONNECTION_FAILED"
+	ConnErrPgHbaNoEntry             ConnectionErrorCode = "PG_HBA_NO_ENTRY"
+	ConnErrBadCredentials           ConnectionErrorCode = "BAD_CREDENTIALS"
+	ConnErrNoReplicationPrivilege   ConnectionErrorCode = "NO_REPLICATION_PRIVILEGE"
+	ConnErrWalLevelInvalid          ConnectionErrorCode = "WAL_LEVEL_INVALID"
+	ConnErrNoWalSenders             ConnectionErrorCode = "NO_WAL_SENDERS"
+	ConnErrNoReplicationSlots       ConnectionErrorCode = "NO_REPLICATION_SLOTS"
+	ConnErrWalSummaryDisabled       ConnectionErrorCode = "WAL_SUMMARY_DISABLED"
+	ConnErrCustomTablespaces        ConnectionErrorCode = "CUSTOM_TABLESPACES"
+	ConnErrSystemIdentifierMismatch ConnectionErrorCode = "SYSTEM_IDENTIFIER_MISMATCH"
+	ConnErrNoWalSwitchPrivilege     ConnectionErrorCode = "NO_WAL_SWITCH_PRIVILEGE"
 )
 
 // ConnectionTestError carries a machine-readable Code for a classified connection failure. The

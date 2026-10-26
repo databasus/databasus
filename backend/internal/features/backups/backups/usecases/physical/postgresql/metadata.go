@@ -17,7 +17,7 @@ import (
 	physical_dto "databasus-backend/internal/features/backups/backups/core/physical/dto"
 	physical_enums "databasus-backend/internal/features/backups/backups/core/physical/enums"
 	physical_models "databasus-backend/internal/features/backups/backups/core/physical/models"
-	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
+	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/storages"
 )
 
@@ -35,7 +35,7 @@ func uploadFullMetadata(
 	logger *slog.Logger,
 	fileStore FileStore,
 	storageID uuid.UUID,
-	sourceDB *postgresql_physical.PostgresqlPhysicalDatabase,
+	sourceDB databases.PostgresqlPhysicalConnectionSettings,
 	fullBackup *physical_models.PhysicalFullBackup,
 	result PhysicalBackupResult,
 ) (storages.WriteReceipt, error) {
@@ -47,7 +47,7 @@ func uploadFullMetadata(
 		BackupID:              fullBackup.ID,
 		DatabaseID:            fullBackup.DatabaseID,
 		BackupType:            physical_enums.PhysicalBackupTypeFull,
-		SystemIdentifier:      sourceDB.SystemIdentifierUint64(),
+		SystemIdentifier:      sourceDB.GetSystemIdentifierUint64(),
 		PgVersion:             pgVersionFromTag(sourceDB.Version),
 		TimelineID:            result.TimelineID,
 		StartLSN:              result.StartLSN.String(),
@@ -72,7 +72,7 @@ func uploadIncrMetadata(
 	logger *slog.Logger,
 	fileStore FileStore,
 	storageID uuid.UUID,
-	sourceDB *postgresql_physical.PostgresqlPhysicalDatabase,
+	sourceDB databases.PostgresqlPhysicalConnectionSettings,
 	incrBackup *physical_models.PhysicalIncrementalBackup,
 	result PhysicalBackupResult,
 ) (storages.WriteReceipt, error) {
@@ -86,7 +86,7 @@ func uploadIncrMetadata(
 		BackupID:                  incrBackup.ID,
 		DatabaseID:                incrBackup.DatabaseID,
 		BackupType:                physical_enums.PhysicalBackupTypeIncremental,
-		SystemIdentifier:          sourceDB.SystemIdentifierUint64(),
+		SystemIdentifier:          sourceDB.GetSystemIdentifierUint64(),
 		PgVersion:                 pgVersionFromTag(sourceDB.Version),
 		TimelineID:                result.TimelineID,
 		StartLSN:                  result.StartLSN.String(),

@@ -16,7 +16,7 @@ import (
 	physical_service "databasus-backend/internal/features/backups/backups/core/physical/service"
 	postgresql_executor "databasus-backend/internal/features/backups/backups/usecases/physical/postgresql"
 	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
-	"databasus-backend/internal/features/databases"
+	databases_bridge "databasus-backend/internal/features/databases"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	storages_bridge "databasus-backend/internal/features/storages"
 	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
@@ -36,8 +36,8 @@ func CreateTestPhysicalBackuper(notificationSender NotificationSender) *Physical
 	}
 
 	return &PhysicalBackuper{
-		databases.GetDatabaseService(),
-		encryption.GetFieldEncryptor(),
+		databases_bridge.GetAccess(),
+		databases_bridge.GetModule,
 		workspaces_bridge.GetAccess(),
 		physical_repositories.GetFullBackupRepository(),
 		physical_repositories.GetIncrementalBackupRepository(),
@@ -100,7 +100,8 @@ func CreateTestWalStreamSupervisor(spec WalStreamSupervisorTestSpec) *PhysicalWa
 	}
 
 	return &PhysicalWalStreamSupervisor{
-		databases.GetDatabaseService(),
+		databases_bridge.GetAccess(),
+		databases_bridge.GetModule,
 		backups_config_physical.GetBackupConfigService(),
 		storages_bridge.GetModule,
 		physical_repositories.GetWalSegmentRepository(),
@@ -110,7 +111,6 @@ func CreateTestWalStreamSupervisor(spec WalStreamSupervisorTestSpec) *PhysicalWa
 		spec.NotificationSender,
 		taskCancellationRegistry,
 		encryption.GetMasterKey(),
-		encryption.GetFieldEncryptor(),
 		logger.GetLogger(),
 		chainAlertMinInterval,
 		sync.Mutex{},

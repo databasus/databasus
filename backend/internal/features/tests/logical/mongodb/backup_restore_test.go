@@ -2,7 +2,6 @@ package mongodb_logical
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -13,6 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -21,13 +21,12 @@ import (
 	mongodb_engine "databasus-backend/internal/engines/mongodb"
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
-	"databasus-backend/internal/features/databases"
-	mongodbtypes "databasus-backend/internal/features/databases/databases/mongodb"
 	restores_core "databasus-backend/internal/features/restores/core"
 	storages_bridge "databasus-backend/internal/features/storages"
 	logicaltesting "databasus-backend/internal/features/tests/logical/shared"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
+	"databasus-backend/internal/lib/apiclient"
 	"databasus-backend/internal/modules/users"
 	test_utils "databasus-backend/internal/util/testing"
 	"databasus-backend/internal/util/testing/containers"
@@ -118,13 +117,13 @@ func testMongodbBackupRestoreForVersion(
 	)
 
 	logicaltesting.EnableBackupsViaAPI(
-		t, router, database.ID, storage.ID,
+		t, router, database.Id, storage.ID,
 		backups_core_enums.BackupEncryptionNone, user.Token,
 	)
 
-	logicaltesting.CreateBackupViaAPI(t, router, database.ID, user.Token)
+	logicaltesting.CreateBackupViaAPI(t, router, database.Id, user.Token)
 
-	backup := logicaltesting.WaitForBackupCompletion(t, router, database.ID, user.Token, 5*time.Minute)
+	backup := logicaltesting.WaitForBackupCompletion(t, router, database.Id, user.Token, 5*time.Minute)
 	assert.Equal(t, backups_core_logical.BackupStatusCompleted, backup.Status)
 	logicaltesting.AssertBackupSizeMatchesDownloadedBytes(t, router, backup, user.Token)
 
@@ -154,7 +153,7 @@ func testMongodbBackupRestoreForVersion(
 	test_utils.MakeDeleteRequest(
 		t,
 		router,
-		"/api/v1/databases/"+database.ID.String(),
+		"/api/v1/databases/"+database.Id.String(),
 		"Bearer "+user.Token,
 		http.StatusNoContent,
 	)
@@ -190,13 +189,13 @@ func testMongodbBackupRestoreWithEncryptionForVersion(
 	)
 
 	logicaltesting.EnableBackupsViaAPI(
-		t, router, database.ID, storage.ID,
+		t, router, database.Id, storage.ID,
 		backups_core_enums.BackupEncryptionEncrypted, user.Token,
 	)
 
-	logicaltesting.CreateBackupViaAPI(t, router, database.ID, user.Token)
+	logicaltesting.CreateBackupViaAPI(t, router, database.Id, user.Token)
 
-	backup := logicaltesting.WaitForBackupCompletion(t, router, database.ID, user.Token, 5*time.Minute)
+	backup := logicaltesting.WaitForBackupCompletion(t, router, database.Id, user.Token, 5*time.Minute)
 	assert.Equal(t, backups_core_logical.BackupStatusCompleted, backup.Status)
 	assert.Equal(t, backups_core_enums.BackupEncryptionEncrypted, backup.Encryption)
 
@@ -226,7 +225,7 @@ func testMongodbBackupRestoreWithEncryptionForVersion(
 	test_utils.MakeDeleteRequest(
 		t,
 		router,
-		"/api/v1/databases/"+database.ID.String(),
+		"/api/v1/databases/"+database.Id.String(),
 		"Bearer "+user.Token,
 		http.StatusNoContent,
 	)
@@ -261,7 +260,7 @@ func testMongodbBackupRestoreWithReadOnlyUserForVersion(
 		user.Token,
 	)
 
-	readOnlyUser := createMongodbReadOnlyUserViaAPI(t, router, database.ID, user.Token)
+	readOnlyUser := logicaltesting.CreateLimitedUserViaAPI(t, router, database, user.Token)
 	assert.NotEmpty(t, readOnlyUser.Username)
 	assert.NotEmpty(t, readOnlyUser.Password)
 
@@ -272,13 +271,13 @@ func testMongodbBackupRestoreWithReadOnlyUserForVersion(
 	)
 
 	logicaltesting.EnableBackupsViaAPI(
-		t, router, updatedDatabase.ID, storage.ID,
+		t, router, updatedDatabase.Id, storage.ID,
 		backups_core_enums.BackupEncryptionNone, user.Token,
 	)
 
-	logicaltesting.CreateBackupViaAPI(t, router, updatedDatabase.ID, user.Token)
+	logicaltesting.CreateBackupViaAPI(t, router, updatedDatabase.Id, user.Token)
 
-	backup := logicaltesting.WaitForBackupCompletion(t, router, updatedDatabase.ID, user.Token, 5*time.Minute)
+	backup := logicaltesting.WaitForBackupCompletion(t, router, updatedDatabase.Id, user.Token, 5*time.Minute)
 	assert.Equal(t, backups_core_logical.BackupStatusCompleted, backup.Status)
 
 	newDBName := "restoreddb_mongodb_ro_" + uuid.New().String()[:8]
@@ -309,7 +308,7 @@ func testMongodbBackupRestoreWithReadOnlyUserForVersion(
 	test_utils.MakeDeleteRequest(
 		t,
 		router,
-		"/api/v1/databases/"+updatedDatabase.ID.String(),
+		"/api/v1/databases/"+updatedDatabase.Id.String(),
 		"Bearer "+user.Token,
 		http.StatusNoContent,
 	)
@@ -357,30 +356,20 @@ func testMongodbBackupRestoreWithExcludeCollectionsForVersion(
 		user.Token,
 	)
 
-	database.Mongodb.ExcludeCollections = []string{"skip_me"}
-	w := workspaces_testing.MakeAPIRequest(
-		router,
-		"POST",
-		"/api/v1/databases/update",
-		"Bearer "+user.Token,
-		database,
-	)
-	if w.Code != http.StatusOK {
-		t.Fatalf(
-			"Failed to update database with ExcludeCollections. Status: %d, Body: %s",
-			w.Code,
-			w.Body.String(),
-		)
-	}
+	settings, err := database.Settings.AsMongodbSettings()
+	require.NoError(t, err)
+
+	settings.ExcludeCollections = []string{"skip_me"}
+	logicaltesting.UpdateDatabaseSettingsViaAPI(t, router, database, settings, user.Token)
 
 	logicaltesting.EnableBackupsViaAPI(
-		t, router, database.ID, storage.ID,
+		t, router, database.Id, storage.ID,
 		backups_core_enums.BackupEncryptionNone, user.Token,
 	)
 
-	logicaltesting.CreateBackupViaAPI(t, router, database.ID, user.Token)
+	logicaltesting.CreateBackupViaAPI(t, router, database.Id, user.Token)
 
-	backup := logicaltesting.WaitForBackupCompletion(t, router, database.ID, user.Token, 5*time.Minute)
+	backup := logicaltesting.WaitForBackupCompletion(t, router, database.Id, user.Token, 5*time.Minute)
 	assert.Equal(t, backups_core_logical.BackupStatusCompleted, backup.Status)
 
 	newDBName := "restoreddb_mongodb_excl_" + uuid.New().String()[:8]
@@ -418,7 +407,7 @@ func testMongodbBackupRestoreWithExcludeCollectionsForVersion(
 	test_utils.MakeDeleteRequest(
 		t,
 		router,
-		"/api/v1/databases/"+database.ID.String(),
+		"/api/v1/databases/"+database.Id.String(),
 		"Bearer "+user.Token,
 		http.StatusNoContent,
 	)
@@ -439,43 +428,25 @@ func createMongodbDatabaseViaAPI(
 	authDatabase string,
 	version mongodb_engine.Version,
 	token string,
-) *databases.Database {
-	request := databases.Database{
-		Name:        name,
-		WorkspaceID: &workspaceID,
-		Type:        databases.DatabaseTypeMongodb,
-		Mongodb: &mongodbtypes.MongodbDatabase{
-			Host:         host,
-			Port:         &port,
-			Username:     username,
-			Password:     password,
-			Database:     database,
-			AuthDatabase: authDatabase,
-			Version:      version,
-			IsHttps:      false,
-			IsSrv:        false,
-			CpuCount:     1,
-		},
-	}
+) apiclient.Database {
+	mongodbVersion := apiclient.MongodbVersion(version)
 
-	w := workspaces_testing.MakeAPIRequest(
-		router,
-		"POST",
-		"/api/v1/databases/create",
-		"Bearer "+token,
-		request,
-	)
+	request := logicaltesting.NewDatabaseCreate(t, workspaceID, apiclient.MongodbSettings{
+		Host:               host,
+		Port:               &port,
+		Username:           username,
+		Password:           &password,
+		Database:           database,
+		AuthDatabase:       authDatabase,
+		Version:            &mongodbVersion,
+		IsHttps:            false,
+		CpuCount:           1,
+		ExcludeCollections: []string{},
+		SshTunnel:          apiclient.SshTunnelSettings{IsEnabled: false},
+	})
+	request.Name = name
 
-	if w.Code != http.StatusCreated {
-		t.Fatalf("Failed to create MongoDB database. Status: %d, Body: %s", w.Code, w.Body.String())
-	}
-
-	var createdDatabase databases.Database
-	if err := json.Unmarshal(w.Body.Bytes(), &createdDatabase); err != nil {
-		t.Fatalf("Failed to unmarshal database response: %v", err)
-	}
-
-	return &createdDatabase
+	return logicaltesting.SubmitCreateDatabase(t, router, "MongoDB", request, token)
 }
 
 func createMongodbRestoreViaAPI(
@@ -492,7 +463,7 @@ func createMongodbRestoreViaAPI(
 	token string,
 ) {
 	request := restores_core.RestoreBackupRequest{
-		MongodbDatabase: &mongodbtypes.MongodbDatabase{
+		MongodbDatabase: &restores_core.MongodbTargetDatabase{
 			Host:         host,
 			Port:         &port,
 			Username:     username,
@@ -506,14 +477,7 @@ func createMongodbRestoreViaAPI(
 		},
 	}
 
-	test_utils.MakePostRequest(
-		t,
-		router,
-		fmt.Sprintf("/api/v1/restores/%s/restore", backupID.String()),
-		"Bearer "+token,
-		request,
-		http.StatusOK,
-	)
+	logicaltesting.SubmitRestore(t, router, backupID, request, token)
 }
 
 func waitForMongodbRestoreCompletion(
@@ -687,65 +651,21 @@ func setupMongodbTestData(t *testing.T, container *MongodbContainer) {
 	assert.NoError(t, err)
 }
 
-func createMongodbReadOnlyUserViaAPI(
-	t *testing.T,
-	router *gin.Engine,
-	databaseID uuid.UUID,
-	token string,
-) *databases.CreateReadOnlyUserResponse {
-	var database databases.Database
-	test_utils.MakeGetRequestAndUnmarshal(
-		t,
-		router,
-		fmt.Sprintf("/api/v1/databases/%s", databaseID.String()),
-		"Bearer "+token,
-		http.StatusOK,
-		&database,
-	)
-
-	var response databases.CreateReadOnlyUserResponse
-	test_utils.MakePostRequestAndUnmarshal(
-		t,
-		router,
-		"/api/v1/databases/create-readonly-user",
-		"Bearer "+token,
-		database,
-		http.StatusOK,
-		&response,
-	)
-
-	return &response
-}
-
 func updateMongodbDatabaseCredentialsViaAPI(
 	t *testing.T,
 	router *gin.Engine,
-	database *databases.Database,
+	database apiclient.Database,
 	username string,
 	password string,
 	token string,
-) *databases.Database {
-	database.Mongodb.Username = username
-	database.Mongodb.Password = password
+) apiclient.Database {
+	settings, err := database.Settings.AsMongodbSettings()
+	require.NoError(t, err)
 
-	w := workspaces_testing.MakeAPIRequest(
-		router,
-		"POST",
-		"/api/v1/databases/update",
-		"Bearer "+token,
-		database,
-	)
+	settings.Username = username
+	settings.Password = &password
 
-	if w.Code != http.StatusOK {
-		t.Fatalf("Failed to update MongoDB database. Status: %d, Body: %s", w.Code, w.Body.String())
-	}
-
-	var updatedDatabase databases.Database
-	if err := json.Unmarshal(w.Body.Bytes(), &updatedDatabase); err != nil {
-		t.Fatalf("Failed to unmarshal database response: %v", err)
-	}
-
-	return &updatedDatabase
+	return logicaltesting.UpdateDatabaseSettingsViaAPI(t, router, database, settings, token)
 }
 
 func dropMongodbUserSafe(client *mongo.Client, username, authDatabase string) {

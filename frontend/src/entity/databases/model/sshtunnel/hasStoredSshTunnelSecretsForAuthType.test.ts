@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest';
 
 import { hasStoredSshTunnelSecretsForAuthType } from './hasStoredSshTunnelSecretsForAuthType';
 import { SshTunnelAuthType } from './SshTunnelAuthType';
-import type { SshTunnelConfig } from './SshTunnelConfig';
+import type { SshTunnelSettings } from './SshTunnelSettings';
 
-const enabledTunnel = (): SshTunnelConfig => ({
+const enabledTunnel = (): SshTunnelSettings => ({
   isEnabled: true,
   authType: SshTunnelAuthType.PASSWORD,
   host: 'bastion.example.com',

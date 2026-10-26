@@ -16,7 +16,6 @@ import (
 	physical_enums "databasus-backend/internal/features/backups/backups/core/physical/enums"
 	backup_encryption "databasus-backend/internal/features/backups/backups/encryption"
 	"databasus-backend/internal/modules/storages"
-	util_encryption "databasus-backend/internal/util/encryption"
 )
 
 // Bounds for the post-success PUT of the reconstructed `.manifest` sidecar.
@@ -35,10 +34,9 @@ const (
 // runStreamParams carries everything runStream needs that does not come from the
 // *exec.Cmd itself. Grouped into a struct so FULL and INCR pass the same shape.
 type runStreamParams struct {
-	FileStore      FileStore
-	StorageID      uuid.UUID
-	FieldEncryptor util_encryption.FieldEncryptor
-	Logger         *slog.Logger
+	FileStore FileStore
+	StorageID uuid.UUID
+	Logger    *slog.Logger
 
 	FileName   string
 	Encryption backups_core_enums.BackupEncryption

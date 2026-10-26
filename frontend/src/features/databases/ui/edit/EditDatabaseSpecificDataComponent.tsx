@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { type Database, DatabaseType, databaseApi } from '../../../../entity/databases';
+import type { PostgresqlRestoreOptions } from '../../../../entity/restores';
 import { translateApiError } from '../../../../shared/i18n';
 import { CreateReadOnlyComponent } from './CreateReadOnlyComponent';
 import { EditMariaDbSpecificDataComponent } from './EditMariaDbSpecificDataComponent';
@@ -10,6 +11,7 @@ import { EditMongoDbSpecificDataComponent } from './EditMongoDbSpecificDataCompo
 import { EditMySqlSpecificDataComponent } from './EditMySqlSpecificDataComponent';
 import { EditPostgreSqlLogicalSpecificDataComponent } from './EditPostgreSqlLogicalSpecificDataComponent';
 import { EditPostgreSqlPhysicalSpecificDataComponent } from './EditPostgreSqlPhysicalSpecificDataComponent';
+import { toDatabaseSettingsTarget } from './toDatabaseSettingsTarget';
 
 interface Props {
   database: Database;
@@ -22,7 +24,8 @@ interface Props {
 
   saveButtonText?: string;
   isSaveToApi: boolean;
-  onSaved: (database: Database) => void;
+  // Restore options come only from a PostgreSQL logical form in restore mode.
+  onSaved: (database: Database, restoreOptions?: PostgresqlRestoreOptions) => void;
 
   isShowDbName?: boolean;
   isRestoreMode?: boolean;
@@ -52,18 +55,20 @@ export const EditDatabaseSpecificDataComponent = ({
   const [isShowReadOnlyDialog, setIsShowReadOnlyDialog] = useState(false);
   const [editingDatabase, setEditingDatabase] = useState<Database>(database);
 
-  const saveDb = async (databaseToSave: Database) => {
+  const saveDb = async (databaseToSave: Database, restoreOptions?: PostgresqlRestoreOptions) => {
     setEditingDatabase(databaseToSave);
 
     if (!isSaveToApi) {
-      onSaved(databaseToSave);
+      onSaved(databaseToSave, restoreOptions);
       return;
     }
 
     try {
-      const readOnlyUserSuggestion = await databaseApi.shouldSuggestReadOnlyUser(databaseToSave);
+      const limitedUserCheck = await databaseApi.checkLimitedUser(
+        toDatabaseSettingsTarget(databaseToSave, databaseToSave.settings),
+      );
 
-      if (readOnlyUserSuggestion.shouldSuggestReadOnlyUser) {
+      if (limitedUserCheck.isAdvisable) {
         setIsShowReadOnlyDialog(true);
       } else {
         onSaved(databaseToSave);
@@ -95,10 +100,7 @@ export const EditDatabaseSpecificDataComponent = ({
       >
         <CreateReadOnlyComponent
           database={editingDatabase}
-          onReadOnlyUserUpdated={(db) => {
-            console.log('onReadOnlyUserUpdated', db);
-            onReadOnlyUserCreated(db);
-          }}
+          onReadOnlyUserUpdated={onReadOnlyUserCreated}
           onGoBack={() => {
             setIsShowReadOnlyDialog(false);
           }}
@@ -125,11 +127,14 @@ export const EditDatabaseSpecificDataComponent = ({
     isShowDbName,
   };
 
-  switch (editingDatabase.type) {
+  const { settings } = editingDatabase;
+
+  switch (settings.type) {
     case DatabaseType.POSTGRES_LOGICAL:
       return (
         <EditPostgreSqlLogicalSpecificDataComponent
           {...commonProps}
+          settings={settings}
           isRestoreMode={isRestoreMode}
         />
       );
@@ -137,16 +142,15 @@ export const EditDatabaseSpecificDataComponent = ({
       return (
         <EditPostgreSqlPhysicalSpecificDataComponent
           {...commonProps}
+          settings={settings}
           onConnectionErrorChange={onConnectionErrorChange}
         />
       );
     case DatabaseType.MYSQL:
-      return <EditMySqlSpecificDataComponent {...commonProps} />;
+      return <EditMySqlSpecificDataComponent {...commonProps} settings={settings} />;
     case DatabaseType.MARIADB:
-      return <EditMariaDbSpecificDataComponent {...commonProps} />;
+      return <EditMariaDbSpecificDataComponent {...commonProps} settings={settings} />;
     case DatabaseType.MONGODB:
-      return <EditMongoDbSpecificDataComponent {...commonProps} />;
-    default:
-      return null;
+      return <EditMongoDbSpecificDataComponent {...commonProps} settings={settings} />;
   }
 };

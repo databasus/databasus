@@ -20,12 +20,9 @@ import (
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	"databasus-backend/internal/features/backups/backups/encryption"
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
-	"databasus-backend/internal/features/databases"
-	mongodbtypes "databasus-backend/internal/features/databases/databases/mongodb"
 	restores_core "databasus-backend/internal/features/restores/core"
 	"databasus-backend/internal/lib/crypto"
 	"databasus-backend/internal/modules/storages"
-	util_encryption "databasus-backend/internal/util/encryption"
 	io_utils "databasus-backend/internal/util/io"
 )
 
@@ -40,15 +37,15 @@ type RestoreMongodbBackupUsecase struct {
 
 func (uc *RestoreMongodbBackupUsecase) Execute(
 	parentCtx context.Context,
-	originalDB *databases.Database,
-	restoringToDB *databases.Database,
+	source restores_core.SourceDatabase,
+	target restores_core.RestoreBackupRequest,
 	backupConfig *backups_config_logical.LogicalBackupConfig,
 	restore restores_core.Restore,
 	backup *backups_core_logical.LogicalBackup,
 	storageReader storages.StorageReader,
 ) error {
-	if originalDB.Type != databases.DatabaseTypeMongodb {
-		return errors.New("database type not supported")
+	if source.Mongodb == nil {
+		return restores_core.ErrRestoreTypeNotSupported
 	}
 
 	uc.logger.InfoContext(parentCtx,
@@ -57,7 +54,7 @@ func (uc *RestoreMongodbBackupUsecase) Execute(
 		"backup_id", backup.ID,
 	)
 
-	mdb := restoringToDB.Mongodb
+	mdb := target.MongodbDatabase
 	if mdb == nil {
 		return fmt.Errorf("mongodb configuration is required for restore")
 	}
@@ -66,18 +63,7 @@ func (uc *RestoreMongodbBackupUsecase) Execute(
 		return fmt.Errorf("target database name is required for mongorestore")
 	}
 
-	fieldEncryptor := util_encryption.GetFieldEncryptor()
-	decryptedPassword, err := fieldEncryptor.Decrypt(mdb.Password)
-	if err != nil {
-		return fmt.Errorf("failed to decrypt password: %w", err)
-	}
-
-	sourceDatabase := ""
-	if originalDB.Mongodb != nil {
-		sourceDatabase = originalDB.Mongodb.Database
-	}
-
-	args := uc.buildMongorestoreArgs(mdb, decryptedPassword, sourceDatabase)
+	args := uc.buildMongorestoreArgs(mdb, source.GetDatabaseName())
 
 	return uc.restoreFromStorage(
 		parentCtx,
@@ -93,11 +79,10 @@ func (uc *RestoreMongodbBackupUsecase) Execute(
 }
 
 func (uc *RestoreMongodbBackupUsecase) buildMongorestoreArgs(
-	mdb *mongodbtypes.MongodbDatabase,
-	password string,
+	mdb *restores_core.MongodbTargetDatabase,
 	sourceDatabase string,
 ) []string {
-	uri := mdb.BuildRestoreURI(password)
+	uri := mdb.GetEngineSettings().BuildRestoreURI()
 
 	args := []string{
 		"--uri=" + uri,

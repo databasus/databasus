@@ -16,13 +16,12 @@ import (
 	mariadb_engine "databasus-backend/internal/engines/mariadb"
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
-	"databasus-backend/internal/features/databases"
-	mariadbtypes "databasus-backend/internal/features/databases/databases/mariadb"
 	restores_core "databasus-backend/internal/features/restores/core"
 	storages_bridge "databasus-backend/internal/features/storages"
 	logicaltesting "databasus-backend/internal/features/tests/logical/shared"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
+	"databasus-backend/internal/lib/apiclient"
 	"databasus-backend/internal/modules/users"
 	test_utils "databasus-backend/internal/util/testing"
 	"databasus-backend/internal/util/testing/bastion"
@@ -31,18 +30,34 @@ import (
 
 const bastionedMariadbImage = "mariadb:11.4"
 
-func bastionedMariadbConfig(
+func bastionedMariadbSettings(topology containers.BastionedDatabase, databaseName string) apiclient.MariadbSettings {
+	password := containers.MariadbRootPassword
+	version := apiclient.MariadbVersionN114
+
+	return apiclient.MariadbSettings{
+		Host:          topology.Database.Host,
+		Port:          topology.Database.Port,
+		Username:      "root",
+		Password:      &password,
+		Database:      &databaseName,
+		Version:       &version,
+		ExcludeTables: []string{},
+		SshTunnel:     logicaltesting.NewSshTunnelSettings(bastion.GetTunnelSettings(topology)),
+	}
+}
+
+func bastionedMariadbTarget(
 	topology containers.BastionedDatabase,
 	databaseName string,
-) *mariadbtypes.MariadbDatabase {
-	return &mariadbtypes.MariadbDatabase{
+) *restores_core.MariadbTargetDatabase {
+	return &restores_core.MariadbTargetDatabase{
 		Host:      topology.Database.Host,
 		Port:      topology.Database.Port,
 		Username:  "root",
 		Password:  containers.MariadbRootPassword,
 		Database:  &databaseName,
 		Version:   mariadb_engine.Version114,
-		SshTunnel: bastion.GetTunnelConfig(topology),
+		SshTunnel: logicaltesting.NewTargetSshTunnel(bastion.GetTunnelSettings(topology)),
 	}
 }
 
@@ -75,24 +90,28 @@ func Test_MariadbBackupRestore_OverSshTunnel_RestoresData(t *testing.T) {
 	storage := storages_bridge.CreateTestStorage(workspace.ID)
 	t.Cleanup(func() { storages_bridge.RemoveTestStorage(t.Context(), storage.ID) })
 
-	database := logicaltesting.SubmitCreateDatabase(t, router, "MariaDB cycle over SSH tunnel",
-		databases.Database{
-			Name:        "Bastioned MariaDB cycle",
-			WorkspaceID: &workspace.ID,
-			Type:        databases.DatabaseTypeMariadb,
-			Mariadb:     bastionedMariadbConfig(topology, containers.MariadbDatabase),
-		}, user.Token)
+	database := logicaltesting.SubmitCreateDatabase(
+		t,
+		router,
+		"MariaDB cycle over SSH tunnel",
+		logicaltesting.NewDatabaseCreate(
+			t,
+			workspace.ID,
+			bastionedMariadbSettings(topology, containers.MariadbDatabase),
+		),
+		user.Token,
+	)
 
 	t.Cleanup(func() {
-		test_utils.MakeDeleteRequest(t, router, "/api/v1/databases/"+database.ID.String(),
+		test_utils.MakeDeleteRequest(t, router, "/api/v1/databases/"+database.Id.String(),
 			"Bearer "+user.Token, http.StatusNoContent)
 	})
 
-	logicaltesting.EnableBackupsViaAPI(t, router, database.ID, storage.ID,
+	logicaltesting.EnableBackupsViaAPI(t, router, database.Id, storage.ID,
 		backups_core_enums.BackupEncryptionNone, user.Token)
-	logicaltesting.CreateBackupViaAPI(t, router, database.ID, user.Token)
+	logicaltesting.CreateBackupViaAPI(t, router, database.Id, user.Token)
 
-	backup := logicaltesting.WaitForBackupCompletion(t, router, database.ID, user.Token, 5*time.Minute)
+	backup := logicaltesting.WaitForBackupCompletion(t, router, database.Id, user.Token, 5*time.Minute)
 	require.Equal(t, backups_core_logical.BackupStatusCompleted, backup.Status)
 
 	t.Cleanup(func() {
@@ -105,7 +124,7 @@ func Test_MariadbBackupRestore_OverSshTunnel_RestoresData(t *testing.T) {
 
 	logicaltesting.SubmitRestore(t, router, backup.ID,
 		restores_core.RestoreBackupRequest{
-			MariadbDatabase: bastionedMariadbConfig(topology, restoredDatabaseName),
+			MariadbDatabase: bastionedMariadbTarget(topology, restoredDatabaseName),
 		}, user.Token)
 
 	restore := waitForMariadbRestoreCompletion(t, router, backup.ID, user.Token, 5*time.Minute)

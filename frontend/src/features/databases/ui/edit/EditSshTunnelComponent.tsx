@@ -7,24 +7,24 @@ import {
   DEFAULT_SSH_PORT,
   SSH_TUNNEL_AUTH_TYPE_LABEL_KEYS,
   SshTunnelAuthType,
-  type SshTunnelConfig,
-  createEmptySshTunnelConfig,
+  type SshTunnelSettings,
+  createEmptySshTunnelSettings,
   setSshTunnelAuthTypeAndClearUnusedSecrets,
 } from '../../../../entity/databases';
 
 interface Props {
-  sshTunnel: SshTunnelConfig | undefined;
+  sshTunnel: SshTunnelSettings;
   hasStoredSecrets: boolean;
-  onChange: (sshTunnel: SshTunnelConfig) => void;
+  onChange: (sshTunnel: SshTunnelSettings) => void;
 }
 
 export const EditSshTunnelComponent = ({ sshTunnel, hasStoredSecrets, onChange }: Props) => {
   const { t } = useTranslation();
   const [isReplacingSecrets, setIsReplacingSecrets] = useState(false);
 
-  const updateField = <Field extends keyof SshTunnelConfig>(
+  const updateField = <Field extends keyof SshTunnelSettings>(
     field: Field,
-    value: SshTunnelConfig[Field],
+    value: SshTunnelSettings[Field],
   ) => {
     onChange({ ...currentTunnel, [field]: value });
   };
@@ -107,7 +107,9 @@ export const EditSshTunnelComponent = ({ sshTunnel, hasStoredSecrets, onChange }
       : renderPassword();
   };
 
-  const currentTunnel = sshTunnel ?? createEmptySshTunnelConfig();
+  // A saved database without a tunnel comes back as only the switch, so enabling it starts from
+  // the defaults.
+  const currentTunnel = { ...createEmptySshTunnelSettings(), ...sshTunnel };
 
   return (
     <>

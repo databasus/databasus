@@ -17,7 +17,7 @@ import (
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	physical_models "databasus-backend/internal/features/backups/backups/core/physical/models"
 	physical_repositories "databasus-backend/internal/features/backups/backups/core/physical/repositories"
-	"databasus-backend/internal/util/encryption"
+	databases_bridge "databasus-backend/internal/features/databases"
 	"databasus-backend/internal/util/logger"
 	"databasus-backend/internal/util/walmath"
 )
@@ -53,11 +53,11 @@ func createTestSupervisor(
 
 	supervisor := NewWalStreamSupervisor(WalStreamSpec{
 		DatabaseID:     fixture.DB.ID,
-		SourceDB:       fixture.DB.PostgresqlPhysical,
+		BackupStatus:   databases_bridge.GetModule(),
+		SourceDB:       fixture.SourceDB,
 		StorageID:      fixture.Storage.ID,
 		FileStore:      newMockWalStoreFor(store),
 		Encryption:     backups_core_enums.BackupEncryptionNone,
-		FieldEncryptor: encryption.GetFieldEncryptor(),
 		WalSegmentRepo: physical_repositories.GetWalSegmentRepository(),
 		HistoryRepo:    physical_repositories.GetWalHistoryRepository(),
 		WatchDirRoot:   t.TempDir(),

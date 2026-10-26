@@ -382,7 +382,7 @@ export const LogicalBackupsComponent = ({
                 )}
 
                 {isCanManageDBs &&
-                  database.type === DatabaseType.POSTGRES_LOGICAL &&
+                  database.settings.type === DatabaseType.POSTGRES_LOGICAL &&
                   (verifyingBackupId === record.id ? (
                     <SyncOutlined spin style={{ color: '#155dfc' }} />
                   ) : (
@@ -413,7 +413,7 @@ export const LogicalBackupsComponent = ({
                   />
                 </Tooltip>
 
-                <Tooltip title={t(DOWNLOAD_TOOLTIP_KEYS[database.type])}>
+                <Tooltip title={t(DOWNLOAD_TOOLTIP_KEYS[database.settings.type])}>
                   {downloadingBackupId === record.id ? (
                     <SyncOutlined spin style={{ color: '#155dfc' }} />
                   ) : (

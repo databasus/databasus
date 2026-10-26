@@ -12,21 +12,22 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
+	pgphysical "databasus-backend/internal/engines/postgresql/physical"
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	physical_enums "databasus-backend/internal/features/backups/backups/core/physical/enums"
 	physical_models "databasus-backend/internal/features/backups/backups/core/physical/models"
 	physical_repositories "databasus-backend/internal/features/backups/backups/core/physical/repositories"
 	postgresql_executor "databasus-backend/internal/features/backups/backups/usecases/physical/postgresql"
 	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
-	"databasus-backend/internal/features/databases"
+	databases_bridge "databasus-backend/internal/features/databases"
 	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
 	workspaces_bridge "databasus-backend/internal/features/workspaces"
 	"databasus-backend/internal/lib/crypto"
 	"databasus-backend/internal/lib/database"
+	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/storage"
-	util_encryption "databasus-backend/internal/util/encryption"
 	"databasus-backend/internal/util/walmath"
 )
 
@@ -36,8 +37,9 @@ import (
 const metadataSuffix = ".metadata"
 
 type PhysicalBackuper struct {
-	databaseService     *databases.DatabaseService
-	fieldEncryptor      util_encryption.FieldEncryptor
+	databaseAccess *databases_bridge.Access
+	// getDatabases is read per call: each test application installs its own module.
+	getDatabases        func() databases.Module
 	workspaceService    *workspaces_bridge.Access
 	fullRepo            *physical_repositories.PhysicalFullBackupRepository
 	incrRepo            *physical_repositories.PhysicalIncrementalBackupRepository
@@ -105,20 +107,19 @@ func (b *PhysicalBackuper) runFullBackup(
 	b.taskCancellationRegistry.RegisterTask(fullBackup.ID, cancel)
 	defer b.taskCancellationRegistry.UnregisterTask(fullBackup.ID)
 
-	rawSizeMb := b.getSourceClusterSizeMb(executionCtx, logger, backupCtx.Database)
+	rawSizeMb := b.getSourceClusterSizeMb(executionCtx, logger, backupCtx.Source)
 
 	fullBackupSpec := postgresql_executor.FullBackupSpec{
 		CommonBackupSpec: postgresql_executor.CommonBackupSpec{
-			SourceDB:       backupCtx.Database.PostgresqlPhysical,
-			DatabaseName:   backupCtx.Database.Name,
-			StorageID:      backupCtx.Storage.ID,
-			FileStore:      b.getStorages(),
-			Encryption:     backupCtx.Config.Encryption,
-			MasterKey:      backupCtx.MasterKey,
-			FieldEncryptor: b.fieldEncryptor,
-			FullRepo:       b.fullRepo,
-			HistoryRepo:    b.historyRepo,
-			Logger:         logger,
+			SourceDB:     backupCtx.Source,
+			DatabaseName: backupCtx.Database.Name,
+			StorageID:    backupCtx.Storage.ID,
+			FileStore:    b.getStorages(),
+			Encryption:   backupCtx.Config.Encryption,
+			MasterKey:    backupCtx.MasterKey,
+			FullRepo:     b.fullRepo,
+			HistoryRepo:  b.historyRepo,
+			Logger:       logger,
 			ProgressListener: func(completedMb float64, elapsedMs int64) {
 				if err := b.fullRepo.UpdateProgress(fullBackup.ID, completedMb, elapsedMs); err != nil {
 					logger.ErrorContext(ctx, "failed to update full backup progress", "error", err)
@@ -213,16 +214,15 @@ func (b *PhysicalBackuper) runIncrementalBackup(
 
 	incrBackupSpec := postgresql_executor.IncrementalBackupSpec{
 		CommonBackupSpec: postgresql_executor.CommonBackupSpec{
-			SourceDB:       backupCtx.Database.PostgresqlPhysical,
-			DatabaseName:   backupCtx.Database.Name,
-			StorageID:      backupCtx.Storage.ID,
-			FileStore:      b.getStorages(),
-			Encryption:     backupCtx.Config.Encryption,
-			MasterKey:      backupCtx.MasterKey,
-			FieldEncryptor: b.fieldEncryptor,
-			FullRepo:       b.fullRepo,
-			HistoryRepo:    b.historyRepo,
-			Logger:         logger,
+			SourceDB:     backupCtx.Source,
+			DatabaseName: backupCtx.Database.Name,
+			StorageID:    backupCtx.Storage.ID,
+			FileStore:    b.getStorages(),
+			Encryption:   backupCtx.Config.Encryption,
+			MasterKey:    backupCtx.MasterKey,
+			FullRepo:     b.fullRepo,
+			HistoryRepo:  b.historyRepo,
+			Logger:       logger,
 			ProgressListener: func(completedMb float64, elapsedMs int64) {
 				if err := b.incrRepo.UpdateProgress(incrBackup.ID, completedMb, elapsedMs); err != nil {
 					logger.ErrorContext(ctx, "failed to update incremental backup progress", "error", err)
@@ -297,15 +297,16 @@ func (b *PhysicalBackuper) openBackupContext(
 		return nil, false
 	}
 
-	db, err := b.databaseService.GetDatabaseByID(databaseID)
+	db, err := b.databaseAccess.GetDatabaseByID(ctx, databaseID)
 	if err != nil {
 		logger.ErrorContext(ctx, "failed to fetch database by id", "error", err)
 
 		return nil, false
 	}
 
-	if db.PostgresqlPhysical == nil {
-		logger.ErrorContext(ctx, "database is not a physical postgres database")
+	connectionSettings, err := b.getDatabases().GetPostgresqlPhysicalConnectionSettings(ctx, databaseID)
+	if err != nil {
+		logger.ErrorContext(ctx, "failed to read the connection settings of the physical database", "error", err)
 
 		return nil, false
 	}
@@ -329,23 +330,23 @@ func (b *PhysicalBackuper) openBackupContext(
 	tunnelCtx, cancelTunnelOpen := context.WithTimeout(context.Background(), bastionOpenTimeout)
 	defer cancelTunnelOpen()
 
-	tunneledDatabase, err := databases.OpenTunnel(tunnelCtx, databases.OpenTunnelSpec{
-		Database:  db,
-		Logger:    logger,
-		Encryptor: b.fieldEncryptor,
-	})
+	tunnel, err := pgphysical.NewSource(connectionSettings.Engine).OpenTunnel(tunnelCtx, logger)
 	if err != nil {
 		logger.ErrorContext(ctx, "failed to open ssh tunnel to the source cluster", "error", err)
 
 		return nil, false
 	}
 
+	sourceThroughTunnel := connectionSettings
+	sourceThroughTunnel.Engine = tunnel.GetSource().GetSettings()
+
 	return &backupContext{
 		Config:    cfg,
-		Database:  tunneledDatabase.GetDatabaseThroughTunnel(),
+		Database:  db,
+		Source:    sourceThroughTunnel,
 		Storage:   storage,
 		MasterKey: masterKey,
-		tunnel:    tunneledDatabase,
+		tunnel:    tunnel,
 	}, true
 }
 
@@ -401,16 +402,12 @@ func (b *PhysicalBackuper) resolveParentManifest(
 func (b *PhysicalBackuper) getSourceClusterSizeMb(
 	ctx context.Context,
 	logger *slog.Logger,
-	sourceDatabase *databases.Database,
+	source databases.PostgresqlPhysicalConnectionSettings,
 ) *float64 {
 	probeCtx, cancelProbe := context.WithTimeout(ctx, clusterSizeProbeTimeout)
 	defer cancelProbe()
 
-	clusterSizeMb, err := sourceDatabase.PostgresqlPhysical.GetClusterSizeMb(
-		probeCtx,
-		logger,
-		b.fieldEncryptor,
-	)
+	clusterSizeMb, err := pgphysical.NewSource(source.Engine).GetClusterSizeMb(probeCtx, logger)
 	if err != nil {
 		logger.WarnContext(ctx, "failed to measure source cluster size", "error", err)
 
@@ -455,10 +452,11 @@ func (b *PhysicalBackuper) persistFullResult(
 	fullBackup.CompletedAt = &completedAt
 
 	return b.saveTerminalResultIfInProgress(ctx, terminalPersistSpec{
-		DatabaseID: fullBackup.DatabaseID,
-		BackupID:   fullBackup.ID,
-		StorageID:  fullBackup.StorageID,
-		Result:     backupResult,
+		DatabaseID:      fullBackup.DatabaseID,
+		BackupID:        fullBackup.ID,
+		BackupCreatedAt: fullBackup.CreatedAt,
+		StorageID:       fullBackup.StorageID,
+		Result:          backupResult,
 		LoadStatus: func(tx *gorm.DB) (physical_enums.PhysicalBackupStatus, error) {
 			var current physical_models.PhysicalFullBackup
 
@@ -508,10 +506,11 @@ func (b *PhysicalBackuper) persistIncrResult(
 	incrBackup.CompletedAt = &completedAt
 
 	return b.saveTerminalResultIfInProgress(ctx, terminalPersistSpec{
-		DatabaseID: incrBackup.DatabaseID,
-		BackupID:   incrBackup.ID,
-		StorageID:  incrBackup.StorageID,
-		Result:     backupResult,
+		DatabaseID:      incrBackup.DatabaseID,
+		BackupID:        incrBackup.ID,
+		BackupCreatedAt: incrBackup.CreatedAt,
+		StorageID:       incrBackup.StorageID,
+		Result:          backupResult,
 		LoadStatus: func(tx *gorm.DB) (physical_enums.PhysicalBackupStatus, error) {
 			var current physical_models.PhysicalIncrementalBackup
 
@@ -578,10 +577,12 @@ func (b *PhysicalBackuper) isIncrRetryBudgetExhausted(
 type terminalPersistSpec struct {
 	DatabaseID uuid.UUID
 	BackupID   uuid.UUID
-	StorageID  uuid.UUID
-	Result     postgresql_executor.PhysicalBackupResult
-	LoadStatus func(tx *gorm.DB) (physical_enums.PhysicalBackupStatus, error)
-	Save       func(tx *gorm.DB) error
+	// BackupCreatedAt, the start of the backup, becomes the database's last backup time when it completes.
+	BackupCreatedAt time.Time
+	StorageID       uuid.UUID
+	Result          postgresql_executor.PhysicalBackupResult
+	LoadStatus      func(tx *gorm.DB) (physical_enums.PhysicalBackupStatus, error)
+	Save            func(tx *gorm.DB) error
 }
 
 // The files an attempt wrote are kept only by the transaction that publishes it.
@@ -606,6 +607,10 @@ func (b *PhysicalBackuper) saveTerminalResultIfInProgress(ctx context.Context, s
 
 		if spec.Result.Status == physical_enums.PhysicalBackupStatusCompleted {
 			if err := b.getStorages().ConfirmFileWrites(ctx, spec.Result.Receipts); err != nil {
+				return err
+			}
+
+			if err := b.getDatabases().RecordBackupSuccess(ctx, spec.DatabaseID, spec.BackupCreatedAt); err != nil {
 				return err
 			}
 		} else if err := b.getStorages().RequestFileDeletions(ctx, b.attemptFileReferences(spec)); err != nil {
@@ -739,7 +744,7 @@ func (b *PhysicalBackuper) finalizeIncrWithStatus(
 func (b *PhysicalBackuper) sendFullBackupNotification(
 	ctx context.Context,
 	cfg *backups_config_physical.PhysicalBackupConfig,
-	db *databases.Database,
+	db databases.Database,
 	fullBackup *physical_models.PhysicalFullBackup,
 	backupResult postgresql_executor.PhysicalBackupResult,
 ) {
@@ -764,13 +769,13 @@ func (b *PhysicalBackuper) sendFullBackupNotification(
 		Message:  message,
 	}
 
-	b.notificationSender.Notify(ctx, db.GetNotifierIDs(), notification)
+	b.notificationSender.Notify(ctx, db.NotifierIDs, notification)
 }
 
 func (b *PhysicalBackuper) sendIncrBackupNotification(
 	ctx context.Context,
 	cfg *backups_config_physical.PhysicalBackupConfig,
-	db *databases.Database,
+	db databases.Database,
 	incrBackup *physical_models.PhysicalIncrementalBackup,
 	backupResult postgresql_executor.PhysicalBackupResult,
 ) {
@@ -795,7 +800,7 @@ func (b *PhysicalBackuper) sendIncrBackupNotification(
 		Message:  message,
 	}
 
-	b.notificationSender.Notify(ctx, db.GetNotifierIDs(), notification)
+	b.notificationSender.Notify(ctx, db.NotifierIDs, notification)
 }
 
 func toNotificationType(
@@ -810,16 +815,14 @@ func toNotificationType(
 
 func classifyFullBackupNotification(
 	ctx context.Context,
-	db *databases.Database,
+	db databases.Database,
 	fullBackup *physical_models.PhysicalFullBackup,
 	backupResult postgresql_executor.PhysicalBackupResult,
 	workspaceService *workspaces_bridge.Access,
 ) (backups_config_physical.BackupNotificationType, string, string) {
 	workspaceName := "unknown"
-	if db.WorkspaceID != nil {
-		if ws, err := workspaceService.GetWorkspaceByID(ctx, *db.WorkspaceID); err == nil {
-			workspaceName = ws.Name
-		}
+	if ws, err := workspaceService.GetWorkspaceByID(ctx, db.WorkspaceID); err == nil {
+		workspaceName = ws.Name
 	}
 
 	switch fullBackup.Status {
@@ -847,16 +850,14 @@ func classifyFullBackupNotification(
 
 func classifyIncrBackupNotification(
 	ctx context.Context,
-	db *databases.Database,
+	db databases.Database,
 	incrBackup *physical_models.PhysicalIncrementalBackup,
 	backupResult postgresql_executor.PhysicalBackupResult,
 	workspaceService *workspaces_bridge.Access,
 ) (backups_config_physical.BackupNotificationType, string, string) {
 	workspaceName := "unknown"
-	if db.WorkspaceID != nil {
-		if ws, err := workspaceService.GetWorkspaceByID(ctx, *db.WorkspaceID); err == nil {
-			workspaceName = ws.Name
-		}
+	if ws, err := workspaceService.GetWorkspaceByID(ctx, db.WorkspaceID); err == nil {
+		workspaceName = ws.Name
 	}
 
 	switch incrBackup.Status {

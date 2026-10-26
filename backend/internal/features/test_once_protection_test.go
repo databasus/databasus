@@ -9,7 +9,7 @@ import (
 	backuping_physical "databasus-backend/internal/features/backups/backups/backuping/physical"
 	backups_services "databasus-backend/internal/features/backups/backups/services"
 	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
-	"databasus-backend/internal/features/databases"
+	databases_bridge "databasus-backend/internal/features/databases"
 	healthcheck_config "databasus-backend/internal/features/healthcheck/config"
 	"databasus-backend/internal/features/restores"
 	"databasus-backend/internal/features/restores/restoring"
@@ -29,8 +29,8 @@ func Test_SetupDependencies_CalledTwice_LogsWarning(t *testing.T) {
 	backuping_physical.SetupDependencies()
 	backuping_physical.SetupDependencies()
 
-	databases.SetupDependencies()
-	databases.SetupDependencies()
+	databases_bridge.SetupDependencies()
+	databases_bridge.SetupDependencies()
 
 	healthcheck_config.SetupDependencies()
 	healthcheck_config.SetupDependencies()

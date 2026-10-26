@@ -15,12 +15,13 @@ import (
 	usecases_logical "databasus-backend/internal/features/backups/backups/usecases/logical"
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
 	"databasus-backend/internal/features/caching"
-	"databasus-backend/internal/features/databases"
+	databases_bridge "databasus-backend/internal/features/databases"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	storages_bridge "databasus-backend/internal/features/storages"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_bridge "databasus-backend/internal/features/workspaces"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
+	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/modules/users"
@@ -87,7 +88,7 @@ func SeedInProgressTestBackup(
 type BackupTestFixture struct {
 	Storage  storages.Storage
 	Notifier *notifiers.Notifier
-	Database *databases.Database
+	Database databases.Database
 }
 
 func CreateBackupTestFixture(t *testing.T, workspaceName string) *BackupTestFixture {
@@ -101,7 +102,7 @@ func CreateBackupTestFixture(t *testing.T, workspaceName string) *BackupTestFixt
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), workspaceName, user)
 	createdStorage := storages_bridge.CreateTestStorage(workspace.ID)
 	createdNotifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
-	createdDatabase := databases.CreateTestDatabase(workspace.ID, createdNotifier)
+	createdDatabase := databases_bridge.CreateTestDatabase(workspace.ID, createdNotifier)
 
 	backups_config_logical.EnableBackupsForTestDatabase(t.Context(), createdDatabase.ID, createdStorage.ID)
 
@@ -113,7 +114,7 @@ func CreateBackupTestFixture(t *testing.T, workspaceName string) *BackupTestFixt
 			}
 		}
 
-		databases.RemoveTestDatabase(t.Context(), createdDatabase)
+		databases_bridge.RemoveTestDatabase(t.Context(), createdDatabase)
 		// The database delete cascades; removing its storage and notifier before that lands leaves
 		// the rows behind.
 		time.Sleep(50 * time.Millisecond)
@@ -127,7 +128,7 @@ func CreateBackupTestFixture(t *testing.T, workspaceName string) *BackupTestFixt
 
 func CreateTestRouter() *gin.Engine {
 	router := workspaces_testing.CreateTestRouter(
-		databases.GetDatabaseController(),
+		databases_bridge.GetTestRoutes(),
 		backups_config_logical.GetBackupConfigController(),
 	)
 
@@ -147,7 +148,8 @@ func CreateTestBackupCleaner() *BackupCleaner {
 
 func CreateTestBackuper() *Backuper {
 	return &Backuper{
-		databases.GetDatabaseService(),
+		databases_bridge.GetAccess(),
+		databases_bridge.GetModule,
 		workspaces_bridge.GetAccess(),
 		getBackupRepository(),
 		backups_config_logical.GetBackupConfigService(),
@@ -161,7 +163,8 @@ func CreateTestBackuper() *Backuper {
 
 func CreateTestBackuperWithUseCase(useCase backups_core_logical.CreateBackupUsecase) *Backuper {
 	return &Backuper{
-		databases.GetDatabaseService(),
+		databases_bridge.GetAccess(),
+		databases_bridge.GetModule,
 		workspaces_bridge.GetAccess(),
 		getBackupRepository(),
 		backups_config_logical.GetBackupConfigService(),
@@ -185,7 +188,7 @@ func CreateTestSchedulerWithBackuper(backuper *Backuper) *BackupsScheduler {
 		getBackupRepository(),
 		backups_config_logical.GetBackupConfigService(),
 		getTaskCancellationRequester(),
-		databases.GetDatabaseService(),
+		databases_bridge.GetAccess(),
 		time.Now().UTC(),
 		logger.GetLogger(),
 		backuper,

@@ -2,16 +2,16 @@ import { useTranslation } from 'react-i18next';
 
 import {
   DATABASE_TYPE_LABEL_KEYS,
-  type Database,
+  type MysqlSettings,
   DatabaseType,
 } from '../../../../entity/databases';
 import { ShowSshTunnelComponent } from './ShowSshTunnelComponent';
 
 interface Props {
-  database: Database;
+  settings: MysqlSettings;
 }
 
-export const ShowMySqlSpecificDataComponent = ({ database }: Props) => {
+export const ShowMySqlSpecificDataComponent = ({ settings }: Props) => {
   const { t } = useTranslation();
 
   return (
@@ -22,22 +22,22 @@ export const ShowMySqlSpecificDataComponent = ({ database }: Props) => {
             engine: t(DATABASE_TYPE_LABEL_KEYS[DatabaseType.MYSQL]),
           })}
         </div>
-        <div>{database.mysql?.version || ''}</div>
+        <div>{settings.version || ''}</div>
       </div>
 
       <div className="mb-1 flex w-full items-center">
         <div className="min-w-[150px] pr-2 break-all">{t('common.fields.host')}</div>
-        <div>{database.mysql?.host || ''}</div>
+        <div>{settings.host || ''}</div>
       </div>
 
       <div className="mb-1 flex w-full items-center">
         <div className="min-w-[150px] pr-2">{t('common.fields.port')}</div>
-        <div>{database.mysql?.port || ''}</div>
+        <div>{settings.port || ''}</div>
       </div>
 
       <div className="mb-1 flex w-full items-center">
         <div className="min-w-[150px] pr-2">{t('common.fields.username')}</div>
-        <div>{database.mysql?.username || ''}</div>
+        <div>{settings.username || ''}</div>
       </div>
 
       <div className="mb-1 flex w-full items-center">
@@ -47,19 +47,19 @@ export const ShowMySqlSpecificDataComponent = ({ database }: Props) => {
 
       <div className="mb-1 flex w-full items-center">
         <div className="min-w-[150px] pr-2">{t('databases.fields.databaseName')}</div>
-        <div>{database.mysql?.database || ''}</div>
+        <div>{settings.database || ''}</div>
       </div>
 
       <div className="mb-1 flex w-full items-center">
         <div className="min-w-[150px] pr-2">{t('databases.fields.useHttps')}</div>
-        <div>{database.mysql?.isHttps ? t('common.answers.yes') : t('common.answers.no')}</div>
+        <div>{settings.isHttps ? t('common.answers.yes') : t('common.answers.no')}</div>
       </div>
-      <ShowSshTunnelComponent sshTunnel={database.mysql?.sshTunnel} />
+      <ShowSshTunnelComponent sshTunnel={settings.sshTunnel} />
 
-      {!!database.mysql?.excludeTables?.length && (
+      {!!settings.excludeTables?.length && (
         <div className="mb-1 flex w-full items-center">
           <div className="min-w-[150px] pr-2">{t('databases.fields.excludeTables')}</div>
-          <div>{database.mysql.excludeTables.join(', ')}</div>
+          <div>{settings.excludeTables.join(', ')}</div>
         </div>
       )}
     </div>

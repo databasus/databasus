@@ -7,7 +7,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"databasus-backend/internal/features/databases"
+	databases_bridge "databasus-backend/internal/features/databases"
 	workspaces_bridge "databasus-backend/internal/features/workspaces"
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/modules/workspaces"
@@ -15,7 +15,7 @@ import (
 
 type HealthcheckAttemptService struct {
 	healthcheckAttemptRepository *HealthcheckAttemptRepository
-	databaseService              *databases.DatabaseService
+	databaseAccess               *databases_bridge.Access
 	workspaceService             *workspaces_bridge.Access
 }
 
@@ -25,16 +25,12 @@ func (s *HealthcheckAttemptService) GetAttemptsByDatabase(
 	databaseID uuid.UUID,
 	afterDate time.Time,
 ) ([]*HealthcheckAttempt, error) {
-	database, err := s.databaseService.GetDatabaseByID(databaseID)
+	database, err := s.databaseAccess.GetDatabaseByID(ctx, databaseID)
 	if err != nil {
 		return nil, err
 	}
 
-	if database.WorkspaceID == nil {
-		return nil, errors.New("cannot access healthcheck attempts for databases without workspace")
-	}
-
-	isAllowed, err := s.workspaceService.IsActorAllowed(ctx, actor, *database.WorkspaceID, workspaces.ActionView)
+	isAllowed, err := s.workspaceService.IsActorAllowed(ctx, actor, database.WorkspaceID, workspaces.ActionView)
 	if err != nil {
 		return nil, err
 	}

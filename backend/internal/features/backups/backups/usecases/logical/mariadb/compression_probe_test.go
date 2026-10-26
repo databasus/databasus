@@ -12,15 +12,18 @@ import (
 
 	"databasus-backend/internal/config"
 	mariadb_engine "databasus-backend/internal/engines/mariadb"
-	mariadbtypes "databasus-backend/internal/features/databases/databases/mariadb"
+	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/util/testing/containers"
 )
 
 func Test_BuildMariadbDumpArgs_WhenCalled_OmitsCompressionFlags(t *testing.T) {
 	uc := &CreateMariadbBackupUsecase{}
-	database := &mariadbtypes.MariadbDatabase{Version: mariadb_engine.Version1011}
+	target := dumpTarget{
+		connectionSettings: databases.MariadbConnectionSettings{Version: mariadb_engine.Version1011},
+		settings:           mariadb_engine.Settings{},
+	}
 
-	args := uc.buildMariadbDumpArgs(database)
+	args := uc.buildMariadbDumpArgs(target)
 
 	for _, arg := range args {
 		if strings.Contains(arg, "compress") {
@@ -73,16 +76,16 @@ func Test_ProbeNetworkCompressionArgs_AgainstStockMariadb_SelectsCompress(t *tes
 	endpoint := containers.StartMariadb(t, "mariadb:10.11")
 
 	databaseName := containers.MariadbDatabase
-	database := &mariadbtypes.MariadbDatabase{
-		Version:  mariadb_engine.Version1011,
+	settings := mariadb_engine.Settings{
 		Host:     endpoint.Host,
 		Port:     endpoint.Port,
 		Username: containers.MariadbUsername,
-		Database: &databaseName,
+		Password: containers.MariadbPassword,
+		Database: databaseName,
 	}
 	uc := &CreateMariadbBackupUsecase{logger: slog.New(slog.NewTextHandler(os.Stdout, nil))}
 
-	myCnfFile, err := uc.createTempMyCnfFile(database, containers.MariadbPassword)
+	myCnfFile, err := uc.createTempMyCnfFile(settings)
 	if err != nil {
 		t.Fatalf("failed to create .my.cnf: %v", err)
 	}

@@ -19,12 +19,10 @@ import (
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	backup_encryption "databasus-backend/internal/features/backups/backups/encryption"
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
-	"databasus-backend/internal/features/databases"
-	mongodbtypes "databasus-backend/internal/features/databases/databases/mongodb"
 	"databasus-backend/internal/lib/crypto"
 	"databasus-backend/internal/lib/namelist"
+	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/storages"
-	"databasus-backend/internal/util/encryption"
 )
 
 const (
@@ -33,9 +31,10 @@ const (
 )
 
 type CreateMongodbBackupUsecase struct {
-	logger         *slog.Logger
-	masterKey      *crypto.MasterKey
-	fieldEncryptor encryption.FieldEncryptor
+	logger    *slog.Logger
+	masterKey *crypto.MasterKey
+	// getDatabases is read per call: each test application installs its own module.
+	getDatabases func() databases.Module
 }
 
 type writeResult struct {
@@ -47,7 +46,7 @@ func (uc *CreateMongodbBackupUsecase) Execute(
 	ctx context.Context,
 	backup *backups_core_logical.LogicalBackup,
 	backupConfig *backups_config_logical.LogicalBackupConfig,
-	db *databases.Database,
+	db databases.Database,
 	fileStore backups_core_logical.BackupFileStore,
 	backupProgressListener func(completedMBs float64),
 ) (*backups_core_logical.BackupArtifacts, error) {
@@ -55,39 +54,33 @@ func (uc *CreateMongodbBackupUsecase) Execute(
 
 	logger.InfoContext(ctx, "creating mongodb backup via mongodump")
 
-	tunneledDatabase, err := databases.OpenTunnel(ctx, databases.OpenTunnelSpec{
-		Database:  db,
-		Logger:    logger,
-		Encryptor: uc.fieldEncryptor,
-	})
+	connectionSettings, err := uc.getDatabases().GetMongodbConnectionSettings(ctx, db.ID)
 	if err != nil {
 		return nil, err
 	}
 
-	defer tunneledDatabase.Close()
-
-	mongodbDatabase := tunneledDatabase.GetDatabaseThroughTunnel().Mongodb
-	if mongodbDatabase == nil {
-		return nil, fmt.Errorf("mongodb database configuration is required")
+	tunnel, err := mongodb_engine.NewSource(connectionSettings.Engine).OpenTunnel(ctx, logger)
+	if err != nil {
+		return nil, err
 	}
 
-	if mongodbDatabase.Database == "" {
+	defer tunnel.Close()
+
+	source := tunnel.GetSource()
+	settingsThroughTunnel := source.GetSettings()
+
+	if settingsThroughTunnel.Database == "" {
 		return nil, fmt.Errorf("database name is required for mongodump backups")
 	}
 
-	decryptedPassword, err := uc.fieldEncryptor.Decrypt(mongodbDatabase.Password)
-	if err != nil {
-		return nil, fmt.Errorf("failed to decrypt database password: %w", err)
-	}
-
-	rawSizeMB, err := mongodbDatabase.GetRawDbSizeMb(ctx, logger, uc.fieldEncryptor)
+	rawSizeMB, err := source.GetRawSizeMb(ctx, logger)
 	if err != nil {
 		logger.WarnContext(ctx, "failed to fetch raw db size before backup", "error", err)
 	} else {
 		backup.BackupRawDbSizeMb = rawSizeMB
 	}
 
-	args := uc.buildMongodumpArgs(mongodbDatabase, decryptedPassword)
+	args := uc.buildMongodumpArgs(connectionSettings, settingsThroughTunnel)
 
 	return uc.streamToStorage(
 		ctx,
@@ -105,24 +98,22 @@ func (uc *CreateMongodbBackupUsecase) Execute(
 }
 
 func (uc *CreateMongodbBackupUsecase) buildMongodumpArgs(
-	mdb *mongodbtypes.MongodbDatabase,
-	password string,
+	connectionSettings databases.MongodbConnectionSettings,
+	settingsThroughTunnel mongodb_engine.Settings,
 ) []string {
-	uri := mdb.BuildConnectionURI(password)
-
 	args := []string{
-		"--uri=" + uri,
+		"--uri=" + settingsThroughTunnel.BuildConnectionURI(),
 		"--archive",
 		"--gzip",
 	}
 
-	for _, excludedCollection := range namelist.NormalizeUniqueNames(mdb.ExcludeCollections) {
+	for _, excludedCollection := range namelist.NormalizeUniqueNames(connectionSettings.ExcludeCollections) {
 		args = append(args, "--excludeCollection="+excludedCollection)
 	}
 
 	// Use numParallelCollections based on CPU count
 	// Cap between 1 and 16 to balance performance and resource usage
-	parallelCollections := max(1, min(mdb.CpuCount, 16))
+	parallelCollections := max(1, min(connectionSettings.CPUCount, 16))
 	if parallelCollections > 1 {
 		args = append(args, "--numParallelCollections="+fmt.Sprintf("%d", parallelCollections))
 	}

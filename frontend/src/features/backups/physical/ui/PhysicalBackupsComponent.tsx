@@ -25,7 +25,11 @@ import {
   physicalBackupConfigApi,
   physicalBackupsApi,
 } from '../../../../entity/backups/physical';
-import { type Database, PhysicalDatabaseBackupType } from '../../../../entity/databases';
+import {
+  type Database,
+  DatabaseType,
+  PhysicalDatabaseBackupType,
+} from '../../../../entity/databases';
 import { usePersistentState, usePolledPagedList } from '../../../../shared/hooks';
 import { type LocaleContextValue, translateApiError, useLocale } from '../../../../shared/i18n';
 import { formatDuration } from '../../../../shared/lib';
@@ -147,7 +151,8 @@ export const PhysicalBackupsComponent = ({
   );
 
   const isIncrementalAllowed =
-    database.postgresqlPhysical?.backupType !== PhysicalDatabaseBackupType.FULL;
+    database.settings.type === DatabaseType.POSTGRES_PHYSICAL &&
+    database.settings.backupType !== PhysicalDatabaseBackupType.FULL;
 
   const fetchBackupsPage = async (cursor: string | undefined) => {
     const response = await physicalBackupsApi.getPhysicalBackups(

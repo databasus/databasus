@@ -4,11 +4,12 @@ import (
 	"context"
 	"testing"
 
-	"github.com/google/uuid"
-
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
-	"databasus-backend/internal/features/databases"
+	databases_bridge "databasus-backend/internal/features/databases"
+	users_testing "databasus-backend/internal/features/users/testing"
+	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
+	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/util/testing/containers"
 )
 
@@ -16,11 +17,14 @@ import (
 // MongoDB: a storage timeout that ended the backup context was reported as "backup cancelled".
 func Test_Execute_WhenStorageTimesOut_ReportsStorageFailure_RegressionForIssue816(t *testing.T) {
 	endpoint := containers.StartMongodb(t, "mongo:7.0")
-	database := &databases.Database{
-		ID:      uuid.New(),
-		Type:    databases.DatabaseTypeMongodb,
-		Mongodb: databases.GetTestMongodbConfig(endpoint.Host, endpoint.Port),
-	}
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
+	database := databases_bridge.CreateTestMongodbDatabase(endpoint.Host, endpoint.Port, workspace.ID, nil)
+
+	t.Cleanup(func() {
+		databases_bridge.RemoveTestDatabase(t.Context(), database)
+		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
+	})
 
 	backups_core_logical.AssertStorageTimeoutReportedAsStorageFailure(t, func(
 		ctx context.Context,

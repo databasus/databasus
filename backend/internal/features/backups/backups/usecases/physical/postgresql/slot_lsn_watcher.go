@@ -109,7 +109,7 @@ func (s *WalStreamSupervisor) inspectSourceSlot(ctx context.Context, logger *slo
 	probeCtx, cancel := context.WithTimeout(ctx, slotProbeTimeout)
 	defer cancel()
 
-	conn, err := s.spec.SourceDB.OpenInspectionConn(probeCtx, s.spec.FieldEncryptor)
+	conn, err := openInspectionConn(probeCtx, s.spec.SourceDB)
 	if err != nil {
 		logger.DebugContext(ctx, "source unreachable during the slot probe", "error", err)
 

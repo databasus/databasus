@@ -66,11 +66,25 @@ func insertWorkspace(t *testing.T, db *gorm.DB) uuid.UUID {
 	return workspaceID
 }
 
+// insertDatabase writes a logical PostgreSQL database with its settings row in the tables of the
+// releases before the databases module.
 func insertDatabase(t *testing.T, db *gorm.DB, workspaceID *uuid.UUID) uuid.UUID {
 	t.Helper()
 
+	databaseID := insertMigratedDatabase(t, db, workspaceID)
+	execute(t, db, `INSERT INTO postgresql_logical_databases (database_id, version, host, port, username, password)
+		VALUES (?, '16', 'db.example.com', 5432, 'backup', 'enc:password')`, databaseID)
+
+	return databaseID
+}
+
+// insertMigratedDatabase writes only the parent row, which no constraint asks a settings row for.
+func insertMigratedDatabase(t *testing.T, db *gorm.DB, workspaceID *uuid.UUID) uuid.UUID {
+	t.Helper()
+
 	databaseID := uuid.New()
-	execute(t, db, "INSERT INTO databases (id, name, type, workspace_id) VALUES (?, 'payments', 'POSTGRES', ?)",
+	execute(t, db,
+		"INSERT INTO databases (id, name, type, workspace_id) VALUES (?, 'payments', 'POSTGRES_LOGICAL', ?)",
 		databaseID, workspaceID)
 
 	return databaseID

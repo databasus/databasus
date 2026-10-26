@@ -2,11 +2,10 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
-  type Database,
   DatabaseType,
-  type PostgresqlLogicalDatabase,
+  type PostgresqlLogicalSettings,
   PostgresSslMode,
-  PostgresqlVersion,
+  createDefaultDatabaseSettings,
 } from '../../../../entity/databases';
 import { LocaleProvider } from '../../../../shared/i18n';
 import { EditPostgreSqlLogicalSpecificDataComponent } from './EditPostgreSqlLogicalSpecificDataComponent';
@@ -21,31 +20,30 @@ vi.hoisted(() => {
   vi.stubGlobal('navigator', { language: 'en-US', languages: ['en-US'] });
 });
 
-const createPostgresqlDatabase = (change: Partial<PostgresqlLogicalDatabase>): Database => ({
-  id: 'database-id',
-  name: 'Orders',
-  workspaceId: 'workspace-id',
-  type: DatabaseType.POSTGRES_LOGICAL,
-  notifiers: [],
-  postgresqlLogical: {
-    id: 'postgresql-id',
-    version: PostgresqlVersion.PostgresqlVersion16,
-    host: 'db.example.com',
-    port: 5432,
-    username: 'backup',
-    password: '',
-    database: 'orders',
-    sslMode: PostgresSslMode.Require,
-    cpuCount: 1,
-    ...change,
-  },
+const createPostgresqlSettings = (
+  change: Partial<PostgresqlLogicalSettings>,
+): PostgresqlLogicalSettings => ({
+  ...createDefaultDatabaseSettings(DatabaseType.POSTGRES_LOGICAL),
+  version: '16',
+  host: 'db.example.com',
+  username: 'backup',
+  database: 'orders',
+  sslMode: PostgresSslMode.Require,
+  ...change,
 });
 
-const renderPostgresqlForm = (database: Database) =>
+const renderPostgresqlForm = (settings: PostgresqlLogicalSettings) =>
   renderToStaticMarkup(
     <LocaleProvider>
       <EditPostgreSqlLogicalSpecificDataComponent
-        database={database}
+        database={{
+          id: 'database-id',
+          name: 'Orders',
+          workspaceId: 'workspace-id',
+          settings,
+          notifierIds: [],
+        }}
+        settings={settings}
         onCancel={() => {}}
         isShowBackButton={false}
         onBack={() => {}}
@@ -57,7 +55,7 @@ const renderPostgresqlForm = (database: Database) =>
 
 describe('EditPostgreSqlLogicalSpecificDataComponent', () => {
   it('opens the advanced settings with both exclusion fields when only table data is excluded', () => {
-    const markup = renderPostgresqlForm(createPostgresqlDatabase({ excludeTableData: ['logs'] }));
+    const markup = renderPostgresqlForm(createPostgresqlSettings({ excludeTableData: ['logs'] }));
 
     const wholeTablesLabelIndex = markup.indexOf('Exclude whole tables');
     const tableDataLabelIndex = markup.indexOf('Exclude table data');
@@ -68,7 +66,7 @@ describe('EditPostgreSqlLogicalSpecificDataComponent', () => {
   });
 
   it('keeps the advanced settings collapsed when no advanced value is set', () => {
-    const markup = renderPostgresqlForm(createPostgresqlDatabase({}));
+    const markup = renderPostgresqlForm(createPostgresqlSettings({}));
 
     expect(markup).toContain('Advanced settings');
     expect(markup).not.toContain('Exclude whole tables');

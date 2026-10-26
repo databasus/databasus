@@ -20,6 +20,8 @@ tags:
     description: The notification channels of a workspace and their test sends
   - name: storages
     description: The places a workspace keeps its backups, and their connection tests
+  - name: databases
+    description: The databases a workspace backs up, their connection tests and limited users
 paths:
   /users:
     get:
@@ -1487,6 +1489,333 @@ paths:
                 $ref: "#/components/schemas/VersionResponse"
         default:
           $ref: "#/components/responses/Problem"
+  /databases:
+    get:
+      operationId: listDatabases
+      tags: [databases]
+      summary: List the databases of a workspace
+      description: >-
+        Ordered by name, then by ID. With `notifierId`, only the databases that use that notifier are
+        listed. A user who is not a member of the workspace gets 404 `not_found`. Secrets are never
+        returned.
+      parameters:
+        - name: workspaceId
+          in: query
+          required: true
+          description: The workspace whose databases to list
+          schema:
+            type: string
+            format: uuid
+        - name: notifierId
+          in: query
+          description: A notifier the listed databases use
+          schema:
+            type: string
+            format: uuid
+        - name: limit
+          in: query
+          description: The largest number of databases on the page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: after
+          in: query
+          description: The `nextCursor` of the previous page
+          schema:
+            type: string
+      responses:
+        "200":
+          description: One page of databases
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DatabasePage"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+    post:
+      operationId: createDatabase
+      tags: [databases]
+      summary: Create a database in a workspace
+      description: >-
+        Needs the role `WORKSPACE_MEMBER` or higher in the workspace. The type in `settings` is fixed
+        once the database exists. The backend connects first and saves what the server reports, such
+        as its version. Settings the type refuses get 400 `invalid_request` with the field in
+        `errors`; a server that cannot be reached or refuses the connection gets 400
+        `database_connection_failed` with the server's reason in `detail`. Every notifier must belong
+        to the workspace.
+      requestBody:
+        description: The database to create, with every secret its type needs.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DatabaseCreate"
+      responses:
+        "201":
+          description: The database as it was saved, without its secrets
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Database"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /databases/{databaseId}:
+    parameters:
+      - $ref: "#/components/parameters/DatabaseId"
+    get:
+      operationId: getDatabase
+      tags: [databases]
+      summary: Get a database without its secrets
+      description: >-
+        A user who is not a member of the database's workspace gets 404 `not_found`, as for a
+        database that does not exist.
+      responses:
+        "200":
+          description: The database
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Database"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+    put:
+      operationId: updateDatabase
+      tags: [databases]
+      summary: Replace the name, the settings and the notifiers of a database
+      description: >-
+        Needs the role `WORKSPACE_MEMBER` or higher. A secret the request leaves out keeps its stored
+        value. Settings of another type than the database's get 400 `invalid_request`. The backend
+        connects with the resulting settings first; when that fails, the answer is 400
+        `database_connection_failed`, and the database keeps its stored settings.
+      requestBody:
+        description: The editable fields of the database.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DatabaseUpdate"
+      responses:
+        "200":
+          description: The database after the change, without its secrets
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Database"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+    delete:
+      operationId: deleteDatabase
+      tags: [databases]
+      summary: Delete a database with its backups
+      description: >-
+        Needs the role `WORKSPACE_MEMBER` or higher. The database, its settings, its notifier
+        attachments, its backup configs and the records of its backups and WAL go in one step, and
+        the files of those backups are handed to the deletion worker. While a logical backup of the
+        database is in progress, the answer is 409 `in_use`, and nothing is deleted. A running
+        physical backup is cancelled, the WAL stream stopped and the replication slots dropped only
+        after the deletion has succeeded.
+      responses:
+        "204":
+          description: The database is deleted
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        "409":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /databases/{databaseId}/copy:
+    parameters:
+      - $ref: "#/components/parameters/DatabaseId"
+    post:
+      operationId: copyDatabase
+      tags: [databases]
+      summary: Copy a database within its workspace
+      description: >-
+        Needs the role `WORKSPACE_MEMBER` or higher. The copy is named after the original with
+        ` (Copy)` appended and has the same type, settings, secrets and notifiers, no backup history
+        and, for physical PostgreSQL, a replication slot of its own. The copy does not connect.
+      responses:
+        "201":
+          description: The copy, without its secrets
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Database"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /databases/{databaseId}/test:
+    parameters:
+      - $ref: "#/components/parameters/DatabaseId"
+    post:
+      operationId: testDatabase
+      tags: [databases]
+      summary: Test the connection of a saved database
+      description: >-
+        Any member of the workspace may test, a viewer included. A connection the server refuses is
+        still a 200 that reports the reason. The test changes nothing in the database, its last
+        backup error included.
+      responses:
+        "200":
+          description: Whether the database could be connected to
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DatabaseTestResult"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /database-tests:
+    post:
+      operationId: testDatabaseSettings
+      tags: [databases]
+      summary: Test the connection with settings that are not saved
+      description: >-
+        Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test may send stored
+        secrets wherever the request points. With `databaseId`, a secret the request leaves out is
+        taken from that database, which must belong to the same workspace, or the answer is 404
+        `not_found`; settings of another type than that database's get 400 `invalid_request`. Nothing
+        connects on a refusal, and nothing is saved.
+      requestBody:
+        description: The settings to test.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DatabaseSettingsTarget"
+      responses:
+        "200":
+          description: Whether the database could be connected to
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DatabaseTestResult"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /limited-user-checks:
+    post:
+      operationId: checkLimitedUser
+      tags: [databases]
+      summary: Check whether the connecting user may do more than a backup needs
+      description: >-
+        Needs the role `WORKSPACE_MEMBER` or higher in the workspace, for the reason
+        `testDatabaseSettings` gives, and refuses the same requests. For physical PostgreSQL the
+        check is about a replication-only user, for the other types about a read-only user. A
+        server that cannot be reached gets 400 `database_connection_failed`.
+      requestBody:
+        description: The settings to connect with.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DatabaseSettingsTarget"
+      responses:
+        "200":
+          description: Whether a limited user is advisable, and why
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LimitedUserCheck"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /limited-users:
+    post:
+      operationId: createLimitedUser
+      tags: [databases]
+      summary: Create a limited user on the database's server
+      description: >-
+        Needs the role `WORKSPACE_MEMBER` or higher in the workspace, for the reason
+        `testDatabaseSettings` gives, and refuses the same requests. Creates a read-only user, or for
+        physical PostgreSQL a replication-only user, with a generated name and password. The password
+        is returned only in this answer; the database itself is not changed.
+      requestBody:
+        description: The settings to connect with.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DatabaseSettingsTarget"
+      responses:
+        "201":
+          description: The created user with its password
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LimitedUser"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
 components:
   parameters:
     UserId:
@@ -1534,6 +1863,14 @@ components:
       in: path
       required: true
       description: The ID of the storage
+      schema:
+        type: string
+        format: uuid
+    DatabaseId:
+      name: databaseId
+      in: path
+      required: true
+      description: The ID of the database
       schema:
         type: string
         format: uuid
@@ -2761,6 +3098,546 @@ components:
         remotePath:
           type: string
           description: The folder inside the remote, absent for its root
+    Database:
+      type: object
+      description: A database a workspace backs up, without its secrets
+      required: [id, workspaceId, name, settings, notifierIds]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: The ID of the database
+        workspaceId:
+          type: string
+          format: uuid
+          description: The workspace the database belongs to
+        name:
+          type: string
+          description: The name of the database
+        settings:
+          $ref: "#/components/schemas/DatabaseSettings"
+        notifierIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+          description: The notifiers of the workspace that report the database's backups
+        lastBackupTime:
+          type: string
+          format: date-time
+          readOnly: true
+          description: The time of the newest successful backup of any kind, absent before the first
+        lastBackupErrorMessage:
+          type: string
+          readOnly: true
+          description: The error of the last failed backup, absent after a success
+        healthStatus:
+          $ref: "#/components/schemas/DatabaseHealthStatus"
+    DatabaseHealthStatus:
+      type: string
+      readOnly: true
+      description: The outcome of the last scheduled health check, absent while health checks are off
+      enum: [AVAILABLE, UNAVAILABLE]
+    DatabasePage:
+      type: object
+      description: One page of databases, ordered by name
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Database"
+          description: The databases on the page
+        nextCursor:
+          type: string
+          description: The `after` of the next page, absent on the last page
+    DatabaseCreate:
+      type: object
+      description: A new database
+      required: [workspaceId, name, settings, notifierIds]
+      properties:
+        workspaceId:
+          type: string
+          format: uuid
+          description: The workspace the database belongs to
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: The name of the database
+        settings:
+          $ref: "#/components/schemas/DatabaseSettings"
+        notifierIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+          description: Notifiers of the workspace that report the database's backups
+    DatabaseUpdate:
+      type: object
+      description: The editable fields of a database
+      required: [name, settings, notifierIds]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: The name of the database
+        settings:
+          $ref: "#/components/schemas/DatabaseSettings"
+        notifierIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+          description: Notifiers of the workspace that report the database's backups
+    DatabaseSettingsTarget:
+      type: object
+      description: Settings that are not saved, to connect with
+      required: [workspaceId, settings]
+      properties:
+        workspaceId:
+          type: string
+          format: uuid
+          description: The workspace whose content the settings belong to
+        databaseId:
+          type: string
+          format: uuid
+          description: A saved database of the workspace whose stored secrets fill the ones left out
+        settings:
+          $ref: "#/components/schemas/DatabaseSettings"
+    DatabaseTestResult:
+      type: object
+      description: The outcome of a connection test
+      required: [isConnected]
+      properties:
+        isConnected:
+          type: boolean
+          description: Whether the database could be connected to and backed up
+        reason:
+          $ref: "#/components/schemas/DatabaseConnectionFailure"
+        error:
+          type: string
+          description: The error the server gave, absent when it is connected
+    DatabaseConnectionFailure:
+      type: string
+      description: >-
+        The class of a failed connection where the type tells it, absent for any other failure
+      enum:
+        - CONNECTION_FAILED
+        - PG_HBA_NO_ENTRY
+        - BAD_CREDENTIALS
+        - NO_REPLICATION_PRIVILEGE
+        - WAL_LEVEL_INVALID
+        - NO_WAL_SENDERS
+        - NO_REPLICATION_SLOTS
+        - WAL_SUMMARY_DISABLED
+        - CUSTOM_TABLESPACES
+        - SYSTEM_IDENTIFIER_MISMATCH
+        - NO_WAL_SWITCH_PRIVILEGE
+    LimitedUserCheck:
+      type: object
+      description: Whether the connecting user may do more than a backup needs
+      required: [isAdvisable, privileges]
+      properties:
+        isAdvisable:
+          type: boolean
+          description: Whether a limited user is advisable
+        privileges:
+          type: array
+          items:
+            type: string
+          description: What the connecting user may do beyond what a backup needs
+    LimitedUser:
+      type: object
+      description: A user created on the database's server for its backups
+      required: [username, password, isForcedWalRotationAvailable]
+      properties:
+        username:
+          type: string
+          description: The generated user name
+        password:
+          type: string
+          description: The generated password, returned only once
+        isForcedWalRotationAvailable:
+          type: boolean
+          description: >-
+            Whether a replication-only user may force a WAL segment switch; always false for a
+            read-only user
+    DatabaseSettings:
+      description: The settings of the database's type; `type` tells the types apart
+      oneOf:
+        - $ref: "#/components/schemas/PostgresqlLogicalSettings"
+        - $ref: "#/components/schemas/PostgresqlPhysicalSettings"
+        - $ref: "#/components/schemas/MysqlSettings"
+        - $ref: "#/components/schemas/MariadbSettings"
+        - $ref: "#/components/schemas/MongodbSettings"
+      discriminator:
+        propertyName: type
+        mapping:
+          POSTGRES_LOGICAL: "#/components/schemas/PostgresqlLogicalSettings"
+          POSTGRES_PHYSICAL: "#/components/schemas/PostgresqlPhysicalSettings"
+          MYSQL: "#/components/schemas/MysqlSettings"
+          MARIADB: "#/components/schemas/MariadbSettings"
+          MONGODB: "#/components/schemas/MongodbSettings"
+    SshTunnelSettings:
+      type: object
+      description: >-
+        The SSH bastion a database is reached through. When it is enabled, the host and the port of
+        the database address it as the bastion sees it
+      required: [isEnabled]
+      properties:
+        isEnabled:
+          type: boolean
+          description: Whether the connection goes through the bastion
+        host:
+          type: string
+          description: The host of the bastion
+        port:
+          type: integer
+          minimum: 1
+          maximum: 65535
+          description: The SSH port of the bastion
+        username:
+          type: string
+          description: The user name on the bastion
+        authType:
+          $ref: "#/components/schemas/SshAuthType"
+        password:
+          type: string
+          writeOnly: true
+          description: The password, with `PASSWORD` authentication
+        privateKey:
+          type: string
+          writeOnly: true
+          description: The private key, with `PRIVATE_KEY` authentication
+        privateKeyPassphrase:
+          type: string
+          writeOnly: true
+          description: The passphrase of the private key, absent for a key without one
+    SshAuthType:
+      type: string
+      description: How Databasus signs in to the bastion
+      enum: [PASSWORD, PRIVATE_KEY]
+    PostgresqlSslMode:
+      type: string
+      x-engine-values: true
+      description: The libpq SSL mode of the connection
+      enum: [disable, require, verify-ca, verify-full]
+    PostgresqlVersion:
+      type: string
+      x-engine-values: true
+      readOnly: true
+      description: The major version the server reported at the last save
+      enum: ["12", "13", "14", "15", "16", "17", "18"]
+    PostgresqlLogicalSettings:
+      type: object
+      description: One PostgreSQL database backed up with pg_dump
+      required:
+        - type
+        - host
+        - port
+        - username
+        - sslMode
+        - sshTunnel
+        - includeSchemas
+        - excludeTables
+        - excludeTableData
+        - cpuCount
+        - isSkipUserMappings
+      properties:
+        type:
+          type: string
+          enum: [POSTGRES_LOGICAL]
+          description: Always `POSTGRES_LOGICAL`
+        version:
+          $ref: "#/components/schemas/PostgresqlVersion"
+        host:
+          type: string
+          description: The host of the server
+        port:
+          type: integer
+          minimum: 1
+          maximum: 65535
+          description: The port of the server
+        username:
+          type: string
+          description: The user name
+        password:
+          type: string
+          writeOnly: true
+          description: The password
+        database:
+          type: string
+          description: The database the dump reads, absent until one is picked
+        sslMode:
+          $ref: "#/components/schemas/PostgresqlSslMode"
+        sslClientCert:
+          type: string
+          description: The PEM client certificate, absent without one
+        sslClientKey:
+          type: string
+          writeOnly: true
+          description: The PEM key of the client certificate
+        sslRootCert:
+          type: string
+          description: The PEM root certificate the server is verified against, absent without one
+        sshTunnel:
+          $ref: "#/components/schemas/SshTunnelSettings"
+        includeSchemas:
+          type: array
+          items:
+            type: string
+          description: The schemas the dump reads, empty for every schema
+        excludeTables:
+          type: array
+          items:
+            type: string
+          description: The table patterns the dump leaves out
+        excludeTableData:
+          type: array
+          items:
+            type: string
+          description: The table patterns whose rows the dump leaves out, keeping their definitions
+        cpuCount:
+          type: integer
+          minimum: 1
+          description: The number of parallel jobs of the dump and the restore
+        isSkipUserMappings:
+          type: boolean
+          description: Whether the dump leaves out the user mappings of foreign servers
+    PostgresqlPhysicalSettings:
+      type: object
+      description: A PostgreSQL cluster backed up with pg_basebackup and its WAL stream
+      required: [type, host, port, username, sslMode, sshTunnel, backupType]
+      properties:
+        type:
+          type: string
+          enum: [POSTGRES_PHYSICAL]
+          description: Always `POSTGRES_PHYSICAL`
+        version:
+          $ref: "#/components/schemas/PostgresqlVersion"
+        host:
+          type: string
+          description: The host of the server
+        port:
+          type: integer
+          minimum: 1
+          maximum: 65535
+          description: The port of the server
+        username:
+          type: string
+          description: The user name, which needs the replication privilege
+        password:
+          type: string
+          writeOnly: true
+          description: The password
+        sslMode:
+          $ref: "#/components/schemas/PostgresqlSslMode"
+        sslClientCert:
+          type: string
+          description: The PEM client certificate, absent without one
+        sslClientKey:
+          type: string
+          writeOnly: true
+          description: The PEM key of the client certificate
+        sslRootCert:
+          type: string
+          description: The PEM root certificate the server is verified against, absent without one
+        sshTunnel:
+          $ref: "#/components/schemas/SshTunnelSettings"
+        backupType:
+          $ref: "#/components/schemas/PhysicalBackupType"
+        systemIdentifier:
+          type: string
+          readOnly: true
+          description: The identifier of the cluster detected at the first save, which never changes
+        walSegmentSizeBytes:
+          type: integer
+          format: int64
+          readOnly: true
+          description: The WAL segment size of the cluster detected at the first save
+    PhysicalBackupType:
+      type: string
+      description: What the physical backups of the cluster take
+      enum: [FULL, FULL_INCREMENTAL, FULL_INCREMENTAL_WAL_STREAM]
+    MysqlVersion:
+      type: string
+      x-engine-values: true
+      readOnly: true
+      description: The version the server reported at the last save
+      enum: ["5.7", "8.0", "8.4", "9", "26"]
+    MysqlSettings:
+      type: object
+      description: One MySQL database backed up with mysqldump
+      required: [type, host, port, username, isHttps, sshTunnel, excludeTables]
+      properties:
+        type:
+          type: string
+          enum: [MYSQL]
+          description: Always `MYSQL`
+        version:
+          $ref: "#/components/schemas/MysqlVersion"
+        host:
+          type: string
+          description: The host of the server
+        port:
+          type: integer
+          minimum: 1
+          maximum: 65535
+          description: The port of the server
+        username:
+          type: string
+          description: The user name
+        password:
+          type: string
+          writeOnly: true
+          description: The password
+        database:
+          type: string
+          description: The database the dump reads, absent until one is picked
+        isHttps:
+          type: boolean
+          description: Whether the connection is encrypted, without verifying the server certificate
+        sshTunnel:
+          $ref: "#/components/schemas/SshTunnelSettings"
+        excludeTables:
+          type: array
+          items:
+            type: string
+          description: The tables the dump leaves out
+        privileges:
+          type: array
+          readOnly: true
+          items:
+            type: string
+          description: The backup privileges the user held at the last save
+    MariadbVersion:
+      type: string
+      x-engine-values: true
+      readOnly: true
+      description: The version the server reported at the last save
+      enum: ["5.5", "10.1", "10.2", "10.3", "10.4", "10.5", "10.6", "10.11", "11.4", "11.8", "12.0", "13.0"]
+    MariadbSettings:
+      type: object
+      description: One MariaDB database backed up with mariadb-dump
+      required: [type, host, port, username, isHttps, sshTunnel, excludeTables, isExcludeEvents, isSkipGaleraDisable]
+      properties:
+        type:
+          type: string
+          enum: [MARIADB]
+          description: Always `MARIADB`
+        version:
+          $ref: "#/components/schemas/MariadbVersion"
+        host:
+          type: string
+          description: The host of the server
+        port:
+          type: integer
+          minimum: 1
+          maximum: 65535
+          description: The port of the server
+        username:
+          type: string
+          description: The user name
+        password:
+          type: string
+          writeOnly: true
+          description: The password
+        database:
+          type: string
+          description: The database the dump reads, absent until one is picked
+        isHttps:
+          type: boolean
+          description: Whether the connection is encrypted, without verifying the server certificate
+        sshTunnel:
+          $ref: "#/components/schemas/SshTunnelSettings"
+        excludeTables:
+          type: array
+          items:
+            type: string
+          description: The tables the dump leaves out
+        isExcludeEvents:
+          type: boolean
+          description: Whether the dump leaves out the scheduled events
+        isSkipGaleraDisable:
+          type: boolean
+          description: Whether the dump keeps Galera replication on for its session
+        privileges:
+          type: array
+          readOnly: true
+          items:
+            type: string
+          description: The backup privileges the user held at the last save
+    MongodbVersion:
+      type: string
+      x-engine-values: true
+      readOnly: true
+      description: The major version the server reported at the last save
+      enum: ["4", "5", "6", "7", "8", "9"]
+    MongodbSettings:
+      type: object
+      description: One MongoDB database backed up with mongodump
+      required:
+        - type
+        - host
+        - username
+        - database
+        - authDatabase
+        - isHttps
+        - isSrv
+        - isDirectConnection
+        - cpuCount
+        - sshTunnel
+        - excludeCollections
+      properties:
+        type:
+          type: string
+          enum: [MONGODB]
+          description: Always `MONGODB`
+        version:
+          $ref: "#/components/schemas/MongodbVersion"
+        host:
+          type: string
+          description: The host of the server, or the DNS name of an SRV connection
+        port:
+          type: integer
+          minimum: 1
+          maximum: 65535
+          description: The port of the server, absent for an SRV connection
+        username:
+          type: string
+          description: The user name
+        password:
+          type: string
+          writeOnly: true
+          description: The password
+        database:
+          type: string
+          description: The database the dump reads
+        authDatabase:
+          type: string
+          description: The database the user authenticates against
+        isHttps:
+          type: boolean
+          description: Whether TLS is on, without verifying the server certificate
+        isSrv:
+          type: boolean
+          description: Whether the host is resolved through DNS SRV records
+        isDirectConnection:
+          type: boolean
+          description: Whether the client talks to the host alone instead of discovering the replica set
+        cpuCount:
+          type: integer
+          minimum: 1
+          description: The number of parallel collections of the dump and the restore
+        sshTunnel:
+          $ref: "#/components/schemas/SshTunnelSettings"
+        excludeCollections:
+          type: array
+          items:
+            type: string
+          description: The collections the dump leaves out
     Problem:
       type: object
       description: An error in the RFC 9457 format. The client chooses its text by `code`
@@ -2814,6 +3691,7 @@ components:
         - owner_requires_transfer
         - workspace_not_empty
         - in_use
+        - database_connection_failed
         - internal
     FieldError:
       type: object

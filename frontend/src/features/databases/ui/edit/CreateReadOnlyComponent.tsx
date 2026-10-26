@@ -6,7 +6,7 @@ import {
   DATABASE_TYPE_LABEL_KEYS,
   type Database,
   DatabaseType,
-  type ShouldSuggestReadOnlyUserResponse,
+  type LimitedUserCheck,
   databaseApi,
 } from '../../../../entity/databases';
 import {
@@ -16,6 +16,7 @@ import {
   translateApiError,
   useLocale,
 } from '../../../../shared/i18n';
+import { toDatabaseSettingsTarget } from './toDatabaseSettingsTarget';
 
 interface Props {
   database: Database;
@@ -79,25 +80,22 @@ export const CreateReadOnlyComponent = ({
   const [privileges, setPrivileges] = useState<string[]>([]);
   const [isPrivilegesExpanded, setIsPrivilegesExpanded] = useState(false);
 
-  const isLogicalPostgres = database.type === DatabaseType.POSTGRES_LOGICAL;
-  const isPhysicalPostgres = database.type === DatabaseType.POSTGRES_PHYSICAL;
-  const isMysql = database.type === DatabaseType.MYSQL;
-  const isMariadb = database.type === DatabaseType.MARIADB;
-  const isMongodb = database.type === DatabaseType.MONGODB;
-  const databaseTypeName = t(DATABASE_TYPE_LABEL_KEYS[database.type]);
+  const isPhysicalPostgres = database.settings.type === DatabaseType.POSTGRES_PHYSICAL;
+  const isMongodb = database.settings.type === DatabaseType.MONGODB;
+  const databaseTypeName = t(DATABASE_TYPE_LABEL_KEYS[database.settings.type]);
+  const settingsTarget = toDatabaseSettingsTarget(database, database.settings);
   const userKindKeys = isPhysicalPostgres
     ? REPLICATION_ONLY_USER_COPY_KEYS
     : READ_ONLY_USER_COPY_KEYS;
 
-  const fetchReadOnlyUserSuggestion =
-    async (): Promise<ShouldSuggestReadOnlyUserResponse | null> => {
-      try {
-        return await databaseApi.shouldSuggestReadOnlyUser(database);
-      } catch (e) {
-        message.error(translateApiError(e, t));
-        return null;
-      }
-    };
+  const fetchLimitedUserCheck = async (): Promise<LimitedUserCheck | null> => {
+    try {
+      return await databaseApi.checkLimitedUser(settingsTarget);
+    } catch (e) {
+      message.error(translateApiError(e, t));
+      return null;
+    }
+  };
 
   const getPrivilegesDisplay = () => {
     const fullText = privileges.join(', ');
@@ -113,51 +111,27 @@ export const CreateReadOnlyComponent = ({
     return fullText.length > PRIVILEGES_TRUNCATE_LENGTH;
   };
 
-  const provisionAndApplyReplicationOnlyUserCredentials = async () => {
-    const response = await databaseApi.createReplicationOnlyUser(database);
-
-    if (database.postgresqlPhysical) {
-      database.postgresqlPhysical.username = response.username;
-      database.postgresqlPhysical.password = response.password;
-    }
-
-    if (!response.isForcedWalRotationAvailable) {
-      message.warning(
-        t('databases.readOnlyUser.forcedWalRotationUnavailable'),
-        FORCED_WAL_ROTATION_WARNING_SECONDS,
-      );
-    }
-  };
-
-  const provisionAndApplyReadOnlyUserCredentials = async () => {
-    const response = await databaseApi.createReadOnlyUser(database);
-
-    if (isLogicalPostgres && database.postgresqlLogical) {
-      database.postgresqlLogical.username = response.username;
-      database.postgresqlLogical.password = response.password;
-    } else if (isMysql && database.mysql) {
-      database.mysql.username = response.username;
-      database.mysql.password = response.password;
-    } else if (isMariadb && database.mariadb) {
-      database.mariadb.username = response.username;
-      database.mariadb.password = response.password;
-    } else if (isMongodb && database.mongodb) {
-      database.mongodb.username = response.username;
-      database.mongodb.password = response.password;
-    }
-  };
-
   const provisionRestrictedUser = async () => {
     setIsCreatingReadOnlyUser(true);
 
     try {
-      if (isPhysicalPostgres) {
-        await provisionAndApplyReplicationOnlyUserCredentials();
-      } else {
-        await provisionAndApplyReadOnlyUserCredentials();
+      const limitedUser = await databaseApi.createLimitedUser(settingsTarget);
+
+      if (isPhysicalPostgres && !limitedUser.isForcedWalRotationAvailable) {
+        message.warning(
+          t('databases.readOnlyUser.forcedWalRotationUnavailable'),
+          FORCED_WAL_ROTATION_WARNING_SECONDS,
+        );
       }
 
-      onReadOnlyUserUpdated(database);
+      onReadOnlyUserUpdated({
+        ...database,
+        settings: {
+          ...database.settings,
+          username: limitedUser.username,
+          password: limitedUser.password,
+        },
+      });
     } catch (e) {
       message.error(translateApiError(e, t));
     }
@@ -178,12 +152,12 @@ export const CreateReadOnlyComponent = ({
     const run = async () => {
       setIsCheckingReadOnlyUserSuggestion(true);
 
-      const readOnlyUserSuggestion = await fetchReadOnlyUserSuggestion();
-      setPrivileges(readOnlyUserSuggestion?.privileges || []);
+      const limitedUserCheck = await fetchLimitedUserCheck();
+      setPrivileges(limitedUserCheck?.privileges || []);
 
       // A failed check must not silently advance the wizard - keep the screen so the user
       // still gets the choice.
-      if (readOnlyUserSuggestion && !readOnlyUserSuggestion.shouldSuggestReadOnlyUser) {
+      if (limitedUserCheck && !limitedUserCheck.isAdvisable) {
         onReadOnlyUserNotSuggested();
       }
 

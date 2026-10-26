@@ -7,7 +7,7 @@ import (
 	"databasus-backend/internal/features/audit_logs"
 	backuping_logical "databasus-backend/internal/features/backups/backups/backuping/logical"
 	backups_services "databasus-backend/internal/features/backups/backups/services"
-	"databasus-backend/internal/features/databases"
+	databases_bridge "databasus-backend/internal/features/databases"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	verification_agents "databasus-backend/internal/features/verification/agents"
 	verification_config "databasus-backend/internal/features/verification/config"
@@ -22,7 +22,8 @@ var getVerificationRepository = sync.OnceValue(func() *VerificationRepository {
 var getVerificationService = sync.OnceValue(func() *VerificationService {
 	return &VerificationService{
 		getVerificationRepository(),
-		databases.GetDatabaseService(),
+		databases_bridge.GetAccess(),
+		databases_bridge.GetModule,
 		backups_services.GetBackupService(),
 		verification_config.GetVerificationConfigService(),
 		notifiers_bridge.GetSender(),
@@ -39,7 +40,8 @@ var getVerificationScheduler = sync.OnceValue(func() *VerificationScheduler {
 		verification_config.GetVerificationConfigService(),
 		verification_agents.GetAgentService(),
 		backups_services.GetBackupService(),
-		databases.GetDatabaseService(),
+		databases_bridge.GetAccess(),
+		databases_bridge.GetModule,
 		logger.GetLogger(),
 		atomic.Bool{},
 	}

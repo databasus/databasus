@@ -768,6 +768,167 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/databases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the databases of a workspace
+         * @description Ordered by name, then by ID. With `notifierId`, only the databases that use that notifier are listed. A user who is not a member of the workspace gets 404 `not_found`. Secrets are never returned.
+         */
+        get: operations["listDatabases"];
+        put?: never;
+        /**
+         * Create a database in a workspace
+         * @description Needs the role `WORKSPACE_MEMBER` or higher in the workspace. The type in `settings` is fixed once the database exists. The backend connects first and saves what the server reports, such as its version. Settings the type refuses get 400 `invalid_request` with the field in `errors`; a server that cannot be reached or refuses the connection gets 400 `database_connection_failed` with the server's reason in `detail`. Every notifier must belong to the workspace.
+         */
+        post: operations["createDatabase"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/databases/{databaseId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the database */
+                databaseId: components["parameters"]["DatabaseId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Get a database without its secrets
+         * @description A user who is not a member of the database's workspace gets 404 `not_found`, as for a database that does not exist.
+         */
+        get: operations["getDatabase"];
+        /**
+         * Replace the name, the settings and the notifiers of a database
+         * @description Needs the role `WORKSPACE_MEMBER` or higher. A secret the request leaves out keeps its stored value. Settings of another type than the database's get 400 `invalid_request`. The backend connects with the resulting settings first; when that fails, the answer is 400 `database_connection_failed`, and the database keeps its stored settings.
+         */
+        put: operations["updateDatabase"];
+        post?: never;
+        /**
+         * Delete a database with its backups
+         * @description Needs the role `WORKSPACE_MEMBER` or higher. The database, its settings, its notifier attachments, its backup configs and the records of its backups and WAL go in one step, and the files of those backups are handed to the deletion worker. While a logical backup of the database is in progress, the answer is 409 `in_use`, and nothing is deleted. A running physical backup is cancelled, the WAL stream stopped and the replication slots dropped only after the deletion has succeeded.
+         */
+        delete: operations["deleteDatabase"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/databases/{databaseId}/copy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the database */
+                databaseId: components["parameters"]["DatabaseId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Copy a database within its workspace
+         * @description Needs the role `WORKSPACE_MEMBER` or higher. The copy is named after the original with ` (Copy)` appended and has the same type, settings, secrets and notifiers, no backup history and, for physical PostgreSQL, a replication slot of its own. The copy does not connect.
+         */
+        post: operations["copyDatabase"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/databases/{databaseId}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the database */
+                databaseId: components["parameters"]["DatabaseId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Test the connection of a saved database
+         * @description Any member of the workspace may test, a viewer included. A connection the server refuses is still a 200 that reports the reason. The test changes nothing in the database, its last backup error included.
+         */
+        post: operations["testDatabase"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/database-tests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Test the connection with settings that are not saved
+         * @description Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test may send stored secrets wherever the request points. With `databaseId`, a secret the request leaves out is taken from that database, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type than that database's get 400 `invalid_request`. Nothing connects on a refusal, and nothing is saved.
+         */
+        post: operations["testDatabaseSettings"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/limited-user-checks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Check whether the connecting user may do more than a backup needs
+         * @description Needs the role `WORKSPACE_MEMBER` or higher in the workspace, for the reason `testDatabaseSettings` gives, and refuses the same requests. For physical PostgreSQL the check is about a replication-only user, for the other types about a read-only user. A server that cannot be reached gets 400 `database_connection_failed`.
+         */
+        post: operations["checkLimitedUser"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/limited-users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create a limited user on the database's server
+         * @description Needs the role `WORKSPACE_MEMBER` or higher in the workspace, for the reason `testDatabaseSettings` gives, and refuses the same requests. Creates a read-only user, or for physical PostgreSQL a replication-only user, with a generated name and password. The password is returned only in this answer; the database itself is not changed.
+         */
+        post: operations["createLimitedUser"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1593,6 +1754,321 @@ export interface components {
             /** @description The folder inside the remote, absent for its root */
             remotePath?: string;
         };
+        /** @description A database a workspace backs up, without its secrets */
+        Database: {
+            /**
+             * Format: uuid
+             * @description The ID of the database
+             */
+            id: string;
+            /**
+             * Format: uuid
+             * @description The workspace the database belongs to
+             */
+            workspaceId: string;
+            /** @description The name of the database */
+            name: string;
+            settings: components["schemas"]["DatabaseSettings"];
+            /** @description The notifiers of the workspace that report the database's backups */
+            notifierIds: string[];
+            /**
+             * Format: date-time
+             * @description The time of the newest successful backup of any kind, absent before the first
+             */
+            readonly lastBackupTime?: string;
+            /** @description The error of the last failed backup, absent after a success */
+            readonly lastBackupErrorMessage?: string;
+            healthStatus?: components["schemas"]["DatabaseHealthStatus"];
+        };
+        /**
+         * @description The outcome of the last scheduled health check, absent while health checks are off
+         * @enum {string}
+         */
+        DatabaseHealthStatus: "AVAILABLE" | "UNAVAILABLE";
+        /** @description One page of databases, ordered by name */
+        DatabasePage: {
+            /** @description The databases on the page */
+            items: components["schemas"]["Database"][];
+            /** @description The `after` of the next page, absent on the last page */
+            nextCursor?: string;
+        };
+        /** @description A new database */
+        DatabaseCreate: {
+            /**
+             * Format: uuid
+             * @description The workspace the database belongs to
+             */
+            workspaceId: string;
+            /** @description The name of the database */
+            name: string;
+            settings: components["schemas"]["DatabaseSettings"];
+            /** @description Notifiers of the workspace that report the database's backups */
+            notifierIds: string[];
+        };
+        /** @description The editable fields of a database */
+        DatabaseUpdate: {
+            /** @description The name of the database */
+            name: string;
+            settings: components["schemas"]["DatabaseSettings"];
+            /** @description Notifiers of the workspace that report the database's backups */
+            notifierIds: string[];
+        };
+        /** @description Settings that are not saved, to connect with */
+        DatabaseSettingsTarget: {
+            /**
+             * Format: uuid
+             * @description The workspace whose content the settings belong to
+             */
+            workspaceId: string;
+            /**
+             * Format: uuid
+             * @description A saved database of the workspace whose stored secrets fill the ones left out
+             */
+            databaseId?: string;
+            settings: components["schemas"]["DatabaseSettings"];
+        };
+        /** @description The outcome of a connection test */
+        DatabaseTestResult: {
+            /** @description Whether the database could be connected to and backed up */
+            isConnected: boolean;
+            reason?: components["schemas"]["DatabaseConnectionFailure"];
+            /** @description The error the server gave, absent when it is connected */
+            error?: string;
+        };
+        /**
+         * @description The class of a failed connection where the type tells it, absent for any other failure
+         * @enum {string}
+         */
+        DatabaseConnectionFailure: "CONNECTION_FAILED" | "PG_HBA_NO_ENTRY" | "BAD_CREDENTIALS" | "NO_REPLICATION_PRIVILEGE" | "WAL_LEVEL_INVALID" | "NO_WAL_SENDERS" | "NO_REPLICATION_SLOTS" | "WAL_SUMMARY_DISABLED" | "CUSTOM_TABLESPACES" | "SYSTEM_IDENTIFIER_MISMATCH" | "NO_WAL_SWITCH_PRIVILEGE";
+        /** @description Whether the connecting user may do more than a backup needs */
+        LimitedUserCheck: {
+            /** @description Whether a limited user is advisable */
+            isAdvisable: boolean;
+            /** @description What the connecting user may do beyond what a backup needs */
+            privileges: string[];
+        };
+        /** @description A user created on the database's server for its backups */
+        LimitedUser: {
+            /** @description The generated user name */
+            username: string;
+            /** @description The generated password, returned only once */
+            password: string;
+            /** @description Whether a replication-only user may force a WAL segment switch; always false for a read-only user */
+            isForcedWalRotationAvailable: boolean;
+        };
+        /** @description The settings of the database's type; `type` tells the types apart */
+        DatabaseSettings: components["schemas"]["PostgresqlLogicalSettings"] | components["schemas"]["PostgresqlPhysicalSettings"] | components["schemas"]["MysqlSettings"] | components["schemas"]["MariadbSettings"] | components["schemas"]["MongodbSettings"];
+        /** @description The SSH bastion a database is reached through. When it is enabled, the host and the port of the database address it as the bastion sees it */
+        SshTunnelSettings: {
+            /** @description Whether the connection goes through the bastion */
+            isEnabled: boolean;
+            /** @description The host of the bastion */
+            host?: string;
+            /** @description The SSH port of the bastion */
+            port?: number;
+            /** @description The user name on the bastion */
+            username?: string;
+            authType?: components["schemas"]["SshAuthType"];
+            /** @description The password, with `PASSWORD` authentication */
+            password?: string;
+            /** @description The private key, with `PRIVATE_KEY` authentication */
+            privateKey?: string;
+            /** @description The passphrase of the private key, absent for a key without one */
+            privateKeyPassphrase?: string;
+        };
+        /**
+         * @description How Databasus signs in to the bastion
+         * @enum {string}
+         */
+        SshAuthType: "PASSWORD" | "PRIVATE_KEY";
+        /**
+         * @description The libpq SSL mode of the connection
+         * @enum {string}
+         */
+        PostgresqlSslMode: "disable" | "require" | "verify-ca" | "verify-full";
+        /**
+         * @description The major version the server reported at the last save
+         * @enum {string}
+         */
+        PostgresqlVersion: "12" | "13" | "14" | "15" | "16" | "17" | "18";
+        /** @description One PostgreSQL database backed up with pg_dump */
+        PostgresqlLogicalSettings: {
+            /**
+             * @description Always `POSTGRES_LOGICAL` (enum property replaced by openapi-typescript)
+             * @enum {string}
+             */
+            type: "POSTGRES_LOGICAL";
+            version?: components["schemas"]["PostgresqlVersion"];
+            /** @description The host of the server */
+            host: string;
+            /** @description The port of the server */
+            port: number;
+            /** @description The user name */
+            username: string;
+            /** @description The password */
+            password?: string;
+            /** @description The database the dump reads, absent until one is picked */
+            database?: string;
+            sslMode: components["schemas"]["PostgresqlSslMode"];
+            /** @description The PEM client certificate, absent without one */
+            sslClientCert?: string;
+            /** @description The PEM key of the client certificate */
+            sslClientKey?: string;
+            /** @description The PEM root certificate the server is verified against, absent without one */
+            sslRootCert?: string;
+            sshTunnel: components["schemas"]["SshTunnelSettings"];
+            /** @description The schemas the dump reads, empty for every schema */
+            includeSchemas: string[];
+            /** @description The table patterns the dump leaves out */
+            excludeTables: string[];
+            /** @description The table patterns whose rows the dump leaves out, keeping their definitions */
+            excludeTableData: string[];
+            /** @description The number of parallel jobs of the dump and the restore */
+            cpuCount: number;
+            /** @description Whether the dump leaves out the user mappings of foreign servers */
+            isSkipUserMappings: boolean;
+        };
+        /** @description A PostgreSQL cluster backed up with pg_basebackup and its WAL stream */
+        PostgresqlPhysicalSettings: {
+            /**
+             * @description Always `POSTGRES_PHYSICAL` (enum property replaced by openapi-typescript)
+             * @enum {string}
+             */
+            type: "POSTGRES_PHYSICAL";
+            version?: components["schemas"]["PostgresqlVersion"];
+            /** @description The host of the server */
+            host: string;
+            /** @description The port of the server */
+            port: number;
+            /** @description The user name, which needs the replication privilege */
+            username: string;
+            /** @description The password */
+            password?: string;
+            sslMode: components["schemas"]["PostgresqlSslMode"];
+            /** @description The PEM client certificate, absent without one */
+            sslClientCert?: string;
+            /** @description The PEM key of the client certificate */
+            sslClientKey?: string;
+            /** @description The PEM root certificate the server is verified against, absent without one */
+            sslRootCert?: string;
+            sshTunnel: components["schemas"]["SshTunnelSettings"];
+            backupType: components["schemas"]["PhysicalBackupType"];
+            /** @description The identifier of the cluster detected at the first save, which never changes */
+            readonly systemIdentifier?: string;
+            /**
+             * Format: int64
+             * @description The WAL segment size of the cluster detected at the first save
+             */
+            readonly walSegmentSizeBytes?: number;
+        };
+        /**
+         * @description What the physical backups of the cluster take
+         * @enum {string}
+         */
+        PhysicalBackupType: "FULL" | "FULL_INCREMENTAL" | "FULL_INCREMENTAL_WAL_STREAM";
+        /**
+         * @description The version the server reported at the last save
+         * @enum {string}
+         */
+        MysqlVersion: "5.7" | "8.0" | "8.4" | "9" | "26";
+        /** @description One MySQL database backed up with mysqldump */
+        MysqlSettings: {
+            /**
+             * @description Always `MYSQL` (enum property replaced by openapi-typescript)
+             * @enum {string}
+             */
+            type: "MYSQL";
+            version?: components["schemas"]["MysqlVersion"];
+            /** @description The host of the server */
+            host: string;
+            /** @description The port of the server */
+            port: number;
+            /** @description The user name */
+            username: string;
+            /** @description The password */
+            password?: string;
+            /** @description The database the dump reads, absent until one is picked */
+            database?: string;
+            /** @description Whether the connection is encrypted, without verifying the server certificate */
+            isHttps: boolean;
+            sshTunnel: components["schemas"]["SshTunnelSettings"];
+            /** @description The tables the dump leaves out */
+            excludeTables: string[];
+            /** @description The backup privileges the user held at the last save */
+            readonly privileges?: string[];
+        };
+        /**
+         * @description The version the server reported at the last save
+         * @enum {string}
+         */
+        MariadbVersion: "5.5" | "10.1" | "10.2" | "10.3" | "10.4" | "10.5" | "10.6" | "10.11" | "11.4" | "11.8" | "12.0" | "13.0";
+        /** @description One MariaDB database backed up with mariadb-dump */
+        MariadbSettings: {
+            /**
+             * @description Always `MARIADB` (enum property replaced by openapi-typescript)
+             * @enum {string}
+             */
+            type: "MARIADB";
+            version?: components["schemas"]["MariadbVersion"];
+            /** @description The host of the server */
+            host: string;
+            /** @description The port of the server */
+            port: number;
+            /** @description The user name */
+            username: string;
+            /** @description The password */
+            password?: string;
+            /** @description The database the dump reads, absent until one is picked */
+            database?: string;
+            /** @description Whether the connection is encrypted, without verifying the server certificate */
+            isHttps: boolean;
+            sshTunnel: components["schemas"]["SshTunnelSettings"];
+            /** @description The tables the dump leaves out */
+            excludeTables: string[];
+            /** @description Whether the dump leaves out the scheduled events */
+            isExcludeEvents: boolean;
+            /** @description Whether the dump keeps Galera replication on for its session */
+            isSkipGaleraDisable: boolean;
+            /** @description The backup privileges the user held at the last save */
+            readonly privileges?: string[];
+        };
+        /**
+         * @description The major version the server reported at the last save
+         * @enum {string}
+         */
+        MongodbVersion: "4" | "5" | "6" | "7" | "8" | "9";
+        /** @description One MongoDB database backed up with mongodump */
+        MongodbSettings: {
+            /**
+             * @description Always `MONGODB` (enum property replaced by openapi-typescript)
+             * @enum {string}
+             */
+            type: "MONGODB";
+            version?: components["schemas"]["MongodbVersion"];
+            /** @description The host of the server, or the DNS name of an SRV connection */
+            host: string;
+            /** @description The port of the server, absent for an SRV connection */
+            port?: number;
+            /** @description The user name */
+            username: string;
+            /** @description The password */
+            password?: string;
+            /** @description The database the dump reads */
+            database: string;
+            /** @description The database the user authenticates against */
+            authDatabase: string;
+            /** @description Whether TLS is on, without verifying the server certificate */
+            isHttps: boolean;
+            /** @description Whether the host is resolved through DNS SRV records */
+            isSrv: boolean;
+            /** @description Whether the client talks to the host alone instead of discovering the replica set */
+            isDirectConnection: boolean;
+            /** @description The number of parallel collections of the dump and the restore */
+            cpuCount: number;
+            sshTunnel: components["schemas"]["SshTunnelSettings"];
+            /** @description The collections the dump leaves out */
+            excludeCollections: string[];
+        };
         /** @description An error in the RFC 9457 format. The client chooses its text by `code` */
         Problem: {
             /** @description A URI that identifies the kind of error */
@@ -1611,7 +2087,7 @@ export interface components {
          * @description The cause of the error for programs; a value never changes its meaning
          * @enum {string}
          */
-        ProblemCode: "invalid_request" | "unauthenticated" | "permission_denied" | "not_found" | "rate_limited" | "human_verification_failed" | "invalid_credentials" | "user_deactivated" | "registration_closed" | "email_taken" | "invalid_reset_code" | "oauth_not_configured" | "oauth_failed" | "pending_sign_in_not_usable" | "sign_in_code_not_sent" | "too_many_sign_in_codes" | "sign_in_code_resent_too_soon" | "sign_in_code_incorrect" | "email_not_configured" | "admin_email_missing" | "already_member" | "cannot_change_own_role" | "owner_requires_transfer" | "workspace_not_empty" | "in_use" | "internal";
+        ProblemCode: "invalid_request" | "unauthenticated" | "permission_denied" | "not_found" | "rate_limited" | "human_verification_failed" | "invalid_credentials" | "user_deactivated" | "registration_closed" | "email_taken" | "invalid_reset_code" | "oauth_not_configured" | "oauth_failed" | "pending_sign_in_not_usable" | "sign_in_code_not_sent" | "too_many_sign_in_codes" | "sign_in_code_resent_too_soon" | "sign_in_code_incorrect" | "email_not_configured" | "admin_email_missing" | "already_member" | "cannot_change_own_role" | "owner_requires_transfer" | "workspace_not_empty" | "in_use" | "database_connection_failed" | "internal";
         /** @description A field of the request that breaks the contract or a validation rule */
         FieldError: {
             /** @description The path of the field in the request, such as `name` or `settings.bucket` */
@@ -1644,6 +2120,8 @@ export interface components {
         NotifierId: string;
         /** @description The ID of the storage */
         StorageId: string;
+        /** @description The ID of the database */
+        DatabaseId: string;
     };
     requestBodies: never;
     headers: never;
@@ -3013,6 +3491,301 @@ export interface operations {
                     "application/json": components["schemas"]["VersionResponse"];
                 };
             };
+            default: components["responses"]["Problem"];
+        };
+    };
+    listDatabases: {
+        parameters: {
+            query: {
+                /** @description The workspace whose databases to list */
+                workspaceId: string;
+                /** @description A notifier the listed databases use */
+                notifierId?: string;
+                /** @description The largest number of databases on the page */
+                limit?: number;
+                /** @description The `nextCursor` of the previous page */
+                after?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page of databases */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DatabasePage"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    createDatabase: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The database to create, with every secret its type needs. */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DatabaseCreate"];
+            };
+        };
+        responses: {
+            /** @description The database as it was saved, without its secrets */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Database"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    getDatabase: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the database */
+                databaseId: components["parameters"]["DatabaseId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The database */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Database"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    updateDatabase: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the database */
+                databaseId: components["parameters"]["DatabaseId"];
+            };
+            cookie?: never;
+        };
+        /** @description The editable fields of the database. */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DatabaseUpdate"];
+            };
+        };
+        responses: {
+            /** @description The database after the change, without its secrets */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Database"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    deleteDatabase: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the database */
+                databaseId: components["parameters"]["DatabaseId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The database is deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    copyDatabase: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the database */
+                databaseId: components["parameters"]["DatabaseId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The copy, without its secrets */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Database"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    testDatabase: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the database */
+                databaseId: components["parameters"]["DatabaseId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Whether the database could be connected to */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DatabaseTestResult"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    testDatabaseSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The settings to test. */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DatabaseSettingsTarget"];
+            };
+        };
+        responses: {
+            /** @description Whether the database could be connected to */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DatabaseTestResult"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    checkLimitedUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The settings to connect with. */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DatabaseSettingsTarget"];
+            };
+        };
+        responses: {
+            /** @description Whether a limited user is advisable, and why */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LimitedUserCheck"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    createLimitedUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The settings to connect with. */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DatabaseSettingsTarget"];
+            };
+        };
+        responses: {
+            /** @description The created user with its password */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LimitedUser"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
             default: components["responses"]["Problem"];
         };
     };

@@ -18,17 +18,15 @@ import (
 	"github.com/google/uuid"
 
 	"databasus-backend/internal/config"
+	pglogical "databasus-backend/internal/engines/postgresql/logical"
 	pgshared "databasus-backend/internal/engines/postgresql/shared"
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	"databasus-backend/internal/features/backups/backups/encryption"
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
-	"databasus-backend/internal/features/databases"
-	pgtypes "databasus-backend/internal/features/databases/databases/postgresql/logical"
 	restores_core "databasus-backend/internal/features/restores/core"
 	"databasus-backend/internal/lib/crypto"
 	"databasus-backend/internal/modules/storages"
-	util_encryption "databasus-backend/internal/util/encryption"
 	io_utils "databasus-backend/internal/util/io"
 )
 
@@ -39,16 +37,16 @@ type RestorePostgresqlBackupUsecase struct {
 
 func (uc *RestorePostgresqlBackupUsecase) Execute(
 	parentCtx context.Context,
-	originalDB *databases.Database,
-	restoringToDB *databases.Database,
+	source restores_core.SourceDatabase,
+	target restores_core.RestoreBackupRequest,
 	backupConfig *backups_config_logical.LogicalBackupConfig,
 	restore restores_core.Restore,
 	backup *backups_core_logical.LogicalBackup,
 	storageReader storages.StorageReader,
 	options restores_core.RestoreOptions,
 ) error {
-	if originalDB.Type != databases.DatabaseTypePostgresLogical {
-		return errors.New("database type not supported")
+	if source.PostgresqlLogical == nil {
+		return restores_core.ErrRestoreTypeNotSupported
 	}
 
 	uc.logger.InfoContext(parentCtx,
@@ -59,7 +57,7 @@ func (uc *RestorePostgresqlBackupUsecase) Execute(
 		backup.ID,
 	)
 
-	pg := restoringToDB.PostgresqlLogical
+	pg := target.PostgresqlLogicalDatabase
 	if pg == nil {
 		return fmt.Errorf("postgresql configuration is required for restore")
 	}
@@ -73,7 +71,7 @@ func (uc *RestorePostgresqlBackupUsecase) Execute(
 	// All PostgreSQL backups are now custom format (-Fc)
 	return uc.restoreCustomType(
 		parentCtx,
-		originalDB,
+		source,
 		pgBin,
 		backup,
 		storageReader,
@@ -85,11 +83,11 @@ func (uc *RestorePostgresqlBackupUsecase) Execute(
 // restoreCustomType restores a backup in custom type (-Fc)
 func (uc *RestorePostgresqlBackupUsecase) restoreCustomType(
 	parentCtx context.Context,
-	originalDB *databases.Database,
+	source restores_core.SourceDatabase,
 	pgBin string,
 	backup *backups_core_logical.LogicalBackup,
 	storageReader storages.StorageReader,
-	pg *pgtypes.PostgresqlLogicalDatabase,
+	pg *restores_core.PostgresqlTargetDatabase,
 	options restores_core.RestoreOptions,
 ) error {
 	uc.logger.InfoContext(parentCtx,
@@ -106,10 +104,10 @@ func (uc *RestorePostgresqlBackupUsecase) restoreCustomType(
 	// database-level GUC, so streaming is kept).
 	runRestore := func() error {
 		if options.IsExcludeExtensions || options.IsSkipUserMappings || pg.CpuCount > 1 {
-			return uc.restoreViaFile(parentCtx, originalDB, pgBin, backup, storageReader, pg, options)
+			return uc.restoreViaFile(parentCtx, source, pgBin, backup, storageReader, pg, options)
 		}
 
-		return uc.restoreViaStdin(parentCtx, originalDB, pgBin, backup, storageReader, pg)
+		return uc.restoreViaStdin(parentCtx, source, pgBin, backup, storageReader, pg)
 	}
 
 	if backup.TimescaledbVersion != "" {
@@ -125,19 +123,19 @@ func (uc *RestorePostgresqlBackupUsecase) restoreCustomType(
 // database-level GUC set here is inherited by the separate pg_restore process.
 func (uc *RestorePostgresqlBackupUsecase) withTimescaleHooks(
 	ctx context.Context,
-	pg *pgtypes.PostgresqlLogicalDatabase,
+	pg *restores_core.PostgresqlTargetDatabase,
 	runRestore func() error,
 ) (err error) {
-	encryptor := util_encryption.GetFieldEncryptor()
+	targetSource := pglogical.NewSource(pg.GetEngineSettings())
 
-	if err := pg.RunTimescaleDBPreRestore(ctx, encryptor); err != nil {
+	if err := targetSource.RunTimescaleDBPreRestore(ctx, uc.logger); err != nil {
 		return fmt.Errorf("timescaledb_pre_restore failed: %w", err)
 	}
 
 	uc.logger.InfoContext(ctx, "entered timescaledb restoring mode")
 
 	defer func() {
-		if postErr := pg.RunTimescaleDBPostRestore(ctx, encryptor); postErr != nil {
+		if postErr := targetSource.RunTimescaleDBPostRestore(ctx, uc.logger); postErr != nil {
 			uc.logger.ErrorContext(
 				ctx,
 				"timescaledb_post_restore failed; target database may be left in restoring mode",
@@ -155,11 +153,11 @@ func (uc *RestorePostgresqlBackupUsecase) withTimescaleHooks(
 
 func (uc *RestorePostgresqlBackupUsecase) restoreViaStdin(
 	parentCtx context.Context,
-	originalDB *databases.Database,
+	source restores_core.SourceDatabase,
 	pgBin string,
 	backup *backups_core_logical.LogicalBackup,
 	storageReader storages.StorageReader,
-	pg *pgtypes.PostgresqlLogicalDatabase,
+	pg *restores_core.PostgresqlTargetDatabase,
 ) error {
 	logger := uc.logger.With("backup_id", backup.ID)
 
@@ -190,13 +188,7 @@ func (uc *RestorePostgresqlBackupUsecase) restoreViaStdin(
 	defer cancel()
 
 	// Materialize connection credentials (.pgpass + optional client certificates)
-	fieldEncryptor := util_encryption.GetFieldEncryptor()
-	decryptedPassword, err := fieldEncryptor.Decrypt(pg.Password)
-	if err != nil {
-		return fmt.Errorf("failed to decrypt password: %w", err)
-	}
-
-	credentials, err := pg.WriteCredentialFiles(decryptedPassword, fieldEncryptor)
+	credentials, err := pgshared.WriteCredentialFilesToTempDir(pg.GetEngineSettings().GetCredentialSpec(), pg.Password)
 	if err != nil {
 		return fmt.Errorf("failed to create credential files: %w", err)
 	}
@@ -248,7 +240,7 @@ func (uc *RestorePostgresqlBackupUsecase) restoreViaStdin(
 	}
 
 	return uc.executePgRestoreViaStdin(ctx, pgRestoreCommand{
-		database:    originalDB,
+		source:      source,
 		pgBin:       pgBin,
 		args:        args,
 		credentials: credentials,
@@ -346,7 +338,7 @@ func (uc *RestorePostgresqlBackupUsecase) executePgRestoreViaStdin(
 		}
 
 		return uc.resolvePgRestoreOutcome(pgRestoreFailure{
-			database:     command.database,
+			source:       command.source,
 			waitErr:      waitErr,
 			stderrOutput: stderrOutput.Bytes(),
 			pgBin:        command.pgBin,
@@ -368,11 +360,11 @@ func (uc *RestorePostgresqlBackupUsecase) executePgRestoreViaStdin(
 // restoreViaFile downloads backup and uses parallel jobs for multi-CPU restore
 func (uc *RestorePostgresqlBackupUsecase) restoreViaFile(
 	parentCtx context.Context,
-	originalDB *databases.Database,
+	source restores_core.SourceDatabase,
 	pgBin string,
 	backup *backups_core_logical.LogicalBackup,
 	storageReader storages.StorageReader,
-	pg *pgtypes.PostgresqlLogicalDatabase,
+	pg *restores_core.PostgresqlTargetDatabase,
 	options restores_core.RestoreOptions,
 ) error {
 	uc.logger.InfoContext(parentCtx,
@@ -417,7 +409,7 @@ func (uc *RestorePostgresqlBackupUsecase) restoreViaFile(
 
 	return uc.restoreFromStorage(
 		parentCtx,
-		originalDB,
+		source,
 		pgBin,
 		args,
 		pg.Password,
@@ -431,13 +423,13 @@ func (uc *RestorePostgresqlBackupUsecase) restoreViaFile(
 // restoreFromStorage restores backup data from storage using pg_restore
 func (uc *RestorePostgresqlBackupUsecase) restoreFromStorage(
 	parentCtx context.Context,
-	database *databases.Database,
+	source restores_core.SourceDatabase,
 	pgBin string,
 	args []string,
 	password string,
 	backup *backups_core_logical.LogicalBackup,
 	storageReader storages.StorageReader,
-	pgConfig *pgtypes.PostgresqlLogicalDatabase,
+	pgConfig *restores_core.PostgresqlTargetDatabase,
 	options restores_core.RestoreOptions,
 ) error {
 	logger := uc.logger.With("backup_id", backup.ID)
@@ -458,7 +450,10 @@ func (uc *RestorePostgresqlBackupUsecase) restoreFromStorage(
 	defer cancel()
 
 	// Materialize connection credentials (.pgpass + optional client certificates)
-	credentials, err := pgConfig.WriteCredentialFiles(password, util_encryption.GetFieldEncryptor())
+	credentials, err := pgshared.WriteCredentialFilesToTempDir(
+		pgConfig.GetEngineSettings().GetCredentialSpec(),
+		password,
+	)
 	if err != nil {
 		return fmt.Errorf("failed to create credential files: %w", err)
 	}
@@ -495,7 +490,7 @@ func (uc *RestorePostgresqlBackupUsecase) restoreFromStorage(
 	args = append(args, tempBackupFile)
 
 	return uc.executePgRestore(ctx, pgRestoreCommand{
-		database:    database,
+		source:      source,
 		pgBin:       pgBin,
 		args:        args,
 		credentials: credentials,
@@ -608,11 +603,11 @@ func (uc *RestorePostgresqlBackupUsecase) downloadBackupToTempFile(
 }
 
 type pgRestoreCommand struct {
-	database    *databases.Database
+	source      restores_core.SourceDatabase
 	pgBin       string
 	args        []string
 	credentials *pgshared.CredentialTempFiles
-	pgConfig    *pgtypes.PostgresqlLogicalDatabase
+	pgConfig    *restores_core.PostgresqlTargetDatabase
 	logger      *slog.Logger
 }
 
@@ -671,7 +666,7 @@ func (uc *RestorePostgresqlBackupUsecase) executePgRestore(
 		}
 
 		return uc.resolvePgRestoreOutcome(pgRestoreFailure{
-			database:     command.database,
+			source:       command.source,
 			waitErr:      waitErr,
 			stderrOutput: stderrOutput.Bytes(),
 			pgBin:        command.pgBin,
@@ -687,12 +682,12 @@ func (uc *RestorePostgresqlBackupUsecase) executePgRestore(
 func (uc *RestorePostgresqlBackupUsecase) setupPgRestoreEnvironment(
 	cmd *exec.Cmd,
 	credentials *pgshared.CredentialTempFiles,
-	pgConfig *pgtypes.PostgresqlLogicalDatabase,
+	pgConfig *restores_core.PostgresqlTargetDatabase,
 ) {
 	cmd.Env = os.Environ()
 
 	cmd.Env = append(cmd.Env, "PGPASSFILE="+credentials.PgpassPath)
-	cmd.Env = append(cmd.Env, pgshared.GetPgHostAddrEnv(pgConfig.GetHostAddr())...)
+	cmd.Env = append(cmd.Env, pgshared.GetPgHostAddrEnv(pgConfig.HostAddr)...)
 	uc.logger.Info(
 		"Using temporary .pgpass file for authentication",
 		"pgpass_file", credentials.PgpassPath,
@@ -721,12 +716,12 @@ func (uc *RestorePostgresqlBackupUsecase) setupPgRestoreEnvironment(
 }
 
 type pgRestoreFailure struct {
-	database     *databases.Database
+	source       restores_core.SourceDatabase
 	waitErr      error
 	stderrOutput []byte
 	pgBin        string
 	args         []string
-	pgConfig     *pgtypes.PostgresqlLogicalDatabase
+	pgConfig     *restores_core.PostgresqlTargetDatabase
 	logger       *slog.Logger
 }
 
@@ -811,11 +806,9 @@ func (uc *RestorePostgresqlBackupUsecase) resolvePgRestoreOutcome(failure pgRest
 					stderr,
 				)
 			case containsIgnoreCase(stderr, "database") && containsIgnoreCase(stderr, "does not exist"):
-				sourceDatabase := failure.database.PostgresqlLogical
-
-				backupDbName := "unknown"
-				if sourceDatabase != nil && sourceDatabase.Database != nil {
-					backupDbName = *sourceDatabase.Database
+				backupDbName := failure.source.GetDatabaseName()
+				if backupDbName == "" {
+					backupDbName = "unknown"
 				}
 
 				targetDbName := "unknown"
@@ -897,7 +890,7 @@ func (uc *RestorePostgresqlBackupUsecase) generateFilteredTocList(
 	pgBin string,
 	backupFile string,
 	credentials *pgshared.CredentialTempFiles,
-	pgConfig *pgtypes.PostgresqlLogicalDatabase,
+	pgConfig *restores_core.PostgresqlTargetDatabase,
 	options restores_core.RestoreOptions,
 ) (string, error) {
 	uc.logger.InfoContext(ctx, "generating filtered TOC list", "backup_file", backupFile)

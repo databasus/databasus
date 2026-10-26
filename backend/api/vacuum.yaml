@@ -104,12 +104,15 @@ rules:
         type: camel
 
   # Error codes are lower snake_case, as the error table of the api-design skill names them.
+  # A schema marked x-engine-values lists names a database engine itself uses, such as server
+  # versions and libpq SSL modes. Users read them in the engine's documentation, so the contract
+  # keeps them instead of renaming them into UPPER_SNAKE_CASE that every client maps back.
   databasus-enum-upper-snake-case:
-    description: Enum values are UPPER_SNAKE_CASE, except the error codes of ProblemCode
+    description: Enum values are UPPER_SNAKE_CASE, except the error codes of ProblemCode and engine values
     severity: error
     resolved: false
     given:
-      - $.components.schemas[?(@property != 'ProblemCode')]..enum[*]
+      - $.components.schemas[?(@property != 'ProblemCode' && @['x-engine-values'] != true)]..enum[*]
       - $.paths..enum[*]
     then:
       function: pattern

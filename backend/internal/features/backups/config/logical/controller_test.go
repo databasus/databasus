@@ -2,9 +2,7 @@ package backups_config_logical
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
-	"strconv"
 	"testing"
 	"time"
 
@@ -13,11 +11,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"databasus-backend/internal/config"
-	pgshared "databasus-backend/internal/engines/postgresql/shared"
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
-	"databasus-backend/internal/features/databases"
-	postgresql_logical "databasus-backend/internal/features/databases/databases/postgresql/logical"
+	databases_bridge "databasus-backend/internal/features/databases"
 	"databasus-backend/internal/features/intervals"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	storages_bridge "databasus-backend/internal/features/storages"
@@ -33,7 +28,7 @@ import (
 
 func createTestRouter() *gin.Engine {
 	router := workspaces_testing.CreateTestRouter(
-		databases.GetDatabaseController(),
+		databases_bridge.GetTestRoutes(),
 		GetBackupConfigController(),
 	)
 	return router
@@ -90,10 +85,10 @@ func Test_SaveBackupConfig_PermissionsEnforced(t *testing.T) {
 			owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 			workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
 
-			database := createTestDatabaseViaAPI("Test Database", workspace.ID, owner.Token, router)
+			database := databases_bridge.CreateTestDatabaseViaAPI(t, router, owner.Token, workspace.ID, "Test Database")
 
 			defer func() {
-				databases.RemoveTestDatabase(t.Context(), database)
+				databases_bridge.RemoveTestDatabase(t.Context(), database)
 				workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 			}()
 
@@ -157,10 +152,10 @@ func Test_SaveBackupConfig_WhenUserIsNotWorkspaceMember_ReturnsForbidden(t *test
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
 
-	database := createTestDatabaseViaAPI("Test Database", workspace.ID, owner.Token, router)
+	database := databases_bridge.CreateTestDatabaseViaAPI(t, router, owner.Token, workspace.ID, "Test Database")
 
 	defer func() {
-		databases.RemoveTestDatabase(t.Context(), database)
+		databases_bridge.RemoveTestDatabase(t.Context(), database)
 		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	}()
 
@@ -253,10 +248,10 @@ func Test_GetBackupConfigByDbID_PermissionsEnforced(t *testing.T) {
 			owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 			workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
 
-			database := createTestDatabaseViaAPI("Test Database", workspace.ID, owner.Token, router)
+			database := databases_bridge.CreateTestDatabaseViaAPI(t, router, owner.Token, workspace.ID, "Test Database")
 
 			defer func() {
-				databases.RemoveTestDatabase(t.Context(), database)
+				databases_bridge.RemoveTestDatabase(t.Context(), database)
 				workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 			}()
 
@@ -304,10 +299,10 @@ func Test_GetBackupConfigByDbID_ReturnsDefaultConfigForNewDatabase(t *testing.T)
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
 
-	database := createTestDatabaseViaAPI("Test Database", workspace.ID, owner.Token, router)
+	database := databases_bridge.CreateTestDatabaseViaAPI(t, router, owner.Token, workspace.ID, "Test Database")
 
 	defer func() {
-		databases.RemoveTestDatabase(t.Context(), database)
+		databases_bridge.RemoveTestDatabase(t.Context(), database)
 		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	}()
 
@@ -404,10 +399,10 @@ func Test_SaveBackupConfig_WithEncryptionNone_ConfigSaved(t *testing.T) {
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
 
-	database := createTestDatabaseViaAPI("Test Database", workspace.ID, owner.Token, router)
+	database := databases_bridge.CreateTestDatabaseViaAPI(t, router, owner.Token, workspace.ID, "Test Database")
 
 	defer func() {
-		databases.RemoveTestDatabase(t.Context(), database)
+		databases_bridge.RemoveTestDatabase(t.Context(), database)
 		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	}()
 
@@ -449,10 +444,10 @@ func Test_SaveBackupConfig_WithEncryptionEncrypted_ConfigSaved(t *testing.T) {
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
 
-	database := createTestDatabaseViaAPI("Test Database", workspace.ID, owner.Token, router)
+	database := databases_bridge.CreateTestDatabaseViaAPI(t, router, owner.Token, workspace.ID, "Test Database")
 
 	defer func() {
-		databases.RemoveTestDatabase(t.Context(), database)
+		databases_bridge.RemoveTestDatabase(t.Context(), database)
 		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	}()
 
@@ -555,18 +550,19 @@ func Test_TransferDatabase_PermissionsEnforced(t *testing.T) {
 				"Target Workspace",
 				targetOwner)
 
-			database := createTestDatabaseViaAPI(
-				"Test Database",
-				sourceWorkspace.ID,
-				sourceOwner.Token,
+			database := databases_bridge.CreateTestDatabaseViaAPI(
+				t,
 				router,
+				sourceOwner.Token,
+				sourceWorkspace.ID,
+				"Test Database",
 			)
 
 			targetStorage := createTestStorage(targetWorkspace.ID)
 
 			defer func() {
 				// Cleanup in correct order to avoid foreign key violations
-				databases.RemoveTestDatabase(t.Context(), database)
+				databases_bridge.RemoveTestDatabase(t.Context(), database)
 				time.Sleep(50 * time.Millisecond) // Wait for cascade delete of backup_config
 				storages_bridge.RemoveTestStorage(t.Context(), targetStorage.ID)
 				workspaces_testing.RemoveTestWorkspace(t.Context(), sourceWorkspace)
@@ -618,16 +614,8 @@ func Test_TransferDatabase_PermissionsEnforced(t *testing.T) {
 			if tt.expectSuccess {
 				assert.Contains(t, string(testResp.Body), "database transferred successfully")
 
-				var retrievedDatabase databases.Database
-				test_utils.MakeGetRequestAndUnmarshal(
-					t,
-					router,
-					"/api/v1/databases/"+database.ID.String(),
-					"Bearer "+targetOwner.Token,
-					http.StatusOK,
-					&retrievedDatabase,
-				)
-				assert.Equal(t, targetWorkspace.ID, *retrievedDatabase.WorkspaceID)
+				retrievedDatabase := databases_bridge.GetTestDatabaseViaAPI(t, router, targetOwner.Token, database.ID)
+				assert.Equal(t, targetWorkspace.ID, retrievedDatabase.WorkspaceId)
 			} else {
 				assert.Contains(t, string(testResp.Body), "insufficient permissions")
 			}
@@ -649,15 +637,16 @@ func Test_TransferDatabase_NonMemberInSourceWorkspace_CannotTransfer(t *testing.
 		"Target Workspace",
 		targetOwner)
 
-	database := createTestDatabaseViaAPI(
-		"Test Database",
-		sourceWorkspace.ID,
-		sourceOwner.Token,
+	database := databases_bridge.CreateTestDatabaseViaAPI(
+		t,
 		router,
+		sourceOwner.Token,
+		sourceWorkspace.ID,
+		"Test Database",
 	)
 
 	defer func() {
-		databases.RemoveTestDatabase(t.Context(), database)
+		databases_bridge.RemoveTestDatabase(t.Context(), database)
 		workspaces_testing.RemoveTestWorkspace(t.Context(), sourceWorkspace)
 		workspaces_testing.RemoveTestWorkspace(t.Context(), targetWorkspace)
 	}()
@@ -692,15 +681,16 @@ func Test_TransferDatabase_NonMemberInTargetWorkspace_CannotTransfer(t *testing.
 		"Target Workspace",
 		targetOwner)
 
-	database := createTestDatabaseViaAPI(
-		"Test Database",
-		sourceWorkspace.ID,
-		sourceOwner.Token,
+	database := databases_bridge.CreateTestDatabaseViaAPI(
+		t,
 		router,
+		sourceOwner.Token,
+		sourceWorkspace.ID,
+		"Test Database",
 	)
 
 	defer func() {
-		databases.RemoveTestDatabase(t.Context(), database)
+		databases_bridge.RemoveTestDatabase(t.Context(), database)
 		workspaces_testing.RemoveTestWorkspace(t.Context(), sourceWorkspace)
 		workspaces_testing.RemoveTestWorkspace(t.Context(), targetWorkspace)
 	}()
@@ -728,12 +718,12 @@ func Test_TransferDatabase_ToNewStorage_DatabaseTransferd(t *testing.T) {
 	sourceWorkspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Source Workspace", owner)
 	targetWorkspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Target Workspace", owner)
 
-	database := createTestDatabaseViaAPI("Test Database", sourceWorkspace.ID, owner.Token, router)
+	database := databases_bridge.CreateTestDatabaseViaAPI(t, router, owner.Token, sourceWorkspace.ID, "Test Database")
 	sourceStorage := createTestStorage(sourceWorkspace.ID)
 	targetStorage := createTestStorage(targetWorkspace.ID)
 
 	defer func() {
-		databases.RemoveTestDatabase(t.Context(), database)
+		databases_bridge.RemoveTestDatabase(t.Context(), database)
 		time.Sleep(200 * time.Millisecond) // Wait for cascading deletes
 		workspaces_testing.RemoveTestWorkspace(t.Context(), sourceWorkspace)
 		workspaces_testing.RemoveTestWorkspace(t.Context(), targetWorkspace)
@@ -785,16 +775,8 @@ func Test_TransferDatabase_ToNewStorage_DatabaseTransferd(t *testing.T) {
 
 	assert.Contains(t, string(testResp.Body), "database transferred successfully")
 
-	var retrievedDatabase databases.Database
-	test_utils.MakeGetRequestAndUnmarshal(
-		t,
-		router,
-		"/api/v1/databases/"+database.ID.String(),
-		"Bearer "+owner.Token,
-		http.StatusOK,
-		&retrievedDatabase,
-	)
-	assert.Equal(t, targetWorkspace.ID, *retrievedDatabase.WorkspaceID)
+	retrievedDatabase := databases_bridge.GetTestDatabaseViaAPI(t, router, owner.Token, database.ID)
+	assert.Equal(t, targetWorkspace.ID, retrievedDatabase.WorkspaceId)
 
 	var retrievedConfig LogicalBackupConfig
 	test_utils.MakeGetRequestAndUnmarshal(
@@ -816,11 +798,11 @@ func Test_TransferDatabase_WithExistingStorage_DatabaseAndStorageTransferd(t *te
 	sourceWorkspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Source Workspace", owner)
 	targetWorkspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Target Workspace", owner)
 
-	database := createTestDatabaseViaAPI("Test Database", sourceWorkspace.ID, owner.Token, router)
+	database := databases_bridge.CreateTestDatabaseViaAPI(t, router, owner.Token, sourceWorkspace.ID, "Test Database")
 	storage := createTestStorage(sourceWorkspace.ID)
 
 	defer func() {
-		databases.RemoveTestDatabase(t.Context(), database)
+		databases_bridge.RemoveTestDatabase(t.Context(), database)
 		time.Sleep(200 * time.Millisecond) // Wait for cascading deletes
 		workspaces_testing.RemoveTestWorkspace(t.Context(), sourceWorkspace)
 		workspaces_testing.RemoveTestWorkspace(t.Context(), targetWorkspace)
@@ -872,16 +854,8 @@ func Test_TransferDatabase_WithExistingStorage_DatabaseAndStorageTransferd(t *te
 
 	assert.Contains(t, string(testResp.Body), "database transferred successfully")
 
-	var retrievedDatabase databases.Database
-	test_utils.MakeGetRequestAndUnmarshal(
-		t,
-		router,
-		"/api/v1/databases/"+database.ID.String(),
-		"Bearer "+owner.Token,
-		http.StatusOK,
-		&retrievedDatabase,
-	)
-	assert.Equal(t, targetWorkspace.ID, *retrievedDatabase.WorkspaceID)
+	retrievedDatabase := databases_bridge.GetTestDatabaseViaAPI(t, router, owner.Token, database.ID)
+	assert.Equal(t, targetWorkspace.ID, retrievedDatabase.WorkspaceId)
 
 	transferredStorages, err := storages_bridge.GetModule().GetStorages(t.Context(), []uuid.UUID{storage.ID})
 	require.NoError(t, err)
@@ -896,23 +870,25 @@ func Test_TransferDatabase_StorageHasOtherDBs_CannotTransfer(t *testing.T) {
 	sourceWorkspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Source Workspace", owner)
 	targetWorkspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Target Workspace", owner)
 
-	database1 := createTestDatabaseViaAPI(
+	database1 := databases_bridge.CreateTestDatabaseViaAPI(
+		t,
+		router,
+		owner.Token,
+		sourceWorkspace.ID,
 		"Test Database 1",
-		sourceWorkspace.ID,
-		owner.Token,
-		router,
 	)
-	database2 := createTestDatabaseViaAPI(
-		"Test Database 2",
-		sourceWorkspace.ID,
-		owner.Token,
+	database2 := databases_bridge.CreateTestDatabaseViaAPI(
+		t,
 		router,
+		owner.Token,
+		sourceWorkspace.ID,
+		"Test Database 2",
 	)
 	storage := createTestStorage(sourceWorkspace.ID)
 
 	defer func() {
-		databases.RemoveTestDatabase(t.Context(), database1)
-		databases.RemoveTestDatabase(t.Context(), database2)
+		databases_bridge.RemoveTestDatabase(t.Context(), database1)
+		databases_bridge.RemoveTestDatabase(t.Context(), database2)
 		time.Sleep(200 * time.Millisecond) // Wait for cascading deletes
 		workspaces_testing.RemoveTestWorkspace(t.Context(), sourceWorkspace)
 		workspaces_testing.RemoveTestWorkspace(t.Context(), targetWorkspace)
@@ -997,30 +973,20 @@ func Test_TransferDatabase_WithNotifiers_NotifiersTransferred(t *testing.T) {
 	sourceWorkspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Source Workspace", owner)
 	targetWorkspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Target Workspace", owner)
 
-	database := createTestDatabaseViaAPI("Test Database", sourceWorkspace.ID, owner.Token, router)
+	database := databases_bridge.CreateTestDatabaseViaAPI(t, router, owner.Token, sourceWorkspace.ID, "Test Database")
 	sourceStorage := createTestStorage(sourceWorkspace.ID)
 	targetStorage := createTestStorage(targetWorkspace.ID)
 	notifier := notifiers_bridge.CreateTestNotifier(sourceWorkspace.ID)
 
 	defer func() {
-		databases.RemoveTestDatabase(t.Context(), database)
+		databases_bridge.RemoveTestDatabase(t.Context(), database)
 		time.Sleep(200 * time.Millisecond)
 		notifiers_bridge.RemoveTestNotifier(notifier)
 		workspaces_testing.RemoveTestWorkspace(t.Context(), sourceWorkspace)
 		workspaces_testing.RemoveTestWorkspace(t.Context(), targetWorkspace)
 	}()
 
-	database.Notifiers = []databases.DatabaseNotifier{{ID: notifier.ID}}
-	var updatedDatabase databases.Database
-	test_utils.MakePostRequestAndUnmarshal(
-		t,
-		router,
-		"/api/v1/databases/update",
-		"Bearer "+owner.Token,
-		database,
-		http.StatusOK,
-		&updatedDatabase,
-	)
+	attachNotifiersViaAPI(t, router, owner.Token, database.ID, http.StatusOK, notifier.ID)
 
 	timeOfDay := "04:00"
 	backupConfigRequest := LogicalBackupConfig{
@@ -1067,17 +1033,9 @@ func Test_TransferDatabase_WithNotifiers_NotifiersTransferred(t *testing.T) {
 
 	assert.Contains(t, string(testResp.Body), "database transferred successfully")
 
-	var retrievedDatabase databases.Database
-	test_utils.MakeGetRequestAndUnmarshal(
-		t,
-		router,
-		"/api/v1/databases/"+database.ID.String(),
-		"Bearer "+owner.Token,
-		http.StatusOK,
-		&retrievedDatabase,
-	)
-	assert.Equal(t, targetWorkspace.ID, *retrievedDatabase.WorkspaceID)
-	assert.Len(t, retrievedDatabase.Notifiers, 1)
+	retrievedDatabase := databases_bridge.GetTestDatabaseViaAPI(t, router, owner.Token, database.ID)
+	assert.Equal(t, targetWorkspace.ID, retrievedDatabase.WorkspaceId)
+	assert.Len(t, retrievedDatabase.NotifierIds, 1)
 
 	assert.Equal(t, targetWorkspace.ID, getNotifierWorkspaceID(t, notifier.ID))
 }
@@ -1089,50 +1047,36 @@ func Test_TransferDatabase_NotifierHasOtherDBs_NotifierSkipped(t *testing.T) {
 	sourceWorkspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Source Workspace", owner)
 	targetWorkspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Target Workspace", owner)
 
-	database1 := createTestDatabaseViaAPI(
+	database1 := databases_bridge.CreateTestDatabaseViaAPI(
+		t,
+		router,
+		owner.Token,
+		sourceWorkspace.ID,
 		"Test Database 1",
-		sourceWorkspace.ID,
-		owner.Token,
-		router,
 	)
-	database2 := createTestDatabaseViaAPI(
-		"Test Database 2",
-		sourceWorkspace.ID,
-		owner.Token,
+	database2 := databases_bridge.CreateTestDatabaseViaAPI(
+		t,
 		router,
+		owner.Token,
+		sourceWorkspace.ID,
+		"Test Database 2",
 	)
 	sourceStorage := createTestStorage(sourceWorkspace.ID)
 	targetStorage := createTestStorage(targetWorkspace.ID)
 	sharedNotifier := notifiers_bridge.CreateTestNotifier(sourceWorkspace.ID)
 
 	defer func() {
-		databases.RemoveTestDatabase(t.Context(), database1)
-		databases.RemoveTestDatabase(t.Context(), database2)
+		databases_bridge.RemoveTestDatabase(t.Context(), database1)
+		databases_bridge.RemoveTestDatabase(t.Context(), database2)
 		time.Sleep(200 * time.Millisecond)
 		notifiers_bridge.RemoveTestNotifier(sharedNotifier)
 		workspaces_testing.RemoveTestWorkspace(t.Context(), sourceWorkspace)
 		workspaces_testing.RemoveTestWorkspace(t.Context(), targetWorkspace)
 	}()
 
-	database1.Notifiers = []databases.DatabaseNotifier{{ID: sharedNotifier.ID}}
-	test_utils.MakePostRequest(
-		t,
-		router,
-		"/api/v1/databases/update",
-		"Bearer "+owner.Token,
-		database1,
-		http.StatusOK,
-	)
+	attachNotifiersViaAPI(t, router, owner.Token, database1.ID, http.StatusOK, sharedNotifier.ID)
 
-	database2.Notifiers = []databases.DatabaseNotifier{{ID: sharedNotifier.ID}}
-	test_utils.MakePostRequest(
-		t,
-		router,
-		"/api/v1/databases/update",
-		"Bearer "+owner.Token,
-		database2,
-		http.StatusOK,
-	)
+	attachNotifiersViaAPI(t, router, owner.Token, database2.ID, http.StatusOK, sharedNotifier.ID)
 
 	timeOfDay := "04:00"
 	backupConfigRequest := LogicalBackupConfig{
@@ -1179,16 +1123,8 @@ func Test_TransferDatabase_NotifierHasOtherDBs_NotifierSkipped(t *testing.T) {
 
 	assert.Contains(t, string(testResp.Body), "database transferred successfully")
 
-	var retrievedDatabase databases.Database
-	test_utils.MakeGetRequestAndUnmarshal(
-		t,
-		router,
-		"/api/v1/databases/"+database1.ID.String(),
-		"Bearer "+owner.Token,
-		http.StatusOK,
-		&retrievedDatabase,
-	)
-	assert.Equal(t, targetWorkspace.ID, *retrievedDatabase.WorkspaceID)
+	retrievedDatabase := databases_bridge.GetTestDatabaseViaAPI(t, router, owner.Token, database1.ID)
+	assert.Equal(t, targetWorkspace.ID, retrievedDatabase.WorkspaceId)
 
 	assert.Equal(t, sourceWorkspace.ID, getNotifierWorkspaceID(t, sharedNotifier.ID))
 }
@@ -1200,17 +1136,19 @@ func Test_TransferDatabase_WithMultipleNotifiers_OnlyExclusiveOnesTransferred(t 
 	sourceWorkspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Source Workspace", owner)
 	targetWorkspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Target Workspace", owner)
 
-	database1 := createTestDatabaseViaAPI(
+	database1 := databases_bridge.CreateTestDatabaseViaAPI(
+		t,
+		router,
+		owner.Token,
+		sourceWorkspace.ID,
 		"Test Database 1",
-		sourceWorkspace.ID,
-		owner.Token,
-		router,
 	)
-	database2 := createTestDatabaseViaAPI(
-		"Test Database 2",
-		sourceWorkspace.ID,
-		owner.Token,
+	database2 := databases_bridge.CreateTestDatabaseViaAPI(
+		t,
 		router,
+		owner.Token,
+		sourceWorkspace.ID,
+		"Test Database 2",
 	)
 	sourceStorage := createTestStorage(sourceWorkspace.ID)
 	targetStorage := createTestStorage(targetWorkspace.ID)
@@ -1219,8 +1157,8 @@ func Test_TransferDatabase_WithMultipleNotifiers_OnlyExclusiveOnesTransferred(t 
 	sharedNotifier := notifiers_bridge.CreateTestNotifier(sourceWorkspace.ID)
 
 	defer func() {
-		databases.RemoveTestDatabase(t.Context(), database1)
-		databases.RemoveTestDatabase(t.Context(), database2)
+		databases_bridge.RemoveTestDatabase(t.Context(), database1)
+		databases_bridge.RemoveTestDatabase(t.Context(), database2)
 		time.Sleep(200 * time.Millisecond)
 		notifiers_bridge.RemoveTestNotifier(exclusiveNotifier)
 		notifiers_bridge.RemoveTestNotifier(sharedNotifier)
@@ -1228,25 +1166,9 @@ func Test_TransferDatabase_WithMultipleNotifiers_OnlyExclusiveOnesTransferred(t 
 		workspaces_testing.RemoveTestWorkspace(t.Context(), targetWorkspace)
 	}()
 
-	database1.Notifiers = []databases.DatabaseNotifier{{ID: exclusiveNotifier.ID}, {ID: sharedNotifier.ID}}
-	test_utils.MakePostRequest(
-		t,
-		router,
-		"/api/v1/databases/update",
-		"Bearer "+owner.Token,
-		database1,
-		http.StatusOK,
-	)
+	attachNotifiersViaAPI(t, router, owner.Token, database1.ID, http.StatusOK, exclusiveNotifier.ID, sharedNotifier.ID)
 
-	database2.Notifiers = []databases.DatabaseNotifier{{ID: sharedNotifier.ID}}
-	test_utils.MakePostRequest(
-		t,
-		router,
-		"/api/v1/databases/update",
-		"Bearer "+owner.Token,
-		database2,
-		http.StatusOK,
-	)
+	attachNotifiersViaAPI(t, router, owner.Token, database2.ID, http.StatusOK, sharedNotifier.ID)
 
 	timeOfDay := "04:00"
 	backupConfigRequest := LogicalBackupConfig{
@@ -1293,17 +1215,9 @@ func Test_TransferDatabase_WithMultipleNotifiers_OnlyExclusiveOnesTransferred(t 
 
 	assert.Contains(t, string(testResp.Body), "database transferred successfully")
 
-	var retrievedDatabase databases.Database
-	test_utils.MakeGetRequestAndUnmarshal(
-		t,
-		router,
-		"/api/v1/databases/"+database1.ID.String(),
-		"Bearer "+owner.Token,
-		http.StatusOK,
-		&retrievedDatabase,
-	)
-	assert.Equal(t, targetWorkspace.ID, *retrievedDatabase.WorkspaceID)
-	assert.Len(t, retrievedDatabase.Notifiers, 2)
+	retrievedDatabase := databases_bridge.GetTestDatabaseViaAPI(t, router, owner.Token, database1.ID)
+	assert.Equal(t, targetWorkspace.ID, retrievedDatabase.WorkspaceId)
+	assert.Len(t, retrievedDatabase.NotifierIds, 2)
 
 	assert.Equal(t, targetWorkspace.ID, getNotifierWorkspaceID(t, exclusiveNotifier.ID))
 
@@ -1317,13 +1231,13 @@ func Test_TransferDatabase_WithTargetNotifiers_NotifiersAssigned(t *testing.T) {
 	sourceWorkspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Source Workspace", owner)
 	targetWorkspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Target Workspace", owner)
 
-	database := createTestDatabaseViaAPI("Test Database", sourceWorkspace.ID, owner.Token, router)
+	database := databases_bridge.CreateTestDatabaseViaAPI(t, router, owner.Token, sourceWorkspace.ID, "Test Database")
 	sourceStorage := createTestStorage(sourceWorkspace.ID)
 	targetStorage := createTestStorage(targetWorkspace.ID)
 	targetNotifier := notifiers_bridge.CreateTestNotifier(targetWorkspace.ID)
 
 	defer func() {
-		databases.RemoveTestDatabase(t.Context(), database)
+		databases_bridge.RemoveTestDatabase(t.Context(), database)
 		time.Sleep(200 * time.Millisecond)
 		notifiers_bridge.RemoveTestNotifier(targetNotifier)
 		workspaces_testing.RemoveTestWorkspace(t.Context(), sourceWorkspace)
@@ -1375,18 +1289,10 @@ func Test_TransferDatabase_WithTargetNotifiers_NotifiersAssigned(t *testing.T) {
 
 	assert.Contains(t, string(testResp.Body), "database transferred successfully")
 
-	var retrievedDatabase databases.Database
-	test_utils.MakeGetRequestAndUnmarshal(
-		t,
-		router,
-		"/api/v1/databases/"+database.ID.String(),
-		"Bearer "+owner.Token,
-		http.StatusOK,
-		&retrievedDatabase,
-	)
-	assert.Equal(t, targetWorkspace.ID, *retrievedDatabase.WorkspaceID)
-	assert.Len(t, retrievedDatabase.Notifiers, 1)
-	assert.Equal(t, targetNotifier.ID, retrievedDatabase.Notifiers[0].ID)
+	retrievedDatabase := databases_bridge.GetTestDatabaseViaAPI(t, router, owner.Token, database.ID)
+	assert.Equal(t, targetWorkspace.ID, retrievedDatabase.WorkspaceId)
+	assert.Len(t, retrievedDatabase.NotifierIds, 1)
+	assert.Equal(t, targetNotifier.ID, retrievedDatabase.NotifierIds[0])
 }
 
 func Test_TransferDatabase_TargetNotifierFromDifferentWorkspace_ReturnsBadRequest(t *testing.T) {
@@ -1397,13 +1303,13 @@ func Test_TransferDatabase_TargetNotifierFromDifferentWorkspace_ReturnsBadReques
 	targetWorkspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Target Workspace", owner)
 	otherWorkspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Other Workspace", owner)
 
-	database := createTestDatabaseViaAPI("Test Database", sourceWorkspace.ID, owner.Token, router)
+	database := databases_bridge.CreateTestDatabaseViaAPI(t, router, owner.Token, sourceWorkspace.ID, "Test Database")
 	sourceStorage := createTestStorage(sourceWorkspace.ID)
 	targetStorage := createTestStorage(targetWorkspace.ID)
 	wrongNotifier := notifiers_bridge.CreateTestNotifier(otherWorkspace.ID)
 
 	defer func() {
-		databases.RemoveTestDatabase(t.Context(), database)
+		databases_bridge.RemoveTestDatabase(t.Context(), database)
 		time.Sleep(200 * time.Millisecond)
 		notifiers_bridge.RemoveTestNotifier(wrongNotifier)
 		workspaces_testing.RemoveTestWorkspace(t.Context(), sourceWorkspace)
@@ -1465,12 +1371,12 @@ func Test_TransferDatabase_TargetStorageFromDifferentWorkspace_ReturnsBadRequest
 	targetWorkspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Target Workspace", owner)
 	otherWorkspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Other Workspace", owner)
 
-	database := createTestDatabaseViaAPI("Test Database", sourceWorkspace.ID, owner.Token, router)
+	database := databases_bridge.CreateTestDatabaseViaAPI(t, router, owner.Token, sourceWorkspace.ID, "Test Database")
 	sourceStorage := createTestStorage(sourceWorkspace.ID)
 	wrongStorage := createTestStorage(otherWorkspace.ID)
 
 	defer func() {
-		databases.RemoveTestDatabase(t.Context(), database)
+		databases_bridge.RemoveTestDatabase(t.Context(), database)
 		time.Sleep(200 * time.Millisecond)
 		workspaces_testing.RemoveTestWorkspace(t.Context(), sourceWorkspace)
 		workspaces_testing.RemoveTestWorkspace(t.Context(), targetWorkspace)
@@ -1531,7 +1437,7 @@ func Test_SaveBackupConfig_WithStorageFromAnotherWorkspace_ReturnsBadRequest(t *
 	workspaceA := workspaces_testing.CreateTestWorkspace(t.Context(), "Workspace A", owner1)
 	workspaceB := workspaces_testing.CreateTestWorkspace(t.Context(), "Workspace B", owner2)
 
-	databaseA := createTestDatabaseViaAPI("Database A", workspaceA.ID, owner1.Token, router)
+	databaseA := databases_bridge.CreateTestDatabaseViaAPI(t, router, owner1.Token, workspaceA.ID, "Database A")
 
 	storageB := createTestStorage(workspaceB.ID)
 
@@ -1567,59 +1473,10 @@ func Test_SaveBackupConfig_WithStorageFromAnotherWorkspace_ReturnsBadRequest(t *
 	assert.Contains(t, string(resp.Body), "storage does not belong to the same workspace")
 
 	// Cleanup: database first (cascades to backup_config), then storage, then workspaces
-	databases.RemoveTestDatabase(t.Context(), databaseA)
+	databases_bridge.RemoveTestDatabase(t.Context(), databaseA)
 	storages_bridge.RemoveTestStorage(t.Context(), storageB.ID)
 	workspaces_testing.RemoveTestWorkspace(t.Context(), workspaceA)
 	workspaces_testing.RemoveTestWorkspace(t.Context(), workspaceB)
-}
-
-func createTestDatabaseViaAPI(
-	name string,
-	workspaceID uuid.UUID,
-	token string,
-	router *gin.Engine,
-) *databases.Database {
-	env := config.GetEnv()
-	port, err := strconv.Atoi(env.TestLogicalPostgres16Port)
-	if err != nil {
-		panic(fmt.Sprintf("Failed to parse TEST_LOGICAL_POSTGRES_16_PORT: %v", err))
-	}
-
-	testDbName := "testdb"
-	request := databases.Database{
-		WorkspaceID: &workspaceID,
-		Name:        name,
-		Type:        databases.DatabaseTypePostgresLogical,
-		PostgresqlLogical: &postgresql_logical.PostgresqlLogicalDatabase{
-			Version:  pgshared.Version16,
-			Host:     config.GetEnv().TestLocalhost,
-			Port:     port,
-			Username: "testuser",
-			Password: "testpassword",
-			Database: &testDbName,
-			CpuCount: 1,
-		},
-	}
-
-	w := workspaces_testing.MakeAPIRequest(
-		router,
-		"POST",
-		"/api/v1/databases/create",
-		"Bearer "+token,
-		request,
-	)
-
-	if w.Code != http.StatusCreated {
-		panic(
-			fmt.Sprintf("Failed to create database. Status: %d, Body: %s", w.Code, w.Body.String()),
-		)
-	}
-
-	var database databases.Database
-	if err := json.Unmarshal(w.Body.Bytes(), &database); err != nil {
-		panic(err)
-	}
-	return &database
 }
 
 func createTestStorage(workspaceID uuid.UUID) storages.Storage {
@@ -1628,11 +1485,11 @@ func createTestStorage(workspaceID uuid.UUID) storages.Storage {
 
 func createTestRouterWithStorageForTransfer() *gin.Engine {
 	router := workspaces_testing.CreateTestRouter(
-		databases.GetDatabaseController(),
+		databases_bridge.GetTestRoutes(),
 		GetBackupConfigController(),
 	)
 
-	databases.SetupDependencies()
+	databases_bridge.SetupDependencies()
 	SetupDependencies()
 
 	return router
@@ -1640,11 +1497,11 @@ func createTestRouterWithStorageForTransfer() *gin.Engine {
 
 func createTestRouterWithNotifiersForTransfer() *gin.Engine {
 	router := workspaces_testing.CreateTestRouter(
-		databases.GetDatabaseController(),
+		databases_bridge.GetTestRoutes(),
 		GetBackupConfigController(),
 	)
 
-	databases.SetupDependencies()
+	databases_bridge.SetupDependencies()
 	SetupDependencies()
 
 	return router
@@ -1654,12 +1511,12 @@ func Test_SaveBackupConfig_WhenEmbeddedStorageHasChangedFields_KeepsStoredStorag
 	router := createTestRouterWithStorageForTransfer()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
-	database := createTestDatabaseViaAPI("Test Database", workspace.ID, owner.Token, router)
+	database := databases_bridge.CreateTestDatabaseViaAPI(t, router, owner.Token, workspace.ID, "Test Database")
 	existingStorage := storages_bridge.CreateTestFlakyS3Storage(workspace.ID, "http://127.0.0.1:1")
 	storedKeys := getStoredS3Keys(t, existingStorage.ID)
 
 	t.Cleanup(func() {
-		databases.RemoveTestDatabase(t.Context(), database)
+		databases_bridge.RemoveTestDatabase(t.Context(), database)
 		storages_bridge.RemoveTestStorage(t.Context(), existingStorage.ID)
 		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	})
@@ -1697,10 +1554,10 @@ func Test_SaveBackupConfig_WhenEmbeddedStorageHasNoID_ReturnsBadRequestAndCreate
 	router := createTestRouterWithStorageForTransfer()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
-	database := createTestDatabaseViaAPI("Test Database", workspace.ID, owner.Token, router)
+	database := databases_bridge.CreateTestDatabaseViaAPI(t, router, owner.Token, workspace.ID, "Test Database")
 
 	t.Cleanup(func() {
-		databases.RemoveTestDatabase(t.Context(), database)
+		databases_bridge.RemoveTestDatabase(t.Context(), database)
 		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	})
 
@@ -1726,10 +1583,10 @@ func Test_SaveBackupConfig_WhenEmbeddedStorageIsUnknown_ReturnsBadRequestAndCrea
 	router := createTestRouterWithStorageForTransfer()
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
-	database := createTestDatabaseViaAPI("Test Database", workspace.ID, owner.Token, router)
+	database := databases_bridge.CreateTestDatabaseViaAPI(t, router, owner.Token, workspace.ID, "Test Database")
 
 	t.Cleanup(func() {
-		databases.RemoveTestDatabase(t.Context(), database)
+		databases_bridge.RemoveTestDatabase(t.Context(), database)
 		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	})
 

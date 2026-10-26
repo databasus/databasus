@@ -16,7 +16,7 @@ import (
 
 	pgshared "databasus-backend/internal/engines/postgresql/shared"
 	physical_enums "databasus-backend/internal/features/backups/backups/core/physical/enums"
-	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
+	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/util/walmath"
 )
 
@@ -45,7 +45,7 @@ var pgBasebackupStopPointRegexp = regexp.MustCompile(
 func newPgBasebackupCommand(
 	ctx context.Context,
 	pgBin string,
-	sourceDB *postgresql_physical.PostgresqlPhysicalDatabase,
+	sourceDB databases.PostgresqlPhysicalConnectionSettings,
 	creds *pgshared.CredentialTempFiles,
 	label string,
 	codec physical_enums.PhysicalBackupCompression,
@@ -83,9 +83,9 @@ func newPgBasebackupCommand(
 		"--label="+label,
 		"--no-password",
 		"--verbose",
-		"-h", sourceDB.Host,
-		"-p", strconv.Itoa(sourceDB.Port),
-		"-U", sourceDB.Username,
+		"-h", sourceDB.Engine.Host,
+		"-p", strconv.Itoa(sourceDB.Engine.Port),
+		"-U", sourceDB.Engine.Username,
 	)
 
 	// The binary is a database client from the bundled tools directory, and the arguments go to it as a list, not through a shell.
@@ -101,9 +101,9 @@ func newPgBasebackupCommand(
 		"LC_ALL=C.UTF-8",
 		"LANG=C.UTF-8",
 	)
-	cmd.Env = append(cmd.Env, pgshared.GetPgHostAddrEnv(sourceDB.GetHostAddr())...)
+	cmd.Env = append(cmd.Env, pgshared.GetPgHostAddrEnv(sourceDB.Engine.HostAddr)...)
 
-	sslMode := sourceDB.SslMode
+	sslMode := sourceDB.Engine.TLS.Mode
 	if sslMode == "" {
 		sslMode = pgshared.SslModeDisable
 	}

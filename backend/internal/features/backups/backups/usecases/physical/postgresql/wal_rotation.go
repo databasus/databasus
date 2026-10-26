@@ -126,7 +126,7 @@ func (s *WalStreamSupervisor) getCurrentWalLsnIfReachable(
 	ctx context.Context,
 	logger *slog.Logger,
 ) (currentLSN walmath.LSN, isSourceReachable bool) {
-	conn, err := s.spec.SourceDB.OpenInspectionConn(ctx, s.spec.FieldEncryptor)
+	conn, err := openInspectionConn(ctx, s.spec.SourceDB)
 	if err != nil {
 		logger.DebugContext(ctx, "forced wal rotation: source unreachable this tick", "error", err)
 
@@ -152,7 +152,7 @@ func readCurrentWalLSN(ctx context.Context, conn *pgx.Conn) (walmath.LSN, error)
 }
 
 func (s *WalStreamSupervisor) forceWalRotation(ctx context.Context) (currentLSNAfterRotation walmath.LSN, err error) {
-	conn, err := s.spec.SourceDB.OpenInspectionConn(ctx, s.spec.FieldEncryptor)
+	conn, err := openInspectionConn(ctx, s.spec.SourceDB)
 	if err != nil {
 		return 0, fmt.Errorf("open conn for wal switch: %w", err)
 	}

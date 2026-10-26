@@ -14,7 +14,7 @@ import (
 	usecases_logical "databasus-backend/internal/features/backups/backups/usecases/logical"
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
 	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
-	"databasus-backend/internal/features/databases"
+	databases_bridge "databasus-backend/internal/features/databases"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	storages_bridge "databasus-backend/internal/features/storages"
 	task_cancellation "databasus-backend/internal/features/tasks/cancellation"
@@ -27,13 +27,12 @@ var getTaskCancellationRequester = sync.OnceValue(task_cancellation.GetRequester
 
 var getBackupService = sync.OnceValue(func() *LogicalBackupService {
 	return &LogicalBackupService{
-		databases.GetDatabaseService(),
+		databases_bridge.GetAccess(),
 		storages_bridge.GetModule,
 		backups_core_logical.GetBackupRepository(),
 		notifiers_bridge.GetSender(),
 		backups_config_logical.GetBackupConfigService(),
 		encryption.GetMasterKey(),
-		encryption.GetFieldEncryptor(),
 		usecases_logical.GetCreateBackupUsecase(),
 		logger.GetLogger(),
 		workspaces_bridge.GetAccess(),
@@ -51,7 +50,7 @@ func GetBackupService() *LogicalBackupService {
 
 var getPhysicalBackupService = sync.OnceValue(func() *PhysicalBackupService {
 	return &PhysicalBackupService{
-		databases.GetDatabaseService(),
+		databases_bridge.GetAccess(),
 		workspaces_bridge.GetAccess(),
 		backups_config_physical.GetBackupConfigService(),
 		chain_view.GetChainViewService(),
@@ -81,7 +80,4 @@ var SetupDependencies = sync.OnceFunc(func() {
 	backups_config_physical.
 		GetBackupConfigService().
 		SetDatabaseStorageChangeListener(getPhysicalBackupService())
-
-	databases.GetDatabaseService().AddDbRemoveListener(getBackupService())
-	databases.GetDatabaseService().AddDbCopyListener(backups_config_logical.GetBackupConfigService())
 })

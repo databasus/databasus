@@ -17,7 +17,7 @@ import (
 	backuping_physical "databasus-backend/internal/features/backups/backups/backuping/physical"
 	physical_repositories "databasus-backend/internal/features/backups/backups/core/physical/repositories"
 	postgresql_executor "databasus-backend/internal/features/backups/backups/usecases/physical/postgresql"
-	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
+	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/util/testing/containers"
 )
 
@@ -27,7 +27,7 @@ import (
 // The restored cluster must hold the row written before the FULL. Backups run through a
 // replication-only user provisioned over the API.
 func RunFullOnlyRecoversBaseRows(t *testing.T, version, image string) {
-	router, fixture := setupReplicationOnlyFixture(t, version, image, postgresql_physical.BackupTypeFullAndIncremental)
+	router, fixture := setupReplicationOnlyFixture(t, version, image, databases.PhysicalBackupTypeFullAndIncremental)
 	target := prepareRestoreTarget(t, image)
 
 	sourceConn := openSourceTestDBConn(t, fixture)
@@ -55,7 +55,7 @@ func RunFullOnlyRecoversBaseRows(t *testing.T, version, image string) {
 // and asserts every row written before each backup survives — proving the incrementals chain and
 // combine correctly.
 func RunFullPlusTwoIncrementalsRecoversAllRows(t *testing.T, version, image string) {
-	router, fixture := setupReplicationOnlyFixture(t, version, image, postgresql_physical.BackupTypeFullAndIncremental)
+	router, fixture := setupReplicationOnlyFixture(t, version, image, databases.PhysicalBackupTypeFullAndIncremental)
 	target := prepareRestoreTarget(t, image)
 
 	sourceConn := openSourceTestDBConn(t, fixture)
@@ -95,7 +95,7 @@ func RunFullPlusTwoIncrementalsRecoversAllRows(t *testing.T, version, image stri
 // proving the recovery script inflated WAL on the host and the runtime image needs no zstd.
 func RunFullTwoIncrementalsPlusWalRecoversToTarget(t *testing.T, version, image string) {
 	router, fixture := setupReplicationOnlyFixture(
-		t, version, image, postgresql_physical.BackupTypeFullIncrementalAndWalStream)
+		t, version, image, databases.PhysicalBackupTypeFullIncrementalWalStream)
 	target := prepareRestoreTarget(t, image)
 
 	sourceConn := openSourceTestDBConn(t, fixture)
@@ -120,7 +120,7 @@ func RunFullTwoIncrementalsPlusWalRecoversToTarget(t *testing.T, version, image 
 // the live WAL stream supervisor must observe the switch and catalog the new timeline's .history
 // row. Promotion makes pg_receivewal fetch 00000002.history, driving the supervisor's
 // handleHistoryFile -> UploadHistoryFile path — the exact insert that regressed in issue #643:
-// keyed on the postgresql_physical_databases PK it violated fk_physical_wal_history_files_database_id
+// keyed on the databases_postgresql_physical PK it violated fk_physical_wal_history_files_database_id
 // and aborted the whole WAL stream. The test asserts the history row is cataloged on the parent
 // databases.id (and not the physical PK), proving the failover path runs end to end.
 //
@@ -138,7 +138,7 @@ func RunWalStreamCatalogsHistoryOnTimelineSwitch(t *testing.T, version, image st
 	// single-node fixtures do would fail its CREATE ROLE here).
 	router := newPhysicalTestRouter()
 	fixture := postgresql_executor.SetupPhysicalDBForScheduledBackupVersion(
-		t, standby.Host, standby.Port, version, postgresql_physical.BackupTypeFullIncrementalAndWalStream)
+		t, standby.Host, standby.Port, version, databases.PhysicalBackupTypeFullIncrementalWalStream)
 
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Minute)
 	defer cancel()
@@ -177,7 +177,7 @@ func RunPromotionReanchorsIncrementalChain(t *testing.T, version, image string) 
 	primary, standby := containers.StartPhysicalPrimaryWithStandby(t, image)
 	router := newPhysicalTestRouter()
 	fixture := postgresql_executor.SetupPhysicalDBForScheduledBackupVersion(
-		t, standby.Host, standby.Port, version, postgresql_physical.BackupTypeFullIncrementalAndWalStream,
+		t, standby.Host, standby.Port, version, databases.PhysicalBackupTypeFullIncrementalWalStream,
 	)
 	target := prepareRestoreTarget(t, image)
 
@@ -219,7 +219,7 @@ func RunPromotionReanchorsIncrementalChain(t *testing.T, version, image string) 
 // with pg_ctl -D and so never exercise the entrypoint's PGDATA-layout detection. It then proves the
 // guard refuses a second restore onto the now-initialized volume.
 func RunBootViaEntrypointVolumeMountRecoversBaseRows(t *testing.T, version, image string) {
-	router, fixture := setupReplicationOnlyFixture(t, version, image, postgresql_physical.BackupTypeFullAndIncremental)
+	router, fixture := setupReplicationOnlyFixture(t, version, image, databases.PhysicalBackupTypeFullAndIncremental)
 
 	sourceConn := openSourceTestDBConn(t, fixture)
 
@@ -256,7 +256,7 @@ func RunPitrBootViaEntrypointVolumeMountRecoversToTarget(t *testing.T, version, 
 	const primaryMaxConnections = 200
 
 	router, fixture := setupReplicationOnlyFixture(
-		t, version, image, postgresql_physical.BackupTypeFullIncrementalAndWalStream,
+		t, version, image, databases.PhysicalBackupTypeFullIncrementalWalStream,
 		containers.WithMaxConnections(primaryMaxConnections))
 
 	sourceConn := openSourceTestDBConn(t, fixture)
@@ -294,7 +294,7 @@ func RunRejectsMisaimedRestoreTarget(t *testing.T, _, image string) {
 // the contract is that an unreachable target never mints a token.
 func RunWhenWalGapBeforeTargetTokenRequestReturns422(t *testing.T, version, image string) {
 	router, fixture := setupReplicationOnlyFixture(
-		t, version, image, postgresql_physical.BackupTypeFullIncrementalAndWalStream)
+		t, version, image, databases.PhysicalBackupTypeFullIncrementalWalStream)
 
 	sourceConn := openSourceTestDBConn(t, fixture)
 
@@ -329,7 +329,7 @@ func RunWhenWalGapBeforeTargetTokenRequestReturns422(t *testing.T, version, imag
 // FULL's own boundary segment and hides whether the sweep kept it.
 func RunWhenOrphanSweepRunsAfterFullTargetPastFullStaysRestorable(t *testing.T, version, image string) {
 	router, fixture := setupReplicationOnlyFixture(
-		t, version, image, postgresql_physical.BackupTypeFullIncrementalAndWalStream)
+		t, version, image, databases.PhysicalBackupTypeFullIncrementalWalStream)
 
 	sourceConn := openSourceTestDBConn(t, fixture)
 
@@ -345,7 +345,7 @@ func RunWhenOrphanSweepRunsAfterFullTargetPastFullStaysRestorable(t *testing.T, 
 	// database is never streamed, and that hole at the head of the window would break the restore
 	// on its own, hiding whatever the sweep does.
 	waitForSlotPresent(t, postgresql_executor.OpenAdminConn(t, fixture),
-		fixture.DB.PostgresqlPhysical.ReplicationSlotName, 60*time.Second)
+		fixture.SourceDB.Engine.ReplicationSlotName, 60*time.Second)
 
 	chain := waitForChainBackups(t, router, fixture, 0, 3*time.Minute)
 
@@ -380,10 +380,10 @@ func RunWhenOrphanSweepRunsAfterFullTargetPastFullStaysRestorable(t *testing.T, 
 // endpoint → cleanup listeners) removes it so nothing is left behind.
 func RunWalSlotAppearsWhenBackupingStartsRemovedWhenDatabaseDeleted(t *testing.T, version, image string) {
 	router, fixture := setupReplicationOnlyFixture(
-		t, version, image, postgresql_physical.BackupTypeFullIncrementalAndWalStream)
+		t, version, image, databases.PhysicalBackupTypeFullIncrementalWalStream)
 
 	adminConn := postgresql_executor.OpenAdminConn(t, fixture)
-	slotName := fixture.DB.PostgresqlPhysical.ReplicationSlotName
+	slotName := fixture.SourceDB.Engine.ReplicationSlotName
 	require.NotEmpty(t, slotName, "a physical database must be assigned a slot name on creation")
 	require.False(t, postgresql_executor.SlotExists(t, adminConn, slotName),
 		"no WAL slot must exist before backuping is enabled")
@@ -403,10 +403,10 @@ func RunWalSlotAppearsWhenBackupingStartsRemovedWhenDatabaseDeleted(t *testing.T
 // naive "refuse to drop an active slot" cleanup would orphan.
 func RunWalSlotWhenDatabaseDeletedWithStreamedWalSlotRemovedSoNoWalStuck(t *testing.T, version, image string) {
 	router, fixture := setupReplicationOnlyFixture(
-		t, version, image, postgresql_physical.BackupTypeFullIncrementalAndWalStream)
+		t, version, image, databases.PhysicalBackupTypeFullIncrementalWalStream)
 
 	adminConn := postgresql_executor.OpenAdminConn(t, fixture)
-	slotName := fixture.DB.PostgresqlPhysical.ReplicationSlotName
+	slotName := fixture.SourceDB.Engine.ReplicationSlotName
 
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Minute)
 	defer cancel()
@@ -429,7 +429,7 @@ func RunWalSlotWhenDatabaseDeletedWithStreamedWalSlotRemovedSoNoWalStuck(t *test
 // The source publishes no port, so nothing on this path can silently fall back to a direct route.
 func RunOverSshTunnelRecoversToTarget(t *testing.T, version, image string) {
 	router, fixture, topology := setupBastionedFixture(
-		t, version, image, postgresql_physical.BackupTypeFullIncrementalAndWalStream)
+		t, version, image, databases.PhysicalBackupTypeFullIncrementalWalStream)
 	target := prepareRestoreTarget(t, image)
 
 	sourceConn := openSourceTestDBConnThroughBastion(t, topology)
@@ -454,9 +454,9 @@ func RunOverSshTunnelRecoversToTarget(t *testing.T, version, image string) {
 // slot until a later supervisor tick reclaims it — for a blip the forwarder heals on its own.
 func RunWhenBastionDiesMidStreamKeepsTheSlotAndResumes(t *testing.T, version, image string) {
 	router, fixture, topology := setupBastionedFixture(
-		t, version, image, postgresql_physical.BackupTypeFullIncrementalAndWalStream)
+		t, version, image, databases.PhysicalBackupTypeFullIncrementalWalStream)
 
-	slotName := fixture.DB.PostgresqlPhysical.ReplicationSlotName
+	slotName := fixture.SourceDB.Engine.ReplicationSlotName
 	require.NotEmpty(t, slotName)
 
 	ctx, cancel := context.WithTimeout(t.Context(), 15*time.Minute)

@@ -5,24 +5,18 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"strings"
 	"sync"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
-	"databasus-backend/internal/features/databases"
-	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
-	"databasus-backend/internal/util/encryption"
+	pgphysical "databasus-backend/internal/engines/postgresql/physical"
+	databases_bridge "databasus-backend/internal/features/databases"
+	"databasus-backend/internal/modules/databases"
 )
 
 const (
-	// slotNamePrefix identifies per-backup slots so RunStartupCleanup can
-	// drop them without touching the long-lived streamer slot (which lives
-	// under "databasus_slot_<uuid>" — see model.go's BeforeCreate).
-	slotNamePrefix = "databasus_basebackup_"
-
 	// startupCleanupTimeout caps how long a single DB's cleanup may block
 	// startup. Source PG might be unreachable; we log + skip rather than
 	// hang the boot.
@@ -38,29 +32,23 @@ const (
 	startupCleanupConcurrency = 10
 )
 
-// SlotName derives the deterministic per-backup slot name for a database.
-func SlotName(dbID uuid.UUID) string {
-	return slotNamePrefix + strings.ReplaceAll(dbID.String(), "-", "")
-}
-
 // WithBackupSlot creates a fresh per-backup replication slot on the source
 // PG, runs fn, then drops the slot. Drop-if-exists at the start picks up
 // any orphan from a previous crashed backup; defer drop covers the happy
 // path and most failure paths.
 func WithBackupSlot(
 	ctx context.Context,
-	sourceDB *postgresql_physical.PostgresqlPhysicalDatabase,
-	encryptor encryption.FieldEncryptor,
+	sourceDB databases.PostgresqlPhysicalConnectionSettings,
 	logger *slog.Logger,
 	fn func() error,
 ) error {
-	conn, err := sourceDB.OpenInspectionConn(ctx, encryptor)
+	conn, err := openInspectionConn(ctx, sourceDB)
 	if err != nil {
 		return fmt.Errorf("open conn for backup slot: %w", err)
 	}
 	defer func() { _ = conn.Close(context.Background()) }()
 
-	slotName := SlotName(sourceDB.ID)
+	slotName := sourceDB.BackupSlotName
 
 	if err := dropBackupSlotIfExists(ctx, conn, slotName); err != nil {
 		return fmt.Errorf("pre-create drop of backup slot %q: %w", slotName, err)
@@ -71,6 +59,15 @@ func WithBackupSlot(
 		"SELECT pg_create_physical_replication_slot($1, true)",
 		slotName,
 	); err != nil {
+		if dropErr := dropBackupSlotAfterFailedCreate(sourceDB, logger); dropErr != nil {
+			logger.WarnContext(
+				ctx,
+				"slot drop after a failed create failed; will be recovered by next backup or startup cleanup",
+				"slot_name", slotName,
+				"error", dropErr,
+			)
+		}
+
 		return fmt.Errorf("create backup slot %q: %w", slotName, err)
 	}
 
@@ -87,7 +84,7 @@ func WithBackupSlot(
 		// The held connection is the first casualty of a network break, and a bastion in front of the
 		// source makes those routine. Leaving the slot pins WAL on the source until the next backup
 		// runs, which on a weekly full is a week of retained segments.
-		if retryErr := dropBackupSlotOverFreshConn(sourceDB, encryptor, slotName); retryErr != nil {
+		if retryErr := dropBackupSlotOverFreshConn(sourceDB, slotName); retryErr != nil {
 			logger.WarnContext(
 				ctx,
 				"post-backup slot drop failed; will be recovered by next backup or startup cleanup",
@@ -100,15 +97,30 @@ func WithBackupSlot(
 	return fn()
 }
 
+// dropBackupSlotAfterFailedCreate drops a slot the server may have created after the client gave
+// up: a cancellation breaks the held connection while the server's session still holds the slot,
+// so the slot is dropped over a fresh connection once that session lets go of it.
+func dropBackupSlotAfterFailedCreate(
+	sourceDB databases.PostgresqlPhysicalConnectionSettings,
+	logger *slog.Logger,
+) error {
+	ctx, cancel := context.WithTimeout(context.Background(), slotDropRetryTimeout)
+	defer cancel()
+
+	backupSlotSettings := sourceDB.Engine
+	backupSlotSettings.ReplicationSlotName = sourceDB.BackupSlotName
+
+	return pgphysical.NewSource(backupSlotSettings).DropSlotForRemoval(ctx, logger)
+}
+
 func dropBackupSlotOverFreshConn(
-	sourceDB *postgresql_physical.PostgresqlPhysicalDatabase,
-	encryptor encryption.FieldEncryptor,
+	sourceDB databases.PostgresqlPhysicalConnectionSettings,
 	slotName string,
 ) error {
 	ctx, cancel := context.WithTimeout(context.Background(), slotDropRetryTimeout)
 	defer cancel()
 
-	conn, err := sourceDB.OpenInspectionConn(ctx, encryptor)
+	conn, err := openInspectionConn(ctx, sourceDB)
 	if err != nil {
 		return fmt.Errorf("reopen conn to drop backup slot %q: %w", slotName, err)
 	}
@@ -140,12 +152,10 @@ func RunStartupCleanup(
 	logger *slog.Logger,
 	isSlotProtected func(databaseID uuid.UUID) (bool, error),
 ) error {
-	dbs, err := databases.GetDatabaseService().GetAllDatabases()
+	allDatabases, err := databases_bridge.GetModule().ListAllDatabases(ctx)
 	if err != nil {
 		return fmt.Errorf("list databases for slot cleanup: %w", err)
 	}
-
-	encryptor := encryption.GetFieldEncryptor()
 
 	sem := make(chan struct{}, startupCleanupConcurrency)
 
@@ -156,26 +166,31 @@ func RunStartupCleanup(
 		failureCount sync.Map
 	)
 
-	for _, db := range dbs {
-		if db.Type != databases.DatabaseTypePostgresPhysical {
+	for _, listedDatabase := range allDatabases {
+		if listedDatabase.Type != databases.TypePostgresqlPhysical {
 			continue
 		}
 
-		if db.PostgresqlPhysical == nil {
+		connectionSettings, err := databases_bridge.GetModule().GetPostgresqlPhysicalConnectionSettings(
+			ctx, listedDatabase.ID,
+		)
+		if err != nil {
+			logger.WarnContext(ctx, "startup slot cleanup: skip, cannot read the connection settings",
+				"database_id", listedDatabase.ID, "error", err)
+			skippedCount.Store(listedDatabase.ID, struct{}{})
+
 			continue
 		}
 
 		wg.Add(1)
 		sem <- struct{}{}
 
-		// The slot is keyed by the PostgresqlPhysical ID; the in-flight claim is
-		// keyed by the Database ID — both are threaded in so the protection check
-		// looks up the right claim.
-		go func(d *postgresql_physical.PostgresqlPhysicalDatabase, databaseID uuid.UUID) {
+		go func(connectionSettings databases.PostgresqlPhysicalConnectionSettings) {
 			defer wg.Done()
 			defer func() { <-sem }()
 
-			slotName := SlotName(d.ID)
+			databaseID := connectionSettings.DatabaseID
+			slotName := connectionSettings.BackupSlotName
 			scopedLogger := logger.With("database_id", databaseID, "slot_name", slotName)
 
 			// Decided from the in-flight claim, not the source PG, so it runs
@@ -198,19 +213,15 @@ func RunStartupCleanup(
 
 			// A bastioned source has to fit its SSH handshake into the same budget. Missing it is a
 			// skip, not a leak: WithBackupSlot drops any survivor before it creates the next one.
-			tunneledDatabase, err := postgresql_physical.OpenTunnel(cleanupCtx, postgresql_physical.OpenTunnelSpec{
-				Database:  d,
-				Logger:    scopedLogger,
-				Encryptor: encryptor,
-			})
+			tunnel, err := pgphysical.NewSource(connectionSettings.Engine).OpenTunnel(cleanupCtx, scopedLogger)
 			if err != nil {
 				scopedLogger.Warn("startup slot cleanup: skip unreachable bastion", "error", err)
 				skippedCount.Store(databaseID, struct{}{})
 				return
 			}
-			defer tunneledDatabase.Close()
+			defer tunnel.Close()
 
-			conn, err := tunneledDatabase.GetDatabaseThroughTunnel().OpenInspectionConn(cleanupCtx, encryptor)
+			conn, err := tunnel.GetSource().OpenInspectionConn(cleanupCtx)
 			if err != nil {
 				scopedLogger.Warn("startup slot cleanup: skip unreachable source", "error", err)
 				skippedCount.Store(databaseID, struct{}{})
@@ -225,7 +236,7 @@ func RunStartupCleanup(
 			}
 
 			droppedCount.Store(databaseID, struct{}{})
-		}(db.PostgresqlPhysical, db.ID)
+		}(connectionSettings)
 	}
 
 	wg.Wait()

@@ -6,8 +6,6 @@ import (
 	"log/slog"
 	"maps"
 	"net/http"
-	"net/url"
-	"slices"
 
 	"github.com/google/uuid"
 )
@@ -67,12 +65,12 @@ func seedDevApp(ctx context.Context, httpClient *http.Client, params seedParams,
 		return err
 	}
 
-	var existingDatabases []namedItem
-	if err := client.get(ctx, "/databases?workspace_id="+workspaceID.String(), &existingDatabases); err != nil {
+	existingDatabases, err := listAll(ctx, client, "/databases?limit=100&workspaceId="+workspaceID.String())
+	if err != nil {
 		return fmt.Errorf("list databases of workspace %q: %w", params.WorkspaceName, err)
 	}
 
-	if !hasDatabaseNamed(existingDatabases, params.LogicalDatabaseName) {
+	if _, isFound := findNamedItem(existingDatabases, params.LogicalDatabaseName); !isFound {
 		if err := createLogicalDatabase(ctx, client, workspaceID, storageID, params); err != nil {
 			return err
 		}
@@ -80,7 +78,7 @@ func seedDevApp(ctx context.Context, httpClient *http.Client, params seedParams,
 		logger.Info("created database with logical backups", "name", params.LogicalDatabaseName)
 	}
 
-	if !hasDatabaseNamed(existingDatabases, params.WalDatabaseName) {
+	if _, isFound := findNamedItem(existingDatabases, params.WalDatabaseName); !isFound {
 		if err := createWalDatabase(ctx, client, workspaceID, storageID, params); err != nil {
 			return err
 		}
@@ -152,25 +150,13 @@ func findOrCreateWorkspace(
 	workspaceName string,
 	logger *slog.Logger,
 ) (uuid.UUID, error) {
-	path := "/workspaces?limit=100"
+	existingWorkspaces, err := listAll(ctx, client, "/workspaces?limit=100")
+	if err != nil {
+		return uuid.Nil, fmt.Errorf("list workspaces: %w", err)
+	}
 
-	for {
-		var page namedItemPage
-		if err := client.get(ctx, path, &page); err != nil {
-			return uuid.Nil, fmt.Errorf("list workspaces: %w", err)
-		}
-
-		for _, workspace := range page.Items {
-			if workspace.Name == workspaceName {
-				return workspace.ID, nil
-			}
-		}
-
-		if page.NextCursor == nil {
-			break
-		}
-
-		path = "/workspaces?limit=100&after=" + url.QueryEscape(*page.NextCursor)
+	if workspace, isFound := findNamedItem(existingWorkspaces, workspaceName); isFound {
+		return workspace.ID, nil
 	}
 
 	var createdWorkspace namedItem
@@ -191,25 +177,13 @@ func findOrCreateLocalStorage(
 	storageName string,
 	logger *slog.Logger,
 ) (uuid.UUID, error) {
-	path := "/storages?limit=100&workspaceId=" + workspaceID.String()
+	existingStorages, err := listAll(ctx, client, "/storages?limit=100&workspaceId="+workspaceID.String())
+	if err != nil {
+		return uuid.Nil, fmt.Errorf("list storages: %w", err)
+	}
 
-	for {
-		var page namedItemPage
-		if err := client.get(ctx, path, &page); err != nil {
-			return uuid.Nil, fmt.Errorf("list storages: %w", err)
-		}
-
-		for _, storage := range page.Items {
-			if storage.Name == storageName {
-				return storage.ID, nil
-			}
-		}
-
-		if page.NextCursor == nil {
-			break
-		}
-
-		path = "/storages?limit=100&workspaceId=" + workspaceID.String() + "&after=" + url.QueryEscape(*page.NextCursor)
+	if storage, isFound := findNamedItem(existingStorages, storageName); isFound {
+		return storage.ID, nil
 	}
 
 	var createdStorage namedItem
@@ -237,15 +211,21 @@ func createLogicalDatabase(
 	databaseID, err := createDatabase(ctx, client, createDatabaseRequest{
 		WorkspaceID: workspaceID,
 		Name:        params.LogicalDatabaseName,
-		Type:        "POSTGRES_LOGICAL",
-		PostgresqlLogical: &postgresqlLogicalSource{
-			Version:  "16",
-			Host:     source.Host,
-			Port:     source.Port,
-			Username: source.Username,
-			Password: source.Password,
-			Database: source.Database,
-			CpuCount: 1,
+		NotifierIDs: []uuid.UUID{},
+		Settings: postgresqlLogicalSettings{
+			Type:               "POSTGRES_LOGICAL",
+			Host:               source.Host,
+			Port:               source.Port,
+			Username:           source.Username,
+			Password:           source.Password,
+			Database:           source.Database,
+			SslMode:            "disable",
+			SshTunnel:          disabledSshTunnel{IsEnabled: false},
+			IncludeSchemas:     []string{},
+			ExcludeTables:      []string{},
+			ExcludeTableData:   []string{},
+			CpuCount:           1,
+			IsSkipUserMappings: false,
 		},
 	})
 	if err != nil {
@@ -282,14 +262,16 @@ func createWalDatabase(
 	databaseID, err := createDatabase(ctx, client, createDatabaseRequest{
 		WorkspaceID: workspaceID,
 		Name:        params.WalDatabaseName,
-		Type:        "POSTGRES_PHYSICAL",
-		PostgresqlPhysical: &postgresqlPhysicalSource{
-			Version:    "18",
+		NotifierIDs: []uuid.UUID{},
+		Settings: postgresqlPhysicalSettings{
+			Type:       "POSTGRES_PHYSICAL",
 			BackupType: "FULL_INCREMENTAL_WAL_STREAM",
 			Host:       source.Host,
 			Port:       source.Port,
 			Username:   source.Username,
 			Password:   source.Password,
+			SslMode:    "disable",
+			SshTunnel:  disabledSshTunnel{IsEnabled: false},
 		},
 	})
 	if err != nil {
@@ -319,7 +301,7 @@ func createWalDatabase(
 
 func createDatabase(ctx context.Context, client *apiClient, database createDatabaseRequest) (uuid.UUID, error) {
 	var createdDatabase namedItem
-	if err := client.post(ctx, "/databases/create", database, &createdDatabase); err != nil {
+	if err := client.post(ctx, "/databases", database, &createdDatabase); err != nil {
 		return uuid.Nil, fmt.Errorf("cannot create database %q: %w", database.Name, err)
 	}
 
@@ -348,10 +330,4 @@ func switchOnBackups(
 	}
 
 	return nil
-}
-
-func hasDatabaseNamed(existingDatabases []namedItem, name string) bool {
-	return slices.ContainsFunc(existingDatabases, func(database namedItem) bool {
-		return database.Name == name
-	})
 }

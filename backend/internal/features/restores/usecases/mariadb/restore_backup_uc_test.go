@@ -11,7 +11,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
-	"databasus-backend/internal/features/databases"
 	restores_core "databasus-backend/internal/features/restores/core"
 )
 
@@ -25,7 +24,7 @@ func Test_ExecuteMariadbRestore_WhenClientExitsRightAfterError_ReportsClientErro
 
 	restoreErr := restoreUsecase.executeMariadbRestore(
 		t.Context(),
-		&databases.Database{},
+		restores_core.SourceDatabase{},
 		restores_core.WriteLateFailingToolStub(
 			t, "mariadb-stub", "ERROR 1064 (42000) at line 1: You have an error in your SQL syntax",
 		),

@@ -10,28 +10,29 @@ import (
 
 	"databasus-backend/internal/features/audit_logs"
 	audit_logs_models "databasus-backend/internal/features/audit_logs/models"
-	"databasus-backend/internal/features/databases"
+	databases_bridge "databasus-backend/internal/features/databases"
 	workspaces_bridge "databasus-backend/internal/features/workspaces"
+	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/modules/workspaces"
 )
 
 type HealthcheckConfigService struct {
-	databaseService             *databases.DatabaseService
+	databaseAccess *databases_bridge.Access
+	// getDatabases is read per call: each test application installs its own module.
+	getDatabases                func() databases.Module
 	healthcheckConfigRepository *HealthcheckConfigRepository
 	workspaceService            *workspaces_bridge.Access
 	auditLogService             *audit_logs.AuditLogService
 	logger                      *slog.Logger
 }
 
+// OnDatabaseCreated writes the default config in the creation's transaction.
 func (s *HealthcheckConfigService) OnDatabaseCreated(
 	ctx context.Context,
-	databaseID uuid.UUID,
-) {
-	err := s.initializeDefaultConfig(databaseID)
-	if err != nil {
-		s.logger.ErrorContext(ctx, "failed to initialize default healthcheck config", "error", err)
-	}
+	event databases.DatabaseCreated,
+) error {
+	return s.initializeDefaultConfig(ctx, event.DatabaseID)
 }
 
 func (s *HealthcheckConfigService) Save(
@@ -39,16 +40,12 @@ func (s *HealthcheckConfigService) Save(
 	actor users.Actor,
 	configDTO HealthcheckConfigDTO,
 ) error {
-	database, err := s.databaseService.GetDatabaseByID(configDTO.DatabaseID)
+	database, err := s.databaseAccess.GetDatabaseByID(ctx, configDTO.DatabaseID)
 	if err != nil {
 		return err
 	}
 
-	if database.WorkspaceID == nil {
-		return errors.New("cannot modify healthcheck config for databases without workspace")
-	}
-
-	isAllowed, err := s.workspaceService.IsActorAllowed(ctx, actor, *database.WorkspaceID, workspaces.ActionEditContent)
+	isAllowed, err := s.workspaceService.IsActorAllowed(ctx, actor, database.WorkspaceID, workspaces.ActionEditContent)
 	if err != nil {
 		return err
 	}
@@ -60,7 +57,7 @@ func (s *HealthcheckConfigService) Save(
 
 	healthcheckConfig.DatabaseID = database.ID
 
-	err = s.healthcheckConfigRepository.Save(healthcheckConfig)
+	err = s.healthcheckConfigRepository.Save(ctx, healthcheckConfig)
 	if err != nil {
 		return err
 	}
@@ -69,10 +66,7 @@ func (s *HealthcheckConfigService) Save(
 	// health status as available
 	if !healthcheckConfig.IsHealthcheckEnabled &&
 		database.HealthStatus != nil {
-		err = s.databaseService.SetHealthStatus(
-			database.ID,
-			nil,
-		)
+		err = s.getDatabases().SetHealthStatus(ctx, database.ID, nil)
 		if err != nil {
 			return err
 		}
@@ -81,7 +75,7 @@ func (s *HealthcheckConfigService) Save(
 	s.auditLogService.WriteAuditLog(ctx, audit_logs_models.AuditEntry{
 		Message:     fmt.Sprintf("Healthcheck config updated for database '%s'", database.Name),
 		UserID:      &actor.UserID,
-		WorkspaceID: database.WorkspaceID,
+		WorkspaceID: &database.WorkspaceID,
 	})
 
 	return nil
@@ -92,16 +86,12 @@ func (s *HealthcheckConfigService) GetByDatabaseID(
 	actor users.Actor,
 	databaseID uuid.UUID,
 ) (*HealthcheckConfig, error) {
-	database, err := s.databaseService.GetDatabaseByID(databaseID)
+	database, err := s.databaseAccess.GetDatabaseByID(ctx, databaseID)
 	if err != nil {
 		return nil, err
 	}
 
-	if database.WorkspaceID == nil {
-		return nil, errors.New("cannot access healthcheck config for databases without workspace")
-	}
-
-	isAllowed, err := s.workspaceService.IsActorAllowed(ctx, actor, *database.WorkspaceID, workspaces.ActionView)
+	isAllowed, err := s.workspaceService.IsActorAllowed(ctx, actor, database.WorkspaceID, workspaces.ActionView)
 	if err != nil {
 		return nil, err
 	}
@@ -115,7 +105,7 @@ func (s *HealthcheckConfigService) GetByDatabaseID(
 	}
 
 	if config == nil {
-		err = s.initializeDefaultConfig(database.ID)
+		err = s.initializeDefaultConfig(ctx, database.ID)
 		if err != nil {
 			return nil, err
 		}
@@ -136,9 +126,10 @@ func (s *HealthcheckConfigService) GetDatabasesWithEnabledHealthcheck() (
 }
 
 func (s *HealthcheckConfigService) initializeDefaultConfig(
+	ctx context.Context,
 	databaseID uuid.UUID,
 ) error {
-	return s.healthcheckConfigRepository.Save(&HealthcheckConfig{
+	return s.healthcheckConfigRepository.Save(ctx, &HealthcheckConfig{
 		DatabaseID:                        databaseID,
 		IsHealthcheckEnabled:              true,
 		IsSentNotificationWhenUnavailable: true,

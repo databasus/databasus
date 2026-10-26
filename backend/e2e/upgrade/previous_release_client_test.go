@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"slices"
-	"strconv"
 	"testing"
 
 	"databasus-backend/e2e/upgrade/upgradecheck"
@@ -39,11 +38,12 @@ var (
 )
 
 // writtenUpgradeData is what the previous release accepted: the items to find after the upgrade and
-// the database and the backup to check after it.
+// the databases and the backup to check after it.
 type writtenUpgradeData struct {
-	items      []upgradecheck.Item
-	databaseID string
-	backupID   string
+	items []upgradecheck.Item
+	// databaseIDs are keyed by the database's name.
+	databaseIDs map[string]string
+	backupID    string
 }
 
 type previousSignUpRequest struct {
@@ -67,24 +67,6 @@ type previousWorkspaceRequest struct {
 type previousMemberRequest struct {
 	Email string `json:"email"`
 	Role  string `json:"role"`
-}
-
-type previousDatabaseRequest struct {
-	WorkspaceID       string                       `json:"workspaceId"`
-	Name              string                       `json:"name"`
-	Type              string                       `json:"type"`
-	PostgresqlLogical previousPostgresqlConnection `json:"postgresqlLogical"`
-	Notifiers         []previousNotifierReference  `json:"notifiers"`
-}
-
-type previousPostgresqlConnection struct {
-	Version  string `json:"version"`
-	Host     string `json:"host"`
-	Port     int    `json:"port"`
-	Username string `json:"username"`
-	Password string `json:"password"`
-	Database string `json:"database"`
-	CPUCount int    `json:"cpuCount"`
 }
 
 type previousBackupRequest struct {
@@ -118,8 +100,8 @@ type previousBackup struct {
 
 // writeUpgradeData creates through the previous release what a user has after a while: an account,
 // a workspace with two more members, one of them a second owner, one storage and one notifier of every
-// type, a database that uses every notifier and the local storage with an encrypted backup config,
-// and one completed backup.
+// type, a database of every logical type, the PostgreSQL one using every notifier and the local
+// storage with an encrypted backup config, and one completed backup.
 func writeUpgradeData(t *testing.T, api *apiClient) (writtenUpgradeData, error) {
 	t.Helper()
 
@@ -160,35 +142,19 @@ func writeUpgradeData(t *testing.T, api *apiClient) (writtenUpgradeData, error) 
 		return writtenUpgradeData{}, err
 	}
 
-	sourceConnection := previousPostgresqlConnection{
-		Version:  sourceVersion,
-		Host:     sourceNetworkAlias,
-		Port:     sourcePort,
-		Username: sourceUsername,
-		Password: sourcePassword,
-		Database: sourceDatabaseName,
-		CPUCount: 1,
-	}
-
-	var database previousCreatedItem
-
-	err = api.post(ctx, "/databases/create", previousDatabaseRequest{
-		WorkspaceID:       workspace.ID,
-		Name:              databaseName,
-		Type:              "POSTGRES_LOGICAL",
-		PostgresqlLogical: sourceConnection,
-		Notifiers:         notifierReferences,
-	}, &database)
-	if err != nil {
-		return writtenUpgradeData{}, fmt.Errorf("create the database: %w", err)
-	}
-
-	err = switchOnEncryptedBackups(ctx, api, database.ID, localStorageID)
+	databases, err := createDatabases(ctx, api, workspace.ID, notifierReferences)
 	if err != nil {
 		return writtenUpgradeData{}, err
 	}
 
-	backup, err := makeBackup(t, api, database.ID)
+	sourceDatabaseID := databases.ids[databaseName]
+
+	err = switchOnEncryptedBackups(ctx, api, sourceDatabaseID, localStorageID)
+	if err != nil {
+		return writtenUpgradeData{}, err
+	}
+
+	backup, err := makeBackup(t, api, sourceDatabaseID)
 	if err != nil {
 		return writtenUpgradeData{}, err
 	}
@@ -205,15 +171,6 @@ func writeUpgradeData(t *testing.T, api *apiClient) (writtenUpgradeData, error) 
 			{Kind: "workspace member", Name: accountEmail, Values: map[string]string{"role": "WORKSPACE_OWNER"}},
 			{Kind: "workspace member", Name: memberEmail, Values: map[string]string{"role": memberRole}},
 			{Kind: "workspace member", Name: secondOwnerEmail, Values: map[string]string{"role": "WORKSPACE_ADMIN"}},
-			{Kind: "database", Name: databaseName, Values: map[string]string{
-				"id":       database.ID,
-				"type":     "POSTGRES_LOGICAL",
-				"version":  sourceConnection.Version,
-				"host":     sourceConnection.Host,
-				"port":     strconv.Itoa(sourceConnection.Port),
-				"username": sourceConnection.Username,
-				"database": sourceConnection.Database,
-			}},
 			{Kind: "backup config", Name: databaseName, Values: map[string]string{
 				"isBackupsEnabled": "true",
 				"storageId":        localStorageID,
@@ -224,9 +181,9 @@ func writeUpgradeData(t *testing.T, api *apiClient) (writtenUpgradeData, error) 
 				"encryption": backupEncryption,
 			}},
 			newDatabaseNotifiersItem(notifierItems),
-		}, storageItems, notifierItems, auditEventItems),
-		databaseID: database.ID,
-		backupID:   backup.ID,
+		}, databases.items, storageItems, notifierItems, auditEventItems),
+		databaseIDs: databases.ids,
+		backupID:    backup.ID,
 	}, nil
 }
 

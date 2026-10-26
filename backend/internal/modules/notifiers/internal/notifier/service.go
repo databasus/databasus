@@ -216,7 +216,7 @@ func (s *Service) UpdateNotifier(ctx context.Context, actor users.Actor, change 
 }
 
 // DeleteNotifier answers ErrNotifierInUse when a database still uses the notifier, which the
-// reference of database_notifiers enforces.
+// reference of databases_notifiers enforces.
 func (s *Service) DeleteNotifier(ctx context.Context, actor users.Actor, notifierID uuid.UUID) error {
 	return s.transactor.Transaction(ctx, func(ctx context.Context) error {
 		deletedNotifier, err := s.getAuthorized(ctx, actor, notifierID, workspaces.ActionEditContent)

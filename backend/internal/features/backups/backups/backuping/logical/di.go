@@ -8,7 +8,7 @@ import (
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	usecases_logical "databasus-backend/internal/features/backups/backups/usecases/logical"
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
-	"databasus-backend/internal/features/databases"
+	databases_bridge "databasus-backend/internal/features/databases"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	storages_bridge "databasus-backend/internal/features/storages"
 	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
@@ -38,7 +38,8 @@ var getBackupCleaner = sync.OnceValue(func() *BackupCleaner {
 
 var getBackuper = sync.OnceValue(func() *Backuper {
 	return &Backuper{
-		databases.GetDatabaseService(),
+		databases_bridge.GetAccess(),
+		databases_bridge.GetModule,
 		workspaces_bridge.GetAccess(),
 		getBackupRepository(),
 		backups_config_logical.GetBackupConfigService(),
@@ -55,7 +56,7 @@ var getBackupsScheduler = sync.OnceValue(func() *BackupsScheduler {
 		getBackupRepository(),
 		backups_config_logical.GetBackupConfigService(),
 		getTaskCancellationRequester(),
-		databases.GetDatabaseService(),
+		databases_bridge.GetAccess(),
 		time.Now().UTC(),
 		logger.GetLogger(),
 		getBackuper(),

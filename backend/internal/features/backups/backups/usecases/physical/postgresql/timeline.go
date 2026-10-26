@@ -21,11 +21,10 @@ import (
 	physical_models "databasus-backend/internal/features/backups/backups/core/physical/models"
 	physical_repositories "databasus-backend/internal/features/backups/backups/core/physical/repositories"
 	backup_encryption "databasus-backend/internal/features/backups/backups/encryption"
-	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
 	"databasus-backend/internal/lib/database"
+	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/storages"
 	db "databasus-backend/internal/storage"
-	util_encryption "databasus-backend/internal/util/encryption"
 	"databasus-backend/internal/util/walmath"
 )
 
@@ -56,7 +55,7 @@ type timelineComparison struct {
 func CheckFullTimelineCompatibility(
 	ctx context.Context,
 	conn *pgx.Conn,
-	db *postgresql_physical.PostgresqlPhysicalDatabase,
+	db databases.PostgresqlPhysicalConnectionSettings,
 	fullRepo *physical_repositories.PhysicalFullBackupRepository,
 	historyRepo *physical_repositories.PhysicalWalHistoryRepository,
 ) (*TimelineDecision, error) {
@@ -74,7 +73,7 @@ func CheckFullTimelineCompatibility(
 		return decision, nil
 	}
 
-	knownTimelineID, err := newestKnownTimeline(db.ParentDatabaseID(), fullRepo, historyRepo)
+	knownTimelineID, err := newestKnownTimeline(db.DatabaseID, fullRepo, historyRepo)
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +89,7 @@ func CheckFullTimelineCompatibility(
 func CheckIncrementalTimelineCompatibility(
 	ctx context.Context,
 	conn *pgx.Conn,
-	db *postgresql_physical.PostgresqlPhysicalDatabase,
+	db databases.PostgresqlPhysicalConnectionSettings,
 	rootFullTimelineID int,
 ) (*TimelineDecision, error) {
 	liveTimelineID, liveSystemIdentifier, err := readClusterIdentity(ctx, conn)
@@ -187,16 +186,15 @@ func ValidateStartLsnAgainstHistory(
 }
 
 type HistoryUploadSpec struct {
-	Conn           *pgx.Conn
-	TimelineID     int
-	FileStore      FileStore
-	SourceDB       *postgresql_physical.PostgresqlPhysicalDatabase
-	StorageID      uuid.UUID
-	HistoryRepo    *physical_repositories.PhysicalWalHistoryRepository
-	Encryption     backups_core_enums.BackupEncryption
-	MasterKey      string
-	FieldEncryptor util_encryption.FieldEncryptor
-	Logger         *slog.Logger
+	Conn        *pgx.Conn
+	TimelineID  int
+	FileStore   FileStore
+	SourceDB    databases.PostgresqlPhysicalConnectionSettings
+	StorageID   uuid.UUID
+	HistoryRepo *physical_repositories.PhysicalWalHistoryRepository
+	Encryption  backups_core_enums.BackupEncryption
+	MasterKey   string
+	Logger      *slog.Logger
 }
 
 // Idempotent on (database_id, timeline_id) through the UNIQUE constraint: a
@@ -213,7 +211,7 @@ func UploadHistoryFile(
 	logger := spec.Logger
 	storageID := spec.StorageID
 
-	databaseID := spec.SourceDB.ParentDatabaseID()
+	databaseID := spec.SourceDB.DatabaseID
 
 	existing, err := historyRepo.FindByDatabaseTimeline(databaseID, timelineID)
 	if err != nil {

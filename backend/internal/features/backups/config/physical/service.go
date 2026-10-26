@@ -10,10 +10,12 @@ import (
 	"github.com/google/uuid"
 
 	backups_config_storage_usage "databasus-backend/internal/features/backups/config/storage_usage"
-	"databasus-backend/internal/features/databases"
+	databases_bridge "databasus-backend/internal/features/databases"
 	"databasus-backend/internal/features/intervals"
 	workspaces_bridge "databasus-backend/internal/features/workspaces"
 	"databasus-backend/internal/lib/apierror"
+	"databasus-backend/internal/lib/database"
+	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/modules/users"
@@ -23,8 +25,10 @@ import (
 
 type BackupConfigService struct {
 	backupConfigRepository *BackupConfigRepository
-	databaseService        *databases.DatabaseService
-	// getStorages and getNotifiers are read per call: each test application installs its own modules.
+	databaseAccess         *databases_bridge.Access
+	// getDatabases, getStorages and getNotifiers are read per call: each test application installs its
+	// own modules.
+	getDatabases     func() databases.Module
 	getStorages      func() storages.Module
 	getNotifiers     func() notifiers.Module
 	workspaceService *workspaces_bridge.Access
@@ -51,16 +55,12 @@ func (s *BackupConfigService) SaveBackupConfigWithAuth(
 	actor users.Actor,
 	backupConfig *PhysicalBackupConfig,
 ) (*PhysicalBackupConfig, error) {
-	database, err := s.databaseService.GetDatabase(ctx, actor, backupConfig.DatabaseID)
+	database, err := s.databaseAccess.GetAuthorizedDatabase(ctx, actor, backupConfig.DatabaseID, workspaces.ActionView)
 	if err != nil {
 		return nil, err
 	}
 
-	if database.WorkspaceID == nil {
-		return nil, errors.New("cannot save backup config for database without workspace")
-	}
-
-	isAllowed, err := s.workspaceService.IsActorAllowed(ctx, actor, *database.WorkspaceID, workspaces.ActionEditContent)
+	isAllowed, err := s.workspaceService.IsActorAllowed(ctx, actor, database.WorkspaceID, workspaces.ActionEditContent)
 	if err != nil {
 		return nil, err
 	}
@@ -68,13 +68,14 @@ func (s *BackupConfigService) SaveBackupConfigWithAuth(
 		return nil, errors.New("insufficient permissions to modify backup configuration")
 	}
 
-	if database.PostgresqlPhysical == nil {
-		return nil, errors.New(
-			"physical backup config requires the owning database to be of type POSTGRES_PHYSICAL",
-		)
+	if database.Type != databases.TypePostgresqlPhysical {
+		return nil, errNotPhysicalDatabase
 	}
 
-	backupConfig.PostgresqlPhysical = database.PostgresqlPhysical
+	backupConfig.BackupType, err = s.getBackupType(ctx, database.ID)
+	if err != nil {
+		return nil, err
+	}
 
 	if err := backupConfig.Validate(); err != nil {
 		return nil, err
@@ -84,11 +85,11 @@ func (s *BackupConfigService) SaveBackupConfigWithAuth(
 		return nil, err
 	}
 
-	if err := s.checkStorageWorkspace(ctx, backupConfig, *database.WorkspaceID); err != nil {
+	if err := s.checkStorageWorkspace(ctx, backupConfig, database.WorkspaceID); err != nil {
 		return nil, err
 	}
 
-	savedConfig, err := s.saveBackupConfig(ctx, backupConfig, database.WorkspaceID)
+	savedConfig, err := s.saveBackupConfig(ctx, backupConfig, &database.WorkspaceID)
 	if err != nil {
 		return nil, err
 	}
@@ -108,7 +109,7 @@ func (s *BackupConfigService) GetAndRepairBackupConfigByDbIdWithAuth(
 	actor users.Actor,
 	databaseID uuid.UUID,
 ) (*PhysicalBackupConfig, error) {
-	_, err := s.databaseService.GetDatabase(ctx, actor, databaseID)
+	_, err := s.databaseAccess.GetAuthorizedDatabase(ctx, actor, databaseID, workspaces.ActionView)
 	if err != nil {
 		return nil, err
 	}
@@ -168,57 +169,51 @@ func (s *BackupConfigService) ClearIncrementalBackupRequest(databaseID uuid.UUID
 	return s.backupConfigRepository.ClearIncrementalBackupRequest(databaseID, requestedAt)
 }
 
-func (s *BackupConfigService) OnDatabaseCopied(ctx context.Context, originalDatabaseID, newDatabaseID uuid.UUID) {
-	originalConfig, err := s.backupConfigRepository.FindByDatabaseID(originalDatabaseID)
-	if err != nil || originalConfig == nil {
-		return
-	}
-
-	newConfig := originalConfig.Copy(newDatabaseID)
-
-	_, _ = s.SaveBackupConfig(ctx, newConfig)
-}
-
+// OnBackupTypeChanged reshapes the config for the new backup type in the change's transaction, so a
+// config Validate would reject is never left behind. A WAL streamer that the new type no longer runs is
+// stopped after the commit, because a streamer left running keeps pinning WAL on the source cluster.
 func (s *BackupConfigService) OnBackupTypeChanged(
 	ctx context.Context,
-	change databases.BackupTypeChange,
-) {
-	logger := s.logger.With("database_id", change.DatabaseID)
-
-	// Before the config write and regardless of its outcome: a streamer left
-	// running keeps pinning WAL on the source cluster.
+	change databases.DatabaseBackupTypeChanged,
+) error {
 	if s.backupCancellationListener != nil &&
 		change.OldBackupType.IsWalStreaming() && !change.NewBackupType.IsWalStreaming() {
-		s.backupCancellationListener.OnWalStreamingDisabled(ctx, change.DatabaseID)
+		err := database.AfterCommit(ctx, func(ctx context.Context) {
+			s.backupCancellationListener.OnWalStreamingDisabled(ctx, change.DatabaseID)
+		})
+		if err != nil {
+			return err
+		}
 	}
 
 	backupConfig, err := s.backupConfigRepository.FindByDatabaseID(change.DatabaseID)
 	if err != nil {
-		logger.ErrorContext(ctx, "failed to load backup config after backup type change", "error", err)
-
-		return
+		return err
 	}
 
 	if backupConfig == nil {
-		return
+		return nil
 	}
 
 	backupConfig.CoerceFieldsForBackupType(change.NewBackupType)
 
-	if err := backupConfig.Validate(); err != nil {
-		logger.ErrorContext(ctx, "backup config is not valid for the new backup type", "error", err)
-
-		return
+	err = backupConfig.Validate()
+	if err != nil {
+		return fmt.Errorf("the backup config is not valid for the backup type %s: %w", change.NewBackupType, err)
 	}
 
-	if _, err := s.backupConfigRepository.Save(ctx, backupConfig); err != nil {
-		logger.ErrorContext(ctx, "failed to save backup config after backup type change", "error", err)
-
-		return
+	_, err = s.backupConfigRepository.Save(ctx, backupConfig)
+	if err != nil {
+		return err
 	}
 
-	logger.InfoContext(ctx, fmt.Sprintf("backup config updated for backup type change: %s -> %s",
-		change.OldBackupType, change.NewBackupType))
+	s.logger.InfoContext(ctx, "backup config updated for backup type change",
+		"database_id", change.DatabaseID,
+		"old_backup_type", change.OldBackupType,
+		"new_backup_type", change.NewBackupType,
+	)
+
+	return nil
 }
 
 func (s *BackupConfigService) CreateDisabledBackupConfig(databaseID uuid.UUID) error {
@@ -231,19 +226,15 @@ func (s *BackupConfigService) TransferDatabaseToWorkspace(
 	databaseID uuid.UUID,
 	request *TransferDatabaseRequest,
 ) error {
-	database, err := s.databaseService.GetDatabaseByID(databaseID)
+	database, err := s.databaseAccess.GetDatabaseByID(ctx, databaseID)
 	if err != nil {
 		return err
-	}
-
-	if database.WorkspaceID == nil {
-		return ErrDatabaseHasNoWorkspace
 	}
 
 	isAllowedInSource, err := s.workspaceService.IsActorAllowed(
 		ctx,
 		actor,
-		*database.WorkspaceID,
+		database.WorkspaceID,
 		workspaces.ActionEditContent,
 	)
 	if err != nil {
@@ -287,7 +278,7 @@ func (s *BackupConfigService) TransferDatabaseToWorkspace(
 			return err
 		}
 
-		err = s.databaseService.TransferDatabaseToWorkspace(ctx, databaseID, request.TargetWorkspaceID)
+		err = s.getDatabases().TransferDatabaseToWorkspace(ctx, databaseID, request.TargetWorkspaceID)
 		if err != nil {
 			return err
 		}
@@ -303,7 +294,7 @@ func (s *BackupConfigService) TransferDatabaseToWorkspace(
 	}
 
 	if len(request.TargetNotifierIDs) > 0 {
-		if err := s.databaseService.UpdateDatabaseNotifiers(databaseID, request.TargetNotifierIDs); err != nil {
+		if err := s.getDatabases().ReplaceDatabaseNotifiers(ctx, databaseID, request.TargetNotifierIDs); err != nil {
 			return err
 		}
 	}
@@ -323,19 +314,13 @@ func (s *BackupConfigService) saveBackupConfig(
 		return nil, err
 	}
 
-	if backupConfig.PostgresqlPhysical == nil {
-		database, err := s.databaseService.GetDatabaseByID(backupConfig.DatabaseID)
+	if backupConfig.BackupType == "" {
+		backupType, err := s.getBackupType(ctx, backupConfig.DatabaseID)
 		if err != nil {
 			return nil, err
 		}
 
-		if database.PostgresqlPhysical == nil {
-			return nil, errors.New(
-				"physical backup config requires the owning database to be of type POSTGRES_PHYSICAL",
-			)
-		}
-
-		backupConfig.PostgresqlPhysical = database.PostgresqlPhysical
+		backupConfig.BackupType = backupType
 	}
 
 	if err := backupConfig.Validate(); err != nil {
@@ -403,7 +388,7 @@ func (s *BackupConfigService) transferDatabaseWithStorage(
 		}
 	}
 
-	err = s.databaseService.TransferDatabaseToWorkspace(ctx, backupConfig.DatabaseID, targetWorkspaceID)
+	err = s.getDatabases().TransferDatabaseToWorkspace(ctx, backupConfig.DatabaseID, targetWorkspaceID)
 	if err != nil {
 		return err
 	}
@@ -540,13 +525,13 @@ func (s *BackupConfigService) repairAndSaveConfigForBackupType(
 	ctx context.Context,
 	backupConfig *PhysicalBackupConfig,
 ) (*PhysicalBackupConfig, error) {
-	if backupConfig.PostgresqlPhysical == nil || backupConfig.Validate() == nil {
+	if backupConfig.BackupType == "" || backupConfig.Validate() == nil {
 		return backupConfig, nil
 	}
 
 	logger := s.logger.With("database_id", backupConfig.DatabaseID)
 
-	backupConfig.CoerceFieldsForBackupType(backupConfig.PostgresqlPhysical.BackupType)
+	backupConfig.CoerceFieldsForBackupType(backupConfig.BackupType)
 
 	if err := backupConfig.Validate(); err != nil {
 		logger.WarnContext(ctx, "backup config cannot be repaired for its backup type", "error", err)
@@ -565,7 +550,7 @@ func (s *BackupConfigService) repairAndSaveConfigForBackupType(
 }
 
 func (s *BackupConfigService) initializeDefaultConfig(databaseID uuid.UUID) error {
-	database, err := s.databaseService.GetDatabaseByID(databaseID)
+	backupType, err := s.getBackupType(context.Background(), databaseID)
 	if err != nil {
 		return err
 	}
@@ -591,9 +576,7 @@ func (s *BackupConfigService) initializeDefaultConfig(databaseID uuid.UUID) erro
 		Encryption: "NONE",
 	}
 
-	if database.PostgresqlPhysical != nil {
-		defaultConfig.CoerceFieldsForBackupType(database.PostgresqlPhysical.BackupType)
-	}
+	defaultConfig.CoerceFieldsForBackupType(backupType)
 
 	_, err = s.backupConfigRepository.Save(context.Background(), defaultConfig)
 
@@ -606,10 +589,10 @@ func (s *BackupConfigService) initializeDefaultConfig(databaseID uuid.UUID) erro
 func (s *BackupConfigService) transferNotifiers(
 	ctx context.Context,
 	actor users.Actor,
-	database *databases.Database,
+	database databases.Database,
 	targetWorkspaceID uuid.UUID,
 ) error {
-	for _, notifierID := range database.GetNotifierIDs() {
+	for _, notifierID := range database.NotifierIDs {
 		err := s.getNotifiers().TransferNotifier(ctx, actor, notifiers.NotifierTransfer{
 			NotifierID:        notifierID,
 			TargetWorkspaceID: targetWorkspaceID,
@@ -676,4 +659,17 @@ func storageIDsEqual(id1, id2 *uuid.UUID) bool {
 	}
 
 	return *id1 == *id2
+}
+
+// getBackupType reads the backup type from the database, which owns it.
+func (s *BackupConfigService) getBackupType(
+	ctx context.Context,
+	databaseID uuid.UUID,
+) (databases.PhysicalBackupType, error) {
+	connectionSettings, err := s.getDatabases().GetPostgresqlPhysicalConnectionSettings(ctx, databaseID)
+	if err != nil {
+		return "", fmt.Errorf("read the backup type of database %s: %w", databaseID, err)
+	}
+
+	return connectionSettings.BackupType, nil
 }

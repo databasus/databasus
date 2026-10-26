@@ -22,12 +22,10 @@ import (
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	backup_encryption "databasus-backend/internal/features/backups/backups/encryption"
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
-	"databasus-backend/internal/features/databases"
-	mysqltypes "databasus-backend/internal/features/databases/databases/mysql"
 	"databasus-backend/internal/lib/crypto"
 	"databasus-backend/internal/lib/namelist"
+	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/storages"
-	"databasus-backend/internal/util/encryption"
 	io_utils "databasus-backend/internal/util/io"
 )
 
@@ -40,9 +38,10 @@ const (
 )
 
 type CreateMysqlBackupUsecase struct {
-	logger         *slog.Logger
-	masterKey      *crypto.MasterKey
-	fieldEncryptor encryption.FieldEncryptor
+	logger    *slog.Logger
+	masterKey *crypto.MasterKey
+	// getDatabases is read per call: each test application installs its own module.
+	getDatabases func() databases.Module
 }
 
 type writeResult struct {
@@ -61,7 +60,7 @@ func (uc *CreateMysqlBackupUsecase) Execute(
 	ctx context.Context,
 	backup *backups_core_logical.LogicalBackup,
 	backupConfig *backups_config_logical.LogicalBackupConfig,
-	db *databases.Database,
+	db databases.Database,
 	fileStore backups_core_logical.BackupFileStore,
 	backupProgressListener func(completedMBs float64),
 ) (*backups_core_logical.BackupArtifacts, error) {
@@ -69,46 +68,37 @@ func (uc *CreateMysqlBackupUsecase) Execute(
 
 	logger.InfoContext(ctx, "creating mysql backup via mysqldump")
 
-	tunneledDatabase, err := databases.OpenTunnel(ctx, databases.OpenTunnelSpec{
-		Database:  db,
-		Logger:    logger,
-		Encryptor: uc.fieldEncryptor,
-	})
+	connectionSettings, err := uc.getDatabases().GetMysqlConnectionSettings(ctx, db.ID)
 	if err != nil {
 		return nil, err
 	}
 
-	defer tunneledDatabase.Close()
+	clientTools := mysql_engine.ClientTools{Root: config.GetEnv().ClientToolsDir}
 
-	mysqlDatabase := tunneledDatabase.GetDatabaseThroughTunnel().Mysql
-	if mysqlDatabase == nil {
-		return nil, fmt.Errorf("mysql database configuration is required")
+	tunnel, err := mysql_engine.NewSource(connectionSettings.Engine, clientTools).OpenTunnel(ctx, logger)
+	if err != nil {
+		return nil, err
 	}
 
-	if mysqlDatabase.Database == nil || *mysqlDatabase.Database == "" {
+	defer tunnel.Close()
+
+	source := tunnel.GetSource()
+	target := dumpTarget{connectionSettings: connectionSettings, settings: source.GetSettings()}
+
+	if target.settings.Database == "" {
 		return nil, fmt.Errorf("database name is required for mysqldump backups")
 	}
 
-	decryptedPassword, err := uc.fieldEncryptor.Decrypt(mysqlDatabase.Password)
-	if err != nil {
-		return nil, fmt.Errorf("failed to decrypt database password: %w", err)
-	}
-
-	rawSizeMB, err := mysqlDatabase.GetRawDbSizeMb(ctx, logger, uc.fieldEncryptor)
+	rawSizeMB, err := source.GetRawSizeMb(ctx, logger, connectionSettings.Version)
 	if err != nil {
 		logger.WarnContext(ctx, "failed to fetch raw db size before backup", "error", err)
 	} else {
 		backup.BackupRawDbSizeMb = rawSizeMB
 	}
 
-	args := uc.buildMysqldumpArgs(mysqlDatabase)
+	args := uc.buildMysqldumpArgs(target)
 
-	mysqldumpBin, err := mysql_engine.ClientTools{
-		Root: config.GetEnv().ClientToolsDir,
-	}.GetExecutable(
-		mysqlDatabase.Version,
-		mysql_engine.ExecutableMysqldump,
-	)
+	mysqldumpBin, err := clientTools.GetExecutable(connectionSettings.Version, mysql_engine.ExecutableMysqldump)
 	if err != nil {
 		return nil, err
 	}
@@ -119,18 +109,23 @@ func (uc *CreateMysqlBackupUsecase) Execute(
 		backupConfig,
 		mysqldumpBin,
 		args,
-		decryptedPassword,
 		fileStore,
 		backupProgressListener,
-		mysqlDatabase,
+		target,
 	)
 }
 
-func (uc *CreateMysqlBackupUsecase) buildMysqldumpArgs(my *mysqltypes.MysqlDatabase) []string {
+// dumpTarget is the database mysqldump reads: its options and the settings through the tunnel.
+type dumpTarget struct {
+	connectionSettings databases.MysqlConnectionSettings
+	settings           mysql_engine.Settings
+}
+
+func (uc *CreateMysqlBackupUsecase) buildMysqldumpArgs(target dumpTarget) []string {
 	args := []string{
-		"--host=" + my.Host,
-		"--port=" + strconv.Itoa(my.Port),
-		"--user=" + my.Username,
+		"--host=" + target.settings.Host,
+		"--port=" + strconv.Itoa(target.settings.Port),
+		"--user=" + target.settings.Username,
 		"--single-transaction",
 		"--routines",
 		"--set-gtid-purged=OFF",
@@ -145,35 +140,29 @@ func (uc *CreateMysqlBackupUsecase) buildMysqldumpArgs(my *mysqltypes.MysqlDatab
 
 	// Triggers are on by default, so a role without the privilege has to be opted out explicitly
 	// or mysqldump fails on SHOW TRIGGERS instead of dumping without them.
-	if my.HasPrivilege("TRIGGER") {
+	if target.connectionSettings.HasPrivilege("TRIGGER") {
 		args = append(args, "--triggers")
 	} else {
 		args = append(args, "--skip-triggers")
 	}
 
-	if my.HasPrivilege("EVENT") {
+	if target.connectionSettings.HasPrivilege("EVENT") {
 		args = append(args, "--events")
 	}
 
-	if my.Database != nil && *my.Database != "" {
-		for _, excludedTable := range namelist.NormalizeUniqueNames(my.ExcludeTables) {
-			args = append(args, "--ignore-table="+*my.Database+"."+excludedTable)
-		}
+	for _, excludedTable := range namelist.NormalizeUniqueNames(target.connectionSettings.ExcludeTables) {
+		args = append(args, "--ignore-table="+target.settings.Database+"."+excludedTable)
 	}
 
 	args = append(args, "--max-allowed-packet=1G")
 
-	if my.IsHttps {
+	if target.settings.IsHTTPS {
 		args = append(args, "--ssl-mode=REQUIRED")
 	} else {
 		args = append(args, "--ssl-mode=DISABLED")
 	}
 
-	if my.Database != nil && *my.Database != "" {
-		args = append(args, *my.Database)
-	}
-
-	return args
+	return append(args, target.settings.Database)
 }
 
 func (uc *CreateMysqlBackupUsecase) streamToStorage(
@@ -182,17 +171,16 @@ func (uc *CreateMysqlBackupUsecase) streamToStorage(
 	backupConfig *backups_config_logical.LogicalBackupConfig,
 	mysqlBin string,
 	args []string,
-	password string,
 	fileStore backups_core_logical.BackupFileStore,
 	backupProgressListener func(completedMBs float64),
-	myConfig *mysqltypes.MysqlDatabase,
+	target dumpTarget,
 ) (*backups_core_logical.BackupArtifacts, error) {
 	uc.logger.InfoContext(parentCtx, "streaming MySQL backup to storage", "mysql_bin", mysqlBin)
 
 	ctx, cancel := backups_core_logical.NewBackupContext(parentCtx, config.GetShutdownSignal())
 	defer cancel(nil)
 
-	myCnfFile, err := uc.createTempMyCnfFile(myConfig, password)
+	myCnfFile, err := uc.createTempMyCnfFile(target.settings)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create .my.cnf: %w", err)
 	}
@@ -201,9 +189,9 @@ func (uc *CreateMysqlBackupUsecase) streamToStorage(
 	compressionArgs := uc.probeNetworkCompressionArgs(ctx, CompressionProbeSpec{
 		MysqldumpBin: mysqlBin,
 		MyCnfFile:    myCnfFile,
-		DatabaseName: *myConfig.Database,
+		DatabaseName: target.settings.Database,
 		DatabaseID:   backup.DatabaseID,
-	}, myConfig.Version)
+	}, target.connectionSettings.Version)
 
 	fullArgs := append([]string{"--defaults-file=" + myCnfFile}, compressionArgs...)
 	fullArgs = append(fullArgs, args...)
@@ -321,10 +309,7 @@ func (uc *CreateMysqlBackupUsecase) streamToStorage(
 	}, nil
 }
 
-func (uc *CreateMysqlBackupUsecase) createTempMyCnfFile(
-	myConfig *mysqltypes.MysqlDatabase,
-	password string,
-) (string, error) {
+func (uc *CreateMysqlBackupUsecase) createTempMyCnfFile(settings mysql_engine.Settings) (string, error) {
 	// Credential files use OS temp dir (/tmp) because some filesystems
 	// (e.g. ZFS on TrueNAS) ignore chmod, causing "group or world access" errors.
 	tempDir, err := os.MkdirTemp(os.TempDir(), "mycnf_"+uuid.New().String())
@@ -344,9 +329,9 @@ user=%s
 password="%s"
 host=%s
 port=%d
-`, myConfig.Username, mysql_engine.EscapePassword(password), myConfig.Host, myConfig.Port)
+`, settings.Username, mysql_engine.EscapePassword(settings.Password), settings.Host, settings.Port)
 
-	if myConfig.IsHttps {
+	if settings.IsHTTPS {
 		content += "ssl-mode=REQUIRED\n"
 	} else {
 		content += "ssl-mode=DISABLED\n"

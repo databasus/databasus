@@ -5,22 +5,24 @@ import (
 
 	"github.com/google/uuid"
 
+	pgphysical "databasus-backend/internal/engines/postgresql/physical"
 	"databasus-backend/internal/features/backups/backups/core/physical/chain_view"
 	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
-	"databasus-backend/internal/features/databases"
+	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/storages"
 )
 
 type backupContext struct {
 	Config *backups_config_physical.PhysicalBackupConfig
 
-	// The copy reached through the bastion, so everything the run touches — the size probe, the
-	// executor's SourceDB, pg_basebackup — dials the forwarded port off one SSH session.
-	Database *databases.Database
+	Database databases.Database
+	// Source reaches the cluster through the bastion, so everything the run touches — the size probe,
+	// the executor's SourceDB, pg_basebackup — dials the forwarded port off one SSH session.
+	Source databases.PostgresqlPhysicalConnectionSettings
 
 	Storage   storages.Storage
 	MasterKey string
-	tunnel    *databases.TunneledDatabase
+	tunnel    *pgphysical.Tunnel
 }
 
 func (c *backupContext) Close() {

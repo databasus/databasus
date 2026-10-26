@@ -89,7 +89,9 @@ dir = "backend"
 run = "go generate ./..."
 
 # The libedit shim lets the bundled PostgreSQL clients start on Fedora; without it a package that
-# checks them at startup exits before its first test.
+# checks them at startup exits before its first test. The timeout matches scripts/test.sh: the
+# physical restore packages take about 7 minutes alone and outlast go test's 10-minute default when
+# other runs share the machine.
 [tasks."backend:test-package"]
 description = "Run the given backend test packages, e.g. mise run backend:test-package ./internal/features/intervals/..."
 dir = "backend"
@@ -99,7 +101,7 @@ run = """
 source ../scripts/fedora.sh
 apply_libedit_shim
 # shellcheck disable=SC2086 # one package path per word
-go test -race -tags testhelpers -count=1 $usage_packages
+go test -race -tags testhelpers -count=1 -timeout 15m $usage_packages
 """
 
 [tasks."agent:build"]

@@ -4,21 +4,20 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import {
-  ConnectionErrorCode,
   type Database,
+  type DatabaseTestResult,
   PHYSICAL_DATABASE_BACKUP_TYPE_LABEL_KEYS,
   POSTGRESQL_SHORT_NAME,
   POSTGRES_SSL_MODE_LABEL_KEYS,
   PhysicalDatabaseBackupType,
   PostgresSslMode,
-  type PostgresqlPhysicalDatabase,
+  type PostgresqlPhysicalSettings,
   databaseApi,
   hasStoredSshTunnelSecretsForAuthType,
   isSshTunnelReadyToTest,
   physicalConnectionErrorContent,
 } from '../../../../entity/databases';
 import { ConnectionStringParser } from '../../../../entity/databases/model/postgresql/ConnectionStringParser';
-import { ApiError } from '../../../../shared/api';
 import {
   TransByKey,
   type TranslationKey,
@@ -32,9 +31,11 @@ import {
   ClipboardPasteModalComponent,
 } from '../../../../shared/ui';
 import { EditSshTunnelComponent } from './EditSshTunnelComponent';
+import { toDatabaseSettingsTarget } from './toDatabaseSettingsTarget';
 
 interface Props {
   database: Database;
+  settings: PostgresqlPhysicalSettings;
 
   isShowCancelButton?: boolean;
   onCancel: () => void;
@@ -47,7 +48,6 @@ interface Props {
   onSaved: (database: Database) => void;
 
   isShowDbName?: boolean;
-  isRestoreMode?: boolean;
 
   onConnectionErrorChange?: (hasConnectionError: boolean) => void;
 }
@@ -77,9 +77,9 @@ const deriveSslModeFromHost = (rawHost: string): PostgresSslMode | null => {
 };
 
 const applySslMode = (
-  postgresqlPhysical: PostgresqlPhysicalDatabase,
+  postgresqlPhysical: PostgresqlPhysicalSettings,
   sslMode: PostgresSslMode,
-): PostgresqlPhysicalDatabase => {
+): PostgresqlPhysicalSettings => {
   if (sslMode === PostgresSslMode.Disable) {
     return {
       ...postgresqlPhysical,
@@ -95,6 +95,7 @@ const applySslMode = (
 
 export const EditPostgreSqlPhysicalSpecificDataComponent = ({
   database,
+  settings,
 
   isShowCancelButton,
   onCancel,
@@ -110,7 +111,7 @@ export const EditPostgreSqlPhysicalSpecificDataComponent = ({
   const { t } = useTranslation();
   const { message } = App.useApp();
 
-  const [editingDatabase, setEditingDatabase] = useState<Database>();
+  const [editingSettings, setEditingSettings] = useState<PostgresqlPhysicalSettings>(settings);
   const [isSaving, setIsSaving] = useState(false);
 
   const [isConnectionTested, setIsConnectionTested] = useState(false);
@@ -119,17 +120,15 @@ export const EditPostgreSqlPhysicalSpecificDataComponent = ({
   const [hasUserChosenSslMode, setHasUserChosenSslMode] = useState(!!database.id);
   const [isReplacingCerts, setIsReplacingCerts] = useState(false);
 
-  const [isShowAdvanced, setShowAdvanced] = useState(
-    !!database.postgresqlPhysical?.sshTunnel?.isEnabled,
-  );
+  const [isShowAdvanced, setShowAdvanced] = useState(!!settings.sshTunnel?.isEnabled);
 
   const [isShowPasteModal, setIsShowPasteModal] = useState(false);
 
-  const [connectionErrorCode, setConnectionErrorCode] = useState<ConnectionErrorCode | null>(null);
+  const [failedTestResult, setFailedTestResult] = useState<DatabaseTestResult | null>(null);
 
   const invalidateConnectionTest = () => {
     setIsConnectionTested(false);
-    setConnectionErrorCode(null);
+    setFailedTestResult(null);
   };
 
   const copyCommand = async (command: string) => {
@@ -156,22 +155,15 @@ export const EditPostgreSqlPhysicalSpecificDataComponent = ({
       return;
     }
 
-    if (!editingDatabase?.postgresqlPhysical) return;
-
-    const updatedDatabase: Database = {
-      ...editingDatabase,
-      postgresqlPhysical: {
-        ...editingDatabase.postgresqlPhysical,
-        host: result.host,
-        port: result.port,
-        username: result.username,
-        password: result.password,
-        sslMode: result.sslMode,
-      },
-    };
-
     setHasUserChosenSslMode(true);
-    setEditingDatabase(updatedDatabase);
+    setEditingSettings({
+      ...editingSettings,
+      host: result.host,
+      port: result.port,
+      username: result.username,
+      password: result.password,
+      sslMode: result.sslMode,
+    });
     invalidateConnectionTest();
     message.success(t('databases.edit.connectionStringParsed'));
   };
@@ -191,97 +183,73 @@ export const EditPostgreSqlPhysicalSpecificDataComponent = ({
   };
 
   const updateBackupType = (backupType: PhysicalDatabaseBackupType) => {
-    if (!editingDatabase?.postgresqlPhysical) return;
-
-    setEditingDatabase({
-      ...editingDatabase,
-      postgresqlPhysical: { ...editingDatabase.postgresqlPhysical, backupType },
-    });
+    setEditingSettings({ ...editingSettings, backupType });
     invalidateConnectionTest();
   };
 
+  // A failure the server classifies is explained in place with the steps that fix it; any other
+  // failure only has the server's message.
   const testConnection = async () => {
-    if (!editingDatabase?.postgresqlPhysical) return;
     setIsTestingConnection(true);
-    setConnectionErrorCode(null);
-
-    const trimmedDatabase = {
-      ...editingDatabase,
-      postgresqlPhysical: {
-        ...editingDatabase.postgresqlPhysical,
-        password: editingDatabase.postgresqlPhysical.password?.trim(),
-      },
-    };
+    setFailedTestResult(null);
 
     try {
-      await databaseApi.testDatabaseConnectionDirect(trimmedDatabase);
-      setIsConnectionTested(true);
-      ToastHelper.showToast({
-        title: t('databases.edit.connectionTestPassed.title'),
-        description: t('databases.edit.connectionTestPassed.description'),
-      });
-    } catch (e) {
-      if (e instanceof ApiError && e.code && e.code in physicalConnectionErrorContent) {
-        setConnectionErrorCode(e.code as ConnectionErrorCode);
+      const testResult = await databaseApi.testDatabaseSettings(
+        toDatabaseSettingsTarget(database, editingSettings),
+      );
+
+      if (testResult.isConnected) {
+        setIsConnectionTested(true);
+        ToastHelper.showToast({
+          title: t('databases.edit.connectionTestPassed.title'),
+          description: t('databases.edit.connectionTestPassed.description'),
+        });
+      } else if (testResult.reason) {
+        setFailedTestResult(testResult);
       } else {
-        message.error(translateApiError(e, t));
+        alert(t('databases.edit.connectionTestFailed', { error: testResult.error }));
       }
+    } catch (e) {
+      message.error(translateApiError(e, t));
     }
 
     setIsTestingConnection(false);
   };
 
   const saveDatabase = async () => {
-    if (!editingDatabase?.postgresqlPhysical) return;
+    const editedDatabase: Database = { ...database, settings: editingSettings };
 
-    const trimmedDatabase = {
-      ...editingDatabase,
-      postgresqlPhysical: {
-        ...editingDatabase.postgresqlPhysical,
-        password: editingDatabase.postgresqlPhysical.password?.trim(),
-      },
-    };
-
-    if (isSaveToApi) {
-      setIsSaving(true);
-
-      try {
-        await databaseApi.updateDatabase(trimmedDatabase);
-      } catch (e) {
-        alert(translateApiError(e, t));
-      }
-
-      setIsSaving(false);
+    if (!isSaveToApi) {
+      onSaved(editedDatabase);
+      return;
     }
 
-    onSaved(trimmedDatabase);
+    setIsSaving(true);
+
+    try {
+      onSaved(await databaseApi.updateDatabase(database.id, editedDatabase));
+    } catch (e) {
+      alert(translateApiError(e, t));
+    }
+
+    setIsSaving(false);
   };
 
   const updatePostgresqlCert = (
     field: 'sslClientCert' | 'sslClientKey' | 'sslRootCert',
     value: string,
   ) => {
-    if (!editingDatabase?.postgresqlPhysical) return;
-
-    setEditingDatabase({
-      ...editingDatabase,
-      postgresqlPhysical: { ...editingDatabase.postgresqlPhysical, [field]: value },
-    });
+    setEditingSettings({ ...editingSettings, [field]: value });
     invalidateConnectionTest();
   };
 
   const startReplacingCerts = () => {
-    if (!editingDatabase?.postgresqlPhysical) return;
-
     setIsReplacingCerts(true);
-    setEditingDatabase({
-      ...editingDatabase,
-      postgresqlPhysical: {
-        ...editingDatabase.postgresqlPhysical,
-        sslClientCert: '',
-        sslClientKey: '',
-        sslRootCert: '',
-      },
+    setEditingSettings({
+      ...editingSettings,
+      sslClientCert: '',
+      sslClientKey: '',
+      sslRootCert: '',
     });
     invalidateConnectionTest();
   };
@@ -293,14 +261,12 @@ export const EditPostgreSqlPhysicalSpecificDataComponent = ({
     setIsReplacingCerts(false);
     setHasUserChosenSslMode(!!database.id);
 
-    setEditingDatabase({ ...database });
-  }, [database]);
+    setEditingSettings(settings);
+  }, [settings]);
 
   useEffect(() => {
-    onConnectionErrorChange?.(connectionErrorCode !== null);
-  }, [connectionErrorCode, onConnectionErrorChange]);
-
-  if (!editingDatabase) return null;
+    onConnectionErrorChange?.(failedTestResult !== null);
+  }, [failedTestResult, onConnectionErrorChange]);
 
   const renderFooter = (footerContent?: React.ReactNode) => (
     <div className="mt-5 flex">
@@ -321,10 +287,10 @@ export const EditPostgreSqlPhysicalSpecificDataComponent = ({
   );
 
   const renderSslCertSection = () => {
-    const sslMode = editingDatabase.postgresqlPhysical?.sslMode ?? PostgresSslMode.Disable;
+    const sslMode = editingSettings.sslMode ?? PostgresSslMode.Disable;
     if (sslMode === PostgresSslMode.Disable) return null;
 
-    const hadSslCert = !!database.postgresqlPhysical?.sslClientCert;
+    const hadSslCert = !!settings.sslClientCert;
     if (hadSslCert && !isReplacingCerts) {
       return (
         <div className="mb-1 flex w-full items-center">
@@ -344,7 +310,7 @@ export const EditPostgreSqlPhysicalSpecificDataComponent = ({
         <div className="mb-1 flex w-full items-start">
           <div className="min-w-[150px] pr-2">{t('databases.fields.clientCertificate')}</div>
           <Input.TextArea
-            value={editingDatabase.postgresqlPhysical?.sslClientCert || ''}
+            value={editingSettings.sslClientCert || ''}
             onChange={(e) => updatePostgresqlCert('sslClientCert', e.target.value)}
             size="small"
             className="max-w-[300px] grow"
@@ -357,7 +323,7 @@ export const EditPostgreSqlPhysicalSpecificDataComponent = ({
         <div className="mb-1 flex w-full items-start">
           <div className="min-w-[150px] pr-2">{t('databases.fields.clientKey')}</div>
           <Input.TextArea
-            value={editingDatabase.postgresqlPhysical?.sslClientKey || ''}
+            value={editingSettings.sslClientKey || ''}
             onChange={(e) => updatePostgresqlCert('sslClientKey', e.target.value)}
             size="small"
             className="max-w-[300px] grow"
@@ -378,7 +344,7 @@ export const EditPostgreSqlPhysicalSpecificDataComponent = ({
             </Tooltip>
           </div>
           <Input.TextArea
-            value={editingDatabase.postgresqlPhysical?.sslRootCert || ''}
+            value={editingSettings.sslRootCert || ''}
             onChange={(e) => updatePostgresqlCert('sslRootCert', e.target.value)}
             size="small"
             className="max-w-[300px] grow"
@@ -409,10 +375,10 @@ export const EditPostgreSqlPhysicalSpecificDataComponent = ({
   );
 
   const renderConnectionError = () => {
-    if (!connectionErrorCode) return null;
+    if (!failedTestResult?.reason) return null;
 
-    const content = physicalConnectionErrorContent[connectionErrorCode];
-    const commandContext = { username: editingDatabase.postgresqlPhysical?.username ?? '' };
+    const content = physicalConnectionErrorContent[failedTestResult.reason];
+    const commandContext = { username: editingSettings.username ?? '' };
     const steps = content.buildSteps?.(commandContext) ?? [];
     const managedNote = content.buildManagedNote?.(commandContext);
 
@@ -436,6 +402,9 @@ export const EditPostgreSqlPhysicalSpecificDataComponent = ({
             {managedNote && (
               <div className="mt-2 text-sm">{translateLocalizedText(managedNote, t)}</div>
             )}
+            {failedTestResult.error && (
+              <div className="mt-2 font-mono text-xs break-all">{failedTestResult.error}</div>
+            )}
           </div>
         }
       />
@@ -444,12 +413,11 @@ export const EditPostgreSqlPhysicalSpecificDataComponent = ({
 
   const renderForm = () => {
     let isAllFieldsFilled = true;
-    if (!editingDatabase.postgresqlPhysical?.host) isAllFieldsFilled = false;
-    if (!editingDatabase.postgresqlPhysical?.port) isAllFieldsFilled = false;
-    if (!editingDatabase.postgresqlPhysical?.username) isAllFieldsFilled = false;
-    if (!editingDatabase.id && !editingDatabase.postgresqlPhysical?.password)
-      isAllFieldsFilled = false;
-    if (!isSshTunnelReadyToTest(editingDatabase.postgresqlPhysical?.sshTunnel, hasStoredSshSecrets))
+    if (!editingSettings.host) isAllFieldsFilled = false;
+    if (!editingSettings.port) isAllFieldsFilled = false;
+    if (!editingSettings.username) isAllFieldsFilled = false;
+    if (!database.id && !editingSettings.password) isAllFieldsFilled = false;
+    if (!isSshTunnelReadyToTest(editingSettings.sshTunnel, hasStoredSshSecrets))
       isAllFieldsFilled = false;
 
     return (
@@ -457,9 +425,7 @@ export const EditPostgreSqlPhysicalSpecificDataComponent = ({
         <div className="mb-3 flex w-full items-start">
           <div className="min-w-[150px] pr-2">{t('databases.fields.backupType')}</div>
           <Radio.Group
-            value={
-              editingDatabase.postgresqlPhysical?.backupType ?? PhysicalDatabaseBackupType.FULL
-            }
+            value={editingSettings.backupType ?? PhysicalDatabaseBackupType.FULL}
             onChange={(e) => updateBackupType(e.target.value)}
           >
             <Space direction="vertical" size={0}>
@@ -492,13 +458,11 @@ export const EditPostgreSqlPhysicalSpecificDataComponent = ({
         <div className="mb-1 flex w-full items-center">
           <div className="min-w-[150px] pr-2">{t('common.fields.host')}</div>
           <Input
-            value={editingDatabase.postgresqlPhysical?.host}
+            value={editingSettings.host}
             onChange={(e) => {
-              if (!editingDatabase.postgresqlPhysical) return;
-
               const rawHost = e.target.value;
               const basePostgresql = {
-                ...editingDatabase.postgresqlPhysical,
+                ...editingSettings,
                 host: rawHost.trim().replace('https://', '').replace('http://', ''),
               };
               const isHttpsHost = rawHost.trim().toLowerCase().startsWith('https://');
@@ -513,13 +477,11 @@ export const EditPostgreSqlPhysicalSpecificDataComponent = ({
                 derivedSslMode = deriveSslModeFromHost(rawHost);
               }
 
-              setEditingDatabase({
-                ...editingDatabase,
-                postgresqlPhysical:
-                  derivedSslMode !== null
-                    ? applySslMode(basePostgresql, derivedSslMode)
-                    : basePostgresql,
-              });
+              setEditingSettings(
+                derivedSslMode !== null
+                  ? applySslMode(basePostgresql, derivedSslMode)
+                  : basePostgresql,
+              );
               invalidateConnectionTest();
             }}
             size="small"
@@ -532,14 +494,11 @@ export const EditPostgreSqlPhysicalSpecificDataComponent = ({
           <div className="min-w-[150px] pr-2">{t('common.fields.port')}</div>
           <InputNumber
             type="number"
-            value={editingDatabase.postgresqlPhysical?.port}
+            value={editingSettings.port}
             onChange={(e) => {
-              if (!editingDatabase.postgresqlPhysical || e === null) return;
+              if (e === null) return;
 
-              setEditingDatabase({
-                ...editingDatabase,
-                postgresqlPhysical: { ...editingDatabase.postgresqlPhysical, port: e },
-              });
+              setEditingSettings({ ...editingSettings, port: e });
               invalidateConnectionTest();
             }}
             size="small"
@@ -551,17 +510,9 @@ export const EditPostgreSqlPhysicalSpecificDataComponent = ({
         <div className="mb-1 flex w-full items-center">
           <div className="min-w-[150px] pr-2">{t('common.fields.username')}</div>
           <Input
-            value={editingDatabase.postgresqlPhysical?.username}
+            value={editingSettings.username}
             onChange={(e) => {
-              if (!editingDatabase.postgresqlPhysical) return;
-
-              setEditingDatabase({
-                ...editingDatabase,
-                postgresqlPhysical: {
-                  ...editingDatabase.postgresqlPhysical,
-                  username: e.target.value.trim(),
-                },
-              });
+              setEditingSettings({ ...editingSettings, username: e.target.value.trim() });
               invalidateConnectionTest();
             }}
             size="small"
@@ -575,17 +526,9 @@ export const EditPostgreSqlPhysicalSpecificDataComponent = ({
         <div className="mb-1 flex w-full items-center">
           <div className="min-w-[150px] pr-2">{t('common.fields.password')}</div>
           <Input.Password
-            value={editingDatabase.postgresqlPhysical?.password}
+            value={editingSettings.password}
             onChange={(e) => {
-              if (!editingDatabase.postgresqlPhysical) return;
-
-              setEditingDatabase({
-                ...editingDatabase,
-                postgresqlPhysical: {
-                  ...editingDatabase.postgresqlPhysical,
-                  password: e.target.value,
-                },
-              });
+              setEditingSettings({ ...editingSettings, password: e.target.value });
               invalidateConnectionTest();
             }}
             size="small"
@@ -603,15 +546,10 @@ export const EditPostgreSqlPhysicalSpecificDataComponent = ({
         <div className="mb-1 flex w-full items-center">
           <div className="min-w-[150px] pr-2">{t('databases.fields.sslMode')}</div>
           <Select
-            value={editingDatabase.postgresqlPhysical?.sslMode ?? PostgresSslMode.Disable}
+            value={editingSettings.sslMode ?? PostgresSslMode.Disable}
             onChange={(value: PostgresSslMode) => {
-              if (!editingDatabase.postgresqlPhysical) return;
-
               setHasUserChosenSslMode(true);
-              setEditingDatabase({
-                ...editingDatabase,
-                postgresqlPhysical: applySslMode(editingDatabase.postgresqlPhysical, value),
-              });
+              setEditingSettings(applySslMode(editingSettings, value));
               invalidateConnectionTest();
             }}
             options={Object.values(PostgresSslMode).map((sslMode) => ({
@@ -633,15 +571,10 @@ export const EditPostgreSqlPhysicalSpecificDataComponent = ({
 
         {isShowAdvanced && (
           <EditSshTunnelComponent
-            sshTunnel={editingDatabase.postgresqlPhysical?.sshTunnel}
+            sshTunnel={editingSettings.sshTunnel}
             hasStoredSecrets={hasStoredSshSecrets}
             onChange={(sshTunnel) => {
-              if (!editingDatabase.postgresqlPhysical) return;
-
-              setEditingDatabase({
-                ...editingDatabase,
-                postgresqlPhysical: { ...editingDatabase.postgresqlPhysical, sshTunnel },
-              });
+              setEditingSettings({ ...editingSettings, sshTunnel });
               setIsConnectionTested(false);
             }}
           />
@@ -681,8 +614,8 @@ export const EditPostgreSqlPhysicalSpecificDataComponent = ({
   };
 
   const hasStoredSshSecrets = hasStoredSshTunnelSecretsForAuthType(
-    database.postgresqlPhysical?.sshTunnel,
-    editingDatabase.postgresqlPhysical?.sshTunnel?.authType,
+    settings.sshTunnel,
+    editingSettings.sshTunnel?.authType,
     database.id,
   );
 

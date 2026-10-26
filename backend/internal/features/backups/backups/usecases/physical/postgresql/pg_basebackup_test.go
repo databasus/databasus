@@ -7,10 +7,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	pgphysical "databasus-backend/internal/engines/postgresql/physical"
 	pgshared "databasus-backend/internal/engines/postgresql/shared"
 	physical_enums "databasus-backend/internal/features/backups/backups/core/physical/enums"
-	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
-	"databasus-backend/internal/lib/sshtunnel"
+	"databasus-backend/internal/modules/databases"
 )
 
 const (
@@ -20,13 +20,15 @@ const (
 
 // The copy handed out by OpenTunnel, as the CLI paths receive it: the port already points at the
 // forwarder while Host still names the cluster.
-func tunneledSourceDatabase() *postgresql_physical.PostgresqlPhysicalDatabase {
-	return &postgresql_physical.PostgresqlPhysicalDatabase{
-		Host:                tunneledSourceHost,
-		Port:                forwardedLocalPort,
-		Username:            "replicator",
-		ReplicationSlotName: "slot",
-		LocalTunnelEndpoint: &sshtunnel.Endpoint{Host: "127.0.0.1", Port: forwardedLocalPort},
+func tunneledSourceDatabase() databases.PostgresqlPhysicalConnectionSettings {
+	return databases.PostgresqlPhysicalConnectionSettings{
+		Engine: pgphysical.Settings{
+			Host:                tunneledSourceHost,
+			HostAddr:            "127.0.0.1",
+			Port:                forwardedLocalPort,
+			Username:            "replicator",
+			ReplicationSlotName: "slot",
+		},
 	}
 }
 
@@ -50,7 +52,7 @@ func Test_NewPgBasebackupCommand_WhenTunneled_SendsPgHostAddrAndKeepsTheRealHost
 
 func Test_NewPgBasebackupCommand_WithoutATunnel_SendsNoPgHostAddr(t *testing.T) {
 	sourceDB := tunneledSourceDatabase()
-	sourceDB.LocalTunnelEndpoint = nil
+	sourceDB.Engine.HostAddr = ""
 
 	cmd, err := newPgBasebackupCommand(
 		t.Context(),

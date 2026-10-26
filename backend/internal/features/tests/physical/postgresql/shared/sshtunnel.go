@@ -17,9 +17,9 @@ import (
 	physical_enums "databasus-backend/internal/features/backups/backups/core/physical/enums"
 	physical_repositories "databasus-backend/internal/features/backups/backups/core/physical/repositories"
 	postgresql_executor "databasus-backend/internal/features/backups/backups/usecases/physical/postgresql"
-	"databasus-backend/internal/features/databases"
-	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
+	databases_bridge "databasus-backend/internal/features/databases"
 	"databasus-backend/internal/lib/sshtunnel"
+	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/util/logger"
 	"databasus-backend/internal/util/testing/bastion"
 	"databasus-backend/internal/util/testing/containers"
@@ -32,19 +32,22 @@ func setupBastionedFixture(
 	t *testing.T,
 	version string,
 	image string,
-	backupType postgresql_physical.BackupType,
+	backupType databases.PhysicalBackupType,
 ) (*gin.Engine, *postgresql_executor.PhysicalDBFixture, containers.BastionedDatabase) {
 	t.Helper()
 
 	topology := containers.StartPhysicalPostgresBehindSshBastion(t, image)
 
 	router := newPhysicalTestRouter()
-	fixture := postgresql_executor.SetupPhysicalDBFixtureWithTunnel(t, databases.PhysicalTestDatabaseSpec{
+	tunnelSettings := bastion.GetTunnelSettings(topology)
+
+	fixture := postgresql_executor.SetupPhysicalDBFixtureWithTunnel(t, databases_bridge.PhysicalTestDatabaseSpec{
 		Host:       topology.Database.Host,
 		Port:       topology.Database.Port,
 		VersionTag: version,
 		BackupType: backupType,
-		SshTunnel:  bastion.GetTunnelConfig(topology),
+		SshTunnel:  &tunnelSettings,
+		TLS:        nil,
 	})
 
 	return router, fixture, topology

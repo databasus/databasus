@@ -21,6 +21,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/stretchr/testify/require"
 
+	pgphysical "databasus-backend/internal/engines/postgresql/physical"
 	backuping_physical "databasus-backend/internal/features/backups/backups/backuping/physical"
 	backups_controllers_physical "databasus-backend/internal/features/backups/backups/controllers/physical"
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
@@ -31,12 +32,12 @@ import (
 	backups_dto_physical "databasus-backend/internal/features/backups/backups/dto/physical"
 	postgresql_executor "databasus-backend/internal/features/backups/backups/usecases/physical/postgresql"
 	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
-	"databasus-backend/internal/features/databases"
-	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
+	databases_bridge "databasus-backend/internal/features/databases"
 	"databasus-backend/internal/features/intervals"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
-	"databasus-backend/internal/util/encryption"
+	"databasus-backend/internal/lib/apiclient"
+	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/util/logger"
 	test_utils "databasus-backend/internal/util/testing"
 	"databasus-backend/internal/util/testing/containers"
@@ -62,7 +63,7 @@ func setupReplicationOnlyFixture(
 	t *testing.T,
 	version string,
 	image string,
-	backupType postgresql_physical.BackupType,
+	backupType databases.PhysicalBackupType,
 	sourceOptions ...containers.PhysicalPostgresOption,
 ) (*gin.Engine, *postgresql_executor.PhysicalDBFixture) {
 	t.Helper()
@@ -213,14 +214,15 @@ func newPhysicalTestRouter() *gin.Engine {
 
 	protected := v1.Group("").Use(users_testing.GetSessionMiddleware())
 	if routerGroup, ok := protected.(*gin.RouterGroup); ok {
-		databases.GetDatabaseController().RegisterRoutes(routerGroup)
+		databases_bridge.GetTestRoutes().RegisterRoutes(routerGroup)
 		backups_config_physical.GetBackupConfigController().RegisterRoutes(routerGroup)
 		backups_controllers_physical.GetPhysicalBackupController().RegisterRoutes(routerGroup)
 	}
 
-	databases.SetupDependencies()
+	databases_bridge.SetupDependencies()
 	backups_config_physical.SetupDependencies()
 	backuping_physical.SetupDependencies()
+	backuping_physical.SubscribeToDatabaseDeletingWithoutApp()
 
 	return router
 }
@@ -282,9 +284,9 @@ func triggerIncrementalViaAPI(t *testing.T, router *gin.Engine, fixture *postgre
 // source through the public API and switches the database's stored backup
 // credentials to it, so every subsequent FULL / incremental / WAL operation runs
 // through a least-privilege user instead of the superuser the fixture is seeded
-// with. The backuper re-fetches the database at execution time, so the switch is
-// persisted via the update endpoint — mutating the in-memory fixture alone would
-// not reach the running backup.
+// with. The backuper re-reads the database at execution time, so the switch is
+// persisted through the update operation — changing the in-memory fixture alone
+// would not reach the running backup.
 func useReplicationOnlyUserViaAPI(
 	t *testing.T,
 	router *gin.Engine,
@@ -292,57 +294,63 @@ func useReplicationOnlyUserViaAPI(
 ) {
 	t.Helper()
 
-	physical := fixture.DB.PostgresqlPhysical
-
-	// The provisioning call connects to the source as the current admin user to run
-	// CREATE ROLE; the database is identified by ID, the connection block carries the
-	// superuser the source container was started with.
-	provisionRequest := databases.Database{
-		ID:          fixture.DB.ID,
-		WorkspaceID: fixture.DB.WorkspaceID,
-		Name:        fixture.DB.Name,
-		Type:        databases.DatabaseTypePostgresPhysical,
-		Notifiers:   []databases.DatabaseNotifier{{ID: fixture.Notifier.ID}},
-		PostgresqlPhysical: &postgresql_physical.PostgresqlPhysicalDatabase{
-			Version:    physical.Version,
-			Host:       physical.Host,
-			Port:       physical.Port,
-			Username:   restoredPgUser,
-			Password:   restoredPgPassword,
-			BackupType: physical.BackupType,
+	var provisioned apiclient.LimitedUser
+	test_utils.MakePostRequestAndUnmarshal(t, router, "/api/v1/limited-users", "Bearer "+fixture.Owner.Token,
+		apiclient.DatabaseSettingsTarget{
+			WorkspaceId: fixture.DB.WorkspaceID,
+			DatabaseId:  &fixture.DB.ID,
+			Settings:    buildPhysicalSettings(t, fixture, restoredPgUser, restoredPgPassword),
 		},
-	}
-
-	var provisioned databases.CreateReadOnlyUserResponse
-	test_utils.MakePostRequestAndUnmarshal(t, router,
-		"/api/v1/databases/create-replication-only-user",
-		"Bearer "+fixture.Owner.Token, provisionRequest, http.StatusOK, &provisioned)
+		http.StatusCreated, &provisioned)
 	require.NotEmpty(t, provisioned.Username)
 	require.NotEmpty(t, provisioned.Password)
 
-	switchRequest := provisionRequest
-	switchRequest.PostgresqlPhysical = &postgresql_physical.PostgresqlPhysicalDatabase{
-		Version:    physical.Version,
-		Host:       physical.Host,
-		Port:       physical.Port,
-		Username:   provisioned.Username,
-		Password:   provisioned.Password,
-		BackupType: physical.BackupType,
-	}
-	test_utils.MakePostRequest(t, router, "/api/v1/databases/update",
-		"Bearer "+fixture.Owner.Token, switchRequest, http.StatusOK)
+	test_utils.MakePutRequest(t, router, "/api/v1/databases/"+fixture.DB.ID.String(), "Bearer "+fixture.Owner.Token,
+		apiclient.DatabaseUpdate{
+			Name:        fixture.DB.Name,
+			NotifierIds: []uuid.UUID{fixture.Notifier.ID},
+			Settings:    buildPhysicalSettings(t, fixture, provisioned.Username, provisioned.Password),
+		},
+		http.StatusOK)
 
-	// Mirror the switch onto the in-memory fixture so direct source connections in
-	// the test (slot inspection) use the same identity the backups now run as.
-	physical.Username = provisioned.Username
-	physical.Password = provisioned.Password
+	// Direct source connections in the test (slot inspection) use the identity the backups now run as.
+	fixture.SourceDB.Engine.Username = provisioned.Username
+	fixture.SourceDB.Engine.Password = provisioned.Password
 
-	shouldSuggestReplicationOnlyUser, excessivePrivileges, err := physical.ShouldSuggestReplicationOnlyUser(
-		t.Context(), logger.GetLogger(), encryption.GetFieldEncryptor())
+	shouldSuggestReplicationOnlyUser, excessivePrivileges, err := pgphysical.NewSource(fixture.SourceDB.Engine).
+		ShouldSuggestReplicationOnlyUser(t.Context(), logger.GetLogger())
 	require.NoError(t, err)
 	require.False(t, shouldSuggestReplicationOnlyUser,
 		"backups must run through a replication-only user; excessive privileges: %v", excessivePrivileges)
 	require.Empty(t, excessivePrivileges)
+}
+
+// buildPhysicalSettings is the contract form of the fixture's direct, TLS-less source with the given
+// credentials.
+func buildPhysicalSettings(
+	t *testing.T,
+	fixture *postgresql_executor.PhysicalDBFixture,
+	username string,
+	password string,
+) apiclient.DatabaseSettings {
+	t.Helper()
+
+	version := apiclient.PostgresqlVersion(fixture.SourceDB.Version)
+
+	var settings apiclient.DatabaseSettings
+	require.NoError(t, settings.FromPostgresqlPhysicalSettings(apiclient.PostgresqlPhysicalSettings{
+		Type:       apiclient.PostgresqlPhysicalSettingsTypePOSTGRESPHYSICAL,
+		Version:    &version,
+		Host:       fixture.SourceDB.Engine.Host,
+		Port:       fixture.SourceDB.Engine.Port,
+		Username:   username,
+		Password:   &password,
+		SslMode:    apiclient.PostgresqlSslModeDisable,
+		SshTunnel:  apiclient.SshTunnelSettings{IsEnabled: false},
+		BackupType: apiclient.PhysicalBackupType(fixture.SourceDB.BackupType),
+	}))
+
+	return settings
 }
 
 // deleteDatabaseViaAPI removes the fixture's database through the public DELETE
@@ -390,8 +398,8 @@ func requireDatabaseSlotsGone(
 ) {
 	t.Helper()
 
-	streamerSlot := fixture.DB.PostgresqlPhysical.ReplicationSlotName
-	backupSlot := postgresql_executor.SlotName(fixture.DB.PostgresqlPhysical.ID)
+	streamerSlot := fixture.SourceDB.Engine.ReplicationSlotName
+	backupSlot := fixture.SourceDB.BackupSlotName
 
 	deadline := time.Now().UTC().Add(timeout)
 	for time.Now().UTC().Before(deadline) {
@@ -1024,7 +1032,7 @@ func queryMarkerRowsAt(t *testing.T, host string, port int) []string {
 func openSourceTestDBConn(t *testing.T, fixture *postgresql_executor.PhysicalDBFixture) *pgx.Conn {
 	t.Helper()
 
-	return openConnAt(t, fixture.DB.PostgresqlPhysical.Host, fixture.DB.PostgresqlPhysical.Port)
+	return openConnAt(t, fixture.SourceDB.Engine.Host, fixture.SourceDB.Engine.Port)
 }
 
 // openConnAt opens a superuser connection (the seeded testuser) to a PostgreSQL endpoint, closed on
@@ -1100,8 +1108,7 @@ func PromoteStandby(t *testing.T, ctx context.Context, standbyConn *pgx.Conn) {
 }
 
 // waitForTimelineHistoryOnParent blocks until the WAL stream supervisor has cataloged the timeline's
-// .history row, then asserts it is keyed on the parent databases.id and not the
-// postgresql_physical_databases PK. Pre-fix (issue #643) the insert violated
+// .history row on the parent databases.id. Pre-fix (issue #643) the insert violated
 // fk_physical_wal_history_files_database_id and the row never appeared, so this both proves the
 // failover path runs end to end and guards the regression.
 func waitForTimelineHistoryOnParent(
@@ -1114,7 +1121,6 @@ func waitForTimelineHistoryOnParent(
 
 	historyRepo := physical_repositories.GetWalHistoryRepository()
 	parentDatabaseID := fixture.DB.ID
-	physicalPK := fixture.DB.PostgresqlPhysical.ID
 
 	deadline := time.Now().UTC().Add(timeout)
 	for time.Now().UTC().Before(deadline) {
@@ -1122,11 +1128,6 @@ func waitForTimelineHistoryOnParent(
 		require.NoError(t, err)
 
 		if byParent != nil {
-			byPhysicalPK, err := historyRepo.FindByDatabaseTimeline(physicalPK, timelineID)
-			require.NoError(t, err)
-			require.Nil(t, byPhysicalPK,
-				"timeline-%d history must be keyed on the parent databases.id, not the physical PK", timelineID)
-
 			return
 		}
 
@@ -1134,7 +1135,7 @@ func waitForTimelineHistoryOnParent(
 	}
 
 	t.Fatalf("WAL stream supervisor never cataloged the timeline-%d history row on the parent databases.id "+
-		"within %s (issue #643: keying on the physical PK fails fk_physical_wal_history_files_database_id)",
+		"within %s (issue #643: a row keyed on anything else fails fk_physical_wal_history_files_database_id)",
 		timelineID, timeout)
 }
 

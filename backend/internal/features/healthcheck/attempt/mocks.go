@@ -8,7 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/mock"
 
-	"databasus-backend/internal/features/databases"
+	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/notifiers"
 )
 
@@ -24,36 +24,28 @@ func (m *MockHealthcheckAttemptSender) Notify(
 	m.Called(notifierIDs, notification)
 }
 
-type MockDatabaseService struct {
+type MockHealthcheckedDatabases struct {
 	mock.Mock
 }
 
-func (m *MockDatabaseService) ProbeDatabaseLiveness(
-	ctx context.Context,
-	database *databases.Database,
-) error {
-	return m.Called(database).Error(0)
+func (m *MockHealthcheckedDatabases) ProbeLiveness(_ context.Context, databaseID uuid.UUID) error {
+	return m.Called(databaseID).Error(0)
 }
 
-func (m *MockDatabaseService) SetHealthStatus(
+func (m *MockHealthcheckedDatabases) SetHealthStatus(
+	_ context.Context,
 	databaseID uuid.UUID,
 	healthStatus *databases.HealthStatus,
 ) error {
 	return m.Called(databaseID, healthStatus).Error(0)
 }
 
-func (m *MockDatabaseService) GetDatabaseByID(
-	id uuid.UUID,
-) (*databases.Database, error) {
+func (m *MockHealthcheckedDatabases) GetDatabaseByID(_ context.Context, id uuid.UUID) (databases.Database, error) {
 	args := m.Called(id)
 
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-
-	database, ok := args.Get(0).(*databases.Database)
+	database, ok := args.Get(0).(databases.Database)
 	if !ok {
-		return nil, args.Error(1)
+		return databases.Database{}, args.Error(1)
 	}
 
 	return database, args.Error(1)

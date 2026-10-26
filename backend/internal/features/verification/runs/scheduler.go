@@ -2,6 +2,7 @@ package verification_runs
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"sync/atomic"
@@ -10,9 +11,10 @@ import (
 	"github.com/google/uuid"
 
 	backups_services "databasus-backend/internal/features/backups/backups/services"
-	"databasus-backend/internal/features/databases"
+	databases_bridge "databasus-backend/internal/features/databases"
 	verification_agents "databasus-backend/internal/features/verification/agents"
 	verification_config "databasus-backend/internal/features/verification/config"
+	"databasus-backend/internal/modules/databases"
 )
 
 const jobName = "verification_scheduler"
@@ -28,8 +30,10 @@ type VerificationScheduler struct {
 	verificaionConfigService *verification_config.VerificationConfigService
 	agentService             *verification_agents.AgentService
 	backupService            *backups_services.LogicalBackupService
-	databaseService          *databases.DatabaseService
-	logger                   *slog.Logger
+	databaseAccess           *databases_bridge.Access
+	// getDatabases is read per call: each test application installs its own module.
+	getDatabases func() databases.Module
+	logger       *slog.Logger
 
 	hasRun atomic.Bool
 }
@@ -138,12 +142,16 @@ func (s *VerificationScheduler) createScheduledRunForConfig(
 		return nil
 	}
 
-	database, err := s.databaseService.GetDatabaseByID(config.DatabaseID)
+	database, err := s.databaseAccess.GetDatabaseByID(ctx, config.DatabaseID)
 	if err != nil {
 		return err
 	}
 
-	if err := validateDatabaseIsVerifiable(database); err != nil {
+	if _, err := readAssignedDatabase(ctx, s.getDatabases(), database); err != nil {
+		if !errors.Is(err, errDatabaseNotVerifiable) {
+			return err
+		}
+
 		logger.DebugContext(ctx, "skipping scheduled verification: database not verifiable",
 			"database_id", config.DatabaseID, "error", err)
 

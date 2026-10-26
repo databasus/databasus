@@ -11,18 +11,19 @@ import (
 
 	backups_services "databasus-backend/internal/features/backups/backups/services"
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
-	"databasus-backend/internal/features/databases"
+	databases_bridge "databasus-backend/internal/features/databases"
 	restores_core "databasus-backend/internal/features/restores/core"
 	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
 	"databasus-backend/internal/lib/cache"
+	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/storages"
-	util_encryption "databasus-backend/internal/util/encryption"
 )
 
 type Restorer struct {
-	databaseService     *databases.DatabaseService
+	databaseAccess *databases_bridge.Access
+	// getDatabases is read per call: each test application installs its own module.
+	getDatabases        func() databases.Module
 	backupService       *backups_services.LogicalBackupService
-	fieldEncryptor      util_encryption.FieldEncryptor
 	restoreRepository   *restores_core.RestoreRepository
 	backupConfigService *backups_config_logical.BackupConfigService
 	// getStorages is read per call: each test application installs its own module.
@@ -32,6 +33,7 @@ type Restorer struct {
 	restoreDatabaseCache     *cache.JSONStore[RestoreDatabaseCache]
 	taskCancellationRegistry *tasks_cancellation.Registry
 	shutdownSignal           <-chan struct{}
+	clientToolsDir           string
 }
 
 type restoreMetadataLookup struct {
@@ -77,9 +79,22 @@ func (r *Restorer) MakeRestore(
 
 	databaseID := backup.DatabaseID
 
-	database, err := r.databaseService.GetDatabaseByID(databaseID)
+	database, err := r.databaseAccess.GetDatabaseByID(ctx, databaseID)
 	if err != nil {
 		logger.ErrorContext(ctx, "failed to get database by ID", "database_id", databaseID, "error", err)
+		return
+	}
+
+	source, err := restores_core.ReadSourceDatabase(ctx, r.getDatabases(), database)
+	if err != nil {
+		logger.ErrorContext(
+			ctx,
+			"failed to read the source database's settings",
+			"database_id",
+			databaseID,
+			"error",
+			err,
+		)
 		return
 	}
 
@@ -105,21 +120,13 @@ func (r *Restorer) MakeRestore(
 
 	start := time.Now().UTC()
 
-	// Create restoring database from cached credentials
-	restoringToDB := &databases.Database{
-		Type:              database.Type,
-		PostgresqlLogical: databaseCache.PostgresqlLogicalDatabase,
-		Mysql:             databaseCache.MysqlDatabase,
-		Mariadb:           databaseCache.MariadbDatabase,
-		Mongodb:           databaseCache.MongodbDatabase,
-	}
-
 	// The restore target is the only endpoint this function connects to, so one tunnel covers
 	// version detection, the TimescaleDB hooks and pg_restore itself.
-	tunneledDatabase, err := databases.OpenTunnel(restoreCtx, databases.OpenTunnelSpec{
-		Database:  restoringToDB,
-		Logger:    logger,
-		Encryptor: r.fieldEncryptor,
+	targetConnection, err := restores_core.OpenTargetConnection(restoreCtx, restores_core.TargetConnectionSpec{
+		Type:           database.Type,
+		Request:        databaseCache.getRequest(),
+		ClientToolsDir: r.clientToolsDir,
+		Logger:         logger,
 	})
 	if err != nil {
 		errMsg := fmt.Sprintf("failed to open the SSH tunnel to the restore target: %v", err)
@@ -136,11 +143,9 @@ func (r *Restorer) MakeRestore(
 		return
 	}
 
-	defer tunneledDatabase.Close()
+	defer targetConnection.Close()
 
-	restoringToDBThroughTunnel := tunneledDatabase.GetDatabaseThroughTunnel()
-
-	if err := restoringToDBThroughTunnel.PopulateDbData(ctx, logger, r.fieldEncryptor); err != nil {
+	if err := targetConnection.DetectVersion(ctx); err != nil {
 		errMsg := fmt.Sprintf("failed to auto-detect database data: %v", err)
 		restore.FailMessage = &errMsg
 		restore.Status = restores_core.RestoreStatusFailed
@@ -161,8 +166,8 @@ func (r *Restorer) MakeRestore(
 	if databaseCache.PostgresqlLogicalDatabase != nil {
 		restoreOptions.IsExcludeExtensions = databaseCache.PostgresqlLogicalDatabase.IsExcludeExtensions
 	}
-	if database.PostgresqlLogical != nil {
-		restoreOptions.IsSkipUserMappings = database.PostgresqlLogical.IsSkipUserMappings
+	if source.PostgresqlLogical != nil {
+		restoreOptions.IsSkipUserMappings = source.PostgresqlLogical.IsSkipUserMappings
 	}
 
 	logger.InfoContext(ctx, fmt.Sprintf("restore started: %s database %q", database.Type, database.Name),
@@ -172,8 +177,8 @@ func (r *Restorer) MakeRestore(
 		restoreCtx,
 		backupConfig,
 		*restore,
-		database,
-		restoringToDBThroughTunnel,
+		source,
+		targetConnection.Target,
 		backup,
 		storageReader,
 		restoreOptions,

@@ -125,6 +125,7 @@ export const zh: typeof en = {
     cannotChangeOwnRole: '你不能更改自己在工作区中的角色。',
     ownerRequiresTransfer: '不能更改或移除所有者。请先将所有权转让给其他成员。',
     workspaceNotEmpty: '工作区中仍有数据库。请先删除这些数据库，再删除工作区。',
+    databaseConnectionFailed: '无法连接到数据库：{{detail}}',
     inUse: '仍有数据库在使用它。请先在这些数据库中移除它。',
     unknown: '出了点问题，请重试。',
     networkUnreachable: '无法连接 Databasus 服务器。请检查网络连接后重试。',
@@ -398,6 +399,7 @@ export const zh: typeof en = {
       clipboardReadFailed: '无法读取剪贴板。请检查浏览器权限。',
       connectionStringParsed: '已解析连接字符串',
       connectionStringParsedWithoutPassword: '已解析连接字符串，请手动输入密码。',
+      connectionTestFailed: '无法连接到数据库：{{error}}',
       connectionTestPassed: {
         title: '连接测试通过',
         description: '可以继续下一步',

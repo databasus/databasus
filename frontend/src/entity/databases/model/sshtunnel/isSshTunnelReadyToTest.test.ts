@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { createEmptySshTunnelConfig } from './createEmptySshTunnelConfig';
+import { createEmptySshTunnelSettings } from './createEmptySshTunnelSettings';
 import { isSshTunnelReadyToTest } from './isSshTunnelReadyToTest';
 import { SshTunnelAuthType } from './SshTunnelAuthType';
-import type { SshTunnelConfig } from './SshTunnelConfig';
+import type { SshTunnelSettings } from './SshTunnelSettings';
 
-function enabledTunnel(): SshTunnelConfig {
+function enabledTunnel(): SshTunnelSettings {
   return {
-    ...createEmptySshTunnelConfig(),
+    ...createEmptySshTunnelSettings(),
     isEnabled: true,
     host: 'bastion.example.com',
     username: 'tunneluser',
@@ -21,7 +21,7 @@ describe('isSshTunnelReadyToTest', () => {
   });
 
   it('ignores an incomplete config while the tunnel is off', () => {
-    expect(isSshTunnelReadyToTest(createEmptySshTunnelConfig(), false)).toBe(true);
+    expect(isSshTunnelReadyToTest(createEmptySshTunnelSettings(), false)).toBe(true);
   });
 
   it('accepts a complete config with a password', () => {

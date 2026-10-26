@@ -19,8 +19,7 @@ import (
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
 	"databasus-backend/internal/features/caching"
-	"databasus-backend/internal/features/databases"
-	postgresql_logical "databasus-backend/internal/features/databases/databases/postgresql/logical"
+	databases_bridge "databasus-backend/internal/features/databases"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	restores_core "databasus-backend/internal/features/restores/core"
 	storages_bridge "databasus-backend/internal/features/storages"
@@ -33,7 +32,7 @@ import (
 )
 
 func Test_GetRestoreDatabaseCache_WhenProviderFails_UsesSuppliedMetadata(t *testing.T) {
-	databaseConfiguration := &postgresql_logical.PostgresqlLogicalDatabase{Host: "database.internal"}
+	databaseConfiguration := &restores_core.PostgresqlTargetDatabase{Host: "database.internal"}
 	databaseCacheFallback := &RestoreDatabaseCache{
 		PostgresqlLogicalDatabase: databaseConfiguration,
 	}
@@ -64,7 +63,7 @@ func Test_MakeRestore_WhenCacheMissed_RestoreFails(t *testing.T) {
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", user)
 	storage := storages_bridge.CreateTestStorage(workspace.ID)
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
-	database := databases.CreateTestDatabase(workspace.ID, notifier)
+	database := databases_bridge.CreateTestDatabase(workspace.ID, notifier)
 	backups_config_logical.EnableBackupsForTestDatabase(t.Context(), database.ID, storage.ID)
 
 	defer func() {
@@ -84,7 +83,7 @@ func Test_MakeRestore_WhenCacheMissed_RestoreFails(t *testing.T) {
 			restoreRepo.DeleteByID(restore.ID)
 		}
 
-		databases.RemoveTestDatabase(t.Context(), database)
+		databases_bridge.RemoveTestDatabase(t.Context(), database)
 		time.Sleep(50 * time.Millisecond)
 		notifiers_bridge.RemoveTestNotifier(notifier)
 		storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
@@ -127,7 +126,7 @@ func Test_MakeRestore_WhenTaskStarts_CacheDeletedImmediately(t *testing.T) {
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", user)
 	storage := storages_bridge.CreateTestStorage(workspace.ID)
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
-	database := databases.CreateTestDatabase(workspace.ID, notifier)
+	database := databases_bridge.CreateTestDatabase(workspace.ID, notifier)
 	backups_config_logical.EnableBackupsForTestDatabase(t.Context(), database.ID, storage.ID)
 
 	defer func() {
@@ -151,7 +150,7 @@ func Test_MakeRestore_WhenTaskStarts_CacheDeletedImmediately(t *testing.T) {
 			restoreRepo.DeleteByID(restore.ID)
 		}
 
-		databases.RemoveTestDatabase(t.Context(), database)
+		databases_bridge.RemoveTestDatabase(t.Context(), database)
 		time.Sleep(50 * time.Millisecond)
 		notifiers_bridge.RemoveTestNotifier(notifier)
 		storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
@@ -173,7 +172,7 @@ func Test_MakeRestore_WhenTaskStarts_CacheDeletedImmediately(t *testing.T) {
 
 	// Cache DB credentials separately
 	dbCache := &RestoreDatabaseCache{
-		PostgresqlLogicalDatabase: &postgresql_logical.PostgresqlLogicalDatabase{
+		PostgresqlLogicalDatabase: &restores_core.PostgresqlTargetDatabase{
 			Host:     config.GetEnv().TestLocalhost,
 			Port:     5432,
 			Username: "test",
@@ -317,7 +316,7 @@ func createRestoreWithConfigStorage(t *testing.T, configStorage configStorageCho
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", user)
 	backupStorage := storages_bridge.CreateTestStorage(workspace.ID)
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
-	database := databases.CreateTestDatabase(workspace.ID, notifier)
+	database := databases_bridge.CreateTestDatabase(workspace.ID, notifier)
 
 	var otherStorage storages.Storage
 
@@ -349,7 +348,7 @@ func createRestoreWithConfigStorage(t *testing.T, configStorage configStorageCho
 	t.Cleanup(func() {
 		_ = getRestoreRepository().DeleteByID(restore.ID)
 		_ = (&backups_core_logical.BackupRepository{}).DeleteByID(backup.ID)
-		databases.RemoveTestDatabase(t.Context(), database)
+		databases_bridge.RemoveTestDatabase(t.Context(), database)
 		notifiers_bridge.RemoveTestNotifier(notifier)
 		// RemoveTestStorage would leave the backup file this fixture wrote in the data folder.
 		require.NoError(t, storages_bridge.DeleteTestFile(t.Context(),
@@ -363,7 +362,7 @@ func createRestoreWithConfigStorage(t *testing.T, configStorage configStorageCho
 
 	return restoreTestFixture{
 		restore:       restore,
-		databaseCache: &RestoreDatabaseCache{PostgresqlLogicalDatabase: databases.GetTestPostgresConfig()},
+		databaseCache: &RestoreDatabaseCache{PostgresqlLogicalDatabase: restores_core.GetTestPostgresTarget()},
 		backupContent: backupContent,
 	}
 }

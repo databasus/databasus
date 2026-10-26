@@ -8,6 +8,8 @@ import (
 
 	physical_repositories "databasus-backend/internal/features/backups/backups/core/physical/repositories"
 	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
+	"databasus-backend/internal/lib/database"
+	"databasus-backend/internal/modules/databases"
 )
 
 type PhysicalBackupCancellationListener struct {
@@ -32,11 +34,33 @@ func (l *PhysicalBackupCancellationListener) OnBackupsStorageChanged(ctx context
 	l.cancelStreamingAndDeleteStreamerRow(ctx, databaseID)
 }
 
-func (l *PhysicalBackupCancellationListener) OnBeforeDatabaseRemove(ctx context.Context, databaseID uuid.UUID) error {
-	l.canceller.CancelInFlightForDatabase(ctx, databaseID)
-	l.cancelStreamingAndDeleteStreamerRow(ctx, databaseID)
+// OnDatabaseDeleting stops the running backup and the WAL streamer once the deletion commits. The
+// in-flight claim and the streamer row go with the database by cascade, so the claim is read now.
+func (l *PhysicalBackupCancellationListener) OnDatabaseDeleting(
+	ctx context.Context,
+	event databases.DatabaseDeleting,
+) error {
+	claim, err := l.canceller.inFlightRepo.FindByDatabaseID(event.DatabaseID)
+	if err != nil {
+		return err
+	}
 
-	return nil
+	return database.AfterCommit(ctx, func(ctx context.Context) {
+		logger := l.logger.With("database_id", event.DatabaseID)
+
+		if claim != nil {
+			err := l.taskCancellationRequester.RequestCancellation(ctx, claim.BackupID)
+			if err != nil {
+				logger.ErrorContext(ctx, "failed to request in-flight backup cancellation",
+					"backup_id", claim.BackupID, "error", err)
+			}
+		}
+
+		err := l.taskCancellationRequester.RequestCancellation(ctx, event.DatabaseID)
+		if err != nil {
+			logger.ErrorContext(ctx, "failed to cancel wal streamer task", "error", err)
+		}
+	})
 }
 
 // Deleting the row first would leave an orphaned pg_receivewal on the slot. The

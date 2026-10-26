@@ -23,7 +23,6 @@ import (
 	"databasus-backend/internal/lib/database"
 	"databasus-backend/internal/modules/storages"
 	db "databasus-backend/internal/storage"
-	util_encryption "databasus-backend/internal/util/encryption"
 	"databasus-backend/internal/util/walmath"
 )
 
@@ -41,9 +40,9 @@ type WalUploadDeps struct {
 	DatabaseID          uuid.UUID
 	StorageID           uuid.UUID
 	FileStore           FileStore
+	BackupStatus        BackupStatusRecorder
 	Encryption          backups_core_enums.BackupEncryption
 	MasterKey           string
-	FieldEncryptor      util_encryption.FieldEncryptor
 	WalSegmentRepo      *physical_repositories.PhysicalWalSegmentRepository
 	WalSegmentSizeBytes int64
 	Logger              *slog.Logger
@@ -482,8 +481,8 @@ type commitSegmentSpec struct {
 	Receipts         []storages.WriteReceipt
 }
 
-// commitSegment publishes the segment and spends its receipts together, so the
-// files are kept only if the row that names them commits.
+// commitSegment publishes the segment, spends its receipts and records it as the database's last
+// backup together, so the files are kept only if the row that names them commits.
 func (u *WalUploader) commitSegment(ctx context.Context, spec commitSegmentSpec) (bool, error) {
 	committed := false
 
@@ -506,7 +505,12 @@ func (u *WalUploader) commitSegment(ctx context.Context, spec commitSegmentSpec)
 			return nil
 		}
 
-		return u.deps.FileStore.ConfirmFileWrites(ctx, spec.Receipts)
+		err = u.deps.FileStore.ConfirmFileWrites(ctx, spec.Receipts)
+		if err != nil {
+			return err
+		}
+
+		return u.deps.BackupStatus.RecordBackupSuccess(ctx, u.deps.DatabaseID, spec.Claim.ReceivedAt)
 	})
 
 	return committed, err

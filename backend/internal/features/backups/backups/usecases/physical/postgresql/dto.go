@@ -11,26 +11,24 @@ import (
 	physical_enums "databasus-backend/internal/features/backups/backups/core/physical/enums"
 	physical_models "databasus-backend/internal/features/backups/backups/core/physical/models"
 	physical_repositories "databasus-backend/internal/features/backups/backups/core/physical/repositories"
-	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
+	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/storages"
-	util_encryption "databasus-backend/internal/util/encryption"
 	"databasus-backend/internal/util/walmath"
 )
 
 type timelineIdentityProbe func(context.Context, int) (*TimelineDecision, error)
 
 type CommonBackupSpec struct {
-	SourceDB       *postgresql_physical.PostgresqlPhysicalDatabase
-	DatabaseName   string
-	StorageID      uuid.UUID
-	FileStore      FileStore
-	Encryption     backups_core_enums.BackupEncryption
-	MasterKey      string
-	FieldEncryptor util_encryption.FieldEncryptor
-	FullRepo       *physical_repositories.PhysicalFullBackupRepository
-	HistoryRepo    *physical_repositories.PhysicalWalHistoryRepository
-	Logger         *slog.Logger
-	timelineProbe  timelineIdentityProbe
+	SourceDB      databases.PostgresqlPhysicalConnectionSettings
+	DatabaseName  string
+	StorageID     uuid.UUID
+	FileStore     FileStore
+	Encryption    backups_core_enums.BackupEncryption
+	MasterKey     string
+	FullRepo      *physical_repositories.PhysicalFullBackupRepository
+	HistoryRepo   *physical_repositories.PhysicalWalHistoryRepository
+	Logger        *slog.Logger
+	timelineProbe timelineIdentityProbe
 
 	// ProgressListener, when set, receives the streamed size and elapsed time
 	// periodically during the backup so the row's size grows in near-real-time.

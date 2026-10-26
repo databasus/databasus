@@ -9,6 +9,7 @@ import (
 
 func TestMain(m *testing.M) {
 	backuping_physical.SetupDependencies()
+	backuping_physical.SubscribeToDatabaseDeletingWithoutApp()
 
 	exitCode := m.Run()
 

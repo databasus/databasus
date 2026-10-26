@@ -7,30 +7,35 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 
+	pglogical "databasus-backend/internal/engines/postgresql/logical"
 	pgshared "databasus-backend/internal/engines/postgresql/shared"
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
-	"databasus-backend/internal/features/databases"
-	pgtypes "databasus-backend/internal/features/databases/databases/postgresql/logical"
+	databases_bridge "databasus-backend/internal/features/databases"
+	users_testing "databasus-backend/internal/features/users/testing"
+	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
+	"databasus-backend/internal/modules/databases"
+	"databasus-backend/internal/modules/users"
 )
 
 func Test_BuildPgDumpArgs_TreatsDuplicateParameterAsLiteralDatabaseName(t *testing.T) {
 	databaseName := "postgres dbname=databasus"
-	postgresDatabase := &pgtypes.PostgresqlLogicalDatabase{
-		Version:  pgshared.Version17,
-		Host:     "localhost",
-		Port:     5437,
-		Username: "postgres",
-		Database: &databaseName,
+	connectionSettings := databases.PostgresqlLogicalConnectionSettings{
+		Version: pgshared.Version17,
+		Engine: pglogical.Settings{
+			Host:     "localhost",
+			Port:     5437,
+			Username: "postgres",
+			Database: databaseName,
+		},
 	}
 
 	usecase := &CreatePostgresqlBackupUsecase{
 		logger: slog.New(slog.NewTextHandler(io.Discard, nil)),
 	}
-	args := usecase.buildPgDumpArgs(postgresDatabase)
+	args := usecase.buildPgDumpArgs(connectionSettings, connectionSettings.Engine)
 
 	databaseArgumentIndex := -1
 	for argumentIndex, argument := range args {
@@ -47,12 +52,14 @@ func Test_BuildPgDumpArgs_TreatsDuplicateParameterAsLiteralDatabaseName(t *testi
 
 func Test_BuildPgDumpArgs_WhenBothExclusionListsAreSet_AddsWholeTableThenDataFlagsNormalized(t *testing.T) {
 	databaseName := "appdb"
-	postgresDatabase := &pgtypes.PostgresqlLogicalDatabase{
-		Version:          pgshared.Version17,
-		Host:             "localhost",
-		Port:             5437,
-		Username:         "postgres",
-		Database:         &databaseName,
+	connectionSettings := databases.PostgresqlLogicalConnectionSettings{
+		Version: pgshared.Version17,
+		Engine: pglogical.Settings{
+			Host:     "localhost",
+			Port:     5437,
+			Username: "postgres",
+			Database: databaseName,
+		},
 		ExcludeTables:    []string{" audit_tmp", "audit_tmp\n"},
 		ExcludeTableData: []string{"logs, history_*", "\nlogs", " "},
 	}
@@ -60,7 +67,7 @@ func Test_BuildPgDumpArgs_WhenBothExclusionListsAreSet_AddsWholeTableThenDataFla
 	usecase := &CreatePostgresqlBackupUsecase{
 		logger: slog.New(slog.NewTextHandler(io.Discard, nil)),
 	}
-	args := usecase.buildPgDumpArgs(postgresDatabase)
+	args := usecase.buildPgDumpArgs(connectionSettings, connectionSettings.Engine)
 
 	var exclusionArgs []string
 	for _, argument := range args {
@@ -79,11 +86,7 @@ func Test_BuildPgDumpArgs_WhenBothExclusionListsAreSet_AddsWholeTableThenDataFla
 // Test_Execute_WhenStorageTimesOut_ReportsStorageFailure_RegressionForIssue816 pins issue #816:
 // a storage timeout that ended the backup context was reported as "backup cancelled".
 func Test_Execute_WhenStorageTimesOut_ReportsStorageFailure_RegressionForIssue816(t *testing.T) {
-	database := &databases.Database{
-		ID:                uuid.New(),
-		Type:              databases.DatabaseTypePostgresLogical,
-		PostgresqlLogical: databases.GetTestPostgresConfig(),
-	}
+	database := createTestDatabase(t)
 
 	backups_core_logical.AssertStorageTimeoutReportedAsStorageFailure(t, func(
 		ctx context.Context,
@@ -106,11 +109,24 @@ func Test_Execute_WhenPgDumpFailsBeforeProducingData_ReportsPgDumpError(t *testi
 		dumpToolBin string,
 	) error {
 		_, err := GetCreatePostgresqlBackupUsecase().streamToStorage(
-			ctx, backup, backupConfig, dumpToolBin, nil, "", fileStore,
-			&databases.Database{PostgresqlLogical: &pgtypes.PostgresqlLogicalDatabase{}},
-			func(float64) {},
+			ctx, backup, backupConfig, dumpToolBin, nil, fileStore, dumpConnection{}, func(float64) {},
 		)
 
 		return err
 	})
+}
+
+func createTestDatabase(t *testing.T) databases.Database {
+	t.Helper()
+
+	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
+	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
+	database := databases_bridge.CreateTestDatabase(workspace.ID, nil)
+
+	t.Cleanup(func() {
+		databases_bridge.RemoveTestDatabase(t.Context(), database)
+		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
+	})
+
+	return database
 }

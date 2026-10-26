@@ -11,7 +11,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
-	"databasus-backend/internal/features/databases"
 	restores_core "databasus-backend/internal/features/restores/core"
 )
 
@@ -42,7 +41,7 @@ func Test_ExecuteMysqlRestore_WhenBackupStreamTruncates_ReportsStreamFailureNotS
 
 	restoreErr := restoreUsecase.executeMysqlRestore(
 		t.Context(),
-		&databases.Database{},
+		restores_core.SourceDatabase{},
 		writeFailingMysqlClientStub(t),
 		nil,
 		filepath.Join(t.TempDir(), ".my.cnf"),
@@ -65,7 +64,7 @@ func Test_ExecuteMysqlRestore_WhenBackupStreamIsComplete_ReportsClientExitError(
 
 	restoreErr := restoreUsecase.executeMysqlRestore(
 		t.Context(),
-		&databases.Database{},
+		restores_core.SourceDatabase{},
 		writeFailingMysqlClientStub(t),
 		nil,
 		filepath.Join(t.TempDir(), ".my.cnf"),

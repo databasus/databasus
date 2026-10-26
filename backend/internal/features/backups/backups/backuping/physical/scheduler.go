@@ -17,7 +17,6 @@ import (
 	physical_models "databasus-backend/internal/features/backups/backups/core/physical/models"
 	physical_repositories "databasus-backend/internal/features/backups/backups/core/physical/repositories"
 	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
-	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
 	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
 	"databasus-backend/internal/lib/database"
 	"databasus-backend/internal/modules/storages"
@@ -933,12 +932,5 @@ func hasNoRecentCompletedFull(recentFullBackups []*physical_models.PhysicalFullB
 }
 
 func isIncrementalEnabled(backupConfig *backups_config_physical.PhysicalBackupConfig) bool {
-	if backupConfig.PostgresqlPhysical == nil {
-		return false
-	}
-
-	backupType := backupConfig.PostgresqlPhysical.BackupType
-
-	return backupType == postgresql_physical.BackupTypeFullAndIncremental ||
-		backupType == postgresql_physical.BackupTypeFullIncrementalAndWalStream
+	return backupConfig.BackupType.IsRequiringWalSummary()
 }

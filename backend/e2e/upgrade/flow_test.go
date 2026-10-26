@@ -77,6 +77,11 @@ func runUpgradeSteps(t *testing.T, docker *dockerHost, spec upgradeSpec, resourc
 		return err
 	}
 
+	err = prepareEngineSources(t, docker, resources)
+	if err != nil {
+		return err
+	}
+
 	writtenData, err := writeThroughPreviousRelease(t, docker, spec, resources)
 	if err != nil {
 		return err
@@ -203,7 +208,7 @@ func checkThroughCurrentCode(
 		return err
 	}
 
-	err = checkStoredCredentials(ctx, currentAPI, writtenData.databaseID)
+	err = checkStoredCredentials(ctx, currentAPI, writtenData.databaseIDs)
 	if err != nil {
 		return docker.withLogTail(ctx, resources.currentContainerName, err)
 	}

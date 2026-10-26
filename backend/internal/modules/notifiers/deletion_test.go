@@ -96,7 +96,7 @@ func listAttachedNotifierIDs(t *testing.T, app *apptest.App, databaseID uuid.UUI
 	t.Helper()
 
 	var notifierIDs []uuid.UUID
-	app.QuerySQL(t, &notifierIDs, "SELECT notifier_id FROM database_notifiers WHERE database_id = ?", databaseID)
+	app.QuerySQL(t, &notifierIDs, "SELECT notifier_id FROM databases_notifiers WHERE database_id = ?", databaseID)
 
 	return notifierIDs
 }

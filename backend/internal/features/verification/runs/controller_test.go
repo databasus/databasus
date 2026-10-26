@@ -13,7 +13,7 @@ import (
 
 	backuping_logical "databasus-backend/internal/features/backups/backups/backuping/logical"
 	backups_controllers_logical "databasus-backend/internal/features/backups/backups/controllers/logical"
-	"databasus-backend/internal/features/databases"
+	databases_bridge "databasus-backend/internal/features/databases"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	storages_bridge "databasus-backend/internal/features/storages"
 	users_testing "databasus-backend/internal/features/users/testing"
@@ -33,7 +33,7 @@ func createTestRouter() *gin.Engine {
 	protected := v1.Group("").Use(users_testing.GetSessionMiddleware())
 
 	if routerGroup, ok := protected.(*gin.RouterGroup); ok {
-		databases.GetDatabaseController().RegisterRoutes(routerGroup)
+		databases_bridge.GetTestRoutes().RegisterRoutes(routerGroup)
 		backups_controllers_logical.GetBackupController().RegisterRoutes(routerGroup)
 		GetVerificationController().RegisterRoutes(routerGroup)
 		verification_agents.GetAgentController().RegisterRoutes(routerGroup)
@@ -61,8 +61,8 @@ func Test_EnqueueManualVerification_AsOwner_CreatesPendingRow(t *testing.T) {
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
 	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
-	database := databases.CreateTestDatabase(workspace.ID, notifier)
-	defer databases.RemoveTestDatabase(t.Context(), database)
+	database := databases_bridge.CreateTestDatabase(workspace.ID, notifier)
+	defer databases_bridge.RemoveTestDatabase(t.Context(), database)
 
 	backup := backuping_logical.SeedTestBackup(t, database.ID, testStorage.ID, 500)
 
@@ -95,8 +95,8 @@ func Test_EnqueueManualVerification_WhenManualPendingExists_Returns400(t *testin
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
 	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
-	database := databases.CreateTestDatabase(workspace.ID, notifier)
-	defer databases.RemoveTestDatabase(t.Context(), database)
+	database := databases_bridge.CreateTestDatabase(workspace.ID, notifier)
+	defer databases_bridge.RemoveTestDatabase(t.Context(), database)
 
 	firstBackup := backuping_logical.SeedTestBackup(t, database.ID, testStorage.ID, 100)
 	secondBackup := backuping_logical.SeedTestBackup(t, database.ID, testStorage.ID, 200)
@@ -135,8 +135,8 @@ func Test_EnqueueManualVerification_WhenRunningExists_Returns400(t *testing.T) {
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
 	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
-	database := databases.CreateTestDatabase(workspace.ID, notifier)
-	defer databases.RemoveTestDatabase(t.Context(), database)
+	database := databases_bridge.CreateTestDatabase(workspace.ID, notifier)
+	defer databases_bridge.RemoveTestDatabase(t.Context(), database)
 
 	backup := backuping_logical.SeedTestBackup(t, database.ID, testStorage.ID, 100)
 
@@ -169,8 +169,8 @@ func Test_EnqueueManualVerification_WhenScheduledNonTerminalExists_DoesNotDispla
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
 	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
-	database := databases.CreateTestDatabase(workspace.ID, notifier)
-	defer databases.RemoveTestDatabase(t.Context(), database)
+	database := databases_bridge.CreateTestDatabase(workspace.ID, notifier)
+	defer databases_bridge.RemoveTestDatabase(t.Context(), database)
 
 	backup := backuping_logical.SeedTestBackup(t, database.ID, testStorage.ID, 100)
 
@@ -233,8 +233,8 @@ func Test_EnqueueManualVerification_AsNonWorkspaceMember_ReturnsForbidden(t *tes
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
 	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
-	database := databases.CreateTestDatabase(workspace.ID, notifier)
-	defer databases.RemoveTestDatabase(t.Context(), database)
+	database := databases_bridge.CreateTestDatabase(workspace.ID, notifier)
+	defer databases_bridge.RemoveTestDatabase(t.Context(), database)
 
 	backup := backuping_logical.SeedTestBackup(t, database.ID, testStorage.ID, 100)
 
@@ -260,8 +260,8 @@ func Test_GetVerificationByID_ReturnsTableStats_WhileListByDatabaseOmitsThem(t *
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
 	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
-	database := databases.CreateTestDatabase(workspace.ID, notifier)
-	defer databases.RemoveTestDatabase(t.Context(), database)
+	database := databases_bridge.CreateTestDatabase(workspace.ID, notifier)
+	defer databases_bridge.RemoveTestDatabase(t.Context(), database)
 
 	backup := backuping_logical.SeedTestBackup(t, database.ID, testStorage.ID, 100)
 	agent := verification_agents.CreateTestVerificationAgent(t, router, owner.Token, "stats-"+uuid.New().String())
@@ -320,8 +320,8 @@ func Test_ListVerificationsByDatabase_WithLimit_CapsRowsAndReturnsTotal(t *testi
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
 	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
-	database := databases.CreateTestDatabase(workspace.ID, notifier)
-	defer databases.RemoveTestDatabase(t.Context(), database)
+	database := databases_bridge.CreateTestDatabase(workspace.ID, notifier)
+	defer databases_bridge.RemoveTestDatabase(t.Context(), database)
 
 	backup := backuping_logical.SeedTestBackup(t, database.ID, testStorage.ID, 100)
 
@@ -357,8 +357,8 @@ func Test_CancelVerification_AsOwner_FlipsToCanceled(t *testing.T) {
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
 	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
-	database := databases.CreateTestDatabase(workspace.ID, notifier)
-	defer databases.RemoveTestDatabase(t.Context(), database)
+	database := databases_bridge.CreateTestDatabase(workspace.ID, notifier)
+	defer databases_bridge.RemoveTestDatabase(t.Context(), database)
 
 	backup := backuping_logical.SeedTestBackup(t, database.ID, testStorage.ID, 100)
 
@@ -385,8 +385,8 @@ func Test_CancelVerification_WhenAlreadyCompleted_Returns400(t *testing.T) {
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
 	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
-	database := databases.CreateTestDatabase(workspace.ID, notifier)
-	defer databases.RemoveTestDatabase(t.Context(), database)
+	database := databases_bridge.CreateTestDatabase(workspace.ID, notifier)
+	defer databases_bridge.RemoveTestDatabase(t.Context(), database)
 
 	backup := backuping_logical.SeedTestBackup(t, database.ID, testStorage.ID, 100)
 	agent := verification_agents.CreateTestVerificationAgent(
@@ -436,8 +436,8 @@ func Test_CancelVerification_AsNonWorkspaceMember_ReturnsForbidden(t *testing.T)
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
 	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
-	database := databases.CreateTestDatabase(workspace.ID, notifier)
-	defer databases.RemoveTestDatabase(t.Context(), database)
+	database := databases_bridge.CreateTestDatabase(workspace.ID, notifier)
+	defer databases_bridge.RemoveTestDatabase(t.Context(), database)
 
 	backup := backuping_logical.SeedTestBackup(t, database.ID, testStorage.ID, 100)
 	enqueued := EnqueueManualVerificationViaAPI(t, router, owner.Token, backup.ID)
@@ -469,8 +469,8 @@ func Test_CancelVerification_WithAgentToken_Returns401(t *testing.T) {
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
 	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
-	database := databases.CreateTestDatabase(workspace.ID, notifier)
-	defer databases.RemoveTestDatabase(t.Context(), database)
+	database := databases_bridge.CreateTestDatabase(workspace.ID, notifier)
+	defer databases_bridge.RemoveTestDatabase(t.Context(), database)
 
 	backup := backuping_logical.SeedTestBackup(t, database.ID, testStorage.ID, 100)
 	enqueued := EnqueueManualVerificationViaAPI(t, router, owner.Token, backup.ID)
@@ -504,7 +504,7 @@ func Test_DeleteDatabase_RemovesVerifications_ViaCascade(t *testing.T) {
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
 	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
-	database := databases.CreateTestDatabase(workspace.ID, notifier)
+	database := databases_bridge.CreateTestDatabase(workspace.ID, notifier)
 
 	backup := backuping_logical.SeedTestBackup(t, database.ID, testStorage.ID, 100)
 	enqueued := EnqueueManualVerificationViaAPI(t, router, owner.Token, backup.ID)
@@ -536,8 +536,8 @@ func Test_DeleteBackup_RemovesVerifications_ViaCascade(t *testing.T) {
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
 	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
-	database := databases.CreateTestDatabase(workspace.ID, notifier)
-	defer databases.RemoveTestDatabase(t.Context(), database)
+	database := databases_bridge.CreateTestDatabase(workspace.ID, notifier)
+	defer databases_bridge.RemoveTestDatabase(t.Context(), database)
 
 	backup := backuping_logical.SeedTestBackup(t, database.ID, testStorage.ID, 100)
 	enqueued := EnqueueManualVerificationViaAPI(t, router, owner.Token, backup.ID)

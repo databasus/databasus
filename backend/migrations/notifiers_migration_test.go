@@ -32,7 +32,7 @@ func TestNotifiersMigration(t *testing.T) {
 
 		assert.ElementsMatch(t, []uuid.UUID{telegramNotifierID}, listIDs(t, db, "SELECT id FROM notifiers"))
 		assert.Empty(t, listIDs(t, db, "SELECT notifier_id FROM notifiers_discord"))
-		assert.Empty(t, listIDs(t, db, "SELECT notifier_id FROM database_notifiers"))
+		assert.Empty(t, listIDs(t, db, "SELECT notifier_id FROM databases_notifiers"))
 		assert.ElementsMatch(t, []uuid.UUID{databaseID}, listIDs(t, db, "SELECT id FROM databases"))
 		assert.NotContains(t, listIDs(t, db, "SELECT id FROM notifiers"), unknownTypeNotifierID)
 	})
@@ -58,7 +58,7 @@ func TestNotifiersMigration(t *testing.T) {
 			assert.Equal(t, []uuid.UUID{workspaceID}, movedWorkspaceIDs)
 			assert.ElementsMatch(t, []uuid.UUID{usedNotifierID}, listIDs(t, db, "SELECT id FROM notifiers"))
 			assert.ElementsMatch(t, []uuid.UUID{usedNotifierID},
-				listIDs(t, db, "SELECT notifier_id FROM database_notifiers"))
+				listIDs(t, db, "SELECT notifier_id FROM databases_notifiers"))
 		})
 
 	t.Run("converts the webhook headers and accepted categories", func(t *testing.T) {

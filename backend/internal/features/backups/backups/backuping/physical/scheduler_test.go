@@ -16,9 +16,9 @@ import (
 	physical_repositories "databasus-backend/internal/features/backups/backups/core/physical/repositories"
 	physical_testing "databasus-backend/internal/features/backups/backups/core/physical/testing"
 	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
-	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
 	"databasus-backend/internal/features/intervals"
 	storages_bridge "databasus-backend/internal/features/storages"
+	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/storage"
 	"databasus-backend/internal/util/logger"
@@ -34,7 +34,7 @@ func testLSN(segments int) walmath.LSN {
 // makeIncrementalDue mutates the in-memory config so the FULL interval is not
 // due (generic weekly) but the INCR interval is (hourly) and enables INCRs.
 func makeIncrementalDue(prereqs *backupPrereqs) {
-	prereqs.Config.PostgresqlPhysical.BackupType = postgresql_physical.BackupTypeFullAndIncremental
+	prereqs.Config.BackupType = databases.PhysicalBackupTypeFullAndIncremental
 	prereqs.Config.FullBackupInterval = intervals.Interval{Type: intervals.IntervalWeekly}
 	prereqs.Config.IncrementalBackupInterval = intervals.Interval{Type: intervals.IntervalHourly}
 }

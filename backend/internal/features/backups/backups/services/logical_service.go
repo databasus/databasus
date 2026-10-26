@@ -20,26 +20,25 @@ import (
 	backups_dto_logical "databasus-backend/internal/features/backups/backups/dto/logical"
 	"databasus-backend/internal/features/backups/backups/encryption"
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
-	"databasus-backend/internal/features/databases"
+	databases_bridge "databasus-backend/internal/features/databases"
 	task_cancellation "databasus-backend/internal/features/tasks/cancellation"
 	workspaces_bridge "databasus-backend/internal/features/workspaces"
 	"databasus-backend/internal/lib/crypto"
+	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/modules/workspaces"
-	util_encryption "databasus-backend/internal/util/encryption"
 	files_utils "databasus-backend/internal/util/files"
 )
 
 type LogicalBackupService struct {
-	databaseService *databases.DatabaseService
+	databaseAccess *databases_bridge.Access
 	// getStorages is read per call: each test application installs its own module.
 	getStorages         func() storages.Module
 	backupRepository    *backups_core_logical.BackupRepository
 	notificationSender  backups_core_logical.NotificationSender
 	backupConfigService *backups_config_logical.BackupConfigService
 	masterKey           *crypto.MasterKey
-	fieldEncryptor      util_encryption.FieldEncryptor
 
 	createBackupUseCase backups_core_logical.CreateBackupUsecase
 
@@ -75,13 +74,15 @@ func (s *LogicalBackupService) OnBeforeBackupsStorageChange(ctx context.Context,
 	return nil
 }
 
-func (s *LogicalBackupService) OnBeforeDatabaseRemove(ctx context.Context, databaseID uuid.UUID) error {
-	err := s.deleteDbBackups(ctx, databaseID)
-	if err != nil {
-		return err
+// OnDatabaseDeleting removes every backup of the database in the deletion's transaction, so a refused
+// deletion keeps them. It refuses while a backup runs, because the backup is still writing its file.
+func (s *LogicalBackupService) OnDatabaseDeleting(ctx context.Context, event databases.DatabaseDeleting) error {
+	err := s.deleteDbBackups(ctx, event.DatabaseID)
+	if errors.Is(err, errBackupInProgress) {
+		return ErrDatabaseBackupInProgress
 	}
 
-	return nil
+	return err
 }
 
 func (s *LogicalBackupService) MakeBackupWithAuth(
@@ -89,16 +90,12 @@ func (s *LogicalBackupService) MakeBackupWithAuth(
 	actor users.Actor,
 	databaseID uuid.UUID,
 ) error {
-	database, err := s.databaseService.GetDatabaseByID(databaseID)
+	database, err := s.databaseAccess.GetDatabaseByID(ctx, databaseID)
 	if err != nil {
 		return err
 	}
 
-	if database.WorkspaceID == nil {
-		return errors.New("cannot create backup for database without workspace")
-	}
-
-	isAllowed, err := s.workspaceService.IsActorAllowed(ctx, actor, *database.WorkspaceID, workspaces.ActionView)
+	isAllowed, err := s.workspaceService.IsActorAllowed(ctx, actor, database.WorkspaceID, workspaces.ActionView)
 	if err != nil {
 		return err
 	}
@@ -111,7 +108,7 @@ func (s *LogicalBackupService) MakeBackupWithAuth(
 	s.auditLogService.WriteAuditLog(ctx, audit_logs_models.AuditEntry{
 		Message:     fmt.Sprintf("Backup manually initiated for database: %s", database.Name),
 		UserID:      &actor.UserID,
-		WorkspaceID: database.WorkspaceID,
+		WorkspaceID: &database.WorkspaceID,
 	})
 
 	return nil
@@ -124,16 +121,12 @@ func (s *LogicalBackupService) GetBackups(
 	limit, offset int,
 	filters *backups_core_logical.BackupFilters,
 ) (*backups_dto_logical.GetBackupsResponse, error) {
-	database, err := s.databaseService.GetDatabaseByID(databaseID)
+	database, err := s.databaseAccess.GetDatabaseByID(ctx, databaseID)
 	if err != nil {
 		return nil, err
 	}
 
-	if database.WorkspaceID == nil {
-		return nil, errors.New("cannot get backups for database without workspace")
-	}
-
-	isAllowed, err := s.workspaceService.IsActorAllowed(ctx, actor, *database.WorkspaceID, workspaces.ActionView)
+	isAllowed, err := s.workspaceService.IsActorAllowed(ctx, actor, database.WorkspaceID, workspaces.ActionView)
 	if err != nil {
 		return nil, err
 	}
@@ -178,16 +171,12 @@ func (s *LogicalBackupService) DeleteBackup(
 		return err
 	}
 
-	database, err := s.databaseService.GetDatabaseByID(backup.DatabaseID)
+	database, err := s.databaseAccess.GetDatabaseByID(ctx, backup.DatabaseID)
 	if err != nil {
 		return err
 	}
 
-	if database.WorkspaceID == nil {
-		return errors.New("cannot delete backup for database without workspace")
-	}
-
-	isAllowed, err := s.workspaceService.IsActorAllowed(ctx, actor, *database.WorkspaceID, workspaces.ActionEditContent)
+	isAllowed, err := s.workspaceService.IsActorAllowed(ctx, actor, database.WorkspaceID, workspaces.ActionEditContent)
 	if err != nil {
 		return err
 	}
@@ -202,7 +191,7 @@ func (s *LogicalBackupService) DeleteBackup(
 	s.auditLogService.WriteAuditLog(ctx, audit_logs_models.AuditEntry{
 		Message:     fmt.Sprintf("Backup deleted for database: %s", database.Name),
 		UserID:      &actor.UserID,
-		WorkspaceID: database.WorkspaceID,
+		WorkspaceID: &database.WorkspaceID,
 	})
 
 	return s.backupCleaner.DeleteBackup(ctx, backup)
@@ -229,16 +218,12 @@ func (s *LogicalBackupService) CancelBackup(
 		return err
 	}
 
-	database, err := s.databaseService.GetDatabaseByID(backup.DatabaseID)
+	database, err := s.databaseAccess.GetDatabaseByID(ctx, backup.DatabaseID)
 	if err != nil {
 		return err
 	}
 
-	if database.WorkspaceID == nil {
-		return errors.New("cannot cancel backup for database without workspace")
-	}
-
-	isAllowed, err := s.workspaceService.IsActorAllowed(ctx, actor, *database.WorkspaceID, workspaces.ActionEditContent)
+	isAllowed, err := s.workspaceService.IsActorAllowed(ctx, actor, database.WorkspaceID, workspaces.ActionEditContent)
 	if err != nil {
 		return err
 	}
@@ -257,7 +242,7 @@ func (s *LogicalBackupService) CancelBackup(
 	s.auditLogService.WriteAuditLog(ctx, audit_logs_models.AuditEntry{
 		Message:     fmt.Sprintf("Backup cancelled for database: %s", database.Name),
 		UserID:      &actor.UserID,
-		WorkspaceID: database.WorkspaceID,
+		WorkspaceID: &database.WorkspaceID,
 	})
 
 	return nil
@@ -353,16 +338,12 @@ func (s *LogicalBackupService) GenerateDownloadToken(
 		return nil, err
 	}
 
-	database, err := s.databaseService.GetDatabaseByID(backup.DatabaseID)
+	database, err := s.databaseAccess.GetDatabaseByID(ctx, backup.DatabaseID)
 	if err != nil {
 		return nil, err
 	}
 
-	if database.WorkspaceID == nil {
-		return nil, errors.New("cannot download backup for database without workspace")
-	}
-
-	isAllowed, err := s.workspaceService.IsActorAllowed(ctx, actor, *database.WorkspaceID, workspaces.ActionView)
+	isAllowed, err := s.workspaceService.IsActorAllowed(ctx, actor, database.WorkspaceID, workspaces.ActionView)
 	if err != nil {
 		return nil, err
 	}
@@ -380,7 +361,7 @@ func (s *LogicalBackupService) GenerateDownloadToken(
 	s.auditLogService.WriteAuditLog(ctx, audit_logs_models.AuditEntry{
 		Message:     fmt.Sprintf("Download token generated for backup of database: %s", database.Name),
 		UserID:      &actor.UserID,
-		WorkspaceID: database.WorkspaceID,
+		WorkspaceID: &database.WorkspaceID,
 	})
 
 	return &download_token.GenerateTokenResponse{
@@ -406,20 +387,20 @@ func (s *LogicalBackupService) GetLatestVerifiableBackup(
 func (s *LogicalBackupService) GetBackupFileWithoutAuth(
 	ctx context.Context,
 	backupID uuid.UUID,
-) (io.ReadCloser, *backups_core_logical.LogicalBackup, *databases.Database, error) {
+) (io.ReadCloser, *backups_core_logical.LogicalBackup, databases.Database, error) {
 	backup, err := s.backupRepository.FindByID(backupID)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, databases.Database{}, err
 	}
 
-	database, err := s.databaseService.GetDatabaseByID(backup.DatabaseID)
+	database, err := s.databaseAccess.GetDatabaseByID(ctx, backup.DatabaseID)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, databases.Database{}, err
 	}
 
 	reader, err := s.GetBackupReader(ctx, backupID)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, databases.Database{}, err
 	}
 
 	return reader, backup, database, nil
@@ -429,12 +410,12 @@ func (s *LogicalBackupService) WriteAuditLogForDownload(
 	ctx context.Context,
 	userID uuid.UUID,
 	backup *backups_core_logical.LogicalBackup,
-	database *databases.Database,
+	database databases.Database,
 ) {
 	s.auditLogService.WriteAuditLog(ctx, audit_logs_models.AuditEntry{
 		Message:     fmt.Sprintf("Backup file downloaded for database: %s", database.Name),
 		UserID:      &userID,
-		WorkspaceID: database.WorkspaceID,
+		WorkspaceID: &database.WorkspaceID,
 	})
 }
 
@@ -460,7 +441,7 @@ func (s *LogicalBackupService) deleteDbBackups(ctx context.Context, databaseID u
 	}
 
 	if len(dbBackupsInProgress) > 0 {
-		return errors.New("backup is in progress, storage cannot be removed")
+		return errBackupInProgress
 	}
 
 	dbBackups, err := s.backupRepository.FindByDatabaseID(
@@ -482,7 +463,7 @@ func (s *LogicalBackupService) deleteDbBackups(ctx context.Context, databaseID u
 
 func (s *LogicalBackupService) generateBackupFilename(
 	backup *backups_core_logical.LogicalBackup,
-	database *databases.Database,
+	database databases.Database,
 ) string {
 	timestamp := backup.CreatedAt.Format("2006-01-02_15-04-05")
 	safeName := files_utils.SanitizeFilename(database.Name)
@@ -490,13 +471,13 @@ func (s *LogicalBackupService) generateBackupFilename(
 	return fmt.Sprintf("%s_backup_%s%s", safeName, timestamp, extension)
 }
 
-func (s *LogicalBackupService) getBackupExtension(dbType databases.DatabaseType) string {
+func (s *LogicalBackupService) getBackupExtension(dbType databases.Type) string {
 	switch dbType {
-	case databases.DatabaseTypeMysql, databases.DatabaseTypeMariadb:
+	case databases.TypeMysql, databases.TypeMariadb:
 		return ".sql.zst"
-	case databases.DatabaseTypePostgresLogical:
+	case databases.TypePostgresqlLogical:
 		return ".dump"
-	case databases.DatabaseTypeMongodb:
+	case databases.TypeMongodb:
 		return ".archive"
 	default:
 		return ".backup"

@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	postgresql_logical "databasus-backend/internal/features/databases/databases/postgresql/logical"
+	restores_core "databasus-backend/internal/features/restores/core"
 	"databasus-backend/internal/lib/cache"
 )
 
@@ -47,7 +47,7 @@ func Test_StartRestore_WhenProviderFails_CarriesMetadataIntoDetachedWorker(t *te
 	}
 	restoreID := uuid.New()
 	databaseCache := &RestoreDatabaseCache{
-		PostgresqlLogicalDatabase: &postgresql_logical.PostgresqlLogicalDatabase{
+		PostgresqlLogicalDatabase: &restores_core.PostgresqlTargetDatabase{
 			Host: "database.internal",
 		},
 	}

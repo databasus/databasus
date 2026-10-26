@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
-import { type Database, DatabaseType, MysqlVersion } from '../../../../entity/databases';
+import { type Database, type MysqlSettings } from '../../../../entity/databases';
 import { LocaleProvider } from '../../../../shared/i18n';
 import { EditMySqlSpecificDataComponent } from './EditMySqlSpecificDataComponent';
 
@@ -15,23 +15,25 @@ vi.hoisted(() => {
   vi.stubGlobal('navigator', { language: 'en-US', languages: ['en-US'] });
 });
 
+const mysqlSettingsWithExcludedTable: MysqlSettings = {
+  type: 'MYSQL',
+  version: '8.4',
+  host: 'db.example.com',
+  port: 3306,
+  username: 'backup',
+  password: '',
+  database: 'shop',
+  isHttps: false,
+  sshTunnel: { isEnabled: false },
+  excludeTables: ['audit_log'],
+};
+
 const mysqlDatabaseWithExcludedTable: Database = {
   id: 'database-id',
   name: 'Shop',
   workspaceId: 'workspace-id',
-  type: DatabaseType.MYSQL,
-  notifiers: [],
-  mysql: {
-    id: 'mysql-id',
-    version: MysqlVersion.MysqlVersion84,
-    host: 'db.example.com',
-    port: 3306,
-    username: 'backup',
-    password: '',
-    database: 'shop',
-    isHttps: false,
-    excludeTables: ['audit_log'],
-  },
+  settings: mysqlSettingsWithExcludedTable,
+  notifierIds: [],
 };
 
 describe('EditMySqlSpecificDataComponent', () => {
@@ -40,6 +42,7 @@ describe('EditMySqlSpecificDataComponent', () => {
       <LocaleProvider>
         <EditMySqlSpecificDataComponent
           database={mysqlDatabaseWithExcludedTable}
+          settings={mysqlSettingsWithExcludedTable}
           onCancel={() => {}}
           isShowBackButton={false}
           onBack={() => {}}

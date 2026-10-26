@@ -22,6 +22,12 @@ func NewSource(settings Settings) *Source {
 	return &Source{settings: settings, generateUsername: generateReadOnlyUsername}
 }
 
+// GetSettings returns the settings the source connects with. Through a tunnel they carry the local
+// end of the tunnel, so a client tool the caller starts reaches the same server.
+func (s *Source) GetSettings() Settings {
+	return s.settings
+}
+
 // TestConnection connects, detects the version and checks that the user can read every collection
 // mongodump would dump, leaving out excludeCollections.
 func (s *Source) TestConnection(

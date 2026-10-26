@@ -18,28 +18,30 @@ import (
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	backups_services "databasus-backend/internal/features/backups/backups/services"
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
-	"databasus-backend/internal/features/databases"
+	databases_bridge "databasus-backend/internal/features/databases"
 	"databasus-backend/internal/features/disk"
 	restores_core "databasus-backend/internal/features/restores/core"
 	"databasus-backend/internal/features/restores/restoring"
 	"databasus-backend/internal/features/restores/usecases"
 	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
 	workspaces_bridge "databasus-backend/internal/features/workspaces"
+	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/modules/workspaces"
-	"databasus-backend/internal/util/encryption"
 )
 
 type RestoreService struct {
-	backupService             *backups_services.LogicalBackupService
-	restoreRepository         *restores_core.RestoreRepository
-	backupConfigService       *backups_config_logical.BackupConfigService
-	restoreBackupUsecase      *usecases.RestoreBackupUsecase
-	databaseService           *databases.DatabaseService
+	backupService        *backups_services.LogicalBackupService
+	restoreRepository    *restores_core.RestoreRepository
+	backupConfigService  *backups_config_logical.BackupConfigService
+	restoreBackupUsecase *usecases.RestoreBackupUsecase
+	databaseAccess       *databases_bridge.Access
+	// getDatabases is read per call: each test application installs its own module.
+	getDatabases              func() databases.Module
 	logger                    *slog.Logger
 	workspaceService          *workspaces_bridge.Access
 	auditLogService           *audit_logs.AuditLogService
-	fieldEncryptor            encryption.FieldEncryptor
+	clientToolsDir            string
 	diskService               *disk.DiskService
 	taskCancellationRequester *tasks_cancellation.Requester
 }
@@ -75,16 +77,12 @@ func (s *RestoreService) GetRestores(
 		return nil, err
 	}
 
-	database, err := s.databaseService.GetDatabaseByID(backup.DatabaseID)
+	database, err := s.databaseAccess.GetDatabaseByID(ctx, backup.DatabaseID)
 	if err != nil {
 		return nil, err
 	}
 
-	if database.WorkspaceID == nil {
-		return nil, errors.New("cannot get restores for database without workspace")
-	}
-
-	isAllowed, err := s.workspaceService.IsActorAllowed(ctx, actor, *database.WorkspaceID, workspaces.ActionView)
+	isAllowed, err := s.workspaceService.IsActorAllowed(ctx, actor, database.WorkspaceID, workspaces.ActionView)
 	if err != nil {
 		return nil, err
 	}
@@ -106,16 +104,12 @@ func (s *RestoreService) RestoreBackupWithAuth(
 		return err
 	}
 
-	database, err := s.databaseService.GetDatabaseByID(backup.DatabaseID)
+	database, err := s.databaseAccess.GetDatabaseByID(ctx, backup.DatabaseID)
 	if err != nil {
 		return err
 	}
 
-	if database.WorkspaceID == nil {
-		return errors.New("cannot restore backup for database without workspace")
-	}
-
-	isAllowed, err := s.workspaceService.IsActorAllowed(ctx, actor, *database.WorkspaceID, workspaces.ActionView)
+	isAllowed, err := s.workspaceService.IsActorAllowed(ctx, actor, database.WorkspaceID, workspaces.ActionView)
 	if err != nil {
 		return err
 	}
@@ -123,16 +117,16 @@ func (s *RestoreService) RestoreBackupWithAuth(
 		return errors.New("insufficient permissions to restore this backup")
 	}
 
-	backupDatabase, err := s.databaseService.GetDatabase(ctx, actor, backup.DatabaseID)
+	source, err := restores_core.ReadSourceDatabase(ctx, s.getDatabases(), database)
 	if err != nil {
 		return err
 	}
 
-	if err := s.populateRestoreTargetVersionThroughTunnel(ctx, backupDatabase, requestDTO); err != nil {
+	if err := s.populateRestoreTargetVersionThroughTunnel(ctx, database.Type, requestDTO); err != nil {
 		return err
 	}
 
-	if err := s.validateVersionCompatibility(backupDatabase, requestDTO); err != nil {
+	if err := s.validateVersionCompatibility(source, requestDTO); err != nil {
 		return err
 	}
 
@@ -189,7 +183,7 @@ func (s *RestoreService) RestoreBackupWithAuth(
 	s.auditLogService.WriteAuditLog(ctx, audit_logs_models.AuditEntry{
 		Message:     fmt.Sprintf("Database restored for database: %s", database.Name),
 		UserID:      &actor.UserID,
-		WorkspaceID: database.WorkspaceID,
+		WorkspaceID: &database.WorkspaceID,
 	})
 
 	return nil
@@ -210,16 +204,12 @@ func (s *RestoreService) CancelRestore(
 		return err
 	}
 
-	database, err := s.databaseService.GetDatabaseByID(backup.DatabaseID)
+	database, err := s.databaseAccess.GetDatabaseByID(ctx, backup.DatabaseID)
 	if err != nil {
 		return err
 	}
 
-	if database.WorkspaceID == nil {
-		return errors.New("cannot cancel restore for database without workspace")
-	}
-
-	isAllowed, err := s.workspaceService.IsActorAllowed(ctx, actor, *database.WorkspaceID, workspaces.ActionEditContent)
+	isAllowed, err := s.workspaceService.IsActorAllowed(ctx, actor, database.WorkspaceID, workspaces.ActionEditContent)
 	if err != nil {
 		return err
 	}
@@ -238,35 +228,35 @@ func (s *RestoreService) CancelRestore(
 	s.auditLogService.WriteAuditLog(ctx, audit_logs_models.AuditEntry{
 		Message:     fmt.Sprintf("Restore cancelled for database: %s", database.Name),
 		UserID:      &actor.UserID,
-		WorkspaceID: database.WorkspaceID,
+		WorkspaceID: &database.WorkspaceID,
 	})
 
 	return nil
 }
 
 func (s *RestoreService) validateVersionCompatibility(
-	backupDatabase *databases.Database,
+	source restores_core.SourceDatabase,
 	requestDTO restores_core.RestoreBackupRequest,
 ) error {
-	switch backupDatabase.Type {
-	case databases.DatabaseTypePostgresLogical:
+	switch source.Database.Type {
+	case databases.TypePostgresqlLogical:
 		if requestDTO.PostgresqlLogicalDatabase == nil {
 			return errors.New("postgresql database configuration is required for restore")
 		}
 		if pgshared.IsBackupVersionHigherThanRestoreVersion(
-			backupDatabase.PostgresqlLogical.Version,
+			source.PostgresqlLogical.Version,
 			requestDTO.PostgresqlLogicalDatabase.Version,
 		) {
 			return errors.New(`backup database version is higher than restore database version. ` +
 				`Should be restored to the same version as the backup database or higher. ` +
 				`For example, you can restore PG 15 backup to PG 15, 16 or higher. But cannot restore to 14 and lower`)
 		}
-	case databases.DatabaseTypeMysql:
+	case databases.TypeMysql:
 		if requestDTO.MysqlDatabase == nil {
 			return errors.New("mysql database configuration is required for restore")
 		}
 		isMysqlDowngrade, err := mysql_engine.IsBackupVersionHigherThanRestoreVersion(
-			backupDatabase.Mysql.Version,
+			source.Mysql.Version,
 			requestDTO.MysqlDatabase.Version,
 		)
 		if err != nil {
@@ -277,12 +267,12 @@ func (s *RestoreService) validateVersionCompatibility(
 				`Should be restored to the same version as the backup database or higher. ` +
 				`For example, you can restore MySQL 8.0 backup to MySQL 8.0, 8.4 or higher. But cannot restore to 5.7`)
 		}
-	case databases.DatabaseTypeMariadb:
+	case databases.TypeMariadb:
 		if requestDTO.MariadbDatabase == nil {
 			return errors.New("mariadb database configuration is required for restore")
 		}
 		isMariadbDowngrade, err := mariadb_engine.IsBackupVersionHigherThanRestoreVersion(
-			backupDatabase.Mariadb.Version,
+			source.Mariadb.Version,
 			requestDTO.MariadbDatabase.Version,
 		)
 		if err != nil {
@@ -293,12 +283,12 @@ func (s *RestoreService) validateVersionCompatibility(
 				`Should be restored to the same version as the backup database or higher. ` +
 				`For example, you can restore MariaDB 10.11 backup to MariaDB 10.11, 11.4 or higher. But cannot restore to 10.6`)
 		}
-	case databases.DatabaseTypeMongodb:
+	case databases.TypeMongodb:
 		if requestDTO.MongodbDatabase == nil {
 			return errors.New("mongodb database configuration is required for restore")
 		}
 		isMongodbDowngrade, err := mongodb_engine.IsBackupVersionHigherThanRestoreVersion(
-			backupDatabase.Mongodb.Version,
+			source.Mongodb.Version,
 			requestDTO.MongodbDatabase.Version,
 		)
 		if err != nil {
@@ -314,43 +304,49 @@ func (s *RestoreService) validateVersionCompatibility(
 	return nil
 }
 
-// The restore target arrives as bare engine models in the request DTO, so it is assembled into the
-// Database the generic tunnel dispatcher works from, the same way the restorer itself does.
+// The version the restore form sent is only a hint: the target server reports its own.
 func (s *RestoreService) populateRestoreTargetVersionThroughTunnel(
 	ctx context.Context,
-	backupDatabase *databases.Database,
+	databaseType databases.Type,
 	requestDTO restores_core.RestoreBackupRequest,
 ) error {
-	restoreTarget := &databases.Database{
-		Type:              backupDatabase.Type,
-		PostgresqlLogical: requestDTO.PostgresqlLogicalDatabase,
-		Mysql:             requestDTO.MysqlDatabase,
-		Mariadb:           requestDTO.MariadbDatabase,
-		Mongodb:           requestDTO.MongodbDatabase,
-	}
-
-	tunneledDatabase, err := databases.OpenTunnel(ctx, databases.OpenTunnelSpec{
-		Database:  restoreTarget,
-		Logger:    s.logger,
-		Encryptor: s.fieldEncryptor,
+	targetConnection, err := restores_core.OpenTargetConnection(ctx, restores_core.TargetConnectionSpec{
+		Type:           databaseType,
+		Request:        requestDTO,
+		ClientToolsDir: s.clientToolsDir,
+		Logger:         s.logger,
 	})
 	if err != nil {
 		return err
 	}
 
-	defer tunneledDatabase.Close()
+	defer targetConnection.Close()
 
-	if err := tunneledDatabase.GetDatabaseThroughTunnel().PopulateVersion(
-		ctx,
-		s.logger,
-		s.fieldEncryptor,
-	); err != nil {
+	if err := targetConnection.DetectVersion(ctx); err != nil {
 		return err
 	}
 
-	tunneledDatabase.CopyDiscoveredMetadataToOriginal()
+	copyDetectedVersions(targetConnection.Target, requestDTO)
 
 	return nil
+}
+
+func copyDetectedVersions(detected, request restores_core.RestoreBackupRequest) {
+	if detected.PostgresqlLogicalDatabase != nil && request.PostgresqlLogicalDatabase != nil {
+		request.PostgresqlLogicalDatabase.Version = detected.PostgresqlLogicalDatabase.Version
+	}
+
+	if detected.MysqlDatabase != nil && request.MysqlDatabase != nil {
+		request.MysqlDatabase.Version = detected.MysqlDatabase.Version
+	}
+
+	if detected.MariadbDatabase != nil && request.MariadbDatabase != nil {
+		request.MariadbDatabase.Version = detected.MariadbDatabase.Version
+	}
+
+	if detected.MongodbDatabase != nil && request.MongodbDatabase != nil {
+		request.MongodbDatabase.Version = detected.MongodbDatabase.Version
+	}
 }
 
 func (s *RestoreService) validateDiskSpace(

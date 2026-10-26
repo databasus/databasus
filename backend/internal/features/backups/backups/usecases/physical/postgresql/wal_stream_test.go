@@ -15,11 +15,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	pgphysical "databasus-backend/internal/engines/postgresql/physical"
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	"databasus-backend/internal/features/backups/backups/core/physical/chain_view"
 	physical_models "databasus-backend/internal/features/backups/backups/core/physical/models"
 	physical_repositories "databasus-backend/internal/features/backups/backups/core/physical/repositories"
-	"databasus-backend/internal/util/encryption"
+	databases_bridge "databasus-backend/internal/features/databases"
 	"databasus-backend/internal/util/logger"
 	"databasus-backend/internal/util/walmath"
 )
@@ -217,7 +218,7 @@ func Test_WalStream_SlotLagGrowsWithoutConsumer_DrainsOnceStreaming(t *testing.T
 	})
 
 	adminConn := OpenAdminConn(t, fixture)
-	slotName := fixture.DB.PostgresqlPhysical.ReplicationSlotName
+	slotName := fixture.SourceDB.Engine.ReplicationSlotName
 
 	ctx, cancel := context.WithTimeout(t.Context(), 2*time.Minute)
 	defer cancel()
@@ -226,7 +227,7 @@ func Test_WalStream_SlotLagGrowsWithoutConsumer_DrainsOnceStreaming(t *testing.T
 	// slot's restart_lsn falls behind — the signal the lag monitor reads.
 	require.NoError(
 		t,
-		fixture.DB.PostgresqlPhysical.VerifyWalSlot(ctx, logger.GetLogger(), encryption.GetFieldEncryptor()),
+		pgphysical.NewSource(fixture.SourceDB.Engine).VerifySlot(ctx, logger.GetLogger()),
 	)
 
 	const lagTarget = 8 * 1024 * 1024
@@ -260,10 +261,10 @@ func Test_WalStream_CustomWalSegmentSize_LsnMathCorrect(t *testing.T) {
 	store := newMockWalStorage()
 	uploader := NewWalUploader(WalUploadDeps{
 		DatabaseID:          fixture.DB.ID,
+		BackupStatus:        databases_bridge.GetModule(),
 		StorageID:           fixture.Storage.ID,
 		FileStore:           newMockWalStoreFor(store),
 		Encryption:          backups_core_enums.BackupEncryptionNone,
-		FieldEncryptor:      encryption.GetFieldEncryptor(),
 		WalSegmentRepo:      physical_repositories.GetWalSegmentRepository(),
 		WalSegmentSizeBytes: customSegSize,
 		Logger:              logger.GetLogger(),
@@ -332,7 +333,7 @@ func Test_WalStream_ResumePointBelowSlotRestartLsn_RealignsAndKeepsStreaming(t *
 	})
 
 	adminConn := OpenAdminConn(t, fixture)
-	slotName := fixture.DB.PostgresqlPhysical.ReplicationSlotName
+	slotName := fixture.SourceDB.Engine.ReplicationSlotName
 	watchDirRoot := t.TempDir()
 
 	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Minute)
@@ -380,9 +381,7 @@ func Test_WalStream_ResumePointBelowSlotRestartLsn_RealignsAndKeepsStreaming(t *
 	_, err := adminConn.Exec(ctx, "CHECKPOINT")
 	require.NoError(t, err)
 
-	require.NoError(t, fixture.DB.PostgresqlPhysical.VerifyWalSlot(
-		ctx, logger.GetLogger(), encryption.GetFieldEncryptor(),
-	))
+	require.NoError(t, pgphysical.NewSource(fixture.SourceDB.Engine).VerifySlot(ctx, logger.GetLogger()))
 
 	requireQueueBelowSlot(t, ctx, adminConn, slotName, resumeSegmentNo)
 
@@ -691,7 +690,7 @@ func Test_WalStream_WhenSourceIsIdle_KeepsReceiverAliveAndDoesNotRebuildSlot(t *
 	})
 
 	adminConn := OpenAdminConn(t, fixture)
-	slotName := fixture.DB.PostgresqlPhysical.ReplicationSlotName
+	slotName := fixture.SourceDB.Engine.ReplicationSlotName
 
 	var slotRebuilds, chainRisks chainEventRecorder
 
@@ -788,7 +787,7 @@ func Test_WalStream_WhenSwitchWalIsRefused_AlertsOnceAndStopsRotating(t *testing
 
 	adminConn := OpenAdminConn(t, fixture)
 
-	fixture.DB.PostgresqlPhysical = CreateReplicationOnlyRole(t, adminConn, fixture)
+	fixture.SourceDB = CreateReplicationOnlyRole(t, adminConn, fixture)
 
 	var chainRisks chainEventRecorder
 
@@ -872,7 +871,7 @@ func Test_WalStream_WhenQueueFillsAndReceiverExitsOnItsOwn_CountsOnePauseAndOneR
 	})
 
 	adminConn := OpenAdminConn(t, fixture)
-	segmentSizeBytes := walSegmentSizeBytes(fixture.DB.PostgresqlPhysical)
+	segmentSizeBytes := walSegmentSizeBytes(fixture.SourceDB)
 
 	store := newMockWalStorage()
 	store.startFailingSaves()
@@ -923,9 +922,9 @@ func Test_WalStream_WhenQueueFillsAndReceiverExitsOnItsOwn_CountsOnePauseAndOneR
 	// Other tests write WAL to the same source, and a burst of it would fill a
 	// three-segment queue again; from here on the production pause size applies,
 	// so the only respawn left to count is the one this test causes.
-	supervisor.setLocalQueuePauseBytes(getDefaultLocalQueuePauseBytes(fixture.DB.PostgresqlPhysical))
+	supervisor.setLocalQueuePauseBytes(getDefaultLocalQueuePauseBytes(fixture.SourceDB))
 
-	terminateWalReceiverBackend(t, adminConn, fixture.DB.PostgresqlPhysical.ReplicationSlotName)
+	terminateWalReceiverBackend(t, adminConn, fixture.SourceDB.Engine.ReplicationSlotName)
 
 	require.Eventually(t, func() bool {
 		takeCounts()

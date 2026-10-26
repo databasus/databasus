@@ -26,11 +26,13 @@ const ftpControlPort = "21/tcp"
 // dials the control host at that exact port. So the range must be published 1:1 (container port ==
 // host port) instead of at testcontainers' usual random host port, or the data connection lands
 // nowhere. Several test binaries start FTP containers at once, so each container takes a free range of
-// its own.
+// its own. The ranges sit below the Linux ephemeral range (32768 and up), from which Docker publishes
+// random host ports and the kernel picks outgoing ones, so neither can take a port between the probe
+// and the container start.
 const (
 	ftpPassivePortCount   = 10
-	ftpPassivePortLowest  = 30000
-	ftpPassivePortHighest = 39999
+	ftpPassivePortLowest  = 20000
+	ftpPassivePortHighest = 29999
 )
 
 // passivePortRange is the first and the last port of an FTP container's passive range.

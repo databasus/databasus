@@ -91,6 +91,69 @@ func (e AzureBlobStorageSettingsType) Valid() bool {
 	}
 }
 
+// Defines values for DatabaseConnectionFailure.
+const (
+	DatabaseConnectionFailureBADCREDENTIALS           DatabaseConnectionFailure = "BAD_CREDENTIALS"
+	DatabaseConnectionFailureCONNECTIONFAILED         DatabaseConnectionFailure = "CONNECTION_FAILED"
+	DatabaseConnectionFailureCUSTOMTABLESPACES        DatabaseConnectionFailure = "CUSTOM_TABLESPACES"
+	DatabaseConnectionFailureNOREPLICATIONPRIVILEGE   DatabaseConnectionFailure = "NO_REPLICATION_PRIVILEGE"
+	DatabaseConnectionFailureNOREPLICATIONSLOTS       DatabaseConnectionFailure = "NO_REPLICATION_SLOTS"
+	DatabaseConnectionFailureNOWALSENDERS             DatabaseConnectionFailure = "NO_WAL_SENDERS"
+	DatabaseConnectionFailureNOWALSWITCHPRIVILEGE     DatabaseConnectionFailure = "NO_WAL_SWITCH_PRIVILEGE"
+	DatabaseConnectionFailurePGHBANOENTRY             DatabaseConnectionFailure = "PG_HBA_NO_ENTRY"
+	DatabaseConnectionFailureSYSTEMIDENTIFIERMISMATCH DatabaseConnectionFailure = "SYSTEM_IDENTIFIER_MISMATCH"
+	DatabaseConnectionFailureWALLEVELINVALID          DatabaseConnectionFailure = "WAL_LEVEL_INVALID"
+	DatabaseConnectionFailureWALSUMMARYDISABLED       DatabaseConnectionFailure = "WAL_SUMMARY_DISABLED"
+)
+
+// Valid indicates whether the value is a known member of the DatabaseConnectionFailure enum.
+func (e DatabaseConnectionFailure) Valid() bool {
+	switch e {
+	case DatabaseConnectionFailureBADCREDENTIALS:
+		return true
+	case DatabaseConnectionFailureCONNECTIONFAILED:
+		return true
+	case DatabaseConnectionFailureCUSTOMTABLESPACES:
+		return true
+	case DatabaseConnectionFailureNOREPLICATIONPRIVILEGE:
+		return true
+	case DatabaseConnectionFailureNOREPLICATIONSLOTS:
+		return true
+	case DatabaseConnectionFailureNOWALSENDERS:
+		return true
+	case DatabaseConnectionFailureNOWALSWITCHPRIVILEGE:
+		return true
+	case DatabaseConnectionFailurePGHBANOENTRY:
+		return true
+	case DatabaseConnectionFailureSYSTEMIDENTIFIERMISMATCH:
+		return true
+	case DatabaseConnectionFailureWALLEVELINVALID:
+		return true
+	case DatabaseConnectionFailureWALSUMMARYDISABLED:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for DatabaseHealthStatus.
+const (
+	DatabaseHealthStatusAVAILABLE   DatabaseHealthStatus = "AVAILABLE"
+	DatabaseHealthStatusUNAVAILABLE DatabaseHealthStatus = "UNAVAILABLE"
+)
+
+// Valid indicates whether the value is a known member of the DatabaseHealthStatus enum.
+func (e DatabaseHealthStatus) Valid() bool {
+	switch e {
+	case DatabaseHealthStatusAVAILABLE:
+		return true
+	case DatabaseHealthStatusUNAVAILABLE:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for DiscordNotifierSettingsType.
 const (
 	DiscordNotifierSettingsTypeDISCORD DiscordNotifierSettingsType = "DISCORD"
@@ -166,6 +229,69 @@ func (e LocalStorageSettingsType) Valid() bool {
 	}
 }
 
+// Defines values for MariadbSettingsType.
+const (
+	MariadbSettingsTypeMARIADB MariadbSettingsType = "MARIADB"
+)
+
+// Valid indicates whether the value is a known member of the MariadbSettingsType enum.
+func (e MariadbSettingsType) Valid() bool {
+	switch e {
+	case MariadbSettingsTypeMARIADB:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MariadbVersion.
+const (
+	MariadbVersionN101  MariadbVersion = "10.1"
+	MariadbVersionN1011 MariadbVersion = "10.11"
+	MariadbVersionN102  MariadbVersion = "10.2"
+	MariadbVersionN103  MariadbVersion = "10.3"
+	MariadbVersionN104  MariadbVersion = "10.4"
+	MariadbVersionN105  MariadbVersion = "10.5"
+	MariadbVersionN106  MariadbVersion = "10.6"
+	MariadbVersionN114  MariadbVersion = "11.4"
+	MariadbVersionN118  MariadbVersion = "11.8"
+	MariadbVersionN120  MariadbVersion = "12.0"
+	MariadbVersionN130  MariadbVersion = "13.0"
+	MariadbVersionN55   MariadbVersion = "5.5"
+)
+
+// Valid indicates whether the value is a known member of the MariadbVersion enum.
+func (e MariadbVersion) Valid() bool {
+	switch e {
+	case MariadbVersionN101:
+		return true
+	case MariadbVersionN1011:
+		return true
+	case MariadbVersionN102:
+		return true
+	case MariadbVersionN103:
+		return true
+	case MariadbVersionN104:
+		return true
+	case MariadbVersionN105:
+		return true
+	case MariadbVersionN106:
+		return true
+	case MariadbVersionN114:
+		return true
+	case MariadbVersionN118:
+		return true
+	case MariadbVersionN120:
+		return true
+	case MariadbVersionN130:
+		return true
+	case MariadbVersionN55:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for MattermostNotifierSettingsDeliveryMode.
 const (
 	MattermostNotifierSettingsDeliveryModeBOT     MattermostNotifierSettingsDeliveryMode = "BOT"
@@ -193,6 +319,93 @@ const (
 func (e MattermostNotifierSettingsType) Valid() bool {
 	switch e {
 	case MattermostNotifierSettingsTypeMATTERMOST:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MongodbSettingsType.
+const (
+	MongodbSettingsTypeMONGODB MongodbSettingsType = "MONGODB"
+)
+
+// Valid indicates whether the value is a known member of the MongodbSettingsType enum.
+func (e MongodbSettingsType) Valid() bool {
+	switch e {
+	case MongodbSettingsTypeMONGODB:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MongodbVersion.
+const (
+	MongodbVersionN4 MongodbVersion = "4"
+	MongodbVersionN5 MongodbVersion = "5"
+	MongodbVersionN6 MongodbVersion = "6"
+	MongodbVersionN7 MongodbVersion = "7"
+	MongodbVersionN8 MongodbVersion = "8"
+	MongodbVersionN9 MongodbVersion = "9"
+)
+
+// Valid indicates whether the value is a known member of the MongodbVersion enum.
+func (e MongodbVersion) Valid() bool {
+	switch e {
+	case MongodbVersionN4:
+		return true
+	case MongodbVersionN5:
+		return true
+	case MongodbVersionN6:
+		return true
+	case MongodbVersionN7:
+		return true
+	case MongodbVersionN8:
+		return true
+	case MongodbVersionN9:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MysqlSettingsType.
+const (
+	MysqlSettingsTypeMYSQL MysqlSettingsType = "MYSQL"
+)
+
+// Valid indicates whether the value is a known member of the MysqlSettingsType enum.
+func (e MysqlSettingsType) Valid() bool {
+	switch e {
+	case MysqlSettingsTypeMYSQL:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MysqlVersion.
+const (
+	MysqlVersionN26 MysqlVersion = "26"
+	MysqlVersionN57 MysqlVersion = "5.7"
+	MysqlVersionN80 MysqlVersion = "8.0"
+	MysqlVersionN84 MysqlVersion = "8.4"
+	MysqlVersionN9  MysqlVersion = "9"
+)
+
+// Valid indicates whether the value is a known member of the MysqlVersion enum.
+func (e MysqlVersion) Valid() bool {
+	switch e {
+	case MysqlVersionN26:
+		return true
+	case MysqlVersionN57:
+		return true
+	case MysqlVersionN80:
+		return true
+	case MysqlVersionN84:
+		return true
+	case MysqlVersionN9:
 		return true
 	default:
 		return false
@@ -247,34 +460,143 @@ func (e NotificationCategory) Valid() bool {
 	}
 }
 
+// Defines values for PhysicalBackupType.
+const (
+	PhysicalBackupTypeFULL                     PhysicalBackupType = "FULL"
+	PhysicalBackupTypeFULLINCREMENTAL          PhysicalBackupType = "FULL_INCREMENTAL"
+	PhysicalBackupTypeFULLINCREMENTALWALSTREAM PhysicalBackupType = "FULL_INCREMENTAL_WAL_STREAM"
+)
+
+// Valid indicates whether the value is a known member of the PhysicalBackupType enum.
+func (e PhysicalBackupType) Valid() bool {
+	switch e {
+	case PhysicalBackupTypeFULL:
+		return true
+	case PhysicalBackupTypeFULLINCREMENTAL:
+		return true
+	case PhysicalBackupTypeFULLINCREMENTALWALSTREAM:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PostgresqlLogicalSettingsType.
+const (
+	PostgresqlLogicalSettingsTypePOSTGRESLOGICAL PostgresqlLogicalSettingsType = "POSTGRES_LOGICAL"
+)
+
+// Valid indicates whether the value is a known member of the PostgresqlLogicalSettingsType enum.
+func (e PostgresqlLogicalSettingsType) Valid() bool {
+	switch e {
+	case PostgresqlLogicalSettingsTypePOSTGRESLOGICAL:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PostgresqlPhysicalSettingsType.
+const (
+	PostgresqlPhysicalSettingsTypePOSTGRESPHYSICAL PostgresqlPhysicalSettingsType = "POSTGRES_PHYSICAL"
+)
+
+// Valid indicates whether the value is a known member of the PostgresqlPhysicalSettingsType enum.
+func (e PostgresqlPhysicalSettingsType) Valid() bool {
+	switch e {
+	case PostgresqlPhysicalSettingsTypePOSTGRESPHYSICAL:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PostgresqlSslMode.
+const (
+	PostgresqlSslModeDisable    PostgresqlSslMode = "disable"
+	PostgresqlSslModeRequire    PostgresqlSslMode = "require"
+	PostgresqlSslModeVerifyCa   PostgresqlSslMode = "verify-ca"
+	PostgresqlSslModeVerifyFull PostgresqlSslMode = "verify-full"
+)
+
+// Valid indicates whether the value is a known member of the PostgresqlSslMode enum.
+func (e PostgresqlSslMode) Valid() bool {
+	switch e {
+	case PostgresqlSslModeDisable:
+		return true
+	case PostgresqlSslModeRequire:
+		return true
+	case PostgresqlSslModeVerifyCa:
+		return true
+	case PostgresqlSslModeVerifyFull:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PostgresqlVersion.
+const (
+	PostgresqlVersionN12 PostgresqlVersion = "12"
+	PostgresqlVersionN13 PostgresqlVersion = "13"
+	PostgresqlVersionN14 PostgresqlVersion = "14"
+	PostgresqlVersionN15 PostgresqlVersion = "15"
+	PostgresqlVersionN16 PostgresqlVersion = "16"
+	PostgresqlVersionN17 PostgresqlVersion = "17"
+	PostgresqlVersionN18 PostgresqlVersion = "18"
+)
+
+// Valid indicates whether the value is a known member of the PostgresqlVersion enum.
+func (e PostgresqlVersion) Valid() bool {
+	switch e {
+	case PostgresqlVersionN12:
+		return true
+	case PostgresqlVersionN13:
+		return true
+	case PostgresqlVersionN14:
+		return true
+	case PostgresqlVersionN15:
+		return true
+	case PostgresqlVersionN16:
+		return true
+	case PostgresqlVersionN17:
+		return true
+	case PostgresqlVersionN18:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ProblemCode.
 const (
-	ProblemCodeAdminEmailMissing       ProblemCode = "admin_email_missing"
-	ProblemCodeAlreadyMember           ProblemCode = "already_member"
-	ProblemCodeCannotChangeOwnRole     ProblemCode = "cannot_change_own_role"
-	ProblemCodeEmailNotConfigured      ProblemCode = "email_not_configured"
-	ProblemCodeEmailTaken              ProblemCode = "email_taken"
-	ProblemCodeHumanVerificationFailed ProblemCode = "human_verification_failed"
-	ProblemCodeInUse                   ProblemCode = "in_use"
-	ProblemCodeInternal                ProblemCode = "internal"
-	ProblemCodeInvalidCredentials      ProblemCode = "invalid_credentials"
-	ProblemCodeInvalidRequest          ProblemCode = "invalid_request"
-	ProblemCodeInvalidResetCode        ProblemCode = "invalid_reset_code"
-	ProblemCodeNotFound                ProblemCode = "not_found"
-	ProblemCodeOauthFailed             ProblemCode = "oauth_failed"
-	ProblemCodeOauthNotConfigured      ProblemCode = "oauth_not_configured"
-	ProblemCodeOwnerRequiresTransfer   ProblemCode = "owner_requires_transfer"
-	ProblemCodePendingSignInNotUsable  ProblemCode = "pending_sign_in_not_usable"
-	ProblemCodePermissionDenied        ProblemCode = "permission_denied"
-	ProblemCodeRateLimited             ProblemCode = "rate_limited"
-	ProblemCodeRegistrationClosed      ProblemCode = "registration_closed"
-	ProblemCodeSignInCodeIncorrect     ProblemCode = "sign_in_code_incorrect"
-	ProblemCodeSignInCodeNotSent       ProblemCode = "sign_in_code_not_sent"
-	ProblemCodeSignInCodeResentTooSoon ProblemCode = "sign_in_code_resent_too_soon"
-	ProblemCodeTooManySignInCodes      ProblemCode = "too_many_sign_in_codes"
-	ProblemCodeUnauthenticated         ProblemCode = "unauthenticated"
-	ProblemCodeUserDeactivated         ProblemCode = "user_deactivated"
-	ProblemCodeWorkspaceNotEmpty       ProblemCode = "workspace_not_empty"
+	ProblemCodeAdminEmailMissing        ProblemCode = "admin_email_missing"
+	ProblemCodeAlreadyMember            ProblemCode = "already_member"
+	ProblemCodeCannotChangeOwnRole      ProblemCode = "cannot_change_own_role"
+	ProblemCodeDatabaseConnectionFailed ProblemCode = "database_connection_failed"
+	ProblemCodeEmailNotConfigured       ProblemCode = "email_not_configured"
+	ProblemCodeEmailTaken               ProblemCode = "email_taken"
+	ProblemCodeHumanVerificationFailed  ProblemCode = "human_verification_failed"
+	ProblemCodeInUse                    ProblemCode = "in_use"
+	ProblemCodeInternal                 ProblemCode = "internal"
+	ProblemCodeInvalidCredentials       ProblemCode = "invalid_credentials"
+	ProblemCodeInvalidRequest           ProblemCode = "invalid_request"
+	ProblemCodeInvalidResetCode         ProblemCode = "invalid_reset_code"
+	ProblemCodeNotFound                 ProblemCode = "not_found"
+	ProblemCodeOauthFailed              ProblemCode = "oauth_failed"
+	ProblemCodeOauthNotConfigured       ProblemCode = "oauth_not_configured"
+	ProblemCodeOwnerRequiresTransfer    ProblemCode = "owner_requires_transfer"
+	ProblemCodePendingSignInNotUsable   ProblemCode = "pending_sign_in_not_usable"
+	ProblemCodePermissionDenied         ProblemCode = "permission_denied"
+	ProblemCodeRateLimited              ProblemCode = "rate_limited"
+	ProblemCodeRegistrationClosed       ProblemCode = "registration_closed"
+	ProblemCodeSignInCodeIncorrect      ProblemCode = "sign_in_code_incorrect"
+	ProblemCodeSignInCodeNotSent        ProblemCode = "sign_in_code_not_sent"
+	ProblemCodeSignInCodeResentTooSoon  ProblemCode = "sign_in_code_resent_too_soon"
+	ProblemCodeTooManySignInCodes       ProblemCode = "too_many_sign_in_codes"
+	ProblemCodeUnauthenticated          ProblemCode = "unauthenticated"
+	ProblemCodeUserDeactivated          ProblemCode = "user_deactivated"
+	ProblemCodeWorkspaceNotEmpty        ProblemCode = "workspace_not_empty"
 )
 
 // Valid indicates whether the value is a known member of the ProblemCode enum.
@@ -285,6 +607,8 @@ func (e ProblemCode) Valid() bool {
 	case ProblemCodeAlreadyMember:
 		return true
 	case ProblemCodeCannotChangeOwnRole:
+		return true
+	case ProblemCodeDatabaseConnectionFailed:
 		return true
 	case ProblemCodeEmailNotConfigured:
 		return true
@@ -472,6 +796,24 @@ func (e SmtpSecurity) Valid() bool {
 	case SmtpSecuritySTARTTLS:
 		return true
 	case SmtpSecurityTLS:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SshAuthType.
+const (
+	SshAuthTypePASSWORD   SshAuthType = "PASSWORD"
+	SshAuthTypePRIVATEKEY SshAuthType = "PRIVATE_KEY"
+)
+
+// Valid indicates whether the value is a known member of the SshAuthType enum.
+func (e SshAuthType) Valid() bool {
+	switch e {
+	case SshAuthTypePASSWORD:
+		return true
+	case SshAuthTypePRIVATEKEY:
 		return true
 	default:
 		return false
@@ -721,6 +1063,104 @@ type AzureBlobStorageSettings struct {
 // AzureBlobStorageSettingsType Always `AZURE_BLOB`
 type AzureBlobStorageSettingsType string
 
+// Database A database a workspace backs up, without its secrets
+type Database struct {
+	// HealthStatus The outcome of the last scheduled health check, absent while health checks are off
+	HealthStatus *DatabaseHealthStatus `json:"healthStatus,omitempty"`
+
+	// Id The ID of the database
+	Id openapi_types.UUID `json:"id"`
+
+	// LastBackupErrorMessage The error of the last failed backup, absent after a success
+	LastBackupErrorMessage *string `json:"lastBackupErrorMessage,omitempty"`
+
+	// LastBackupTime The time of the newest successful backup of any kind, absent before the first
+	LastBackupTime *time.Time `json:"lastBackupTime,omitempty"`
+
+	// Name The name of the database
+	Name string `json:"name"`
+
+	// NotifierIds The notifiers of the workspace that report the database's backups
+	NotifierIds []openapi_types.UUID `json:"notifierIds"`
+
+	// Settings The settings of the database's type; `type` tells the types apart
+	Settings DatabaseSettings `json:"settings"`
+
+	// WorkspaceId The workspace the database belongs to
+	WorkspaceId openapi_types.UUID `json:"workspaceId"`
+}
+
+// DatabaseConnectionFailure The class of a failed connection where the type tells it, absent for any other failure
+type DatabaseConnectionFailure string
+
+// DatabaseCreate A new database
+type DatabaseCreate struct {
+	// Name The name of the database
+	Name string `json:"name"`
+
+	// NotifierIds Notifiers of the workspace that report the database's backups
+	NotifierIds []openapi_types.UUID `json:"notifierIds"`
+
+	// Settings The settings of the database's type; `type` tells the types apart
+	Settings DatabaseSettings `json:"settings"`
+
+	// WorkspaceId The workspace the database belongs to
+	WorkspaceId openapi_types.UUID `json:"workspaceId"`
+}
+
+// DatabaseHealthStatus The outcome of the last scheduled health check, absent while health checks are off
+type DatabaseHealthStatus string
+
+// DatabasePage One page of databases, ordered by name
+type DatabasePage struct {
+	// Items The databases on the page
+	Items []Database `json:"items"`
+
+	// NextCursor The `after` of the next page, absent on the last page
+	NextCursor *string `json:"nextCursor,omitempty"`
+}
+
+// DatabaseSettings The settings of the database's type; `type` tells the types apart
+type DatabaseSettings struct {
+	union json.RawMessage
+}
+
+// DatabaseSettingsTarget Settings that are not saved, to connect with
+type DatabaseSettingsTarget struct {
+	// DatabaseId A saved database of the workspace whose stored secrets fill the ones left out
+	DatabaseId *openapi_types.UUID `json:"databaseId,omitempty"`
+
+	// Settings The settings of the database's type; `type` tells the types apart
+	Settings DatabaseSettings `json:"settings"`
+
+	// WorkspaceId The workspace whose content the settings belong to
+	WorkspaceId openapi_types.UUID `json:"workspaceId"`
+}
+
+// DatabaseTestResult The outcome of a connection test
+type DatabaseTestResult struct {
+	// Error The error the server gave, absent when it is connected
+	Error *string `json:"error,omitempty"`
+
+	// IsConnected Whether the database could be connected to and backed up
+	IsConnected bool `json:"isConnected"`
+
+	// Reason The class of a failed connection where the type tells it, absent for any other failure
+	Reason *DatabaseConnectionFailure `json:"reason,omitempty"`
+}
+
+// DatabaseUpdate The editable fields of a database
+type DatabaseUpdate struct {
+	// Name The name of the database
+	Name string `json:"name"`
+
+	// NotifierIds Notifiers of the workspace that report the database's backups
+	NotifierIds []openapi_types.UUID `json:"notifierIds"`
+
+	// Settings The settings of the database's type; `type` tells the types apart
+	Settings DatabaseSettings `json:"settings"`
+}
+
 // DiscordNotifierSettings Messages to a Discord channel through its webhook
 type DiscordNotifierSettings struct {
 	// ChannelWebhookUrl The webhook URL of the channel
@@ -859,6 +1299,27 @@ type InstanceSettingsUpdate struct {
 	IsTwoFactorAuthRequired bool `json:"isTwoFactorAuthRequired"`
 }
 
+// LimitedUser A user created on the database's server for its backups
+type LimitedUser struct {
+	// IsForcedWalRotationAvailable Whether a replication-only user may force a WAL segment switch; always false for a read-only user
+	IsForcedWalRotationAvailable bool `json:"isForcedWalRotationAvailable"`
+
+	// Password The generated password, returned only once
+	Password string `json:"password"`
+
+	// Username The generated user name
+	Username string `json:"username"`
+}
+
+// LimitedUserCheck Whether the connecting user may do more than a backup needs
+type LimitedUserCheck struct {
+	// IsAdvisable Whether a limited user is advisable
+	IsAdvisable bool `json:"isAdvisable"`
+
+	// Privileges What the connecting user may do beyond what a backup needs
+	Privileges []string `json:"privileges"`
+}
+
 // LocalStorageSettings The data folder of the Databasus instance
 type LocalStorageSettings struct {
 	// Type Always `LOCAL`
@@ -867,6 +1328,54 @@ type LocalStorageSettings struct {
 
 // LocalStorageSettingsType Always `LOCAL`
 type LocalStorageSettingsType string
+
+// MariadbSettings One MariaDB database backed up with mariadb-dump
+type MariadbSettings struct {
+	// Database The database the dump reads, absent until one is picked
+	Database *string `json:"database,omitempty"`
+
+	// ExcludeTables The tables the dump leaves out
+	ExcludeTables []string `json:"excludeTables"`
+
+	// Host The host of the server
+	Host string `json:"host"`
+
+	// IsExcludeEvents Whether the dump leaves out the scheduled events
+	IsExcludeEvents bool `json:"isExcludeEvents"`
+
+	// IsHttps Whether the connection is encrypted, without verifying the server certificate
+	IsHttps bool `json:"isHttps"`
+
+	// IsSkipGaleraDisable Whether the dump keeps Galera replication on for its session
+	IsSkipGaleraDisable bool `json:"isSkipGaleraDisable"`
+
+	// Password The password
+	Password *string `json:"password,omitempty"`
+
+	// Port The port of the server
+	Port int `json:"port"`
+
+	// Privileges The backup privileges the user held at the last save
+	Privileges *[]string `json:"privileges,omitempty"`
+
+	// SshTunnel The SSH bastion a database is reached through. When it is enabled, the host and the port of the database address it as the bastion sees it
+	SshTunnel SshTunnelSettings `json:"sshTunnel"`
+
+	// Type Always `MARIADB`
+	Type MariadbSettingsType `json:"type"`
+
+	// Username The user name
+	Username string `json:"username"`
+
+	// Version The version the server reported at the last save
+	Version *MariadbVersion `json:"version,omitempty"`
+}
+
+// MariadbSettingsType Always `MARIADB`
+type MariadbSettingsType string
+
+// MariadbVersion The version the server reported at the last save
+type MariadbVersion string
 
 // MattermostNotifierSettings Posts to Mattermost through an incoming webhook or a bot account
 type MattermostNotifierSettings struct {
@@ -906,6 +1415,99 @@ type MattermostNotifierSettingsDeliveryMode string
 
 // MattermostNotifierSettingsType Always `MATTERMOST`
 type MattermostNotifierSettingsType string
+
+// MongodbSettings One MongoDB database backed up with mongodump
+type MongodbSettings struct {
+	// AuthDatabase The database the user authenticates against
+	AuthDatabase string `json:"authDatabase"`
+
+	// CpuCount The number of parallel collections of the dump and the restore
+	CpuCount int `json:"cpuCount"`
+
+	// Database The database the dump reads
+	Database string `json:"database"`
+
+	// ExcludeCollections The collections the dump leaves out
+	ExcludeCollections []string `json:"excludeCollections"`
+
+	// Host The host of the server, or the DNS name of an SRV connection
+	Host string `json:"host"`
+
+	// IsDirectConnection Whether the client talks to the host alone instead of discovering the replica set
+	IsDirectConnection bool `json:"isDirectConnection"`
+
+	// IsHttps Whether TLS is on, without verifying the server certificate
+	IsHttps bool `json:"isHttps"`
+
+	// IsSrv Whether the host is resolved through DNS SRV records
+	IsSrv bool `json:"isSrv"`
+
+	// Password The password
+	Password *string `json:"password,omitempty"`
+
+	// Port The port of the server, absent for an SRV connection
+	Port *int `json:"port,omitempty"`
+
+	// SshTunnel The SSH bastion a database is reached through. When it is enabled, the host and the port of the database address it as the bastion sees it
+	SshTunnel SshTunnelSettings `json:"sshTunnel"`
+
+	// Type Always `MONGODB`
+	Type MongodbSettingsType `json:"type"`
+
+	// Username The user name
+	Username string `json:"username"`
+
+	// Version The major version the server reported at the last save
+	Version *MongodbVersion `json:"version,omitempty"`
+}
+
+// MongodbSettingsType Always `MONGODB`
+type MongodbSettingsType string
+
+// MongodbVersion The major version the server reported at the last save
+type MongodbVersion string
+
+// MysqlSettings One MySQL database backed up with mysqldump
+type MysqlSettings struct {
+	// Database The database the dump reads, absent until one is picked
+	Database *string `json:"database,omitempty"`
+
+	// ExcludeTables The tables the dump leaves out
+	ExcludeTables []string `json:"excludeTables"`
+
+	// Host The host of the server
+	Host string `json:"host"`
+
+	// IsHttps Whether the connection is encrypted, without verifying the server certificate
+	IsHttps bool `json:"isHttps"`
+
+	// Password The password
+	Password *string `json:"password,omitempty"`
+
+	// Port The port of the server
+	Port int `json:"port"`
+
+	// Privileges The backup privileges the user held at the last save
+	Privileges *[]string `json:"privileges,omitempty"`
+
+	// SshTunnel The SSH bastion a database is reached through. When it is enabled, the host and the port of the database address it as the bastion sees it
+	SshTunnel SshTunnelSettings `json:"sshTunnel"`
+
+	// Type Always `MYSQL`
+	Type MysqlSettingsType `json:"type"`
+
+	// Username The user name
+	Username string `json:"username"`
+
+	// Version The version the server reported at the last save
+	Version *MysqlVersion `json:"version,omitempty"`
+}
+
+// MysqlSettingsType Always `MYSQL`
+type MysqlSettingsType string
+
+// MysqlVersion The version the server reported at the last save
+type MysqlVersion string
 
 // NasStorageSettings A share of an SMB server
 type NasStorageSettings struct {
@@ -1073,6 +1675,120 @@ type PendingSignIn struct {
 	// PendingSignInId The pending sign-in that the code completes
 	PendingSignInId openapi_types.UUID `json:"pendingSignInId"`
 }
+
+// PhysicalBackupType What the physical backups of the cluster take
+type PhysicalBackupType string
+
+// PostgresqlLogicalSettings One PostgreSQL database backed up with pg_dump
+type PostgresqlLogicalSettings struct {
+	// CpuCount The number of parallel jobs of the dump and the restore
+	CpuCount int `json:"cpuCount"`
+
+	// Database The database the dump reads, absent until one is picked
+	Database *string `json:"database,omitempty"`
+
+	// ExcludeTableData The table patterns whose rows the dump leaves out, keeping their definitions
+	ExcludeTableData []string `json:"excludeTableData"`
+
+	// ExcludeTables The table patterns the dump leaves out
+	ExcludeTables []string `json:"excludeTables"`
+
+	// Host The host of the server
+	Host string `json:"host"`
+
+	// IncludeSchemas The schemas the dump reads, empty for every schema
+	IncludeSchemas []string `json:"includeSchemas"`
+
+	// IsSkipUserMappings Whether the dump leaves out the user mappings of foreign servers
+	IsSkipUserMappings bool `json:"isSkipUserMappings"`
+
+	// Password The password
+	Password *string `json:"password,omitempty"`
+
+	// Port The port of the server
+	Port int `json:"port"`
+
+	// SshTunnel The SSH bastion a database is reached through. When it is enabled, the host and the port of the database address it as the bastion sees it
+	SshTunnel SshTunnelSettings `json:"sshTunnel"`
+
+	// SslClientCert The PEM client certificate, absent without one
+	SslClientCert *string `json:"sslClientCert,omitempty"`
+
+	// SslClientKey The PEM key of the client certificate
+	SslClientKey *string `json:"sslClientKey,omitempty"`
+
+	// SslMode The libpq SSL mode of the connection
+	SslMode PostgresqlSslMode `json:"sslMode"`
+
+	// SslRootCert The PEM root certificate the server is verified against, absent without one
+	SslRootCert *string `json:"sslRootCert,omitempty"`
+
+	// Type Always `POSTGRES_LOGICAL`
+	Type PostgresqlLogicalSettingsType `json:"type"`
+
+	// Username The user name
+	Username string `json:"username"`
+
+	// Version The major version the server reported at the last save
+	Version *PostgresqlVersion `json:"version,omitempty"`
+}
+
+// PostgresqlLogicalSettingsType Always `POSTGRES_LOGICAL`
+type PostgresqlLogicalSettingsType string
+
+// PostgresqlPhysicalSettings A PostgreSQL cluster backed up with pg_basebackup and its WAL stream
+type PostgresqlPhysicalSettings struct {
+	// BackupType What the physical backups of the cluster take
+	BackupType PhysicalBackupType `json:"backupType"`
+
+	// Host The host of the server
+	Host string `json:"host"`
+
+	// Password The password
+	Password *string `json:"password,omitempty"`
+
+	// Port The port of the server
+	Port int `json:"port"`
+
+	// SshTunnel The SSH bastion a database is reached through. When it is enabled, the host and the port of the database address it as the bastion sees it
+	SshTunnel SshTunnelSettings `json:"sshTunnel"`
+
+	// SslClientCert The PEM client certificate, absent without one
+	SslClientCert *string `json:"sslClientCert,omitempty"`
+
+	// SslClientKey The PEM key of the client certificate
+	SslClientKey *string `json:"sslClientKey,omitempty"`
+
+	// SslMode The libpq SSL mode of the connection
+	SslMode PostgresqlSslMode `json:"sslMode"`
+
+	// SslRootCert The PEM root certificate the server is verified against, absent without one
+	SslRootCert *string `json:"sslRootCert,omitempty"`
+
+	// SystemIdentifier The identifier of the cluster detected at the first save, which never changes
+	SystemIdentifier *string `json:"systemIdentifier,omitempty"`
+
+	// Type Always `POSTGRES_PHYSICAL`
+	Type PostgresqlPhysicalSettingsType `json:"type"`
+
+	// Username The user name, which needs the replication privilege
+	Username string `json:"username"`
+
+	// Version The major version the server reported at the last save
+	Version *PostgresqlVersion `json:"version,omitempty"`
+
+	// WalSegmentSizeBytes The WAL segment size of the cluster detected at the first save
+	WalSegmentSizeBytes *int64 `json:"walSegmentSizeBytes,omitempty"`
+}
+
+// PostgresqlPhysicalSettingsType Always `POSTGRES_PHYSICAL`
+type PostgresqlPhysicalSettingsType string
+
+// PostgresqlSslMode The libpq SSL mode of the connection
+type PostgresqlSslMode string
+
+// PostgresqlVersion The major version the server reported at the last save
+type PostgresqlVersion string
 
 // Problem An error in the RFC 9457 format. The client chooses its text by `code`
 type Problem struct {
@@ -1288,6 +2004,36 @@ type SlackNotifierSettingsType string
 
 // SmtpSecurity How the connection to the SMTP server is encrypted
 type SmtpSecurity string
+
+// SshAuthType How Databasus signs in to the bastion
+type SshAuthType string
+
+// SshTunnelSettings The SSH bastion a database is reached through. When it is enabled, the host and the port of the database address it as the bastion sees it
+type SshTunnelSettings struct {
+	// AuthType How Databasus signs in to the bastion
+	AuthType *SshAuthType `json:"authType,omitempty"`
+
+	// Host The host of the bastion
+	Host *string `json:"host,omitempty"`
+
+	// IsEnabled Whether the connection goes through the bastion
+	IsEnabled bool `json:"isEnabled"`
+
+	// Password The password, with `PASSWORD` authentication
+	Password *string `json:"password,omitempty"`
+
+	// Port The SSH port of the bastion
+	Port *int `json:"port,omitempty"`
+
+	// PrivateKey The private key, with `PRIVATE_KEY` authentication
+	PrivateKey *string `json:"privateKey,omitempty"`
+
+	// PrivateKeyPassphrase The passphrase of the private key, absent for a key without one
+	PrivateKeyPassphrase *string `json:"privateKeyPassphrase,omitempty"`
+
+	// Username The user name on the bastion
+	Username *string `json:"username,omitempty"`
+}
 
 // Storage A place backups of a workspace are kept, without its secrets
 type Storage struct {
@@ -1612,6 +2358,9 @@ type WorkspaceUpdate struct {
 	Name string `json:"name"`
 }
 
+// DatabaseId defines model for DatabaseId.
+type DatabaseId = openapi_types.UUID
+
 // MemberId defines model for MemberId.
 type MemberId = openapi_types.UUID
 
@@ -1639,6 +2388,21 @@ type ListAuditEventsParams struct {
 	AuthorUserId *openapi_types.UUID `form:"authorUserId,omitempty" json:"authorUserId,omitempty"`
 
 	// Limit The largest number of events on the page
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// After The `nextCursor` of the previous page
+	After *string `form:"after,omitempty" json:"after,omitempty"`
+}
+
+// ListDatabasesParams defines parameters for ListDatabases.
+type ListDatabasesParams struct {
+	// WorkspaceId The workspace whose databases to list
+	WorkspaceId openapi_types.UUID `form:"workspaceId" json:"workspaceId"`
+
+	// NotifierId A notifier the listed databases use
+	NotifierId *openapi_types.UUID `form:"notifierId,omitempty" json:"notifierId,omitempty"`
+
+	// Limit The largest number of databases on the page
 	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
 
 	// After The `nextCursor` of the previous page
@@ -1702,6 +2466,15 @@ type ListWorkspacesParams struct {
 	After *string `form:"after,omitempty" json:"after,omitempty"`
 }
 
+// TestDatabaseSettingsJSONRequestBody defines body for TestDatabaseSettings for application/json ContentType.
+type TestDatabaseSettingsJSONRequestBody = DatabaseSettingsTarget
+
+// CreateDatabaseJSONRequestBody defines body for CreateDatabase for application/json ContentType.
+type CreateDatabaseJSONRequestBody = DatabaseCreate
+
+// UpdateDatabaseJSONRequestBody defines body for UpdateDatabase for application/json ContentType.
+type UpdateDatabaseJSONRequestBody = DatabaseUpdate
+
 // SignInWithGitHubJSONRequestBody defines body for SignInWithGitHub for application/json ContentType.
 type SignInWithGitHubJSONRequestBody = OAuthSignInRequest
 
@@ -1710,6 +2483,12 @@ type SignInWithGoogleJSONRequestBody = OAuthSignInRequest
 
 // UpdateInstanceSettingsJSONRequestBody defines body for UpdateInstanceSettings for application/json ContentType.
 type UpdateInstanceSettingsJSONRequestBody = InstanceSettingsUpdate
+
+// CheckLimitedUserJSONRequestBody defines body for CheckLimitedUser for application/json ContentType.
+type CheckLimitedUserJSONRequestBody = DatabaseSettingsTarget
+
+// CreateLimitedUserJSONRequestBody defines body for CreateLimitedUser for application/json ContentType.
+type CreateLimitedUserJSONRequestBody = DatabaseSettingsTarget
 
 // TestNotifierSettingsJSONRequestBody defines body for TestNotifierSettings for application/json ContentType.
 type TestNotifierSettingsJSONRequestBody = NotifierSettingsTest
@@ -1776,6 +2555,215 @@ type UpdateWorkspaceJSONRequestBody = WorkspaceUpdate
 
 // TransferWorkspaceOwnershipJSONRequestBody defines body for TransferWorkspaceOwnership for application/json ContentType.
 type TransferWorkspaceOwnershipJSONRequestBody = OwnershipTransfer
+
+// AsPostgresqlLogicalSettings returns the union data inside the DatabaseSettings as a PostgresqlLogicalSettings
+func (t DatabaseSettings) AsPostgresqlLogicalSettings() (PostgresqlLogicalSettings, error) {
+	var body PostgresqlLogicalSettings
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromPostgresqlLogicalSettings overwrites any union data inside the DatabaseSettings as the provided PostgresqlLogicalSettings
+func (t *DatabaseSettings) FromPostgresqlLogicalSettings(v PostgresqlLogicalSettings) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"POSTGRES_LOGICAL"}`))
+	t.union = b
+	return err
+}
+
+// MergePostgresqlLogicalSettings performs a merge with any union data inside the DatabaseSettings, using the provided PostgresqlLogicalSettings
+func (t *DatabaseSettings) MergePostgresqlLogicalSettings(v PostgresqlLogicalSettings) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"POSTGRES_LOGICAL"}`))
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsPostgresqlPhysicalSettings returns the union data inside the DatabaseSettings as a PostgresqlPhysicalSettings
+func (t DatabaseSettings) AsPostgresqlPhysicalSettings() (PostgresqlPhysicalSettings, error) {
+	var body PostgresqlPhysicalSettings
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromPostgresqlPhysicalSettings overwrites any union data inside the DatabaseSettings as the provided PostgresqlPhysicalSettings
+func (t *DatabaseSettings) FromPostgresqlPhysicalSettings(v PostgresqlPhysicalSettings) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"POSTGRES_PHYSICAL"}`))
+	t.union = b
+	return err
+}
+
+// MergePostgresqlPhysicalSettings performs a merge with any union data inside the DatabaseSettings, using the provided PostgresqlPhysicalSettings
+func (t *DatabaseSettings) MergePostgresqlPhysicalSettings(v PostgresqlPhysicalSettings) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"POSTGRES_PHYSICAL"}`))
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsMysqlSettings returns the union data inside the DatabaseSettings as a MysqlSettings
+func (t DatabaseSettings) AsMysqlSettings() (MysqlSettings, error) {
+	var body MysqlSettings
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromMysqlSettings overwrites any union data inside the DatabaseSettings as the provided MysqlSettings
+func (t *DatabaseSettings) FromMysqlSettings(v MysqlSettings) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"MYSQL"}`))
+	t.union = b
+	return err
+}
+
+// MergeMysqlSettings performs a merge with any union data inside the DatabaseSettings, using the provided MysqlSettings
+func (t *DatabaseSettings) MergeMysqlSettings(v MysqlSettings) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"MYSQL"}`))
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsMariadbSettings returns the union data inside the DatabaseSettings as a MariadbSettings
+func (t DatabaseSettings) AsMariadbSettings() (MariadbSettings, error) {
+	var body MariadbSettings
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromMariadbSettings overwrites any union data inside the DatabaseSettings as the provided MariadbSettings
+func (t *DatabaseSettings) FromMariadbSettings(v MariadbSettings) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"MARIADB"}`))
+	t.union = b
+	return err
+}
+
+// MergeMariadbSettings performs a merge with any union data inside the DatabaseSettings, using the provided MariadbSettings
+func (t *DatabaseSettings) MergeMariadbSettings(v MariadbSettings) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"MARIADB"}`))
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsMongodbSettings returns the union data inside the DatabaseSettings as a MongodbSettings
+func (t DatabaseSettings) AsMongodbSettings() (MongodbSettings, error) {
+	var body MongodbSettings
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromMongodbSettings overwrites any union data inside the DatabaseSettings as the provided MongodbSettings
+func (t *DatabaseSettings) FromMongodbSettings(v MongodbSettings) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"MONGODB"}`))
+	t.union = b
+	return err
+}
+
+// MergeMongodbSettings performs a merge with any union data inside the DatabaseSettings, using the provided MongodbSettings
+func (t *DatabaseSettings) MergeMongodbSettings(v MongodbSettings) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"MONGODB"}`))
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t DatabaseSettings) Discriminator() (string, error) {
+	var discriminator struct {
+		Discriminator string `json:"type"`
+	}
+	err := json.Unmarshal(t.union, &discriminator)
+	return discriminator.Discriminator, err
+}
+
+func (t DatabaseSettings) ValueByDiscriminator() (interface{}, error) {
+	discriminator, err := t.Discriminator()
+	if err != nil {
+		return nil, err
+	}
+	switch discriminator {
+	case "MARIADB":
+		return t.AsMariadbSettings()
+	case "MONGODB":
+		return t.AsMongodbSettings()
+	case "MYSQL":
+		return t.AsMysqlSettings()
+	case "POSTGRES_LOGICAL":
+		return t.AsPostgresqlLogicalSettings()
+	case "POSTGRES_PHYSICAL":
+		return t.AsPostgresqlPhysicalSettings()
+	default:
+		return nil, errors.New("unknown discriminator value: " + discriminator)
+	}
+}
+
+func (t DatabaseSettings) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *DatabaseSettings) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
 
 // AsEmailNotifierSettings returns the union data inside the NotifierSettings as a EmailNotifierSettings
 func (t NotifierSettings) AsEmailNotifierSettings() (EmailNotifierSettings, error) {
@@ -2557,6 +3545,95 @@ type ClientInterface interface {
 	// Corresponds with GET /audit-events (the `ListAuditEvents` operationId).
 	ListAuditEvents(ctx context.Context, params *ListAuditEventsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// TestDatabaseSettingsWithBody Test the connection with settings that are not saved
+	//
+	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test may send stored secrets wherever the request points. With `databaseId`, a secret the request leaves out is taken from that database, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type than that database's get 400 `invalid_request`. Nothing connects on a refusal, and nothing is saved.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /database-tests (the `TestDatabaseSettings` operationId).
+	TestDatabaseSettingsWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// TestDatabaseSettings Test the connection with settings that are not saved
+	//
+	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test may send stored secrets wherever the request points. With `databaseId`, a secret the request leaves out is taken from that database, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type than that database's get 400 `invalid_request`. Nothing connects on a refusal, and nothing is saved.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /database-tests (the `TestDatabaseSettings` operationId).
+	TestDatabaseSettings(ctx context.Context, body TestDatabaseSettingsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListDatabases List the databases of a workspace
+	//
+	// Ordered by name, then by ID. With `notifierId`, only the databases that use that notifier are listed. A user who is not a member of the workspace gets 404 `not_found`. Secrets are never returned.
+	//
+	// Corresponds with GET /databases (the `ListDatabases` operationId).
+	ListDatabases(ctx context.Context, params *ListDatabasesParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateDatabaseWithBody Create a database in a workspace
+	//
+	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace. The type in `settings` is fixed once the database exists. The backend connects first and saves what the server reports, such as its version. Settings the type refuses get 400 `invalid_request` with the field in `errors`; a server that cannot be reached or refuses the connection gets 400 `database_connection_failed` with the server's reason in `detail`. Every notifier must belong to the workspace.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /databases (the `CreateDatabase` operationId).
+	CreateDatabaseWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateDatabase Create a database in a workspace
+	//
+	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace. The type in `settings` is fixed once the database exists. The backend connects first and saves what the server reports, such as its version. Settings the type refuses get 400 `invalid_request` with the field in `errors`; a server that cannot be reached or refuses the connection gets 400 `database_connection_failed` with the server's reason in `detail`. Every notifier must belong to the workspace.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /databases (the `CreateDatabase` operationId).
+	CreateDatabase(ctx context.Context, body CreateDatabaseJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DeleteDatabase Delete a database with its backups
+	//
+	// Needs the role `WORKSPACE_MEMBER` or higher. The database, its settings, its notifier attachments, its backup configs and the records of its backups and WAL go in one step, and the files of those backups are handed to the deletion worker. While a logical backup of the database is in progress, the answer is 409 `in_use`, and nothing is deleted. A running physical backup is cancelled, the WAL stream stopped and the replication slots dropped only after the deletion has succeeded.
+	//
+	// Corresponds with DELETE /databases/{databaseId} (the `DeleteDatabase` operationId).
+	DeleteDatabase(ctx context.Context, databaseId DatabaseId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetDatabase Get a database without its secrets
+	//
+	// A user who is not a member of the database's workspace gets 404 `not_found`, as for a database that does not exist.
+	//
+	// Corresponds with GET /databases/{databaseId} (the `GetDatabase` operationId).
+	GetDatabase(ctx context.Context, databaseId DatabaseId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpdateDatabaseWithBody Replace the name, the settings and the notifiers of a database
+	//
+	// Needs the role `WORKSPACE_MEMBER` or higher. A secret the request leaves out keeps its stored value. Settings of another type than the database's get 400 `invalid_request`. The backend connects with the resulting settings first; when that fails, the answer is 400 `database_connection_failed`, and the database keeps its stored settings.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with PUT /databases/{databaseId} (the `UpdateDatabase` operationId).
+	UpdateDatabaseWithBody(ctx context.Context, databaseId DatabaseId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpdateDatabase Replace the name, the settings and the notifiers of a database
+	//
+	// Needs the role `WORKSPACE_MEMBER` or higher. A secret the request leaves out keeps its stored value. Settings of another type than the database's get 400 `invalid_request`. The backend connects with the resulting settings first; when that fails, the answer is 400 `database_connection_failed`, and the database keeps its stored settings.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with PUT /databases/{databaseId} (the `UpdateDatabase` operationId).
+	UpdateDatabase(ctx context.Context, databaseId DatabaseId, body UpdateDatabaseJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CopyDatabase Copy a database within its workspace
+	//
+	// Needs the role `WORKSPACE_MEMBER` or higher. The copy is named after the original with ` (Copy)` appended and has the same type, settings, secrets and notifiers, no backup history and, for physical PostgreSQL, a replication slot of its own. The copy does not connect.
+	//
+	// Corresponds with POST /databases/{databaseId}/copy (the `CopyDatabase` operationId).
+	CopyDatabase(ctx context.Context, databaseId DatabaseId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// TestDatabase Test the connection of a saved database
+	//
+	// Any member of the workspace may test, a viewer included. A connection the server refuses is still a 200 that reports the reason. The test changes nothing in the database, its last backup error included.
+	//
+	// Corresponds with POST /databases/{databaseId}/test (the `TestDatabase` operationId).
+	TestDatabase(ctx context.Context, databaseId DatabaseId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// SignInWithGitHubWithBody Sign in with GitHub
 	//
 	// Public, because it creates the session the caller does not have yet. The code from GitHub's authorization page signs in the user linked to the GitHub account, or the user with the same email address, linking the account and finishing the sign-up of an invited user. An unknown address creates a user under the same rules as sign-up. The second factor does not apply, because GitHub verified the user. A deactivated user gets 403 `user_deactivated`, an instance without the GitHub client gets 409 `oauth_not_configured`, and a code GitHub refuses or an account without an email address gets 400 `oauth_failed`.
@@ -2617,6 +3694,42 @@ type ClientInterface interface {
 	//
 	// Corresponds with PUT /instance-settings (the `UpdateInstanceSettings` operationId).
 	UpdateInstanceSettings(ctx context.Context, body UpdateInstanceSettingsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CheckLimitedUserWithBody Check whether the connecting user may do more than a backup needs
+	//
+	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, for the reason `testDatabaseSettings` gives, and refuses the same requests. For physical PostgreSQL the check is about a replication-only user, for the other types about a read-only user. A server that cannot be reached gets 400 `database_connection_failed`.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /limited-user-checks (the `CheckLimitedUser` operationId).
+	CheckLimitedUserWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CheckLimitedUser Check whether the connecting user may do more than a backup needs
+	//
+	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, for the reason `testDatabaseSettings` gives, and refuses the same requests. For physical PostgreSQL the check is about a replication-only user, for the other types about a read-only user. A server that cannot be reached gets 400 `database_connection_failed`.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /limited-user-checks (the `CheckLimitedUser` operationId).
+	CheckLimitedUser(ctx context.Context, body CheckLimitedUserJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateLimitedUserWithBody Create a limited user on the database's server
+	//
+	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, for the reason `testDatabaseSettings` gives, and refuses the same requests. Creates a read-only user, or for physical PostgreSQL a replication-only user, with a generated name and password. The password is returned only in this answer; the database itself is not changed.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /limited-users (the `CreateLimitedUser` operationId).
+	CreateLimitedUserWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateLimitedUser Create a limited user on the database's server
+	//
+	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, for the reason `testDatabaseSettings` gives, and refuses the same requests. Creates a read-only user, or for physical PostgreSQL a replication-only user, with a generated name and password. The password is returned only in this answer; the database itself is not changed.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /limited-users (the `CreateLimitedUser` operationId).
+	CreateLimitedUser(ctx context.Context, body CreateLimitedUserJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// TestNotifierSettingsWithBody Send a test message with settings that are not saved
 	//
@@ -3172,6 +4285,205 @@ func (c *Client) ListAuditEvents(ctx context.Context, params *ListAuditEventsPar
 	return c.Client.Do(req)
 }
 
+// TestDatabaseSettingsWithBody Test the connection with settings that are not saved
+//
+// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test may send stored secrets wherever the request points. With `databaseId`, a secret the request leaves out is taken from that database, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type than that database's get 400 `invalid_request`. Nothing connects on a refusal, and nothing is saved.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /database-tests (the `TestDatabaseSettings` operationId).
+func (c *Client) TestDatabaseSettingsWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewTestDatabaseSettingsRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// TestDatabaseSettings Test the connection with settings that are not saved
+//
+// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test may send stored secrets wherever the request points. With `databaseId`, a secret the request leaves out is taken from that database, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type than that database's get 400 `invalid_request`. Nothing connects on a refusal, and nothing is saved.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /database-tests (the `TestDatabaseSettings` operationId).
+func (c *Client) TestDatabaseSettings(ctx context.Context, body TestDatabaseSettingsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewTestDatabaseSettingsRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ListDatabases List the databases of a workspace
+//
+// Ordered by name, then by ID. With `notifierId`, only the databases that use that notifier are listed. A user who is not a member of the workspace gets 404 `not_found`. Secrets are never returned.
+//
+// Corresponds with GET /databases (the `ListDatabases` operationId).
+func (c *Client) ListDatabases(ctx context.Context, params *ListDatabasesParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListDatabasesRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// CreateDatabaseWithBody Create a database in a workspace
+//
+// Needs the role `WORKSPACE_MEMBER` or higher in the workspace. The type in `settings` is fixed once the database exists. The backend connects first and saves what the server reports, such as its version. Settings the type refuses get 400 `invalid_request` with the field in `errors`; a server that cannot be reached or refuses the connection gets 400 `database_connection_failed` with the server's reason in `detail`. Every notifier must belong to the workspace.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /databases (the `CreateDatabase` operationId).
+func (c *Client) CreateDatabaseWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateDatabaseRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// CreateDatabase Create a database in a workspace
+//
+// Needs the role `WORKSPACE_MEMBER` or higher in the workspace. The type in `settings` is fixed once the database exists. The backend connects first and saves what the server reports, such as its version. Settings the type refuses get 400 `invalid_request` with the field in `errors`; a server that cannot be reached or refuses the connection gets 400 `database_connection_failed` with the server's reason in `detail`. Every notifier must belong to the workspace.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /databases (the `CreateDatabase` operationId).
+func (c *Client) CreateDatabase(ctx context.Context, body CreateDatabaseJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateDatabaseRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// DeleteDatabase Delete a database with its backups
+//
+// Needs the role `WORKSPACE_MEMBER` or higher. The database, its settings, its notifier attachments, its backup configs and the records of its backups and WAL go in one step, and the files of those backups are handed to the deletion worker. While a logical backup of the database is in progress, the answer is 409 `in_use`, and nothing is deleted. A running physical backup is cancelled, the WAL stream stopped and the replication slots dropped only after the deletion has succeeded.
+//
+// Corresponds with DELETE /databases/{databaseId} (the `DeleteDatabase` operationId).
+func (c *Client) DeleteDatabase(ctx context.Context, databaseId DatabaseId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteDatabaseRequest(c.Server, databaseId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetDatabase Get a database without its secrets
+//
+// A user who is not a member of the database's workspace gets 404 `not_found`, as for a database that does not exist.
+//
+// Corresponds with GET /databases/{databaseId} (the `GetDatabase` operationId).
+func (c *Client) GetDatabase(ctx context.Context, databaseId DatabaseId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetDatabaseRequest(c.Server, databaseId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// UpdateDatabaseWithBody Replace the name, the settings and the notifiers of a database
+//
+// Needs the role `WORKSPACE_MEMBER` or higher. A secret the request leaves out keeps its stored value. Settings of another type than the database's get 400 `invalid_request`. The backend connects with the resulting settings first; when that fails, the answer is 400 `database_connection_failed`, and the database keeps its stored settings.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with PUT /databases/{databaseId} (the `UpdateDatabase` operationId).
+func (c *Client) UpdateDatabaseWithBody(ctx context.Context, databaseId DatabaseId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateDatabaseRequestWithBody(c.Server, databaseId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// UpdateDatabase Replace the name, the settings and the notifiers of a database
+//
+// Needs the role `WORKSPACE_MEMBER` or higher. A secret the request leaves out keeps its stored value. Settings of another type than the database's get 400 `invalid_request`. The backend connects with the resulting settings first; when that fails, the answer is 400 `database_connection_failed`, and the database keeps its stored settings.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with PUT /databases/{databaseId} (the `UpdateDatabase` operationId).
+func (c *Client) UpdateDatabase(ctx context.Context, databaseId DatabaseId, body UpdateDatabaseJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateDatabaseRequest(c.Server, databaseId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// CopyDatabase Copy a database within its workspace
+//
+// Needs the role `WORKSPACE_MEMBER` or higher. The copy is named after the original with ` (Copy)` appended and has the same type, settings, secrets and notifiers, no backup history and, for physical PostgreSQL, a replication slot of its own. The copy does not connect.
+//
+// Corresponds with POST /databases/{databaseId}/copy (the `CopyDatabase` operationId).
+func (c *Client) CopyDatabase(ctx context.Context, databaseId DatabaseId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCopyDatabaseRequest(c.Server, databaseId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// TestDatabase Test the connection of a saved database
+//
+// Any member of the workspace may test, a viewer included. A connection the server refuses is still a 200 that reports the reason. The test changes nothing in the database, its last backup error included.
+//
+// Corresponds with POST /databases/{databaseId}/test (the `TestDatabase` operationId).
+func (c *Client) TestDatabase(ctx context.Context, databaseId DatabaseId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewTestDatabaseRequest(c.Server, databaseId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 // SignInWithGitHubWithBody Sign in with GitHub
 //
 // Public, because it creates the session the caller does not have yet. The code from GitHub's authorization page signs in the user linked to the GitHub account, or the user with the same email address, linking the account and finishing the sign-up of an invited user. An unknown address creates a user under the same rules as sign-up. The second factor does not apply, because GitHub verified the user. A deactivated user gets 403 `user_deactivated`, an instance without the GitHub client gets 409 `oauth_not_configured`, and a code GitHub refuses or an account without an email address gets 400 `oauth_failed`.
@@ -3293,6 +4605,82 @@ func (c *Client) UpdateInstanceSettingsWithBody(ctx context.Context, contentType
 // Corresponds with PUT /instance-settings (the `UpdateInstanceSettings` operationId).
 func (c *Client) UpdateInstanceSettings(ctx context.Context, body UpdateInstanceSettingsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewUpdateInstanceSettingsRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// CheckLimitedUserWithBody Check whether the connecting user may do more than a backup needs
+//
+// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, for the reason `testDatabaseSettings` gives, and refuses the same requests. For physical PostgreSQL the check is about a replication-only user, for the other types about a read-only user. A server that cannot be reached gets 400 `database_connection_failed`.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /limited-user-checks (the `CheckLimitedUser` operationId).
+func (c *Client) CheckLimitedUserWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCheckLimitedUserRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// CheckLimitedUser Check whether the connecting user may do more than a backup needs
+//
+// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, for the reason `testDatabaseSettings` gives, and refuses the same requests. For physical PostgreSQL the check is about a replication-only user, for the other types about a read-only user. A server that cannot be reached gets 400 `database_connection_failed`.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /limited-user-checks (the `CheckLimitedUser` operationId).
+func (c *Client) CheckLimitedUser(ctx context.Context, body CheckLimitedUserJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCheckLimitedUserRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// CreateLimitedUserWithBody Create a limited user on the database's server
+//
+// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, for the reason `testDatabaseSettings` gives, and refuses the same requests. Creates a read-only user, or for physical PostgreSQL a replication-only user, with a generated name and password. The password is returned only in this answer; the database itself is not changed.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /limited-users (the `CreateLimitedUser` operationId).
+func (c *Client) CreateLimitedUserWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateLimitedUserRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// CreateLimitedUser Create a limited user on the database's server
+//
+// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, for the reason `testDatabaseSettings` gives, and refuses the same requests. Creates a read-only user, or for physical PostgreSQL a replication-only user, with a generated name and password. The password is returned only in this answer; the database itself is not changed.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /limited-users (the `CreateLimitedUser` operationId).
+func (c *Client) CreateLimitedUser(ctx context.Context, body CreateLimitedUserJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateLimitedUserRequest(c.Server, body)
 	if err != nil {
 		return nil, err
 	}
@@ -4569,6 +5957,355 @@ func NewListAuditEventsRequest(server string, params *ListAuditEventsParams) (*h
 	return req, nil
 }
 
+// NewTestDatabaseSettingsRequest calls the generic TestDatabaseSettings builder with application/json body
+func NewTestDatabaseSettingsRequest(server string, body TestDatabaseSettingsJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewTestDatabaseSettingsRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewTestDatabaseSettingsRequestWithBody constructs an http.Request for the TestDatabaseSettings method, with any body, and a specified content type
+func NewTestDatabaseSettingsRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/database-tests")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewListDatabasesRequest constructs an http.Request for the ListDatabases method
+func NewListDatabasesRequest(server string, params *ListDatabasesParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/databases")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "workspaceId", params.WorkspaceId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: "uuid"}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if params.NotifierId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "notifierId", *params.NotifierId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: "uuid"}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "limit", *params.Limit, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.After != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "after", *params.After, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewCreateDatabaseRequest calls the generic CreateDatabase builder with application/json body
+func NewCreateDatabaseRequest(server string, body CreateDatabaseJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCreateDatabaseRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewCreateDatabaseRequestWithBody constructs an http.Request for the CreateDatabase method, with any body, and a specified content type
+func NewCreateDatabaseRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/databases")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewDeleteDatabaseRequest constructs an http.Request for the DeleteDatabase method
+func NewDeleteDatabaseRequest(server string, databaseId DatabaseId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "databaseId", databaseId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/databases/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodDelete, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetDatabaseRequest constructs an http.Request for the GetDatabase method
+func NewGetDatabaseRequest(server string, databaseId DatabaseId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "databaseId", databaseId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/databases/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewUpdateDatabaseRequest calls the generic UpdateDatabase builder with application/json body
+func NewUpdateDatabaseRequest(server string, databaseId DatabaseId, body UpdateDatabaseJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewUpdateDatabaseRequestWithBody(server, databaseId, "application/json", bodyReader)
+}
+
+// NewUpdateDatabaseRequestWithBody constructs an http.Request for the UpdateDatabase method, with any body, and a specified content type
+func NewUpdateDatabaseRequestWithBody(server string, databaseId DatabaseId, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "databaseId", databaseId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/databases/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPut, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewCopyDatabaseRequest constructs an http.Request for the CopyDatabase method
+func NewCopyDatabaseRequest(server string, databaseId DatabaseId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "databaseId", databaseId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/databases/%s/copy", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewTestDatabaseRequest constructs an http.Request for the TestDatabase method
+func NewTestDatabaseRequest(server string, databaseId DatabaseId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "databaseId", databaseId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/databases/%s/test", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewSignInWithGitHubRequest calls the generic SignInWithGitHub builder with application/json body
 func NewSignInWithGitHubRequest(server string, body SignInWithGitHubJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
@@ -4707,6 +6444,86 @@ func NewUpdateInstanceSettingsRequestWithBody(server string, contentType string,
 	}
 
 	req, err := http.NewRequest(http.MethodPut, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewCheckLimitedUserRequest calls the generic CheckLimitedUser builder with application/json body
+func NewCheckLimitedUserRequest(server string, body CheckLimitedUserJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCheckLimitedUserRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewCheckLimitedUserRequestWithBody constructs an http.Request for the CheckLimitedUser method, with any body, and a specified content type
+func NewCheckLimitedUserRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/limited-user-checks")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewCreateLimitedUserRequest calls the generic CreateLimitedUser builder with application/json body
+func NewCreateLimitedUserRequest(server string, body CreateLimitedUserJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCreateLimitedUserRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewCreateLimitedUserRequestWithBody constructs an http.Request for the CreateLimitedUser method, with any body, and a specified content type
+func NewCreateLimitedUserRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/limited-users")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
 	if err != nil {
 		return nil, err
 	}
@@ -6588,6 +8405,105 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with GET /audit-events (the `ListAuditEvents` operationId).
 	ListAuditEventsWithResponse(ctx context.Context, params *ListAuditEventsParams, reqEditors ...RequestEditorFn) (*ListAuditEventsResponse, error)
 
+	// TestDatabaseSettingsWithBodyWithResponse Test the connection with settings that are not saved
+	//
+	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test may send stored secrets wherever the request points. With `databaseId`, a secret the request leaves out is taken from that database, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type than that database's get 400 `invalid_request`. Nothing connects on a refusal, and nothing is saved.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /database-tests (the `TestDatabaseSettings` operationId).
+	TestDatabaseSettingsWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*TestDatabaseSettingsResponse, error)
+
+	// TestDatabaseSettingsWithResponse Test the connection with settings that are not saved
+	//
+	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test may send stored secrets wherever the request points. With `databaseId`, a secret the request leaves out is taken from that database, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type than that database's get 400 `invalid_request`. Nothing connects on a refusal, and nothing is saved.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /database-tests (the `TestDatabaseSettings` operationId).
+	TestDatabaseSettingsWithResponse(ctx context.Context, body TestDatabaseSettingsJSONRequestBody, reqEditors ...RequestEditorFn) (*TestDatabaseSettingsResponse, error)
+
+	// ListDatabasesWithResponse List the databases of a workspace
+	//
+	// Ordered by name, then by ID. With `notifierId`, only the databases that use that notifier are listed. A user who is not a member of the workspace gets 404 `not_found`. Secrets are never returned.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /databases (the `ListDatabases` operationId).
+	ListDatabasesWithResponse(ctx context.Context, params *ListDatabasesParams, reqEditors ...RequestEditorFn) (*ListDatabasesResponse, error)
+
+	// CreateDatabaseWithBodyWithResponse Create a database in a workspace
+	//
+	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace. The type in `settings` is fixed once the database exists. The backend connects first and saves what the server reports, such as its version. Settings the type refuses get 400 `invalid_request` with the field in `errors`; a server that cannot be reached or refuses the connection gets 400 `database_connection_failed` with the server's reason in `detail`. Every notifier must belong to the workspace.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /databases (the `CreateDatabase` operationId).
+	CreateDatabaseWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateDatabaseResponse, error)
+
+	// CreateDatabaseWithResponse Create a database in a workspace
+	//
+	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace. The type in `settings` is fixed once the database exists. The backend connects first and saves what the server reports, such as its version. Settings the type refuses get 400 `invalid_request` with the field in `errors`; a server that cannot be reached or refuses the connection gets 400 `database_connection_failed` with the server's reason in `detail`. Every notifier must belong to the workspace.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /databases (the `CreateDatabase` operationId).
+	CreateDatabaseWithResponse(ctx context.Context, body CreateDatabaseJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateDatabaseResponse, error)
+
+	// DeleteDatabaseWithResponse Delete a database with its backups
+	//
+	// Needs the role `WORKSPACE_MEMBER` or higher. The database, its settings, its notifier attachments, its backup configs and the records of its backups and WAL go in one step, and the files of those backups are handed to the deletion worker. While a logical backup of the database is in progress, the answer is 409 `in_use`, and nothing is deleted. A running physical backup is cancelled, the WAL stream stopped and the replication slots dropped only after the deletion has succeeded.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with DELETE /databases/{databaseId} (the `DeleteDatabase` operationId).
+	DeleteDatabaseWithResponse(ctx context.Context, databaseId DatabaseId, reqEditors ...RequestEditorFn) (*DeleteDatabaseResponse, error)
+
+	// GetDatabaseWithResponse Get a database without its secrets
+	//
+	// A user who is not a member of the database's workspace gets 404 `not_found`, as for a database that does not exist.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /databases/{databaseId} (the `GetDatabase` operationId).
+	GetDatabaseWithResponse(ctx context.Context, databaseId DatabaseId, reqEditors ...RequestEditorFn) (*GetDatabaseResponse, error)
+
+	// UpdateDatabaseWithBodyWithResponse Replace the name, the settings and the notifiers of a database
+	//
+	// Needs the role `WORKSPACE_MEMBER` or higher. A secret the request leaves out keeps its stored value. Settings of another type than the database's get 400 `invalid_request`. The backend connects with the resulting settings first; when that fails, the answer is 400 `database_connection_failed`, and the database keeps its stored settings.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /databases/{databaseId} (the `UpdateDatabase` operationId).
+	UpdateDatabaseWithBodyWithResponse(ctx context.Context, databaseId DatabaseId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateDatabaseResponse, error)
+
+	// UpdateDatabaseWithResponse Replace the name, the settings and the notifiers of a database
+	//
+	// Needs the role `WORKSPACE_MEMBER` or higher. A secret the request leaves out keeps its stored value. Settings of another type than the database's get 400 `invalid_request`. The backend connects with the resulting settings first; when that fails, the answer is 400 `database_connection_failed`, and the database keeps its stored settings.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /databases/{databaseId} (the `UpdateDatabase` operationId).
+	UpdateDatabaseWithResponse(ctx context.Context, databaseId DatabaseId, body UpdateDatabaseJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateDatabaseResponse, error)
+
+	// CopyDatabaseWithResponse Copy a database within its workspace
+	//
+	// Needs the role `WORKSPACE_MEMBER` or higher. The copy is named after the original with ` (Copy)` appended and has the same type, settings, secrets and notifiers, no backup history and, for physical PostgreSQL, a replication slot of its own. The copy does not connect.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /databases/{databaseId}/copy (the `CopyDatabase` operationId).
+	CopyDatabaseWithResponse(ctx context.Context, databaseId DatabaseId, reqEditors ...RequestEditorFn) (*CopyDatabaseResponse, error)
+
+	// TestDatabaseWithResponse Test the connection of a saved database
+	//
+	// Any member of the workspace may test, a viewer included. A connection the server refuses is still a 200 that reports the reason. The test changes nothing in the database, its last backup error included.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /databases/{databaseId}/test (the `TestDatabase` operationId).
+	TestDatabaseWithResponse(ctx context.Context, databaseId DatabaseId, reqEditors ...RequestEditorFn) (*TestDatabaseResponse, error)
+
 	// SignInWithGitHubWithBodyWithResponse Sign in with GitHub
 	//
 	// Public, because it creates the session the caller does not have yet. The code from GitHub's authorization page signs in the user linked to the GitHub account, or the user with the same email address, linking the account and finishing the sign-up of an invited user. An unknown address creates a user under the same rules as sign-up. The second factor does not apply, because GitHub verified the user. A deactivated user gets 403 `user_deactivated`, an instance without the GitHub client gets 409 `oauth_not_configured`, and a code GitHub refuses or an account without an email address gets 400 `oauth_failed`.
@@ -6650,6 +8566,42 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with PUT /instance-settings (the `UpdateInstanceSettings` operationId).
 	UpdateInstanceSettingsWithResponse(ctx context.Context, body UpdateInstanceSettingsJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateInstanceSettingsResponse, error)
+
+	// CheckLimitedUserWithBodyWithResponse Check whether the connecting user may do more than a backup needs
+	//
+	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, for the reason `testDatabaseSettings` gives, and refuses the same requests. For physical PostgreSQL the check is about a replication-only user, for the other types about a read-only user. A server that cannot be reached gets 400 `database_connection_failed`.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /limited-user-checks (the `CheckLimitedUser` operationId).
+	CheckLimitedUserWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CheckLimitedUserResponse, error)
+
+	// CheckLimitedUserWithResponse Check whether the connecting user may do more than a backup needs
+	//
+	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, for the reason `testDatabaseSettings` gives, and refuses the same requests. For physical PostgreSQL the check is about a replication-only user, for the other types about a read-only user. A server that cannot be reached gets 400 `database_connection_failed`.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /limited-user-checks (the `CheckLimitedUser` operationId).
+	CheckLimitedUserWithResponse(ctx context.Context, body CheckLimitedUserJSONRequestBody, reqEditors ...RequestEditorFn) (*CheckLimitedUserResponse, error)
+
+	// CreateLimitedUserWithBodyWithResponse Create a limited user on the database's server
+	//
+	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, for the reason `testDatabaseSettings` gives, and refuses the same requests. Creates a read-only user, or for physical PostgreSQL a replication-only user, with a generated name and password. The password is returned only in this answer; the database itself is not changed.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /limited-users (the `CreateLimitedUser` operationId).
+	CreateLimitedUserWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateLimitedUserResponse, error)
+
+	// CreateLimitedUserWithResponse Create a limited user on the database's server
+	//
+	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, for the reason `testDatabaseSettings` gives, and refuses the same requests. Creates a read-only user, or for physical PostgreSQL a replication-only user, with a generated name and password. The password is returned only in this answer; the database itself is not changed.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /limited-users (the `CreateLimitedUser` operationId).
+	CreateLimitedUserWithResponse(ctx context.Context, body CreateLimitedUserJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateLimitedUserResponse, error)
 
 	// TestNotifierSettingsWithBodyWithResponse Send a test message with settings that are not saved
 	//
@@ -7304,6 +9256,593 @@ func (r ListAuditEventsResponse) ContentType() string {
 	return ""
 }
 
+type TestDatabaseSettingsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *DatabaseTestResult
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r TestDatabaseSettingsResponse) GetJSON200() *DatabaseTestResult {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r TestDatabaseSettingsResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r TestDatabaseSettingsResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r TestDatabaseSettingsResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r TestDatabaseSettingsResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r TestDatabaseSettingsResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r TestDatabaseSettingsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r TestDatabaseSettingsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r TestDatabaseSettingsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r TestDatabaseSettingsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type ListDatabasesResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *DatabasePage
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ListDatabasesResponse) GetJSON200() *DatabasePage {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r ListDatabasesResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r ListDatabasesResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r ListDatabasesResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r ListDatabasesResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r ListDatabasesResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ListDatabasesResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListDatabasesResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ListDatabasesResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type CreateDatabaseResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON201 the response for an HTTP 201 `application/json` response
+	JSON201 *Database
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON201 returns the response for an HTTP 201 `application/json` response
+func (r CreateDatabaseResponse) GetJSON201() *Database {
+	return r.JSON201
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r CreateDatabaseResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r CreateDatabaseResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r CreateDatabaseResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r CreateDatabaseResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r CreateDatabaseResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r CreateDatabaseResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r CreateDatabaseResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreateDatabaseResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r CreateDatabaseResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type DeleteDatabaseResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSON409 the response for an HTTP 409 `application/problem+json` response
+	ApplicationproblemJSON409 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r DeleteDatabaseResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r DeleteDatabaseResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r DeleteDatabaseResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r DeleteDatabaseResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSON409 returns the response for an HTTP 409 `application/problem+json` response
+func (r DeleteDatabaseResponse) GetApplicationproblemJSON409() *Problem {
+	return r.ApplicationproblemJSON409
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r DeleteDatabaseResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r DeleteDatabaseResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r DeleteDatabaseResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DeleteDatabaseResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r DeleteDatabaseResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetDatabaseResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *Database
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetDatabaseResponse) GetJSON200() *Database {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r GetDatabaseResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r GetDatabaseResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r GetDatabaseResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r GetDatabaseResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r GetDatabaseResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetDatabaseResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetDatabaseResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetDatabaseResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type UpdateDatabaseResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *Database
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r UpdateDatabaseResponse) GetJSON200() *Database {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r UpdateDatabaseResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r UpdateDatabaseResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r UpdateDatabaseResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r UpdateDatabaseResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r UpdateDatabaseResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r UpdateDatabaseResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r UpdateDatabaseResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r UpdateDatabaseResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r UpdateDatabaseResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type CopyDatabaseResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON201 the response for an HTTP 201 `application/json` response
+	JSON201 *Database
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON201 returns the response for an HTTP 201 `application/json` response
+func (r CopyDatabaseResponse) GetJSON201() *Database {
+	return r.JSON201
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r CopyDatabaseResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r CopyDatabaseResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r CopyDatabaseResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r CopyDatabaseResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r CopyDatabaseResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r CopyDatabaseResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r CopyDatabaseResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CopyDatabaseResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r CopyDatabaseResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type TestDatabaseResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *DatabaseTestResult
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r TestDatabaseResponse) GetJSON200() *DatabaseTestResult {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r TestDatabaseResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r TestDatabaseResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r TestDatabaseResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r TestDatabaseResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r TestDatabaseResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r TestDatabaseResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r TestDatabaseResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r TestDatabaseResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type SignInWithGitHubResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -7560,6 +10099,158 @@ func (r UpdateInstanceSettingsResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r UpdateInstanceSettingsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type CheckLimitedUserResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *LimitedUserCheck
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r CheckLimitedUserResponse) GetJSON200() *LimitedUserCheck {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r CheckLimitedUserResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r CheckLimitedUserResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r CheckLimitedUserResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r CheckLimitedUserResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r CheckLimitedUserResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r CheckLimitedUserResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r CheckLimitedUserResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CheckLimitedUserResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r CheckLimitedUserResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type CreateLimitedUserResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON201 the response for an HTTP 201 `application/json` response
+	JSON201 *LimitedUser
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON201 returns the response for an HTTP 201 `application/json` response
+func (r CreateLimitedUserResponse) GetJSON201() *LimitedUser {
+	return r.JSON201
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r CreateLimitedUserResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r CreateLimitedUserResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r CreateLimitedUserResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r CreateLimitedUserResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r CreateLimitedUserResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r CreateLimitedUserResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r CreateLimitedUserResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreateLimitedUserResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r CreateLimitedUserResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -10542,6 +13233,171 @@ func (c *ClientWithResponses) ListAuditEventsWithResponse(ctx context.Context, p
 	return ParseListAuditEventsResponse(rsp)
 }
 
+// TestDatabaseSettingsWithBodyWithResponse Test the connection with settings that are not saved
+//
+// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test may send stored secrets wherever the request points. With `databaseId`, a secret the request leaves out is taken from that database, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type than that database's get 400 `invalid_request`. Nothing connects on a refusal, and nothing is saved.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /database-tests (the `TestDatabaseSettings` operationId).
+func (c *ClientWithResponses) TestDatabaseSettingsWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*TestDatabaseSettingsResponse, error) {
+	rsp, err := c.TestDatabaseSettingsWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseTestDatabaseSettingsResponse(rsp)
+}
+
+// TestDatabaseSettingsWithResponse Test the connection with settings that are not saved
+//
+// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test may send stored secrets wherever the request points. With `databaseId`, a secret the request leaves out is taken from that database, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type than that database's get 400 `invalid_request`. Nothing connects on a refusal, and nothing is saved.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /database-tests (the `TestDatabaseSettings` operationId).
+func (c *ClientWithResponses) TestDatabaseSettingsWithResponse(ctx context.Context, body TestDatabaseSettingsJSONRequestBody, reqEditors ...RequestEditorFn) (*TestDatabaseSettingsResponse, error) {
+	rsp, err := c.TestDatabaseSettings(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseTestDatabaseSettingsResponse(rsp)
+}
+
+// ListDatabasesWithResponse List the databases of a workspace
+//
+// Ordered by name, then by ID. With `notifierId`, only the databases that use that notifier are listed. A user who is not a member of the workspace gets 404 `not_found`. Secrets are never returned.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /databases (the `ListDatabases` operationId).
+func (c *ClientWithResponses) ListDatabasesWithResponse(ctx context.Context, params *ListDatabasesParams, reqEditors ...RequestEditorFn) (*ListDatabasesResponse, error) {
+	rsp, err := c.ListDatabases(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListDatabasesResponse(rsp)
+}
+
+// CreateDatabaseWithBodyWithResponse Create a database in a workspace
+//
+// Needs the role `WORKSPACE_MEMBER` or higher in the workspace. The type in `settings` is fixed once the database exists. The backend connects first and saves what the server reports, such as its version. Settings the type refuses get 400 `invalid_request` with the field in `errors`; a server that cannot be reached or refuses the connection gets 400 `database_connection_failed` with the server's reason in `detail`. Every notifier must belong to the workspace.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /databases (the `CreateDatabase` operationId).
+func (c *ClientWithResponses) CreateDatabaseWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateDatabaseResponse, error) {
+	rsp, err := c.CreateDatabaseWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateDatabaseResponse(rsp)
+}
+
+// CreateDatabaseWithResponse Create a database in a workspace
+//
+// Needs the role `WORKSPACE_MEMBER` or higher in the workspace. The type in `settings` is fixed once the database exists. The backend connects first and saves what the server reports, such as its version. Settings the type refuses get 400 `invalid_request` with the field in `errors`; a server that cannot be reached or refuses the connection gets 400 `database_connection_failed` with the server's reason in `detail`. Every notifier must belong to the workspace.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /databases (the `CreateDatabase` operationId).
+func (c *ClientWithResponses) CreateDatabaseWithResponse(ctx context.Context, body CreateDatabaseJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateDatabaseResponse, error) {
+	rsp, err := c.CreateDatabase(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateDatabaseResponse(rsp)
+}
+
+// DeleteDatabaseWithResponse Delete a database with its backups
+//
+// Needs the role `WORKSPACE_MEMBER` or higher. The database, its settings, its notifier attachments, its backup configs and the records of its backups and WAL go in one step, and the files of those backups are handed to the deletion worker. While a logical backup of the database is in progress, the answer is 409 `in_use`, and nothing is deleted. A running physical backup is cancelled, the WAL stream stopped and the replication slots dropped only after the deletion has succeeded.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with DELETE /databases/{databaseId} (the `DeleteDatabase` operationId).
+func (c *ClientWithResponses) DeleteDatabaseWithResponse(ctx context.Context, databaseId DatabaseId, reqEditors ...RequestEditorFn) (*DeleteDatabaseResponse, error) {
+	rsp, err := c.DeleteDatabase(ctx, databaseId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDeleteDatabaseResponse(rsp)
+}
+
+// GetDatabaseWithResponse Get a database without its secrets
+//
+// A user who is not a member of the database's workspace gets 404 `not_found`, as for a database that does not exist.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /databases/{databaseId} (the `GetDatabase` operationId).
+func (c *ClientWithResponses) GetDatabaseWithResponse(ctx context.Context, databaseId DatabaseId, reqEditors ...RequestEditorFn) (*GetDatabaseResponse, error) {
+	rsp, err := c.GetDatabase(ctx, databaseId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetDatabaseResponse(rsp)
+}
+
+// UpdateDatabaseWithBodyWithResponse Replace the name, the settings and the notifiers of a database
+//
+// Needs the role `WORKSPACE_MEMBER` or higher. A secret the request leaves out keeps its stored value. Settings of another type than the database's get 400 `invalid_request`. The backend connects with the resulting settings first; when that fails, the answer is 400 `database_connection_failed`, and the database keeps its stored settings.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /databases/{databaseId} (the `UpdateDatabase` operationId).
+func (c *ClientWithResponses) UpdateDatabaseWithBodyWithResponse(ctx context.Context, databaseId DatabaseId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateDatabaseResponse, error) {
+	rsp, err := c.UpdateDatabaseWithBody(ctx, databaseId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateDatabaseResponse(rsp)
+}
+
+// UpdateDatabaseWithResponse Replace the name, the settings and the notifiers of a database
+//
+// Needs the role `WORKSPACE_MEMBER` or higher. A secret the request leaves out keeps its stored value. Settings of another type than the database's get 400 `invalid_request`. The backend connects with the resulting settings first; when that fails, the answer is 400 `database_connection_failed`, and the database keeps its stored settings.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /databases/{databaseId} (the `UpdateDatabase` operationId).
+func (c *ClientWithResponses) UpdateDatabaseWithResponse(ctx context.Context, databaseId DatabaseId, body UpdateDatabaseJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateDatabaseResponse, error) {
+	rsp, err := c.UpdateDatabase(ctx, databaseId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateDatabaseResponse(rsp)
+}
+
+// CopyDatabaseWithResponse Copy a database within its workspace
+//
+// Needs the role `WORKSPACE_MEMBER` or higher. The copy is named after the original with ` (Copy)` appended and has the same type, settings, secrets and notifiers, no backup history and, for physical PostgreSQL, a replication slot of its own. The copy does not connect.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /databases/{databaseId}/copy (the `CopyDatabase` operationId).
+func (c *ClientWithResponses) CopyDatabaseWithResponse(ctx context.Context, databaseId DatabaseId, reqEditors ...RequestEditorFn) (*CopyDatabaseResponse, error) {
+	rsp, err := c.CopyDatabase(ctx, databaseId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCopyDatabaseResponse(rsp)
+}
+
+// TestDatabaseWithResponse Test the connection of a saved database
+//
+// Any member of the workspace may test, a viewer included. A connection the server refuses is still a 200 that reports the reason. The test changes nothing in the database, its last backup error included.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /databases/{databaseId}/test (the `TestDatabase` operationId).
+func (c *ClientWithResponses) TestDatabaseWithResponse(ctx context.Context, databaseId DatabaseId, reqEditors ...RequestEditorFn) (*TestDatabaseResponse, error) {
+	rsp, err := c.TestDatabase(ctx, databaseId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseTestDatabaseResponse(rsp)
+}
+
 // SignInWithGitHubWithBodyWithResponse Sign in with GitHub
 //
 // Public, because it creates the session the caller does not have yet. The code from GitHub's authorization page signs in the user linked to the GitHub account, or the user with the same email address, linking the account and finishing the sign-up of an invited user. An unknown address creates a user under the same rules as sign-up. The second factor does not apply, because GitHub verified the user. A deactivated user gets 403 `user_deactivated`, an instance without the GitHub client gets 409 `oauth_not_configured`, and a code GitHub refuses or an account without an email address gets 400 `oauth_failed`.
@@ -10645,6 +13501,66 @@ func (c *ClientWithResponses) UpdateInstanceSettingsWithResponse(ctx context.Con
 		return nil, err
 	}
 	return ParseUpdateInstanceSettingsResponse(rsp)
+}
+
+// CheckLimitedUserWithBodyWithResponse Check whether the connecting user may do more than a backup needs
+//
+// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, for the reason `testDatabaseSettings` gives, and refuses the same requests. For physical PostgreSQL the check is about a replication-only user, for the other types about a read-only user. A server that cannot be reached gets 400 `database_connection_failed`.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /limited-user-checks (the `CheckLimitedUser` operationId).
+func (c *ClientWithResponses) CheckLimitedUserWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CheckLimitedUserResponse, error) {
+	rsp, err := c.CheckLimitedUserWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCheckLimitedUserResponse(rsp)
+}
+
+// CheckLimitedUserWithResponse Check whether the connecting user may do more than a backup needs
+//
+// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, for the reason `testDatabaseSettings` gives, and refuses the same requests. For physical PostgreSQL the check is about a replication-only user, for the other types about a read-only user. A server that cannot be reached gets 400 `database_connection_failed`.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /limited-user-checks (the `CheckLimitedUser` operationId).
+func (c *ClientWithResponses) CheckLimitedUserWithResponse(ctx context.Context, body CheckLimitedUserJSONRequestBody, reqEditors ...RequestEditorFn) (*CheckLimitedUserResponse, error) {
+	rsp, err := c.CheckLimitedUser(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCheckLimitedUserResponse(rsp)
+}
+
+// CreateLimitedUserWithBodyWithResponse Create a limited user on the database's server
+//
+// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, for the reason `testDatabaseSettings` gives, and refuses the same requests. Creates a read-only user, or for physical PostgreSQL a replication-only user, with a generated name and password. The password is returned only in this answer; the database itself is not changed.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /limited-users (the `CreateLimitedUser` operationId).
+func (c *ClientWithResponses) CreateLimitedUserWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateLimitedUserResponse, error) {
+	rsp, err := c.CreateLimitedUserWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateLimitedUserResponse(rsp)
+}
+
+// CreateLimitedUserWithResponse Create a limited user on the database's server
+//
+// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, for the reason `testDatabaseSettings` gives, and refuses the same requests. Creates a read-only user, or for physical PostgreSQL a replication-only user, with a generated name and password. The password is returned only in this answer; the database itself is not changed.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /limited-users (the `CreateLimitedUser` operationId).
+func (c *ClientWithResponses) CreateLimitedUserWithResponse(ctx context.Context, body CreateLimitedUserJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateLimitedUserResponse, error) {
+	rsp, err := c.CreateLimitedUser(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateLimitedUserResponse(rsp)
 }
 
 // TestNotifierSettingsWithBodyWithResponse Send a test message with settings that are not saved
@@ -11668,6 +14584,476 @@ func ParseListAuditEventsResponse(rsp *http.Response) (*ListAuditEventsResponse,
 	return response, nil
 }
 
+// ParseTestDatabaseSettingsResponse parses an HTTP response from a TestDatabaseSettingsWithResponse call
+func ParseTestDatabaseSettingsResponse(rsp *http.Response) (*TestDatabaseSettingsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &TestDatabaseSettingsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest DatabaseTestResult
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListDatabasesResponse parses an HTTP response from a ListDatabasesWithResponse call
+func ParseListDatabasesResponse(rsp *http.Response) (*ListDatabasesResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListDatabasesResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest DatabasePage
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCreateDatabaseResponse parses an HTTP response from a CreateDatabaseWithResponse call
+func ParseCreateDatabaseResponse(rsp *http.Response) (*CreateDatabaseResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CreateDatabaseResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest Database
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseDeleteDatabaseResponse parses an HTTP response from a DeleteDatabaseWithResponse call
+func ParseDeleteDatabaseResponse(rsp *http.Response) (*DeleteDatabaseResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeleteDatabaseResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case rsp.StatusCode == 204:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetDatabaseResponse parses an HTTP response from a GetDatabaseWithResponse call
+func ParseGetDatabaseResponse(rsp *http.Response) (*GetDatabaseResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetDatabaseResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Database
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseUpdateDatabaseResponse parses an HTTP response from a UpdateDatabaseWithResponse call
+func ParseUpdateDatabaseResponse(rsp *http.Response) (*UpdateDatabaseResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &UpdateDatabaseResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Database
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCopyDatabaseResponse parses an HTTP response from a CopyDatabaseWithResponse call
+func ParseCopyDatabaseResponse(rsp *http.Response) (*CopyDatabaseResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CopyDatabaseResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest Database
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseTestDatabaseResponse parses an HTTP response from a TestDatabaseWithResponse call
+func ParseTestDatabaseResponse(rsp *http.Response) (*TestDatabaseResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &TestDatabaseResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest DatabaseTestResult
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseSignInWithGitHubResponse parses an HTTP response from a SignInWithGitHubWithResponse call
 func ParseSignInWithGitHubResponse(rsp *http.Response) (*SignInWithGitHubResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -11857,6 +15243,128 @@ func ParseUpdateInstanceSettingsResponse(rsp *http.Response) (*UpdateInstanceSet
 			return nil, err
 		}
 		response.ApplicationproblemJSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCheckLimitedUserResponse parses an HTTP response from a CheckLimitedUserWithResponse call
+func ParseCheckLimitedUserResponse(rsp *http.Response) (*CheckLimitedUserResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CheckLimitedUserResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest LimitedUserCheck
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCreateLimitedUserResponse parses an HTTP response from a CreateLimitedUserWithResponse call
+func ParseCreateLimitedUserResponse(rsp *http.Response) (*CreateLimitedUserResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CreateLimitedUserResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest LimitedUser
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest Problem

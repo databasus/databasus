@@ -16,7 +16,7 @@ import (
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
-	"databasus-backend/internal/features/databases"
+	databases_bridge "databasus-backend/internal/features/databases"
 	"databasus-backend/internal/features/intervals"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	storages_bridge "databasus-backend/internal/features/storages"
@@ -33,7 +33,7 @@ func Test_CleanOldBackups_DeletesBackupsOlderThanRetentionTimePeriod(t *testing.
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
 	storage := storages_bridge.CreateTestStorage(workspace.ID)
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
-	database := databases.CreateTestDatabase(workspace.ID, notifier)
+	database := databases_bridge.CreateTestDatabase(workspace.ID, notifier)
 
 	defer func() {
 		backups, _ := getBackupRepository().FindByDatabaseID(database.ID)
@@ -41,7 +41,7 @@ func Test_CleanOldBackups_DeletesBackupsOlderThanRetentionTimePeriod(t *testing.
 			getBackupRepository().DeleteByID(backup.ID)
 		}
 
-		databases.RemoveTestDatabase(t.Context(), database)
+		databases_bridge.RemoveTestDatabase(t.Context(), database)
 		time.Sleep(50 * time.Millisecond)
 		notifiers_bridge.RemoveTestNotifier(notifier)
 		storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
@@ -110,7 +110,7 @@ func Test_CleanOldBackups_SkipsDatabaseWithForeverRetentionPeriod(t *testing.T) 
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
 	storage := storages_bridge.CreateTestStorage(workspace.ID)
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
-	database := databases.CreateTestDatabase(workspace.ID, notifier)
+	database := databases_bridge.CreateTestDatabase(workspace.ID, notifier)
 
 	defer func() {
 		backups, _ := getBackupRepository().FindByDatabaseID(database.ID)
@@ -118,7 +118,7 @@ func Test_CleanOldBackups_SkipsDatabaseWithForeverRetentionPeriod(t *testing.T) 
 			getBackupRepository().DeleteByID(backup.ID)
 		}
 
-		databases.RemoveTestDatabase(t.Context(), database)
+		databases_bridge.RemoveTestDatabase(t.Context(), database)
 		time.Sleep(50 * time.Millisecond)
 		notifiers_bridge.RemoveTestNotifier(notifier)
 		storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
@@ -165,7 +165,7 @@ func Test_CleanByCount_KeepsNewestNBackups_DeletesOlder(t *testing.T) {
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
 	storage := storages_bridge.CreateTestStorage(workspace.ID)
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
-	database := databases.CreateTestDatabase(workspace.ID, notifier)
+	database := databases_bridge.CreateTestDatabase(workspace.ID, notifier)
 
 	defer func() {
 		backups, _ := getBackupRepository().FindByDatabaseID(database.ID)
@@ -173,7 +173,7 @@ func Test_CleanByCount_KeepsNewestNBackups_DeletesOlder(t *testing.T) {
 			getBackupRepository().DeleteByID(backup.ID)
 		}
 
-		databases.RemoveTestDatabase(t.Context(), database)
+		databases_bridge.RemoveTestDatabase(t.Context(), database)
 		time.Sleep(50 * time.Millisecond)
 		notifiers_bridge.RemoveTestNotifier(notifier)
 		storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
@@ -236,7 +236,7 @@ func Test_CleanByCount_WhenUnderLimit_NoBackupsDeleted(t *testing.T) {
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
 	storage := storages_bridge.CreateTestStorage(workspace.ID)
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
-	database := databases.CreateTestDatabase(workspace.ID, notifier)
+	database := databases_bridge.CreateTestDatabase(workspace.ID, notifier)
 
 	defer func() {
 		backups, _ := getBackupRepository().FindByDatabaseID(database.ID)
@@ -244,7 +244,7 @@ func Test_CleanByCount_WhenUnderLimit_NoBackupsDeleted(t *testing.T) {
 			getBackupRepository().DeleteByID(backup.ID)
 		}
 
-		databases.RemoveTestDatabase(t.Context(), database)
+		databases_bridge.RemoveTestDatabase(t.Context(), database)
 		time.Sleep(50 * time.Millisecond)
 		notifiers_bridge.RemoveTestNotifier(notifier)
 		storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
@@ -292,7 +292,7 @@ func Test_CleanByCount_DoesNotDeleteInProgressBackups(t *testing.T) {
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
 	storage := storages_bridge.CreateTestStorage(workspace.ID)
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
-	database := databases.CreateTestDatabase(workspace.ID, notifier)
+	database := databases_bridge.CreateTestDatabase(workspace.ID, notifier)
 
 	defer func() {
 		backups, _ := getBackupRepository().FindByDatabaseID(database.ID)
@@ -300,7 +300,7 @@ func Test_CleanByCount_DoesNotDeleteInProgressBackups(t *testing.T) {
 			getBackupRepository().DeleteByID(backup.ID)
 		}
 
-		databases.RemoveTestDatabase(t.Context(), database)
+		databases_bridge.RemoveTestDatabase(t.Context(), database)
 		time.Sleep(50 * time.Millisecond)
 		notifiers_bridge.RemoveTestNotifier(notifier)
 		storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
@@ -372,7 +372,7 @@ func Test_DeleteBackup_WhenStorageDeleteFails_BackupStillRemovedFromDatabase(t *
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
 	testStorage := storages_bridge.CreateTestStorage(workspace.ID)
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
-	database := databases.CreateTestDatabase(workspace.ID, notifier)
+	database := databases_bridge.CreateTestDatabase(workspace.ID, notifier)
 
 	defer func() {
 		backups, _ := getBackupRepository().FindByDatabaseID(database.ID)
@@ -380,7 +380,7 @@ func Test_DeleteBackup_WhenStorageDeleteFails_BackupStillRemovedFromDatabase(t *
 			getBackupRepository().DeleteByID(backup.ID)
 		}
 
-		databases.RemoveTestDatabase(t.Context(), database)
+		databases_bridge.RemoveTestDatabase(t.Context(), database)
 		time.Sleep(50 * time.Millisecond)
 		notifiers_bridge.RemoveTestNotifier(notifier)
 		storages_bridge.RemoveTestStorage(t.Context(), testStorage.ID)
@@ -413,7 +413,7 @@ func Test_CleanByTimePeriod_SkipsRecentBackup_EvenIfOlderThanRetention(t *testin
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
 	storage := storages_bridge.CreateTestStorage(workspace.ID)
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
-	database := databases.CreateTestDatabase(workspace.ID, notifier)
+	database := databases_bridge.CreateTestDatabase(workspace.ID, notifier)
 
 	defer func() {
 		backups, _ := getBackupRepository().FindByDatabaseID(database.ID)
@@ -421,7 +421,7 @@ func Test_CleanByTimePeriod_SkipsRecentBackup_EvenIfOlderThanRetention(t *testin
 			getBackupRepository().DeleteByID(backup.ID)
 		}
 
-		databases.RemoveTestDatabase(t.Context(), database)
+		databases_bridge.RemoveTestDatabase(t.Context(), database)
 		time.Sleep(50 * time.Millisecond)
 		notifiers_bridge.RemoveTestNotifier(notifier)
 		storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
@@ -483,7 +483,7 @@ func Test_CleanByCount_SkipsRecentBackup_EvenIfOverLimit(t *testing.T) {
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
 	storage := storages_bridge.CreateTestStorage(workspace.ID)
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
-	database := databases.CreateTestDatabase(workspace.ID, notifier)
+	database := databases_bridge.CreateTestDatabase(workspace.ID, notifier)
 
 	defer func() {
 		backups, _ := getBackupRepository().FindByDatabaseID(database.ID)
@@ -491,7 +491,7 @@ func Test_CleanByCount_SkipsRecentBackup_EvenIfOverLimit(t *testing.T) {
 			getBackupRepository().DeleteByID(backup.ID)
 		}
 
-		databases.RemoveTestDatabase(t.Context(), database)
+		databases_bridge.RemoveTestDatabase(t.Context(), database)
 		time.Sleep(50 * time.Millisecond)
 		notifiers_bridge.RemoveTestNotifier(notifier)
 		storages_bridge.RemoveTestStorage(t.Context(), storage.ID)

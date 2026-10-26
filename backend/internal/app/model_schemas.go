@@ -7,7 +7,6 @@ import (
 
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
 	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
-	"databasus-backend/internal/features/databases"
 	restores_core "databasus-backend/internal/features/restores/core"
 	verification_runs "databasus-backend/internal/features/verification/runs"
 )
@@ -17,7 +16,6 @@ import (
 // the old code preloads before any request or loop runs leaves only cached reads for them.
 func parseModelSchemas(db *gorm.DB) error {
 	models := []any{
-		&databases.Database{},
 		&backups_config_logical.LogicalBackupConfig{},
 		&backups_config_physical.PhysicalBackupConfig{},
 		&restores_core.Restore{},

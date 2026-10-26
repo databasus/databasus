@@ -9,13 +9,12 @@ import (
 	backups_services "databasus-backend/internal/features/backups/backups/services"
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
 	"databasus-backend/internal/features/caching"
-	"databasus-backend/internal/features/databases"
+	databases_bridge "databasus-backend/internal/features/databases"
 	restores_core "databasus-backend/internal/features/restores/core"
 	"databasus-backend/internal/features/restores/usecases"
 	storages_bridge "databasus-backend/internal/features/storages"
 	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
 	"databasus-backend/internal/lib/cache"
-	"databasus-backend/internal/util/encryption"
 	"databasus-backend/internal/util/logger"
 )
 
@@ -31,9 +30,9 @@ var getTaskCancellationRegistry = sync.OnceValue(tasks_cancellation.GetRegistry)
 
 var getRestorer = sync.OnceValue(func() *Restorer {
 	return &Restorer{
-		databases.GetDatabaseService(),
+		databases_bridge.GetAccess(),
+		databases_bridge.GetModule,
 		backups_services.GetBackupService(),
-		encryption.GetFieldEncryptor(),
 		getRestoreRepository(),
 		backups_config_logical.GetBackupConfigService(),
 		storages_bridge.GetModule,
@@ -42,6 +41,7 @@ var getRestorer = sync.OnceValue(func() *Restorer {
 		getRestoreDatabaseCache(),
 		getTaskCancellationRegistry(),
 		config.GetShutdownSignal(),
+		config.GetEnv().ClientToolsDir,
 	}
 })
 

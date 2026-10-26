@@ -59,7 +59,7 @@ func TestStorageReferencesMigration(t *testing.T) {
 		t.Parallel()
 		db := openMigratedDatabase(t)
 		workspaceID := insertWorkspace(t, db)
-		databaseID := insertDatabase(t, db, &workspaceID)
+		databaseID := insertMigratedDatabase(t, db, &workspaceID)
 
 		configStorageID := insertStorage(t, db, workspaceID)
 		execute(t, db, `INSERT INTO logical_backup_configs

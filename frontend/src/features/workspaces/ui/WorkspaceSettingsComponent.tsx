@@ -142,9 +142,9 @@ export function WorkspaceSettingsComponent({ selectedWorkspace, user, contentHei
         setIsDeleting(true);
         try {
           // Check if there are any databases in the workspace
-          const databases = await databaseApi.getDatabases(workspace.id);
+          const databases = await databaseApi.listAllDatabases(workspace.id);
 
-          if (databases && databases.length > 0) {
+          if (databases.length > 0) {
             message.error(t('workspaces.delete.hasDatabases', { count: databases.length }));
             return;
           }

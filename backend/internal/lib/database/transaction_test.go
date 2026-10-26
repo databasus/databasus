@@ -79,6 +79,98 @@ func TestConn(t *testing.T) {
 	})
 }
 
+func TestAfterCommit(t *testing.T) {
+	t.Parallel()
+
+	t.Run("runs the hook after the transaction commits", func(t *testing.T) {
+		t.Parallel()
+		db := openDatabaseWithNotesTable(t)
+		var notesSeenByHook []string
+
+		err := database.NewTransactor(db).Transaction(t.Context(), func(ctx context.Context) error {
+			require.NoError(t, insertNote(ctx, db, "committed"))
+
+			return database.AfterCommit(ctx, func(hookCtx context.Context) {
+				notesSeenByHook = listNotesFromContext(hookCtx, t, db)
+			})
+		})
+
+		require.NoError(t, err)
+		assert.Equal(t, []string{"committed"}, notesSeenByHook)
+	})
+
+	t.Run("does not run the hook when the transaction rolls back", func(t *testing.T) {
+		t.Parallel()
+		db := openDatabaseWithNotesTable(t)
+		isHookRun := false
+
+		err := database.NewTransactor(db).Transaction(t.Context(), func(ctx context.Context) error {
+			require.NoError(t, database.AfterCommit(ctx, func(context.Context) { isHookRun = true }))
+
+			return errRollback
+		})
+
+		require.ErrorIs(t, err, errRollback)
+		assert.False(t, isHookRun)
+	})
+
+	t.Run("runs a hook of a nested transaction once, after the outer commit, in order", func(t *testing.T) {
+		t.Parallel()
+		db := openDatabaseWithNotesTable(t)
+		transactor := database.NewTransactor(db)
+		var hookRuns []string
+
+		err := transactor.Transaction(t.Context(), func(ctx context.Context) error {
+			require.NoError(
+				t,
+				database.AfterCommit(ctx, func(context.Context) { hookRuns = append(hookRuns, "outer") }),
+			)
+
+			innerErr := transactor.Transaction(ctx, func(innerCtx context.Context) error {
+				return database.AfterCommit(innerCtx, func(context.Context) { hookRuns = append(hookRuns, "inner") })
+			})
+			require.NoError(t, innerErr)
+			assert.Empty(t, hookRuns)
+
+			return nil
+		})
+
+		require.NoError(t, err)
+		assert.Equal(t, []string{"outer", "inner"}, hookRuns)
+	})
+
+	t.Run("drops the hooks of a nested transaction that fails", func(t *testing.T) {
+		t.Parallel()
+		db := openDatabaseWithNotesTable(t)
+		transactor := database.NewTransactor(db)
+		var hookRuns []string
+
+		err := transactor.Transaction(t.Context(), func(ctx context.Context) error {
+			innerErr := transactor.Transaction(ctx, func(innerCtx context.Context) error {
+				require.NoError(t, database.AfterCommit(innerCtx, func(context.Context) {
+					hookRuns = append(hookRuns, "inner")
+				}))
+
+				return errRollback
+			})
+			require.ErrorIs(t, innerErr, errRollback)
+
+			return nil
+		})
+
+		require.NoError(t, err)
+		assert.Empty(t, hookRuns)
+	})
+
+	t.Run("refuses outside a transaction", func(t *testing.T) {
+		t.Parallel()
+
+		err := database.AfterCommit(t.Context(), func(context.Context) {})
+
+		require.ErrorIs(t, err, database.ErrNoTransaction)
+	})
+}
+
 func TestWithoutTransaction(t *testing.T) {
 	t.Parallel()
 
@@ -113,8 +205,14 @@ func insertNote(ctx context.Context, db *gorm.DB, text string) error {
 func listNotes(t *testing.T, db *gorm.DB) []string {
 	t.Helper()
 
+	return listNotesFromContext(t.Context(), t, db)
+}
+
+func listNotesFromContext(ctx context.Context, t *testing.T, db *gorm.DB) []string {
+	t.Helper()
+
 	var noteTexts []string
-	require.NoError(t, db.WithContext(t.Context()).Raw("SELECT text FROM notes ORDER BY text").Scan(&noteTexts).Error)
+	require.NoError(t, database.Conn(ctx, db).Raw("SELECT text FROM notes ORDER BY text").Scan(&noteTexts).Error)
 
 	return noteTexts
 }

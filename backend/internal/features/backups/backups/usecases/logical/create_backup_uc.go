@@ -10,7 +10,7 @@ import (
 	usecases_logical_mysql "databasus-backend/internal/features/backups/backups/usecases/logical/mysql"
 	usecases_logical_postgresql "databasus-backend/internal/features/backups/backups/usecases/logical/postgresql"
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
-	"databasus-backend/internal/features/databases"
+	"databasus-backend/internal/modules/databases"
 )
 
 type CreateBackupUsecase struct {
@@ -24,12 +24,12 @@ func (uc *CreateBackupUsecase) Execute(
 	ctx context.Context,
 	backup *backups_core_logical.LogicalBackup,
 	backupConfig *backups_config_logical.LogicalBackupConfig,
-	database *databases.Database,
+	database databases.Database,
 	fileStore backups_core_logical.BackupFileStore,
 	backupProgressListener func(completedMBs float64),
 ) (*backups_core_logical.BackupArtifacts, error) {
 	switch database.Type {
-	case databases.DatabaseTypePostgresLogical:
+	case databases.TypePostgresqlLogical:
 		return uc.CreatePostgresqlBackupUsecase.Execute(
 			ctx,
 			backup,
@@ -39,7 +39,7 @@ func (uc *CreateBackupUsecase) Execute(
 			backupProgressListener,
 		)
 
-	case databases.DatabaseTypeMysql:
+	case databases.TypeMysql:
 		return uc.CreateMysqlBackupUsecase.Execute(
 			ctx,
 			backup,
@@ -49,7 +49,7 @@ func (uc *CreateBackupUsecase) Execute(
 			backupProgressListener,
 		)
 
-	case databases.DatabaseTypeMariadb:
+	case databases.TypeMariadb:
 		return uc.CreateMariadbBackupUsecase.Execute(
 			ctx,
 			backup,
@@ -59,7 +59,7 @@ func (uc *CreateBackupUsecase) Execute(
 			backupProgressListener,
 		)
 
-	case databases.DatabaseTypeMongodb:
+	case databases.TypeMongodb:
 		return uc.CreateMongodbBackupUsecase.Execute(
 			ctx,
 			backup,

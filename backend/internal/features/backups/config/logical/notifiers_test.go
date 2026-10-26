@@ -5,14 +5,16 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
-	"databasus-backend/internal/features/databases"
+	databases_bridge "databasus-backend/internal/features/databases"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
+	"databasus-backend/internal/lib/apiclient"
 	"databasus-backend/internal/modules/users"
-	test_utils "databasus-backend/internal/util/testing"
 )
 
 func Test_AttachNotifierFromSameWorkspace_SuccessfullyAttached(t *testing.T) {
@@ -20,31 +22,19 @@ func Test_AttachNotifierFromSameWorkspace_SuccessfullyAttached(t *testing.T) {
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
 
-	database := createTestDatabaseViaAPI("Test Database", workspace.ID, owner.Token, router)
+	database := databases_bridge.CreateTestDatabaseViaAPI(t, router, owner.Token, workspace.ID, "Test Database")
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
 
 	defer func() {
-		databases.RemoveTestDatabase(t.Context(), database)
+		databases_bridge.RemoveTestDatabase(t.Context(), database)
 		notifiers_bridge.RemoveTestNotifier(notifier)
 		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	}()
 
-	database.Notifiers = []databases.DatabaseNotifier{{ID: notifier.ID}}
+	attachNotifiersViaAPI(t, router, owner.Token, database.ID, http.StatusOK, notifier.ID)
 
-	var response databases.Database
-	test_utils.MakePostRequestAndUnmarshal(
-		t,
-		router,
-		"/api/v1/databases/update",
-		"Bearer "+owner.Token,
-		database,
-		http.StatusOK,
-		&response,
-	)
-
-	assert.Equal(t, database.ID, response.ID)
-	assert.Len(t, response.Notifiers, 1)
-	assert.Equal(t, notifier.ID, response.Notifiers[0].ID)
+	updatedDatabase := databases_bridge.GetTestDatabaseViaAPI(t, router, owner.Token, database.ID)
+	assert.Equal(t, []uuid.UUID{notifier.ID}, updatedDatabase.NotifierIds)
 }
 
 func Test_AttachNotifierFromDifferentWorkspace_ReturnsForbidden(t *testing.T) {
@@ -52,41 +42,49 @@ func Test_AttachNotifierFromDifferentWorkspace_ReturnsForbidden(t *testing.T) {
 
 	owner1 := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace1 := workspaces_testing.CreateTestWorkspace(t.Context(), "Workspace 1", owner1)
-	database := createTestDatabaseViaAPI("Test Database", workspace1.ID, owner1.Token, router)
+	database := databases_bridge.CreateTestDatabaseViaAPI(t, router, owner1.Token, workspace1.ID, "Test Database")
 
 	owner2 := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace2 := workspaces_testing.CreateTestWorkspace(t.Context(), "Workspace 2", owner2)
 	notifier := notifiers_bridge.CreateTestNotifier(workspace2.ID)
 
 	defer func() {
-		databases.RemoveTestDatabase(t.Context(), database)
+		databases_bridge.RemoveTestDatabase(t.Context(), database)
 		notifiers_bridge.RemoveTestNotifier(notifier)
 		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace1)
 		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace2)
 	}()
 
-	database.Notifiers = []databases.DatabaseNotifier{{ID: notifier.ID}}
+	response := databases_bridge.UpdateTestDatabaseViaAPI(t, router, owner1.Token, database.ID,
+		func(update *apiclient.DatabaseUpdate) { update.NotifierIds = []uuid.UUID{notifier.ID} })
 
-	testResp := test_utils.MakePostRequest(
-		t,
-		router,
-		"/api/v1/databases/update",
-		"Bearer "+owner1.Token,
-		database,
-		http.StatusBadRequest,
-	)
-
-	assert.Contains(t, string(testResp.Body), "notifier does not belong to this workspace")
+	assert.Equal(t, http.StatusBadRequest, response.Code)
+	assert.Contains(t, response.Body.String(), "must name notifiers of the database's workspace")
 }
 
 func createTestRouterWithNotifier() *gin.Engine {
 	router := workspaces_testing.CreateTestRouter(
-		databases.GetDatabaseController(),
+		databases_bridge.GetTestRoutes(),
 		GetBackupConfigController(),
 	)
 
-	databases.SetupDependencies()
+	databases_bridge.SetupDependencies()
 	SetupDependencies()
 
 	return router
+}
+
+func attachNotifiersViaAPI(
+	t *testing.T,
+	router *gin.Engine,
+	token string,
+	databaseID uuid.UUID,
+	expectedStatus int,
+	notifierIDs ...uuid.UUID,
+) {
+	t.Helper()
+
+	response := databases_bridge.UpdateTestDatabaseViaAPI(t, router, token, databaseID,
+		func(update *apiclient.DatabaseUpdate) { update.NotifierIds = notifierIDs })
+	require.Equalf(t, expectedStatus, response.Code, "update database notifiers: %s", response.Body.String())
 }

@@ -8,12 +8,13 @@ import {
   POSTGRESQL_SHORT_NAME,
   POSTGRES_SSL_MODE_LABEL_KEYS,
   PostgresSslMode,
-  type PostgresqlLogicalDatabase,
+  type PostgresqlLogicalSettings,
   databaseApi,
   hasStoredSshTunnelSecretsForAuthType,
   isSshTunnelReadyToTest,
 } from '../../../../entity/databases';
 import { ConnectionStringParser } from '../../../../entity/databases/model/postgresql/ConnectionStringParser';
+import type { PostgresqlRestoreOptions } from '../../../../entity/restores';
 import {
   getWebsitePageUrl,
   translateApiError,
@@ -28,9 +29,11 @@ import {
   ClipboardPasteModalComponent,
 } from '../../../../shared/ui';
 import { EditSshTunnelComponent } from './EditSshTunnelComponent';
+import { toDatabaseSettingsTarget } from './toDatabaseSettingsTarget';
 
 interface Props {
   database: Database;
+  settings: PostgresqlLogicalSettings;
 
   isShowCancelButton?: boolean;
   onCancel: () => void;
@@ -40,11 +43,18 @@ interface Props {
 
   saveButtonText?: string;
   isSaveToApi: boolean;
-  onSaved: (database: Database) => void;
+  // The restore options are only shown, and only meaningful, in restore mode.
+  onSaved: (database: Database, restoreOptions: PostgresqlRestoreOptions) => void;
 
   isShowDbName?: boolean;
   isRestoreMode?: boolean;
 }
+
+const DEFAULT_RESTORE_OPTIONS: PostgresqlRestoreOptions = {
+  isExcludeExtensions: false,
+  isRestoreOwnership: false,
+  isRestorePrivileges: false,
+};
 
 const IPV4_PATTERN = /^\d{1,3}(\.\d{1,3}){3}$/;
 
@@ -63,9 +73,9 @@ const deriveSslModeFromHost = (rawHost: string): PostgresSslMode | null => {
 };
 
 const applySslMode = (
-  postgresqlLogical: PostgresqlLogicalDatabase,
+  postgresqlLogical: PostgresqlLogicalSettings,
   sslMode: PostgresSslMode,
-): PostgresqlLogicalDatabase => {
+): PostgresqlLogicalSettings => {
   if (sslMode === PostgresSslMode.Disable) {
     return { ...postgresqlLogical, sslMode, sslClientCert: '', sslClientKey: '', sslRootCert: '' };
   }
@@ -75,6 +85,7 @@ const applySslMode = (
 
 export const EditPostgreSqlLogicalSpecificDataComponent = ({
   database,
+  settings,
 
   isShowCancelButton,
   onCancel,
@@ -92,7 +103,9 @@ export const EditPostgreSqlLogicalSpecificDataComponent = ({
   const { locale } = useLocale();
   const { message } = App.useApp();
 
-  const [editingDatabase, setEditingDatabase] = useState<Database>({ ...database });
+  const [editingSettings, setEditingSettings] = useState<PostgresqlLogicalSettings>(settings);
+  const [restoreOptions, setRestoreOptions] =
+    useState<PostgresqlRestoreOptions>(DEFAULT_RESTORE_OPTIONS);
   const [isSaving, setIsSaving] = useState(false);
 
   const [isConnectionTested, setIsConnectionTested] = useState(false);
@@ -100,17 +113,14 @@ export const EditPostgreSqlLogicalSpecificDataComponent = ({
   const [isConnectionFailed, setIsConnectionFailed] = useState(false);
 
   const hasAdvancedValues =
-    !!database.postgresqlLogical?.sslClientCert ||
-    !!database.postgresqlLogical?.sslRootCert ||
-    !!database.postgresqlLogical?.sshTunnel?.isEnabled ||
-    (isRestoreMode
-      ? !!database.postgresqlLogical?.isExcludeExtensions ||
-        !!database.postgresqlLogical?.isRestoreOwnership ||
-        !!database.postgresqlLogical?.isRestorePrivileges
-      : !!database.postgresqlLogical?.includeSchemas?.length ||
-        !!database.postgresqlLogical?.excludeTables?.length ||
-        !!database.postgresqlLogical?.excludeTableData?.length ||
-        !!database.postgresqlLogical?.isSkipUserMappings);
+    !!settings.sslClientCert ||
+    !!settings.sslRootCert ||
+    !!settings.sshTunnel?.isEnabled ||
+    (!isRestoreMode &&
+      (!!settings.includeSchemas?.length ||
+        !!settings.excludeTables?.length ||
+        !!settings.excludeTableData?.length ||
+        !!settings.isSkipUserMappings));
   const [isShowAdvanced, setShowAdvanced] = useState(hasAdvancedValues);
 
   const [hasAutoAddedPublicSchema, setHasAutoAddedPublicSchema] = useState(false);
@@ -134,24 +144,19 @@ export const EditPostgreSqlLogicalSpecificDataComponent = ({
       return;
     }
 
-    if (!editingDatabase?.postgresqlLogical) return;
-
-    const updatedDatabase: Database = {
-      ...editingDatabase,
-      postgresqlLogical: {
-        ...editingDatabase.postgresqlLogical,
-        host: result.host,
-        port: result.port,
-        username: result.username,
-        password: result.password,
-        database: result.database,
-        sslMode: result.sslMode,
-        cpuCount: 1,
-      },
+    const updatedSettings: PostgresqlLogicalSettings = {
+      ...editingSettings,
+      host: result.host,
+      port: result.port,
+      username: result.username,
+      password: result.password,
+      database: result.database,
+      sslMode: result.sslMode,
+      cpuCount: 1,
     };
 
     setHasUserChosenSslMode(true);
-    setEditingDatabase(autoAddPublicSchemaForSupabase(updatedDatabase));
+    setEditingSettings(autoAddPublicSchemaForSupabase(updatedSettings));
     setIsConnectionTested(false);
     message.success(t('databases.edit.connectionStringParsed'));
   };
@@ -170,54 +175,50 @@ export const EditPostgreSqlLogicalSpecificDataComponent = ({
     }
   };
 
-  const autoAddPublicSchemaForSupabase = (updatedDatabase: Database): Database => {
-    if (hasAutoAddedPublicSchema) return updatedDatabase;
+  const autoAddPublicSchemaForSupabase = (
+    updatedSettings: PostgresqlLogicalSettings,
+  ): PostgresqlLogicalSettings => {
+    if (hasAutoAddedPublicSchema) return updatedSettings;
 
-    const host = updatedDatabase.postgresqlLogical?.host || '';
-    const username = updatedDatabase.postgresqlLogical?.username || '';
-    const isSupabase = host.includes('supabase') || username.includes('supabase');
+    const isSupabase =
+      updatedSettings.host.includes('supabase') || updatedSettings.username.includes('supabase');
 
-    if (isSupabase && updatedDatabase.postgresqlLogical) {
+    if (isSupabase) {
       setHasAutoAddedPublicSchema(true);
 
-      const currentSchemas = updatedDatabase.postgresqlLogical.includeSchemas || [];
+      const currentSchemas = updatedSettings.includeSchemas;
       if (!currentSchemas.includes('public')) {
         return {
-          ...updatedDatabase,
-          postgresqlLogical: {
-            ...updatedDatabase.postgresqlLogical,
-            // eslint-disable-next-line i18next/no-literal-string -- PostgreSQL schema name
-            includeSchemas: ['public', ...currentSchemas],
-          },
+          ...updatedSettings,
+          // eslint-disable-next-line i18next/no-literal-string -- PostgreSQL schema name
+          includeSchemas: ['public', ...currentSchemas],
         };
       }
     }
 
-    return updatedDatabase;
+    return updatedSettings;
   };
 
   const testConnection = async () => {
-    if (!editingDatabase?.postgresqlLogical) return;
     setIsTestingConnection(true);
     setIsConnectionFailed(false);
 
-    const trimmedDatabase = {
-      ...editingDatabase,
-      postgresqlLogical: {
-        ...editingDatabase.postgresqlLogical,
-        password: editingDatabase.postgresqlLogical.password?.trim(),
-      },
-    };
-
     try {
-      await databaseApi.testDatabaseConnectionDirect(trimmedDatabase);
-      setIsConnectionTested(true);
-      ToastHelper.showToast({
-        title: t('databases.edit.connectionTestPassed.title'),
-        description: t('databases.edit.connectionTestPassed.description'),
-      });
+      const testResult = await databaseApi.testDatabaseSettings(
+        toDatabaseSettingsTarget(database, editingSettings),
+      );
+
+      if (testResult.isConnected) {
+        setIsConnectionTested(true);
+        ToastHelper.showToast({
+          title: t('databases.edit.connectionTestPassed.title'),
+          description: t('databases.edit.connectionTestPassed.description'),
+        });
+      } else {
+        setIsConnectionFailed(true);
+        alert(t('databases.edit.connectionTestFailed', { error: testResult.error }));
+      }
     } catch (e) {
-      setIsConnectionFailed(true);
       alert(translateApiError(e, t));
     }
 
@@ -225,56 +226,39 @@ export const EditPostgreSqlLogicalSpecificDataComponent = ({
   };
 
   const saveDatabase = async () => {
-    if (!editingDatabase?.postgresqlLogical) return;
+    const editedDatabase: Database = { ...database, settings: editingSettings };
 
-    const trimmedDatabase = {
-      ...editingDatabase,
-      postgresqlLogical: {
-        ...editingDatabase.postgresqlLogical,
-        password: editingDatabase.postgresqlLogical.password?.trim(),
-      },
-    };
-
-    if (isSaveToApi) {
-      setIsSaving(true);
-
-      try {
-        await databaseApi.updateDatabase(trimmedDatabase);
-      } catch (e) {
-        alert(translateApiError(e, t));
-      }
-
-      setIsSaving(false);
+    if (!isSaveToApi) {
+      onSaved(editedDatabase, restoreOptions);
+      return;
     }
 
-    onSaved(trimmedDatabase);
+    setIsSaving(true);
+
+    try {
+      onSaved(await databaseApi.updateDatabase(database.id, editedDatabase), restoreOptions);
+    } catch (e) {
+      alert(translateApiError(e, t));
+    }
+
+    setIsSaving(false);
   };
 
   const updatePostgresqlCert = (
     field: 'sslClientCert' | 'sslClientKey' | 'sslRootCert',
     value: string,
   ) => {
-    if (!editingDatabase?.postgresqlLogical) return;
-
-    setEditingDatabase({
-      ...editingDatabase,
-      postgresqlLogical: { ...editingDatabase.postgresqlLogical, [field]: value },
-    });
+    setEditingSettings({ ...editingSettings, [field]: value });
     setIsConnectionTested(false);
   };
 
   const startReplacingCerts = () => {
-    if (!editingDatabase?.postgresqlLogical) return;
-
     setIsReplacingCerts(true);
-    setEditingDatabase({
-      ...editingDatabase,
-      postgresqlLogical: {
-        ...editingDatabase.postgresqlLogical,
-        sslClientCert: '',
-        sslClientKey: '',
-        sslRootCert: '',
-      },
+    setEditingSettings({
+      ...editingSettings,
+      sslClientCert: '',
+      sslClientKey: '',
+      sslRootCert: '',
     });
     setIsConnectionTested(false);
   };
@@ -287,8 +271,8 @@ export const EditPostgreSqlLogicalSpecificDataComponent = ({
     setIsReplacingCerts(false);
     setHasUserChosenSslMode(!!database.id);
 
-    setEditingDatabase({ ...database });
-  }, [database]);
+    setEditingSettings(settings);
+  }, [settings]);
 
   const renderFooter = (footerContent?: React.ReactNode) => (
     <div className="mt-5 flex">
@@ -309,10 +293,10 @@ export const EditPostgreSqlLogicalSpecificDataComponent = ({
   );
 
   const renderSslCertSection = () => {
-    const sslMode = editingDatabase.postgresqlLogical?.sslMode ?? PostgresSslMode.Disable;
+    const sslMode = editingSettings.sslMode ?? PostgresSslMode.Disable;
     if (sslMode === PostgresSslMode.Disable) return null;
 
-    const hadSslCert = !!database.postgresqlLogical?.sslClientCert;
+    const hadSslCert = !!settings.sslClientCert;
     if (hadSslCert && !isReplacingCerts) {
       return (
         <div className="mb-1 flex w-full items-center">
@@ -332,7 +316,7 @@ export const EditPostgreSqlLogicalSpecificDataComponent = ({
         <div className="mb-1 flex w-full items-start">
           <div className="min-w-[150px] pr-2">{t('databases.fields.clientCertificate')}</div>
           <Input.TextArea
-            value={editingDatabase.postgresqlLogical?.sslClientCert || ''}
+            value={editingSettings.sslClientCert || ''}
             onChange={(e) => updatePostgresqlCert('sslClientCert', e.target.value)}
             size="small"
             className="max-w-[300px] grow"
@@ -345,7 +329,7 @@ export const EditPostgreSqlLogicalSpecificDataComponent = ({
         <div className="mb-1 flex w-full items-start">
           <div className="min-w-[150px] pr-2">{t('databases.fields.clientKey')}</div>
           <Input.TextArea
-            value={editingDatabase.postgresqlLogical?.sslClientKey || ''}
+            value={editingSettings.sslClientKey || ''}
             onChange={(e) => updatePostgresqlCert('sslClientKey', e.target.value)}
             size="small"
             className="max-w-[300px] grow"
@@ -366,7 +350,7 @@ export const EditPostgreSqlLogicalSpecificDataComponent = ({
             </Tooltip>
           </div>
           <Input.TextArea
-            value={editingDatabase.postgresqlLogical?.sslRootCert || ''}
+            value={editingSettings.sslRootCert || ''}
             onChange={(e) => updatePostgresqlCert('sslRootCert', e.target.value)}
             size="small"
             className="max-w-[300px] grow"
@@ -381,27 +365,24 @@ export const EditPostgreSqlLogicalSpecificDataComponent = ({
 
   const renderPgDumpForm = () => {
     let isAllFieldsFilled = true;
-    if (!editingDatabase.postgresqlLogical?.host) isAllFieldsFilled = false;
-    if (!editingDatabase.postgresqlLogical?.port) isAllFieldsFilled = false;
-    if (!editingDatabase.postgresqlLogical?.username) isAllFieldsFilled = false;
-    if (!editingDatabase.id && !editingDatabase.postgresqlLogical?.password)
-      isAllFieldsFilled = false;
-    if (!editingDatabase.postgresqlLogical?.database) isAllFieldsFilled = false;
-    if (!isSshTunnelReadyToTest(editingDatabase.postgresqlLogical?.sshTunnel, hasStoredSshSecrets))
+    if (!editingSettings.host) isAllFieldsFilled = false;
+    if (!editingSettings.port) isAllFieldsFilled = false;
+    if (!editingSettings.username) isAllFieldsFilled = false;
+    if (!database.id && !editingSettings.password) isAllFieldsFilled = false;
+    if (!editingSettings.database) isAllFieldsFilled = false;
+    if (!isSshTunnelReadyToTest(editingSettings.sshTunnel, hasStoredSshSecrets))
       isAllFieldsFilled = false;
 
-    const isTunnelEnabled = !!editingDatabase.postgresqlLogical?.sshTunnel?.isEnabled;
+    const isTunnelEnabled = !!editingSettings.sshTunnel?.isEnabled;
 
     // Behind a tunnel a loopback address means "on the bastion", which is the documented setup
     // rather than the mistake this hint warns about.
     const isLocalhostDb =
       !isTunnelEnabled &&
-      (editingDatabase.postgresqlLogical?.host?.includes('localhost') ||
-        editingDatabase.postgresqlLogical?.host?.includes('127.0.0.1'));
+      (editingSettings.host?.includes('localhost') || editingSettings.host?.includes('127.0.0.1'));
 
     const isSupabaseDb =
-      editingDatabase.postgresqlLogical?.host?.includes('supabase') ||
-      editingDatabase.postgresqlLogical?.username?.includes('supabase');
+      editingSettings.host?.includes('supabase') || editingSettings.username?.includes('supabase');
 
     return (
       <>
@@ -419,13 +400,11 @@ export const EditPostgreSqlLogicalSpecificDataComponent = ({
         <div className="mb-1 flex w-full items-center">
           <div className="min-w-[150px] pr-2">{t('common.fields.host')}</div>
           <Input
-            value={editingDatabase.postgresqlLogical?.host}
+            value={editingSettings.host}
             onChange={(e) => {
-              if (!editingDatabase.postgresqlLogical) return;
-
               const rawHost = e.target.value;
               const basePostgresql = {
-                ...editingDatabase.postgresqlLogical,
+                ...editingSettings,
                 host: rawHost.trim().replace('https://', '').replace('http://', ''),
               };
               const isHttpsHost = rawHost.trim().toLowerCase().startsWith('https://');
@@ -440,14 +419,11 @@ export const EditPostgreSqlLogicalSpecificDataComponent = ({
                 derivedSslMode = deriveSslModeFromHost(rawHost);
               }
 
-              const updatedDatabase = {
-                ...editingDatabase,
-                postgresqlLogical:
-                  derivedSslMode !== null
-                    ? applySslMode(basePostgresql, derivedSslMode)
-                    : basePostgresql,
-              };
-              setEditingDatabase(autoAddPublicSchemaForSupabase(updatedDatabase));
+              const updatedSettings =
+                derivedSslMode !== null
+                  ? applySslMode(basePostgresql, derivedSslMode)
+                  : basePostgresql;
+              setEditingSettings(autoAddPublicSchemaForSupabase(updatedSettings));
               setIsConnectionTested(false);
             }}
             size="small"
@@ -502,14 +478,11 @@ export const EditPostgreSqlLogicalSpecificDataComponent = ({
           <div className="min-w-[150px] pr-2">{t('common.fields.port')}</div>
           <InputNumber
             type="number"
-            value={editingDatabase.postgresqlLogical?.port}
+            value={editingSettings.port}
             onChange={(e) => {
-              if (!editingDatabase.postgresqlLogical || e === null) return;
+              if (e === null) return;
 
-              setEditingDatabase({
-                ...editingDatabase,
-                postgresqlLogical: { ...editingDatabase.postgresqlLogical, port: e },
-              });
+              setEditingSettings({ ...editingSettings, port: e });
               setIsConnectionTested(false);
             }}
             size="small"
@@ -521,18 +494,14 @@ export const EditPostgreSqlLogicalSpecificDataComponent = ({
         <div className="mb-1 flex w-full items-center">
           <div className="min-w-[150px] pr-2">{t('common.fields.username')}</div>
           <Input
-            value={editingDatabase.postgresqlLogical?.username}
+            value={editingSettings.username}
             onChange={(e) => {
-              if (!editingDatabase.postgresqlLogical) return;
-
-              const updatedDatabase = {
-                ...editingDatabase,
-                postgresqlLogical: {
-                  ...editingDatabase.postgresqlLogical,
+              setEditingSettings(
+                autoAddPublicSchemaForSupabase({
+                  ...editingSettings,
                   username: e.target.value.trim(),
-                },
-              };
-              setEditingDatabase(autoAddPublicSchemaForSupabase(updatedDatabase));
+                }),
+              );
               setIsConnectionTested(false);
             }}
             size="small"
@@ -546,17 +515,9 @@ export const EditPostgreSqlLogicalSpecificDataComponent = ({
         <div className="mb-1 flex w-full items-center">
           <div className="min-w-[150px] pr-2">{t('common.fields.password')}</div>
           <Input.Password
-            value={editingDatabase.postgresqlLogical?.password}
+            value={editingSettings.password}
             onChange={(e) => {
-              if (!editingDatabase.postgresqlLogical) return;
-
-              setEditingDatabase({
-                ...editingDatabase,
-                postgresqlLogical: {
-                  ...editingDatabase.postgresqlLogical,
-                  password: e.target.value,
-                },
-              });
+              setEditingSettings({ ...editingSettings, password: e.target.value });
               setIsConnectionTested(false);
             }}
             size="small"
@@ -575,17 +536,9 @@ export const EditPostgreSqlLogicalSpecificDataComponent = ({
           <div className="mb-1 flex w-full items-center">
             <div className="min-w-[150px] pr-2">{t('databases.fields.databaseName')}</div>
             <Input
-              value={editingDatabase.postgresqlLogical?.database}
+              value={editingSettings.database}
               onChange={(e) => {
-                if (!editingDatabase.postgresqlLogical) return;
-
-                setEditingDatabase({
-                  ...editingDatabase,
-                  postgresqlLogical: {
-                    ...editingDatabase.postgresqlLogical,
-                    database: e.target.value.trim(),
-                  },
-                });
+                setEditingSettings({ ...editingSettings, database: e.target.value.trim() });
                 setIsConnectionTested(false);
               }}
               size="small"
@@ -600,15 +553,10 @@ export const EditPostgreSqlLogicalSpecificDataComponent = ({
         <div className="mb-1 flex w-full items-center">
           <div className="min-w-[150px] pr-2">{t('databases.fields.sslMode')}</div>
           <Select
-            value={editingDatabase.postgresqlLogical?.sslMode ?? PostgresSslMode.Disable}
+            value={editingSettings.sslMode ?? PostgresSslMode.Disable}
             onChange={(value: PostgresSslMode) => {
-              if (!editingDatabase.postgresqlLogical) return;
-
               setHasUserChosenSslMode(true);
-              setEditingDatabase({
-                ...editingDatabase,
-                postgresqlLogical: applySslMode(editingDatabase.postgresqlLogical, value),
-              });
+              setEditingSettings(applySslMode(editingSettings, value));
               setIsConnectionTested(false);
             }}
             options={Object.values(PostgresSslMode).map((sslMode) => ({
@@ -627,17 +575,9 @@ export const EditPostgreSqlLogicalSpecificDataComponent = ({
               <InputNumber
                 min={1}
                 max={128}
-                value={editingDatabase.postgresqlLogical?.cpuCount}
+                value={editingSettings.cpuCount}
                 onChange={(value) => {
-                  if (!editingDatabase.postgresqlLogical) return;
-
-                  setEditingDatabase({
-                    ...editingDatabase,
-                    postgresqlLogical: {
-                      ...editingDatabase.postgresqlLogical,
-                      cpuCount: value || 1,
-                    },
-                  });
+                  setEditingSettings({ ...editingSettings, cpuCount: value || 1 });
                   setIsConnectionTested(false);
                 }}
                 size="small"
@@ -660,15 +600,10 @@ export const EditPostgreSqlLogicalSpecificDataComponent = ({
         {isShowAdvanced && (
           <>
             <EditSshTunnelComponent
-              sshTunnel={editingDatabase.postgresqlLogical?.sshTunnel}
+              sshTunnel={editingSettings.sshTunnel}
               hasStoredSecrets={hasStoredSshSecrets}
               onChange={(sshTunnel) => {
-                if (!editingDatabase.postgresqlLogical) return;
-
-                setEditingDatabase({
-                  ...editingDatabase,
-                  postgresqlLogical: { ...editingDatabase.postgresqlLogical, sshTunnel },
-                });
+                setEditingSettings({ ...editingSettings, sshTunnel });
                 setIsConnectionTested(false);
               }}
             />
@@ -678,16 +613,11 @@ export const EditPostgreSqlLogicalSpecificDataComponent = ({
                 <div className="min-w-[150px] pr-2">{t('databases.fields.includeSchemas')}</div>
                 <Select
                   mode="tags"
-                  value={editingDatabase.postgresqlLogical?.includeSchemas || []}
+                  value={editingSettings.includeSchemas || []}
                   onChange={(values) => {
-                    if (!editingDatabase.postgresqlLogical) return;
-
-                    setEditingDatabase({
-                      ...editingDatabase,
-                      postgresqlLogical: {
-                        ...editingDatabase.postgresqlLogical,
-                        includeSchemas: normalizeNameList(values),
-                      },
+                    setEditingSettings({
+                      ...editingSettings,
+                      includeSchemas: normalizeNameList(values),
                     });
                   }}
                   size="small"
@@ -703,16 +633,11 @@ export const EditPostgreSqlLogicalSpecificDataComponent = ({
                 <div className="min-w-[150px] pr-2">{t('databases.fields.excludeWholeTables')}</div>
                 <Select
                   mode="tags"
-                  value={editingDatabase.postgresqlLogical?.excludeTables || []}
+                  value={editingSettings.excludeTables || []}
                   onChange={(values) => {
-                    if (!editingDatabase.postgresqlLogical) return;
-
-                    setEditingDatabase({
-                      ...editingDatabase,
-                      postgresqlLogical: {
-                        ...editingDatabase.postgresqlLogical,
-                        excludeTables: normalizeNameList(values),
-                      },
+                    setEditingSettings({
+                      ...editingSettings,
+                      excludeTables: normalizeNameList(values),
                     });
                   }}
                   size="small"
@@ -735,16 +660,11 @@ export const EditPostgreSqlLogicalSpecificDataComponent = ({
                 <div className="min-w-[150px] pr-2">{t('databases.fields.excludeTableData')}</div>
                 <Select
                   mode="tags"
-                  value={editingDatabase.postgresqlLogical?.excludeTableData || []}
+                  value={editingSettings.excludeTableData || []}
                   onChange={(values) => {
-                    if (!editingDatabase.postgresqlLogical) return;
-
-                    setEditingDatabase({
-                      ...editingDatabase,
-                      postgresqlLogical: {
-                        ...editingDatabase.postgresqlLogical,
-                        excludeTableData: normalizeNameList(values),
-                      },
+                    setEditingSettings({
+                      ...editingSettings,
+                      excludeTableData: normalizeNameList(values),
                     });
                   }}
                   size="small"
@@ -774,16 +694,11 @@ export const EditPostgreSqlLogicalSpecificDataComponent = ({
                   </Tooltip>
                 </div>
                 <Checkbox
-                  checked={editingDatabase.postgresqlLogical?.isSkipUserMappings || false}
+                  checked={editingSettings.isSkipUserMappings || false}
                   onChange={(e) => {
-                    if (!editingDatabase.postgresqlLogical) return;
-
-                    setEditingDatabase({
-                      ...editingDatabase,
-                      postgresqlLogical: {
-                        ...editingDatabase.postgresqlLogical,
-                        isSkipUserMappings: e.target.checked,
-                      },
+                    setEditingSettings({
+                      ...editingSettings,
+                      isSkipUserMappings: e.target.checked,
                     });
                   }}
                 />
@@ -802,17 +717,9 @@ export const EditPostgreSqlLogicalSpecificDataComponent = ({
                   </Tooltip>
                 </div>
                 <Checkbox
-                  checked={editingDatabase.postgresqlLogical?.isExcludeExtensions || false}
+                  checked={restoreOptions.isExcludeExtensions}
                   onChange={(e) => {
-                    if (!editingDatabase.postgresqlLogical) return;
-
-                    setEditingDatabase({
-                      ...editingDatabase,
-                      postgresqlLogical: {
-                        ...editingDatabase.postgresqlLogical,
-                        isExcludeExtensions: e.target.checked,
-                      },
-                    });
+                    setRestoreOptions({ ...restoreOptions, isExcludeExtensions: e.target.checked });
                   }}
                 />
               </div>
@@ -830,17 +737,9 @@ export const EditPostgreSqlLogicalSpecificDataComponent = ({
                   </Tooltip>
                 </div>
                 <Checkbox
-                  checked={editingDatabase.postgresqlLogical?.isRestoreOwnership || false}
+                  checked={restoreOptions.isRestoreOwnership}
                   onChange={(e) => {
-                    if (!editingDatabase.postgresqlLogical) return;
-
-                    setEditingDatabase({
-                      ...editingDatabase,
-                      postgresqlLogical: {
-                        ...editingDatabase.postgresqlLogical,
-                        isRestoreOwnership: e.target.checked,
-                      },
-                    });
+                    setRestoreOptions({ ...restoreOptions, isRestoreOwnership: e.target.checked });
                   }}
                 />
               </div>
@@ -858,17 +757,9 @@ export const EditPostgreSqlLogicalSpecificDataComponent = ({
                   </Tooltip>
                 </div>
                 <Checkbox
-                  checked={editingDatabase.postgresqlLogical?.isRestorePrivileges || false}
+                  checked={restoreOptions.isRestorePrivileges}
                   onChange={(e) => {
-                    if (!editingDatabase.postgresqlLogical) return;
-
-                    setEditingDatabase({
-                      ...editingDatabase,
-                      postgresqlLogical: {
-                        ...editingDatabase.postgresqlLogical,
-                        isRestorePrivileges: e.target.checked,
-                      },
-                    });
+                    setRestoreOptions({ ...restoreOptions, isRestorePrivileges: e.target.checked });
                   }}
                 />
               </div>
@@ -916,8 +807,8 @@ export const EditPostgreSqlLogicalSpecificDataComponent = ({
   };
 
   const hasStoredSshSecrets = hasStoredSshTunnelSecretsForAuthType(
-    database.postgresqlLogical?.sshTunnel,
-    editingDatabase.postgresqlLogical?.sshTunnel?.authType,
+    settings.sshTunnel,
+    editingSettings.sshTunnel?.authType,
     database.id,
   );
 

@@ -15,15 +15,13 @@ import (
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	backups_services "databasus-backend/internal/features/backups/backups/services"
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
-	"databasus-backend/internal/features/databases"
-	postgresql_logical "databasus-backend/internal/features/databases/databases/postgresql/logical"
+	databases_bridge "databasus-backend/internal/features/databases"
 	restores_core "databasus-backend/internal/features/restores/core"
 	"databasus-backend/internal/features/restores/usecases"
 	storages_bridge "databasus-backend/internal/features/storages"
 	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
 	"databasus-backend/internal/lib/cache"
-	"databasus-backend/internal/util/encryption"
 	"databasus-backend/internal/util/logger"
 )
 
@@ -61,7 +59,7 @@ func (s failingRestoreMetadataStore) Clear(context.Context) error {
 
 func CreateTestRouter() *gin.Engine {
 	router := workspaces_testing.CreateTestRouter(
-		databases.GetDatabaseController(),
+		databases_bridge.GetTestRoutes(),
 		backups_config_logical.GetBackupConfigController(),
 	)
 
@@ -81,9 +79,9 @@ func createTestRestorerWithShutdownSignal(
 	shutdownSignal <-chan struct{},
 ) *Restorer {
 	return &Restorer{
-		databases.GetDatabaseService(),
+		databases_bridge.GetAccess(),
+		databases_bridge.GetModule,
 		backups_services.GetBackupService(),
-		encryption.GetFieldEncryptor(),
 		getRestoreRepository(),
 		backups_config_logical.GetBackupConfigService(),
 		storages_bridge.GetModule,
@@ -92,6 +90,7 @@ func createTestRestorerWithShutdownSignal(
 		getRestoreDatabaseCache(),
 		tasks_cancellation.GetRegistry(),
 		shutdownSignal,
+		config.GetEnv().ClientToolsDir,
 	}
 }
 
@@ -202,7 +201,7 @@ func CreateTestRestore(
 	restore := &restores_core.Restore{
 		BackupID: backup.ID,
 		Status:   status,
-		PostgresqlLogicalDatabase: &postgresql_logical.PostgresqlLogicalDatabase{
+		PostgresqlLogicalDatabase: &restores_core.PostgresqlTargetDatabase{
 			Host:     config.GetEnv().TestLocalhost,
 			Port:     5432,
 			Username: "test",

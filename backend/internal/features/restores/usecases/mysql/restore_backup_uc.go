@@ -24,12 +24,9 @@ import (
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	"databasus-backend/internal/features/backups/backups/encryption"
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
-	"databasus-backend/internal/features/databases"
-	mysqltypes "databasus-backend/internal/features/databases/databases/mysql"
 	restores_core "databasus-backend/internal/features/restores/core"
 	"databasus-backend/internal/lib/crypto"
 	"databasus-backend/internal/modules/storages"
-	util_encryption "databasus-backend/internal/util/encryption"
 	io_utils "databasus-backend/internal/util/io"
 )
 
@@ -40,15 +37,15 @@ type RestoreMysqlBackupUsecase struct {
 
 func (uc *RestoreMysqlBackupUsecase) Execute(
 	parentCtx context.Context,
-	originalDB *databases.Database,
-	restoringToDB *databases.Database,
+	source restores_core.SourceDatabase,
+	target restores_core.RestoreBackupRequest,
 	backupConfig *backups_config_logical.LogicalBackupConfig,
 	restore restores_core.Restore,
 	backup *backups_core_logical.LogicalBackup,
 	storageReader storages.StorageReader,
 ) error {
-	if originalDB.Type != databases.DatabaseTypeMysql {
-		return errors.New("database type not supported")
+	if source.Mysql == nil {
+		return restores_core.ErrRestoreTypeNotSupported
 	}
 
 	uc.logger.InfoContext(parentCtx,
@@ -57,7 +54,7 @@ func (uc *RestoreMysqlBackupUsecase) Execute(
 		"backup_id", backup.ID,
 	)
 
-	my := restoringToDB.Mysql
+	my := target.MysqlDatabase
 	if my == nil {
 		return fmt.Errorf("mysql configuration is required for restore")
 	}
@@ -97,7 +94,7 @@ func (uc *RestoreMysqlBackupUsecase) Execute(
 
 	return uc.restoreFromStorage(
 		parentCtx,
-		originalDB,
+		source,
 		mysqlBin,
 		args,
 		my.Password,
@@ -109,26 +106,20 @@ func (uc *RestoreMysqlBackupUsecase) Execute(
 
 func (uc *RestoreMysqlBackupUsecase) restoreFromStorage(
 	parentCtx context.Context,
-	database *databases.Database,
+	source restores_core.SourceDatabase,
 	mysqlBin string,
 	args []string,
 	password string,
 	backup *backups_core_logical.LogicalBackup,
 	storageReader storages.StorageReader,
-	myConfig *mysqltypes.MysqlDatabase,
+	myConfig *restores_core.MysqlTargetDatabase,
 ) error {
 	ctx, cancel := context.WithTimeout(parentCtx, 23*time.Hour)
 	defer cancel()
 
 	logger := uc.logger.With("backup_id", backup.ID)
 
-	fieldEncryptor := util_encryption.GetFieldEncryptor()
-	decryptedPassword, err := fieldEncryptor.Decrypt(password)
-	if err != nil {
-		return fmt.Errorf("failed to decrypt password: %w", err)
-	}
-
-	myCnfFile, err := uc.createTempMyCnfFile(myConfig, decryptedPassword)
+	myCnfFile, err := uc.createTempMyCnfFile(myConfig, password)
 	if err != nil {
 		return fmt.Errorf("failed to create .my.cnf: %w", err)
 	}
@@ -144,12 +135,12 @@ func (uc *RestoreMysqlBackupUsecase) restoreFromStorage(
 		}
 	}()
 
-	return uc.executeMysqlRestore(ctx, database, mysqlBin, args, myCnfFile, rawReader, backup)
+	return uc.executeMysqlRestore(ctx, source, mysqlBin, args, myCnfFile, rawReader, backup)
 }
 
 func (uc *RestoreMysqlBackupUsecase) executeMysqlRestore(
 	ctx context.Context,
-	database *databases.Database,
+	source restores_core.SourceDatabase,
 	mysqlBin string,
 	args []string,
 	myCnfFile string,
@@ -218,7 +209,7 @@ func (uc *RestoreMysqlBackupUsecase) executeMysqlRestore(
 	}
 
 	if waitErr != nil {
-		return uc.handleMysqlRestoreError(database, waitErr, stderrOutput.Bytes(), mysqlBin)
+		return uc.handleMysqlRestoreError(source, waitErr, stderrOutput.Bytes(), mysqlBin)
 	}
 
 	return nil
@@ -260,7 +251,7 @@ func (uc *RestoreMysqlBackupUsecase) setupDecryption(
 }
 
 func (uc *RestoreMysqlBackupUsecase) createTempMyCnfFile(
-	myConfig *mysqltypes.MysqlDatabase,
+	myConfig *restores_core.MysqlTargetDatabase,
 	password string,
 ) (string, error) {
 	// Credential files use OS temp dir (/tmp) because some filesystems
@@ -300,7 +291,7 @@ port=%d
 }
 
 func (uc *RestoreMysqlBackupUsecase) handleMysqlRestoreError(
-	database *databases.Database,
+	source restores_core.SourceDatabase,
 	waitErr error,
 	stderrOutput []byte,
 	mysqlBin string,
@@ -329,9 +320,9 @@ func (uc *RestoreMysqlBackupUsecase) handleMysqlRestoreError(
 	}
 
 	if containsIgnoreCase(stderrStr, "unknown database") {
-		backupDbName := "unknown"
-		if database.Mysql != nil && database.Mysql.Database != nil {
-			backupDbName = *database.Mysql.Database
+		backupDbName := source.GetDatabaseName()
+		if backupDbName == "" {
+			backupDbName = "unknown"
 		}
 
 		return fmt.Errorf(

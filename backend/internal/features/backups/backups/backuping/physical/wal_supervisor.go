@@ -15,18 +15,18 @@ import (
 	"github.com/google/uuid"
 
 	"databasus-backend/internal/config"
+	pgphysical "databasus-backend/internal/engines/postgresql/physical"
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	physical_repositories "databasus-backend/internal/features/backups/backups/core/physical/repositories"
 	"databasus-backend/internal/features/backups/backups/core/physical/wal_health"
 	postgresql_executor "databasus-backend/internal/features/backups/backups/usecases/physical/postgresql"
 	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
-	"databasus-backend/internal/features/databases"
-	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
+	databases_bridge "databasus-backend/internal/features/databases"
 	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
 	"databasus-backend/internal/lib/crypto"
+	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/modules/storages"
-	util_encryption "databasus-backend/internal/util/encryption"
 	"databasus-backend/internal/util/walmath"
 )
 
@@ -34,7 +34,9 @@ import (
 // heartbeat table: every tick CAS-claims the databases that are unclaimed /
 // FAILED / stale, so exactly one process streams a given database at a time.
 type PhysicalWalStreamSupervisor struct {
-	databaseService     *databases.DatabaseService
+	databaseAccess *databases_bridge.Access
+	// getDatabases is read per call: each test application installs its own module.
+	getDatabases        func() databases.Module
 	backupConfigService *backups_config_physical.BackupConfigService
 	// getStorages is read per call: each test application installs its own module.
 	getStorages              func() storages.Module
@@ -45,7 +47,6 @@ type PhysicalWalStreamSupervisor struct {
 	notificationSender       NotificationSender
 	taskCancellationRegistry *tasks_cancellation.Registry
 	masterKey                *crypto.MasterKey
-	fieldEncryptor           util_encryption.FieldEncryptor
 	logger                   *slog.Logger
 
 	chainAlertMinInterval time.Duration
@@ -231,9 +232,17 @@ func (s *PhysicalWalStreamSupervisor) startStreamer(
 	logger *slog.Logger,
 	backupConfig *backups_config_physical.PhysicalBackupConfig,
 ) {
-	db, err := s.databaseService.GetDatabaseByID(backupConfig.DatabaseID)
-	if err != nil || db.PostgresqlPhysical == nil {
+	db, err := s.databaseAccess.GetDatabaseByID(ctx, backupConfig.DatabaseID)
+	if err != nil {
 		logger.ErrorContext(ctx, "failed to load database for streamer", "error", err)
+		s.releaseClaim(logger, backupConfig.DatabaseID)
+
+		return
+	}
+
+	connectionSettings, err := s.getDatabases().GetPostgresqlPhysicalConnectionSettings(ctx, db.ID)
+	if err != nil {
+		logger.ErrorContext(ctx, "failed to read the connection settings of the physical database", "error", err)
 		s.releaseClaim(logger, backupConfig.DatabaseID)
 
 		return
@@ -259,17 +268,16 @@ func (s *PhysicalWalStreamSupervisor) startStreamer(
 	tunnelCtx, cancelTunnelOpen := context.WithTimeout(context.Background(), bastionOpenTimeout)
 	defer cancelTunnelOpen()
 
-	tunneledDatabase, err := postgresql_physical.OpenTunnel(tunnelCtx, postgresql_physical.OpenTunnelSpec{
-		Database:  db.PostgresqlPhysical,
-		Logger:    logger,
-		Encryptor: s.fieldEncryptor,
-	})
+	tunnel, err := pgphysical.NewSource(connectionSettings.Engine).OpenTunnel(tunnelCtx, logger)
 	if err != nil {
 		logger.ErrorContext(ctx, "failed to open ssh tunnel to the source cluster", "error", err)
 		s.releaseClaim(logger, backupConfig.DatabaseID)
 
 		return
 	}
+
+	sourceThroughTunnel := connectionSettings
+	sourceThroughTunnel.Engine = tunnel.GetSource().GetSettings()
 
 	// Derive from the supervisor's run ctx so a process shutdown cancels every
 	// streamer; the per-DB cancel (registered with the task cancellation registry and stored on
@@ -290,13 +298,14 @@ func (s *PhysicalWalStreamSupervisor) startStreamer(
 
 	supervisor := postgresql_executor.NewWalStreamSupervisor(postgresql_executor.WalStreamSpec{
 		DatabaseID:                db.ID,
-		SourceDB:                  tunneledDatabase.GetDatabaseThroughTunnel(),
-		IsBastionReachable:        tunneledDatabase.IsBastionReachable,
+		SourceDB:                  sourceThroughTunnel,
+		IsBastionReachable:        tunnel.IsBastionReachable,
 		StorageID:                 storage.ID,
 		FileStore:                 s.getStorages(),
 		Encryption:                backupConfig.Encryption,
 		MasterKey:                 masterKey,
-		FieldEncryptor:            s.fieldEncryptor,
+		BackupStatus:              s.getDatabases(),
+		Databases:                 s.getDatabases(),
 		WalSegmentRepo:            s.walSegmentRepo,
 		HistoryRepo:               s.historyRepo,
 		WalStreamSampleRepo:       s.walStreamSampleRepo,
@@ -321,7 +330,7 @@ func (s *PhysicalWalStreamSupervisor) startStreamer(
 
 	go func() {
 		defer close(done)
-		defer tunneledDatabase.Close()
+		defer tunnel.Close()
 		defer s.taskCancellationRegistry.UnregisterTask(db.ID)
 		defer s.removeWatchDirIfRequested(logger, streamer)
 
@@ -363,7 +372,7 @@ func (s *PhysicalWalStreamSupervisor) resolveMasterKey(
 
 func (s *PhysicalWalStreamSupervisor) gapNotifier(
 	ctx context.Context,
-	db *databases.Database,
+	db databases.Database,
 	backupConfig *backups_config_physical.PhysicalBackupConfig,
 ) func(gapStart, gapEnd walmath.LSN) {
 	return func(gapStart, gapEnd walmath.LSN) {
@@ -377,14 +386,14 @@ func (s *PhysicalWalStreamSupervisor) gapNotifier(
 			Message:  fmt.Sprintf("database_id=%s gap=[%s, %s)", db.ID, gapStart.String(), gapEnd.String()),
 		}
 
-		s.notificationSender.Notify(ctx, db.GetNotifierIDs(), notification)
+		s.notificationSender.Notify(ctx, db.NotifierIDs, notification)
 	}
 }
 
 func (s *PhysicalWalStreamSupervisor) slotRebuildFullRequester(
 	ctx context.Context,
 	logger *slog.Logger,
-	db *databases.Database,
+	db databases.Database,
 	backupConfig *backups_config_physical.PhysicalBackupConfig,
 ) func(context.Context, string) error {
 	return func(_ context.Context, reason string) error {
@@ -409,7 +418,7 @@ func (s *PhysicalWalStreamSupervisor) slotRebuildFullRequester(
 
 func (s *PhysicalWalStreamSupervisor) chainRiskNotifier(
 	ctx context.Context,
-	db *databases.Database,
+	db databases.Database,
 	backupConfig *backups_config_physical.PhysicalBackupConfig,
 ) func(postgresql_executor.ChainRiskReport) {
 	return func(report postgresql_executor.ChainRiskReport) {
@@ -420,7 +429,7 @@ func (s *PhysicalWalStreamSupervisor) chainRiskNotifier(
 // Each risk gets its own kind: the throttle key is (database, kind), so folding
 // them together would let a slot-retention warning mute the alert that says the
 // recovery point has stopped advancing.
-func buildChainRiskAlert(db *databases.Database, report postgresql_executor.ChainRiskReport) chainAlert {
+func buildChainRiskAlert(db databases.Database, report postgresql_executor.ChainRiskReport) chainAlert {
 	switch report.Reason {
 	case postgresql_executor.ChainRiskReasonArchiveStale:
 		lastArchivedAt := "never"
@@ -462,7 +471,7 @@ func buildChainRiskAlert(db *databases.Database, report postgresql_executor.Chai
 
 func (s *PhysicalWalStreamSupervisor) notifyChainBroken(
 	ctx context.Context,
-	db *databases.Database,
+	db databases.Database,
 	backupConfig *backups_config_physical.PhysicalBackupConfig,
 	alert chainAlert,
 ) {
@@ -480,7 +489,7 @@ func (s *PhysicalWalStreamSupervisor) notifyChainBroken(
 		Message:  alert.Message,
 	}
 
-	s.notificationSender.Notify(ctx, db.GetNotifierIDs(), notification)
+	s.notificationSender.Notify(ctx, db.NotifierIDs, notification)
 }
 
 func (s *PhysicalWalStreamSupervisor) recordChainAlertIfDue(key chainAlertKey) bool {

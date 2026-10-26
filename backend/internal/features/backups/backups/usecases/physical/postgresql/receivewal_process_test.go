@@ -11,18 +11,21 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 
+	pgphysical "databasus-backend/internal/engines/postgresql/physical"
 	pgshared "databasus-backend/internal/engines/postgresql/shared"
-	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
+	"databasus-backend/internal/modules/databases"
 )
 
 func Test_NewReceivewalCommand_SetsParentDeathSignalAndApplicationName(t *testing.T) {
 	databaseID := uuid.New()
-	sourceDB := &postgresql_physical.PostgresqlPhysicalDatabase{
-		DatabaseID:          &databaseID,
-		Host:                "localhost",
-		Port:                5432,
-		Username:            "replicator",
-		ReplicationSlotName: "slot",
+	sourceDB := databases.PostgresqlPhysicalConnectionSettings{
+		DatabaseID: databaseID,
+		Engine: pgphysical.Settings{
+			Host:                "localhost",
+			Port:                5432,
+			Username:            "replicator",
+			ReplicationSlotName: "slot",
+		},
 	}
 
 	cmd, err := newReceivewalCommand(t.Context(), receivewalCommandSpec{
@@ -101,7 +104,7 @@ func Test_NewReceivewalCommand_WhenTunneled_SendsPgHostAddrAndKeepsTheRealHostFl
 
 func Test_NewReceivewalCommand_WithoutATunnel_SendsNoPgHostAddr(t *testing.T) {
 	sourceDB := tunneledSourceDatabase()
-	sourceDB.LocalTunnelEndpoint = nil
+	sourceDB.Engine.HostAddr = ""
 
 	cmd, err := newReceivewalCommand(t.Context(), receivewalCommandSpec{
 		PgBin:    "sh",
@@ -129,11 +132,13 @@ func Test_SpawnAndSupervise_WhenReceiverExitsRightAfterAuthenticationFailure_End
 
 	supervisor := &WalStreamSupervisor{
 		spec: WalStreamSpec{
-			SourceDB: &postgresql_physical.PostgresqlPhysicalDatabase{
-				ID:       uuid.New(),
-				Host:     "localhost",
-				Port:     5432,
-				Username: "repl",
+			SourceDB: databases.PostgresqlPhysicalConnectionSettings{
+				DatabaseID: uuid.New(),
+				Engine: pgphysical.Settings{
+					Host:     "localhost",
+					Port:     5432,
+					Username: "repl",
+				},
 			},
 		},
 		watchDir:      t.TempDir(),

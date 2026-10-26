@@ -1,13 +1,8 @@
 import { getApplicationServer } from '../../../constants';
 import { apiHelper } from '../../../shared/api/apiHelper';
 import RequestOptions from '../../../shared/api/RequestOptions';
-import type {
-  MariadbDatabase,
-  MongodbDatabase,
-  MysqlDatabase,
-  PostgresqlLogicalDatabase,
-} from '../../databases';
 import type { Restore } from '../model/Restore';
+import type { RestoreBackupRequest } from '../model/RestoreTarget';
 
 export const restoreApi = {
   async getRestores(backupId: string) {
@@ -18,28 +13,9 @@ export const restoreApi = {
     );
   },
 
-  async restoreBackup({
-    backupId,
-    postgresql,
-    mysql,
-    mariadb,
-    mongodb,
-  }: {
-    backupId: string;
-    postgresql?: PostgresqlLogicalDatabase;
-    mysql?: MysqlDatabase;
-    mariadb?: MariadbDatabase;
-    mongodb?: MongodbDatabase;
-  }) {
+  async restoreBackup(backupId: string, request: RestoreBackupRequest) {
     const requestOptions: RequestOptions = new RequestOptions();
-    requestOptions.setBody(
-      JSON.stringify({
-        postgresqlDatabase: postgresql,
-        mysqlDatabase: mysql,
-        mariadbDatabase: mariadb,
-        mongodbDatabase: mongodb,
-      }),
-    );
+    requestOptions.setBody(JSON.stringify(request));
 
     return apiHelper.fetchPostJson<{ message: string }>(
       `${getApplicationServer()}/api/v1/restores/${backupId}/restore`,

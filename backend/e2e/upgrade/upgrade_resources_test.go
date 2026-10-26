@@ -11,6 +11,9 @@ type upgradeResources struct {
 	networkName           string
 	volumeName            string
 	sourceContainerName   string
+	mysqlContainerName    string
+	mariadbContainerName  string
+	mongodbContainerName  string
 	previousContainerName string
 	currentContainerName  string
 }
@@ -29,11 +32,21 @@ func newUpgradeResources() (upgradeResources, error) {
 		networkName:           prefix + "-network",
 		volumeName:            prefix + "-data",
 		sourceContainerName:   prefix + "-source",
+		mysqlContainerName:    prefix + "-mysql",
+		mariadbContainerName:  prefix + "-mariadb",
+		mongodbContainerName:  prefix + "-mongodb",
 		previousContainerName: prefix + "-previous",
 		currentContainerName:  prefix + "-current",
 	}, nil
 }
 
 func (r upgradeResources) getContainerNames() []string {
-	return []string{r.sourceContainerName, r.previousContainerName, r.currentContainerName}
+	return []string{
+		r.sourceContainerName,
+		r.mysqlContainerName,
+		r.mariadbContainerName,
+		r.mongodbContainerName,
+		r.previousContainerName,
+		r.currentContainerName,
+	}
 }

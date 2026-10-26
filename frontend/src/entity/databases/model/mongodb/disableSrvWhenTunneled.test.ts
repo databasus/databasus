@@ -1,12 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
+import type { MongodbSettings } from '../ProviderDatabaseSettings';
 import { SshTunnelAuthType } from '../sshtunnel/SshTunnelAuthType';
-import type { SshTunnelConfig } from '../sshtunnel/SshTunnelConfig';
+import type { SshTunnelSettings } from '../sshtunnel/SshTunnelSettings';
 import { disableSrvWhenTunneled } from './disableSrvWhenTunneled';
-import type { MongodbDatabase } from './MongodbDatabase';
-import { MongodbVersion } from './MongodbVersion';
 
-const enabledTunnel = (): SshTunnelConfig => ({
+const enabledTunnel = (): SshTunnelSettings => ({
   isEnabled: true,
   authType: SshTunnelAuthType.PASSWORD,
   host: 'bastion.example.com',
@@ -17,9 +16,11 @@ const enabledTunnel = (): SshTunnelConfig => ({
   privateKeyPassphrase: '',
 });
 
-const srvDatabase = (sshTunnel?: SshTunnelConfig): MongodbDatabase => ({
-  id: 'db-1',
-  version: MongodbVersion.MongodbVersion7,
+const srvDatabase = (
+  sshTunnel: SshTunnelSettings = { ...enabledTunnel(), isEnabled: false },
+): MongodbSettings => ({
+  type: 'MONGODB',
+  version: '7',
   host: 'cluster0.example.mongodb.net',
   port: 27017,
   username: 'testuser',
@@ -31,6 +32,7 @@ const srvDatabase = (sshTunnel?: SshTunnelConfig): MongodbDatabase => ({
   isDirectConnection: false,
   cpuCount: 1,
   sshTunnel,
+  excludeCollections: [],
 });
 
 describe('disableSrvWhenTunneled', () => {

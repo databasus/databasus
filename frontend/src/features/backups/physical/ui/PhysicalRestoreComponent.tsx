@@ -9,7 +9,7 @@ import {
   type PhysicalBackupListItem,
   physicalBackupsApi,
 } from '../../../../entity/backups/physical';
-import type { Database } from '../../../../entity/databases';
+import { type Database, DatabaseType } from '../../../../entity/databases';
 import { ApiError } from '../../../../shared/api';
 import { type TranslationKey, translateApiError } from '../../../../shared/i18n';
 import { ClipboardHelper } from '../../../../shared/lib/ClipboardHelper';
@@ -107,7 +107,9 @@ export const PhysicalRestoreComponent = ({ database, backup, onClose }: Props): 
   // The source cluster's major version, detected on connect. Physical databases are
   // always PostgreSQL 17 or 18; the fallback is only a defensive guard. Every shown
   // image tag, bin path and container PGDATA derives from this single value.
-  const pgVersion = database.postgresqlPhysical?.version ?? '17';
+  const pgVersion =
+    (database.settings.type === DatabaseType.POSTGRES_PHYSICAL && database.settings.version) ||
+    '17';
 
   const [targetTime, setTargetTime] = useState<Dayjs | undefined>();
   const [isGenerating, setIsGenerating] = useState(true);

@@ -4,6 +4,7 @@ import {
   type Database,
   DatabaseType,
   PhysicalDatabaseBackupType,
+  createDefaultDatabaseSettings,
 } from '../../../../../entity/databases';
 import { isMonitoringTabShown } from './monitoringTab';
 
@@ -13,37 +14,40 @@ vi.hoisted(() => {
   vi.stubGlobal('window', {});
 });
 
-const buildDatabase = (type: DatabaseType, backupType?: PhysicalDatabaseBackupType): Database =>
-  ({
-    id: 'database-id',
-    name: 'database',
-    workspaceId: 'workspace-id',
-    type,
-    notifiers: [],
-    postgresqlPhysical: backupType ? { backupType } : undefined,
-  }) as Database;
+const buildDatabase = (settings: Database['settings']): Database => ({
+  id: 'database-id',
+  name: 'database',
+  workspaceId: 'workspace-id',
+  settings,
+  notifierIds: [],
+});
+
+const buildPhysicalDatabase = (backupType: PhysicalDatabaseBackupType): Database =>
+  buildDatabase({
+    ...createDefaultDatabaseSettings(DatabaseType.POSTGRES_PHYSICAL),
+    backupType,
+  });
 
 describe('isMonitoringTabShown', () => {
   it('shows the tab for a physical database in WAL streaming mode', () => {
     expect(
       isMonitoringTabShown(
-        buildDatabase(
-          DatabaseType.POSTGRES_PHYSICAL,
-          PhysicalDatabaseBackupType.FULL_INCREMENTAL_WAL_STREAM,
-        ),
+        buildPhysicalDatabase(PhysicalDatabaseBackupType.FULL_INCREMENTAL_WAL_STREAM),
       ),
     ).toBe(true);
   });
 
   it('hides the tab for a physical database without WAL streaming', () => {
     expect(
-      isMonitoringTabShown(
-        buildDatabase(DatabaseType.POSTGRES_PHYSICAL, PhysicalDatabaseBackupType.FULL_INCREMENTAL),
-      ),
+      isMonitoringTabShown(buildPhysicalDatabase(PhysicalDatabaseBackupType.FULL_INCREMENTAL)),
     ).toBe(false);
   });
 
   it('hides the tab for a logical database', () => {
-    expect(isMonitoringTabShown(buildDatabase(DatabaseType.POSTGRES_LOGICAL))).toBe(false);
+    expect(
+      isMonitoringTabShown(
+        buildDatabase(createDefaultDatabaseSettings(DatabaseType.POSTGRES_LOGICAL)),
+      ),
+    ).toBe(false);
   });
 });

@@ -12,7 +12,7 @@ import (
 	physical_service "databasus-backend/internal/features/backups/backups/core/physical/service"
 	postgresql_executor "databasus-backend/internal/features/backups/backups/usecases/physical/postgresql"
 	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
-	"databasus-backend/internal/features/databases"
+	databases_bridge "databasus-backend/internal/features/databases"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	storages_bridge "databasus-backend/internal/features/storages"
 	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
@@ -23,8 +23,8 @@ import (
 
 var getPhysicalBackuper = sync.OnceValue(func() *PhysicalBackuper {
 	return &PhysicalBackuper{
-		databases.GetDatabaseService(),
-		encryption.GetFieldEncryptor(),
+		databases_bridge.GetAccess(),
+		databases_bridge.GetModule,
 		workspaces_bridge.GetAccess(),
 		physical_repositories.GetFullBackupRepository(),
 		physical_repositories.GetIncrementalBackupRepository(),
@@ -79,7 +79,8 @@ func GetPhysicalBackupCleaner() *PhysicalBackupCleaner { return getPhysicalBacku
 
 var getPhysicalWalStreamSupervisor = sync.OnceValue(func() *PhysicalWalStreamSupervisor {
 	return &PhysicalWalStreamSupervisor{
-		databases.GetDatabaseService(),
+		databases_bridge.GetAccess(),
+		databases_bridge.GetModule,
 		backups_config_physical.GetBackupConfigService(),
 		storages_bridge.GetModule,
 		physical_repositories.GetWalSegmentRepository(),
@@ -89,7 +90,6 @@ var getPhysicalWalStreamSupervisor = sync.OnceValue(func() *PhysicalWalStreamSup
 		notifiers_bridge.GetSender(),
 		tasks_cancellation.GetRegistry(),
 		encryption.GetMasterKey(),
-		encryption.GetFieldEncryptor(),
 		logger.GetLogger(),
 		defaultChainAlertMinInterval,
 		sync.Mutex{},
@@ -106,12 +106,12 @@ func GetPhysicalWalStreamSupervisor() *PhysicalWalStreamSupervisor {
 }
 
 var getPhysicalSlotCleanupListener = sync.OnceValue(func() *postgresql_executor.PhysicalSlotCleanupListener {
-	return postgresql_executor.NewPhysicalSlotCleanupListener(
-		databases.GetDatabaseService(),
-		encryption.GetFieldEncryptor(),
-		logger.GetLogger(),
-	)
+	return postgresql_executor.NewPhysicalSlotCleanupListener(databases_bridge.GetModule, logger.GetLogger())
 })
+
+func GetPhysicalSlotCleanupListener() *postgresql_executor.PhysicalSlotCleanupListener {
+	return getPhysicalSlotCleanupListener()
+}
 
 var getPhysicalBackupCanceller = sync.OnceValue(func() *PhysicalBackupCanceller {
 	return NewPhysicalBackupCanceller(
@@ -132,16 +132,11 @@ var getPhysicalBackupCancellationListener = sync.OnceValue(func() *PhysicalBacku
 	}
 })
 
+func GetPhysicalBackupCancellationListener() *PhysicalBackupCancellationListener {
+	return getPhysicalBackupCancellationListener()
+}
+
 var SetupDependencies = sync.OnceFunc(func() {
-	// Order matters: the cancellation listener stops the local pg_receivewal and
-	// deletes the streamer row first, so the slot cleanup listener that runs next
-	// can drop the (now detaching) WAL slot instead of refusing it as active and
-	// leaving it to pin WAL forever.
-	databases.GetDatabaseService().AddDbRemoveListener(getPhysicalBackupCancellationListener())
-	// The cascade that would take the object names away runs only after every
-	// listener has returned.
-	databases.GetDatabaseService().AddDbRemoveListener(physical_service.GetPhysicalBackupService())
-	databases.GetDatabaseService().AddDbRemoveListener(getPhysicalSlotCleanupListener())
 	backups_config_physical.GetBackupConfigService().
 		SetBackupCancellationListener(getPhysicalBackupCancellationListener())
 })

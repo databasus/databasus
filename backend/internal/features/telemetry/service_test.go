@@ -17,22 +17,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	mariadb_engine "databasus-backend/internal/engines/mariadb"
-	mongodb_engine "databasus-backend/internal/engines/mongodb"
-	mysql_engine "databasus-backend/internal/engines/mysql"
-	pgshared "databasus-backend/internal/engines/postgresql/shared"
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	physical_models "databasus-backend/internal/features/backups/backups/core/physical/models"
-	"databasus-backend/internal/features/databases"
-	"databasus-backend/internal/features/databases/databases/mariadb"
-	"databasus-backend/internal/features/databases/databases/mongodb"
-	"databasus-backend/internal/features/databases/databases/mysql"
-	postgresql_logical "databasus-backend/internal/features/databases/databases/postgresql/logical"
-	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
 	"databasus-backend/internal/features/intervals"
-	"databasus-backend/internal/features/sshtunnel"
 	verification_agents "databasus-backend/internal/features/verification/agents"
 	verification_config "databasus-backend/internal/features/verification/config"
+	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/modules/storages"
 )
@@ -48,11 +38,11 @@ func (f *fakeSender) Send(_ context.Context, req *CollectRequest) error {
 }
 
 type fakeDatabaseLister struct {
-	databases []*databases.Database
+	databases []databases.TelemetryEntry
 	err       error
 }
 
-func (f *fakeDatabaseLister) GetAllDatabases() ([]*databases.Database, error) {
+func (f *fakeDatabaseLister) GetTelemetry(context.Context) ([]databases.TelemetryEntry, error) {
 	return f.databases, f.err
 }
 
@@ -104,9 +94,7 @@ func (f *fakeBackupChecker) GetLatestCompletedBackup(
 
 type fakeLatestPhysicalBackupReader struct {
 	fullBackups         map[uuid.UUID]*physical_models.PhysicalFullBackup
-	lastBackupTimes     map[uuid.UUID]time.Time
 	latestFullBackupErr error
-	lastBackupTimesErr  error
 }
 
 func (f *fakeLatestPhysicalBackupReader) GetLatestCompletedFullBackup(
@@ -117,24 +105,6 @@ func (f *fakeLatestPhysicalBackupReader) GetLatestCompletedFullBackup(
 	}
 
 	return f.fullBackups[databaseID], nil
-}
-
-func (f *fakeLatestPhysicalBackupReader) GetLastBackupTimesByDatabaseIDs(
-	databaseIDs []uuid.UUID,
-) (map[uuid.UUID]time.Time, error) {
-	if f.lastBackupTimesErr != nil {
-		return nil, f.lastBackupTimesErr
-	}
-
-	foundLastBackupTimes := make(map[uuid.UUID]time.Time, len(databaseIDs))
-
-	for _, databaseID := range databaseIDs {
-		if lastBackupTime, hasBackup := f.lastBackupTimes[databaseID]; hasBackup {
-			foundLastBackupTimes[databaseID] = lastBackupTime
-		}
-	}
-
-	return foundLastBackupTimes, nil
 }
 
 type fakeUserCounter struct {
@@ -250,77 +220,50 @@ func unavailableStatus() *databases.HealthStatus {
 	return &s
 }
 
-func postgresDatabase(name string, status *databases.HealthStatus) *databases.Database {
-	return &databases.Database{
-		ID:           uuid.New(),
-		Name:         name,
-		Type:         databases.DatabaseTypePostgresLogical,
-		HealthStatus: status,
-		PostgresqlLogical: &postgresql_logical.PostgresqlLogicalDatabase{
-			Version: pgshared.Version("16"),
-		},
-	}
+func postgresDatabase(status *databases.HealthStatus) databases.TelemetryEntry {
+	return newTelemetryEntry(databases.TypePostgresqlLogical, "16", status)
 }
 
 func physicalDatabase(
-	name string,
-	backupType postgresql_physical.BackupType,
+	backupType databases.PhysicalBackupType,
 	status *databases.HealthStatus,
-) *databases.Database {
-	return &databases.Database{
-		ID:           uuid.New(),
-		Name:         name,
-		Type:         databases.DatabaseTypePostgresPhysical,
-		HealthStatus: status,
-		PostgresqlPhysical: &postgresql_physical.PostgresqlPhysicalDatabase{
-			Version:    pgshared.Version("17"),
-			BackupType: backupType,
-		},
-	}
+) databases.TelemetryEntry {
+	physicalEntry := newTelemetryEntry(databases.TypePostgresqlPhysical, "17", status)
+	physicalEntry.PhysicalBackupType = backupType
+
+	return physicalEntry
 }
 
-func databasesForEveryEngine(isSshTunnelEnabled bool) []*databases.Database {
-	tunnel := sshtunnel.Config{
-		IsEnabled: isSshTunnelEnabled,
-		Host:      "bastion.internal",
-		Port:      22,
-		Username:  "backup",
-		AuthType:  sshtunnel.AuthTypePassword,
-		Password:  "tunnelpassword",
+func newTelemetryEntry(
+	databaseType databases.Type,
+	version string,
+	status *databases.HealthStatus,
+) databases.TelemetryEntry {
+	telemetryEntry := databases.TelemetryEntry{
+		DatabaseID:     uuid.New(),
+		Type:           databaseType,
+		HealthStatus:   status,
+		LastBackupTime: nil,
+	}
+	telemetryEntry.Version = version
+
+	return telemetryEntry
+}
+
+func databasesForEveryEngine(isSshTunnelEnabled bool) []databases.TelemetryEntry {
+	telemetryEntries := []databases.TelemetryEntry{
+		postgresDatabase(availableStatus()),
+		physicalDatabase(databases.PhysicalBackupTypeFull, availableStatus()),
+		newTelemetryEntry(databases.TypeMysql, "8.0", availableStatus()),
+		newTelemetryEntry(databases.TypeMariadb, "10.6", availableStatus()),
+		newTelemetryEntry(databases.TypeMongodb, "6.0", availableStatus()),
 	}
 
-	logicalPostgresDatabase := postgresDatabase("pg-logical", availableStatus())
-	logicalPostgresDatabase.PostgresqlLogical.SshTunnel = tunnel
-
-	physicalPostgresDatabase := physicalDatabase(
-		"pg-physical", postgresql_physical.BackupTypeFullOnly, availableStatus())
-	physicalPostgresDatabase.PostgresqlPhysical.SshTunnel = tunnel
-
-	return []*databases.Database{
-		logicalPostgresDatabase,
-		physicalPostgresDatabase,
-		{
-			ID:           uuid.New(),
-			Name:         "my",
-			Type:         databases.DatabaseTypeMysql,
-			HealthStatus: availableStatus(),
-			Mysql:        &mysql.MysqlDatabase{Version: mysql_engine.Version("8.0"), SshTunnel: tunnel},
-		},
-		{
-			ID:           uuid.New(),
-			Name:         "maria",
-			Type:         databases.DatabaseTypeMariadb,
-			HealthStatus: availableStatus(),
-			Mariadb:      &mariadb.MariadbDatabase{Version: mariadb_engine.Version("10.6"), SshTunnel: tunnel},
-		},
-		{
-			ID:           uuid.New(),
-			Name:         "mongo",
-			Type:         databases.DatabaseTypeMongodb,
-			HealthStatus: availableStatus(),
-			Mongodb:      &mongodb.MongodbDatabase{Version: mongodb_engine.Version("6.0"), SshTunnel: tunnel},
-		},
+	for index := range telemetryEntries {
+		telemetryEntries[index].IsSSHTunnelEnabled = isSshTunnelEnabled
 	}
+
+	return telemetryEntries
 }
 
 func assertEveryEntrySerializesSshTunnelEnabled(
@@ -375,32 +318,14 @@ func Test_BuildAndSend_WhenSshTunnelDisabled_EveryEngineSerializesIsSshTunnelEna
 }
 
 func Test_BuildAndSend_ProducesExpectedRequest(t *testing.T) {
-	pgDB := postgresDatabase("pg", availableStatus())
-	mysqlDB := &databases.Database{
-		ID:           uuid.New(),
-		Name:         "my",
-		Type:         databases.DatabaseTypeMysql,
-		HealthStatus: availableStatus(),
-		Mysql:        &mysql.MysqlDatabase{Version: mysql_engine.Version("8.0")},
-	}
-	mariaDB := &databases.Database{
-		ID:           uuid.New(),
-		Name:         "maria",
-		Type:         databases.DatabaseTypeMariadb,
-		HealthStatus: availableStatus(),
-		Mariadb:      &mariadb.MariadbDatabase{Version: mariadb_engine.Version("10.6")},
-	}
-	mongoDB := &databases.Database{
-		ID:           uuid.New(),
-		Name:         "mongo",
-		Type:         databases.DatabaseTypeMongodb,
-		HealthStatus: availableStatus(),
-		Mongodb:      &mongodb.MongodbDatabase{Version: mongodb_engine.Version("6.0")},
-	}
+	pgDB := postgresDatabase(availableStatus())
+	mysqlDB := newTelemetryEntry(databases.TypeMysql, "8.0", availableStatus())
+	mariaDB := newTelemetryEntry(databases.TypeMariadb, "10.6", availableStatus())
+	mongoDB := newTelemetryEntry(databases.TypeMongodb, "6.0", availableStatus())
 
 	sender := &fakeSender{}
 	service := newServiceUnderTest(t, serviceDependencies{
-		databaseLister: &fakeDatabaseLister{databases: []*databases.Database{pgDB, mysqlDB, mariaDB, mongoDB}},
+		databaseLister: &fakeDatabaseLister{databases: []databases.TelemetryEntry{pgDB, mysqlDB, mariaDB, mongoDB}},
 		storageLister: &fakeStorageTypeLister{storageTypes: []storages.Type{
 			storages.TypeS3,
 			storages.TypeLocal,
@@ -508,11 +433,11 @@ func Test_BuildAndSend_WhenSenderFails_PropagatesError(t *testing.T) {
 }
 
 func Test_BuildAndSend_WhenDbHealthStatusAvailable_DbIncluded(t *testing.T) {
-	db := postgresDatabase("pg", availableStatus())
+	db := postgresDatabase(availableStatus())
 
 	sender := &fakeSender{}
 	service := newServiceUnderTest(t, serviceDependencies{
-		databaseLister: &fakeDatabaseLister{databases: []*databases.Database{db}},
+		databaseLister: &fakeDatabaseLister{databases: []databases.TelemetryEntry{db}},
 		sender:         sender,
 	})
 
@@ -522,11 +447,11 @@ func Test_BuildAndSend_WhenDbHealthStatusAvailable_DbIncluded(t *testing.T) {
 }
 
 func Test_BuildAndSend_WhenDbHealthStatusUnavailable_DbExcluded(t *testing.T) {
-	db := postgresDatabase("pg", unavailableStatus())
+	db := postgresDatabase(unavailableStatus())
 
 	sender := &fakeSender{}
 	service := newServiceUnderTest(t, serviceDependencies{
-		databaseLister: &fakeDatabaseLister{databases: []*databases.Database{db}},
+		databaseLister: &fakeDatabaseLister{databases: []databases.TelemetryEntry{db}},
 		sender:         sender,
 	})
 
@@ -536,12 +461,12 @@ func Test_BuildAndSend_WhenDbHealthStatusUnavailable_DbExcluded(t *testing.T) {
 }
 
 func Test_BuildAndSend_WhenHealthcheckOffAndRecentBackup_DbIncluded(t *testing.T) {
-	db := postgresDatabase("pg", nil)
+	db := postgresDatabase(nil)
 
 	sender := &fakeSender{}
 	service := newServiceUnderTest(t, serviceDependencies{
-		databaseLister: &fakeDatabaseLister{databases: []*databases.Database{db}},
-		backupChecker:  &fakeBackupChecker{hasBackupSince: map[uuid.UUID]bool{db.ID: true}},
+		databaseLister: &fakeDatabaseLister{databases: []databases.TelemetryEntry{db}},
+		backupChecker:  &fakeBackupChecker{hasBackupSince: map[uuid.UUID]bool{db.DatabaseID: true}},
 		sender:         sender,
 	})
 
@@ -552,11 +477,11 @@ func Test_BuildAndSend_WhenHealthcheckOffAndRecentBackup_DbIncluded(t *testing.T
 }
 
 func Test_BuildAndSend_WhenHealthcheckOffAndNoRecentBackup_DbExcluded(t *testing.T) {
-	db := postgresDatabase("pg", nil)
+	db := postgresDatabase(nil)
 
 	sender := &fakeSender{}
 	service := newServiceUnderTest(t, serviceDependencies{
-		databaseLister: &fakeDatabaseLister{databases: []*databases.Database{db}},
+		databaseLister: &fakeDatabaseLister{databases: []databases.TelemetryEntry{db}},
 		backupChecker:  &fakeBackupChecker{hasBackupSince: map[uuid.UUID]bool{}},
 		sender:         sender,
 	})
@@ -567,12 +492,12 @@ func Test_BuildAndSend_WhenHealthcheckOffAndNoRecentBackup_DbExcluded(t *testing
 }
 
 func Test_BuildAndSend_WhenBackupCheckerFails_ReturnsError(t *testing.T) {
-	db := postgresDatabase("pg", nil)
+	db := postgresDatabase(nil)
 	checkerErr := errors.New("db down")
 
 	sender := &fakeSender{}
 	service := newServiceUnderTest(t, serviceDependencies{
-		databaseLister: &fakeDatabaseLister{databases: []*databases.Database{db}},
+		databaseLister: &fakeDatabaseLister{databases: []databases.TelemetryEntry{db}},
 		backupChecker:  &fakeBackupChecker{err: checkerErr},
 		sender:         sender,
 	})
@@ -584,14 +509,14 @@ func Test_BuildAndSend_WhenBackupCheckerFails_ReturnsError(t *testing.T) {
 }
 
 func Test_BuildAndSend_WhenLatestBackupHasBothSizes_IncludesBoth(t *testing.T) {
-	db := postgresDatabase("pg", availableStatus())
+	db := postgresDatabase(availableStatus())
 
 	sender := &fakeSender{}
 	service := newServiceUnderTest(t, serviceDependencies{
-		databaseLister: &fakeDatabaseLister{databases: []*databases.Database{db}},
+		databaseLister: &fakeDatabaseLister{databases: []databases.TelemetryEntry{db}},
 		backupChecker: &fakeBackupChecker{
 			latestBackups: map[uuid.UUID]*backups_core_logical.LogicalBackup{
-				db.ID: {BackupSizeMb: 870.4, BackupRawDbSizeMb: 4321.7},
+				db.DatabaseID: {BackupSizeMb: 870.4, BackupRawDbSizeMb: 4321.7},
 			},
 		},
 		sender: sender,
@@ -607,14 +532,14 @@ func Test_BuildAndSend_WhenLatestBackupHasBothSizes_IncludesBoth(t *testing.T) {
 }
 
 func Test_BuildAndSend_WhenSizesAreSubMb_RoundsUpToOne(t *testing.T) {
-	db := postgresDatabase("pg", availableStatus())
+	db := postgresDatabase(availableStatus())
 
 	sender := &fakeSender{}
 	service := newServiceUnderTest(t, serviceDependencies{
-		databaseLister: &fakeDatabaseLister{databases: []*databases.Database{db}},
+		databaseLister: &fakeDatabaseLister{databases: []databases.TelemetryEntry{db}},
 		backupChecker: &fakeBackupChecker{
 			latestBackups: map[uuid.UUID]*backups_core_logical.LogicalBackup{
-				db.ID: {BackupSizeMb: 0.3, BackupRawDbSizeMb: 0.1},
+				db.DatabaseID: {BackupSizeMb: 0.3, BackupRawDbSizeMb: 0.1},
 			},
 		},
 		sender: sender,
@@ -635,14 +560,14 @@ func Test_BuildAndSend_WhenSizesAreSubMb_RoundsUpToOne(t *testing.T) {
 }
 
 func Test_BuildAndSend_WhenRawSizeZero_IncludesOnlyBackupSize(t *testing.T) {
-	db := postgresDatabase("pg", availableStatus())
+	db := postgresDatabase(availableStatus())
 
 	sender := &fakeSender{}
 	service := newServiceUnderTest(t, serviceDependencies{
-		databaseLister: &fakeDatabaseLister{databases: []*databases.Database{db}},
+		databaseLister: &fakeDatabaseLister{databases: []databases.TelemetryEntry{db}},
 		backupChecker: &fakeBackupChecker{
 			latestBackups: map[uuid.UUID]*backups_core_logical.LogicalBackup{
-				db.ID: {BackupSizeMb: 100, BackupRawDbSizeMb: 0},
+				db.DatabaseID: {BackupSizeMb: 100, BackupRawDbSizeMb: 0},
 			},
 		},
 		sender: sender,
@@ -663,14 +588,14 @@ func Test_BuildAndSend_WhenRawSizeZero_IncludesOnlyBackupSize(t *testing.T) {
 }
 
 func Test_BuildAndSend_WhenBackupSizeZero_IncludesOnlyRawSize(t *testing.T) {
-	db := postgresDatabase("pg", availableStatus())
+	db := postgresDatabase(availableStatus())
 
 	sender := &fakeSender{}
 	service := newServiceUnderTest(t, serviceDependencies{
-		databaseLister: &fakeDatabaseLister{databases: []*databases.Database{db}},
+		databaseLister: &fakeDatabaseLister{databases: []databases.TelemetryEntry{db}},
 		backupChecker: &fakeBackupChecker{
 			latestBackups: map[uuid.UUID]*backups_core_logical.LogicalBackup{
-				db.ID: {BackupSizeMb: 0, BackupRawDbSizeMb: 999},
+				db.DatabaseID: {BackupSizeMb: 0, BackupRawDbSizeMb: 999},
 			},
 		},
 		sender: sender,
@@ -686,11 +611,11 @@ func Test_BuildAndSend_WhenBackupSizeZero_IncludesOnlyRawSize(t *testing.T) {
 }
 
 func Test_BuildAndSend_WhenNoCompletedBackup_OmitsBothSizes(t *testing.T) {
-	db := postgresDatabase("pg", availableStatus())
+	db := postgresDatabase(availableStatus())
 
 	sender := &fakeSender{}
 	service := newServiceUnderTest(t, serviceDependencies{
-		databaseLister: &fakeDatabaseLister{databases: []*databases.Database{db}},
+		databaseLister: &fakeDatabaseLister{databases: []databases.TelemetryEntry{db}},
 		sender:         sender,
 	})
 
@@ -709,12 +634,12 @@ func Test_BuildAndSend_WhenNoCompletedBackup_OmitsBothSizes(t *testing.T) {
 }
 
 func Test_BuildAndSend_WhenLatestBackupLookupFails_ReturnsError(t *testing.T) {
-	db := postgresDatabase("pg", availableStatus())
+	db := postgresDatabase(availableStatus())
 	lookupErr := errors.New("query exploded")
 
 	sender := &fakeSender{}
 	service := newServiceUnderTest(t, serviceDependencies{
-		databaseLister: &fakeDatabaseLister{databases: []*databases.Database{db}},
+		databaseLister: &fakeDatabaseLister{databases: []databases.TelemetryEntry{db}},
 		backupChecker:  &fakeBackupChecker{latestErr: lookupErr},
 		sender:         sender,
 	})
@@ -778,15 +703,15 @@ func Test_BuildAndSend_WhenNoAgents_VerificationAgentsIsEmpty(t *testing.T) {
 }
 
 func Test_BuildAndSend_WhenDbHasAfterBackupConfig_VerificationBlockOmitsIntervalType(t *testing.T) {
-	db := postgresDatabase("pg", availableStatus())
+	db := postgresDatabase(availableStatus())
 
 	sender := &fakeSender{}
 	service := newServiceUnderTest(t, serviceDependencies{
-		databaseLister: &fakeDatabaseLister{databases: []*databases.Database{db}},
+		databaseLister: &fakeDatabaseLister{databases: []databases.TelemetryEntry{db}},
 		verificationConfigLister: &fakeVerificationConfigLister{
 			enabled: []*verification_config.BackupVerificationConfig{
 				{
-					DatabaseID:                     db.ID,
+					DatabaseID:                     db.DatabaseID,
 					IsScheduledVerificationEnabled: true,
 					ScheduleType:                   verification_config.VerificationScheduleAfterBackup,
 				},
@@ -812,15 +737,15 @@ func Test_BuildAndSend_WhenDbHasAfterBackupConfig_VerificationBlockOmitsInterval
 }
 
 func Test_BuildAndSend_WhenDbHasIntervalDailyConfig_IncludesIntervalType(t *testing.T) {
-	db := postgresDatabase("pg", availableStatus())
+	db := postgresDatabase(availableStatus())
 
 	sender := &fakeSender{}
 	service := newServiceUnderTest(t, serviceDependencies{
-		databaseLister: &fakeDatabaseLister{databases: []*databases.Database{db}},
+		databaseLister: &fakeDatabaseLister{databases: []databases.TelemetryEntry{db}},
 		verificationConfigLister: &fakeVerificationConfigLister{
 			enabled: []*verification_config.BackupVerificationConfig{
 				{
-					DatabaseID:                     db.ID,
+					DatabaseID:                     db.DatabaseID,
 					IsScheduledVerificationEnabled: true,
 					ScheduleType:                   verification_config.VerificationScheduleInterval,
 					VerificationInterval:           intervals.Interval{Type: intervals.IntervalDaily},
@@ -846,11 +771,11 @@ func Test_BuildAndSend_WhenDbHasIntervalDailyConfig_IncludesIntervalType(t *test
 }
 
 func Test_BuildAndSend_WhenDbHasNoEnabledConfig_VerificationBlockAbsent(t *testing.T) {
-	db := postgresDatabase("pg", availableStatus())
+	db := postgresDatabase(availableStatus())
 
 	sender := &fakeSender{}
 	service := newServiceUnderTest(t, serviceDependencies{
-		databaseLister: &fakeDatabaseLister{databases: []*databases.Database{db}},
+		databaseLister: &fakeDatabaseLister{databases: []databases.TelemetryEntry{db}},
 		sender:         sender,
 	})
 
@@ -895,18 +820,16 @@ func Test_BuildAndSend_WhenVerificationConfigListFails_ReturnsError(t *testing.T
 }
 
 func Test_BuildAndSend_WhenPhysicalDatabase_EmitsTypeBackupTypeAndFullBackupSizes(t *testing.T) {
-	db := physicalDatabase(
-		"pg-physical",
-		postgresql_physical.BackupTypeFullIncrementalAndWalStream,
+	db := physicalDatabase(databases.PhysicalBackupTypeFullIncrementalWalStream,
 		availableStatus(),
 	)
 
 	sender := &fakeSender{}
 	service := newServiceUnderTest(t, serviceDependencies{
-		databaseLister: &fakeDatabaseLister{databases: []*databases.Database{db}},
+		databaseLister: &fakeDatabaseLister{databases: []databases.TelemetryEntry{db}},
 		physicalBackupReader: &fakeLatestPhysicalBackupReader{
 			fullBackups: map[uuid.UUID]*physical_models.PhysicalFullBackup{
-				db.ID: {BackupSizeMb: new(38400.2), RawSizeMb: new(192000.7)},
+				db.DatabaseID: {BackupSizeMb: new(38400.2), RawSizeMb: new(192000.7)},
 			},
 		},
 		sender: sender,
@@ -929,11 +852,11 @@ func Test_BuildAndSend_WhenPhysicalDatabase_EmitsTypeBackupTypeAndFullBackupSize
 }
 
 func Test_BuildAndSend_WhenPhysicalDatabaseHasNoFullBackup_OmitsSizes(t *testing.T) {
-	db := physicalDatabase("pg-physical", postgresql_physical.BackupTypeFullOnly, availableStatus())
+	db := physicalDatabase(databases.PhysicalBackupTypeFull, availableStatus())
 
 	sender := &fakeSender{}
 	service := newServiceUnderTest(t, serviceDependencies{
-		databaseLister: &fakeDatabaseLister{databases: []*databases.Database{db}},
+		databaseLister: &fakeDatabaseLister{databases: []databases.TelemetryEntry{db}},
 		sender:         sender,
 	})
 
@@ -953,12 +876,12 @@ func Test_BuildAndSend_WhenPhysicalDatabaseHasNoFullBackup_OmitsSizes(t *testing
 }
 
 func Test_BuildAndSend_WhenPhysicalFullBackupLookupFails_ReturnsError(t *testing.T) {
-	db := physicalDatabase("pg-physical", postgresql_physical.BackupTypeFullOnly, availableStatus())
+	db := physicalDatabase(databases.PhysicalBackupTypeFull, availableStatus())
 	lookupErr := errors.New("physical query exploded")
 
 	sender := &fakeSender{}
 	service := newServiceUnderTest(t, serviceDependencies{
-		databaseLister:       &fakeDatabaseLister{databases: []*databases.Database{db}},
+		databaseLister:       &fakeDatabaseLister{databases: []databases.TelemetryEntry{db}},
 		physicalBackupReader: &fakeLatestPhysicalBackupReader{latestFullBackupErr: lookupErr},
 		sender:               sender,
 	})
@@ -972,17 +895,13 @@ func Test_BuildAndSend_WhenPhysicalFullBackupLookupFails_ReturnsError(t *testing
 func Test_BuildAndSend_WhenPhysicalDatabaseHasNoHealthStatusButRecentBackup_DatabaseIsReported(
 	t *testing.T,
 ) {
-	db := physicalDatabase("pg-physical", postgresql_physical.BackupTypeFullIncrementalAndWalStream, nil)
+	db := physicalDatabase(databases.PhysicalBackupTypeFullIncrementalWalStream, nil)
+	db.LastBackupTime = new(time.Now().UTC().Add(-2 * time.Hour))
 
 	sender := &fakeSender{}
 	service := newServiceUnderTest(t, serviceDependencies{
-		databaseLister: &fakeDatabaseLister{databases: []*databases.Database{db}},
-		physicalBackupReader: &fakeLatestPhysicalBackupReader{
-			lastBackupTimes: map[uuid.UUID]time.Time{
-				db.ID: time.Now().UTC().Add(-2 * time.Hour),
-			},
-		},
-		sender: sender,
+		databaseLister: &fakeDatabaseLister{databases: []databases.TelemetryEntry{db}},
+		sender:         sender,
 	})
 
 	require.NoError(t, service.BuildAndSend(context.Background()))
@@ -997,17 +916,13 @@ func Test_BuildAndSend_WhenPhysicalDatabaseHasNoHealthStatusButRecentBackup_Data
 func Test_BuildAndSend_WhenPhysicalDatabaseHasNoHealthStatusAndStaleBackup_DatabaseIsSkipped(
 	t *testing.T,
 ) {
-	db := physicalDatabase("pg-physical", postgresql_physical.BackupTypeFullOnly, nil)
+	db := physicalDatabase(databases.PhysicalBackupTypeFull, nil)
+	db.LastBackupTime = new(time.Now().UTC().Add(-activeBackupWindow - time.Hour))
 
 	sender := &fakeSender{}
 	service := newServiceUnderTest(t, serviceDependencies{
-		databaseLister: &fakeDatabaseLister{databases: []*databases.Database{db}},
-		physicalBackupReader: &fakeLatestPhysicalBackupReader{
-			lastBackupTimes: map[uuid.UUID]time.Time{
-				db.ID: time.Now().UTC().Add(-activeBackupWindow - time.Hour),
-			},
-		},
-		sender: sender,
+		databaseLister: &fakeDatabaseLister{databases: []databases.TelemetryEntry{db}},
+		sender:         sender,
 	})
 
 	require.NoError(t, service.BuildAndSend(context.Background()))
@@ -1018,11 +933,11 @@ func Test_BuildAndSend_WhenPhysicalDatabaseHasNoHealthStatusAndStaleBackup_Datab
 func Test_BuildAndSend_WhenPhysicalDatabaseHasNoHealthStatusAndNoBackups_DatabaseIsSkipped(
 	t *testing.T,
 ) {
-	db := physicalDatabase("pg-physical", postgresql_physical.BackupTypeFullOnly, nil)
+	db := physicalDatabase(databases.PhysicalBackupTypeFull, nil)
 
 	sender := &fakeSender{}
 	service := newServiceUnderTest(t, serviceDependencies{
-		databaseLister: &fakeDatabaseLister{databases: []*databases.Database{db}},
+		databaseLister: &fakeDatabaseLister{databases: []databases.TelemetryEntry{db}},
 		sender:         sender,
 	})
 
@@ -1031,40 +946,21 @@ func Test_BuildAndSend_WhenPhysicalDatabaseHasNoHealthStatusAndNoBackups_Databas
 	assert.Empty(t, sender.calls[0].Databases)
 }
 
-func Test_BuildAndSend_WhenPhysicalLastBackupTimeLookupFails_ReturnsError(t *testing.T) {
-	db := physicalDatabase("pg-physical", postgresql_physical.BackupTypeFullOnly, nil)
-	lookupErr := errors.New("last backup time query exploded")
-
-	sender := &fakeSender{}
-	service := newServiceUnderTest(t, serviceDependencies{
-		databaseLister:       &fakeDatabaseLister{databases: []*databases.Database{db}},
-		physicalBackupReader: &fakeLatestPhysicalBackupReader{lastBackupTimesErr: lookupErr},
-		sender:               sender,
-	})
-
-	err := service.BuildAndSend(context.Background())
-	require.Error(t, err)
-	assert.ErrorIs(t, err, lookupErr)
-	assert.Empty(t, sender.calls)
-}
-
 func Test_BuildAndSend_WhenPayloadSerialized_ContainsDocumentedContractKeys(t *testing.T) {
-	physicalDB := physicalDatabase(
-		"pg-physical",
-		postgresql_physical.BackupTypeFullIncrementalAndWalStream,
+	physicalDB := physicalDatabase(databases.PhysicalBackupTypeFullIncrementalWalStream,
 		availableStatus(),
 	)
 
 	sender := &fakeSender{}
 	service := newServiceUnderTest(t, serviceDependencies{
-		databaseLister: &fakeDatabaseLister{databases: []*databases.Database{physicalDB}},
+		databaseLister: &fakeDatabaseLister{databases: []databases.TelemetryEntry{physicalDB}},
 		storageLister:  &fakeStorageTypeLister{storageTypes: []storages.Type{storages.TypeLocal}},
 		notifierLister: &fakeNotifierLister{
 			notifierTypes: []notifiers.Type{notifiers.TypeEmail},
 		},
 		physicalBackupReader: &fakeLatestPhysicalBackupReader{
 			fullBackups: map[uuid.UUID]*physical_models.PhysicalFullBackup{
-				physicalDB.ID: {BackupSizeMb: new(870.0), RawSizeMb: new(4321.0)},
+				physicalDB.DatabaseID: {BackupSizeMb: new(870.0), RawSizeMb: new(4321.0)},
 			},
 		},
 		verificationAgentLister: &fakeVerificationAgentLister{

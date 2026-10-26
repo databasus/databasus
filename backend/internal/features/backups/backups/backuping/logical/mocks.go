@@ -15,7 +15,7 @@ import (
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
-	"databasus-backend/internal/features/databases"
+	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/modules/storages"
 )
@@ -40,7 +40,7 @@ func (uc *CreateFailedBackupUsecase) Execute(
 	ctx context.Context,
 	backup *backups_core_logical.LogicalBackup,
 	backupConfig *backups_config_logical.LogicalBackupConfig,
-	database *databases.Database,
+	database databases.Database,
 	fileStore backups_core_logical.BackupFileStore,
 	backupProgressListener func(completedMBs float64),
 ) (*backups_core_logical.BackupArtifacts, error) {
@@ -54,7 +54,7 @@ func (uc *CreateSuccessBackupUsecase) Execute(
 	ctx context.Context,
 	backup *backups_core_logical.LogicalBackup,
 	backupConfig *backups_config_logical.LogicalBackupConfig,
-	database *databases.Database,
+	database databases.Database,
 	fileStore backups_core_logical.BackupFileStore,
 	backupProgressListener func(completedMBs float64),
 ) (*backups_core_logical.BackupArtifacts, error) {
@@ -70,7 +70,7 @@ func (uc *CreateLargeBackupUsecase) Execute(
 	ctx context.Context,
 	backup *backups_core_logical.LogicalBackup,
 	backupConfig *backups_config_logical.LogicalBackupConfig,
-	database *databases.Database,
+	database databases.Database,
 	fileStore backups_core_logical.BackupFileStore,
 	backupProgressListener func(completedMBs float64),
 ) (*backups_core_logical.BackupArtifacts, error) {
@@ -86,7 +86,7 @@ func (uc *CreateProgressiveBackupUsecase) Execute(
 	ctx context.Context,
 	backup *backups_core_logical.LogicalBackup,
 	backupConfig *backups_config_logical.LogicalBackupConfig,
-	database *databases.Database,
+	database databases.Database,
 	fileStore backups_core_logical.BackupFileStore,
 	backupProgressListener func(completedMBs float64),
 ) (*backups_core_logical.BackupArtifacts, error) {
@@ -122,7 +122,7 @@ func (uc *CreateMediumBackupUsecase) Execute(
 	ctx context.Context,
 	backup *backups_core_logical.LogicalBackup,
 	backupConfig *backups_config_logical.LogicalBackupConfig,
-	database *databases.Database,
+	database databases.Database,
 	fileStore backups_core_logical.BackupFileStore,
 	backupProgressListener func(completedMBs float64),
 ) (*backups_core_logical.BackupArtifacts, error) {
@@ -146,7 +146,7 @@ func (m *MockTrackingBackupUsecase) Execute(
 	ctx context.Context,
 	backup *backups_core_logical.LogicalBackup,
 	backupConfig *backups_config_logical.LogicalBackupConfig,
-	database *databases.Database,
+	database databases.Database,
 	fileStore backups_core_logical.BackupFileStore,
 	backupProgressListener func(completedMBs float64),
 ) (*backups_core_logical.BackupArtifacts, error) {

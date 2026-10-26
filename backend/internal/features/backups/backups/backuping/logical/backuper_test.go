@@ -19,12 +19,13 @@ import (
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
 	"databasus-backend/internal/features/caching"
-	"databasus-backend/internal/features/databases"
+	databases_bridge "databasus-backend/internal/features/databases"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	storages_bridge "databasus-backend/internal/features/storages"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
 	"databasus-backend/internal/lib/logging"
+	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/modules/users"
@@ -39,7 +40,7 @@ func (*createStoredArtifactThenFailBackupUsecase) Execute(
 	ctx context.Context,
 	backup *backups_core_logical.LogicalBackup,
 	_ *backups_config_logical.LogicalBackupConfig,
-	_ *databases.Database,
+	_ databases.Database,
 	fileStore backups_core_logical.BackupFileStore,
 	_ func(completedMBs float64),
 ) (*backups_core_logical.BackupArtifacts, error) {
@@ -61,7 +62,7 @@ func Test_BackupExecuted_NotificationSent(t *testing.T) {
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", user)
 	storage := storages_bridge.CreateTestStorage(workspace.ID)
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
-	database := databases.CreateTestDatabase(workspace.ID, notifier)
+	database := databases_bridge.CreateTestDatabase(workspace.ID, notifier)
 	backups_config_logical.EnableBackupsForTestDatabase(t.Context(), database.ID, storage.ID)
 
 	defer func() {
@@ -71,7 +72,7 @@ func Test_BackupExecuted_NotificationSent(t *testing.T) {
 			getBackupRepository().DeleteByID(backup.ID)
 		}
 
-		databases.RemoveTestDatabase(t.Context(), database)
+		databases_bridge.RemoveTestDatabase(t.Context(), database)
 		time.Sleep(50 * time.Millisecond) // Wait for cascading deletes
 		notifiers_bridge.RemoveTestNotifier(notifier)
 		storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
@@ -298,7 +299,7 @@ func (uc *createStoredArtifactThenBlockBackupUsecase) Execute(
 	ctx context.Context,
 	backup *backups_core_logical.LogicalBackup,
 	_ *backups_config_logical.LogicalBackupConfig,
-	_ *databases.Database,
+	_ databases.Database,
 	fileStore backups_core_logical.BackupFileStore,
 	_ func(completedMBs float64),
 ) (*backups_core_logical.BackupArtifacts, error) {
@@ -328,7 +329,7 @@ func (uc *returnErrorBackupUsecase) Execute(
 	_ context.Context,
 	_ *backups_core_logical.LogicalBackup,
 	_ *backups_config_logical.LogicalBackupConfig,
-	_ *databases.Database,
+	_ databases.Database,
 	_ backups_core_logical.BackupFileStore,
 	_ func(completedMBs float64),
 ) (*backups_core_logical.BackupArtifacts, error) {
@@ -341,7 +342,7 @@ func (*createUnusableMetadataBackupUsecase) Execute(
 	ctx context.Context,
 	backup *backups_core_logical.LogicalBackup,
 	_ *backups_config_logical.LogicalBackupConfig,
-	_ *databases.Database,
+	_ databases.Database,
 	fileStore backups_core_logical.BackupFileStore,
 	_ func(completedMBs float64),
 ) (*backups_core_logical.BackupArtifacts, error) {
@@ -447,7 +448,7 @@ func assertBackupFailsAndIsReported(t *testing.T, backupErr error, expectedFailM
 	require.NotNil(t, persistedBackup.FailMessage)
 	assert.Equal(t, expectedFailMessage, *persistedBackup.FailMessage)
 
-	persistedDatabase, err := databases.GetDatabaseService().GetDatabaseByID(fixture.Database.ID)
+	persistedDatabase, err := databases_bridge.GetAccess().GetDatabaseByID(t.Context(), fixture.Database.ID)
 	require.NoError(t, err)
 	require.NotNil(t, persistedDatabase.LastBackupErrorMessage, "a failed backup must mark its database as failing")
 	assert.Equal(t, expectedFailMessage, *persistedDatabase.LastBackupErrorMessage)
@@ -506,7 +507,7 @@ func assertBackupCancelledSilently(
 
 	notificationSender.AssertNotCalled(t, "Notify", mock.Anything, mock.Anything)
 
-	persistedDatabase, err := databases.GetDatabaseService().GetDatabaseByID(fixture.Database.ID)
+	persistedDatabase, err := databases_bridge.GetAccess().GetDatabaseByID(t.Context(), fixture.Database.ID)
 	require.NoError(t, err)
 	assert.Nil(t, persistedDatabase.LastBackupErrorMessage, "a cancelled backup must not mark its database as failing")
 }
@@ -539,7 +540,7 @@ func (*createStaleReceiptBackupUsecase) Execute(
 	ctx context.Context,
 	backup *backups_core_logical.LogicalBackup,
 	_ *backups_config_logical.LogicalBackupConfig,
-	_ *databases.Database,
+	_ databases.Database,
 	fileStore backups_core_logical.BackupFileStore,
 	_ func(completedMBs float64),
 ) (*backups_core_logical.BackupArtifacts, error) {
@@ -601,4 +602,49 @@ func assertBackupFilesRemoved(t *testing.T, fixture *BackupTestFixture, fileName
 		)
 		assert.Error(t, err, "%s must not survive a backup that never published", name)
 	}
+}
+
+func TestMakeBackupRecordsLastBackup(t *testing.T) {
+	t.Run("shows the completion time and clears the error when a backup completes after a failure",
+		func(t *testing.T) {
+			fixture := CreateBackupTestFixture(t, "Last Backup Workspace")
+			notificationSender := &MockNotificationSender{}
+			notificationSender.On("Notify", mock.Anything, mock.Anything).Maybe()
+
+			failingBackuper := CreateTestBackuperWithUseCase(&CreateFailedBackupUsecase{})
+			failingBackuper.notificationSender = notificationSender
+			failedBackup := SeedInProgressTestBackup(t, fixture.Database.ID, fixture.Storage.ID)
+			failingBackuper.MakeBackup(t.Context(), failedBackup.ID, true)
+
+			databaseAfterFailure := getTestDatabaseStatus(t, fixture.Database.ID)
+			require.NotNil(t, databaseAfterFailure.LastBackupErrorMessage)
+			assert.Contains(t, *databaseAfterFailure.LastBackupErrorMessage, "backup failed")
+
+			succeedingBackuper := CreateTestBackuperWithUseCase(&CreateSuccessBackupUsecase{})
+			succeedingBackuper.notificationSender = notificationSender
+			completedBackup := SeedInProgressTestBackup(t, fixture.Database.ID, fixture.Storage.ID)
+			startedAt := time.Now().UTC()
+			succeedingBackuper.MakeBackup(t.Context(), completedBackup.ID, true)
+			finishedAt := time.Now().UTC()
+
+			persistedBackup, err := getBackupRepository().FindByID(completedBackup.ID)
+			require.NoError(t, err)
+			require.Equal(t, backups_core_logical.BackupStatusCompleted, persistedBackup.Status)
+			databaseAfterSuccess := getTestDatabaseStatus(t, fixture.Database.ID)
+			assert.Nil(t, databaseAfterSuccess.LastBackupErrorMessage)
+			require.NotNil(t, databaseAfterSuccess.LastBackupTime)
+			assert.False(t, databaseAfterSuccess.LastBackupTime.Before(startedAt.Truncate(time.Microsecond)),
+				databaseAfterSuccess.LastBackupTime)
+			assert.False(t, databaseAfterSuccess.LastBackupTime.After(finishedAt), databaseAfterSuccess.LastBackupTime)
+		})
+}
+
+func getTestDatabaseStatus(t *testing.T, databaseID uuid.UUID) databases.Database {
+	t.Helper()
+
+	foundDatabases, err := databases_bridge.GetModule().GetDatabases(t.Context(), []uuid.UUID{databaseID})
+	require.NoError(t, err)
+	require.Len(t, foundDatabases, 1)
+
+	return foundDatabases[0]
 }

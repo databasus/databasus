@@ -10,13 +10,14 @@ import (
 	"gorm.io/gorm"
 
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
-	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
 	"databasus-backend/internal/features/intervals"
+	"databasus-backend/internal/modules/databases"
 )
 
 type PhysicalBackupConfig struct {
-	DatabaseID         uuid.UUID                                       `json:"databaseId" gorm:"column:database_id;type:uuid;primaryKey;not null"`
-	PostgresqlPhysical *postgresql_physical.PostgresqlPhysicalDatabase `json:"-"          gorm:"foreignKey:DatabaseID;references:DatabaseID"`
+	DatabaseID uuid.UUID `json:"databaseId" gorm:"column:database_id;type:uuid;primaryKey;not null"`
+	// BackupType belongs to the database; the repository reads it from the databases module.
+	BackupType databases.PhysicalBackupType `json:"-" gorm:"-"`
 
 	IsBackupsEnabled bool `json:"isBackupsEnabled" gorm:"column:is_backups_enabled;type:boolean;not null"`
 
@@ -74,8 +75,8 @@ func (b *PhysicalBackupConfig) AfterFind(_ *gorm.DB) error {
 }
 
 func (b *PhysicalBackupConfig) Validate() error {
-	if b.PostgresqlPhysical == nil {
-		return errors.New("PostgresqlPhysical must be preloaded before Validate")
+	if b.BackupType == "" {
+		return errors.New("the backup type must be read from the database before Validate")
 	}
 
 	if err := b.FullBackupInterval.Validate(); err != nil {
@@ -92,7 +93,7 @@ func (b *PhysicalBackupConfig) Validate() error {
 		return errors.New("wal lag threshold must be non-negative")
 	}
 
-	backupType := b.PostgresqlPhysical.BackupType
+	backupType := b.BackupType
 
 	if err := validateRetentionAllowedForBackupType(b.Retention, backupType); err != nil {
 		return err
@@ -103,13 +104,13 @@ func (b *PhysicalBackupConfig) Validate() error {
 	}
 
 	switch backupType {
-	case postgresql_physical.BackupTypeFullOnly:
+	case databases.PhysicalBackupTypeFull:
 		return b.validateFullOnly()
 
-	case postgresql_physical.BackupTypeFullAndIncremental:
+	case databases.PhysicalBackupTypeFullAndIncremental:
 		return b.validateFullAndIncremental()
 
-	case postgresql_physical.BackupTypeFullIncrementalAndWalStream:
+	case databases.PhysicalBackupTypeFullIncrementalWalStream:
 		return b.validateFullIncrementalAndWalStream()
 
 	default:
@@ -124,37 +125,23 @@ func (b *PhysicalBackupConfig) IsWalStreamingExpected() bool {
 		return false
 	}
 
-	return b.PostgresqlPhysical != nil && b.PostgresqlPhysical.BackupType.IsWalStreaming()
-}
-
-func (b *PhysicalBackupConfig) Copy(newDatabaseID uuid.UUID) *PhysicalBackupConfig {
-	return &PhysicalBackupConfig{
-		DatabaseID:                newDatabaseID,
-		IsBackupsEnabled:          b.IsBackupsEnabled,
-		FullBackupInterval:        b.FullBackupInterval.Copy(),
-		IncrementalBackupInterval: b.IncrementalBackupInterval.Copy(),
-		Retention:                 b.Retention,
-		ChainsRetention:           b.ChainsRetention,
-		FullBackupsRetention:      b.FullBackupsRetention,
-		WalLagThresholdBytes:      b.WalLagThresholdBytes,
-		StorageID:                 b.StorageID,
-		Encryption:                b.Encryption,
-		SendNotificationsOn:       b.SendNotificationsOn,
-	}
+	return b.BackupType.IsWalStreaming()
 }
 
 // The database owns BackupType, so a switch there leaves the config in a shape
 // Validate rejects, and an unsaveable config cannot be edited back into shape.
-func (b *PhysicalBackupConfig) CoerceFieldsForBackupType(backupType postgresql_physical.BackupType) {
+func (b *PhysicalBackupConfig) CoerceFieldsForBackupType(backupType databases.PhysicalBackupType) {
+	b.BackupType = backupType
+
 	switch backupType {
-	case postgresql_physical.BackupTypeFullOnly:
+	case databases.PhysicalBackupTypeFull:
 		b.coerceFieldsForFullOnly()
 
-	case postgresql_physical.BackupTypeFullAndIncremental:
+	case databases.PhysicalBackupTypeFullAndIncremental:
 		b.coerceFieldsForIncremental()
 		b.WalLagThresholdBytes = 0
 
-	case postgresql_physical.BackupTypeFullIncrementalAndWalStream:
+	case databases.PhysicalBackupTypeFullIncrementalWalStream:
 		b.coerceFieldsForIncremental()
 
 		if b.WalLagThresholdBytes <= 0 {
@@ -312,18 +299,18 @@ func (b *PhysicalBackupConfig) validateFullIncrementalAndWalStream() error {
 
 func validateRetentionAllowedForBackupType(
 	retention Retention,
-	backupType postgresql_physical.BackupType,
+	backupType databases.PhysicalBackupType,
 ) error {
 	switch backupType {
-	case postgresql_physical.BackupTypeFullOnly:
+	case databases.PhysicalBackupTypeFull:
 		if retention != RetentionFullBackups {
 			return errors.New(
 				"FULL_ONLY backups can only use FULL_BACKUPS retention (no chains exist)",
 			)
 		}
 
-	case postgresql_physical.BackupTypeFullAndIncremental,
-		postgresql_physical.BackupTypeFullIncrementalAndWalStream:
+	case databases.PhysicalBackupTypeFullAndIncremental,
+		databases.PhysicalBackupTypeFullIncrementalWalStream:
 		if retention != RetentionChains && retention != RetentionChainsAndFullBackups {
 			return errors.New(
 				"incremental backups must use CHAINS or CHAINS_AND_FULL_BACKUPS retention",

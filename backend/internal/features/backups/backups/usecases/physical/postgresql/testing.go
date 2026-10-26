@@ -19,24 +19,24 @@ import (
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
 
+	pgphysical "databasus-backend/internal/engines/postgresql/physical"
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	"databasus-backend/internal/features/backups/backups/core/physical/chain_view"
 	physical_enums "databasus-backend/internal/features/backups/backups/core/physical/enums"
 	physical_models "databasus-backend/internal/features/backups/backups/core/physical/models"
 	physical_repositories "databasus-backend/internal/features/backups/backups/core/physical/repositories"
 	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
-	"databasus-backend/internal/features/databases"
-	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
+	databases_bridge "databasus-backend/internal/features/databases"
 	"databasus-backend/internal/features/intervals"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	storages_bridge "databasus-backend/internal/features/storages"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
+	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/storage"
-	"databasus-backend/internal/util/encryption"
 	"databasus-backend/internal/util/logger"
 	"databasus-backend/internal/util/testing/bastion"
 	"databasus-backend/internal/util/testing/containers"
@@ -53,8 +53,11 @@ type PhysicalDBFixture struct {
 	Workspace *workspaces_testing.TestWorkspace
 	Storage   storages.Storage
 	Notifier  *notifiers.Notifier
-	DB        *databases.Database
-	BackupID  uuid.UUID
+	DB        databases.Database
+	// SourceDB is DB as a usecase receives it: read from the module, with the tunnel open for the
+	// whole test when the source sits behind a bastion.
+	SourceDB databases.PostgresqlPhysicalConnectionSettings
+	BackupID uuid.UUID
 }
 
 // SetupPhysicalDBForBackup builds a PG17 fixture against the test source
@@ -72,8 +75,8 @@ func SetupPhysicalDBForBackup(t *testing.T) *PhysicalDBFixture {
 func SetupPhysicalDBForBackupVersion(t *testing.T, version string) *PhysicalDBFixture {
 	t.Helper()
 
-	return setupPhysicalFixture(t, func(workspaceID uuid.UUID, notifier *notifiers.Notifier) *databases.Database {
-		return databases.CreateTestPhysicalPostgresDatabase(workspaceID, notifier, version)
+	return setupPhysicalFixture(t, func(workspaceID uuid.UUID, notifier *notifiers.Notifier) databases.Database {
+		return databases_bridge.CreateTestPhysicalPostgresDatabase(workspaceID, notifier, version)
 	})
 }
 
@@ -83,8 +86,8 @@ func SetupPhysicalDBForBackupVersion(t *testing.T, version string) *PhysicalDBFi
 func SetupPhysicalDBForStreamMtls(t *testing.T, host string, port int) *PhysicalDBFixture {
 	t.Helper()
 
-	return setupPhysicalFixture(t, func(workspaceID uuid.UUID, notifier *notifiers.Notifier) *databases.Database {
-		return databases.CreateTestPhysicalPostgresDatabaseMtls(host, port, workspaceID, notifier)
+	return setupPhysicalFixture(t, func(workspaceID uuid.UUID, notifier *notifiers.Notifier) databases.Database {
+		return databases_bridge.CreateTestPhysicalPostgresDatabaseMtls(host, port, workspaceID, notifier)
 	})
 }
 
@@ -94,8 +97,8 @@ func SetupPhysicalDBForStreamMtls(t *testing.T, host string, port int) *Physical
 func SetupPhysicalDBForBackupNoSummary(t *testing.T, host string, port int) *PhysicalDBFixture {
 	t.Helper()
 
-	return setupPhysicalFixture(t, func(workspaceID uuid.UUID, notifier *notifiers.Notifier) *databases.Database {
-		return databases.CreateTestPhysicalPostgresDatabaseNoSummary(host, port, workspaceID, notifier, "17")
+	return setupPhysicalFixture(t, func(workspaceID uuid.UUID, notifier *notifiers.Notifier) databases.Database {
+		return databases_bridge.CreateTestPhysicalPostgresDatabaseNoSummary(host, port, workspaceID, notifier, "17")
 	})
 }
 
@@ -158,12 +161,12 @@ func SetupPhysicalDBForScheduledBackupVersion(
 	host string,
 	port int,
 	version string,
-	backupType postgresql_physical.BackupType,
+	backupType databases.PhysicalBackupType,
 ) *PhysicalDBFixture {
 	t.Helper()
 
-	return wirePhysicalDBFixture(t, func(workspaceID uuid.UUID, notifier *notifiers.Notifier) *databases.Database {
-		return databases.CreateTestPhysicalPostgresDatabaseWithType(
+	return wirePhysicalDBFixture(t, func(workspaceID uuid.UUID, notifier *notifiers.Notifier) databases.Database {
+		return databases_bridge.CreateTestPhysicalPostgresDatabaseWithType(
 			host,
 			port,
 			workspaceID,
@@ -176,12 +179,12 @@ func SetupPhysicalDBForScheduledBackupVersion(
 
 func SetupPhysicalDBFixtureWithTunnel(
 	t *testing.T,
-	spec databases.PhysicalTestDatabaseSpec,
+	spec databases_bridge.PhysicalTestDatabaseSpec,
 ) *PhysicalDBFixture {
 	t.Helper()
 
-	return wirePhysicalDBFixture(t, func(workspaceID uuid.UUID, notifier *notifiers.Notifier) *databases.Database {
-		return databases.CreateTestPhysicalPostgresDatabaseWithTunnel(spec, workspaceID, notifier)
+	return wirePhysicalDBFixture(t, func(workspaceID uuid.UUID, notifier *notifiers.Notifier) databases.Database {
+		return databases_bridge.CreateTestPhysicalPostgresDatabaseFromSpec(spec, workspaceID, notifier)
 	})
 }
 
@@ -192,12 +195,15 @@ func SetupPhysicalDBForBackupBehindSshBastion(t *testing.T) *PhysicalDBFixture {
 
 	topology := containers.StartPhysicalPostgresBehindSshBastion(t, "postgres:17")
 
-	return SetupPhysicalDBFixtureWithTunnel(t, databases.PhysicalTestDatabaseSpec{
+	tunnelSettings := bastion.GetTunnelSettings(topology)
+
+	return SetupPhysicalDBFixtureWithTunnel(t, databases_bridge.PhysicalTestDatabaseSpec{
 		Host:       topology.Database.Host,
 		Port:       topology.Database.Port,
 		VersionTag: "17",
-		BackupType: postgresql_physical.BackupTypeFullIncrementalAndWalStream,
-		SshTunnel:  bastion.GetTunnelConfig(topology),
+		BackupType: databases.PhysicalBackupTypeFullIncrementalWalStream,
+		SshTunnel:  &tunnelSettings,
+		TLS:        nil,
 	})
 }
 
@@ -208,7 +214,7 @@ func SetupPhysicalDBForBackupBehindSshBastion(t *testing.T) *PhysicalDBFixture {
 // for the direct-MakeBackup pattern; the scheduler-driven fixture returns it as is.
 func wirePhysicalDBFixture(
 	t *testing.T,
-	createDB func(workspaceID uuid.UUID, notifier *notifiers.Notifier) *databases.Database,
+	createDB func(workspaceID uuid.UUID, notifier *notifiers.Notifier) databases.Database,
 ) *PhysicalDBFixture {
 	t.Helper()
 
@@ -224,32 +230,24 @@ func wirePhysicalDBFixture(
 	t.Cleanup(func() { notifiers_bridge.RemoveTestNotifier(notifier) })
 
 	db := createDB(workspace.ID, notifier)
-	t.Cleanup(func() { databases.RemoveTestDatabase(t.Context(), db) })
+	t.Cleanup(func() { databases_bridge.RemoveTestDatabase(t.Context(), db) })
 
-	encryptor := encryption.GetFieldEncryptor()
-	log := logger.GetLogger()
+	// The helper inserted the row without connecting, so the cluster identity the module detects at
+	// the first save is detected here, through the tunnel, and stored: the manifest's
+	// System-Identifier comes from the stored row.
+	sourceDB := OpenSourceDB(t, db.ID)
 
-	// Through the tunnel, exactly as the database service does it, so a bastioned fixture reaches its
-	// source and the discovered identity is carried back onto the row that gets persisted below.
-	tunneledDatabase, err := postgresql_physical.OpenTunnel(t.Context(), postgresql_physical.OpenTunnelSpec{
-		Database:  db.PostgresqlPhysical,
-		Logger:    log,
-		Encryptor: encryptor,
-	})
+	clusterIdentity, err := pgphysical.NewSource(sourceDB.Engine).InspectCluster(t.Context(), logger.GetLogger())
 	require.NoError(t, err)
-	t.Cleanup(tunneledDatabase.Close)
 
-	require.NoError(t, tunneledDatabase.GetDatabaseThroughTunnel().PopulateDbData(t.Context(), log, encryptor))
-	tunneledDatabase.CopyDiscoveredMetadataToOriginal()
+	require.NoError(t, storage.GetDb().Exec(
+		"UPDATE databases_postgresql_physical SET system_identifier = ?, wal_segment_size_bytes = ? WHERE database_id = ?",
+		clusterIdentity.SystemIdentifier, clusterIdentity.WalSegmentSizeBytes, db.ID,
+	).
+		Error)
 
-	// CreateTestPhysicalPostgresDatabase saved the row before PopulateDbData ran,
-	// so the captured system_identifier lives only on the in-memory object. The
-	// backuper reloads the DB from the repo and the manifest's System-Identifier
-	// comes from the stored row, so persist it here — mirroring production, where
-	// the database service populates before saving.
-	require.NoError(t, storage.GetDb().
-		Model(db.PostgresqlPhysical).
-		Update("system_identifier", db.PostgresqlPhysical.SystemIdentifier).Error)
+	sourceDB.SystemIdentifier = &clusterIdentity.SystemIdentifier
+	sourceDB.WalSegmentSizeBytes = &clusterIdentity.WalSegmentSizeBytes
 
 	return &PhysicalDBFixture{
 		Owner:     owner,
@@ -257,15 +255,35 @@ func wirePhysicalDBFixture(
 		Storage:   testStorage,
 		Notifier:  notifier,
 		DB:        db,
+		SourceDB:  sourceDB,
 	}
 }
 
 // setupPhysicalFixture is the shared body behind the version / mTLS fixtures:
 // it wires the DB, enables backups, and seeds an IN_PROGRESS FULL row + in-flight
 // claim for the direct-MakeBackup pattern.
+// saveConfigWithStorageAlreadySet writes the storage into the default config before saving it, so
+// the save is no storage change. A change publishes a WAL streamer cancellation for the database that
+// arrives asynchronously and can stop the streamer a test starts right after the fixture.
+func saveConfigWithStorageAlreadySet(
+	t *testing.T,
+	cfgService *backups_config_physical.BackupConfigService,
+	cfg *backups_config_physical.PhysicalBackupConfig,
+) {
+	t.Helper()
+
+	require.NoError(t, storage.GetDb().Exec(
+		"UPDATE physical_backup_configs SET storage_id = ? WHERE database_id = ?",
+		cfg.StorageID, cfg.DatabaseID,
+	).Error)
+
+	_, err := cfgService.SaveBackupConfig(t.Context(), cfg)
+	require.NoError(t, err)
+}
+
 func setupPhysicalFixture(
 	t *testing.T,
-	createDB func(workspaceID uuid.UUID, notifier *notifiers.Notifier) *databases.Database,
+	createDB func(workspaceID uuid.UUID, notifier *notifiers.Notifier) databases.Database,
 ) *PhysicalDBFixture {
 	t.Helper()
 
@@ -279,14 +297,12 @@ func setupPhysicalFixture(
 	cfg.IsBackupsEnabled = true
 	cfg.StorageID = &fixture.Storage.ID
 	cfg.Encryption = backups_core_enums.BackupEncryptionNone
-	cfg.PostgresqlPhysical = fixture.DB.PostgresqlPhysical
 	cfg.FullBackupInterval = intervals.Interval{
 		Type:      intervals.IntervalDaily,
 		TimeOfDay: new("04:00"),
 	}
 
-	_, err = cfgService.SaveBackupConfig(t.Context(), cfg)
-	require.NoError(t, err)
+	saveConfigWithStorageAlreadySet(t, cfgService, cfg)
 
 	backupID := uuid.New()
 	backupRow := &physical_models.PhysicalFullBackup{
@@ -321,25 +337,29 @@ func setupPhysicalFixture(
 	return fixture
 }
 
-// Through the production opener rather than a hand-rolled dial: a bastioned source publishes no
-// port, so a test that reached it any other way would stay green after the tunnel stopped being
-// used. With no tunnel configured OpenTunnel hands back the original, so direct fixtures are
-// unaffected.
+// OpenSourceDB reads the connection settings of a physical database from the module and opens its
+// tunnel for the rest of the test, as the backuper does before a run. A bastioned source publishes no
+// port, so a test that reached it any other way would stay green after the tunnel stopped being used;
+// without a tunnel the settings reach the cluster directly.
+func OpenSourceDB(t *testing.T, databaseID uuid.UUID) databases.PostgresqlPhysicalConnectionSettings {
+	t.Helper()
+
+	sourceDB, err := databases_bridge.GetModule().GetPostgresqlPhysicalConnectionSettings(t.Context(), databaseID)
+	require.NoError(t, err)
+
+	tunnel, err := pgphysical.NewSource(sourceDB.Engine).OpenTunnel(t.Context(), logger.GetLogger())
+	require.NoError(t, err)
+	t.Cleanup(tunnel.Close)
+
+	sourceDB.Engine = tunnel.GetSource().GetSettings()
+
+	return sourceDB
+}
+
 func OpenAdminConn(t *testing.T, fixture *PhysicalDBFixture) *pgx.Conn {
 	t.Helper()
 
-	encryptor := encryption.GetFieldEncryptor()
-
-	tunneledDatabase, err := postgresql_physical.OpenTunnel(t.Context(), postgresql_physical.OpenTunnelSpec{
-		Database:  fixture.DB.PostgresqlPhysical,
-		Logger:    logger.GetLogger(),
-		Encryptor: encryptor,
-	})
-	require.NoError(t, err)
-	t.Cleanup(tunneledDatabase.Close)
-
-	conn, err := tunneledDatabase.GetDatabaseThroughTunnel().
-		OpenInspectionConn(context.Background(), encryptor)
+	conn, err := pgphysical.NewSource(fixture.SourceDB.Engine).OpenInspectionConn(context.Background())
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = conn.Close(context.Background()) })
 
@@ -372,9 +392,7 @@ func RunBackupAndPoll(
 ) bool {
 	t.Helper()
 
-	pollConn, err := fixture.DB.PostgresqlPhysical.OpenInspectionConn(
-		context.Background(), encryption.GetFieldEncryptor(),
-	)
+	pollConn, err := pgphysical.NewSource(fixture.SourceDB.Engine).OpenInspectionConn(context.Background())
 	require.NoError(t, err)
 	defer func() { _ = pollConn.Close(context.Background()) }()
 
@@ -921,18 +939,21 @@ func StartWalStreamerForTest(t *testing.T, spec WalStreamerTestSpec) *WalStreame
 
 	fixture := spec.Fixture
 
+	sourceDB := fixture.SourceDB
+
 	adminConn := OpenAdminConn(t, fixture)
 	t.Cleanup(func() {
-		DropReplicationSlotExternally(t, adminConn, fixture.DB.PostgresqlPhysical.ReplicationSlotName)
+		DropReplicationSlotExternally(t, adminConn, sourceDB.Engine.ReplicationSlotName)
 	})
 
 	supervisor := NewWalStreamSupervisor(WalStreamSpec{
 		DatabaseID:                fixture.DB.ID,
-		SourceDB:                  fixture.DB.PostgresqlPhysical,
+		SourceDB:                  sourceDB,
 		StorageID:                 fixture.Storage.ID,
 		FileStore:                 spec.FileStore,
 		Encryption:                backups_core_enums.BackupEncryptionNone,
-		FieldEncryptor:            encryption.GetFieldEncryptor(),
+		BackupStatus:              databases_bridge.GetModule(),
+		Databases:                 databases_bridge.GetModule(),
 		WalSegmentRepo:            physical_repositories.GetWalSegmentRepository(),
 		HistoryRepo:               physical_repositories.GetWalHistoryRepository(),
 		WatchDirRoot:              spec.WatchDirRoot,
@@ -1136,7 +1157,7 @@ func CreateReplicationOnlyRole(
 	t *testing.T,
 	adminConn *pgx.Conn,
 	fixture *PhysicalDBFixture,
-) *postgresql_physical.PostgresqlPhysicalDatabase {
+) databases.PostgresqlPhysicalConnectionSettings {
 	t.Helper()
 
 	roleName := "databasus_no_switch_" + strings.ReplaceAll(uuid.New().String(), "-", "")[:12]
@@ -1158,9 +1179,9 @@ func CreateReplicationOnlyRole(
 		)
 	})
 
-	replicationOnlySourceDB := *fixture.DB.PostgresqlPhysical
-	replicationOnlySourceDB.Username = roleName
-	replicationOnlySourceDB.Password = "switchless"
+	replicationOnlySourceDB := fixture.SourceDB
+	replicationOnlySourceDB.Engine.Username = roleName
+	replicationOnlySourceDB.Engine.Password = "switchless"
 
-	return &replicationOnlySourceDB
+	return replicationOnlySourceDB
 }

@@ -20,6 +20,11 @@ const (
 	sourcePassword      = "upgrade-source-password"
 	sourceDatabaseName  = "upgrade_source"
 	restoredDatabase    = "upgrade_restored"
+	sourceSchemaName    = "public"
+	// The table and table data exclusion lists name these tables, which stay empty, so the lists
+	// never change the rows the restore compares.
+	excludedTableName     = "upgrade_excluded"
+	excludedDataTableName = "upgrade_excluded_data"
 )
 
 var sourceRows = []string{"first row before the upgrade", "second row before the upgrade"}
@@ -60,6 +65,13 @@ func fillSourceDatabase(ctx context.Context, hostPort int) error {
 		_, err := connection.Exec(ctx, "CREATE TABLE upgrade_rows (id SERIAL PRIMARY KEY, label TEXT NOT NULL)")
 		if err != nil {
 			return fmt.Errorf("create the source table: %w", err)
+		}
+
+		for _, excludedTable := range []string{excludedTableName, excludedDataTableName} {
+			_, err = connection.Exec(ctx, "CREATE TABLE "+excludedTable+" (id SERIAL PRIMARY KEY)")
+			if err != nil {
+				return fmt.Errorf("create the excluded table %s: %w", excludedTable, err)
+			}
 		}
 
 		for _, label := range sourceRows {

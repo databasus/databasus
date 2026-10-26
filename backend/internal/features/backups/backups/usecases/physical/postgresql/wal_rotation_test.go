@@ -10,7 +10,6 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/stretchr/testify/require"
 
-	"databasus-backend/internal/util/encryption"
 	"databasus-backend/internal/util/logger"
 	"databasus-backend/internal/util/walmath"
 )
@@ -113,7 +112,6 @@ func Test_RunForcedWalRotation_WhenSourceRefusesSwitchWal_SetsRefusalFlag(t *tes
 	supervisor := NewWalStreamSupervisor(WalStreamSpec{
 		DatabaseID:             uuid.New(),
 		SourceDB:               CreateReplicationOnlyRole(t, adminConn, fixture),
-		FieldEncryptor:         encryption.GetFieldEncryptor(),
 		WatchDirRoot:           t.TempDir(),
 		ForcedRotationInterval: time.Second,
 		Logger:                 logger.GetLogger(),
