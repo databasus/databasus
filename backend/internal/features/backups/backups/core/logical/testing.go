@@ -19,7 +19,8 @@ import (
 
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
-	storage_files "databasus-backend/internal/features/storages/files"
+	storages_bridge "databasus-backend/internal/features/storages"
+	"databasus-backend/internal/modules/storages"
 	test_utils "databasus-backend/internal/util/testing"
 )
 
@@ -35,15 +36,22 @@ type FailingBackupFileStore struct {
 
 func (s *FailingBackupFileStore) WriteFile(
 	_ context.Context,
-	_ storage_files.StoredFileReference,
+	_ storages.StoredFileReference,
 	file io.Reader,
-) (storage_files.WriteReceipt, error) {
+) (storages.WriteReceipt, error) {
 	if !s.IsFailingBeforeReading {
 		readBytes, _ := io.Copy(io.Discard, file)
 		s.readBytes.Store(readBytes)
 	}
 
-	return storage_files.WriteReceipt{}, s.FailureErr
+	return storages.WriteReceipt{}, s.FailureErr
+}
+
+func (s *FailingBackupFileStore) StartBackgroundWrite(
+	ctx context.Context,
+	spec storages.BackgroundWriteSpec,
+) storages.BackgroundWrite {
+	return storages_bridge.StartFakeBackgroundWrite(ctx, s.WriteFile, spec)
 }
 
 func (s *FailingBackupFileStore) GetReadBytes() int64 {
@@ -56,12 +64,19 @@ type discardingBackupFileStore struct{}
 
 func (s *discardingBackupFileStore) WriteFile(
 	_ context.Context,
-	_ storage_files.StoredFileReference,
+	_ storages.StoredFileReference,
 	file io.Reader,
-) (storage_files.WriteReceipt, error) {
+) (storages.WriteReceipt, error) {
 	_, err := io.Copy(io.Discard, file)
 
-	return storage_files.WriteReceipt{}, err
+	return storages.WriteReceipt{}, err
+}
+
+func (s *discardingBackupFileStore) StartBackgroundWrite(
+	ctx context.Context,
+	spec storages.BackgroundWriteSpec,
+) storages.BackgroundWrite {
+	return storages_bridge.StartFakeBackgroundWrite(ctx, s.WriteFile, spec)
 }
 
 // ExecuteBackupInto runs one engine's real backup use case against a test database, writing into

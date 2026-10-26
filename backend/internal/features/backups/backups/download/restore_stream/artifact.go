@@ -16,7 +16,7 @@ import (
 	physical_dto "databasus-backend/internal/features/backups/backups/core/physical/dto"
 	physical_enums "databasus-backend/internal/features/backups/backups/core/physical/enums"
 	backup_encryption "databasus-backend/internal/features/backups/backups/encryption"
-	storage_files "databasus-backend/internal/features/storages/files"
+	"databasus-backend/internal/modules/storages"
 )
 
 // historyMetadataSuffix mirrors the ".metadata" sidecar the streamer writes next
@@ -80,7 +80,7 @@ type artifactSource struct {
 // caller.
 func openArtifact(
 	ctx context.Context,
-	storageReader storage_files.StorageReader,
+	storageReader storages.StorageReader,
 	masterKey string,
 	src artifactSource,
 ) (io.Reader, func(), error) {
@@ -179,7 +179,7 @@ func newDecryptingReader(
 
 func readHistoryMetadata(
 	ctx context.Context,
-	storageReader storage_files.StorageReader,
+	storageReader storages.StorageReader,
 	historyFileName string,
 ) (*physical_dto.PhysicalWalHistoryMetadata, error) {
 	reader, err := storageReader.OpenFile(ctx, historyFileName+historyMetadataSuffix)

@@ -8,7 +8,7 @@ import (
 	"databasus-backend/internal/features/backups/backups/download/restore_token"
 	"databasus-backend/internal/features/backups/backups/download/stream_guard"
 	"databasus-backend/internal/features/caching"
-	"databasus-backend/internal/features/storages"
+	storages_bridge "databasus-backend/internal/features/storages"
 	"databasus-backend/internal/util/logger"
 )
 
@@ -40,7 +40,7 @@ var getStreamServices = sync.OnceValue(func() streamServices {
 			downloadTokenService,
 			logger.GetLogger(),
 		),
-		restoreStreamWriter: restore_stream.NewWriter(storages.GetStorageFileStore()),
+		restoreStreamWriter: restore_stream.NewWriter(storages_bridge.GetModule),
 	}
 })
 

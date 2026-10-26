@@ -11,7 +11,7 @@ import (
 	"databasus-backend/internal/features/backups/backups/core/physical/chain_view"
 	physical_enums "databasus-backend/internal/features/backups/backups/core/physical/enums"
 	physical_models "databasus-backend/internal/features/backups/backups/core/physical/models"
-	storage_files "databasus-backend/internal/features/storages/files"
+	"databasus-backend/internal/modules/storages"
 )
 
 // Writer turns a resolved RestoreSet into the single tar stream the user (and,
@@ -25,11 +25,12 @@ import (
 // It is transport- and auth-agnostic: callers decide who may stream and where the
 // bytes go.
 type Writer struct {
-	fileStore *storage_files.Store
+	// getStorages is read per call: each test application installs its own module.
+	getStorages func() storages.Module
 }
 
-func NewWriter(fileStore *storage_files.Store) *Writer {
-	return &Writer{fileStore}
+func NewWriter(getStorages func() storages.Module) *Writer {
+	return &Writer{getStorages}
 }
 
 // Write fails on an encrypted artifact when masterKey is empty, rather than streaming a corrupt
@@ -42,7 +43,7 @@ func (rw *Writer) Write(
 ) error {
 	tarWriter := tar.NewWriter(w)
 
-	storageCache := make(map[uuid.UUID]storage_files.StorageReader)
+	storageCache := make(map[uuid.UUID]storages.StorageReader)
 	checksums := newChecksumLedger()
 
 	fullSize, err := artifactSizeBytes(set.RootFull.ID, set.RootFull.BackupSizeMb)
@@ -116,7 +117,7 @@ func (rw *Writer) writeBackupDir(
 	dirName string,
 	artifact backupArtifact,
 	masterKey string,
-	storageCache map[uuid.UUID]storage_files.StorageReader,
+	storageCache map[uuid.UUID]storages.StorageReader,
 	checksums *checksumLedger,
 ) error {
 	if artifact.FileName == "" {
@@ -165,7 +166,7 @@ func (rw *Writer) writeManifest(
 	dirName string,
 	artifact backupArtifact,
 	masterKey string,
-	storageCache map[uuid.UUID]storage_files.StorageReader,
+	storageCache map[uuid.UUID]storages.StorageReader,
 	checksums *checksumLedger,
 ) error {
 	storageReader, err := rw.resolveStorage(ctx, artifact.StorageID, storageCache)
@@ -200,7 +201,7 @@ func (rw *Writer) writeWalSegment(
 	tarWriter *tar.Writer,
 	segment *physical_models.PhysicalWalSegment,
 	masterKey string,
-	storageCache map[uuid.UUID]storage_files.StorageReader,
+	storageCache map[uuid.UUID]storages.StorageReader,
 	checksums *checksumLedger,
 ) error {
 	if segment.FileName == nil {
@@ -241,7 +242,7 @@ func (rw *Writer) writeHistoryFile(
 	tarWriter *tar.Writer,
 	history *physical_models.PhysicalWalHistoryFile,
 	masterKey string,
-	storageCache map[uuid.UUID]storage_files.StorageReader,
+	storageCache map[uuid.UUID]storages.StorageReader,
 	checksums *checksumLedger,
 ) error {
 	storageReader, err := rw.resolveStorage(ctx, history.StorageID, storageCache)
@@ -283,13 +284,13 @@ func (rw *Writer) writeHistoryFile(
 func (rw *Writer) resolveStorage(
 	ctx context.Context,
 	storageID uuid.UUID,
-	storageCache map[uuid.UUID]storage_files.StorageReader,
-) (storage_files.StorageReader, error) {
+	storageCache map[uuid.UUID]storages.StorageReader,
+) (storages.StorageReader, error) {
 	if cached, ok := storageCache[storageID]; ok {
 		return cached, nil
 	}
 
-	storageReader, err := rw.fileStore.GetStorageReader(ctx, storageID)
+	storageReader, err := rw.getStorages().GetStorageReader(ctx, storageID)
 	if err != nil {
 		return nil, fmt.Errorf("load storage %s: %w", storageID, err)
 	}

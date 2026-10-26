@@ -14,7 +14,7 @@ import (
 
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
-	"databasus-backend/internal/features/storages"
+	storages_bridge "databasus-backend/internal/features/storages"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
 	"databasus-backend/internal/modules/users"
@@ -41,8 +41,8 @@ func SetupFlakyBackupTarget(
 
 	// The bucket deliberately does not exist on this (reachable) MinIO, so SaveFile fails at upload
 	// rather than at connect — that is the issue-582 path the assertion below guards.
-	storage := storages.CreateTestFlakyS3Storage(workspace.ID, s3Endpoint)
-	t.Cleanup(func() { storages.RemoveTestStorage(t.Context(), storage.ID) })
+	storage := storages_bridge.CreateTestFlakyS3Storage(workspace.ID, s3Endpoint)
+	t.Cleanup(func() { storages_bridge.RemoveTestStorage(t.Context(), storage.ID) })
 
 	return router, user.Token, workspace.ID, storage.ID
 }

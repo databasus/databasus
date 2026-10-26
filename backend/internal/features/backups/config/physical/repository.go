@@ -1,58 +1,35 @@
 package backups_config_physical
 
 import (
+	"context"
 	"errors"
 	"time"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
+	"databasus-backend/internal/lib/database"
 	"databasus-backend/internal/storage"
 )
 
 type BackupConfigRepository struct{}
 
+// Save runs in the transaction ctx carries and reads the saved row back in it.
 func (r *BackupConfigRepository) Save(
+	ctx context.Context,
 	backupConfig *PhysicalBackupConfig,
 ) (*PhysicalBackupConfig, error) {
-	if backupConfig.Storage != nil && backupConfig.Storage.ID != uuid.Nil {
-		backupConfig.StorageID = &backupConfig.Storage.ID
-	}
-
-	if err := storage.GetDb().Omit("Storage", "PostgresqlPhysical").Save(backupConfig).Error; err != nil {
+	if err := database.Conn(ctx, storage.GetDb()).Omit("PostgresqlPhysical").Save(backupConfig).Error; err != nil {
 		return nil, err
 	}
 
-	return r.FindByDatabaseID(backupConfig.DatabaseID)
+	return r.findByDatabaseID(ctx, backupConfig.DatabaseID)
 }
 
 func (r *BackupConfigRepository) FindByDatabaseID(
 	databaseID uuid.UUID,
 ) (*PhysicalBackupConfig, error) {
-	var backupConfig PhysicalBackupConfig
-
-	if err := storage.
-		GetDb().
-		Preload("PostgresqlPhysical").
-		Preload("Storage").
-		Preload("Storage.LocalStorage").
-		Preload("Storage.S3Storage").
-		Preload("Storage.GoogleDriveStorage").
-		Preload("Storage.NASStorage").
-		Preload("Storage.AzureBlobStorage").
-		Preload("Storage.FTPStorage").
-		Preload("Storage.SFTPStorage").
-		Preload("Storage.RcloneStorage").
-		Where("database_id = ?", databaseID).
-		First(&backupConfig).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, nil
-		}
-
-		return nil, err
-	}
-
-	return &backupConfig, nil
+	return r.findByDatabaseID(context.Background(), databaseID)
 }
 
 func (r *BackupConfigRepository) GetWithEnabledBackups() ([]*PhysicalBackupConfig, error) {
@@ -61,15 +38,6 @@ func (r *BackupConfigRepository) GetWithEnabledBackups() ([]*PhysicalBackupConfi
 	if err := storage.
 		GetDb().
 		Preload("PostgresqlPhysical").
-		Preload("Storage").
-		Preload("Storage.LocalStorage").
-		Preload("Storage.S3Storage").
-		Preload("Storage.GoogleDriveStorage").
-		Preload("Storage.NASStorage").
-		Preload("Storage.AzureBlobStorage").
-		Preload("Storage.FTPStorage").
-		Preload("Storage.SFTPStorage").
-		Preload("Storage.RcloneStorage").
 		Where("is_backups_enabled = ?", true).
 		Find(&backupConfigs).Error; err != nil {
 		return nil, err
@@ -118,32 +86,22 @@ func (r *BackupConfigRepository) ClearIncrementalBackupRequest(databaseID uuid.U
 	return query.Update("force_incremental_requested_at", nil).Error
 }
 
-func (r *BackupConfigRepository) IsStorageInUse(storageID uuid.UUID) (bool, error) {
-	var count int64
+func (r *BackupConfigRepository) findByDatabaseID(
+	ctx context.Context,
+	databaseID uuid.UUID,
+) (*PhysicalBackupConfig, error) {
+	var backupConfig PhysicalBackupConfig
 
-	if err := storage.
-		GetDb().
-		Table("physical_backup_configs").
-		Where("storage_id = ?", storageID).
-		Count(&count).Error; err != nil {
-		return false, err
-	}
+	if err := database.Conn(ctx, storage.GetDb()).
+		Preload("PostgresqlPhysical").
+		Where("database_id = ?", databaseID).
+		First(&backupConfig).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
 
-	return count > 0, nil
-}
-
-func (r *BackupConfigRepository) GetDatabasesIDsByStorageID(
-	storageID uuid.UUID,
-) ([]uuid.UUID, error) {
-	var databasesIDs []uuid.UUID
-
-	if err := storage.
-		GetDb().
-		Table("physical_backup_configs").
-		Where("storage_id = ?", storageID).
-		Pluck("database_id", &databasesIDs).Error; err != nil {
 		return nil, err
 	}
 
-	return databasesIDs, nil
+	return &backupConfig, nil
 }

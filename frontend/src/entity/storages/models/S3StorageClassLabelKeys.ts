@@ -2,7 +2,6 @@ import type { TranslationKey } from '../../../shared/i18n';
 import { S3StorageClass } from './S3StorageClass';
 
 export const S3_STORAGE_CLASS_LABEL_KEYS: Record<S3StorageClass, TranslationKey> = {
-  [S3StorageClass.DEFAULT]: 'storages.s3StorageClasses.default',
   [S3StorageClass.STANDARD]: 'storages.s3StorageClasses.standard',
   [S3StorageClass.STANDARD_IA]: 'storages.s3StorageClasses.standardIa',
   [S3StorageClass.ONEZONE_IA]: 'storages.s3StorageClasses.onezoneIa',

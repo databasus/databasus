@@ -216,16 +216,16 @@ func createWebhookNotifier(t *testing.T, session apptest.Session, workspaceID uu
 	apptest.CreateNotifier(t, session, workspaceID, settings)
 }
 
-// countContent lists the workspace's content and counts each kind: the databases and storages
-// through their old routes, which the contract does not describe yet, and the notifiers through
-// listNotifiers.
+// countContent lists the workspace's content and counts each kind: the databases through their old
+// route, which the contract does not describe yet, and the notifiers and storages through the
+// contract.
 func countContent(t *testing.T, app *apptest.App, session apptest.Session, workspaceID uuid.UUID) workspaceContent {
 	t.Helper()
 
 	return workspaceContent{
 		databaseCount: countListed(t, app, session, "/databases?workspace_id="+workspaceID.String()),
 		notifierCount: countNotifiers(t, session, workspaceID),
-		storageCount:  countListed(t, app, session, "/storages?workspace_id="+workspaceID.String()),
+		storageCount:  countStorages(t, session, workspaceID),
 	}
 }
 
@@ -251,6 +251,20 @@ func countNotifiers(t *testing.T, session apptest.Session, workspaceID uuid.UUID
 	t.Helper()
 
 	response, err := session.Client.ListNotifiersWithResponse(t.Context(), &apiclient.ListNotifiersParams{
+		WorkspaceId: workspaceID,
+		Limit:       nil,
+		After:       nil,
+	})
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, response.StatusCode(), string(response.Body))
+
+	return len(response.JSON200.Items)
+}
+
+func countStorages(t *testing.T, session apptest.Session, workspaceID uuid.UUID) int {
+	t.Helper()
+
+	response, err := session.Client.ListStoragesWithResponse(t.Context(), &apiclient.ListStoragesParams{
 		WorkspaceId: workspaceID,
 		Limit:       nil,
 		After:       nil,

@@ -58,6 +58,39 @@ func (e AssignableWorkspaceRole) Valid() bool {
 	}
 }
 
+// Defines values for AzureBlobAuthMethod.
+const (
+	AzureBlobAuthMethodACCOUNTKEY       AzureBlobAuthMethod = "ACCOUNT_KEY"
+	AzureBlobAuthMethodCONNECTIONSTRING AzureBlobAuthMethod = "CONNECTION_STRING"
+)
+
+// Valid indicates whether the value is a known member of the AzureBlobAuthMethod enum.
+func (e AzureBlobAuthMethod) Valid() bool {
+	switch e {
+	case AzureBlobAuthMethodACCOUNTKEY:
+		return true
+	case AzureBlobAuthMethodCONNECTIONSTRING:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for AzureBlobStorageSettingsType.
+const (
+	AzureBlobStorageSettingsTypeAZUREBLOB AzureBlobStorageSettingsType = "AZURE_BLOB"
+)
+
+// Valid indicates whether the value is a known member of the AzureBlobStorageSettingsType enum.
+func (e AzureBlobStorageSettingsType) Valid() bool {
+	switch e {
+	case AzureBlobStorageSettingsTypeAZUREBLOB:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for DiscordNotifierSettingsType.
 const (
 	DiscordNotifierSettingsTypeDISCORD DiscordNotifierSettingsType = "DISCORD"
@@ -82,6 +115,51 @@ const (
 func (e EmailNotifierSettingsType) Valid() bool {
 	switch e {
 	case EmailNotifierSettingsTypeEMAIL:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for FtpStorageSettingsType.
+const (
+	FtpStorageSettingsTypeFTP FtpStorageSettingsType = "FTP"
+)
+
+// Valid indicates whether the value is a known member of the FtpStorageSettingsType enum.
+func (e FtpStorageSettingsType) Valid() bool {
+	switch e {
+	case FtpStorageSettingsTypeFTP:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for GoogleDriveStorageSettingsType.
+const (
+	GoogleDriveStorageSettingsTypeGOOGLEDRIVE GoogleDriveStorageSettingsType = "GOOGLE_DRIVE"
+)
+
+// Valid indicates whether the value is a known member of the GoogleDriveStorageSettingsType enum.
+func (e GoogleDriveStorageSettingsType) Valid() bool {
+	switch e {
+	case GoogleDriveStorageSettingsTypeGOOGLEDRIVE:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LocalStorageSettingsType.
+const (
+	LocalStorageSettingsTypeLOCAL LocalStorageSettingsType = "LOCAL"
+)
+
+// Valid indicates whether the value is a known member of the LocalStorageSettingsType enum.
+func (e LocalStorageSettingsType) Valid() bool {
+	switch e {
+	case LocalStorageSettingsTypeLOCAL:
 		return true
 	default:
 		return false
@@ -115,6 +193,21 @@ const (
 func (e MattermostNotifierSettingsType) Valid() bool {
 	switch e {
 	case MattermostNotifierSettingsTypeMATTERMOST:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for NasStorageSettingsType.
+const (
+	NasStorageSettingsTypeNAS NasStorageSettingsType = "NAS"
+)
+
+// Valid indicates whether the value is a known member of the NasStorageSettingsType enum.
+func (e NasStorageSettingsType) Valid() bool {
+	switch e {
+	case NasStorageSettingsTypeNAS:
 		return true
 	default:
 		return false
@@ -238,6 +331,81 @@ func (e ProblemCode) Valid() bool {
 	case ProblemCodeUserDeactivated:
 		return true
 	case ProblemCodeWorkspaceNotEmpty:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RcloneStorageSettingsType.
+const (
+	RcloneStorageSettingsTypeRCLONE RcloneStorageSettingsType = "RCLONE"
+)
+
+// Valid indicates whether the value is a known member of the RcloneStorageSettingsType enum.
+func (e RcloneStorageSettingsType) Valid() bool {
+	switch e {
+	case RcloneStorageSettingsTypeRCLONE:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for S3StorageClass.
+const (
+	S3StorageClassGLACIERIR          S3StorageClass = "GLACIER_IR"
+	S3StorageClassINTELLIGENTTIERING S3StorageClass = "INTELLIGENT_TIERING"
+	S3StorageClassONEZONEIA          S3StorageClass = "ONEZONE_IA"
+	S3StorageClassREDUCEDREDUNDANCY  S3StorageClass = "REDUCED_REDUNDANCY"
+	S3StorageClassSTANDARD           S3StorageClass = "STANDARD"
+	S3StorageClassSTANDARDIA         S3StorageClass = "STANDARD_IA"
+)
+
+// Valid indicates whether the value is a known member of the S3StorageClass enum.
+func (e S3StorageClass) Valid() bool {
+	switch e {
+	case S3StorageClassGLACIERIR:
+		return true
+	case S3StorageClassINTELLIGENTTIERING:
+		return true
+	case S3StorageClassONEZONEIA:
+		return true
+	case S3StorageClassREDUCEDREDUNDANCY:
+		return true
+	case S3StorageClassSTANDARD:
+		return true
+	case S3StorageClassSTANDARDIA:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for S3StorageSettingsType.
+const (
+	S3StorageSettingsTypeS3 S3StorageSettingsType = "S3"
+)
+
+// Valid indicates whether the value is a known member of the S3StorageSettingsType enum.
+func (e S3StorageSettingsType) Valid() bool {
+	switch e {
+	case S3StorageSettingsTypeS3:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SftpStorageSettingsType.
+const (
+	SftpStorageSettingsTypeSFTP SftpStorageSettingsType = "SFTP"
+)
+
+// Valid indicates whether the value is a known member of the SftpStorageSettingsType enum.
+func (e SftpStorageSettingsType) Valid() bool {
+	switch e {
+	case SftpStorageSettingsTypeSFTP:
 		return true
 	default:
 		return false
@@ -520,6 +688,39 @@ type AuditEventWorkspace struct {
 	Name *string `json:"name"`
 }
 
+// AzureBlobAuthMethod How the storage signs in to Azure
+type AzureBlobAuthMethod string
+
+// AzureBlobStorageSettings A container of Azure Blob Storage
+type AzureBlobStorageSettings struct {
+	// AccountKey The account key, used with `ACCOUNT_KEY`
+	AccountKey *string `json:"accountKey,omitempty"`
+
+	// AccountName The storage account, used with `ACCOUNT_KEY`
+	AccountName *string `json:"accountName,omitempty"`
+
+	// AuthMethod How the storage signs in to Azure
+	AuthMethod AzureBlobAuthMethod `json:"authMethod"`
+
+	// ConnectionString The connection string, used with `CONNECTION_STRING`
+	ConnectionString *string `json:"connectionString,omitempty"`
+
+	// ContainerName The container
+	ContainerName string `json:"containerName"`
+
+	// Endpoint The blob endpoint, absent for the account's default one
+	Endpoint *string `json:"endpoint,omitempty"`
+
+	// Prefix The prefix of every stored blob, fixed when the storage is created
+	Prefix *string `json:"prefix,omitempty"`
+
+	// Type Always `AZURE_BLOB`
+	Type AzureBlobStorageSettingsType `json:"type"`
+}
+
+// AzureBlobStorageSettingsType Always `AZURE_BLOB`
+type AzureBlobStorageSettingsType string
+
 // DiscordNotifierSettings Messages to a Discord channel through its webhook
 type DiscordNotifierSettings struct {
 	// ChannelWebhookUrl The webhook URL of the channel
@@ -577,6 +778,54 @@ type FieldError struct {
 	Field string `json:"field"`
 }
 
+// FtpStorageSettings A folder of an FTP server
+type FtpStorageSettings struct {
+	// Host The host of the server
+	Host string `json:"host"`
+
+	// IsSkipTlsVerify Whether the TLS certificate of the server goes unchecked
+	IsSkipTlsVerify bool `json:"isSkipTlsVerify"`
+
+	// IsSsl Whether the connection uses explicit TLS
+	IsSsl bool `json:"isSsl"`
+
+	// Password The password
+	Password *string `json:"password,omitempty"`
+
+	// Path The folder on the server, absent for the login folder
+	Path *string `json:"path,omitempty"`
+
+	// Port The port of the server
+	Port int `json:"port"`
+
+	// Type Always `FTP`
+	Type FtpStorageSettingsType `json:"type"`
+
+	// Username The user name
+	Username string `json:"username"`
+}
+
+// FtpStorageSettingsType Always `FTP`
+type FtpStorageSettingsType string
+
+// GoogleDriveStorageSettings The Google Drive of the account that authorized the OAuth client
+type GoogleDriveStorageSettings struct {
+	// ClientId The ID of the OAuth client
+	ClientId string `json:"clientId"`
+
+	// ClientSecret The secret of the OAuth client
+	ClientSecret *string `json:"clientSecret,omitempty"`
+
+	// TokenJson The OAuth token with its refresh token, as JSON
+	TokenJson *string `json:"tokenJson,omitempty"`
+
+	// Type Always `GOOGLE_DRIVE`
+	Type GoogleDriveStorageSettingsType `json:"type"`
+}
+
+// GoogleDriveStorageSettingsType Always `GOOGLE_DRIVE`
+type GoogleDriveStorageSettingsType string
+
 // InstanceSettings The settings of the instance
 type InstanceSettings struct {
 	// IsAllowExternalRegistrations Anyone may sign up without an invitation
@@ -609,6 +858,15 @@ type InstanceSettingsUpdate struct {
 	// IsTwoFactorAuthRequired A password sign-in also needs a code emailed to the user
 	IsTwoFactorAuthRequired bool `json:"isTwoFactorAuthRequired"`
 }
+
+// LocalStorageSettings The data folder of the Databasus instance
+type LocalStorageSettings struct {
+	// Type Always `LOCAL`
+	Type LocalStorageSettingsType `json:"type"`
+}
+
+// LocalStorageSettingsType Always `LOCAL`
+type LocalStorageSettingsType string
 
 // MattermostNotifierSettings Posts to Mattermost through an incoming webhook or a bot account
 type MattermostNotifierSettings struct {
@@ -648,6 +906,39 @@ type MattermostNotifierSettingsDeliveryMode string
 
 // MattermostNotifierSettingsType Always `MATTERMOST`
 type MattermostNotifierSettingsType string
+
+// NasStorageSettings A share of an SMB server
+type NasStorageSettings struct {
+	// Domain The domain of the account, absent for an account outside a domain
+	Domain *string `json:"domain,omitempty"`
+
+	// Host The host of the server
+	Host string `json:"host"`
+
+	// IsSsl Whether the connection is encrypted
+	IsSsl bool `json:"isSsl"`
+
+	// Password The password
+	Password *string `json:"password,omitempty"`
+
+	// Path The folder inside the share, absent for its root
+	Path *string `json:"path,omitempty"`
+
+	// Port The port of the server
+	Port int `json:"port"`
+
+	// Share The share
+	Share string `json:"share"`
+
+	// Type Always `NAS`
+	Type NasStorageSettingsType `json:"type"`
+
+	// Username The user name
+	Username string `json:"username"`
+}
+
+// NasStorageSettingsType Always `NAS`
+type NasStorageSettingsType string
 
 // NotificationCategory What a notification is about
 type NotificationCategory string
@@ -807,11 +1098,65 @@ type Problem struct {
 // ProblemCode The cause of the error for programs; a value never changes its meaning
 type ProblemCode string
 
+// RcloneStorageSettings A remote of rclone; only an instance admin may write or test its configuration
+type RcloneStorageSettings struct {
+	// ConfigContent One remote section of an rclone configuration file
+	ConfigContent *string `json:"configContent,omitempty"`
+
+	// RemotePath The folder inside the remote, absent for its root
+	RemotePath *string `json:"remotePath,omitempty"`
+
+	// Type Always `RCLONE`
+	Type RcloneStorageSettingsType `json:"type"`
+}
+
+// RcloneStorageSettingsType Always `RCLONE`
+type RcloneStorageSettingsType string
+
 // ResendSignInCodeRequest A request for a new code
 type ResendSignInCodeRequest struct {
 	// CloudflareTurnstileToken The answer to the human-verification challenge, required when the instance has one
 	CloudflareTurnstileToken *string `json:"cloudflareTurnstileToken,omitempty"`
 }
+
+// S3StorageClass The storage class of the stored objects; absent means the bucket's default
+type S3StorageClass string
+
+// S3StorageSettings A bucket of Amazon S3 or of a service compatible with it
+type S3StorageSettings struct {
+	// IsSkipTlsVerify Whether the TLS certificate of the endpoint goes unchecked
+	IsSkipTlsVerify bool `json:"isSkipTlsVerify"`
+
+	// IsVirtualHostedStyle Whether the bucket is addressed as a subdomain of the endpoint
+	IsVirtualHostedStyle bool `json:"isVirtualHostedStyle"`
+
+	// S3AccessKey The access key ID
+	S3AccessKey *string `json:"s3AccessKey,omitempty"`
+
+	// S3Bucket The bucket
+	S3Bucket string `json:"s3Bucket"`
+
+	// S3Endpoint The endpoint of a service compatible with S3, absent for AWS
+	S3Endpoint *string `json:"s3Endpoint,omitempty"`
+
+	// S3Prefix The prefix of every stored object, fixed when the storage is created
+	S3Prefix *string `json:"s3Prefix,omitempty"`
+
+	// S3Region The region of the bucket, absent to look it up
+	S3Region *string `json:"s3Region,omitempty"`
+
+	// S3SecretKey The secret access key
+	S3SecretKey *string `json:"s3SecretKey,omitempty"`
+
+	// S3StorageClass The storage class of the stored objects; absent means the bucket's default
+	S3StorageClass *S3StorageClass `json:"s3StorageClass,omitempty"`
+
+	// Type Always `S3`
+	Type S3StorageSettingsType `json:"type"`
+}
+
+// S3StorageSettingsType Always `S3`
+type S3StorageSettingsType string
 
 // Session A session of a signed-in user. The operation that creates it returns the token once; no other operation returns it
 type Session struct {
@@ -824,6 +1169,36 @@ type Session struct {
 	// UserId The ID of the signed-in user
 	UserId openapi_types.UUID `json:"userId"`
 }
+
+// SftpStorageSettings A folder of an SFTP server
+type SftpStorageSettings struct {
+	// Host The host of the server
+	Host string `json:"host"`
+
+	// IsSkipHostKeyVerify Whether the host key of the server goes unchecked
+	IsSkipHostKeyVerify bool `json:"isSkipHostKeyVerify"`
+
+	// Password The password, absent when the private key signs in
+	Password *string `json:"password,omitempty"`
+
+	// Path The folder on the server, absent for the login folder
+	Path *string `json:"path,omitempty"`
+
+	// Port The port of the server
+	Port int `json:"port"`
+
+	// PrivateKey The private key, absent when the password signs in
+	PrivateKey *string `json:"privateKey,omitempty"`
+
+	// Type Always `SFTP`
+	Type SftpStorageSettingsType `json:"type"`
+
+	// Username The user name
+	Username string `json:"username"`
+}
+
+// SftpStorageSettingsType Always `SFTP`
+type SftpStorageSettingsType string
 
 // SignInCodeRequired The password was correct, and a code went to the user's address
 type SignInCodeRequired struct {
@@ -913,6 +1288,83 @@ type SlackNotifierSettingsType string
 
 // SmtpSecurity How the connection to the SMTP server is encrypted
 type SmtpSecurity string
+
+// Storage A place backups of a workspace are kept, without its secrets
+type Storage struct {
+	// Id The ID of the storage
+	Id openapi_types.UUID `json:"id"`
+
+	// Name The name of the storage
+	Name string `json:"name"`
+
+	// Settings The settings of the storage's provider; `type` tells the providers apart
+	Settings StorageSettings `json:"settings"`
+
+	// WorkspaceId The workspace the storage belongs to
+	WorkspaceId openapi_types.UUID `json:"workspaceId"`
+}
+
+// StorageCreate A new storage
+type StorageCreate struct {
+	// Name The name of the storage
+	Name string `json:"name"`
+
+	// Settings The settings of the storage's provider; `type` tells the providers apart
+	Settings StorageSettings `json:"settings"`
+
+	// WorkspaceId The workspace the storage belongs to
+	WorkspaceId openapi_types.UUID `json:"workspaceId"`
+}
+
+// StoragePage One page of storages, ordered by name
+type StoragePage struct {
+	// Items The storages on the page
+	Items []Storage `json:"items"`
+
+	// NextCursor The `after` of the next page, absent on the last page
+	NextCursor *string `json:"nextCursor,omitempty"`
+}
+
+// StorageSettings The settings of the storage's provider; `type` tells the providers apart
+type StorageSettings struct {
+	union json.RawMessage
+}
+
+// StorageSettingsTest Settings to test the connection with
+type StorageSettingsTest struct {
+	// Settings The settings of the storage's provider; `type` tells the providers apart
+	Settings StorageSettings `json:"settings"`
+
+	// StorageId A saved storage of the workspace whose stored secrets fill the ones left out
+	StorageId *openapi_types.UUID `json:"storageId,omitempty"`
+
+	// WorkspaceId The workspace the test is made in
+	WorkspaceId openapi_types.UUID `json:"workspaceId"`
+}
+
+// StorageTestResult The outcome of a connection test
+type StorageTestResult struct {
+	// Error The error the storage gave, absent when it is connected
+	Error *string `json:"error,omitempty"`
+
+	// IsConnected Whether the storage could be reached and written
+	IsConnected bool `json:"isConnected"`
+}
+
+// StorageTransfer The workspace a storage moves to
+type StorageTransfer struct {
+	// TargetWorkspaceId The ID of the target workspace
+	TargetWorkspaceId openapi_types.UUID `json:"targetWorkspaceId"`
+}
+
+// StorageUpdate The editable fields of a storage
+type StorageUpdate struct {
+	// Name The name of the storage
+	Name string `json:"name"`
+
+	// Settings The settings of the storage's provider; `type` tells the providers apart
+	Settings StorageSettings `json:"settings"`
+}
 
 // TeamsNotifierSettings Messages to Microsoft Teams through a Power Automate workflow
 type TeamsNotifierSettings struct {
@@ -1169,6 +1621,9 @@ type NotifierId = openapi_types.UUID
 // PendingSignInId defines model for PendingSignInId.
 type PendingSignInId = openapi_types.UUID
 
+// StorageId defines model for StorageId.
+type StorageId = openapi_types.UUID
+
 // UserId defines model for UserId.
 type UserId = openapi_types.UUID
 
@@ -1196,6 +1651,18 @@ type ListNotifiersParams struct {
 	WorkspaceId openapi_types.UUID `form:"workspaceId" json:"workspaceId"`
 
 	// Limit The largest number of notifiers on the page
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// After The `nextCursor` of the previous page
+	After *string `form:"after,omitempty" json:"after,omitempty"`
+}
+
+// ListStoragesParams defines parameters for ListStorages.
+type ListStoragesParams struct {
+	// WorkspaceId The workspace whose storages to list
+	WorkspaceId openapi_types.UUID `form:"workspaceId" json:"workspaceId"`
+
+	// Limit The largest number of storages on the page
 	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
 
 	// After The `nextCursor` of the previous page
@@ -1270,6 +1737,18 @@ type VerifySignInCodeJSONRequestBody = VerifySignInCodeRequest
 
 // SignInJSONRequestBody defines body for SignIn for application/json ContentType.
 type SignInJSONRequestBody = SignInRequest
+
+// TestStorageSettingsJSONRequestBody defines body for TestStorageSettings for application/json ContentType.
+type TestStorageSettingsJSONRequestBody = StorageSettingsTest
+
+// CreateStorageJSONRequestBody defines body for CreateStorage for application/json ContentType.
+type CreateStorageJSONRequestBody = StorageCreate
+
+// UpdateStorageJSONRequestBody defines body for UpdateStorage for application/json ContentType.
+type UpdateStorageJSONRequestBody = StorageUpdate
+
+// TransferStorageJSONRequestBody defines body for TransferStorage for application/json ContentType.
+type TransferStorageJSONRequestBody = StorageTransfer
 
 // SignUpJSONRequestBody defines body for SignUp for application/json ContentType.
 type SignUpJSONRequestBody = SignUpRequest
@@ -1680,6 +2159,323 @@ func (t *SignInOutcome) UnmarshalJSON(b []byte) error {
 	return err
 }
 
+// AsLocalStorageSettings returns the union data inside the StorageSettings as a LocalStorageSettings
+func (t StorageSettings) AsLocalStorageSettings() (LocalStorageSettings, error) {
+	var body LocalStorageSettings
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromLocalStorageSettings overwrites any union data inside the StorageSettings as the provided LocalStorageSettings
+func (t *StorageSettings) FromLocalStorageSettings(v LocalStorageSettings) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"LOCAL"}`))
+	t.union = b
+	return err
+}
+
+// MergeLocalStorageSettings performs a merge with any union data inside the StorageSettings, using the provided LocalStorageSettings
+func (t *StorageSettings) MergeLocalStorageSettings(v LocalStorageSettings) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"LOCAL"}`))
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsS3StorageSettings returns the union data inside the StorageSettings as a S3StorageSettings
+func (t StorageSettings) AsS3StorageSettings() (S3StorageSettings, error) {
+	var body S3StorageSettings
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromS3StorageSettings overwrites any union data inside the StorageSettings as the provided S3StorageSettings
+func (t *StorageSettings) FromS3StorageSettings(v S3StorageSettings) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"S3"}`))
+	t.union = b
+	return err
+}
+
+// MergeS3StorageSettings performs a merge with any union data inside the StorageSettings, using the provided S3StorageSettings
+func (t *StorageSettings) MergeS3StorageSettings(v S3StorageSettings) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"S3"}`))
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsGoogleDriveStorageSettings returns the union data inside the StorageSettings as a GoogleDriveStorageSettings
+func (t StorageSettings) AsGoogleDriveStorageSettings() (GoogleDriveStorageSettings, error) {
+	var body GoogleDriveStorageSettings
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromGoogleDriveStorageSettings overwrites any union data inside the StorageSettings as the provided GoogleDriveStorageSettings
+func (t *StorageSettings) FromGoogleDriveStorageSettings(v GoogleDriveStorageSettings) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"GOOGLE_DRIVE"}`))
+	t.union = b
+	return err
+}
+
+// MergeGoogleDriveStorageSettings performs a merge with any union data inside the StorageSettings, using the provided GoogleDriveStorageSettings
+func (t *StorageSettings) MergeGoogleDriveStorageSettings(v GoogleDriveStorageSettings) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"GOOGLE_DRIVE"}`))
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsNasStorageSettings returns the union data inside the StorageSettings as a NasStorageSettings
+func (t StorageSettings) AsNasStorageSettings() (NasStorageSettings, error) {
+	var body NasStorageSettings
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromNasStorageSettings overwrites any union data inside the StorageSettings as the provided NasStorageSettings
+func (t *StorageSettings) FromNasStorageSettings(v NasStorageSettings) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"NAS"}`))
+	t.union = b
+	return err
+}
+
+// MergeNasStorageSettings performs a merge with any union data inside the StorageSettings, using the provided NasStorageSettings
+func (t *StorageSettings) MergeNasStorageSettings(v NasStorageSettings) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"NAS"}`))
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsAzureBlobStorageSettings returns the union data inside the StorageSettings as a AzureBlobStorageSettings
+func (t StorageSettings) AsAzureBlobStorageSettings() (AzureBlobStorageSettings, error) {
+	var body AzureBlobStorageSettings
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromAzureBlobStorageSettings overwrites any union data inside the StorageSettings as the provided AzureBlobStorageSettings
+func (t *StorageSettings) FromAzureBlobStorageSettings(v AzureBlobStorageSettings) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"AZURE_BLOB"}`))
+	t.union = b
+	return err
+}
+
+// MergeAzureBlobStorageSettings performs a merge with any union data inside the StorageSettings, using the provided AzureBlobStorageSettings
+func (t *StorageSettings) MergeAzureBlobStorageSettings(v AzureBlobStorageSettings) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"AZURE_BLOB"}`))
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsFtpStorageSettings returns the union data inside the StorageSettings as a FtpStorageSettings
+func (t StorageSettings) AsFtpStorageSettings() (FtpStorageSettings, error) {
+	var body FtpStorageSettings
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromFtpStorageSettings overwrites any union data inside the StorageSettings as the provided FtpStorageSettings
+func (t *StorageSettings) FromFtpStorageSettings(v FtpStorageSettings) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"FTP"}`))
+	t.union = b
+	return err
+}
+
+// MergeFtpStorageSettings performs a merge with any union data inside the StorageSettings, using the provided FtpStorageSettings
+func (t *StorageSettings) MergeFtpStorageSettings(v FtpStorageSettings) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"FTP"}`))
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsSftpStorageSettings returns the union data inside the StorageSettings as a SftpStorageSettings
+func (t StorageSettings) AsSftpStorageSettings() (SftpStorageSettings, error) {
+	var body SftpStorageSettings
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromSftpStorageSettings overwrites any union data inside the StorageSettings as the provided SftpStorageSettings
+func (t *StorageSettings) FromSftpStorageSettings(v SftpStorageSettings) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"SFTP"}`))
+	t.union = b
+	return err
+}
+
+// MergeSftpStorageSettings performs a merge with any union data inside the StorageSettings, using the provided SftpStorageSettings
+func (t *StorageSettings) MergeSftpStorageSettings(v SftpStorageSettings) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"SFTP"}`))
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsRcloneStorageSettings returns the union data inside the StorageSettings as a RcloneStorageSettings
+func (t StorageSettings) AsRcloneStorageSettings() (RcloneStorageSettings, error) {
+	var body RcloneStorageSettings
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromRcloneStorageSettings overwrites any union data inside the StorageSettings as the provided RcloneStorageSettings
+func (t *StorageSettings) FromRcloneStorageSettings(v RcloneStorageSettings) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"RCLONE"}`))
+	t.union = b
+	return err
+}
+
+// MergeRcloneStorageSettings performs a merge with any union data inside the StorageSettings, using the provided RcloneStorageSettings
+func (t *StorageSettings) MergeRcloneStorageSettings(v RcloneStorageSettings) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"RCLONE"}`))
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t StorageSettings) Discriminator() (string, error) {
+	var discriminator struct {
+		Discriminator string `json:"type"`
+	}
+	err := json.Unmarshal(t.union, &discriminator)
+	return discriminator.Discriminator, err
+}
+
+func (t StorageSettings) ValueByDiscriminator() (interface{}, error) {
+	discriminator, err := t.Discriminator()
+	if err != nil {
+		return nil, err
+	}
+	switch discriminator {
+	case "AZURE_BLOB":
+		return t.AsAzureBlobStorageSettings()
+	case "FTP":
+		return t.AsFtpStorageSettings()
+	case "GOOGLE_DRIVE":
+		return t.AsGoogleDriveStorageSettings()
+	case "LOCAL":
+		return t.AsLocalStorageSettings()
+	case "NAS":
+		return t.AsNasStorageSettings()
+	case "RCLONE":
+		return t.AsRcloneStorageSettings()
+	case "S3":
+		return t.AsS3StorageSettings()
+	case "SFTP":
+		return t.AsSftpStorageSettings()
+	default:
+		return nil, errors.New("unknown discriminator value: " + discriminator)
+	}
+}
+
+func (t StorageSettings) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *StorageSettings) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
 // RequestEditorFn is the function signature for the RequestEditor callback function
 type RequestEditorFn func(ctx context.Context, req *http.Request) error
 
@@ -2018,6 +2814,106 @@ type ClientInterface interface {
 	//
 	// Corresponds with GET /sign-in-options (the `GetSignInOptions` operationId).
 	GetSignInOptions(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// TestStorageSettingsWithBody Test the connection with settings that are not saved
+	//
+	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test may send stored secrets wherever the request points; rclone settings need an instance admin. With `storageId`, a secret the request leaves out is taken from that storage, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type or another prefix than that storage's get 400 `invalid_request`. Nothing leaves the backend on a refusal, and nothing is saved.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /storage-tests (the `TestStorageSettings` operationId).
+	TestStorageSettingsWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// TestStorageSettings Test the connection with settings that are not saved
+	//
+	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test may send stored secrets wherever the request points; rclone settings need an instance admin. With `storageId`, a secret the request leaves out is taken from that storage, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type or another prefix than that storage's get 400 `invalid_request`. Nothing leaves the backend on a refusal, and nothing is saved.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /storage-tests (the `TestStorageSettings` operationId).
+	TestStorageSettings(ctx context.Context, body TestStorageSettingsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListStorages List the storages of a workspace
+	//
+	// Ordered by name, then by ID. A user who is not a member of the workspace gets 404 `not_found`. Secrets are never returned.
+	//
+	// Corresponds with GET /storages (the `ListStorages` operationId).
+	ListStorages(ctx context.Context, params *ListStoragesParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateStorageWithBody Create a storage in a workspace
+	//
+	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace; rclone settings need an instance admin. The type in `settings` is fixed once the storage exists. Settings the provider refuses get 400 `invalid_request` with the field in `errors`.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /storages (the `CreateStorage` operationId).
+	CreateStorageWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateStorage Create a storage in a workspace
+	//
+	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace; rclone settings need an instance admin. The type in `settings` is fixed once the storage exists. Settings the provider refuses get 400 `invalid_request` with the field in `errors`.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /storages (the `CreateStorage` operationId).
+	CreateStorage(ctx context.Context, body CreateStorageJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DeleteStorage Delete a storage
+	//
+	// Needs the role `WORKSPACE_MEMBER` or higher. A storage that a backup config uses or that still holds backups gets 409 `in_use`, and nothing is deleted. Otherwise the files waiting for cleanup are removed first, and the audit log names those left behind.
+	//
+	// Corresponds with DELETE /storages/{storageId} (the `DeleteStorage` operationId).
+	DeleteStorage(ctx context.Context, storageId StorageId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetStorage Get a storage without its secrets
+	//
+	// A user who is not a member of the storage's workspace gets 404 `not_found`, as for a storage that does not exist.
+	//
+	// Corresponds with GET /storages/{storageId} (the `GetStorage` operationId).
+	GetStorage(ctx context.Context, storageId StorageId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpdateStorageWithBody Replace the name and the settings of a storage
+	//
+	// Needs the role `WORKSPACE_MEMBER` or higher; an rclone storage needs an instance admin. A secret the request leaves out keeps its stored value. Settings of another type than the storage's, or an S3 or Azure Blob prefix other than the stored one, get 400 `invalid_request`, because both are fixed when the storage is created.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with PUT /storages/{storageId} (the `UpdateStorage` operationId).
+	UpdateStorageWithBody(ctx context.Context, storageId StorageId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpdateStorage Replace the name and the settings of a storage
+	//
+	// Needs the role `WORKSPACE_MEMBER` or higher; an rclone storage needs an instance admin. A secret the request leaves out keeps its stored value. Settings of another type than the storage's, or an S3 or Azure Blob prefix other than the stored one, get 400 `invalid_request`, because both are fixed when the storage is created.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with PUT /storages/{storageId} (the `UpdateStorage` operationId).
+	UpdateStorage(ctx context.Context, storageId StorageId, body UpdateStorageJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// TestStorage Test the connection of a saved storage
+	//
+	// Any member of the workspace may test, a viewer included. A connection the storage refuses is still a 200 that reports the storage's error. The test changes nothing in the storage.
+	//
+	// Corresponds with POST /storages/{storageId}/test (the `TestStorage` operationId).
+	TestStorage(ctx context.Context, storageId StorageId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// TransferStorageWithBody Move a storage to another workspace
+	//
+	// Needs the role `WORKSPACE_MEMBER` or higher in both workspaces. While the backup config of a database outside the target workspace uses the storage, the answer is 409 `in_use`, and the storage stays.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /storages/{storageId}/transfer (the `TransferStorage` operationId).
+	TransferStorageWithBody(ctx context.Context, storageId StorageId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// TransferStorage Move a storage to another workspace
+	//
+	// Needs the role `WORKSPACE_MEMBER` or higher in both workspaces. While the backup config of a database outside the target workspace uses the storage, the answer is 409 `in_use`, and the storage stays.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /storages/{storageId}/transfer (the `TransferStorage` operationId).
+	TransferStorage(ctx context.Context, storageId StorageId, body TransferStorageJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetVersion Get the version of the running instance
 	//
@@ -2824,6 +3720,226 @@ func (c *Client) SignIn(ctx context.Context, body SignInJSONRequestBody, reqEdit
 // Corresponds with GET /sign-in-options (the `GetSignInOptions` operationId).
 func (c *Client) GetSignInOptions(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetSignInOptionsRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// TestStorageSettingsWithBody Test the connection with settings that are not saved
+//
+// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test may send stored secrets wherever the request points; rclone settings need an instance admin. With `storageId`, a secret the request leaves out is taken from that storage, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type or another prefix than that storage's get 400 `invalid_request`. Nothing leaves the backend on a refusal, and nothing is saved.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /storage-tests (the `TestStorageSettings` operationId).
+func (c *Client) TestStorageSettingsWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewTestStorageSettingsRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// TestStorageSettings Test the connection with settings that are not saved
+//
+// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test may send stored secrets wherever the request points; rclone settings need an instance admin. With `storageId`, a secret the request leaves out is taken from that storage, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type or another prefix than that storage's get 400 `invalid_request`. Nothing leaves the backend on a refusal, and nothing is saved.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /storage-tests (the `TestStorageSettings` operationId).
+func (c *Client) TestStorageSettings(ctx context.Context, body TestStorageSettingsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewTestStorageSettingsRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ListStorages List the storages of a workspace
+//
+// Ordered by name, then by ID. A user who is not a member of the workspace gets 404 `not_found`. Secrets are never returned.
+//
+// Corresponds with GET /storages (the `ListStorages` operationId).
+func (c *Client) ListStorages(ctx context.Context, params *ListStoragesParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListStoragesRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// CreateStorageWithBody Create a storage in a workspace
+//
+// Needs the role `WORKSPACE_MEMBER` or higher in the workspace; rclone settings need an instance admin. The type in `settings` is fixed once the storage exists. Settings the provider refuses get 400 `invalid_request` with the field in `errors`.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /storages (the `CreateStorage` operationId).
+func (c *Client) CreateStorageWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateStorageRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// CreateStorage Create a storage in a workspace
+//
+// Needs the role `WORKSPACE_MEMBER` or higher in the workspace; rclone settings need an instance admin. The type in `settings` is fixed once the storage exists. Settings the provider refuses get 400 `invalid_request` with the field in `errors`.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /storages (the `CreateStorage` operationId).
+func (c *Client) CreateStorage(ctx context.Context, body CreateStorageJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateStorageRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// DeleteStorage Delete a storage
+//
+// Needs the role `WORKSPACE_MEMBER` or higher. A storage that a backup config uses or that still holds backups gets 409 `in_use`, and nothing is deleted. Otherwise the files waiting for cleanup are removed first, and the audit log names those left behind.
+//
+// Corresponds with DELETE /storages/{storageId} (the `DeleteStorage` operationId).
+func (c *Client) DeleteStorage(ctx context.Context, storageId StorageId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteStorageRequest(c.Server, storageId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetStorage Get a storage without its secrets
+//
+// A user who is not a member of the storage's workspace gets 404 `not_found`, as for a storage that does not exist.
+//
+// Corresponds with GET /storages/{storageId} (the `GetStorage` operationId).
+func (c *Client) GetStorage(ctx context.Context, storageId StorageId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetStorageRequest(c.Server, storageId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// UpdateStorageWithBody Replace the name and the settings of a storage
+//
+// Needs the role `WORKSPACE_MEMBER` or higher; an rclone storage needs an instance admin. A secret the request leaves out keeps its stored value. Settings of another type than the storage's, or an S3 or Azure Blob prefix other than the stored one, get 400 `invalid_request`, because both are fixed when the storage is created.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with PUT /storages/{storageId} (the `UpdateStorage` operationId).
+func (c *Client) UpdateStorageWithBody(ctx context.Context, storageId StorageId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateStorageRequestWithBody(c.Server, storageId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// UpdateStorage Replace the name and the settings of a storage
+//
+// Needs the role `WORKSPACE_MEMBER` or higher; an rclone storage needs an instance admin. A secret the request leaves out keeps its stored value. Settings of another type than the storage's, or an S3 or Azure Blob prefix other than the stored one, get 400 `invalid_request`, because both are fixed when the storage is created.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with PUT /storages/{storageId} (the `UpdateStorage` operationId).
+func (c *Client) UpdateStorage(ctx context.Context, storageId StorageId, body UpdateStorageJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateStorageRequest(c.Server, storageId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// TestStorage Test the connection of a saved storage
+//
+// Any member of the workspace may test, a viewer included. A connection the storage refuses is still a 200 that reports the storage's error. The test changes nothing in the storage.
+//
+// Corresponds with POST /storages/{storageId}/test (the `TestStorage` operationId).
+func (c *Client) TestStorage(ctx context.Context, storageId StorageId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewTestStorageRequest(c.Server, storageId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// TransferStorageWithBody Move a storage to another workspace
+//
+// Needs the role `WORKSPACE_MEMBER` or higher in both workspaces. While the backup config of a database outside the target workspace uses the storage, the answer is 409 `in_use`, and the storage stays.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /storages/{storageId}/transfer (the `TransferStorage` operationId).
+func (c *Client) TransferStorageWithBody(ctx context.Context, storageId StorageId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewTransferStorageRequestWithBody(c.Server, storageId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// TransferStorage Move a storage to another workspace
+//
+// Needs the role `WORKSPACE_MEMBER` or higher in both workspaces. While the backup config of a database outside the target workspace uses the storage, the answer is 409 `in_use`, and the storage stays.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /storages/{storageId}/transfer (the `TransferStorage` operationId).
+func (c *Client) TransferStorage(ctx context.Context, storageId StorageId, body TransferStorageJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewTransferStorageRequest(c.Server, storageId, body)
 	if err != nil {
 		return nil, err
 	}
@@ -4191,6 +5307,356 @@ func NewGetSignInOptionsRequest(server string) (*http.Request, error) {
 	return req, nil
 }
 
+// NewTestStorageSettingsRequest calls the generic TestStorageSettings builder with application/json body
+func NewTestStorageSettingsRequest(server string, body TestStorageSettingsJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewTestStorageSettingsRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewTestStorageSettingsRequestWithBody constructs an http.Request for the TestStorageSettings method, with any body, and a specified content type
+func NewTestStorageSettingsRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/storage-tests")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewListStoragesRequest constructs an http.Request for the ListStorages method
+func NewListStoragesRequest(server string, params *ListStoragesParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/storages")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "workspaceId", params.WorkspaceId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: "uuid"}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "limit", *params.Limit, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.After != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "after", *params.After, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewCreateStorageRequest calls the generic CreateStorage builder with application/json body
+func NewCreateStorageRequest(server string, body CreateStorageJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCreateStorageRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewCreateStorageRequestWithBody constructs an http.Request for the CreateStorage method, with any body, and a specified content type
+func NewCreateStorageRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/storages")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewDeleteStorageRequest constructs an http.Request for the DeleteStorage method
+func NewDeleteStorageRequest(server string, storageId StorageId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "storageId", storageId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/storages/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodDelete, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetStorageRequest constructs an http.Request for the GetStorage method
+func NewGetStorageRequest(server string, storageId StorageId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "storageId", storageId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/storages/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewUpdateStorageRequest calls the generic UpdateStorage builder with application/json body
+func NewUpdateStorageRequest(server string, storageId StorageId, body UpdateStorageJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewUpdateStorageRequestWithBody(server, storageId, "application/json", bodyReader)
+}
+
+// NewUpdateStorageRequestWithBody constructs an http.Request for the UpdateStorage method, with any body, and a specified content type
+func NewUpdateStorageRequestWithBody(server string, storageId StorageId, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "storageId", storageId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/storages/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPut, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewTestStorageRequest constructs an http.Request for the TestStorage method
+func NewTestStorageRequest(server string, storageId StorageId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "storageId", storageId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/storages/%s/test", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewTransferStorageRequest calls the generic TransferStorage builder with application/json body
+func NewTransferStorageRequest(server string, storageId StorageId, body TransferStorageJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewTransferStorageRequestWithBody(server, storageId, "application/json", bodyReader)
+}
+
+// NewTransferStorageRequestWithBody constructs an http.Request for the TransferStorage method, with any body, and a specified content type
+func NewTransferStorageRequestWithBody(server string, storageId StorageId, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "storageId", storageId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/storages/%s/transfer", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewGetVersionRequest constructs an http.Request for the GetVersion method
 func NewGetVersionRequest(server string) (*http.Request, error) {
 	var err error
@@ -5391,6 +6857,114 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with GET /sign-in-options (the `GetSignInOptions` operationId).
 	GetSignInOptionsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetSignInOptionsResponse, error)
+
+	// TestStorageSettingsWithBodyWithResponse Test the connection with settings that are not saved
+	//
+	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test may send stored secrets wherever the request points; rclone settings need an instance admin. With `storageId`, a secret the request leaves out is taken from that storage, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type or another prefix than that storage's get 400 `invalid_request`. Nothing leaves the backend on a refusal, and nothing is saved.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /storage-tests (the `TestStorageSettings` operationId).
+	TestStorageSettingsWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*TestStorageSettingsResponse, error)
+
+	// TestStorageSettingsWithResponse Test the connection with settings that are not saved
+	//
+	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test may send stored secrets wherever the request points; rclone settings need an instance admin. With `storageId`, a secret the request leaves out is taken from that storage, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type or another prefix than that storage's get 400 `invalid_request`. Nothing leaves the backend on a refusal, and nothing is saved.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /storage-tests (the `TestStorageSettings` operationId).
+	TestStorageSettingsWithResponse(ctx context.Context, body TestStorageSettingsJSONRequestBody, reqEditors ...RequestEditorFn) (*TestStorageSettingsResponse, error)
+
+	// ListStoragesWithResponse List the storages of a workspace
+	//
+	// Ordered by name, then by ID. A user who is not a member of the workspace gets 404 `not_found`. Secrets are never returned.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /storages (the `ListStorages` operationId).
+	ListStoragesWithResponse(ctx context.Context, params *ListStoragesParams, reqEditors ...RequestEditorFn) (*ListStoragesResponse, error)
+
+	// CreateStorageWithBodyWithResponse Create a storage in a workspace
+	//
+	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace; rclone settings need an instance admin. The type in `settings` is fixed once the storage exists. Settings the provider refuses get 400 `invalid_request` with the field in `errors`.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /storages (the `CreateStorage` operationId).
+	CreateStorageWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateStorageResponse, error)
+
+	// CreateStorageWithResponse Create a storage in a workspace
+	//
+	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace; rclone settings need an instance admin. The type in `settings` is fixed once the storage exists. Settings the provider refuses get 400 `invalid_request` with the field in `errors`.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /storages (the `CreateStorage` operationId).
+	CreateStorageWithResponse(ctx context.Context, body CreateStorageJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateStorageResponse, error)
+
+	// DeleteStorageWithResponse Delete a storage
+	//
+	// Needs the role `WORKSPACE_MEMBER` or higher. A storage that a backup config uses or that still holds backups gets 409 `in_use`, and nothing is deleted. Otherwise the files waiting for cleanup are removed first, and the audit log names those left behind.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with DELETE /storages/{storageId} (the `DeleteStorage` operationId).
+	DeleteStorageWithResponse(ctx context.Context, storageId StorageId, reqEditors ...RequestEditorFn) (*DeleteStorageResponse, error)
+
+	// GetStorageWithResponse Get a storage without its secrets
+	//
+	// A user who is not a member of the storage's workspace gets 404 `not_found`, as for a storage that does not exist.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /storages/{storageId} (the `GetStorage` operationId).
+	GetStorageWithResponse(ctx context.Context, storageId StorageId, reqEditors ...RequestEditorFn) (*GetStorageResponse, error)
+
+	// UpdateStorageWithBodyWithResponse Replace the name and the settings of a storage
+	//
+	// Needs the role `WORKSPACE_MEMBER` or higher; an rclone storage needs an instance admin. A secret the request leaves out keeps its stored value. Settings of another type than the storage's, or an S3 or Azure Blob prefix other than the stored one, get 400 `invalid_request`, because both are fixed when the storage is created.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /storages/{storageId} (the `UpdateStorage` operationId).
+	UpdateStorageWithBodyWithResponse(ctx context.Context, storageId StorageId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateStorageResponse, error)
+
+	// UpdateStorageWithResponse Replace the name and the settings of a storage
+	//
+	// Needs the role `WORKSPACE_MEMBER` or higher; an rclone storage needs an instance admin. A secret the request leaves out keeps its stored value. Settings of another type than the storage's, or an S3 or Azure Blob prefix other than the stored one, get 400 `invalid_request`, because both are fixed when the storage is created.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /storages/{storageId} (the `UpdateStorage` operationId).
+	UpdateStorageWithResponse(ctx context.Context, storageId StorageId, body UpdateStorageJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateStorageResponse, error)
+
+	// TestStorageWithResponse Test the connection of a saved storage
+	//
+	// Any member of the workspace may test, a viewer included. A connection the storage refuses is still a 200 that reports the storage's error. The test changes nothing in the storage.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /storages/{storageId}/test (the `TestStorage` operationId).
+	TestStorageWithResponse(ctx context.Context, storageId StorageId, reqEditors ...RequestEditorFn) (*TestStorageResponse, error)
+
+	// TransferStorageWithBodyWithResponse Move a storage to another workspace
+	//
+	// Needs the role `WORKSPACE_MEMBER` or higher in both workspaces. While the backup config of a database outside the target workspace uses the storage, the answer is 409 `in_use`, and the storage stays.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /storages/{storageId}/transfer (the `TransferStorage` operationId).
+	TransferStorageWithBodyWithResponse(ctx context.Context, storageId StorageId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*TransferStorageResponse, error)
+
+	// TransferStorageWithResponse Move a storage to another workspace
+	//
+	// Needs the role `WORKSPACE_MEMBER` or higher in both workspaces. While the backup config of a database outside the target workspace uses the storage, the answer is 409 `in_use`, and the storage stays.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /storages/{storageId}/transfer (the `TransferStorage` operationId).
+	TransferStorageWithResponse(ctx context.Context, storageId StorageId, body TransferStorageJSONRequestBody, reqEditors ...RequestEditorFn) (*TransferStorageResponse, error)
 
 	// GetVersionWithResponse Get the version of the running instance
 	//
@@ -6945,6 +8519,593 @@ func (r GetSignInOptionsResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r GetSignInOptionsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type TestStorageSettingsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *StorageTestResult
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r TestStorageSettingsResponse) GetJSON200() *StorageTestResult {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r TestStorageSettingsResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r TestStorageSettingsResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r TestStorageSettingsResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r TestStorageSettingsResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r TestStorageSettingsResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r TestStorageSettingsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r TestStorageSettingsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r TestStorageSettingsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r TestStorageSettingsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type ListStoragesResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *StoragePage
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ListStoragesResponse) GetJSON200() *StoragePage {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r ListStoragesResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r ListStoragesResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r ListStoragesResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r ListStoragesResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r ListStoragesResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ListStoragesResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListStoragesResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ListStoragesResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type CreateStorageResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON201 the response for an HTTP 201 `application/json` response
+	JSON201 *Storage
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON201 returns the response for an HTTP 201 `application/json` response
+func (r CreateStorageResponse) GetJSON201() *Storage {
+	return r.JSON201
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r CreateStorageResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r CreateStorageResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r CreateStorageResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r CreateStorageResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r CreateStorageResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r CreateStorageResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r CreateStorageResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreateStorageResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r CreateStorageResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type DeleteStorageResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSON409 the response for an HTTP 409 `application/problem+json` response
+	ApplicationproblemJSON409 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r DeleteStorageResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r DeleteStorageResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r DeleteStorageResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r DeleteStorageResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSON409 returns the response for an HTTP 409 `application/problem+json` response
+func (r DeleteStorageResponse) GetApplicationproblemJSON409() *Problem {
+	return r.ApplicationproblemJSON409
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r DeleteStorageResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r DeleteStorageResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r DeleteStorageResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DeleteStorageResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r DeleteStorageResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetStorageResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *Storage
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetStorageResponse) GetJSON200() *Storage {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r GetStorageResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r GetStorageResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r GetStorageResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r GetStorageResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r GetStorageResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetStorageResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetStorageResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetStorageResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type UpdateStorageResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *Storage
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r UpdateStorageResponse) GetJSON200() *Storage {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r UpdateStorageResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r UpdateStorageResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r UpdateStorageResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r UpdateStorageResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r UpdateStorageResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r UpdateStorageResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r UpdateStorageResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r UpdateStorageResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r UpdateStorageResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type TestStorageResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *StorageTestResult
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r TestStorageResponse) GetJSON200() *StorageTestResult {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r TestStorageResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r TestStorageResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r TestStorageResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r TestStorageResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r TestStorageResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r TestStorageResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r TestStorageResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r TestStorageResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type TransferStorageResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSON409 the response for an HTTP 409 `application/problem+json` response
+	ApplicationproblemJSON409 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r TransferStorageResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r TransferStorageResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r TransferStorageResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r TransferStorageResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSON409 returns the response for an HTTP 409 `application/problem+json` response
+func (r TransferStorageResponse) GetApplicationproblemJSON409() *Problem {
+	return r.ApplicationproblemJSON409
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r TransferStorageResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r TransferStorageResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r TransferStorageResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r TransferStorageResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r TransferStorageResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -8831,6 +10992,186 @@ func (c *ClientWithResponses) GetSignInOptionsWithResponse(ctx context.Context, 
 	return ParseGetSignInOptionsResponse(rsp)
 }
 
+// TestStorageSettingsWithBodyWithResponse Test the connection with settings that are not saved
+//
+// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test may send stored secrets wherever the request points; rclone settings need an instance admin. With `storageId`, a secret the request leaves out is taken from that storage, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type or another prefix than that storage's get 400 `invalid_request`. Nothing leaves the backend on a refusal, and nothing is saved.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /storage-tests (the `TestStorageSettings` operationId).
+func (c *ClientWithResponses) TestStorageSettingsWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*TestStorageSettingsResponse, error) {
+	rsp, err := c.TestStorageSettingsWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseTestStorageSettingsResponse(rsp)
+}
+
+// TestStorageSettingsWithResponse Test the connection with settings that are not saved
+//
+// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test may send stored secrets wherever the request points; rclone settings need an instance admin. With `storageId`, a secret the request leaves out is taken from that storage, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type or another prefix than that storage's get 400 `invalid_request`. Nothing leaves the backend on a refusal, and nothing is saved.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /storage-tests (the `TestStorageSettings` operationId).
+func (c *ClientWithResponses) TestStorageSettingsWithResponse(ctx context.Context, body TestStorageSettingsJSONRequestBody, reqEditors ...RequestEditorFn) (*TestStorageSettingsResponse, error) {
+	rsp, err := c.TestStorageSettings(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseTestStorageSettingsResponse(rsp)
+}
+
+// ListStoragesWithResponse List the storages of a workspace
+//
+// Ordered by name, then by ID. A user who is not a member of the workspace gets 404 `not_found`. Secrets are never returned.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /storages (the `ListStorages` operationId).
+func (c *ClientWithResponses) ListStoragesWithResponse(ctx context.Context, params *ListStoragesParams, reqEditors ...RequestEditorFn) (*ListStoragesResponse, error) {
+	rsp, err := c.ListStorages(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListStoragesResponse(rsp)
+}
+
+// CreateStorageWithBodyWithResponse Create a storage in a workspace
+//
+// Needs the role `WORKSPACE_MEMBER` or higher in the workspace; rclone settings need an instance admin. The type in `settings` is fixed once the storage exists. Settings the provider refuses get 400 `invalid_request` with the field in `errors`.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /storages (the `CreateStorage` operationId).
+func (c *ClientWithResponses) CreateStorageWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateStorageResponse, error) {
+	rsp, err := c.CreateStorageWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateStorageResponse(rsp)
+}
+
+// CreateStorageWithResponse Create a storage in a workspace
+//
+// Needs the role `WORKSPACE_MEMBER` or higher in the workspace; rclone settings need an instance admin. The type in `settings` is fixed once the storage exists. Settings the provider refuses get 400 `invalid_request` with the field in `errors`.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /storages (the `CreateStorage` operationId).
+func (c *ClientWithResponses) CreateStorageWithResponse(ctx context.Context, body CreateStorageJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateStorageResponse, error) {
+	rsp, err := c.CreateStorage(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateStorageResponse(rsp)
+}
+
+// DeleteStorageWithResponse Delete a storage
+//
+// Needs the role `WORKSPACE_MEMBER` or higher. A storage that a backup config uses or that still holds backups gets 409 `in_use`, and nothing is deleted. Otherwise the files waiting for cleanup are removed first, and the audit log names those left behind.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with DELETE /storages/{storageId} (the `DeleteStorage` operationId).
+func (c *ClientWithResponses) DeleteStorageWithResponse(ctx context.Context, storageId StorageId, reqEditors ...RequestEditorFn) (*DeleteStorageResponse, error) {
+	rsp, err := c.DeleteStorage(ctx, storageId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDeleteStorageResponse(rsp)
+}
+
+// GetStorageWithResponse Get a storage without its secrets
+//
+// A user who is not a member of the storage's workspace gets 404 `not_found`, as for a storage that does not exist.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /storages/{storageId} (the `GetStorage` operationId).
+func (c *ClientWithResponses) GetStorageWithResponse(ctx context.Context, storageId StorageId, reqEditors ...RequestEditorFn) (*GetStorageResponse, error) {
+	rsp, err := c.GetStorage(ctx, storageId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetStorageResponse(rsp)
+}
+
+// UpdateStorageWithBodyWithResponse Replace the name and the settings of a storage
+//
+// Needs the role `WORKSPACE_MEMBER` or higher; an rclone storage needs an instance admin. A secret the request leaves out keeps its stored value. Settings of another type than the storage's, or an S3 or Azure Blob prefix other than the stored one, get 400 `invalid_request`, because both are fixed when the storage is created.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /storages/{storageId} (the `UpdateStorage` operationId).
+func (c *ClientWithResponses) UpdateStorageWithBodyWithResponse(ctx context.Context, storageId StorageId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateStorageResponse, error) {
+	rsp, err := c.UpdateStorageWithBody(ctx, storageId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateStorageResponse(rsp)
+}
+
+// UpdateStorageWithResponse Replace the name and the settings of a storage
+//
+// Needs the role `WORKSPACE_MEMBER` or higher; an rclone storage needs an instance admin. A secret the request leaves out keeps its stored value. Settings of another type than the storage's, or an S3 or Azure Blob prefix other than the stored one, get 400 `invalid_request`, because both are fixed when the storage is created.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /storages/{storageId} (the `UpdateStorage` operationId).
+func (c *ClientWithResponses) UpdateStorageWithResponse(ctx context.Context, storageId StorageId, body UpdateStorageJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateStorageResponse, error) {
+	rsp, err := c.UpdateStorage(ctx, storageId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateStorageResponse(rsp)
+}
+
+// TestStorageWithResponse Test the connection of a saved storage
+//
+// Any member of the workspace may test, a viewer included. A connection the storage refuses is still a 200 that reports the storage's error. The test changes nothing in the storage.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /storages/{storageId}/test (the `TestStorage` operationId).
+func (c *ClientWithResponses) TestStorageWithResponse(ctx context.Context, storageId StorageId, reqEditors ...RequestEditorFn) (*TestStorageResponse, error) {
+	rsp, err := c.TestStorage(ctx, storageId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseTestStorageResponse(rsp)
+}
+
+// TransferStorageWithBodyWithResponse Move a storage to another workspace
+//
+// Needs the role `WORKSPACE_MEMBER` or higher in both workspaces. While the backup config of a database outside the target workspace uses the storage, the answer is 409 `in_use`, and the storage stays.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /storages/{storageId}/transfer (the `TransferStorage` operationId).
+func (c *ClientWithResponses) TransferStorageWithBodyWithResponse(ctx context.Context, storageId StorageId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*TransferStorageResponse, error) {
+	rsp, err := c.TransferStorageWithBody(ctx, storageId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseTransferStorageResponse(rsp)
+}
+
+// TransferStorageWithResponse Move a storage to another workspace
+//
+// Needs the role `WORKSPACE_MEMBER` or higher in both workspaces. While the backup config of a database outside the target workspace uses the storage, the answer is 409 `in_use`, and the storage stays.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /storages/{storageId}/transfer (the `TransferStorage` operationId).
+func (c *ClientWithResponses) TransferStorageWithResponse(ctx context.Context, storageId StorageId, body TransferStorageJSONRequestBody, reqEditors ...RequestEditorFn) (*TransferStorageResponse, error) {
+	rsp, err := c.TransferStorage(ctx, storageId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseTransferStorageResponse(rsp)
+}
+
 // GetVersionWithResponse Get the version of the running instance
 //
 // Public, because installed verification agents call it without a token to decide whether to update themselves. Its path and its body never change.
@@ -10277,6 +12618,479 @@ func ParseGetSignInOptionsResponse(rsp *http.Response) (*GetSignInOptionsRespons
 			return nil, err
 		}
 		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseTestStorageSettingsResponse parses an HTTP response from a TestStorageSettingsWithResponse call
+func ParseTestStorageSettingsResponse(rsp *http.Response) (*TestStorageSettingsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &TestStorageSettingsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest StorageTestResult
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListStoragesResponse parses an HTTP response from a ListStoragesWithResponse call
+func ParseListStoragesResponse(rsp *http.Response) (*ListStoragesResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListStoragesResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest StoragePage
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCreateStorageResponse parses an HTTP response from a CreateStorageWithResponse call
+func ParseCreateStorageResponse(rsp *http.Response) (*CreateStorageResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CreateStorageResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest Storage
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseDeleteStorageResponse parses an HTTP response from a DeleteStorageWithResponse call
+func ParseDeleteStorageResponse(rsp *http.Response) (*DeleteStorageResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeleteStorageResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case rsp.StatusCode == 204:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetStorageResponse parses an HTTP response from a GetStorageWithResponse call
+func ParseGetStorageResponse(rsp *http.Response) (*GetStorageResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetStorageResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Storage
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseUpdateStorageResponse parses an HTTP response from a UpdateStorageWithResponse call
+func ParseUpdateStorageResponse(rsp *http.Response) (*UpdateStorageResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &UpdateStorageResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Storage
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseTestStorageResponse parses an HTTP response from a TestStorageWithResponse call
+func ParseTestStorageResponse(rsp *http.Response) (*TestStorageResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &TestStorageResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest StorageTestResult
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseTransferStorageResponse parses an HTTP response from a TransferStorageWithResponse call
+func ParseTransferStorageResponse(rsp *http.Response) (*TransferStorageResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &TransferStorageResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case rsp.StatusCode == 204:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON409 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest Problem

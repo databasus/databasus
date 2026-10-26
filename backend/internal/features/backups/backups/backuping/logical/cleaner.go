@@ -12,8 +12,8 @@ import (
 	"databasus-backend/internal/features/backups/backups/backuping/shared/gfs"
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
-	storage_files "databasus-backend/internal/features/storages/files"
 	"databasus-backend/internal/lib/database"
+	"databasus-backend/internal/modules/storages"
 	db "databasus-backend/internal/storage"
 	"databasus-backend/internal/util/period"
 )
@@ -26,8 +26,9 @@ const (
 )
 
 type BackupCleaner struct {
-	backupRepository      *backups_core_logical.BackupRepository
-	fileStore             *storage_files.Store
+	backupRepository *backups_core_logical.BackupRepository
+	// getStorages is read per call: each test application installs its own module.
+	getStorages           func() storages.Module
 	backupConfigService   *backups_config_logical.BackupConfigService
 	logger                *slog.Logger
 	backupRemoveListeners []backups_core_logical.BackupRemoveListener
@@ -78,7 +79,7 @@ func (c *BackupCleaner) DeleteBackup(ctx context.Context, backup *backups_core_l
 		}
 	}
 
-	references := []storage_files.StoredFileReference{
+	references := []storages.StoredFileReference{
 		{StorageID: backup.StorageID, FileName: backup.FileName},
 		{StorageID: backup.StorageID, FileName: backup.FileName + metadataSuffix},
 	}
@@ -89,7 +90,7 @@ func (c *BackupCleaner) DeleteBackup(ctx context.Context, backup *backups_core_l
 	return db.GetTransactor().Transaction(ctx, func(ctx context.Context) error {
 		tx := database.Conn(ctx, db.GetDb())
 
-		if err := c.fileStore.RequestFileDeletions(ctx, references); err != nil {
+		if err := c.getStorages().RequestFileDeletions(ctx, references); err != nil {
 			return err
 		}
 

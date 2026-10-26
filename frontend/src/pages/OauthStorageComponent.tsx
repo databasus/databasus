@@ -2,24 +2,25 @@ import { Modal, Spin } from 'antd';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { type Storage, StorageType } from '../entity/storages';
-import type { StorageOauthDto } from '../entity/storages/models/StorageOauthDto';
+import { type StorageOauthDto, StorageType } from '../entity/storages';
 import type { User } from '../entity/users';
 import { userApi } from '../entity/users';
-import { EditStorageComponent } from '../features/storages/ui/edit/EditStorageComponent';
+import { EditStorageComponent, type StorageDraft } from '../features/storages';
 
 export function OauthStorageComponent() {
   const { t } = useTranslation();
-  const [storage, setStorage] = useState<Storage | undefined>();
+  const [workspaceId, setWorkspaceId] = useState<string | undefined>();
+  const [draft, setDraft] = useState<StorageDraft | undefined>();
   const [user, setUser] = useState<User | undefined>();
 
   const exchangeGoogleOauthCode = async (oauthDto: StorageOauthDto) => {
-    if (!oauthDto.storage.googleDriveStorage) {
+    const { clientId, clientSecret } = oauthDto.settings;
+
+    if (!clientSecret) {
       alert(t('app.oauthStorage.configNotFound'));
       return;
     }
 
-    const { clientId, clientSecret } = oauthDto.storage.googleDriveStorage;
     const { authCode } = oauthDto;
 
     const redirectUri = `${window.location.origin}/storages/google-oauth`;
@@ -49,8 +50,12 @@ export function OauthStorageComponent() {
 
       const tokenData = await response.json();
 
-      oauthDto.storage.googleDriveStorage.tokenJson = JSON.stringify(tokenData);
-      setStorage(oauthDto.storage);
+      setWorkspaceId(oauthDto.workspaceId);
+      setDraft({
+        storageId: oauthDto.storageId,
+        name: oauthDto.name,
+        settings: { ...oauthDto.settings, tokenJson: JSON.stringify(tokenData) },
+      });
     } catch (error) {
       // Google's own error description is English and technical: it goes to the console only
       console.error('Failed to exchange OAuth code:', error);
@@ -66,12 +71,7 @@ export function OauthStorageComponent() {
    * Helper to validate the DTO and start the exchange process
    */
   const processOauthDto = (oauthDto: StorageOauthDto) => {
-    if (oauthDto.storage.type === StorageType.GOOGLE_DRIVE) {
-      if (!oauthDto.storage.googleDriveStorage) {
-        alert(t('app.oauthStorage.configNotFound'));
-        return;
-      }
-
+    if (oauthDto.settings?.type === StorageType.GOOGLE_DRIVE) {
       exchangeGoogleOauthCode(oauthDto);
     } else {
       alert(t('app.oauthStorage.unsupportedType'));
@@ -109,7 +109,7 @@ export function OauthStorageComponent() {
     alert(t('app.oauthStorage.paramNotFound'));
   }, []);
 
-  if (!storage || !user) {
+  if (!workspaceId || !draft || !user) {
     return (
       <div className="mt-20 flex justify-center">
         <Spin />
@@ -132,11 +132,11 @@ export function OauthStorageComponent() {
         </div>
 
         <EditStorageComponent
-          workspaceId={storage.workspaceId}
+          workspaceId={workspaceId}
           isShowClose={false}
           onClose={() => {}}
           isShowName={false}
-          editingStorage={storage}
+          draft={draft}
           onChanged={() => {
             window.location.href = '/';
           }}

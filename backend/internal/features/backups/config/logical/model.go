@@ -10,7 +10,6 @@ import (
 
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	"databasus-backend/internal/features/intervals"
-	"databasus-backend/internal/features/storages"
 	"databasus-backend/internal/util/period"
 )
 
@@ -31,8 +30,8 @@ type LogicalBackupConfig struct {
 
 	BackupInterval intervals.Interval `json:"backupInterval" gorm:"embedded"`
 
-	Storage   *storages.Storage `json:"storage"   gorm:"foreignKey:StorageID"`
-	StorageID *uuid.UUID        `json:"storageId" gorm:"column:storage_id;type:uuid;"`
+	Storage   *BackupConfigStorage `json:"storage"   gorm:"-"`
+	StorageID *uuid.UUID           `json:"storageId" gorm:"column:storage_id;type:uuid;"`
 
 	SendNotificationsOn       []BackupNotificationType `json:"sendNotificationsOn" gorm:"-"`
 	SendNotificationsOnString string                   `json:"-"                   gorm:"column:send_notifications_on;type:text;not null"`

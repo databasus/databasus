@@ -1,20 +1,13 @@
 package migrations_test
 
 import (
-	"io/fs"
-	"strings"
 	"testing"
-	"testing/fstest"
 
 	"github.com/google/uuid"
 	"github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
-
-	"databasus-backend/internal/lib/database"
-	"databasus-backend/internal/lib/testdb"
-	"databasus-backend/migrations"
 )
 
 const notifiersMigrationName = "20261025180000_move_notifiers_into_module.sql"
@@ -24,7 +17,7 @@ func TestNotifiersMigration(t *testing.T) {
 
 	t.Run("deletes the notifiers that cannot load and the provider rows of another type", func(t *testing.T) {
 		t.Parallel()
-		db := openDatabaseMigratedBeforeNotifiers(t)
+		db := openDatabaseMigratedBefore(t, notifiersMigrationName)
 		workspaceID := insertWorkspace(t, db)
 		databaseID := insertDatabase(t, db, &workspaceID)
 		unknownTypeNotifierID := insertNotifier(t, db, "PAGER", &workspaceID)
@@ -35,7 +28,7 @@ func TestNotifiersMigration(t *testing.T) {
 		execute(t, db, "INSERT INTO discord_notifiers (notifier_id, channel_webhook_url) VALUES (?, 'enc:stray')",
 			telegramNotifierID)
 
-		applyAllMigrations(t, db)
+		applyAllMigrations(t, db, notifiersMigrationName)
 
 		assert.ElementsMatch(t, []uuid.UUID{telegramNotifierID}, listIDs(t, db, "SELECT id FROM notifiers"))
 		assert.Empty(t, listIDs(t, db, "SELECT notifier_id FROM notifiers_discord"))
@@ -47,7 +40,7 @@ func TestNotifiersMigration(t *testing.T) {
 	t.Run("moves a notifier without a workspace into its database's workspace and deletes an unused one",
 		func(t *testing.T) {
 			t.Parallel()
-			db := openDatabaseMigratedBeforeNotifiers(t)
+			db := openDatabaseMigratedBefore(t, notifiersMigrationName)
 			workspaceID := insertWorkspace(t, db)
 			databaseID := insertDatabase(t, db, &workspaceID)
 			usedNotifierID := insertNotifier(t, db, "TELEGRAM", nil)
@@ -56,7 +49,7 @@ func TestNotifiersMigration(t *testing.T) {
 			unusedNotifierID := insertNotifier(t, db, "TELEGRAM", nil)
 			insertTelegramRow(t, db, unusedNotifierID, "enc:unused")
 
-			applyAllMigrations(t, db)
+			applyAllMigrations(t, db, notifiersMigrationName)
 
 			var movedWorkspaceIDs []uuid.UUID
 			require.NoError(t, db.WithContext(t.Context()).Raw(
@@ -70,7 +63,7 @@ func TestNotifiersMigration(t *testing.T) {
 
 	t.Run("converts the webhook headers and accepted categories", func(t *testing.T) {
 		t.Parallel()
-		db := openDatabaseMigratedBeforeNotifiers(t)
+		db := openDatabaseMigratedBefore(t, notifiersMigrationName)
 		workspaceID := insertWorkspace(t, db)
 		narrowedNotifierID := insertWebhookNotifier(t, db, workspaceID, webhookColumns{
 			headers:         `[{"key":"Authorization","value":"enc:header-secret"}]`,
@@ -85,7 +78,7 @@ func TestNotifiersMigration(t *testing.T) {
 			webhookURLValue: "https://hooks.example.com/empty",
 		})
 
-		applyAllMigrations(t, db)
+		applyAllMigrations(t, db, notifiersMigrationName)
 
 		narrowedRow := getWebhookRow(t, db, narrowedNotifierID)
 		assert.JSONEq(t, `[{"key":"Authorization","value":"enc:header-secret"}]`, narrowedRow.Headers)
@@ -100,11 +93,11 @@ func TestNotifiersMigration(t *testing.T) {
 
 	t.Run("keeps every encrypted secret byte for byte", func(t *testing.T) {
 		t.Parallel()
-		db := openDatabaseMigratedBeforeNotifiers(t)
+		db := openDatabaseMigratedBefore(t, notifiersMigrationName)
 		workspaceID := insertWorkspace(t, db)
 		secretColumns := insertNotifierOfEveryTypeWithSecrets(t, db, workspaceID)
 
-		applyAllMigrations(t, db)
+		applyAllMigrations(t, db, notifiersMigrationName)
 
 		for _, secretColumn := range secretColumns {
 			var storedValues []string
@@ -211,67 +204,6 @@ func insertNotifierOfEveryTypeWithSecrets(t *testing.T, db *gorm.DB, workspaceID
 	}
 }
 
-func openDatabaseMigratedBeforeNotifiers(t *testing.T) *gorm.DB {
-	t.Helper()
-
-	db, err := database.Open(t.Context(), testdb.OpenEmpty(t))
-	require.NoError(t, err)
-
-	t.Cleanup(func() {
-		sqlDB, err := db.DB()
-		if err == nil {
-			_ = sqlDB.Close()
-		}
-	})
-
-	migrationFiles, err := fs.ReadDir(migrations.Files, ".")
-	require.NoError(t, err)
-
-	earlierMigrations := fstest.MapFS{}
-	for _, migrationFile := range migrationFiles {
-		if !strings.HasSuffix(migrationFile.Name(), ".sql") || migrationFile.Name() >= notifiersMigrationName {
-			continue
-		}
-
-		content, err := fs.ReadFile(migrations.Files, migrationFile.Name())
-		require.NoError(t, err)
-
-		earlierMigrations[migrationFile.Name()] = &fstest.MapFile{Data: content}
-	}
-
-	_, err = database.Migrate(t.Context(), db, earlierMigrations)
-	require.NoError(t, err)
-
-	return db
-}
-
-func applyAllMigrations(t *testing.T, db *gorm.DB) {
-	t.Helper()
-
-	appliedNames, err := database.Migrate(t.Context(), db, migrations.Files)
-	require.NoError(t, err)
-	require.Contains(t, appliedNames, notifiersMigrationName)
-}
-
-func insertWorkspace(t *testing.T, db *gorm.DB) uuid.UUID {
-	t.Helper()
-
-	workspaceID := uuid.New()
-	execute(t, db, "INSERT INTO workspaces (id, name) VALUES (?, ?)", workspaceID, "workspace "+workspaceID.String())
-
-	return workspaceID
-}
-
-func insertDatabase(t *testing.T, db *gorm.DB, workspaceID *uuid.UUID) uuid.UUID {
-	t.Helper()
-
-	databaseID := uuid.New()
-	execute(t, db, "INSERT INTO databases (id, name, type, workspace_id) VALUES (?, 'payments', 'POSTGRES', ?)",
-		databaseID, workspaceID)
-
-	return databaseID
-}
-
 func insertNotifier(t *testing.T, db *gorm.DB, notifierType string, workspaceID *uuid.UUID) uuid.UUID {
 	t.Helper()
 
@@ -319,19 +251,4 @@ func getWebhookRow(t *testing.T, db *gorm.DB, notifierID uuid.UUID) migratedWebh
 	require.Len(t, rows, 1)
 
 	return rows[0]
-}
-
-func listIDs(t *testing.T, db *gorm.DB, query string) []uuid.UUID {
-	t.Helper()
-
-	var ids []uuid.UUID
-	require.NoError(t, db.WithContext(t.Context()).Raw(query).Scan(&ids).Error)
-
-	return ids
-}
-
-func execute(t *testing.T, db *gorm.DB, statement string, values ...any) {
-	t.Helper()
-
-	require.NoError(t, db.WithContext(t.Context()).Exec(statement, values...).Error)
 }

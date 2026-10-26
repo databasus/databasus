@@ -16,8 +16,8 @@ import (
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
 	"databasus-backend/internal/features/databases"
-	storage_files "databasus-backend/internal/features/storages/files"
 	"databasus-backend/internal/modules/notifiers"
+	"databasus-backend/internal/modules/storages"
 )
 
 type MockNotificationSender struct {
@@ -191,7 +191,7 @@ func writeFakeBackupArtifact(
 ) (*backups_core_logical.BackupArtifacts, error) {
 	receipt, err := fileStore.WriteFile(
 		ctx,
-		storage_files.StoredFileReference{StorageID: backup.StorageID, FileName: backup.FileName},
+		storages.StoredFileReference{StorageID: backup.StorageID, FileName: backup.FileName},
 		strings.NewReader(FakeBackupArtifact),
 	)
 	if err != nil {
@@ -200,6 +200,6 @@ func writeFakeBackupArtifact(
 
 	return &backups_core_logical.BackupArtifacts{
 		Metadata: &backups_core_logical.BackupMetadata{Encryption: backups_core_enums.BackupEncryptionNone},
-		Receipts: []storage_files.WriteReceipt{receipt},
+		Receipts: []storages.WriteReceipt{receipt},
 	}, nil
 }

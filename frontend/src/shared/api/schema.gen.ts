@@ -627,6 +627,127 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/storages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the storages of a workspace
+         * @description Ordered by name, then by ID. A user who is not a member of the workspace gets 404 `not_found`. Secrets are never returned.
+         */
+        get: operations["listStorages"];
+        put?: never;
+        /**
+         * Create a storage in a workspace
+         * @description Needs the role `WORKSPACE_MEMBER` or higher in the workspace; rclone settings need an instance admin. The type in `settings` is fixed once the storage exists. Settings the provider refuses get 400 `invalid_request` with the field in `errors`.
+         */
+        post: operations["createStorage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/storages/{storageId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the storage */
+                storageId: components["parameters"]["StorageId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Get a storage without its secrets
+         * @description A user who is not a member of the storage's workspace gets 404 `not_found`, as for a storage that does not exist.
+         */
+        get: operations["getStorage"];
+        /**
+         * Replace the name and the settings of a storage
+         * @description Needs the role `WORKSPACE_MEMBER` or higher; an rclone storage needs an instance admin. A secret the request leaves out keeps its stored value. Settings of another type than the storage's, or an S3 or Azure Blob prefix other than the stored one, get 400 `invalid_request`, because both are fixed when the storage is created.
+         */
+        put: operations["updateStorage"];
+        post?: never;
+        /**
+         * Delete a storage
+         * @description Needs the role `WORKSPACE_MEMBER` or higher. A storage that a backup config uses or that still holds backups gets 409 `in_use`, and nothing is deleted. Otherwise the files waiting for cleanup are removed first, and the audit log names those left behind.
+         */
+        delete: operations["deleteStorage"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/storages/{storageId}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the storage */
+                storageId: components["parameters"]["StorageId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Test the connection of a saved storage
+         * @description Any member of the workspace may test, a viewer included. A connection the storage refuses is still a 200 that reports the storage's error. The test changes nothing in the storage.
+         */
+        post: operations["testStorage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/storages/{storageId}/transfer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the storage */
+                storageId: components["parameters"]["StorageId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Move a storage to another workspace
+         * @description Needs the role `WORKSPACE_MEMBER` or higher in both workspaces. While the backup config of a database outside the target workspace uses the storage, the answer is 409 `in_use`, and the storage stays.
+         */
+        post: operations["transferStorage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/storage-tests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Test the connection with settings that are not saved
+         * @description Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test may send stored secrets wherever the request points; rclone settings need an instance admin. With `storageId`, a secret the request leaves out is taken from that storage, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type or another prefix than that storage's get 400 `invalid_request`. Nothing leaves the backend on a refusal, and nothing is saved.
+         */
+        post: operations["testStorageSettings"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/system/version": {
         parameters: {
             query?: never;
@@ -1243,6 +1364,235 @@ export interface components {
          * @enum {string}
          */
         NotificationCategory: "ALL" | "BACKUP_SUCCESS" | "BACKUP_FAILED" | "HEALTHCHECK_SUCCESS" | "HEALTHCHECK_FAILED" | "VERIFICATION_SUCCESS" | "VERIFICATION_FAILED";
+        /** @description A place backups of a workspace are kept, without its secrets */
+        Storage: {
+            /**
+             * Format: uuid
+             * @description The ID of the storage
+             */
+            id: string;
+            /**
+             * Format: uuid
+             * @description The workspace the storage belongs to
+             */
+            workspaceId: string;
+            /** @description The name of the storage */
+            name: string;
+            settings: components["schemas"]["StorageSettings"];
+        };
+        /** @description One page of storages, ordered by name */
+        StoragePage: {
+            /** @description The storages on the page */
+            items: components["schemas"]["Storage"][];
+            /** @description The `after` of the next page, absent on the last page */
+            nextCursor?: string;
+        };
+        /** @description A new storage */
+        StorageCreate: {
+            /**
+             * Format: uuid
+             * @description The workspace the storage belongs to
+             */
+            workspaceId: string;
+            /** @description The name of the storage */
+            name: string;
+            settings: components["schemas"]["StorageSettings"];
+        };
+        /** @description The editable fields of a storage */
+        StorageUpdate: {
+            /** @description The name of the storage */
+            name: string;
+            settings: components["schemas"]["StorageSettings"];
+        };
+        /** @description The workspace a storage moves to */
+        StorageTransfer: {
+            /**
+             * Format: uuid
+             * @description The ID of the target workspace
+             */
+            targetWorkspaceId: string;
+        };
+        /** @description Settings to test the connection with */
+        StorageSettingsTest: {
+            /**
+             * Format: uuid
+             * @description The workspace the test is made in
+             */
+            workspaceId: string;
+            /**
+             * Format: uuid
+             * @description A saved storage of the workspace whose stored secrets fill the ones left out
+             */
+            storageId?: string;
+            settings: components["schemas"]["StorageSettings"];
+        };
+        /** @description The outcome of a connection test */
+        StorageTestResult: {
+            /** @description Whether the storage could be reached and written */
+            isConnected: boolean;
+            /** @description The error the storage gave, absent when it is connected */
+            error?: string;
+        };
+        /** @description The settings of the storage's provider; `type` tells the providers apart */
+        StorageSettings: components["schemas"]["LocalStorageSettings"] | components["schemas"]["S3StorageSettings"] | components["schemas"]["GoogleDriveStorageSettings"] | components["schemas"]["NasStorageSettings"] | components["schemas"]["AzureBlobStorageSettings"] | components["schemas"]["FtpStorageSettings"] | components["schemas"]["SftpStorageSettings"] | components["schemas"]["RcloneStorageSettings"];
+        /** @description The data folder of the Databasus instance */
+        LocalStorageSettings: {
+            /**
+             * @description Always `LOCAL` (enum property replaced by openapi-typescript)
+             * @enum {string}
+             */
+            type: "LOCAL";
+        };
+        /** @description A bucket of Amazon S3 or of a service compatible with it */
+        S3StorageSettings: {
+            /**
+             * @description Always `S3` (enum property replaced by openapi-typescript)
+             * @enum {string}
+             */
+            type: "S3";
+            /** @description The bucket */
+            s3Bucket: string;
+            /** @description The region of the bucket, absent to look it up */
+            s3Region?: string;
+            /** @description The access key ID */
+            s3AccessKey?: string;
+            /** @description The secret access key */
+            s3SecretKey?: string;
+            /** @description The endpoint of a service compatible with S3, absent for AWS */
+            s3Endpoint?: string;
+            /** @description The prefix of every stored object, fixed when the storage is created */
+            s3Prefix?: string;
+            /** @description Whether the bucket is addressed as a subdomain of the endpoint */
+            isVirtualHostedStyle: boolean;
+            /** @description Whether the TLS certificate of the endpoint goes unchecked */
+            isSkipTlsVerify: boolean;
+            s3StorageClass?: components["schemas"]["S3StorageClass"];
+        };
+        /**
+         * @description The storage class of the stored objects; absent means the bucket's default
+         * @enum {string}
+         */
+        S3StorageClass: "STANDARD" | "STANDARD_IA" | "ONEZONE_IA" | "INTELLIGENT_TIERING" | "REDUCED_REDUNDANCY" | "GLACIER_IR";
+        /** @description The Google Drive of the account that authorized the OAuth client */
+        GoogleDriveStorageSettings: {
+            /**
+             * @description Always `GOOGLE_DRIVE` (enum property replaced by openapi-typescript)
+             * @enum {string}
+             */
+            type: "GOOGLE_DRIVE";
+            /** @description The ID of the OAuth client */
+            clientId: string;
+            /** @description The secret of the OAuth client */
+            clientSecret?: string;
+            /** @description The OAuth token with its refresh token, as JSON */
+            tokenJson?: string;
+        };
+        /** @description A share of an SMB server */
+        NasStorageSettings: {
+            /**
+             * @description Always `NAS` (enum property replaced by openapi-typescript)
+             * @enum {string}
+             */
+            type: "NAS";
+            /** @description The host of the server */
+            host: string;
+            /** @description The port of the server */
+            port: number;
+            /** @description The share */
+            share: string;
+            /** @description The user name */
+            username: string;
+            /** @description The password */
+            password?: string;
+            /** @description Whether the connection is encrypted */
+            isSsl: boolean;
+            /** @description The domain of the account, absent for an account outside a domain */
+            domain?: string;
+            /** @description The folder inside the share, absent for its root */
+            path?: string;
+        };
+        /** @description A container of Azure Blob Storage */
+        AzureBlobStorageSettings: {
+            /**
+             * @description Always `AZURE_BLOB` (enum property replaced by openapi-typescript)
+             * @enum {string}
+             */
+            type: "AZURE_BLOB";
+            authMethod: components["schemas"]["AzureBlobAuthMethod"];
+            /** @description The connection string, used with `CONNECTION_STRING` */
+            connectionString?: string;
+            /** @description The storage account, used with `ACCOUNT_KEY` */
+            accountName?: string;
+            /** @description The account key, used with `ACCOUNT_KEY` */
+            accountKey?: string;
+            /** @description The container */
+            containerName: string;
+            /** @description The blob endpoint, absent for the account's default one */
+            endpoint?: string;
+            /** @description The prefix of every stored blob, fixed when the storage is created */
+            prefix?: string;
+        };
+        /**
+         * @description How the storage signs in to Azure
+         * @enum {string}
+         */
+        AzureBlobAuthMethod: "CONNECTION_STRING" | "ACCOUNT_KEY";
+        /** @description A folder of an FTP server */
+        FtpStorageSettings: {
+            /**
+             * @description Always `FTP` (enum property replaced by openapi-typescript)
+             * @enum {string}
+             */
+            type: "FTP";
+            /** @description The host of the server */
+            host: string;
+            /** @description The port of the server */
+            port: number;
+            /** @description The user name */
+            username: string;
+            /** @description The password */
+            password?: string;
+            /** @description The folder on the server, absent for the login folder */
+            path?: string;
+            /** @description Whether the connection uses explicit TLS */
+            isSsl: boolean;
+            /** @description Whether the TLS certificate of the server goes unchecked */
+            isSkipTlsVerify: boolean;
+        };
+        /** @description A folder of an SFTP server */
+        SftpStorageSettings: {
+            /**
+             * @description Always `SFTP` (enum property replaced by openapi-typescript)
+             * @enum {string}
+             */
+            type: "SFTP";
+            /** @description The host of the server */
+            host: string;
+            /** @description The port of the server */
+            port: number;
+            /** @description The user name */
+            username: string;
+            /** @description The password, absent when the private key signs in */
+            password?: string;
+            /** @description The private key, absent when the password signs in */
+            privateKey?: string;
+            /** @description The folder on the server, absent for the login folder */
+            path?: string;
+            /** @description Whether the host key of the server goes unchecked */
+            isSkipHostKeyVerify: boolean;
+        };
+        /** @description A remote of rclone; only an instance admin may write or test its configuration */
+        RcloneStorageSettings: {
+            /**
+             * @description Always `RCLONE` (enum property replaced by openapi-typescript)
+             * @enum {string}
+             */
+            type: "RCLONE";
+            /** @description One remote section of an rclone configuration file */
+            configContent?: string;
+            /** @description The folder inside the remote, absent for its root */
+            remotePath?: string;
+        };
         /** @description An error in the RFC 9457 format. The client chooses its text by `code` */
         Problem: {
             /** @description A URI that identifies the kind of error */
@@ -1292,6 +1642,8 @@ export interface components {
         MemberId: string;
         /** @description The ID of the notifier */
         NotifierId: string;
+        /** @description The ID of the storage */
+        StorageId: string;
     };
     requestBodies: never;
     headers: never;
@@ -2402,6 +2754,243 @@ export interface operations {
             };
             400: components["responses"]["Problem"];
             401: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    listStorages: {
+        parameters: {
+            query: {
+                /** @description The workspace whose storages to list */
+                workspaceId: string;
+                /** @description The largest number of storages on the page */
+                limit?: number;
+                /** @description The `nextCursor` of the previous page */
+                after?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page of storages */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StoragePage"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    createStorage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The storage to create, with every secret its provider needs. */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StorageCreate"];
+            };
+        };
+        responses: {
+            /** @description The storage as it was saved, without its secrets */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Storage"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    getStorage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the storage */
+                storageId: components["parameters"]["StorageId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The storage */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Storage"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    updateStorage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the storage */
+                storageId: components["parameters"]["StorageId"];
+            };
+            cookie?: never;
+        };
+        /** @description The editable fields of the storage. */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StorageUpdate"];
+            };
+        };
+        responses: {
+            /** @description The storage after the change, without its secrets */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Storage"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    deleteStorage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the storage */
+                storageId: components["parameters"]["StorageId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The storage is deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    testStorage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the storage */
+                storageId: components["parameters"]["StorageId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Whether the storage could be reached and written */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StorageTestResult"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    transferStorage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the storage */
+                storageId: components["parameters"]["StorageId"];
+            };
+            cookie?: never;
+        };
+        /** @description The workspace the storage moves to. */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StorageTransfer"];
+            };
+        };
+        responses: {
+            /** @description The storage belongs to the target workspace */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    testStorageSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The settings to test. */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StorageSettingsTest"];
+            };
+        };
+        responses: {
+            /** @description Whether the storage could be reached and written */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StorageTestResult"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
             404: components["responses"]["Problem"];
             default: components["responses"]["Problem"];
         };

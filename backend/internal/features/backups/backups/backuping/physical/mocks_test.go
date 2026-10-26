@@ -14,10 +14,11 @@ import (
 	"databasus-backend/internal/features/databases"
 	"databasus-backend/internal/features/intervals"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
-	"databasus-backend/internal/features/storages"
+	storages_bridge "databasus-backend/internal/features/storages"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
 	"databasus-backend/internal/modules/notifiers"
+	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/modules/users"
 )
 
@@ -82,7 +83,7 @@ func (s *recordingNotificationSender) Notify(
 // DB.ID / Storage.ID.
 type backupPrereqs struct {
 	Workspace *workspaces_testing.TestWorkspace
-	Storage   *storages.Storage
+	Storage   storages.Storage
 	Notifier  *notifiers.Notifier
 	DB        *databases.Database
 	Config    *backups_config_physical.PhysicalBackupConfig
@@ -114,8 +115,8 @@ func seedBackupPrereqsWithDatabase(
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner)
 	t.Cleanup(func() { workspaces_testing.RemoveTestWorkspace(context.Background(), workspace) })
 
-	testStorage := storages.CreateTestStorage(workspace.ID)
-	t.Cleanup(func() { storages.RemoveTestStorage(t.Context(), testStorage.ID) })
+	testStorage := storages_bridge.CreateTestStorage(workspace.ID)
+	t.Cleanup(func() { storages_bridge.RemoveTestStorage(t.Context(), testStorage.ID) })
 
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
 	t.Cleanup(func() { notifiers_bridge.RemoveTestNotifier(notifier) })
@@ -132,7 +133,7 @@ func seedBackupPrereqsWithDatabase(
 
 	cfg.IsBackupsEnabled = true
 	cfg.StorageID = &testStorage.ID
-	cfg.Storage = testStorage
+	cfg.Storage = &backups_config_physical.BackupConfigStorage{ID: testStorage.ID}
 	cfg.Encryption = backups_core_enums.BackupEncryptionNone
 	cfg.PostgresqlPhysical = db.PostgresqlPhysical
 	cfg.FullBackupInterval = intervals.Interval{

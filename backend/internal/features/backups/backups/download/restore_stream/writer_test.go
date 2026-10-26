@@ -21,12 +21,12 @@ import (
 	physical_enums "databasus-backend/internal/features/backups/backups/core/physical/enums"
 	physical_models "databasus-backend/internal/features/backups/backups/core/physical/models"
 	"databasus-backend/internal/features/backups/backups/download/restore_stream"
-	"databasus-backend/internal/features/storages"
+	storages_bridge "databasus-backend/internal/features/storages"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
+	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/util/encryption"
-	"databasus-backend/internal/util/logger"
 )
 
 func Test_Writer_Write_ProducesCombineableLayoutWithIntegrityManifest(t *testing.T) {
@@ -82,7 +82,7 @@ func Test_Writer_Write_ProducesCombineableLayoutWithIntegrityManifest(t *testing
 	}
 
 	var out bytes.Buffer
-	writer := restore_stream.NewWriter(storages.GetStorageFileStore())
+	writer := restore_stream.NewWriter(storages_bridge.GetModule)
 	err := writer.Write(t.Context(), &out, set, "")
 	require.NoError(t, err)
 
@@ -104,7 +104,7 @@ func Test_Writer_Write_ProducesCombineableLayoutWithIntegrityManifest(t *testing
 	require.NotContains(t, manifestLines, "MANIFEST.sha256", "the integrity manifest must not list itself")
 }
 
-func createTestStorage(t *testing.T) *storages.Storage {
+func createTestStorage(t *testing.T) storages.Storage {
 	t.Helper()
 
 	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
@@ -113,8 +113,8 @@ func createTestStorage(t *testing.T) *storages.Storage {
 		"Restore Stream Test "+uuid.NewString(),
 		user)
 
-	storage := storages.CreateTestStorage(workspace.ID)
-	t.Cleanup(func() { storages.RemoveTestStorage(t.Context(), storage.ID) })
+	storage := storages_bridge.CreateTestStorage(workspace.ID)
+	t.Cleanup(func() { storages_bridge.RemoveTestStorage(t.Context(), storage.ID) })
 
 	return storage
 }
@@ -122,17 +122,26 @@ func createTestStorage(t *testing.T) *storages.Storage {
 func saveFile(
 	t *testing.T,
 	ctx context.Context,
-	storage *storages.Storage,
+	storage storages.Storage,
 	encryptor encryption.FieldEncryptor,
 	name string,
 	body []byte,
 ) {
 	t.Helper()
 
-	err := storage.SaveFile(ctx, encryptor, logger.GetLogger(), name, bytes.NewReader(body))
+	err := storages_bridge.WriteTestFile(
+		ctx,
+		storages.StoredFileReference{StorageID: storage.ID, FileName: name},
+		bytes.NewReader(body),
+	)
 	require.NoError(t, err)
 
-	t.Cleanup(func() { _ = storage.DeleteFile(t.Context(), encryptor, logger.GetLogger(), name) })
+	t.Cleanup(func() {
+		_ = storages_bridge.DeleteTestFile(
+			t.Context(),
+			storages.StoredFileReference{StorageID: storage.ID, FileName: name},
+		)
+	})
 }
 
 func buildTarZst(t *testing.T, files map[string]string) []byte {

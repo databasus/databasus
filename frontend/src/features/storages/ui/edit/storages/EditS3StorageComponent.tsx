@@ -6,38 +6,34 @@ import { useTranslation } from 'react-i18next';
 import {
   S3StorageClass,
   S3_STORAGE_CLASS_LABEL_KEYS,
-  type Storage,
+  type S3StorageSettings,
 } from '../../../../../entity/storages';
-import { ApiError } from '../../../../../shared/api';
 import { getWebsitePageUrl, useLocale } from '../../../../../shared/i18n';
+import { toOptionalValue } from '../../../../../shared/lib';
+
+// The select's value for an absent storage class, which leaves the bucket's default.
+const DEFAULT_STORAGE_CLASS_OPTION = '';
 
 interface Props {
-  storage: Storage;
-  setStorage: (storage: Storage) => void;
-  setUnsaved: () => void;
-  connectionError?: unknown;
+  settings: S3StorageSettings;
+  isSaved: boolean;
+  onChange: (settings: S3StorageSettings) => void;
+  // The error of the latest failed connection test.
+  connectionError?: string;
 }
 
-export function EditS3StorageComponent({
-  storage,
-  setStorage,
-  setUnsaved,
-  connectionError,
-}: Props) {
+export function EditS3StorageComponent({ settings, isSaved, onChange, connectionError }: Props) {
   const { t } = useTranslation();
   const { locale } = useLocale();
   const hasAdvancedValues =
-    !!storage?.s3Storage?.s3Prefix ||
-    !!storage?.s3Storage?.s3UseVirtualHostedStyle ||
-    !!storage?.s3Storage?.skipTLSVerify ||
-    !!storage?.s3Storage?.s3StorageClass;
+    !!settings.s3Prefix ||
+    !!settings.isVirtualHostedStyle ||
+    !!settings.isSkipTlsVerify ||
+    !!settings.s3StorageClass;
   const [showAdvanced, setShowAdvanced] = useState(hasAdvancedValues);
 
   useEffect(() => {
-    if (
-      connectionError instanceof ApiError &&
-      connectionError.message.includes('failed to verify certificate')
-    ) {
+    if (connectionError?.includes('failed to verify certificate')) {
       setShowAdvanced(true);
     }
   }, [connectionError]);
@@ -61,18 +57,9 @@ export function EditS3StorageComponent({
       <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
         <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">{t('storages.fields.s3Bucket')}</div>
         <Input
-          value={storage?.s3Storage?.s3Bucket || ''}
+          value={settings.s3Bucket || ''}
           onChange={(e) => {
-            if (!storage?.s3Storage) return;
-
-            setStorage({
-              ...storage,
-              s3Storage: {
-                ...storage.s3Storage,
-                s3Bucket: e.target.value.trim(),
-              },
-            });
-            setUnsaved();
+            onChange({ ...settings, s3Bucket: e.target.value.trim() });
           }}
           size="small"
           className="w-full max-w-[250px]"
@@ -84,18 +71,9 @@ export function EditS3StorageComponent({
       <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
         <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">{t('storages.fields.region')}</div>
         <Input
-          value={storage?.s3Storage?.s3Region || ''}
+          value={settings.s3Region || ''}
           onChange={(e) => {
-            if (!storage?.s3Storage) return;
-
-            setStorage({
-              ...storage,
-              s3Storage: {
-                ...storage.s3Storage,
-                s3Region: e.target.value.trim(),
-              },
-            });
-            setUnsaved();
+            onChange({ ...settings, s3Region: toOptionalValue(e.target.value.trim()) });
           }}
           size="small"
           className="w-full max-w-[250px]"
@@ -107,18 +85,9 @@ export function EditS3StorageComponent({
       <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
         <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">{t('storages.fields.accessKey')}</div>
         <Input.Password
-          value={storage?.s3Storage?.s3AccessKey || ''}
+          value={settings.s3AccessKey || ''}
           onChange={(e) => {
-            if (!storage?.s3Storage) return;
-
-            setStorage({
-              ...storage,
-              s3Storage: {
-                ...storage.s3Storage,
-                s3AccessKey: e.target.value.trim(),
-              },
-            });
-            setUnsaved();
+            onChange({ ...settings, s3AccessKey: toOptionalValue(e.target.value.trim()) });
           }}
           size="small"
           className="w-full max-w-[250px]"
@@ -134,18 +103,9 @@ export function EditS3StorageComponent({
       <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
         <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">{t('storages.fields.secretKey')}</div>
         <Input.Password
-          value={storage?.s3Storage?.s3SecretKey || ''}
+          value={settings.s3SecretKey || ''}
           onChange={(e) => {
-            if (!storage?.s3Storage) return;
-
-            setStorage({
-              ...storage,
-              s3Storage: {
-                ...storage.s3Storage,
-                s3SecretKey: e.target.value.trim(),
-              },
-            });
-            setUnsaved();
+            onChange({ ...settings, s3SecretKey: toOptionalValue(e.target.value.trim()) });
           }}
           size="small"
           autoComplete="off"
@@ -162,18 +122,9 @@ export function EditS3StorageComponent({
         <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">{t('storages.fields.endpoint')}</div>
         <div className="flex items-center">
           <Input
-            value={storage?.s3Storage?.s3Endpoint || ''}
+            value={settings.s3Endpoint || ''}
             onChange={(e) => {
-              if (!storage?.s3Storage) return;
-
-              setStorage({
-                ...storage,
-                s3Storage: {
-                  ...storage.s3Storage,
-                  s3Endpoint: e.target.value.trim(),
-                },
-              });
-              setUnsaved();
+              onChange({ ...settings, s3Endpoint: toOptionalValue(e.target.value.trim()) });
             }}
             size="small"
             className="w-full max-w-[250px]"
@@ -211,25 +162,16 @@ export function EditS3StorageComponent({
             </div>
             <div className="flex items-center">
               <Input
-                value={storage?.s3Storage?.s3Prefix || ''}
+                value={settings.s3Prefix || ''}
                 onChange={(e) => {
-                  if (!storage?.s3Storage) return;
-
-                  setStorage({
-                    ...storage,
-                    s3Storage: {
-                      ...storage.s3Storage,
-                      s3Prefix: e.target.value.trim(),
-                    },
-                  });
-                  setUnsaved();
+                  onChange({ ...settings, s3Prefix: toOptionalValue(e.target.value.trim()) });
                 }}
                 size="small"
                 className="w-full max-w-[250px]"
                 placeholder={t('storages.edit.optionalPlaceholder', { example: 'my-prefix/' })}
                 // we do not allow to change the prefix after creation,
                 // otherwise we will have to migrate all the data to the new prefix
-                disabled={!!storage.id}
+                disabled={isSaved}
               />
 
               <Tooltip className="cursor-pointer" title={t('storages.edit.s3.prefixTooltip')}>
@@ -244,18 +186,9 @@ export function EditS3StorageComponent({
             </div>
             <div className="flex items-center">
               <Checkbox
-                checked={storage?.s3Storage?.s3UseVirtualHostedStyle || false}
+                checked={settings.isVirtualHostedStyle || false}
                 onChange={(e) => {
-                  if (!storage?.s3Storage) return;
-
-                  setStorage({
-                    ...storage,
-                    s3Storage: {
-                      ...storage.s3Storage,
-                      s3UseVirtualHostedStyle: e.target.checked,
-                    },
-                  });
-                  setUnsaved();
+                  onChange({ ...settings, isVirtualHostedStyle: e.target.checked });
                 }}
               >
                 {t('storages.edit.s3.useVirtualHostedStyle')}
@@ -273,18 +206,9 @@ export function EditS3StorageComponent({
             </div>
             <div className="flex items-center">
               <Checkbox
-                checked={storage?.s3Storage?.skipTLSVerify || false}
+                checked={settings.isSkipTlsVerify || false}
                 onChange={(e) => {
-                  if (!storage?.s3Storage) return;
-
-                  setStorage({
-                    ...storage,
-                    s3Storage: {
-                      ...storage.s3Storage,
-                      skipTLSVerify: e.target.checked,
-                    },
-                  });
-                  setUnsaved();
+                  onChange({ ...settings, isSkipTlsVerify: e.target.checked });
                 }}
               >
                 {t('storages.edit.s3.skipTls')}
@@ -305,22 +229,22 @@ export function EditS3StorageComponent({
             </div>
             <div className="flex items-center">
               <Select
-                value={storage?.s3Storage?.s3StorageClass || S3StorageClass.DEFAULT}
-                options={Object.values(S3StorageClass).map((storageClass) => ({
-                  value: storageClass,
-                  label: t(S3_STORAGE_CLASS_LABEL_KEYS[storageClass]),
-                }))}
-                onChange={(value) => {
-                  if (!storage?.s3Storage) return;
-
-                  setStorage({
-                    ...storage,
-                    s3Storage: {
-                      ...storage.s3Storage,
-                      s3StorageClass: value,
-                    },
+                value={settings.s3StorageClass ?? DEFAULT_STORAGE_CLASS_OPTION}
+                options={[
+                  {
+                    value: DEFAULT_STORAGE_CLASS_OPTION,
+                    label: t('storages.s3StorageClasses.default'),
+                  },
+                  ...Object.values(S3StorageClass).map((storageClass) => ({
+                    value: storageClass,
+                    label: t(S3_STORAGE_CLASS_LABEL_KEYS[storageClass]),
+                  })),
+                ]}
+                onChange={(value: S3StorageClass | typeof DEFAULT_STORAGE_CLASS_OPTION) => {
+                  onChange({
+                    ...settings,
+                    s3StorageClass: value === DEFAULT_STORAGE_CLASS_OPTION ? undefined : value,
                   });
-                  setUnsaved();
                 }}
                 size="small"
                 className="w-[250px] max-w-[250px]"

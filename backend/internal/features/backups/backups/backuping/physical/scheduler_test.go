@@ -18,10 +18,9 @@ import (
 	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
 	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
 	"databasus-backend/internal/features/intervals"
-	"databasus-backend/internal/features/storages"
-	storage_files "databasus-backend/internal/features/storages/files"
+	storages_bridge "databasus-backend/internal/features/storages"
+	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/storage"
-	"databasus-backend/internal/util/encryption"
 	"databasus-backend/internal/util/logger"
 	"databasus-backend/internal/util/walmath"
 )
@@ -832,13 +831,14 @@ func Test_RecoverInFlightOnRestart_WhenFullHasNamedArtifact_ArtifactRemoved(t *t
 	require.NotNil(t, fullBackup)
 	fullBackup.FileName = &fileName
 	require.NoError(t, physical_repositories.GetFullBackupRepository().Save(fullBackup))
-	require.NoError(t, prereqs.Storage.SaveFile(
-		t.Context(),
-		encryption.GetFieldEncryptor(),
-		logger.GetLogger(),
-		fileName,
-		strings.NewReader("partial physical backup"),
-	))
+	require.NoError(
+		t,
+		storages_bridge.WriteTestFile(
+			t.Context(),
+			storages.StoredFileReference{StorageID: prereqs.Storage.ID, FileName: fileName},
+			strings.NewReader("partial physical backup"),
+		),
+	)
 
 	require.NoError(t, scheduler.recoverInFlightBackupsOnRestart(t.Context(), logger.GetLogger()))
 
@@ -849,15 +849,13 @@ func Test_RecoverInFlightOnRestart_WhenFullHasNamedArtifact_ArtifactRemoved(t *t
 	require.NotNil(t, persistedFullBackup.FileName)
 	assert.Equal(t, fileName, *persistedFullBackup.FileName)
 
-	require.NoError(t, storages.DrainStorageFileDeletions(t.Context(),
-		storage_files.StoredFileReference{StorageID: prereqs.Storage.ID, FileName: fileName},
+	require.NoError(t, storages_bridge.DrainStorageFileDeletions(t.Context(),
+		storages.StoredFileReference{StorageID: prereqs.Storage.ID, FileName: fileName},
 	))
 
-	_, err = prereqs.Storage.GetFile(
+	_, err = storages_bridge.OpenTestFile(
 		t.Context(),
-		encryption.GetFieldEncryptor(),
-		logger.GetLogger(),
-		fileName,
+		storages.StoredFileReference{StorageID: prereqs.Storage.ID, FileName: fileName},
 	)
 	assert.Error(t, err, "a backup interrupted by a restart must not leave its artifact behind")
 }

@@ -78,6 +78,9 @@ This is the project's common language. Each concept has one term in the document
 | Background job | job | Work that `background.Runner` runs on a schedule. Each run of a job is called a pass. |
 | File store | file store | The storages module's only way to write, read and delete files in a storage. It records every write so that no file is left without an owner. |
 | Write receipt | write receipt | What the file store returns for a written file. The transaction that publishes the backup spends it to keep the file. |
+| Stored file reference | stored file reference, `storages.StoredFileReference` | The storage and the name of one stored file, which backup code keeps to read or delete the file later. |
+| Storage reader | storage reader, `storages.StorageReader` | Opens the files of one storage for reading, so a restore or a download reads many files without looking the storage up for each. |
+| Background write | background write, `storages.BackgroundWrite` | A write of a file that runs beside the producer feeding it through a pipe, as a dump does; it ends with a write receipt or an error. |
 | Pending deletion | pending deletion | A recorded obligation to delete a file from a storage, carried out by the deletion worker. |
 | Deletion worker | deletion worker | The background job of the storages module that deletes files with a pending deletion. |
 | Console command | console command | An operation of the Databasus binary that the operator runs on the host or in the container instead of starting the server, such as a password reset. The `healthcheck` subcommand is not one: it only asks the running server. |

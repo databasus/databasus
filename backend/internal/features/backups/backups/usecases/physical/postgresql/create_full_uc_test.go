@@ -12,8 +12,8 @@ import (
 	physical_enums "databasus-backend/internal/features/backups/backups/core/physical/enums"
 	physical_repositories "databasus-backend/internal/features/backups/backups/core/physical/repositories"
 	postgresql_executor "databasus-backend/internal/features/backups/backups/usecases/physical/postgresql"
-	"databasus-backend/internal/util/encryption"
-	"databasus-backend/internal/util/logger"
+	storages_bridge "databasus-backend/internal/features/storages"
+	"databasus-backend/internal/modules/storages"
 )
 
 func Test_FullOnly_ProducesArtifactAndManifest(t *testing.T) {
@@ -43,17 +43,16 @@ func Test_FullOnly_ProducesArtifactAndManifest(t *testing.T) {
 
 	assert.GreaterOrEqual(t, *finalRow.BackupSizeMb, float64(0))
 
-	encryptor := encryption.GetFieldEncryptor()
-
-	artifactReader, err := fixture.Storage.GetFile(t.Context(), encryptor, logger.GetLogger(), *finalRow.FileName)
+	artifactReader, err := storages_bridge.OpenTestFile(
+		t.Context(),
+		storages.StoredFileReference{StorageID: fixture.Storage.ID, FileName: *finalRow.FileName},
+	)
 	require.NoError(t, err, "artifact %q must be in storage", *finalRow.FileName)
 	require.NoError(t, artifactReader.Close())
 
-	sidecarReader, err := fixture.Storage.GetFile(
+	sidecarReader, err := storages_bridge.OpenTestFile(
 		t.Context(),
-		encryptor,
-		logger.GetLogger(),
-		*finalRow.FileName+".metadata",
+		storages.StoredFileReference{StorageID: fixture.Storage.ID, FileName: *finalRow.FileName + ".metadata"},
 	)
 	require.NoError(t, err, "sidecar must be in storage")
 	require.NoError(t, sidecarReader.Close())
@@ -61,11 +60,9 @@ func Test_FullOnly_ProducesArtifactAndManifest(t *testing.T) {
 	require.NotNil(t, finalRow.ManifestFileName, "ManifestFileName must be populated post-COMPLETED")
 	assert.Equal(t, *finalRow.FileName+".manifest", *finalRow.ManifestFileName)
 
-	manifestReader, err := fixture.Storage.GetFile(
+	manifestReader, err := storages_bridge.OpenTestFile(
 		t.Context(),
-		encryptor,
-		logger.GetLogger(),
-		*finalRow.ManifestFileName,
+		storages.StoredFileReference{StorageID: fixture.Storage.ID, FileName: *finalRow.ManifestFileName},
 	)
 	require.NoError(t, err, "manifest sidecar must be in storage")
 	require.NoError(t, manifestReader.Close())

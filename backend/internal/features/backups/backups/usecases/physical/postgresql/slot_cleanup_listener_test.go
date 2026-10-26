@@ -11,6 +11,7 @@ import (
 
 	postgresql_executor "databasus-backend/internal/features/backups/backups/usecases/physical/postgresql"
 	"databasus-backend/internal/features/databases"
+	storages_bridge "databasus-backend/internal/features/storages"
 	"databasus-backend/internal/util/encryption"
 	"databasus-backend/internal/util/logger"
 )
@@ -139,7 +140,7 @@ func Test_DropWalSlot_WhenStreamerSlotActive_RefusesAndKeepsSlot(t *testing.T) {
 
 	stop := postgresql_executor.StartWalStreamerForTest(t, postgresql_executor.WalStreamerTestSpec{
 		Fixture:      fixture,
-		Storage:      fixture.Storage,
+		FileStore:    storages_bridge.GetModule(),
 		WatchDirRoot: t.TempDir(),
 	}).Stop
 	defer stop()

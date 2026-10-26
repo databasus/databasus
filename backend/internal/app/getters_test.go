@@ -39,7 +39,6 @@ import (
 	restores_usecases_mongodb "databasus-backend/internal/features/restores/usecases/mongodb"
 	restores_usecases_mysql "databasus-backend/internal/features/restores/usecases/mysql"
 	restores_usecases_postgresql "databasus-backend/internal/features/restores/usecases/postgresql"
-	storages "databasus-backend/internal/features/storages"
 	system_agent "databasus-backend/internal/features/system/agent"
 	system_healthcheck "databasus-backend/internal/features/system/healthcheck"
 	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
@@ -259,13 +258,6 @@ func getOldCodeGetters() []oldCodeGetter {
 		{
 			"features/restores/usecases/postgresql.GetRestorePostgresqlBackupUsecase",
 			func() any { return restores_usecases_postgresql.GetRestorePostgresqlBackupUsecase() },
-		},
-		{"features/storages.GetStorageService", func() any { return storages.GetStorageService() }},
-		{"features/storages.GetStorageController", func() any { return storages.GetStorageController() }},
-		{"features/storages.GetStorageFileStore", func() any { return storages.GetStorageFileStore() }},
-		{
-			"features/storages.GetStorageFileDeletionWorker",
-			func() any { return storages.GetStorageFileDeletionWorker() },
 		},
 		{"features/system/agent.GetAgentController", func() any { return system_agent.GetAgentController() }},
 		{

@@ -1,21 +1,19 @@
 import { useTranslation } from 'react-i18next';
 
-import type { Storage } from '../../../../../entity/storages';
+import type { GoogleDriveStorageSettings } from '../../../../../entity/storages';
 
 interface Props {
-  storage: Storage;
+  settings: GoogleDriveStorageSettings;
 }
 
-export function ShowGoogleDriveStorageComponent({ storage }: Props) {
+export function ShowGoogleDriveStorageComponent({ settings }: Props) {
   const { t } = useTranslation();
 
   return (
     <>
       <div className="mb-1 flex items-center">
         <div className="min-w-[110px] pr-2">{t('storages.fields.clientId')}</div>
-        {storage?.googleDriveStorage?.clientId
-          ? `${storage?.googleDriveStorage?.clientId.slice(0, 10)}***`
-          : '-'}
+        {settings.clientId ? `${settings.clientId.slice(0, 10)}***` : '-'}
       </div>
 
       <div className="mb-1 flex items-center">

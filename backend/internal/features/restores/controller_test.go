@@ -4,8 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
-	"log/slog"
 	"net/http"
 	"strings"
 	"testing"
@@ -27,13 +25,12 @@ import (
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	restores_core "databasus-backend/internal/features/restores/core"
 	"databasus-backend/internal/features/restores/restoring"
-	"databasus-backend/internal/features/storages"
-	local_storage "databasus-backend/internal/features/storages/models/local"
+	storages_bridge "databasus-backend/internal/features/storages"
 	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
+	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/modules/users"
-	util_encryption "databasus-backend/internal/util/encryption"
 	test_utils "databasus-backend/internal/util/testing"
 	"databasus-backend/internal/util/testing/containers"
 	"databasus-backend/internal/util/tools"
@@ -289,7 +286,7 @@ func Test_RestoreBackup_DiskSpaceValidation(t *testing.T) {
 
 			var database *databases.Database
 			var backup *backups_core_logical.LogicalBackup
-			var storage *storages.Storage
+			var storage storages.Storage
 			var request restores_core.RestoreBackupRequest
 
 			if tc.dbType == databases.DatabaseTypePostgresLogical {
@@ -321,7 +318,7 @@ func Test_RestoreBackup_DiskSpaceValidation(t *testing.T) {
 					cleanupBackup(backup)
 					databases.RemoveTestDatabase(t.Context(), mysqlDB)
 					time.Sleep(50 * time.Millisecond)
-					storages.RemoveTestStorage(t.Context(), storage.ID)
+					storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 				}()
 
 				configService := backups_config_logical.GetBackupConfigService()
@@ -330,7 +327,7 @@ func Test_RestoreBackup_DiskSpaceValidation(t *testing.T) {
 
 				config.IsBackupsEnabled = true
 				config.StorageID = &storage.ID
-				config.Storage = storage
+				config.Storage = &backups_config_logical.BackupConfigStorage{ID: storage.ID}
 				_, err = configService.SaveBackupConfig(t.Context(), config)
 				assert.NoError(t, err)
 
@@ -386,9 +383,9 @@ func Test_CancelRestore_InProgressRestore_SuccessfullyCancelled(t *testing.T) {
 	user := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 	router := createTestRouter()
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", user)
-	storage := storages.CreateTestStorage(workspace.ID)
+	storage := storages_bridge.CreateTestStorage(workspace.ID)
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
-	database := databases.CreateTestDatabase(workspace.ID, storage, notifier)
+	database := databases.CreateTestDatabase(workspace.ID, notifier)
 
 	defer func() {
 		backupRepo := backups_core_logical.BackupRepository{}
@@ -409,14 +406,14 @@ func Test_CancelRestore_InProgressRestore_SuccessfullyCancelled(t *testing.T) {
 
 		databases.RemoveTestDatabase(t.Context(), database)
 		time.Sleep(50 * time.Millisecond)
-		storages.RemoveTestStorage(t.Context(), storage.ID)
+		storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 		notifiers_bridge.RemoveTestNotifier(notifier)
 		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
 		caching.GetStore().Clear(t.Context())
 	}()
 
-	backups_config_logical.EnableBackupsForTestDatabase(t.Context(), database.ID, storage)
+	backups_config_logical.EnableBackupsForTestDatabase(t.Context(), database.ID, storage.ID)
 	backup := backups_controllers_logical.CreateTestBackup(database.ID, storage.ID)
 
 	mockUsecase := &restoring.MockBlockingRestoreUsecase{
@@ -575,7 +572,7 @@ func createTestDatabaseWithBackupForRestore(
 
 	config.IsBackupsEnabled = true
 	config.StorageID = &storage.ID
-	config.Storage = storage
+	config.Storage = &backups_config_logical.BackupConfigStorage{ID: storage.ID}
 	_, err = configService.SaveBackupConfig(ctx, config)
 	if err != nil {
 		panic(err)
@@ -671,29 +668,14 @@ func createTestMySQLDatabase(
 	return &database
 }
 
-func createTestStorage(workspaceID uuid.UUID) *storages.Storage {
-	storage := &storages.Storage{
-		WorkspaceID:  workspaceID,
-		Type:         storages.StorageTypeLocal,
-		Name:         "Test Storage " + uuid.New().String(),
-		LocalStorage: &local_storage.LocalStorage{},
-	}
-
-	repo := &storages.StorageRepository{}
-	storage, err := repo.Save(storage)
-	if err != nil {
-		panic(err)
-	}
-
-	return storage
+func createTestStorage(workspaceID uuid.UUID) storages.Storage {
+	return storages_bridge.CreateTestStorage(workspaceID)
 }
 
 func createTestBackup(
 	database *databases.Database,
-	storage *storages.Storage,
+	storage storages.Storage,
 ) *backups_core_logical.LogicalBackup {
-	fieldEncryptor := util_encryption.GetFieldEncryptor()
-
 	backup := &backups_core_logical.LogicalBackup{
 		ID:               uuid.New(),
 		DatabaseID:       database.ID,
@@ -711,12 +693,9 @@ func createTestBackup(
 
 	dummyContent := []byte("dummy backup content for testing")
 	reader := strings.NewReader(string(dummyContent))
-	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	if err := storage.SaveFile(
+	if err := storages_bridge.WriteTestFile(
 		context.Background(),
-		fieldEncryptor,
-		logger,
-		backup.ID.String(),
+		storages.StoredFileReference{StorageID: storage.ID, FileName: backup.ID.String()},
 		reader,
 	); err != nil {
 		panic(fmt.Sprintf("Failed to create test backup file: %v", err))
@@ -739,7 +718,7 @@ func cleanupDatabaseWithBackup(
 	configService := backups_config_logical.GetBackupConfigService()
 	config, err := configService.GetBackupConfigByDbId(database.ID)
 	if err == nil && config.StorageID != nil {
-		storages.RemoveTestStorage(ctx, *config.StorageID)
+		storages_bridge.RemoveTestStorage(ctx, *config.StorageID)
 	}
 }
 

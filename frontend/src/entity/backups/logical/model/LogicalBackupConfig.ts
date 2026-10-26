@@ -1,7 +1,6 @@
 import type { Period } from '../../../databases/model/Period';
 import type { Interval } from '../../../intervals';
-import type { Storage } from '../../../storages';
-import { BackupEncryption } from '../../shared';
+import { type BackupConfigStorage, BackupEncryption } from '../../shared';
 import type { LogicalBackupNotificationType } from './LogicalBackupNotificationType';
 import type { LogicalRetentionPolicyType } from './LogicalRetentionPolicyType';
 
@@ -20,7 +19,7 @@ export interface LogicalBackupConfig {
   retentionGfsYears: number;
 
   backupInterval?: Interval;
-  storage?: Storage;
+  storage?: BackupConfigStorage;
   sendNotificationsOn: LogicalBackupNotificationType[];
   isRetryIfFailed: boolean;
   maxFailedTriesCount: number;

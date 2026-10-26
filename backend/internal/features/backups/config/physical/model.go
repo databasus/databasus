@@ -12,7 +12,6 @@ import (
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
 	"databasus-backend/internal/features/intervals"
-	"databasus-backend/internal/features/storages"
 )
 
 type PhysicalBackupConfig struct {
@@ -33,8 +32,8 @@ type PhysicalBackupConfig struct {
 	ForceFullRequestedAt        *time.Time `json:"-" gorm:"column:force_full_requested_at;type:timestamptz"`
 	ForceIncrementalRequestedAt *time.Time `json:"-" gorm:"column:force_incremental_requested_at;type:timestamptz"`
 
-	Storage   *storages.Storage `json:"storage"   gorm:"foreignKey:StorageID"`
-	StorageID *uuid.UUID        `json:"storageId" gorm:"column:storage_id;type:uuid"`
+	Storage   *BackupConfigStorage `json:"storage"   gorm:"-"`
+	StorageID *uuid.UUID           `json:"storageId" gorm:"column:storage_id;type:uuid"`
 
 	Encryption backups_core_enums.BackupEncryption `json:"encryption" gorm:"column:encryption;type:text;not null;default:'NONE'"`
 

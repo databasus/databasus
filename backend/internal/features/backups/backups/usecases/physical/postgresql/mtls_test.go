@@ -9,7 +9,8 @@ import (
 
 	physical_repositories "databasus-backend/internal/features/backups/backups/core/physical/repositories"
 	"databasus-backend/internal/features/databases"
-	"databasus-backend/internal/features/storages"
+	storages_bridge "databasus-backend/internal/features/storages"
+	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/util/encryption"
 	"databasus-backend/internal/util/logger"
 	"databasus-backend/internal/util/testing/containers"
@@ -88,7 +89,7 @@ func Test_FullOverMtls_ProducesArtifactAndManifest(t *testing.T) {
 			SourceDB:       fixture.DB.PostgresqlPhysical,
 			DatabaseName:   fixture.DB.Name,
 			StorageID:      fixture.Storage.ID,
-			FileStore:      storages.GetStorageFileStore(),
+			FileStore:      storages_bridge.GetModule(),
 			Encryption:     fullRow.Encryption,
 			FieldEncryptor: encryption.GetFieldEncryptor(),
 			FullRepo:       physical_repositories.GetFullBackupRepository(),
@@ -107,21 +108,17 @@ func Test_FullOverMtls_ProducesArtifactAndManifest(t *testing.T) {
 	)
 
 	require.NotEmpty(t, result.FileName)
-	artifact, err := fixture.Storage.GetFile(
+	artifact, err := storages_bridge.OpenTestFile(
 		t.Context(),
-		encryption.GetFieldEncryptor(),
-		logger.GetLogger(),
-		result.FileName,
+		storages.StoredFileReference{StorageID: fixture.Storage.ID, FileName: result.FileName},
 	)
 	require.NoError(t, err, "artifact must be in storage")
 	require.NoError(t, artifact.Close())
 
 	require.NotEmpty(t, result.ManifestFileName)
-	manifest, err := fixture.Storage.GetFile(
+	manifest, err := storages_bridge.OpenTestFile(
 		t.Context(),
-		encryption.GetFieldEncryptor(),
-		logger.GetLogger(),
-		result.ManifestFileName,
+		storages.StoredFileReference{StorageID: fixture.Storage.ID, FileName: result.ManifestFileName},
 	)
 	require.NoError(t, err, "reconstructed manifest must be in storage")
 	require.NoError(t, manifest.Close())
@@ -140,7 +137,7 @@ func Test_WalStreamOverMtls_StreamerArchivesSegments(t *testing.T) {
 
 	stop := StartWalStreamerForTest(
 		t,
-		WalStreamerTestSpec{Fixture: fixture, Storage: store, WatchDirRoot: t.TempDir()},
+		WalStreamerTestSpec{Fixture: fixture, FileStore: newMockWalStoreFor(store), WatchDirRoot: t.TempDir()},
 	).Stop
 	t.Cleanup(stop)
 

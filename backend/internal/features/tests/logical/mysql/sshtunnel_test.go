@@ -18,7 +18,7 @@ import (
 	"databasus-backend/internal/features/databases"
 	mysqltypes "databasus-backend/internal/features/databases/databases/mysql"
 	restores_core "databasus-backend/internal/features/restores/core"
-	"databasus-backend/internal/features/storages"
+	storages_bridge "databasus-backend/internal/features/storages"
 	logicaltesting "databasus-backend/internal/features/tests/logical/shared"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
@@ -72,8 +72,8 @@ func Test_MysqlBackupRestore_OverSshTunnel_RestoresData(t *testing.T) {
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "MySQL SSH Tunnel Workspace", user)
 	t.Cleanup(func() { workspaces_testing.RemoveTestWorkspace(context.Background(), workspace) })
 
-	storage := storages.CreateTestStorage(workspace.ID)
-	t.Cleanup(func() { storages.RemoveTestStorage(t.Context(), storage.ID) })
+	storage := storages_bridge.CreateTestStorage(workspace.ID)
+	t.Cleanup(func() { storages_bridge.RemoveTestStorage(t.Context(), storage.ID) })
 
 	database := logicaltesting.SubmitCreateDatabase(t, router, "MySQL cycle over SSH tunnel",
 		databases.Database{

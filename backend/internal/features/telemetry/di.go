@@ -9,12 +9,13 @@ import (
 	backups_services "databasus-backend/internal/features/backups/backups/services"
 	"databasus-backend/internal/features/databases"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
-	"databasus-backend/internal/features/storages"
+	storages_bridge "databasus-backend/internal/features/storages"
 	system_version "databasus-backend/internal/features/system/version"
 	users_bridge "databasus-backend/internal/features/users"
 	verification_agents "databasus-backend/internal/features/verification/agents"
 	verification_config "databasus-backend/internal/features/verification/config"
 	"databasus-backend/internal/modules/notifiers"
+	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/util/logger"
 )
 
@@ -35,7 +36,7 @@ var (
 			getInstanceLoader(),
 			getHttpSender(),
 			databases.GetDatabaseService(),
-			storages.GetStorageService(),
+			installedStorageTypes{},
 			installedNotifierTypes{},
 			backups_services.GetBackupService(),
 			physical_service.GetPhysicalBackupService(),
@@ -72,6 +73,13 @@ type installedUserCounter struct{}
 
 func (installedUserCounter) GetUserCount(ctx context.Context) (int64, error) {
 	return users_bridge.GetModule().GetUserCount(ctx)
+}
+
+// installedStorageTypes reads the module per call: each test application installs its own module.
+type installedStorageTypes struct{}
+
+func (installedStorageTypes) GetStorageTypes(ctx context.Context) ([]storages.Type, error) {
+	return storages_bridge.GetModule().GetStorageTypes(ctx)
 }
 
 // installedNotifierTypes reads the module per call: each test application installs its own module.

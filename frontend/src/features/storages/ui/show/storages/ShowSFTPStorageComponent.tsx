@@ -1,15 +1,15 @@
 import { useTranslation } from 'react-i18next';
 
-import type { Storage } from '../../../../../entity/storages';
+import type { SftpStorageSettings } from '../../../../../entity/storages';
 
 interface Props {
-  storage: Storage;
+  settings: SftpStorageSettings;
 }
 
-export function ShowSFTPStorageComponent({ storage }: Props) {
+export function ShowSFTPStorageComponent({ settings }: Props) {
   const { t } = useTranslation();
 
-  const authMethodLabel = storage?.sftpStorage?.privateKey
+  const authMethodLabel = settings.privateKey
     ? t('storages.sftpAuthMethods.privateKey')
     : t('storages.sftpAuthMethods.password');
 
@@ -17,17 +17,17 @@ export function ShowSFTPStorageComponent({ storage }: Props) {
     <>
       <div className="mb-1 flex items-center">
         <div className="min-w-[110px] pr-2">{t('common.fields.host')}</div>
-        {storage?.sftpStorage?.host || '-'}
+        {settings.host || '-'}
       </div>
 
       <div className="mb-1 flex items-center">
         <div className="min-w-[110px] pr-2">{t('common.fields.port')}</div>
-        {storage?.sftpStorage?.port || '-'}
+        {settings.port || '-'}
       </div>
 
       <div className="mb-1 flex items-center">
         <div className="min-w-[110px] pr-2">{t('common.fields.username')}</div>
-        {storage?.sftpStorage?.username || '-'}
+        {settings.username || '-'}
       </div>
 
       <div className="mb-1 flex items-center">
@@ -42,10 +42,10 @@ export function ShowSFTPStorageComponent({ storage }: Props) {
 
       <div className="mb-1 flex items-center">
         <div className="min-w-[110px] pr-2">{t('storages.fields.path')}</div>
-        {storage?.sftpStorage?.path || '-'}
+        {settings.path || '-'}
       </div>
 
-      {storage?.sftpStorage?.skipHostKeyVerify && (
+      {settings.isSkipHostKeyVerify && (
         <div className="mb-1 flex items-center">
           <div className="min-w-[110px] pr-2">{t('storages.fields.skipHostKey')}</div>
           {t('common.states.enabled')}

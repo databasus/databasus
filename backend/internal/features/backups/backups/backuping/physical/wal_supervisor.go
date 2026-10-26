@@ -22,11 +22,10 @@ import (
 	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
 	"databasus-backend/internal/features/databases"
 	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
-	"databasus-backend/internal/features/storages"
-	storage_files "databasus-backend/internal/features/storages/files"
 	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
 	"databasus-backend/internal/lib/crypto"
 	"databasus-backend/internal/modules/notifiers"
+	"databasus-backend/internal/modules/storages"
 	util_encryption "databasus-backend/internal/util/encryption"
 	"databasus-backend/internal/util/walmath"
 )
@@ -35,10 +34,10 @@ import (
 // heartbeat table: every tick CAS-claims the databases that are unclaimed /
 // FAILED / stale, so exactly one process streams a given database at a time.
 type PhysicalWalStreamSupervisor struct {
-	databaseService          *databases.DatabaseService
-	backupConfigService      *backups_config_physical.BackupConfigService
-	storageService           *storages.StorageService
-	fileStore                *storage_files.Store
+	databaseService     *databases.DatabaseService
+	backupConfigService *backups_config_physical.BackupConfigService
+	// getStorages is read per call: each test application installs its own module.
+	getStorages              func() storages.Module
 	walSegmentRepo           *physical_repositories.PhysicalWalSegmentRepository
 	historyRepo              *physical_repositories.PhysicalWalHistoryRepository
 	walStreamerRepo          *physical_repositories.PhysicalWalStreamerRepository
@@ -240,7 +239,7 @@ func (s *PhysicalWalStreamSupervisor) startStreamer(
 		return
 	}
 
-	storage, err := s.storageService.GetStorageByID(ctx, *backupConfig.StorageID)
+	storage, err := getStorage(ctx, s.getStorages(), *backupConfig.StorageID)
 	if err != nil {
 		logger.ErrorContext(ctx, "failed to load storage for streamer", "error", err)
 		s.releaseClaim(logger, backupConfig.DatabaseID)
@@ -294,7 +293,7 @@ func (s *PhysicalWalStreamSupervisor) startStreamer(
 		SourceDB:                  tunneledDatabase.GetDatabaseThroughTunnel(),
 		IsBastionReachable:        tunneledDatabase.IsBastionReachable,
 		StorageID:                 storage.ID,
-		FileStore:                 s.fileStore,
+		FileStore:                 s.getStorages(),
 		Encryption:                backupConfig.Encryption,
 		MasterKey:                 masterKey,
 		FieldEncryptor:            s.fieldEncryptor,

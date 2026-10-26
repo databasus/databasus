@@ -23,3 +23,21 @@ func (a *App) EncryptSecret(tb testing.TB, plaintext string) string {
 
 	return encryptedValue
 }
+
+// DecryptSecret decrypts a value the application stored with the master key of the instance, so a
+// test can show that a stored secret is the one the user entered.
+func (a *App) DecryptSecret(tb testing.TB, encryptedValue string) string {
+	tb.Helper()
+
+	masterKey, err := crypto.OpenOrCreateMasterKey(a.secretKeyPath)
+	if err != nil {
+		tb.Fatalf("open the master key of the test application: %v", err)
+	}
+
+	plaintext, err := crypto.NewFieldEncryptor(masterKey).Decrypt(encryptedValue)
+	if err != nil {
+		tb.Fatalf("decrypt the secret: %v", err)
+	}
+
+	return plaintext
+}

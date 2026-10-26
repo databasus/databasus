@@ -19,10 +19,10 @@ import (
 	postgresql_logical "databasus-backend/internal/features/databases/databases/postgresql/logical"
 	"databasus-backend/internal/features/intervals"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
-	"databasus-backend/internal/features/storages"
-	local_storage "databasus-backend/internal/features/storages/models/local"
+	storages_bridge "databasus-backend/internal/features/storages"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
+	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/modules/workspaces"
 	"databasus-backend/internal/storage"
@@ -568,7 +568,7 @@ func Test_TransferDatabase_PermissionsEnforced(t *testing.T) {
 				// Cleanup in correct order to avoid foreign key violations
 				databases.RemoveTestDatabase(t.Context(), database)
 				time.Sleep(50 * time.Millisecond) // Wait for cascade delete of backup_config
-				storages.RemoveTestStorage(t.Context(), targetStorage.ID)
+				storages_bridge.RemoveTestStorage(t.Context(), targetStorage.ID)
 				workspaces_testing.RemoveTestWorkspace(t.Context(), sourceWorkspace)
 				workspaces_testing.RemoveTestWorkspace(t.Context(), targetWorkspace)
 			}()
@@ -749,7 +749,7 @@ func Test_TransferDatabase_ToNewStorage_DatabaseTransferd(t *testing.T) {
 			Type:      intervals.IntervalDaily,
 			TimeOfDay: &timeOfDay,
 		},
-		Storage: sourceStorage,
+		Storage: &BackupConfigStorage{ID: sourceStorage.ID},
 		SendNotificationsOn: []BackupNotificationType{
 			NotificationBackupFailed,
 		},
@@ -836,7 +836,7 @@ func Test_TransferDatabase_WithExistingStorage_DatabaseAndStorageTransferd(t *te
 			Type:      intervals.IntervalDaily,
 			TimeOfDay: &timeOfDay,
 		},
-		Storage: storage,
+		Storage: &BackupConfigStorage{ID: storage.ID},
 		SendNotificationsOn: []BackupNotificationType{
 			NotificationBackupFailed,
 		},
@@ -883,16 +883,10 @@ func Test_TransferDatabase_WithExistingStorage_DatabaseAndStorageTransferd(t *te
 	)
 	assert.Equal(t, targetWorkspace.ID, *retrievedDatabase.WorkspaceID)
 
-	var retrievedStorage storages.Storage
-	test_utils.MakeGetRequestAndUnmarshal(
-		t,
-		router,
-		"/api/v1/storages/"+storage.ID.String(),
-		"Bearer "+owner.Token,
-		http.StatusOK,
-		&retrievedStorage,
-	)
-	assert.Equal(t, targetWorkspace.ID, retrievedStorage.WorkspaceID)
+	transferredStorages, err := storages_bridge.GetModule().GetStorages(t.Context(), []uuid.UUID{storage.ID})
+	require.NoError(t, err)
+	require.Len(t, transferredStorages, 1)
+	assert.Equal(t, targetWorkspace.ID, transferredStorages[0].WorkspaceID)
 }
 
 func Test_TransferDatabase_StorageHasOtherDBs_CannotTransfer(t *testing.T) {
@@ -934,7 +928,7 @@ func Test_TransferDatabase_StorageHasOtherDBs_CannotTransfer(t *testing.T) {
 			Type:      intervals.IntervalDaily,
 			TimeOfDay: &timeOfDay,
 		},
-		Storage: storage,
+		Storage: &BackupConfigStorage{ID: storage.ID},
 		SendNotificationsOn: []BackupNotificationType{
 			NotificationBackupFailed,
 		},
@@ -961,7 +955,7 @@ func Test_TransferDatabase_StorageHasOtherDBs_CannotTransfer(t *testing.T) {
 			Type:      intervals.IntervalDaily,
 			TimeOfDay: &timeOfDay,
 		},
-		Storage: storage,
+		Storage: &BackupConfigStorage{ID: storage.ID},
 		SendNotificationsOn: []BackupNotificationType{
 			NotificationBackupFailed,
 		},
@@ -1038,7 +1032,7 @@ func Test_TransferDatabase_WithNotifiers_NotifiersTransferred(t *testing.T) {
 			Type:      intervals.IntervalDaily,
 			TimeOfDay: &timeOfDay,
 		},
-		Storage: sourceStorage,
+		Storage: &BackupConfigStorage{ID: sourceStorage.ID},
 		SendNotificationsOn: []BackupNotificationType{
 			NotificationBackupFailed,
 		},
@@ -1150,7 +1144,7 @@ func Test_TransferDatabase_NotifierHasOtherDBs_NotifierSkipped(t *testing.T) {
 			Type:      intervals.IntervalDaily,
 			TimeOfDay: &timeOfDay,
 		},
-		Storage: sourceStorage,
+		Storage: &BackupConfigStorage{ID: sourceStorage.ID},
 		SendNotificationsOn: []BackupNotificationType{
 			NotificationBackupFailed,
 		},
@@ -1264,7 +1258,7 @@ func Test_TransferDatabase_WithMultipleNotifiers_OnlyExclusiveOnesTransferred(t 
 			Type:      intervals.IntervalDaily,
 			TimeOfDay: &timeOfDay,
 		},
-		Storage: sourceStorage,
+		Storage: &BackupConfigStorage{ID: sourceStorage.ID},
 		SendNotificationsOn: []BackupNotificationType{
 			NotificationBackupFailed,
 		},
@@ -1346,7 +1340,7 @@ func Test_TransferDatabase_WithTargetNotifiers_NotifiersAssigned(t *testing.T) {
 			Type:      intervals.IntervalDaily,
 			TimeOfDay: &timeOfDay,
 		},
-		Storage: sourceStorage,
+		Storage: &BackupConfigStorage{ID: sourceStorage.ID},
 		SendNotificationsOn: []BackupNotificationType{
 			NotificationBackupFailed,
 		},
@@ -1427,7 +1421,7 @@ func Test_TransferDatabase_TargetNotifierFromDifferentWorkspace_ReturnsBadReques
 			Type:      intervals.IntervalDaily,
 			TimeOfDay: &timeOfDay,
 		},
-		Storage: sourceStorage,
+		Storage: &BackupConfigStorage{ID: sourceStorage.ID},
 		SendNotificationsOn: []BackupNotificationType{
 			NotificationBackupFailed,
 		},
@@ -1493,7 +1487,7 @@ func Test_TransferDatabase_TargetStorageFromDifferentWorkspace_ReturnsBadRequest
 			Type:      intervals.IntervalDaily,
 			TimeOfDay: &timeOfDay,
 		},
-		Storage: sourceStorage,
+		Storage: &BackupConfigStorage{ID: sourceStorage.ID},
 		SendNotificationsOn: []BackupNotificationType{
 			NotificationBackupFailed,
 		},
@@ -1552,7 +1546,7 @@ func Test_SaveBackupConfig_WithStorageFromAnotherWorkspace_ReturnsBadRequest(t *
 			TimeOfDay: &timeOfDay,
 		},
 		StorageID: &storageB.ID,
-		Storage:   storageB,
+		Storage:   &BackupConfigStorage{ID: storageB.ID},
 		SendNotificationsOn: []BackupNotificationType{
 			NotificationBackupFailed,
 		},
@@ -1574,7 +1568,7 @@ func Test_SaveBackupConfig_WithStorageFromAnotherWorkspace_ReturnsBadRequest(t *
 
 	// Cleanup: database first (cascades to backup_config), then storage, then workspaces
 	databases.RemoveTestDatabase(t.Context(), databaseA)
-	storages.RemoveTestStorage(t.Context(), storageB.ID)
+	storages_bridge.RemoveTestStorage(t.Context(), storageB.ID)
 	workspaces_testing.RemoveTestWorkspace(t.Context(), workspaceA)
 	workspaces_testing.RemoveTestWorkspace(t.Context(), workspaceB)
 }
@@ -1628,15 +1622,14 @@ func createTestDatabaseViaAPI(
 	return &database
 }
 
-func createTestStorage(workspaceID uuid.UUID) *storages.Storage {
-	return storages.CreateTestStorage(workspaceID)
+func createTestStorage(workspaceID uuid.UUID) storages.Storage {
+	return storages_bridge.CreateTestStorage(workspaceID)
 }
 
 func createTestRouterWithStorageForTransfer() *gin.Engine {
 	router := workspaces_testing.CreateTestRouter(
 		databases.GetDatabaseController(),
 		GetBackupConfigController(),
-		storages.GetStorageController(),
 	)
 
 	databases.SetupDependencies()
@@ -1649,7 +1642,6 @@ func createTestRouterWithNotifiersForTransfer() *gin.Engine {
 	router := workspaces_testing.CreateTestRouter(
 		databases.GetDatabaseController(),
 		GetBackupConfigController(),
-		storages.GetStorageController(),
 	)
 
 	databases.SetupDependencies()
@@ -1663,20 +1655,14 @@ func Test_SaveBackupConfig_WhenEmbeddedStorageHasChangedFields_KeepsStoredStorag
 	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
 	database := createTestDatabaseViaAPI("Test Database", workspace.ID, owner.Token, router)
-	existingStorage := storages.CreateTestFlakyS3Storage(workspace.ID, "http://127.0.0.1:1")
+	existingStorage := storages_bridge.CreateTestFlakyS3Storage(workspace.ID, "http://127.0.0.1:1")
+	storedKeys := getStoredS3Keys(t, existingStorage.ID)
 
 	t.Cleanup(func() {
 		databases.RemoveTestDatabase(t.Context(), database)
-		storages.RemoveTestStorage(t.Context(), existingStorage.ID)
+		storages_bridge.RemoveTestStorage(t.Context(), existingStorage.ID)
 		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	})
-
-	changedStorage := *existingStorage
-	changedS3Storage := *existingStorage.S3Storage
-	changedStorage.Name = "Renamed through the backup config"
-	changedS3Storage.S3AccessKey = "replaced-access-key"
-	changedS3Storage.S3SecretKey = "replaced-secret-key"
-	changedStorage.S3Storage = &changedS3Storage
 
 	var savedConfig LogicalBackupConfig
 	test_utils.MakePostRequestAndUnmarshal(
@@ -1684,7 +1670,15 @@ func Test_SaveBackupConfig_WhenEmbeddedStorageHasChangedFields_KeepsStoredStorag
 		router,
 		"/api/v1/backup-configs/save",
 		"Bearer "+owner.Token,
-		newLogicalConfigWithStorage(database.ID, &changedStorage),
+		newLogicalConfigWithStorage(t, database.ID, map[string]any{
+			"id":   existingStorage.ID,
+			"name": "Renamed through the backup config",
+			"type": storages.TypeS3,
+			"s3Storage": map[string]any{
+				"s3AccessKey": "replaced-access-key",
+				"s3SecretKey": "replaced-secret-key",
+			},
+		}),
 		http.StatusOK,
 		&savedConfig,
 	)
@@ -1692,11 +1686,11 @@ func Test_SaveBackupConfig_WhenEmbeddedStorageHasChangedFields_KeepsStoredStorag
 	require.NotNil(t, savedConfig.StorageID)
 	assert.Equal(t, existingStorage.ID, *savedConfig.StorageID)
 
-	storedStorage, err := storages.GetStorageService().GetStorageByID(t.Context(), existingStorage.ID)
+	storedStorages, err := storages_bridge.GetModule().GetStorages(t.Context(), []uuid.UUID{existingStorage.ID})
 	require.NoError(t, err)
-	assert.Equal(t, existingStorage.Name, storedStorage.Name)
-	assert.Equal(t, existingStorage.S3Storage.S3AccessKey, storedStorage.S3Storage.S3AccessKey)
-	assert.Equal(t, existingStorage.S3Storage.S3SecretKey, storedStorage.S3Storage.S3SecretKey)
+	require.Len(t, storedStorages, 1)
+	assert.Equal(t, existingStorage.Name, storedStorages[0].Name)
+	assert.Equal(t, storedKeys, getStoredS3Keys(t, existingStorage.ID))
 }
 
 func Test_SaveBackupConfig_WhenEmbeddedStorageHasNoID_ReturnsBadRequestAndCreatesNoStorage(t *testing.T) {
@@ -1710,19 +1704,17 @@ func Test_SaveBackupConfig_WhenEmbeddedStorageHasNoID_ReturnsBadRequestAndCreate
 		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	})
 
-	storageWithoutID := &storages.Storage{
-		WorkspaceID:  workspace.ID,
-		Type:         storages.StorageTypeLocal,
-		Name:         "Storage created through the backup config",
-		LocalStorage: &local_storage.LocalStorage{},
-	}
-
 	resp := test_utils.MakePostRequest(
 		t,
 		router,
 		"/api/v1/backup-configs/save",
 		"Bearer "+owner.Token,
-		newLogicalConfigWithStorage(database.ID, storageWithoutID),
+		newLogicalConfigWithStorage(t, database.ID, map[string]any{
+			"workspaceId":  workspace.ID,
+			"type":         storages.TypeLocal,
+			"name":         "Storage created through the backup config",
+			"localStorage": map[string]any{},
+		}),
 		http.StatusBadRequest,
 	)
 
@@ -1741,34 +1733,32 @@ func Test_SaveBackupConfig_WhenEmbeddedStorageIsUnknown_ReturnsBadRequestAndCrea
 		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	})
 
-	unknownStorage := &storages.Storage{
-		ID:           uuid.New(),
-		WorkspaceID:  workspace.ID,
-		Type:         storages.StorageTypeLocal,
-		Name:         "Unknown storage",
-		LocalStorage: &local_storage.LocalStorage{},
-	}
-
 	test_utils.MakePostRequest(
 		t,
 		router,
 		"/api/v1/backup-configs/save",
 		"Bearer "+owner.Token,
-		newLogicalConfigWithStorage(database.ID, unknownStorage),
+		newLogicalConfigWithStorage(t, database.ID, map[string]any{
+			"id":           uuid.New(),
+			"workspaceId":  workspace.ID,
+			"type":         storages.TypeLocal,
+			"name":         "Unknown storage",
+			"localStorage": map[string]any{},
+		}),
 		http.StatusBadRequest,
 	)
 
-	var storagesWithUnknownID int64
-	require.NoError(t, storage.GetDb().Model(&storages.Storage{}).
-		Where("id = ?", unknownStorage.ID).
-		Count(&storagesWithUnknownID).Error)
-	assert.Zero(t, storagesWithUnknownID)
+	assert.Zero(t, countStoragesInWorkspace(t, workspace.ID))
 }
 
-func newLogicalConfigWithStorage(databaseID uuid.UUID, embeddedStorage *storages.Storage) LogicalBackupConfig {
+// newLogicalConfigWithStorage embeds the storage as the frontend sent it before configs carried only
+// a reference, so a test can show that extra storage fields change nothing.
+func newLogicalConfigWithStorage(t *testing.T, databaseID uuid.UUID, embeddedStorage map[string]any) map[string]any {
+	t.Helper()
+
 	timeOfDay := "04:00"
 
-	return LogicalBackupConfig{
+	backupConfig := LogicalBackupConfig{
 		DatabaseID:          databaseID,
 		IsBackupsEnabled:    true,
 		RetentionPolicyType: RetentionPolicyTypeTimePeriod,
@@ -1777,7 +1767,6 @@ func newLogicalConfigWithStorage(databaseID uuid.UUID, embeddedStorage *storages
 			Type:      intervals.IntervalDaily,
 			TimeOfDay: &timeOfDay,
 		},
-		Storage: embeddedStorage,
 		SendNotificationsOn: []BackupNotificationType{
 			NotificationBackupFailed,
 		},
@@ -1785,17 +1774,39 @@ func newLogicalConfigWithStorage(databaseID uuid.UUID, embeddedStorage *storages
 		MaxFailedTriesCount: 3,
 		Encryption:          backups_core_enums.BackupEncryptionNone,
 	}
+
+	encodedConfig, err := json.Marshal(backupConfig)
+	require.NoError(t, err)
+
+	var configWithStorage map[string]any
+	require.NoError(t, json.Unmarshal(encodedConfig, &configWithStorage))
+	configWithStorage["storage"] = embeddedStorage
+
+	return configWithStorage
 }
 
 func countStoragesInWorkspace(t *testing.T, workspaceID uuid.UUID) int64 {
 	t.Helper()
 
 	var storagesInWorkspace int64
-	require.NoError(t, storage.GetDb().Model(&storages.Storage{}).
-		Where("workspace_id = ?", workspaceID).
-		Count(&storagesInWorkspace).Error)
+	require.NoError(t, storage.GetDb().
+		Raw("SELECT COUNT(*) FROM storages WHERE workspace_id = ?", workspaceID).
+		Scan(&storagesInWorkspace).Error)
 
 	return storagesInWorkspace
+}
+
+// getStoredS3Keys reads the encrypted keys, which no operation returns.
+func getStoredS3Keys(t *testing.T, storageID uuid.UUID) []string {
+	t.Helper()
+
+	var storedKeys []string
+	require.NoError(t, storage.GetDb().
+		Raw("SELECT s3_access_key || ' ' || s3_secret_key FROM storages_s3 WHERE storage_id = ?", storageID).
+		Scan(&storedKeys).Error)
+	require.Len(t, storedKeys, 1)
+
+	return storedKeys
 }
 
 func getNotifierWorkspaceID(t *testing.T, notifierID uuid.UUID) uuid.UUID {

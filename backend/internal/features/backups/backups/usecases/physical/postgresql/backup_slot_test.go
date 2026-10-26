@@ -20,8 +20,9 @@ import (
 	physical_repositories "databasus-backend/internal/features/backups/backups/core/physical/repositories"
 	postgresql_executor "databasus-backend/internal/features/backups/backups/usecases/physical/postgresql"
 	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
-	"databasus-backend/internal/features/storages"
+	storages_bridge "databasus-backend/internal/features/storages"
 	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
+	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/storage"
 	"databasus-backend/internal/util/encryption"
 	"databasus-backend/internal/util/logger"
@@ -468,13 +469,14 @@ func Test_BackupSlot_DroppedAfterFailedIncrementalRun(t *testing.T) {
 	// Overwrite the parent manifest with garbage so pg_basebackup --incremental
 	// rejects it inside WithBackupSlot. The pre-check reads stop_lsn from the row,
 	// not this file, so it still clears and the slot is still created.
-	require.NoError(t, fixture.Storage.SaveFile(
-		t.Context(),
-		encryption.GetFieldEncryptor(),
-		logger.GetLogger(),
-		*fullRow.ManifestFileName,
-		strings.NewReader("fake-manifest-bytes-pg_basebackup-will-reject-this"),
-	))
+	require.NoError(
+		t,
+		storages_bridge.WriteTestFile(
+			t.Context(),
+			storages.StoredFileReference{StorageID: fixture.Storage.ID, FileName: *fullRow.ManifestFileName},
+			strings.NewReader("fake-manifest-bytes-pg_basebackup-will-reject-this"),
+		),
+	)
 
 	incrID := postgresql_executor.BuildAndClaimIncremental(t, fixture, nil)
 
@@ -735,16 +737,15 @@ func Test_BackupSlot_RetryAfterFailure_ReusesName(t *testing.T) {
 	slotName := postgresql_executor.SlotName(fixture.DB.PostgresqlPhysical.ID)
 	adminConn := postgresql_executor.OpenAdminConn(t, fixture)
 
-	flakyStorage := storages.CreateTestFlakyS3Storage(*fixture.DB.WorkspaceID,
+	flakyStorage := storages_bridge.CreateTestFlakyS3Storage(*fixture.DB.WorkspaceID,
 		"http://127.0.0.1:1")
-	t.Cleanup(func() { storages.RemoveTestStorage(t.Context(), flakyStorage.ID) })
+	t.Cleanup(func() { storages_bridge.RemoveTestStorage(t.Context(), flakyStorage.ID) })
 
 	cfgService := backups_config_physical.GetBackupConfigService()
 	cfg, err := cfgService.GetBackupConfigByDbId(fixture.DB.ID)
 	require.NoError(t, err)
 
 	cfg.StorageID = &flakyStorage.ID
-	cfg.Storage = flakyStorage
 	_, err = cfgService.SaveBackupConfig(t.Context(), cfg)
 	require.NoError(t, err)
 
@@ -762,7 +763,6 @@ func Test_BackupSlot_RetryAfterFailure_ReusesName(t *testing.T) {
 	require.NoError(t, err)
 
 	cfg.StorageID = &fixture.Storage.ID
-	cfg.Storage = fixture.Storage
 	_, err = cfgService.SaveBackupConfig(t.Context(), cfg)
 	require.NoError(t, err)
 

@@ -48,6 +48,7 @@ import {
 } from '../../../../shared/time/utils';
 import { ConfirmationComponent } from '../../../../shared/ui';
 import { EditStorageComponent } from '../../../storages/ui/edit/EditStorageComponent';
+import { toBackupConfigStorage } from '../../lib/toBackupConfigStorage';
 
 interface Props {
   database: Database;
@@ -142,7 +143,7 @@ export const EditLogicalBackupConfigComponent = ({
 
   const loadStorages = async () => {
     try {
-      const storages = await storageApi.getStorages(database.workspaceId);
+      const storages = await storageApi.listAllStorages(database.workspaceId);
       setStorages(storages);
     } catch (e) {
       alert(translateApiError(e, t));
@@ -487,7 +488,9 @@ export const EditLogicalBackupConfigComponent = ({
               }
 
               const selectedStorage = storages.find((s) => s.id === storageId);
-              updateBackupConfig({ storage: selectedStorage });
+              updateBackupConfig({
+                storage: selectedStorage && toBackupConfigStorage(selectedStorage),
+              });
 
               if (backupConfig.storage?.id) {
                 setIsShowWarn(true);
@@ -856,7 +859,7 @@ export const EditLogicalBackupConfigComponent = ({
             onChanged={async (createdStorage) => {
               const hadExistingStorage = !!backupConfig?.storage?.id;
               await loadStorages();
-              updateBackupConfig({ storage: createdStorage });
+              updateBackupConfig({ storage: toBackupConfigStorage(createdStorage) });
               setShowCreateStorage(false);
               if (hadExistingStorage) {
                 setIsShowWarn(true);

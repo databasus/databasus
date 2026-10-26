@@ -3,18 +3,21 @@ import { Input, Radio, Tooltip } from 'antd';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { AZURE_BLOB_AUTH_METHOD_LABEL_KEYS, type Storage } from '../../../../../entity/storages';
+import {
+  AZURE_BLOB_AUTH_METHOD_LABEL_KEYS,
+  type AzureBlobStorageSettings,
+} from '../../../../../entity/storages';
+import { toOptionalValue } from '../../../../../shared/lib';
 
 interface Props {
-  storage: Storage;
-  setStorage: (storage: Storage) => void;
-  setUnsaved: () => void;
+  settings: AzureBlobStorageSettings;
+  isSaved: boolean;
+  onChange: (settings: AzureBlobStorageSettings) => void;
 }
 
-export function EditAzureBlobStorageComponent({ storage, setStorage, setUnsaved }: Props) {
+export function EditAzureBlobStorageComponent({ settings, isSaved, onChange }: Props) {
   const { t } = useTranslation();
-  const hasAdvancedValues =
-    !!storage?.azureBlobStorage?.prefix || !!storage?.azureBlobStorage?.endpoint;
+  const hasAdvancedValues = !!settings.prefix || !!settings.endpoint;
   const [showAdvanced, setShowAdvanced] = useState(hasAdvancedValues);
 
   return (
@@ -22,18 +25,9 @@ export function EditAzureBlobStorageComponent({ storage, setStorage, setUnsaved 
       <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
         <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">{t('storages.fields.authMethod')}</div>
         <Radio.Group
-          value={storage?.azureBlobStorage?.authMethod || 'ACCOUNT_KEY'}
+          value={settings.authMethod || 'ACCOUNT_KEY'}
           onChange={(e) => {
-            if (!storage?.azureBlobStorage) return;
-
-            setStorage({
-              ...storage,
-              azureBlobStorage: {
-                ...storage.azureBlobStorage,
-                authMethod: e.target.value,
-              },
-            });
-            setUnsaved();
+            onChange({ ...settings, authMethod: e.target.value });
           }}
           size="small"
         >
@@ -44,25 +38,16 @@ export function EditAzureBlobStorageComponent({ storage, setStorage, setUnsaved 
         </Radio.Group>
       </div>
 
-      {storage?.azureBlobStorage?.authMethod === 'CONNECTION_STRING' && (
+      {settings.authMethod === 'CONNECTION_STRING' && (
         <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
           <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">
             {t('storages.fields.connection')}
           </div>
           <div className="flex items-center">
             <Input.Password
-              value={storage?.azureBlobStorage?.connectionString || ''}
+              value={settings.connectionString || ''}
               onChange={(e) => {
-                if (!storage?.azureBlobStorage) return;
-
-                setStorage({
-                  ...storage,
-                  azureBlobStorage: {
-                    ...storage.azureBlobStorage,
-                    connectionString: e.target.value.trim(),
-                  },
-                });
-                setUnsaved();
+                onChange({ ...settings, connectionString: toOptionalValue(e.target.value.trim()) });
               }}
               size="small"
               className="w-full max-w-[250px]"
@@ -84,25 +69,16 @@ export function EditAzureBlobStorageComponent({ storage, setStorage, setUnsaved 
         </div>
       )}
 
-      {storage?.azureBlobStorage?.authMethod === 'ACCOUNT_KEY' && (
+      {settings.authMethod === 'ACCOUNT_KEY' && (
         <>
           <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
             <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">
               {t('storages.fields.accountName')}
             </div>
             <Input
-              value={storage?.azureBlobStorage?.accountName || ''}
+              value={settings.accountName || ''}
               onChange={(e) => {
-                if (!storage?.azureBlobStorage) return;
-
-                setStorage({
-                  ...storage,
-                  azureBlobStorage: {
-                    ...storage.azureBlobStorage,
-                    accountName: e.target.value.trim(),
-                  },
-                });
-                setUnsaved();
+                onChange({ ...settings, accountName: toOptionalValue(e.target.value.trim()) });
               }}
               size="small"
               className="w-full max-w-[250px]"
@@ -116,18 +92,9 @@ export function EditAzureBlobStorageComponent({ storage, setStorage, setUnsaved 
               {t('storages.fields.accountKey')}
             </div>
             <Input.Password
-              value={storage?.azureBlobStorage?.accountKey || ''}
+              value={settings.accountKey || ''}
               onChange={(e) => {
-                if (!storage?.azureBlobStorage) return;
-
-                setStorage({
-                  ...storage,
-                  azureBlobStorage: {
-                    ...storage.azureBlobStorage,
-                    accountKey: e.target.value.trim(),
-                  },
-                });
-                setUnsaved();
+                onChange({ ...settings, accountKey: toOptionalValue(e.target.value.trim()) });
               }}
               size="small"
               className="w-full max-w-[250px]"
@@ -147,18 +114,9 @@ export function EditAzureBlobStorageComponent({ storage, setStorage, setUnsaved 
           {t('storages.fields.containerName')}
         </div>
         <Input
-          value={storage?.azureBlobStorage?.containerName || ''}
+          value={settings.containerName || ''}
           onChange={(e) => {
-            if (!storage?.azureBlobStorage) return;
-
-            setStorage({
-              ...storage,
-              azureBlobStorage: {
-                ...storage.azureBlobStorage,
-                containerName: e.target.value.trim(),
-              },
-            });
-            setUnsaved();
+            onChange({ ...settings, containerName: e.target.value.trim() });
           }}
           size="small"
           className="w-full max-w-[250px]"
@@ -184,25 +142,16 @@ export function EditAzureBlobStorageComponent({ storage, setStorage, setUnsaved 
 
       {showAdvanced && (
         <>
-          {storage?.azureBlobStorage?.authMethod === 'ACCOUNT_KEY' && (
+          {settings.authMethod === 'ACCOUNT_KEY' && (
             <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
               <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">
                 {t('storages.fields.endpoint')}
               </div>
               <div className="flex items-center">
                 <Input
-                  value={storage?.azureBlobStorage?.endpoint || ''}
+                  value={settings.endpoint || ''}
                   onChange={(e) => {
-                    if (!storage?.azureBlobStorage) return;
-
-                    setStorage({
-                      ...storage,
-                      azureBlobStorage: {
-                        ...storage.azureBlobStorage,
-                        endpoint: e.target.value.trim(),
-                      },
-                    });
-                    setUnsaved();
+                    onChange({ ...settings, endpoint: toOptionalValue(e.target.value.trim()) });
                   }}
                   size="small"
                   className="w-full max-w-[250px]"
@@ -227,22 +176,15 @@ export function EditAzureBlobStorageComponent({ storage, setStorage, setUnsaved 
             </div>
             <div className="flex items-center">
               <Input
-                value={storage?.azureBlobStorage?.prefix || ''}
+                value={settings.prefix || ''}
                 onChange={(e) => {
-                  if (!storage?.azureBlobStorage) return;
-
-                  setStorage({
-                    ...storage,
-                    azureBlobStorage: {
-                      ...storage.azureBlobStorage,
-                      prefix: e.target.value.trim(),
-                    },
-                  });
-                  setUnsaved();
+                  onChange({ ...settings, prefix: toOptionalValue(e.target.value.trim()) });
                 }}
                 size="small"
                 className="w-full max-w-[250px]"
                 placeholder={t('storages.edit.optionalPlaceholder', { example: 'my-prefix/' })}
+                // Every stored blob is named under the prefix, so it is fixed once the storage is saved
+                disabled={isSaved}
               />
 
               <Tooltip

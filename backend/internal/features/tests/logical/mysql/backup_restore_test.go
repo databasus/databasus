@@ -21,7 +21,7 @@ import (
 	"databasus-backend/internal/features/databases"
 	mysqltypes "databasus-backend/internal/features/databases/databases/mysql"
 	restores_core "databasus-backend/internal/features/restores/core"
-	"databasus-backend/internal/features/storages"
+	storages_bridge "databasus-backend/internal/features/storages"
 	logicaltesting "databasus-backend/internal/features/tests/logical/shared"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
@@ -119,7 +119,7 @@ func testMysqlBackupRestoreForVersion(t *testing.T, endpoint containers.Endpoint
 	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "MySQL Test Workspace", user)
 
-	storage := storages.CreateTestStorage(workspace.ID)
+	storage := storages_bridge.CreateTestStorage(workspace.ID)
 
 	database := createMysqlDatabaseViaAPI(
 		t, router, "MySQL Test Database", workspace.ID,
@@ -187,7 +187,7 @@ func testMysqlBackupRestoreForVersion(t *testing.T, endpoint containers.Endpoint
 		"Bearer "+user.Token,
 		http.StatusNoContent,
 	)
-	storages.RemoveTestStorage(t.Context(), storage.ID)
+	storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 }
 
@@ -214,7 +214,7 @@ func testMysqlBackupRestoreWithEncryptionForVersion(
 		"MySQL Encrypted Test Workspace",
 		user)
 
-	storage := storages.CreateTestStorage(workspace.ID)
+	storage := storages_bridge.CreateTestStorage(workspace.ID)
 
 	database := createMysqlDatabaseViaAPI(
 		t, router, "MySQL Encrypted Test Database", workspace.ID,
@@ -283,7 +283,7 @@ func testMysqlBackupRestoreWithEncryptionForVersion(
 		"Bearer "+user.Token,
 		http.StatusNoContent,
 	)
-	storages.RemoveTestStorage(t.Context(), storage.ID)
+	storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 }
 
@@ -310,7 +310,7 @@ func testMysqlBackupRestoreWithReadOnlyUserForVersion(
 		"MySQL ReadOnly Test Workspace",
 		user)
 
-	storage := storages.CreateTestStorage(workspace.ID)
+	storage := storages_bridge.CreateTestStorage(workspace.ID)
 
 	database := createMysqlDatabaseViaAPI(
 		t, router, "MySQL ReadOnly Test Database", workspace.ID,
@@ -387,7 +387,7 @@ func testMysqlBackupRestoreWithReadOnlyUserForVersion(
 		"Bearer "+user.Token,
 		http.StatusNoContent,
 	)
-	storages.RemoveTestStorage(t.Context(), storage.ID)
+	storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 }
 
@@ -432,7 +432,7 @@ func testMysqlBackupRestoreWithExcludeTablesForVersion(
 		"MySQL Exclude Tables Test Workspace",
 		user)
 
-	storage := storages.CreateTestStorage(workspace.ID)
+	storage := storages_bridge.CreateTestStorage(workspace.ID)
 
 	database := createMysqlDatabaseViaAPI(
 		t, router, "MySQL Exclude Tables Test Database", workspace.ID,
@@ -527,7 +527,7 @@ func testMysqlBackupRestoreWithExcludeTablesForVersion(
 		"Bearer "+user.Token,
 		http.StatusNoContent,
 	)
-	storages.RemoveTestStorage(t.Context(), storage.ID)
+	storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 }
 

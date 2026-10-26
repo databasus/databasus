@@ -17,7 +17,7 @@ import (
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	physical_models "databasus-backend/internal/features/backups/backups/core/physical/models"
 	physical_repositories "databasus-backend/internal/features/backups/backups/core/physical/repositories"
-	storage_files "databasus-backend/internal/features/storages/files"
+	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/util/encryption"
 	"databasus-backend/internal/util/logger"
 	"databasus-backend/internal/util/walmath"
@@ -40,7 +40,7 @@ func newTestUploader(
 func newTestUploaderWithStore(
 	t *testing.T,
 	fixture *PhysicalDBFixture,
-	fileStore *storage_files.Store,
+	fileStore FileStore,
 	onGap func(walmath.LSN, walmath.LSN),
 ) *WalUploader {
 	t.Helper()
@@ -257,14 +257,13 @@ func Test_WalUpload_DeleteCascadesIntoNullClaim_UploadCompletes_DeleteFileCleans
 
 	require.Nil(t, findWalSegment(t, fixture.DB.ID, 1, startLSN), "cascade-deleted claim must stay gone")
 
-	references := make([]storage_files.StoredFileReference, 0, 2)
+	references := make([]storages.StoredFileReference, 0, 2)
 	for _, objectName := range store.objectNamesFor(fixture.DB.ID, 1, name) {
 		references = append(references,
-			storage_files.StoredFileReference{StorageID: fixture.Storage.ID, FileName: objectName})
+			storages.StoredFileReference{StorageID: fixture.Storage.ID, FileName: objectName})
 	}
 
-	worker := storage_files.NewDeletionWorker(walStore, mockWalStoreDependencies(store))
-	require.NoError(t, worker.DrainForTest(t.Context(), references...))
+	require.NoError(t, walStore.DrainFileDeletions(t.Context(), references...))
 
 	require.False(t, store.hasObjectFor(fixture.DB.ID, 1, name),
 		"orphaned ciphertext must not survive a lost commit")

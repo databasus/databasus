@@ -5,12 +5,16 @@ import { useTranslation } from 'react-i18next';
 import {
   STORAGE_TYPE_LABEL_KEYS,
   type Storage,
+  type StorageSettings,
   StorageType,
   getStorageLogoFromType,
   storageApi,
 } from '../../../../entity/storages';
 import { translateApiError } from '../../../../shared/i18n';
 import { ToastHelper } from '../../../../shared/toast';
+import { createDefaultStorageSettings } from '../../lib/createDefaultStorageSettings';
+import { isStorageSettingsFilled } from '../../lib/isStorageSettingsFilled';
+import type { StorageDraft } from '../../lib/StorageDraft';
 import { EditAzureBlobStorageComponent } from './storages/EditAzureBlobStorageComponent';
 import { EditFTPStorageComponent } from './storages/EditFTPStorageComponent';
 import { EditGoogleDriveStorageComponent } from './storages/EditGoogleDriveStorageComponent';
@@ -29,8 +33,19 @@ interface Props {
   isShowName: boolean;
 
   editingStorage?: Storage;
+  // A form filled elsewhere, which the component starts from instead of editingStorage.
+  draft?: StorageDraft;
   onChanged: (storage: Storage) => void;
 }
+
+const toDraft = (editingStorage?: Storage): StorageDraft =>
+  editingStorage
+    ? {
+        storageId: editingStorage.id,
+        name: editingStorage.name,
+        settings: structuredClone(editingStorage.settings),
+      }
+    : { name: '', settings: createDefaultStorageSettings(StorageType.LOCAL) };
 
 export function EditStorageComponent({
   workspaceId,
@@ -38,24 +53,36 @@ export function EditStorageComponent({
   onClose,
   isShowName,
   editingStorage,
+  draft,
   onChanged,
 }: Props) {
   const { t } = useTranslation();
-  const [storage, setStorage] = useState<Storage | undefined>();
+  const [storageId, setStorageId] = useState<string | undefined>();
+  const [name, setName] = useState('');
+  const [settings, setSettings] = useState<StorageSettings | undefined>();
   const [isUnsaved, setIsUnsaved] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   const [isTestingConnection, setIsTestingConnection] = useState(false);
   const [isTestConnectionSuccess, setIsTestConnectionSuccess] = useState(false);
-  const [connectionError, setConnectionError] = useState<unknown>();
+  const [connectionError, setConnectionError] = useState<string | undefined>();
+
+  const changeSettings = (changedSettings: StorageSettings) => {
+    setSettings(changedSettings);
+    setIsUnsaved(true);
+    setIsTestConnectionSuccess(false);
+    setConnectionError(undefined);
+  };
 
   const save = async () => {
-    if (!storage) return;
+    if (!settings) return;
 
     setIsSaving(true);
 
     try {
-      const savedStorage = await storageApi.saveStorage(storage);
+      const savedStorage = storageId
+        ? await storageApi.updateStorage(storageId, name, settings)
+        : await storageApi.createStorage(workspaceId, name, settings);
       onChanged(savedStorage);
       setIsUnsaved(false);
     } catch (e) {
@@ -66,254 +93,46 @@ export function EditStorageComponent({
   };
 
   const testConnection = async () => {
-    if (!storage) return;
+    if (!settings) return;
 
     setIsTestingConnection(true);
     setConnectionError(undefined);
 
     try {
-      await storageApi.testStorageConnectionDirect(storage);
-      setIsTestConnectionSuccess(true);
-      ToastHelper.showToast({
-        title: t('storages.connectionTestSucceeded.title'),
-        description: t('storages.connectionTestSucceeded.description'),
-      });
+      const testResult = await storageApi.testStorageSettings(workspaceId, settings, storageId);
+
+      if (testResult.isConnected) {
+        setIsTestConnectionSuccess(true);
+        ToastHelper.showToast({
+          title: t('storages.connectionTestSucceeded.title'),
+          description: t('storages.connectionTestSucceeded.description'),
+        });
+      } else {
+        setConnectionError(testResult.error);
+        alert(t('storages.connectionTestFailed', { error: testResult.error }));
+      }
     } catch (e) {
-      setConnectionError(e);
       alert(translateApiError(e, t));
     }
 
     setIsTestingConnection(false);
   };
 
-  const setStorageType = (type: StorageType) => {
-    if (!storage) return;
-
-    storage.localStorage = undefined;
-    storage.s3Storage = undefined;
-    storage.googleDriveStorage = undefined;
-    storage.azureBlobStorage = undefined;
-    storage.ftpStorage = undefined;
-    storage.sftpStorage = undefined;
-    storage.rcloneStorage = undefined;
-
-    if (type === StorageType.LOCAL) {
-      storage.localStorage = {};
-    }
-
-    if (type === StorageType.S3) {
-      storage.s3Storage = {
-        s3Bucket: '',
-        s3Region: '',
-        s3AccessKey: '',
-        s3SecretKey: '',
-        s3Endpoint: '',
-      };
-    }
-
-    if (type === StorageType.GOOGLE_DRIVE) {
-      storage.googleDriveStorage = {
-        clientId: '',
-        clientSecret: '',
-      };
-    }
-
-    if (type === StorageType.NAS) {
-      storage.nasStorage = {
-        host: '',
-        port: 445,
-        share: '',
-        username: '',
-        password: '',
-        useSsl: false,
-        domain: '',
-        path: '',
-      };
-    }
-
-    if (type === StorageType.AZURE_BLOB) {
-      storage.azureBlobStorage = {
-        authMethod: 'ACCOUNT_KEY',
-        connectionString: '',
-        accountName: '',
-        accountKey: '',
-        containerName: '',
-        endpoint: '',
-        prefix: '',
-      };
-    }
-
-    if (type === StorageType.FTP) {
-      storage.ftpStorage = {
-        host: '',
-        port: 21,
-        username: '',
-        password: '',
-        useSsl: false,
-        path: '',
-      };
-    }
-
-    if (type === StorageType.SFTP) {
-      storage.sftpStorage = {
-        host: '',
-        port: 22,
-        username: '',
-        password: '',
-        path: '',
-      };
-    }
-
-    if (type === StorageType.RCLONE) {
-      storage.rcloneStorage = {
-        configContent: '',
-        remotePath: '',
-      };
-    }
-
-    setStorage(
-      JSON.parse(
-        JSON.stringify({
-          ...storage,
-          type: type,
-        }),
-      ),
-    );
-  };
-
   useEffect(() => {
+    const initialDraft = draft ?? toDraft(editingStorage);
+
+    setStorageId(initialDraft.storageId);
+    setName(initialDraft.name);
+    setSettings(initialDraft.settings);
     setIsUnsaved(true);
+    setIsTestConnectionSuccess(false);
+    setConnectionError(undefined);
+  }, [editingStorage, draft]);
 
-    setStorage(
-      editingStorage
-        ? JSON.parse(JSON.stringify(editingStorage))
-        : {
-            id: undefined as unknown as string,
-            workspaceId,
-            name: '',
-            type: StorageType.LOCAL,
-            localStorage: {},
-            s3Storage: undefined,
-          },
-    );
-  }, [editingStorage]);
+  if (!settings) return <div />;
 
-  const isAllDataFilled = () => {
-    if (!storage) {
-      return false;
-    }
-
-    if (!storage.name) {
-      return false;
-    }
-
-    if (storage.type === StorageType.LOCAL) {
-      return true; // No additional settings required for local storage
-    }
-
-    if (storage.type === StorageType.S3) {
-      if (storage.id) {
-        return storage.s3Storage?.s3Bucket;
-      }
-
-      return (
-        storage.s3Storage?.s3Bucket &&
-        storage.s3Storage?.s3AccessKey &&
-        storage.s3Storage?.s3SecretKey
-      );
-    }
-
-    if (storage.type === StorageType.GOOGLE_DRIVE) {
-      if (storage.id) {
-        return storage.googleDriveStorage?.clientId;
-      }
-
-      return (
-        storage.googleDriveStorage?.clientId &&
-        storage.googleDriveStorage?.clientSecret &&
-        storage.googleDriveStorage?.tokenJson
-      );
-    }
-
-    if (storage.type === StorageType.NAS) {
-      if (storage.id) {
-        return (
-          storage.nasStorage?.host &&
-          storage.nasStorage?.port &&
-          storage.nasStorage?.share &&
-          storage.nasStorage?.username
-        );
-      }
-
-      return (
-        storage.nasStorage?.host &&
-        storage.nasStorage?.port &&
-        storage.nasStorage?.share &&
-        storage.nasStorage?.username &&
-        storage.nasStorage?.password
-      );
-    }
-
-    if (storage.type === StorageType.AZURE_BLOB) {
-      if (storage.id) {
-        return storage.azureBlobStorage?.containerName;
-      }
-
-      const isContainerNameFilled = storage.azureBlobStorage?.containerName;
-
-      if (storage.azureBlobStorage?.authMethod === 'CONNECTION_STRING') {
-        return isContainerNameFilled && storage.azureBlobStorage?.connectionString;
-      }
-
-      if (storage.azureBlobStorage?.authMethod === 'ACCOUNT_KEY') {
-        return (
-          isContainerNameFilled &&
-          storage.azureBlobStorage?.accountName &&
-          storage.azureBlobStorage?.accountKey
-        );
-      }
-    }
-
-    if (storage.type === StorageType.FTP) {
-      if (storage.id) {
-        return storage.ftpStorage?.host && storage.ftpStorage?.port && storage.ftpStorage?.username;
-      }
-
-      return (
-        storage.ftpStorage?.host &&
-        storage.ftpStorage?.port &&
-        storage.ftpStorage?.username &&
-        storage.ftpStorage?.password
-      );
-    }
-
-    if (storage.type === StorageType.SFTP) {
-      if (storage.id) {
-        return (
-          storage.sftpStorage?.host && storage.sftpStorage?.port && storage.sftpStorage?.username
-        );
-      }
-
-      return (
-        storage.sftpStorage?.host &&
-        storage.sftpStorage?.port &&
-        storage.sftpStorage?.username &&
-        (storage.sftpStorage?.password || storage.sftpStorage?.privateKey)
-      );
-    }
-
-    if (storage.type === StorageType.RCLONE) {
-      if (storage.id) {
-        return true;
-      }
-
-      return storage.rcloneStorage?.configContent;
-    }
-
-    return false;
-  };
-
-  if (!storage) return <div />;
+  const isSaved = storageId !== undefined;
+  const isAllDataFilled = !!name && isStorageSettingsFilled(settings, isSaved);
 
   const storageTypeOptions = Object.values(StorageType).map((storageType) => ({
     label: t(STORAGE_TYPE_LABEL_KEYS[storageType]),
@@ -327,9 +146,9 @@ export function EditStorageComponent({
           <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">{t('common.fields.name')}</div>
 
           <Input
-            value={storage?.name || ''}
+            value={name}
             onChange={(e) => {
-              setStorage({ ...storage, name: e.target.value });
+              setName(e.target.value);
               setIsUnsaved(true);
             }}
             size="small"
@@ -343,111 +162,78 @@ export function EditStorageComponent({
         <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">{t('common.fields.type')}</div>
 
         <div className="flex items-center">
-          <Select
-            value={storage?.type}
-            options={storageTypeOptions}
-            onChange={(value) => {
-              setStorageType(value);
-              setIsUnsaved(true);
-            }}
-            size="small"
-            className="w-[250px] max-w-[250px]"
-          />
+          {isSaved ? (
+            t(STORAGE_TYPE_LABEL_KEYS[settings.type])
+          ) : (
+            <Select
+              value={settings.type}
+              options={storageTypeOptions}
+              onChange={(type: StorageType) => changeSettings(createDefaultStorageSettings(type))}
+              size="small"
+              className="w-[250px] max-w-[250px]"
+            />
+          )}
 
-          <img src={getStorageLogoFromType(storage?.type)} className="ml-2 h-4 w-4" />
+          <img src={getStorageLogoFromType(settings.type)} className="ml-2 h-4 w-4" />
         </div>
       </div>
 
       <div className="mt-5" />
 
       <div>
-        {storage?.type === StorageType.S3 && (
+        {settings.type === StorageType.S3 && (
           <EditS3StorageComponent
-            storage={storage}
-            setStorage={setStorage}
-            setUnsaved={() => {
-              setIsUnsaved(true);
-              setIsTestConnectionSuccess(false);
-              setConnectionError(undefined);
-            }}
+            settings={settings}
+            isSaved={isSaved}
+            onChange={changeSettings}
             connectionError={connectionError}
           />
         )}
 
-        {storage?.type === StorageType.GOOGLE_DRIVE && (
+        {settings.type === StorageType.GOOGLE_DRIVE && (
           <EditGoogleDriveStorageComponent
-            storage={storage}
-            setStorage={setStorage}
-            setUnsaved={() => {
-              setIsUnsaved(true);
-              setIsTestConnectionSuccess(false);
-            }}
+            settings={settings}
+            onChange={changeSettings}
+            oauthForm={{ workspaceId, storageId, name }}
           />
         )}
 
-        {storage?.type === StorageType.NAS && (
-          <EditNASStorageComponent
-            storage={storage}
-            setStorage={setStorage}
-            setUnsaved={() => {
-              setIsUnsaved(true);
-              setIsTestConnectionSuccess(false);
-            }}
-          />
+        {settings.type === StorageType.NAS && (
+          <EditNASStorageComponent settings={settings} onChange={changeSettings} />
         )}
 
-        {storage?.type === StorageType.AZURE_BLOB && (
+        {settings.type === StorageType.AZURE_BLOB && (
           <EditAzureBlobStorageComponent
-            storage={storage}
-            setStorage={setStorage}
-            setUnsaved={() => {
-              setIsUnsaved(true);
-              setIsTestConnectionSuccess(false);
-            }}
+            settings={settings}
+            isSaved={isSaved}
+            onChange={changeSettings}
           />
         )}
 
-        {storage?.type === StorageType.FTP && (
-          <EditFTPStorageComponent
-            storage={storage}
-            setStorage={setStorage}
-            setUnsaved={() => {
-              setIsUnsaved(true);
-              setIsTestConnectionSuccess(false);
-            }}
-          />
+        {settings.type === StorageType.FTP && (
+          <EditFTPStorageComponent settings={settings} onChange={changeSettings} />
         )}
 
-        {storage?.type === StorageType.SFTP && (
-          <EditSFTPStorageComponent
-            storage={storage}
-            setStorage={setStorage}
-            setUnsaved={() => {
-              setIsUnsaved(true);
-              setIsTestConnectionSuccess(false);
-            }}
-          />
+        {settings.type === StorageType.SFTP && (
+          <EditSFTPStorageComponent settings={settings} onChange={changeSettings} />
         )}
 
-        {storage?.type === StorageType.RCLONE && (
+        {settings.type === StorageType.RCLONE && (
           <EditRcloneStorageComponent
-            storage={storage}
-            setStorage={setStorage}
-            setUnsaved={() => {
-              setIsUnsaved(true);
-              setIsTestConnectionSuccess(false);
-            }}
+            settings={settings}
+            isSaved={isSaved}
+            onChange={changeSettings}
           />
         )}
 
-        {storage?.type === StorageType.LOCAL && <EditLocalStorageComponent />}
+        {settings.type === StorageType.LOCAL && <EditLocalStorageComponent />}
       </div>
 
       <div className="mt-3 flex">
         {isUnsaved && !isTestConnectionSuccess ? (
           <Button
             className="mr-1"
-            disabled={isTestingConnection || !isAllDataFilled()}
+            disabled={isTestingConnection || !isAllDataFilled}
             loading={isTestingConnection}
             type="primary"
             onClick={testConnection}
@@ -461,7 +247,7 @@ export function EditStorageComponent({
         {isUnsaved && isTestConnectionSuccess ? (
           <Button
             className="mr-1"
-            disabled={isSaving || !isAllDataFilled()}
+            disabled={isSaving || !isAllDataFilled}
             loading={isSaving}
             type="primary"
             onClick={save}

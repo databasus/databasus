@@ -8,13 +8,12 @@ import (
 	"github.com/google/uuid"
 
 	"databasus-backend/internal/features/intervals"
-	"databasus-backend/internal/features/storages"
 )
 
 func EnableBackupsForPhysicalTestDatabase(
 	ctx context.Context,
 	databaseID uuid.UUID,
-	storage *storages.Storage,
+	storageID uuid.UUID,
 ) *PhysicalBackupConfig {
 	timeOfDay := "16:00"
 
@@ -30,8 +29,7 @@ func EnableBackupsForPhysicalTestDatabase(
 			Policy: FullBackupsRetentionPolicyLastN,
 			Count:  7,
 		},
-		StorageID: &storage.ID,
-		Storage:   storage,
+		StorageID: &storageID,
 		SendNotificationsOn: []BackupNotificationType{
 			NotificationBackupFailed,
 			NotificationBackupSuccess,

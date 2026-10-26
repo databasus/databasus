@@ -1,19 +1,12 @@
 package app
 
 import (
-	"context"
-	"errors"
-	"io"
-	"log/slog"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	old_config "databasus-backend/internal/config"
-	"databasus-backend/internal/util/encryption"
 )
 
 func TestProbeStorage(t *testing.T) {
@@ -63,35 +56,4 @@ func TestProbeStorage(t *testing.T) {
 		require.NoError(t, err)
 		assert.Empty(t, leftTemporaryProbes)
 	})
-
-	t.Run("names the delete operation when the probe cannot be deleted", func(t *testing.T) {
-		t.Setenv("ENV_MODE", "production")
-		t.Setenv("DATABASE_DSN", "")
-		t.Setenv("LOG_FILE_IS_ENABLED", "false")
-
-		environment, err := LoadEnvironment(t.Context(), newIsolatedLoadSpec(t, false))
-		require.NoError(t, err)
-		old_config.Install(environment.Config)
-
-		err = probeStorage(t.Context(), environment, &undeletableStorage{})
-
-		var probeError *StorageProbeError
-		require.ErrorAs(t, err, &probeError)
-		assert.Contains(t, err.Error(), "delete a file through local storage")
-		assert.Contains(t, err.Error(), storagePermissionsDocumentationURL)
-	})
-}
-
-// undeletableStorage stands in for a volume that refuses deletes, which a test cannot cause on a
-// real directory without also refusing the save before it.
-type undeletableStorage struct{}
-
-func (*undeletableStorage) SaveFile(
-	context.Context, encryption.FieldEncryptor, *slog.Logger, string, io.Reader,
-) error {
-	return nil
-}
-
-func (*undeletableStorage) DeleteFile(context.Context, encryption.FieldEncryptor, *slog.Logger, string) error {
-	return errors.New("operation not permitted")
 }

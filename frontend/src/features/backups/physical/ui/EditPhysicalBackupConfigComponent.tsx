@@ -23,6 +23,7 @@ import { type Storage, getStorageLogoFromType, storageApi } from '../../../../en
 import { translateApiError } from '../../../../shared/i18n';
 import { ConfirmationComponent } from '../../../../shared/ui';
 import { EditStorageComponent } from '../../../storages/ui/edit/EditStorageComponent';
+import { toBackupConfigStorage } from '../../lib/toBackupConfigStorage';
 import { PhysicalIntervalEditor } from './PhysicalIntervalEditor';
 
 interface Props {
@@ -186,7 +187,7 @@ export const EditPhysicalBackupConfigComponent = ({
 
   const loadStorages = async () => {
     try {
-      const loadedStorages = await storageApi.getStorages(database.workspaceId);
+      const loadedStorages = await storageApi.listAllStorages(database.workspaceId);
       setStorages(loadedStorages);
     } catch (e) {
       alert(translateApiError(e, t));
@@ -350,7 +351,9 @@ export const EditPhysicalBackupConfigComponent = ({
               }
 
               const selectedStorage = storages.find((s) => s.id === storageId);
-              updateBackupConfig({ storage: selectedStorage });
+              updateBackupConfig({
+                storage: selectedStorage && toBackupConfigStorage(selectedStorage),
+              });
 
               if (backupConfig.storage?.id) {
                 setIsShowWarn(true);
@@ -686,7 +689,7 @@ export const EditPhysicalBackupConfigComponent = ({
             onChanged={async (createdStorage) => {
               const hadExistingStorage = !!backupConfig?.storage?.id;
               await loadStorages();
-              updateBackupConfig({ storage: createdStorage });
+              updateBackupConfig({ storage: toBackupConfigStorage(createdStorage) });
               setShowCreateStorage(false);
               if (hadExistingStorage) {
                 setIsShowWarn(true);

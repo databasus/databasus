@@ -27,10 +27,10 @@ import (
 	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
 	"databasus-backend/internal/features/intervals"
 	"databasus-backend/internal/features/sshtunnel"
-	"databasus-backend/internal/features/storages"
 	verification_agents "databasus-backend/internal/features/verification/agents"
 	verification_config "databasus-backend/internal/features/verification/config"
 	"databasus-backend/internal/modules/notifiers"
+	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/util/tools"
 )
 
@@ -53,13 +53,13 @@ func (f *fakeDatabaseLister) GetAllDatabases() ([]*databases.Database, error) {
 	return f.databases, f.err
 }
 
-type fakeStorageLister struct {
-	storages []*storages.Storage
-	err      error
+type fakeStorageTypeLister struct {
+	storageTypes []storages.Type
+	err          error
 }
 
-func (f *fakeStorageLister) GetAllStorages() ([]*storages.Storage, error) {
-	return f.storages, f.err
+func (f *fakeStorageTypeLister) GetStorageTypes(context.Context) ([]storages.Type, error) {
+	return f.storageTypes, f.err
 }
 
 type fakeNotifierLister struct {
@@ -170,7 +170,7 @@ func (f *fakeVerificationConfigLister) ListEnabled() (
 
 type serviceDependencies struct {
 	databaseLister           databaseLister
-	storageLister            storageLister
+	storageLister            storageTypeLister
 	notifierLister           notifierLister
 	backupChecker            backupChecker
 	physicalBackupReader     latestPhysicalBackupReader
@@ -189,7 +189,7 @@ func newServiceUnderTest(t *testing.T, dependencies serviceDependencies) *Teleme
 	}
 
 	if dependencies.storageLister == nil {
-		dependencies.storageLister = &fakeStorageLister{}
+		dependencies.storageLister = &fakeStorageTypeLister{}
 	}
 
 	if dependencies.notifierLister == nil {
@@ -398,9 +398,9 @@ func Test_BuildAndSend_ProducesExpectedRequest(t *testing.T) {
 	sender := &fakeSender{}
 	service := newServiceUnderTest(t, serviceDependencies{
 		databaseLister: &fakeDatabaseLister{databases: []*databases.Database{pgDB, mysqlDB, mariaDB, mongoDB}},
-		storageLister: &fakeStorageLister{storages: []*storages.Storage{
-			{Type: storages.StorageTypeS3},
-			{Type: storages.StorageTypeLocal},
+		storageLister: &fakeStorageTypeLister{storageTypes: []storages.Type{
+			storages.TypeS3,
+			storages.TypeLocal,
 		}},
 		notifierLister: &fakeNotifierLister{notifierTypes: []notifiers.Type{
 			notifiers.TypeEmail,
@@ -439,11 +439,11 @@ func Test_BuildAndSend_ProducesExpectedRequest(t *testing.T) {
 func Test_BuildAndSend_PreservesStorageAndNotifierDuplicates(t *testing.T) {
 	sender := &fakeSender{}
 	service := newServiceUnderTest(t, serviceDependencies{
-		storageLister: &fakeStorageLister{storages: []*storages.Storage{
-			{Type: storages.StorageTypeS3},
-			{Type: storages.StorageTypeS3},
-			{Type: storages.StorageTypeS3},
-			{Type: storages.StorageTypeLocal},
+		storageLister: &fakeStorageTypeLister{storageTypes: []storages.Type{
+			storages.TypeS3,
+			storages.TypeS3,
+			storages.TypeS3,
+			storages.TypeLocal,
 		}},
 		notifierLister: &fakeNotifierLister{notifierTypes: []notifiers.Type{
 			notifiers.TypeEmail,
@@ -476,7 +476,7 @@ func Test_BuildAndSend_WhenInstanceFileFails_DoesNotCallSender(t *testing.T) {
 		loader,
 		sender,
 		&fakeDatabaseLister{},
-		&fakeStorageLister{},
+		&fakeStorageTypeLister{},
 		&fakeNotifierLister{},
 		&fakeBackupChecker{},
 		&fakeLatestPhysicalBackupReader{},
@@ -1055,7 +1055,7 @@ func Test_BuildAndSend_WhenPayloadSerialized_ContainsDocumentedContractKeys(t *t
 	sender := &fakeSender{}
 	service := newServiceUnderTest(t, serviceDependencies{
 		databaseLister: &fakeDatabaseLister{databases: []*databases.Database{physicalDB}},
-		storageLister:  &fakeStorageLister{storages: []*storages.Storage{{Type: storages.StorageTypeLocal}}},
+		storageLister:  &fakeStorageTypeLister{storageTypes: []storages.Type{storages.TypeLocal}},
 		notifierLister: &fakeNotifierLister{
 			notifierTypes: []notifiers.Type{notifiers.TypeEmail},
 		},

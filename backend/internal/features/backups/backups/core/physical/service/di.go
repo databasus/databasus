@@ -4,7 +4,7 @@ import (
 	"sync"
 
 	physical_repositories "databasus-backend/internal/features/backups/backups/core/physical/repositories"
-	"databasus-backend/internal/features/storages"
+	storages_bridge "databasus-backend/internal/features/storages"
 	"databasus-backend/internal/util/encryption"
 	"databasus-backend/internal/util/logger"
 )
@@ -15,8 +15,7 @@ var getPhysicalBackupService = sync.OnceValue(func() *PhysicalBackupService {
 		physical_repositories.GetWalSegmentRepository(),
 		physical_repositories.GetWalStreamSampleRepository(),
 		physical_repositories.GetWalStreamerRepository(),
-		storages.GetStorageService(),
-		storages.GetStorageFileStore(),
+		storages_bridge.GetModule,
 		encryption.GetFieldEncryptor(),
 		logger.GetLogger(),
 	}

@@ -2,10 +2,8 @@ package usecases_physical_postgresql
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
-	"log/slog"
 	"os"
 	"path/filepath"
 	"slices"
@@ -17,9 +15,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 
-	storage_files "databasus-backend/internal/features/storages/files"
-	"databasus-backend/internal/util/encryption"
-	"databasus-backend/internal/util/logger"
 	"databasus-backend/internal/util/walmath"
 )
 
@@ -156,33 +151,8 @@ func (m *mockWalStorage) hasObjectFor(databaseID uuid.UUID, timelineID int, walF
 	return false
 }
 
-// The uploader writes through a real Store, so the mock stands in as the provider
-// the store resolves. That keeps the obligations in the database real while the
-// bytes, the induced failures and the blocking stay under the test's control.
-func (m *mockWalStorage) GetFileWriter(context.Context, uuid.UUID) (storage_files.FileWriter, error) {
-	return m, nil
-}
-
-func (m *mockWalStorage) GetFileReader(context.Context, uuid.UUID) (storage_files.FileReader, error) {
-	return m, nil
-}
-
-func (m *mockWalStorage) GetFileRemover(context.Context, uuid.UUID) (storage_files.FileRemover, error) {
-	return m, nil
-}
-
-func mockWalStoreDependencies(store *mockWalStorage) storage_files.Dependencies {
-	return storage_files.Dependencies{
-		Repository:     &storage_files.PendingDeletionRepository{},
-		Locator:        store,
-		FieldEncryptor: encryption.GetFieldEncryptor(),
-		Logger:         logger.GetLogger(),
-		Timings:        storage_files.TimingsForTest(),
-	}
-}
-
-func newMockWalStoreFor(store *mockWalStorage) *storage_files.Store {
-	return storage_files.NewStore(mockWalStoreDependencies(store))
+func newMockWalStoreFor(store *mockWalStorage) *FakeFileStore {
+	return NewFakeFileStore(store)
 }
 
 // objectNamesFor returns every object the mock holds for one segment, artifact and
@@ -208,9 +178,7 @@ func newMockWalStorage() *mockWalStorage {
 	return &mockWalStorage{saved: make(map[string][]byte)}
 }
 
-func (m *mockWalStorage) SaveFile(
-	_ context.Context, _ encryption.FieldEncryptor, _ *slog.Logger, fileName string, file io.Reader,
-) error {
+func (m *mockWalStorage) SaveFile(_ context.Context, fileName string, file io.Reader) error {
 	m.saveCount.Add(1)
 
 	body, _ := io.ReadAll(file)
@@ -254,12 +222,7 @@ func (m *mockWalStorage) stopFailingSaves() {
 	m.isFailingAllSaves.Store(false)
 }
 
-func (m *mockWalStorage) DeleteFile(
-	_ context.Context,
-	_ encryption.FieldEncryptor,
-	_ *slog.Logger,
-	fileName string,
-) error {
+func (m *mockWalStorage) DeleteFile(_ context.Context, fileName string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -268,19 +231,6 @@ func (m *mockWalStorage) DeleteFile(
 
 	return nil
 }
-
-func (m *mockWalStorage) GetFile(
-	_ context.Context,
-	_ encryption.FieldEncryptor,
-	_ *slog.Logger,
-	_ string,
-) (io.ReadCloser, error) {
-	return nil, errors.New("GetFile not implemented in mockWalStorage")
-}
-func (m *mockWalStorage) Validate(_ encryption.FieldEncryptor) error             { return nil }
-func (m *mockWalStorage) TestConnection(_ encryption.FieldEncryptor) error       { return nil }
-func (m *mockWalStorage) HideSensitiveData()                                     {}
-func (m *mockWalStorage) EncryptSensitiveData(_ encryption.FieldEncryptor) error { return nil }
 
 func (m *mockWalStorage) hasObject(name string) bool {
 	m.mu.Lock()

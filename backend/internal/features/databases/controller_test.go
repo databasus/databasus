@@ -30,7 +30,7 @@ import (
 	postgresql_shared "databasus-backend/internal/features/databases/databases/postgresql/shared"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	"databasus-backend/internal/features/sshtunnel"
-	"databasus-backend/internal/features/storages"
+	storages_bridge "databasus-backend/internal/features/storages"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
 	"databasus-backend/internal/modules/users"
@@ -595,8 +595,8 @@ func Test_GetDatabasesByWorkspace_WithPhysicalBackups_ReturnsNewestBackupTimeAcr
 
 	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
-	storage := storages.CreateTestStorage(workspace.ID)
-	defer storages.RemoveTestStorage(t.Context(), storage.ID)
+	storage := storages_bridge.CreateTestStorage(workspace.ID)
+	defer storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
 	defer notifiers_bridge.RemoveTestNotifier(notifier)
 

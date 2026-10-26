@@ -27,8 +27,7 @@ import (
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
 	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
 	"databasus-backend/internal/features/databases"
-	"databasus-backend/internal/features/storages"
-	local_storage "databasus-backend/internal/features/storages/models/local"
+	storages_bridge "databasus-backend/internal/features/storages"
 	system_healthcheck "databasus-backend/internal/features/system/healthcheck"
 	users_bridge "databasus-backend/internal/features/users"
 	users_testing "databasus-backend/internal/features/users/testing"
@@ -232,12 +231,11 @@ func Test_Seed_WhenMemberMayNotCreateWorkspaces_FailsNamingWorkspace(t *testing.
 	test_utils.MakePostRequestAndUnmarshal(t, router, "/api/v1/workspaces", "Bearer "+token,
 		apiclient.WorkspaceCreate{Name: "Existing"}, http.StatusCreated, &existingWorkspace)
 
-	test_utils.MakePostRequest(t, router, "/api/v1/storages", "Bearer "+token, storages.Storage{
-		WorkspaceID:  existingWorkspace.Id,
-		Type:         storages.StorageTypeLocal,
-		Name:         "Existing storage",
-		LocalStorage: &local_storage.LocalStorage{},
-	}, http.StatusOK)
+	test_utils.MakePostRequest(t, router, "/api/v1/storages", "Bearer "+token, map[string]any{
+		"workspaceId": existingWorkspace.Id,
+		"name":        "Existing storage",
+		"settings":    map[string]any{"type": "LOCAL"},
+	}, http.StatusCreated)
 
 	workspacesBefore := listWorkspaces(t, router, token)
 	storagesBefore := listStorages(t, router, token, existingWorkspace.Id)
@@ -342,13 +340,13 @@ func newSeedTestRouter() *gin.Engine {
 	errorHooks := apierror.NewHooks(apierror.Deps{Logger: logger.GetLogger()})
 	usersModule.RegisterRoutes(contractRoutes, errorHooks)
 	workspacesModule.RegisterRoutes(contractRoutes, errorHooks)
+	storages_bridge.GetModule().RegisterRoutes(contractRoutes, errorHooks)
 
 	system_healthcheck.GetHealthcheckController().RegisterRoutes(v1)
 
 	protected := v1.Group("")
 	protected.Use(users_testing.GetSessionMiddleware())
 
-	storages.GetStorageController().RegisterRoutes(protected)
 	databases.GetDatabaseController().RegisterRoutes(protected)
 	backups_config_logical.GetBackupConfigController().RegisterRoutes(protected)
 	backups_config_physical.GetBackupConfigController().RegisterRoutes(protected)
@@ -482,7 +480,7 @@ func findStorageID(t *testing.T, router *gin.Engine, token string, workspaceID u
 
 	for _, storage := range listStorages(t, router, token, workspaceID) {
 		if storage.Name == name {
-			return storage.ID
+			return storage.Id
 		}
 	}
 
@@ -501,14 +499,16 @@ func findDatabaseID(t *testing.T, router *gin.Engine, token string, workspaceID 
 	return uuid.Nil
 }
 
-func listStorages(t *testing.T, router *gin.Engine, token string, workspaceID uuid.UUID) []storages.Storage {
+// listStorages reads one page of 100, more than a seeded workspace holds.
+func listStorages(t *testing.T, router *gin.Engine, token string, workspaceID uuid.UUID) []apiclient.Storage {
 	t.Helper()
 
-	var listedStorages []storages.Storage
-	test_utils.MakeGetRequestAndUnmarshal(t, router, "/api/v1/storages?workspace_id="+workspaceID.String(),
-		"Bearer "+token, http.StatusOK, &listedStorages)
+	var storagePage apiclient.StoragePage
+	test_utils.MakeGetRequestAndUnmarshal(t, router,
+		"/api/v1/storages?limit=100&workspaceId="+workspaceID.String(),
+		"Bearer "+token, http.StatusOK, &storagePage)
 
-	return listedStorages
+	return storagePage.Items
 }
 
 func listDatabases(t *testing.T, router *gin.Engine, token string, workspaceID uuid.UUID) []databases.Database {
@@ -530,7 +530,7 @@ func listSeededItems(t *testing.T, router *gin.Engine, token string) seededItems
 		items.workspaceIDs = append(items.workspaceIDs, workspace.Id)
 
 		for _, storage := range listStorages(t, router, token, workspace.Id) {
-			items.storageIDs = append(items.storageIDs, storage.ID)
+			items.storageIDs = append(items.storageIDs, storage.Id)
 		}
 
 		for _, database := range listDatabases(t, router, token, workspace.Id) {
@@ -576,8 +576,8 @@ func removeAccountWithItems(t *testing.T, router *gin.Engine, email string) {
 		}
 
 		for _, storage := range listStorages(t, router, token, workspaceID) {
-			test_utils.MakeDeleteRequest(t, router, "/api/v1/storages/"+storage.ID.String(),
-				"Bearer "+token, http.StatusOK)
+			test_utils.MakeDeleteRequest(t, router, "/api/v1/storages/"+storage.Id.String(),
+				"Bearer "+token, http.StatusNoContent)
 		}
 
 		test_utils.MakeDeleteRequest(t, router, "/api/v1/workspaces/"+workspaceID.String(),

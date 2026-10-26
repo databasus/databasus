@@ -24,8 +24,6 @@ import (
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	physical_enums "databasus-backend/internal/features/backups/backups/core/physical/enums"
 	backup_encryption "databasus-backend/internal/features/backups/backups/encryption"
-	storage_files "databasus-backend/internal/features/storages/files"
-	"databasus-backend/internal/util/encryption"
 )
 
 // fakeStorageFileSaver records SaveFile payloads in memory and can be told to
@@ -47,13 +45,7 @@ func newFakeStorage() *fakeStorageFileSaver {
 	}
 }
 
-func (f *fakeStorageFileSaver) SaveFile(
-	ctx context.Context,
-	_ encryption.FieldEncryptor,
-	_ *slog.Logger,
-	fileName string,
-	file io.Reader,
-) error {
+func (f *fakeStorageFileSaver) SaveFile(ctx context.Context, fileName string, file io.Reader) error {
 	if f.saveErr != nil {
 		return f.saveErr
 	}
@@ -84,23 +76,6 @@ func (f *fakeStorageFileSaver) deadlineFor(fileName string) (time.Time, bool) {
 	return deadline, hasDeadline
 }
 
-func (f *fakeStorageFileSaver) GetFile(
-	_ context.Context,
-	_ encryption.FieldEncryptor,
-	_ *slog.Logger,
-	fileName string,
-) (io.ReadCloser, error) {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-
-	data, ok := f.saved[fileName]
-	if !ok {
-		return nil, fmt.Errorf("not found: %s", fileName)
-	}
-
-	return io.NopCloser(bytes.NewReader(data)), nil
-}
-
 func (f *fakeStorageFileSaver) has(fileName string) bool {
 	f.mu.Lock()
 	defer f.mu.Unlock()
@@ -110,35 +85,16 @@ func (f *fakeStorageFileSaver) has(fileName string) bool {
 	return ok
 }
 
-func (f *fakeStorageFileSaver) DeleteFile(context.Context, encryption.FieldEncryptor, *slog.Logger, string) error {
+func (f *fakeStorageFileSaver) DeleteFile(context.Context, string) error {
 	return nil
 }
-func (f *fakeStorageFileSaver) Validate(encryption.FieldEncryptor) error       { return nil }
-func (f *fakeStorageFileSaver) TestConnection(encryption.FieldEncryptor) error { return nil }
-
-// The physical stream writes through the file store, and the fake records what it
-// receives so the deadline and payload assertions have something to read.
-func (f *fakeStorageFileSaver) WriteFile(
-	ctx context.Context,
-	reference storage_files.StoredFileReference,
-	file io.Reader,
-) (storage_files.WriteReceipt, error) {
-	if err := f.SaveFile(ctx, nil, nil, reference.FileName, file); err != nil {
-		return storage_files.WriteReceipt{}, err
-	}
-
-	return storage_files.WriteReceipt{PendingDeletionID: uuid.New(), Reference: reference}, nil
-}
-
-func (f *fakeStorageFileSaver) HideSensitiveData()                                   {}
-func (f *fakeStorageFileSaver) EncryptSensitiveData(encryption.FieldEncryptor) error { return nil }
 
 func testRunStreamParams(
 	storage *fakeStorageFileSaver,
 	codec physical_enums.PhysicalBackupCompression,
 ) runStreamParams {
 	return runStreamParams{
-		FileStore:      storage,
+		FileStore:      NewFakeFileStore(storage),
 		StorageID:      uuid.New(),
 		FieldEncryptor: nil,
 		Logger:         slog.New(slog.NewTextHandler(io.Discard, nil)),
@@ -360,7 +316,7 @@ func Test_SaveManifestSidecar_WhenEncrypted_RoundTripsWithOwnSaltIV(t *testing.T
 	manifest := []byte(`{ "PostgreSQL-Backup-Manifest-Version": 2, "System-Identifier": 42 }`)
 
 	params := runStreamParams{
-		FileStore:  storage,
+		FileStore:  NewFakeFileStore(storage),
 		StorageID:  uuid.New(),
 		Logger:     slog.New(slog.NewTextHandler(io.Discard, nil)),
 		MasterKey:  masterKey,

@@ -23,8 +23,8 @@ import (
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
 	"databasus-backend/internal/features/databases"
 	mysqltypes "databasus-backend/internal/features/databases/databases/mysql"
-	storage_files "databasus-backend/internal/features/storages/files"
 	"databasus-backend/internal/lib/crypto"
+	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/util/encryption"
 	io_utils "databasus-backend/internal/util/io"
 	"databasus-backend/internal/util/namelist"
@@ -249,13 +249,11 @@ func (uc *CreateMysqlBackupUsecase) streamToStorage(
 		return nil, fmt.Errorf("start %s: %w", filepath.Base(mysqlBin), err)
 	}
 
-	fileWrite := storage_files.StartBackgroundWrite(
-		ctx,
-		fileStore,
-		storage_files.StoredFileReference{StorageID: backup.StorageID, FileName: backup.FileName},
-		storageReader,
-		cancel,
-	)
+	fileWrite := fileStore.StartBackgroundWrite(ctx, storages.BackgroundWriteSpec{
+		Reference: storages.StoredFileReference{StorageID: backup.StorageID, FileName: backup.FileName},
+		Source:    storageReader,
+		OnFailure: cancel,
+	})
 
 	copyResultCh := make(chan error, 1)
 	go func() {
@@ -314,7 +312,7 @@ func (uc *CreateMysqlBackupUsecase) streamToStorage(
 
 	return &backups_core_logical.BackupArtifacts{
 		Metadata: &backupMetadata,
-		Receipts: []storage_files.WriteReceipt{<-fileWrite.Receipts},
+		Receipts: []storages.WriteReceipt{<-fileWrite.Receipts},
 	}, nil
 }
 

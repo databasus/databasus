@@ -21,10 +21,10 @@ import (
 	"databasus-backend/internal/features/backups/backups/encryption"
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
 	"databasus-backend/internal/features/databases"
-	storage_files "databasus-backend/internal/features/storages/files"
 	task_cancellation "databasus-backend/internal/features/tasks/cancellation"
 	workspaces_bridge "databasus-backend/internal/features/workspaces"
 	"databasus-backend/internal/lib/crypto"
+	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/modules/workspaces"
 	util_encryption "databasus-backend/internal/util/encryption"
@@ -32,8 +32,9 @@ import (
 )
 
 type LogicalBackupService struct {
-	databaseService     *databases.DatabaseService
-	fileStore           *storage_files.Store
+	databaseService *databases.DatabaseService
+	// getStorages is read per call: each test application installs its own module.
+	getStorages         func() storages.Module
 	backupRepository    *backups_core_logical.BackupRepository
 	notificationSender  backups_core_logical.NotificationSender
 	backupConfigService *backups_config_logical.BackupConfigService
@@ -273,7 +274,7 @@ func (s *LogicalBackupService) GetBackupReader(
 		return nil, fmt.Errorf("failed to find backup: %w", err)
 	}
 
-	storageReader, err := s.fileStore.GetStorageReader(ctx, backup.StorageID)
+	storageReader, err := s.getStorages().GetStorageReader(ctx, backup.StorageID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get storage: %w", err)
 	}

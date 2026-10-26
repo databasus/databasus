@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log/slog"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -30,15 +29,13 @@ import (
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
 	"databasus-backend/internal/features/databases"
 	postgresql_logical "databasus-backend/internal/features/databases/databases/postgresql/logical"
-	"databasus-backend/internal/features/storages"
-	storage_files "databasus-backend/internal/features/storages/files"
-	local_storage "databasus-backend/internal/features/storages/models/local"
+	storages_bridge "databasus-backend/internal/features/storages"
 	task_cancellation "databasus-backend/internal/features/tasks/cancellation"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
+	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/modules/workspaces"
-	"databasus-backend/internal/util/encryption"
 	files_utils "databasus-backend/internal/util/files"
 	test_utils "databasus-backend/internal/util/testing"
 	"databasus-backend/internal/util/tools"
@@ -132,7 +129,7 @@ func Test_GetBackups_PermissionsEnforced(t *testing.T) {
 			// Cleanup
 			databases.RemoveTestDatabase(t.Context(), database)
 			time.Sleep(50 * time.Millisecond)
-			storages.RemoveTestStorage(t.Context(), storage.ID)
+			storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 			workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 		})
 	}
@@ -149,7 +146,7 @@ func Test_GetBackups_WithStatusFilter_ReturnsFilteredBackups(t *testing.T) {
 	defer func() {
 		databases.RemoveTestDatabase(t.Context(), database)
 		time.Sleep(50 * time.Millisecond)
-		storages.RemoveTestStorage(t.Context(), storage.ID)
+		storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	}()
 
@@ -221,7 +218,7 @@ func Test_GetBackups_WithBeforeDateFilter_ReturnsFilteredBackups(t *testing.T) {
 	defer func() {
 		databases.RemoveTestDatabase(t.Context(), database)
 		time.Sleep(50 * time.Millisecond)
-		storages.RemoveTestStorage(t.Context(), storage.ID)
+		storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	}()
 
@@ -267,7 +264,7 @@ func Test_GetBackups_WithCombinedFilters_ReturnsFilteredBackups(t *testing.T) {
 	defer func() {
 		databases.RemoveTestDatabase(t.Context(), database)
 		time.Sleep(50 * time.Millisecond)
-		storages.RemoveTestStorage(t.Context(), storage.ID)
+		storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	}()
 
@@ -541,7 +538,7 @@ func Test_DeleteBackup_PermissionsEnforced(t *testing.T) {
 			// Cleanup
 			databases.RemoveTestDatabase(t.Context(), database)
 			time.Sleep(50 * time.Millisecond)
-			storages.RemoveTestStorage(t.Context(), storage.ID)
+			storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 			workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 		})
 	}
@@ -580,7 +577,7 @@ func Test_DeleteBackup_AuditLogWritten(t *testing.T) {
 	// Cleanup
 	databases.RemoveTestDatabase(t.Context(), database)
 	time.Sleep(50 * time.Millisecond)
-	storages.RemoveTestStorage(t.Context(), storage.ID)
+	storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 }
 
@@ -674,7 +671,7 @@ func Test_GenerateDownloadToken_PermissionsEnforced(t *testing.T) {
 			// Cleanup
 			databases.RemoveTestDatabase(t.Context(), database)
 			time.Sleep(50 * time.Millisecond)
-			storages.RemoveTestStorage(t.Context(), storage.ID)
+			storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 			workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 		})
 	}
@@ -716,7 +713,7 @@ func Test_DownloadBackup_WithValidToken_Success(t *testing.T) {
 	// Cleanup
 	databases.RemoveTestDatabase(t.Context(), database)
 	time.Sleep(50 * time.Millisecond)
-	storages.RemoveTestStorage(t.Context(), storage.ID)
+	storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 }
 
@@ -741,7 +738,7 @@ func Test_DownloadBackup_WithoutToken_Unauthorized(t *testing.T) {
 	// Cleanup
 	databases.RemoveTestDatabase(t.Context(), database)
 	time.Sleep(50 * time.Millisecond)
-	storages.RemoveTestStorage(t.Context(), storage.ID)
+	storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 }
 
@@ -766,7 +763,7 @@ func Test_DownloadBackup_WithInvalidToken_Unauthorized(t *testing.T) {
 	// Cleanup
 	databases.RemoveTestDatabase(t.Context(), database)
 	time.Sleep(50 * time.Millisecond)
-	storages.RemoveTestStorage(t.Context(), storage.ID)
+	storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 }
 
@@ -812,7 +809,7 @@ func Test_DownloadBackup_WithExpiredToken_Unauthorized(t *testing.T) {
 	// Cleanup
 	databases.RemoveTestDatabase(t.Context(), database)
 	time.Sleep(50 * time.Millisecond)
-	storages.RemoveTestStorage(t.Context(), storage.ID)
+	storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 }
 
@@ -858,7 +855,7 @@ func Test_DownloadBackup_TokenUsedOnce_CannotReuseToken(t *testing.T) {
 	// Cleanup
 	databases.RemoveTestDatabase(t.Context(), database)
 	time.Sleep(50 * time.Millisecond)
-	storages.RemoveTestStorage(t.Context(), storage.ID)
+	storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 }
 
@@ -875,7 +872,7 @@ func Test_DownloadBackup_WithDifferentBackupToken_Unauthorized(t *testing.T) {
 	assert.NoError(t, err)
 	config1.IsBackupsEnabled = true
 	config1.StorageID = &storage.ID
-	config1.Storage = storage
+	config1.Storage = &backups_config_logical.BackupConfigStorage{ID: storage.ID}
 	_, err = configService.SaveBackupConfig(t.Context(), config1)
 	assert.NoError(t, err)
 
@@ -886,7 +883,7 @@ func Test_DownloadBackup_WithDifferentBackupToken_Unauthorized(t *testing.T) {
 	assert.NoError(t, err)
 	config2.IsBackupsEnabled = true
 	config2.StorageID = &storage.ID
-	config2.Storage = storage
+	config2.Storage = &backups_config_logical.BackupConfigStorage{ID: storage.ID}
 	_, err = configService.SaveBackupConfig(t.Context(), config2)
 	assert.NoError(t, err)
 
@@ -919,7 +916,7 @@ func Test_DownloadBackup_WithDifferentBackupToken_Unauthorized(t *testing.T) {
 	databases.RemoveTestDatabase(t.Context(), database1)
 	databases.RemoveTestDatabase(t.Context(), database2)
 	time.Sleep(50 * time.Millisecond)
-	storages.RemoveTestStorage(t.Context(), storage.ID)
+	storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 }
 
@@ -969,7 +966,7 @@ func Test_DownloadBackup_AuditLogWritten(t *testing.T) {
 	// Cleanup
 	databases.RemoveTestDatabase(t.Context(), database)
 	time.Sleep(50 * time.Millisecond)
-	storages.RemoveTestStorage(t.Context(), storage.ID)
+	storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 }
 
@@ -1015,7 +1012,7 @@ func Test_DownloadBackup_ProperFilenameForPostgreSQL(t *testing.T) {
 
 			config.IsBackupsEnabled = true
 			config.StorageID = &storage.ID
-			config.Storage = storage
+			config.Storage = &backups_config_logical.BackupConfigStorage{ID: storage.ID}
 			_, err = configService.SaveBackupConfig(t.Context(), config)
 			assert.NoError(t, err)
 
@@ -1075,7 +1072,7 @@ func Test_DownloadBackup_ProperFilenameForPostgreSQL(t *testing.T) {
 			// Cleanup
 			databases.RemoveTestDatabase(t.Context(), database)
 			time.Sleep(50 * time.Millisecond)
-			storages.RemoveTestStorage(t.Context(), storage.ID)
+			storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 			workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 		})
 	}
@@ -1115,7 +1112,7 @@ func Test_CancelBackup_InProgressBackup_SuccessfullyCancelled(t *testing.T) {
 
 	config.IsBackupsEnabled = true
 	config.StorageID = &storage.ID
-	config.Storage = storage
+	config.Storage = &backups_config_logical.BackupConfigStorage{ID: storage.ID}
 	_, err = configService.SaveBackupConfig(t.Context(), config)
 	assert.NoError(t, err)
 
@@ -1164,7 +1161,7 @@ func Test_CancelBackup_InProgressBackup_SuccessfullyCancelled(t *testing.T) {
 	// Cleanup
 	databases.RemoveTestDatabase(t.Context(), database)
 	time.Sleep(50 * time.Millisecond)
-	storages.RemoveTestStorage(t.Context(), storage.ID)
+	storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 }
 
@@ -1232,7 +1229,7 @@ func Test_ConcurrentDownloadPrevention(t *testing.T) {
 	// Cleanup
 	databases.RemoveTestDatabase(t.Context(), database)
 	time.Sleep(50 * time.Millisecond)
-	storages.RemoveTestStorage(t.Context(), storage.ID)
+	storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 }
 
@@ -1285,7 +1282,7 @@ func Test_GenerateDownloadToken_BlockedWhenDownloadInProgress(t *testing.T) {
 	// Cleanup
 	databases.RemoveTestDatabase(t.Context(), database)
 	time.Sleep(50 * time.Millisecond)
-	storages.RemoveTestStorage(t.Context(), storage.ID)
+	storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 }
 
@@ -1323,26 +1320,18 @@ func Test_MakeBackup_VerifyBackupAndMetadataFilesExistInStorage(t *testing.T) {
 	backup := backups[0]
 	assert.Equal(t, backups_core_logical.BackupStatusCompleted, backup.Status)
 
-	storageService := storages.GetStorageService()
-	backupStorage, err := storageService.GetStorageByID(t.Context(), backup.StorageID)
-	assert.NoError(t, err)
+	backupStorage := storages.Storage{ID: backup.StorageID}
 
-	encryptor := encryption.GetFieldEncryptor()
-
-	backupFile, err := backupStorage.GetFile(
+	backupFile, err := storages_bridge.OpenTestFile(
 		t.Context(),
-		encryptor,
-		slog.New(slog.NewTextHandler(io.Discard, nil)),
-		backup.FileName,
+		storages.StoredFileReference{StorageID: backupStorage.ID, FileName: backup.FileName},
 	)
 	require.NoError(t, err)
 	backupFile.Close()
 
-	metadataFile, err := backupStorage.GetFile(
+	metadataFile, err := storages_bridge.OpenTestFile(
 		t.Context(),
-		encryptor,
-		slog.New(slog.NewTextHandler(io.Discard, nil)),
-		backup.FileName+".metadata",
+		storages.StoredFileReference{StorageID: backupStorage.ID, FileName: backup.FileName + ".metadata"},
 	)
 	require.NoError(t, err)
 
@@ -1371,7 +1360,7 @@ func Test_MakeBackup_VerifyBackupAndMetadataFilesExistInStorage(t *testing.T) {
 
 	databases.RemoveTestDatabase(t.Context(), database)
 	time.Sleep(50 * time.Millisecond)
-	storages.RemoveTestStorage(t.Context(), storage.ID)
+	storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 }
 
@@ -1429,21 +1418,8 @@ func createTestDatabase(
 	return &database
 }
 
-func createTestStorage(workspaceID uuid.UUID) *storages.Storage {
-	storage := &storages.Storage{
-		WorkspaceID:  workspaceID,
-		Type:         storages.StorageTypeLocal,
-		Name:         "Test Storage " + uuid.New().String(),
-		LocalStorage: &local_storage.LocalStorage{},
-	}
-
-	repo := &storages.StorageRepository{}
-	storage, err := repo.Save(storage)
-	if err != nil {
-		panic(err)
-	}
-
-	return storage
+func createTestStorage(workspaceID uuid.UUID) storages.Storage {
+	return storages_bridge.CreateTestStorage(workspaceID)
 }
 
 func enableBackupForDatabase(ctx context.Context, databaseID uuid.UUID) {
@@ -1465,7 +1441,7 @@ func createTestDatabaseWithBackups(
 	workspace *workspaces_testing.TestWorkspace,
 	owner *users_testing.TestUser,
 	router *gin.Engine,
-) (*databases.Database, *backups_core_logical.LogicalBackup, *storages.Storage) {
+) (*databases.Database, *backups_core_logical.LogicalBackup, storages.Storage) {
 	database := createTestDatabase("Test Database", workspace.ID, owner.Token, router)
 	storage := createTestStorage(workspace.ID)
 
@@ -1477,7 +1453,7 @@ func createTestDatabaseWithBackups(
 
 	config.IsBackupsEnabled = true
 	config.StorageID = &storage.ID
-	config.Storage = storage
+	config.Storage = &backups_config_logical.BackupConfigStorage{ID: storage.ID}
 	_, err = configService.SaveBackupConfig(ctx, config)
 	if err != nil {
 		panic(err)
@@ -1493,16 +1469,12 @@ func createTestBackup(
 	database *databases.Database,
 	owner *users_testing.TestUser,
 ) *backups_core_logical.LogicalBackup {
-	user := users_testing.GetTestUser(ctx, owner.UserID)
-
-	loadedStorages, err := storages.GetStorageService().GetStorages(
-		ctx,
-		users.Actor{UserID: user.ID, Role: user.Role},
-		*database.WorkspaceID,
-	)
-	if err != nil || len(loadedStorages) == 0 {
-		panic("No storage found for workspace")
+	backupConfig, err := backups_config_logical.GetBackupConfigService().GetBackupConfigByDbId(database.ID)
+	if err != nil || backupConfig.StorageID == nil {
+		panic("No storage found for the database")
 	}
+
+	loadedStorages := []storages.Storage{{ID: *backupConfig.StorageID}}
 
 	backup := &backups_core_logical.LogicalBackup{
 		ID:               uuid.New(),
@@ -1522,12 +1494,9 @@ func createTestBackup(
 	// Create a dummy backup file for testing download functionality
 	dummyContent := []byte("dummy backup content for testing")
 	reader := strings.NewReader(string(dummyContent))
-	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	if err := loadedStorages[0].SaveFile(
+	if err := storages_bridge.WriteTestFile(
 		context.Background(),
-		encryption.GetFieldEncryptor(),
-		logger,
-		backup.ID.String(),
+		storages.StoredFileReference{StorageID: loadedStorages[0].ID, FileName: backup.ID.String()},
 		reader,
 	); err != nil {
 		panic(fmt.Sprintf("Failed to create test backup file: %v", err))
@@ -1578,14 +1547,14 @@ func Test_DeleteBackup_RemovesBackupAndMetadataFilesFromDisk(t *testing.T) {
 
 	backupConfig.IsBackupsEnabled = true
 	backupConfig.StorageID = &storage.ID
-	backupConfig.Storage = storage
+	backupConfig.Storage = &backups_config_logical.BackupConfigStorage{ID: storage.ID}
 	_, err = configService.SaveBackupConfig(t.Context(), backupConfig)
 	assert.NoError(t, err)
 
 	defer func() {
 		databases.RemoveTestDatabase(t.Context(), database)
 		time.Sleep(50 * time.Millisecond)
-		storages.RemoveTestStorage(t.Context(), storage.ID)
+		storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	}()
 
@@ -1636,9 +1605,9 @@ func Test_DeleteBackup_RemovesBackupAndMetadataFilesFromDisk(t *testing.T) {
 
 	// Deleting a backup commits the obligation to remove its files; the worker
 	// carries it out, so the test drives it before asserting the disk is clean.
-	require.NoError(t, storages.DrainStorageFileDeletions(t.Context(),
-		storage_files.StoredFileReference{StorageID: backup.StorageID, FileName: backup.FileName},
-		storage_files.StoredFileReference{StorageID: backup.StorageID, FileName: backup.FileName + ".metadata"},
+	require.NoError(t, storages_bridge.DrainStorageFileDeletions(t.Context(),
+		storages.StoredFileReference{StorageID: backup.StorageID, FileName: backup.FileName},
+		storages.StoredFileReference{StorageID: backup.StorageID, FileName: backup.FileName + ".metadata"},
 	))
 
 	_, err = os.Stat(backupFilePath)

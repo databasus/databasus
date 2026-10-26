@@ -20,8 +20,8 @@ import (
 	physical_models "databasus-backend/internal/features/backups/backups/core/physical/models"
 	physical_repositories "databasus-backend/internal/features/backups/backups/core/physical/repositories"
 	backup_encryption "databasus-backend/internal/features/backups/backups/encryption"
-	storage_files "databasus-backend/internal/features/storages/files"
 	"databasus-backend/internal/lib/database"
+	"databasus-backend/internal/modules/storages"
 	db "databasus-backend/internal/storage"
 	util_encryption "databasus-backend/internal/util/encryption"
 	"databasus-backend/internal/util/walmath"
@@ -40,7 +40,7 @@ const walSegmentUploadTimeout = 2 * time.Minute
 type WalUploadDeps struct {
 	DatabaseID          uuid.UUID
 	StorageID           uuid.UUID
-	FileStore           *storage_files.Store
+	FileStore           FileStore
 	Encryption          backups_core_enums.BackupEncryption
 	MasterKey           string
 	FieldEncryptor      util_encryption.FieldEncryptor
@@ -300,7 +300,7 @@ func (u *WalUploader) uploadAndCommit(
 		CompressedSizeMb: float64(compressedSizeBytes) / (1024 * 1024),
 		Salt:             salt,
 		IV:               iv,
-		Receipts:         []storage_files.WriteReceipt{receipt, sidecarReceipt},
+		Receipts:         []storages.WriteReceipt{receipt, sidecarReceipt},
 	})
 	if err != nil {
 		return fmt.Errorf("commit wal segment: %w", err)
@@ -421,7 +421,7 @@ func (u *WalUploader) uploadSidecar(
 	objectName string,
 	salt, iv string,
 	compressedSizeBytes int64,
-) (storage_files.WriteReceipt, error) {
+) (storages.WriteReceipt, error) {
 	sidecar := physical_dto.PhysicalWalSegmentMetadata{
 		WalSegmentID:        claim.ID,
 		DatabaseID:          claim.DatabaseID,
@@ -438,7 +438,7 @@ func (u *WalUploader) uploadSidecar(
 
 	body, err := json.Marshal(sidecar)
 	if err != nil {
-		return storage_files.WriteReceipt{}, fmt.Errorf("marshal wal segment sidecar: %w", err)
+		return storages.WriteReceipt{}, fmt.Errorf("marshal wal segment sidecar: %w", err)
 	}
 
 	sidecarName := objectName + metadataSuffix
@@ -452,14 +452,14 @@ func (u *WalUploader) releaseClaim(id uuid.UUID) {
 	}
 }
 
-func (u *WalUploader) reference(objectName string) storage_files.StoredFileReference {
-	return storage_files.StoredFileReference{StorageID: u.deps.StorageID, FileName: objectName}
+func (u *WalUploader) reference(objectName string) storages.StoredFileReference {
+	return storages.StoredFileReference{StorageID: u.deps.StorageID, FileName: objectName}
 }
 
 // No catalog row survives to carry these files, so the request gets a transaction
 // of its own.
 func (u *WalUploader) discardAttempt(ctx context.Context, objectName string) {
-	references := []storage_files.StoredFileReference{
+	references := []storages.StoredFileReference{
 		u.reference(objectName),
 		u.reference(objectName + metadataSuffix),
 	}
@@ -479,7 +479,7 @@ type commitSegmentSpec struct {
 	CompressedSizeMb float64
 	Salt             string
 	IV               string
-	Receipts         []storage_files.WriteReceipt
+	Receipts         []storages.WriteReceipt
 }
 
 // commitSegment publishes the segment and spends its receipts together, so the

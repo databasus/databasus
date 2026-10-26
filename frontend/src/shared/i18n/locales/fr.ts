@@ -2079,23 +2079,14 @@ export const fr: typeof en = {
         sftp: 'Type : SFTP',
         rclone: 'Type : Rclone',
       },
-      hasSaveError: "Erreur d'enregistrement",
     },
     config: {
       namePlaceholder: 'Saisissez un nom...',
       settingsTitle: 'Paramètres du stockage',
-      lastSaveError: {
-        title: "Erreur d'enregistrement",
-        errorLabel: 'Erreur :',
-        clearHint: 'Pour effacer cette erreur (au choix) :',
-        clearByTestingConnection:
-          '- testez la connexion avec le bouton ci-dessous (même si vous avez déjà modifié les paramètres) ;',
-        clearByNextSave: '- attendez que la prochaine sauvegarde soit enregistrée sans erreur ;',
-      },
       removeConfirmation:
-        'Voulez-vous vraiment supprimer ce stockage ? Cette action est irréversible. Les sauvegardes qui se trouvent dans ce stockage seront aussi supprimées.',
-      removeBlockedByDatabases:
-        "Ce stockage est utilisé par des bases de données. Retirez-le d'abord de ces bases de données.",
+        'Voulez-vous vraiment supprimer ce stockage ? Cette action est irréversible.',
+      removeBlockedByBackups:
+        "Une configuration de sauvegarde utilise ce stockage ou il contient encore des sauvegardes. Associez d'abord ces configurations à un autre stockage et supprimez ses sauvegardes.",
     },
     actions: {
       testConnection: 'Tester la connexion',
@@ -2104,6 +2095,7 @@ export const fr: typeof en = {
       title: 'Connexion réussie !',
       description: 'La connexion au stockage fonctionne',
     },
+    connectionTestFailed: 'Impossible de joindre le stockage : {{error}}',
     transfer: {
       title: 'Transférer le stockage vers un autre espace de travail',
       blockedByDatabases:

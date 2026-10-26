@@ -3,17 +3,17 @@ import { Checkbox, Input, InputNumber, Tooltip } from 'antd';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import type { Storage } from '../../../../../entity/storages';
+import type { FtpStorageSettings } from '../../../../../entity/storages';
+import { toOptionalValue } from '../../../../../shared/lib';
 
 interface Props {
-  storage: Storage;
-  setStorage: (storage: Storage) => void;
-  setUnsaved: () => void;
+  settings: FtpStorageSettings;
+  onChange: (settings: FtpStorageSettings) => void;
 }
 
-export function EditFTPStorageComponent({ storage, setStorage, setUnsaved }: Props) {
+export function EditFTPStorageComponent({ settings, onChange }: Props) {
   const { t } = useTranslation();
-  const hasAdvancedValues = !!storage?.ftpStorage?.skipTlsVerify;
+  const hasAdvancedValues = !!settings.isSkipTlsVerify;
   const [showAdvanced, setShowAdvanced] = useState(hasAdvancedValues);
 
   return (
@@ -21,18 +21,9 @@ export function EditFTPStorageComponent({ storage, setStorage, setUnsaved }: Pro
       <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
         <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">{t('common.fields.host')}</div>
         <Input
-          value={storage?.ftpStorage?.host || ''}
+          value={settings.host || ''}
           onChange={(e) => {
-            if (!storage?.ftpStorage) return;
-
-            setStorage({
-              ...storage,
-              ftpStorage: {
-                ...storage.ftpStorage,
-                host: e.target.value.trim(),
-              },
-            });
-            setUnsaved();
+            onChange({ ...settings, host: e.target.value.trim() });
           }}
           size="small"
           className="w-full max-w-[250px]"
@@ -44,18 +35,11 @@ export function EditFTPStorageComponent({ storage, setStorage, setUnsaved }: Pro
       <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
         <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">{t('common.fields.port')}</div>
         <InputNumber
-          value={storage?.ftpStorage?.port}
+          value={settings.port}
           onChange={(value) => {
-            if (!storage?.ftpStorage || !value) return;
+            if (!value) return;
 
-            setStorage({
-              ...storage,
-              ftpStorage: {
-                ...storage.ftpStorage,
-                port: value,
-              },
-            });
-            setUnsaved();
+            onChange({ ...settings, port: value });
           }}
           size="small"
           className="w-full max-w-[250px]"
@@ -68,18 +52,9 @@ export function EditFTPStorageComponent({ storage, setStorage, setUnsaved }: Pro
       <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
         <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">{t('common.fields.username')}</div>
         <Input
-          value={storage?.ftpStorage?.username || ''}
+          value={settings.username || ''}
           onChange={(e) => {
-            if (!storage?.ftpStorage) return;
-
-            setStorage({
-              ...storage,
-              ftpStorage: {
-                ...storage.ftpStorage,
-                username: e.target.value.trim(),
-              },
-            });
-            setUnsaved();
+            onChange({ ...settings, username: e.target.value.trim() });
           }}
           size="small"
           className="w-full max-w-[250px]"
@@ -90,18 +65,9 @@ export function EditFTPStorageComponent({ storage, setStorage, setUnsaved }: Pro
       <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
         <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">{t('common.fields.password')}</div>
         <Input.Password
-          value={storage?.ftpStorage?.password || ''}
+          value={settings.password || ''}
           onChange={(e) => {
-            if (!storage?.ftpStorage) return;
-
-            setStorage({
-              ...storage,
-              ftpStorage: {
-                ...storage.ftpStorage,
-                password: e.target.value,
-              },
-            });
-            setUnsaved();
+            onChange({ ...settings, password: toOptionalValue(e.target.value) });
           }}
           size="small"
           className="w-full max-w-[250px]"
@@ -117,23 +83,14 @@ export function EditFTPStorageComponent({ storage, setStorage, setUnsaved }: Pro
         <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">{t('storages.fields.path')}</div>
         <div className="flex items-center">
           <Input
-            value={storage?.ftpStorage?.path || ''}
+            value={settings.path || ''}
             onChange={(e) => {
-              if (!storage?.ftpStorage) return;
-
               let pathValue = e.target.value.trim();
               if (pathValue.startsWith('/')) {
                 pathValue = pathValue.substring(1);
               }
 
-              setStorage({
-                ...storage,
-                ftpStorage: {
-                  ...storage.ftpStorage,
-                  path: pathValue || undefined,
-                },
-              });
-              setUnsaved();
+              onChange({ ...settings, path: pathValue || undefined });
             }}
             size="small"
             className="w-full max-w-[250px]"
@@ -150,18 +107,9 @@ export function EditFTPStorageComponent({ storage, setStorage, setUnsaved }: Pro
         <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">{t('storages.fields.useSslTls')}</div>
         <div className="flex items-center">
           <Checkbox
-            checked={storage?.ftpStorage?.useSsl || false}
+            checked={settings.isSsl || false}
             onChange={(e) => {
-              if (!storage?.ftpStorage) return;
-
-              setStorage({
-                ...storage,
-                ftpStorage: {
-                  ...storage.ftpStorage,
-                  useSsl: e.target.checked,
-                },
-              });
-              setUnsaved();
+              onChange({ ...settings, isSsl: e.target.checked });
             }}
           >
             {t('storages.edit.ftp.enableFtps')}
@@ -190,25 +138,16 @@ export function EditFTPStorageComponent({ storage, setStorage, setUnsaved }: Pro
 
       {showAdvanced && (
         <>
-          {storage?.ftpStorage?.useSsl && (
+          {settings.isSsl && (
             <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
               <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">
                 {t('storages.fields.skipTlsVerify')}
               </div>
               <div className="flex items-center">
                 <Checkbox
-                  checked={storage?.ftpStorage?.skipTlsVerify || false}
+                  checked={settings.isSkipTlsVerify || false}
                   onChange={(e) => {
-                    if (!storage?.ftpStorage) return;
-
-                    setStorage({
-                      ...storage,
-                      ftpStorage: {
-                        ...storage.ftpStorage,
-                        skipTlsVerify: e.target.checked,
-                      },
-                    });
-                    setUnsaved();
+                    onChange({ ...settings, isSkipTlsVerify: e.target.checked });
                   }}
                 >
                   {t('storages.edit.ftp.skipCertificateVerification')}

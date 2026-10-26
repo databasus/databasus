@@ -18,7 +18,7 @@ import (
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	restores_core "databasus-backend/internal/features/restores/core"
-	"databasus-backend/internal/features/storages"
+	storages_bridge "databasus-backend/internal/features/storages"
 	logicaltesting "databasus-backend/internal/features/tests/logical/shared"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
@@ -49,7 +49,7 @@ func backupAndRestoreWithScope(
 	router := logicaltesting.CreateTestRouter()
 	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Backup Scope Workspace", user)
-	storage := storages.CreateTestStorage(workspace.ID)
+	storage := storages_bridge.CreateTestStorage(workspace.ID)
 
 	database := createDatabaseViaAPI(
 		t, router, "Backup Scope Database", workspace.ID,
@@ -63,7 +63,7 @@ func backupAndRestoreWithScope(
 			t, router, "/api/v1/databases/"+database.ID.String(),
 			"Bearer "+user.Token, http.StatusNoContent,
 		)
-		storages.RemoveTestStorage(context.Background(), storage.ID)
+		storages_bridge.RemoveTestStorage(context.Background(), storage.ID)
 		workspaces_testing.RemoveTestWorkspace(context.Background(), workspace)
 	})
 

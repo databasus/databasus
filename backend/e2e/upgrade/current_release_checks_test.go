@@ -52,12 +52,6 @@ type currentMember struct {
 	Role  string `json:"role"`
 }
 
-type currentStorage struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
-	Type string `json:"type"`
-}
-
 type currentDatabase struct {
 	ID                string                       `json:"id"`
 	Name              string                       `json:"name"`
@@ -269,18 +263,12 @@ func readWorkspaceItems(ctx context.Context, api *apiClient, workspaceID string)
 		})
 	}
 
-	var storages []currentStorage
-
-	err = api.get(ctx, "/storages?workspace_id="+workspaceID, &storages)
+	storageItems, err := listStorageItems(ctx, api, workspaceID)
 	if err != nil {
-		return nil, fmt.Errorf("list storages: %w", err)
+		return nil, err
 	}
 
-	for _, storage := range storages {
-		listedItems = append(listedItems, upgradecheck.Item{
-			Kind: "storage", Name: storage.Name, Values: map[string]string{"id": storage.ID, "type": storage.Type},
-		})
-	}
+	listedItems = append(listedItems, storageItems...)
 
 	notifierItems, err := listNotifierItems(ctx, api, workspaceID)
 	if err != nil {

@@ -15,7 +15,7 @@ import (
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	physical_enums "databasus-backend/internal/features/backups/backups/core/physical/enums"
 	backup_encryption "databasus-backend/internal/features/backups/backups/encryption"
-	storage_files "databasus-backend/internal/features/storages/files"
+	"databasus-backend/internal/modules/storages"
 	util_encryption "databasus-backend/internal/util/encryption"
 )
 
@@ -35,7 +35,7 @@ const (
 // runStreamParams carries everything runStream needs that does not come from the
 // *exec.Cmd itself. Grouped into a struct so FULL and INCR pass the same shape.
 type runStreamParams struct {
-	FileStore      storage_files.FileStore
+	FileStore      FileStore
 	StorageID      uuid.UUID
 	FieldEncryptor util_encryption.FieldEncryptor
 	Logger         *slog.Logger
@@ -143,13 +143,11 @@ func runStream(
 		defer stopProgress()
 	}
 
-	fileWrite := storage_files.StartBackgroundWrite(
-		streamCtx,
-		p.FileStore,
-		storage_files.StoredFileReference{StorageID: p.StorageID, FileName: p.FileName},
-		storageReader,
-		cancelStream,
-	)
+	fileWrite := p.FileStore.StartBackgroundWrite(streamCtx, storages.BackgroundWriteSpec{
+		Reference: storages.StoredFileReference{StorageID: p.StorageID, FileName: p.FileName},
+		Source:    storageReader,
+		OnFailure: cancelStream,
+	})
 
 	manifestReader, manifestWriter := io.Pipe()
 	manifestResultCh := make(chan manifestWalkResult, 1)
@@ -296,7 +294,7 @@ type successOutcomeSpec struct {
 	EncryptionSalt   string
 	EncryptionIV     string
 	Stderr           []byte
-	BaseReceipt      storage_files.WriteReceipt
+	BaseReceipt      storages.WriteReceipt
 }
 
 func buildSuccessOutcome(ctx context.Context, spec successOutcomeSpec) (streamOutcome, error) {
@@ -355,7 +353,7 @@ func buildSuccessOutcome(ctx context.Context, spec successOutcomeSpec) (streamOu
 		ManifestFileName:       manifestFileName,
 		ManifestEncryptionSalt: manifest.SaltBase64,
 		ManifestEncryptionIV:   manifest.NonceBase64,
-		Receipts:               []storage_files.WriteReceipt{spec.BaseReceipt, manifest.Receipt},
+		Receipts:               []storages.WriteReceipt{spec.BaseReceipt, manifest.Receipt},
 		Stderr:                 stderrBytes,
 	}, nil
 }
@@ -421,7 +419,7 @@ func saveManifestSidecar(
 
 	receipt, err := p.FileStore.WriteFile(
 		saveCtx,
-		storage_files.StoredFileReference{StorageID: p.StorageID, FileName: manifestFileName},
+		storages.StoredFileReference{StorageID: p.StorageID, FileName: manifestFileName},
 		payload,
 	)
 	if err != nil {
@@ -434,7 +432,7 @@ func saveManifestSidecar(
 // manifestSidecar is what the manifest upload produced: the receipt that keeps the
 // file and the encryption material its catalog row records.
 type manifestSidecar struct {
-	Receipt     storage_files.WriteReceipt
+	Receipt     storages.WriteReceipt
 	SaltBase64  string
 	NonceBase64 string
 }

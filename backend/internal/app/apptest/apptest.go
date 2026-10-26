@@ -144,6 +144,11 @@ func New(tb testing.TB, options ...Option) *App {
 		environment.NotificationDeliveryTimeout = applied.notificationDeliveryTimeout
 	}
 
+	environment.StorageFileTimings = getTestFileTimings()
+	if applied.fileTimings != nil {
+		environment.StorageFileTimings = *applied.fileTimings
+	}
+
 	mailRecorder := newMailRecorder(!applied.isMailServerMissing)
 	environment.Mailer = mailRecorder
 

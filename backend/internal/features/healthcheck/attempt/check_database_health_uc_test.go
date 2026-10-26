@@ -13,7 +13,7 @@ import (
 	"databasus-backend/internal/features/databases"
 	healthcheck_config "databasus-backend/internal/features/healthcheck/config"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
-	"databasus-backend/internal/features/storages"
+	storages_bridge "databasus-backend/internal/features/storages"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
 	"databasus-backend/internal/modules/notifiers"
@@ -70,17 +70,17 @@ func Test_CheckDatabaseHealthUseCase(t *testing.T) {
 		t.Fatalf("Failed to create workspace: %v", err)
 	}
 
-	storage := storages.CreateTestStorage(workspace.ID)
+	storage := storages_bridge.CreateTestStorage(workspace.ID)
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
 
 	defer func() {
-		storages.RemoveTestStorage(t.Context(), storage.ID)
+		storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 		notifiers_bridge.RemoveTestNotifier(notifier)
 		workspaces_testing.RemoveTestWorkspaceDirect(workspace.ID)
 	}()
 
 	t.Run("Test_DbAttemptFailed_DbMarkedAsUnavailable", func(t *testing.T) {
-		database := databases.CreateTestDatabase(workspace.ID, storage, notifier)
+		database := databases.CreateTestDatabase(workspace.ID, notifier)
 		defer databases.RemoveTestDatabase(t.Context(), database)
 
 		// Setup mock notifier sender
@@ -143,7 +143,7 @@ func Test_CheckDatabaseHealthUseCase(t *testing.T) {
 	t.Run(
 		"Test_DbShouldBeConsideredAsDownOnThirdFailedAttempt_DbNotMarkerdAsDownAfterFirstAttempt",
 		func(t *testing.T) {
-			database := databases.CreateTestDatabase(workspace.ID, storage, notifier)
+			database := databases.CreateTestDatabase(workspace.ID, notifier)
 			defer databases.RemoveTestDatabase(t.Context(), database)
 
 			// Setup mock notifier sender
@@ -204,7 +204,7 @@ func Test_CheckDatabaseHealthUseCase(t *testing.T) {
 	t.Run(
 		"Test_DbShouldBeConsideredAsDownOnThirdFailedAttempt_DbMarkerdAsDownAfterThirdFailedAttempt",
 		func(t *testing.T) {
-			database := databases.CreateTestDatabase(workspace.ID, storage, notifier)
+			database := databases.CreateTestDatabase(workspace.ID, notifier)
 			defer databases.RemoveTestDatabase(t.Context(), database)
 
 			// Make sure DB is available
@@ -281,7 +281,7 @@ func Test_CheckDatabaseHealthUseCase(t *testing.T) {
 	)
 
 	t.Run("Test_UnavailableDbAttemptSucceed_DbMarkedAsAvailable", func(t *testing.T) {
-		database := databases.CreateTestDatabase(workspace.ID, storage, notifier)
+		database := databases.CreateTestDatabase(workspace.ID, notifier)
 		defer databases.RemoveTestDatabase(t.Context(), database)
 
 		// Make sure DB is unavailable
@@ -350,7 +350,7 @@ func Test_CheckDatabaseHealthUseCase(t *testing.T) {
 	t.Run(
 		"Test_DbHealthcheckExecutedFast_HealthcheckNotExecutedFasterThanInterval",
 		func(t *testing.T) {
-			database := databases.CreateTestDatabase(workspace.ID, storage, notifier)
+			database := databases.CreateTestDatabase(workspace.ID, notifier)
 			defer databases.RemoveTestDatabase(t.Context(), database)
 
 			// Setup mock notifier sender

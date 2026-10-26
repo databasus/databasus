@@ -1,67 +1,102 @@
-import { getApplicationServer } from '../../../constants';
-import { apiHelper } from '../../../shared/api/apiHelper';
-import RequestOptions from '../../../shared/api/RequestOptions';
+import { getApiClient, requireData, requireSuccess } from '../../../shared/api';
 import type { Storage } from '../models/Storage';
+import type { StorageSettings } from '../models/StorageSettings';
+import type { StorageTestResult } from '../models/StorageTestResult';
+
+// The largest page the contract serves, so a workspace's storages arrive in as few requests as
+// possible.
+const STORAGE_PAGE_LIMIT = 100;
 
 export const storageApi = {
-  async saveStorage(storage: Storage) {
-    const requestOptions: RequestOptions = new RequestOptions();
-    requestOptions.setBody(JSON.stringify(storage));
-    return apiHelper.fetchPostJson<Storage>(
-      `${getApplicationServer()}/api/v1/storages`,
-      requestOptions,
+  // The storage screen and the backup config forms need every storage of the workspace, so this
+  // follows the cursor to the last page.
+  async listAllStorages(workspaceId: string): Promise<Storage[]> {
+    const storages: Storage[] = [];
+    let after: string | undefined;
+
+    do {
+      const page = requireData(
+        await getApiClient().GET('/storages', {
+          params: { query: { workspaceId, limit: STORAGE_PAGE_LIMIT, after } },
+        }),
+      );
+
+      storages.push(...page.items);
+      after = page.nextCursor;
+    } while (after !== undefined);
+
+    return storages;
+  },
+
+  async getStorage(storageId: string): Promise<Storage> {
+    return requireData(
+      await getApiClient().GET('/storages/{storageId}', {
+        params: { path: { storageId } },
+      }),
     );
   },
 
-  async getStorage(id: string) {
-    const requestOptions: RequestOptions = new RequestOptions();
-    return apiHelper.fetchGetJson<Storage>(
-      `${getApplicationServer()}/api/v1/storages/${id}`,
-      requestOptions,
-      true,
+  async createStorage(
+    workspaceId: string,
+    name: string,
+    settings: StorageSettings,
+  ): Promise<Storage> {
+    return requireData(
+      await getApiClient().POST('/storages', {
+        body: { workspaceId, name, settings },
+      }),
     );
   },
 
-  async getStorages(workspaceId: string) {
-    const requestOptions: RequestOptions = new RequestOptions();
-    return apiHelper.fetchGetJson<Storage[]>(
-      `${getApplicationServer()}/api/v1/storages?workspace_id=${workspaceId}`,
-      requestOptions,
-      true,
+  // A secret the settings leave out keeps its stored value.
+  async updateStorage(
+    storageId: string,
+    name: string,
+    settings: StorageSettings,
+  ): Promise<Storage> {
+    return requireData(
+      await getApiClient().PUT('/storages/{storageId}', {
+        params: { path: { storageId } },
+        body: { name, settings },
+      }),
     );
   },
 
-  async deleteStorage(id: string) {
-    const requestOptions: RequestOptions = new RequestOptions();
-    return apiHelper.fetchDeleteJson(
-      `${getApplicationServer()}/api/v1/storages/${id}`,
-      requestOptions,
+  async deleteStorage(storageId: string): Promise<void> {
+    requireSuccess(
+      await getApiClient().DELETE('/storages/{storageId}', {
+        params: { path: { storageId } },
+      }),
     );
   },
 
-  async testStorageConnection(id: string) {
-    const requestOptions: RequestOptions = new RequestOptions();
-    return apiHelper.fetchPostJson(
-      `${getApplicationServer()}/api/v1/storages/${id}/test`,
-      requestOptions,
+  async testStorage(storageId: string): Promise<StorageTestResult> {
+    return requireData(
+      await getApiClient().POST('/storages/{storageId}/test', {
+        params: { path: { storageId } },
+      }),
     );
   },
 
-  async testStorageConnectionDirect(storage: Storage) {
-    const requestOptions: RequestOptions = new RequestOptions();
-    requestOptions.setBody(JSON.stringify(storage));
-    return apiHelper.fetchPostJson(
-      `${getApplicationServer()}/api/v1/storages/direct-test`,
-      requestOptions,
+  // A secret the settings leave out is taken from the saved storage the test names.
+  async testStorageSettings(
+    workspaceId: string,
+    settings: StorageSettings,
+    storageId?: string,
+  ): Promise<StorageTestResult> {
+    return requireData(
+      await getApiClient().POST('/storage-tests', {
+        body: { workspaceId, storageId, settings },
+      }),
     );
   },
 
-  async transferStorage(storageId: string, targetWorkspaceId: string) {
-    const requestOptions: RequestOptions = new RequestOptions();
-    requestOptions.setBody(JSON.stringify({ targetWorkspaceId }));
-    return apiHelper.fetchPostJson(
-      `${getApplicationServer()}/api/v1/storages/${storageId}/transfer`,
-      requestOptions,
+  async transferStorage(storageId: string, targetWorkspaceId: string): Promise<void> {
+    requireSuccess(
+      await getApiClient().POST('/storages/{storageId}/transfer', {
+        params: { path: { storageId } },
+        body: { targetWorkspaceId },
+      }),
     );
   },
 };

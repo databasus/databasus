@@ -17,14 +17,12 @@ import (
 	physical_testing "databasus-backend/internal/features/backups/backups/core/physical/testing"
 	"databasus-backend/internal/features/databases"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
-	"databasus-backend/internal/features/storages"
-	storage_files "databasus-backend/internal/features/storages/files"
+	storages_bridge "databasus-backend/internal/features/storages"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
+	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/storage"
-	"databasus-backend/internal/util/encryption"
-	"databasus-backend/internal/util/logger"
 	"databasus-backend/internal/util/walmath"
 )
 
@@ -36,7 +34,7 @@ const (
 )
 
 type serviceTestPrereqs struct {
-	storage  *storages.Storage
+	storage  storages.Storage
 	database *databases.Database
 }
 
@@ -45,7 +43,7 @@ func createServiceTestPrereqs(t *testing.T) *serviceTestPrereqs {
 
 	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Phys Service "+uuid.NewString(), user)
-	storage := storages.CreateTestStorage(workspace.ID)
+	storage := storages_bridge.CreateTestStorage(workspace.ID)
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
 	database := databases.CreateTestPhysicalPostgresDatabase(workspace.ID, notifier, "17")
 
@@ -53,29 +51,30 @@ func createServiceTestPrereqs(t *testing.T) *serviceTestPrereqs {
 		physical_testing.DeleteAllPhysicalCatalogForDatabase(t, database.ID)
 		databases.RemoveTestDatabase(t.Context(), database)
 		notifiers_bridge.RemoveTestNotifier(notifier)
-		storages.RemoveTestStorage(t.Context(), storage.ID)
+		storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 	})
 
 	return &serviceTestPrereqs{storage: storage, database: database}
 }
 
-func saveObject(t *testing.T, st *storages.Storage, fileName string) {
+func saveObject(t *testing.T, st storages.Storage, fileName string) {
 	t.Helper()
 
-	err := st.SaveFile(
+	err := storages_bridge.WriteTestFile(
 		t.Context(),
-		encryption.GetFieldEncryptor(),
-		logger.GetLogger(),
-		fileName,
+		storages.StoredFileReference{StorageID: st.ID, FileName: fileName},
 		strings.NewReader("x"),
 	)
 	require.NoError(t, err)
 }
 
-func objectExists(t *testing.T, st *storages.Storage, fileName string) bool {
+func objectExists(t *testing.T, st storages.Storage, fileName string) bool {
 	t.Helper()
 
-	reader, err := st.GetFile(t.Context(), encryption.GetFieldEncryptor(), logger.GetLogger(), fileName)
+	reader, err := storages_bridge.OpenTestFile(
+		t.Context(),
+		storages.StoredFileReference{StorageID: st.ID, FileName: fileName},
+	)
 	if err != nil {
 		return false
 	}
@@ -85,10 +84,13 @@ func objectExists(t *testing.T, st *storages.Storage, fileName string) bool {
 	return true
 }
 
-func requireObjectAbsent(t *testing.T, backupStorage *storages.Storage, fileName string) {
+func requireObjectAbsent(t *testing.T, backupStorage storages.Storage, fileName string) {
 	t.Helper()
 
-	reader, err := backupStorage.GetFile(t.Context(), encryption.GetFieldEncryptor(), logger.GetLogger(), fileName)
+	reader, err := storages_bridge.OpenTestFile(
+		t.Context(),
+		storages.StoredFileReference{StorageID: backupStorage.ID, FileName: fileName},
+	)
 	if err == nil {
 		require.NoError(t, reader.Close())
 		require.Failf(t, "storage object still exists", "file_name=%s", fileName)
@@ -201,13 +203,13 @@ func Test_DeleteFull_WithDependents_CascadesEntireChainAndObjects(t *testing.T) 
 		names = append(names, *walSegment.FileName, *walSegment.FileName+".metadata")
 	}
 
-	references := make([]storage_files.StoredFileReference, 0, len(names))
+	references := make([]storages.StoredFileReference, 0, len(names))
 	for _, name := range names {
 		references = append(references,
-			storage_files.StoredFileReference{StorageID: prereqs.storage.ID, FileName: name})
+			storages.StoredFileReference{StorageID: prereqs.storage.ID, FileName: name})
 	}
 
-	require.NoError(t, storages.DrainStorageFileDeletions(t.Context(), references...))
+	require.NoError(t, storages_bridge.DrainStorageFileDeletions(t.Context(), references...))
 
 	requireObjectAbsent(t, prereqs.storage, *full.FileName)
 	requireObjectAbsent(t, prereqs.storage, manifestName)
@@ -822,13 +824,13 @@ func Test_OnBeforeDatabaseRemove_HandsEveryPhysicalArtifactBackToCleanup(t *test
 	require.NoError(t,
 		physical_service.GetPhysicalBackupService().OnBeforeDatabaseRemove(t.Context(), databaseID))
 
-	references := make([]storage_files.StoredFileReference, 0, len(names))
+	references := make([]storages.StoredFileReference, 0, len(names))
 	for _, name := range names {
 		references = append(references,
-			storage_files.StoredFileReference{StorageID: storageID, FileName: name})
+			storages.StoredFileReference{StorageID: storageID, FileName: name})
 	}
 
-	require.NoError(t, storages.DrainStorageFileDeletions(t.Context(), references...))
+	require.NoError(t, storages_bridge.DrainStorageFileDeletions(t.Context(), references...))
 
 	for _, name := range names {
 		requireObjectAbsent(t, prereqs.storage, name)

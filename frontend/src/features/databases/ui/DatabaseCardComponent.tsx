@@ -4,10 +4,10 @@ import { Trans, useTranslation } from 'react-i18next';
 
 import { logicalBackupConfigApi } from '../../../entity/backups/logical';
 import { physicalBackupConfigApi } from '../../../entity/backups/physical';
+import type { BackupConfigStorage } from '../../../entity/backups/shared';
 import { type Database, DatabaseType, HEALTH_STATUS_LABEL_KEYS } from '../../../entity/databases';
 import { HealthStatus } from '../../../entity/databases/model/HealthStatus';
-import type { Storage } from '../../../entity/storages';
-import { getStorageLogoFromType } from '../../../entity/storages/models/getStorageLogoFromType';
+import { getStorageLogoFromType } from '../../../entity/storages';
 import { useLocale } from '../../../shared/i18n';
 
 interface Props {
@@ -23,7 +23,7 @@ export const DatabaseCardComponent = ({
 }: Props) => {
   const { t } = useTranslation();
   const { formatRelativeTime } = useLocale();
-  const [storage, setStorage] = useState<Storage | undefined>();
+  const [storage, setStorage] = useState<BackupConfigStorage | undefined>();
 
   useEffect(() => {
     if (!database.id) return;

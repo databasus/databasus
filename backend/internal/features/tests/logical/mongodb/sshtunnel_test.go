@@ -16,7 +16,7 @@ import (
 	"databasus-backend/internal/features/databases"
 	mongodbtypes "databasus-backend/internal/features/databases/databases/mongodb"
 	restores_core "databasus-backend/internal/features/restores/core"
-	"databasus-backend/internal/features/storages"
+	storages_bridge "databasus-backend/internal/features/storages"
 	logicaltesting "databasus-backend/internal/features/tests/logical/shared"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
@@ -70,8 +70,8 @@ func Test_MongodbBackupRestore_OverSshTunnel_RestoresData(t *testing.T) {
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "MongoDB SSH Tunnel Workspace", user)
 	t.Cleanup(func() { workspaces_testing.RemoveTestWorkspace(context.Background(), workspace) })
 
-	storage := storages.CreateTestStorage(workspace.ID)
-	t.Cleanup(func() { storages.RemoveTestStorage(t.Context(), storage.ID) })
+	storage := storages_bridge.CreateTestStorage(workspace.ID)
+	t.Cleanup(func() { storages_bridge.RemoveTestStorage(t.Context(), storage.ID) })
 
 	database := logicaltesting.SubmitCreateDatabase(t, router, "MongoDB cycle over SSH tunnel",
 		databases.Database{

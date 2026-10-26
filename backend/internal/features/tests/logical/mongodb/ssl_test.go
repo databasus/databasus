@@ -21,7 +21,7 @@ import (
 	"databasus-backend/internal/features/databases"
 	mongodbtypes "databasus-backend/internal/features/databases/databases/mongodb"
 	restores_core "databasus-backend/internal/features/restores/core"
-	"databasus-backend/internal/features/storages"
+	storages_bridge "databasus-backend/internal/features/storages"
 	logicaltesting "databasus-backend/internal/features/tests/logical/shared"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
@@ -69,7 +69,7 @@ func Test_BackupAndRestoreMongodbSSL_Succeeds(t *testing.T) {
 	router := logicaltesting.CreateTestRouter()
 	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "MongoDB SSL Workspace", user)
-	storage := storages.CreateTestStorage(workspace.ID)
+	storage := storages_bridge.CreateTestStorage(workspace.ID)
 
 	database := createMongodbSSLDatabaseViaAPI(
 		t, router, "MongoDB SSL DB", workspace.ID,
@@ -104,7 +104,7 @@ func Test_BackupAndRestoreMongodbSSL_Succeeds(t *testing.T) {
 		t, router, "/api/v1/databases/"+database.ID.String(),
 		"Bearer "+user.Token, http.StatusNoContent,
 	)
-	storages.RemoveTestStorage(t.Context(), storage.ID)
+	storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 }
 

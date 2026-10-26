@@ -19,13 +19,12 @@ import (
 	postgresql_executor "databasus-backend/internal/features/backups/backups/usecases/physical/postgresql"
 	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
 	"databasus-backend/internal/features/databases"
-	"databasus-backend/internal/features/storages"
-	storage_files "databasus-backend/internal/features/storages/files"
 	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
 	workspaces_bridge "databasus-backend/internal/features/workspaces"
 	"databasus-backend/internal/lib/crypto"
 	"databasus-backend/internal/lib/database"
 	"databasus-backend/internal/modules/notifiers"
+	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/storage"
 	util_encryption "databasus-backend/internal/util/encryption"
 	"databasus-backend/internal/util/walmath"
@@ -37,16 +36,16 @@ import (
 const metadataSuffix = ".metadata"
 
 type PhysicalBackuper struct {
-	databaseService          *databases.DatabaseService
-	fieldEncryptor           util_encryption.FieldEncryptor
-	workspaceService         *workspaces_bridge.Access
-	fullRepo                 *physical_repositories.PhysicalFullBackupRepository
-	incrRepo                 *physical_repositories.PhysicalIncrementalBackupRepository
-	inFlightRepo             *physical_repositories.PhysicalInFlightBackupRepository
-	historyRepo              *physical_repositories.PhysicalWalHistoryRepository
-	backupConfigService      *backups_config_physical.BackupConfigService
-	storageService           *storages.StorageService
-	fileStore                *storage_files.Store
+	databaseService     *databases.DatabaseService
+	fieldEncryptor      util_encryption.FieldEncryptor
+	workspaceService    *workspaces_bridge.Access
+	fullRepo            *physical_repositories.PhysicalFullBackupRepository
+	incrRepo            *physical_repositories.PhysicalIncrementalBackupRepository
+	inFlightRepo        *physical_repositories.PhysicalInFlightBackupRepository
+	historyRepo         *physical_repositories.PhysicalWalHistoryRepository
+	backupConfigService *backups_config_physical.BackupConfigService
+	// getStorages is read per call: each test application installs its own module.
+	getStorages              func() storages.Module
 	notificationSender       NotificationSender
 	taskCancellationRegistry *tasks_cancellation.Registry
 	masterKey                *crypto.MasterKey
@@ -113,7 +112,7 @@ func (b *PhysicalBackuper) runFullBackup(
 			SourceDB:       backupCtx.Database.PostgresqlPhysical,
 			DatabaseName:   backupCtx.Database.Name,
 			StorageID:      backupCtx.Storage.ID,
-			FileStore:      b.fileStore,
+			FileStore:      b.getStorages(),
 			Encryption:     backupCtx.Config.Encryption,
 			MasterKey:      backupCtx.MasterKey,
 			FieldEncryptor: b.fieldEncryptor,
@@ -198,7 +197,7 @@ func (b *PhysicalBackuper) runIncrementalBackup(
 		return
 	}
 
-	storageReader, err := b.fileStore.GetStorageReader(ctx, backupCtx.Storage.ID)
+	storageReader, err := b.getStorages().GetStorageReader(ctx, backupCtx.Storage.ID)
 	if err != nil {
 		logger.ErrorContext(ctx, "failed to open the storage of the parent manifest", "error", err)
 
@@ -217,7 +216,7 @@ func (b *PhysicalBackuper) runIncrementalBackup(
 			SourceDB:       backupCtx.Database.PostgresqlPhysical,
 			DatabaseName:   backupCtx.Database.Name,
 			StorageID:      backupCtx.Storage.ID,
-			FileStore:      b.fileStore,
+			FileStore:      b.getStorages(),
 			Encryption:     backupCtx.Config.Encryption,
 			MasterKey:      backupCtx.MasterKey,
 			FieldEncryptor: b.fieldEncryptor,
@@ -311,7 +310,7 @@ func (b *PhysicalBackuper) openBackupContext(
 		return nil, false
 	}
 
-	storage, err := b.storageService.GetStorageByID(ctx, *cfg.StorageID)
+	storage, err := getStorage(ctx, b.getStorages(), *cfg.StorageID)
 	if err != nil {
 		logger.ErrorContext(ctx, "failed to fetch storage", "error", err)
 
@@ -602,14 +601,14 @@ func (b *PhysicalBackuper) saveTerminalResultIfInProgress(ctx context.Context, s
 		if status != physical_enums.PhysicalBackupStatusInProgress {
 			superseded = true
 
-			return b.fileStore.RequestFileDeletions(ctx, b.attemptFileReferences(spec))
+			return b.getStorages().RequestFileDeletions(ctx, b.attemptFileReferences(spec))
 		}
 
 		if spec.Result.Status == physical_enums.PhysicalBackupStatusCompleted {
-			if err := b.fileStore.ConfirmFileWrites(ctx, spec.Result.Receipts); err != nil {
+			if err := b.getStorages().ConfirmFileWrites(ctx, spec.Result.Receipts); err != nil {
 				return err
 			}
-		} else if err := b.fileStore.RequestFileDeletions(ctx, b.attemptFileReferences(spec)); err != nil {
+		} else if err := b.getStorages().RequestFileDeletions(ctx, b.attemptFileReferences(spec)); err != nil {
 			return err
 		}
 
@@ -640,19 +639,19 @@ func (b *PhysicalBackuper) saveTerminalResultIfInProgress(ctx context.Context, s
 // from having to know which stage the attempt reached.
 func (b *PhysicalBackuper) attemptFileReferences(
 	spec terminalPersistSpec,
-) []storage_files.StoredFileReference {
+) []storages.StoredFileReference {
 	if spec.Result.FileName == "" {
 		return nil
 	}
 
-	references := []storage_files.StoredFileReference{
+	references := []storages.StoredFileReference{
 		{StorageID: spec.StorageID, FileName: spec.Result.FileName},
 		{StorageID: spec.StorageID, FileName: spec.Result.FileName + metadataSuffix},
 	}
 
 	if spec.Result.ManifestFileName != "" {
 		references = append(references,
-			storage_files.StoredFileReference{StorageID: spec.StorageID, FileName: spec.Result.ManifestFileName})
+			storages.StoredFileReference{StorageID: spec.StorageID, FileName: spec.Result.ManifestFileName})
 	}
 
 	return references

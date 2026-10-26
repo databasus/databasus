@@ -8,8 +8,8 @@ import (
 	"gorm.io/gorm"
 
 	physical_models "databasus-backend/internal/features/backups/backups/core/physical/models"
-	storage_files "databasus-backend/internal/features/storages/files"
 	"databasus-backend/internal/lib/database"
+	"databasus-backend/internal/modules/storages"
 	db "databasus-backend/internal/storage"
 )
 
@@ -25,15 +25,15 @@ func (s *PhysicalBackupService) OnBeforeDatabaseRemove(ctx context.Context, data
 			return err
 		}
 
-		return s.fileStore.RequestFileDeletions(ctx, references)
+		return s.getStorages().RequestFileDeletions(ctx, references)
 	})
 }
 
 func (s *PhysicalBackupService) collectDatabaseFileReferences(
 	tx *gorm.DB,
 	databaseID uuid.UUID,
-) ([]storage_files.StoredFileReference, error) {
-	references := make([]storage_files.StoredFileReference, 0)
+) ([]storages.StoredFileReference, error) {
+	references := make([]storages.StoredFileReference, 0)
 
 	var fulls []physical_models.PhysicalFullBackup
 	if err := tx.Where("database_id = ?", databaseID).Find(&fulls).Error; err != nil {
@@ -84,8 +84,8 @@ func (s *PhysicalBackupService) collectDatabaseFileReferences(
 func artifactReferences(
 	storageID uuid.UUID,
 	fileName, manifestFileName string,
-) []storage_files.StoredFileReference {
-	references := make([]storage_files.StoredFileReference, 0, 3)
+) []storages.StoredFileReference {
+	references := make([]storages.StoredFileReference, 0, 3)
 
 	for _, name := range []string{fileName, fileName + metadataSuffix, manifestFileName} {
 		if name == "" || name == metadataSuffix {
@@ -93,7 +93,7 @@ func artifactReferences(
 		}
 
 		references = append(references,
-			storage_files.StoredFileReference{StorageID: storageID, FileName: name})
+			storages.StoredFileReference{StorageID: storageID, FileName: name})
 	}
 
 	return references

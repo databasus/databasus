@@ -1,7 +1,11 @@
 import { useTranslation } from 'react-i18next';
 
-import { STORAGE_TYPE_LABEL_KEYS, type Storage, StorageType } from '../../../../entity/storages';
-import { getStorageLogoFromType } from '../../../../entity/storages/models/getStorageLogoFromType';
+import {
+  STORAGE_TYPE_LABEL_KEYS,
+  type Storage,
+  StorageType,
+  getStorageLogoFromType,
+} from '../../../../entity/storages';
 import { ShowAzureBlobStorageComponent } from './storages/ShowAzureBlobStorageComponent';
 import { ShowFTPStorageComponent } from './storages/ShowFTPStorageComponent';
 import { ShowGoogleDriveStorageComponent } from './storages/ShowGoogleDriveStorageComponent';
@@ -19,34 +23,36 @@ export function ShowStorageComponent({ storage }: Props) {
 
   if (!storage) return null;
 
+  const { settings } = storage;
+
   return (
     <div>
       <div className="mb-1 flex items-center">
         <div className="min-w-[110px] pr-2">{t('common.fields.type')}</div>
 
-        {t(STORAGE_TYPE_LABEL_KEYS[storage.type])}
+        {t(STORAGE_TYPE_LABEL_KEYS[settings.type])}
 
-        <img src={getStorageLogoFromType(storage.type)} alt="" className="ml-1 h-4 w-4" />
+        <img src={getStorageLogoFromType(settings.type)} alt="" className="ml-1 h-4 w-4" />
       </div>
 
       <div>
-        {storage?.type === StorageType.S3 && <ShowS3StorageComponent storage={storage} />}
+        {settings.type === StorageType.S3 && <ShowS3StorageComponent settings={settings} />}
 
-        {storage?.type === StorageType.GOOGLE_DRIVE && (
-          <ShowGoogleDriveStorageComponent storage={storage} />
+        {settings.type === StorageType.GOOGLE_DRIVE && (
+          <ShowGoogleDriveStorageComponent settings={settings} />
         )}
 
-        {storage?.type === StorageType.NAS && <ShowNASStorageComponent storage={storage} />}
+        {settings.type === StorageType.NAS && <ShowNASStorageComponent settings={settings} />}
 
-        {storage?.type === StorageType.AZURE_BLOB && (
-          <ShowAzureBlobStorageComponent storage={storage} />
+        {settings.type === StorageType.AZURE_BLOB && (
+          <ShowAzureBlobStorageComponent settings={settings} />
         )}
 
-        {storage?.type === StorageType.FTP && <ShowFTPStorageComponent storage={storage} />}
+        {settings.type === StorageType.FTP && <ShowFTPStorageComponent settings={settings} />}
 
-        {storage?.type === StorageType.SFTP && <ShowSFTPStorageComponent storage={storage} />}
+        {settings.type === StorageType.SFTP && <ShowSFTPStorageComponent settings={settings} />}
 
-        {storage?.type === StorageType.RCLONE && <ShowRcloneStorageComponent storage={storage} />}
+        {settings.type === StorageType.RCLONE && <ShowRcloneStorageComponent settings={settings} />}
       </div>
     </div>
   );

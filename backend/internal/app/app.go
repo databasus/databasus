@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"sync"
 
@@ -15,6 +16,7 @@ import (
 	"databasus-backend/internal/features/caching"
 	"databasus-backend/internal/features/email"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
+	storages_bridge "databasus-backend/internal/features/storages"
 	users_bridge "databasus-backend/internal/features/users"
 	workspaces_bridge "databasus-backend/internal/features/workspaces"
 	"databasus-backend/internal/lib/audit"
@@ -24,6 +26,7 @@ import (
 	"databasus-backend/internal/lib/database"
 	"databasus-backend/internal/lib/ratelimit"
 	"databasus-backend/internal/modules/notifiers"
+	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/modules/workspaces"
 	"databasus-backend/internal/storage"
@@ -43,6 +46,7 @@ type App struct {
 	usersModule      users.Module
 	workspacesModule workspaces.Module
 	notifiersModule  notifiers.Module
+	storagesModule   storages.Module
 	environment      *Environment
 	db               *gorm.DB
 	transactor       *database.Transactor
@@ -196,17 +200,37 @@ func New(ctx context.Context, environment *Environment) (*App, error) {
 	})
 	notifiers_bridge.Install(notifiersModule)
 
+	storagesModule := storages.New(storages.Deps{
+		DB:             db,
+		Transactor:     transactor,
+		Logger:         appLogger,
+		AuditLog:       auditLog,
+		FieldEncryptor: fieldEncryptor,
+		Users:          usersModule,
+		Workspaces:     workspacesModule,
+		Clock:          environment.Clock,
+		LocalFolders: storages.LocalFolders{
+			TempFolder: environment.Config.TempFolder,
+			DataFolder: environment.Config.DataFolder,
+		},
+		FileTimings: environment.StorageFileTimings,
+	})
+	storages_bridge.Install(storagesModule)
+
 	setUpDependenciesOnce.Do(setUpDependencies)
-	subscribeToWorkspaceDeleting(workspacesModule, notifiersModule)
+	subscribeToWorkspaceDeleting(workspacesModule, notifiersModule, storagesModule)
 	subscribeToNotifierTransferring(notifiersModule)
+	subscribeToStorageTransferring(storagesModule)
 
 	jobs := append([]background.Job{newAuditEventsCleanupJob(auditLog, appLogger)}, usersModule.GetJobs()...)
+	jobs = append(jobs, storagesModule.GetJobs()...)
 	runner := background.NewRunner(background.RunnerDeps{Logger: appLogger, Clock: environment.Clock}, jobs...)
 
 	return &App{
 		usersModule:      usersModule,
 		workspacesModule: workspacesModule,
 		notifiersModule:  notifiersModule,
+		storagesModule:   storagesModule,
 		environment:      environment,
 		db:               db,
 		transactor:       transactor,
@@ -255,4 +279,14 @@ func (a *App) SubscribeToWorkspaceDeleting(handler workspaces.WorkspaceDeletingH
 // the old code that notifies.
 func (a *App) Notify(ctx context.Context, notifierIDs []uuid.UUID, notification notifiers.Notification) {
 	a.notifiersModule.Notify(ctx, notifierIDs, notification)
+}
+
+// WriteStorageFile hands a file to the file store of the storages module. A test application uses it
+// to stand in for the old backup code that writes files.
+func (a *App) WriteStorageFile(
+	ctx context.Context,
+	reference storages.StoredFileReference,
+	file io.Reader,
+) (storages.WriteReceipt, error) {
+	return a.storagesModule.WriteFile(ctx, reference, file)
 }

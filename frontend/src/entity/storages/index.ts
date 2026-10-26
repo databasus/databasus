@@ -1,16 +1,22 @@
 export { storageApi } from './api/storageApi';
-export { type Storage } from './models/Storage';
+export type { Storage } from './models/Storage';
+export type { StorageSettings } from './models/StorageSettings';
+export type { StorageTestResult } from './models/StorageTestResult';
+export type { StorageOauthDto } from './models/StorageOauthDto';
 export { StorageType } from './models/StorageType';
-export { type LocalStorage } from './models/LocalStorage';
-export { type S3Storage } from './models/S3Storage';
+export type {
+  AzureBlobStorageSettings,
+  FtpStorageSettings,
+  GoogleDriveStorageSettings,
+  LocalStorageSettings,
+  NasStorageSettings,
+  RcloneStorageSettings,
+  S3StorageSettings,
+  SftpStorageSettings,
+} from './models/ProviderStorageSettings';
 export { S3StorageClass } from './models/S3StorageClass';
 export { S3_STORAGE_CLASS_LABEL_KEYS } from './models/S3StorageClassLabelKeys';
-export { type NASStorage } from './models/NASStorage';
-export { getStorageLogoFromType } from './models/getStorageLogoFromType';
-export { type GoogleDriveStorage } from './models/GoogleDriveStorage';
-export { type AzureBlobAuthMethod, type AzureBlobStorage } from './models/AzureBlobStorage';
+export { AzureBlobAuthMethod } from './models/AzureBlobAuthMethod';
 export { AZURE_BLOB_AUTH_METHOD_LABEL_KEYS } from './models/AzureBlobAuthMethodLabelKeys';
-export { type FTPStorage } from './models/FTPStorage';
-export { type SFTPStorage } from './models/SFTPStorage';
-export { type RcloneStorage } from './models/RcloneStorage';
+export { getStorageLogoFromType } from './models/getStorageLogoFromType';
 export { STORAGE_TYPE_LABEL_KEYS } from './models/StorageTypeLabelKeys';

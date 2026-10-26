@@ -1925,20 +1925,13 @@ export const zh: typeof en = {
         sftp: '类型：SFTP',
         rclone: '类型：Rclone',
       },
-      hasSaveError: '保存出错',
     },
     config: {
       namePlaceholder: '输入名称',
       settingsTitle: '存储设置',
-      lastSaveError: {
-        title: '保存错误',
-        errorLabel: '错误：',
-        clearHint: '清除此错误（任选其一）：',
-        clearByTestingConnection: '- 用下方按钮测试连接（即使你已经修改了设置）；',
-        clearByNextSave: '- 等待下一次保存成功完成；',
-      },
-      removeConfirmation: '确定要删除这个存储吗？此操作无法撤销。使用该存储的备份也会一并删除。',
-      removeBlockedByDatabases: '有数据库正在使用这个存储。请先在这些数据库中移除它。',
+      removeConfirmation: '确定要删除这个存储吗？此操作无法撤销。',
+      removeBlockedByBackups:
+        '有备份配置正在使用这个存储，或其中仍有备份。请先将这些备份配置改为其他存储，并删除其中的备份。',
     },
     actions: {
       testConnection: '测试连接',
@@ -1947,6 +1940,7 @@ export const zh: typeof en = {
       title: '连接测试成功',
       description: '存储连接测试通过',
     },
+    connectionTestFailed: '无法连接到存储：{{error}}',
     transfer: {
       title: '将存储转移到其他工作区',
       blockedByDatabases: '有数据库正在使用这个存储。请先转移或删除相关数据库。',

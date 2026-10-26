@@ -155,7 +155,7 @@ func findOrCreateWorkspace(
 	path := "/workspaces?limit=100"
 
 	for {
-		var page workspacePage
+		var page namedItemPage
 		if err := client.get(ctx, path, &page); err != nil {
 			return uuid.Nil, fmt.Errorf("list workspaces: %w", err)
 		}
@@ -191,22 +191,32 @@ func findOrCreateLocalStorage(
 	storageName string,
 	logger *slog.Logger,
 ) (uuid.UUID, error) {
-	var listedStorages []namedItem
-	if err := client.get(ctx, "/storages?workspace_id="+workspaceID.String(), &listedStorages); err != nil {
-		return uuid.Nil, fmt.Errorf("list storages: %w", err)
-	}
+	path := "/storages?limit=100&workspaceId=" + workspaceID.String()
 
-	for _, storage := range listedStorages {
-		if storage.Name == storageName {
-			return storage.ID, nil
+	for {
+		var page namedItemPage
+		if err := client.get(ctx, path, &page); err != nil {
+			return uuid.Nil, fmt.Errorf("list storages: %w", err)
 		}
+
+		for _, storage := range page.Items {
+			if storage.Name == storageName {
+				return storage.ID, nil
+			}
+		}
+
+		if page.NextCursor == nil {
+			break
+		}
+
+		path = "/storages?limit=100&workspaceId=" + workspaceID.String() + "&after=" + url.QueryEscape(*page.NextCursor)
 	}
 
 	var createdStorage namedItem
-	if err := client.post(ctx, "/storages", createLocalStorageRequest{
+	if err := client.post(ctx, "/storages", createStorageRequest{
 		WorkspaceID: workspaceID,
-		Type:        "LOCAL",
 		Name:        storageName,
+		Settings:    localStorageSettings{Type: "LOCAL"},
 	}, &createdStorage); err != nil {
 		return uuid.Nil, fmt.Errorf("cannot create storage %q: %w", storageName, err)
 	}

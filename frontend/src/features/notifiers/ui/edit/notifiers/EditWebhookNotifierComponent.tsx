@@ -10,8 +10,8 @@ import {
   WebhookMethod,
 } from '../../../../../entity/notifiers';
 import type { TranslationKey } from '../../../../../shared/i18n';
+import { toOptionalValue } from '../../../../../shared/lib';
 import { DEFAULT_ACCEPTED_CATEGORIES } from '../../../lib/defaultAcceptedCategories';
-import { toOptionalValue } from '../../../lib/toOptionalValue';
 import {
   EXAMPLE_GET_QUERY,
   getExamplePostBody,

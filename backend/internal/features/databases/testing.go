@@ -24,7 +24,6 @@ import (
 	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
 	postgresql_shared "databasus-backend/internal/features/databases/databases/postgresql/shared"
 	"databasus-backend/internal/features/sshtunnel"
-	"databasus-backend/internal/features/storages"
 	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/util/tools"
 )
@@ -259,7 +258,6 @@ func GetTestMongodbConfig(host string, port int) *mongodb.MongodbDatabase {
 
 func CreateTestDatabase(
 	workspaceID uuid.UUID,
-	storage *storages.Storage,
 	notifier *notifiers.Notifier,
 ) *Database {
 	database := &Database{

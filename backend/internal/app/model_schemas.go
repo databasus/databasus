@@ -9,7 +9,6 @@ import (
 	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
 	"databasus-backend/internal/features/databases"
 	restores_core "databasus-backend/internal/features/restores/core"
-	"databasus-backend/internal/features/storages"
 	verification_runs "databasus-backend/internal/features/verification/runs"
 )
 
@@ -19,7 +18,6 @@ import (
 func parseModelSchemas(db *gorm.DB) error {
 	models := []any{
 		&databases.Database{},
-		&storages.Storage{},
 		&backups_config_logical.LogicalBackupConfig{},
 		&backups_config_physical.PhysicalBackupConfig{},
 		&restores_core.Restore{},

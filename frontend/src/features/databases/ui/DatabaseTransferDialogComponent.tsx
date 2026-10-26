@@ -127,7 +127,7 @@ export const DatabaseTransferDialogComponent = ({
   const loadTargetWorkspaceData = async (workspaceId: string) => {
     try {
       const [storages, notifiers] = await Promise.all([
-        storageApi.getStorages(workspaceId),
+        storageApi.listAllStorages(workspaceId),
         notifierApi.listAllNotifiers(workspaceId),
       ]);
       setTargetStorages(storages);
@@ -194,6 +194,8 @@ export const DatabaseTransferDialogComponent = ({
       : !!selectedStorageId;
 
   const isFormValid = !!selectedWorkspaceId && isStorageValid;
+
+  const selectedStorage = targetStorages.find((storage) => storage.id === selectedStorageId);
 
   return (
     <Modal
@@ -301,16 +303,13 @@ export const DatabaseTransferDialogComponent = ({
                         ]}
                       />
 
-                      {selectedStorageId &&
-                        targetStorages.find((s) => s.id === selectedStorageId)?.type && (
-                          <img
-                            src={getStorageLogoFromType(
-                              targetStorages.find((s) => s.id === selectedStorageId)!.type,
-                            )}
-                            alt=""
-                            className="h-4 w-4"
-                          />
-                        )}
+                      {selectedStorage && (
+                        <img
+                          src={getStorageLogoFromType(selectedStorage.settings.type)}
+                          alt=""
+                          className="h-4 w-4"
+                        />
+                      )}
                     </div>
                   </div>
                 )}

@@ -14,11 +14,11 @@ import (
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
 	"databasus-backend/internal/features/databases"
-	storage_files "databasus-backend/internal/features/storages/files"
 	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
 	workspaces_bridge "databasus-backend/internal/features/workspaces"
 	"databasus-backend/internal/lib/database"
 	"databasus-backend/internal/modules/notifiers"
+	"databasus-backend/internal/modules/storages"
 	db "databasus-backend/internal/storage"
 )
 
@@ -29,11 +29,12 @@ const (
 )
 
 type Backuper struct {
-	databaseService          *databases.DatabaseService
-	workspaceService         *workspaces_bridge.Access
-	backupRepository         *backups_core_logical.BackupRepository
-	backupConfigService      *backups_config_logical.BackupConfigService
-	fileStore                *storage_files.Store
+	databaseService     *databases.DatabaseService
+	workspaceService    *workspaces_bridge.Access
+	backupRepository    *backups_core_logical.BackupRepository
+	backupConfigService *backups_config_logical.BackupConfigService
+	// getStorages is read per call: each test application installs its own module.
+	getStorages              func() storages.Module
 	notificationSender       backups_core_logical.NotificationSender
 	taskCancellationRegistry *tasks_cancellation.Registry
 	logger                   *slog.Logger
@@ -90,7 +91,7 @@ func (b *Backuper) MakeBackup(ctx context.Context, backupID uuid.UUID, isCallNot
 		backup,
 		backupConfig,
 		database,
-		b.fileStore,
+		b.getStorages(),
 		backupProgressListener,
 	)
 	if err != nil {
@@ -328,25 +329,25 @@ func (b *Backuper) SendBackupNotification(
 func (b *Backuper) writeMetadataFile(
 	backup *backups_core_logical.LogicalBackup,
 	metadata *backups_core_logical.BackupMetadata,
-) (storage_files.WriteReceipt, error) {
+) (storages.WriteReceipt, error) {
 	metadataJSON, err := json.Marshal(metadata)
 	if err != nil {
-		return storage_files.WriteReceipt{}, fmt.Errorf("marshal backup metadata: %w", err)
+		return storages.WriteReceipt{}, fmt.Errorf("marshal backup metadata: %w", err)
 	}
 
 	writeCtx, cancel := context.WithTimeout(context.Background(), metadataWriteTimeout)
 	defer cancel()
 
-	receipt, err := b.fileStore.WriteFile(
+	receipt, err := b.getStorages().WriteFile(
 		writeCtx,
-		storage_files.StoredFileReference{
+		storages.StoredFileReference{
 			StorageID: backup.StorageID,
 			FileName:  backup.FileName + metadataSuffix,
 		},
 		bytes.NewReader(metadataJSON),
 	)
 	if err != nil {
-		return storage_files.WriteReceipt{}, fmt.Errorf("save backup metadata file: %w", err)
+		return storages.WriteReceipt{}, fmt.Errorf("save backup metadata file: %w", err)
 	}
 
 	return receipt, nil
@@ -357,12 +358,12 @@ func (b *Backuper) writeMetadataFile(
 func (b *Backuper) publishBackup(
 	ctx context.Context,
 	backup *backups_core_logical.LogicalBackup,
-	receipts []storage_files.WriteReceipt,
+	receipts []storages.WriteReceipt,
 ) error {
 	return db.GetTransactor().Transaction(ctx, func(ctx context.Context) error {
 		tx := database.Conn(ctx, db.GetDb())
 
-		if err := b.fileStore.ConfirmFileWrites(ctx, receipts); err != nil {
+		if err := b.getStorages().ConfirmFileWrites(ctx, receipts); err != nil {
 			return err
 		}
 
@@ -376,7 +377,7 @@ func (b *Backuper) saveTerminalStateAndDiscardFiles(
 	ctx context.Context,
 	backup *backups_core_logical.LogicalBackup,
 ) error {
-	references := []storage_files.StoredFileReference{
+	references := []storages.StoredFileReference{
 		{StorageID: backup.StorageID, FileName: backup.FileName},
 		{StorageID: backup.StorageID, FileName: backup.FileName + metadataSuffix},
 	}
@@ -388,7 +389,7 @@ func (b *Backuper) saveTerminalStateAndDiscardFiles(
 	return db.GetTransactor().Transaction(ctx, func(ctx context.Context) error {
 		tx := database.Conn(ctx, db.GetDb())
 
-		if err := b.fileStore.RequestFileDeletions(ctx, references); err != nil {
+		if err := b.getStorages().RequestFileDeletions(ctx, references); err != nil {
 			return err
 		}
 

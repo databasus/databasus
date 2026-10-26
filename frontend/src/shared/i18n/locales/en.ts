@@ -2016,23 +2016,14 @@ export const en = {
         sftp: 'Type: SFTP',
         rclone: 'Type: Rclone',
       },
-      hasSaveError: 'Has save error',
     },
     config: {
       namePlaceholder: 'Enter name...',
       settingsTitle: 'Storage settings',
-      lastSaveError: {
-        title: 'Save error',
-        errorLabel: 'The error:',
-        clearHint: 'To clean this error (choose any):',
-        clearByTestingConnection:
-          '- test connection via button below (even if you updated settings);',
-        clearByNextSave: '- wait until the next save is done without errors;',
-      },
       removeConfirmation:
-        'Are you sure you want to remove this storage? This action cannot be undone. If some backups are using this storage, they will be removed too.',
-      removeBlockedByDatabases:
-        'Storage is used by some databases. Please remove the storage from databases first.',
+        'Are you sure you want to remove this storage? This action cannot be undone.',
+      removeBlockedByBackups:
+        'A backup config uses this storage or it still holds backups. Point those backup configs at another storage and delete its backups first.',
     },
     actions: {
       testConnection: 'Test connection',
@@ -2041,6 +2032,7 @@ export const en = {
       title: 'Connection test successful!',
       description: 'Storage connection tested successfully',
     },
+    connectionTestFailed: 'The storage could not be reached: {{error}}',
     transfer: {
       title: 'Transfer storage to another workspace',
       blockedByDatabases:

@@ -1,32 +1,27 @@
 import { useTranslation } from 'react-i18next';
 
 import {
-  S3StorageClass,
   S3_STORAGE_CLASS_LABEL_KEYS,
-  type Storage,
+  type S3StorageSettings,
 } from '../../../../../entity/storages';
-import type { TranslationKey } from '../../../../../shared/i18n';
 
 interface Props {
-  storage: Storage;
+  settings: S3StorageSettings;
 }
 
-export function ShowS3StorageComponent({ storage }: Props) {
+export function ShowS3StorageComponent({ settings }: Props) {
   const { t } = useTranslation();
-
-  const storageClassLabelKey: TranslationKey | undefined =
-    S3_STORAGE_CLASS_LABEL_KEYS[storage?.s3Storage?.s3StorageClass as S3StorageClass];
 
   return (
     <>
       <div className="mb-1 flex items-center">
         <div className="min-w-[110px] pr-2">{t('storages.fields.s3Bucket')}</div>
-        {storage?.s3Storage?.s3Bucket}
+        {settings.s3Bucket}
       </div>
 
       <div className="mb-1 flex items-center">
         <div className="min-w-[110px] pr-2">{t('storages.fields.region')}</div>
-        {storage?.s3Storage?.s3Region || '-'}
+        {settings.s3Region || '-'}
       </div>
 
       <div className="mb-1 flex items-center">
@@ -41,34 +36,34 @@ export function ShowS3StorageComponent({ storage }: Props) {
 
       <div className="mb-1 flex items-center">
         <div className="min-w-[110px] pr-2">{t('storages.fields.endpoint')}</div>
-        {storage?.s3Storage?.s3Endpoint || '-'}
+        {settings.s3Endpoint || '-'}
       </div>
 
-      {storage?.s3Storage?.s3Prefix && (
+      {settings.s3Prefix && (
         <div className="mb-1 flex items-center">
           <div className="min-w-[110px] pr-2">{t('storages.fields.prefix')}</div>
-          {storage.s3Storage.s3Prefix}
+          {settings.s3Prefix}
         </div>
       )}
 
-      {storage?.s3Storage?.s3UseVirtualHostedStyle && (
+      {settings.isVirtualHostedStyle && (
         <div className="mb-1 flex items-center">
           <div className="min-w-[110px] pr-2">{t('storages.fields.virtualHost')}</div>
           {t('common.states.enabled')}
         </div>
       )}
 
-      {storage?.s3Storage?.skipTLSVerify && (
+      {settings.isSkipTlsVerify && (
         <div className="mb-1 flex items-center">
           <div className="min-w-[110px] pr-2">{t('storages.fields.skipTls')}</div>
           {t('common.states.enabled')}
         </div>
       )}
 
-      {storage?.s3Storage?.s3StorageClass && (
+      {settings.s3StorageClass && (
         <div className="mb-1 flex items-center">
           <div className="min-w-[110px] pr-2">{t('storages.fields.storageClass')}</div>
-          {storageClassLabelKey ? t(storageClassLabelKey) : storage.s3Storage.s3StorageClass}
+          {t(S3_STORAGE_CLASS_LABEL_KEYS[settings.s3StorageClass])}
         </div>
       )}
     </>

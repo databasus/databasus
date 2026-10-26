@@ -21,15 +21,13 @@ import (
 	"databasus-backend/internal/features/caching"
 	"databasus-backend/internal/features/databases"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
-	"databasus-backend/internal/features/storages"
-	storage_files "databasus-backend/internal/features/storages/files"
+	storages_bridge "databasus-backend/internal/features/storages"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
 	"databasus-backend/internal/lib/logging"
 	"databasus-backend/internal/modules/notifiers"
+	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/modules/users"
-	"databasus-backend/internal/util/encryption"
-	util_logger "databasus-backend/internal/util/logger"
 	test_utils "databasus-backend/internal/util/testing"
 )
 
@@ -47,7 +45,7 @@ func (*createStoredArtifactThenFailBackupUsecase) Execute(
 ) (*backups_core_logical.BackupArtifacts, error) {
 	_, err := fileStore.WriteFile(
 		ctx,
-		storage_files.StoredFileReference{StorageID: backup.StorageID, FileName: backup.FileName},
+		storages.StoredFileReference{StorageID: backup.StorageID, FileName: backup.FileName},
 		strings.NewReader(partialLogicalArtifact),
 	)
 	if err != nil {
@@ -61,10 +59,10 @@ func Test_BackupExecuted_NotificationSent(t *testing.T) {
 	caching.GetStore().Clear(t.Context())
 	user := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", user)
-	storage := storages.CreateTestStorage(workspace.ID)
+	storage := storages_bridge.CreateTestStorage(workspace.ID)
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
-	database := databases.CreateTestDatabase(workspace.ID, storage, notifier)
-	backups_config_logical.EnableBackupsForTestDatabase(t.Context(), database.ID, storage)
+	database := databases.CreateTestDatabase(workspace.ID, notifier)
+	backups_config_logical.EnableBackupsForTestDatabase(t.Context(), database.ID, storage.ID)
 
 	defer func() {
 		// cleanup backups first
@@ -76,7 +74,7 @@ func Test_BackupExecuted_NotificationSent(t *testing.T) {
 		databases.RemoveTestDatabase(t.Context(), database)
 		time.Sleep(50 * time.Millisecond) // Wait for cascading deletes
 		notifiers_bridge.RemoveTestNotifier(notifier)
-		storages.RemoveTestStorage(t.Context(), storage.ID)
+		storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	}()
 
@@ -232,15 +230,13 @@ func Test_MakeBackup_WhenUsecaseStoresArtifactThenFails_ArtifactRemoved(t *testi
 	require.NoError(t, err)
 	assert.Equal(t, backups_core_logical.BackupStatusFailed, persistedBackup.Status)
 
-	require.NoError(t, storages.DrainStorageFileDeletions(t.Context(),
-		storage_files.StoredFileReference{StorageID: fixture.Storage.ID, FileName: backup.FileName},
+	require.NoError(t, storages_bridge.DrainStorageFileDeletions(t.Context(),
+		storages.StoredFileReference{StorageID: fixture.Storage.ID, FileName: backup.FileName},
 	))
 
-	_, err = fixture.Storage.GetFile(
+	_, err = storages_bridge.OpenTestFile(
 		t.Context(),
-		encryption.GetFieldEncryptor(),
-		util_logger.GetLogger(),
-		backup.FileName,
+		storages.StoredFileReference{StorageID: fixture.Storage.ID, FileName: backup.FileName},
 	)
 	assert.Error(t, err, "a dump that failed after producing output must not leave its artifact behind")
 }
@@ -308,7 +304,7 @@ func (uc *createStoredArtifactThenBlockBackupUsecase) Execute(
 ) (*backups_core_logical.BackupArtifacts, error) {
 	if _, err := fileStore.WriteFile(
 		ctx,
-		storage_files.StoredFileReference{StorageID: backup.StorageID, FileName: backup.FileName},
+		storages.StoredFileReference{StorageID: backup.StorageID, FileName: backup.FileName},
 		strings.NewReader(partialLogicalArtifact),
 	); err != nil {
 		return nil, err
@@ -351,7 +347,7 @@ func (*createUnusableMetadataBackupUsecase) Execute(
 ) (*backups_core_logical.BackupArtifacts, error) {
 	receipt, err := fileStore.WriteFile(
 		ctx,
-		storage_files.StoredFileReference{StorageID: backup.StorageID, FileName: backup.FileName},
+		storages.StoredFileReference{StorageID: backup.StorageID, FileName: backup.FileName},
 		strings.NewReader(partialLogicalArtifact),
 	)
 	if err != nil {
@@ -361,7 +357,7 @@ func (*createUnusableMetadataBackupUsecase) Execute(
 	// Encrypted metadata with no salt or IV cannot be restored, so Validate refuses it.
 	return &backups_core_logical.BackupArtifacts{
 		Metadata: &backups_core_logical.BackupMetadata{Encryption: backups_core_enums.BackupEncryptionEncrypted},
-		Receipts: []storage_files.WriteReceipt{receipt},
+		Receipts: []storages.WriteReceipt{receipt},
 	}, nil
 }
 
@@ -549,7 +545,7 @@ func (*createStaleReceiptBackupUsecase) Execute(
 ) (*backups_core_logical.BackupArtifacts, error) {
 	receipt, err := fileStore.WriteFile(
 		ctx,
-		storage_files.StoredFileReference{StorageID: backup.StorageID, FileName: backup.FileName},
+		storages.StoredFileReference{StorageID: backup.StorageID, FileName: backup.FileName},
 		strings.NewReader(partialLogicalArtifact),
 	)
 	if err != nil {
@@ -560,7 +556,7 @@ func (*createStaleReceiptBackupUsecase) Execute(
 
 	return &backups_core_logical.BackupArtifacts{
 		Metadata: &backups_core_logical.BackupMetadata{Encryption: backups_core_enums.BackupEncryptionNone},
-		Receipts: []storage_files.WriteReceipt{receipt},
+		Receipts: []storages.WriteReceipt{receipt},
 	}, nil
 }
 
@@ -588,19 +584,20 @@ func Test_MakeBackup_WhenPublicationFails_EveryFileOfTheAttemptIsRemoved(t *test
 func assertBackupFilesRemoved(t *testing.T, fixture *BackupTestFixture, fileNames ...string) {
 	t.Helper()
 
-	references := make([]storage_files.StoredFileReference, 0, len(fileNames))
+	references := make([]storages.StoredFileReference, 0, len(fileNames))
 	for _, name := range fileNames {
-		references = append(references, storage_files.StoredFileReference{
+		references = append(references, storages.StoredFileReference{
 			StorageID: fixture.Storage.ID,
 			FileName:  name,
 		})
 	}
 
-	require.NoError(t, storages.DrainStorageFileDeletions(t.Context(), references...))
+	require.NoError(t, storages_bridge.DrainStorageFileDeletions(t.Context(), references...))
 
 	for _, name := range fileNames {
-		_, err := fixture.Storage.GetFile(
-			t.Context(), encryption.GetFieldEncryptor(), util_logger.GetLogger(), name,
+		_, err := storages_bridge.OpenTestFile(
+			t.Context(),
+			storages.StoredFileReference{StorageID: fixture.Storage.ID, FileName: name},
 		)
 		assert.Error(t, err, "%s must not survive a backup that never published", name)
 	}

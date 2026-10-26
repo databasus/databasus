@@ -49,7 +49,7 @@ func newBackgroundServiceUnderTest(t *testing.T, sender TelemetrySender) *Teleme
 		loader,
 		sender,
 		&fakeDatabaseLister{},
-		&fakeStorageLister{},
+		&fakeStorageTypeLister{},
 		&fakeNotifierLister{},
 		&fakeBackupChecker{},
 		&fakeLatestPhysicalBackupReader{},

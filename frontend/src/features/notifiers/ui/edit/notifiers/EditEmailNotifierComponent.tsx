@@ -10,11 +10,11 @@ import {
   getDefaultEmailNotifierSecurity,
   getSecurityAfterPortChange,
 } from '../../../../../entity/notifiers';
+import { toOptionalValue } from '../../../../../shared/lib';
 import {
   AdvancedFieldRowComponent,
   AdvancedSettingsToggleComponent,
 } from '../../../../../shared/ui';
-import { toOptionalValue } from '../../../lib/toOptionalValue';
 
 interface Props {
   settings: EmailNotifierSettings;

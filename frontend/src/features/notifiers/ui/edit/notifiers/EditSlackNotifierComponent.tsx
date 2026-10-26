@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 
 import type { SlackNotifierSettings } from '../../../../../entity/notifiers';
 import { getWebsitePageUrl, useLocale } from '../../../../../shared/i18n';
-import { toOptionalValue } from '../../../lib/toOptionalValue';
+import { toOptionalValue } from '../../../../../shared/lib';
 
 interface Props {
   settings: SlackNotifierSettings;

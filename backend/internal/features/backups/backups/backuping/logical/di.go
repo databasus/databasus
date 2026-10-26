@@ -10,7 +10,7 @@ import (
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
 	"databasus-backend/internal/features/databases"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
-	"databasus-backend/internal/features/storages"
+	storages_bridge "databasus-backend/internal/features/storages"
 	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
 	workspaces_bridge "databasus-backend/internal/features/workspaces"
 	"databasus-backend/internal/util/logger"
@@ -28,7 +28,7 @@ var (
 var getBackupCleaner = sync.OnceValue(func() *BackupCleaner {
 	return &BackupCleaner{
 		getBackupRepository(),
-		storages.GetStorageFileStore(),
+		storages_bridge.GetModule,
 		backups_config_logical.GetBackupConfigService(),
 		logger.GetLogger(),
 		[]backups_core_logical.BackupRemoveListener{},
@@ -42,7 +42,7 @@ var getBackuper = sync.OnceValue(func() *Backuper {
 		workspaces_bridge.GetAccess(),
 		getBackupRepository(),
 		backups_config_logical.GetBackupConfigService(),
-		storages.GetStorageFileStore(),
+		storages_bridge.GetModule,
 		notifiers_bridge.GetSender(),
 		getTaskCancellationRegistry(),
 		logger.GetLogger(),

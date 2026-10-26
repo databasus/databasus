@@ -3,24 +3,22 @@ import { Checkbox, Input, InputNumber, Radio, Tooltip } from 'antd';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import type { Storage } from '../../../../../entity/storages';
+import type { SftpStorageSettings } from '../../../../../entity/storages';
+import { toOptionalValue } from '../../../../../shared/lib';
 
 interface Props {
-  storage: Storage;
-  setStorage: (storage: Storage) => void;
-  setUnsaved: () => void;
+  settings: SftpStorageSettings;
+  onChange: (settings: SftpStorageSettings) => void;
 }
 
 type SftpAuthMethod = 'password' | 'privateKey';
 
-export function EditSFTPStorageComponent({ storage, setStorage, setUnsaved }: Props) {
+export function EditSFTPStorageComponent({ settings, onChange }: Props) {
   const { t } = useTranslation();
-  const hasAdvancedValues = !!storage?.sftpStorage?.skipHostKeyVerify;
+  const hasAdvancedValues = !!settings.isSkipHostKeyVerify;
   const [showAdvanced, setShowAdvanced] = useState(hasAdvancedValues);
 
-  const initialAuthMethod: SftpAuthMethod = storage?.sftpStorage?.privateKey
-    ? 'privateKey'
-    : 'password';
+  const initialAuthMethod: SftpAuthMethod = settings.privateKey ? 'privateKey' : 'password';
   const [authMethod, setAuthMethod] = useState<SftpAuthMethod>(initialAuthMethod);
 
   return (
@@ -28,18 +26,9 @@ export function EditSFTPStorageComponent({ storage, setStorage, setUnsaved }: Pr
       <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
         <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">{t('common.fields.host')}</div>
         <Input
-          value={storage?.sftpStorage?.host || ''}
+          value={settings.host || ''}
           onChange={(e) => {
-            if (!storage?.sftpStorage) return;
-
-            setStorage({
-              ...storage,
-              sftpStorage: {
-                ...storage.sftpStorage,
-                host: e.target.value.trim(),
-              },
-            });
-            setUnsaved();
+            onChange({ ...settings, host: e.target.value.trim() });
           }}
           size="small"
           className="w-full max-w-[250px]"
@@ -51,18 +40,11 @@ export function EditSFTPStorageComponent({ storage, setStorage, setUnsaved }: Pr
       <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
         <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">{t('common.fields.port')}</div>
         <InputNumber
-          value={storage?.sftpStorage?.port}
+          value={settings.port}
           onChange={(value) => {
-            if (!storage?.sftpStorage || !value) return;
+            if (!value) return;
 
-            setStorage({
-              ...storage,
-              sftpStorage: {
-                ...storage.sftpStorage,
-                port: value,
-              },
-            });
-            setUnsaved();
+            onChange({ ...settings, port: value });
           }}
           size="small"
           className="w-full max-w-[250px]"
@@ -75,18 +57,9 @@ export function EditSFTPStorageComponent({ storage, setStorage, setUnsaved }: Pr
       <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
         <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">{t('common.fields.username')}</div>
         <Input
-          value={storage?.sftpStorage?.username || ''}
+          value={settings.username || ''}
           onChange={(e) => {
-            if (!storage?.sftpStorage) return;
-
-            setStorage({
-              ...storage,
-              sftpStorage: {
-                ...storage.sftpStorage,
-                username: e.target.value.trim(),
-              },
-            });
-            setUnsaved();
+            onChange({ ...settings, username: e.target.value.trim() });
           }}
           size="small"
           className="w-full max-w-[250px]"
@@ -99,29 +72,14 @@ export function EditSFTPStorageComponent({ storage, setStorage, setUnsaved }: Pr
         <Radio.Group
           value={authMethod}
           onChange={(e) => {
-            if (!storage?.sftpStorage) return;
-
             const newMethod = e.target.value as SftpAuthMethod;
             setAuthMethod(newMethod);
 
             if (newMethod === 'password') {
-              setStorage({
-                ...storage,
-                sftpStorage: {
-                  ...storage.sftpStorage,
-                  privateKey: undefined,
-                },
-              });
+              onChange({ ...settings, privateKey: undefined });
             } else {
-              setStorage({
-                ...storage,
-                sftpStorage: {
-                  ...storage.sftpStorage,
-                  password: undefined,
-                },
-              });
+              onChange({ ...settings, password: undefined });
             }
-            setUnsaved();
           }}
           size="small"
         >
@@ -134,18 +92,9 @@ export function EditSFTPStorageComponent({ storage, setStorage, setUnsaved }: Pr
         <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
           <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">{t('common.fields.password')}</div>
           <Input.Password
-            value={storage?.sftpStorage?.password || ''}
+            value={settings.password || ''}
             onChange={(e) => {
-              if (!storage?.sftpStorage) return;
-
-              setStorage({
-                ...storage,
-                sftpStorage: {
-                  ...storage.sftpStorage,
-                  password: e.target.value,
-                },
-              });
-              setUnsaved();
+              onChange({ ...settings, password: toOptionalValue(e.target.value) });
             }}
             size="small"
             className="w-full max-w-[250px]"
@@ -165,18 +114,9 @@ export function EditSFTPStorageComponent({ storage, setStorage, setUnsaved }: Pr
           </div>
           <div className="flex w-full max-w-[250px] flex-col">
             <Input.TextArea
-              value={storage?.sftpStorage?.privateKey || ''}
+              value={settings.privateKey || ''}
               onChange={(e) => {
-                if (!storage?.sftpStorage) return;
-
-                setStorage({
-                  ...storage,
-                  sftpStorage: {
-                    ...storage.sftpStorage,
-                    privateKey: e.target.value,
-                  },
-                });
-                setUnsaved();
+                onChange({ ...settings, privateKey: toOptionalValue(e.target.value) });
               }}
               size="small"
               className="w-full"
@@ -198,23 +138,14 @@ export function EditSFTPStorageComponent({ storage, setStorage, setUnsaved }: Pr
         <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">{t('storages.fields.path')}</div>
         <div className="flex items-center">
           <Input
-            value={storage?.sftpStorage?.path || ''}
+            value={settings.path || ''}
             onChange={(e) => {
-              if (!storage?.sftpStorage) return;
-
               let pathValue = e.target.value.trim();
               if (pathValue.startsWith('/')) {
                 pathValue = pathValue.substring(1);
               }
 
-              setStorage({
-                ...storage,
-                sftpStorage: {
-                  ...storage.sftpStorage,
-                  path: pathValue || undefined,
-                },
-              });
-              setUnsaved();
+              onChange({ ...settings, path: pathValue || undefined });
             }}
             size="small"
             className="w-full max-w-[250px]"
@@ -250,18 +181,9 @@ export function EditSFTPStorageComponent({ storage, setStorage, setUnsaved }: Pr
             </div>
             <div className="flex items-center">
               <Checkbox
-                checked={storage?.sftpStorage?.skipHostKeyVerify || false}
+                checked={settings.isSkipHostKeyVerify || false}
                 onChange={(e) => {
-                  if (!storage?.sftpStorage) return;
-
-                  setStorage({
-                    ...storage,
-                    sftpStorage: {
-                      ...storage.sftpStorage,
-                      skipHostKeyVerify: e.target.checked,
-                    },
-                  });
-                  setUnsaved();
+                  onChange({ ...settings, isSkipHostKeyVerify: e.target.checked });
                 }}
               >
                 {t('storages.edit.sftp.skipHostKeyVerification')}

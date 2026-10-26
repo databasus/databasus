@@ -257,7 +257,7 @@ func enablePhysicalBackupsViaAPI(
 		ChainsRetention:           backups_config_physical.ChainsRetention{Count: 50},
 		Encryption:                backups_core_enums.BackupEncryptionNone,
 		StorageID:                 &fixture.Storage.ID,
-		Storage:                   fixture.Storage,
+		Storage:                   &backups_config_physical.BackupConfigStorage{ID: fixture.Storage.ID},
 	}
 
 	if isWalStream {

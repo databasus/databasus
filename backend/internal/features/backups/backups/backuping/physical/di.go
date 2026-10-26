@@ -14,7 +14,7 @@ import (
 	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
 	"databasus-backend/internal/features/databases"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
-	"databasus-backend/internal/features/storages"
+	storages_bridge "databasus-backend/internal/features/storages"
 	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
 	workspaces_bridge "databasus-backend/internal/features/workspaces"
 	"databasus-backend/internal/util/encryption"
@@ -31,8 +31,7 @@ var getPhysicalBackuper = sync.OnceValue(func() *PhysicalBackuper {
 		physical_repositories.GetInFlightBackupRepository(),
 		physical_repositories.GetWalHistoryRepository(),
 		backups_config_physical.GetBackupConfigService(),
-		storages.GetStorageService(),
-		storages.GetStorageFileStore(),
+		storages_bridge.GetModule,
 		notifiers_bridge.GetSender(),
 		tasks_cancellation.GetRegistry(),
 		encryption.GetMasterKey(),
@@ -52,7 +51,7 @@ var getPhysicalBackupsScheduler = sync.OnceValue(func() *PhysicalBackupsSchedule
 		backups_config_physical.GetBackupConfigService(),
 		chain_view.GetChainViewService(),
 		tasks_cancellation.GetRequester(),
-		storages.GetStorageFileStore(),
+		storages_bridge.GetModule,
 		getPhysicalBackuper(),
 		atomicTime{},
 		logger.GetLogger(),
@@ -82,8 +81,7 @@ var getPhysicalWalStreamSupervisor = sync.OnceValue(func() *PhysicalWalStreamSup
 	return &PhysicalWalStreamSupervisor{
 		databases.GetDatabaseService(),
 		backups_config_physical.GetBackupConfigService(),
-		storages.GetStorageService(),
-		storages.GetStorageFileStore(),
+		storages_bridge.GetModule,
 		physical_repositories.GetWalSegmentRepository(),
 		physical_repositories.GetWalHistoryRepository(),
 		physical_repositories.GetWalStreamerRepository(),

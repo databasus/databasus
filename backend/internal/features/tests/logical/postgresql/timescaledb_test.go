@@ -17,7 +17,7 @@ import (
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	restores_core "databasus-backend/internal/features/restores/core"
-	"databasus-backend/internal/features/storages"
+	storages_bridge "databasus-backend/internal/features/storages"
 	logicaltesting "databasus-backend/internal/features/tests/logical/shared"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
@@ -73,7 +73,7 @@ INSERT INTO public.%s (id, label) VALUES (1, 'alpha'), (2, 'beta'), (3, 'gamma')
 	router := logicaltesting.CreateTestRouter()
 	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", user)
-	storage := storages.CreateTestStorage(workspace.ID)
+	storage := storages_bridge.CreateTestStorage(workspace.ID)
 
 	database := createDatabaseWithSchemasViaAPI(
 		t, router, "Timescale Public Schema Database", workspace.ID,
@@ -137,7 +137,7 @@ INSERT INTO public.%s (id, label) VALUES (1, 'alpha'), (2, 'beta'), (3, 'gamma')
 		"Bearer "+user.Token,
 		http.StatusNoContent,
 	)
-	storages.RemoveTestStorage(t.Context(), storage.ID)
+	storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 }
 
@@ -185,7 +185,7 @@ func testTimescaleBackupRestoreForCpuCount(t *testing.T, endpoint containers.End
 	router := logicaltesting.CreateTestRouter()
 	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", user)
-	storage := storages.CreateTestStorage(workspace.ID)
+	storage := storages_bridge.CreateTestStorage(workspace.ID)
 
 	database := createDatabaseWithCpuCountViaAPI(
 		t, router, "Timescale Database", workspace.ID,
@@ -247,7 +247,7 @@ func testTimescaleBackupRestoreForCpuCount(t *testing.T, endpoint containers.End
 		"Bearer "+user.Token,
 		http.StatusNoContent,
 	)
-	storages.RemoveTestStorage(t.Context(), storage.ID)
+	storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 }
 

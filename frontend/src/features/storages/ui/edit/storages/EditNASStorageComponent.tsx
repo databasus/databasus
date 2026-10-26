@@ -2,36 +2,26 @@ import { InfoCircleOutlined } from '@ant-design/icons';
 import { Input, InputNumber, Switch, Tooltip } from 'antd';
 import { useTranslation } from 'react-i18next';
 
-import type { Storage } from '../../../../../entity/storages';
+import type { NasStorageSettings } from '../../../../../entity/storages';
+import { toOptionalValue } from '../../../../../shared/lib';
 
 interface Props {
-  storage: Storage;
-  setStorage: (storage: Storage) => void;
-  setUnsaved: () => void;
+  settings: NasStorageSettings;
+  onChange: (settings: NasStorageSettings) => void;
 }
 
-export function EditNASStorageComponent({ storage, setStorage, setUnsaved }: Props) {
+export function EditNASStorageComponent({ settings, onChange }: Props) {
   const { t } = useTranslation();
-  const shareHasSlash =
-    storage?.nasStorage?.share?.includes('/') || storage?.nasStorage?.share?.includes('\\');
+  const shareHasSlash = settings.share?.includes('/') || settings.share?.includes('\\');
 
   return (
     <>
       <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
         <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">{t('common.fields.host')}</div>
         <Input
-          value={storage?.nasStorage?.host || ''}
+          value={settings.host || ''}
           onChange={(e) => {
-            if (!storage?.nasStorage) return;
-
-            setStorage({
-              ...storage,
-              nasStorage: {
-                ...storage.nasStorage,
-                host: e.target.value.trim(),
-              },
-            });
-            setUnsaved();
+            onChange({ ...settings, host: e.target.value.trim() });
           }}
           size="small"
           className="w-full max-w-[250px]"
@@ -42,18 +32,11 @@ export function EditNASStorageComponent({ storage, setStorage, setUnsaved }: Pro
       <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
         <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">{t('common.fields.port')}</div>
         <InputNumber
-          value={storage?.nasStorage?.port}
+          value={settings.port}
           onChange={(value) => {
-            if (!storage?.nasStorage || !value) return;
+            if (!value) return;
 
-            setStorage({
-              ...storage,
-              nasStorage: {
-                ...storage.nasStorage,
-                port: value,
-              },
-            });
-            setUnsaved();
+            onChange({ ...settings, port: value });
           }}
           size="small"
           className="w-full max-w-[250px]"
@@ -67,18 +50,9 @@ export function EditNASStorageComponent({ storage, setStorage, setUnsaved }: Pro
         <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">{t('storages.fields.share')}</div>
         <div className="flex flex-col">
           <Input
-            value={storage?.nasStorage?.share || ''}
+            value={settings.share || ''}
             onChange={(e) => {
-              if (!storage?.nasStorage) return;
-
-              setStorage({
-                ...storage,
-                nasStorage: {
-                  ...storage.nasStorage,
-                  share: e.target.value.trim(),
-                },
-              });
-              setUnsaved();
+              onChange({ ...settings, share: e.target.value.trim() });
             }}
             size="small"
             className="w-full max-w-[250px]"
@@ -97,18 +71,9 @@ export function EditNASStorageComponent({ storage, setStorage, setUnsaved }: Pro
       <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
         <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">{t('common.fields.username')}</div>
         <Input
-          value={storage?.nasStorage?.username || ''}
+          value={settings.username || ''}
           onChange={(e) => {
-            if (!storage?.nasStorage) return;
-
-            setStorage({
-              ...storage,
-              nasStorage: {
-                ...storage.nasStorage,
-                username: e.target.value.trim(),
-              },
-            });
-            setUnsaved();
+            onChange({ ...settings, username: e.target.value.trim() });
           }}
           size="small"
           className="w-full max-w-[250px]"
@@ -119,18 +84,9 @@ export function EditNASStorageComponent({ storage, setStorage, setUnsaved }: Pro
       <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
         <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">{t('common.fields.password')}</div>
         <Input.Password
-          value={storage?.nasStorage?.password || ''}
+          value={settings.password || ''}
           onChange={(e) => {
-            if (!storage?.nasStorage) return;
-
-            setStorage({
-              ...storage,
-              nasStorage: {
-                ...storage.nasStorage,
-                password: e.target.value,
-              },
-            });
-            setUnsaved();
+            onChange({ ...settings, password: toOptionalValue(e.target.value) });
           }}
           size="small"
           className="w-full max-w-[250px]"
@@ -146,18 +102,9 @@ export function EditNASStorageComponent({ storage, setStorage, setUnsaved }: Pro
         <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">{t('storages.fields.useSsl')}</div>
         <div className="flex items-center">
           <Switch
-            checked={storage?.nasStorage?.useSsl || false}
+            checked={settings.isSsl || false}
             onChange={(checked) => {
-              if (!storage?.nasStorage) return;
-
-              setStorage({
-                ...storage,
-                nasStorage: {
-                  ...storage.nasStorage,
-                  useSsl: checked,
-                },
-              });
-              setUnsaved();
+              onChange({ ...settings, isSsl: checked });
             }}
             size="small"
           />
@@ -172,18 +119,9 @@ export function EditNASStorageComponent({ storage, setStorage, setUnsaved }: Pro
         <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">{t('storages.fields.domain')}</div>
         <div className="flex items-center">
           <Input
-            value={storage?.nasStorage?.domain || ''}
+            value={settings.domain || ''}
             onChange={(e) => {
-              if (!storage?.nasStorage) return;
-
-              setStorage({
-                ...storage,
-                nasStorage: {
-                  ...storage.nasStorage,
-                  domain: e.target.value.trim() || undefined,
-                },
-              });
-              setUnsaved();
+              onChange({ ...settings, domain: e.target.value.trim() || undefined });
             }}
             size="small"
             className="w-full max-w-[250px]"
@@ -200,24 +138,15 @@ export function EditNASStorageComponent({ storage, setStorage, setUnsaved }: Pro
         <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">{t('storages.fields.path')}</div>
         <div className="flex items-center">
           <Input
-            value={storage?.nasStorage?.path || ''}
+            value={settings.path || ''}
             onChange={(e) => {
-              if (!storage?.nasStorage) return;
-
               let pathValue = e.target.value.trim();
               // Remove leading slash if present
               if (pathValue.startsWith('/')) {
                 pathValue = pathValue.substring(1);
               }
 
-              setStorage({
-                ...storage,
-                nasStorage: {
-                  ...storage.nasStorage,
-                  path: pathValue || undefined,
-                },
-              });
-              setUnsaved();
+              onChange({ ...settings, path: pathValue || undefined });
             }}
             size="small"
             className="w-full max-w-[250px]"

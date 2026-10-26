@@ -1,6 +1,5 @@
 import type { Interval } from '../../../intervals';
-import type { Storage } from '../../../storages';
-import { BackupEncryption } from '../../shared';
+import { type BackupConfigStorage, BackupEncryption } from '../../shared';
 import type { ChainsRetention } from './ChainsRetention';
 import type { FullBackupsRetention } from './FullBackupsRetention';
 import type { PhysicalBackupNotificationType } from './PhysicalBackupNotificationType';
@@ -22,7 +21,7 @@ export interface PhysicalBackupConfig {
   // FULL_INCREMENTAL_WAL_STREAM
   walLagThresholdBytes: number;
 
-  storage?: Storage;
+  storage?: BackupConfigStorage;
 
   encryption: BackupEncryption;
   sendNotificationsOn: PhysicalBackupNotificationType[];

@@ -23,12 +23,12 @@ import (
 	postgresql_logical "databasus-backend/internal/features/databases/databases/postgresql/logical"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	restores_core "databasus-backend/internal/features/restores/core"
-	"databasus-backend/internal/features/storages"
-	storage_files "databasus-backend/internal/features/storages/files"
+	storages_bridge "databasus-backend/internal/features/storages"
 	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
 	"databasus-backend/internal/lib/cache"
+	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/modules/users"
 )
 
@@ -62,10 +62,10 @@ func Test_MakeRestore_WhenCacheMissed_RestoreFails(t *testing.T) {
 
 	user := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", user)
-	storage := storages.CreateTestStorage(workspace.ID)
+	storage := storages_bridge.CreateTestStorage(workspace.ID)
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
-	database := databases.CreateTestDatabase(workspace.ID, storage, notifier)
-	backups_config_logical.EnableBackupsForTestDatabase(t.Context(), database.ID, storage)
+	database := databases.CreateTestDatabase(workspace.ID, notifier)
+	backups_config_logical.EnableBackupsForTestDatabase(t.Context(), database.ID, storage.ID)
 
 	defer func() {
 		backupRepo := backups_core_logical.BackupRepository{}
@@ -87,7 +87,7 @@ func Test_MakeRestore_WhenCacheMissed_RestoreFails(t *testing.T) {
 		databases.RemoveTestDatabase(t.Context(), database)
 		time.Sleep(50 * time.Millisecond)
 		notifiers_bridge.RemoveTestNotifier(notifier)
-		storages.RemoveTestStorage(t.Context(), storage.ID)
+		storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
 		caching.GetStore().Clear(t.Context())
@@ -125,10 +125,10 @@ func Test_MakeRestore_WhenTaskStarts_CacheDeletedImmediately(t *testing.T) {
 
 	user := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", user)
-	storage := storages.CreateTestStorage(workspace.ID)
+	storage := storages_bridge.CreateTestStorage(workspace.ID)
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
-	database := databases.CreateTestDatabase(workspace.ID, storage, notifier)
-	backups_config_logical.EnableBackupsForTestDatabase(t.Context(), database.ID, storage)
+	database := databases.CreateTestDatabase(workspace.ID, notifier)
+	backups_config_logical.EnableBackupsForTestDatabase(t.Context(), database.ID, storage.ID)
 
 	defer func() {
 		backupRepo := backups_core_logical.BackupRepository{}
@@ -154,7 +154,7 @@ func Test_MakeRestore_WhenTaskStarts_CacheDeletedImmediately(t *testing.T) {
 		databases.RemoveTestDatabase(t.Context(), database)
 		time.Sleep(50 * time.Millisecond)
 		notifiers_bridge.RemoveTestNotifier(notifier)
-		storages.RemoveTestStorage(t.Context(), storage.ID)
+		storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
 		caching.GetStore().Clear(t.Context())
@@ -315,18 +315,18 @@ func createRestoreWithConfigStorage(t *testing.T, configStorage configStorageCho
 
 	user := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", user)
-	backupStorage := storages.CreateTestStorage(workspace.ID)
+	backupStorage := storages_bridge.CreateTestStorage(workspace.ID)
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
-	database := databases.CreateTestDatabase(workspace.ID, backupStorage, notifier)
+	database := databases.CreateTestDatabase(workspace.ID, notifier)
 
-	var otherStorage *storages.Storage
+	var otherStorage storages.Storage
 
 	switch configStorage {
 	case configNamesBackupStorage:
-		backups_config_logical.EnableBackupsForTestDatabase(t.Context(), database.ID, backupStorage)
+		backups_config_logical.EnableBackupsForTestDatabase(t.Context(), database.ID, backupStorage.ID)
 	case configNamesOtherStorage:
-		otherStorage = storages.CreateTestStorage(workspace.ID)
-		backups_config_logical.EnableBackupsForTestDatabase(t.Context(), database.ID, otherStorage)
+		otherStorage = storages_bridge.CreateTestStorage(workspace.ID)
+		backups_config_logical.EnableBackupsForTestDatabase(t.Context(), database.ID, otherStorage.ID)
 	case configNamesNoStorage:
 	}
 
@@ -335,8 +335,8 @@ func createRestoreWithConfigStorage(t *testing.T, configStorage configStorageCho
 	require.NoError(t, (&backups_core_logical.BackupRepository{}).Save(backup))
 
 	backupContent := []byte("content of backup " + backup.ID.String())
-	_, err := storages.GetStorageFileStore().WriteFile(t.Context(),
-		storage_files.StoredFileReference{StorageID: backupStorage.ID, FileName: backup.FileName},
+	_, err := storages_bridge.GetModule().WriteFile(t.Context(),
+		storages.StoredFileReference{StorageID: backupStorage.ID, FileName: backup.FileName},
 		bytes.NewReader(backupContent))
 	require.NoError(t, err)
 
@@ -351,15 +351,12 @@ func createRestoreWithConfigStorage(t *testing.T, configStorage configStorageCho
 		_ = (&backups_core_logical.BackupRepository{}).DeleteByID(backup.ID)
 		databases.RemoveTestDatabase(t.Context(), database)
 		notifiers_bridge.RemoveTestNotifier(notifier)
-		// The deletion drains the backup file this fixture wrote, which RemoveTestStorage would leave
-		// in the data folder.
-		require.NoError(t, storages.GetStorageService().DeleteStorage(
-			context.WithoutCancel(t.Context()),
-			users.Actor{UserID: user.UserID, Role: users.RoleAdmin},
-			backupStorage.ID,
-		))
-		if otherStorage != nil {
-			storages.RemoveTestStorage(t.Context(), otherStorage.ID)
+		// RemoveTestStorage would leave the backup file this fixture wrote in the data folder.
+		require.NoError(t, storages_bridge.DeleteTestFile(t.Context(),
+			storages.StoredFileReference{StorageID: backupStorage.ID, FileName: backup.FileName}))
+		storages_bridge.RemoveTestStorage(t.Context(), backupStorage.ID)
+		if otherStorage.ID != uuid.Nil {
+			storages_bridge.RemoveTestStorage(t.Context(), otherStorage.ID)
 		}
 		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	})

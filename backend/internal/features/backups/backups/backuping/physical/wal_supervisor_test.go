@@ -22,7 +22,7 @@ import (
 	"databasus-backend/internal/features/databases"
 	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
-	"databasus-backend/internal/features/storages"
+	storages_bridge "databasus-backend/internal/features/storages"
 	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
 	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/storage"
@@ -588,7 +588,7 @@ func Test_Reconcile_AfterBackupsStorageChanged_StartsStreamerOnNewStorage(t *tes
 	dropStreamerSlotOnCleanup(t, prereqs)
 
 	backupConfigService := backups_config_physical.GetBackupConfigService()
-	newStorage := storages.CreateTestStorage(prereqs.Workspace.ID)
+	newStorage := storages_bridge.CreateTestStorage(prereqs.Workspace.ID)
 
 	t.Cleanup(func() {
 		physical_testing.DeleteAllPhysicalCatalogForDatabase(t, prereqs.DB.ID)
@@ -596,11 +596,11 @@ func Test_Reconcile_AfterBackupsStorageChanged_StartsStreamerOnNewStorage(t *tes
 
 		restoredConfig := *prereqs.Config
 		restoredConfig.StorageID = &prereqs.Storage.ID
-		restoredConfig.Storage = prereqs.Storage
+		restoredConfig.Storage = &backups_config_physical.BackupConfigStorage{ID: prereqs.Storage.ID}
 		_, err := backupConfigService.SaveBackupConfig(context.Background(), &restoredConfig)
 		require.NoError(t, err)
 
-		storages.RemoveTestStorage(context.Background(), newStorage.ID)
+		storages_bridge.RemoveTestStorage(context.Background(), newStorage.ID)
 	})
 
 	supervisor, ctx := startReconcilingSupervisor(t)
@@ -610,7 +610,7 @@ func Test_Reconcile_AfterBackupsStorageChanged_StartsStreamerOnNewStorage(t *tes
 
 	movedConfig := *prereqs.Config
 	movedConfig.StorageID = &newStorage.ID
-	movedConfig.Storage = newStorage
+	movedConfig.Storage = &backups_config_physical.BackupConfigStorage{ID: newStorage.ID}
 	_, err := backupConfigService.SaveBackupConfig(t.Context(), &movedConfig)
 	require.NoError(t, err)
 

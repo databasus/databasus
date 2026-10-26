@@ -2,15 +2,16 @@ import { InfoCircleOutlined } from '@ant-design/icons';
 import { Input, Tooltip } from 'antd';
 import { useTranslation } from 'react-i18next';
 
-import type { Storage } from '../../../../../entity/storages';
+import type { RcloneStorageSettings } from '../../../../../entity/storages';
+import { toOptionalValue } from '../../../../../shared/lib';
 
 interface Props {
-  storage: Storage;
-  setStorage: (storage: Storage) => void;
-  setUnsaved: () => void;
+  settings: RcloneStorageSettings;
+  isSaved: boolean;
+  onChange: (settings: RcloneStorageSettings) => void;
 }
 
-export function EditRcloneStorageComponent({ storage, setStorage, setUnsaved }: Props) {
+export function EditRcloneStorageComponent({ settings, isSaved, onChange }: Props) {
   const { t } = useTranslation();
 
   return (
@@ -20,18 +21,9 @@ export function EditRcloneStorageComponent({ storage, setStorage, setUnsaved }: 
         <div className="flex w-full flex-col">
           <div className="flex items-start">
             <Input.TextArea
-              value={storage?.rcloneStorage?.configContent || ''}
+              value={settings.configContent || ''}
               onChange={(e) => {
-                if (!storage?.rcloneStorage) return;
-
-                setStorage({
-                  ...storage,
-                  rcloneStorage: {
-                    ...storage.rcloneStorage,
-                    configContent: e.target.value,
-                  },
-                });
-                setUnsaved();
+                onChange({ ...settings, configContent: toOptionalValue(e.target.value) });
               }}
               className="w-full max-w-[400px] font-mono text-xs"
               // eslint-disable-next-line i18next/no-literal-string -- rclone.conf example, not copy
@@ -52,7 +44,7 @@ region = us-east-1`}
         </div>
       </div>
 
-      {!storage?.id && (
+      {!isSaved && (
         <div className="mb-2 flex items-center">
           <div className="hidden min-w-[110px] sm:block" />
 
@@ -76,18 +68,9 @@ region = us-east-1`}
         <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">{t('storages.fields.remotePath')}</div>
         <div className="flex items-center">
           <Input
-            value={storage?.rcloneStorage?.remotePath || ''}
+            value={settings.remotePath || ''}
             onChange={(e) => {
-              if (!storage?.rcloneStorage) return;
-
-              setStorage({
-                ...storage,
-                rcloneStorage: {
-                  ...storage.rcloneStorage,
-                  remotePath: e.target.value.trim(),
-                },
-              });
-              setUnsaved();
+              onChange({ ...settings, remotePath: toOptionalValue(e.target.value.trim()) });
             }}
             size="small"
             className="w-full max-w-[250px]"

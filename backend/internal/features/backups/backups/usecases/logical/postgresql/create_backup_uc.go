@@ -23,8 +23,8 @@ import (
 	"databasus-backend/internal/features/databases"
 	pgtypes "databasus-backend/internal/features/databases/databases/postgresql/logical"
 	postgresql_shared "databasus-backend/internal/features/databases/databases/postgresql/shared"
-	storage_files "databasus-backend/internal/features/storages/files"
 	"databasus-backend/internal/lib/crypto"
+	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/util/encryption"
 	"databasus-backend/internal/util/namelist"
 	"databasus-backend/internal/util/tools"
@@ -186,13 +186,11 @@ func (uc *CreatePostgresqlBackupUsecase) streamToStorage(
 		return nil, fmt.Errorf("start %s: %w", filepath.Base(pgBin), err)
 	}
 
-	fileWrite := storage_files.StartBackgroundWrite(
-		ctx,
-		fileStore,
-		storage_files.StoredFileReference{StorageID: backup.StorageID, FileName: backup.FileName},
-		storageReader,
-		cancel,
-	)
+	fileWrite := fileStore.StartBackgroundWrite(ctx, storages.BackgroundWriteSpec{
+		Reference: storages.StoredFileReference{StorageID: backup.StorageID, FileName: backup.FileName},
+		Source:    storageReader,
+		OnFailure: cancel,
+	})
 
 	copyResultCh := make(chan error, 1)
 	bytesWrittenCh := make(chan int64, 1)
@@ -261,7 +259,7 @@ func (uc *CreatePostgresqlBackupUsecase) streamToStorage(
 
 	return &backups_core_logical.BackupArtifacts{
 		Metadata: &backupMetadata,
-		Receipts: []storage_files.WriteReceipt{<-fileWrite.Receipts},
+		Receipts: []storages.WriteReceipt{<-fileWrite.Receipts},
 	}, nil
 }
 

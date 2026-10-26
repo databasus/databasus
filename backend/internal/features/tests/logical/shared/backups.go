@@ -18,7 +18,6 @@ import (
 	"databasus-backend/internal/features/backups/backups/download/download_token"
 	backups_dto_logical "databasus-backend/internal/features/backups/backups/dto/logical"
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
-	"databasus-backend/internal/features/storages"
 	test_utils "databasus-backend/internal/util/testing"
 )
 
@@ -42,9 +41,8 @@ func EnableBackupsViaAPI(
 		&backupConfig,
 	)
 
-	storage := &storages.Storage{ID: storageID}
 	backupConfig.IsBackupsEnabled = true
-	backupConfig.Storage = storage
+	backupConfig.Storage = &backups_config_logical.BackupConfigStorage{ID: storageID}
 	backupConfig.Encryption = encryption
 
 	test_utils.MakePostRequest(

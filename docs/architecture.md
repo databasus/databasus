@@ -160,7 +160,7 @@ Audit events are written through `lib/audit` in the transaction of the operation
   - `UNIQUE` and partial unique indexes for "at most one" rules;
   - a composite foreign key `(id, type)`, so a provider row cannot attach to a parent of another type;
   - for a row that references one of two kinds of entities, two nullable foreign keys and `CHECK (num_nonnulls(a_id, b_id) = 1)`, never an untyped `(kind, id)` pair.
-- **Types.** Lists are `text[]`. JSON is stored as `JSONB`, and only for data we treat as opaque, such as an OAuth token or webhook headers. Time is `TIMESTAMPTZ`. All time is UTC: in Go, in the database session, in the API and in logs. Identifiers are UUIDs with `DEFAULT gen_random_uuid()`. A row that continues another row of the same module takes that row's ID as its primary key.
+- **Types.** Lists are `text[]`. JSON is stored as `JSONB`, and only for data we treat as opaque and store in clear, such as webhook headers. Time is `TIMESTAMPTZ`. All time is UTC: in Go, in the database session, in the API and in logs. Identifiers are UUIDs with `DEFAULT gen_random_uuid()`. A row that continues another row of the same module takes that row's ID as its primary key.
 - **Transactions travel in the context.** A service opens one with `Transaction(ctx, fn)` of the `*database.Transactor` it takes through `Deps`, and every repository call made with that context, in any module, joins it, because a repository runs its queries through `database.Conn(ctx, r.db)`. Transactions are never passed as parameters. Background work that outlives its caller, such as a notification delivery, detaches from the caller's transaction with `database.WithoutTransaction(ctx)` and runs its queries on the pool. The transactor is built in `internal/app` from the pool, so a service never holds the pool itself.
 - **Repository methods** are named after what their SQL does. When a lookup finds no row, or a conditional `UPDATE` touches none, the method returns `false` as its second value, as in `(Backup, bool, error)`. The service decides which error the client sees. A repository wraps a database error with the operation's name and never returns `gorm.ErrRecordNotFound`.
 - **One column changes with one `UPDATE`.** A status, a timestamp or a counter is never written by re-saving the whole row.
@@ -178,7 +178,7 @@ Audit events are written through `lib/audit` in the transaction of the operation
 
 ## Stored files
 
-Backup code never calls a storage provider directly. Every write and delete goes through the file store of the `storages` module.
+Backup code never calls a storage provider directly. Every write and delete goes through the file store of the `storages` module, and every read goes through its storage reader.
 
 - `WriteFile` records a pending deletion before the first byte leaves and returns a write receipt. The transaction that publishes the backup spends the receipt, which keeps the file. Any other outcome leaves the pending deletion in place, and the deletion worker removes the file. That covers a provider error, a crash, a rolled-back publication and a cancellation. A terminal failure asks for the deletion in the same transaction that records the failure.
 - Every write attempt gets its own object name, because a retry that reused a name would address an object a pending deletion already owns.
@@ -276,4 +276,4 @@ The verification agent is a CLI worker that runs on a machine the user provides.
 
 `mise run lint` runs all of them; `mise run backend:lint` runs all but the freshness check of the frontend types. The linters check test files too. The `archlint` rules on imports, the module root, file roles, errors and bare `go` check production files only: a module's API tests build the whole application through `apptest`, which sits above the modules, and tests start goroutines of their own to drive concurrent calls.
 
-`gochecknoglobals` arrives once no package-level dependencies remain. Until a module moves into the layout above, its code keeps the golangci-lint checks it had before these rules, and its test files are not linted; `backend/.golangci.yml` names the target layout. Only the production-binary rule, the testhelpers build tag rule and the rule against direct provider writes in the old backup code of `archlint` reach that code.
+`gochecknoglobals` arrives once no package-level dependencies remain. Until a module moves into the layout above, its code keeps the golangci-lint checks it had before these rules, and its test files are not linted; `backend/.golangci.yml` names the target layout. Only the production-binary rule and the testhelpers build tag rule of `archlint` reach that code.

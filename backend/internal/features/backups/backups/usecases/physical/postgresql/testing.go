@@ -6,8 +6,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"path/filepath"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -27,11 +29,11 @@ import (
 	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
 	"databasus-backend/internal/features/intervals"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
-	"databasus-backend/internal/features/storages"
-	storage_files "databasus-backend/internal/features/storages/files"
+	storages_bridge "databasus-backend/internal/features/storages"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
 	"databasus-backend/internal/modules/notifiers"
+	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/storage"
 	"databasus-backend/internal/util/encryption"
@@ -49,7 +51,7 @@ import (
 type PhysicalDBFixture struct {
 	Owner     *users_testing.TestUser
 	Workspace *workspaces_testing.TestWorkspace
-	Storage   *storages.Storage
+	Storage   storages.Storage
 	Notifier  *notifiers.Notifier
 	DB        *databases.Database
 	BackupID  uuid.UUID
@@ -215,8 +217,8 @@ func wirePhysicalDBFixture(
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner)
 	t.Cleanup(func() { workspaces_testing.RemoveTestWorkspace(context.Background(), workspace) })
 
-	testStorage := storages.CreateTestStorage(workspace.ID)
-	t.Cleanup(func() { storages.RemoveTestStorage(t.Context(), testStorage.ID) })
+	testStorage := storages_bridge.CreateTestStorage(workspace.ID)
+	t.Cleanup(func() { storages_bridge.RemoveTestStorage(t.Context(), testStorage.ID) })
 
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
 	t.Cleanup(func() { notifiers_bridge.RemoveTestNotifier(notifier) })
@@ -276,7 +278,6 @@ func setupPhysicalFixture(
 
 	cfg.IsBackupsEnabled = true
 	cfg.StorageID = &fixture.Storage.ID
-	cfg.Storage = fixture.Storage
 	cfg.Encryption = backups_core_enums.BackupEncryptionNone
 	cfg.PostgresqlPhysical = fixture.DB.PostgresqlPhysical
 	cfg.FullBackupInterval = intervals.Interval{
@@ -783,44 +784,120 @@ type WalStreamerForTest struct {
 	Stop       func()
 }
 
-// fixedStorageLocator resolves every storage ID to the one saver a test handed in,
-// so the store writes and deletes exactly where the test can observe it.
-type fixedStorageLocator struct {
-	storage storages.StorageFileSaver
+// FakeFileStorage is where a FakeFileStore keeps its files, so a test can fail, hold or count a
+// write that a real provider cannot be made to.
+type FakeFileStorage interface {
+	SaveFile(ctx context.Context, fileName string, content io.Reader) error
+	DeleteFile(ctx context.Context, fileName string) error
 }
 
-func (l fixedStorageLocator) GetFileWriter(
-	context.Context, uuid.UUID,
-) (storage_files.FileWriter, error) {
-	return l.storage, nil
+// FakeFileStore stands in for the file store of the storages module. It keeps the obligation to
+// delete each file in memory: a write leaves its file pending until ConfirmFileWrites claims it, a
+// deletion request makes a file pending again, and DrainFileDeletions removes what is pending, as the
+// module's deletion job does.
+type FakeFileStore struct {
+	storage FakeFileStorage
+
+	mutex                        sync.Mutex
+	pendingDeletionIDsByFileName map[string]uuid.UUID
 }
 
-func (l fixedStorageLocator) GetFileReader(
-	context.Context, uuid.UUID,
-) (storage_files.FileReader, error) {
-	return l.storage, nil
+func NewFakeFileStore(storage FakeFileStorage) *FakeFileStore {
+	return &FakeFileStore{
+		storage:                      storage,
+		mutex:                        sync.Mutex{},
+		pendingDeletionIDsByFileName: map[string]uuid.UUID{},
+	}
 }
 
-func (l fixedStorageLocator) GetFileRemover(
-	context.Context, uuid.UUID,
-) (storage_files.FileRemover, error) {
-	return l.storage, nil
+func (f *FakeFileStore) WriteFile(
+	ctx context.Context,
+	reference storages.StoredFileReference,
+	file io.Reader,
+) (storages.WriteReceipt, error) {
+	pendingDeletionID := f.markPending(reference.FileName)
+
+	err := f.storage.SaveFile(ctx, reference.FileName, file)
+	if err != nil {
+		return storages.WriteReceipt{}, err
+	}
+
+	return storages.WriteReceipt{PendingDeletionID: pendingDeletionID, Reference: reference, Generation: 0}, nil
 }
 
-func NewTestFileStore(saver storages.StorageFileSaver) *storage_files.Store {
-	return storage_files.NewStore(storage_files.Dependencies{
-		Repository:     &storage_files.PendingDeletionRepository{},
-		Locator:        fixedStorageLocator{storage: saver},
-		FieldEncryptor: encryption.GetFieldEncryptor(),
-		Logger:         logger.GetLogger(),
-		Timings:        storage_files.TimingsForTest(),
-	})
+func (f *FakeFileStore) StartBackgroundWrite(
+	ctx context.Context,
+	spec storages.BackgroundWriteSpec,
+) storages.BackgroundWrite {
+	return storages_bridge.StartFakeBackgroundWrite(ctx, f.WriteFile, spec)
+}
+
+func (f *FakeFileStore) ConfirmFileWrites(_ context.Context, receipts []storages.WriteReceipt) error {
+	f.mutex.Lock()
+	defer f.mutex.Unlock()
+
+	for _, receipt := range receipts {
+		if f.pendingDeletionIDsByFileName[receipt.Reference.FileName] != receipt.PendingDeletionID {
+			return fmt.Errorf("write receipt of %s no longer matches its pending deletion", receipt.Reference.FileName)
+		}
+	}
+
+	for _, receipt := range receipts {
+		delete(f.pendingDeletionIDsByFileName, receipt.Reference.FileName)
+	}
+
+	return nil
+}
+
+func (f *FakeFileStore) RequestFileDeletions(_ context.Context, references []storages.StoredFileReference) error {
+	for _, reference := range references {
+		if reference.FileName != "" {
+			f.markPending(reference.FileName)
+		}
+	}
+
+	return nil
+}
+
+// DrainFileDeletions removes the named files that are still pending deletion.
+func (f *FakeFileStore) DrainFileDeletions(ctx context.Context, references ...storages.StoredFileReference) error {
+	for _, reference := range references {
+		f.mutex.Lock()
+		_, isPending := f.pendingDeletionIDsByFileName[reference.FileName]
+		f.mutex.Unlock()
+
+		if !isPending {
+			continue
+		}
+
+		err := f.storage.DeleteFile(ctx, reference.FileName)
+		if err != nil {
+			return err
+		}
+
+		f.mutex.Lock()
+		delete(f.pendingDeletionIDsByFileName, reference.FileName)
+		f.mutex.Unlock()
+	}
+
+	return nil
+}
+
+func (f *FakeFileStore) markPending(fileName string) uuid.UUID {
+	f.mutex.Lock()
+	defer f.mutex.Unlock()
+
+	pendingDeletionID := uuid.New()
+	f.pendingDeletionIDsByFileName[fileName] = pendingDeletionID
+
+	return pendingDeletionID
 }
 
 type WalStreamerTestSpec struct {
-	Fixture                   *PhysicalDBFixture
-	Storage                   storages.StorageFileSaver
-	FileStore                 *storage_files.Store
+	Fixture *PhysicalDBFixture
+	// FileStore is a FakeFileStore, or the storages module for a test that writes to the fixture's
+	// storage.
+	FileStore                 FileStore
 	WatchDirRoot              string
 	WalLagThresholdBytes      int64
 	ForcedRotationInterval    time.Duration
@@ -848,10 +925,6 @@ func StartWalStreamerForTest(t *testing.T, spec WalStreamerTestSpec) *WalStreame
 	t.Cleanup(func() {
 		DropReplicationSlotExternally(t, adminConn, fixture.DB.PostgresqlPhysical.ReplicationSlotName)
 	})
-
-	if spec.FileStore == nil {
-		spec.FileStore = NewTestFileStore(spec.Storage)
-	}
 
 	supervisor := NewWalStreamSupervisor(WalStreamSpec{
 		DatabaseID:                fixture.DB.ID,

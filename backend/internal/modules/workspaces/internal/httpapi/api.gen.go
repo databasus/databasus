@@ -394,6 +394,9 @@ type NotifierId = openapi_types.UUID
 // PendingSignInId defines model for PendingSignInId.
 type PendingSignInId = openapi_types.UUID
 
+// StorageId defines model for StorageId.
+type StorageId = openapi_types.UUID
+
 // UserId defines model for UserId.
 type UserId = openapi_types.UUID
 

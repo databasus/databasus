@@ -14,7 +14,7 @@ import (
 	"databasus-backend/internal/features/databases"
 	"databasus-backend/internal/features/intervals"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
-	"databasus-backend/internal/features/storages"
+	storages_bridge "databasus-backend/internal/features/storages"
 	users_testing "databasus-backend/internal/features/users/testing"
 	verification_agents "databasus-backend/internal/features/verification/agents"
 	verification_config "databasus-backend/internal/features/verification/config"
@@ -62,13 +62,13 @@ func Test_CreateScheduledRuns_WhenMultipleBackupsExist_PicksLatestForVerificatio
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner)
 	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
-	testStorage := storages.CreateTestStorage(workspace.ID)
-	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
+	testStorage := storages_bridge.CreateTestStorage(workspace.ID)
+	defer storages_bridge.RemoveTestStorage(t.Context(), testStorage.ID)
 
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
 	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
-	database := databases.CreateTestDatabase(workspace.ID, testStorage, notifier)
+	database := databases.CreateTestDatabase(workspace.ID, notifier)
 	defer databases.RemoveTestDatabase(t.Context(), database)
 
 	older := backuping_logical.SeedTestBackup(t, database.ID, testStorage.ID, 50)
@@ -95,13 +95,13 @@ func Test_CreateScheduledRuns_WhenScheduledPendingAlreadyExists_DoesNotInsertNew
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner)
 	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
-	testStorage := storages.CreateTestStorage(workspace.ID)
-	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
+	testStorage := storages_bridge.CreateTestStorage(workspace.ID)
+	defer storages_bridge.RemoveTestStorage(t.Context(), testStorage.ID)
 
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
 	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
-	database := databases.CreateTestDatabase(workspace.ID, testStorage, notifier)
+	database := databases.CreateTestDatabase(workspace.ID, notifier)
 	defer databases.RemoveTestDatabase(t.Context(), database)
 
 	backuping_logical.SeedTestBackup(t, database.ID, testStorage.ID, 100)
@@ -122,13 +122,13 @@ func Test_CreateScheduledRuns_WhenManualPendingExists_StillCreatesScheduledRun(t
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner)
 	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
-	testStorage := storages.CreateTestStorage(workspace.ID)
-	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
+	testStorage := storages_bridge.CreateTestStorage(workspace.ID)
+	defer storages_bridge.RemoveTestStorage(t.Context(), testStorage.ID)
 
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
 	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
-	database := databases.CreateTestDatabase(workspace.ID, testStorage, notifier)
+	database := databases.CreateTestDatabase(workspace.ID, notifier)
 	defer databases.RemoveTestDatabase(t.Context(), database)
 
 	backup := backuping_logical.SeedTestBackup(t, database.ID, testStorage.ID, 100)
@@ -166,13 +166,13 @@ func Test_ReapStaleRuns_WhenPendingExceedsMaxDuration_MarksFailedWithoutRetry(t 
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner)
 	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
-	testStorage := storages.CreateTestStorage(workspace.ID)
-	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
+	testStorage := storages_bridge.CreateTestStorage(workspace.ID)
+	defer storages_bridge.RemoveTestStorage(t.Context(), testStorage.ID)
 
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
 	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
-	database := databases.CreateTestDatabase(workspace.ID, testStorage, notifier)
+	database := databases.CreateTestDatabase(workspace.ID, notifier)
 	defer databases.RemoveTestDatabase(t.Context(), database)
 
 	backup := backuping_logical.SeedTestBackup(t, database.ID, testStorage.ID, 100)
@@ -200,13 +200,13 @@ func Test_ReapStaleRuns_WhenOwningAgentRemoved_RequeuesThenRetiresIfUnclaimed(t 
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner)
 	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
-	testStorage := storages.CreateTestStorage(workspace.ID)
-	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
+	testStorage := storages_bridge.CreateTestStorage(workspace.ID)
+	defer storages_bridge.RemoveTestStorage(t.Context(), testStorage.ID)
 
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
 	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
-	database := databases.CreateTestDatabase(workspace.ID, testStorage, notifier)
+	database := databases.CreateTestDatabase(workspace.ID, notifier)
 	defer databases.RemoveTestDatabase(t.Context(), database)
 
 	backup := backuping_logical.SeedTestBackup(t, database.ID, testStorage.ID, 100)
@@ -262,13 +262,13 @@ func Test_ReapStaleRuns_WhenAgentLostContactWithRetriesRemaining_RequeuesVerific
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner)
 	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
-	testStorage := storages.CreateTestStorage(workspace.ID)
-	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
+	testStorage := storages_bridge.CreateTestStorage(workspace.ID)
+	defer storages_bridge.RemoveTestStorage(t.Context(), testStorage.ID)
 
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
 	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
-	database := databases.CreateTestDatabase(workspace.ID, testStorage, notifier)
+	database := databases.CreateTestDatabase(workspace.ID, notifier)
 	defer databases.RemoveTestDatabase(t.Context(), database)
 
 	enableHourlyVerificationViaAPI(t, router, owner.Token, database.ID)
@@ -310,13 +310,13 @@ func Test_ReapStaleRuns_WhenPendingExceedsMaxDuration_MarksTerminalRegardlessOfP
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner)
 	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
-	testStorage := storages.CreateTestStorage(workspace.ID)
-	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
+	testStorage := storages_bridge.CreateTestStorage(workspace.ID)
+	defer storages_bridge.RemoveTestStorage(t.Context(), testStorage.ID)
 
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
 	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
-	database := databases.CreateTestDatabase(workspace.ID, testStorage, notifier)
+	database := databases.CreateTestDatabase(workspace.ID, notifier)
 	defer databases.RemoveTestDatabase(t.Context(), database)
 
 	enableHourlyVerificationViaAPI(t, router, owner.Token, database.ID)
@@ -346,13 +346,13 @@ func Test_CancelAutomaticVerificationsForDisabledSchedules_WhenScheduledVerifica
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner)
 	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
-	testStorage := storages.CreateTestStorage(workspace.ID)
-	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
+	testStorage := storages_bridge.CreateTestStorage(workspace.ID)
+	defer storages_bridge.RemoveTestStorage(t.Context(), testStorage.ID)
 
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
 	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
-	database := databases.CreateTestDatabase(workspace.ID, testStorage, notifier)
+	database := databases.CreateTestDatabase(workspace.ID, notifier)
 	defer databases.RemoveTestDatabase(t.Context(), database)
 
 	backuping_logical.SeedTestBackup(t, database.ID, testStorage.ID, 100)
@@ -389,13 +389,13 @@ func Test_CancelAutomaticVerificationsForDisabledSchedules_WhenManualVerificatio
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner)
 	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
-	testStorage := storages.CreateTestStorage(workspace.ID)
-	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
+	testStorage := storages_bridge.CreateTestStorage(workspace.ID)
+	defer storages_bridge.RemoveTestStorage(t.Context(), testStorage.ID)
 
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
 	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
-	database := databases.CreateTestDatabase(workspace.ID, testStorage, notifier)
+	database := databases.CreateTestDatabase(workspace.ID, notifier)
 	defer databases.RemoveTestDatabase(t.Context(), database)
 
 	verification_config.SaveVerificationConfigViaAPI(t, router, owner.Token, database.ID,
@@ -426,13 +426,13 @@ func Test_CancelAutomaticVerificationsForDisabledSchedules_WhenManualVerificatio
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner)
 	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
-	testStorage := storages.CreateTestStorage(workspace.ID)
-	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
+	testStorage := storages_bridge.CreateTestStorage(workspace.ID)
+	defer storages_bridge.RemoveTestStorage(t.Context(), testStorage.ID)
 
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
 	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
-	database := databases.CreateTestDatabase(workspace.ID, testStorage, notifier)
+	database := databases.CreateTestDatabase(workspace.ID, notifier)
 	defer databases.RemoveTestDatabase(t.Context(), database)
 
 	verification_config.SaveVerificationConfigViaAPI(t, router, owner.Token, database.ID,
@@ -489,13 +489,13 @@ func Test_CancelAutomaticVerificationsForDisabledSchedules_WhenAutomaticVerifica
 
 			defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
-			testStorage := storages.CreateTestStorage(workspace.ID)
-			defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
+			testStorage := storages_bridge.CreateTestStorage(workspace.ID)
+			defer storages_bridge.RemoveTestStorage(t.Context(), testStorage.ID)
 
 			notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
 			defer notifiers_bridge.RemoveTestNotifier(notifier)
 
-			database := databases.CreateTestDatabase(workspace.ID, testStorage, notifier)
+			database := databases.CreateTestDatabase(workspace.ID, notifier)
 			defer databases.RemoveTestDatabase(t.Context(), database)
 
 			backup := backuping_logical.SeedTestBackup(t, database.ID, testStorage.ID, 100)
@@ -567,13 +567,13 @@ func Test_CancelAutomaticVerificationsForDisabledSchedules_WhenManualAndAutomati
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner)
 	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
-	testStorage := storages.CreateTestStorage(workspace.ID)
-	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
+	testStorage := storages_bridge.CreateTestStorage(workspace.ID)
+	defer storages_bridge.RemoveTestStorage(t.Context(), testStorage.ID)
 
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
 	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
-	database := databases.CreateTestDatabase(workspace.ID, testStorage, notifier)
+	database := databases.CreateTestDatabase(workspace.ID, notifier)
 	defer databases.RemoveTestDatabase(t.Context(), database)
 
 	backup := backuping_logical.SeedTestBackup(t, database.ID, testStorage.ID, 100)
@@ -626,13 +626,13 @@ func Test_CreateScheduledRuns_AfterUserCancel_DoesNotImmediatelyRecreate(t *test
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner)
 	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
-	testStorage := storages.CreateTestStorage(workspace.ID)
-	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
+	testStorage := storages_bridge.CreateTestStorage(workspace.ID)
+	defer storages_bridge.RemoveTestStorage(t.Context(), testStorage.ID)
 
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
 	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
-	database := databases.CreateTestDatabase(workspace.ID, testStorage, notifier)
+	database := databases.CreateTestDatabase(workspace.ID, notifier)
 	defer databases.RemoveTestDatabase(t.Context(), database)
 
 	backuping_logical.SeedTestBackup(t, database.ID, testStorage.ID, 100)
@@ -666,13 +666,13 @@ func Test_CreateScheduledRuns_AfterUserCancel_DoesNotRequeueOrRestart(t *testing
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner)
 	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
-	testStorage := storages.CreateTestStorage(workspace.ID)
-	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
+	testStorage := storages_bridge.CreateTestStorage(workspace.ID)
+	defer storages_bridge.RemoveTestStorage(t.Context(), testStorage.ID)
 
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
 	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
-	database := databases.CreateTestDatabase(workspace.ID, testStorage, notifier)
+	database := databases.CreateTestDatabase(workspace.ID, notifier)
 	defer databases.RemoveTestDatabase(t.Context(), database)
 
 	backuping_logical.SeedTestBackup(t, database.ID, testStorage.ID, 100)

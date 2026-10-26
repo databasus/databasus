@@ -69,13 +69,6 @@ type previousMemberRequest struct {
 	Role  string `json:"role"`
 }
 
-type previousStorageRequest struct {
-	WorkspaceID  string   `json:"workspaceId"`
-	Type         string   `json:"type"`
-	Name         string   `json:"name"`
-	LocalStorage struct{} `json:"localStorage"`
-}
-
 type previousDatabaseRequest struct {
 	WorkspaceID       string                       `json:"workspaceId"`
 	Name              string                       `json:"name"`
@@ -124,8 +117,9 @@ type previousBackup struct {
 }
 
 // writeUpgradeData creates through the previous release what a user has after a while: an account,
-// a workspace with two more members, one of them a second owner, a storage, one notifier of every
-// type, a database that uses all of them with an encrypted backup config, and one completed backup.
+// a workspace with two more members, one of them a second owner, one storage and one notifier of every
+// type, a database that uses every notifier and the local storage with an encrypted backup config,
+// and one completed backup.
 func writeUpgradeData(t *testing.T, api *apiClient) (writtenUpgradeData, error) {
 	t.Helper()
 
@@ -156,16 +150,9 @@ func writeUpgradeData(t *testing.T, api *apiClient) (writtenUpgradeData, error) 
 		return writtenUpgradeData{}, err
 	}
 
-	var storage previousCreatedItem
-
-	err = api.post(ctx, "/storages", previousStorageRequest{
-		WorkspaceID:  workspace.ID,
-		Type:         "LOCAL",
-		Name:         storageName,
-		LocalStorage: struct{}{},
-	}, &storage)
+	storageItems, localStorageID, err := createStorages(ctx, api, workspace.ID)
 	if err != nil {
-		return writtenUpgradeData{}, fmt.Errorf("create the storage: %w", err)
+		return writtenUpgradeData{}, err
 	}
 
 	notifierItems, notifierReferences, err := createNotifiers(ctx, api, workspace.ID)
@@ -196,7 +183,7 @@ func writeUpgradeData(t *testing.T, api *apiClient) (writtenUpgradeData, error) 
 		return writtenUpgradeData{}, fmt.Errorf("create the database: %w", err)
 	}
 
-	err = switchOnEncryptedBackups(ctx, api, database.ID, storage.ID)
+	err = switchOnEncryptedBackups(ctx, api, database.ID, localStorageID)
 	if err != nil {
 		return writtenUpgradeData{}, err
 	}
@@ -218,7 +205,6 @@ func writeUpgradeData(t *testing.T, api *apiClient) (writtenUpgradeData, error) 
 			{Kind: "workspace member", Name: accountEmail, Values: map[string]string{"role": "WORKSPACE_OWNER"}},
 			{Kind: "workspace member", Name: memberEmail, Values: map[string]string{"role": memberRole}},
 			{Kind: "workspace member", Name: secondOwnerEmail, Values: map[string]string{"role": "WORKSPACE_ADMIN"}},
-			{Kind: "storage", Name: storageName, Values: map[string]string{"id": storage.ID, "type": "LOCAL"}},
 			{Kind: "database", Name: databaseName, Values: map[string]string{
 				"id":       database.ID,
 				"type":     "POSTGRES_LOGICAL",
@@ -230,7 +216,7 @@ func writeUpgradeData(t *testing.T, api *apiClient) (writtenUpgradeData, error) 
 			}},
 			{Kind: "backup config", Name: databaseName, Values: map[string]string{
 				"isBackupsEnabled": "true",
-				"storageId":        storage.ID,
+				"storageId":        localStorageID,
 				"encryption":       backupEncryption,
 			}},
 			{Kind: "backup", Name: backup.ID, Values: map[string]string{
@@ -238,7 +224,7 @@ func writeUpgradeData(t *testing.T, api *apiClient) (writtenUpgradeData, error) 
 				"encryption": backupEncryption,
 			}},
 			newDatabaseNotifiersItem(notifierItems),
-		}, notifierItems, auditEventItems),
+		}, storageItems, notifierItems, auditEventItems),
 		databaseID: database.ID,
 		backupID:   backup.ID,
 	}, nil

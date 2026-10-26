@@ -19,7 +19,6 @@ import (
 	restores_core "databasus-backend/internal/features/restores/core"
 	"databasus-backend/internal/features/restores/restoring"
 	"databasus-backend/internal/features/restores/usecases"
-	"databasus-backend/internal/features/storages"
 	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
 	workspaces_bridge "databasus-backend/internal/features/workspaces"
 	"databasus-backend/internal/modules/users"
@@ -31,7 +30,6 @@ import (
 type RestoreService struct {
 	backupService             *backups_services.LogicalBackupService
 	restoreRepository         *restores_core.RestoreRepository
-	storageService            *storages.StorageService
 	backupConfigService       *backups_config_logical.BackupConfigService
 	restoreBackupUsecase      *usecases.RestoreBackupUsecase
 	databaseService           *databases.DatabaseService

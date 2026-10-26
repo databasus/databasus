@@ -1,6 +1,10 @@
 package apptest
 
-import "time"
+import (
+	"time"
+
+	"databasus-backend/internal/modules/storages"
+)
 
 // Option changes the test application before it is built.
 type Option func(*settings)
@@ -14,6 +18,8 @@ type settings struct {
 	// notificationDeliveryTimeout is zero for the timeout the server uses.
 	notificationDeliveryTimeout time.Duration
 	notifierEndpoints           NotifierEndpoints
+	// fileTimings is nil for the timings the server uses.
+	fileTimings *storages.FileTimings
 }
 
 // NotifierEndpoints are the addresses a test points the Slack and Telegram notifiers at.
@@ -42,6 +48,14 @@ func WithNotifierEndpoints(endpoints NotifierEndpoints) Option {
 		if endpoints.TelegramBotAPIURL != "" {
 			applied.notifierEndpoints.TelegramBotAPIURL = endpoints.TelegramBotAPIURL
 		}
+	}
+}
+
+// WithFileTimings builds an instance whose stored files and their cleanup follow timings, so a test
+// can make a retry due or a commit window pass by moving the clock a short way.
+func WithFileTimings(timings storages.FileTimings) Option {
+	return func(applied *settings) {
+		applied.fileTimings = &timings
 	}
 }
 

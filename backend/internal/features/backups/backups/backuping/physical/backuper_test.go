@@ -18,12 +18,11 @@ import (
 	postgresql_executor "databasus-backend/internal/features/backups/backups/usecases/physical/postgresql"
 	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
 	"databasus-backend/internal/features/databases"
-	"databasus-backend/internal/features/storages"
-	storage_files "databasus-backend/internal/features/storages/files"
+	storages_bridge "databasus-backend/internal/features/storages"
 	workspaces_bridge "databasus-backend/internal/features/workspaces"
 	"databasus-backend/internal/modules/notifiers"
+	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/storage"
-	"databasus-backend/internal/util/encryption"
 	"databasus-backend/internal/util/logger"
 	"databasus-backend/internal/util/walmath"
 )
@@ -923,9 +922,9 @@ func Test_PersistFullResult_WhenCompleted_KeepsTheFilesTheAttemptWrote(t *testin
 
 	fileName := "physical-completed-" + fullBackup.ID.String()
 
-	receipt, err := storages.GetStorageFileStore().WriteFile(
+	receipt, err := storages_bridge.GetModule().WriteFile(
 		t.Context(),
-		storage_files.StoredFileReference{StorageID: prereqs.Storage.ID, FileName: fileName},
+		storages.StoredFileReference{StorageID: prereqs.Storage.ID, FileName: fileName},
 		strings.NewReader("physical artifact"),
 	)
 	require.NoError(t, err)
@@ -933,18 +932,19 @@ func Test_PersistFullResult_WhenCompleted_KeepsTheFilesTheAttemptWrote(t *testin
 	result := postgresql_executor.PhysicalBackupResult{
 		Status:      physical_enums.PhysicalBackupStatusCompleted,
 		FileName:    fileName,
-		Receipts:    []storage_files.WriteReceipt{receipt},
+		Receipts:    []storages.WriteReceipt{receipt},
 		CompletedAt: time.Now().UTC(),
 	}
 
 	require.NoError(t, backuper.persistFullResult(t.Context(), fullBackup, result, nil))
 
-	require.NoError(t, storages.DrainStorageFileDeletions(t.Context(),
-		storage_files.StoredFileReference{StorageID: prereqs.Storage.ID, FileName: fileName},
+	require.NoError(t, storages_bridge.DrainStorageFileDeletions(t.Context(),
+		storages.StoredFileReference{StorageID: prereqs.Storage.ID, FileName: fileName},
 	))
 
-	reader, err := prereqs.Storage.GetFile(
-		t.Context(), encryption.GetFieldEncryptor(), logger.GetLogger(), fileName,
+	reader, err := storages_bridge.OpenTestFile(
+		t.Context(),
+		storages.StoredFileReference{StorageID: prereqs.Storage.ID, FileName: fileName},
 	)
 	require.NoError(t, err, "a published backup keeps its artifact")
 	require.NoError(t, reader.Close())
@@ -961,9 +961,9 @@ func Test_PersistFullResult_WhenCancelled_HandsTheFilesBackToCleanup(t *testing.
 	manifestName := fileName + ".manifest"
 
 	for _, name := range []string{fileName, manifestName} {
-		_, err := storages.GetStorageFileStore().WriteFile(
+		_, err := storages_bridge.GetModule().WriteFile(
 			t.Context(),
-			storage_files.StoredFileReference{StorageID: prereqs.Storage.ID, FileName: name},
+			storages.StoredFileReference{StorageID: prereqs.Storage.ID, FileName: name},
 			strings.NewReader("partial physical artifact"),
 		)
 		require.NoError(t, err)
@@ -978,14 +978,15 @@ func Test_PersistFullResult_WhenCancelled_HandsTheFilesBackToCleanup(t *testing.
 
 	require.NoError(t, backuper.persistFullResult(t.Context(), fullBackup, result, nil))
 
-	require.NoError(t, storages.DrainStorageFileDeletions(t.Context(),
-		storage_files.StoredFileReference{StorageID: prereqs.Storage.ID, FileName: fileName},
-		storage_files.StoredFileReference{StorageID: prereqs.Storage.ID, FileName: manifestName},
+	require.NoError(t, storages_bridge.DrainStorageFileDeletions(t.Context(),
+		storages.StoredFileReference{StorageID: prereqs.Storage.ID, FileName: fileName},
+		storages.StoredFileReference{StorageID: prereqs.Storage.ID, FileName: manifestName},
 	))
 
 	for _, name := range []string{fileName, manifestName} {
-		_, err := prereqs.Storage.GetFile(
-			t.Context(), encryption.GetFieldEncryptor(), logger.GetLogger(), name,
+		_, err := storages_bridge.OpenTestFile(
+			t.Context(),
+			storages.StoredFileReference{StorageID: prereqs.Storage.ID, FileName: name},
 		)
 		assert.Error(t, err, "%s must not survive a cancelled backup", name)
 	}
@@ -1000,9 +1001,9 @@ func Test_PersistFullResult_WhenFailed_HandsTheFilesBackToCleanup(t *testing.T) 
 
 	fileName := "physical-failed-" + fullBackup.ID.String()
 
-	_, err := storages.GetStorageFileStore().WriteFile(
+	_, err := storages_bridge.GetModule().WriteFile(
 		t.Context(),
-		storage_files.StoredFileReference{StorageID: prereqs.Storage.ID, FileName: fileName},
+		storages.StoredFileReference{StorageID: prereqs.Storage.ID, FileName: fileName},
 		strings.NewReader("partial physical artifact"),
 	)
 	require.NoError(t, err)
@@ -1018,12 +1019,13 @@ func Test_PersistFullResult_WhenFailed_HandsTheFilesBackToCleanup(t *testing.T) 
 
 	require.NoError(t, backuper.persistFullResult(t.Context(), fullBackup, result, nil))
 
-	require.NoError(t, storages.DrainStorageFileDeletions(t.Context(),
-		storage_files.StoredFileReference{StorageID: prereqs.Storage.ID, FileName: fileName},
+	require.NoError(t, storages_bridge.DrainStorageFileDeletions(t.Context(),
+		storages.StoredFileReference{StorageID: prereqs.Storage.ID, FileName: fileName},
 	))
 
-	_, err = prereqs.Storage.GetFile(
-		t.Context(), encryption.GetFieldEncryptor(), logger.GetLogger(), fileName,
+	_, err = storages_bridge.OpenTestFile(
+		t.Context(),
+		storages.StoredFileReference{StorageID: prereqs.Storage.ID, FileName: fileName},
 	)
 	assert.Error(t, err, "a failed physical backup must not leave its artifact behind")
 }

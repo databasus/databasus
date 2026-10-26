@@ -30,4 +30,10 @@ var (
 	ErrStorageWithoutID = errors.New(
 		"storage must be referenced by the identifier of an existing storage",
 	)
+	ErrStorageNotFound = errors.New(
+		"storage not found",
+	)
+	ErrStorageNotInDatabaseWorkspace = errors.New(
+		"storage does not belong to the same workspace as the database",
+	)
 )

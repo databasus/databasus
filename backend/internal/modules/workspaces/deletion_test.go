@@ -113,7 +113,7 @@ func TestDeleteWorkspace(t *testing.T) {
 		require.Equal(t, http.StatusNoContent, response.StatusCode(), string(response.Body))
 		assert.False(t, tm.app.IsLocalStorageFilePresent(t, pendingFileName))
 		assert.Equal(t, 0, countRows(t, tm.app, "SELECT COUNT(*) FROM storages WHERE id = ?", storageID))
-		assert.Equal(t, 0, countRows(t, tm.app, "SELECT COUNT(*) FROM local_storages WHERE storage_id = ?", storageID))
+		assert.Equal(t, 0, countRows(t, tm.app, "SELECT COUNT(*) FROM storages_local WHERE storage_id = ?", storageID))
 	})
 
 	t.Run("keeps the accounts and the other workspaces of the deleted workspace's members", func(t *testing.T) {

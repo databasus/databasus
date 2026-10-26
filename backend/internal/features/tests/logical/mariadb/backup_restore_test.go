@@ -21,7 +21,7 @@ import (
 	"databasus-backend/internal/features/databases"
 	mariadbtypes "databasus-backend/internal/features/databases/databases/mariadb"
 	restores_core "databasus-backend/internal/features/restores/core"
-	"databasus-backend/internal/features/storages"
+	storages_bridge "databasus-backend/internal/features/storages"
 	logicaltesting "databasus-backend/internal/features/tests/logical/shared"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
@@ -138,7 +138,7 @@ func testMariadbBackupRestoreForVersion(
 	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "MariaDB Test Workspace", user)
 
-	storage := storages.CreateTestStorage(workspace.ID)
+	storage := storages_bridge.CreateTestStorage(workspace.ID)
 
 	database := createMariadbDatabaseViaAPI(
 		t, router, "MariaDB Test Database", workspace.ID,
@@ -206,7 +206,7 @@ func testMariadbBackupRestoreForVersion(
 		"Bearer "+user.Token,
 		http.StatusNoContent,
 	)
-	storages.RemoveTestStorage(t.Context(), storage.ID)
+	storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 }
 
@@ -233,7 +233,7 @@ func testMariadbBackupRestoreWithEncryptionForVersion(
 		"MariaDB Encrypted Test Workspace",
 		user)
 
-	storage := storages.CreateTestStorage(workspace.ID)
+	storage := storages_bridge.CreateTestStorage(workspace.ID)
 
 	database := createMariadbDatabaseViaAPI(
 		t, router, "MariaDB Encrypted Test Database", workspace.ID,
@@ -302,7 +302,7 @@ func testMariadbBackupRestoreWithEncryptionForVersion(
 		"Bearer "+user.Token,
 		http.StatusNoContent,
 	)
-	storages.RemoveTestStorage(t.Context(), storage.ID)
+	storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 }
 
@@ -329,7 +329,7 @@ func testMariadbBackupRestoreWithReadOnlyUserForVersion(
 		"MariaDB ReadOnly Test Workspace",
 		user)
 
-	storage := storages.CreateTestStorage(workspace.ID)
+	storage := storages_bridge.CreateTestStorage(workspace.ID)
 
 	database := createMariadbDatabaseViaAPI(
 		t, router, "MariaDB ReadOnly Test Database", workspace.ID,
@@ -406,7 +406,7 @@ func testMariadbBackupRestoreWithReadOnlyUserForVersion(
 		"Bearer "+user.Token,
 		http.StatusNoContent,
 	)
-	storages.RemoveTestStorage(t.Context(), storage.ID)
+	storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 }
 
@@ -710,7 +710,7 @@ func testMariadbBackupRestoreWithExcludeTablesForVersion(
 		"MariaDB Exclude Tables Test Workspace",
 		user)
 
-	storage := storages.CreateTestStorage(workspace.ID)
+	storage := storages_bridge.CreateTestStorage(workspace.ID)
 
 	database := createMariadbDatabaseViaAPI(
 		t, router, "MariaDB Exclude Tables Test Database", workspace.ID,
@@ -805,7 +805,7 @@ func testMariadbBackupRestoreWithExcludeTablesForVersion(
 		"Bearer "+user.Token,
 		http.StatusNoContent,
 	)
-	storages.RemoveTestStorage(t.Context(), storage.ID)
+	storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 }
 
@@ -846,7 +846,7 @@ func testMariadbBackupRestoreWithExcludeEventsForVersion(
 		"MariaDB Exclude Events Test Workspace",
 		user)
 
-	storage := storages.CreateTestStorage(workspace.ID)
+	storage := storages_bridge.CreateTestStorage(workspace.ID)
 
 	database := createMariadbDatabaseViaAPI(
 		t, router, "MariaDB Exclude Events Test Database", workspace.ID,
@@ -943,6 +943,6 @@ func testMariadbBackupRestoreWithExcludeEventsForVersion(
 		"Bearer "+user.Token,
 		http.StatusNoContent,
 	)
-	storages.RemoveTestStorage(t.Context(), storage.ID)
+	storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 }

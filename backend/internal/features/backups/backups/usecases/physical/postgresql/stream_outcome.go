@@ -3,7 +3,7 @@ package usecases_physical_postgresql
 import (
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	physical_enums "databasus-backend/internal/features/backups/backups/core/physical/enums"
-	storage_files "databasus-backend/internal/features/storages/files"
+	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/util/walmath"
 )
 
@@ -42,7 +42,7 @@ type streamOutcome struct {
 
 	// Receipts are spent by the transaction that publishes the backup. An outcome
 	// that carries none leaves every file it wrote for cleanup.
-	Receipts []storage_files.WriteReceipt
+	Receipts []storages.WriteReceipt
 
 	// Reconstructed-manifest sidecar. Salt/IV are the manifest's OWN fresh values
 	// (never the tar's), so they live on dedicated row columns.

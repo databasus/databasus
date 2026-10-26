@@ -18,6 +18,8 @@ tags:
     description: Workspaces, their members, the ownership of a workspace and the audit log views
   - name: notifiers
     description: The notification channels of a workspace and their test sends
+  - name: storages
+    description: The places a workspace keeps its backups, and their connection tests
 paths:
   /users:
     get:
@@ -1215,6 +1217,257 @@ paths:
           $ref: "#/components/responses/Problem"
         default:
           $ref: "#/components/responses/Problem"
+  /storages:
+    get:
+      operationId: listStorages
+      tags: [storages]
+      summary: List the storages of a workspace
+      description: >-
+        Ordered by name, then by ID. A user who is not a member of the workspace gets 404
+        `not_found`. Secrets are never returned.
+      parameters:
+        - name: workspaceId
+          in: query
+          required: true
+          description: The workspace whose storages to list
+          schema:
+            type: string
+            format: uuid
+        - name: limit
+          in: query
+          description: The largest number of storages on the page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: after
+          in: query
+          description: The `nextCursor` of the previous page
+          schema:
+            type: string
+      responses:
+        "200":
+          description: One page of storages
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StoragePage"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+    post:
+      operationId: createStorage
+      tags: [storages]
+      summary: Create a storage in a workspace
+      description: >-
+        Needs the role `WORKSPACE_MEMBER` or higher in the workspace; rclone settings need an
+        instance admin. The type in `settings` is fixed once the storage exists. Settings the
+        provider refuses get 400 `invalid_request` with the field in `errors`.
+      requestBody:
+        description: The storage to create, with every secret its provider needs.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StorageCreate"
+      responses:
+        "201":
+          description: The storage as it was saved, without its secrets
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Storage"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /storages/{storageId}:
+    parameters:
+      - $ref: "#/components/parameters/StorageId"
+    get:
+      operationId: getStorage
+      tags: [storages]
+      summary: Get a storage without its secrets
+      description: >-
+        A user who is not a member of the storage's workspace gets 404 `not_found`, as for a
+        storage that does not exist.
+      responses:
+        "200":
+          description: The storage
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Storage"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+    put:
+      operationId: updateStorage
+      tags: [storages]
+      summary: Replace the name and the settings of a storage
+      description: >-
+        Needs the role `WORKSPACE_MEMBER` or higher; an rclone storage needs an instance admin. A
+        secret the request leaves out keeps its stored value. Settings of another type than the
+        storage's, or an S3 or Azure Blob prefix other than the stored one, get 400
+        `invalid_request`, because both are fixed when the storage is created.
+      requestBody:
+        description: The editable fields of the storage.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StorageUpdate"
+      responses:
+        "200":
+          description: The storage after the change, without its secrets
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Storage"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+    delete:
+      operationId: deleteStorage
+      tags: [storages]
+      summary: Delete a storage
+      description: >-
+        Needs the role `WORKSPACE_MEMBER` or higher. A storage that a backup config uses or that
+        still holds backups gets 409 `in_use`, and nothing is deleted. Otherwise the files waiting
+        for cleanup are removed first, and the audit log names those left behind.
+      responses:
+        "204":
+          description: The storage is deleted
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        "409":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /storages/{storageId}/test:
+    parameters:
+      - $ref: "#/components/parameters/StorageId"
+    post:
+      operationId: testStorage
+      tags: [storages]
+      summary: Test the connection of a saved storage
+      description: >-
+        Any member of the workspace may test, a viewer included. A connection the storage refuses
+        is still a 200 that reports the storage's error. The test changes nothing in the storage.
+      responses:
+        "200":
+          description: Whether the storage could be reached and written
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StorageTestResult"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /storages/{storageId}/transfer:
+    parameters:
+      - $ref: "#/components/parameters/StorageId"
+    post:
+      operationId: transferStorage
+      tags: [storages]
+      summary: Move a storage to another workspace
+      description: >-
+        Needs the role `WORKSPACE_MEMBER` or higher in both workspaces. While the backup config of
+        a database outside the target workspace uses the storage, the answer is 409 `in_use`, and
+        the storage stays.
+      requestBody:
+        description: The workspace the storage moves to.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StorageTransfer"
+      responses:
+        "204":
+          description: The storage belongs to the target workspace
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        "409":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /storage-tests:
+    post:
+      operationId: testStorageSettings
+      tags: [storages]
+      summary: Test the connection with settings that are not saved
+      description: >-
+        Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test may send stored
+        secrets wherever the request points; rclone settings need an instance admin. With
+        `storageId`, a secret the request leaves out is taken from that storage, which must belong
+        to the same workspace, or the answer is 404 `not_found`; settings of another type or another
+        prefix than that storage's get 400 `invalid_request`. Nothing leaves the backend on a
+        refusal, and nothing is saved.
+      requestBody:
+        description: The settings to test.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StorageSettingsTest"
+      responses:
+        "200":
+          description: Whether the storage could be reached and written
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StorageTestResult"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
   /system/version:
     get:
       operationId: getVersion
@@ -1273,6 +1526,14 @@ components:
       in: path
       required: true
       description: The ID of the notifier
+      schema:
+        type: string
+        format: uuid
+    StorageId:
+      name: storageId
+      in: path
+      required: true
+      description: The ID of the storage
       schema:
         type: string
         format: uuid
@@ -2160,6 +2421,346 @@ components:
         - HEALTHCHECK_FAILED
         - VERIFICATION_SUCCESS
         - VERIFICATION_FAILED
+    Storage:
+      type: object
+      description: A place backups of a workspace are kept, without its secrets
+      required: [id, workspaceId, name, settings]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: The ID of the storage
+        workspaceId:
+          type: string
+          format: uuid
+          description: The workspace the storage belongs to
+        name:
+          type: string
+          description: The name of the storage
+        settings:
+          $ref: "#/components/schemas/StorageSettings"
+    StoragePage:
+      type: object
+      description: One page of storages, ordered by name
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Storage"
+          description: The storages on the page
+        nextCursor:
+          type: string
+          description: The `after` of the next page, absent on the last page
+    StorageCreate:
+      type: object
+      description: A new storage
+      required: [workspaceId, name, settings]
+      properties:
+        workspaceId:
+          type: string
+          format: uuid
+          description: The workspace the storage belongs to
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: The name of the storage
+        settings:
+          $ref: "#/components/schemas/StorageSettings"
+    StorageUpdate:
+      type: object
+      description: The editable fields of a storage
+      required: [name, settings]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: The name of the storage
+        settings:
+          $ref: "#/components/schemas/StorageSettings"
+    StorageTransfer:
+      type: object
+      description: The workspace a storage moves to
+      required: [targetWorkspaceId]
+      properties:
+        targetWorkspaceId:
+          type: string
+          format: uuid
+          description: The ID of the target workspace
+    StorageSettingsTest:
+      type: object
+      description: Settings to test the connection with
+      required: [workspaceId, settings]
+      properties:
+        workspaceId:
+          type: string
+          format: uuid
+          description: The workspace the test is made in
+        storageId:
+          type: string
+          format: uuid
+          description: A saved storage of the workspace whose stored secrets fill the ones left out
+        settings:
+          $ref: "#/components/schemas/StorageSettings"
+    StorageTestResult:
+      type: object
+      description: The outcome of a connection test
+      required: [isConnected]
+      properties:
+        isConnected:
+          type: boolean
+          description: Whether the storage could be reached and written
+        error:
+          type: string
+          description: The error the storage gave, absent when it is connected
+    StorageSettings:
+      description: The settings of the storage's provider; `type` tells the providers apart
+      oneOf:
+        - $ref: "#/components/schemas/LocalStorageSettings"
+        - $ref: "#/components/schemas/S3StorageSettings"
+        - $ref: "#/components/schemas/GoogleDriveStorageSettings"
+        - $ref: "#/components/schemas/NasStorageSettings"
+        - $ref: "#/components/schemas/AzureBlobStorageSettings"
+        - $ref: "#/components/schemas/FtpStorageSettings"
+        - $ref: "#/components/schemas/SftpStorageSettings"
+        - $ref: "#/components/schemas/RcloneStorageSettings"
+      discriminator:
+        propertyName: type
+        mapping:
+          LOCAL: "#/components/schemas/LocalStorageSettings"
+          S3: "#/components/schemas/S3StorageSettings"
+          GOOGLE_DRIVE: "#/components/schemas/GoogleDriveStorageSettings"
+          NAS: "#/components/schemas/NasStorageSettings"
+          AZURE_BLOB: "#/components/schemas/AzureBlobStorageSettings"
+          FTP: "#/components/schemas/FtpStorageSettings"
+          SFTP: "#/components/schemas/SftpStorageSettings"
+          RCLONE: "#/components/schemas/RcloneStorageSettings"
+    LocalStorageSettings:
+      type: object
+      description: The data folder of the Databasus instance
+      required: [type]
+      properties:
+        type:
+          type: string
+          enum: [LOCAL]
+          description: Always `LOCAL`
+    S3StorageSettings:
+      type: object
+      description: A bucket of Amazon S3 or of a service compatible with it
+      required: [type, s3Bucket, isVirtualHostedStyle, isSkipTlsVerify]
+      properties:
+        type:
+          type: string
+          enum: [S3]
+          description: Always `S3`
+        s3Bucket:
+          type: string
+          description: The bucket
+        s3Region:
+          type: string
+          description: The region of the bucket, absent to look it up
+        s3AccessKey:
+          type: string
+          writeOnly: true
+          description: The access key ID
+        s3SecretKey:
+          type: string
+          writeOnly: true
+          description: The secret access key
+        s3Endpoint:
+          type: string
+          description: The endpoint of a service compatible with S3, absent for AWS
+        s3Prefix:
+          type: string
+          description: The prefix of every stored object, fixed when the storage is created
+        isVirtualHostedStyle:
+          type: boolean
+          description: Whether the bucket is addressed as a subdomain of the endpoint
+        isSkipTlsVerify:
+          type: boolean
+          description: Whether the TLS certificate of the endpoint goes unchecked
+        s3StorageClass:
+          $ref: "#/components/schemas/S3StorageClass"
+    S3StorageClass:
+      type: string
+      description: The storage class of the stored objects; absent means the bucket's default
+      enum: [STANDARD, STANDARD_IA, ONEZONE_IA, INTELLIGENT_TIERING, REDUCED_REDUNDANCY, GLACIER_IR]
+    GoogleDriveStorageSettings:
+      type: object
+      description: The Google Drive of the account that authorized the OAuth client
+      required: [type, clientId]
+      properties:
+        type:
+          type: string
+          enum: [GOOGLE_DRIVE]
+          description: Always `GOOGLE_DRIVE`
+        clientId:
+          type: string
+          description: The ID of the OAuth client
+        clientSecret:
+          type: string
+          writeOnly: true
+          description: The secret of the OAuth client
+        tokenJson:
+          type: string
+          writeOnly: true
+          description: The OAuth token with its refresh token, as JSON
+    NasStorageSettings:
+      type: object
+      description: A share of an SMB server
+      required: [type, host, port, share, username, isSsl]
+      properties:
+        type:
+          type: string
+          enum: [NAS]
+          description: Always `NAS`
+        host:
+          type: string
+          description: The host of the server
+        port:
+          type: integer
+          minimum: 1
+          maximum: 65535
+          description: The port of the server
+        share:
+          type: string
+          description: The share
+        username:
+          type: string
+          description: The user name
+        password:
+          type: string
+          writeOnly: true
+          description: The password
+        isSsl:
+          type: boolean
+          description: Whether the connection is encrypted
+        domain:
+          type: string
+          description: The domain of the account, absent for an account outside a domain
+        path:
+          type: string
+          description: The folder inside the share, absent for its root
+    AzureBlobStorageSettings:
+      type: object
+      description: A container of Azure Blob Storage
+      required: [type, authMethod, containerName]
+      properties:
+        type:
+          type: string
+          enum: [AZURE_BLOB]
+          description: Always `AZURE_BLOB`
+        authMethod:
+          $ref: "#/components/schemas/AzureBlobAuthMethod"
+        connectionString:
+          type: string
+          writeOnly: true
+          description: The connection string, used with `CONNECTION_STRING`
+        accountName:
+          type: string
+          description: The storage account, used with `ACCOUNT_KEY`
+        accountKey:
+          type: string
+          writeOnly: true
+          description: The account key, used with `ACCOUNT_KEY`
+        containerName:
+          type: string
+          description: The container
+        endpoint:
+          type: string
+          description: The blob endpoint, absent for the account's default one
+        prefix:
+          type: string
+          description: The prefix of every stored blob, fixed when the storage is created
+    AzureBlobAuthMethod:
+      type: string
+      description: How the storage signs in to Azure
+      enum: [CONNECTION_STRING, ACCOUNT_KEY]
+    FtpStorageSettings:
+      type: object
+      description: A folder of an FTP server
+      required: [type, host, port, username, isSsl, isSkipTlsVerify]
+      properties:
+        type:
+          type: string
+          enum: [FTP]
+          description: Always `FTP`
+        host:
+          type: string
+          description: The host of the server
+        port:
+          type: integer
+          minimum: 1
+          maximum: 65535
+          description: The port of the server
+        username:
+          type: string
+          description: The user name
+        password:
+          type: string
+          writeOnly: true
+          description: The password
+        path:
+          type: string
+          description: The folder on the server, absent for the login folder
+        isSsl:
+          type: boolean
+          description: Whether the connection uses explicit TLS
+        isSkipTlsVerify:
+          type: boolean
+          description: Whether the TLS certificate of the server goes unchecked
+    SftpStorageSettings:
+      type: object
+      description: A folder of an SFTP server
+      required: [type, host, port, username, isSkipHostKeyVerify]
+      properties:
+        type:
+          type: string
+          enum: [SFTP]
+          description: Always `SFTP`
+        host:
+          type: string
+          description: The host of the server
+        port:
+          type: integer
+          minimum: 1
+          maximum: 65535
+          description: The port of the server
+        username:
+          type: string
+          description: The user name
+        password:
+          type: string
+          writeOnly: true
+          description: The password, absent when the private key signs in
+        privateKey:
+          type: string
+          writeOnly: true
+          description: The private key, absent when the password signs in
+        path:
+          type: string
+          description: The folder on the server, absent for the login folder
+        isSkipHostKeyVerify:
+          type: boolean
+          description: Whether the host key of the server goes unchecked
+    RcloneStorageSettings:
+      type: object
+      description: A remote of rclone; only an instance admin may write or test its configuration
+      required: [type]
+      properties:
+        type:
+          type: string
+          enum: [RCLONE]
+          description: Always `RCLONE`
+        configContent:
+          type: string
+          writeOnly: true
+          description: One remote section of an rclone configuration file
+        remotePath:
+          type: string
+          description: The folder inside the remote, absent for its root
     Problem:
       type: object
       description: An error in the RFC 9457 format. The client chooses its text by `code`

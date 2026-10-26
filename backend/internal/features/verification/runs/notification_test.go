@@ -16,7 +16,7 @@ import (
 	"databasus-backend/internal/features/databases"
 	"databasus-backend/internal/features/intervals"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
-	"databasus-backend/internal/features/storages"
+	storages_bridge "databasus-backend/internal/features/storages"
 	users_testing "databasus-backend/internal/features/users/testing"
 	verification_agents "databasus-backend/internal/features/verification/agents"
 	verification_config "databasus-backend/internal/features/verification/config"
@@ -117,13 +117,13 @@ func Test_SubmitReport_WhenBackupRejected_SendsFailureNotification(t *testing.T)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner)
 	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
-	testStorage := storages.CreateTestStorage(workspace.ID)
-	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
+	testStorage := storages_bridge.CreateTestStorage(workspace.ID)
+	defer storages_bridge.RemoveTestStorage(t.Context(), testStorage.ID)
 
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
 	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
-	database := databases.CreateTestDatabase(workspace.ID, testStorage, notifier)
+	database := databases.CreateTestDatabase(workspace.ID, notifier)
 	defer databases.RemoveTestDatabase(t.Context(), database)
 
 	enableFailureNotificationsViaAPI(t, router, owner.Token, database.ID)
@@ -174,13 +174,13 @@ func Test_SubmitReport_WhenRestoredTooSmall_SendsFailureNotification(t *testing.
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner)
 	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
-	testStorage := storages.CreateTestStorage(workspace.ID)
-	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
+	testStorage := storages_bridge.CreateTestStorage(workspace.ID)
+	defer storages_bridge.RemoveTestStorage(t.Context(), testStorage.ID)
 
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
 	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
-	database := databases.CreateTestDatabase(workspace.ID, testStorage, notifier)
+	database := databases.CreateTestDatabase(workspace.ID, notifier)
 	defer databases.RemoveTestDatabase(t.Context(), database)
 
 	enableFailureNotificationsViaAPI(t, router, owner.Token, database.ID)
@@ -224,13 +224,13 @@ func Test_SubmitReport_WhenAgentSetupFailedRepeatedly_SendsFailureNotificationOn
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner)
 	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
-	testStorage := storages.CreateTestStorage(workspace.ID)
-	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
+	testStorage := storages_bridge.CreateTestStorage(workspace.ID)
+	defer storages_bridge.RemoveTestStorage(t.Context(), testStorage.ID)
 
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
 	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
-	database := databases.CreateTestDatabase(workspace.ID, testStorage, notifier)
+	database := databases.CreateTestDatabase(workspace.ID, notifier)
 	defer databases.RemoveTestDatabase(t.Context(), database)
 
 	enableFailureNotificationsViaAPI(t, router, owner.Token, database.ID)
@@ -289,13 +289,13 @@ func Test_ReapStaleRuns_WhenAgentLostContact_SendsFailureNotificationOnlyAtTermi
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner)
 	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
-	testStorage := storages.CreateTestStorage(workspace.ID)
-	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
+	testStorage := storages_bridge.CreateTestStorage(workspace.ID)
+	defer storages_bridge.RemoveTestStorage(t.Context(), testStorage.ID)
 
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
 	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
-	database := databases.CreateTestDatabase(workspace.ID, testStorage, notifier)
+	database := databases.CreateTestDatabase(workspace.ID, notifier)
 	defer databases.RemoveTestDatabase(t.Context(), database)
 
 	enableFailureNotificationsViaAPI(t, router, owner.Token, database.ID)
@@ -349,13 +349,13 @@ func Test_SubmitReport_WhenFailureNotificationsDisabled_DoesNotSend(t *testing.T
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner)
 	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
-	testStorage := storages.CreateTestStorage(workspace.ID)
-	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
+	testStorage := storages_bridge.CreateTestStorage(workspace.ID)
+	defer storages_bridge.RemoveTestStorage(t.Context(), testStorage.ID)
 
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
 	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
-	database := databases.CreateTestDatabase(workspace.ID, testStorage, notifier)
+	database := databases.CreateTestDatabase(workspace.ID, notifier)
 	defer databases.RemoveTestDatabase(t.Context(), database)
 
 	// Default config has IsScheduledVerificationEnabled=false and no notification types.

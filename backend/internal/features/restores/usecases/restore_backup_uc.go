@@ -12,7 +12,7 @@ import (
 	usecases_mongodb "databasus-backend/internal/features/restores/usecases/mongodb"
 	usecases_mysql "databasus-backend/internal/features/restores/usecases/mysql"
 	usecases_postgresql "databasus-backend/internal/features/restores/usecases/postgresql"
-	storage_files "databasus-backend/internal/features/storages/files"
+	"databasus-backend/internal/modules/storages"
 )
 
 type RestoreBackupUsecase struct {
@@ -29,7 +29,7 @@ func (uc *RestoreBackupUsecase) Execute(
 	originalDB *databases.Database,
 	restoringToDB *databases.Database,
 	backup *backups_core_logical.LogicalBackup,
-	storageReader storage_files.StorageReader,
+	storageReader storages.StorageReader,
 	options restores_core.RestoreOptions,
 ) error {
 	switch originalDB.Type {

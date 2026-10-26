@@ -8,14 +8,13 @@ import (
 	"github.com/google/uuid"
 
 	"databasus-backend/internal/features/intervals"
-	"databasus-backend/internal/features/storages"
 	"databasus-backend/internal/util/period"
 )
 
 func EnableBackupsForTestDatabase(
 	ctx context.Context,
 	databaseID uuid.UUID,
-	storage *storages.Storage,
+	storageID uuid.UUID,
 ) *LogicalBackupConfig {
 	timeOfDay := "16:00"
 
@@ -28,8 +27,7 @@ func EnableBackupsForTestDatabase(
 			Type:      intervals.IntervalDaily,
 			TimeOfDay: &timeOfDay,
 		},
-		StorageID: &storage.ID,
-		Storage:   storage,
+		StorageID: &storageID,
 		SendNotificationsOn: []BackupNotificationType{
 			NotificationBackupFailed,
 			NotificationBackupSuccess,

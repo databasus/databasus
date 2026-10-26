@@ -2056,23 +2056,13 @@ export const pt: typeof en = {
         sftp: 'Tipo: SFTP',
         rclone: 'Tipo: Rclone',
       },
-      hasSaveError: 'Com erro ao salvar',
     },
     config: {
       namePlaceholder: 'Digite o nome...',
       settingsTitle: 'Configurações do armazenamento',
-      lastSaveError: {
-        title: 'Erro ao salvar',
-        errorLabel: 'Erro:',
-        clearHint: 'Para limpar este erro, faça uma das opções:',
-        clearByTestingConnection:
-          '- teste a conexão pelo botão abaixo (mesmo que você já tenha alterado as configurações);',
-        clearByNextSave: '- aguarde o próximo backup ser salvo sem erros;',
-      },
-      removeConfirmation:
-        'Remover este armazenamento? Esta ação não pode ser desfeita. Os backups guardados neste armazenamento também serão removidos.',
-      removeBlockedByDatabases:
-        'Este armazenamento está em uso em alguns bancos de dados. Remova-o desses bancos de dados primeiro.',
+      removeConfirmation: 'Remover este armazenamento? Esta ação não pode ser desfeita.',
+      removeBlockedByBackups:
+        'Uma configuração de backup usa este armazenamento ou ele ainda guarda backups. Primeiro aponte essas configurações para outro armazenamento e exclua os backups dele.',
     },
     actions: {
       testConnection: 'Testar conexão',
@@ -2081,6 +2071,7 @@ export const pt: typeof en = {
       title: 'Conexão bem-sucedida!',
       description: 'A conexão com o armazenamento foi testada com sucesso',
     },
+    connectionTestFailed: 'Não foi possível conectar ao armazenamento: {{error}}',
     transfer: {
       title: 'Transferir armazenamento para outro espaço de trabalho',
       blockedByDatabases:

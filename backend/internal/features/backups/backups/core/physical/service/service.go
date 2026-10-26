@@ -15,9 +15,8 @@ import (
 	physical_enums "databasus-backend/internal/features/backups/backups/core/physical/enums"
 	physical_models "databasus-backend/internal/features/backups/backups/core/physical/models"
 	physical_repositories "databasus-backend/internal/features/backups/backups/core/physical/repositories"
-	"databasus-backend/internal/features/storages"
-	storage_files "databasus-backend/internal/features/storages/files"
 	"databasus-backend/internal/lib/database"
+	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/storage"
 	util_encryption "databasus-backend/internal/util/encryption"
 	"databasus-backend/internal/util/walmath"
@@ -48,10 +47,10 @@ type PhysicalBackupService struct {
 	walSegmentRepository      *physical_repositories.PhysicalWalSegmentRepository
 	walStreamSampleRepository *physical_repositories.PhysicalWalStreamSampleRepository
 	walStreamerRepository     *physical_repositories.PhysicalWalStreamerRepository
-	storageService            *storages.StorageService
-	fileStore                 *storage_files.Store
-	fieldEncryptor            util_encryption.FieldEncryptor
-	logger                    *slog.Logger
+	// getStorages is read per call: each test application installs its own module.
+	getStorages    func() storages.Module
+	fieldEncryptor util_encryption.FieldEncryptor
+	logger         *slog.Logger
 }
 
 // GetLatestCompletedFullBackup returns the most recent completed FULL backup for
@@ -1122,14 +1121,14 @@ func (s *PhysicalBackupService) requestFileDeletions(
 	storageID uuid.UUID,
 	fileNames ...string,
 ) error {
-	references := make([]storage_files.StoredFileReference, 0, len(fileNames))
+	references := make([]storages.StoredFileReference, 0, len(fileNames))
 
 	for _, fileName := range fileNames {
 		references = append(references,
-			storage_files.StoredFileReference{StorageID: storageID, FileName: fileName})
+			storages.StoredFileReference{StorageID: storageID, FileName: fileName})
 	}
 
-	return s.fileStore.RequestFileDeletions(ctx, references)
+	return s.getStorages().RequestFileDeletions(ctx, references)
 }
 
 // reverseTopoOrderIncrementals orders incrementals leaves-first: an INCR is

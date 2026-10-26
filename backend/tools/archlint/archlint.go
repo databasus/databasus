@@ -52,7 +52,6 @@ func check(root string, spec checkSpec) ([]violation, error) {
 		checkErrorsFile(sourceModule),
 		checkBareGo(sourceModule),
 		checkBuildTags(sourceModule),
-		checkProviderWrites(sourceModule),
 	)
 
 	cascadeViolations, err := checkCascades(root, filepath.Join(root, "migrations"), spec.cascadeCutoff)

@@ -12,7 +12,7 @@ import (
 	physical_models "databasus-backend/internal/features/backups/backups/core/physical/models"
 	physical_repositories "databasus-backend/internal/features/backups/backups/core/physical/repositories"
 	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
-	storage_files "databasus-backend/internal/features/storages/files"
+	"databasus-backend/internal/modules/storages"
 	util_encryption "databasus-backend/internal/util/encryption"
 	"databasus-backend/internal/util/walmath"
 )
@@ -23,7 +23,7 @@ type CommonBackupSpec struct {
 	SourceDB       *postgresql_physical.PostgresqlPhysicalDatabase
 	DatabaseName   string
 	StorageID      uuid.UUID
-	FileStore      *storage_files.Store
+	FileStore      FileStore
 	Encryption     backups_core_enums.BackupEncryption
 	MasterKey      string
 	FieldEncryptor util_encryption.FieldEncryptor
@@ -49,7 +49,7 @@ type IncrementalBackupSpec struct {
 	Backup         *physical_models.PhysicalIncrementalBackup
 	ParentManifest ParentManifestRef
 	// StorageReader reads the parent manifest, which sits in the same storage the increment goes to.
-	StorageReader storage_files.StorageReader
+	StorageReader storages.StorageReader
 	IncrRepo      *physical_repositories.PhysicalIncrementalBackupRepository
 
 	// IncrementalCadence is the configured INCR interval, used only to size the
@@ -65,7 +65,7 @@ type PhysicalBackupResult struct {
 
 	// Receipts are spent by the transaction that publishes the backup. A result
 	// that carries none leaves every file the attempt wrote for cleanup.
-	Receipts []storage_files.WriteReceipt
+	Receipts []storages.WriteReceipt
 
 	FileName string
 

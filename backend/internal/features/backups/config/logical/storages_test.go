@@ -1,7 +1,6 @@
 package backups_config_logical
 
 import (
-	"fmt"
 	"net/http"
 	"testing"
 
@@ -11,7 +10,7 @@ import (
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	"databasus-backend/internal/features/databases"
 	"databasus-backend/internal/features/intervals"
-	"databasus-backend/internal/features/storages"
+	storages_bridge "databasus-backend/internal/features/storages"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
 	"databasus-backend/internal/modules/users"
@@ -29,7 +28,7 @@ func Test_AttachStorageFromSameWorkspace_SuccessfullyAttached(t *testing.T) {
 
 	defer func() {
 		databases.RemoveTestDatabase(t.Context(), database)
-		storages.RemoveTestStorage(t.Context(), storage.ID)
+		storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	}()
 
@@ -43,7 +42,7 @@ func Test_AttachStorageFromSameWorkspace_SuccessfullyAttached(t *testing.T) {
 			Type:      intervals.IntervalDaily,
 			TimeOfDay: &timeOfDay,
 		},
-		Storage: storage,
+		Storage: &BackupConfigStorage{ID: storage.ID},
 		SendNotificationsOn: []BackupNotificationType{
 			NotificationBackupFailed,
 		},
@@ -81,7 +80,7 @@ func Test_AttachStorageFromDifferentWorkspace_ReturnsForbidden(t *testing.T) {
 
 	defer func() {
 		databases.RemoveTestDatabase(t.Context(), database)
-		storages.RemoveTestStorage(t.Context(), storage.ID)
+		storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace1)
 		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace2)
 	}()
@@ -96,7 +95,7 @@ func Test_AttachStorageFromDifferentWorkspace_ReturnsForbidden(t *testing.T) {
 			Type:      intervals.IntervalDaily,
 			TimeOfDay: &timeOfDay,
 		},
-		Storage: storage,
+		Storage: &BackupConfigStorage{ID: storage.ID},
 		SendNotificationsOn: []BackupNotificationType{
 			NotificationBackupFailed,
 		},
@@ -117,132 +116,10 @@ func Test_AttachStorageFromDifferentWorkspace_ReturnsForbidden(t *testing.T) {
 	assert.Contains(t, string(testResp.Body), "storage does not belong to the same workspace")
 }
 
-func Test_DeleteStorageWithAttachedDatabases_CannotDelete(t *testing.T) {
-	router := createTestRouterWithStorage()
-	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
-
-	database := createTestDatabaseViaAPI("Test Database", workspace.ID, owner.Token, router)
-	storage := createTestStorage(workspace.ID)
-
-	defer func() {
-		databases.RemoveTestDatabase(t.Context(), database)
-		storages.RemoveTestStorage(t.Context(), storage.ID)
-		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
-	}()
-
-	timeOfDay := "04:00"
-	request := LogicalBackupConfig{
-		DatabaseID:          database.ID,
-		IsBackupsEnabled:    true,
-		RetentionPolicyType: RetentionPolicyTypeTimePeriod,
-		RetentionTimePeriod: period.PeriodWeek,
-		BackupInterval: intervals.Interval{
-			Type:      intervals.IntervalDaily,
-			TimeOfDay: &timeOfDay,
-		},
-		Storage: storage,
-		SendNotificationsOn: []BackupNotificationType{
-			NotificationBackupFailed,
-		},
-		IsRetryIfFailed:     true,
-		MaxFailedTriesCount: 3,
-		Encryption:          backups_core_enums.BackupEncryptionNone,
-	}
-
-	var response LogicalBackupConfig
-	test_utils.MakePostRequestAndUnmarshal(
-		t,
-		router,
-		"/api/v1/backup-configs/save",
-		"Bearer "+owner.Token,
-		request,
-		http.StatusOK,
-		&response,
-	)
-
-	testResp := test_utils.MakeDeleteRequest(
-		t,
-		router,
-		fmt.Sprintf("/api/v1/storages/%s", storage.ID.String()),
-		"Bearer "+owner.Token,
-		http.StatusBadRequest,
-	)
-
-	assert.Contains(t, string(testResp.Body), storages.ErrStorageInUse.Error())
-}
-
-func Test_TransferStorageWithAttachedDatabase_CannotTransfer(t *testing.T) {
-	router := createTestRouterWithStorage()
-	owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
-	targetWorkspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Target Workspace", owner)
-
-	database := createTestDatabaseViaAPI("Test Database", workspace.ID, owner.Token, router)
-	storage := createTestStorage(workspace.ID)
-
-	defer func() {
-		databases.RemoveTestDatabase(t.Context(), database)
-		storages.RemoveTestStorage(t.Context(), storage.ID)
-		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
-		workspaces_testing.RemoveTestWorkspace(t.Context(), targetWorkspace)
-	}()
-
-	timeOfDay := "04:00"
-	request := LogicalBackupConfig{
-		DatabaseID:          database.ID,
-		IsBackupsEnabled:    true,
-		RetentionPolicyType: RetentionPolicyTypeTimePeriod,
-		RetentionTimePeriod: period.PeriodWeek,
-		BackupInterval: intervals.Interval{
-			Type:      intervals.IntervalDaily,
-			TimeOfDay: &timeOfDay,
-		},
-		Storage: storage,
-		SendNotificationsOn: []BackupNotificationType{
-			NotificationBackupFailed,
-		},
-		IsRetryIfFailed:     true,
-		MaxFailedTriesCount: 3,
-		Encryption:          backups_core_enums.BackupEncryptionNone,
-	}
-
-	var response LogicalBackupConfig
-	test_utils.MakePostRequestAndUnmarshal(
-		t,
-		router,
-		"/api/v1/backup-configs/save",
-		"Bearer "+owner.Token,
-		request,
-		http.StatusOK,
-		&response,
-	)
-
-	transferRequest := storages.TransferStorageRequest{
-		TargetWorkspaceID: targetWorkspace.ID,
-	}
-
-	testResp := test_utils.MakePostRequest(
-		t,
-		router,
-		fmt.Sprintf("/api/v1/storages/%s/transfer", storage.ID.String()),
-		"Bearer "+owner.Token,
-		transferRequest,
-		http.StatusBadRequest,
-	)
-
-	assert.Contains(
-		t,
-		string(testResp.Body),
-		"storage has attached databases and cannot be transferred",
-	)
-}
-
 func createTestRouterWithStorage() *gin.Engine {
 	router := workspaces_testing.CreateTestRouter(
 		databases.GetDatabaseController(),
 		GetBackupConfigController(),
-		storages.GetStorageController(),
 	)
 
 	databases.SetupDependencies()

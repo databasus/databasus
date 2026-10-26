@@ -19,7 +19,7 @@ import (
 	postgresql_logical "databasus-backend/internal/features/databases/databases/postgresql/logical"
 	restores_core "databasus-backend/internal/features/restores/core"
 	"databasus-backend/internal/features/restores/usecases"
-	"databasus-backend/internal/features/storages"
+	storages_bridge "databasus-backend/internal/features/storages"
 	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
 	"databasus-backend/internal/lib/cache"
@@ -86,7 +86,7 @@ func createTestRestorerWithShutdownSignal(
 		encryption.GetFieldEncryptor(),
 		getRestoreRepository(),
 		backups_config_logical.GetBackupConfigService(),
-		storages.GetStorageFileStore(),
+		storages_bridge.GetModule,
 		logger.GetLogger(),
 		usecase,
 		getRestoreDatabaseCache(),

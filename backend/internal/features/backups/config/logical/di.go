@@ -5,7 +5,7 @@ import (
 
 	"databasus-backend/internal/features/databases"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
-	"databasus-backend/internal/features/storages"
+	storages_bridge "databasus-backend/internal/features/storages"
 	workspaces_bridge "databasus-backend/internal/features/workspaces"
 )
 
@@ -17,7 +17,7 @@ var (
 		return &BackupConfigService{
 			getBackupConfigRepository(),
 			databases.GetDatabaseService(),
-			storages.GetStorageService(),
+			storages_bridge.GetModule,
 			notifiers_bridge.GetModule,
 			workspaces_bridge.GetAccess(),
 			nil,
@@ -38,7 +38,3 @@ func GetBackupConfigController() *BackupConfigController {
 func GetBackupConfigService() *BackupConfigService {
 	return getBackupConfigService()
 }
-
-var SetupDependencies = sync.OnceFunc(func() {
-	storages.GetStorageService().AddStorageDatabaseCounter(getBackupConfigService())
-})

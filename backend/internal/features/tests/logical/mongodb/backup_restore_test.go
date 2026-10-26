@@ -23,7 +23,7 @@ import (
 	"databasus-backend/internal/features/databases"
 	mongodbtypes "databasus-backend/internal/features/databases/databases/mongodb"
 	restores_core "databasus-backend/internal/features/restores/core"
-	"databasus-backend/internal/features/storages"
+	storages_bridge "databasus-backend/internal/features/storages"
 	logicaltesting "databasus-backend/internal/features/tests/logical/shared"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
@@ -106,7 +106,7 @@ func testMongodbBackupRestoreForVersion(
 	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "MongoDB Test Workspace", user)
 
-	storage := storages.CreateTestStorage(workspace.ID)
+	storage := storages_bridge.CreateTestStorage(workspace.ID)
 
 	database := createMongodbDatabaseViaAPI(
 		t, router, "MongoDB Test Database", workspace.ID,
@@ -158,7 +158,7 @@ func testMongodbBackupRestoreForVersion(
 		"Bearer "+user.Token,
 		http.StatusNoContent,
 	)
-	storages.RemoveTestStorage(t.Context(), storage.ID)
+	storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 }
 
@@ -178,7 +178,7 @@ func testMongodbBackupRestoreWithEncryptionForVersion(
 		"MongoDB Encrypted Test Workspace",
 		user)
 
-	storage := storages.CreateTestStorage(workspace.ID)
+	storage := storages_bridge.CreateTestStorage(workspace.ID)
 
 	database := createMongodbDatabaseViaAPI(
 		t, router, "MongoDB Encrypted Test Database", workspace.ID,
@@ -230,7 +230,7 @@ func testMongodbBackupRestoreWithEncryptionForVersion(
 		"Bearer "+user.Token,
 		http.StatusNoContent,
 	)
-	storages.RemoveTestStorage(t.Context(), storage.ID)
+	storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 }
 
@@ -250,7 +250,7 @@ func testMongodbBackupRestoreWithReadOnlyUserForVersion(
 		"MongoDB ReadOnly Test Workspace",
 		user)
 
-	storage := storages.CreateTestStorage(workspace.ID)
+	storage := storages_bridge.CreateTestStorage(workspace.ID)
 
 	database := createMongodbDatabaseViaAPI(
 		t, router, "MongoDB ReadOnly Test Database", workspace.ID,
@@ -313,7 +313,7 @@ func testMongodbBackupRestoreWithReadOnlyUserForVersion(
 		"Bearer "+user.Token,
 		http.StatusNoContent,
 	)
-	storages.RemoveTestStorage(t.Context(), storage.ID)
+	storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 }
 
@@ -346,7 +346,7 @@ func testMongodbBackupRestoreWithExcludeCollectionsForVersion(
 		"MongoDB Exclude Collections Test Workspace",
 		user)
 
-	storage := storages.CreateTestStorage(workspace.ID)
+	storage := storages_bridge.CreateTestStorage(workspace.ID)
 
 	database := createMongodbDatabaseViaAPI(
 		t, router, "MongoDB Exclude Collections Test Database", workspace.ID,
@@ -422,7 +422,7 @@ func testMongodbBackupRestoreWithExcludeCollectionsForVersion(
 		"Bearer "+user.Token,
 		http.StatusNoContent,
 	)
-	storages.RemoveTestStorage(t.Context(), storage.ID)
+	storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 }
 

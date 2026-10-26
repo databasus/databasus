@@ -18,9 +18,9 @@ import (
 	physical_repositories "databasus-backend/internal/features/backups/backups/core/physical/repositories"
 	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
 	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
-	storage_files "databasus-backend/internal/features/storages/files"
 	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
 	"databasus-backend/internal/lib/database"
+	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/storage"
 )
 
@@ -46,8 +46,9 @@ type PhysicalBackupsScheduler struct {
 	backupConfigService       *backups_config_physical.BackupConfigService
 	chainViewService          *chain_view.ChainViewService
 	taskCancellationRequester *tasks_cancellation.Requester
-	fileStore                 *storage_files.Store
-	backuper                  *PhysicalBackuper
+	// getStorages is read per call: each test application installs its own module.
+	getStorages func() storages.Module
+	backuper    *PhysicalBackuper
 
 	lastTickTime atomicTime
 	logger       *slog.Logger
@@ -805,17 +806,17 @@ func (s *PhysicalBackupsScheduler) failBackupAndReleaseClaim(
 		// Only the sweep that actually moved the row owns its files. A late
 		// completion that already wrote a terminal status keeps them.
 		if transition.RowsAffected == 1 && spec.FileName != "" {
-			references := []storage_files.StoredFileReference{
+			references := []storages.StoredFileReference{
 				{StorageID: spec.StorageID, FileName: spec.FileName},
 				{StorageID: spec.StorageID, FileName: spec.FileName + metadataSuffix},
 			}
 
 			if spec.ManifestFileName != "" {
 				references = append(references,
-					storage_files.StoredFileReference{StorageID: spec.StorageID, FileName: spec.ManifestFileName})
+					storages.StoredFileReference{StorageID: spec.StorageID, FileName: spec.ManifestFileName})
 			}
 
-			if err := s.fileStore.RequestFileDeletions(ctx, references); err != nil {
+			if err := s.getStorages().RequestFileDeletions(ctx, references); err != nil {
 				return err
 			}
 		}

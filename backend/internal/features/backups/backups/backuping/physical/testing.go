@@ -18,7 +18,7 @@ import (
 	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
 	"databasus-backend/internal/features/databases"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
-	"databasus-backend/internal/features/storages"
+	storages_bridge "databasus-backend/internal/features/storages"
 	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
 	workspaces_bridge "databasus-backend/internal/features/workspaces"
 	"databasus-backend/internal/util/encryption"
@@ -44,8 +44,7 @@ func CreateTestPhysicalBackuper(notificationSender NotificationSender) *Physical
 		physical_repositories.GetInFlightBackupRepository(),
 		physical_repositories.GetWalHistoryRepository(),
 		backups_config_physical.GetBackupConfigService(),
-		storages.GetStorageService(),
-		storages.GetStorageFileStore(),
+		storages_bridge.GetModule,
 		sender,
 		tasks_cancellation.GetRegistry(),
 		encryption.GetMasterKey(),
@@ -65,7 +64,7 @@ func CreateTestPhysicalScheduler() *PhysicalBackupsScheduler {
 		backups_config_physical.GetBackupConfigService(),
 		chain_view.GetChainViewService(),
 		tasks_cancellation.GetRequester(),
-		storages.GetStorageFileStore(),
+		storages_bridge.GetModule,
 		CreateTestPhysicalBackuper(nil),
 		atomicTime{},
 		logger.GetLogger(),
@@ -103,8 +102,7 @@ func CreateTestWalStreamSupervisor(spec WalStreamSupervisorTestSpec) *PhysicalWa
 	return &PhysicalWalStreamSupervisor{
 		databases.GetDatabaseService(),
 		backups_config_physical.GetBackupConfigService(),
-		storages.GetStorageService(),
-		storages.GetStorageFileStore(),
+		storages_bridge.GetModule,
 		physical_repositories.GetWalSegmentRepository(),
 		physical_repositories.GetWalHistoryRepository(),
 		physical_repositories.GetWalStreamerRepository(),

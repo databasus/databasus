@@ -17,7 +17,7 @@ import (
 	physical_enums "databasus-backend/internal/features/backups/backups/core/physical/enums"
 	physical_models "databasus-backend/internal/features/backups/backups/core/physical/models"
 	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
-	storage_files "databasus-backend/internal/features/storages/files"
+	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/util/tools"
 )
 
@@ -33,14 +33,14 @@ const metadataUploadTimeout = 2 * time.Minute
 // makes the sidecar atomic with the COMPLETED result.
 func uploadFullMetadata(
 	logger *slog.Logger,
-	fileStore storage_files.FileStore,
+	fileStore FileStore,
 	storageID uuid.UUID,
 	sourceDB *postgresql_physical.PostgresqlPhysicalDatabase,
 	fullBackup *physical_models.PhysicalFullBackup,
 	result PhysicalBackupResult,
-) (storage_files.WriteReceipt, error) {
+) (storages.WriteReceipt, error) {
 	if result.FileName == "" {
-		return storage_files.WriteReceipt{}, errors.New("cannot upload metadata: file_name is empty")
+		return storages.WriteReceipt{}, errors.New("cannot upload metadata: file_name is empty")
 	}
 
 	metadata := physical_dto.PhysicalBackupMetadata{
@@ -70,14 +70,14 @@ func uploadFullMetadata(
 // needs to walk the chain.
 func uploadIncrMetadata(
 	logger *slog.Logger,
-	fileStore storage_files.FileStore,
+	fileStore FileStore,
 	storageID uuid.UUID,
 	sourceDB *postgresql_physical.PostgresqlPhysicalDatabase,
 	incrBackup *physical_models.PhysicalIncrementalBackup,
 	result PhysicalBackupResult,
-) (storage_files.WriteReceipt, error) {
+) (storages.WriteReceipt, error) {
 	if result.FileName == "" {
-		return storage_files.WriteReceipt{}, errors.New("cannot upload metadata: file_name is empty")
+		return storages.WriteReceipt{}, errors.New("cannot upload metadata: file_name is empty")
 	}
 
 	rootID := incrBackup.RootFullBackupID
@@ -111,14 +111,14 @@ func uploadIncrMetadata(
 // cancelled backup context must not abort the sidecar write.
 func uploadMetadata(
 	logger *slog.Logger,
-	fileStore storage_files.FileStore,
+	fileStore FileStore,
 	storageID uuid.UUID,
 	artifactFileName string,
 	metadata physical_dto.PhysicalBackupMetadata,
-) (storage_files.WriteReceipt, error) {
+) (storages.WriteReceipt, error) {
 	body, err := json.Marshal(metadata)
 	if err != nil {
-		return storage_files.WriteReceipt{}, fmt.Errorf("marshal metadata JSON: %w", err)
+		return storages.WriteReceipt{}, fmt.Errorf("marshal metadata JSON: %w", err)
 	}
 
 	metadataName := artifactFileName + metadataSuffix
@@ -130,11 +130,11 @@ func uploadMetadata(
 
 	receipt, err := fileStore.WriteFile(
 		ctx,
-		storage_files.StoredFileReference{StorageID: storageID, FileName: metadataName},
+		storages.StoredFileReference{StorageID: storageID, FileName: metadataName},
 		bytes.NewReader(body),
 	)
 	if err != nil {
-		return storage_files.WriteReceipt{}, fmt.Errorf("upload metadata: %w", err)
+		return storages.WriteReceipt{}, fmt.Errorf("upload metadata: %w", err)
 	}
 
 	return receipt, nil

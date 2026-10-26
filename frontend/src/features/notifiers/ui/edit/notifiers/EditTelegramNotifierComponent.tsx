@@ -4,11 +4,11 @@ import { useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
 import type { TelegramNotifierSettings } from '../../../../../entity/notifiers';
+import { toOptionalValue } from '../../../../../shared/lib';
 import {
   AdvancedFieldRowComponent,
   AdvancedSettingsToggleComponent,
 } from '../../../../../shared/ui';
-import { toOptionalValue } from '../../../lib/toOptionalValue';
 
 interface Props {
   settings: TelegramNotifierSettings;

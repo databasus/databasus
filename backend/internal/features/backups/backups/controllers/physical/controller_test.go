@@ -40,15 +40,14 @@ import (
 	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
 	"databasus-backend/internal/features/intervals"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
-	"databasus-backend/internal/features/storages"
-	storage_files "databasus-backend/internal/features/storages/files"
+	storages_bridge "databasus-backend/internal/features/storages"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
 	"databasus-backend/internal/modules/notifiers"
+	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/modules/workspaces"
 	"databasus-backend/internal/storage"
-	"databasus-backend/internal/util/encryption"
 	"databasus-backend/internal/util/logger"
 	test_utils "databasus-backend/internal/util/testing"
 	"databasus-backend/internal/util/walmath"
@@ -59,7 +58,7 @@ const segmentBytes = 16 * 1024 * 1024
 type physicalControllerPrereqs struct {
 	user      *users_testing.TestUser
 	workspace *workspaces_testing.TestWorkspace
-	storage   *storages.Storage
+	storage   storages.Storage
 	notifier  *notifiers.Notifier
 	database  *databases.Database
 	router    *gin.Engine
@@ -83,7 +82,7 @@ func createPhysicalControllerPrereqsWithDatabase(
 	router := newPhysicalControllerRouter()
 	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Physical Ctrl "+uuid.NewString(), user)
-	storage := storages.CreateTestStorage(workspace.ID)
+	storage := storages_bridge.CreateTestStorage(workspace.ID)
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
 	database := createDatabase(workspace.ID, notifier)
 
@@ -91,7 +90,7 @@ func createPhysicalControllerPrereqsWithDatabase(
 		physical_testing.DeleteAllPhysicalCatalogForDatabase(t, database.ID)
 		databases.RemoveTestDatabase(t.Context(), database)
 		notifiers_bridge.RemoveTestNotifier(notifier)
-		storages.RemoveTestStorage(t.Context(), storage.ID)
+		storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 	})
 
 	return &physicalControllerPrereqs{
@@ -1554,16 +1553,23 @@ func createStreamableFullBackup(t *testing.T, prereqs *physicalControllerPrereqs
 	return physical_testing.CreateTestFullBackup(t, full)
 }
 
-func saveStorageObject(t *testing.T, storage *storages.Storage, name string, body []byte) {
+func saveStorageObject(t *testing.T, storage storages.Storage, name string, body []byte) {
 	t.Helper()
 
-	encryptor := encryption.GetFieldEncryptor()
-	if err := storage.SaveFile(
-		context.Background(), encryptor, logger.GetLogger(), name, bytes.NewReader(body)); err != nil {
+	if err := storages_bridge.WriteTestFile(
+		context.Background(),
+		storages.StoredFileReference{StorageID: storage.ID, FileName: name},
+		bytes.NewReader(body),
+	); err != nil {
 		t.Fatalf("save storage object %s: %v", name, err)
 	}
 
-	t.Cleanup(func() { _ = storage.DeleteFile(t.Context(), encryptor, logger.GetLogger(), name) })
+	t.Cleanup(func() {
+		_ = storages_bridge.DeleteTestFile(
+			t.Context(),
+			storages.StoredFileReference{StorageID: storage.ID, FileName: name},
+		)
+	})
 }
 
 func zstdTar(t *testing.T, files map[string]string) []byte {
@@ -1626,7 +1632,7 @@ func createWalStreamingControllerPrereqs(t *testing.T) *physicalControllerPrereq
 
 	backupConfig.IsBackupsEnabled = true
 	backupConfig.StorageID = &prereqs.storage.ID
-	backupConfig.Storage = prereqs.storage
+	backupConfig.Storage = &backups_config_physical.BackupConfigStorage{ID: prereqs.storage.ID}
 
 	_, err = backups_config_physical.GetBackupConfigService().SaveBackupConfig(t.Context(), backupConfig)
 	require.NoError(t, err)
@@ -1743,7 +1749,7 @@ func Test_GetWalStreamStatistics_WhenRequestNotAllowed_RefusesWithoutStatistics(
 
 	outsider := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
-	logicalDatabase := databases.CreateTestDatabase(prereqs.workspace.ID, prereqs.storage, prereqs.notifier)
+	logicalDatabase := databases.CreateTestDatabase(prereqs.workspace.ID, prereqs.notifier)
 	t.Cleanup(func() { databases.RemoveTestDatabase(context.Background(), logicalDatabase) })
 
 	testCases := []struct {
@@ -1843,7 +1849,7 @@ func Test_GetWalStreamLive_WhenRequestNotAllowed_RefusesWithoutValues(t *testing
 
 	outsider := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 
-	logicalDatabase := databases.CreateTestDatabase(prereqs.workspace.ID, prereqs.storage, prereqs.notifier)
+	logicalDatabase := databases.CreateTestDatabase(prereqs.workspace.ID, prereqs.notifier)
 	t.Cleanup(func() { databases.RemoveTestDatabase(context.Background(), logicalDatabase) })
 
 	testCases := []struct {
@@ -2621,29 +2627,29 @@ func Test_SaveBackupConfig_AfterRemovalOfOldChainFailed_NextSaveRemovesIt(t *tes
 
 // The returned storage is removed after the configuration moves back to the prereqs storage, as
 // a storage that a configuration names cannot be deleted.
-func createStorageForStorageChange(t *testing.T, prereqs *physicalControllerPrereqs) *storages.Storage {
+func createStorageForStorageChange(t *testing.T, prereqs *physicalControllerPrereqs) storages.Storage {
 	t.Helper()
 
 	backups_services.SetupDependencies()
 
-	newStorage := storages.CreateTestStorage(prereqs.workspace.ID)
+	newStorage := storages_bridge.CreateTestStorage(prereqs.workspace.ID)
 
 	t.Cleanup(func() {
 		backupConfig, err := backups_config_physical.GetBackupConfigService().GetBackupConfigByDbId(prereqs.database.ID)
 		require.NoError(t, err)
 
 		backupConfig.StorageID = &prereqs.storage.ID
-		backupConfig.Storage = prereqs.storage
+		backupConfig.Storage = &backups_config_physical.BackupConfigStorage{ID: prereqs.storage.ID}
 		_, err = backups_config_physical.GetBackupConfigService().SaveBackupConfig(context.Background(), backupConfig)
 		require.NoError(t, err)
 
-		storages.RemoveTestStorage(context.Background(), newStorage.ID)
+		storages_bridge.RemoveTestStorage(context.Background(), newStorage.ID)
 	})
 
 	return newStorage
 }
 
-func saveBackupConfigWithStorage(t *testing.T, prereqs *physicalControllerPrereqs, targetStorage *storages.Storage) {
+func saveBackupConfigWithStorage(t *testing.T, prereqs *physicalControllerPrereqs, targetStorage storages.Storage) {
 	t.Helper()
 
 	backups_services.SetupDependencies()
@@ -2653,7 +2659,7 @@ func saveBackupConfigWithStorage(t *testing.T, prereqs *physicalControllerPrereq
 
 	backupConfig.IsBackupsEnabled = true
 	backupConfig.StorageID = nil
-	backupConfig.Storage = targetStorage
+	backupConfig.Storage = &backups_config_physical.BackupConfigStorage{ID: targetStorage.ID}
 	backupConfig.FullBackupInterval = intervals.Interval{
 		Type:      intervals.IntervalDaily,
 		TimeOfDay: new("04:00"),
@@ -2669,9 +2675,8 @@ func getFileNamesPendingDeletion(t *testing.T, storageID uuid.UUID) []string {
 
 	var fileNames []string
 	require.NoError(t, storage.GetDb().
-		Model(&storage_files.PendingDeletion{}).
-		Where("storage_id = ?", storageID).
-		Pluck("file_name", &fileNames).Error)
+		Raw("SELECT file_name FROM storages_pending_deletions WHERE storage_id = ?", storageID).
+		Scan(&fileNames).Error)
 
 	return fileNames
 }

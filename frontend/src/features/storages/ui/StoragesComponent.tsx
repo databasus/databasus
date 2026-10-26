@@ -2,8 +2,7 @@ import { Button, Modal, Spin } from 'antd';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { storageApi } from '../../../entity/storages';
-import type { Storage } from '../../../entity/storages';
+import { type Storage, storageApi } from '../../../entity/storages';
 import type { Workspace } from '../../../entity/workspaces';
 import { useIsMobile } from '../../../shared/hooks';
 import { translateApiError } from '../../../shared/i18n';
@@ -44,7 +43,7 @@ export const StoragesComponent = ({ contentHeight, workspace, isCanManageStorage
     }
 
     storageApi
-      .getStorages(workspace.id)
+      .listAllStorages(workspace.id)
       .then((storages: Storage[]) => {
         setStorages(storages);
         if (selectStorageId) {

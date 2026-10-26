@@ -13,23 +13,21 @@ var ErrUnknownConsoleCommand = errors.New("unknown console command")
 type StorageProbeError struct {
 	TempFolder string
 	DataFolder string
-	Operation  string
-	Err        error
+	// Err names the operation that failed.
+	Err error
 }
 
 func (e *StorageProbeError) Error() string {
 	return fmt.Sprintf(
 		"Databasus cannot write to local storage paths %s and %s as UID %d and GID %d.\n"+
-			"Required operation: %s.\n"+
-			"Set PUID and PGID or fix the mounted directory permissions: %s\n"+
-			"Details: %v",
+			"Failed operation: %v.\n"+
+			"Set PUID and PGID or fix the mounted directory permissions: %s",
 		e.TempFolder,
 		e.DataFolder,
 		os.Geteuid(),
 		os.Getegid(),
-		e.Operation,
-		storagePermissionsDocumentationURL,
 		e.Err,
+		storagePermissionsDocumentationURL,
 	)
 }
 

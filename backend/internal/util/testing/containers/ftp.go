@@ -1,6 +1,9 @@
 package containers
 
 import (
+	"context"
+	"math/rand/v2"
+	"net"
 	"strconv"
 	"testing"
 	"time"
@@ -19,18 +22,25 @@ const (
 
 const ftpControlPort = "21/tcp"
 
-// pure-ftpd hands out a port from this range on EPSV, and jlaffaye/ftp (EPSV by default) then dials
-// the control host at that exact port. So the range must be published 1:1 (container port == host
-// port) instead of at testcontainers' usual random host port, or the data connection lands nowhere.
-// Only the storages package uses FTP and its sub-tests run one container at a time, so the fixed
-// host range never collides across the suite.
+// pure-ftpd hands out a port from its passive range on EPSV, and jlaffaye/ftp (EPSV by default) then
+// dials the control host at that exact port. So the range must be published 1:1 (container port ==
+// host port) instead of at testcontainers' usual random host port, or the data connection lands
+// nowhere. Several test binaries start FTP containers at once, so each container takes a free range of
+// its own.
 const (
-	ftpPassivePortMin = 30000
-	ftpPassivePortMax = 30009
+	ftpPassivePortCount   = 10
+	ftpPassivePortLowest  = 30000
+	ftpPassivePortHighest = 39999
 )
 
-// StartFtp binds the passive port range 1:1 (see the ftpPassivePort constant comment); the control
-// port stays dynamic and is read back as the endpoint.
+// passivePortRange is the first and the last port of an FTP container's passive range.
+type passivePortRange struct {
+	first int
+	last  int
+}
+
+// StartFtp binds the passive port range 1:1 (see the ftpPassivePortCount constant comment); the
+// control port stays dynamic and is read back as the endpoint.
 func StartFtp(t *testing.T) Endpoint {
 	t.Helper()
 
@@ -40,18 +50,20 @@ func StartFtp(t *testing.T) Endpoint {
 func StartFtpContainer(t *testing.T) ContainerHandle {
 	t.Helper()
 
+	passivePorts := findFreePassivePortRange(t)
+
 	req := testcontainers.ContainerRequest{
 		Image:        "stilliard/pure-ftpd:latest",
-		ExposedPorts: ftpExposedPorts(),
+		ExposedPorts: ftpExposedPorts(passivePorts),
 		Env: map[string]string{
 			"PUBLICHOST":        "localhost",
 			"FTP_USER_NAME":     FtpUsername,
 			"FTP_USER_PASS":     FtpPassword,
 			"FTP_USER_HOME":     "/home/ftpusers/" + FtpUsername,
-			"FTP_PASSIVE_PORTS": strconv.Itoa(ftpPassivePortMin) + ":" + strconv.Itoa(ftpPassivePortMax),
+			"FTP_PASSIVE_PORTS": strconv.Itoa(passivePorts.first) + ":" + strconv.Itoa(passivePorts.last),
 		},
 		HostConfigModifier: func(hc *container.HostConfig) {
-			hc.PortBindings = withPassivePortRange(hc.PortBindings)
+			hc.PortBindings = withPassivePortRange(hc.PortBindings, passivePorts)
 		},
 		WaitingFor: wait.ForAll(
 			wait.ForListeningPort(ftpControlPort).WithStartupTimeout(120*time.Second),
@@ -65,9 +77,9 @@ func StartFtpContainer(t *testing.T) ContainerHandle {
 // ftpExposedPorts lists the control port plus every passive port. testcontainers drops any host
 // binding whose port is not also exposed (its mergePortBindings filters to the exposed set), so the
 // passive range must appear here for the fixed 1:1 bindings in withPassivePortRange to survive.
-func ftpExposedPorts() []string {
+func ftpExposedPorts(passivePorts passivePortRange) []string {
 	ports := []string{ftpControlPort}
-	for passivePort := ftpPassivePortMin; passivePort <= ftpPassivePortMax; passivePort++ {
+	for passivePort := passivePorts.first; passivePort <= passivePorts.last; passivePort++ {
 		ports = append(ports, strconv.Itoa(passivePort)+"/tcp")
 	}
 
@@ -76,15 +88,55 @@ func ftpExposedPorts() []string {
 
 // withPassivePortRange adds a fixed host-port binding for each FTP passive port, preserving the
 // dynamic control-port binding testcontainers populates from ExposedPorts.
-func withPassivePortRange(bindings network.PortMap) network.PortMap {
+func withPassivePortRange(bindings network.PortMap, passivePorts passivePortRange) network.PortMap {
 	if bindings == nil {
 		bindings = network.PortMap{}
 	}
 
-	for passivePort := ftpPassivePortMin; passivePort <= ftpPassivePortMax; passivePort++ {
+	for passivePort := passivePorts.first; passivePort <= passivePorts.last; passivePort++ {
 		hostPort := strconv.Itoa(passivePort)
 		bindings[network.MustParsePort(hostPort+"/tcp")] = []network.PortBinding{{HostPort: hostPort}}
 	}
 
 	return bindings
+}
+
+// findFreePassivePortRange starts at a random range, so two test binaries rarely probe the same one,
+// and takes the first range whose every port can be bound on the host right now.
+func findFreePassivePortRange(t *testing.T) passivePortRange {
+	t.Helper()
+
+	rangeCount := (ftpPassivePortHighest - ftpPassivePortLowest + 1) / ftpPassivePortCount
+	// math/rand only spreads concurrent tests over the ranges, it guards nothing.
+	// nosemgrep: go.lang.security.audit.crypto.math_random.math-random-used
+	startIndex := rand.IntN(rangeCount) //nolint:gosec // spreads concurrent tests, guards nothing
+
+	for offset := range rangeCount {
+		first := ftpPassivePortLowest + ((startIndex+offset)%rangeCount)*ftpPassivePortCount
+		candidate := passivePortRange{first: first, last: first + ftpPassivePortCount - 1}
+
+		if isPortRangeFree(t.Context(), candidate) {
+			return candidate
+		}
+	}
+
+	t.Fatalf("no free range of %d FTP passive ports between %d and %d",
+		ftpPassivePortCount, ftpPassivePortLowest, ftpPassivePortHighest)
+
+	return passivePortRange{}
+}
+
+func isPortRangeFree(ctx context.Context, candidate passivePortRange) bool {
+	var listenConfig net.ListenConfig
+
+	for port := candidate.first; port <= candidate.last; port++ {
+		listener, err := listenConfig.Listen(ctx, "tcp", net.JoinHostPort("0.0.0.0", strconv.Itoa(port)))
+		if err != nil {
+			return false
+		}
+
+		_ = listener.Close()
+	}
+
+	return true
 }

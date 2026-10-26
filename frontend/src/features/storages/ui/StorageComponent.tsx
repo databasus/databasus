@@ -1,23 +1,20 @@
-import {
-  ArrowRightOutlined,
-  CloseOutlined,
-  DeleteOutlined,
-  InfoCircleOutlined,
-} from '@ant-design/icons';
+import { ArrowRightOutlined, CloseOutlined, DeleteOutlined } from '@ant-design/icons';
 import { Button, Input, Spin } from 'antd';
 import { useState } from 'react';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { logicalBackupConfigApi } from '../../../entity/backups/logical';
-import { storageApi } from '../../../entity/storages';
-import type { Storage } from '../../../entity/storages';
+import { type Storage, storageApi } from '../../../entity/storages';
+import { ApiError } from '../../../shared/api';
 import { translateApiError } from '../../../shared/i18n';
 import { ToastHelper } from '../../../shared/toast';
 import { ConfirmationComponent } from '../../../shared/ui';
 import { EditStorageComponent } from './edit/EditStorageComponent';
 import { ShowStorageComponent } from './show/ShowStorageComponent';
 import { StorageTransferDialogComponent } from './StorageTransferDialogComponent';
+
+// eslint-disable-next-line i18next/no-literal-string -- API error code, not copy
+const STORAGE_IN_USE_CODE = 'in_use';
 
 interface Props {
   storageId: string;
@@ -51,76 +48,79 @@ export const StorageComponent = ({
 
   const [isShowTransferDialog, setIsShowTransferDialog] = useState(false);
 
-  const testConnection = () => {
+  const testConnection = async () => {
     if (!storage) return;
 
     setIsTestingConnection(true);
-    storageApi
-      .testStorageConnection(storage.id)
-      .then(() => {
+
+    try {
+      const testResult = await storageApi.testStorage(storage.id);
+
+      if (testResult.isConnected) {
         ToastHelper.showToast({
           title: t('storages.connectionTestSucceeded.title'),
           description: t('storages.connectionTestSucceeded.description'),
         });
+      } else {
+        alert(t('storages.connectionTestFailed', { error: testResult.error }));
+      }
+    } catch (e) {
+      alert(translateApiError(e, t));
+    }
 
-        if (storage.lastSaveError) {
-          setStorage({ ...storage, lastSaveError: undefined });
-          onStorageChanged(storage);
-        }
-      })
-      .catch((e: unknown) => {
-        alert(translateApiError(e, t));
-      })
-      .finally(() => {
-        setIsTestingConnection(false);
-      });
+    setIsTestingConnection(false);
   };
 
+  // A storage that a backup config uses or that still holds backups is refused with in_use; the
+  // generic in_use text names only databases, so the storage has its own.
   const remove = async () => {
     if (!storage) return;
 
     setIsRemoving(true);
 
     try {
-      const isStorageUsing = await logicalBackupConfigApi.isStorageUsing(storage.id);
-      if (isStorageUsing) {
-        alert(t('storages.config.removeBlockedByDatabases'));
+      await storageApi.deleteStorage(storage.id);
+      onStorageDeleted();
+    } catch (e) {
+      if (e instanceof ApiError && e.code === STORAGE_IN_USE_CODE) {
+        alert(t('storages.config.removeBlockedByBackups'));
         setIsShowRemoveConfirm(false);
       } else {
-        await storageApi.deleteStorage(storage.id);
-        onStorageDeleted();
+        alert(translateApiError(e, t));
       }
-    } catch (e) {
-      alert(translateApiError(e, t));
     }
 
     setIsRemoving(false);
   };
 
   const startEdit = (type: 'name' | 'settings') => {
-    setEditStorage(JSON.parse(JSON.stringify(storage)));
+    setEditStorage(structuredClone(storage));
     setIsEditName(type === 'name');
     setIsEditSettings(type === 'settings');
     setIsNameUnsaved(false);
   };
 
-  const saveName = () => {
+  // The settings of a read storage carry no secrets, so the rename keeps the stored ones.
+  const saveName = async () => {
     if (!editStorage) return;
 
     setIsSaving(true);
-    storageApi
-      .saveStorage(editStorage)
-      .then(() => {
-        setStorage(editStorage);
-        setIsSaving(false);
-        setIsNameUnsaved(false);
-        setIsEditName(false);
-        onStorageChanged(editStorage);
-      })
-      .catch((e: unknown) => {
-        alert(translateApiError(e, t));
-        setIsSaving(false);
-      });
+
+    try {
+      const renamedStorage = await storageApi.updateStorage(
+        editStorage.id,
+        editStorage.name,
+        editStorage.settings,
+      );
+      setStorage(renamedStorage);
+      setIsNameUnsaved(false);
+      setIsEditName(false);
+      onStorageChanged(renamedStorage);
+    } catch (e) {
+      alert(translateApiError(e, t));
+    }
+
+    setIsSaving(false);
   };
 
   const loadSettings = () => {
@@ -193,29 +193,6 @@ export const StorageComponent = ({
                     {t('common.actions.save')}
                   </Button>
                 )}
-              </div>
-            )}
-
-            {storage.lastSaveError && (
-              <div className="max-w-[400px] rounded border border-red-600 px-3 py-3">
-                <div className="mt-1 flex items-center text-sm font-bold text-red-600">
-                  <InfoCircleOutlined className="mr-2" style={{ color: 'red' }} />
-                  {t('storages.config.lastSaveError.title')}
-                </div>
-
-                <div className="mt-3 text-sm">
-                  {t('storages.config.lastSaveError.errorLabel')}
-                  <br />
-                  {storage.lastSaveError}
-                </div>
-
-                <div className="mt-3 text-sm break-words whitespace-pre-wrap text-gray-500 dark:text-gray-400">
-                  {t('storages.config.lastSaveError.clearHint')}
-                  <ul>
-                    <li>{t('storages.config.lastSaveError.clearByTestingConnection')}</li>
-                    <li>{t('storages.config.lastSaveError.clearByNextSave')}</li>
-                  </ul>
-                </div>
               </div>
             )}
 

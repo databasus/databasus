@@ -15,6 +15,7 @@ import (
 	"databasus-backend/internal/lib/config"
 	"databasus-backend/internal/lib/logging"
 	"databasus-backend/internal/lib/mailer"
+	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/util/logger"
 )
 
@@ -31,6 +32,9 @@ type Environment struct {
 	// NotificationDeliveryTimeout ends a send to a notifier that its channel does not answer. A
 	// test application shortens it.
 	NotificationDeliveryTimeout time.Duration
+	// StorageFileTimings are the deadlines of stored files and their cleanup. A test application
+	// shortens them.
+	StorageFileTimings storages.FileTimings
 }
 
 const notificationDeliveryTimeout = 30 * time.Second
@@ -117,6 +121,7 @@ func NewEnvironment(ctx context.Context, loadedConfig config.Config, clockSource
 		}),
 		ExternalEndpoints:           GetPublicExternalEndpoints(),
 		NotificationDeliveryTimeout: notificationDeliveryTimeout,
+		StorageFileTimings:          storages.ProductionFileTimings(),
 	}, nil
 }
 

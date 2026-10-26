@@ -34,7 +34,8 @@ type namedItem struct {
 	Name string    `json:"name"`
 }
 
-type workspacePage struct {
+// namedItemPage is one page of a contract list, such as the workspaces or the storages.
+type namedItemPage struct {
 	Items      []namedItem `json:"items"`
 	NextCursor *string     `json:"nextCursor"`
 }
@@ -43,11 +44,14 @@ type createWorkspaceRequest struct {
 	Name string `json:"name"`
 }
 
-type createLocalStorageRequest struct {
-	WorkspaceID  uuid.UUID `json:"workspaceId"`
-	Type         string    `json:"type"`
-	Name         string    `json:"name"`
-	LocalStorage struct{}  `json:"localStorage"`
+type createStorageRequest struct {
+	WorkspaceID uuid.UUID            `json:"workspaceId"`
+	Name        string               `json:"name"`
+	Settings    localStorageSettings `json:"settings"`
+}
+
+type localStorageSettings struct {
+	Type string `json:"type"`
 }
 
 type createDatabaseRequest struct {

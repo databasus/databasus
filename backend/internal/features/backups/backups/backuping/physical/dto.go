@@ -8,7 +8,7 @@ import (
 	"databasus-backend/internal/features/backups/backups/core/physical/chain_view"
 	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
 	"databasus-backend/internal/features/databases"
-	"databasus-backend/internal/features/storages"
+	"databasus-backend/internal/modules/storages"
 )
 
 type backupContext struct {
@@ -18,7 +18,7 @@ type backupContext struct {
 	// executor's SourceDB, pg_basebackup — dials the forwarded port off one SSH session.
 	Database *databases.Database
 
-	Storage   *storages.Storage
+	Storage   storages.Storage
 	MasterKey string
 	tunnel    *databases.TunneledDatabase
 }

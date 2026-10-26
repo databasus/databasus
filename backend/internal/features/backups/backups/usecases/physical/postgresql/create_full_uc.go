@@ -11,7 +11,7 @@ import (
 	chain_view "databasus-backend/internal/features/backups/backups/core/physical/chain_view"
 	physical_enums "databasus-backend/internal/features/backups/backups/core/physical/enums"
 	postgresql_shared "databasus-backend/internal/features/databases/databases/postgresql/shared"
-	storage_files "databasus-backend/internal/features/storages/files"
+	"databasus-backend/internal/modules/storages"
 	db "databasus-backend/internal/storage"
 )
 
@@ -190,12 +190,12 @@ func classifyFullStreamError(streamErr error, stderr []byte) streamOutcome {
 // naming it here would only cost one idempotent provider call.
 func discardArtifactsAfterChainBroken(
 	ctx context.Context,
-	fileStore *storage_files.Store,
+	fileStore FileStore,
 	storageID uuid.UUID,
 	fileName string,
 	logger *slog.Logger,
 ) {
-	references := []storage_files.StoredFileReference{
+	references := []storages.StoredFileReference{
 		{StorageID: storageID, FileName: fileName},
 		{StorageID: storageID, FileName: fileName + manifestSuffix},
 	}

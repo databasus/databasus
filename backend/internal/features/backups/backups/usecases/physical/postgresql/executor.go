@@ -10,7 +10,7 @@ import (
 
 	physical_enums "databasus-backend/internal/features/backups/backups/core/physical/enums"
 	postgresql_shared "databasus-backend/internal/features/databases/databases/postgresql/shared"
-	storage_files "databasus-backend/internal/features/storages/files"
+	"databasus-backend/internal/modules/storages"
 	db "databasus-backend/internal/storage"
 	files_utils "databasus-backend/internal/util/files"
 	"databasus-backend/internal/util/tools"
@@ -133,7 +133,7 @@ func streamWithCodecFallback(
 
 func discardAttemptFiles(ctx context.Context, common CommonBackupSpec, fileName string) {
 	err := db.GetTransactor().Transaction(ctx, func(ctx context.Context) error {
-		return common.FileStore.RequestFileDeletions(ctx, []storage_files.StoredFileReference{
+		return common.FileStore.RequestFileDeletions(ctx, []storages.StoredFileReference{
 			{StorageID: common.StorageID, FileName: fileName},
 		})
 	})

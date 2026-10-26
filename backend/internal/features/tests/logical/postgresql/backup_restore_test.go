@@ -21,7 +21,7 @@ import (
 	"databasus-backend/internal/features/databases"
 	pgtypes "databasus-backend/internal/features/databases/databases/postgresql/logical"
 	restores_core "databasus-backend/internal/features/restores/core"
-	"databasus-backend/internal/features/storages"
+	storages_bridge "databasus-backend/internal/features/storages"
 	logicaltesting "databasus-backend/internal/features/tests/logical/shared"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
@@ -235,7 +235,7 @@ func testBackupRestoreForVersion(t *testing.T, endpoint containers.Endpoint, pgV
 	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", user)
 
-	storage := storages.CreateTestStorage(workspace.ID)
+	storage := storages_bridge.CreateTestStorage(workspace.ID)
 
 	database := createDatabaseWithCpuCountViaAPI(
 		t, router, "Test Database", workspace.ID,
@@ -313,7 +313,7 @@ func testBackupRestoreForVersion(t *testing.T, endpoint containers.Endpoint, pgV
 		"Bearer "+user.Token,
 		http.StatusNoContent,
 	)
-	storages.RemoveTestStorage(t.Context(), storage.ID)
+	storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 }
 
@@ -353,7 +353,7 @@ func testSchemaSelectionAllSchemasForVersion(t *testing.T, endpoint containers.E
 	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Schema Test Workspace", user)
 
-	storage := storages.CreateTestStorage(workspace.ID)
+	storage := storages_bridge.CreateTestStorage(workspace.ID)
 
 	database := createDatabaseWithSchemasViaAPI(
 		t, router, "All Schemas Database", workspace.ID,
@@ -442,7 +442,7 @@ func testSchemaSelectionAllSchemasForVersion(t *testing.T, endpoint containers.E
 		"Bearer "+user.Token,
 		http.StatusNoContent,
 	)
-	storages.RemoveTestStorage(t.Context(), storage.ID)
+	storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 }
 
@@ -482,7 +482,7 @@ func testBackupRestoreWithExcludeExtensionsForVersion(t *testing.T, endpoint con
 	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Extension Test Workspace", user)
 
-	storage := storages.CreateTestStorage(workspace.ID)
+	storage := storages_bridge.CreateTestStorage(workspace.ID)
 
 	database := createDatabaseViaAPI(
 		t, router, "Extension Test Database", workspace.ID,
@@ -570,7 +570,7 @@ func testBackupRestoreWithExcludeExtensionsForVersion(t *testing.T, endpoint con
 		"Bearer "+user.Token,
 		http.StatusNoContent,
 	)
-	storages.RemoveTestStorage(t.Context(), storage.ID)
+	storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 }
 
@@ -627,7 +627,7 @@ func testBackupRestoreSkipUserMappingsForVersion(t *testing.T, endpoint containe
 	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Skip User Mappings Workspace", user)
 
-	storage := storages.CreateTestStorage(workspace.ID)
+	storage := storages_bridge.CreateTestStorage(workspace.ID)
 
 	// Created under the limited role with IsSkipUserMappings enabled, so TestConnection's
 	// unreadable-user-mapping gate is bypassed and the backup runs as that role.
@@ -699,7 +699,7 @@ func testBackupRestoreSkipUserMappingsForVersion(t *testing.T, endpoint containe
 		"Bearer "+user.Token,
 		http.StatusNoContent,
 	)
-	storages.RemoveTestStorage(t.Context(), storage.ID)
+	storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 }
 
@@ -743,7 +743,7 @@ func testBackupRestoreWithoutExcludeExtensionsForVersion(
 		"Extension Recovery Test Workspace",
 		user)
 
-	storage := storages.CreateTestStorage(workspace.ID)
+	storage := storages_bridge.CreateTestStorage(workspace.ID)
 
 	database := createDatabaseViaAPI(
 		t, router, "Extension Recovery Test Database", workspace.ID,
@@ -847,7 +847,7 @@ func testBackupRestoreWithoutExcludeExtensionsForVersion(
 		"Bearer "+user.Token,
 		http.StatusNoContent,
 	)
-	storages.RemoveTestStorage(t.Context(), storage.ID)
+	storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 }
 
@@ -887,7 +887,7 @@ func testBackupRestoreWithRestoreOwnershipForVersion(t *testing.T, endpoint cont
 	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Ownership Test Workspace", user)
 
-	storage := storages.CreateTestStorage(workspace.ID)
+	storage := storages_bridge.CreateTestStorage(workspace.ID)
 
 	database := createDatabaseViaAPI(
 		t, router, "Ownership Test Database", workspace.ID,
@@ -960,7 +960,7 @@ func testBackupRestoreWithRestoreOwnershipForVersion(t *testing.T, endpoint cont
 		"Bearer "+user.Token,
 		http.StatusNoContent,
 	)
-	storages.RemoveTestStorage(t.Context(), storage.ID)
+	storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 }
 
@@ -1000,7 +1000,7 @@ func testBackupRestoreWithRestorePrivilegesForVersion(t *testing.T, endpoint con
 	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Privileges Test Workspace", user)
 
-	storage := storages.CreateTestStorage(workspace.ID)
+	storage := storages_bridge.CreateTestStorage(workspace.ID)
 
 	database := createDatabaseViaAPI(
 		t, router, "Privileges Test Database", workspace.ID,
@@ -1082,7 +1082,7 @@ func testBackupRestoreWithRestorePrivilegesForVersion(t *testing.T, endpoint con
 		"Bearer "+user.Token,
 		http.StatusNoContent,
 	)
-	storages.RemoveTestStorage(t.Context(), storage.ID)
+	storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 }
 
@@ -1107,7 +1107,7 @@ func testBackupRestoreWithReadOnlyUserForVersion(t *testing.T, endpoint containe
 	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ReadOnly Test Workspace", user)
 
-	storage := storages.CreateTestStorage(workspace.ID)
+	storage := storages_bridge.CreateTestStorage(workspace.ID)
 
 	database := createDatabaseViaAPI(
 		t, router, "ReadOnly Test Database", workspace.ID,
@@ -1192,7 +1192,7 @@ func testBackupRestoreWithReadOnlyUserForVersion(t *testing.T, endpoint containe
 		"Bearer "+user.Token,
 		http.StatusNoContent,
 	)
-	storages.RemoveTestStorage(t.Context(), storage.ID)
+	storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 }
 
@@ -1243,7 +1243,7 @@ func testBackupFailsWhenUserCannotReadSequencesForVersion(
 	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Sequence Privileges Workspace", user)
 
-	storage := storages.CreateTestStorage(workspace.ID)
+	storage := storages_bridge.CreateTestStorage(workspace.ID)
 
 	database := createDatabaseViaAPI(
 		t, router, "Sequence Privileges Database", workspace.ID,
@@ -1300,7 +1300,7 @@ func testBackupFailsWhenUserCannotReadSequencesForVersion(
 		"Bearer "+user.Token,
 		http.StatusNoContent,
 	)
-	storages.RemoveTestStorage(t.Context(), storage.ID)
+	storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 }
 
@@ -1346,7 +1346,7 @@ func testSchemaSelectionOnlySpecifiedSchemasForVersion(
 	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Schema Test Workspace", user)
 
-	storage := storages.CreateTestStorage(workspace.ID)
+	storage := storages_bridge.CreateTestStorage(workspace.ID)
 
 	database := createDatabaseWithSchemasViaAPI(
 		t, router, "Specific Schemas Database", workspace.ID,
@@ -1448,7 +1448,7 @@ func testSchemaSelectionOnlySpecifiedSchemasForVersion(
 		"Bearer "+user.Token,
 		http.StatusNoContent,
 	)
-	storages.RemoveTestStorage(t.Context(), storage.ID)
+	storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 }
 
@@ -1489,7 +1489,7 @@ func testBackupRestoreWithExcludeTablesForVersion(t *testing.T, endpoint contain
 		"Exclude Tables Test Workspace",
 		user)
 
-	storage := storages.CreateTestStorage(workspace.ID)
+	storage := storages_bridge.CreateTestStorage(workspace.ID)
 
 	database := createDatabaseViaAPI(
 		t, router, "Exclude Tables Test Database", workspace.ID,
@@ -1583,7 +1583,7 @@ func testBackupRestoreWithExcludeTablesForVersion(t *testing.T, endpoint contain
 		"Bearer "+user.Token,
 		http.StatusNoContent,
 	)
-	storages.RemoveTestStorage(t.Context(), storage.ID)
+	storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 }
 
@@ -1627,7 +1627,7 @@ func testSchemasWithExcludeTablesForVersion(t *testing.T, endpoint containers.En
 		"Schemas+Exclude Tables Workspace",
 		user)
 
-	storage := storages.CreateTestStorage(workspace.ID)
+	storage := storages_bridge.CreateTestStorage(workspace.ID)
 
 	database := createDatabaseWithSchemasViaAPI(
 		t, router, "Schemas+Exclude Database", workspace.ID,
@@ -1734,7 +1734,7 @@ func testSchemasWithExcludeTablesForVersion(t *testing.T, endpoint containers.En
 		"Bearer "+user.Token,
 		http.StatusNoContent,
 	)
-	storages.RemoveTestStorage(t.Context(), storage.ID)
+	storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 }
 
@@ -1759,7 +1759,7 @@ func testBackupRestoreWithEncryptionForVersion(t *testing.T, endpoint containers
 	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", user)
 
-	storage := storages.CreateTestStorage(workspace.ID)
+	storage := storages_bridge.CreateTestStorage(workspace.ID)
 
 	database := createDatabaseViaAPI(
 		t, router, "Test Database", workspace.ID,
@@ -1835,7 +1835,7 @@ func testBackupRestoreWithEncryptionForVersion(t *testing.T, endpoint containers
 		"Bearer "+user.Token,
 		http.StatusNoContent,
 	)
-	storages.RemoveTestStorage(t.Context(), storage.ID)
+	storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 }
 

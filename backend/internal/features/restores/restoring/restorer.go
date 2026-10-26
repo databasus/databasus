@@ -13,19 +13,20 @@ import (
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
 	"databasus-backend/internal/features/databases"
 	restores_core "databasus-backend/internal/features/restores/core"
-	storage_files "databasus-backend/internal/features/storages/files"
 	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
 	"databasus-backend/internal/lib/cache"
+	"databasus-backend/internal/modules/storages"
 	util_encryption "databasus-backend/internal/util/encryption"
 )
 
 type Restorer struct {
-	databaseService          *databases.DatabaseService
-	backupService            *backups_services.LogicalBackupService
-	fieldEncryptor           util_encryption.FieldEncryptor
-	restoreRepository        *restores_core.RestoreRepository
-	backupConfigService      *backups_config_logical.BackupConfigService
-	fileStore                *storage_files.Store
+	databaseService     *databases.DatabaseService
+	backupService       *backups_services.LogicalBackupService
+	fieldEncryptor      util_encryption.FieldEncryptor
+	restoreRepository   *restores_core.RestoreRepository
+	backupConfigService *backups_config_logical.BackupConfigService
+	// getStorages is read per call: each test application installs its own module.
+	getStorages              func() storages.Module
 	logger                   *slog.Logger
 	restoreBackupUsecase     restores_core.RestoreBackupUsecase
 	restoreDatabaseCache     *cache.JSONStore[RestoreDatabaseCache]
@@ -96,7 +97,7 @@ func (r *Restorer) MakeRestore(
 	restoreCtx, cancelRestore := restores_core.NewRestoreContext(executionCtx, r.shutdownSignal)
 	defer cancelRestore(nil)
 
-	storageReader, err := r.fileStore.GetStorageReader(restoreCtx, backup.StorageID)
+	storageReader, err := r.getStorages().GetStorageReader(restoreCtx, backup.StorageID)
 	if err != nil {
 		logger.ErrorContext(ctx, "failed to open the backup's storage", "storage_id", backup.StorageID, "error", err)
 		return

@@ -34,7 +34,7 @@ func Test_WalStream_FullIncrementalAndWalStream_StreamerArchivesSegments(t *test
 
 	stop := StartWalStreamerForTest(
 		t,
-		WalStreamerTestSpec{Fixture: fixture, Storage: store, WatchDirRoot: t.TempDir()},
+		WalStreamerTestSpec{Fixture: fixture, FileStore: newMockWalStoreFor(store), WatchDirRoot: t.TempDir()},
 	).Stop
 	t.Cleanup(stop)
 
@@ -131,13 +131,13 @@ func Test_WalStream_MultipleDbs_EachArchivesSegmentsIndependently(t *testing.T) 
 	t.Cleanup(
 		StartWalStreamerForTest(
 			t,
-			WalStreamerTestSpec{Fixture: fixtureA, Storage: storeA, WatchDirRoot: t.TempDir()},
+			WalStreamerTestSpec{Fixture: fixtureA, FileStore: newMockWalStoreFor(storeA), WatchDirRoot: t.TempDir()},
 		).Stop,
 	)
 	t.Cleanup(
 		StartWalStreamerForTest(
 			t,
-			WalStreamerTestSpec{Fixture: fixtureB, Storage: storeB, WatchDirRoot: t.TempDir()},
+			WalStreamerTestSpec{Fixture: fixtureB, FileStore: newMockWalStoreFor(storeB), WatchDirRoot: t.TempDir()},
 		).Stop,
 	)
 
@@ -174,7 +174,7 @@ func Test_WalStream_MissingSegmentInStreamedChain_SurfacesAsGapChainStaysExtenda
 	t.Cleanup(
 		StartWalStreamerForTest(
 			t,
-			WalStreamerTestSpec{Fixture: fixture, Storage: store, WatchDirRoot: t.TempDir()},
+			WalStreamerTestSpec{Fixture: fixture, FileStore: newMockWalStoreFor(store), WatchDirRoot: t.TempDir()},
 		).Stop,
 	)
 
@@ -236,7 +236,7 @@ func Test_WalStream_SlotLagGrowsWithoutConsumer_DrainsOnceStreaming(t *testing.T
 	// Once our streamer attaches, it consumes the backlog and the lag drains.
 	t.Cleanup(StartWalStreamerForTest(t, WalStreamerTestSpec{
 		Fixture:      fixture,
-		Storage:      newMockWalStorage(),
+		FileStore:    newMockWalStoreFor(newMockWalStorage()),
 		WatchDirRoot: t.TempDir(),
 	}).Stop)
 
@@ -697,7 +697,7 @@ func Test_WalStream_WhenSourceIsIdle_KeepsReceiverAliveAndDoesNotRebuildSlot(t *
 
 	streamer := StartWalStreamerForTest(t, WalStreamerTestSpec{
 		Fixture:      fixture,
-		Storage:      newMockWalStorage(),
+		FileStore:    newMockWalStoreFor(newMockWalStorage()),
 		WatchDirRoot: t.TempDir(),
 		OnSlotRebuilt: func(_ context.Context, reason string) error {
 			slotRebuilds.recordReason(reason)
@@ -766,7 +766,7 @@ func Test_WalStream_WhenSourceWritesRarely_UploadsSegmentWithinRotationInterval(
 
 	t.Cleanup(StartWalStreamerForTest(t, WalStreamerTestSpec{
 		Fixture:                fixture,
-		Storage:                newMockWalStorage(),
+		FileStore:              newMockWalStoreFor(newMockWalStorage()),
 		WatchDirRoot:           t.TempDir(),
 		ForcedRotationInterval: time.Second,
 	}).Stop)
@@ -794,7 +794,7 @@ func Test_WalStream_WhenSwitchWalIsRefused_AlertsOnceAndStopsRotating(t *testing
 
 	t.Cleanup(StartWalStreamerForTest(t, WalStreamerTestSpec{
 		Fixture:                fixture,
-		Storage:                newMockWalStorage(),
+		FileStore:              newMockWalStoreFor(newMockWalStorage()),
 		WatchDirRoot:           t.TempDir(),
 		ForcedRotationInterval: time.Second,
 		OnChainAtRisk: func(report ChainRiskReport) {
@@ -966,7 +966,7 @@ func Test_WalStream_WhileReceiverRunsAndAfterItExits_SlotBreakSampleCarriesItsRu
 
 	streamer := StartWalStreamerForTest(t, WalStreamerTestSpec{
 		Fixture:      fixture,
-		Storage:      newMockWalStorage(),
+		FileStore:    newMockWalStoreFor(newMockWalStorage()),
 		WatchDirRoot: t.TempDir(),
 	})
 	t.Cleanup(streamer.Stop)

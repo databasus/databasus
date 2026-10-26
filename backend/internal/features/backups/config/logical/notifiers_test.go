@@ -9,7 +9,6 @@ import (
 
 	"databasus-backend/internal/features/databases"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
-	"databasus-backend/internal/features/storages"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
 	"databasus-backend/internal/modules/users"
@@ -84,7 +83,6 @@ func createTestRouterWithNotifier() *gin.Engine {
 	router := workspaces_testing.CreateTestRouter(
 		databases.GetDatabaseController(),
 		GetBackupConfigController(),
-		storages.GetStorageController(),
 	)
 
 	databases.SetupDependencies()

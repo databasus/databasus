@@ -13,7 +13,7 @@ import (
 	backuping_logical "databasus-backend/internal/features/backups/backups/backuping/logical"
 	"databasus-backend/internal/features/databases"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
-	"databasus-backend/internal/features/storages"
+	storages_bridge "databasus-backend/internal/features/storages"
 	users_testing "databasus-backend/internal/features/users/testing"
 	verification_agents "databasus-backend/internal/features/verification/agents"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
@@ -41,13 +41,13 @@ func newReclaimFixture(
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner)
 	t.Cleanup(func() { workspaces_testing.RemoveTestWorkspace(context.Background(), workspace) })
 
-	testStorage := storages.CreateTestStorage(workspace.ID)
-	t.Cleanup(func() { storages.RemoveTestStorage(t.Context(), testStorage.ID) })
+	testStorage := storages_bridge.CreateTestStorage(workspace.ID)
+	t.Cleanup(func() { storages_bridge.RemoveTestStorage(t.Context(), testStorage.ID) })
 
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
 	t.Cleanup(func() { notifiers_bridge.RemoveTestNotifier(notifier) })
 
-	database = databases.CreateTestDatabase(workspace.ID, testStorage, notifier)
+	database = databases.CreateTestDatabase(workspace.ID, notifier)
 	t.Cleanup(func() { databases.RemoveTestDatabase(t.Context(), database) })
 
 	return router, owner.Token, database, testStorage.ID
@@ -219,16 +219,16 @@ func Test_OnAgentHeartbeated_WhenAgentDropsOneStillRunsAnother_ReclaimsOnlyDropp
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner)
 	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 
-	testStorage := storages.CreateTestStorage(workspace.ID)
-	defer storages.RemoveTestStorage(t.Context(), testStorage.ID)
+	testStorage := storages_bridge.CreateTestStorage(workspace.ID)
+	defer storages_bridge.RemoveTestStorage(t.Context(), testStorage.ID)
 
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
 	defer notifiers_bridge.RemoveTestNotifier(notifier)
 
-	databaseKept := databases.CreateTestDatabase(workspace.ID, testStorage, notifier)
+	databaseKept := databases.CreateTestDatabase(workspace.ID, notifier)
 	defer databases.RemoveTestDatabase(t.Context(), databaseKept)
 
-	databaseDropped := databases.CreateTestDatabase(workspace.ID, testStorage, notifier)
+	databaseDropped := databases.CreateTestDatabase(workspace.ID, notifier)
 	defer databases.RemoveTestDatabase(t.Context(), databaseDropped)
 
 	agent := newReclaimAgent(t, router, owner.Token)

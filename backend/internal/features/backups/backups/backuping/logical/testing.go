@@ -17,11 +17,12 @@ import (
 	"databasus-backend/internal/features/caching"
 	"databasus-backend/internal/features/databases"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
-	"databasus-backend/internal/features/storages"
+	storages_bridge "databasus-backend/internal/features/storages"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_bridge "databasus-backend/internal/features/workspaces"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
 	"databasus-backend/internal/modules/notifiers"
+	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/storage"
 	"databasus-backend/internal/util/logger"
@@ -84,7 +85,7 @@ func SeedInProgressTestBackup(
 }
 
 type BackupTestFixture struct {
-	Storage  *storages.Storage
+	Storage  storages.Storage
 	Notifier *notifiers.Notifier
 	Database *databases.Database
 }
@@ -98,11 +99,11 @@ func CreateBackupTestFixture(t *testing.T, workspaceName string) *BackupTestFixt
 
 	user := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), workspaceName, user)
-	createdStorage := storages.CreateTestStorage(workspace.ID)
+	createdStorage := storages_bridge.CreateTestStorage(workspace.ID)
 	createdNotifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
-	createdDatabase := databases.CreateTestDatabase(workspace.ID, createdStorage, createdNotifier)
+	createdDatabase := databases.CreateTestDatabase(workspace.ID, createdNotifier)
 
-	backups_config_logical.EnableBackupsForTestDatabase(t.Context(), createdDatabase.ID, createdStorage)
+	backups_config_logical.EnableBackupsForTestDatabase(t.Context(), createdDatabase.ID, createdStorage.ID)
 
 	t.Cleanup(func() {
 		backups, _ := getBackupRepository().FindByDatabaseID(createdDatabase.ID)
@@ -117,7 +118,7 @@ func CreateBackupTestFixture(t *testing.T, workspaceName string) *BackupTestFixt
 		// the rows behind.
 		time.Sleep(50 * time.Millisecond)
 		notifiers_bridge.RemoveTestNotifier(createdNotifier)
-		storages.RemoveTestStorage(t.Context(), createdStorage.ID)
+		storages_bridge.RemoveTestStorage(t.Context(), createdStorage.ID)
 		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	})
 
@@ -136,7 +137,7 @@ func CreateTestRouter() *gin.Engine {
 func CreateTestBackupCleaner() *BackupCleaner {
 	return &BackupCleaner{
 		getBackupRepository(),
-		storages.GetStorageFileStore(),
+		storages_bridge.GetModule,
 		backups_config_logical.GetBackupConfigService(),
 		logger.GetLogger(),
 		[]backups_core_logical.BackupRemoveListener{},
@@ -150,7 +151,7 @@ func CreateTestBackuper() *Backuper {
 		workspaces_bridge.GetAccess(),
 		getBackupRepository(),
 		backups_config_logical.GetBackupConfigService(),
-		storages.GetStorageFileStore(),
+		storages_bridge.GetModule,
 		notifiers_bridge.GetSender(),
 		getTaskCancellationRegistry(),
 		logger.GetLogger(),
@@ -164,7 +165,7 @@ func CreateTestBackuperWithUseCase(useCase backups_core_logical.CreateBackupUsec
 		workspaces_bridge.GetAccess(),
 		getBackupRepository(),
 		backups_config_logical.GetBackupConfigService(),
-		storages.GetStorageFileStore(),
+		storages_bridge.GetModule,
 		notifiers_bridge.GetSender(),
 		getTaskCancellationRegistry(),
 		logger.GetLogger(),

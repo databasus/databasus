@@ -37,7 +37,7 @@ A violation SHALL fail the lint with the file, the line and the rule. Three rule
 - **THEN** the backend lint fails
 
 ### Requirement: Code awaiting its move keeps the checks it had
-For the rules of the previous requirement, code outside the target layout SHALL be checked exactly as before this change: its production files by the linters that checked them before, and its test files by none. The lint configuration SHALL list the target layout explicitly, so code added outside it falls under the old checks and code added inside it falls under every rule. Three rules of the architecture check also cover code outside the target layout: the production binary contains no test code, old backup code writes stored files only through the file store, and test helpers behind the test helper build tag exist only outside the target layout.
+For the rules of the previous requirement, code outside the target layout SHALL be checked exactly as before this change: its production files by the linters that checked them before, and its test files by none. The lint configuration SHALL list the target layout explicitly, so code added outside it falls under the old checks and code added inside it falls under every rule. Two rules of the architecture check also cover code outside the target layout: the production binary contains no test code, and test helpers behind the test helper build tag exist only outside the target layout.
 
 #### Scenario: An old package with an existing violation of a new rule
 - **WHEN** a production file of a package outside the target layout calls a fixed sleep, as it did before this change
@@ -81,17 +81,6 @@ The backend lint SHALL include an architecture check for the rules the architect
 #### Scenario: A goroutine started in a module
 - **WHEN** a service in a module starts a goroutine with a bare go statement
 - **THEN** the architecture check fails and names the shared library as the only place where a bare go statement is allowed
-
-### Requirement: Old backup code writes stored files only through the file store
-The architecture check SHALL fail when backup code awaiting its move calls a storage provider's own save or delete method directly outside test files, so that every write and removal of a stored file goes through the file store that keeps a failed backup from leaving a file behind. In the target layout the providers live inside the storages module, so the module boundary rule already keeps backup code away from them.
-
-#### Scenario: A direct provider delete
-- **WHEN** backup code calls a storage provider's delete method directly
-- **THEN** the architecture check fails and names the call and the file store to use instead
-
-#### Scenario: A test calls the provider
-- **WHEN** a backup test calls a storage provider's save method to prepare data
-- **THEN** the architecture check passes
 
 ### Requirement: Migrations add no cascading foreign key to another module's table
 The architecture check SHALL fail when a migration added after this change declares a foreign key with a cascading delete from one module's table to a table of another owner. A table has an owner when its name is a module name from the architecture document, or starts with a module name followed by an underscore, or starts with `lib_<name>_`; a shared library table counts as an owner of its own. A foreign key that involves a table without an owner SHALL NOT be checked, because tables that predate the module prefixes do not follow the scheme yet. Migrations that existed before this change SHALL NOT be checked either.

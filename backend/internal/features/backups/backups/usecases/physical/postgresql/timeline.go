@@ -22,8 +22,8 @@ import (
 	physical_repositories "databasus-backend/internal/features/backups/backups/core/physical/repositories"
 	backup_encryption "databasus-backend/internal/features/backups/backups/encryption"
 	postgresql_physical "databasus-backend/internal/features/databases/databases/postgresql/physical"
-	storage_files "databasus-backend/internal/features/storages/files"
 	"databasus-backend/internal/lib/database"
+	"databasus-backend/internal/modules/storages"
 	db "databasus-backend/internal/storage"
 	util_encryption "databasus-backend/internal/util/encryption"
 	"databasus-backend/internal/util/walmath"
@@ -189,7 +189,7 @@ func ValidateStartLsnAgainstHistory(
 type HistoryUploadSpec struct {
 	Conn           *pgx.Conn
 	TimelineID     int
-	FileStore      *storage_files.Store
+	FileStore      FileStore
 	SourceDB       *postgresql_physical.PostgresqlPhysicalDatabase
 	StorageID      uuid.UUID
 	HistoryRepo    *physical_repositories.PhysicalWalHistoryRepository
@@ -247,7 +247,7 @@ func UploadHistoryFile(
 		return nil, err
 	}
 
-	artifactReference := storage_files.StoredFileReference{StorageID: storageID, FileName: storageObjectName}
+	artifactReference := storages.StoredFileReference{StorageID: storageID, FileName: storageObjectName}
 
 	artifactReceipt, err := spec.FileStore.WriteFile(ctx, artifactReference, artifactReader)
 	if err != nil {
@@ -275,7 +275,7 @@ func UploadHistoryFile(
 		return nil, fmt.Errorf("marshal history sidecar: %w", err)
 	}
 
-	sidecarReference := storage_files.StoredFileReference{StorageID: storageID, FileName: sidecarFilename}
+	sidecarReference := storages.StoredFileReference{StorageID: storageID, FileName: sidecarFilename}
 
 	sidecarReceipt, err := spec.FileStore.WriteFile(ctx, sidecarReference, bytes.NewReader(sidecarBytes))
 	if err != nil {
@@ -283,7 +283,7 @@ func UploadHistoryFile(
 		// the artifact back rather than leaving half a history file behind.
 		if discardErr := db.GetTransactor().Transaction(ctx, func(ctx context.Context) error {
 			return spec.FileStore.RequestFileDeletions(
-				ctx, []storage_files.StoredFileReference{artifactReference})
+				ctx, []storages.StoredFileReference{artifactReference})
 		}); discardErr != nil {
 			logger.WarnContext(ctx, "failed to discard a history artifact after its sidecar failed",
 				"file_name", storageObjectName,
@@ -311,7 +311,7 @@ func UploadHistoryFile(
 			return insertErr
 		}
 
-		return spec.FileStore.ConfirmFileWrites(ctx, []storage_files.WriteReceipt{
+		return spec.FileStore.ConfirmFileWrites(ctx, []storages.WriteReceipt{
 			artifactReceipt, sidecarReceipt,
 		})
 	})

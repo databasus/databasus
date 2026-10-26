@@ -17,10 +17,11 @@ import (
 	physical_testing "databasus-backend/internal/features/backups/backups/core/physical/testing"
 	"databasus-backend/internal/features/databases"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
-	"databasus-backend/internal/features/storages"
+	storages_bridge "databasus-backend/internal/features/storages"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
 	"databasus-backend/internal/modules/notifiers"
+	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/util/walmath"
 )
@@ -35,7 +36,7 @@ const (
 type chainViewTestPrereqs struct {
 	user      *users_testing.TestUser
 	workspace *workspaces_testing.TestWorkspace
-	storage   *storages.Storage
+	storage   storages.Storage
 	notifier  *notifiers.Notifier
 	database  *databases.Database
 }
@@ -45,7 +46,7 @@ func createChainViewTestPrereqs(t *testing.T) *chainViewTestPrereqs {
 
 	user := users_testing.CreateTestUser(t.Context(), users.RoleMember)
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Chain View Test "+uuid.NewString(), user)
-	storage := storages.CreateTestStorage(workspace.ID)
+	storage := storages_bridge.CreateTestStorage(workspace.ID)
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
 	database := databases.CreateTestPhysicalPostgresDatabase(workspace.ID, notifier, "17")
 
@@ -53,7 +54,7 @@ func createChainViewTestPrereqs(t *testing.T) *chainViewTestPrereqs {
 		physical_testing.DeleteAllPhysicalCatalogForDatabase(t, database.ID)
 		databases.RemoveTestDatabase(t.Context(), database)
 		notifiers_bridge.RemoveTestNotifier(notifier)
-		storages.RemoveTestStorage(t.Context(), storage.ID)
+		storages_bridge.RemoveTestStorage(t.Context(), storage.ID)
 	})
 
 	return &chainViewTestPrereqs{

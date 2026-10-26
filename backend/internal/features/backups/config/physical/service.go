@@ -9,21 +9,23 @@ import (
 
 	"github.com/google/uuid"
 
+	backups_config_storage_usage "databasus-backend/internal/features/backups/config/storage_usage"
 	"databasus-backend/internal/features/databases"
 	"databasus-backend/internal/features/intervals"
-	"databasus-backend/internal/features/storages"
 	workspaces_bridge "databasus-backend/internal/features/workspaces"
 	"databasus-backend/internal/lib/apierror"
 	"databasus-backend/internal/modules/notifiers"
+	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/modules/workspaces"
+	"databasus-backend/internal/storage"
 )
 
 type BackupConfigService struct {
 	backupConfigRepository *BackupConfigRepository
 	databaseService        *databases.DatabaseService
-	storageService         *storages.StorageService
-	// getNotifiers is read per call: each test application installs its own module.
+	// getStorages and getNotifiers are read per call: each test application installs its own modules.
+	getStorages      func() storages.Module
 	getNotifiers     func() notifiers.Module
 	workspaceService *workspaces_bridge.Access
 	logger           *slog.Logger
@@ -42,17 +44,6 @@ func (s *BackupConfigService) SetBackupCancellationListener(
 	backupCancellationListener BackupCancellationListener,
 ) {
 	s.backupCancellationListener = backupCancellationListener
-}
-
-func (s *BackupConfigService) GetStorageAttachedDatabasesIDs(
-	storageID uuid.UUID,
-) ([]uuid.UUID, error) {
-	databasesIDs, err := s.backupConfigRepository.GetDatabasesIDsByStorageID(storageID)
-	if err != nil {
-		return nil, err
-	}
-
-	return databasesIDs, nil
 }
 
 func (s *BackupConfigService) SaveBackupConfigWithAuth(
@@ -93,82 +84,23 @@ func (s *BackupConfigService) SaveBackupConfigWithAuth(
 		return nil, err
 	}
 
-	if backupConfig.StorageID != nil {
-		storage, err := s.storageService.GetStorageByID(ctx, *backupConfig.StorageID)
-		if err != nil {
-			return nil, err
-		}
-		if storage.WorkspaceID != *database.WorkspaceID {
-			return nil, errors.New("storage does not belong to the same workspace as the database")
-		}
+	if err := s.checkStorageWorkspace(ctx, backupConfig, *database.WorkspaceID); err != nil {
+		return nil, err
 	}
 
-	return s.SaveBackupConfig(ctx, backupConfig)
+	savedConfig, err := s.saveBackupConfig(ctx, backupConfig, database.WorkspaceID)
+	if err != nil {
+		return nil, err
+	}
+
+	return savedConfig, s.fillStorage(ctx, savedConfig)
 }
 
 func (s *BackupConfigService) SaveBackupConfig(
 	ctx context.Context,
 	backupConfig *PhysicalBackupConfig,
 ) (*PhysicalBackupConfig, error) {
-	if err := takeStorageIDFromEmbeddedStorage(backupConfig); err != nil {
-		return nil, err
-	}
-
-	if backupConfig.PostgresqlPhysical == nil {
-		database, err := s.databaseService.GetDatabaseByID(backupConfig.DatabaseID)
-		if err != nil {
-			return nil, err
-		}
-
-		if database.PostgresqlPhysical == nil {
-			return nil, errors.New(
-				"physical backup config requires the owning database to be of type POSTGRES_PHYSICAL",
-			)
-		}
-
-		backupConfig.PostgresqlPhysical = database.PostgresqlPhysical
-	}
-
-	if err := backupConfig.Validate(); err != nil {
-		return nil, err
-	}
-
-	existingConfig, err := s.GetBackupConfigByDbId(backupConfig.DatabaseID)
-	if err != nil {
-		return nil, err
-	}
-
-	savedConfig, err := s.backupConfigRepository.Save(backupConfig)
-	if err != nil {
-		return nil, err
-	}
-
-	if existingConfig != nil && s.backupCancellationListener != nil &&
-		existingConfig.IsBackupsEnabled && !backupConfig.IsBackupsEnabled {
-		s.backupCancellationListener.OnBackupsDisabled(ctx, backupConfig.DatabaseID)
-	}
-
-	isStorageChanged := existingConfig != nil &&
-		backupConfig.StorageID != nil &&
-		!storageIDsEqual(existingConfig.StorageID, backupConfig.StorageID)
-
-	if isStorageChanged && s.backupCancellationListener != nil {
-		s.backupCancellationListener.OnBackupsStorageChanged(ctx, backupConfig.DatabaseID)
-	}
-
-	// Runs after the save, so a full backup or a streamer that starts meanwhile already writes to
-	// the new storage instead of surviving the change on the old one.
-	if s.dbStorageChangeListener != nil && backupConfig.StorageID != nil {
-		if err := s.dbStorageChangeListener.OnBackupsStorageChanged(
-			ctx,
-			backupConfig.DatabaseID,
-			*backupConfig.StorageID,
-		); err != nil {
-			return nil, fmt.Errorf("remove backups kept in a previous storage: %w", err)
-		}
-	}
-
-	return savedConfig, nil
+	return s.saveBackupConfig(ctx, backupConfig, nil)
 }
 
 func (s *BackupConfigService) GetAndRepairBackupConfigByDbIdWithAuth(
@@ -186,7 +118,12 @@ func (s *BackupConfigService) GetAndRepairBackupConfigByDbIdWithAuth(
 		return nil, err
 	}
 
-	return s.repairAndSaveConfigForBackupType(ctx, backupConfig)
+	repairedConfig, err := s.repairAndSaveConfigForBackupType(ctx, backupConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	return repairedConfig, s.fillStorage(ctx, repairedConfig)
 }
 
 func (s *BackupConfigService) GetBackupConfigByDbId(
@@ -206,32 +143,6 @@ func (s *BackupConfigService) GetBackupConfigByDbId(
 	}
 
 	return config, nil
-}
-
-func (s *BackupConfigService) IsStorageInUse(
-	ctx context.Context,
-	actor users.Actor,
-	storageID uuid.UUID,
-) (bool, error) {
-	_, err := s.storageService.GetStorage(ctx, actor, storageID)
-	if err != nil {
-		return false, err
-	}
-
-	return s.storageService.IsStorageInUse(ctx, storageID)
-}
-
-func (s *BackupConfigService) CountDatabasesForStorage(
-	ctx context.Context,
-	actor users.Actor,
-	storageID uuid.UUID,
-) (int, error) {
-	_, err := s.storageService.GetStorage(ctx, actor, storageID)
-	if err != nil {
-		return 0, err
-	}
-
-	return s.storageService.CountDatabasesForStorage(ctx, storageID)
 }
 
 func (s *BackupConfigService) GetBackupConfigsWithEnabledBackups() (
@@ -300,7 +211,7 @@ func (s *BackupConfigService) OnBackupTypeChanged(
 		return
 	}
 
-	if _, err := s.backupConfigRepository.Save(backupConfig); err != nil {
+	if _, err := s.backupConfigRepository.Save(ctx, backupConfig); err != nil {
 		logger.ErrorContext(ctx, "failed to save backup config after backup type change", "error", err)
 
 		return
@@ -366,57 +277,22 @@ func (s *BackupConfigService) TransferDatabaseToWorkspace(
 
 	switch {
 	case request.IsTransferWithStorage:
-		if backupConfig.StorageID == nil {
-			return ErrDatabaseHasNoStorage
-		}
-
-		attachedDatabasesIDs, err := s.storageService.GetStorageAttachedDatabasesIDs(
-			*backupConfig.StorageID,
-		)
-		if err != nil {
-			return err
-		}
-
-		for _, dbID := range attachedDatabasesIDs {
-			if dbID != databaseID {
-				return ErrStorageHasOtherAttachedDatabases
-			}
-		}
-
-		err = s.storageService.TransferStorageToWorkspace(
-			ctx,
-			actor,
-			*backupConfig.StorageID,
-			request.TargetWorkspaceID,
-			&databaseID,
-		)
+		err = s.transferDatabaseWithStorage(ctx, actor, backupConfig, request.TargetWorkspaceID)
 		if err != nil {
 			return err
 		}
 	case request.TargetStorageID != nil:
-		targetStorage, err := s.storageService.GetStorageByID(ctx, *request.TargetStorageID)
+		err = s.moveToTargetStorage(ctx, backupConfig, request)
 		if err != nil {
 			return err
 		}
 
-		if targetStorage.WorkspaceID != request.TargetWorkspaceID {
-			return ErrTargetStorageNotInTargetWorkspace
-		}
-
-		backupConfig.StorageID = request.TargetStorageID
-		backupConfig.Storage = targetStorage
-
-		_, err = s.backupConfigRepository.Save(backupConfig)
+		err = s.databaseService.TransferDatabaseToWorkspace(ctx, databaseID, request.TargetWorkspaceID)
 		if err != nil {
 			return err
 		}
 	default:
 		return ErrTargetStorageNotSpecified
-	}
-
-	err = s.databaseService.TransferDatabaseToWorkspace(ctx, databaseID, request.TargetWorkspaceID)
-	if err != nil {
-		return err
 	}
 
 	if request.IsTransferWithNotifiers {
@@ -433,6 +309,228 @@ func (s *BackupConfigService) TransferDatabaseToWorkspace(
 	}
 
 	return nil
+}
+
+// saveBackupConfig checks the storage again under its share lock when databaseWorkspaceID names the
+// workspace it must belong to, in the transaction that writes the config. The listeners run after
+// that transaction commits, so a backup they start reads the new config.
+func (s *BackupConfigService) saveBackupConfig(
+	ctx context.Context,
+	backupConfig *PhysicalBackupConfig,
+	databaseWorkspaceID *uuid.UUID,
+) (*PhysicalBackupConfig, error) {
+	if err := takeStorageIDFromEmbeddedStorage(backupConfig); err != nil {
+		return nil, err
+	}
+
+	if backupConfig.PostgresqlPhysical == nil {
+		database, err := s.databaseService.GetDatabaseByID(backupConfig.DatabaseID)
+		if err != nil {
+			return nil, err
+		}
+
+		if database.PostgresqlPhysical == nil {
+			return nil, errors.New(
+				"physical backup config requires the owning database to be of type POSTGRES_PHYSICAL",
+			)
+		}
+
+		backupConfig.PostgresqlPhysical = database.PostgresqlPhysical
+	}
+
+	if err := backupConfig.Validate(); err != nil {
+		return nil, err
+	}
+
+	existingConfig, err := s.GetBackupConfigByDbId(backupConfig.DatabaseID)
+	if err != nil {
+		return nil, err
+	}
+
+	savedConfig, err := s.writeBackupConfig(ctx, backupConfig, databaseWorkspaceID)
+	if err != nil {
+		return nil, err
+	}
+
+	if existingConfig != nil && s.backupCancellationListener != nil &&
+		existingConfig.IsBackupsEnabled && !backupConfig.IsBackupsEnabled {
+		s.backupCancellationListener.OnBackupsDisabled(ctx, backupConfig.DatabaseID)
+	}
+
+	isStorageChanged := existingConfig != nil &&
+		backupConfig.StorageID != nil &&
+		!storageIDsEqual(existingConfig.StorageID, backupConfig.StorageID)
+
+	if isStorageChanged && s.backupCancellationListener != nil {
+		s.backupCancellationListener.OnBackupsStorageChanged(ctx, backupConfig.DatabaseID)
+	}
+
+	// Runs after the save, so a full backup or a streamer that starts meanwhile already writes to
+	// the new storage instead of surviving the change on the old one.
+	if s.dbStorageChangeListener != nil && backupConfig.StorageID != nil {
+		if err := s.dbStorageChangeListener.OnBackupsStorageChanged(
+			ctx,
+			backupConfig.DatabaseID,
+			*backupConfig.StorageID,
+		); err != nil {
+			return nil, fmt.Errorf("remove backups kept in a previous storage: %w", err)
+		}
+	}
+
+	return savedConfig, nil
+}
+
+// transferDatabaseWithStorage moves the database before its storage, so the storages module's
+// Transferring check finds the database in the target workspace already and lets the storage through.
+func (s *BackupConfigService) transferDatabaseWithStorage(
+	ctx context.Context,
+	actor users.Actor,
+	backupConfig *PhysicalBackupConfig,
+	targetWorkspaceID uuid.UUID,
+) error {
+	if backupConfig.StorageID == nil {
+		return ErrDatabaseHasNoStorage
+	}
+
+	databaseIDs, err := backups_config_storage_usage.GetDatabaseIDsUsingStorage(ctx, *backupConfig.StorageID)
+	if err != nil {
+		return err
+	}
+
+	for _, databaseID := range databaseIDs {
+		if databaseID != backupConfig.DatabaseID {
+			return ErrStorageHasOtherAttachedDatabases
+		}
+	}
+
+	err = s.databaseService.TransferDatabaseToWorkspace(ctx, backupConfig.DatabaseID, targetWorkspaceID)
+	if err != nil {
+		return err
+	}
+
+	return s.getStorages().TransferStorage(ctx, actor, storages.StorageTransfer{
+		StorageID:         *backupConfig.StorageID,
+		TargetWorkspaceID: targetWorkspaceID,
+	})
+}
+
+func (s *BackupConfigService) moveToTargetStorage(
+	ctx context.Context,
+	backupConfig *PhysicalBackupConfig,
+	request *TransferDatabaseRequest,
+) error {
+	targetStorages, err := s.getStorages().GetStorages(ctx, []uuid.UUID{*request.TargetStorageID})
+	if err != nil {
+		return err
+	}
+
+	if len(targetStorages) == 0 {
+		return ErrStorageNotFound
+	}
+
+	if targetStorages[0].WorkspaceID != request.TargetWorkspaceID {
+		return ErrTargetStorageNotInTargetWorkspace
+	}
+
+	backupConfig.StorageID = request.TargetStorageID
+
+	_, err = s.backupConfigRepository.Save(ctx, backupConfig)
+
+	return err
+}
+
+func (s *BackupConfigService) checkStorageWorkspace(
+	ctx context.Context,
+	backupConfig *PhysicalBackupConfig,
+	databaseWorkspaceID uuid.UUID,
+) error {
+	if backupConfig.StorageID == nil {
+		return nil
+	}
+
+	configStorages, err := s.getStorages().GetStorages(ctx, []uuid.UUID{*backupConfig.StorageID})
+	if err != nil {
+		return err
+	}
+
+	if len(configStorages) == 0 {
+		return ErrStorageNotFound
+	}
+
+	return checkStorageInWorkspace(configStorages[0], true, databaseWorkspaceID)
+}
+
+func checkStorageInWorkspace(configStorage storages.Storage, isFound bool, databaseWorkspaceID uuid.UUID) error {
+	if !isFound {
+		return ErrStorageNotFound
+	}
+
+	if configStorage.WorkspaceID != databaseWorkspaceID {
+		return ErrStorageNotInDatabaseWorkspace
+	}
+
+	return nil
+}
+
+// fillStorage names the config's storage for the answers of /backup-configs.
+func (s *BackupConfigService) fillStorage(ctx context.Context, backupConfig *PhysicalBackupConfig) error {
+	backupConfig.Storage = nil
+
+	if backupConfig.StorageID == nil {
+		return nil
+	}
+
+	configStorages, err := s.getStorages().GetStorages(ctx, []uuid.UUID{*backupConfig.StorageID})
+	if err != nil {
+		return err
+	}
+
+	for _, configStorage := range configStorages {
+		backupConfig.Storage = &BackupConfigStorage{
+			ID:   configStorage.ID,
+			Name: configStorage.Name,
+			Type: configStorage.Type,
+		}
+	}
+
+	return nil
+}
+
+// writeBackupConfig takes the storage's share lock when databaseWorkspaceID is set, see
+// saveBackupConfig.
+func (s *BackupConfigService) writeBackupConfig(
+	ctx context.Context,
+	backupConfig *PhysicalBackupConfig,
+	databaseWorkspaceID *uuid.UUID,
+) (*PhysicalBackupConfig, error) {
+	if databaseWorkspaceID == nil || backupConfig.StorageID == nil {
+		return s.backupConfigRepository.Save(ctx, backupConfig)
+	}
+
+	var savedConfig *PhysicalBackupConfig
+
+	// The share lock on the storage keeps a transfer of it waiting until the config is written, so
+	// the transfer sees this config, or this save sees the storage in its new workspace.
+	err := storage.GetTransactor().Transaction(ctx, func(ctx context.Context) error {
+		configStorage, isFound, err := s.getStorages().GetStorageBlockingTransfer(ctx, *backupConfig.StorageID)
+		if err != nil {
+			return err
+		}
+
+		err = checkStorageInWorkspace(configStorage, isFound, *databaseWorkspaceID)
+		if err != nil {
+			return err
+		}
+
+		savedConfig, err = s.backupConfigRepository.Save(ctx, backupConfig)
+
+		return err
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return savedConfig, nil
 }
 
 // Heals rows left unsaveable by a backup type switch that predates this repair.
@@ -456,7 +554,7 @@ func (s *BackupConfigService) repairAndSaveConfigForBackupType(
 		return backupConfig, nil
 	}
 
-	repairedConfig, err := s.backupConfigRepository.Save(backupConfig)
+	repairedConfig, err := s.backupConfigRepository.Save(ctx, backupConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -497,7 +595,7 @@ func (s *BackupConfigService) initializeDefaultConfig(databaseID uuid.UUID) erro
 		defaultConfig.CoerceFieldsForBackupType(database.PostgresqlPhysical.BackupType)
 	}
 
-	_, err = s.backupConfigRepository.Save(defaultConfig)
+	_, err = s.backupConfigRepository.Save(context.Background(), defaultConfig)
 
 	return err
 }

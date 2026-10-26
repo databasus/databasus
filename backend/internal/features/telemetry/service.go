@@ -27,7 +27,7 @@ type TelemetryService struct {
 	instanceLoader            *InstanceFileLoader
 	sender                    TelemetrySender
 	databaseService           databaseLister
-	storageService            storageLister
+	storageService            storageTypeLister
 	notifierService           notifierLister
 	backupService             backupChecker
 	physicalBackupService     latestPhysicalBackupReader
@@ -42,7 +42,7 @@ func NewTelemetryService(
 	instanceLoader *InstanceFileLoader,
 	sender TelemetrySender,
 	databaseService databaseLister,
-	storageService storageLister,
+	storageService storageTypeLister,
 	notifierService notifierLister,
 	backupService backupChecker,
 	physicalBackupService latestPhysicalBackupReader,
@@ -84,7 +84,7 @@ func (s *TelemetryService) BuildAndSend(ctx context.Context) error {
 		return err
 	}
 
-	storageTypes, err := s.collectStorageTypes()
+	storageTypes, err := s.collectStorageTypes(ctx)
 	if err != nil {
 		return err
 	}
@@ -371,20 +371,15 @@ func buildDatabaseEntry(db *databases.Database) (DatabaseEntry, bool) {
 	return DatabaseEntry{}, false
 }
 
-func (s *TelemetryService) collectStorageTypes() ([]string, error) {
-	allStorages, err := s.storageService.GetAllStorages()
+func (s *TelemetryService) collectStorageTypes(ctx context.Context) ([]string, error) {
+	allStorageTypes, err := s.storageService.GetStorageTypes(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	storageTypes := make([]string, 0, len(allStorages))
-
-	for _, storage := range allStorages {
-		if storage.Type == "" {
-			continue
-		}
-
-		storageTypes = append(storageTypes, string(storage.Type))
+	storageTypes := make([]string, 0, len(allStorageTypes))
+	for _, storageType := range allStorageTypes {
+		storageTypes = append(storageTypes, string(storageType))
 	}
 
 	slices.Sort(storageTypes)

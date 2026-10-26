@@ -11,7 +11,6 @@ import (
 	"databasus-backend/internal/features/disk"
 	restores_core "databasus-backend/internal/features/restores/core"
 	"databasus-backend/internal/features/restores/usecases"
-	"databasus-backend/internal/features/storages"
 	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
 	workspaces_bridge "databasus-backend/internal/features/workspaces"
 	"databasus-backend/internal/util/encryption"
@@ -26,7 +25,6 @@ var (
 		return &RestoreService{
 			backups_services.GetBackupService(),
 			getRestoreRepository(),
-			storages.GetStorageService(),
 			backups_config_logical.GetBackupConfigService(),
 			usecases.GetRestoreBackupUsecase(),
 			databases.GetDatabaseService(),

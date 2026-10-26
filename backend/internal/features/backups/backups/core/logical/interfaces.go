@@ -8,8 +8,8 @@ import (
 
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
 	"databasus-backend/internal/features/databases"
-	storage_files "databasus-backend/internal/features/storages/files"
 	"databasus-backend/internal/modules/notifiers"
+	"databasus-backend/internal/modules/storages"
 )
 
 type NotificationSender interface {
@@ -26,9 +26,10 @@ type NotificationSender interface {
 type BackupFileStore interface {
 	WriteFile(
 		ctx context.Context,
-		reference storage_files.StoredFileReference,
+		reference storages.StoredFileReference,
 		file io.Reader,
-	) (storage_files.WriteReceipt, error)
+	) (storages.WriteReceipt, error)
+	StartBackgroundWrite(ctx context.Context, spec storages.BackgroundWriteSpec) storages.BackgroundWrite
 }
 
 type CreateBackupUsecase interface {

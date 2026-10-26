@@ -21,8 +21,8 @@ import (
 	"databasus-backend/internal/features/databases"
 	mongodbtypes "databasus-backend/internal/features/databases/databases/mongodb"
 	restores_core "databasus-backend/internal/features/restores/core"
-	storage_files "databasus-backend/internal/features/storages/files"
 	"databasus-backend/internal/lib/crypto"
+	"databasus-backend/internal/modules/storages"
 	util_encryption "databasus-backend/internal/util/encryption"
 	io_utils "databasus-backend/internal/util/io"
 	"databasus-backend/internal/util/tools"
@@ -44,7 +44,7 @@ func (uc *RestoreMongodbBackupUsecase) Execute(
 	backupConfig *backups_config_logical.LogicalBackupConfig,
 	restore restores_core.Restore,
 	backup *backups_core_logical.LogicalBackup,
-	storageReader storage_files.StorageReader,
+	storageReader storages.StorageReader,
 ) error {
 	if originalDB.Type != databases.DatabaseTypeMongodb {
 		return errors.New("database type not supported")
@@ -126,7 +126,7 @@ func (uc *RestoreMongodbBackupUsecase) restoreFromStorage(
 	mongorestoreBin string,
 	args []string,
 	backup *backups_core_logical.LogicalBackup,
-	storageReader storage_files.StorageReader,
+	storageReader storages.StorageReader,
 ) error {
 	ctx, cancel := context.WithTimeout(parentCtx, restoreTimeout)
 	defer cancel()

@@ -12,7 +12,7 @@ import (
 	"databasus-backend/internal/features/databases"
 	restores_core "databasus-backend/internal/features/restores/core"
 	"databasus-backend/internal/features/restores/usecases"
-	"databasus-backend/internal/features/storages"
+	storages_bridge "databasus-backend/internal/features/storages"
 	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
 	"databasus-backend/internal/lib/cache"
 	"databasus-backend/internal/util/encryption"
@@ -36,7 +36,7 @@ var getRestorer = sync.OnceValue(func() *Restorer {
 		encryption.GetFieldEncryptor(),
 		getRestoreRepository(),
 		backups_config_logical.GetBackupConfigService(),
-		storages.GetStorageFileStore(),
+		storages_bridge.GetModule,
 		logger.GetLogger(),
 		usecases.GetRestoreBackupUsecase(),
 		getRestoreDatabaseCache(),
