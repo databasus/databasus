@@ -90,6 +90,8 @@ Temporary docs and plan for migration is here - @temp/refactor
 
 When you write, change, run or review tests, load the [testing skill](.agents/skills/testing/SKILL.md) first. It says how to write a test; [`docs/testing.md`](docs/testing.md) says which kinds of tests exist and how they are isolated.
 
+During implementation, immediately fix flaky tests, insufficient test timeouts and other important defects exposed by the implementation or its checks. This includes the code changes needed to repair the defect and updates to the OpenSpec artifacts; no separate approval is needed. Fix the cause rather than weakening assertions, bypassing checks or hiding failures with retries. Increase a timeout when the operation legitimately needs more time, and explain the repair and its verification in the final report.
+
 When you design or change an HTTP operation, load the [api-design skill](.agents/skills/api-design/SKILL.md) first.
 
 ---
@@ -244,6 +246,8 @@ A request to write a spec, write up a change or write its artifacts goes through
 When the user asks to pack a change, in any language, the agent first checks that every task in its `tasks.md` is checked; if one is not, it changes nothing and names the unchecked tasks. Otherwise it archives the change through the `openspec-archive-change` skill, and the pack request answers that skill's sync prompt: "Sync now" when the main specs need the delta specs, "Archive now" when they are already synced. Then it commits the implementation, the main specs and the archived change in one commit per the [Git commits skill](.agents/skills/git-commits/SKILL.md). The request is the user's consent to the sync and to that commit, so the agent asks about neither again. The commit leaves out changes the agent did not make, per [Other agents' changes in the working tree](#other-agents-changes-in-the-working-tree), and the agent does not push.
 
 ### Decisions during apply
+
+The standing repair authorization in [Tests](#tests) applies even when a repair requires updating the change's artifacts.
 
 During `/opsx:apply` or the `openspec-apply-change` skill, the agent resolves questions within the agreed change using its own judgment and continues working. It investigates uncertainty and fixes routine problems itself. When a decision is both difficult and consequential, it consults Opus 5.5 in Claude Code with `medium` effort, considers the advice and makes the decision.
 

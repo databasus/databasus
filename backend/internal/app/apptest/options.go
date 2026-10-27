@@ -10,11 +10,13 @@ import (
 type Option func(*settings)
 
 type settings struct {
-	isMailServerMissing bool
-	isTurnstileEnabled  bool
-	isGitHubEnabled     bool
-	isGoogleEnabled     bool
-	publicURL           string
+	isPhysicalBackupLoopsEnabled bool
+	physicalBackupStopTimeout    time.Duration
+	isMailServerMissing          bool
+	isTurnstileEnabled           bool
+	isGitHubEnabled              bool
+	isGoogleEnabled              bool
+	publicURL                    string
 	// notificationDeliveryTimeout is zero for the timeout the server uses.
 	notificationDeliveryTimeout time.Duration
 	notifierEndpoints           NotifierEndpoints
@@ -93,5 +95,11 @@ func WithGoogle() Option {
 func WithPublicURL(publicURL string) Option {
 	return func(applied *settings) {
 		applied.publicURL = publicURL
+	}
+}
+
+func WithPhysicalBackupLoops() Option {
+	return func(applied *settings) {
+		applied.isPhysicalBackupLoopsEnabled = true
 	}
 }

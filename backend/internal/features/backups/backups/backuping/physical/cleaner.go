@@ -2,6 +2,7 @@ package backuping_physical
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"math"
@@ -58,19 +59,20 @@ func (c *PhysicalBackupCleaner) Run(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			logger := c.logger.With("job_id", uuid.New(), "job_name", cleanerJobName)
-
-			if err := c.cleanByRetentionPolicy(ctx, logger); err != nil {
-				logger.ErrorContext(ctx, "failed to clean by retention policy", "error", err)
+			if err := c.RunPass(ctx); err != nil {
+				c.logger.ErrorContext(ctx, "failed to clean physical backups", "error", err)
 			}
-
-			if err := c.cleanOrphans(ctx, logger); err != nil {
-				logger.ErrorContext(ctx, "failed to clean orphans", "error", err)
-			}
-
-			c.deleteExpiredWalStreamSamples(ctx, logger, time.Now().UTC())
 		}
 	}
+}
+
+func (c *PhysicalBackupCleaner) RunPass(ctx context.Context) error {
+	logger := c.logger.With("job_id", uuid.New(), "job_name", cleanerJobName)
+	retentionErr := c.cleanByRetentionPolicy(ctx, logger)
+	orphanErr := c.cleanOrphans(ctx, logger)
+	c.deleteExpiredWalStreamSamples(ctx, logger, time.Now().UTC())
+
+	return errors.Join(retentionErr, orphanErr)
 }
 
 // One statement for every database, so samples of a database that no longer

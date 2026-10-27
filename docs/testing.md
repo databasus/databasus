@@ -36,6 +36,8 @@ Module API tests cover most behavior. A unit test without the application is use
 - fakes for external systems: an email recorder, an HTTP server for webhook and chat notifiers, and a local directory or a MinIO bucket for storages;
 - background jobs that never run on their own; the test runs each pass of a job explicitly.
 
+`apptest.WithPhysicalBackupLoops()` explicitly starts the old physical backup scheduler and WAL stream supervisor for the lifetime of the test application, until they become jobs of the backups module. Cleanup stops the loops and waits for their backups and WAL streams before closing the internal database; a run that outlives the cleanup fails the test. The physical cleaner runs only through `RunPhysicalBackupCleanerPass`. Without the option, physical loops never start.
+
 While old code is wired through process-wide state, the `apptest` tests of one package run one at a time: they never call `t.Parallel`, and a second `apptest.New` while one instance is alive in the process fails the test. Test packages still run in parallel with each other. The limit goes away once no old code is left.
 
 The test talks to the instance over real HTTP through `apiclient.New(t, url)`. The client checks every response against `openapi.yaml` and fails the test on any mismatch. It checks the status, the content type, the body and the field formats. The frontend tests mock responses by the contract, so they rely on this check. The agent tests use `agentclienttest`, which checks responses against `agent.yaml` in the same way.

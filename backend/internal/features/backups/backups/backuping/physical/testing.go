@@ -3,7 +3,6 @@
 package backuping_physical
 
 import (
-	"context"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -11,9 +10,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"databasus-backend/internal/features/backups/backups/core/physical/chain_view"
 	physical_repositories "databasus-backend/internal/features/backups/backups/core/physical/repositories"
-	physical_service "databasus-backend/internal/features/backups/backups/core/physical/service"
 	postgresql_executor "databasus-backend/internal/features/backups/backups/usecases/physical/postgresql"
 	backups_bridge "databasus-backend/internal/features/backups/config"
 	databases_bridge "databasus-backend/internal/features/databases"
@@ -54,23 +51,8 @@ func CreateTestPhysicalBackuper(notificationSender NotificationSender) *Physical
 	}
 }
 
-// CreateTestPhysicalScheduler returns a scheduler wired to the production repos
-// and its own in-process backuper.
 func CreateTestPhysicalScheduler() *PhysicalBackupsScheduler {
-	return &PhysicalBackupsScheduler{
-		physical_repositories.GetFullBackupRepository(),
-		physical_repositories.GetIncrementalBackupRepository(),
-		physical_repositories.GetInFlightBackupRepository(),
-		backups_bridge.GetModule,
-		chain_view.GetChainViewService(),
-		backups_bridge.GetCancellationRegistry(),
-		storages_bridge.GetModule,
-		CreateTestPhysicalBackuper(nil),
-		atomicTime{},
-		logger.GetLogger(),
-		atomic.Bool{},
-		atomic.Bool{},
-	}
+	return NewPhysicalBackupsScheduler()
 }
 
 type WalStreamSupervisorTestSpec struct {
@@ -125,115 +107,7 @@ func CreateTestWalStreamSupervisor(spec WalStreamSupervisorTestSpec) *PhysicalWa
 // CreateTestPhysicalCleaner returns a cleaner wired to the production service +
 // repos.
 func CreateTestPhysicalCleaner() *PhysicalBackupCleaner {
-	return &PhysicalBackupCleaner{
-		physical_service.GetPhysicalBackupService(),
-		chain_view.GetChainViewService(),
-		backups_bridge.GetModule,
-		physical_repositories.GetFullBackupRepository(),
-		physical_repositories.GetWalSegmentRepository(),
-		physical_repositories.GetWalStreamSampleRepository(),
-		logger.GetLogger(),
-		atomic.Bool{},
-	}
-}
-
-// StartPhysicalSchedulerForTest starts a fresh scheduler's Run loop in a
-// goroutine and waits until it is ready (IsRunning). The scheduler invokes its
-// own in-process backuper directly, so a backup requested over HTTP (config-enable
-// bootstrap for the FULL, the trigger endpoint for incrementals) is picked up on
-// the next tick and run to a terminal state. Returns a cancel func the caller
-// defers; it cancels and waits for the goroutine to drain.
-func StartPhysicalSchedulerForTest(t *testing.T) context.CancelFunc {
-	t.Helper()
-
-	scheduler := CreateTestPhysicalScheduler()
-
-	ctx, cancel := context.WithCancel(context.Background())
-
-	done := make(chan struct{})
-
-	go func() {
-		scheduler.Run(ctx)
-		close(done)
-	}()
-
-	deadline := time.Now().UTC().Add(5 * time.Second)
-	for time.Now().UTC().Before(deadline) {
-		if scheduler.IsRunning() {
-			return func() {
-				cancel()
-
-				select {
-				case <-done:
-				case <-time.After(2 * time.Second):
-					t.Log("physical scheduler stop timeout")
-				}
-			}
-		}
-
-		time.Sleep(50 * time.Millisecond)
-	}
-
-	t.Fatalf("physical scheduler failed to start within timeout")
-
-	return nil
-}
-
-// StartPhysicalWalStreamSupervisorForTest starts a fresh WAL stream supervisor's
-// Run loop in a goroutine and waits until it is ready (IsRunning). It mirrors the
-// supervisor wiring in internal/app: with the supervisor up, enabling
-// WAL-stream backups over the HTTP config API causes it to claim the database and
-// create its replication slot on the next reconcile tick — so tests drive the slot
-// lifecycle through the API instead of starting a streamer by hand. Returns a
-// cancel func the caller defers; it cancels and waits for the goroutine to drain.
-func StartPhysicalWalStreamSupervisorForTest(t *testing.T) context.CancelFunc {
-	t.Helper()
-
-	supervisor := CreateTestWalStreamSupervisor(WalStreamSupervisorTestSpec{
-		NotificationSender: notifiers_bridge.GetSender(),
-	})
-
-	ctx, cancel := context.WithCancel(context.Background())
-
-	done := make(chan struct{})
-
-	go func() {
-		supervisor.Run(ctx)
-		close(done)
-	}()
-
-	deadline := time.Now().UTC().Add(5 * time.Second)
-	for time.Now().UTC().Before(deadline) {
-		if supervisor.IsRunning() {
-			return func() {
-				cancel()
-
-				select {
-				case <-done:
-				case <-time.After(5 * time.Second):
-					t.Log("physical wal stream supervisor stop timeout")
-				}
-			}
-		}
-
-		time.Sleep(50 * time.Millisecond)
-	}
-
-	t.Fatalf("physical wal stream supervisor failed to start within timeout")
-
-	return nil
-}
-
-// RunOrphanWalCleanupForTest sweeps one database, not every enabled one: the test
-// suite shares a metadata database across parallel packages, so a global pass
-// would reclaim WAL belonging to another package's fixtures. Run cannot serve
-// either — it is an infinite ticker that panics when called a second time in a
-// process, and waiting out its tick would tie the assertion to timing rather than
-// to sequence.
-func RunOrphanWalCleanupForTest(t *testing.T, databaseID uuid.UUID) {
-	t.Helper()
-
-	CreateTestPhysicalCleaner().cleanOrphanWalForDatabase(t.Context(), logger.GetLogger(), databaseID)
+	return NewPhysicalBackupCleaner()
 }
 
 // RegisterTestRunningStreamer makes GetLiveState answer for the database with a

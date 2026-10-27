@@ -1,17 +1,18 @@
 # mTLS test certificates
 
-Certificate chain for the `test-logical-postgres-mtls` container, which enforces mutual TLS -
+Certificate chain used by `containers.StartPhysicalPostgresMtls` and the mTLS tests in
+`internal/features/backups/backups/usecases/physical/postgresql`. The container enforces mutual TLS:
 it rejects any TCP client that does not present a client certificate signed by
 `ca.crt`. This reproduces a Cloud SQL instance with "Require trusted client
 certificates" enabled. Not used in production.
 
-- `ca.crt` / `ca.key` - test certificate authority that signs the server and client certs
+- `ca.crt` - test certificate authority that signs the server and client certs; its signing key is not committed
 - `server.crt` / `server.key` - server cert, CA-signed, `CN=localhost`, SAN `localhost,127.0.0.1`
 - `client.crt` / `client.key` - client cert, CA-signed, `CN=testuser`
 - `pg_hba.conf` - requires `clientcert=verify-ca` on every TLS connection
 
-The container mounts `ca.crt` as `ssl_ca_file`; the backup/restore tests pass
-`client.crt`, `client.key`, and `ca.crt` through the database API.
+The container loads `ca.crt` as `ssl_ca_file`; the mTLS usecase tests pass
+`client.crt`, `client.key`, and `ca.crt` to their source fixtures.
 
 To regenerate (run from this directory, requires Bash for the SAN process substitution):
 
@@ -30,5 +31,5 @@ openssl req -newkey rsa:2048 -keyout client.key -out client.csr -nodes \
 openssl x509 -req -in client.csr -CA ca.crt -CAkey ca.key -CAcreateserial \
   -out client.crt -days 3650
 
-rm server.csr client.csr ca.srl
+rm ca.key server.csr client.csr ca.srl
 ```

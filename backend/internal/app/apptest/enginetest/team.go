@@ -33,10 +33,10 @@ type Team struct {
 	StorageID uuid.UUID
 }
 
-func NewTeam(t *testing.T) Team {
+func NewTeam(t *testing.T, options ...apptest.Option) Team {
 	t.Helper()
 
-	app := apptest.New(t)
+	app := apptest.New(t, options...)
 	owner := app.CreateNonAdminUser(t, app.CreateAdmin(t))
 	workspace := apptest.CreateWorkspace(t, owner, "Team "+NewUniqueSuffix())
 

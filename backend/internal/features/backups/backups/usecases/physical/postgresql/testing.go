@@ -147,36 +147,6 @@ func BuildAndClaimIncremental(
 	return incrID
 }
 
-// SetupPhysicalDBForScheduledBackupVersion wires a physical fixture for the
-// scheduler-driven, HTTP-API E2E tests. Unlike SetupPhysicalDBForBackup* it
-// leaves backups DISABLED and seeds no backup row (BackupID is uuid.Nil): the
-// test enables backups and triggers FULL/INCR through the controller while the
-// scheduler started in TestMain executes them. backupType lands
-// on the source DB (FULL_AND_INCREMENTAL to build chains, or
-// FULL_INCREMENTAL_AND_WAL_STREAM to also stream WAL) because the scheduler's
-// incremental eligibility reads that DB-level field, which the config API can't
-// set.
-func SetupPhysicalDBForScheduledBackupVersion(
-	t *testing.T,
-	host string,
-	port int,
-	version string,
-	backupType databases.PhysicalBackupType,
-) *PhysicalDBFixture {
-	t.Helper()
-
-	return wirePhysicalDBFixture(t, func(workspaceID uuid.UUID, notifier *notifiers.Notifier) databases.Database {
-		return databases_bridge.CreateTestPhysicalPostgresDatabaseWithType(
-			host,
-			port,
-			workspaceID,
-			notifier,
-			version,
-			backupType,
-		)
-	})
-}
-
 func SetupPhysicalDBFixtureWithTunnel(
 	t *testing.T,
 	spec databases_bridge.PhysicalTestDatabaseSpec,
@@ -211,7 +181,7 @@ func SetupPhysicalDBForBackupBehindSshBastion(t *testing.T) *PhysicalDBFixture {
 // workspace, storage, notifier, the source DB (via createDB), populated data, and
 // the persisted system_identifier — returning it with backups still disabled and
 // no backup row seeded (BackupID is uuid.Nil). setupPhysicalFixture builds on it
-// for the direct-MakeBackup pattern; the scheduler-driven fixture returns it as is.
+// for the direct-MakeBackup pattern.
 func wirePhysicalDBFixture(
 	t *testing.T,
 	createDB func(workspaceID uuid.UUID, notifier *notifiers.Notifier) databases.Database,

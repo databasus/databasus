@@ -427,14 +427,9 @@ func (s *PhysicalBackupService) GetTotalUsageMBByDatabase(databaseID uuid.UUID) 
 	return totalMB, err
 }
 
-// backupListItemsQuery builds the newest-first list items. Committed WAL
-// segments are grouped into ranges: a range ends at an LSN gap on its timeline,
-// at a timeline switch, or where a FULL or INCREMENTAL row sits between two
-// segments in created_at order. The gap flag is computed over every committed
-// segment in LSN order before the filter applies, because received_at is set at
-// claim time and concurrent uploads can order segments by time differently from
-// their LSNs. The three database_id placeholders bind first, then the filter
-// args.
+// Receive times can differ from LSN order under concurrent uploads. Display
+// boundaries use time order, but each WAL range must remain contiguous in LSN
+// order. Gap markers use the complete catalog so filters cannot invent gaps.
 func backupListItemsQuery(filterClause string) string {
 	return `
 		WITH committed_wal AS (
@@ -490,11 +485,20 @@ func backupListItemsQuery(filterClause string) string {
 			               WHEN type <> 'WAL'
 			                    OR previous_type IS DISTINCT FROM 'WAL'
 			                    OR previous_timeline_id <> timeline_id
-			                    OR is_gap_start
 			               THEN 1 ELSE 0
 			           END
 			       ) OVER (ORDER BY created_at, id ROWS UNBOUNDED PRECEDING) AS group_id
 			FROM ordered
+		),
+		wal_ordered AS (
+			SELECT *, LAG(stop_lsn) OVER (PARTITION BY group_id ORDER BY start_lsn) AS previous_stop_lsn
+			FROM grouped
+			WHERE type = 'WAL'
+		),
+		wal_ranges AS (
+			SELECT *, SUM(CASE WHEN previous_stop_lsn IS DISTINCT FROM start_lsn THEN 1 ELSE 0 END)
+			       OVER (PARTITION BY group_id ORDER BY start_lsn ROWS UNBOUNDED PRECEDING) AS wal_range_id
+			FROM wal_ordered
 		),
 		items AS (
 			SELECT id, type, status, timeline_id,
@@ -519,9 +523,8 @@ func backupListItemsQuery(filterClause string) string {
 			       (ARRAY_AGG(is_gap_start ORDER BY start_lsn))[1],
 			       SUM(size_mb), NULL::text, MIN(created_at), MAX(created_at),
 			       MAX(created_at)
-			FROM grouped
-			WHERE type = 'WAL'
-			GROUP BY group_id
+			FROM wal_ranges
+			GROUP BY group_id, wal_range_id
 		)
 		SELECT id, type, status, timeline_id, start_lsn, stop_lsn,
 		       root_full_backup_id, parent_incremental_backup_id,

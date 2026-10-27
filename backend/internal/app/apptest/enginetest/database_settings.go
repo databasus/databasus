@@ -16,6 +16,9 @@ func NewDatabaseSettings(t *testing.T, settings any) apiclient.DatabaseSettings 
 	var err error
 
 	switch typedSettings := settings.(type) {
+	case apiclient.PostgresqlPhysicalSettings:
+		typedSettings.Type = apiclient.PostgresqlPhysicalSettingsTypePOSTGRESPHYSICAL
+		err = databaseSettings.FromPostgresqlPhysicalSettings(typedSettings)
 	case apiclient.PostgresqlLogicalSettings:
 		typedSettings.Type = apiclient.PostgresqlLogicalSettingsTypePOSTGRESLOGICAL
 		err = databaseSettings.FromPostgresqlLogicalSettings(typedSettings)

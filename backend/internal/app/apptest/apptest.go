@@ -1,6 +1,7 @@
 // Package apptest builds the real application for backend API tests: the routes and middleware of
 // the server, an internal database of the test's own, a clock the test moves and background jobs
-// that run only when the test runs their passes.
+// that run only when the test runs their passes. Physical backup loops run only with
+// WithPhysicalBackupLoops.
 package apptest
 
 import (
@@ -72,12 +73,14 @@ func New(tb testing.TB, options ...Option) *App {
 	tb.Helper()
 
 	applied := settings{
-		isMailServerMissing:         false,
-		isTurnstileEnabled:          false,
-		isGitHubEnabled:             false,
-		isGoogleEnabled:             false,
-		publicURL:                   "",
-		notificationDeliveryTimeout: 0,
+		isPhysicalBackupLoopsEnabled: false,
+		physicalBackupStopTimeout:    2 * time.Minute,
+		isMailServerMissing:          false,
+		isTurnstileEnabled:           false,
+		isGitHubEnabled:              false,
+		isGoogleEnabled:              false,
+		publicURL:                    "",
+		notificationDeliveryTimeout:  0,
 		// A test never reaches the real Slack or Telegram: an unset address points at a host that
 		// does not resolve.
 		notifierEndpoints: NotifierEndpoints{
@@ -174,6 +177,23 @@ func New(tb testing.TB, options ...Option) *App {
 
 	server := httptest.NewServer(handler)
 	tb.Cleanup(server.Close)
+
+	if applied.isPhysicalBackupLoopsEnabled {
+		loopsCtx, cancelLoops := context.WithCancel(context.WithoutCancel(tb.Context()))
+		stopLoops := createdApp.StartPhysicalBackupLoops(loopsCtx)
+		tb.Cleanup(func() {
+			cancelLoops()
+			stopCtx, cancelStop := context.WithTimeout(
+				context.WithoutCancel(tb.Context()),
+				applied.physicalBackupStopTimeout,
+			)
+			defer cancelStop()
+
+			if err := stopLoops(stopCtx); err != nil {
+				tb.Errorf("stop physical backup loops and runs: %v", err)
+			}
+		})
+	}
 
 	return &App{
 		URL:           server.URL,
@@ -317,5 +337,13 @@ func closeConnections(db *gorm.DB) {
 	sqlDB, err := db.DB()
 	if err == nil {
 		_ = sqlDB.Close()
+	}
+}
+
+func (a *App) RunPhysicalBackupCleanerPass(tb testing.TB) {
+	tb.Helper()
+
+	if err := a.app.RunPhysicalBackupCleanerPass(tb.Context()); err != nil {
+		tb.Fatalf("run the physical backup cleaner pass: %v", err)
 	}
 }

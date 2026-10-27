@@ -42,7 +42,9 @@ var getPhysicalBackuper = sync.OnceValue(func() *PhysicalBackuper {
 
 func GetPhysicalBackuper() *PhysicalBackuper { return getPhysicalBackuper() }
 
-var getPhysicalBackupsScheduler = sync.OnceValue(func() *PhysicalBackupsScheduler {
+var getPhysicalBackupsScheduler = sync.OnceValue(NewPhysicalBackupsScheduler)
+
+func NewPhysicalBackupsScheduler() *PhysicalBackupsScheduler {
 	return &PhysicalBackupsScheduler{
 		physical_repositories.GetFullBackupRepository(),
 		physical_repositories.GetIncrementalBackupRepository(),
@@ -57,11 +59,13 @@ var getPhysicalBackupsScheduler = sync.OnceValue(func() *PhysicalBackupsSchedule
 		atomic.Bool{},
 		atomic.Bool{},
 	}
-})
+}
 
 func GetPhysicalBackupsScheduler() *PhysicalBackupsScheduler { return getPhysicalBackupsScheduler() }
 
-var getPhysicalBackupCleaner = sync.OnceValue(func() *PhysicalBackupCleaner {
+var getPhysicalBackupCleaner = sync.OnceValue(NewPhysicalBackupCleaner)
+
+func NewPhysicalBackupCleaner() *PhysicalBackupCleaner {
 	return &PhysicalBackupCleaner{
 		physical_service.GetPhysicalBackupService(),
 		chain_view.GetChainViewService(),
@@ -72,11 +76,13 @@ var getPhysicalBackupCleaner = sync.OnceValue(func() *PhysicalBackupCleaner {
 		logger.GetLogger(),
 		atomic.Bool{},
 	}
-})
+}
 
 func GetPhysicalBackupCleaner() *PhysicalBackupCleaner { return getPhysicalBackupCleaner() }
 
-var getPhysicalWalStreamSupervisor = sync.OnceValue(func() *PhysicalWalStreamSupervisor {
+var getPhysicalWalStreamSupervisor = sync.OnceValue(NewPhysicalWalStreamSupervisor)
+
+func NewPhysicalWalStreamSupervisor() *PhysicalWalStreamSupervisor {
 	return &PhysicalWalStreamSupervisor{
 		databases_bridge.GetAccess(),
 		databases_bridge.GetModule,
@@ -98,7 +104,7 @@ var getPhysicalWalStreamSupervisor = sync.OnceValue(func() *PhysicalWalStreamSup
 		atomic.Bool{},
 		atomic.Bool{},
 	}
-})
+}
 
 func GetPhysicalWalStreamSupervisor() *PhysicalWalStreamSupervisor {
 	return getPhysicalWalStreamSupervisor()

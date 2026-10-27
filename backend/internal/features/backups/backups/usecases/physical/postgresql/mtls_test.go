@@ -17,9 +17,7 @@ import (
 	"databasus-backend/internal/util/walmath"
 )
 
-// setupMtlsFixture boots a throwaway replication-capable mTLS PG 17 source and wires a WAL-stream
-// fixture against it. The server image is built from the committed testdata/mtls dir (certs +
-// replication-aware pg_hba.conf), since postgres rejects a group/world-readable key.
+// The image build gives PostgreSQL a private server key; it rejects group/world-readable keys.
 func setupMtlsFixture(t *testing.T) *PhysicalDBFixture {
 	t.Helper()
 
