@@ -1139,3 +1139,33 @@ func getLastBackupTime(t *testing.T, databaseID uuid.UUID) time.Time {
 
 	return *foundDatabases[0].LastBackupTime
 }
+
+func TestPersistFullResultRacingDatabaseDeletion(t *testing.T) {
+	t.Run("deletes the database when the deletion locks the database before the completed backup is saved",
+		func(t *testing.T) {
+			prereqs := seedBackupPrereqs(t)
+			backuper := CreateTestPhysicalBackuper(nil)
+
+			fullBackup := seedInProgressFull(t, prereqs)
+			claimInFlight(t, prereqs.DB.ID, physical_enums.PhysicalBackupTypeFull, fullBackup.ID)
+
+			deletion := databases_bridge.BeginTestDatabaseDeletion(t, prereqs.DB.ID)
+
+			persistErr := make(chan error, 1)
+			go func() {
+				persistErr <- backuper.persistFullResult(t.Context(), fullBackup, postgresql_executor.PhysicalBackupResult{
+					Status:      physical_enums.PhysicalBackupStatusCompleted,
+					CompletedAt: time.Now().UTC(),
+				}, nil)
+			}()
+
+			deletion.WaitForBlockedDatabaseWrite(t)
+
+			require.NoError(t, deletion.Finish())
+			require.ErrorIs(t, <-persistErr, databases.ErrDatabaseNotFound)
+
+			persistedBackup, err := physical_repositories.GetFullBackupRepository().FindByID(fullBackup.ID)
+			require.NoError(t, err)
+			require.Nil(t, persistedBackup)
+		})
+}

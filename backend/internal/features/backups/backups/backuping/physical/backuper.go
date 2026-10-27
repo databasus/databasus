@@ -590,12 +590,21 @@ type terminalPersistSpec struct {
 
 // The files an attempt wrote are kept only by the transaction that publishes it.
 // A failed attempt, and a superseded one whose row a later attempt already took,
-// both hand their files back to cleanup in that same transaction.
+// both hand their files back to cleanup. A completed attempt records its success
+// on the database row before it locks its own row, in the order a database
+// deletion takes them, so a deletion racing the save makes it wait instead of
+// deadlocking; a superseded attempt rolls that record back.
 func (b *PhysicalBackuper) saveTerminalResultIfInProgress(ctx context.Context, spec terminalPersistSpec) error {
-	superseded := false
-
 	err := storage.GetTransactor().Transaction(ctx, func(ctx context.Context) error {
 		tx := database.Conn(ctx, storage.GetDb())
+
+		isCompleted := spec.Result.Status == physical_enums.PhysicalBackupStatusCompleted
+		if isCompleted {
+			err := b.getDatabases().RecordBackupSuccess(ctx, spec.DatabaseID, spec.BackupCreatedAt)
+			if err != nil {
+				return err
+			}
+		}
 
 		status, err := spec.LoadStatus(tx)
 		if err != nil {
@@ -603,20 +612,16 @@ func (b *PhysicalBackuper) saveTerminalResultIfInProgress(ctx context.Context, s
 		}
 
 		if status != physical_enums.PhysicalBackupStatusInProgress {
-			superseded = true
-
-			return b.getStorages().RequestFileDeletions(ctx, b.attemptFileReferences(spec))
+			return errBackupRowSuperseded
 		}
 
-		if spec.Result.Status == physical_enums.PhysicalBackupStatusCompleted {
-			if err := b.getStorages().ConfirmFileWrites(ctx, spec.Result.Receipts); err != nil {
-				return err
-			}
+		if isCompleted {
+			err = b.getStorages().ConfirmFileWrites(ctx, spec.Result.Receipts)
+		} else {
+			err = b.getStorages().RequestFileDeletions(ctx, b.attemptFileReferences(spec))
+		}
 
-			if err := b.getDatabases().RecordBackupSuccess(ctx, spec.DatabaseID, spec.BackupCreatedAt); err != nil {
-				return err
-			}
-		} else if err := b.getStorages().RequestFileDeletions(ctx, b.attemptFileReferences(spec)); err != nil {
+		if err != nil {
 			return err
 		}
 
@@ -631,15 +636,15 @@ func (b *PhysicalBackuper) saveTerminalResultIfInProgress(ctx context.Context, s
 			spec.BackupID,
 		).Error
 	})
-	if err != nil {
+	if !errors.Is(err, errBackupRowSuperseded) {
 		return err
 	}
 
-	if superseded {
-		b.logger.Warn("backup row no longer in progress; skipping terminal persist", "backup_id", spec.BackupID)
-	}
+	b.logger.Warn("backup row no longer in progress; skipping terminal persist", "backup_id", spec.BackupID)
 
-	return nil
+	return storage.GetTransactor().Transaction(ctx, func(ctx context.Context) error {
+		return b.getStorages().RequestFileDeletions(ctx, b.attemptFileReferences(spec))
+	})
 }
 
 // The attempt owns its artifact plus the two sidecars derived from it. Requesting

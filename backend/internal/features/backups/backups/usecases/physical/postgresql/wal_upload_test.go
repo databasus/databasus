@@ -230,11 +230,8 @@ func Test_WalUpload_DeleteCascadesIntoNullClaim_UploadCompletes_DeleteFileCleans
 	name := walName(1, 17)
 	startLSN := walmath.LSN(17 * uint64(testWalSegmentSize))
 
-	store := newMockWalStorage()
+	store := newBlockingMockWalStorage(name)
 	walStore := newMockWalStoreFor(store)
-	store.blockOn = name
-	store.started = make(chan struct{})
-	store.release = make(chan struct{})
 	uploader := newTestUploaderWithStore(t, fixture, walStore, nil)
 
 	dir := uploader.deps.WatchDir
@@ -637,4 +634,35 @@ func Test_WalUpload_WhenSegmentBeforeGapLeftOnlyShortFile_ReportsGap(t *testing.
 
 	require.Equal(t, []recordedGap{{start: segmentStartLSN(20), end: segmentStartLSN(21)}}, recorder.getGaps(),
 		"the receiver never streams a segment below its resume point again, so a short file is a hole")
+}
+
+func TestWalUploadRacingDatabaseDeletion(t *testing.T) {
+	t.Run("deletes the database and drops the segment when the deletion locks the database before the commit",
+		func(t *testing.T) {
+			fixture := SetupPhysicalDBForBackup(t)
+
+			name := walName(1, 18)
+			startLSN := walmath.LSN(18 * uint64(testWalSegmentSize))
+
+			store := newBlockingMockWalStorage(name)
+			uploader := newTestUploader(t, fixture, store, nil)
+
+			local := writeWalFile(t, uploader.deps.WatchDir, name)
+
+			uploadErr := make(chan error, 1)
+			go func() { uploadErr <- uploader.ProcessSegment(context.Background(), local, name) }()
+
+			<-store.started
+
+			deletion := databases_bridge.BeginTestDatabaseDeletion(t, fixture.DB.ID)
+
+			close(store.release)
+			deletion.WaitForBlockedDatabaseWrite(t)
+
+			require.NoError(t, deletion.Finish())
+
+			require.NoError(t, <-uploadErr)
+			require.Nil(t, findWalSegment(t, fixture.DB.ID, 1, startLSN))
+			require.NoFileExists(t, local)
+		})
 }

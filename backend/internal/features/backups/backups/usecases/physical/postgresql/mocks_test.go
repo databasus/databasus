@@ -178,6 +178,16 @@ func newMockWalStorage() *mockWalStorage {
 	return &mockWalStorage{saved: make(map[string][]byte)}
 }
 
+// newBlockingMockWalStorage holds the artifact write of the segment until the test closes release.
+func newBlockingMockWalStorage(segmentName string) *mockWalStorage {
+	store := newMockWalStorage()
+	store.blockOn = segmentName
+	store.started = make(chan struct{})
+	store.release = make(chan struct{})
+
+	return store
+}
+
 func (m *mockWalStorage) SaveFile(_ context.Context, fileName string, file io.Reader) error {
 	m.saveCount.Add(1)
 

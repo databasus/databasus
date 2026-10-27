@@ -13,4 +13,5 @@ var (
 	errManifestWalk = errors.New("manifest reconstruction failed")
 
 	errStreamedDatabaseDeleted = errors.New("the streamed database is deleted")
+	errSegmentClaimLost        = errors.New("the claim of the wal segment is gone")
 )

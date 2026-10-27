@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -22,6 +23,7 @@ import (
 	physical_repositories "databasus-backend/internal/features/backups/backups/core/physical/repositories"
 	"databasus-backend/internal/lib/crypto"
 	"databasus-backend/internal/lib/database"
+	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/storages"
 	db "databasus-backend/internal/storage"
 	"databasus-backend/internal/util/walmath"
@@ -307,10 +309,10 @@ func (u *WalUploader) uploadAndCommit(
 	}
 
 	if !committed {
-		// DeleteFull cascade caught the claim mid-upload, so the row that would
-		// name these bytes is gone and nothing published them.
+		// A DeleteFull cascade or the deletion of the database caught the claim mid-upload, so the
+		// row that would name these bytes is gone and nothing published them.
 		u.deps.Logger.DebugContext(ctx,
-			"discarding an uploaded wal segment, its chain was deleted mid-upload",
+			"discarding an uploaded wal segment, its chain or database was deleted mid-upload",
 			"wal_filename", claim.WalFilename, "wal_segment_id", claim.ID)
 
 		u.discardAttempt(ctx, objectName)
@@ -482,13 +484,18 @@ type commitSegmentSpec struct {
 	Receipts         []storages.WriteReceipt
 }
 
-// commitSegment publishes the segment, spends its receipts and records it as the database's last
-// backup together, so the files are kept only if the row that names them commits.
+// commitSegment records the segment as the database's last backup, publishes it and spends its
+// receipts together, so the files are kept only if the row that names them commits. The database
+// row is locked before the segment row, in the order a database deletion takes them, so a deletion
+// racing the commit makes it wait instead of deadlocking.
 func (u *WalUploader) commitSegment(ctx context.Context, spec commitSegmentSpec) (bool, error) {
-	committed := false
-
 	err := db.GetTransactor().Transaction(ctx, func(ctx context.Context) error {
 		tx := database.Conn(ctx, db.GetDb())
+
+		err := u.deps.BackupStatus.RecordBackupSuccess(ctx, u.deps.DatabaseID, spec.Claim.ReceivedAt)
+		if err != nil {
+			return err
+		}
 
 		updated, err := u.deps.WalSegmentRepo.MarkUploadedInTransaction(tx, physical_repositories.WalSegmentUpload{
 			SegmentID:        spec.Claim.ID,
@@ -501,20 +508,21 @@ func (u *WalUploader) commitSegment(ctx context.Context, spec commitSegmentSpec)
 			return err
 		}
 
-		committed = updated
 		if !updated {
-			return nil
+			return errSegmentClaimLost
 		}
 
-		err = u.deps.FileStore.ConfirmFileWrites(ctx, spec.Receipts)
-		if err != nil {
-			return err
-		}
-
-		return u.deps.BackupStatus.RecordBackupSuccess(ctx, u.deps.DatabaseID, spec.Claim.ReceivedAt)
+		return u.deps.FileStore.ConfirmFileWrites(ctx, spec.Receipts)
 	})
+	if errors.Is(err, errSegmentClaimLost) || errors.Is(err, databases.ErrDatabaseNotFound) {
+		return false, nil
+	}
 
-	return committed, err
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
 }
 
 func (u *WalUploader) removeLocal(localPath, walFilename string) {

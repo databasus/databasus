@@ -180,10 +180,7 @@ func Test_UploaderLoop_WhenSegmentWriteStaysBlocked_DoesNotStartItAgainOrWarn(t 
 	log := &capturedLog{}
 	blockedSegmentName := walName(1, 120)
 
-	store := newMockWalStorage()
-	store.blockOn = blockedSegmentName
-	store.started = make(chan struct{})
-	store.release = make(chan struct{})
+	store := newBlockingMockWalStorage(blockedSegmentName)
 	supervisor := createTestSupervisor(t, fixture, store, slog.New(slog.NewTextHandler(log, nil)))
 
 	writeWalFile(t, supervisor.watchDir, blockedSegmentName)
@@ -296,10 +293,7 @@ func Test_UploaderLoop_WhenSegmentMovesToPendingUploadMidUpload_WritesItOnce(t *
 
 	movedSegmentName := walName(1, 150)
 
-	store := newMockWalStorage()
-	store.blockOn = movedSegmentName
-	store.started = make(chan struct{})
-	store.release = make(chan struct{})
+	store := newBlockingMockWalStorage(movedSegmentName)
 	supervisor := createTestSupervisor(t, fixture, store, logger.GetLogger())
 
 	watchDirPath := writeWalFile(t, supervisor.watchDir, movedSegmentName)
@@ -334,10 +328,7 @@ func Test_UploaderLoop_WhenOlderSegmentWriteIsBlocked_RecordsItAsLowestQueuedSeg
 
 	blockedSegmentName := walName(1, 50)
 
-	store := newMockWalStorage()
-	store.blockOn = blockedSegmentName
-	store.started = make(chan struct{})
-	store.release = make(chan struct{})
+	store := newBlockingMockWalStorage(blockedSegmentName)
 	supervisor := createTestSupervisor(t, fixture, store, logger.GetLogger())
 
 	for segmentNo := uint64(50); segmentNo <= 53; segmentNo++ {
