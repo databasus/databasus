@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	backuping_logical "databasus-backend/internal/features/backups/backups/backuping/logical"
-	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
+	backups_bridge "databasus-backend/internal/features/backups/config"
 	databases_bridge "databasus-backend/internal/features/databases"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	storages_bridge "databasus-backend/internal/features/storages"
@@ -257,7 +257,7 @@ func Test_MakeBackup_WhenAfterBackupConfigured_SchedulesAndReplacesPendingVerifi
 	database := databases_bridge.CreateTestDatabase(workspace.ID, notifier)
 	defer databases_bridge.RemoveTestDatabase(t.Context(), database)
 
-	backups_config_logical.EnableBackupsForTestDatabase(t.Context(), database.ID, testStorage.ID)
+	backups_bridge.EnableBackupsForTestDatabase(t.Context(), database.ID, testStorage.ID)
 	enableAfterBackupVerificationViaAPI(t, router, owner.Token, database.ID)
 
 	// Start the real backups scheduler singleton so it subscribes to the

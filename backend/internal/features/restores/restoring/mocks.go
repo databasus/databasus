@@ -8,8 +8,8 @@ import (
 	"io"
 
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
-	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
 	restores_core "databasus-backend/internal/features/restores/core"
+	"databasus-backend/internal/modules/backups"
 	"databasus-backend/internal/modules/storages"
 )
 
@@ -17,7 +17,7 @@ type MockSuccessRestoreUsecase struct{}
 
 func (uc *MockSuccessRestoreUsecase) Execute(
 	ctx context.Context,
-	backupConfig *backups_config_logical.LogicalBackupConfig,
+	backupConfig backups.LogicalBackupConfig,
 	restore restores_core.Restore,
 	source restores_core.SourceDatabase,
 	target restores_core.RestoreBackupRequest,
@@ -34,7 +34,7 @@ type MockFailedRestoreUsecase struct {
 
 func (uc *MockFailedRestoreUsecase) Execute(
 	ctx context.Context,
-	backupConfig *backups_config_logical.LogicalBackupConfig,
+	backupConfig backups.LogicalBackupConfig,
 	restore restores_core.Restore,
 	source restores_core.SourceDatabase,
 	target restores_core.RestoreBackupRequest,
@@ -52,7 +52,7 @@ type MockCaptureCredentialsRestoreUsecase struct {
 
 func (uc *MockCaptureCredentialsRestoreUsecase) Execute(
 	ctx context.Context,
-	backupConfig *backups_config_logical.LogicalBackupConfig,
+	backupConfig backups.LogicalBackupConfig,
 	restore restores_core.Restore,
 	source restores_core.SourceDatabase,
 	target restores_core.RestoreBackupRequest,
@@ -74,7 +74,7 @@ type MockBlockingRestoreUsecase struct {
 
 func (uc *MockBlockingRestoreUsecase) Execute(
 	ctx context.Context,
-	backupConfig *backups_config_logical.LogicalBackupConfig,
+	backupConfig backups.LogicalBackupConfig,
 	restore restores_core.Restore,
 	source restores_core.SourceDatabase,
 	target restores_core.RestoreBackupRequest,
@@ -97,7 +97,7 @@ type MockCaptureStorageRestoreUsecase struct {
 
 func (uc *MockCaptureStorageRestoreUsecase) Execute(
 	ctx context.Context,
-	backupConfig *backups_config_logical.LogicalBackupConfig,
+	backupConfig backups.LogicalBackupConfig,
 	restore restores_core.Restore,
 	source restores_core.SourceDatabase,
 	target restores_core.RestoreBackupRequest,

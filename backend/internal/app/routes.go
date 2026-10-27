@@ -7,8 +7,6 @@ import (
 	systemhttpapi "databasus-backend/internal/app/systemhttpapi"
 	backups_controllers_logical "databasus-backend/internal/features/backups/backups/controllers/logical"
 	backups_controllers_physical "databasus-backend/internal/features/backups/backups/controllers/physical"
-	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
-	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
 	"databasus-backend/internal/features/disk"
 	healthcheck_attempt "databasus-backend/internal/features/healthcheck/attempt"
 	healthcheck_config "databasus-backend/internal/features/healthcheck/config"
@@ -39,6 +37,7 @@ func (a *App) registerContractRoutes(router *gin.Engine) error {
 	a.notifiersModule.RegisterRoutes(contractRoutes, errorHooks)
 	a.storagesModule.RegisterRoutes(contractRoutes, errorHooks)
 	a.databasesModule.RegisterRoutes(contractRoutes, errorHooks)
+	a.backupsModule.RegisterRoutes(contractRoutes, errorHooks)
 
 	systemHandler := systemhttpapi.NewHandler(systemhttpapi.Deps{Version: system_version.GetAppVersion()})
 	systemhttpapi.RegisterHandlersWithOptions(
@@ -74,8 +73,6 @@ func (a *App) registerRoutes(router *gin.Engine) {
 	restores.GetRestoreController().RegisterRoutes(protected)
 	healthcheck_config.GetHealthcheckConfigController().RegisterRoutes(protected)
 	healthcheck_attempt.GetHealthcheckAttemptController().RegisterRoutes(protected)
-	backups_config_logical.GetBackupConfigController().RegisterRoutes(protected)
-	backups_config_physical.GetBackupConfigController().RegisterRoutes(protected)
 	verification_agents.GetAgentController().RegisterRoutes(protected)
 	verification_config.GetVerificationConfigController().RegisterRoutes(protected)
 	verification_runs.GetVerificationController().RegisterRoutes(protected)

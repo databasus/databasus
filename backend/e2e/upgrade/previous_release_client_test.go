@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"strconv"
 	"testing"
 
 	"databasus-backend/e2e/upgrade/upgradecheck"
@@ -30,6 +31,18 @@ const (
 	storageName      = "upgrade local storage"
 	databaseName     = "upgrade source database"
 	backupEncryption = "ENCRYPTED"
+	// The backup config written before the upgrade differs from the logical default in every value.
+	backupScheduleType        = "WEEKLY"
+	backupScheduleTimeOfDay   = "02:30"
+	backupScheduleWeekday     = 3
+	backupRetentionPolicy     = "GFS"
+	backupRetentionGfsHours   = 6
+	backupRetentionGfsDays    = 5
+	backupRetentionGfsWeeks   = 4
+	backupRetentionGfsMonths  = 3
+	backupRetentionGfsYears   = 2
+	backupMaxFailedTriesCount = 5
+	backupNotificationTrigger = "BACKUP_FAILED"
 )
 
 var (
@@ -172,9 +185,22 @@ func writeUpgradeData(t *testing.T, api *apiClient) (writtenUpgradeData, error) 
 			{Kind: "workspace member", Name: memberEmail, Values: map[string]string{"role": memberRole}},
 			{Kind: "workspace member", Name: secondOwnerEmail, Values: map[string]string{"role": "WORKSPACE_ADMIN"}},
 			{Kind: "backup config", Name: databaseName, Values: map[string]string{
-				"isBackupsEnabled": "true",
-				"storageId":        localStorageID,
-				"encryption":       backupEncryption,
+				"isBackupsEnabled":              "true",
+				"storageId":                     localStorageID,
+				"encryption":                    backupEncryption,
+				"settings.type":                 "LOGICAL",
+				"settings.schedule.type":        backupScheduleType,
+				"settings.schedule.timeOfDay":   backupScheduleTimeOfDay,
+				"settings.schedule.weekday":     strconv.Itoa(backupScheduleWeekday),
+				"settings.retention.policy":     backupRetentionPolicy,
+				"settings.retention.gfsHours":   strconv.Itoa(backupRetentionGfsHours),
+				"settings.retention.gfsDays":    strconv.Itoa(backupRetentionGfsDays),
+				"settings.retention.gfsWeeks":   strconv.Itoa(backupRetentionGfsWeeks),
+				"settings.retention.gfsMonths":  strconv.Itoa(backupRetentionGfsMonths),
+				"settings.retention.gfsYears":   strconv.Itoa(backupRetentionGfsYears),
+				"settings.isRetryIfFailed":      "true",
+				"settings.maxFailedTriesCount":  strconv.Itoa(backupMaxFailedTriesCount),
+				"settings.notificationTriggers": backupNotificationTrigger,
 			}},
 			{Kind: "backup", Name: backup.ID, Values: map[string]string{
 				"status":     backup.Status,
@@ -227,8 +253,9 @@ func addMember(
 	return nil
 }
 
-// The previous release fills a new database's backup config with its defaults on the first read,
-// so the test changes only the fields it owns and sends the rest back as read.
+// The previous release fills a new database's backup config with its defaults on the first read. The
+// test sends it back with every setting changed from the logical default, so a lost value cannot pass
+// for a default after the upgrade.
 func switchOnEncryptedBackups(ctx context.Context, api *apiClient, databaseID, storageID string) error {
 	var backupConfig map[string]any
 
@@ -241,6 +268,20 @@ func switchOnEncryptedBackups(ctx context.Context, api *apiClient, databaseID, s
 	backupConfig["storage"] = map[string]any{"id": storageID}
 	backupConfig["storageId"] = storageID
 	backupConfig["encryption"] = backupEncryption
+	backupConfig["backupInterval"] = map[string]any{
+		"type":      backupScheduleType,
+		"timeOfDay": backupScheduleTimeOfDay,
+		"weekday":   backupScheduleWeekday,
+	}
+	backupConfig["retentionPolicyType"] = backupRetentionPolicy
+	backupConfig["retentionGfsHours"] = backupRetentionGfsHours
+	backupConfig["retentionGfsDays"] = backupRetentionGfsDays
+	backupConfig["retentionGfsWeeks"] = backupRetentionGfsWeeks
+	backupConfig["retentionGfsMonths"] = backupRetentionGfsMonths
+	backupConfig["retentionGfsYears"] = backupRetentionGfsYears
+	backupConfig["isRetryIfFailed"] = true
+	backupConfig["maxFailedTriesCount"] = backupMaxFailedTriesCount
+	backupConfig["sendNotificationsOn"] = []string{backupNotificationTrigger}
 
 	err = api.post(ctx, "/backup-configs/save", backupConfig, nil)
 	if err != nil {

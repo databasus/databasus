@@ -57,12 +57,26 @@ func (a *App) CreateLocalStorage(tb testing.TB, member Session, workspaceID uuid
 	return CreateStorage(tb, member, workspaceID, settings).Id
 }
 
-// InsertBackupConfigUsingStorage writes a logical backup config of the database directly, because no
-// contract operation saves a backup config yet.
+// InsertBackupConfigUsingStorage writes a logical backup config of the database directly, so a test
+// of another module needs no backup config operation.
 func (a *App) InsertBackupConfigUsingStorage(tb testing.TB, use StorageUse) {
 	tb.Helper()
 
-	a.ExecuteSQL(tb, `INSERT INTO logical_backup_configs
-		(database_id, storage_id, send_notifications_on, interval_type) VALUES (?, ?, '', 'DAILY')`,
+	a.ExecuteSQL(tb, "INSERT INTO backups_configs (database_id, method, storage_id) VALUES (?, 'LOGICAL', ?)",
 		use.DatabaseID, use.StorageID)
+	a.ExecuteSQL(tb, `INSERT INTO backups_configs_logical (database_id, interval_type, time_of_day)
+		VALUES (?, 'DAILY', '04:00')`,
+		use.DatabaseID)
+}
+
+// InsertPhysicalBackupConfigUsingStorage writes a physical backup config of the database directly, so a
+// test of another module needs no physical database with a backup config.
+func (a *App) InsertPhysicalBackupConfigUsingStorage(tb testing.TB, use StorageUse) {
+	tb.Helper()
+
+	a.ExecuteSQL(tb, "INSERT INTO backups_configs (database_id, method, storage_id) VALUES (?, 'PHYSICAL', ?)",
+		use.DatabaseID, use.StorageID)
+	a.ExecuteSQL(tb, `INSERT INTO backups_configs_physical (database_id, full_interval_type, full_time_of_day)
+		VALUES (?, 'DAILY', '04:00')`,
+		use.DatabaseID)
 }

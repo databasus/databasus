@@ -21,7 +21,7 @@ func (r auditRecorder) record(ctx context.Context, actor users.Actor, workspaceI
 		return err
 	}
 
-	return r.recordAs(ctx, author, workspaceID, message)
+	return r.auditLog.Record(ctx, audit.Event{Author: author, WorkspaceID: &workspaceID, Message: message})
 }
 
 func (r auditRecorder) getAuthor(ctx context.Context, actor users.Actor) (*audit.Author, error) {
@@ -35,15 +35,4 @@ func (r auditRecorder) getAuthor(ctx context.Context, actor users.Actor) (*audit
 	}
 
 	return user.GetAuditAuthor(), nil
-}
-
-// recordAs takes a nil author for what the system did on its own, such as a database moved by a
-// transfer.
-func (r auditRecorder) recordAs(
-	ctx context.Context,
-	author *audit.Author,
-	workspaceID uuid.UUID,
-	message string,
-) error {
-	return r.auditLog.Record(ctx, audit.Event{Author: author, WorkspaceID: &workspaceID, Message: message})
 }

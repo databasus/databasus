@@ -6,12 +6,11 @@ import { type JSX, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import {
-  INTERVAL_TYPE_LABEL_KEYS,
-  type Interval,
-  IntervalType,
-  WEEKDAYS,
-  WEEKDAY_LABEL_KEYS,
-} from '../../../../entity/intervals';
+  SCHEDULE_TYPE_LABEL_KEYS,
+  type Schedule,
+  ScheduleType,
+} from '../../../../entity/backups/config';
+import { WEEKDAYS, WEEKDAY_LABEL_KEYS } from '../../../../entity/intervals';
 import { useLocale } from '../../../../shared/i18n';
 import { getUserTimeFormat } from '../../../../shared/time';
 import {
@@ -24,15 +23,15 @@ import {
 
 interface Props {
   label: string;
-  interval?: Interval;
-  onChange: (patch: Partial<Interval>) => void;
+  schedule?: Schedule | null;
+  onChange: (patch: Partial<Schedule>) => void;
 }
 
 // Reusable interval sub-form for a single backup cadence. All times are stored in
 // UTC (timeOfDay 'HH:mm', weekday/dayOfMonth as UTC values) and displayed in the
 // user's local timezone - the getUtc*/getLocal* helpers translate across the date
 // boundary so e.g. "Sunday 23:00 local" can map to "Monday 04:00 UTC".
-export const PhysicalIntervalEditor = ({ label, interval, onChange }: Props): JSX.Element => {
+export const PhysicalIntervalEditor = ({ label, schedule, onChange }: Props): JSX.Element => {
   const { t } = useTranslation();
   const { formatRelativeTime } = useLocale();
 
@@ -44,23 +43,23 @@ export const PhysicalIntervalEditor = ({ label, interval, onChange }: Props): JS
   const dateTimeFormat = useMemo(() => getUserTimeFormat(), []);
 
   // UTC -> local conversions for display
-  const localTime: Dayjs | undefined = interval?.timeOfDay
-    ? dayjs.utc(interval.timeOfDay, 'HH:mm').local()
+  const localTime: Dayjs | undefined = schedule?.timeOfDay
+    ? dayjs.utc(schedule.timeOfDay, 'HH:mm').local()
     : undefined;
 
   const displayedWeekday: number | undefined =
-    interval?.type === IntervalType.WEEKLY && interval.weekday && interval.timeOfDay
-      ? getLocalWeekday(interval.weekday, interval.timeOfDay)
-      : interval?.weekday;
+    schedule?.type === ScheduleType.WEEKLY && schedule.weekday && schedule.timeOfDay
+      ? getLocalWeekday(schedule.weekday, schedule.timeOfDay)
+      : schedule?.weekday;
 
   const displayedDayOfMonth: number | undefined =
-    interval?.type === IntervalType.MONTHLY && interval.dayOfMonth && interval.timeOfDay
-      ? getLocalDayOfMonth(interval.dayOfMonth, interval.timeOfDay)
-      : interval?.dayOfMonth;
+    schedule?.type === ScheduleType.MONTHLY && schedule.dayOfMonth && schedule.timeOfDay
+      ? getLocalDayOfMonth(schedule.dayOfMonth, schedule.timeOfDay)
+      : schedule?.dayOfMonth;
 
-  const intervalTypeOptions = Object.values(IntervalType).map((intervalType) => ({
-    value: intervalType,
-    label: t(INTERVAL_TYPE_LABEL_KEYS[intervalType]),
+  const scheduleTypeOptions = Object.values(ScheduleType).map((scheduleType) => ({
+    value: scheduleType,
+    label: t(SCHEDULE_TYPE_LABEL_KEYS[scheduleType]),
   }));
 
   const weekdayOptions = WEEKDAYS.map((weekday) => ({
@@ -73,15 +72,15 @@ export const PhysicalIntervalEditor = ({ label, interval, onChange }: Props): JS
       <div className="mt-4 mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
         <div className="mb-1 max-w-[150px] min-w-[150px] leading-4 sm:mb-0 sm:pr-2">{label}</div>
         <Select
-          value={interval?.type}
+          value={schedule?.type}
           onChange={(v) => onChange({ type: v })}
           size="small"
           className="w-full max-w-[200px] grow"
-          options={intervalTypeOptions}
+          options={scheduleTypeOptions}
         />
       </div>
 
-      {interval?.type === IntervalType.WEEKLY && (
+      {schedule?.type === ScheduleType.WEEKLY && (
         <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
           <div className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2">
             {t('backups.config.schedule.weekday')}
@@ -100,7 +99,7 @@ export const PhysicalIntervalEditor = ({ label, interval, onChange }: Props): JS
         </div>
       )}
 
-      {interval?.type === IntervalType.MONTHLY && (
+      {schedule?.type === ScheduleType.MONTHLY && (
         <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
           <div className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2">
             {t('backups.config.schedule.dayOfMonth')}
@@ -120,7 +119,7 @@ export const PhysicalIntervalEditor = ({ label, interval, onChange }: Props): JS
         </div>
       )}
 
-      {interval?.type === IntervalType.CRON && (
+      {schedule?.type === ScheduleType.CRON && (
         <>
           <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
             <div className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2">
@@ -128,7 +127,7 @@ export const PhysicalIntervalEditor = ({ label, interval, onChange }: Props): JS
             </div>
             <div className="flex items-center">
               <Input
-                value={interval?.cronExpression || ''}
+                value={schedule?.cronExpression || ''}
                 onChange={(e) => onChange({ cronExpression: e.target.value })}
                 placeholder="0 2 * * *"
                 size="small"
@@ -151,10 +150,10 @@ export const PhysicalIntervalEditor = ({ label, interval, onChange }: Props): JS
               </Tooltip>
             </div>
           </div>
-          {interval?.cronExpression &&
+          {schedule?.cronExpression &&
             (() => {
               try {
-                const parsed = CronExpressionParser.parse(interval.cronExpression, {
+                const parsed = CronExpressionParser.parse(schedule.cronExpression, {
                   tz: 'UTC',
                 });
                 const nextRun = parsed.next().toDate();
@@ -181,7 +180,7 @@ export const PhysicalIntervalEditor = ({ label, interval, onChange }: Props): JS
         </>
       )}
 
-      {interval?.type !== IntervalType.HOURLY && interval?.type !== IntervalType.CRON && (
+      {schedule?.type !== ScheduleType.HOURLY && schedule?.type !== ScheduleType.CRON && (
         <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
           <div className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2">
             {t('backups.config.schedule.timeOfDay')}
@@ -195,12 +194,12 @@ export const PhysicalIntervalEditor = ({ label, interval, onChange }: Props): JS
             className="w-full max-w-[200px] grow"
             onChange={(pickedTime) => {
               if (!pickedTime) return;
-              const patch: Partial<Interval> = { timeOfDay: pickedTime.utc().format('HH:mm') };
+              const patch: Partial<Schedule> = { timeOfDay: pickedTime.utc().format('HH:mm') };
 
-              if (interval?.type === IntervalType.WEEKLY && displayedWeekday) {
+              if (schedule?.type === ScheduleType.WEEKLY && displayedWeekday) {
                 patch.weekday = getUtcWeekday(displayedWeekday, pickedTime);
               }
-              if (interval?.type === IntervalType.MONTHLY && displayedDayOfMonth) {
+              if (schedule?.type === ScheduleType.MONTHLY && displayedDayOfMonth) {
                 patch.dayOfMonth = getUtcDayOfMonth(displayedDayOfMonth, pickedTime);
               }
 

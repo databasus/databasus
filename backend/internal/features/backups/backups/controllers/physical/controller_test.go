@@ -35,13 +35,13 @@ import (
 	backups_dto_physical "databasus-backend/internal/features/backups/backups/dto/physical"
 	backups_services "databasus-backend/internal/features/backups/backups/services"
 	postgresql_executor "databasus-backend/internal/features/backups/backups/usecases/physical/postgresql"
-	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
+	backups_bridge "databasus-backend/internal/features/backups/config"
 	databases_bridge "databasus-backend/internal/features/databases"
-	"databasus-backend/internal/features/intervals"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	storages_bridge "databasus-backend/internal/features/storages"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
+	"databasus-backend/internal/lib/schedule"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/modules/storages"
@@ -118,12 +118,11 @@ func newPhysicalControllerRouter() *gin.Engine {
 	if routerGroup, ok := protected.(*gin.RouterGroup); ok {
 		databases_bridge.GetTestRoutes().RegisterRoutes(routerGroup)
 		backups_controllers_physical.GetPhysicalBackupController().RegisterRoutes(routerGroup)
-		backups_config_physical.GetBackupConfigController().RegisterRoutes(routerGroup)
+		backups_bridge.GetTestRoutes().RegisterRoutes(routerGroup)
 	}
 
 	databases_bridge.SetupDependencies()
-	backups_config_physical.SetupDependencies()
-	backuping_physical.SetupDependencies()
+	backuping_physical.SubscribeToBackupConfigEventsWithoutApp()
 	backuping_physical.SubscribeToDatabaseDeletingWithoutApp()
 
 	return router
@@ -310,8 +309,10 @@ func Test_GetBackups_WhenNonMember_ReturnsError(t *testing.T) {
 func Test_TriggerBackup_Full_SetsForceFullFlag(t *testing.T) {
 	prereqs := createPhysicalControllerPrereqs(t)
 
-	// Touch the config so a row exists for the request flag to land on.
-	_, err := backups_config_physical.GetBackupConfigService().GetBackupConfigByDbId(prereqs.database.ID)
+	// A force request lands only on a saved config.
+	defaultConfig, err := backups_bridge.GetModule().GetPhysicalBackupConfig(t.Context(), prereqs.database.ID)
+	require.NoError(t, err)
+	_, err = backups_bridge.SaveTestBackupConfig(t.Context(), defaultConfig)
 	require.NoError(t, err)
 
 	test_utils.MakePostRequest(t, prereqs.router,
@@ -320,7 +321,7 @@ func Test_TriggerBackup_Full_SetsForceFullFlag(t *testing.T) {
 		backups_dto_physical.TriggerBackupRequest{Type: backups_dto_physical.TriggerBackupTypeFull},
 		http.StatusAccepted)
 
-	config, err := backups_config_physical.GetBackupConfigService().GetBackupConfigByDbId(prereqs.database.ID)
+	config, err := backups_bridge.GetModule().GetPhysicalBackupConfig(t.Context(), prereqs.database.ID)
 	require.NoError(t, err)
 	assert.NotNil(t, config.ForceFullRequestedAt, "trigger full must set the force-full request flag")
 }
@@ -698,7 +699,7 @@ func Test_GetBackups_PermissionsEnforced(t *testing.T) {
 func Test_TriggerBackup_PermissionsEnforced(t *testing.T) {
 	prereqs := createPhysicalControllerPrereqs(t)
 
-	_, err := backups_config_physical.GetBackupConfigService().GetBackupConfigByDbId(prereqs.database.ID)
+	_, err := backups_bridge.GetModule().GetPhysicalBackupConfig(t.Context(), prereqs.database.ID)
 	require.NoError(t, err)
 
 	triggerURL := "/api/v1/backups/physical/database/" + prereqs.database.ID.String() + "/trigger"
@@ -1156,7 +1157,7 @@ func Test_DeleteBackup_WhenInProgress_CancelsThenDeletes(t *testing.T) {
 func Test_TriggerBackup_Auto_Returns202(t *testing.T) {
 	prereqs := createPhysicalControllerPrereqs(t)
 
-	_, err := backups_config_physical.GetBackupConfigService().GetBackupConfigByDbId(prereqs.database.ID)
+	_, err := backups_bridge.GetModule().GetPhysicalBackupConfig(t.Context(), prereqs.database.ID)
 	require.NoError(t, err)
 
 	test_utils.MakePostRequest(t, prereqs.router,
@@ -1628,14 +1629,13 @@ func createWalStreamingControllerPrereqs(t *testing.T) *physicalControllerPrereq
 			)
 		})
 
-	backupConfig, err := backups_config_physical.GetBackupConfigService().GetBackupConfigByDbId(prereqs.database.ID)
+	backupConfig, err := backups_bridge.GetModule().GetPhysicalBackupConfig(t.Context(), prereqs.database.ID)
 	require.NoError(t, err)
 
 	backupConfig.IsBackupsEnabled = true
 	backupConfig.StorageID = &prereqs.storage.ID
-	backupConfig.Storage = &backups_config_physical.BackupConfigStorage{ID: prereqs.storage.ID}
 
-	_, err = backups_config_physical.GetBackupConfigService().SaveBackupConfig(t.Context(), backupConfig)
+	_, err = backups_bridge.SaveTestBackupConfig(t.Context(), backupConfig)
 	require.NoError(t, err)
 
 	return prereqs
@@ -2494,12 +2494,12 @@ func Test_GetWalStreamStatistics_WhenStreamingNotExpected_ReportsNotStreamingWit
 		{
 			name: "Backups disabled",
 			stopStreaming: func(t *testing.T, prereqs *physicalControllerPrereqs) {
-				backupConfig, err := backups_config_physical.GetBackupConfigService().
-					GetBackupConfigByDbId(prereqs.database.ID)
+				backupConfig, err := backups_bridge.GetModule().
+					GetPhysicalBackupConfig(t.Context(), prereqs.database.ID)
 				require.NoError(t, err)
 
 				backupConfig.IsBackupsEnabled = false
-				_, err = backups_config_physical.GetBackupConfigService().SaveBackupConfig(t.Context(), backupConfig)
+				_, err = backups_bridge.SaveTestBackupConfig(t.Context(), backupConfig)
 				require.NoError(t, err)
 			},
 		},
@@ -2630,19 +2630,17 @@ func Test_SaveBackupConfig_AfterRemovalOfOldChainFailed_NextSaveRemovesIt(t *tes
 // a storage that a configuration names cannot be deleted.
 func createStorageForStorageChange(t *testing.T, prereqs *physicalControllerPrereqs) storages.Storage {
 	t.Helper()
-
-	backups_services.SetupDependencies()
 	backups_services.SubscribeToDatabaseEventsWithoutApp()
 
 	newStorage := storages_bridge.CreateTestStorage(prereqs.workspace.ID)
 
 	t.Cleanup(func() {
-		backupConfig, err := backups_config_physical.GetBackupConfigService().GetBackupConfigByDbId(prereqs.database.ID)
+		backupConfig, err := backups_bridge.GetModule().
+			GetPhysicalBackupConfig(context.Background(), prereqs.database.ID)
 		require.NoError(t, err)
 
 		backupConfig.StorageID = &prereqs.storage.ID
-		backupConfig.Storage = &backups_config_physical.BackupConfigStorage{ID: prereqs.storage.ID}
-		_, err = backups_config_physical.GetBackupConfigService().SaveBackupConfig(context.Background(), backupConfig)
+		_, err = backups_bridge.SaveTestBackupConfig(context.Background(), backupConfig)
 		require.NoError(t, err)
 
 		storages_bridge.RemoveTestStorage(context.Background(), newStorage.ID)
@@ -2653,24 +2651,20 @@ func createStorageForStorageChange(t *testing.T, prereqs *physicalControllerPrer
 
 func saveBackupConfigWithStorage(t *testing.T, prereqs *physicalControllerPrereqs, targetStorage storages.Storage) {
 	t.Helper()
-
-	backups_services.SetupDependencies()
 	backups_services.SubscribeToDatabaseEventsWithoutApp()
 
-	backupConfig, err := backups_config_physical.GetBackupConfigService().GetBackupConfigByDbId(prereqs.database.ID)
+	backupConfig, err := backups_bridge.GetModule().GetPhysicalBackupConfig(t.Context(), prereqs.database.ID)
 	require.NoError(t, err)
 
 	backupConfig.IsBackupsEnabled = true
-	backupConfig.StorageID = nil
-	backupConfig.Storage = &backups_config_physical.BackupConfigStorage{ID: targetStorage.ID}
-	backupConfig.FullBackupInterval = intervals.Interval{
-		Type:      intervals.IntervalDaily,
+	backupConfig.StorageID = &targetStorage.ID
+	backupConfig.FullBackupSchedule = schedule.Schedule{
+		Type:      schedule.TypeDaily,
 		TimeOfDay: new("04:00"),
 	}
 
-	test_utils.MakePostRequest(t, prereqs.router,
-		"/api/v1/backup-configs/physical/save",
-		"Bearer "+prereqs.user.Token, backupConfig, http.StatusOK)
+	_, err = backups_bridge.SaveTestBackupConfig(t.Context(), backupConfig)
+	require.NoError(t, err)
 }
 
 func getFileNamesPendingDeletion(t *testing.T, storageID uuid.UUID) []string {

@@ -25,7 +25,7 @@ import (
 	"databasus-backend/internal/features/backups/backups/download/download_token"
 	backups_dto_logical "databasus-backend/internal/features/backups/backups/dto/logical"
 	backups_services "databasus-backend/internal/features/backups/backups/services"
-	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
+	backups_bridge "databasus-backend/internal/features/backups/config"
 	databases_bridge "databasus-backend/internal/features/databases"
 	storages_bridge "databasus-backend/internal/features/storages"
 	task_cancellation "databasus-backend/internal/features/tasks/cancellation"
@@ -864,25 +864,21 @@ func Test_DownloadBackup_WithDifferentBackupToken_Unauthorized(t *testing.T) {
 
 	database1 := databases_bridge.CreateTestDatabaseViaAPI(t, router, owner.Token, workspace.ID, "Database 1")
 	storage := createTestStorage(workspace.ID)
-
-	configService := backups_config_logical.GetBackupConfigService()
-	config1, err := configService.GetBackupConfigByDbId(database1.ID)
+	config1, err := backups_bridge.GetModule().GetLogicalBackupConfig(t.Context(), database1.ID)
 	assert.NoError(t, err)
 	config1.IsBackupsEnabled = true
 	config1.StorageID = &storage.ID
-	config1.Storage = &backups_config_logical.BackupConfigStorage{ID: storage.ID}
-	_, err = configService.SaveBackupConfig(t.Context(), config1)
+	_, err = backups_bridge.SaveTestBackupConfig(t.Context(), config1)
 	assert.NoError(t, err)
 
 	backup1 := createTestBackup(t.Context(), database1, owner)
 
 	database2 := databases_bridge.CreateTestDatabaseViaAPI(t, router, owner.Token, workspace.ID, "Database 2")
-	config2, err := configService.GetBackupConfigByDbId(database2.ID)
+	config2, err := backups_bridge.GetModule().GetLogicalBackupConfig(t.Context(), database2.ID)
 	assert.NoError(t, err)
 	config2.IsBackupsEnabled = true
 	config2.StorageID = &storage.ID
-	config2.Storage = &backups_config_logical.BackupConfigStorage{ID: storage.ID}
-	_, err = configService.SaveBackupConfig(t.Context(), config2)
+	_, err = backups_bridge.SaveTestBackupConfig(t.Context(), config2)
 	assert.NoError(t, err)
 
 	backup2 := createTestBackup(t.Context(), database2, owner)
@@ -1003,15 +999,12 @@ func Test_DownloadBackup_ProperFilenameForPostgreSQL(t *testing.T) {
 
 			database := databases_bridge.CreateTestDatabaseViaAPI(t, router, owner.Token, workspace.ID, tt.databaseName)
 			storage := createTestStorage(workspace.ID)
-
-			configService := backups_config_logical.GetBackupConfigService()
-			config, err := configService.GetBackupConfigByDbId(database.ID)
+			config, err := backups_bridge.GetModule().GetLogicalBackupConfig(t.Context(), database.ID)
 			assert.NoError(t, err)
 
 			config.IsBackupsEnabled = true
 			config.StorageID = &storage.ID
-			config.Storage = &backups_config_logical.BackupConfigStorage{ID: storage.ID}
-			_, err = configService.SaveBackupConfig(t.Context(), config)
+			_, err = backups_bridge.SaveTestBackupConfig(t.Context(), config)
 			assert.NoError(t, err)
 
 			backup := createTestBackup(t.Context(), database, owner)
@@ -1103,15 +1096,12 @@ func Test_CancelBackup_InProgressBackup_SuccessfullyCancelled(t *testing.T) {
 	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
 	database := databases_bridge.CreateTestDatabaseViaAPI(t, router, owner.Token, workspace.ID, "Test Database")
 	storage := createTestStorage(workspace.ID)
-
-	configService := backups_config_logical.GetBackupConfigService()
-	config, err := configService.GetBackupConfigByDbId(database.ID)
+	config, err := backups_bridge.GetModule().GetLogicalBackupConfig(t.Context(), database.ID)
 	assert.NoError(t, err)
 
 	config.IsBackupsEnabled = true
 	config.StorageID = &storage.ID
-	config.Storage = &backups_config_logical.BackupConfigStorage{ID: storage.ID}
-	_, err = configService.SaveBackupConfig(t.Context(), config)
+	_, err = backups_bridge.SaveTestBackupConfig(t.Context(), config)
 	assert.NoError(t, err)
 
 	backup := &backups_core_logical.LogicalBackup{
@@ -1371,14 +1361,13 @@ func createTestStorage(workspaceID uuid.UUID) storages.Storage {
 }
 
 func enableBackupForDatabase(ctx context.Context, databaseID uuid.UUID) {
-	configService := backups_config_logical.GetBackupConfigService()
-	config, err := configService.GetBackupConfigByDbId(databaseID)
+	config, err := backups_bridge.GetModule().GetLogicalBackupConfig(ctx, databaseID)
 	if err != nil {
 		panic(err)
 	}
 
 	config.IsBackupsEnabled = true
-	_, err = configService.SaveBackupConfig(ctx, config)
+	_, err = backups_bridge.SaveTestBackupConfig(ctx, config)
 	if err != nil {
 		panic(err)
 	}
@@ -1393,17 +1382,14 @@ func createTestDatabaseWithBackups(
 	ctx := t.Context()
 	database := databases_bridge.CreateTestDatabaseViaAPI(t, router, owner.Token, workspace.ID, "Test Database")
 	storage := createTestStorage(workspace.ID)
-
-	configService := backups_config_logical.GetBackupConfigService()
-	config, err := configService.GetBackupConfigByDbId(database.ID)
+	config, err := backups_bridge.GetModule().GetLogicalBackupConfig(t.Context(), database.ID)
 	if err != nil {
 		panic(err)
 	}
 
 	config.IsBackupsEnabled = true
 	config.StorageID = &storage.ID
-	config.Storage = &backups_config_logical.BackupConfigStorage{ID: storage.ID}
-	_, err = configService.SaveBackupConfig(ctx, config)
+	_, err = backups_bridge.SaveTestBackupConfig(ctx, config)
 	if err != nil {
 		panic(err)
 	}
@@ -1418,7 +1404,7 @@ func createTestBackup(
 	database databases.Database,
 	owner *users_testing.TestUser,
 ) *backups_core_logical.LogicalBackup {
-	backupConfig, err := backups_config_logical.GetBackupConfigService().GetBackupConfigByDbId(database.ID)
+	backupConfig, err := backups_bridge.GetModule().GetLogicalBackupConfig(ctx, database.ID)
 	if err != nil || backupConfig.StorageID == nil {
 		panic("No storage found for the database")
 	}
@@ -1489,15 +1475,12 @@ func Test_DeleteBackup_RemovesBackupAndMetadataFilesFromDisk(t *testing.T) {
 
 	database := databases_bridge.CreateTestDatabaseViaAPI(t, router, owner.Token, workspace.ID, "Test Database")
 	storage := createTestStorage(workspace.ID)
-
-	configService := backups_config_logical.GetBackupConfigService()
-	backupConfig, err := configService.GetBackupConfigByDbId(database.ID)
+	backupConfig, err := backups_bridge.GetModule().GetLogicalBackupConfig(t.Context(), database.ID)
 	assert.NoError(t, err)
 
 	backupConfig.IsBackupsEnabled = true
 	backupConfig.StorageID = &storage.ID
-	backupConfig.Storage = &backups_config_logical.BackupConfigStorage{ID: storage.ID}
-	_, err = configService.SaveBackupConfig(t.Context(), backupConfig)
+	_, err = backups_bridge.SaveTestBackupConfig(t.Context(), backupConfig)
 	assert.NoError(t, err)
 
 	defer func() {

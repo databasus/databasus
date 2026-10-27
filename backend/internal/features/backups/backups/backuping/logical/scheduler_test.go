@@ -9,20 +9,20 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
-	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
+	backups_bridge "databasus-backend/internal/features/backups/config"
 	"databasus-backend/internal/features/caching"
 	databases_bridge "databasus-backend/internal/features/databases"
-	"databasus-backend/internal/features/intervals"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	storages_bridge "databasus-backend/internal/features/storages"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
+	"databasus-backend/internal/lib/schedule"
+	"databasus-backend/internal/modules/backups"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/util/logger"
-	"databasus-backend/internal/util/period"
 	"databasus-backend/internal/util/testing/containers"
 )
 
@@ -82,21 +82,20 @@ func Test_RunPendingBackups_ByDatabaseType_OnlySchedulesNonAgentManagedBackups(t
 				workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 			}()
 
-			backupConfig, err := backups_config_logical.GetBackupConfigService().GetBackupConfigByDbId(database.ID)
+			backupConfig, err := backups_bridge.GetModule().GetLogicalBackupConfig(t.Context(), database.ID)
 			assert.NoError(t, err)
 
 			timeOfDay := "04:00"
-			backupConfig.BackupInterval = intervals.Interval{
-				Type:      intervals.IntervalDaily,
+			backupConfig.Schedule = schedule.Schedule{
+				Type:      schedule.TypeDaily,
 				TimeOfDay: &timeOfDay,
 			}
 			backupConfig.IsBackupsEnabled = true
-			backupConfig.RetentionPolicyType = backups_config_logical.RetentionPolicyTypeTimePeriod
-			backupConfig.RetentionTimePeriod = period.PeriodWeek
-			backupConfig.Storage = &backups_config_logical.BackupConfigStorage{ID: storage.ID}
+			backupConfig.Retention.Policy = backups.LogicalRetentionPolicyTimePeriod
+			backupConfig.Retention.Period = backups.RetentionPeriodWeek
 			backupConfig.StorageID = &storage.ID
 
-			_, err = backups_config_logical.GetBackupConfigService().SaveBackupConfig(t.Context(), backupConfig)
+			_, err = backups_bridge.SaveTestBackupConfig(t.Context(), backupConfig)
 			assert.NoError(t, err)
 
 			// add old backup (24h ago)
@@ -152,21 +151,20 @@ func Test_RunPendingBackups_WhenLastBackupWasYesterday_CreatesNewBackup(t *testi
 	}()
 
 	// Enable backups for the database
-	backupConfig, err := backups_config_logical.GetBackupConfigService().GetBackupConfigByDbId(database.ID)
+	backupConfig, err := backups_bridge.GetModule().GetLogicalBackupConfig(t.Context(), database.ID)
 	assert.NoError(t, err)
 
 	timeOfDay := "04:00"
-	backupConfig.BackupInterval = intervals.Interval{
-		Type:      intervals.IntervalDaily,
+	backupConfig.Schedule = schedule.Schedule{
+		Type:      schedule.TypeDaily,
 		TimeOfDay: &timeOfDay,
 	}
 	backupConfig.IsBackupsEnabled = true
-	backupConfig.RetentionPolicyType = backups_config_logical.RetentionPolicyTypeTimePeriod
-	backupConfig.RetentionTimePeriod = period.PeriodWeek
-	backupConfig.Storage = &backups_config_logical.BackupConfigStorage{ID: storage.ID}
+	backupConfig.Retention.Policy = backups.LogicalRetentionPolicyTimePeriod
+	backupConfig.Retention.Period = backups.RetentionPeriodWeek
 	backupConfig.StorageID = &storage.ID
 
-	_, err = backups_config_logical.GetBackupConfigService().SaveBackupConfig(t.Context(), backupConfig)
+	_, err = backups_bridge.SaveTestBackupConfig(t.Context(), backupConfig)
 	assert.NoError(t, err)
 
 	// add old backup
@@ -217,21 +215,20 @@ func Test_RunPendingBackups_WhenLastBackupWasRecentlyCompleted_SkipsBackup(t *te
 	}()
 
 	// Enable backups for the database
-	backupConfig, err := backups_config_logical.GetBackupConfigService().GetBackupConfigByDbId(database.ID)
+	backupConfig, err := backups_bridge.GetModule().GetLogicalBackupConfig(t.Context(), database.ID)
 	assert.NoError(t, err)
 
 	timeOfDay := "04:00"
-	backupConfig.BackupInterval = intervals.Interval{
-		Type:      intervals.IntervalDaily,
+	backupConfig.Schedule = schedule.Schedule{
+		Type:      schedule.TypeDaily,
 		TimeOfDay: &timeOfDay,
 	}
 	backupConfig.IsBackupsEnabled = true
-	backupConfig.RetentionPolicyType = backups_config_logical.RetentionPolicyTypeTimePeriod
-	backupConfig.RetentionTimePeriod = period.PeriodWeek
-	backupConfig.Storage = &backups_config_logical.BackupConfigStorage{ID: storage.ID}
+	backupConfig.Retention.Policy = backups.LogicalRetentionPolicyTimePeriod
+	backupConfig.Retention.Period = backups.RetentionPeriodWeek
 	backupConfig.StorageID = &storage.ID
 
-	_, err = backups_config_logical.GetBackupConfigService().SaveBackupConfig(t.Context(), backupConfig)
+	_, err = backups_bridge.SaveTestBackupConfig(t.Context(), backupConfig)
 	assert.NoError(t, err)
 
 	getBackupRepository().Save(&backups_core_logical.LogicalBackup{
@@ -280,23 +277,22 @@ func Test_RunPendingBackups_WhenLastBackupFailedAndRetriesDisabled_SkipsBackup(t
 	}()
 
 	// Enable backups for the database with retries disabled
-	backupConfig, err := backups_config_logical.GetBackupConfigService().GetBackupConfigByDbId(database.ID)
+	backupConfig, err := backups_bridge.GetModule().GetLogicalBackupConfig(t.Context(), database.ID)
 	assert.NoError(t, err)
 
 	timeOfDay := "04:00"
-	backupConfig.BackupInterval = intervals.Interval{
-		Type:      intervals.IntervalDaily,
+	backupConfig.Schedule = schedule.Schedule{
+		Type:      schedule.TypeDaily,
 		TimeOfDay: &timeOfDay,
 	}
 	backupConfig.IsBackupsEnabled = true
-	backupConfig.RetentionPolicyType = backups_config_logical.RetentionPolicyTypeTimePeriod
-	backupConfig.RetentionTimePeriod = period.PeriodWeek
-	backupConfig.Storage = &backups_config_logical.BackupConfigStorage{ID: storage.ID}
+	backupConfig.Retention.Policy = backups.LogicalRetentionPolicyTimePeriod
+	backupConfig.Retention.Period = backups.RetentionPeriodWeek
 	backupConfig.StorageID = &storage.ID
 	backupConfig.IsRetryIfFailed = false
 	backupConfig.MaxFailedTriesCount = 0
 
-	_, err = backups_config_logical.GetBackupConfigService().SaveBackupConfig(t.Context(), backupConfig)
+	_, err = backups_bridge.SaveTestBackupConfig(t.Context(), backupConfig)
 	assert.NoError(t, err)
 
 	failMessage := "backup failed"
@@ -347,23 +343,22 @@ func Test_RunPendingBackups_WhenLastBackupFailedAndRetriesEnabled_CreatesNewBack
 	}()
 
 	// Enable backups for the database with retries enabled
-	backupConfig, err := backups_config_logical.GetBackupConfigService().GetBackupConfigByDbId(database.ID)
+	backupConfig, err := backups_bridge.GetModule().GetLogicalBackupConfig(t.Context(), database.ID)
 	assert.NoError(t, err)
 
 	timeOfDay := "04:00"
-	backupConfig.BackupInterval = intervals.Interval{
-		Type:      intervals.IntervalDaily,
+	backupConfig.Schedule = schedule.Schedule{
+		Type:      schedule.TypeDaily,
 		TimeOfDay: &timeOfDay,
 	}
 	backupConfig.IsBackupsEnabled = true
-	backupConfig.RetentionPolicyType = backups_config_logical.RetentionPolicyTypeTimePeriod
-	backupConfig.RetentionTimePeriod = period.PeriodWeek
-	backupConfig.Storage = &backups_config_logical.BackupConfigStorage{ID: storage.ID}
+	backupConfig.Retention.Policy = backups.LogicalRetentionPolicyTimePeriod
+	backupConfig.Retention.Period = backups.RetentionPeriodWeek
 	backupConfig.StorageID = &storage.ID
 	backupConfig.IsRetryIfFailed = true
 	backupConfig.MaxFailedTriesCount = 3
 
-	_, err = backups_config_logical.GetBackupConfigService().SaveBackupConfig(t.Context(), backupConfig)
+	_, err = backups_bridge.SaveTestBackupConfig(t.Context(), backupConfig)
 	assert.NoError(t, err)
 
 	// add failed backup
@@ -416,23 +411,22 @@ func Test_RunPendingBackups_WhenFailedBackupsExceedMaxRetries_SkipsBackup(t *tes
 	}()
 
 	// Enable backups for the database with retries enabled
-	backupConfig, err := backups_config_logical.GetBackupConfigService().GetBackupConfigByDbId(database.ID)
+	backupConfig, err := backups_bridge.GetModule().GetLogicalBackupConfig(t.Context(), database.ID)
 	assert.NoError(t, err)
 
 	timeOfDay := "04:00"
-	backupConfig.BackupInterval = intervals.Interval{
-		Type:      intervals.IntervalDaily,
+	backupConfig.Schedule = schedule.Schedule{
+		Type:      schedule.TypeDaily,
 		TimeOfDay: &timeOfDay,
 	}
 	backupConfig.IsBackupsEnabled = true
-	backupConfig.RetentionPolicyType = backups_config_logical.RetentionPolicyTypeTimePeriod
-	backupConfig.RetentionTimePeriod = period.PeriodWeek
-	backupConfig.Storage = &backups_config_logical.BackupConfigStorage{ID: storage.ID}
+	backupConfig.Retention.Policy = backups.LogicalRetentionPolicyTimePeriod
+	backupConfig.Retention.Period = backups.RetentionPeriodWeek
 	backupConfig.StorageID = &storage.ID
 	backupConfig.IsRetryIfFailed = true
 	backupConfig.MaxFailedTriesCount = 3
 
-	_, err = backups_config_logical.GetBackupConfigService().SaveBackupConfig(t.Context(), backupConfig)
+	_, err = backups_bridge.SaveTestBackupConfig(t.Context(), backupConfig)
 	assert.NoError(t, err)
 
 	failMessage := "backup failed"
@@ -483,21 +477,20 @@ func Test_RunPendingBackups_WhenBackupsDisabled_SkipsBackup(t *testing.T) {
 		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	}()
 
-	backupConfig, err := backups_config_logical.GetBackupConfigService().GetBackupConfigByDbId(database.ID)
+	backupConfig, err := backups_bridge.GetModule().GetLogicalBackupConfig(t.Context(), database.ID)
 	assert.NoError(t, err)
 
 	timeOfDay := "04:00"
-	backupConfig.BackupInterval = intervals.Interval{
-		Type:      intervals.IntervalDaily,
+	backupConfig.Schedule = schedule.Schedule{
+		Type:      schedule.TypeDaily,
 		TimeOfDay: &timeOfDay,
 	}
 	backupConfig.IsBackupsEnabled = false
-	backupConfig.RetentionPolicyType = backups_config_logical.RetentionPolicyTypeTimePeriod
-	backupConfig.RetentionTimePeriod = period.PeriodWeek
-	backupConfig.Storage = &backups_config_logical.BackupConfigStorage{ID: storage.ID}
+	backupConfig.Retention.Policy = backups.LogicalRetentionPolicyTimePeriod
+	backupConfig.Retention.Period = backups.RetentionPeriodWeek
 	backupConfig.StorageID = &storage.ID
 
-	_, err = backups_config_logical.GetBackupConfigService().SaveBackupConfig(t.Context(), backupConfig)
+	_, err = backups_bridge.SaveTestBackupConfig(t.Context(), backupConfig)
 	assert.NoError(t, err)
 
 	// add old backup that would trigger new backup if enabled
@@ -546,21 +539,20 @@ func Test_FailBackupsInProgress_WhenSchedulerStarts_CancelsBackupsAndUpdatesStat
 		caching.GetStore().Clear(t.Context())
 	}()
 
-	backupConfig, err := backups_config_logical.GetBackupConfigService().GetBackupConfigByDbId(database.ID)
+	backupConfig, err := backups_bridge.GetModule().GetLogicalBackupConfig(t.Context(), database.ID)
 	assert.NoError(t, err)
 
 	timeOfDay := "04:00"
-	backupConfig.BackupInterval = intervals.Interval{
-		Type:      intervals.IntervalDaily,
+	backupConfig.Schedule = schedule.Schedule{
+		Type:      schedule.TypeDaily,
 		TimeOfDay: &timeOfDay,
 	}
 	backupConfig.IsBackupsEnabled = true
-	backupConfig.RetentionPolicyType = backups_config_logical.RetentionPolicyTypeTimePeriod
-	backupConfig.RetentionTimePeriod = period.PeriodWeek
-	backupConfig.Storage = &backups_config_logical.BackupConfigStorage{ID: storage.ID}
+	backupConfig.Retention.Policy = backups.LogicalRetentionPolicyTimePeriod
+	backupConfig.Retention.Period = backups.RetentionPeriodWeek
 	backupConfig.StorageID = &storage.ID
 
-	_, err = backups_config_logical.GetBackupConfigService().SaveBackupConfig(t.Context(), backupConfig)
+	_, err = backups_bridge.SaveTestBackupConfig(t.Context(), backupConfig)
 	assert.NoError(t, err)
 
 	// Create two in-progress backups that should be failed on scheduler restart
@@ -649,21 +641,20 @@ func Test_StartBackup_WhenBackupAlreadyInProgress_SkipsNewBackup(t *testing.T) {
 		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	}()
 
-	backupConfig, err := backups_config_logical.GetBackupConfigService().GetBackupConfigByDbId(database.ID)
+	backupConfig, err := backups_bridge.GetModule().GetLogicalBackupConfig(t.Context(), database.ID)
 	assert.NoError(t, err)
 
 	timeOfDay := "04:00"
-	backupConfig.BackupInterval = intervals.Interval{
-		Type:      intervals.IntervalDaily,
+	backupConfig.Schedule = schedule.Schedule{
+		Type:      schedule.TypeDaily,
 		TimeOfDay: &timeOfDay,
 	}
 	backupConfig.IsBackupsEnabled = true
-	backupConfig.RetentionPolicyType = backups_config_logical.RetentionPolicyTypeTimePeriod
-	backupConfig.RetentionTimePeriod = period.PeriodWeek
-	backupConfig.Storage = &backups_config_logical.BackupConfigStorage{ID: storage.ID}
+	backupConfig.Retention.Policy = backups.LogicalRetentionPolicyTimePeriod
+	backupConfig.Retention.Period = backups.RetentionPeriodWeek
 	backupConfig.StorageID = &storage.ID
 
-	_, err = backups_config_logical.GetBackupConfigService().SaveBackupConfig(t.Context(), backupConfig)
+	_, err = backups_bridge.SaveTestBackupConfig(t.Context(), backupConfig)
 	assert.NoError(t, err)
 
 	// Create an in-progress backup manually
@@ -716,23 +707,22 @@ func Test_RunPendingBackups_WhenLastBackupFailedWithIsSkipRetry_SkipsBackupEvenW
 	}()
 
 	// Enable backups with retries enabled and high retry count
-	backupConfig, err := backups_config_logical.GetBackupConfigService().GetBackupConfigByDbId(database.ID)
+	backupConfig, err := backups_bridge.GetModule().GetLogicalBackupConfig(t.Context(), database.ID)
 	assert.NoError(t, err)
 
 	timeOfDay := "04:00"
-	backupConfig.BackupInterval = intervals.Interval{
-		Type:      intervals.IntervalDaily,
+	backupConfig.Schedule = schedule.Schedule{
+		Type:      schedule.TypeDaily,
 		TimeOfDay: &timeOfDay,
 	}
 	backupConfig.IsBackupsEnabled = true
-	backupConfig.RetentionPolicyType = backups_config_logical.RetentionPolicyTypeTimePeriod
-	backupConfig.RetentionTimePeriod = period.PeriodWeek
-	backupConfig.Storage = &backups_config_logical.BackupConfigStorage{ID: storage.ID}
+	backupConfig.Retention.Policy = backups.LogicalRetentionPolicyTimePeriod
+	backupConfig.Retention.Period = backups.RetentionPeriodWeek
 	backupConfig.StorageID = &storage.ID
 	backupConfig.IsRetryIfFailed = true
 	backupConfig.MaxFailedTriesCount = 5
 
-	_, err = backups_config_logical.GetBackupConfigService().SaveBackupConfig(t.Context(), backupConfig)
+	_, err = backups_bridge.SaveTestBackupConfig(t.Context(), backupConfig)
 	assert.NoError(t, err)
 
 	// Create a failed backup with IsSkipRetry set to true
@@ -816,40 +806,36 @@ func Test_StartBackup_When2BackupsStartedForDifferentDatabases_BothUseCasesAreCa
 	}()
 
 	// Enable backups for database1
-	backupConfig1, err := backups_config_logical.GetBackupConfigService().
-		GetBackupConfigByDbId(database1.ID)
+	backupConfig1, err := backups_bridge.GetModule().GetLogicalBackupConfig(t.Context(), database1.ID)
 	assert.NoError(t, err)
 
 	timeOfDay := "04:00"
-	backupConfig1.BackupInterval = intervals.Interval{
-		Type:      intervals.IntervalDaily,
+	backupConfig1.Schedule = schedule.Schedule{
+		Type:      schedule.TypeDaily,
 		TimeOfDay: &timeOfDay,
 	}
 	backupConfig1.IsBackupsEnabled = true
-	backupConfig1.RetentionPolicyType = backups_config_logical.RetentionPolicyTypeTimePeriod
-	backupConfig1.RetentionTimePeriod = period.PeriodWeek
-	backupConfig1.Storage = &backups_config_logical.BackupConfigStorage{ID: storage.ID}
+	backupConfig1.Retention.Policy = backups.LogicalRetentionPolicyTimePeriod
+	backupConfig1.Retention.Period = backups.RetentionPeriodWeek
 	backupConfig1.StorageID = &storage.ID
 
-	_, err = backups_config_logical.GetBackupConfigService().SaveBackupConfig(t.Context(), backupConfig1)
+	_, err = backups_bridge.SaveTestBackupConfig(t.Context(), backupConfig1)
 	assert.NoError(t, err)
 
 	// Enable backups for database2
-	backupConfig2, err := backups_config_logical.GetBackupConfigService().
-		GetBackupConfigByDbId(database2.ID)
+	backupConfig2, err := backups_bridge.GetModule().GetLogicalBackupConfig(t.Context(), database2.ID)
 	assert.NoError(t, err)
 
-	backupConfig2.BackupInterval = intervals.Interval{
-		Type:      intervals.IntervalDaily,
+	backupConfig2.Schedule = schedule.Schedule{
+		Type:      schedule.TypeDaily,
 		TimeOfDay: &timeOfDay,
 	}
 	backupConfig2.IsBackupsEnabled = true
-	backupConfig2.RetentionPolicyType = backups_config_logical.RetentionPolicyTypeTimePeriod
-	backupConfig2.RetentionTimePeriod = period.PeriodWeek
-	backupConfig2.Storage = &backups_config_logical.BackupConfigStorage{ID: storage.ID}
+	backupConfig2.Retention.Policy = backups.LogicalRetentionPolicyTimePeriod
+	backupConfig2.Retention.Period = backups.RetentionPeriodWeek
 	backupConfig2.StorageID = &storage.ID
 
-	_, err = backups_config_logical.GetBackupConfigService().SaveBackupConfig(t.Context(), backupConfig2)
+	_, err = backups_bridge.SaveTestBackupConfig(t.Context(), backupConfig2)
 	assert.NoError(t, err)
 
 	// Start 2 backups simultaneously

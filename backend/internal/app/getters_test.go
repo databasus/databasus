@@ -20,8 +20,6 @@ import (
 	backups_backups_download "databasus-backend/internal/features/backups/backups/download"
 	backups_backups_services "databasus-backend/internal/features/backups/backups/services"
 	backups_backups_usecases_logical "databasus-backend/internal/features/backups/backups/usecases/logical"
-	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
-	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
 	caching "databasus-backend/internal/features/caching"
 	databases_bridge "databasus-backend/internal/features/databases"
 	disk "databasus-backend/internal/features/disk"
@@ -161,22 +159,6 @@ func getOldCodeGetters() []oldCodeGetter {
 		{
 			"features/backups/backups/usecases/logical.GetCreateBackupUsecase",
 			func() any { return backups_backups_usecases_logical.GetCreateBackupUsecase() },
-		},
-		{
-			"features/backups/config/logical.GetBackupConfigController",
-			func() any { return backups_config_logical.GetBackupConfigController() },
-		},
-		{
-			"features/backups/config/logical.GetBackupConfigService",
-			func() any { return backups_config_logical.GetBackupConfigService() },
-		},
-		{
-			"features/backups/config/physical.GetBackupConfigController",
-			func() any { return backups_config_physical.GetBackupConfigController() },
-		},
-		{
-			"features/backups/config/physical.GetBackupConfigService",
-			func() any { return backups_config_physical.GetBackupConfigService() },
 		},
 		{"features/databases.GetAccess", func() any { return databases_bridge.GetAccess() }},
 		{"features/disk.GetDiskService", func() any { return disk.GetDiskService() }},

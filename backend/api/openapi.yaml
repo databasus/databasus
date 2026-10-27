@@ -22,6 +22,8 @@ tags:
     description: The places a workspace keeps its backups, and their connection tests
   - name: databases
     description: The databases a workspace backs up, their connection tests and limited users
+  - name: backups
+    description: How each database is backed up, and the move of a database to another workspace
 paths:
   /users:
     get:
@@ -1816,6 +1818,155 @@ paths:
           $ref: "#/components/responses/Problem"
         default:
           $ref: "#/components/responses/Problem"
+  /databases/{databaseId}/transfer:
+    parameters:
+      - $ref: "#/components/parameters/DatabaseId"
+    post:
+      operationId: transferDatabase
+      tags: [backups]
+      summary: Move a database to another workspace
+      description: >-
+        Needs the role `WORKSPACE_MEMBER` or higher in both workspaces, because the move gives the
+        target workspace's members the database's stored secrets. The database either takes its
+        storage along or switches to a storage of the target workspace; a database whose config was
+        never saved then gets the default config of its method with that storage. Moving the storage
+        gets 409 `in_use` while another database backs up into it. The move happens completely or not
+        at all.
+      requestBody:
+        description: The target workspace and what happens to the storage and the notifiers.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DatabaseTransfer"
+      responses:
+        "204":
+          description: The database belongs to the target workspace
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        "409":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /backup-configs:
+    get:
+      operationId: listBackupConfigs
+      tags: [backups]
+      summary: List the saved backup configs of a workspace or of a storage
+      description: >-
+        Takes exactly one of `workspaceId` and `storageId`; both or neither get 400
+        `invalid_request`. Ordered by database ID. A database whose config was never saved is not
+        listed. A user who is not a member of the workspace, or of the storage's workspace, gets 404
+        `not_found`.
+      parameters:
+        - name: workspaceId
+          in: query
+          description: The workspace whose databases' configs to list
+          schema:
+            type: string
+            format: uuid
+        - name: storageId
+          in: query
+          description: The storage whose configs to list, the ones that back up into it
+          schema:
+            type: string
+            format: uuid
+        - name: limit
+          in: query
+          description: The largest number of configs on the page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: after
+          in: query
+          description: The `nextCursor` of the previous page
+          schema:
+            type: string
+      responses:
+        "200":
+          description: One page of backup configs
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BackupConfigPage"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /backup-configs/{databaseId}:
+    parameters:
+      - $ref: "#/components/parameters/BackupConfigDatabaseId"
+    get:
+      operationId: getBackupConfig
+      tags: [backups]
+      summary: Get the backup config of a database
+      description: >-
+        A config that was never saved reads as the default of the database's method, and the read
+        stores nothing. A user who is not a member of the database's workspace gets 404 `not_found`.
+      responses:
+        "200":
+          description: The backup config
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BackupConfig"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+    put:
+      operationId: updateBackupConfig
+      tags: [backups]
+      summary: Save the backup config of a database
+      description: >-
+        Needs the role `WORKSPACE_MEMBER` or higher. The settings must be of the database's method,
+        and a physical config must fit the database's physical backup type; otherwise the answer is
+        400 `invalid_request` with the field in `errors`. A storage that is not in the database's
+        workspace gets 400 `invalid_request`. A logical config saved with another storage removes
+        the database's logical backups in the same step, and gets 409 `in_use` while one of them is
+        running.
+      requestBody:
+        description: The editable fields of the config.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BackupConfigInput"
+      responses:
+        "200":
+          description: The config as it was saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BackupConfig"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        "409":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
 components:
   parameters:
     UserId:
@@ -1871,6 +2022,16 @@ components:
       in: path
       required: true
       description: The ID of the database
+      schema:
+        type: string
+        format: uuid
+    BackupConfigDatabaseId:
+      name: databaseId
+      in: path
+      required: true
+      description: >-
+        The ID of the database the config belongs to. A database has exactly one config, which has no
+        ID of its own, so the database's ID is the key of the config.
       schema:
         type: string
         format: uuid
@@ -3704,3 +3865,317 @@ components:
         detail:
           type: string
           description: What is wrong with the field
+    BackupConfigPage:
+      type: object
+      description: One page of backup configs, ordered by database ID
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/BackupConfig"
+          description: The configs on the page
+        nextCursor:
+          type: string
+          description: The `after` of the next page, absent on the last page
+    BackupConfig:
+      type: object
+      description: How a database is backed up
+      required: [databaseId, isBackupsEnabled, storageId, encryption, settings]
+      properties:
+        databaseId:
+          type: string
+          format: uuid
+          description: The database the config belongs to
+        isBackupsEnabled:
+          type: boolean
+          description: Whether backups run on the schedule
+        storageId:
+          type: string
+          format: uuid
+          nullable: true
+          description: The storage the backups are written to, null while the config names none
+        encryption:
+          $ref: "#/components/schemas/BackupEncryption"
+        settings:
+          $ref: "#/components/schemas/BackupSettings"
+    BackupConfigInput:
+      type: object
+      description: The editable fields of a backup config
+      required: [isBackupsEnabled, storageId, encryption, settings]
+      properties:
+        isBackupsEnabled:
+          type: boolean
+          description: Whether backups run on the schedule
+        storageId:
+          type: string
+          format: uuid
+          nullable: true
+          description: A storage of the database's workspace, or null to name none
+        encryption:
+          $ref: "#/components/schemas/BackupEncryption"
+        settings:
+          $ref: "#/components/schemas/BackupSettings"
+    BackupEncryption:
+      type: string
+      description: Whether the backup files are encrypted with the instance's master key
+      enum: [NONE, ENCRYPTED]
+    BackupSettings:
+      description: The settings of the database's backup method; `type` tells the methods apart
+      oneOf:
+        - $ref: "#/components/schemas/LogicalBackupSettings"
+        - $ref: "#/components/schemas/PhysicalBackupSettings"
+      discriminator:
+        propertyName: type
+        mapping:
+          LOGICAL: "#/components/schemas/LogicalBackupSettings"
+          PHYSICAL: "#/components/schemas/PhysicalBackupSettings"
+    LogicalBackupSettings:
+      type: object
+      description: >-
+        The settings of a logical backup, a dump of a PostgreSQL, MySQL, MariaDB or MongoDB database
+      required: [type, schedule, retention, isRetryIfFailed, maxFailedTriesCount, notificationTriggers]
+      properties:
+        type:
+          type: string
+          enum: [LOGICAL]
+          description: Always `LOGICAL`
+        schedule:
+          $ref: "#/components/schemas/Schedule"
+        retention:
+          $ref: "#/components/schemas/LogicalRetention"
+        isRetryIfFailed:
+          type: boolean
+          description: Whether a failed backup is retried
+        maxFailedTriesCount:
+          type: integer
+          description: How many times a failed backup is tried before it stays failed
+        notificationTriggers:
+          type: array
+          items:
+            $ref: "#/components/schemas/LogicalNotificationTrigger"
+          description: The backup outcomes that send a notification through the database's notifiers
+    PhysicalBackupSettings:
+      type: object
+      description: >-
+        The settings of the physical backups of a physical PostgreSQL database. They must fit the
+        database's physical backup type.
+      required:
+        [type, fullBackupSchedule, incrementalBackupSchedule, retention, walLagThresholdBytes, notificationTriggers]
+      properties:
+        type:
+          type: string
+          enum: [PHYSICAL]
+          description: Always `PHYSICAL`
+        fullBackupSchedule:
+          $ref: "#/components/schemas/Schedule"
+        incrementalBackupSchedule:
+          allOf:
+            - $ref: "#/components/schemas/Schedule"
+          nullable: true
+          description: >-
+            When incremental backups run, null for a backup type without them. It must run more
+            often than the full backups.
+        retention:
+          $ref: "#/components/schemas/PhysicalRetention"
+        walLagThresholdBytes:
+          type: integer
+          format: int64
+          description: >-
+            The WAL lag after which the replication slot is rebuilt; 0 without WAL streaming and
+            greater than 0 with it
+        notificationTriggers:
+          type: array
+          items:
+            $ref: "#/components/schemas/NotificationTrigger"
+          description: The backup outcomes that send a notification through the database's notifiers
+    Schedule:
+      type: object
+      description: When a recurring backup runs; times of day are in UTC
+      required: [type]
+      properties:
+        type:
+          $ref: "#/components/schemas/ScheduleType"
+        timeOfDay:
+          type: string
+          description: The time of day as `HH:MM`, required for daily, weekly and monthly schedules
+        weekday:
+          type: integer
+          minimum: 0
+          maximum: 7
+          description: The day of a weekly schedule; 1 is Monday, and both 0 and 7 are Sunday
+        dayOfMonth:
+          type: integer
+          minimum: 1
+          maximum: 31
+          description: The day of a monthly schedule
+        cronExpression:
+          type: string
+          description: The five-field cron expression of a cron schedule
+    ScheduleType:
+      type: string
+      description: How often a schedule runs
+      enum: [HOURLY, DAILY, WEEKLY, MONTHLY, CRON]
+    LogicalRetention:
+      type: object
+      description: >-
+        Which logical backups are kept. `policy` picks the rule; the fields of the other rules keep
+        their saved values.
+      required: [policy, period, count, gfsHours, gfsDays, gfsWeeks, gfsMonths, gfsYears]
+      properties:
+        policy:
+          $ref: "#/components/schemas/LogicalRetentionPolicy"
+        period:
+          $ref: "#/components/schemas/RetentionPeriod"
+        count:
+          type: integer
+          description: How many of the newest backups `COUNT` keeps; greater than 0 with it
+        gfsHours:
+          type: integer
+          description: For how many of the last hours `GFS` keeps the newest backup of each hour
+        gfsDays:
+          type: integer
+          description: For how many of the last days `GFS` keeps the newest backup of each day
+        gfsWeeks:
+          type: integer
+          description: For how many of the last weeks `GFS` keeps the newest backup of each week
+        gfsMonths:
+          type: integer
+          description: For how many of the last months `GFS` keeps the newest backup of each month
+        gfsYears:
+          type: integer
+          description: For how many of the last years `GFS` keeps the newest backup of each year
+    LogicalRetentionPolicy:
+      type: string
+      description: >-
+        `TIME_PERIOD` keeps backups for `period`, `COUNT` keeps the newest `count` backups, and `GFS`
+        keeps backups by grandfather-father-son periods, at least one of them set
+      enum: [TIME_PERIOD, COUNT, GFS]
+    RetentionPeriod:
+      type: string
+      description: How long the `TIME_PERIOD` retention keeps a backup
+      enum:
+        [DAY, WEEK, MONTH, THREE_MONTHS, SIX_MONTHS, YEAR, TWO_YEARS, THREE_YEARS, FOUR_YEARS, FIVE_YEARS, FOREVER]
+    PhysicalRetention:
+      type: object
+      description: Which physical backups are kept
+      required: [policy, chainsCount, fullBackups]
+      properties:
+        policy:
+          $ref: "#/components/schemas/PhysicalRetentionPolicy"
+        chainsCount:
+          type: integer
+          description: >-
+            How many of the newest chains, a full backup with its incrementals, are kept; greater than
+            0 with `CHAINS` and `CHAINS_AND_FULL_BACKUPS`, and 0 with `FULL_BACKUPS`
+        fullBackups:
+          allOf:
+            - $ref: "#/components/schemas/FullBackupsRetention"
+          nullable: true
+          description: Which full backups are kept; null with `CHAINS`
+    PhysicalRetentionPolicy:
+      type: string
+      description: >-
+        `CHAINS` keeps chains, `FULL_BACKUPS` keeps full backups, and `CHAINS_AND_FULL_BACKUPS`
+        keeps both; a backup type without incremental backups takes only `FULL_BACKUPS`, and one
+        with them takes the other two
+      enum: [CHAINS, FULL_BACKUPS, CHAINS_AND_FULL_BACKUPS]
+    FullBackupsRetention:
+      type: object
+      description: Which full backups are kept
+      required: [policy, count, gfsHours, gfsDays, gfsWeeks, gfsMonths, gfsYears]
+      properties:
+        policy:
+          $ref: "#/components/schemas/FullBackupsRetentionPolicy"
+        count:
+          type: integer
+          description: How many of the newest full backups `LAST_N` keeps; 0 with `GFS`
+        gfsHours:
+          type: integer
+          description: For how many of the last hours `GFS` keeps the newest full backup of each hour
+        gfsDays:
+          type: integer
+          description: For how many of the last days `GFS` keeps the newest full backup of each day
+        gfsWeeks:
+          type: integer
+          description: For how many of the last weeks `GFS` keeps the newest full backup of each week
+        gfsMonths:
+          type: integer
+          description: For how many of the last months `GFS` keeps the newest full backup of each month
+        gfsYears:
+          type: integer
+          description: For how many of the last years `GFS` keeps the newest full backup of each year
+    FullBackupsRetentionPolicy:
+      type: string
+      description: >-
+        `LAST_N` keeps the newest `count` full backups, and `GFS` keeps them by grandfather-father-son
+        periods, at least one of them set
+      enum: [LAST_N, GFS]
+    NotificationTrigger:
+      type: string
+      description: >-
+        A backup outcome that sends a notification: a failed or a successful backup, a broken chain
+        of incremental backups, or a gap in the streamed WAL
+      enum: [BACKUP_FAILED, BACKUP_SUCCESS, CHAIN_BROKEN, WAL_GAP]
+    LogicalNotificationTrigger:
+      type: string
+      description: A logical backup outcome that sends a notification, a failed or a successful backup
+      enum: [BACKUP_FAILED, BACKUP_SUCCESS]
+    DatabaseTransfer:
+      type: object
+      description: The workspace a database moves to, and what happens to its storage and notifiers
+      required: [targetWorkspaceId, storage, isMovingNotifiers]
+      properties:
+        targetWorkspaceId:
+          type: string
+          format: uuid
+          description: The ID of the target workspace
+        storage:
+          $ref: "#/components/schemas/DatabaseTransferStorage"
+        isMovingNotifiers:
+          type: boolean
+          description: >-
+            Whether the database's notifiers move along; a notifier another database uses stays in
+            its workspace
+        targetNotifierIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+          description: Notifiers of the target workspace that replace the database's notifiers
+    DatabaseTransferStorage:
+      description: What happens to the database's storage; `type` tells the options apart
+      oneOf:
+        - $ref: "#/components/schemas/StorageMovedWithDatabase"
+        - $ref: "#/components/schemas/StorageSwitchedOnTransfer"
+      discriminator:
+        propertyName: type
+        mapping:
+          MOVE_WITH_DATABASE: "#/components/schemas/StorageMovedWithDatabase"
+          SWITCH_TO_STORAGE: "#/components/schemas/StorageSwitchedOnTransfer"
+    StorageMovedWithDatabase:
+      type: object
+      description: >-
+        The database's storage moves to the target workspace too; no other database may back up
+        into it
+      required: [type]
+      properties:
+        type:
+          type: string
+          enum: [MOVE_WITH_DATABASE]
+          description: Always `MOVE_WITH_DATABASE`
+    StorageSwitchedOnTransfer:
+      type: object
+      description: >-
+        The database switches to a storage of the target workspace; the backups in its previous
+        storage stay there
+      required: [type, storageId]
+      properties:
+        type:
+          type: string
+          enum: [SWITCH_TO_STORAGE]
+          description: Always `SWITCH_TO_STORAGE`
+        storageId:
+          type: string
+          format: uuid
+          description: The storage of the target workspace

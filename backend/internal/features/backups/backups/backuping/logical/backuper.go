@@ -12,11 +12,11 @@ import (
 	"github.com/google/uuid"
 
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
-	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
 	databases_bridge "databasus-backend/internal/features/databases"
 	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
 	workspaces_bridge "databasus-backend/internal/features/workspaces"
 	"databasus-backend/internal/lib/database"
+	"databasus-backend/internal/modules/backups"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/modules/storages"
@@ -32,10 +32,10 @@ const (
 type Backuper struct {
 	databaseAccess *databases_bridge.Access
 	// getDatabases is read per call: each test application installs its own module.
-	getDatabases        func() databases.Module
-	workspaceService    *workspaces_bridge.Access
-	backupRepository    *backups_core_logical.BackupRepository
-	backupConfigService *backups_config_logical.BackupConfigService
+	getDatabases     func() databases.Module
+	workspaceService *workspaces_bridge.Access
+	backupRepository *backups_core_logical.BackupRepository
+	getBackups       func() backups.Module
 	// getStorages is read per call: each test application installs its own module.
 	getStorages              func() storages.Module
 	notificationSender       backups_core_logical.NotificationSender
@@ -60,7 +60,7 @@ func (b *Backuper) MakeBackup(ctx context.Context, backupID uuid.UUID, isCallNot
 		return
 	}
 
-	backupConfig, err := b.backupConfigService.GetBackupConfigByDbId(databaseID)
+	backupConfig, err := b.getBackups().GetLogicalBackupConfig(ctx, databaseID)
 	if err != nil {
 		logger.ErrorContext(ctx, "failed to get backup config by database ID", "error", err)
 		return
@@ -114,7 +114,7 @@ func (b *Backuper) MakeBackup(ctx context.Context, backupID uuid.UUID, isCallNot
 			b.SendBackupNotification(ctx,
 				backupConfig,
 				currentBackup,
-				backups_config_logical.NotificationBackupFailed,
+				backups.NotificationTriggerBackupFailed,
 				currentBackup.FailMessage,
 			)
 
@@ -172,7 +172,7 @@ func (b *Backuper) MakeBackup(ctx context.Context, backupID uuid.UUID, isCallNot
 		b.SendBackupNotification(ctx,
 			backupConfig,
 			backup,
-			backups_config_logical.NotificationBackupFailed,
+			backups.NotificationTriggerBackupFailed,
 			&errMsg,
 		)
 
@@ -224,16 +224,16 @@ func (b *Backuper) MakeBackup(ctx context.Context, backupID uuid.UUID, isCallNot
 	b.SendBackupNotification(ctx,
 		backupConfig,
 		backup,
-		backups_config_logical.NotificationBackupSuccess,
+		backups.NotificationTriggerBackupSuccess,
 		nil,
 	)
 }
 
 func (b *Backuper) SendBackupNotification(
 	ctx context.Context,
-	backupConfig *backups_config_logical.LogicalBackupConfig,
+	backupConfig backups.LogicalBackupConfig,
 	backup *backups_core_logical.LogicalBackup,
-	notificationType backups_config_logical.BackupNotificationType,
+	notificationType backups.NotificationTrigger,
 	errorMessage *string,
 ) {
 	logger := b.logger.With("backup_id", backup.ID, "database_id", backupConfig.DatabaseID)
@@ -253,7 +253,7 @@ func (b *Backuper) SendBackupNotification(
 	}
 
 	if !slices.Contains(
-		backupConfig.SendNotificationsOn,
+		backupConfig.NotificationTriggers,
 		notificationType,
 	) {
 		logger.DebugContext(ctx, fmt.Sprintf("skipping %s notification, not in the configured set",
@@ -266,14 +266,14 @@ func (b *Backuper) SendBackupNotification(
 	sentNotificationType := notifiers.CategoryBackupSuccess
 
 	switch notificationType {
-	case backups_config_logical.NotificationBackupFailed:
+	case backups.NotificationTriggerBackupFailed:
 		sentNotificationType = notifiers.CategoryBackupFailed
 		title = fmt.Sprintf(
 			"❌ Backup failed for database \"%s\" (workspace \"%s\")",
 			database.Name,
 			workspace.Name,
 		)
-	case backups_config_logical.NotificationBackupSuccess:
+	case backups.NotificationTriggerBackupSuccess:
 		title = fmt.Sprintf(
 			"✅ Backup completed for database \"%s\" (workspace \"%s\")",
 			database.Name,
@@ -401,7 +401,7 @@ func (b *Backuper) failBackup(
 	ctx context.Context,
 	logger *slog.Logger,
 	backup *backups_core_logical.LogicalBackup,
-	backupConfig *backups_config_logical.LogicalBackupConfig,
+	backupConfig backups.LogicalBackupConfig,
 	cause error,
 ) {
 	message := cause.Error()
@@ -420,5 +420,5 @@ func (b *Backuper) failBackup(
 		logger.ErrorContext(ctx, "failed to save failed backup", "error", err)
 	}
 
-	b.SendBackupNotification(ctx, backupConfig, backup, backups_config_logical.NotificationBackupFailed, &message)
+	b.SendBackupNotification(ctx, backupConfig, backup, backups.NotificationTriggerBackupFailed, &message)
 }

@@ -17,7 +17,7 @@ import (
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	"databasus-backend/internal/features/backups/backups/download/download_token"
 	backups_dto_logical "databasus-backend/internal/features/backups/backups/dto/logical"
-	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
+	"databasus-backend/internal/lib/apiclient"
 	test_utils "databasus-backend/internal/util/testing"
 )
 
@@ -31,26 +31,27 @@ func EnableBackupsViaAPI(
 	encryption backups_core_enums.BackupEncryption,
 	token string,
 ) {
-	var backupConfig backups_config_logical.LogicalBackupConfig
+	var backupConfig apiclient.BackupConfig
 	test_utils.MakeGetRequestAndUnmarshal(
 		t,
 		router,
-		fmt.Sprintf("/api/v1/backup-configs/database/%s", databaseID.String()),
+		"/api/v1/backup-configs/"+databaseID.String(),
 		"Bearer "+token,
 		http.StatusOK,
 		&backupConfig,
 	)
 
-	backupConfig.IsBackupsEnabled = true
-	backupConfig.Storage = &backups_config_logical.BackupConfigStorage{ID: storageID}
-	backupConfig.Encryption = encryption
-
-	test_utils.MakePostRequest(
+	test_utils.MakePutRequest(
 		t,
 		router,
-		"/api/v1/backup-configs/save",
+		"/api/v1/backup-configs/"+databaseID.String(),
 		"Bearer "+token,
-		backupConfig,
+		apiclient.BackupConfigInput{
+			IsBackupsEnabled: true,
+			StorageId:        &storageID,
+			Encryption:       apiclient.BackupEncryption(encryption),
+			Settings:         backupConfig.Settings,
+		},
 		http.StatusOK,
 	)
 }

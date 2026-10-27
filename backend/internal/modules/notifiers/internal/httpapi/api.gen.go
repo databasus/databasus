@@ -600,6 +600,9 @@ type WebhookNotifierSettingsType string
 // WebhookNotifierSettingsWebhookMethod GET carries the text in the query, POST in the body
 type WebhookNotifierSettingsWebhookMethod string
 
+// BackupConfigDatabaseId defines model for BackupConfigDatabaseId.
+type BackupConfigDatabaseId = openapi_types.UUID
+
 // DatabaseId defines model for DatabaseId.
 type DatabaseId = openapi_types.UUID
 

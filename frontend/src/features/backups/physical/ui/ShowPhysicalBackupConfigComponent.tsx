@@ -5,25 +5,29 @@ import { type JSX, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import {
+  type PhysicalBackupConfigInput,
+  SCHEDULE_TYPE_LABEL_KEYS,
+  type Schedule,
+  ScheduleType,
+  backupConfigApi,
+  toPhysicalBackupConfigInput,
+} from '../../../../entity/backups/config';
+import {
   type FullBackupsRetention,
-  PHYSICAL_BACKUP_NOTIFICATION_TYPE_LABEL_KEYS,
-  PHYSICAL_RETENTION_LABEL_KEYS,
-  type PhysicalBackupConfig,
-  PhysicalFullBackupsPolicy,
-  PhysicalRetention,
-  physicalBackupConfigApi,
+  FullBackupsRetentionPolicy,
+  PHYSICAL_NOTIFICATION_TRIGGER_LABEL_KEYS,
+  PHYSICAL_RETENTION_POLICY_LABEL_KEYS,
+  PhysicalRetentionPolicy,
 } from '../../../../entity/backups/physical';
 import { BACKUP_ENCRYPTION_LABEL_KEYS } from '../../../../entity/backups/shared';
 import type { Database } from '../../../../entity/databases';
+import { WEEKDAY_LABEL_KEYS, type Weekday } from '../../../../entity/intervals';
+import { type Storage, getStorageLogoFromType, storageApi } from '../../../../entity/storages';
 import {
-  INTERVAL_TYPE_LABEL_KEYS,
-  type Interval,
-  IntervalType,
-  WEEKDAY_LABEL_KEYS,
-  type Weekday,
-} from '../../../../entity/intervals';
-import { getStorageLogoFromType } from '../../../../entity/storages';
-import { type LocalizedText, translateLocalizedText } from '../../../../shared/i18n';
+  type LocalizedText,
+  translateApiError,
+  translateLocalizedText,
+} from '../../../../shared/i18n';
 import {
   getUserTimeFormat as getIs12Hour,
   getLocalDayOfMonth,
@@ -59,7 +63,8 @@ const getGfsRetentionTexts = (retention: FullBackupsRetention): LocalizedText[] 
 export const ShowPhysicalBackupConfigComponent = ({ database }: Props): JSX.Element => {
   const { t } = useTranslation();
   const listSeparator = t('common.listSeparator');
-  const [backupConfig, setBackupConfig] = useState<PhysicalBackupConfig>();
+  const [backupConfig, setBackupConfig] = useState<PhysicalBackupConfigInput>();
+  const [storage, setStorage] = useState<Storage>();
 
   const describeGfsRetention = (retention: FullBackupsRetention): string => {
     const texts = getGfsRetentionTexts(retention);
@@ -68,61 +73,75 @@ export const ShowPhysicalBackupConfigComponent = ({ database }: Props): JSX.Elem
     return texts.map((text) => translateLocalizedText(text, t)).join(listSeparator);
   };
 
+  const loadBackupConfig = async () => {
+    try {
+      const loadedBackupConfig = toPhysicalBackupConfigInput(
+        await backupConfigApi.getBackupConfig(database.id),
+      );
+      setBackupConfig(loadedBackupConfig);
+
+      const storageId = loadedBackupConfig?.storageId;
+      setStorage(storageId ? await storageApi.getStorage(storageId) : undefined);
+    } catch (e) {
+      alert(translateApiError(e, t));
+    }
+  };
+
   const timeFormat = useMemo(() => {
     const is12Hour = getIs12Hour();
     return { use12Hours: is12Hour, format: is12Hour ? 'h:mm A' : 'HH:mm' };
   }, []);
 
   // Time of day, weekday and day of month are stored in UTC and shown in local time.
-  const renderInterval = (label: string, interval?: Interval): JSX.Element | null => {
-    if (!interval?.type) return null;
+  const renderSchedule = (label: string, schedule: Schedule | null): JSX.Element | null => {
+    if (!schedule) return null;
 
-    const localTime = interval.timeOfDay
-      ? dayjs.utc(interval.timeOfDay, 'HH:mm').local()
+    const localTime = schedule.timeOfDay
+      ? dayjs.utc(schedule.timeOfDay, 'HH:mm').local()
       : undefined;
     const formattedTime = localTime ? localTime.format(timeFormat.format) : '';
 
     const displayedWeekday =
-      interval.type === IntervalType.WEEKLY && interval.weekday && interval.timeOfDay
-        ? getLocalWeekday(interval.weekday, interval.timeOfDay)
-        : interval.weekday;
+      schedule.type === ScheduleType.WEEKLY && schedule.weekday && schedule.timeOfDay
+        ? getLocalWeekday(schedule.weekday, schedule.timeOfDay)
+        : schedule.weekday;
 
     const displayedDayOfMonth =
-      interval.type === IntervalType.MONTHLY && interval.dayOfMonth && interval.timeOfDay
-        ? getLocalDayOfMonth(interval.dayOfMonth, interval.timeOfDay)
-        : interval.dayOfMonth;
+      schedule.type === ScheduleType.MONTHLY && schedule.dayOfMonth && schedule.timeOfDay
+        ? getLocalDayOfMonth(schedule.dayOfMonth, schedule.timeOfDay)
+        : schedule.dayOfMonth;
 
     return (
       <>
         <div className="mt-4 mb-1 flex w-full items-center">
           <div className="max-w-[150px] min-w-[150px] pr-2">{label}</div>
-          <div>{t(INTERVAL_TYPE_LABEL_KEYS[interval.type])}</div>
+          <div>{t(SCHEDULE_TYPE_LABEL_KEYS[schedule.type])}</div>
         </div>
 
-        {interval.type === IntervalType.WEEKLY && (
+        {schedule.type === ScheduleType.WEEKLY && (
           <div className="mb-1 flex w-full items-center">
             <div className="min-w-[180px] pr-2">{t('backups.config.schedule.weekday')}</div>
             <div>{displayedWeekday ? t(WEEKDAY_LABEL_KEYS[displayedWeekday as Weekday]) : ''}</div>
           </div>
         )}
 
-        {interval.type === IntervalType.MONTHLY && (
+        {schedule.type === ScheduleType.MONTHLY && (
           <div className="mb-1 flex w-full items-center">
             <div className="min-w-[180px] pr-2">{t('backups.config.schedule.dayOfMonth')}</div>
             <div>{displayedDayOfMonth || ''}</div>
           </div>
         )}
 
-        {interval.type === IntervalType.CRON && (
+        {schedule.type === ScheduleType.CRON && (
           <div className="mb-1 flex w-full items-center">
             <div className="min-w-[180px] pr-2">{t('backups.config.schedule.cronExpression')}</div>
             <code className="rounded bg-gray-100 px-2 py-0.5 text-sm dark:bg-gray-700">
-              {interval.cronExpression || ''}
+              {schedule.cronExpression || ''}
             </code>
           </div>
         )}
 
-        {interval.type !== IntervalType.HOURLY && interval.type !== IntervalType.CRON && (
+        {schedule.type !== ScheduleType.HOURLY && schedule.type !== ScheduleType.CRON && (
           <div className="mb-1 flex w-full items-center">
             <div className="min-w-[180px] pr-2">{t('backups.config.schedule.timeOfDay')}</div>
             <div>{formattedTime}</div>
@@ -134,25 +153,19 @@ export const ShowPhysicalBackupConfigComponent = ({ database }: Props): JSX.Elem
 
   useEffect(() => {
     if (database.id) {
-      physicalBackupConfigApi.getPhysicalBackupConfigByDbId(database.id).then((config) => {
-        setBackupConfig(config);
-      });
+      loadBackupConfig();
     }
   }, [database]);
 
   if (!backupConfig) return <div />;
 
-  const fullBackupsRetention = backupConfig.fullBackupsRetention;
+  const { settings } = backupConfig;
+  const { retention } = settings;
+  const fullBackupsRetention = retention.fullBackups;
 
   const isShowChainsCount =
-    backupConfig.retention === PhysicalRetention.CHAINS ||
-    backupConfig.retention === PhysicalRetention.CHAINS_AND_FULL_BACKUPS;
-
-  const isShowFullBackups =
-    backupConfig.retention === PhysicalRetention.FULL_BACKUPS ||
-    backupConfig.retention === PhysicalRetention.CHAINS_AND_FULL_BACKUPS;
-
-  const retentionLabelKey = PHYSICAL_RETENTION_LABEL_KEYS[backupConfig.retention];
+    retention.policy === PhysicalRetentionPolicy.CHAINS ||
+    retention.policy === PhysicalRetentionPolicy.CHAINS_AND_FULL_BACKUPS;
 
   return (
     <div>
@@ -165,34 +178,34 @@ export const ShowPhysicalBackupConfigComponent = ({ database }: Props): JSX.Elem
 
       {backupConfig.isBackupsEnabled && (
         <>
-          {renderInterval(
+          {renderSchedule(
             t('backups.physical.config.fullBackupCadence'),
-            backupConfig.fullBackupInterval,
+            settings.fullBackupSchedule,
           )}
-          {renderInterval(
+          {renderSchedule(
             t('backups.physical.config.incrementalBackupCadence'),
-            backupConfig.incrementalBackupInterval,
+            settings.incrementalBackupSchedule,
           )}
 
           <div className="mt-4 mb-1 flex w-full items-center">
             <div className="min-w-[180px] pr-2">{t('backups.physical.config.retention')}</div>
-            <div>{retentionLabelKey ? t(retentionLabelKey) : '-'}</div>
+            <div>{t(PHYSICAL_RETENTION_POLICY_LABEL_KEYS[retention.policy])}</div>
           </div>
 
           {isShowChainsCount && (
             <div className="mb-1 flex w-full items-center">
               <div className="min-w-[180px] pr-2">{t('backups.physical.config.chainsKept')}</div>
-              <div>{backupConfig.chainsRetention?.count ?? '-'}</div>
+              <div>{retention.chainsCount}</div>
             </div>
           )}
 
-          {isShowFullBackups && (
+          {fullBackupsRetention && (
             <div className="mb-1 flex w-full items-center">
               <div className="min-w-[180px] pr-2">
                 {t('backups.physical.config.fullBackupsKept')}
               </div>
               <div className="flex items-center gap-1">
-                {fullBackupsRetention.policy === PhysicalFullBackupsPolicy.LAST_N ? (
+                {fullBackupsRetention.policy === FullBackupsRetentionPolicy.LAST_N ? (
                   <span>
                     {t('backups.physical.config.fullBackupsCountValue', {
                       count: fullBackupsRetention.count,
@@ -213,10 +226,10 @@ export const ShowPhysicalBackupConfigComponent = ({ database }: Props): JSX.Elem
           <div className="mb-1 flex w-full items-center">
             <div className="min-w-[180px] pr-2">{t('backups.config.storage')}</div>
             <div className="flex items-center">
-              <div>{backupConfig.storage?.name || '-'}</div>
-              {backupConfig.storage?.type && (
+              <div>{storage?.name || '-'}</div>
+              {storage && (
                 <img
-                  src={getStorageLogoFromType(backupConfig.storage.type)}
+                  src={getStorageLogoFromType(storage.settings.type)}
                   alt=""
                   className="ml-1 h-4 w-4"
                 />
@@ -232,9 +245,9 @@ export const ShowPhysicalBackupConfigComponent = ({ database }: Props): JSX.Elem
           <div className="mb-1 flex w-full items-center">
             <div className="min-w-[180px] pr-2">{t('backups.config.notifications')}</div>
             <div>
-              {backupConfig.sendNotificationsOn.length > 0
-                ? backupConfig.sendNotificationsOn
-                    .map((type) => t(PHYSICAL_BACKUP_NOTIFICATION_TYPE_LABEL_KEYS[type]))
+              {settings.notificationTriggers.length > 0
+                ? settings.notificationTriggers
+                    .map((trigger) => t(PHYSICAL_NOTIFICATION_TRIGGER_LABEL_KEYS[trigger]))
                     .join(listSeparator)
                 : t('backups.config.noNotifications')}
             </div>

@@ -146,6 +146,9 @@ type VersionResponse struct {
 	Version string `json:"version"`
 }
 
+// BackupConfigDatabaseId defines model for BackupConfigDatabaseId.
+type BackupConfigDatabaseId = openapi_types.UUID
+
 // DatabaseId defines model for DatabaseId.
 type DatabaseId = openapi_types.UUID
 

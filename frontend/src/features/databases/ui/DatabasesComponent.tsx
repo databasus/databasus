@@ -2,8 +2,10 @@ import { Button, Modal, Spin } from 'antd';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { type BackupConfig, backupConfigApi } from '../../../entity/backups/config';
 import { databaseApi, sortUnavailableDatabasesFirst } from '../../../entity/databases';
 import type { Database } from '../../../entity/databases';
+import { type Storage, storageApi } from '../../../entity/storages';
 import type { Workspace } from '../../../entity/workspaces';
 import { useIsMobile } from '../../../shared/hooks';
 import { translateApiError } from '../../../shared/i18n';
@@ -27,11 +29,27 @@ const DATABASES_REFRESH_INTERVAL_MS = 30_000;
 // eslint-disable-next-line i18next/no-literal-string -- DOM event name
 const VISIBILITY_CHANGE_EVENT = 'visibilitychange';
 
+const mapStoragesByDatabaseId = (
+  backupConfigs: BackupConfig[],
+  storages: Storage[],
+): Map<string, Storage> => {
+  const storagesById = new Map(storages.map((storage) => [storage.id, storage]));
+  const storagesByDatabaseId = new Map<string, Storage>();
+
+  for (const backupConfig of backupConfigs) {
+    const storage = backupConfig.storageId ? storagesById.get(backupConfig.storageId) : undefined;
+    if (storage) storagesByDatabaseId.set(backupConfig.databaseId, storage);
+  }
+
+  return storagesByDatabaseId;
+};
+
 export const DatabasesComponent = ({ contentHeight, workspace, isCanManageDBs }: Props) => {
   const { t } = useTranslation();
   const isMobile = useIsMobile();
   const [isLoading, setIsLoading] = useState(true);
   const [databases, setDatabases] = useState<Database[]>([]);
+  const [storagesByDatabaseId, setStoragesByDatabaseId] = useState<Map<string, Storage>>(new Map());
   const [searchQuery, setSearchQuery] = useState('');
 
   const [isShowAddDatabase, setIsShowAddDatabase] = useState(false);
@@ -53,11 +71,15 @@ export const DatabasesComponent = ({ contentHeight, workspace, isCanManageDBs }:
       setIsLoading(true);
     }
 
-    databaseApi
-      .listAllDatabases(workspace.id)
-      .then((listedDatabases) => {
+    Promise.all([
+      databaseApi.listAllDatabases(workspace.id),
+      backupConfigApi.listAllWorkspaceBackupConfigs(workspace.id),
+      storageApi.listAllStorages(workspace.id),
+    ])
+      .then(([listedDatabases, listedBackupConfigs, listedStorages]) => {
         const databases = sortUnavailableDatabasesFirst(listedDatabases);
         setDatabases(databases);
+        setStoragesByDatabaseId(mapStoragesByDatabaseId(listedBackupConfigs, listedStorages));
         if (selectDatabaseId) {
           updateSelectedDatabaseId(selectDatabaseId);
         } else if (!selectedDatabaseId && !isSilent && !isMobile) {
@@ -156,6 +178,7 @@ export const DatabasesComponent = ({ contentHeight, workspace, isCanManageDBs }:
                   <DatabaseCardComponent
                     key={database.id}
                     database={database}
+                    storage={storagesByDatabaseId.get(database.id)}
                     selectedDatabaseId={selectedDatabaseId}
                     setSelectedDatabaseId={updateSelectedDatabaseId}
                   />

@@ -7,8 +7,6 @@ import (
 
 	backuping_logical "databasus-backend/internal/features/backups/backups/backuping/logical"
 	backuping_physical "databasus-backend/internal/features/backups/backups/backuping/physical"
-	backups_services "databasus-backend/internal/features/backups/backups/services"
-	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
 	databases_bridge "databasus-backend/internal/features/databases"
 	healthcheck_config "databasus-backend/internal/features/healthcheck/config"
 	"databasus-backend/internal/features/restores"
@@ -19,15 +17,8 @@ import (
 // Test_SetupDependencies_CalledTwice_LogsWarning verifies SetupDependencies is idempotent
 func Test_SetupDependencies_CalledTwice_LogsWarning(t *testing.T) {
 	// Call each SetupDependencies twice - should not panic, only log warnings
-
-	backups_services.SetupDependencies()
-	backups_services.SetupDependencies()
-
-	backups_config_physical.SetupDependencies()
-	backups_config_physical.SetupDependencies()
-
-	backuping_physical.SetupDependencies()
-	backuping_physical.SetupDependencies()
+	backuping_physical.SubscribeToBackupConfigEventsWithoutApp()
+	backuping_physical.SubscribeToBackupConfigEventsWithoutApp()
 
 	databases_bridge.SetupDependencies()
 	databases_bridge.SetupDependencies()

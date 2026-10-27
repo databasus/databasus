@@ -13,8 +13,8 @@ import (
 	"databasus-backend/internal/config"
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
-	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
 	"databasus-backend/internal/lib/crypto"
+	"databasus-backend/internal/modules/backups"
 	"databasus-backend/internal/modules/storages"
 	io_utils "databasus-backend/internal/util/io"
 )
@@ -23,7 +23,7 @@ const progressReportIntervalMb = 1.0
 
 type backupStream struct {
 	backup           *backups_core_logical.LogicalBackup
-	backupConfig     *backups_config_logical.LogicalBackupConfig
+	backupConfig     backups.LogicalBackupConfig
 	dumpSource       logicalDumpSource
 	fileStore        backups_core_logical.BackupFileStore
 	progressListener func(completedMBs float64)
@@ -168,7 +168,7 @@ func (uc *CreateBackupUsecase) buildWriterChain(
 
 	var encryptedOutput io.Writer = storagePipe
 
-	if stream.backupConfig.Encryption == backups_core_enums.BackupEncryptionEncrypted {
+	if stream.backupConfig.Encryption == backups.EncryptionEncrypted {
 		encryptingWriter, header, err := crypto.NewEncryptingWriter(storagePipe, uc.masterKey, stream.backup.ID)
 		if err != nil {
 			return nil, metadata, err

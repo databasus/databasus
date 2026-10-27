@@ -95,6 +95,9 @@ type Module interface {
 
 	// GetDatabases leaves out the IDs that match no database.
 	GetDatabases(ctx context.Context, databaseIDs []uuid.UUID) ([]Database, error)
+	// GetPhysicalBackupTypes reads the types without the settings, so it decrypts nothing. It leaves out
+	// the IDs that match no physical PostgreSQL database.
+	GetPhysicalBackupTypes(ctx context.Context, databaseIDs []uuid.UUID) (map[uuid.UUID]PhysicalBackupType, error)
 	ListAllDatabases(ctx context.Context) ([]Database, error)
 	GetTelemetry(ctx context.Context) ([]TelemetryEntry, error)
 
@@ -123,9 +126,9 @@ type Module interface {
 	// which delete their databases through the subscribed handlers.
 	DeleteDatabase(ctx context.Context, actor users.Actor, databaseID uuid.UUID) error
 
-	// TransferDatabaseToWorkspace and ReplaceDatabaseNotifiers serve the database transfer of the old
-	// backup configs, which checks access itself, until the backup configs move into a module.
-	TransferDatabaseToWorkspace(ctx context.Context, databaseID, workspaceID uuid.UUID) error
+	// TransferDatabaseToWorkspace and ReplaceDatabaseNotifiers serve the database transfer of the backups
+	// module, which checks access in both workspaces itself and runs them in its transaction.
+	TransferDatabaseToWorkspace(ctx context.Context, actor users.Actor, databaseID, workspaceID uuid.UUID) error
 	ReplaceDatabaseNotifiers(ctx context.Context, databaseID uuid.UUID, notifierIDs []uuid.UUID) error
 
 	OnWorkspaceDeleting(ctx context.Context, event workspaces.WorkspaceDeleting) error
@@ -154,17 +157,19 @@ type Deps struct {
 }
 
 func New(deps Deps) Module {
+	physicalDatabases := postgresqlphysical.New(postgresqlphysical.Deps{
+		Repositories:   postgresqlphysical.NewRepositories(deps.DB, deps.FieldEncryptor),
+		FieldEncryptor: deps.FieldEncryptor,
+		Logger:         deps.Logger,
+	})
+
 	registry := providers.NewRegistry(
 		postgresqllogical.New(postgresqllogical.Deps{
 			Repositories:   postgresqllogical.NewRepositories(deps.DB, deps.FieldEncryptor),
 			FieldEncryptor: deps.FieldEncryptor,
 			Logger:         deps.Logger,
 		}),
-		postgresqlphysical.New(postgresqlphysical.Deps{
-			Repositories:   postgresqlphysical.NewRepositories(deps.DB, deps.FieldEncryptor),
-			FieldEncryptor: deps.FieldEncryptor,
-			Logger:         deps.Logger,
-		}),
+		physicalDatabases,
 		mysql.New(mysql.Deps{
 			Repositories:   mysql.NewRepositories(deps.DB, deps.FieldEncryptor),
 			FieldEncryptor: deps.FieldEncryptor,
@@ -202,8 +207,9 @@ func New(deps Deps) Module {
 	})
 
 	return module.New(module.Deps{
-		Databases:   databaseService,
-		Connections: connectionService,
+		Databases:         databaseService,
+		Connections:       connectionService,
+		PhysicalDatabases: physicalDatabases,
 		Handler: databaseshttpapi.NewHandler(databaseshttpapi.Deps{
 			Databases:   databaseService,
 			Connections: connectionService,

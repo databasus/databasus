@@ -13,7 +13,7 @@ import (
 	physical_core_service "databasus-backend/internal/features/backups/backups/core/physical/service"
 	"databasus-backend/internal/features/backups/backups/core/physical/wal_health"
 	backups_dto_physical "databasus-backend/internal/features/backups/backups/dto/physical"
-	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
+	"databasus-backend/internal/modules/backups"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/modules/workspaces"
@@ -49,7 +49,7 @@ func (s *PhysicalBackupService) GetWalStreamStatistics(
 		return nil, ErrUnknownWalStreamStatisticsPeriod
 	}
 
-	backupConfig, err := s.backupConfigService.GetBackupConfigByDbId(databaseID)
+	backupConfig, err := s.getBackups().GetPhysicalBackupConfig(ctx, databaseID)
 	if err != nil {
 		return nil, err
 	}
@@ -94,7 +94,7 @@ func (s *PhysicalBackupService) GetWalStreamStatistics(
 // screen tells the user to start one unless one is already requested or running.
 func (s *PhysicalBackupService) isFullBackupPending(
 	databaseID uuid.UUID,
-	backupConfig *backups_config_physical.PhysicalBackupConfig,
+	backupConfig backups.PhysicalBackupConfig,
 ) (bool, error) {
 	if backupConfig.ForceFullRequestedAt != nil {
 		return true, nil

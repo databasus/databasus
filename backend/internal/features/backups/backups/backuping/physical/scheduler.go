@@ -16,9 +16,9 @@ import (
 	physical_enums "databasus-backend/internal/features/backups/backups/core/physical/enums"
 	physical_models "databasus-backend/internal/features/backups/backups/core/physical/models"
 	physical_repositories "databasus-backend/internal/features/backups/backups/core/physical/repositories"
-	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
 	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
 	"databasus-backend/internal/lib/database"
+	"databasus-backend/internal/modules/backups"
 	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/storage"
 )
@@ -42,7 +42,7 @@ type PhysicalBackupsScheduler struct {
 	fullRepo                  *physical_repositories.PhysicalFullBackupRepository
 	incrRepo                  *physical_repositories.PhysicalIncrementalBackupRepository
 	inFlightRepo              *physical_repositories.PhysicalInFlightBackupRepository
-	backupConfigService       *backups_config_physical.BackupConfigService
+	getBackups                func() backups.Module
 	chainViewService          *chain_view.ChainViewService
 	taskCancellationRequester *tasks_cancellation.Requester
 	// getStorages is read per call: each test application installs its own module.
@@ -114,7 +114,7 @@ func (s *PhysicalBackupsScheduler) Run(ctx context.Context) {
 }
 
 func (s *PhysicalBackupsScheduler) runPendingBackups(ctx context.Context, logger *slog.Logger) error {
-	enabledConfigs, err := s.backupConfigService.GetBackupConfigsWithEnabledBackups()
+	enabledConfigs, err := s.getBackups().ListEnabledPhysicalBackupConfigs(ctx)
 	if err != nil {
 		return err
 	}
@@ -132,7 +132,7 @@ func (s *PhysicalBackupsScheduler) evaluateConfig(
 	ctx context.Context,
 	logger *slog.Logger,
 	now time.Time,
-	backupConfig *backups_config_physical.PhysicalBackupConfig,
+	backupConfig backups.PhysicalBackupConfig,
 ) {
 	logger = logger.With("database_id", backupConfig.DatabaseID)
 
@@ -142,7 +142,7 @@ func (s *PhysicalBackupsScheduler) evaluateConfig(
 		return
 	}
 
-	decision, ok := s.decideBackupKind(logger, now, backupConfig)
+	decision, ok := s.decideBackupKind(ctx, logger, now, backupConfig)
 	if !ok {
 		return
 	}
@@ -172,9 +172,10 @@ type backupTrigger struct {
 // no source-PG connection: the shipped executors handle summarizer and timeline
 // reality at run time.
 func (s *PhysicalBackupsScheduler) decideBackupKind(
+	ctx context.Context,
 	logger *slog.Logger,
 	now time.Time,
-	backupConfig *backups_config_physical.PhysicalBackupConfig,
+	backupConfig backups.PhysicalBackupConfig,
 ) (backupDecision, bool) {
 	lastFull, err := s.fullRepo.FindLastFullAnyStatusByDatabase(backupConfig.DatabaseID)
 	if err != nil {
@@ -215,12 +216,12 @@ func (s *PhysicalBackupsScheduler) decideBackupKind(
 	}
 
 	if backupConfig.ForceIncrementalRequestedAt != nil {
-		if decision, ok := s.decideForcedIncremental(logger, backupConfig); ok {
+		if decision, ok := s.decideForcedIncremental(ctx, logger, backupConfig); ok {
 			return decision, true
 		}
 	}
 
-	if backupConfig.FullBackupInterval.ShouldTriggerBackup(now, createdAtOrNil(lastFull)) {
+	if backupConfig.FullBackupSchedule.IsDue(now, createdAtOrNil(lastFull)) {
 		return backupDecision{
 			kind:   physical_enums.PhysicalBackupTypeFull,
 			reason: "full cadence is due",
@@ -235,7 +236,7 @@ func (s *PhysicalBackupsScheduler) decideBackupKind(
 
 	lastBackupTime := newestCreatedAt(lastFull, lastIncr)
 
-	if !backupConfig.IncrementalBackupInterval.ShouldTriggerBackup(now, lastBackupTime) {
+	if !backupConfig.IncrementalBackupSchedule.IsDue(now, lastBackupTime) {
 		logger.Debug("nothing due: neither cadence has elapsed")
 
 		return backupDecision{}, false
@@ -274,11 +275,12 @@ func (s *PhysicalBackupsScheduler) decideBackupKind(
 // controller already rejects "incremental with no chain" up front, but the
 // chain can disappear between request and tick, so the scheduler must cope.
 func (s *PhysicalBackupsScheduler) decideForcedIncremental(
+	ctx context.Context,
 	logger *slog.Logger,
-	backupConfig *backups_config_physical.PhysicalBackupConfig,
+	backupConfig backups.PhysicalBackupConfig,
 ) (backupDecision, bool) {
 	if !isIncrementalEnabled(backupConfig) {
-		s.clearIncrementalRequest(logger, backupConfig)
+		s.clearIncrementalRequest(ctx, logger, backupConfig)
 
 		return backupDecision{}, false
 	}
@@ -292,7 +294,7 @@ func (s *PhysicalBackupsScheduler) decideForcedIncremental(
 
 	if extendableChain == nil {
 		logger.Warn("forced incremental requested but no extendable chain exists; clearing request")
-		s.clearIncrementalRequest(logger, backupConfig)
+		s.clearIncrementalRequest(ctx, logger, backupConfig)
 
 		return backupDecision{}, false
 	}
@@ -313,10 +315,11 @@ func (s *PhysicalBackupsScheduler) decideForcedIncremental(
 }
 
 func (s *PhysicalBackupsScheduler) clearIncrementalRequest(
+	ctx context.Context,
 	logger *slog.Logger,
-	backupConfig *backups_config_physical.PhysicalBackupConfig,
+	backupConfig backups.PhysicalBackupConfig,
 ) {
-	if err := s.backupConfigService.ClearIncrementalBackupRequest(
+	if err := s.getBackups().ClearIncrementalBackupRequest(ctx,
 		backupConfig.DatabaseID, backupConfig.ForceIncrementalRequestedAt,
 	); err != nil {
 		logger.Error("failed to clear incremental backup request", "error", err)
@@ -342,7 +345,7 @@ func (s *PhysicalBackupsScheduler) resolveIncrParent(rootFullBackupID uuid.UUID)
 func (s *PhysicalBackupsScheduler) scheduleBackup(
 	ctx context.Context,
 	logger *slog.Logger,
-	backupConfig *backups_config_physical.PhysicalBackupConfig,
+	backupConfig backups.PhysicalBackupConfig,
 	decision backupDecision,
 ) {
 	backupID := uuid.New()
@@ -362,7 +365,7 @@ func (s *PhysicalBackupsScheduler) scheduleBackup(
 	}
 
 	if decision.forceFullRequestedAt != nil {
-		if err := s.backupConfigService.ClearFullBackupRequest(
+		if err := s.getBackups().ClearFullBackupRequest(ctx,
 			backupConfig.DatabaseID,
 			decision.forceFullRequestedAt,
 		); err != nil {
@@ -371,7 +374,7 @@ func (s *PhysicalBackupsScheduler) scheduleBackup(
 	}
 
 	if decision.forceIncrementalRequestedAt != nil {
-		if err := s.backupConfigService.ClearIncrementalBackupRequest(
+		if err := s.getBackups().ClearIncrementalBackupRequest(ctx,
 			backupConfig.DatabaseID,
 			decision.forceIncrementalRequestedAt,
 		); err != nil {
@@ -390,7 +393,7 @@ func (s *PhysicalBackupsScheduler) scheduleBackup(
 // claimed=false. The typed INSERT goes through tx.Create, NOT repo.Save (which
 // uses the global DB) — that is what makes the claim and the row atomic.
 func (s *PhysicalBackupsScheduler) claimAndInsert(
-	backupConfig *backups_config_physical.PhysicalBackupConfig,
+	backupConfig backups.PhysicalBackupConfig,
 	backupID uuid.UUID,
 	decision backupDecision,
 ) (bool, error) {
@@ -876,7 +879,7 @@ func newestCreatedAt(
 // incremental speed only burns it).
 func (s *PhysicalBackupsScheduler) decideReAnchoringFull(
 	logger *slog.Logger,
-	backupConfig *backups_config_physical.PhysicalBackupConfig,
+	backupConfig backups.PhysicalBackupConfig,
 	lastIncr *physical_models.PhysicalIncrementalBackup,
 ) (backupDecision, bool) {
 	if isChainBrokenBySummarizerOff(lastIncr) {
@@ -931,6 +934,6 @@ func hasNoRecentCompletedFull(recentFullBackups []*physical_models.PhysicalFullB
 		})
 }
 
-func isIncrementalEnabled(backupConfig *backups_config_physical.PhysicalBackupConfig) bool {
-	return backupConfig.BackupType.IsRequiringWalSummary()
+func isIncrementalEnabled(backupConfig backups.PhysicalBackupConfig) bool {
+	return backupConfig.BackupType.IsRequiringWalSummary() && backupConfig.IncrementalBackupSchedule != nil
 }

@@ -1,11 +1,8 @@
 package storages_test
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"testing"
 
@@ -95,19 +92,25 @@ func TestTransferStorage(t *testing.T) {
 			StorageID:  createdStorage.Id,
 		})
 
-		status, body := tm.app.CallOldAPI(t, tm.owner, apptest.OldAPICall{
-			Method: http.MethodPost,
-			Path:   "/backup-configs/database/" + databaseID.String() + "/transfer",
-			Body:   map[string]any{"targetWorkspaceId": targetWorkspace.Id, "isTransferWithStorage": true},
-		})
+		var movedStorage apiclient.DatabaseTransferStorage
+		require.NoError(t, movedStorage.FromStorageMovedWithDatabase(apiclient.StorageMovedWithDatabase{
+			Type: apiclient.StorageMovedWithDatabaseTypeMOVEWITHDATABASE,
+		}))
 
-		require.Equal(t, http.StatusOK, status, string(body))
+		response, err := tm.owner.Client.TransferDatabaseWithResponse(t.Context(), databaseID,
+			apiclient.DatabaseTransfer{
+				TargetWorkspaceId: targetWorkspace.Id,
+				Storage:           movedStorage,
+				IsMovingNotifiers: false,
+				TargetNotifierIds: nil,
+			})
+		require.NoError(t, err)
+
+		require.Equal(t, http.StatusNoContent, response.StatusCode(), string(response.Body))
 		assert.Equal(t, []uuid.UUID{createdStorage.Id}, getListedStorageIDs(t, tm.owner, targetWorkspace.Id))
 		assert.Equal(t, 1, countRows(t, tm.app,
 			"SELECT COUNT(*) FROM databases WHERE id = ? AND workspace_id = ?", databaseID, targetWorkspace.Id))
-		assert.Equal(t, 1, countRows(t, tm.app,
-			"SELECT COUNT(*) FROM logical_backup_configs WHERE database_id = ? AND storage_id = ?",
-			databaseID, createdStorage.Id))
+		assert.Equal(t, &createdStorage.Id, apptest.GetBackupConfig(t, tm.owner, databaseID).StorageId)
 	})
 
 	t.Run("refuses a backup config save that waited for a transfer of its storage", func(t *testing.T) {
@@ -135,9 +138,7 @@ func TestTransferStorage(t *testing.T) {
 		storageLock.Commit(t)
 
 		assert.Equal(t, http.StatusBadRequest, <-saveStatus)
-		assert.Equal(t, 0, countRows(t, tm.app,
-			"SELECT COUNT(*) FROM logical_backup_configs WHERE database_id = ? AND storage_id = ?",
-			databaseID, createdStorage.Id))
+		assert.Zero(t, countRows(t, tm.app, "SELECT COUNT(*) FROM backups_configs WHERE database_id = ?", databaseID))
 	})
 }
 
@@ -234,41 +235,40 @@ func transferStorage(
 	return response
 }
 
-// saveLogicalBackupConfig sends the save through the old route and returns its status. It reports a
-// broken request as status 0 instead of failing the test, because it runs outside the test's
+// saveLogicalBackupConfig saves a logical config with the storage and returns the answer's status. It
+// reports a broken request as status 0 instead of failing the test, because it runs outside the test's
 // goroutine.
 func saveLogicalBackupConfig(ctx context.Context, tm team, databaseID, storageID uuid.UUID) int {
-	body, err := json.Marshal(map[string]any{
-		"databaseId":          databaseID,
-		"isBackupsEnabled":    true,
-		"retentionPolicyType": "TIME_PERIOD",
-		"retentionTimePeriod": "WEEK",
-		"backupInterval":      map[string]any{"type": "DAILY", "timeOfDay": "04:00"},
-		"storage":             map[string]any{"id": storageID},
-		"sendNotificationsOn": []string{"BACKUP_FAILED"},
-		"isRetryIfFailed":     true,
-		"maxFailedTriesCount": 3,
-		"encryption":          "NONE",
+	timeOfDay := "04:00"
+
+	var settings apiclient.BackupSettings
+
+	err := settings.FromLogicalBackupSettings(apiclient.LogicalBackupSettings{
+		Type:     apiclient.LogicalBackupSettingsTypeLOGICAL,
+		Schedule: apiclient.Schedule{Type: apiclient.ScheduleTypeDAILY, TimeOfDay: &timeOfDay},
+		Retention: apiclient.LogicalRetention{
+			Policy: apiclient.LogicalRetentionPolicyTIMEPERIOD,
+			Period: apiclient.RetentionPeriodWEEK,
+		},
+		NotificationTriggers: []apiclient.LogicalNotificationTrigger{
+			apiclient.LogicalNotificationTriggerBACKUPFAILED,
+		},
+		IsRetryIfFailed:     true,
+		MaxFailedTriesCount: 3,
 	})
 	if err != nil {
 		return 0
 	}
 
-	request, err := http.NewRequestWithContext(ctx, http.MethodPost,
-		fmt.Sprintf("%s/api/v1/backup-configs/save", tm.app.URL), bytes.NewReader(body))
+	response, err := tm.owner.Client.UpdateBackupConfigWithResponse(ctx, databaseID, apiclient.BackupConfigInput{
+		IsBackupsEnabled: true,
+		StorageId:        &storageID,
+		Encryption:       apiclient.BackupEncryptionNONE,
+		Settings:         settings,
+	})
 	if err != nil {
 		return 0
 	}
 
-	request.Header.Set("Content-Type", "application/json")
-	request.Header.Set("Authorization", "Bearer "+tm.owner.Token)
-
-	response, err := http.DefaultClient.Do(request)
-	if err != nil {
-		return 0
-	}
-
-	defer func() { _ = response.Body.Close() }()
-
-	return response.StatusCode
+	return response.StatusCode()
 }

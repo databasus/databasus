@@ -19,15 +19,14 @@ import type { TFunction } from 'i18next';
 import { type JSX, useEffect, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
+import { type BackupConfig, backupConfigApi } from '../../../../entity/backups/config';
 import {
   type BackupsFilters,
   LOGICAL_BACKUP_STATUS_LABEL_KEYS,
   type LogicalBackup,
-  type LogicalBackupConfig,
   LogicalBackupStatus,
   RESTORE_VERIFICATION_STATUS_LABEL_KEYS,
   RestoreVerificationStatus,
-  logicalBackupConfigApi,
   logicalBackupsApi,
 } from '../../../../entity/backups/logical';
 import { BackupEncryption } from '../../../../entity/backups/shared';
@@ -101,7 +100,7 @@ export const LogicalBackupsComponent = ({
   const { t } = useTranslation();
   const { locale, formatNumber, formatRelativeTime } = useLocale();
   const { message, modal } = App.useApp();
-  const [backupConfig, setBackupConfig] = useState<LogicalBackupConfig | undefined>();
+  const [backupConfig, setBackupConfig] = useState<BackupConfig | undefined>();
   const [isBackupConfigLoading, setIsBackupConfigLoading] = useState(false);
 
   const [isMakeBackupRequestLoading, setIsMakeBackupRequestLoading] = useState(false);
@@ -255,8 +254,8 @@ export const LogicalBackupsComponent = ({
   useEffect(() => {
     setIsBackupConfigLoading(true);
 
-    logicalBackupConfigApi.getBackupConfigByDbID(database.id).then((config) => {
-      setBackupConfig(config);
+    backupConfigApi.getBackupConfig(database.id).then((loadedBackupConfig) => {
+      setBackupConfig(loadedBackupConfig);
       setIsBackupConfigLoading(false);
     });
   }, [database]);

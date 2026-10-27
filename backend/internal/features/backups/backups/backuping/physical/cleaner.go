@@ -18,8 +18,8 @@ import (
 	physical_service "databasus-backend/internal/features/backups/backups/core/physical/service"
 	"databasus-backend/internal/features/backups/backups/core/physical/wal_health"
 	usecases_physical_postgresql "databasus-backend/internal/features/backups/backups/usecases/physical/postgresql"
-	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
-	"databasus-backend/internal/features/intervals"
+	"databasus-backend/internal/lib/schedule"
+	"databasus-backend/internal/modules/backups"
 )
 
 // PhysicalBackupCleaner trims physical backups every tick through two passes:
@@ -30,7 +30,7 @@ import (
 type PhysicalBackupCleaner struct {
 	physicalBackupService *physical_service.PhysicalBackupService
 	chainViewService      *chain_view.ChainViewService
-	backupConfigService   *backups_config_physical.BackupConfigService
+	getBackups            func() backups.Module
 	fullRepo              *physical_repositories.PhysicalFullBackupRepository
 	walSegmentRepo        *physical_repositories.PhysicalWalSegmentRepository
 	walStreamSampleRepo   *physical_repositories.PhysicalWalStreamSampleRepository
@@ -104,22 +104,22 @@ func (c *PhysicalBackupCleaner) runStartupSlotCleanup(ctx context.Context) {
 }
 
 func (c *PhysicalBackupCleaner) cleanByRetentionPolicy(ctx context.Context, logger *slog.Logger) error {
-	enabledConfigs, err := c.backupConfigService.GetBackupConfigsWithEnabledBackups()
+	enabledConfigs, err := c.getBackups().ListEnabledPhysicalBackupConfigs(ctx)
 	if err != nil {
 		return err
 	}
 
 	for _, backupConfig := range enabledConfigs {
-		dbLog := logger.With("database_id", backupConfig.DatabaseID, "retention", backupConfig.Retention)
+		dbLog := logger.With("database_id", backupConfig.DatabaseID, "retention", backupConfig.Retention.Policy)
 
 		var cleanErr error
 
-		switch backupConfig.Retention {
-		case backups_config_physical.RetentionChains:
+		switch backupConfig.Retention.Policy {
+		case backups.PhysicalRetentionPolicyChains:
 			cleanErr = c.cleanByChains(ctx, dbLog, backupConfig)
-		case backups_config_physical.RetentionFullBackups:
+		case backups.PhysicalRetentionPolicyFullBackups:
 			cleanErr = c.cleanByFulls(ctx, dbLog, backupConfig)
-		case backups_config_physical.RetentionChainsAndFullBackups:
+		case backups.PhysicalRetentionPolicyChainsAndFullBackups:
 			cleanErr = c.cleanByCombined(ctx, dbLog, backupConfig)
 		}
 
@@ -168,7 +168,7 @@ func (c *PhysicalBackupCleaner) nonExtendableChainsNewestEndFirst(
 func (c *PhysicalBackupCleaner) deleteChainThroughService(
 	ctx context.Context,
 	logger *slog.Logger,
-	backupConfig *backups_config_physical.PhysicalBackupConfig,
+	backupConfig backups.PhysicalBackupConfig,
 	rootFullBackupID uuid.UUID,
 ) bool {
 	summary, err := c.physicalBackupService.DeleteFull(
@@ -194,7 +194,7 @@ func (c *PhysicalBackupCleaner) deleteChainThroughService(
 func (c *PhysicalBackupCleaner) deleteChainDependentsThroughService(
 	ctx context.Context,
 	logger *slog.Logger,
-	backupConfig *backups_config_physical.PhysicalBackupConfig,
+	backupConfig backups.PhysicalBackupConfig,
 	rootFullBackupID uuid.UUID,
 ) bool {
 	summary, err := c.physicalBackupService.DeleteChainDependentsKeepFull(
@@ -242,12 +242,12 @@ func (c *PhysicalBackupCleaner) walDeleteBudgetMB(ctx context.Context, databaseI
 // per-backup grace). A chain whose end timestamp failed to load never becomes a
 // candidate, so a transient error never causes a premature delete.
 func isChainWithinGrace(
-	backupConfig *backups_config_physical.PhysicalBackupConfig,
+	backupConfig backups.PhysicalBackupConfig,
 	chainEndTs time.Time,
 ) bool {
 	grace := max(
-		approxIntervalDuration(backupConfig.FullBackupInterval),
-		approxIntervalDuration(backupConfig.IncrementalBackupInterval),
+		approxScheduleDuration(&backupConfig.FullBackupSchedule),
+		approxScheduleDuration(backupConfig.IncrementalBackupSchedule),
 	) * chainGraceIntervalMultiplier
 
 	grace = max(grace, recentBackupGracePeriod)
@@ -261,9 +261,9 @@ func isChainWithinGrace(
 func (c *PhysicalBackupCleaner) cleanByChains(
 	ctx context.Context,
 	logger *slog.Logger,
-	backupConfig *backups_config_physical.PhysicalBackupConfig,
+	backupConfig backups.PhysicalBackupConfig,
 ) error {
-	keepCount := backupConfig.ChainsRetention.Count
+	keepCount := backupConfig.Retention.ChainsCount
 	if keepCount <= 0 {
 		logger.DebugContext(ctx, "chain retention has no count configured, keeping every chain")
 
@@ -322,7 +322,7 @@ func (c *PhysicalBackupCleaner) cleanByChains(
 func (c *PhysicalBackupCleaner) cleanByFulls(
 	ctx context.Context,
 	logger *slog.Logger,
-	backupConfig *backups_config_physical.PhysicalBackupConfig,
+	backupConfig backups.PhysicalBackupConfig,
 ) error {
 	completedFulls, err := c.fullRepo.FindCompletedNewestFirstByDatabase(backupConfig.DatabaseID)
 	if err != nil {
@@ -385,13 +385,13 @@ func (c *PhysicalBackupCleaner) cleanByFulls(
 // Returns nil when the policy has no effective configuration, so the caller no-ops rather than
 // treating an empty result as "delete everything".
 func (c *PhysicalBackupCleaner) getRetainedTiersByFullBackupID(
-	backupConfig *backups_config_physical.PhysicalBackupConfig,
+	backupConfig backups.PhysicalBackupConfig,
 	completedFullsNewestFirst []*physical_models.PhysicalFullBackup,
 ) map[uuid.UUID][]gfs.Tier {
-	retention := backupConfig.FullBackupsRetention
+	retention := backupConfig.Retention.FullBackups
 
 	switch retention.Policy {
-	case backups_config_physical.FullBackupsRetentionPolicyLastN:
+	case backups.FullBackupsRetentionPolicyLastN:
 		if retention.Count <= 0 {
 			return nil
 		}
@@ -405,9 +405,9 @@ func (c *PhysicalBackupCleaner) getRetainedTiersByFullBackupID(
 
 		return keep
 
-	case backups_config_physical.FullBackupsRetentionPolicyGfs:
-		if retention.GfsHours <= 0 && retention.GfsDays <= 0 && retention.GfsWeeks <= 0 &&
-			retention.GfsMonths <= 0 && retention.GfsYears <= 0 {
+	case backups.FullBackupsRetentionPolicyGfs:
+		if retention.Gfs.Hours <= 0 && retention.Gfs.Days <= 0 && retention.Gfs.Weeks <= 0 &&
+			retention.Gfs.Months <= 0 && retention.Gfs.Years <= 0 {
 			return nil
 		}
 
@@ -417,8 +417,8 @@ func (c *PhysicalBackupCleaner) getRetainedTiersByFullBackupID(
 		}
 
 		return gfs.GetItemsToRetain(
-			items, retention.GfsHours, retention.GfsDays, retention.GfsWeeks,
-			retention.GfsMonths, retention.GfsYears,
+			items, retention.Gfs.Hours, retention.Gfs.Days, retention.Gfs.Weeks,
+			retention.Gfs.Months, retention.Gfs.Years,
 		)
 	}
 
@@ -432,7 +432,7 @@ func (c *PhysicalBackupCleaner) getRetainedTiersByFullBackupID(
 func (c *PhysicalBackupCleaner) cleanByCombined(
 	ctx context.Context,
 	logger *slog.Logger,
-	backupConfig *backups_config_physical.PhysicalBackupConfig,
+	backupConfig backups.PhysicalBackupConfig,
 ) error {
 	candidates, err := c.nonExtendableChainsNewestEndFirst(backupConfig.DatabaseID)
 	if err != nil {
@@ -442,7 +442,7 @@ func (c *PhysicalBackupCleaner) cleanByCombined(
 	keepRoots := make(map[uuid.UUID]bool)
 
 	for i, candidate := range candidates {
-		if i < backupConfig.ChainsRetention.Count {
+		if i < backupConfig.Retention.ChainsCount {
 			keepRoots[candidate.view.RootFull.ID] = true
 		}
 	}
@@ -500,7 +500,7 @@ func (c *PhysicalBackupCleaner) cleanByCombined(
 // cleanOrphans removes WAL that no longer belongs to any chain and reaps
 // abandoned insert-first claims, per enabled database.
 func (c *PhysicalBackupCleaner) cleanOrphans(ctx context.Context, logger *slog.Logger) error {
-	enabledConfigs, err := c.backupConfigService.GetBackupConfigsWithEnabledBackups()
+	enabledConfigs, err := c.getBackups().ListEnabledPhysicalBackupConfigs(ctx)
 	if err != nil {
 		return err
 	}
@@ -583,19 +583,18 @@ func (c *PhysicalBackupCleaner) reapAbandonedWalClaims(
 
 // approxIntervalDuration maps a schedule to an approximate period for grace
 // math. Cron and unset schedules are treated as daily.
-func approxIntervalDuration(interval intervals.Interval) time.Duration {
-	switch interval.Type {
-	case intervals.IntervalHourly:
-		return time.Hour
-	case intervals.IntervalDaily:
-		return 24 * time.Hour
-	case intervals.IntervalWeekly:
-		return 7 * 24 * time.Hour
-	case intervals.IntervalMonthly:
-		return 30 * 24 * time.Hour
-	default:
+// approxScheduleDuration falls back to a day for a missing or cron schedule, whose cadence it cannot
+// tell.
+func approxScheduleDuration(cadence *schedule.Schedule) time.Duration {
+	if cadence == nil {
 		return 24 * time.Hour
 	}
+
+	if approxPeriod := cadence.GetApproxPeriod(); approxPeriod > 0 {
+		return approxPeriod
+	}
+
+	return 24 * time.Hour
 }
 
 // The LAST_N variant keeps by position rather than by tier, so it records no tiers at all.

@@ -20,12 +20,12 @@ import (
 	pgshared "databasus-backend/internal/engines/postgresql/shared"
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
-	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
 	storages_bridge "databasus-backend/internal/features/storages"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
 	"databasus-backend/internal/lib/testwait"
 	"databasus-backend/internal/lib/toolstub"
+	"databasus-backend/internal/modules/backups"
 	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/modules/users"
 )
@@ -187,14 +187,18 @@ func newStubBackupStream(
 ) backupStream {
 	t.Helper()
 
-	encryption := backups_core_enums.BackupEncryptionNone
+	encryption := backups.EncryptionNone
 	if isEncrypted {
-		encryption = backups_core_enums.BackupEncryptionEncrypted
+		encryption = backups.EncryptionEncrypted
 	}
 
 	return backupStream{
-		backup:           newTestBackup(),
-		backupConfig:     &backups_config_logical.LogicalBackupConfig{Encryption: encryption},
+		backup: newTestBackup(),
+		backupConfig: backups.LogicalBackupConfig{
+			BackupConfig: backups.BackupConfig{
+				Encryption: encryption,
+			},
+		},
 		dumpSource:       dumpSource,
 		fileStore:        fileStore,
 		progressListener: func(float64) {},

@@ -47,8 +47,10 @@ func TestDeleteStorage(t *testing.T) {
 		tm := newTeam(t)
 		createdStorage := tm.createLocalStorage(t, "Local")
 		databaseID := tm.app.InsertDatabase(t, tm.workspace.Id)
-		tm.app.ExecuteSQL(t, "INSERT INTO physical_backup_configs (database_id, storage_id) VALUES (?, ?)",
-			databaseID, createdStorage.Id)
+		tm.app.InsertPhysicalBackupConfigUsingStorage(t, apptest.StorageUse{
+			DatabaseID: databaseID,
+			StorageID:  createdStorage.Id,
+		})
 
 		response := deleteStorage(t, tm.owner, createdStorage.Id)
 

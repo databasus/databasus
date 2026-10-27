@@ -555,7 +555,7 @@ export const zh: typeof en = {
         title: '存储',
         transferExisting: '连同现有存储一起转移',
         selectFromTarget: '从目标工作区选择存储',
-        blocked: '使用此存储的数据库：{{count}}。其他数据库依赖该存储，因此无法转移。',
+        blocked: '其他数据库也备份到此存储，因此无法随此数据库一起转移。',
         canTransfer: '存储可以转移',
         selectPlaceholder: '选择存储',
         createNew: '新建存储',

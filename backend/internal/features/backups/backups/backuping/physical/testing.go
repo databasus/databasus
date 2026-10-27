@@ -15,7 +15,7 @@ import (
 	physical_repositories "databasus-backend/internal/features/backups/backups/core/physical/repositories"
 	physical_service "databasus-backend/internal/features/backups/backups/core/physical/service"
 	postgresql_executor "databasus-backend/internal/features/backups/backups/usecases/physical/postgresql"
-	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
+	backups_bridge "databasus-backend/internal/features/backups/config"
 	databases_bridge "databasus-backend/internal/features/databases"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	storages_bridge "databasus-backend/internal/features/storages"
@@ -43,7 +43,7 @@ func CreateTestPhysicalBackuper(notificationSender NotificationSender) *Physical
 		physical_repositories.GetIncrementalBackupRepository(),
 		physical_repositories.GetInFlightBackupRepository(),
 		physical_repositories.GetWalHistoryRepository(),
-		backups_config_physical.GetBackupConfigService(),
+		backups_bridge.GetModule,
 		storages_bridge.GetModule,
 		sender,
 		tasks_cancellation.GetRegistry(),
@@ -61,7 +61,7 @@ func CreateTestPhysicalScheduler() *PhysicalBackupsScheduler {
 		physical_repositories.GetFullBackupRepository(),
 		physical_repositories.GetIncrementalBackupRepository(),
 		physical_repositories.GetInFlightBackupRepository(),
-		backups_config_physical.GetBackupConfigService(),
+		backups_bridge.GetModule,
 		chain_view.GetChainViewService(),
 		tasks_cancellation.GetRequester(),
 		storages_bridge.GetModule,
@@ -102,7 +102,7 @@ func CreateTestWalStreamSupervisor(spec WalStreamSupervisorTestSpec) *PhysicalWa
 	return &PhysicalWalStreamSupervisor{
 		databases_bridge.GetAccess(),
 		databases_bridge.GetModule,
-		backups_config_physical.GetBackupConfigService(),
+		backups_bridge.GetModule,
 		storages_bridge.GetModule,
 		physical_repositories.GetWalSegmentRepository(),
 		physical_repositories.GetWalHistoryRepository(),
@@ -128,7 +128,7 @@ func CreateTestPhysicalCleaner() *PhysicalBackupCleaner {
 	return &PhysicalBackupCleaner{
 		physical_service.GetPhysicalBackupService(),
 		chain_view.GetChainViewService(),
-		backups_config_physical.GetBackupConfigService(),
+		backups_bridge.GetModule,
 		physical_repositories.GetFullBackupRepository(),
 		physical_repositories.GetWalSegmentRepository(),
 		physical_repositories.GetWalStreamSampleRepository(),

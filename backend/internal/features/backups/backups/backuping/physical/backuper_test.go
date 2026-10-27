@@ -18,10 +18,11 @@ import (
 	physical_repositories "databasus-backend/internal/features/backups/backups/core/physical/repositories"
 	physical_testing "databasus-backend/internal/features/backups/backups/core/physical/testing"
 	postgresql_executor "databasus-backend/internal/features/backups/backups/usecases/physical/postgresql"
-	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
+	backups_bridge "databasus-backend/internal/features/backups/config"
 	databases_bridge "databasus-backend/internal/features/databases"
 	storages_bridge "databasus-backend/internal/features/storages"
 	workspaces_bridge "databasus-backend/internal/features/workspaces"
+	"databasus-backend/internal/modules/backups"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/modules/storages"
@@ -381,7 +382,7 @@ func Test_ClassifyFullBackupNotification_WhenCompleted_ReturnsSuccessNotificatio
 		t.Context(),
 		database, fullBackup, result, workspaces_bridge.GetAccess())
 
-	assert.Equal(t, backups_config_physical.NotificationBackupSuccess, notificationType)
+	assert.Equal(t, backups.NotificationTriggerBackupSuccess, notificationType)
 	assert.Contains(t, title, "completed")
 	assert.Contains(t, title, "mydb")
 	assert.Contains(t, message, fullBackup.ID.String())
@@ -400,7 +401,7 @@ func Test_ClassifyFullBackupNotification_WhenErrorStatus_ReturnsFailedNotificati
 		t.Context(),
 		database, fullBackup, result, workspaces_bridge.GetAccess())
 
-	assert.Equal(t, backups_config_physical.NotificationBackupFailed, notificationType)
+	assert.Equal(t, backups.NotificationTriggerBackupFailed, notificationType)
 	assert.Contains(t, title, "failed")
 }
 
@@ -415,7 +416,7 @@ func Test_ClassifyFullBackupNotification_WhenChainBroken_ReturnsChainBrokenNotif
 		t.Context(),
 		database, fullBackup, postgresql_executor.PhysicalBackupResult{}, workspaces_bridge.GetAccess())
 
-	assert.Equal(t, backups_config_physical.NotificationChainBroken, notificationType)
+	assert.Equal(t, backups.NotificationTriggerChainBroken, notificationType)
 	assert.Contains(t, title, "chain-broken")
 }
 
@@ -438,9 +439,12 @@ func Test_SendFullBackupNotification_WhenTypeNotInSendOn_DoesNotSend(t *testing.
 	backuper := CreateTestPhysicalBackuper(sender)
 
 	// Completed maps to BACKUP_SUCCESS, which is NOT in SendNotificationsOn.
-	cfg := &backups_config_physical.PhysicalBackupConfig{
-		SendNotificationsOn: []backups_config_physical.BackupNotificationType{
-			backups_config_physical.NotificationChainBroken,
+	cfg := backups.PhysicalBackupConfig{
+		BackupConfig: backups.BackupConfig{
+			Encryption: backups.EncryptionNone,
+			NotificationTriggers: []backups.NotificationTrigger{
+				backups.NotificationTriggerChainBroken,
+			},
 		},
 	}
 	database := databases.Database{
@@ -467,9 +471,12 @@ func Test_SendFullBackupNotification_WhenEnabled_NotifiesEveryNotifierInOneCall(
 	sender := &recordingNotificationSender{}
 	backuper := CreateTestPhysicalBackuper(sender)
 
-	cfg := &backups_config_physical.PhysicalBackupConfig{
-		SendNotificationsOn: []backups_config_physical.BackupNotificationType{
-			backups_config_physical.NotificationBackupSuccess,
+	cfg := backups.PhysicalBackupConfig{
+		BackupConfig: backups.BackupConfig{
+			Encryption: backups.EncryptionNone,
+			NotificationTriggers: []backups.NotificationTrigger{
+				backups.NotificationTriggerBackupSuccess,
+			},
 		},
 	}
 	firstNotifierID, secondNotifierID := uuid.New(), uuid.New()
@@ -516,8 +523,8 @@ func Test_OpenBackupContext_WhenEncrypted_PopulatesMasterKey(t *testing.T) {
 	prereqs := seedBackupPrereqs(t)
 	backuper := CreateTestPhysicalBackuper(nil)
 
-	prereqs.Config.Encryption = backups_core_enums.BackupEncryptionEncrypted
-	_, err := backups_config_physical.GetBackupConfigService().SaveBackupConfig(t.Context(), prereqs.Config)
+	prereqs.Config.Encryption = backups.EncryptionEncrypted
+	_, err := backups_bridge.SaveTestBackupConfig(t.Context(), prereqs.Config)
 	require.NoError(t, err)
 
 	backupCtx, ok := backuper.openBackupContext(t.Context(), logger.GetLogger(), prereqs.DB.ID)
@@ -535,8 +542,7 @@ func Test_OpenBackupContext_WhenConfigHasNoStorageID_ReturnsNotOk(t *testing.T) 
 
 	prereqs.Config.IsBackupsEnabled = false
 	prereqs.Config.StorageID = nil
-	prereqs.Config.Storage = nil
-	_, err := backups_config_physical.GetBackupConfigService().SaveBackupConfig(t.Context(), prereqs.Config)
+	_, err := backups_bridge.SaveTestBackupConfig(t.Context(), prereqs.Config)
 	require.NoError(t, err)
 
 	_, ok := backuper.openBackupContext(t.Context(), logger.GetLogger(), prereqs.DB.ID)

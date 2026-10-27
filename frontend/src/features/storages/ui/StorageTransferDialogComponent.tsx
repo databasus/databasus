@@ -2,7 +2,7 @@ import { Button, Modal, Select, Spin } from 'antd';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { logicalBackupConfigApi } from '../../../entity/backups/logical';
+import { backupConfigApi } from '../../../entity/backups/config';
 import { type Storage, storageApi } from '../../../entity/storages';
 import { type Workspace, workspaceApi } from '../../../entity/workspaces';
 import { translateApiError } from '../../../shared/i18n';
@@ -12,6 +12,9 @@ interface Props {
   onClose: () => void;
   onTransferred: () => void;
 }
+
+// One config that backs up into the storage is enough to know the storage is in use.
+const STORAGE_USE_CHECK_LIMIT = 1;
 
 export const StorageTransferDialogComponent = ({ storage, onClose, onTransferred }: Props) => {
   const { t } = useTranslation();
@@ -25,10 +28,14 @@ export const StorageTransferDialogComponent = ({ storage, onClose, onTransferred
     setIsLoading(true);
 
     try {
-      const isUsing = await logicalBackupConfigApi.isStorageUsing(storage.id);
-      setIsStorageInUse(isUsing);
+      const storageBackupConfigs = await backupConfigApi.listStorageBackupConfigs(
+        storage.id,
+        STORAGE_USE_CHECK_LIMIT,
+      );
+      const isUsed = storageBackupConfigs.length > 0;
+      setIsStorageInUse(isUsed);
 
-      if (!isUsing) {
+      if (!isUsed) {
         const listedWorkspaces = await workspaceApi.listAllWorkspaces();
         const filteredWorkspaces = listedWorkspaces.filter((w) => w.id !== storage.workspaceId);
         setWorkspaces(filteredWorkspaces);

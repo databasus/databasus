@@ -14,7 +14,7 @@ import (
 	"databasus-backend/internal/config"
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	backups_services "databasus-backend/internal/features/backups/backups/services"
-	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
+	backups_bridge "databasus-backend/internal/features/backups/config"
 	databases_bridge "databasus-backend/internal/features/databases"
 	restores_core "databasus-backend/internal/features/restores/core"
 	"databasus-backend/internal/features/restores/usecases"
@@ -60,7 +60,6 @@ func (s failingRestoreMetadataStore) Clear(context.Context) error {
 func CreateTestRouter() *gin.Engine {
 	router := workspaces_testing.CreateTestRouter(
 		databases_bridge.GetTestRoutes(),
-		backups_config_logical.GetBackupConfigController(),
 	)
 
 	return router
@@ -83,7 +82,7 @@ func createTestRestorerWithShutdownSignal(
 		databases_bridge.GetModule,
 		backups_services.GetBackupService(),
 		getRestoreRepository(),
-		backups_config_logical.GetBackupConfigService(),
+		backups_bridge.GetModule,
 		storages_bridge.GetModule,
 		logger.GetLogger(),
 		usecase,

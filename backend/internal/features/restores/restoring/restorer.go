@@ -10,11 +10,11 @@ import (
 	"github.com/google/uuid"
 
 	backups_services "databasus-backend/internal/features/backups/backups/services"
-	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
 	databases_bridge "databasus-backend/internal/features/databases"
 	restores_core "databasus-backend/internal/features/restores/core"
 	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
 	"databasus-backend/internal/lib/cache"
+	"databasus-backend/internal/modules/backups"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/storages"
 )
@@ -22,10 +22,10 @@ import (
 type Restorer struct {
 	databaseAccess *databases_bridge.Access
 	// getDatabases is read per call: each test application installs its own module.
-	getDatabases        func() databases.Module
-	backupService       *backups_services.LogicalBackupService
-	restoreRepository   *restores_core.RestoreRepository
-	backupConfigService *backups_config_logical.BackupConfigService
+	getDatabases      func() databases.Module
+	backupService     *backups_services.LogicalBackupService
+	restoreRepository *restores_core.RestoreRepository
+	getBackups        func() backups.Module
 	// getStorages is read per call: each test application installs its own module.
 	getStorages              func() storages.Module
 	logger                   *slog.Logger
@@ -98,7 +98,7 @@ func (r *Restorer) MakeRestore(
 		return
 	}
 
-	backupConfig, err := r.backupConfigService.GetBackupConfigByDbId(databaseID)
+	backupConfig, err := r.getBackups().GetLogicalBackupConfig(ctx, databaseID)
 	if err != nil {
 		logger.ErrorContext(ctx, "failed to get backup config by database ID", "error", err)
 		return

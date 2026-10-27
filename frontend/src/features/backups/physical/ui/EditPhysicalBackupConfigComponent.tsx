@@ -4,14 +4,22 @@ import { type JSX, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import {
+  BackupSettingsType,
+  type PhysicalBackupConfigInput,
+  type PhysicalBackupSettings,
+  type Schedule,
+  ScheduleType,
+  backupConfigApi,
+  isScheduleFilled,
+  toPhysicalBackupConfigInput,
+} from '../../../../entity/backups/config';
+import {
+  FULL_BACKUPS_RETENTION_POLICY_LABEL_KEYS,
   type FullBackupsRetention,
-  PHYSICAL_BACKUP_NOTIFICATION_TYPE_LABEL_KEYS,
-  PHYSICAL_FULL_BACKUPS_POLICY_LABEL_KEYS,
-  type PhysicalBackupConfig,
-  PhysicalBackupNotificationType,
-  PhysicalFullBackupsPolicy,
-  PhysicalRetention,
-  physicalBackupConfigApi,
+  FullBackupsRetentionPolicy,
+  PHYSICAL_NOTIFICATION_TRIGGER_LABEL_KEYS,
+  PhysicalNotificationTrigger,
+  PhysicalRetentionPolicy,
 } from '../../../../entity/backups/physical';
 import {
   BACKUP_ENCRYPTION_OPTION_LABEL_KEYS,
@@ -22,12 +30,10 @@ import {
   DatabaseType,
   PhysicalDatabaseBackupType,
 } from '../../../../entity/databases';
-import { type Interval, IntervalType } from '../../../../entity/intervals';
 import { type Storage, getStorageLogoFromType, storageApi } from '../../../../entity/storages';
 import { translateApiError } from '../../../../shared/i18n';
 import { ConfirmationComponent } from '../../../../shared/ui';
 import { EditStorageComponent } from '../../../storages/ui/edit/EditStorageComponent';
-import { toBackupConfigStorage } from '../../lib/toBackupConfigStorage';
 import { PhysicalIntervalEditor } from './PhysicalIntervalEditor';
 
 interface Props {
@@ -35,7 +41,7 @@ interface Props {
 
   // Seeds the editor in wizard mode (isSaveToApi=false) so going Back restores the
   // in-progress config instead of refetching a default by database id.
-  initialConfig?: PhysicalBackupConfig;
+  initialConfig?: PhysicalBackupConfigInput;
 
   isShowBackButton: boolean;
   onBack: () => void;
@@ -45,13 +51,13 @@ interface Props {
 
   saveButtonText?: string;
   isSaveToApi: boolean;
-  onSaved: (backupConfig: PhysicalBackupConfig) => void;
+  onSaved: (backupConfig: PhysicalBackupConfigInput) => void;
 }
 
 const BYTES_IN_MB = 1024 * 1024;
 
 const isFullBackupsRetentionValid = (retention: FullBackupsRetention): boolean => {
-  if (retention.policy === PhysicalFullBackupsPolicy.LAST_N) {
+  if (retention.policy === FullBackupsRetentionPolicy.LAST_N) {
     return retention.count > 0;
   }
 
@@ -64,39 +70,35 @@ const isFullBackupsRetentionValid = (retention: FullBackupsRetention): boolean =
   );
 };
 
-// The backend forbids the retention sub-object the selected mode doesn't use (e.g. CHAINS
-// must not carry full_backups_retention). The editor keeps both populated so values
-// survive toggling the dropdown, so zero the unused one only at save time.
-const ZERO_FULL_BACKUPS_RETENTION: FullBackupsRetention = {
-  policy: '' as PhysicalFullBackupsPolicy, // empty policy makes the backend treat it as unset
+const DEFAULT_FULL_BACKUPS_RETENTION: FullBackupsRetention = {
+  policy: FullBackupsRetentionPolicy.GFS,
   count: 0,
   gfsHours: 0,
-  gfsDays: 0,
-  gfsWeeks: 0,
-  gfsMonths: 0,
-  gfsYears: 0,
+  gfsDays: 7,
+  gfsWeeks: 4,
+  gfsMonths: 12,
+  gfsYears: 3,
 };
 
-const normalizeRetentionForSave = (config: PhysicalBackupConfig): PhysicalBackupConfig => {
-  if (config.retention === PhysicalRetention.CHAINS) {
-    return { ...config, fullBackupsRetention: ZERO_FULL_BACKUPS_RETENTION };
-  }
+const mergeSchedule = (schedule: Schedule | null, patch: Partial<Schedule>): Schedule =>
+  ({ ...(schedule ?? {}), ...patch }) as Schedule;
 
-  if (config.retention === PhysicalRetention.FULL_BACKUPS) {
-    return { ...config, chainsRetention: { count: 0 } };
-  }
+// The contract forbids the retention part the selected policy doesn't use: CHAINS carries no full
+// backups retention and FULL_BACKUPS keeps no chains. The editor keeps both filled so the values
+// survive switching the policy, and drops the unused one only when saving.
+const withRetentionForSave = (
+  backupConfig: PhysicalBackupConfigInput,
+  fullBackupsRetention: FullBackupsRetention,
+): PhysicalBackupConfigInput => {
+  const { policy, chainsCount } = backupConfig.settings.retention;
 
-  return config;
-};
+  const retention: PhysicalBackupSettings['retention'] = {
+    policy,
+    chainsCount: policy === PhysicalRetentionPolicy.FULL_BACKUPS ? 0 : chainsCount,
+    fullBackups: policy === PhysicalRetentionPolicy.CHAINS ? null : fullBackupsRetention,
+  };
 
-const isIntervalValid = (interval?: Interval): boolean => {
-  if (!interval?.type) return false;
-
-  if (interval.type === IntervalType.WEEKLY) return Boolean(interval.weekday);
-  if (interval.type === IntervalType.MONTHLY) return Boolean(interval.dayOfMonth);
-  if (interval.type === IntervalType.CRON) return Boolean(interval.cronExpression);
-
-  return true;
+  return { ...backupConfig, settings: { ...backupConfig.settings, retention } };
 };
 
 export const EditPhysicalBackupConfigComponent = ({
@@ -113,7 +115,10 @@ export const EditPhysicalBackupConfigComponent = ({
   onSaved,
 }: Props): JSX.Element => {
   const { t } = useTranslation();
-  const [backupConfig, setBackupConfig] = useState<PhysicalBackupConfig>();
+  const [backupConfig, setBackupConfig] = useState<PhysicalBackupConfigInput>();
+  const [fullBackupsRetention, setFullBackupsRetention] = useState<FullBackupsRetention>(
+    DEFAULT_FULL_BACKUPS_RETENTION,
+  );
   const [isUnsaved, setIsUnsaved] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -133,55 +138,91 @@ export const EditPhysicalBackupConfigComponent = ({
   const isIncrementalAllowed = backupType !== PhysicalDatabaseBackupType.FULL;
   const isWalStream = backupType === PhysicalDatabaseBackupType.FULL_INCREMENTAL_WAL_STREAM;
 
-  const updateBackupConfig = (patch: Partial<PhysicalBackupConfig>) => {
+  const updateBackupConfig = (patch: Partial<PhysicalBackupConfigInput>) => {
     setBackupConfig((prev) => (prev ? { ...prev, ...patch } : prev));
     setIsUnsaved(true);
   };
 
-  const updateFullInterval = (patch: Partial<Interval>) => {
-    setBackupConfig((prev) => {
-      if (!prev) return prev;
-      const merged = { ...(prev.fullBackupInterval ?? {}), ...patch } as Interval;
-      return { ...prev, fullBackupInterval: merged };
-    });
-    setIsUnsaved(true);
-  };
-
-  const updateIncrementalInterval = (patch: Partial<Interval>) => {
-    setBackupConfig((prev) => {
-      if (!prev) return prev;
-      const merged = { ...(prev.incrementalBackupInterval ?? {}), ...patch } as Interval;
-      return { ...prev, incrementalBackupInterval: merged };
-    });
-    setIsUnsaved(true);
-  };
-
-  const updateFullBackupsRetention = (patch: Partial<FullBackupsRetention>) => {
+  const updateRetention = (patch: Partial<PhysicalBackupSettings['retention']>) => {
     setBackupConfig((prev) =>
-      prev ? { ...prev, fullBackupsRetention: { ...prev.fullBackupsRetention, ...patch } } : prev,
+      prev
+        ? {
+            ...prev,
+            settings: { ...prev.settings, retention: { ...prev.settings.retention, ...patch } },
+          }
+        : prev,
     );
     setIsUnsaved(true);
   };
 
-  const toggleNotification = (type: PhysicalBackupNotificationType, isChecked: boolean) => {
+  const updateFullBackupSchedule = (patch: Partial<Schedule>) => {
+    setBackupConfig((prev) =>
+      prev
+        ? {
+            ...prev,
+            settings: {
+              ...prev.settings,
+              fullBackupSchedule: mergeSchedule(prev.settings.fullBackupSchedule, patch),
+            },
+          }
+        : prev,
+    );
+    setIsUnsaved(true);
+  };
+
+  const updateIncrementalBackupSchedule = (patch: Partial<Schedule>) => {
+    setBackupConfig((prev) =>
+      prev
+        ? {
+            ...prev,
+            settings: {
+              ...prev.settings,
+              incrementalBackupSchedule: mergeSchedule(
+                prev.settings.incrementalBackupSchedule,
+                patch,
+              ),
+            },
+          }
+        : prev,
+    );
+    setIsUnsaved(true);
+  };
+
+  const updateFullBackupsRetention = (patch: Partial<FullBackupsRetention>) => {
+    setFullBackupsRetention((prev) => ({ ...prev, ...patch }));
+    setIsUnsaved(true);
+  };
+
+  const toggleNotificationTrigger = (trigger: PhysicalNotificationTrigger, isChecked: boolean) => {
     setBackupConfig((prev) => {
       if (!prev) return prev;
-      const notifications = prev.sendNotificationsOn.filter((n) => n !== type);
-      if (isChecked) notifications.push(type);
-      return { ...prev, sendNotificationsOn: notifications };
+
+      const notificationTriggers = prev.settings.notificationTriggers.filter(
+        (selectedTrigger) => selectedTrigger !== trigger,
+      );
+      if (isChecked) notificationTriggers.push(trigger);
+
+      return { ...prev, settings: { ...prev.settings, notificationTriggers } };
     });
     setIsUnsaved(true);
+  };
+
+  const showBackupConfig = (shownBackupConfig: PhysicalBackupConfigInput) => {
+    setBackupConfig(shownBackupConfig);
+    setFullBackupsRetention(
+      shownBackupConfig.settings.retention.fullBackups ?? DEFAULT_FULL_BACKUPS_RETENTION,
+    );
   };
 
   const saveBackupConfig = async () => {
     if (!backupConfig) return;
 
-    const configToSave = normalizeRetentionForSave(backupConfig);
+    const configToSave = withRetentionForSave(backupConfig, fullBackupsRetention);
 
     if (isSaveToApi) {
       setIsSaving(true);
       try {
-        await physicalBackupConfigApi.savePhysicalBackupConfig(configToSave);
+        await backupConfigApi.updateBackupConfig(database.id, configToSave);
         setIsUnsaved(false);
       } catch (e) {
         alert(translateApiError(e, t));
@@ -201,31 +242,27 @@ export const EditPhysicalBackupConfigComponent = ({
     }
   };
 
-  const buildDefaultConfig = (): PhysicalBackupConfig => ({
-    databaseId: database.id,
+  const buildDefaultConfig = (): PhysicalBackupConfigInput => ({
     isBackupsEnabled: true,
-    fullBackupInterval: { type: IntervalType.WEEKLY, timeOfDay: '00:00', weekday: 1 },
-    incrementalBackupInterval: isIncrementalAllowed
-      ? { type: IntervalType.DAILY, timeOfDay: '00:00' }
-      : undefined,
-    retention:
-      backupType === PhysicalDatabaseBackupType.FULL
-        ? PhysicalRetention.FULL_BACKUPS
-        : PhysicalRetention.CHAINS_AND_FULL_BACKUPS,
-    chainsRetention: { count: 7 },
-    fullBackupsRetention: {
-      policy: PhysicalFullBackupsPolicy.GFS,
-      count: 0,
-      gfsHours: 0,
-      gfsDays: 7,
-      gfsWeeks: 4,
-      gfsMonths: 12,
-      gfsYears: 3,
-    },
-    walLagThresholdBytes: isWalStream ? 256 * BYTES_IN_MB : 0,
-    storage: undefined,
+    storageId: null,
     encryption: BackupEncryption.NONE,
-    sendNotificationsOn: [PhysicalBackupNotificationType.BACKUP_FAILED],
+    settings: {
+      type: BackupSettingsType.PHYSICAL,
+      fullBackupSchedule: { type: ScheduleType.WEEKLY, timeOfDay: '00:00', weekday: 1 },
+      incrementalBackupSchedule: isIncrementalAllowed
+        ? { type: ScheduleType.DAILY, timeOfDay: '00:00' }
+        : null,
+      retention: {
+        policy:
+          backupType === PhysicalDatabaseBackupType.FULL
+            ? PhysicalRetentionPolicy.FULL_BACKUPS
+            : PhysicalRetentionPolicy.CHAINS_AND_FULL_BACKUPS,
+        chainsCount: 7,
+        fullBackups: DEFAULT_FULL_BACKUPS_RETENTION,
+      },
+      walLagThresholdBytes: isWalStream ? 256 * BYTES_IN_MB : 0,
+      notificationTriggers: [PhysicalNotificationTrigger.BACKUP_FAILED],
+    },
   });
 
   useEffect(() => {
@@ -236,12 +273,14 @@ export const EditPhysicalBackupConfigComponent = ({
         // Wizard mode (isSaveToApi=false) is purely in-memory: never refetch by database
         // id, even after the DB row exists - seed from the in-progress config or defaults.
         if (isSaveToApi && database.id) {
-          const config = await physicalBackupConfigApi.getPhysicalBackupConfigByDbId(database.id);
-          setBackupConfig(config);
+          const loadedBackupConfig = toPhysicalBackupConfigInput(
+            await backupConfigApi.getBackupConfig(database.id),
+          );
+          if (loadedBackupConfig) showBackupConfig(loadedBackupConfig);
           setIsUnsaved(false);
           setIsSaving(false);
         } else {
-          setBackupConfig(initialConfig ?? buildDefaultConfig());
+          showBackupConfig(initialConfig ?? buildDefaultConfig());
         }
 
         await loadStorages();
@@ -265,20 +304,21 @@ export const EditPhysicalBackupConfigComponent = ({
 
   if (!backupConfig) return <div />;
 
-  const fullBackupsRetention = backupConfig.fullBackupsRetention;
+  const { settings } = backupConfig;
+  const retentionPolicy = settings.retention.policy;
 
   // FULL databases are forced to FULL_BACKUPS retention; the others may pick
   // between CHAINS and CHAINS_AND_FULL_BACKUPS.
   const isShowChainsCount =
     backupType !== PhysicalDatabaseBackupType.FULL &&
-    (backupConfig.retention === PhysicalRetention.CHAINS ||
-      backupConfig.retention === PhysicalRetention.CHAINS_AND_FULL_BACKUPS);
+    (retentionPolicy === PhysicalRetentionPolicy.CHAINS ||
+      retentionPolicy === PhysicalRetentionPolicy.CHAINS_AND_FULL_BACKUPS);
 
   const isShowFullBackupsEditor =
     backupType === PhysicalDatabaseBackupType.FULL ||
-    backupConfig.retention === PhysicalRetention.CHAINS_AND_FULL_BACKUPS;
+    retentionPolicy === PhysicalRetentionPolicy.CHAINS_AND_FULL_BACKUPS;
 
-  const isChainsCountValid = !isShowChainsCount || (backupConfig.chainsRetention?.count ?? 0) > 0;
+  const isChainsCountValid = !isShowChainsCount || settings.retention.chainsCount > 0;
 
   const isFullRetentionValid =
     !isShowFullBackupsEditor || isFullBackupsRetentionValid(fullBackupsRetention);
@@ -288,17 +328,19 @@ export const EditPhysicalBackupConfigComponent = ({
     label: t(BACKUP_ENCRYPTION_OPTION_LABEL_KEYS[encryption]),
   }));
 
-  const fullBackupsPolicyOptions = Object.values(PhysicalFullBackupsPolicy).map((policy) => ({
+  const fullBackupsPolicyOptions = Object.values(FullBackupsRetentionPolicy).map((policy) => ({
     value: policy,
-    label: t(PHYSICAL_FULL_BACKUPS_POLICY_LABEL_KEYS[policy]),
+    label: t(FULL_BACKUPS_RETENTION_POLICY_LABEL_KEYS[policy]),
   }));
+
+  const selectedStorage = storages.find((storage) => storage.id === backupConfig.storageId);
 
   const isAllFieldsFilled =
     !backupConfig.isBackupsEnabled ||
-    (Boolean(backupConfig.storage?.id) &&
+    (Boolean(backupConfig.storageId) &&
       Boolean(backupConfig.encryption) &&
-      isIntervalValid(backupConfig.fullBackupInterval) &&
-      (!isIncrementalAllowed || isIntervalValid(backupConfig.incrementalBackupInterval)) &&
+      isScheduleFilled(settings.fullBackupSchedule) &&
+      (!isIncrementalAllowed || isScheduleFilled(settings.incrementalBackupSchedule)) &&
       isChainsCountValid &&
       isFullRetentionValid);
 
@@ -321,16 +363,16 @@ export const EditPhysicalBackupConfigComponent = ({
         <>
           <PhysicalIntervalEditor
             label={t('backups.physical.config.fullBackupCadence')}
-            interval={backupConfig.fullBackupInterval}
-            onChange={updateFullInterval}
+            schedule={settings.fullBackupSchedule}
+            onChange={updateFullBackupSchedule}
           />
 
           {isIncrementalAllowed && (
             <>
               <PhysicalIntervalEditor
                 label={t('backups.physical.config.incrementalBackupCadence')}
-                interval={backupConfig.incrementalBackupInterval}
-                onChange={updateIncrementalInterval}
+                schedule={settings.incrementalBackupSchedule}
+                onChange={updateIncrementalBackupSchedule}
               />
               <div className="mt-1 mb-3 flex w-full flex-col items-start sm:flex-row sm:items-center">
                 <div className="min-w-[150px] pr-2" />
@@ -350,19 +392,16 @@ export const EditPhysicalBackupConfigComponent = ({
         <div className="flex w-full items-center">
           <Select
             key={storageSelectKey}
-            value={backupConfig.storage?.id}
+            value={backupConfig.storageId ?? undefined}
             onChange={(storageId) => {
               if (storageId.includes('create-new-storage')) {
                 setShowCreateStorage(true);
                 return;
               }
 
-              const selectedStorage = storages.find((s) => s.id === storageId);
-              updateBackupConfig({
-                storage: selectedStorage && toBackupConfigStorage(selectedStorage),
-              });
+              updateBackupConfig({ storageId });
 
-              if (backupConfig.storage?.id) {
+              if (backupConfig.storageId) {
                 setIsShowWarn(true);
               }
             }}
@@ -375,9 +414,9 @@ export const EditPhysicalBackupConfigComponent = ({
             placeholder={t('backups.config.selectStorage')}
           />
 
-          {backupConfig.storage?.type && (
+          {selectedStorage && (
             <img
-              src={getStorageLogoFromType(backupConfig.storage.type)}
+              src={getStorageLogoFromType(selectedStorage.settings.type)}
               alt=""
               className="ml-1 h-4 w-4"
             />
@@ -417,19 +456,19 @@ export const EditPhysicalBackupConfigComponent = ({
           ) : (
             <div className="flex w-full items-center">
               <Select
-                value={backupConfig.retention}
-                onChange={(v) => updateBackupConfig({ retention: v })}
+                value={retentionPolicy}
+                onChange={(policy) => updateRetention({ policy })}
                 size="small"
                 className="min-w-0 grow"
                 popupMatchSelectWidth={false}
                 options={[
                   {
                     label: t('backups.physical.config.retentionOptions.chains'),
-                    value: PhysicalRetention.CHAINS,
+                    value: PhysicalRetentionPolicy.CHAINS,
                   },
                   {
                     label: t('backups.physical.config.retentionOptions.chainsAndFullBackups'),
-                    value: PhysicalRetention.CHAINS_AND_FULL_BACKUPS,
+                    value: PhysicalRetentionPolicy.CHAINS_AND_FULL_BACKUPS,
                   },
                 ]}
               />
@@ -468,8 +507,8 @@ export const EditPhysicalBackupConfigComponent = ({
               </div>
               <InputNumber
                 min={1}
-                value={backupConfig.chainsRetention?.count}
-                onChange={(v) => updateBackupConfig({ chainsRetention: { count: v ?? 1 } })}
+                value={settings.retention.chainsCount}
+                onChange={(v) => updateRetention({ chainsCount: v ?? 1 })}
                 size="small"
                 className="w-[80px] max-w-[80px]"
               />
@@ -492,7 +531,7 @@ export const EditPhysicalBackupConfigComponent = ({
                 />
               </div>
 
-              {fullBackupsRetention.policy === PhysicalFullBackupsPolicy.LAST_N && (
+              {fullBackupsRetention.policy === FullBackupsRetentionPolicy.LAST_N && (
                 <div className="flex items-center gap-2">
                   <span className="max-w-[110px] shrink-0 text-sm leading-4 text-gray-600 dark:text-gray-400">
                     {t('backups.physical.config.fullBackupsCount')}
@@ -507,7 +546,7 @@ export const EditPhysicalBackupConfigComponent = ({
                 </div>
               )}
 
-              {fullBackupsRetention.policy === PhysicalFullBackupsPolicy.GFS && (
+              {fullBackupsRetention.policy === FullBackupsRetentionPolicy.GFS && (
                 <div className="flex max-w-[200px] flex-col gap-1">
                   <div className="flex items-center gap-2">
                     <span className="w-[110px] text-sm text-gray-600 dark:text-gray-400">
@@ -583,47 +622,54 @@ export const EditPhysicalBackupConfigComponent = ({
           </div>
           <div className="flex flex-col space-y-2">
             <Checkbox
-              checked={backupConfig.sendNotificationsOn.includes(
-                PhysicalBackupNotificationType.BACKUP_SUCCESS,
+              checked={settings.notificationTriggers.includes(
+                PhysicalNotificationTrigger.BACKUP_SUCCESS,
               )}
               onChange={(e) =>
-                toggleNotification(PhysicalBackupNotificationType.BACKUP_SUCCESS, e.target.checked)
+                toggleNotificationTrigger(
+                  PhysicalNotificationTrigger.BACKUP_SUCCESS,
+                  e.target.checked,
+                )
               }
             >
               {t(
-                PHYSICAL_BACKUP_NOTIFICATION_TYPE_LABEL_KEYS[
-                  PhysicalBackupNotificationType.BACKUP_SUCCESS
+                PHYSICAL_NOTIFICATION_TRIGGER_LABEL_KEYS[
+                  PhysicalNotificationTrigger.BACKUP_SUCCESS
                 ],
               )}
             </Checkbox>
 
             <Checkbox
-              checked={backupConfig.sendNotificationsOn.includes(
-                PhysicalBackupNotificationType.BACKUP_FAILED,
+              checked={settings.notificationTriggers.includes(
+                PhysicalNotificationTrigger.BACKUP_FAILED,
               )}
               onChange={(e) =>
-                toggleNotification(PhysicalBackupNotificationType.BACKUP_FAILED, e.target.checked)
+                toggleNotificationTrigger(
+                  PhysicalNotificationTrigger.BACKUP_FAILED,
+                  e.target.checked,
+                )
               }
             >
               {t(
-                PHYSICAL_BACKUP_NOTIFICATION_TYPE_LABEL_KEYS[
-                  PhysicalBackupNotificationType.BACKUP_FAILED
-                ],
+                PHYSICAL_NOTIFICATION_TRIGGER_LABEL_KEYS[PhysicalNotificationTrigger.BACKUP_FAILED],
               )}
             </Checkbox>
 
             {isIncrementalAllowed && (
               <Checkbox
-                checked={backupConfig.sendNotificationsOn.includes(
-                  PhysicalBackupNotificationType.CHAIN_BROKEN,
+                checked={settings.notificationTriggers.includes(
+                  PhysicalNotificationTrigger.CHAIN_BROKEN,
                 )}
                 onChange={(e) =>
-                  toggleNotification(PhysicalBackupNotificationType.CHAIN_BROKEN, e.target.checked)
+                  toggleNotificationTrigger(
+                    PhysicalNotificationTrigger.CHAIN_BROKEN,
+                    e.target.checked,
+                  )
                 }
               >
                 {t(
-                  PHYSICAL_BACKUP_NOTIFICATION_TYPE_LABEL_KEYS[
-                    PhysicalBackupNotificationType.CHAIN_BROKEN
+                  PHYSICAL_NOTIFICATION_TRIGGER_LABEL_KEYS[
+                    PhysicalNotificationTrigger.CHAIN_BROKEN
                   ],
                 )}
               </Checkbox>
@@ -631,18 +677,14 @@ export const EditPhysicalBackupConfigComponent = ({
 
             {isWalStream && (
               <Checkbox
-                checked={backupConfig.sendNotificationsOn.includes(
-                  PhysicalBackupNotificationType.WAL_GAP,
+                checked={settings.notificationTriggers.includes(
+                  PhysicalNotificationTrigger.WAL_GAP,
                 )}
                 onChange={(e) =>
-                  toggleNotification(PhysicalBackupNotificationType.WAL_GAP, e.target.checked)
+                  toggleNotificationTrigger(PhysicalNotificationTrigger.WAL_GAP, e.target.checked)
                 }
               >
-                {t(
-                  PHYSICAL_BACKUP_NOTIFICATION_TYPE_LABEL_KEYS[
-                    PhysicalBackupNotificationType.WAL_GAP
-                  ],
-                )}
+                {t(PHYSICAL_NOTIFICATION_TRIGGER_LABEL_KEYS[PhysicalNotificationTrigger.WAL_GAP])}
               </Checkbox>
             )}
           </div>
@@ -694,9 +736,9 @@ export const EditPhysicalBackupConfigComponent = ({
             isShowClose={false}
             onClose={() => setShowCreateStorage(false)}
             onChanged={async (createdStorage) => {
-              const hadExistingStorage = !!backupConfig?.storage?.id;
+              const hadExistingStorage = !!backupConfig?.storageId;
               await loadStorages();
-              updateBackupConfig({ storage: toBackupConfigStorage(createdStorage) });
+              updateBackupConfig({ storageId: createdStorage.id });
               setShowCreateStorage(false);
               if (hadExistingStorage) {
                 setIsShowWarn(true);

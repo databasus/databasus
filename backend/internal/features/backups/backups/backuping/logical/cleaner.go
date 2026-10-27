@@ -11,11 +11,10 @@ import (
 
 	"databasus-backend/internal/features/backups/backups/backuping/shared/gfs"
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
-	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
 	"databasus-backend/internal/lib/database"
+	"databasus-backend/internal/modules/backups"
 	"databasus-backend/internal/modules/storages"
 	db "databasus-backend/internal/storage"
-	"databasus-backend/internal/util/period"
 )
 
 const (
@@ -29,7 +28,7 @@ type BackupCleaner struct {
 	backupRepository *backups_core_logical.BackupRepository
 	// getStorages is read per call: each test application installs its own module.
 	getStorages           func() storages.Module
-	backupConfigService   *backups_config_logical.BackupConfigService
+	getBackups            func() backups.Module
 	logger                *slog.Logger
 	backupRemoveListeners []backups_core_logical.BackupRemoveListener
 
@@ -103,20 +102,20 @@ func (c *BackupCleaner) AddBackupRemoveListener(listener backups_core_logical.Ba
 }
 
 func (c *BackupCleaner) cleanByRetentionPolicy(ctx context.Context, logger *slog.Logger) error {
-	enabledBackupConfigs, err := c.backupConfigService.GetBackupConfigsWithEnabledBackups()
+	enabledBackupConfigs, err := c.getBackups().ListEnabledLogicalBackupConfigs(ctx)
 	if err != nil {
 		return err
 	}
 
 	for _, backupConfig := range enabledBackupConfigs {
-		dbLog := logger.With("database_id", backupConfig.DatabaseID, "policy", backupConfig.RetentionPolicyType)
+		dbLog := logger.With("database_id", backupConfig.DatabaseID, "policy", backupConfig.Retention.Policy)
 
 		var cleanErr error
 
-		switch backupConfig.RetentionPolicyType {
-		case backups_config_logical.RetentionPolicyTypeCount:
+		switch backupConfig.Retention.Policy {
+		case backups.LogicalRetentionPolicyCount:
 			cleanErr = c.cleanByCount(ctx, dbLog, backupConfig)
-		case backups_config_logical.RetentionPolicyTypeGFS:
+		case backups.LogicalRetentionPolicyGfs:
 			cleanErr = c.cleanByGFS(ctx, dbLog, backupConfig)
 		default:
 			cleanErr = c.cleanByTimePeriod(ctx, dbLog, backupConfig)
@@ -133,15 +132,15 @@ func (c *BackupCleaner) cleanByRetentionPolicy(ctx context.Context, logger *slog
 func (c *BackupCleaner) cleanByTimePeriod(
 	ctx context.Context,
 	logger *slog.Logger,
-	backupConfig *backups_config_logical.LogicalBackupConfig,
+	backupConfig backups.LogicalBackupConfig,
 ) error {
-	if backupConfig.RetentionTimePeriod == "" || backupConfig.RetentionTimePeriod == period.PeriodForever {
+	if backupConfig.Retention.Period == "" || backupConfig.Retention.Period == backups.RetentionPeriodForever {
 		logger.DebugContext(ctx, "time-period retention keeps everything, nothing to evaluate")
 
 		return nil
 	}
 
-	cutoff := time.Now().UTC().Add(-backupConfig.RetentionTimePeriod.ToDuration())
+	cutoff := time.Now().UTC().Add(-backupConfig.Retention.Period.GetDuration())
 
 	oldBackups, err := c.backupRepository.FindBackupsBeforeDate(backupConfig.DatabaseID, cutoff)
 	if err != nil {
@@ -169,11 +168,11 @@ func (c *BackupCleaner) cleanByTimePeriod(
 		deletedCount++
 
 		logger.InfoContext(ctx, fmt.Sprintf("deleted backup older than %s (%.1f MB)",
-			backupConfig.RetentionTimePeriod, backup.BackupSizeMb), "backup_id", backup.ID)
+			backupConfig.Retention.Period, backup.BackupSizeMb), "backup_id", backup.ID)
 	}
 
 	summary := fmt.Sprintf("time-period retention: %d backups past the %s cutoff, %d deleted, %d within grace",
-		len(oldBackups), backupConfig.RetentionTimePeriod, deletedCount, withinGraceCount)
+		len(oldBackups), backupConfig.Retention.Period, deletedCount, withinGraceCount)
 
 	// The cleaner ticks every few seconds, so a summary of a run that changed nothing belongs at
 	// debug; only an actual deletion is a state change.
@@ -189,9 +188,9 @@ func (c *BackupCleaner) cleanByTimePeriod(
 func (c *BackupCleaner) cleanByCount(
 	ctx context.Context,
 	logger *slog.Logger,
-	backupConfig *backups_config_logical.LogicalBackupConfig,
+	backupConfig backups.LogicalBackupConfig,
 ) error {
-	if backupConfig.RetentionCount <= 0 {
+	if backupConfig.Retention.Count <= 0 {
 		logger.DebugContext(ctx, "count retention is not configured, nothing to evaluate")
 
 		return nil
@@ -202,16 +201,16 @@ func (c *BackupCleaner) cleanByCount(
 		return err
 	}
 
-	if len(completedBackups) <= backupConfig.RetentionCount {
+	if len(completedBackups) <= backupConfig.Retention.Count {
 		logger.DebugContext(ctx, fmt.Sprintf("count retention: keeping all %d backups, limit is %d",
-			len(completedBackups), backupConfig.RetentionCount))
+			len(completedBackups), backupConfig.Retention.Count))
 
 		return nil
 	}
 
 	deletedCount, withinGraceCount := 0, 0
 
-	for _, backup := range completedBackups[backupConfig.RetentionCount:] {
+	for _, backup := range completedBackups[backupConfig.Retention.Count:] {
 		if isRecentBackup(backup) {
 			withinGraceCount++
 
@@ -230,11 +229,11 @@ func (c *BackupCleaner) cleanByCount(
 		deletedCount++
 
 		logger.InfoContext(ctx, fmt.Sprintf("deleted backup past the retention count of %d (%.1f MB)",
-			backupConfig.RetentionCount, backup.BackupSizeMb), "backup_id", backup.ID)
+			backupConfig.Retention.Count, backup.BackupSizeMb), "backup_id", backup.ID)
 	}
 
 	summary := fmt.Sprintf("count retention: %d completed backups, %d kept by limit, %d deleted, %d within grace",
-		len(completedBackups), backupConfig.RetentionCount, deletedCount, withinGraceCount)
+		len(completedBackups), backupConfig.Retention.Count, deletedCount, withinGraceCount)
 
 	if deletedCount > 0 {
 		logger.InfoContext(ctx, summary)
@@ -248,11 +247,11 @@ func (c *BackupCleaner) cleanByCount(
 func (c *BackupCleaner) cleanByGFS(
 	ctx context.Context,
 	logger *slog.Logger,
-	backupConfig *backups_config_logical.LogicalBackupConfig,
+	backupConfig backups.LogicalBackupConfig,
 ) error {
-	if backupConfig.RetentionGfsHours <= 0 && backupConfig.RetentionGfsDays <= 0 &&
-		backupConfig.RetentionGfsWeeks <= 0 && backupConfig.RetentionGfsMonths <= 0 &&
-		backupConfig.RetentionGfsYears <= 0 {
+	if backupConfig.Retention.Gfs.Hours <= 0 && backupConfig.Retention.Gfs.Days <= 0 &&
+		backupConfig.Retention.Gfs.Weeks <= 0 && backupConfig.Retention.Gfs.Months <= 0 &&
+		backupConfig.Retention.Gfs.Years <= 0 {
 		// Every tier is zero, so GFS retains nothing and would delete every backup if it ran. Debug
 		// rather than Warn: an empty config is a deliberate state, and this runs on every tick.
 		logger.DebugContext(ctx, "gfs retention has no tier configured, keeping everything")
@@ -267,11 +266,11 @@ func (c *BackupCleaner) cleanByGFS(
 
 	retainedTiersByBackupID := buildRetainedTiersByBackupID(
 		completedBackups,
-		backupConfig.RetentionGfsHours,
-		backupConfig.RetentionGfsDays,
-		backupConfig.RetentionGfsWeeks,
-		backupConfig.RetentionGfsMonths,
-		backupConfig.RetentionGfsYears,
+		backupConfig.Retention.Gfs.Hours,
+		backupConfig.Retention.Gfs.Days,
+		backupConfig.Retention.Gfs.Weeks,
+		backupConfig.Retention.Gfs.Months,
+		backupConfig.Retention.Gfs.Years,
 	)
 
 	deletedCount, withinGraceCount := 0, 0
@@ -307,8 +306,8 @@ func (c *BackupCleaner) cleanByGFS(
 
 	summary := fmt.Sprintf(
 		"gfs retention (%dh/%dd/%dw/%dm/%dy): %d completed backups, %d kept by tier, %d deleted, %d within grace",
-		backupConfig.RetentionGfsHours, backupConfig.RetentionGfsDays, backupConfig.RetentionGfsWeeks,
-		backupConfig.RetentionGfsMonths, backupConfig.RetentionGfsYears,
+		backupConfig.Retention.Gfs.Hours, backupConfig.Retention.Gfs.Days, backupConfig.Retention.Gfs.Weeks,
+		backupConfig.Retention.Gfs.Months, backupConfig.Retention.Gfs.Years,
 		len(completedBackups), len(retainedTiersByBackupID), deletedCount, withinGraceCount)
 
 	if deletedCount > 0 {

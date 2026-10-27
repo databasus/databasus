@@ -20,10 +20,10 @@ import (
 	physical_repositories "databasus-backend/internal/features/backups/backups/core/physical/repositories"
 	"databasus-backend/internal/features/backups/backups/core/physical/wal_health"
 	postgresql_executor "databasus-backend/internal/features/backups/backups/usecases/physical/postgresql"
-	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
 	databases_bridge "databasus-backend/internal/features/databases"
 	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
 	"databasus-backend/internal/lib/crypto"
+	"databasus-backend/internal/modules/backups"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/modules/storages"
@@ -36,8 +36,8 @@ import (
 type PhysicalWalStreamSupervisor struct {
 	databaseAccess *databases_bridge.Access
 	// getDatabases is read per call: each test application installs its own module.
-	getDatabases        func() databases.Module
-	backupConfigService *backups_config_physical.BackupConfigService
+	getDatabases func() databases.Module
+	getBackups   func() backups.Module
 	// getStorages is read per call: each test application installs its own module.
 	getStorages              func() storages.Module
 	walSegmentRepo           *physical_repositories.PhysicalWalSegmentRepository
@@ -165,7 +165,7 @@ func (s *PhysicalWalStreamSupervisor) recoverStreamersOnStartup() error {
 }
 
 func (s *PhysicalWalStreamSupervisor) reconcile(ctx context.Context) {
-	configs, err := s.backupConfigService.GetBackupConfigsWithEnabledBackups()
+	configs, err := s.getBackups().ListEnabledPhysicalBackupConfigs(ctx)
 	if err != nil {
 		s.logger.ErrorContext(
 			ctx,
@@ -201,7 +201,7 @@ func (s *PhysicalWalStreamSupervisor) reconcile(ctx context.Context) {
 func (s *PhysicalWalStreamSupervisor) ensureStreamerRunning(
 	ctx context.Context,
 	logger *slog.Logger,
-	backupConfig *backups_config_physical.PhysicalBackupConfig,
+	backupConfig backups.PhysicalBackupConfig,
 ) {
 	s.mu.Lock()
 	_, alreadyRunning := s.running[backupConfig.DatabaseID]
@@ -230,7 +230,7 @@ func (s *PhysicalWalStreamSupervisor) ensureStreamerRunning(
 func (s *PhysicalWalStreamSupervisor) startStreamer(
 	ctx context.Context,
 	logger *slog.Logger,
-	backupConfig *backups_config_physical.PhysicalBackupConfig,
+	backupConfig backups.PhysicalBackupConfig,
 ) {
 	db, err := s.databaseAccess.GetDatabaseByID(ctx, backupConfig.DatabaseID)
 	if err != nil {
@@ -302,7 +302,7 @@ func (s *PhysicalWalStreamSupervisor) startStreamer(
 		IsBastionReachable:        tunnel.IsBastionReachable,
 		StorageID:                 storage.ID,
 		FileStore:                 s.getStorages(),
-		Encryption:                backupConfig.Encryption,
+		Encryption:                backups_core_enums.BackupEncryption(backupConfig.Encryption),
 		MasterKey:                 masterKey,
 		BackupStatus:              s.getDatabases(),
 		Databases:                 s.getDatabases(),
@@ -359,9 +359,9 @@ func (s *PhysicalWalStreamSupervisor) startStreamer(
 
 func (s *PhysicalWalStreamSupervisor) resolveMasterKey(
 	logger *slog.Logger,
-	backupConfig *backups_config_physical.PhysicalBackupConfig,
+	backupConfig backups.PhysicalBackupConfig,
 ) (*crypto.MasterKey, bool) {
-	if backupConfig.Encryption != backups_core_enums.BackupEncryptionEncrypted {
+	if backupConfig.Encryption != backups.EncryptionEncrypted {
 		return nil, true
 	}
 
@@ -371,10 +371,10 @@ func (s *PhysicalWalStreamSupervisor) resolveMasterKey(
 func (s *PhysicalWalStreamSupervisor) gapNotifier(
 	ctx context.Context,
 	db databases.Database,
-	backupConfig *backups_config_physical.PhysicalBackupConfig,
+	backupConfig backups.PhysicalBackupConfig,
 ) func(gapStart, gapEnd walmath.LSN) {
 	return func(gapStart, gapEnd walmath.LSN) {
-		if !slices.Contains(backupConfig.SendNotificationsOn, backups_config_physical.NotificationWalGap) {
+		if !slices.Contains(backupConfig.NotificationTriggers, backups.NotificationTriggerWalGap) {
 			return
 		}
 
@@ -392,10 +392,10 @@ func (s *PhysicalWalStreamSupervisor) slotRebuildFullRequester(
 	ctx context.Context,
 	logger *slog.Logger,
 	db databases.Database,
-	backupConfig *backups_config_physical.PhysicalBackupConfig,
+	backupConfig backups.PhysicalBackupConfig,
 ) func(context.Context, string) error {
 	return func(_ context.Context, reason string) error {
-		if err := s.backupConfigService.RequestFullBackupNow(backupConfig.DatabaseID); err != nil {
+		if err := s.getBackups().RequestFullBackup(ctx, backupConfig.DatabaseID); err != nil {
 			return err
 		}
 
@@ -417,7 +417,7 @@ func (s *PhysicalWalStreamSupervisor) slotRebuildFullRequester(
 func (s *PhysicalWalStreamSupervisor) chainRiskNotifier(
 	ctx context.Context,
 	db databases.Database,
-	backupConfig *backups_config_physical.PhysicalBackupConfig,
+	backupConfig backups.PhysicalBackupConfig,
 ) func(postgresql_executor.ChainRiskReport) {
 	return func(report postgresql_executor.ChainRiskReport) {
 		s.notifyChainBroken(ctx, db, backupConfig, buildChainRiskAlert(db, report))
@@ -470,10 +470,10 @@ func buildChainRiskAlert(db databases.Database, report postgresql_executor.Chain
 func (s *PhysicalWalStreamSupervisor) notifyChainBroken(
 	ctx context.Context,
 	db databases.Database,
-	backupConfig *backups_config_physical.PhysicalBackupConfig,
+	backupConfig backups.PhysicalBackupConfig,
 	alert chainAlert,
 ) {
-	if !slices.Contains(backupConfig.SendNotificationsOn, backups_config_physical.NotificationChainBroken) {
+	if !slices.Contains(backupConfig.NotificationTriggers, backups.NotificationTriggerChainBroken) {
 		return
 	}
 

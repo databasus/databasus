@@ -17,7 +17,7 @@ import (
 
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
-	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
+	backups_bridge "databasus-backend/internal/features/backups/config"
 	"databasus-backend/internal/features/caching"
 	databases_bridge "databasus-backend/internal/features/databases"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
@@ -25,6 +25,7 @@ import (
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
 	"databasus-backend/internal/lib/logging"
+	"databasus-backend/internal/modules/backups"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/modules/storages"
@@ -39,7 +40,7 @@ type createStoredArtifactThenFailBackupUsecase struct{}
 func (*createStoredArtifactThenFailBackupUsecase) Execute(
 	ctx context.Context,
 	backup *backups_core_logical.LogicalBackup,
-	_ *backups_config_logical.LogicalBackupConfig,
+	_ backups.LogicalBackupConfig,
 	_ databases.Database,
 	fileStore backups_core_logical.BackupFileStore,
 	_ func(completedMBs float64),
@@ -63,7 +64,7 @@ func Test_BackupExecuted_NotificationSent(t *testing.T) {
 	storage := storages_bridge.CreateTestStorage(workspace.ID)
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
 	database := databases_bridge.CreateTestDatabase(workspace.ID, notifier)
-	backups_config_logical.EnableBackupsForTestDatabase(t.Context(), database.ID, storage.ID)
+	backups_bridge.EnableBackupsForTestDatabase(t.Context(), database.ID, storage.ID)
 
 	defer func() {
 		// cleanup backups first
@@ -298,7 +299,7 @@ type createStoredArtifactThenBlockBackupUsecase struct {
 func (uc *createStoredArtifactThenBlockBackupUsecase) Execute(
 	ctx context.Context,
 	backup *backups_core_logical.LogicalBackup,
-	_ *backups_config_logical.LogicalBackupConfig,
+	_ backups.LogicalBackupConfig,
 	_ databases.Database,
 	fileStore backups_core_logical.BackupFileStore,
 	_ func(completedMBs float64),
@@ -328,7 +329,7 @@ type returnErrorBackupUsecase struct {
 func (uc *returnErrorBackupUsecase) Execute(
 	_ context.Context,
 	_ *backups_core_logical.LogicalBackup,
-	_ *backups_config_logical.LogicalBackupConfig,
+	_ backups.LogicalBackupConfig,
 	_ databases.Database,
 	_ backups_core_logical.BackupFileStore,
 	_ func(completedMBs float64),
@@ -341,7 +342,7 @@ type createUnusableMetadataBackupUsecase struct{}
 func (*createUnusableMetadataBackupUsecase) Execute(
 	ctx context.Context,
 	backup *backups_core_logical.LogicalBackup,
-	_ *backups_config_logical.LogicalBackupConfig,
+	_ backups.LogicalBackupConfig,
 	_ databases.Database,
 	fileStore backups_core_logical.BackupFileStore,
 	_ func(completedMBs float64),
@@ -539,7 +540,7 @@ type createStaleReceiptBackupUsecase struct{}
 func (*createStaleReceiptBackupUsecase) Execute(
 	ctx context.Context,
 	backup *backups_core_logical.LogicalBackup,
-	_ *backups_config_logical.LogicalBackupConfig,
+	_ backups.LogicalBackupConfig,
 	_ databases.Database,
 	fileStore backups_core_logical.BackupFileStore,
 	_ func(completedMBs float64),

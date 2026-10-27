@@ -12,8 +12,7 @@ import (
 	physical_core_service "databasus-backend/internal/features/backups/backups/core/physical/service"
 	backups_download "databasus-backend/internal/features/backups/backups/download"
 	usecases_logical "databasus-backend/internal/features/backups/backups/usecases/logical"
-	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
-	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
+	backups_bridge "databasus-backend/internal/features/backups/config"
 	databases_bridge "databasus-backend/internal/features/databases"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	storages_bridge "databasus-backend/internal/features/storages"
@@ -31,7 +30,6 @@ var getBackupService = sync.OnceValue(func() *LogicalBackupService {
 		storages_bridge.GetModule,
 		backups_core_logical.GetBackupRepository(),
 		notifiers_bridge.GetSender(),
-		backups_config_logical.GetBackupConfigService(),
 		encryption.GetMasterKey(),
 		usecases_logical.GetCreateBackupUsecase(),
 		logger.GetLogger(),
@@ -52,7 +50,7 @@ var getPhysicalBackupService = sync.OnceValue(func() *PhysicalBackupService {
 	return &PhysicalBackupService{
 		databases_bridge.GetAccess(),
 		workspaces_bridge.GetAccess(),
-		backups_config_physical.GetBackupConfigService(),
+		backups_bridge.GetModule,
 		chain_view.GetChainViewService(),
 		physical_core_service.GetPhysicalBackupService(),
 		physical_repositories.GetFullBackupRepository(),
@@ -72,12 +70,3 @@ var getPhysicalBackupService = sync.OnceValue(func() *PhysicalBackupService {
 func GetPhysicalBackupService() *PhysicalBackupService {
 	return getPhysicalBackupService()
 }
-
-var SetupDependencies = sync.OnceFunc(func() {
-	backups_config_logical.
-		GetBackupConfigService().
-		SetDatabaseStorageChangeListener(getBackupService())
-	backups_config_physical.
-		GetBackupConfigService().
-		SetDatabaseStorageChangeListener(getPhysicalBackupService())
-})

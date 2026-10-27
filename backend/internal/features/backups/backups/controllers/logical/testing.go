@@ -10,7 +10,6 @@ import (
 	"github.com/google/uuid"
 
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
-	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
 	databases_bridge "databasus-backend/internal/features/databases"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
 )
@@ -18,7 +17,6 @@ import (
 func CreateTestRouter() *gin.Engine {
 	router := workspaces_testing.CreateTestRouter(
 		databases_bridge.GetTestRoutes(),
-		backups_config_logical.GetBackupConfigController(),
 		GetBackupController(),
 	)
 

@@ -125,17 +125,22 @@ func TestTransferDatabaseWithNotifiers(t *testing.T) {
 		})
 		targetStorageID := tm.app.CreateLocalStorage(t, tm.owner, targetWorkspace.Id)
 
-		status, body := tm.app.CallOldAPI(t, tm.owner, apptest.OldAPICall{
-			Method: http.MethodPost,
-			Path:   "/backup-configs/database/" + databaseID.String() + "/transfer",
-			Body: map[string]any{
-				"targetWorkspaceId":       targetWorkspace.Id,
-				"targetStorageId":         targetStorageID,
-				"isTransferWithNotifiers": true,
-			},
-		})
+		var switchedStorage apiclient.DatabaseTransferStorage
+		require.NoError(t, switchedStorage.FromStorageSwitchedOnTransfer(apiclient.StorageSwitchedOnTransfer{
+			Type:      apiclient.StorageSwitchedOnTransferTypeSWITCHTOSTORAGE,
+			StorageId: targetStorageID,
+		}))
 
-		require.Equal(t, http.StatusOK, status, string(body))
+		response, err := tm.owner.Client.TransferDatabaseWithResponse(t.Context(), databaseID,
+			apiclient.DatabaseTransfer{
+				TargetWorkspaceId: targetWorkspace.Id,
+				Storage:           switchedStorage,
+				IsMovingNotifiers: true,
+				TargetNotifierIds: nil,
+			})
+		require.NoError(t, err)
+
+		require.Equal(t, http.StatusNoContent, response.StatusCode(), string(response.Body))
 		assert.Equal(t, targetWorkspace.Id, getNotifier(t, tm.owner, createdNotifier.Id).WorkspaceId)
 		assert.Equal(t, targetWorkspace.Id, getDatabaseWorkspaceID(t, tm, databaseID))
 		assert.Equal(t, []uuid.UUID{createdNotifier.Id}, listAttachedNotifierIDs(t, tm.app, databaseID))

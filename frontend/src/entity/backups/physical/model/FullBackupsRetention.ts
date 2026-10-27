@@ -1,12 +1,3 @@
-import type { PhysicalFullBackupsPolicy } from './PhysicalFullBackupsPolicy';
+import type { ApiComponents } from '../../../../shared/api';
 
-export interface FullBackupsRetention {
-  policy: PhysicalFullBackupsPolicy;
-  count: number;
-
-  gfsHours: number;
-  gfsDays: number;
-  gfsWeeks: number;
-  gfsMonths: number;
-  gfsYears: number;
-}
+export type FullBackupsRetention = ApiComponents['schemas']['FullBackupsRetention'];

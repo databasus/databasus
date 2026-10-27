@@ -40,7 +40,7 @@ func TestStoragesMigration(t *testing.T) {
 		assert.NotContains(t, listIDs(t, db, "SELECT id FROM storages"), unknownTypeStorageID)
 		assert.NotContains(t, listIDs(t, db, "SELECT id FROM storages"), unusedStorageWithoutRowID)
 		assert.ElementsMatch(t, []uuid.UUID{usedStorageWithoutRowID},
-			listIDs(t, db, "SELECT storage_id FROM logical_backup_configs"))
+			listIDs(t, db, "SELECT storage_id FROM backups_configs"))
 	})
 
 	t.Run("moves a storage without a workspace into its database's workspace and an unused one into the oldest",

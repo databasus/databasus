@@ -1,0 +1,10 @@
+package: httpapi
+output: api.gen.go
+generate:
+  models: true
+  gin-server: true
+  strict-server: true
+output-options:
+  include-tags: [backups]
+compatibility:
+  always-prefix-enum-values: true

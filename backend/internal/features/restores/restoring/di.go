@@ -7,7 +7,7 @@ import (
 
 	"databasus-backend/internal/config"
 	backups_services "databasus-backend/internal/features/backups/backups/services"
-	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
+	backups_bridge "databasus-backend/internal/features/backups/config"
 	"databasus-backend/internal/features/caching"
 	databases_bridge "databasus-backend/internal/features/databases"
 	restores_core "databasus-backend/internal/features/restores/core"
@@ -34,7 +34,7 @@ var getRestorer = sync.OnceValue(func() *Restorer {
 		databases_bridge.GetModule,
 		backups_services.GetBackupService(),
 		getRestoreRepository(),
-		backups_config_logical.GetBackupConfigService(),
+		backups_bridge.GetModule,
 		storages_bridge.GetModule,
 		logger.GetLogger(),
 		usecases.GetRestoreBackupUsecase(),

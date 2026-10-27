@@ -37,6 +37,10 @@ func (c *apiClient) post(ctx context.Context, path string, body, response any) e
 	return c.send(ctx, http.MethodPost, path, body, response)
 }
 
+func (c *apiClient) put(ctx context.Context, path string, body, response any) error {
+	return c.send(ctx, http.MethodPut, path, body, response)
+}
+
 func (c *apiClient) send(ctx context.Context, method, path string, body, response any) error {
 	var requestBody io.Reader
 

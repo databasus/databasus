@@ -6,7 +6,7 @@ import (
 
 	"github.com/google/uuid"
 
-	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
+	"databasus-backend/internal/modules/backups"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/modules/storages"
@@ -36,7 +36,7 @@ type CreateBackupUsecase interface {
 	Execute(
 		ctx context.Context,
 		backup *LogicalBackup,
-		backupConfig *backups_config_logical.LogicalBackupConfig,
+		backupConfig backups.LogicalBackupConfig,
 		database databases.Database,
 		fileStore BackupFileStore,
 		backupProgressListener func(completedMBs float64),

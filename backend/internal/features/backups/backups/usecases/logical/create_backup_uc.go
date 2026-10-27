@@ -6,8 +6,8 @@ import (
 	"log/slog"
 
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
-	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
 	"databasus-backend/internal/lib/crypto"
+	"databasus-backend/internal/modules/backups"
 	"databasus-backend/internal/modules/databases"
 )
 
@@ -22,7 +22,7 @@ type CreateBackupUsecase struct {
 func (uc *CreateBackupUsecase) Execute(
 	ctx context.Context,
 	backup *backups_core_logical.LogicalBackup,
-	backupConfig *backups_config_logical.LogicalBackupConfig,
+	backupConfig backups.LogicalBackupConfig,
 	database databases.Database,
 	fileStore backups_core_logical.BackupFileStore,
 	backupProgressListener func(completedMBs float64),

@@ -10,10 +10,12 @@ import (
 	"github.com/google/uuid"
 
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
-	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
 	databases_bridge "databasus-backend/internal/features/databases"
 	task_cancellation "databasus-backend/internal/features/tasks/cancellation"
+	lib_database "databasus-backend/internal/lib/database"
+	"databasus-backend/internal/modules/backups"
 	"databasus-backend/internal/modules/databases"
+	db "databasus-backend/internal/storage"
 )
 
 const (
@@ -27,7 +29,7 @@ const (
 
 type BackupsScheduler struct {
 	backupRepository          *backups_core_logical.BackupRepository
-	backupConfigService       *backups_config_logical.BackupConfigService
+	getBackups                func() backups.Module
 	taskCancellationRequester *task_cancellation.Requester
 	databaseAccess            *databases_bridge.Access
 
@@ -106,66 +108,13 @@ func (s *BackupsScheduler) IsSchedulerRunning() bool {
 }
 
 func (s *BackupsScheduler) StartBackup(ctx context.Context, database databases.Database, isCallNotifier bool) {
-	backupConfig, err := s.backupConfigService.GetBackupConfigByDbId(database.ID)
+	backup, err := s.insertStartedBackup(ctx, database)
 	if err != nil {
-		s.logger.ErrorContext(ctx, "failed to get backup config by database ID", "error", err)
+		s.logger.ErrorContext(ctx, "failed to start backup", "database_id", database.ID, "error", err)
 		return
 	}
 
-	if backupConfig.StorageID == nil {
-		s.logger.ErrorContext(ctx, "backup config storage ID is nil", "database_id", database.ID)
-		return
-	}
-
-	// Check for existing in-progress backups
-	inProgressBackups, err := s.backupRepository.FindByDatabaseIdAndStatus(
-		database.ID,
-		backups_core_logical.BackupStatusInProgress,
-	)
-	if err != nil {
-		s.logger.ErrorContext(ctx,
-			"failed to check for in-progress backups",
-			"database_id",
-			database.ID,
-			"error",
-			err,
-		)
-		return
-	}
-
-	if len(inProgressBackups) > 0 {
-		s.logger.WarnContext(ctx,
-			"backup already in progress for database, skipping new backup",
-			"database_id",
-			database.ID,
-			"existingBackupId",
-			inProgressBackups[0].ID,
-		)
-		return
-	}
-
-	backupID := uuid.New()
-	timestamp := time.Now().UTC()
-
-	backup := &backups_core_logical.LogicalBackup{
-		ID:           backupID,
-		DatabaseID:   backupConfig.DatabaseID,
-		StorageID:    *backupConfig.StorageID,
-		Status:       backups_core_logical.BackupStatusInProgress,
-		BackupSizeMb: 0,
-		CreatedAt:    timestamp,
-	}
-
-	backup.GenerateFilename(database.Name)
-
-	if err := s.backupRepository.Save(backup); err != nil {
-		s.logger.ErrorContext(ctx,
-			"failed to save backup",
-			"database_id",
-			backupConfig.DatabaseID,
-			"error",
-			err,
-		)
+	if backup == nil {
 		return
 	}
 
@@ -179,7 +128,7 @@ func (s *BackupsScheduler) StartBackup(ctx context.Context, database databases.D
 	s.logger.InfoContext(ctx,
 		"successfully triggered scheduled backup",
 		"database_id",
-		backupConfig.DatabaseID,
+		backup.DatabaseID,
 		"backup_id",
 		backup.ID,
 	)
@@ -206,7 +155,7 @@ func (s *BackupsScheduler) GetRemainedBackupTryCount(
 		return 0
 	}
 
-	backupConfig, err := s.backupConfigService.GetBackupConfigByDbId(lastBackup.DatabaseID)
+	backupConfig, err := s.getBackups().GetLogicalBackupConfig(ctx, lastBackup.DatabaseID)
 	if err != nil {
 		logger.ErrorContext(ctx, "failed to get backup config by database ID", "error", err)
 
@@ -252,8 +201,77 @@ func (s *BackupsScheduler) GetRemainedBackupTryCount(
 	return remainedTryCount
 }
 
+// insertStartedBackup inserts the IN_PROGRESS row under the config's share lock, so a save that moves
+// the config to another storage either commits first and the backup writes to the new storage, or
+// sees this row and refuses. It returns nil when no backup may start.
+func (s *BackupsScheduler) insertStartedBackup(
+	ctx context.Context,
+	database databases.Database,
+) (*backups_core_logical.LogicalBackup, error) {
+	var startedBackup *backups_core_logical.LogicalBackup
+
+	err := db.GetTransactor().Transaction(ctx, func(ctx context.Context) error {
+		backupConfig, err := s.getBackups().LockAndGetLogicalBackupConfig(ctx, database.ID)
+		if err != nil {
+			return err
+		}
+
+		if backupConfig.StorageID == nil {
+			s.logger.ErrorContext(ctx, "backup config storage ID is nil", "database_id", database.ID)
+			return nil
+		}
+
+		tx := lib_database.Conn(ctx, db.GetDb())
+
+		inProgressBackups, err := s.backupRepository.FindByDatabaseIdAndStatusInTransaction(
+			tx,
+			database.ID,
+			backups_core_logical.BackupStatusInProgress,
+		)
+		if err != nil {
+			return err
+		}
+
+		if len(inProgressBackups) > 0 {
+			s.logger.WarnContext(ctx,
+				"backup already in progress for database, skipping new backup",
+				"database_id",
+				database.ID,
+				"existingBackupId",
+				inProgressBackups[0].ID,
+			)
+			return nil
+		}
+
+		backup := &backups_core_logical.LogicalBackup{
+			ID:           uuid.New(),
+			DatabaseID:   backupConfig.DatabaseID,
+			StorageID:    *backupConfig.StorageID,
+			Status:       backups_core_logical.BackupStatusInProgress,
+			BackupSizeMb: 0,
+			CreatedAt:    time.Now().UTC(),
+		}
+
+		backup.GenerateFilename(database.Name)
+
+		err = s.backupRepository.SaveInTransaction(tx, backup)
+		if err != nil {
+			return err
+		}
+
+		startedBackup = backup
+
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return startedBackup, nil
+}
+
 func (s *BackupsScheduler) runPendingBackups(ctx context.Context, logger *slog.Logger) error {
-	enabledBackupConfigs, err := s.backupConfigService.GetBackupConfigsWithEnabledBackups()
+	enabledBackupConfigs, err := s.getBackups().ListEnabledLogicalBackupConfigs(ctx)
 	if err != nil {
 		return err
 	}
@@ -278,14 +296,14 @@ func (s *BackupsScheduler) runPendingBackups(ctx context.Context, logger *slog.L
 
 		remainedBackupTryCount := s.GetRemainedBackupTryCount(ctx, logger, lastBackup)
 
-		if backupConfig.BackupInterval.ShouldTriggerBackup(time.Now().UTC(), lastBackupTime) ||
+		if backupConfig.Schedule.IsDue(time.Now().UTC(), lastBackupTime) ||
 			remainedBackupTryCount > 0 {
 			logger.InfoContext(ctx,
 				"triggering scheduled backup",
 				"database_id",
 				backupConfig.DatabaseID,
 				"intervalType",
-				backupConfig.BackupInterval.Type,
+				backupConfig.Schedule.Type,
 			)
 
 			database, err := s.databaseAccess.GetDatabaseByID(ctx, backupConfig.DatabaseID)
@@ -324,7 +342,7 @@ func (s *BackupsScheduler) failBackupsInProgress(ctx context.Context, logger *sl
 			)
 		}
 
-		backupConfig, err := s.backupConfigService.GetBackupConfigByDbId(backup.DatabaseID)
+		backupConfig, err := s.getBackups().GetLogicalBackupConfig(ctx, backup.DatabaseID)
 		if err != nil {
 			logger.ErrorContext(ctx, "failed to get backup config by database ID", "error", err)
 			continue
@@ -338,7 +356,7 @@ func (s *BackupsScheduler) failBackupsInProgress(ctx context.Context, logger *sl
 		s.backuper.SendBackupNotification(ctx,
 			backupConfig,
 			backup,
-			backups_config_logical.NotificationBackupFailed,
+			backups.NotificationTriggerBackupFailed,
 			&failMessage,
 		)
 

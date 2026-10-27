@@ -48,6 +48,18 @@ func (p *Provider) GetRepository() providers.SettingsRepository {
 	return p.repository
 }
 
+// GetBackupTypes leaves out the IDs that match no physical PostgreSQL database.
+func (p *Provider) GetBackupTypes(
+	ctx context.Context,
+	databaseIDs []uuid.UUID,
+) (map[uuid.UUID]providers.PhysicalBackupType, error) {
+	if len(databaseIDs) == 0 {
+		return map[uuid.UUID]providers.PhysicalBackupType{}, nil
+	}
+
+	return p.repository.listBackupTypes(ctx, databaseIDs)
+}
+
 func (p *Provider) Validate(settings providers.Settings) error {
 	physicalSettings, err := providers.CastSettings[Settings](settings)
 	if err != nil {

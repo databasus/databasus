@@ -1,44 +1,25 @@
 import { InfoCircleOutlined } from '@ant-design/icons';
-import { useEffect, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
-import { logicalBackupConfigApi } from '../../../entity/backups/logical';
-import { physicalBackupConfigApi } from '../../../entity/backups/physical';
-import type { BackupConfigStorage } from '../../../entity/backups/shared';
-import {
-  type Database,
-  DatabaseType,
-  HEALTH_STATUS_LABEL_KEYS,
-  HealthStatus,
-} from '../../../entity/databases';
-import { getStorageLogoFromType } from '../../../entity/storages';
+import { type Database, HEALTH_STATUS_LABEL_KEYS, HealthStatus } from '../../../entity/databases';
+import { type Storage, getStorageLogoFromType } from '../../../entity/storages';
 import { useLocale } from '../../../shared/i18n';
 
 interface Props {
   database: Database;
+  storage?: Storage;
   selectedDatabaseId?: string;
   setSelectedDatabaseId: (databaseId: string) => void;
 }
 
 export const DatabaseCardComponent = ({
   database,
+  storage,
   selectedDatabaseId,
   setSelectedDatabaseId,
 }: Props) => {
   const { t } = useTranslation();
   const { formatRelativeTime } = useLocale();
-  const [storage, setStorage] = useState<BackupConfigStorage | undefined>();
-
-  useEffect(() => {
-    if (!database.id) return;
-
-    const backupConfigRequest =
-      database.settings.type === DatabaseType.POSTGRES_PHYSICAL
-        ? physicalBackupConfigApi.getPhysicalBackupConfigByDbId(database.id)
-        : logicalBackupConfigApi.getBackupConfigByDbID(database.id);
-
-    backupConfigRequest.then((config) => setStorage(config?.storage));
-  }, [database.id, database.settings.type]);
 
   return (
     <div
@@ -69,13 +50,11 @@ export const DatabaseCardComponent = ({
               storageName: (
                 <span className="inline-flex items-center">
                   {storage.name}{' '}
-                  {storage.type && (
-                    <img
-                      src={getStorageLogoFromType(storage.type)}
-                      alt=""
-                      className="ml-1 h-4 w-4"
-                    />
-                  )}
+                  <img
+                    src={getStorageLogoFromType(storage.settings.type)}
+                    alt=""
+                    className="ml-1 h-4 w-4"
+                  />
                 </span>
               ),
             }}

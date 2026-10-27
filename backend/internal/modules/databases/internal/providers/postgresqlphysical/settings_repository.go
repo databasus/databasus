@@ -135,3 +135,28 @@ func (r *settingsRepository) ListByDatabaseIDs(
 
 	return settingsByDatabaseID, nil
 }
+
+// listBackupTypes reads only the type column, so no secret is decrypted.
+func (r *settingsRepository) listBackupTypes(
+	ctx context.Context,
+	databaseIDs []uuid.UUID,
+) (map[uuid.UUID]providers.PhysicalBackupType, error) {
+	var rows []struct {
+		DatabaseID uuid.UUID                    `gorm:"column:database_id"`
+		BackupType providers.PhysicalBackupType `gorm:"column:backup_type"`
+	}
+
+	err := database.Conn(ctx, r.db).
+		Raw("SELECT database_id, backup_type FROM databases_postgresql_physical WHERE database_id IN ?", databaseIDs).
+		Scan(&rows).Error
+	if err != nil {
+		return nil, fmt.Errorf("list the physical backup types: %w", err)
+	}
+
+	backupTypesByDatabaseID := make(map[uuid.UUID]providers.PhysicalBackupType, len(rows))
+	for _, row := range rows {
+		backupTypesByDatabaseID[row.DatabaseID] = row.BackupType
+	}
+
+	return backupTypesByDatabaseID, nil
+}

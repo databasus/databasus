@@ -25,8 +25,7 @@ import (
 	backups_controllers_physical "databasus-backend/internal/features/backups/backups/controllers/physical"
 	backups_dto_logical "databasus-backend/internal/features/backups/backups/dto/logical"
 	backups_services "databasus-backend/internal/features/backups/backups/services"
-	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
-	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
+	backups_bridge "databasus-backend/internal/features/backups/config"
 	databases_bridge "databasus-backend/internal/features/databases"
 	storages_bridge "databasus-backend/internal/features/storages"
 	system_healthcheck "databasus-backend/internal/features/system/healthcheck"
@@ -67,15 +66,14 @@ func Test_Seed_WhenAccountIsNew_CreatesWorkspaceStorageAndDatabasesWithBackups(t
 	require.NotEqual(t, uuid.Nil, logicalDatabaseID)
 	require.NotEqual(t, uuid.Nil, walDatabaseID)
 
-	var logicalConfig backups_config_logical.LogicalBackupConfig
-	test_utils.MakeGetRequestAndUnmarshal(t, router,
-		"/api/v1/backup-configs/database/"+logicalDatabaseID.String(),
-		"Bearer "+token, http.StatusOK, &logicalConfig)
+	logicalConfig := getBackupConfig(t, router, token, logicalDatabaseID)
+	logicalSettings, err := logicalConfig.Settings.AsLogicalBackupSettings()
+	require.NoError(t, err)
 
 	assert.True(t, logicalConfig.IsBackupsEnabled)
-	assert.Equal(t, storageID, *logicalConfig.StorageID)
-	assert.Equal(t, backups_config_logical.RetentionPolicyTypeCount, logicalConfig.RetentionPolicyType)
-	assert.Equal(t, 3, logicalConfig.RetentionCount)
+	assert.Equal(t, storageID, *logicalConfig.StorageId)
+	assert.Equal(t, apiclient.LogicalRetentionPolicyCOUNT, logicalSettings.Retention.Policy)
+	assert.Equal(t, 3, logicalSettings.Retention.Count)
 
 	var logicalBackups backups_dto_logical.GetBackupsResponse
 	test_utils.MakeGetRequestAndUnmarshal(t, router,
@@ -83,17 +81,16 @@ func Test_Seed_WhenAccountIsNew_CreatesWorkspaceStorageAndDatabasesWithBackups(t
 		"Bearer "+token, http.StatusOK, &logicalBackups)
 	assert.NotEmpty(t, logicalBackups.Backups, "the first logical backup was not started")
 
-	var walConfig backups_config_physical.PhysicalBackupConfig
-	test_utils.MakeGetRequestAndUnmarshal(t, router,
-		"/api/v1/backup-configs/physical/database/"+walDatabaseID.String(),
-		"Bearer "+token, http.StatusOK, &walConfig)
+	walConfig := getBackupConfig(t, router, token, walDatabaseID)
+	walSettings, err := walConfig.Settings.AsPhysicalBackupSettings()
+	require.NoError(t, err)
 
 	assert.True(t, walConfig.IsBackupsEnabled)
-	assert.Equal(t, storageID, *walConfig.StorageID)
-	assert.Equal(t, backups_config_physical.RetentionChains, walConfig.Retention)
-	assert.Equal(t, 2, walConfig.ChainsRetention.Count)
+	assert.Equal(t, storageID, *walConfig.StorageId)
+	assert.Equal(t, apiclient.PhysicalRetentionPolicyCHAINS, walSettings.Retention.Policy)
+	assert.Equal(t, 2, walSettings.Retention.ChainsCount)
 
-	storedWalConfig, err := backups_config_physical.GetBackupConfigService().GetBackupConfigByDbId(walDatabaseID)
+	storedWalConfig, err := backups_bridge.GetModule().GetPhysicalBackupConfig(t.Context(), walDatabaseID)
 	require.NoError(t, err)
 	assert.NotNil(t, storedWalConfig.ForceFullRequestedAt, "the first WAL-streaming backup was not requested")
 }
@@ -109,15 +106,20 @@ func Test_Seed_WhenRunTwice_CreatesNothingAndKeepsEditedDatabase(t *testing.T) {
 	logicalDatabaseID := findDatabaseID(t, router, token, workspaceID, params.LogicalDatabaseName)
 	waitForLogicalBackups(t, logicalDatabaseID)
 
-	var editedConfig backups_config_logical.LogicalBackupConfig
-	test_utils.MakeGetRequestAndUnmarshal(t, router,
-		"/api/v1/backup-configs/database/"+logicalDatabaseID.String(),
-		"Bearer "+token, http.StatusOK, &editedConfig)
+	editedConfig := getBackupConfig(t, router, token, logicalDatabaseID)
+	editedSettings, err := editedConfig.Settings.AsLogicalBackupSettings()
+	require.NoError(t, err)
 
-	editedConfig.RetentionCount = 9
-	editedConfig.IsBackupsEnabled = false
-	test_utils.MakePostRequest(t, router, "/api/v1/backup-configs/save",
-		"Bearer "+token, editedConfig, http.StatusOK)
+	editedSettings.Retention.Count = 9
+	require.NoError(t, editedConfig.Settings.FromLogicalBackupSettings(editedSettings))
+	test_utils.MakePutRequest(t, router, "/api/v1/backup-configs/"+logicalDatabaseID.String(), "Bearer "+token,
+		apiclient.BackupConfigInput{
+			IsBackupsEnabled: false,
+			StorageId:        editedConfig.StorageId,
+			Encryption:       editedConfig.Encryption,
+			Settings:         editedConfig.Settings,
+		},
+		http.StatusOK)
 
 	itemsBefore := listSeededItems(t, router, token)
 
@@ -126,12 +128,11 @@ func Test_Seed_WhenRunTwice_CreatesNothingAndKeepsEditedDatabase(t *testing.T) {
 
 	assert.Equal(t, itemsBefore, listSeededItems(t, router, token))
 
-	var configAfter backups_config_logical.LogicalBackupConfig
-	test_utils.MakeGetRequestAndUnmarshal(t, router,
-		"/api/v1/backup-configs/database/"+logicalDatabaseID.String(),
-		"Bearer "+token, http.StatusOK, &configAfter)
+	configAfter := getBackupConfig(t, router, token, logicalDatabaseID)
+	settingsAfter, err := configAfter.Settings.AsLogicalBackupSettings()
+	require.NoError(t, err)
 
-	assert.Equal(t, 9, configAfter.RetentionCount)
+	assert.Equal(t, 9, settingsAfter.Retention.Count)
 	assert.False(t, configAfter.IsBackupsEnabled)
 }
 
@@ -157,11 +158,7 @@ func Test_Seed_WhenSeededDatabaseWasDeleted_RecreatesOnlyThatDatabase(t *testing
 	require.NotEqual(t, uuid.Nil, recreatedWalDatabaseID)
 	assert.NotEqual(t, deletedWalDatabaseID, recreatedWalDatabaseID)
 
-	var walConfig backups_config_physical.PhysicalBackupConfig
-	test_utils.MakeGetRequestAndUnmarshal(t, router,
-		"/api/v1/backup-configs/physical/database/"+recreatedWalDatabaseID.String(),
-		"Bearer "+token, http.StatusOK, &walConfig)
-	assert.True(t, walConfig.IsBackupsEnabled)
+	assert.True(t, getBackupConfig(t, router, token, recreatedWalDatabaseID).IsBackupsEnabled)
 
 	assert.Equal(t, workspaceID, findWorkspaceID(t, router, token, params.WorkspaceName))
 	assert.Equal(t, storageID, findStorageID(t, router, token, workspaceID, params.StorageName))
@@ -343,6 +340,7 @@ func newSeedTestRouter() *gin.Engine {
 	workspacesModule.RegisterRoutes(contractRoutes, errorHooks)
 	storages_bridge.GetModule().RegisterRoutes(contractRoutes, errorHooks)
 	databases_bridge.GetModule().RegisterRoutes(contractRoutes, errorHooks)
+	backups_bridge.GetModule().RegisterRoutes(contractRoutes, errorHooks)
 
 	system_healthcheck.InstallClientToolsChecker(clienttools.NewChecker(nil))
 	system_healthcheck.GetHealthcheckController().RegisterRoutes(v1)
@@ -350,16 +348,11 @@ func newSeedTestRouter() *gin.Engine {
 	protected := v1.Group("")
 	protected.Use(users_testing.GetSessionMiddleware())
 
-	backups_config_logical.GetBackupConfigController().RegisterRoutes(protected)
-	backups_config_physical.GetBackupConfigController().RegisterRoutes(protected)
 	backups_controllers_logical.GetBackupController().RegisterRoutes(protected)
 	backups_controllers_physical.GetPhysicalBackupController().RegisterRoutes(protected)
 
 	databases_bridge.SetupDependencies()
-	backups_services.SetupDependencies()
-	backups_config_logical.SetupDependencies()
-	backups_config_physical.SetupDependencies()
-	backuping_physical.SetupDependencies()
+	backuping_physical.SubscribeToBackupConfigEventsWithoutApp()
 	backups_services.SubscribeToDatabaseEventsWithoutApp()
 	backuping_physical.SubscribeToDatabaseDeletingWithoutApp()
 
@@ -593,4 +586,14 @@ func removeAccountWithItems(t *testing.T, router *gin.Engine, email string) {
 	}
 
 	users_testing.DeleteTestUser(ctx, userID)
+}
+
+func getBackupConfig(t *testing.T, router *gin.Engine, token string, databaseID uuid.UUID) apiclient.BackupConfig {
+	t.Helper()
+
+	var backupConfig apiclient.BackupConfig
+	test_utils.MakeGetRequestAndUnmarshal(t, router, "/api/v1/backup-configs/"+databaseID.String(),
+		"Bearer "+token, http.StatusOK, &backupConfig)
+
+	return backupConfig
 }

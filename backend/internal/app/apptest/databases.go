@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 
 	apiclient "databasus-backend/internal/lib/apiclient"
+	"databasus-backend/internal/modules/databases"
 )
 
 // CreateDatabase creates a database in the workspace through the API, which connects to the server
@@ -51,4 +52,20 @@ func (a *App) InsertDatabase(tb testing.TB, workspaceID uuid.UUID) uuid.UUID {
 		databaseID)
 
 	return databaseID
+}
+
+// GetPhysicalBackupTypes reads the backup types of physical databases through the databases module and
+// fails the test unless the read succeeds.
+func (a *App) GetPhysicalBackupTypes(
+	tb testing.TB,
+	databaseIDs []uuid.UUID,
+) map[uuid.UUID]databases.PhysicalBackupType {
+	tb.Helper()
+
+	backupTypes, err := a.app.GetPhysicalBackupTypes(tb.Context(), databaseIDs)
+	if err != nil {
+		tb.Fatalf("get the physical backup types: %v", err)
+	}
+
+	return backupTypes
 }

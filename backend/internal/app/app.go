@@ -14,6 +14,7 @@ import (
 	old_config "databasus-backend/internal/config"
 	"databasus-backend/internal/engines/clienttools"
 	"databasus-backend/internal/features/audit_logs"
+	backups_bridge "databasus-backend/internal/features/backups/config"
 	"databasus-backend/internal/features/caching"
 	databases_bridge "databasus-backend/internal/features/databases"
 	"databasus-backend/internal/features/email"
@@ -28,6 +29,7 @@ import (
 	"databasus-backend/internal/lib/crypto"
 	"databasus-backend/internal/lib/database"
 	"databasus-backend/internal/lib/ratelimit"
+	"databasus-backend/internal/modules/backups"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/modules/storages"
@@ -52,6 +54,7 @@ type App struct {
 	notifiersModule  notifiers.Module
 	storagesModule   storages.Module
 	databasesModule  databases.Module
+	backupsModule    backups.Module
 	environment      *Environment
 	db               *gorm.DB
 	transactor       *database.Transactor
@@ -236,14 +239,27 @@ func New(ctx context.Context, environment *Environment) (*App, error) {
 	})
 	databases_bridge.Install(databasesModule)
 
+	backupsModule := backups.New(backups.Deps{
+		DB:         db,
+		Transactor: transactor,
+		Logger:     appLogger,
+		Clock:      environment.Clock,
+		Workspaces: workspacesModule,
+		Notifiers:  notifiersModule,
+		Storages:   storagesModule,
+		Databases:  databasesModule,
+	})
+	backups_bridge.Install(backupsModule)
+
 	clientToolsChecker := newClientToolsChecker(environment.ClientToolsDir)
 	system_healthcheck.InstallClientToolsChecker(clientToolsChecker)
 
 	setUpDependenciesOnce.Do(setUpDependencies)
 	subscribeToWorkspaceDeleting(workspacesModule, databasesModule, notifiersModule, storagesModule)
 	subscribeToNotifierTransferring(notifiersModule, databasesModule)
-	subscribeToStorageTransferring(storagesModule)
-	subscribeToDatabaseEvents(databasesModule)
+	subscribeToStorageTransferring(storagesModule, backupsModule)
+	subscribeToDatabaseEvents(databasesModule, backupsModule)
+	subscribeToBackupConfigEvents(backupsModule)
 
 	jobs := append([]background.Job{newAuditEventsCleanupJob(auditLog, appLogger)}, usersModule.GetJobs()...)
 	jobs = append(jobs, storagesModule.GetJobs()...)
@@ -255,6 +271,7 @@ func New(ctx context.Context, environment *Environment) (*App, error) {
 		notifiersModule:    notifiersModule,
 		storagesModule:     storagesModule,
 		databasesModule:    databasesModule,
+		backupsModule:      backupsModule,
 		environment:        environment,
 		db:                 db,
 		transactor:         transactor,
@@ -298,6 +315,21 @@ func closeDatabase(db *gorm.DB) {
 // application uses it to stand in for a higher module.
 func (a *App) SubscribeToWorkspaceDeleting(handler workspaces.WorkspaceDeletingHandler) {
 	a.workspacesModule.SubscribeToWorkspaceDeleting(handler)
+}
+
+// GetPhysicalBackupTypes reads the backup types of physical databases from the databases module. A test
+// application uses it because only the backups module calls it.
+func (a *App) GetPhysicalBackupTypes(
+	ctx context.Context,
+	databaseIDs []uuid.UUID,
+) (map[uuid.UUID]databases.PhysicalBackupType, error) {
+	return a.databasesModule.GetPhysicalBackupTypes(ctx, databaseIDs)
+}
+
+// SubscribeToLogicalBackupConfigStorageChanging adds a handler after the ones internal/app subscribed,
+// the way the old logical backups do.
+func (a *App) SubscribeToLogicalBackupConfigStorageChanging(handler backups.LogicalBackupConfigStorageChangingHandler) {
+	a.backupsModule.SubscribeToLogicalBackupConfigStorageChanging(handler)
 }
 
 // Notify hands a notification to the notifiers module. A test application uses it to stand in for

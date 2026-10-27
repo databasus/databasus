@@ -24,16 +24,14 @@ import (
 	pgphysical "databasus-backend/internal/engines/postgresql/physical"
 	backuping_physical "databasus-backend/internal/features/backups/backups/backuping/physical"
 	backups_controllers_physical "databasus-backend/internal/features/backups/backups/controllers/physical"
-	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	"databasus-backend/internal/features/backups/backups/core/physical/chain_view"
 	physical_enums "databasus-backend/internal/features/backups/backups/core/physical/enums"
 	physical_models "databasus-backend/internal/features/backups/backups/core/physical/models"
 	physical_repositories "databasus-backend/internal/features/backups/backups/core/physical/repositories"
 	backups_dto_physical "databasus-backend/internal/features/backups/backups/dto/physical"
 	postgresql_executor "databasus-backend/internal/features/backups/backups/usecases/physical/postgresql"
-	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
+	backups_bridge "databasus-backend/internal/features/backups/config"
 	databases_bridge "databasus-backend/internal/features/databases"
-	"databasus-backend/internal/features/intervals"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
 	"databasus-backend/internal/lib/apiclient"
@@ -215,27 +213,25 @@ func newPhysicalTestRouter() *gin.Engine {
 	protected := v1.Group("").Use(users_testing.GetSessionMiddleware())
 	if routerGroup, ok := protected.(*gin.RouterGroup); ok {
 		databases_bridge.GetTestRoutes().RegisterRoutes(routerGroup)
-		backups_config_physical.GetBackupConfigController().RegisterRoutes(routerGroup)
+		backups_bridge.GetTestRoutes().RegisterRoutes(routerGroup)
 		backups_controllers_physical.GetPhysicalBackupController().RegisterRoutes(routerGroup)
 	}
 
 	databases_bridge.SetupDependencies()
-	backups_config_physical.SetupDependencies()
-	backuping_physical.SetupDependencies()
 	backuping_physical.SubscribeToDatabaseDeletingWithoutApp()
 
 	return router
 }
 
-// cronInterval is a once-a-year cron used for both cadences so the scheduler
+// cronSchedule is a once-a-year cron used for both cadences so the scheduler
 // never auto-fires on its own clock: the only FULL is the bootstrap one (no prior
 // full ⇒ due immediately), and incrementals come solely from the trigger
 // endpoint. Cron also satisfies the "incremental strictly more frequent than
 // full" config rule trivially.
-func cronInterval() intervals.Interval {
+func cronSchedule() apiclient.Schedule {
 	expr := "0 0 1 1 *"
 
-	return intervals.Interval{Type: intervals.IntervalCron, CronExpression: &expr}
+	return apiclient.Schedule{Type: apiclient.ScheduleTypeCRON, CronExpression: &expr}
 }
 
 // enablePhysicalBackupsViaAPI turns on backups for the fixture's database through
@@ -250,24 +246,36 @@ func enablePhysicalBackupsViaAPI(
 ) {
 	t.Helper()
 
-	cfg := backups_config_physical.PhysicalBackupConfig{
-		DatabaseID:                fixture.DB.ID,
-		IsBackupsEnabled:          true,
-		FullBackupInterval:        cronInterval(),
-		IncrementalBackupInterval: cronInterval(),
-		Retention:                 backups_config_physical.RetentionChains,
-		ChainsRetention:           backups_config_physical.ChainsRetention{Count: 50},
-		Encryption:                backups_core_enums.BackupEncryptionNone,
-		StorageID:                 &fixture.Storage.ID,
-		Storage:                   &backups_config_physical.BackupConfigStorage{ID: fixture.Storage.ID},
+	incrementalBackupSchedule := cronSchedule()
+	physicalSettings := apiclient.PhysicalBackupSettings{
+		Type:                      apiclient.PhysicalBackupSettingsTypePHYSICAL,
+		FullBackupSchedule:        cronSchedule(),
+		IncrementalBackupSchedule: &incrementalBackupSchedule,
+		Retention: apiclient.PhysicalRetention{
+			Policy:      apiclient.PhysicalRetentionPolicyCHAINS,
+			ChainsCount: 50,
+			FullBackups: nil,
+		},
+		NotificationTriggers: []apiclient.NotificationTrigger{},
+		WalLagThresholdBytes: 0,
 	}
 
 	if isWalStream {
-		cfg.WalLagThresholdBytes = 64 * 1024 * 1024
+		physicalSettings.WalLagThresholdBytes = 64 * 1024 * 1024
 	}
 
-	test_utils.MakePostRequest(t, router, "/api/v1/backup-configs/physical/save",
-		"Bearer "+fixture.Owner.Token, cfg, http.StatusOK)
+	var settings apiclient.BackupSettings
+	require.NoError(t, settings.FromPhysicalBackupSettings(physicalSettings))
+
+	test_utils.MakePutRequest(t, router, "/api/v1/backup-configs/"+fixture.DB.ID.String(),
+		"Bearer "+fixture.Owner.Token,
+		apiclient.BackupConfigInput{
+			IsBackupsEnabled: true,
+			StorageId:        &fixture.Storage.ID,
+			Encryption:       apiclient.BackupEncryptionNONE,
+			Settings:         settings,
+		},
+		http.StatusOK)
 }
 
 func triggerIncrementalViaAPI(t *testing.T, router *gin.Engine, fixture *postgresql_executor.PhysicalDBFixture) {

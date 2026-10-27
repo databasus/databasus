@@ -69,10 +69,13 @@ func (r *BackupRepository) ExistsCompletedSince(
 }
 
 func (r *BackupRepository) FindByDatabaseID(databaseID uuid.UUID) ([]*LogicalBackup, error) {
+	return r.FindByDatabaseIDInTransaction(storage.GetDb(), databaseID)
+}
+
+func (r *BackupRepository) FindByDatabaseIDInTransaction(tx *gorm.DB, databaseID uuid.UUID) ([]*LogicalBackup, error) {
 	var backups []*LogicalBackup
 
-	if err := storage.
-		GetDb().
+	if err := tx.
 		Where("database_id = ?", databaseID).
 		Order("created_at DESC").
 		Find(&backups).Error; err != nil {
@@ -184,10 +187,17 @@ func (r *BackupRepository) FindByDatabaseIdAndStatus(
 	databaseID uuid.UUID,
 	status BackupStatus,
 ) ([]*LogicalBackup, error) {
+	return r.FindByDatabaseIdAndStatusInTransaction(storage.GetDb(), databaseID, status)
+}
+
+func (r *BackupRepository) FindByDatabaseIdAndStatusInTransaction(
+	tx *gorm.DB,
+	databaseID uuid.UUID,
+	status BackupStatus,
+) ([]*LogicalBackup, error) {
 	var backups []*LogicalBackup
 
-	if err := storage.
-		GetDb().
+	if err := tx.
 		Where("database_id = ? AND status = ?", databaseID, status).
 		Order("created_at DESC").
 		Find(&backups).Error; err != nil {

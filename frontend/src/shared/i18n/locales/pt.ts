@@ -591,7 +591,7 @@ export const pt: typeof en = {
         transferExisting: 'Transferir com o armazenamento atual',
         selectFromTarget: 'Selecionar um armazenamento do espaço de trabalho de destino',
         blocked:
-          'Bancos de dados que usam este armazenamento: {{count}}. A transferência está bloqueada porque outros bancos de dados dependem dele.',
+          'Outros bancos de dados fazem backup neste armazenamento, por isso ele não pode ser transferido junto com este banco de dados.',
         canTransfer: 'O armazenamento pode ser transferido',
         selectPlaceholder: 'Selecione o armazenamento',
         createNew: 'Criar armazenamento',

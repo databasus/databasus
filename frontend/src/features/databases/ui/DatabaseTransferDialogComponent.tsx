@@ -3,10 +3,8 @@ import { Button, Modal, Radio, Select, Spin } from 'antd';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { logicalBackupConfigApi } from '../../../entity/backups/logical';
-import { physicalBackupConfigApi } from '../../../entity/backups/physical';
-import type { TransferDatabaseRequest } from '../../../entity/backups/shared';
-import { type Database, DatabaseType, databaseApi } from '../../../entity/databases';
+import { type DatabaseTransfer, backupConfigApi } from '../../../entity/backups/config';
+import { type Database, databaseApi } from '../../../entity/databases';
 import type { Notifier } from '../../../entity/notifiers';
 import { notifierApi } from '../../../entity/notifiers';
 import { type Storage, getStorageLogoFromType, storageApi } from '../../../entity/storages';
@@ -29,6 +27,20 @@ interface NotifierUsageInfo {
   canTransfer: boolean;
 }
 
+// Two configs are enough to learn whether a database other than the transferred one backs up into
+// its storage.
+const STORAGE_SHARING_CHECK_LIMIT = 2;
+
+const toTransferStorage = (
+  storageOption: 'transfer' | 'select',
+  selectedStorageId: string | undefined,
+): DatabaseTransfer['storage'] | undefined => {
+  if (storageOption === 'transfer') return { type: 'MOVE_WITH_DATABASE' };
+  if (!selectedStorageId) return undefined;
+
+  return { type: 'SWITCH_TO_STORAGE', storageId: selectedStorageId };
+};
+
 export const DatabaseTransferDialogComponent = ({
   database,
   currentStorageId,
@@ -41,8 +53,8 @@ export const DatabaseTransferDialogComponent = ({
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | undefined>();
 
   const [storageOption, setStorageOption] = useState<'transfer' | 'select'>('select');
-  const [storageUsageCount, setStorageUsageCount] = useState<number>(0);
-  const [isLoadingStorageCount, setIsLoadingStorageCount] = useState(false);
+  const [isStorageSharedWithOtherDatabases, setIsStorageSharedWithOtherDatabases] = useState(false);
+  const [isLoadingStorageSharing, setIsLoadingStorageSharing] = useState(false);
   const [targetStorages, setTargetStorages] = useState<Storage[]>([]);
   const [selectedStorageId, setSelectedStorageId] = useState<string | undefined>();
   const [isShowCreateStorage, setIsShowCreateStorage] = useState(false);
@@ -57,8 +69,6 @@ export const DatabaseTransferDialogComponent = ({
   const [notifierSelectKey, setNotifierSelectKey] = useState(0);
 
   const [isTransferring, setIsTransferring] = useState(false);
-
-  const isPhysicalDatabase = database.settings.type === DatabaseType.POSTGRES_PHYSICAL;
 
   const hasCurrentStorage = !!currentStorageId;
   const hasCurrentNotifiers = database.notifierIds.length > 0;
@@ -77,21 +87,24 @@ export const DatabaseTransferDialogComponent = ({
     setIsLoading(false);
   };
 
-  const loadStorageUsageCount = async () => {
+  const loadStorageSharing = async () => {
     if (!currentStorageId) return;
 
-    setIsLoadingStorageCount(true);
+    setIsLoadingStorageSharing(true);
 
     try {
-      // Physical storage-usage counting is not yet wired (out of scope); this queries
-      // the logical config endpoint for both database types for now.
-      const count = await logicalBackupConfigApi.getDatabasesCountForStorage(currentStorageId);
-      setStorageUsageCount(count);
+      const storageBackupConfigs = await backupConfigApi.listStorageBackupConfigs(
+        currentStorageId,
+        STORAGE_SHARING_CHECK_LIMIT,
+      );
+      setIsStorageSharedWithOtherDatabases(
+        storageBackupConfigs.some((backupConfig) => backupConfig.databaseId !== database.id),
+      );
     } catch (e) {
       alert(translateApiError(e, t));
     }
 
-    setIsLoadingStorageCount(false);
+    setIsLoadingStorageSharing(false);
   };
 
   const loadNotifierUsageCounts = async () => {
@@ -142,24 +155,20 @@ export const DatabaseTransferDialogComponent = ({
   };
 
   const handleTransfer = async () => {
-    if (!selectedWorkspaceId) return;
+    const transferStorage = toTransferStorage(storageOption, selectedStorageId);
+    if (!selectedWorkspaceId || !transferStorage) return;
 
-    const request: TransferDatabaseRequest = {
+    const transfer: DatabaseTransfer = {
       targetWorkspaceId: selectedWorkspaceId,
-      isTransferWithStorage: storageOption === 'transfer',
-      isTransferWithNotifiers: notifierOption === 'transfer',
-      targetStorageId: storageOption === 'select' ? selectedStorageId : undefined,
+      storage: transferStorage,
+      isMovingNotifiers: notifierOption === 'transfer',
       targetNotifierIds: notifierOption === 'select' ? selectedNotifierIds : [],
     };
 
     setIsTransferring(true);
 
     try {
-      if (isPhysicalDatabase) {
-        await physicalBackupConfigApi.transferPhysicalDatabase(database.id, request);
-      } else {
-        await logicalBackupConfigApi.transferDatabase(database.id, request);
-      }
+      await backupConfigApi.transferDatabase(database.id, transfer);
       ToastHelper.showToast({
         title: t('databases.transfer.transferred.title'),
         description: t('databases.transfer.transferred.description', {
@@ -176,7 +185,7 @@ export const DatabaseTransferDialogComponent = ({
 
   useEffect(() => {
     loadWorkspaces();
-    loadStorageUsageCount();
+    loadStorageSharing();
     loadNotifierUsageCounts();
   }, [database.id]);
 
@@ -188,7 +197,7 @@ export const DatabaseTransferDialogComponent = ({
     }
   }, [selectedWorkspaceId]);
 
-  const canTransferWithStorage = storageUsageCount <= 1;
+  const canTransferWithStorage = !isStorageSharedWithOtherDatabases;
   const notifiersBlockingTransfer = notifierUsageInfo.filter((info) => !info.canTransfer);
   const notifiersCanTransfer = notifierUsageInfo.filter((info) => info.canTransfer);
 
@@ -248,7 +257,7 @@ export const DatabaseTransferDialogComponent = ({
                       <Radio value="transfer">
                         <span className="flex items-center gap-2">
                           {t('databases.transfer.storage.transferExisting')}
-                          {isLoadingStorageCount && <Spin size="small" />}
+                          {isLoadingStorageSharing && <Spin size="small" />}
                         </span>
                       </Radio>
                     </div>
@@ -260,16 +269,12 @@ export const DatabaseTransferDialogComponent = ({
 
                 {storageOption === 'transfer' && hasCurrentStorage && (
                   <div className="mt-2 ml-6">
-                    {isLoadingStorageCount ? (
+                    {isLoadingStorageSharing ? (
                       <Spin size="small" />
                     ) : !canTransferWithStorage ? (
                       <div className="flex items-center gap-2 rounded border border-red-300 bg-red-50 p-2 text-sm text-red-600 dark:border-red-600 dark:bg-red-900/20">
                         <ExclamationCircleOutlined />
-                        <span>
-                          {t('databases.transfer.storage.blocked', {
-                            count: storageUsageCount,
-                          })}
-                        </span>
+                        <span>{t('databases.transfer.storage.blocked')}</span>
                       </div>
                     ) : (
                       <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">

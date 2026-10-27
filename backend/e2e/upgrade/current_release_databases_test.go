@@ -24,9 +24,10 @@ type currentDatabase struct {
 }
 
 type currentBackupConfig struct {
-	IsBackupsEnabled bool    `json:"isBackupsEnabled"`
-	StorageID        *string `json:"storageId"`
-	Encryption       string  `json:"encryption"`
+	IsBackupsEnabled bool           `json:"isBackupsEnabled"`
+	StorageID        *string        `json:"storageId"`
+	Encryption       string         `json:"encryption"`
+	Settings         map[string]any `json:"settings"`
 }
 
 type currentBackupList struct {
@@ -116,7 +117,7 @@ func newDatabaseItem(database currentDatabase) upgradecheck.Item {
 func readBackupItems(ctx context.Context, api *apiClient, database currentDatabase) ([]upgradecheck.Item, error) {
 	var backupConfig currentBackupConfig
 
-	err := api.get(ctx, "/backup-configs/database/"+database.ID, &backupConfig)
+	err := api.get(ctx, "/backup-configs/"+database.ID, &backupConfig)
 	if err != nil {
 		return nil, fmt.Errorf("read the backup config of database %q: %w", database.Name, err)
 	}
@@ -128,12 +129,15 @@ func readBackupItems(ctx context.Context, api *apiClient, database currentDataba
 		return nil, fmt.Errorf("list backups of database %q: %w", database.Name, err)
 	}
 
+	backupConfigValues := map[string]string{
+		"isBackupsEnabled": strconv.FormatBool(backupConfig.IsBackupsEnabled),
+		"storageId":        getOptionalValue(backupConfig.StorageID),
+		"encryption":       backupConfig.Encryption,
+	}
+	addFlattenedSettings(backupConfigValues, "settings", backupConfig.Settings)
+
 	backupItems := []upgradecheck.Item{
-		{Kind: "backup config", Name: database.Name, Values: map[string]string{
-			"isBackupsEnabled": strconv.FormatBool(backupConfig.IsBackupsEnabled),
-			"storageId":        getOptionalValue(backupConfig.StorageID),
-			"encryption":       backupConfig.Encryption,
-		}},
+		{Kind: "backup config", Name: database.Name, Values: backupConfigValues},
 	}
 
 	for _, backup := range backupList.Backups {
@@ -145,4 +149,19 @@ func readBackupItems(ctx context.Context, api *apiClient, database currentDataba
 	}
 
 	return backupItems, nil
+}
+
+// addFlattenedSettings names a nested setting by its path, such as settings.schedule.type.
+func addFlattenedSettings(values map[string]string, path string, settings map[string]any) {
+	for settingName, setting := range settings {
+		settingPath := path + "." + settingName
+
+		if nestedSettings, isNested := setting.(map[string]any); isNested {
+			addFlattenedSettings(values, settingPath, nestedSettings)
+
+			continue
+		}
+
+		values[settingPath] = formatSetting(setting)
+	}
 }

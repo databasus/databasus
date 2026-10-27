@@ -580,8 +580,7 @@ export const en = {
         title: 'Storage',
         transferExisting: 'Transfer with existing storage',
         selectFromTarget: 'Select storage from target workspace',
-        blocked:
-          'Databases using this storage: {{count}}. Transfer is blocked because other databases depend on it.',
+        blocked: 'Other databases back up into this storage, so it cannot move with this database.',
         canTransfer: 'Storage can be transferred',
         selectPlaceholder: 'Select storage',
         createNew: 'Create new storage',

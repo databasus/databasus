@@ -12,6 +12,7 @@ import (
 	"databasus-backend/internal/modules/databases/internal/connection"
 	databaseshttpapi "databasus-backend/internal/modules/databases/internal/httpapi"
 	"databasus-backend/internal/modules/databases/internal/providers"
+	"databasus-backend/internal/modules/databases/internal/providers/postgresqlphysical"
 	"databasus-backend/internal/modules/databases/internal/userdatabase"
 	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/modules/users"
@@ -19,19 +20,26 @@ import (
 )
 
 type Deps struct {
-	Databases   *userdatabase.Service
-	Connections *connection.Service
-	Handler     *databaseshttpapi.Handler
+	Databases         *userdatabase.Service
+	Connections       *connection.Service
+	PhysicalDatabases *postgresqlphysical.Provider
+	Handler           *databaseshttpapi.Handler
 }
 
 type Module struct {
-	databases   *userdatabase.Service
-	connections *connection.Service
-	handler     *databaseshttpapi.Handler
+	databases         *userdatabase.Service
+	connections       *connection.Service
+	physicalDatabases *postgresqlphysical.Provider
+	handler           *databaseshttpapi.Handler
 }
 
 func New(deps Deps) *Module {
-	return &Module{databases: deps.Databases, connections: deps.Connections, handler: deps.Handler}
+	return &Module{
+		databases:         deps.Databases,
+		connections:       deps.Connections,
+		physicalDatabases: deps.PhysicalDatabases,
+		handler:           deps.Handler,
+	}
 }
 
 func (m *Module) RegisterRoutes(routes gin.IRouter, hooks *apierror.Hooks) {
@@ -48,6 +56,13 @@ func (m *Module) RegisterRoutes(routes gin.IRouter, hooks *apierror.Hooks) {
 
 func (m *Module) GetDatabases(ctx context.Context, databaseIDs []uuid.UUID) ([]userdatabase.Database, error) {
 	return m.databases.GetDatabases(ctx, databaseIDs)
+}
+
+func (m *Module) GetPhysicalBackupTypes(
+	ctx context.Context,
+	databaseIDs []uuid.UUID,
+) (map[uuid.UUID]providers.PhysicalBackupType, error) {
+	return m.physicalDatabases.GetBackupTypes(ctx, databaseIDs)
 }
 
 func (m *Module) ListAllDatabases(ctx context.Context) ([]userdatabase.Database, error) {
@@ -117,8 +132,12 @@ func (m *Module) DeleteDatabase(ctx context.Context, actor users.Actor, database
 	return m.databases.DeleteDatabase(ctx, actor, databaseID)
 }
 
-func (m *Module) TransferDatabaseToWorkspace(ctx context.Context, databaseID, workspaceID uuid.UUID) error {
-	return m.databases.TransferDatabaseToWorkspace(ctx, databaseID, workspaceID)
+func (m *Module) TransferDatabaseToWorkspace(
+	ctx context.Context,
+	actor users.Actor,
+	databaseID, workspaceID uuid.UUID,
+) error {
+	return m.databases.TransferDatabaseToWorkspace(ctx, actor, databaseID, workspaceID)
 }
 
 func (m *Module) ReplaceDatabaseNotifiers(ctx context.Context, databaseID uuid.UUID, notifierIDs []uuid.UUID) error {

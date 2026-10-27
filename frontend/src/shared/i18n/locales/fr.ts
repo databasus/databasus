@@ -594,7 +594,7 @@ export const fr: typeof en = {
         transferExisting: 'Transférer avec le stockage actuel',
         selectFromTarget: "Choisir un stockage de l'espace de travail cible",
         blocked:
-          "Bases de données utilisant ce stockage : {{count}}. Le transfert est bloqué, car d'autres bases de données en dépendent.",
+          "D'autres bases de données sauvegardent dans ce stockage : il ne peut donc pas être transféré avec cette base de données.",
         canTransfer: 'Le stockage peut être transféré',
         selectPlaceholder: 'Choisissez un stockage',
         createNew: 'Créer un stockage',

@@ -7,14 +7,14 @@ import (
 
 	pgphysical "databasus-backend/internal/engines/postgresql/physical"
 	"databasus-backend/internal/features/backups/backups/core/physical/chain_view"
-	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
 	"databasus-backend/internal/lib/crypto"
+	"databasus-backend/internal/modules/backups"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/storages"
 )
 
 type backupContext struct {
-	Config *backups_config_physical.PhysicalBackupConfig
+	Config backups.PhysicalBackupConfig
 
 	Database databases.Database
 	// Source reaches the cluster through the bastion, so everything the run touches — the size probe,

@@ -232,13 +232,10 @@ func createLogicalDatabase(
 		return err
 	}
 
-	err = switchOnBackups(ctx, client, params.LogicalDatabaseName,
-		"/backup-configs/database/"+databaseID.String(), "/backup-configs/save",
+	err = switchOnBackups(ctx, client, params.LogicalDatabaseName, databaseID, storageID,
 		map[string]any{
-			"storage":             map[string]any{"id": storageID},
-			"storageId":           storageID,
-			"retentionPolicyType": "COUNT",
-			"retentionCount":      logicalBackupsRetentionCount,
+			"policy": "COUNT",
+			"count":  logicalBackupsRetentionCount,
 		})
 	if err != nil {
 		return err
@@ -278,14 +275,11 @@ func createWalDatabase(
 		return err
 	}
 
-	err = switchOnBackups(ctx, client, params.WalDatabaseName,
-		"/backup-configs/physical/database/"+databaseID.String(), "/backup-configs/physical/save",
+	err = switchOnBackups(ctx, client, params.WalDatabaseName, databaseID, storageID,
 		map[string]any{
-			"storage":              map[string]any{"id": storageID},
-			"storageId":            storageID,
-			"retention":            "CHAINS",
-			"chainsRetention":      map[string]any{"count": walChainsRetentionCount},
-			"fullBackupsRetention": map[string]any{},
+			"policy":      "CHAINS",
+			"chainsCount": walChainsRetentionCount,
+			"fullBackups": nil,
 		})
 	if err != nil {
 		return err
@@ -308,24 +302,42 @@ func createDatabase(ctx context.Context, client *apiClient, database createDatab
 	return createdDatabase.ID, nil
 }
 
-// The backend fills a new database's backup settings with its defaults on the first read. The seed
-// changes only the fields it owns and sends the rest back as read, so it never restates defaults
-// such as the schedule or the WAL lag threshold.
+// A database's backup config reads as its defaults until the first save. The seed changes only the
+// storage and the retention fields it owns and sends the rest back as read, so it never restates
+// defaults such as the schedule or the WAL lag threshold.
 func switchOnBackups(
 	ctx context.Context,
 	client *apiClient,
-	databaseName, readPath, savePath string,
-	seededFields map[string]any,
+	databaseName string,
+	databaseID, storageID uuid.UUID,
+	seededRetentionFields map[string]any,
 ) error {
-	var backupConfig map[string]any
-	if err := client.get(ctx, readPath, &backupConfig); err != nil {
+	configPath := "/backup-configs/" + databaseID.String()
+
+	var backupConfig struct {
+		Encryption string         `json:"encryption"`
+		Settings   map[string]any `json:"settings"`
+	}
+	if err := client.get(ctx, configPath, &backupConfig); err != nil {
 		return fmt.Errorf("read backup settings of database %q: %w", databaseName, err)
 	}
 
-	backupConfig["isBackupsEnabled"] = true
-	maps.Copy(backupConfig, seededFields)
+	retention, _ := backupConfig.Settings["retention"].(map[string]any)
+	if retention == nil {
+		retention = map[string]any{}
+	}
 
-	if err := client.post(ctx, savePath, backupConfig, nil); err != nil {
+	maps.Copy(retention, seededRetentionFields)
+	backupConfig.Settings["retention"] = retention
+
+	backupConfigInput := map[string]any{
+		"isBackupsEnabled": true,
+		"storageId":        storageID,
+		"encryption":       backupConfig.Encryption,
+		"settings":         backupConfig.Settings,
+	}
+
+	if err := client.put(ctx, configPath, backupConfigInput, nil); err != nil {
 		return fmt.Errorf("cannot switch on backups of database %q: %w", databaseName, err)
 	}
 

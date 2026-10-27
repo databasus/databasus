@@ -7,16 +7,16 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 
-	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	physical_testing "databasus-backend/internal/features/backups/backups/core/physical/testing"
 	postgresql_executor "databasus-backend/internal/features/backups/backups/usecases/physical/postgresql"
-	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
+	backups_bridge "databasus-backend/internal/features/backups/config"
 	databases_bridge "databasus-backend/internal/features/databases"
-	"databasus-backend/internal/features/intervals"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	storages_bridge "databasus-backend/internal/features/storages"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
+	"databasus-backend/internal/lib/schedule"
+	"databasus-backend/internal/modules/backups"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/modules/storages"
@@ -87,7 +87,7 @@ type backupPrereqs struct {
 	Storage   storages.Storage
 	Notifier  *notifiers.Notifier
 	DB        databases.Database
-	Config    *backups_config_physical.PhysicalBackupConfig
+	Config    backups.PhysicalBackupConfig
 }
 
 // seedBackupPrereqs builds the loadBackupContext prerequisites hermetically.
@@ -125,23 +125,20 @@ func seedBackupPrereqsWithDatabase(
 	db := createDatabase(workspace.ID, notifier)
 	t.Cleanup(func() { databases_bridge.RemoveTestDatabase(t.Context(), db) })
 
-	cfgService := backups_config_physical.GetBackupConfigService()
-
-	cfg, err := cfgService.GetBackupConfigByDbId(db.ID)
+	cfg, err := backups_bridge.GetModule().GetPhysicalBackupConfig(t.Context(), db.ID)
 	require.NoError(t, err)
 
 	timeOfDay := "04:00"
 
 	cfg.IsBackupsEnabled = true
 	cfg.StorageID = &testStorage.ID
-	cfg.Storage = &backups_config_physical.BackupConfigStorage{ID: testStorage.ID}
-	cfg.Encryption = backups_core_enums.BackupEncryptionNone
-	cfg.FullBackupInterval = intervals.Interval{
-		Type:      intervals.IntervalDaily,
+	cfg.Encryption = backups.EncryptionNone
+	cfg.FullBackupSchedule = schedule.Schedule{
+		Type:      schedule.TypeDaily,
 		TimeOfDay: &timeOfDay,
 	}
 
-	savedConfig, err := cfgService.SaveBackupConfig(t.Context(), cfg)
+	savedConfig, err := backups_bridge.SaveTestBackupConfig(t.Context(), cfg)
 	require.NoError(t, err)
 
 	t.Cleanup(func() { physical_testing.DeleteAllPhysicalCatalogForDatabase(t, db.ID) })

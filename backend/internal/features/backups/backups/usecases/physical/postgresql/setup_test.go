@@ -10,7 +10,7 @@ import (
 // The deletion handlers drop the per-backup and WAL streamer slots when RemoveTestDatabase tears a
 // test database down.
 func TestMain(m *testing.M) {
-	backuping_physical.SetupDependencies()
+	backuping_physical.SubscribeToBackupConfigEventsWithoutApp()
 	backuping_physical.SubscribeToDatabaseDeletingWithoutApp()
 
 	os.Exit(m.Run())

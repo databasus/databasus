@@ -18,12 +18,12 @@ import (
 	physical_models "databasus-backend/internal/features/backups/backups/core/physical/models"
 	physical_repositories "databasus-backend/internal/features/backups/backups/core/physical/repositories"
 	postgresql_executor "databasus-backend/internal/features/backups/backups/usecases/physical/postgresql"
-	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
 	databases_bridge "databasus-backend/internal/features/databases"
 	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
 	workspaces_bridge "databasus-backend/internal/features/workspaces"
 	"databasus-backend/internal/lib/crypto"
 	"databasus-backend/internal/lib/database"
+	"databasus-backend/internal/modules/backups"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/modules/storages"
@@ -39,13 +39,13 @@ const metadataSuffix = ".metadata"
 type PhysicalBackuper struct {
 	databaseAccess *databases_bridge.Access
 	// getDatabases is read per call: each test application installs its own module.
-	getDatabases        func() databases.Module
-	workspaceService    *workspaces_bridge.Access
-	fullRepo            *physical_repositories.PhysicalFullBackupRepository
-	incrRepo            *physical_repositories.PhysicalIncrementalBackupRepository
-	inFlightRepo        *physical_repositories.PhysicalInFlightBackupRepository
-	historyRepo         *physical_repositories.PhysicalWalHistoryRepository
-	backupConfigService *backups_config_physical.BackupConfigService
+	getDatabases     func() databases.Module
+	workspaceService *workspaces_bridge.Access
+	fullRepo         *physical_repositories.PhysicalFullBackupRepository
+	incrRepo         *physical_repositories.PhysicalIncrementalBackupRepository
+	inFlightRepo     *physical_repositories.PhysicalInFlightBackupRepository
+	historyRepo      *physical_repositories.PhysicalWalHistoryRepository
+	getBackups       func() backups.Module
 	// getStorages is read per call: each test application installs its own module.
 	getStorages              func() storages.Module
 	notificationSender       NotificationSender
@@ -115,7 +115,7 @@ func (b *PhysicalBackuper) runFullBackup(
 			DatabaseName: backupCtx.Database.Name,
 			StorageID:    backupCtx.Storage.ID,
 			FileStore:    b.getStorages(),
-			Encryption:   backupCtx.Config.Encryption,
+			Encryption:   backups_core_enums.BackupEncryption(backupCtx.Config.Encryption),
 			MasterKey:    backupCtx.MasterKey,
 			FullRepo:     b.fullRepo,
 			HistoryRepo:  b.historyRepo,
@@ -212,13 +212,18 @@ func (b *PhysicalBackuper) runIncrementalBackup(
 	b.taskCancellationRegistry.RegisterTask(incrBackup.ID, cancel)
 	defer b.taskCancellationRegistry.UnregisterTask(incrBackup.ID)
 
+	var incrementalCadence time.Duration
+	if backupCtx.Config.IncrementalBackupSchedule != nil {
+		incrementalCadence = backupCtx.Config.IncrementalBackupSchedule.GetApproxPeriod()
+	}
+
 	incrBackupSpec := postgresql_executor.IncrementalBackupSpec{
 		CommonBackupSpec: postgresql_executor.CommonBackupSpec{
 			SourceDB:     backupCtx.Source,
 			DatabaseName: backupCtx.Database.Name,
 			StorageID:    backupCtx.Storage.ID,
 			FileStore:    b.getStorages(),
-			Encryption:   backupCtx.Config.Encryption,
+			Encryption:   backups_core_enums.BackupEncryption(backupCtx.Config.Encryption),
 			MasterKey:    backupCtx.MasterKey,
 			FullRepo:     b.fullRepo,
 			HistoryRepo:  b.historyRepo,
@@ -233,7 +238,7 @@ func (b *PhysicalBackuper) runIncrementalBackup(
 		ParentManifest:     parentRef,
 		StorageReader:      storageReader,
 		IncrRepo:           b.incrRepo,
-		IncrementalCadence: backupCtx.Config.IncrementalBackupInterval.ApproxPeriod(),
+		IncrementalCadence: incrementalCadence,
 	}
 
 	logger.InfoContext(ctx, fmt.Sprintf("physical incremental backup started: database %q, parent lsn %s",
@@ -284,7 +289,7 @@ func (b *PhysicalBackuper) openBackupContext(
 ) (*backupContext, bool) {
 	logger = logger.With("database_id", databaseID)
 
-	cfg, err := b.backupConfigService.GetBackupConfigByDbId(databaseID)
+	cfg, err := b.getBackups().GetPhysicalBackupConfig(ctx, databaseID)
 	if err != nil {
 		logger.ErrorContext(ctx, "failed to fetch physical backup config", "error", err)
 
@@ -319,7 +324,7 @@ func (b *PhysicalBackuper) openBackupContext(
 	}
 
 	var masterKey *crypto.MasterKey
-	if cfg.Encryption == backups_core_enums.BackupEncryptionEncrypted {
+	if cfg.Encryption == backups.EncryptionEncrypted {
 		masterKey = b.masterKey
 	}
 
@@ -741,7 +746,7 @@ func (b *PhysicalBackuper) finalizeIncrWithStatus(
 
 func (b *PhysicalBackuper) sendFullBackupNotification(
 	ctx context.Context,
-	cfg *backups_config_physical.PhysicalBackupConfig,
+	cfg backups.PhysicalBackupConfig,
 	db databases.Database,
 	fullBackup *physical_models.PhysicalFullBackup,
 	backupResult postgresql_executor.PhysicalBackupResult,
@@ -757,7 +762,7 @@ func (b *PhysicalBackuper) sendFullBackupNotification(
 		return
 	}
 
-	if !slices.Contains(cfg.SendNotificationsOn, notificationType) {
+	if !slices.Contains(cfg.NotificationTriggers, notificationType) {
 		return
 	}
 
@@ -772,7 +777,7 @@ func (b *PhysicalBackuper) sendFullBackupNotification(
 
 func (b *PhysicalBackuper) sendIncrBackupNotification(
 	ctx context.Context,
-	cfg *backups_config_physical.PhysicalBackupConfig,
+	cfg backups.PhysicalBackupConfig,
 	db databases.Database,
 	incrBackup *physical_models.PhysicalIncrementalBackup,
 	backupResult postgresql_executor.PhysicalBackupResult,
@@ -788,7 +793,7 @@ func (b *PhysicalBackuper) sendIncrBackupNotification(
 		return
 	}
 
-	if !slices.Contains(cfg.SendNotificationsOn, notificationType) {
+	if !slices.Contains(cfg.NotificationTriggers, notificationType) {
 		return
 	}
 
@@ -802,9 +807,9 @@ func (b *PhysicalBackuper) sendIncrBackupNotification(
 }
 
 func toNotificationType(
-	backupNotificationType backups_config_physical.BackupNotificationType,
+	backupNotificationType backups.NotificationTrigger,
 ) notifiers.Category {
-	if backupNotificationType == backups_config_physical.NotificationBackupSuccess {
+	if backupNotificationType == backups.NotificationTriggerBackupSuccess {
 		return notifiers.CategoryBackupSuccess
 	}
 
@@ -817,7 +822,7 @@ func classifyFullBackupNotification(
 	fullBackup *physical_models.PhysicalFullBackup,
 	backupResult postgresql_executor.PhysicalBackupResult,
 	workspaceService *workspaces_bridge.Access,
-) (backups_config_physical.BackupNotificationType, string, string) {
+) (backups.NotificationTrigger, string, string) {
 	workspaceName := "unknown"
 	if ws, err := workspaceService.GetWorkspaceByID(ctx, db.WorkspaceID); err == nil {
 		workspaceName = ws.Name
@@ -825,19 +830,19 @@ func classifyFullBackupNotification(
 
 	switch fullBackup.Status {
 	case physical_enums.PhysicalBackupStatusCompleted:
-		return backups_config_physical.NotificationBackupSuccess,
+		return backups.NotificationTriggerBackupSuccess,
 			fmt.Sprintf("Physical FULL completed for %q (workspace %q)", db.Name, workspaceName),
 			fmt.Sprintf("backup_id=%s size=%.2f MB duration=%dms",
 				fullBackup.ID, backupResult.BackupSizeMb, backupResult.BackupDurationMs)
 
 	case physical_enums.PhysicalBackupStatusError:
-		return backups_config_physical.NotificationBackupFailed,
+		return backups.NotificationTriggerBackupFailed,
 			fmt.Sprintf("Physical FULL failed for %q (workspace %q)", db.Name, workspaceName),
 			fmt.Sprintf("backup_id=%s reason=%s message=%s",
 				fullBackup.ID, reasonOrEmpty(fullBackup.ErrorReason), backupResult.ErrorMessage)
 
 	case physical_enums.PhysicalBackupStatusChainBroken:
-		return backups_config_physical.NotificationChainBroken,
+		return backups.NotificationTriggerChainBroken,
 			fmt.Sprintf("Physical FULL chain-broken for %q (workspace %q)", db.Name, workspaceName),
 			fmt.Sprintf("backup_id=%s reason=%s message=%s",
 				fullBackup.ID, reasonOrEmpty(fullBackup.ErrorReason), backupResult.ErrorMessage)
@@ -852,7 +857,7 @@ func classifyIncrBackupNotification(
 	incrBackup *physical_models.PhysicalIncrementalBackup,
 	backupResult postgresql_executor.PhysicalBackupResult,
 	workspaceService *workspaces_bridge.Access,
-) (backups_config_physical.BackupNotificationType, string, string) {
+) (backups.NotificationTrigger, string, string) {
 	workspaceName := "unknown"
 	if ws, err := workspaceService.GetWorkspaceByID(ctx, db.WorkspaceID); err == nil {
 		workspaceName = ws.Name
@@ -860,19 +865,19 @@ func classifyIncrBackupNotification(
 
 	switch incrBackup.Status {
 	case physical_enums.PhysicalBackupStatusCompleted:
-		return backups_config_physical.NotificationBackupSuccess,
+		return backups.NotificationTriggerBackupSuccess,
 			fmt.Sprintf("Physical INCR completed for %q (workspace %q)", db.Name, workspaceName),
 			fmt.Sprintf("backup_id=%s size=%.2f MB duration=%dms",
 				incrBackup.ID, backupResult.BackupSizeMb, backupResult.BackupDurationMs)
 
 	case physical_enums.PhysicalBackupStatusError:
-		return backups_config_physical.NotificationBackupFailed,
+		return backups.NotificationTriggerBackupFailed,
 			fmt.Sprintf("Physical INCR failed for %q (workspace %q)", db.Name, workspaceName),
 			fmt.Sprintf("backup_id=%s reason=%s message=%s",
 				incrBackup.ID, reasonOrEmpty(incrBackup.ErrorReason), backupResult.ErrorMessage)
 
 	case physical_enums.PhysicalBackupStatusChainBroken:
-		return backups_config_physical.NotificationChainBroken,
+		return backups.NotificationTriggerChainBroken,
 			fmt.Sprintf("Physical INCR chain-broken for %q (workspace %q)", db.Name, workspaceName),
 			fmt.Sprintf("backup_id=%s reason=%s message=%s",
 				incrBackup.ID, reasonOrEmpty(incrBackup.ErrorReason), backupResult.ErrorMessage)

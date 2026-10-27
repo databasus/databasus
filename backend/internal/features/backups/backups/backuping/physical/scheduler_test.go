@@ -15,9 +15,9 @@ import (
 	physical_models "databasus-backend/internal/features/backups/backups/core/physical/models"
 	physical_repositories "databasus-backend/internal/features/backups/backups/core/physical/repositories"
 	physical_testing "databasus-backend/internal/features/backups/backups/core/physical/testing"
-	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
-	"databasus-backend/internal/features/intervals"
+	backups_bridge "databasus-backend/internal/features/backups/config"
 	storages_bridge "databasus-backend/internal/features/storages"
+	"databasus-backend/internal/lib/schedule"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/storage"
@@ -35,8 +35,8 @@ func testLSN(segments int) walmath.LSN {
 // due (generic weekly) but the INCR interval is (hourly) and enables INCRs.
 func makeIncrementalDue(prereqs *backupPrereqs) {
 	prereqs.Config.BackupType = databases.PhysicalBackupTypeFullAndIncremental
-	prereqs.Config.FullBackupInterval = intervals.Interval{Type: intervals.IntervalWeekly}
-	prereqs.Config.IncrementalBackupInterval = intervals.Interval{Type: intervals.IntervalHourly}
+	prereqs.Config.FullBackupSchedule = schedule.Schedule{Type: schedule.TypeWeekly}
+	prereqs.Config.IncrementalBackupSchedule = &schedule.Schedule{Type: schedule.TypeHourly}
 }
 
 // seedFullWithStatusAndAge persists a FULL of the given status, aged by ageHours,
@@ -111,6 +111,7 @@ func Test_DecideBackupKind_WhenIncrementalDetectsTimelineSwitch_SchedulesImmedia
 	setIncrementalErrorReason(t, brokenIncremental, physical_enums.PhysicalBackupErrorTimelineSwitchDetected)
 
 	decision, canSchedule := CreateTestPhysicalScheduler().decideBackupKind(
+		t.Context(),
 		logger.GetLogger(), time.Now().UTC(), prereqs.Config,
 	)
 
@@ -122,11 +123,12 @@ func Test_DecideBackupKind_WhenIncrementalDetectsTimelineSwitch_SchedulesImmedia
 
 func Test_DecideBackupKind_WhenFullFailsDuringFailover_SchedulesImmediateFull(t *testing.T) {
 	prereqs := seedBackupPrereqs(t)
-	prereqs.Config.FullBackupInterval = intervals.Interval{Type: intervals.IntervalWeekly}
+	prereqs.Config.FullBackupSchedule = schedule.Schedule{Type: schedule.TypeWeekly}
 	failedFull := seedFullWithStatusAndAge(t, prereqs, physical_enums.PhysicalBackupStatusError, 1, 0)
 	setFullErrorReason(t, failedFull, physical_enums.PhysicalBackupErrorFailoverDuringBackup)
 
 	decision, canSchedule := CreateTestPhysicalScheduler().decideBackupKind(
+		t.Context(),
 		logger.GetLogger(), time.Now().UTC(), prereqs.Config,
 	)
 
@@ -145,7 +147,12 @@ func Test_ClaimAndInsert_WhenImmediateTriggerWasReplaced_RejectsStaleDecision(t 
 	setIncrementalErrorReason(t, brokenIncremental, physical_enums.PhysicalBackupErrorTimelineSwitchDetected)
 
 	scheduler := CreateTestPhysicalScheduler()
-	staleDecision, canSchedule := scheduler.decideBackupKind(logger.GetLogger(), time.Now().UTC(), prereqs.Config)
+	staleDecision, canSchedule := scheduler.decideBackupKind(
+		t.Context(),
+		logger.GetLogger(),
+		time.Now().UTC(),
+		prereqs.Config,
+	)
 	require.True(t, canSchedule)
 
 	replacementFull := seedFullWithStatusAndAge(t, prereqs, physical_enums.PhysicalBackupStatusError, 3, 0)
@@ -162,6 +169,7 @@ func Test_ClaimAndInsert_WhenMismatchAppearsAfterAutomaticDecision_RejectsStaleD
 	prereqs := seedBackupPrereqs(t)
 	scheduler := CreateTestPhysicalScheduler()
 	automaticDecision, canSchedule := scheduler.decideBackupKind(
+		t.Context(),
 		logger.GetLogger(), time.Now().UTC(), prereqs.Config,
 	)
 	require.True(t, canSchedule)
@@ -181,6 +189,7 @@ func Test_ClaimAndInsert_WhenMismatchCommitsWhileClaimWaits_RejectsStaleAutomati
 	prereqs := seedBackupPrereqs(t)
 	scheduler := CreateTestPhysicalScheduler()
 	automaticDecision, canSchedule := scheduler.decideBackupKind(
+		t.Context(),
 		logger.GetLogger(), time.Now().UTC(), prereqs.Config,
 	)
 	require.True(t, canSchedule)
@@ -257,6 +266,7 @@ func Test_DecideBackupKind_WhenSystemIdentifierMismatchUnresolved_SuppressesAuto
 	setFullErrorReason(t, failedFull, physical_enums.PhysicalBackupErrorSystemIdentifierMismatch)
 
 	_, canSchedule := CreateTestPhysicalScheduler().decideBackupKind(
+		t.Context(),
 		logger.GetLogger(), time.Now().UTC(), prereqs.Config,
 	)
 
@@ -271,6 +281,7 @@ func Test_DecideBackupKind_WhenSystemIdentifierMismatchUnresolved_AllowsForcedFu
 	prereqs.Config.ForceFullRequestedAt = &requestedAt
 
 	decision, canSchedule := CreateTestPhysicalScheduler().decideBackupKind(
+		t.Context(),
 		logger.GetLogger(), time.Now().UTC(), prereqs.Config,
 	)
 
@@ -281,12 +292,13 @@ func Test_DecideBackupKind_WhenSystemIdentifierMismatchUnresolved_AllowsForcedFu
 
 func Test_DecideBackupKind_WhenCompletedFullFollowsMismatch_ResumesAutomaticScheduling(t *testing.T) {
 	prereqs := seedBackupPrereqs(t)
-	prereqs.Config.FullBackupInterval = intervals.Interval{Type: intervals.IntervalHourly}
+	prereqs.Config.FullBackupSchedule = schedule.Schedule{Type: schedule.TypeHourly}
 	failedFull := seedFullWithStatusAndAge(t, prereqs, physical_enums.PhysicalBackupStatusChainBroken, 1, 3)
 	setFullErrorReason(t, failedFull, physical_enums.PhysicalBackupErrorSystemIdentifierMismatch)
 	seedFullWithStatusAndAge(t, prereqs, physical_enums.PhysicalBackupStatusCompleted, 2, 2)
 
 	decision, canSchedule := CreateTestPhysicalScheduler().decideBackupKind(
+		t.Context(),
 		logger.GetLogger(), time.Now().UTC(), prereqs.Config,
 	)
 
@@ -308,6 +320,7 @@ func Test_DecideBackupKind_WhenUnsuccessfulFullFollowsMismatch_KeepsAutomaticSch
 			seedFullWithStatusAndAge(t, prereqs, terminalStatus, 2, 2)
 
 			_, canSchedule := CreateTestPhysicalScheduler().decideBackupKind(
+				t.Context(),
 				logger.GetLogger(), time.Now().UTC(), prereqs.Config,
 			)
 
@@ -323,31 +336,31 @@ func Test_DecideBackupKind_WhenRecentlyCompletedFullAndIncrNotDue_SchedulesNothi
 
 	scheduler := CreateTestPhysicalScheduler()
 
-	_, ok := scheduler.decideBackupKind(logger.GetLogger(), time.Now().UTC(), prereqs.Config)
+	_, ok := scheduler.decideBackupKind(t.Context(), logger.GetLogger(), time.Now().UTC(), prereqs.Config)
 
 	assert.False(t, ok, "a just-completed chain with neither cadence due schedules nothing")
 }
 
 func Test_DecideBackupKind_WhenLastFullErroredAndFullCadenceNotDue_SchedulesNothing(t *testing.T) {
 	prereqs := seedBackupPrereqs(t)
-	prereqs.Config.FullBackupInterval = intervals.Interval{Type: intervals.IntervalWeekly}
+	prereqs.Config.FullBackupSchedule = schedule.Schedule{Type: schedule.TypeWeekly}
 	seedFullWithStatusAndAge(t, prereqs, physical_enums.PhysicalBackupStatusError, 1, 2)
 
 	scheduler := CreateTestPhysicalScheduler()
 
-	_, ok := scheduler.decideBackupKind(logger.GetLogger(), time.Now().UTC(), prereqs.Config)
+	_, ok := scheduler.decideBackupKind(t.Context(), logger.GetLogger(), time.Now().UTC(), prereqs.Config)
 
 	assert.False(t, ok, "a freshly errored full is not retried before its cadence — no tight retry loop")
 }
 
 func Test_DecideBackupKind_WhenLastFullErroredAndFullCadenceDue_RetriesFull(t *testing.T) {
 	prereqs := seedBackupPrereqs(t)
-	prereqs.Config.FullBackupInterval = intervals.Interval{Type: intervals.IntervalHourly}
+	prereqs.Config.FullBackupSchedule = schedule.Schedule{Type: schedule.TypeHourly}
 	seedFullWithStatusAndAge(t, prereqs, physical_enums.PhysicalBackupStatusError, 1, 2)
 
 	scheduler := CreateTestPhysicalScheduler()
 
-	decision, ok := scheduler.decideBackupKind(logger.GetLogger(), time.Now().UTC(), prereqs.Config)
+	decision, ok := scheduler.decideBackupKind(t.Context(), logger.GetLogger(), time.Now().UTC(), prereqs.Config)
 
 	require.True(t, ok)
 	assert.Equal(t, physical_enums.PhysicalBackupTypeFull, decision.kind,
@@ -362,7 +375,7 @@ func Test_DecideBackupKind_WhenLastIncrErroredAndChainExtendable_RetriesIncremen
 
 	scheduler := CreateTestPhysicalScheduler()
 
-	decision, ok := scheduler.decideBackupKind(logger.GetLogger(), time.Now().UTC(), prereqs.Config)
+	decision, ok := scheduler.decideBackupKind(t.Context(), logger.GetLogger(), time.Now().UTC(), prereqs.Config)
 
 	require.True(t, ok)
 	assert.Equal(t, physical_enums.PhysicalBackupTypeIncremental, decision.kind,
@@ -374,13 +387,13 @@ func Test_DecideBackupKind_WhenLastIncrErroredAndChainExtendable_RetriesIncremen
 func Test_DecideBackupKind_WhenChainBrokenAndFullCadenceDue_ReAnchorsWithFull(t *testing.T) {
 	prereqs := seedBackupPrereqs(t)
 	makeIncrementalDue(prereqs)
-	prereqs.Config.FullBackupInterval = intervals.Interval{Type: intervals.IntervalHourly}
+	prereqs.Config.FullBackupSchedule = schedule.Schedule{Type: schedule.TypeHourly}
 	full := seedFullWithStatusAndAge(t, prereqs, physical_enums.PhysicalBackupStatusCompleted, 1, 2)
 	seedIncrWithStatusAndAge(t, prereqs, full.ID, physical_enums.PhysicalBackupStatusChainBroken, 2, 1)
 
 	scheduler := CreateTestPhysicalScheduler()
 
-	decision, ok := scheduler.decideBackupKind(logger.GetLogger(), time.Now().UTC(), prereqs.Config)
+	decision, ok := scheduler.decideBackupKind(t.Context(), logger.GetLogger(), time.Now().UTC(), prereqs.Config)
 
 	require.True(t, ok)
 	assert.Equal(t, physical_enums.PhysicalBackupTypeFull, decision.kind,
@@ -395,7 +408,7 @@ func Test_DecideBackupKind_WhenChainBrokenAndIncrDueButFullNotDue_ReAnchorsWithF
 
 	scheduler := CreateTestPhysicalScheduler()
 
-	decision, ok := scheduler.decideBackupKind(logger.GetLogger(), time.Now().UTC(), prereqs.Config)
+	decision, ok := scheduler.decideBackupKind(t.Context(), logger.GetLogger(), time.Now().UTC(), prereqs.Config)
 
 	require.True(t, ok)
 	assert.Equal(t, physical_enums.PhysicalBackupTypeFull, decision.kind,
@@ -414,7 +427,7 @@ func Test_DecideBackupKind_WhenChainBrokenAndRecentFullsAllErrored_SchedulesNoth
 
 	scheduler := CreateTestPhysicalScheduler()
 
-	_, ok := scheduler.decideBackupKind(logger.GetLogger(), time.Now().UTC(), prereqs.Config)
+	_, ok := scheduler.decideBackupKind(t.Context(), logger.GetLogger(), time.Now().UTC(), prereqs.Config)
 
 	assert.False(t, ok,
 		"a source whose recent fulls all failed is broken itself; re-anchoring at incr speed only burns it")
@@ -432,7 +445,7 @@ func Test_DecideBackupKind_WhenChainBrokenAndRecentFullsCanceled_SchedulesNothin
 
 	scheduler := CreateTestPhysicalScheduler()
 
-	_, ok := scheduler.decideBackupKind(logger.GetLogger(), time.Now().UTC(), prereqs.Config)
+	_, ok := scheduler.decideBackupKind(t.Context(), logger.GetLogger(), time.Now().UTC(), prereqs.Config)
 
 	assert.False(t, ok, "a user who keeps cancelling fulls must not have one restarted on the incr cadence")
 }
@@ -446,7 +459,7 @@ func Test_DecideBackupKind_WhenChainBrokenAndOneFullErrored_ReAnchorsWithFull(t 
 
 	scheduler := CreateTestPhysicalScheduler()
 
-	decision, ok := scheduler.decideBackupKind(logger.GetLogger(), time.Now().UTC(), prereqs.Config)
+	decision, ok := scheduler.decideBackupKind(t.Context(), logger.GetLogger(), time.Now().UTC(), prereqs.Config)
 
 	require.True(t, ok)
 	assert.Equal(t, physical_enums.PhysicalBackupTypeFull, decision.kind,
@@ -466,7 +479,7 @@ func Test_DecideBackupKind_WhenChainBrokenBySummarizerOff_WaitsForFullCadence(t 
 
 	scheduler := CreateTestPhysicalScheduler()
 
-	_, ok := scheduler.decideBackupKind(logger.GetLogger(), time.Now().UTC(), prereqs.Config)
+	_, ok := scheduler.decideBackupKind(t.Context(), logger.GetLogger(), time.Now().UTC(), prereqs.Config)
 
 	assert.False(t, ok,
 		"a fresh FULL cannot fix summarize_wal being off, so re-anchoring would loop full backups forever")
@@ -480,7 +493,7 @@ func Test_DecideBackupKind_WhenCanceledIncrRecent_SchedulesNothing(t *testing.T)
 
 	scheduler := CreateTestPhysicalScheduler()
 
-	_, ok := scheduler.decideBackupKind(logger.GetLogger(), time.Now().UTC(), prereqs.Config)
+	_, ok := scheduler.decideBackupKind(t.Context(), logger.GetLogger(), time.Now().UTC(), prereqs.Config)
 
 	assert.False(t, ok, "a just-canceled incr is not auto-retried; the chain resumes on cadence")
 }
@@ -492,7 +505,7 @@ func Test_DecideBackupKind_WhenFullAndIncrBothDue_ChoosesFull(t *testing.T) {
 
 	scheduler := CreateTestPhysicalScheduler()
 
-	decision, ok := scheduler.decideBackupKind(logger.GetLogger(), time.Now().UTC(), prereqs.Config)
+	decision, ok := scheduler.decideBackupKind(t.Context(), logger.GetLogger(), time.Now().UTC(), prereqs.Config)
 
 	require.True(t, ok)
 	assert.Equal(t, physical_enums.PhysicalBackupTypeFull, decision.kind,
@@ -503,7 +516,7 @@ func Test_DecideBackupKind_WhenNoFullExists_ChoosesFull(t *testing.T) {
 	prereqs := seedBackupPrereqs(t)
 	scheduler := CreateTestPhysicalScheduler()
 
-	decision, ok := scheduler.decideBackupKind(logger.GetLogger(), time.Now().UTC(), prereqs.Config)
+	decision, ok := scheduler.decideBackupKind(t.Context(), logger.GetLogger(), time.Now().UTC(), prereqs.Config)
 
 	require.True(t, ok)
 	assert.Equal(t, physical_enums.PhysicalBackupTypeFull, decision.kind)
@@ -525,7 +538,7 @@ func Test_DecideBackupKind_WhenExtendableChainAndIncrDue_ChoosesIncrementalWithF
 
 	scheduler := CreateTestPhysicalScheduler()
 
-	decision, ok := scheduler.decideBackupKind(logger.GetLogger(), time.Now().UTC(), prereqs.Config)
+	decision, ok := scheduler.decideBackupKind(t.Context(), logger.GetLogger(), time.Now().UTC(), prereqs.Config)
 
 	require.True(t, ok)
 	assert.Equal(t, physical_enums.PhysicalBackupTypeIncremental, decision.kind)
@@ -554,7 +567,7 @@ func Test_DecideBackupKind_WhenChainHasCompletedIncr_ChoosesIncrementalWithIncrP
 
 	scheduler := CreateTestPhysicalScheduler()
 
-	decision, ok := scheduler.decideBackupKind(logger.GetLogger(), time.Now().UTC(), prereqs.Config)
+	decision, ok := scheduler.decideBackupKind(t.Context(), logger.GetLogger(), time.Now().UTC(), prereqs.Config)
 
 	require.True(t, ok)
 	assert.Equal(t, physical_enums.PhysicalBackupTypeIncremental, decision.kind)
@@ -567,8 +580,8 @@ func Test_DecideBackupKind_WhenFullOnlyConfig_NeverChoosesIncremental(t *testing
 	prereqs := seedBackupPrereqs(t)
 	// FULL_ONLY (default), FULL not due (generic weekly), INCR interval is set
 	// but must be ignored.
-	prereqs.Config.FullBackupInterval = intervals.Interval{Type: intervals.IntervalWeekly}
-	prereqs.Config.IncrementalBackupInterval = intervals.Interval{Type: intervals.IntervalHourly}
+	prereqs.Config.FullBackupSchedule = schedule.Schedule{Type: schedule.TypeWeekly}
+	prereqs.Config.IncrementalBackupSchedule = &schedule.Schedule{Type: schedule.TypeHourly}
 
 	fullModel := physical_testing.NewTestCompletedFullBackup(
 		prereqs.DB.ID,
@@ -582,7 +595,7 @@ func Test_DecideBackupKind_WhenFullOnlyConfig_NeverChoosesIncremental(t *testing
 
 	scheduler := CreateTestPhysicalScheduler()
 
-	_, ok := scheduler.decideBackupKind(logger.GetLogger(), time.Now().UTC(), prereqs.Config)
+	_, ok := scheduler.decideBackupKind(t.Context(), logger.GetLogger(), time.Now().UTC(), prereqs.Config)
 
 	assert.False(t, ok, "FULL_ONLY config must never schedule an incremental")
 }
@@ -702,7 +715,7 @@ func Test_DecideBackupKind_WhenFullRequested_ChoosesFullBeforeCadence(t *testing
 
 	scheduler := CreateTestPhysicalScheduler()
 
-	decision, ok := scheduler.decideBackupKind(logger.GetLogger(), time.Now().UTC(), prereqs.Config)
+	decision, ok := scheduler.decideBackupKind(t.Context(), logger.GetLogger(), time.Now().UTC(), prereqs.Config)
 
 	require.True(t, ok)
 	assert.Equal(t, physical_enums.PhysicalBackupTypeFull, decision.kind)
@@ -722,7 +735,7 @@ func Test_DecideBackupKind_WhenIncrementalRequested_ChoosesIncrementalOutOfCaden
 
 	scheduler := CreateTestPhysicalScheduler()
 
-	decision, ok := scheduler.decideBackupKind(logger.GetLogger(), time.Now().UTC(), prereqs.Config)
+	decision, ok := scheduler.decideBackupKind(t.Context(), logger.GetLogger(), time.Now().UTC(), prereqs.Config)
 
 	require.True(t, ok)
 	assert.Equal(t, physical_enums.PhysicalBackupTypeIncremental, decision.kind)
@@ -735,21 +748,21 @@ func Test_DecideBackupKind_WhenIncrementalRequestedButNoExtendableChain_ClearsRe
 	prereqs := seedBackupPrereqs(t)
 	makeIncrementalDue(prereqs) // incrementals enabled, but no full backup exists yet
 
-	require.NoError(t, backups_config_physical.GetBackupConfigService().RequestIncrementalBackupNow(prereqs.DB.ID))
-	requested, err := backups_config_physical.GetBackupConfigService().GetBackupConfigByDbId(prereqs.DB.ID)
+	require.NoError(t, backups_bridge.GetModule().RequestIncrementalBackup(t.Context(), prereqs.DB.ID))
+	requested, err := backups_bridge.GetModule().GetPhysicalBackupConfig(t.Context(), prereqs.DB.ID)
 	require.NoError(t, err)
 	require.NotNil(t, requested.ForceIncrementalRequestedAt)
 	prereqs.Config.ForceIncrementalRequestedAt = requested.ForceIncrementalRequestedAt
 
 	scheduler := CreateTestPhysicalScheduler()
 
-	decision, ok := scheduler.decideBackupKind(logger.GetLogger(), time.Now().UTC(), prereqs.Config)
+	decision, ok := scheduler.decideBackupKind(t.Context(), logger.GetLogger(), time.Now().UTC(), prereqs.Config)
 
 	require.True(t, ok)
 	assert.Equal(t, physical_enums.PhysicalBackupTypeFull, decision.kind,
 		"with no chain the forced incremental can't run, so the decision falls through to a bootstrap full")
 
-	cleared, err := backups_config_physical.GetBackupConfigService().GetBackupConfigByDbId(prereqs.DB.ID)
+	cleared, err := backups_bridge.GetModule().GetPhysicalBackupConfig(t.Context(), prereqs.DB.ID)
 	require.NoError(t, err)
 	assert.Nil(t, cleared.ForceIncrementalRequestedAt,
 		"an unsatisfiable forced incremental must be cleared so it can't loop forever")
@@ -761,19 +774,19 @@ func Test_DecideBackupKind_WhenIncrementalRequestedButIncrementalsDisabled_Clear
 	// chain exists, isolating the "disabled" clear branch from the "no chain" one.
 	seedFullWithStatusAndAge(t, prereqs, physical_enums.PhysicalBackupStatusCompleted, 1, 0)
 
-	require.NoError(t, backups_config_physical.GetBackupConfigService().RequestIncrementalBackupNow(prereqs.DB.ID))
-	requested, err := backups_config_physical.GetBackupConfigService().GetBackupConfigByDbId(prereqs.DB.ID)
+	require.NoError(t, backups_bridge.GetModule().RequestIncrementalBackup(t.Context(), prereqs.DB.ID))
+	requested, err := backups_bridge.GetModule().GetPhysicalBackupConfig(t.Context(), prereqs.DB.ID)
 	require.NoError(t, err)
 	require.NotNil(t, requested.ForceIncrementalRequestedAt)
 	prereqs.Config.ForceIncrementalRequestedAt = requested.ForceIncrementalRequestedAt
 
 	scheduler := CreateTestPhysicalScheduler()
 
-	_, ok := scheduler.decideBackupKind(logger.GetLogger(), time.Now().UTC(), prereqs.Config)
+	_, ok := scheduler.decideBackupKind(t.Context(), logger.GetLogger(), time.Now().UTC(), prereqs.Config)
 
 	assert.False(t, ok, "a forced incremental on a FULL_ONLY config schedules nothing this tick")
 
-	cleared, err := backups_config_physical.GetBackupConfigService().GetBackupConfigByDbId(prereqs.DB.ID)
+	cleared, err := backups_bridge.GetModule().GetPhysicalBackupConfig(t.Context(), prereqs.DB.ID)
 	require.NoError(t, err)
 	assert.Nil(t, cleared.ForceIncrementalRequestedAt,
 		"a forced incremental on a FULL_ONLY config must be cleared")

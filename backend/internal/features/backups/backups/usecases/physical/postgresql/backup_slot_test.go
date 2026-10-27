@@ -2,6 +2,7 @@ package usecases_physical_postgresql_test
 
 import (
 	"context"
+	"database/sql"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -19,7 +20,7 @@ import (
 	physical_models "databasus-backend/internal/features/backups/backups/core/physical/models"
 	physical_repositories "databasus-backend/internal/features/backups/backups/core/physical/repositories"
 	postgresql_executor "databasus-backend/internal/features/backups/backups/usecases/physical/postgresql"
-	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
+	backups_bridge "databasus-backend/internal/features/backups/config"
 	storages_bridge "databasus-backend/internal/features/storages"
 	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
 	"databasus-backend/internal/modules/storages"
@@ -593,7 +594,10 @@ func Test_RunStartupCleanup_OrphanFromDeletedDB_NotCleaned(t *testing.T) {
 	require.True(t, postgresql_executor.SlotExists(t, adminConn, slotName),
 		"orphan slot must exist before deletion")
 
-	require.NoError(t, storage.GetDb().Exec("DELETE FROM databases WHERE id = ?", fixture.DB.ID).Error,
+	require.NoError(t, storage.GetDb().Exec(
+		"WITH deleted_config AS (DELETE FROM backups_configs WHERE database_id = @id) "+
+			"DELETE FROM databases WHERE id = @id",
+		sql.Named("id", fixture.DB.ID)).Error,
 		"delete the database row — simulates a deletion whose slot cleanup could not reach the source")
 
 	require.NoError(t, postgresql_executor.RunStartupCleanup(t.Context(), logger.GetLogger(), neverProtected))
@@ -680,13 +684,11 @@ func Test_BackupSlot_RetryAfterFailure_ReusesName(t *testing.T) {
 	flakyStorage := storages_bridge.CreateTestFlakyS3Storage(fixture.DB.WorkspaceID,
 		"http://127.0.0.1:1")
 	t.Cleanup(func() { storages_bridge.RemoveTestStorage(t.Context(), flakyStorage.ID) })
-
-	cfgService := backups_config_physical.GetBackupConfigService()
-	cfg, err := cfgService.GetBackupConfigByDbId(fixture.DB.ID)
+	cfg, err := backups_bridge.GetModule().GetPhysicalBackupConfig(t.Context(), fixture.DB.ID)
 	require.NoError(t, err)
 
 	cfg.StorageID = &flakyStorage.ID
-	_, err = cfgService.SaveBackupConfig(t.Context(), cfg)
+	_, err = backups_bridge.SaveTestBackupConfig(t.Context(), cfg)
 	require.NoError(t, err)
 
 	backuping_physical.CreateTestPhysicalBackuper(nil).MakeBackup(t.Context(), fixture.BackupID, false)
@@ -699,11 +701,11 @@ func Test_BackupSlot_RetryAfterFailure_ReusesName(t *testing.T) {
 	require.False(t, postgresql_executor.SlotExists(t, adminConn, slotName),
 		"slot must be cleaned up after failed first run (defer-drop must run even when SaveFile fails)")
 
-	cfg, err = cfgService.GetBackupConfigByDbId(fixture.DB.ID)
+	cfg, err = backups_bridge.GetModule().GetPhysicalBackupConfig(t.Context(), fixture.DB.ID)
 	require.NoError(t, err)
 
 	cfg.StorageID = &fixture.Storage.ID
-	_, err = cfgService.SaveBackupConfig(t.Context(), cfg)
+	_, err = backups_bridge.SaveTestBackupConfig(t.Context(), cfg)
 	require.NoError(t, err)
 
 	_ = physical_repositories.GetInFlightBackupRepository().Release(fixture.DB.ID)

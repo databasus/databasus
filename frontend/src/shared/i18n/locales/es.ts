@@ -594,7 +594,7 @@ export const es: typeof en = {
         transferExisting: 'Transferir con el almacenamiento actual',
         selectFromTarget: 'Elegir un almacenamiento del espacio de trabajo de destino',
         blocked:
-          'Bases de datos que usan este almacenamiento: {{count}}. La transferencia está bloqueada porque otras bases de datos dependen de él.',
+          'Otras bases de datos guardan sus copias de seguridad en este almacenamiento, así que no puede transferirse junto con esta base de datos.',
         canTransfer: 'El almacenamiento se puede transferir',
         selectPlaceholder: 'Seleccione un almacenamiento',
         createNew: 'Crear almacenamiento',

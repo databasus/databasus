@@ -14,15 +14,14 @@ import type { TFunction } from 'i18next';
 import { type JSX, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { type BackupConfig, backupConfigApi } from '../../../../entity/backups/config';
 import {
   PHYSICAL_BACKUP_STATUS_LABEL_KEYS,
-  type PhysicalBackupConfig,
   type PhysicalBackupListItem,
   PhysicalBackupStatus,
   PhysicalBackupType,
   type PhysicalBackupsFilters,
   type TriggerPhysicalBackupType,
-  physicalBackupConfigApi,
   physicalBackupsApi,
 } from '../../../../entity/backups/physical';
 import {
@@ -126,7 +125,7 @@ export const PhysicalBackupsComponent = ({
 
   const [totalUsageMb, setTotalUsageMb] = useState(0);
 
-  const [backupConfig, setBackupConfig] = useState<PhysicalBackupConfig | undefined>();
+  const [backupConfig, setBackupConfig] = useState<BackupConfig | undefined>();
   const [isBackupConfigLoading, setIsBackupConfigLoading] = useState(false);
 
   const [isTriggeringBackup, setIsTriggeringBackup] = useState(false);
@@ -232,8 +231,8 @@ export const PhysicalBackupsComponent = ({
   useEffect(() => {
     setIsBackupConfigLoading(true);
 
-    physicalBackupConfigApi.getPhysicalBackupConfigByDbId(database.id).then((config) => {
-      setBackupConfig(config);
+    backupConfigApi.getBackupConfig(database.id).then((loadedBackupConfig) => {
+      setBackupConfig(loadedBackupConfig);
       setIsBackupConfigLoading(false);
     });
   }, [database]);

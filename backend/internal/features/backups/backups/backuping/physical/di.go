@@ -11,7 +11,7 @@ import (
 	physical_repositories "databasus-backend/internal/features/backups/backups/core/physical/repositories"
 	physical_service "databasus-backend/internal/features/backups/backups/core/physical/service"
 	postgresql_executor "databasus-backend/internal/features/backups/backups/usecases/physical/postgresql"
-	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
+	backups_bridge "databasus-backend/internal/features/backups/config"
 	databases_bridge "databasus-backend/internal/features/databases"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	storages_bridge "databasus-backend/internal/features/storages"
@@ -30,7 +30,7 @@ var getPhysicalBackuper = sync.OnceValue(func() *PhysicalBackuper {
 		physical_repositories.GetIncrementalBackupRepository(),
 		physical_repositories.GetInFlightBackupRepository(),
 		physical_repositories.GetWalHistoryRepository(),
-		backups_config_physical.GetBackupConfigService(),
+		backups_bridge.GetModule,
 		storages_bridge.GetModule,
 		notifiers_bridge.GetSender(),
 		tasks_cancellation.GetRegistry(),
@@ -48,7 +48,7 @@ var getPhysicalBackupsScheduler = sync.OnceValue(func() *PhysicalBackupsSchedule
 		physical_repositories.GetFullBackupRepository(),
 		physical_repositories.GetIncrementalBackupRepository(),
 		physical_repositories.GetInFlightBackupRepository(),
-		backups_config_physical.GetBackupConfigService(),
+		backups_bridge.GetModule,
 		chain_view.GetChainViewService(),
 		tasks_cancellation.GetRequester(),
 		storages_bridge.GetModule,
@@ -66,7 +66,7 @@ var getPhysicalBackupCleaner = sync.OnceValue(func() *PhysicalBackupCleaner {
 	return &PhysicalBackupCleaner{
 		physical_service.GetPhysicalBackupService(),
 		chain_view.GetChainViewService(),
-		backups_config_physical.GetBackupConfigService(),
+		backups_bridge.GetModule,
 		physical_repositories.GetFullBackupRepository(),
 		physical_repositories.GetWalSegmentRepository(),
 		physical_repositories.GetWalStreamSampleRepository(),
@@ -81,7 +81,7 @@ var getPhysicalWalStreamSupervisor = sync.OnceValue(func() *PhysicalWalStreamSup
 	return &PhysicalWalStreamSupervisor{
 		databases_bridge.GetAccess(),
 		databases_bridge.GetModule,
-		backups_config_physical.GetBackupConfigService(),
+		backups_bridge.GetModule,
 		storages_bridge.GetModule,
 		physical_repositories.GetWalSegmentRepository(),
 		physical_repositories.GetWalHistoryRepository(),
@@ -135,8 +135,3 @@ var getPhysicalBackupCancellationListener = sync.OnceValue(func() *PhysicalBacku
 func GetPhysicalBackupCancellationListener() *PhysicalBackupCancellationListener {
 	return getPhysicalBackupCancellationListener()
 }
-
-var SetupDependencies = sync.OnceFunc(func() {
-	backups_config_physical.GetBackupConfigService().
-		SetBackupCancellationListener(getPhysicalBackupCancellationListener())
-})

@@ -25,13 +25,13 @@ import (
 	physical_enums "databasus-backend/internal/features/backups/backups/core/physical/enums"
 	physical_models "databasus-backend/internal/features/backups/backups/core/physical/models"
 	physical_repositories "databasus-backend/internal/features/backups/backups/core/physical/repositories"
-	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
+	backups_bridge "databasus-backend/internal/features/backups/config"
 	databases_bridge "databasus-backend/internal/features/databases"
-	"databasus-backend/internal/features/intervals"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	storages_bridge "databasus-backend/internal/features/storages"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
+	"databasus-backend/internal/modules/backups"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/modules/storages"
@@ -262,25 +262,6 @@ func wirePhysicalDBFixture(
 // setupPhysicalFixture is the shared body behind the version / mTLS fixtures:
 // it wires the DB, enables backups, and seeds an IN_PROGRESS FULL row + in-flight
 // claim for the direct-MakeBackup pattern.
-// saveConfigWithStorageAlreadySet writes the storage into the default config before saving it, so
-// the save is no storage change. A change publishes a WAL streamer cancellation for the database that
-// arrives asynchronously and can stop the streamer a test starts right after the fixture.
-func saveConfigWithStorageAlreadySet(
-	t *testing.T,
-	cfgService *backups_config_physical.BackupConfigService,
-	cfg *backups_config_physical.PhysicalBackupConfig,
-) {
-	t.Helper()
-
-	require.NoError(t, storage.GetDb().Exec(
-		"UPDATE physical_backup_configs SET storage_id = ? WHERE database_id = ?",
-		cfg.StorageID, cfg.DatabaseID,
-	).Error)
-
-	_, err := cfgService.SaveBackupConfig(t.Context(), cfg)
-	require.NoError(t, err)
-}
-
 func setupPhysicalFixture(
 	t *testing.T,
 	createDB func(workspaceID uuid.UUID, notifier *notifiers.Notifier) databases.Database,
@@ -289,20 +270,15 @@ func setupPhysicalFixture(
 
 	fixture := wirePhysicalDBFixture(t, createDB)
 
-	cfgService := backups_config_physical.GetBackupConfigService()
-
-	cfg, err := cfgService.GetBackupConfigByDbId(fixture.DB.ID)
+	cfg, err := backups_bridge.GetModule().GetPhysicalBackupConfig(t.Context(), fixture.DB.ID)
 	require.NoError(t, err)
 
 	cfg.IsBackupsEnabled = true
 	cfg.StorageID = &fixture.Storage.ID
-	cfg.Encryption = backups_core_enums.BackupEncryptionNone
-	cfg.FullBackupInterval = intervals.Interval{
-		Type:      intervals.IntervalDaily,
-		TimeOfDay: new("04:00"),
-	}
+	cfg.Encryption = backups.EncryptionNone
+	cfg.FullBackupSchedule = backups_bridge.NewDailyTestSchedule("04:00")
 
-	saveConfigWithStorageAlreadySet(t, cfgService, cfg)
+	backups_bridge.SavePhysicalTestBackupConfig(t.Context(), cfg)
 
 	backupID := uuid.New()
 	backupRow := &physical_models.PhysicalFullBackup{

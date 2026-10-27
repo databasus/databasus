@@ -18,26 +18,27 @@ import (
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	"databasus-backend/internal/features/backups/backups/download/download_token"
 	backups_dto_logical "databasus-backend/internal/features/backups/backups/dto/logical"
-	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
 	databases_bridge "databasus-backend/internal/features/databases"
 	task_cancellation "databasus-backend/internal/features/tasks/cancellation"
 	workspaces_bridge "databasus-backend/internal/features/workspaces"
 	"databasus-backend/internal/lib/crypto"
+	"databasus-backend/internal/lib/database"
+	"databasus-backend/internal/modules/backups"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/modules/workspaces"
+	db "databasus-backend/internal/storage"
 	files_utils "databasus-backend/internal/util/files"
 )
 
 type LogicalBackupService struct {
 	databaseAccess *databases_bridge.Access
 	// getStorages is read per call: each test application installs its own module.
-	getStorages         func() storages.Module
-	backupRepository    *backups_core_logical.BackupRepository
-	notificationSender  backups_core_logical.NotificationSender
-	backupConfigService *backups_config_logical.BackupConfigService
-	masterKey           *crypto.MasterKey
+	getStorages        func() storages.Module
+	backupRepository   *backups_core_logical.BackupRepository
+	notificationSender backups_core_logical.NotificationSender
+	masterKey          *crypto.MasterKey
 
 	createBackupUseCase backups_core_logical.CreateBackupUsecase
 
@@ -64,13 +65,19 @@ func (s *LogicalBackupService) GetLatestCompletedBackup(
 	return s.backupRepository.FindLatestCompleted(databaseID)
 }
 
-func (s *LogicalBackupService) OnBeforeBackupsStorageChange(ctx context.Context, databaseID uuid.UUID) error {
-	err := s.deleteDbBackups(ctx, databaseID)
-	if err != nil {
-		return err
+// OnLogicalBackupConfigStorageChanging removes every backup of the database in the transaction that
+// saves its config with another storage, so a refused save keeps them. It refuses while a backup runs,
+// because the backup is still writing its file into the previous storage.
+func (s *LogicalBackupService) OnLogicalBackupConfigStorageChanging(
+	ctx context.Context,
+	event backups.LogicalBackupConfigStorageChanging,
+) error {
+	err := s.deleteDbBackups(ctx, event.DatabaseID)
+	if errors.Is(err, errBackupInProgress) {
+		return ErrStorageChangeBackupInProgress
 	}
 
-	return nil
+	return err
 }
 
 // OnDatabaseDeleting removes every backup of the database in the deletion's transaction, so a refused
@@ -427,8 +434,13 @@ func (s *LogicalBackupService) IsDownloadInProgress(userID uuid.UUID) bool {
 	return s.downloadTokenService.IsDownloadInProgress(context.Background(), userID)
 }
 
+// deleteDbBackups reads in the caller's transaction, so a save that holds the config's row lock sees
+// every backup that started before it.
 func (s *LogicalBackupService) deleteDbBackups(ctx context.Context, databaseID uuid.UUID) error {
-	dbBackupsInProgress, err := s.backupRepository.FindByDatabaseIdAndStatus(
+	tx := database.Conn(ctx, db.GetDb())
+
+	dbBackupsInProgress, err := s.backupRepository.FindByDatabaseIdAndStatusInTransaction(
+		tx,
 		databaseID,
 		backups_core_logical.BackupStatusInProgress,
 	)
@@ -440,9 +452,7 @@ func (s *LogicalBackupService) deleteDbBackups(ctx context.Context, databaseID u
 		return errBackupInProgress
 	}
 
-	dbBackups, err := s.backupRepository.FindByDatabaseID(
-		databaseID,
-	)
+	dbBackups, err := s.backupRepository.FindByDatabaseIDInTransaction(tx, databaseID)
 	if err != nil {
 		return err
 	}

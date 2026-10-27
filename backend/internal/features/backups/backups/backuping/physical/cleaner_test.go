@@ -15,8 +15,8 @@ import (
 	physical_testing "databasus-backend/internal/features/backups/backups/core/physical/testing"
 	"databasus-backend/internal/features/backups/backups/core/physical/wal_health"
 	postgresql_executor "databasus-backend/internal/features/backups/backups/usecases/physical/postgresql"
-	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
-	"databasus-backend/internal/features/intervals"
+	"databasus-backend/internal/lib/schedule"
+	"databasus-backend/internal/modules/backups"
 	"databasus-backend/internal/storage"
 	"databasus-backend/internal/util/logger"
 )
@@ -85,9 +85,9 @@ func seedChainFull(
 
 // shortGraceConfig sets hourly cadences so the per-chain grace is 2 h — chains
 // older than 2 h become evictable, which keeps retention tests deterministic.
-func shortGraceConfig(backupConfig *backups_config_physical.PhysicalBackupConfig) {
-	backupConfig.FullBackupInterval = intervals.Interval{Type: intervals.IntervalHourly}
-	backupConfig.IncrementalBackupInterval = intervals.Interval{Type: intervals.IntervalHourly}
+func shortGraceConfig(backupConfig *backups.PhysicalBackupConfig) {
+	backupConfig.FullBackupSchedule = schedule.Schedule{Type: schedule.TypeHourly}
+	backupConfig.IncrementalBackupSchedule = &schedule.Schedule{Type: schedule.TypeHourly}
 }
 
 func fullExists(t *testing.T, id uuid.UUID) bool {
@@ -119,8 +119,8 @@ func walExists(t *testing.T, id uuid.UUID) bool {
 
 func Test_CleanByChains_KeepsNLatestNonExtendableChains(t *testing.T) {
 	prereqs := seedBackupPrereqs(t)
-	shortGraceConfig(prereqs.Config)
-	prereqs.Config.ChainsRetention = backups_config_physical.ChainsRetention{Count: 2}
+	shortGraceConfig(&prereqs.Config)
+	prereqs.Config.Retention.ChainsCount = 2
 
 	active := seedChainFull(t, prereqs, 8, 0) // newest → extendable head
 	keptA := seedChainFull(t, prereqs, 6, 3)  // non-extendable, kept by count
@@ -140,8 +140,8 @@ func Test_CleanByChains_KeepsNLatestNonExtendableChains(t *testing.T) {
 
 func Test_CleanByChains_GracePeriodProtectsRecentChainBeyondKeepCount(t *testing.T) {
 	prereqs := seedBackupPrereqs(t)
-	shortGraceConfig(prereqs.Config) // 2 h grace
-	prereqs.Config.ChainsRetention = backups_config_physical.ChainsRetention{Count: 1}
+	shortGraceConfig(&prereqs.Config) // 2 h grace
+	prereqs.Config.Retention.ChainsCount = 1
 
 	active := seedChainFull(t, prereqs, 6, 0)
 	recentKept := seedChainFull(t, prereqs, 4, 0)   // within grace, kept by count anyway
@@ -157,9 +157,9 @@ func Test_CleanByChains_GracePeriodProtectsRecentChainBeyondKeepCount(t *testing
 
 func Test_CleanByFullsLastN_KeepsNewestFullsAndDropsTheirIncrAndWal(t *testing.T) {
 	prereqs := seedBackupPrereqs(t)
-	shortGraceConfig(prereqs.Config)
-	prereqs.Config.FullBackupsRetention = backups_config_physical.FullBackupsRetention{
-		Policy: backups_config_physical.FullBackupsRetentionPolicyLastN,
+	shortGraceConfig(&prereqs.Config)
+	prereqs.Config.Retention.FullBackups = backups.FullBackupsRetention{
+		Policy: backups.FullBackupsRetentionPolicyLastN,
 		Count:  2,
 	}
 
@@ -195,10 +195,10 @@ func Test_CleanByFullsLastN_KeepsNewestFullsAndDropsTheirIncrAndWal(t *testing.T
 
 func Test_CleanByFullsGfs_KeepsBucketRepresentativesDropsExtras(t *testing.T) {
 	prereqs := seedBackupPrereqs(t)
-	shortGraceConfig(prereqs.Config)
-	prereqs.Config.FullBackupsRetention = backups_config_physical.FullBackupsRetention{
-		Policy:   backups_config_physical.FullBackupsRetentionPolicyGfs,
-		GfsHours: 2,
+	shortGraceConfig(&prereqs.Config)
+	prereqs.Config.Retention.FullBackups = backups.FullBackupsRetention{
+		Policy: backups.FullBackupsRetentionPolicyGfs,
+		Gfs:    backups.GfsRetention{Hours: 2},
 	}
 
 	// 4 distinct hourly buckets; GFS keeps the 2 newest (active + age2).
@@ -218,10 +218,10 @@ func Test_CleanByFullsGfs_KeepsBucketRepresentativesDropsExtras(t *testing.T) {
 
 func Test_CleanByCombined_KeepsUnionOfChainsAndFulls(t *testing.T) {
 	prereqs := seedBackupPrereqs(t)
-	shortGraceConfig(prereqs.Config)
-	prereqs.Config.ChainsRetention = backups_config_physical.ChainsRetention{Count: 1}
-	prereqs.Config.FullBackupsRetention = backups_config_physical.FullBackupsRetention{
-		Policy: backups_config_physical.FullBackupsRetentionPolicyLastN,
+	shortGraceConfig(&prereqs.Config)
+	prereqs.Config.Retention.ChainsCount = 1
+	prereqs.Config.Retention.FullBackups = backups.FullBackupsRetention{
+		Policy: backups.FullBackupsRetentionPolicyLastN,
 		Count:  3,
 	}
 
@@ -416,8 +416,8 @@ func Test_ReapAbandonedWalClaims_WhenClaimWithinGrace_KeepsIt(t *testing.T) {
 
 func Test_CleanByChains_WhenKeepCountZero_DeletesNothing(t *testing.T) {
 	prereqs := seedBackupPrereqs(t)
-	shortGraceConfig(prereqs.Config)
-	prereqs.Config.ChainsRetention = backups_config_physical.ChainsRetention{Count: 0}
+	shortGraceConfig(&prereqs.Config)
+	prereqs.Config.Retention.ChainsCount = 0
 
 	active := seedChainFull(t, prereqs, 4, 0)
 	old := seedChainFull(t, prereqs, 2, 9)
@@ -431,11 +431,11 @@ func Test_CleanByChains_WhenKeepCountZero_DeletesNothing(t *testing.T) {
 
 func Test_CleanByFulls_WhenNoEffectiveConfig_DeletesNothing(t *testing.T) {
 	prereqs := seedBackupPrereqs(t)
-	shortGraceConfig(prereqs.Config)
+	shortGraceConfig(&prereqs.Config)
 	// LAST_N with count 0 yields no keep-set; the policy must no-op rather than
 	// interpret an empty keep-set as "delete every chain".
-	prereqs.Config.FullBackupsRetention = backups_config_physical.FullBackupsRetention{
-		Policy: backups_config_physical.FullBackupsRetentionPolicyLastN,
+	prereqs.Config.Retention.FullBackups = backups.FullBackupsRetention{
+		Policy: backups.FullBackupsRetentionPolicyLastN,
 		Count:  0,
 	}
 
@@ -451,8 +451,8 @@ func Test_CleanByFulls_WhenNoEffectiveConfig_DeletesNothing(t *testing.T) {
 
 func Test_CleanByChains_WhenInProgressFullExists_NeverDeletesIt(t *testing.T) {
 	prereqs := seedBackupPrereqs(t)
-	shortGraceConfig(prereqs.Config)
-	prereqs.Config.ChainsRetention = backups_config_physical.ChainsRetention{Count: 1}
+	shortGraceConfig(&prereqs.Config)
+	prereqs.Config.Retention.ChainsCount = 1
 
 	inProgress := seedFullWithStatusAndAge(t, prereqs, physical_enums.PhysicalBackupStatusInProgress, 9, 1)
 	active := seedChainFull(t, prereqs, 6, 3) // newest COMPLETED → extendable head

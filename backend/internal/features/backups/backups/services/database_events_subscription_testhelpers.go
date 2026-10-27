@@ -5,14 +5,17 @@ package backups_services
 import (
 	"sync"
 
-	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
+	backups_bridge "databasus-backend/internal/features/backups/config"
 	databases_bridge "databasus-backend/internal/features/databases"
 )
 
-// SubscribeToDatabaseEventsWithoutApp subscribes the logical handlers to the module the bridge builds
-// without the application, as internal/app does for the module it builds.
+// SubscribeToDatabaseEventsWithoutApp subscribes the backup services to the config events and the logical
+// handlers to the deletions of the modules the bridges build without the application, as internal/app does.
 var SubscribeToDatabaseEventsWithoutApp = sync.OnceFunc(func() {
+	backupsModule := backups_bridge.GetModule()
+	backupsModule.SubscribeToLogicalBackupConfigStorageChanging(getBackupService().OnLogicalBackupConfigStorageChanging)
+	backupsModule.SubscribeToPhysicalBackupConfigSaved(getPhysicalBackupService().OnPhysicalBackupConfigSaved)
+
 	databasesModule := databases_bridge.GetModule()
-	databasesModule.SubscribeToDatabaseCopied(backups_config_logical.GetBackupConfigService().OnDatabaseCopied)
 	databasesModule.SubscribeToDatabaseDeleting(getBackupService().OnDatabaseDeleting)
 })

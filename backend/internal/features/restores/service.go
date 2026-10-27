@@ -17,7 +17,6 @@ import (
 	audit_logs_models "databasus-backend/internal/features/audit_logs/models"
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	backups_services "databasus-backend/internal/features/backups/backups/services"
-	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
 	databases_bridge "databasus-backend/internal/features/databases"
 	"databasus-backend/internal/features/disk"
 	restores_core "databasus-backend/internal/features/restores/core"
@@ -25,6 +24,7 @@ import (
 	"databasus-backend/internal/features/restores/usecases"
 	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
 	workspaces_bridge "databasus-backend/internal/features/workspaces"
+	"databasus-backend/internal/modules/backups"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/modules/workspaces"
@@ -33,7 +33,7 @@ import (
 type RestoreService struct {
 	backupService        *backups_services.LogicalBackupService
 	restoreRepository    *restores_core.RestoreRepository
-	backupConfigService  *backups_config_logical.BackupConfigService
+	getBackups           func() backups.Module
 	restoreBackupUsecase *usecases.RestoreBackupUsecase
 	databaseAccess       *databases_bridge.Access
 	// getDatabases is read per call: each test application installs its own module.

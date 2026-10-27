@@ -27,9 +27,8 @@ func TestStorageReferencesMigration(t *testing.T) {
 			`SELECT conname, confdeltype::text AS confdeltype FROM pg_constraint
 			WHERE contype = 'f' AND confrelid = 'storages'::regclass AND conname IN ?`,
 			[]string{
-				"fk_backup_config_storage_id",
+				"fk_backups_configs_storage",
 				"fk_backups_storage_id",
-				"fk_physical_backup_configs_storage_id",
 				"fk_physical_full_backups_storage_id",
 				"fk_physical_incremental_backups_storage_id",
 				"fk_physical_wal_segments_storage_id",
@@ -44,9 +43,8 @@ func TestStorageReferencesMigration(t *testing.T) {
 		}
 
 		assert.Equal(t, map[string]string{
-			"fk_backup_config_storage_id":                "r",
+			"fk_backups_configs_storage":                 "r",
 			"fk_backups_storage_id":                      "r",
-			"fk_physical_backup_configs_storage_id":      "r",
 			"fk_physical_full_backups_storage_id":        "r",
 			"fk_physical_incremental_backups_storage_id": "r",
 			"fk_physical_wal_segments_storage_id":        "r",
@@ -62,8 +60,7 @@ func TestStorageReferencesMigration(t *testing.T) {
 		databaseID := insertMigratedDatabase(t, db, &workspaceID)
 
 		configStorageID := insertStorage(t, db, workspaceID)
-		execute(t, db, `INSERT INTO logical_backup_configs
-			(database_id, storage_id, send_notifications_on, interval_type) VALUES (?, ?, '', 'DAILY')`,
+		execute(t, db, `INSERT INTO backups_configs (database_id, method, storage_id) VALUES (?, 'LOGICAL', ?)`,
 			databaseID, configStorageID)
 
 		logicalBackupStorageID := insertStorage(t, db, workspaceID)
@@ -83,7 +80,7 @@ func TestStorageReferencesMigration(t *testing.T) {
 		}
 
 		assert.ElementsMatch(t, []uuid.UUID{configStorageID},
-			listIDs(t, db, "SELECT storage_id FROM logical_backup_configs"))
+			listIDs(t, db, "SELECT storage_id FROM backups_configs"))
 		assert.ElementsMatch(t, []uuid.UUID{logicalBackupID}, listIDs(t, db, "SELECT id FROM logical_backups"))
 		assert.ElementsMatch(t, []uuid.UUID{physicalBackupID}, listIDs(t, db, "SELECT id FROM physical_full_backups"))
 		assert.ElementsMatch(t,

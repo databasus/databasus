@@ -7,7 +7,7 @@ import (
 	audit_logs "databasus-backend/internal/features/audit_logs"
 	backuping_logical "databasus-backend/internal/features/backups/backups/backuping/logical"
 	backups_services "databasus-backend/internal/features/backups/backups/services"
-	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
+	backups_bridge "databasus-backend/internal/features/backups/config"
 	databases_bridge "databasus-backend/internal/features/databases"
 	"databasus-backend/internal/features/disk"
 	restores_core "databasus-backend/internal/features/restores/core"
@@ -25,7 +25,7 @@ var (
 		return &RestoreService{
 			backups_services.GetBackupService(),
 			getRestoreRepository(),
-			backups_config_logical.GetBackupConfigService(),
+			backups_bridge.GetModule,
 			usecases.GetRestoreBackupUsecase(),
 			databases_bridge.GetAccess(),
 			databases_bridge.GetModule,

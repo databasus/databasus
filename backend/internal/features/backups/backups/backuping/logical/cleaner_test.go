@@ -13,19 +13,18 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"databasus-backend/internal/config"
-	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
-	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
+	backups_bridge "databasus-backend/internal/features/backups/config"
 	databases_bridge "databasus-backend/internal/features/databases"
-	"databasus-backend/internal/features/intervals"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	storages_bridge "databasus-backend/internal/features/storages"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
+	"databasus-backend/internal/lib/schedule"
+	"databasus-backend/internal/modules/backups"
 	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/util/logger"
-	"databasus-backend/internal/util/period"
 )
 
 func Test_CleanOldBackups_DeletesBackupsOlderThanRetentionTimePeriod(t *testing.T) {
@@ -48,18 +47,22 @@ func Test_CleanOldBackups_DeletesBackupsOlderThanRetentionTimePeriod(t *testing.
 		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	}()
 
-	interval := createTestInterval()
+	interval := createTestSchedule()
 
-	backupConfig := &backups_config_logical.LogicalBackupConfig{
-		DatabaseID:          database.ID,
-		IsBackupsEnabled:    true,
-		RetentionPolicyType: backups_config_logical.RetentionPolicyTypeTimePeriod,
-		RetentionTimePeriod: period.PeriodWeek,
-		StorageID:           &storage.ID,
-		BackupInterval:      interval,
-		Encryption:          backups_core_enums.BackupEncryptionEncrypted,
+	backupConfig := backups.LogicalBackupConfig{
+		BackupConfig: backups.BackupConfig{
+			DatabaseID:       database.ID,
+			IsBackupsEnabled: true,
+			StorageID:        &storage.ID,
+			Encryption:       backups.EncryptionEncrypted,
+		},
+		Schedule: interval,
+		Retention: backups.LogicalRetention{
+			Policy: backups.LogicalRetentionPolicyTimePeriod,
+			Period: backups.RetentionPeriodWeek,
+		},
 	}
-	_, err := backups_config_logical.GetBackupConfigService().SaveBackupConfig(t.Context(), backupConfig)
+	_, err := backups_bridge.SaveTestBackupConfig(t.Context(), backupConfig)
 	assert.NoError(t, err)
 
 	now := time.Now().UTC()
@@ -125,18 +128,22 @@ func Test_CleanOldBackups_SkipsDatabaseWithForeverRetentionPeriod(t *testing.T) 
 		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	}()
 
-	interval := createTestInterval()
+	interval := createTestSchedule()
 
-	backupConfig := &backups_config_logical.LogicalBackupConfig{
-		DatabaseID:          database.ID,
-		IsBackupsEnabled:    true,
-		RetentionPolicyType: backups_config_logical.RetentionPolicyTypeTimePeriod,
-		RetentionTimePeriod: period.PeriodForever,
-		StorageID:           &storage.ID,
-		BackupInterval:      interval,
-		Encryption:          backups_core_enums.BackupEncryptionEncrypted,
+	backupConfig := backups.LogicalBackupConfig{
+		BackupConfig: backups.BackupConfig{
+			DatabaseID:       database.ID,
+			IsBackupsEnabled: true,
+			StorageID:        &storage.ID,
+			Encryption:       backups.EncryptionEncrypted,
+		},
+		Schedule: interval,
+		Retention: backups.LogicalRetention{
+			Policy: backups.LogicalRetentionPolicyTimePeriod,
+			Period: backups.RetentionPeriodForever,
+		},
 	}
-	_, err := backups_config_logical.GetBackupConfigService().SaveBackupConfig(t.Context(), backupConfig)
+	_, err := backups_bridge.SaveTestBackupConfig(t.Context(), backupConfig)
 	assert.NoError(t, err)
 
 	oldBackup := &backups_core_logical.LogicalBackup{
@@ -180,18 +187,23 @@ func Test_CleanByCount_KeepsNewestNBackups_DeletesOlder(t *testing.T) {
 		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	}()
 
-	interval := createTestInterval()
+	interval := createTestSchedule()
 
-	backupConfig := &backups_config_logical.LogicalBackupConfig{
-		DatabaseID:          database.ID,
-		IsBackupsEnabled:    true,
-		RetentionPolicyType: backups_config_logical.RetentionPolicyTypeCount,
-		RetentionCount:      3,
-		StorageID:           &storage.ID,
-		BackupInterval:      interval,
-		Encryption:          backups_core_enums.BackupEncryptionEncrypted,
+	backupConfig := backups.LogicalBackupConfig{
+		BackupConfig: backups.BackupConfig{
+			DatabaseID:       database.ID,
+			IsBackupsEnabled: true,
+			StorageID:        &storage.ID,
+			Encryption:       backups.EncryptionEncrypted,
+		},
+		Schedule: interval,
+		Retention: backups.LogicalRetention{
+			Period: backups.RetentionPeriod3Months,
+			Policy: backups.LogicalRetentionPolicyCount,
+			Count:  3,
+		},
 	}
-	_, err := backups_config_logical.GetBackupConfigService().SaveBackupConfig(t.Context(), backupConfig)
+	_, err := backups_bridge.SaveTestBackupConfig(t.Context(), backupConfig)
 	assert.NoError(t, err)
 
 	now := time.Now().UTC()
@@ -251,18 +263,23 @@ func Test_CleanByCount_WhenUnderLimit_NoBackupsDeleted(t *testing.T) {
 		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	}()
 
-	interval := createTestInterval()
+	interval := createTestSchedule()
 
-	backupConfig := &backups_config_logical.LogicalBackupConfig{
-		DatabaseID:          database.ID,
-		IsBackupsEnabled:    true,
-		RetentionPolicyType: backups_config_logical.RetentionPolicyTypeCount,
-		RetentionCount:      10,
-		StorageID:           &storage.ID,
-		BackupInterval:      interval,
-		Encryption:          backups_core_enums.BackupEncryptionEncrypted,
+	backupConfig := backups.LogicalBackupConfig{
+		BackupConfig: backups.BackupConfig{
+			DatabaseID:       database.ID,
+			IsBackupsEnabled: true,
+			StorageID:        &storage.ID,
+			Encryption:       backups.EncryptionEncrypted,
+		},
+		Schedule: interval,
+		Retention: backups.LogicalRetention{
+			Period: backups.RetentionPeriod3Months,
+			Policy: backups.LogicalRetentionPolicyCount,
+			Count:  10,
+		},
 	}
-	_, err := backups_config_logical.GetBackupConfigService().SaveBackupConfig(t.Context(), backupConfig)
+	_, err := backups_bridge.SaveTestBackupConfig(t.Context(), backupConfig)
 	assert.NoError(t, err)
 
 	for i := range 5 {
@@ -307,18 +324,23 @@ func Test_CleanByCount_DoesNotDeleteInProgressBackups(t *testing.T) {
 		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	}()
 
-	interval := createTestInterval()
+	interval := createTestSchedule()
 
-	backupConfig := &backups_config_logical.LogicalBackupConfig{
-		DatabaseID:          database.ID,
-		IsBackupsEnabled:    true,
-		RetentionPolicyType: backups_config_logical.RetentionPolicyTypeCount,
-		RetentionCount:      2,
-		StorageID:           &storage.ID,
-		BackupInterval:      interval,
-		Encryption:          backups_core_enums.BackupEncryptionEncrypted,
+	backupConfig := backups.LogicalBackupConfig{
+		BackupConfig: backups.BackupConfig{
+			DatabaseID:       database.ID,
+			IsBackupsEnabled: true,
+			StorageID:        &storage.ID,
+			Encryption:       backups.EncryptionEncrypted,
+		},
+		Schedule: interval,
+		Retention: backups.LogicalRetention{
+			Period: backups.RetentionPeriod3Months,
+			Policy: backups.LogicalRetentionPolicyCount,
+			Count:  2,
+		},
 	}
-	_, err := backups_config_logical.GetBackupConfigService().SaveBackupConfig(t.Context(), backupConfig)
+	_, err := backups_bridge.SaveTestBackupConfig(t.Context(), backupConfig)
 	assert.NoError(t, err)
 
 	now := time.Now().UTC()
@@ -428,20 +450,24 @@ func Test_CleanByTimePeriod_SkipsRecentBackup_EvenIfOlderThanRetention(t *testin
 		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	}()
 
-	interval := createTestInterval()
+	interval := createTestSchedule()
 
 	// Retention period is 1 day — any backup older than 1 day should be deleted.
 	// But the recent backup was created only 30 minutes ago and must be preserved.
-	backupConfig := &backups_config_logical.LogicalBackupConfig{
-		DatabaseID:          database.ID,
-		IsBackupsEnabled:    true,
-		RetentionPolicyType: backups_config_logical.RetentionPolicyTypeTimePeriod,
-		RetentionTimePeriod: period.PeriodDay,
-		StorageID:           &storage.ID,
-		BackupInterval:      interval,
-		Encryption:          backups_core_enums.BackupEncryptionEncrypted,
+	backupConfig := backups.LogicalBackupConfig{
+		BackupConfig: backups.BackupConfig{
+			DatabaseID:       database.ID,
+			IsBackupsEnabled: true,
+			StorageID:        &storage.ID,
+			Encryption:       backups.EncryptionEncrypted,
+		},
+		Schedule: interval,
+		Retention: backups.LogicalRetention{
+			Policy: backups.LogicalRetentionPolicyTimePeriod,
+			Period: backups.RetentionPeriodDay,
+		},
 	}
-	_, err := backups_config_logical.GetBackupConfigService().SaveBackupConfig(t.Context(), backupConfig)
+	_, err := backups_bridge.SaveTestBackupConfig(t.Context(), backupConfig)
 	assert.NoError(t, err)
 
 	now := time.Now().UTC()
@@ -498,20 +524,25 @@ func Test_CleanByCount_SkipsRecentBackup_EvenIfOverLimit(t *testing.T) {
 		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	}()
 
-	interval := createTestInterval()
+	interval := createTestSchedule()
 
 	// Retention count is 2 — 4 backups exist so 2 should be deleted.
 	// The oldest backup in the "excess" tail was made 30 min ago — it must be preserved.
-	backupConfig := &backups_config_logical.LogicalBackupConfig{
-		DatabaseID:          database.ID,
-		IsBackupsEnabled:    true,
-		RetentionPolicyType: backups_config_logical.RetentionPolicyTypeCount,
-		RetentionCount:      2,
-		StorageID:           &storage.ID,
-		BackupInterval:      interval,
-		Encryption:          backups_core_enums.BackupEncryptionEncrypted,
+	backupConfig := backups.LogicalBackupConfig{
+		BackupConfig: backups.BackupConfig{
+			DatabaseID:       database.ID,
+			IsBackupsEnabled: true,
+			StorageID:        &storage.ID,
+			Encryption:       backups.EncryptionEncrypted,
+		},
+		Schedule: interval,
+		Retention: backups.LogicalRetention{
+			Period: backups.RetentionPeriod3Months,
+			Policy: backups.LogicalRetentionPolicyCount,
+			Count:  2,
+		},
 	}
-	_, err := backups_config_logical.GetBackupConfigService().SaveBackupConfig(t.Context(), backupConfig)
+	_, err := backups_bridge.SaveTestBackupConfig(t.Context(), backupConfig)
 	assert.NoError(t, err)
 
 	now := time.Now().UTC()
@@ -594,11 +625,11 @@ func testLogger() *slog.Logger {
 	return logger.GetLogger().With("task_name", "test")
 }
 
-func createTestInterval() intervals.Interval {
+func createTestSchedule() schedule.Schedule {
 	timeOfDay := "04:00"
 
-	return intervals.Interval{
-		Type:      intervals.IntervalDaily,
+	return schedule.Schedule{
+		Type:      schedule.TypeDaily,
 		TimeOfDay: &timeOfDay,
 	}
 }

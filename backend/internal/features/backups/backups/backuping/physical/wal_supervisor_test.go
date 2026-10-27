@@ -18,11 +18,12 @@ import (
 	physical_testing "databasus-backend/internal/features/backups/backups/core/physical/testing"
 	"databasus-backend/internal/features/backups/backups/core/physical/wal_health"
 	postgresql_executor "databasus-backend/internal/features/backups/backups/usecases/physical/postgresql"
-	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
+	backups_bridge "databasus-backend/internal/features/backups/config"
 	databases_bridge "databasus-backend/internal/features/databases"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	storages_bridge "databasus-backend/internal/features/storages"
 	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
+	"databasus-backend/internal/modules/backups"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/storage"
@@ -235,8 +236,8 @@ func Test_NotifyChainBroken_WhenSameIncidentRepeats_SendsOneNotificationPerWindo
 	sender := &recordingNotificationSender{}
 	supervisor := CreateTestWalStreamSupervisor(WalStreamSupervisorTestSpec{NotificationSender: sender})
 
-	prereqs.Config.SendNotificationsOn = []backups_config_physical.BackupNotificationType{
-		backups_config_physical.NotificationChainBroken,
+	prereqs.Config.NotificationTriggers = []backups.NotificationTrigger{
+		backups.NotificationTriggerChainBroken,
 	}
 
 	// A FAILED streamer is reclaimable on the next tick, so the same incident
@@ -259,8 +260,8 @@ func Test_NotifyChainBroken_WhenConfigDoesNotOptIn_SendsNoNotification(t *testin
 	sender := &recordingNotificationSender{}
 	supervisor := CreateTestWalStreamSupervisor(WalStreamSupervisorTestSpec{NotificationSender: sender})
 
-	prereqs.Config.SendNotificationsOn = []backups_config_physical.BackupNotificationType{
-		backups_config_physical.NotificationBackupSuccess,
+	prereqs.Config.NotificationTriggers = []backups.NotificationTrigger{
+		backups.NotificationTriggerBackupSuccess,
 	}
 
 	supervisor.notifyChainBroken(t.Context(), prereqs.DB, prereqs.Config, chainAlert{
@@ -278,8 +279,8 @@ func Test_NotifyChainBroken_WhenDifferentIncidentKinds_SendsEachOnce(t *testing.
 	sender := &recordingNotificationSender{}
 	supervisor := CreateTestWalStreamSupervisor(WalStreamSupervisorTestSpec{NotificationSender: sender})
 
-	prereqs.Config.SendNotificationsOn = []backups_config_physical.BackupNotificationType{
-		backups_config_physical.NotificationChainBroken,
+	prereqs.Config.NotificationTriggers = []backups.NotificationTrigger{
+		backups.NotificationTriggerChainBroken,
 	}
 
 	supervisor.notifyChainBroken(t.Context(), prereqs.DB, prereqs.Config, chainAlert{
@@ -308,8 +309,8 @@ func Test_NotifyChainBroken_WhenThrottleWindowElapsed_SendsAgain(t *testing.T) {
 		ChainAlertMinIntervalOverride: time.Millisecond,
 	})
 
-	prereqs.Config.SendNotificationsOn = []backups_config_physical.BackupNotificationType{
-		backups_config_physical.NotificationChainBroken,
+	prereqs.Config.NotificationTriggers = []backups.NotificationTrigger{
+		backups.NotificationTriggerChainBroken,
 	}
 
 	streamerFailed := chainAlert{
@@ -334,8 +335,8 @@ func Test_StopStreamer_WhenStreamerStops_ForgetsChainAlertThrottle(t *testing.T)
 	sender := &recordingNotificationSender{}
 	supervisor := CreateTestWalStreamSupervisor(WalStreamSupervisorTestSpec{NotificationSender: sender})
 
-	prereqs.Config.SendNotificationsOn = []backups_config_physical.BackupNotificationType{
-		backups_config_physical.NotificationChainBroken,
+	prereqs.Config.NotificationTriggers = []backups.NotificationTrigger{
+		backups.NotificationTriggerChainBroken,
 	}
 
 	streamerFailed := chainAlert{
@@ -364,8 +365,8 @@ func Test_ChainRiskNotifier_WhenReasonsDiffer_UsesSeparateThrottleKinds(t *testi
 	sender := &recordingNotificationSender{}
 	supervisor := CreateTestWalStreamSupervisor(WalStreamSupervisorTestSpec{NotificationSender: sender})
 
-	prereqs.Config.SendNotificationsOn = []backups_config_physical.BackupNotificationType{
-		backups_config_physical.NotificationChainBroken,
+	prereqs.Config.NotificationTriggers = []backups.NotificationTrigger{
+		backups.NotificationTriggerChainBroken,
 	}
 
 	notifyChainRisk := supervisor.chainRiskNotifier(t.Context(), prereqs.DB, prereqs.Config)
@@ -586,18 +587,15 @@ func Test_Reconcile_AfterBackupsStorageChanged_StartsStreamerOnNewStorage(t *tes
 
 	prereqs := seedBackupPrereqsOnSharedSource(t, databases.PhysicalBackupTypeFullIncrementalWalStream)
 	dropStreamerSlotOnCleanup(t, prereqs)
-
-	backupConfigService := backups_config_physical.GetBackupConfigService()
 	newStorage := storages_bridge.CreateTestStorage(prereqs.Workspace.ID)
 
 	t.Cleanup(func() {
 		physical_testing.DeleteAllPhysicalCatalogForDatabase(t, prereqs.DB.ID)
 		_ = physical_repositories.GetWalStreamerRepository().DeleteByDatabaseID(prereqs.DB.ID)
 
-		restoredConfig := *prereqs.Config
+		restoredConfig := prereqs.Config
 		restoredConfig.StorageID = &prereqs.Storage.ID
-		restoredConfig.Storage = &backups_config_physical.BackupConfigStorage{ID: prereqs.Storage.ID}
-		_, err := backupConfigService.SaveBackupConfig(context.Background(), &restoredConfig)
+		_, err := backups_bridge.SaveTestBackupConfig(context.Background(), restoredConfig)
 		require.NoError(t, err)
 
 		storages_bridge.RemoveTestStorage(context.Background(), newStorage.ID)
@@ -608,10 +606,9 @@ func Test_Reconcile_AfterBackupsStorageChanged_StartsStreamerOnNewStorage(t *tes
 	supervisor.reconcile(ctx)
 	waitForStreamerOnStorage(t, supervisor, prereqs.DB.ID, prereqs.Storage.ID)
 
-	movedConfig := *prereqs.Config
+	movedConfig := prereqs.Config
 	movedConfig.StorageID = &newStorage.ID
-	movedConfig.Storage = &backups_config_physical.BackupConfigStorage{ID: newStorage.ID}
-	_, err := backupConfigService.SaveBackupConfig(t.Context(), &movedConfig)
+	_, err := backups_bridge.SaveTestBackupConfig(t.Context(), movedConfig)
 	require.NoError(t, err)
 
 	newTestCancellationListener().OnBackupsStorageChanged(t.Context(), prereqs.DB.ID)

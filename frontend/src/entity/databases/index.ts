@@ -20,7 +20,6 @@ export { createDefaultDatabaseSettings } from './model/createDefaultDatabaseSett
 export { getDatabaseLogoFromType } from './model/getDatabaseLogoFromType';
 export { isPostgresType } from './model/isPostgresType';
 export { sortUnavailableDatabasesFirst } from './model/sortUnavailableDatabasesFirst';
-export { Period } from './model/Period';
 export { PostgresSslMode } from './model/postgresql/PostgresSslMode';
 export { POSTGRES_SSL_MODE_LABEL_KEYS } from './model/postgresql/PostgresSslModeLabelKeys';
 export { quotePostgresqlIdentifier } from './model/postgresql/quotePostgresqlIdentifier';
@@ -45,5 +44,4 @@ export { hasStoredSshTunnelSecretsForAuthType } from './model/sshtunnel/hasStore
 export { disableSrvWhenTunneled } from './model/mongodb/disableSrvWhenTunneled';
 export { HEALTH_STATUS_LABEL_KEYS } from './model/HealthStatusLabelKeys';
 export { DATABASE_TYPE_LABEL_KEYS } from './model/DatabaseTypeLabelKeys';
-export { PERIOD_LABEL_KEYS } from './model/PeriodLabelKeys';
 export { SSH_TUNNEL_AUTH_TYPE_LABEL_KEYS } from './model/sshtunnel/SshTunnelAuthTypeLabelKeys';

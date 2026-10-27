@@ -1,0 +1,159 @@
+## Purpose
+
+Defines the backup config of a database: what it holds for each backup method, its defaults, how it is read, saved, listed, copied and deleted, and how a database moves to another workspace together with its storage and notifiers.
+
+## ADDED Requirements
+
+### Requirement: A database has one backup config of its method
+
+Every database SHALL have exactly one backup config, of the backup method its type implies: a logical config for a PostgreSQL, MySQL, MariaDB or MongoDB database, and a physical config for a physical PostgreSQL database. Both methods SHALL hold whether backups run, the storage, the encryption and the notification triggers, the backup outcomes that send a notification. A logical config SHALL also hold one schedule, a retention policy (a time period, a number of backups, or grandfather-father-son) and whether a failed backup is retried and how many times. A physical config SHALL also hold the schedule of full backups, the schedule of incremental backups, the chain and full-backup retention, and the WAL lag threshold. Saving a config of the other method SHALL get `400` with `code` `invalid_request`.
+
+#### Scenario: A logical database is saved with a physical config
+
+- **WHEN** a member saves a physical config for a MySQL database
+- **THEN** the response is `400` with `code` `invalid_request`, and the database's config is unchanged
+
+### Requirement: A config that was never saved reads as the default
+
+Reading the config of a database that has never had one saved SHALL return the default config of its method and SHALL store nothing. The logical default SHALL have backups turned off, run daily at 04:00, keep backups for three months, retry a failed backup up to three times, notify on a failed and on a successful backup, use no encryption and name no storage. The physical default SHALL have backups turned off, run a full backup daily at 04:00, keep the last seven full backups, notify on every notification trigger of the method, use no encryption and name no storage, adjusted to the database's physical backup type as a type change adjusts it. The list of configs SHALL NOT include a database whose config was never saved.
+
+#### Scenario: Reading a new database's config
+
+- **WHEN** a member creates a PostgreSQL database and reads its config
+- **THEN** the response is `200` with the logical default, and listing the workspace's configs does not include the database
+
+#### Scenario: The first save stores the config
+
+- **WHEN** a member saves the config of that database with backups turned on
+- **THEN** reading the config returns the saved values, and the workspace's list includes it
+
+### Requirement: An invalid config is refused without a change
+
+Saving a config SHALL check the schedule, the retention and every rule of the method, and SHALL get `400` with `code` `invalid_request` and the offending fields when any of them fails. A physical config SHALL fit the database's physical backup type: a type without incremental backups takes no incremental schedule, no WAL lag threshold and only full-backup retention, and a type with incremental backups needs an incremental schedule that runs more often than the full one. A refused save SHALL change nothing.
+
+#### Scenario: A retention count of zero
+
+- **WHEN** a member saves a logical config with the retention policy `COUNT` and a count of `0`
+- **THEN** the response is `400` with `code` `invalid_request` that names the retention count, and the stored config is unchanged
+
+#### Scenario: Incremental schedule slower than the full one
+
+- **WHEN** a member saves a physical config of a database with incremental backups whose incremental schedule is weekly and whose full schedule is daily
+- **THEN** the response is `400` with `code` `invalid_request`
+
+### Requirement: A config follows its database's physical backup type
+
+When the physical backup type of a database changes, its saved physical config SHALL be adjusted in the same step to fit the new type, keeping every value the new type allows. When WAL streaming is no longer expected, the WAL streamer of the database SHALL be stopped and removed after the change is saved.
+
+An earlier release could leave a saved physical config that does not fit its database's type, because its type switch did not adjust the config. Reading such a config, alone or in a list, SHALL return it adjusted to the type and SHALL store nothing; the next save stores the adjusted values.
+
+#### Scenario: Switching to full backups only
+
+- **WHEN** a physical database with incremental backups and a weekly incremental schedule is switched to full backups only
+- **THEN** its config has no incremental schedule and keeps its full schedule, storage and notifications
+
+#### Scenario: Switching off WAL streaming
+
+- **WHEN** a physical database whose WAL is streamed is switched to full and incremental backups without WAL streaming
+- **THEN** after the switch is saved, the database has no WAL streamer
+
+#### Scenario: A config left unfit by an earlier release
+
+- **WHEN** an earlier release left a saved physical config with an incremental schedule while its database takes full backups only, and a member reads the config and lists the workspace's configs
+- **THEN** both responses hold the config without an incremental schedule
+- **AND** the stored config keeps its incremental schedule until the next save, which stores it without one
+
+### Requirement: Configs are listed per workspace or per storage
+
+Listing configs SHALL take exactly one filter, a workspace or a storage, and SHALL return the saved configs of that workspace's databases or of the databases that back up into that storage, ordered by database ID, in pages with a continuation cursor. A storage filter SHALL be answered as the storage's workspace is: `404` with `code` `not_found` for a user who is not a member of it. A request with both filters or neither SHALL get `400` with `code` `invalid_request`.
+
+#### Scenario: The database list reads its configs once
+
+- **WHEN** a member lists the configs of a workspace with three databases whose configs are saved
+- **THEN** one response holds the three configs, each with its database ID and storage ID
+
+#### Scenario: Is a storage in use
+
+- **WHEN** a member lists the configs that use a storage, with a limit of one, and one database backs up into it
+- **THEN** the response holds that database's config
+
+### Requirement: A copy of a database gets the copy of its logical config
+
+Copying a logical database whose config was saved SHALL save a copy of that config for the copy, in the copy's step, with the same values and storage. A copy of a physical database SHALL start without a saved config and read as the default.
+
+#### Scenario: Copying a database with enabled backups
+
+- **WHEN** a member copies a MySQL database whose saved config runs backups hourly into storage A
+- **THEN** the copy's config runs backups hourly into storage A
+
+### Requirement: Deleting a database deletes its config
+
+Deleting a database SHALL delete its saved config in the same step. When the deletion is refused or fails, the config SHALL stay.
+
+#### Scenario: A refused deletion keeps the config
+
+- **WHEN** a member deletes a database whose config was saved while a logical backup of it is running, and the deletion is refused
+- **THEN** listing the workspace's configs still includes the config
+
+#### Scenario: A deleted database leaves no config
+
+- **WHEN** a member deletes a database whose config was saved
+- **THEN** listing the workspace's configs no longer includes it
+
+### Requirement: A database moves to another workspace in one step
+
+A member SHALL be able to move a database to another workspace. The request SHALL name the target workspace and choose one of two storage options: move the database's storage with it, or switch the database to a storage of the target workspace. It MAY also ask to move the database's notifiers with it, and MAY name notifiers of the target workspace that replace the database's notifiers. The move SHALL happen completely or not at all: when any part fails, the database, its config, its storage and its notifiers SHALL stay as they were.
+
+- Moving the storage with the database SHALL be refused with `409` and `code` `in_use` when another database backs up into that storage, and with `400` and `code` `invalid_request` when the database has no storage.
+- A target storage or a replacing notifier outside the target workspace SHALL be refused with `400` and `code` `invalid_request`.
+- Moving the notifiers SHALL move each notifier that no other database uses. A notifier that another database uses SHALL stay in its workspace.
+- Switching to a target storage SHALL keep the backups already written to the previous storage. A database whose config was never saved SHALL get the default config of its method with the target storage saved.
+
+#### Scenario: Moving with the storage
+
+- **WHEN** a member of both workspaces moves a database with its storage, which no other database uses
+- **THEN** the database and the storage are listed in the target workspace, and the database's config still names that storage
+
+#### Scenario: A later step fails
+
+- **WHEN** a member moves a database with its storage and names a replacing notifier that does not exist
+- **THEN** the response is `400` with `code` `invalid_request`, and the database and its storage are still listed in the source workspace
+
+#### Scenario: The storage is shared
+
+- **WHEN** a member moves a database with its storage, and another database backs up into that storage
+- **THEN** the response is `409` with `code` `in_use`, and nothing moves
+
+#### Scenario: Switching an unsaved config to a target storage
+
+- **WHEN** a member moves a database whose config was never saved and switches it to storage T of the target workspace
+- **THEN** the database is listed in the target workspace, and its config is the default of its method naming storage T
+- **AND** the target workspace's list of configs includes it
+
+### Requirement: Only a member of both workspaces moves a database
+
+Moving a database SHALL require the right to edit content in the database's workspace and in the target workspace. A user who is not a member of the database's workspace or of the target workspace SHALL get `404` with `code` `not_found`, the same answer as for a workspace or database that does not exist. A member whose role in either workspace does not allow editing content SHALL get `403` with `code` `permission_denied`. Neither refusal SHALL move anything. This is a security rule: a move gives the target workspace's members the database's stored secrets.
+
+#### Scenario: Viewer of the target workspace
+
+- **WHEN** a member of the database's workspace who is a viewer of the target workspace moves the database there
+- **THEN** the response is `403` with `code` `permission_denied`, and the database stays in its workspace
+
+#### Scenario: Not a member of the target workspace
+
+- **WHEN** a member of the database's workspace moves the database to a workspace they are not a member of, and then to a workspace ID that does not exist
+- **THEN** both responses are `404` with `code` `not_found` and the same body apart from the ID
+
+### Requirement: An upgrade keeps every backup config
+
+An upgrade SHALL keep every saved config with its values, its storage and its notification triggers. A database that has a saved config of each method SHALL keep the one of its own method, and the other SHALL be deleted. A stored value that the new constraints reject SHALL be replaced by the default of its method before the constraints are added, so the instance starts.
+
+#### Scenario: A database with both configs
+
+- **WHEN** an instance with a MySQL database that has both a logical and a physical config row is upgraded
+- **THEN** the database's config is its logical config with its saved values
+
+#### Scenario: A value the new constraints reject
+
+- **WHEN** an instance with a logical config whose retention period is an unknown value is upgraded
+- **THEN** the config reads with the default retention period of the logical method and keeps every other saved value

@@ -43,7 +43,7 @@ func TestDeleteDatabase(t *testing.T) {
 		require.Equal(t, http.StatusNoContent, response.StatusCode(), string(response.Body))
 		assert.Empty(t, tm.listDatabaseIDs(t))
 		assert.Zero(t, tm.countRows(t, "SELECT COUNT(*) FROM logical_backups WHERE database_id = ?", savedDatabase.Id))
-		assert.Zero(t, tm.countRows(t, "SELECT COUNT(*) FROM logical_backup_configs WHERE database_id = ?",
+		assert.Zero(t, tm.countRows(t, "SELECT COUNT(*) FROM backups_configs WHERE database_id = ?",
 			savedDatabase.Id))
 		assert.Zero(t, tm.countRows(t, "SELECT COUNT(*) FROM databases_postgresql_logical WHERE database_id = ?",
 			savedDatabase.Id))

@@ -9,12 +9,13 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
-	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
+	backups_bridge "databasus-backend/internal/features/backups/config"
 	databases_bridge "databasus-backend/internal/features/databases"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	storages_bridge "databasus-backend/internal/features/storages"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
+	"databasus-backend/internal/modules/backups"
 	"databasus-backend/internal/modules/users"
 )
 
@@ -395,20 +396,28 @@ func Test_CleanByGFS_KeepsCorrectBackupsPerSlot(t *testing.T) {
 		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	}()
 
-	interval := createTestInterval()
+	interval := createTestSchedule()
 
-	backupConfig := &backups_config_logical.LogicalBackupConfig{
-		DatabaseID:          database.ID,
-		IsBackupsEnabled:    true,
-		RetentionPolicyType: backups_config_logical.RetentionPolicyTypeGFS,
-		RetentionGfsDays:    3,
-		RetentionGfsWeeks:   0,
-		RetentionGfsMonths:  0,
-		RetentionGfsYears:   0,
-		StorageID:           &storage.ID,
-		BackupInterval:      interval,
+	backupConfig := backups.LogicalBackupConfig{
+		BackupConfig: backups.BackupConfig{
+			Encryption:       backups.EncryptionNone,
+			DatabaseID:       database.ID,
+			IsBackupsEnabled: true,
+			StorageID:        &storage.ID,
+		},
+		Schedule: interval,
+		Retention: backups.LogicalRetention{
+			Period: backups.RetentionPeriod3Months,
+			Policy: backups.LogicalRetentionPolicyGfs,
+			Gfs: backups.GfsRetention{
+				Days:   3,
+				Weeks:  0,
+				Months: 0,
+				Years:  0,
+			},
+		},
 	}
-	_, err := backups_config_logical.GetBackupConfigService().SaveBackupConfig(t.Context(), backupConfig)
+	_, err := backups_bridge.SaveTestBackupConfig(t.Context(), backupConfig)
 	assert.NoError(t, err)
 
 	now := time.Now().UTC()
@@ -468,20 +477,28 @@ func Test_CleanByGFS_WithWeeklyAndMonthlySlots_KeepsWiderSpread(t *testing.T) {
 		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	}()
 
-	interval := createTestInterval()
+	interval := createTestSchedule()
 
-	backupConfig := &backups_config_logical.LogicalBackupConfig{
-		DatabaseID:          database.ID,
-		IsBackupsEnabled:    true,
-		RetentionPolicyType: backups_config_logical.RetentionPolicyTypeGFS,
-		RetentionGfsDays:    2,
-		RetentionGfsWeeks:   2,
-		RetentionGfsMonths:  1,
-		RetentionGfsYears:   0,
-		StorageID:           &storage.ID,
-		BackupInterval:      interval,
+	backupConfig := backups.LogicalBackupConfig{
+		BackupConfig: backups.BackupConfig{
+			Encryption:       backups.EncryptionNone,
+			DatabaseID:       database.ID,
+			IsBackupsEnabled: true,
+			StorageID:        &storage.ID,
+		},
+		Schedule: interval,
+		Retention: backups.LogicalRetention{
+			Period: backups.RetentionPeriod3Months,
+			Policy: backups.LogicalRetentionPolicyGfs,
+			Gfs: backups.GfsRetention{
+				Days:   2,
+				Weeks:  2,
+				Months: 1,
+				Years:  0,
+			},
+		},
 	}
-	_, err := backups_config_logical.GetBackupConfigService().SaveBackupConfig(t.Context(), backupConfig)
+	_, err := backups_bridge.SaveTestBackupConfig(t.Context(), backupConfig)
 	assert.NoError(t, err)
 
 	now := time.Now().UTC()
@@ -545,17 +562,25 @@ func Test_CleanByGFS_WithHourlySlots_KeepsCorrectBackups(t *testing.T) {
 		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	}()
 
-	interval := createTestInterval()
+	interval := createTestSchedule()
 
-	backupConfig := &backups_config_logical.LogicalBackupConfig{
-		DatabaseID:          database.ID,
-		IsBackupsEnabled:    true,
-		RetentionPolicyType: backups_config_logical.RetentionPolicyTypeGFS,
-		RetentionGfsHours:   3,
-		StorageID:           &testStorage.ID,
-		BackupInterval:      interval,
+	backupConfig := backups.LogicalBackupConfig{
+		BackupConfig: backups.BackupConfig{
+			Encryption:       backups.EncryptionNone,
+			DatabaseID:       database.ID,
+			IsBackupsEnabled: true,
+			StorageID:        &testStorage.ID,
+		},
+		Schedule: interval,
+		Retention: backups.LogicalRetention{
+			Period: backups.RetentionPeriod3Months,
+			Policy: backups.LogicalRetentionPolicyGfs,
+			Gfs: backups.GfsRetention{
+				Hours: 3,
+			},
+		},
 	}
-	_, err := backups_config_logical.GetBackupConfigService().SaveBackupConfig(t.Context(), backupConfig)
+	_, err := backups_bridge.SaveTestBackupConfig(t.Context(), backupConfig)
 	assert.NoError(t, err)
 
 	now := time.Now().UTC()
@@ -615,21 +640,29 @@ func Test_CleanByGFS_SkipsRecentBackup_WhenNotInKeepSet(t *testing.T) {
 		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	}()
 
-	interval := createTestInterval()
+	interval := createTestSchedule()
 
 	// Keep only 1 daily slot. We create 2 old backups plus two recent backups on today.
 	// Backups are ordered newest-first, so the 15-min-old backup fills the single daily slot.
 	// The 30-min-old backup is the same day → not in the GFS keep-set, but it is still recent
 	// (within grace period) and must be preserved.
-	backupConfig := &backups_config_logical.LogicalBackupConfig{
-		DatabaseID:          database.ID,
-		IsBackupsEnabled:    true,
-		RetentionPolicyType: backups_config_logical.RetentionPolicyTypeGFS,
-		RetentionGfsDays:    1,
-		StorageID:           &storage.ID,
-		BackupInterval:      interval,
+	backupConfig := backups.LogicalBackupConfig{
+		BackupConfig: backups.BackupConfig{
+			Encryption:       backups.EncryptionNone,
+			DatabaseID:       database.ID,
+			IsBackupsEnabled: true,
+			StorageID:        &storage.ID,
+		},
+		Schedule: interval,
+		Retention: backups.LogicalRetention{
+			Period: backups.RetentionPeriod3Months,
+			Policy: backups.LogicalRetentionPolicyGfs,
+			Gfs: backups.GfsRetention{
+				Days: 1,
+			},
+		},
 	}
-	_, err := backups_config_logical.GetBackupConfigService().SaveBackupConfig(t.Context(), backupConfig)
+	_, err := backups_bridge.SaveTestBackupConfig(t.Context(), backupConfig)
 	assert.NoError(t, err)
 
 	now := time.Now().UTC()
@@ -721,19 +754,27 @@ func Test_CleanByGFS_With20DailyBackups_KeepsOnlyExpectedCount(t *testing.T) {
 		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	}()
 
-	interval := createTestInterval()
+	interval := createTestSchedule()
 
-	backupConfig := &backups_config_logical.LogicalBackupConfig{
-		DatabaseID:          database.ID,
-		IsBackupsEnabled:    true,
-		RetentionPolicyType: backups_config_logical.RetentionPolicyTypeGFS,
-		RetentionGfsDays:    7,
-		RetentionGfsWeeks:   4,
-		RetentionGfsMonths:  1,
-		StorageID:           &testStorage.ID,
-		BackupInterval:      interval,
+	backupConfig := backups.LogicalBackupConfig{
+		BackupConfig: backups.BackupConfig{
+			Encryption:       backups.EncryptionNone,
+			DatabaseID:       database.ID,
+			IsBackupsEnabled: true,
+			StorageID:        &testStorage.ID,
+		},
+		Schedule: interval,
+		Retention: backups.LogicalRetention{
+			Period: backups.RetentionPeriod3Months,
+			Policy: backups.LogicalRetentionPolicyGfs,
+			Gfs: backups.GfsRetention{
+				Days:   7,
+				Weeks:  4,
+				Months: 1,
+			},
+		},
 	}
-	_, err := backups_config_logical.GetBackupConfigService().SaveBackupConfig(t.Context(), backupConfig)
+	_, err := backups_bridge.SaveTestBackupConfig(t.Context(), backupConfig)
 	assert.NoError(t, err)
 
 	now := time.Now().UTC()
@@ -801,18 +842,26 @@ func Test_CleanByGFS_WithMultipleBackupsPerDay_KeepsOnlyOnePerDailySlot(t *testi
 		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	}()
 
-	interval := createTestInterval()
+	interval := createTestSchedule()
 
-	backupConfig := &backups_config_logical.LogicalBackupConfig{
-		DatabaseID:          database.ID,
-		IsBackupsEnabled:    true,
-		RetentionPolicyType: backups_config_logical.RetentionPolicyTypeGFS,
-		RetentionGfsDays:    7,
-		RetentionGfsWeeks:   4,
-		StorageID:           &testStorage.ID,
-		BackupInterval:      interval,
+	backupConfig := backups.LogicalBackupConfig{
+		BackupConfig: backups.BackupConfig{
+			Encryption:       backups.EncryptionNone,
+			DatabaseID:       database.ID,
+			IsBackupsEnabled: true,
+			StorageID:        &testStorage.ID,
+		},
+		Schedule: interval,
+		Retention: backups.LogicalRetention{
+			Period: backups.RetentionPeriod3Months,
+			Policy: backups.LogicalRetentionPolicyGfs,
+			Gfs: backups.GfsRetention{
+				Days:  7,
+				Weeks: 4,
+			},
+		},
 	}
-	_, err := backups_config_logical.GetBackupConfigService().SaveBackupConfig(t.Context(), backupConfig)
+	_, err := backups_bridge.SaveTestBackupConfig(t.Context(), backupConfig)
 	assert.NoError(t, err)
 
 	now := time.Now().UTC()
@@ -889,21 +938,29 @@ func Test_CleanByGFS_With24HourlySlotsAnd23DailyBackups_DeletesExcessBackups(t *
 		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	}()
 
-	interval := createTestInterval()
+	interval := createTestSchedule()
 
-	backupConfig := &backups_config_logical.LogicalBackupConfig{
-		DatabaseID:          database.ID,
-		IsBackupsEnabled:    true,
-		RetentionPolicyType: backups_config_logical.RetentionPolicyTypeGFS,
-		RetentionGfsHours:   24,
-		RetentionGfsDays:    7,
-		RetentionGfsWeeks:   4,
-		RetentionGfsMonths:  12,
-		RetentionGfsYears:   3,
-		StorageID:           &testStorage.ID,
-		BackupInterval:      interval,
+	backupConfig := backups.LogicalBackupConfig{
+		BackupConfig: backups.BackupConfig{
+			Encryption:       backups.EncryptionNone,
+			DatabaseID:       database.ID,
+			IsBackupsEnabled: true,
+			StorageID:        &testStorage.ID,
+		},
+		Schedule: interval,
+		Retention: backups.LogicalRetention{
+			Period: backups.RetentionPeriod3Months,
+			Policy: backups.LogicalRetentionPolicyGfs,
+			Gfs: backups.GfsRetention{
+				Hours:  24,
+				Days:   7,
+				Weeks:  4,
+				Months: 12,
+				Years:  3,
+			},
+		},
 	}
-	_, err := backups_config_logical.GetBackupConfigService().SaveBackupConfig(t.Context(), backupConfig)
+	_, err := backups_bridge.SaveTestBackupConfig(t.Context(), backupConfig)
 	assert.NoError(t, err)
 
 	now := time.Now().UTC()
@@ -957,21 +1014,29 @@ func Test_CleanByGFS_WithDisabledHourlySlotsAnd23DailyBackups_DeletesExcessBacku
 		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	}()
 
-	interval := createTestInterval()
+	interval := createTestSchedule()
 
-	backupConfig := &backups_config_logical.LogicalBackupConfig{
-		DatabaseID:          database.ID,
-		IsBackupsEnabled:    true,
-		RetentionPolicyType: backups_config_logical.RetentionPolicyTypeGFS,
-		RetentionGfsHours:   0,
-		RetentionGfsDays:    7,
-		RetentionGfsWeeks:   4,
-		RetentionGfsMonths:  12,
-		RetentionGfsYears:   3,
-		StorageID:           &testStorage.ID,
-		BackupInterval:      interval,
+	backupConfig := backups.LogicalBackupConfig{
+		BackupConfig: backups.BackupConfig{
+			Encryption:       backups.EncryptionNone,
+			DatabaseID:       database.ID,
+			IsBackupsEnabled: true,
+			StorageID:        &testStorage.ID,
+		},
+		Schedule: interval,
+		Retention: backups.LogicalRetention{
+			Period: backups.RetentionPeriod3Months,
+			Policy: backups.LogicalRetentionPolicyGfs,
+			Gfs: backups.GfsRetention{
+				Hours:  0,
+				Days:   7,
+				Weeks:  4,
+				Months: 12,
+				Years:  3,
+			},
+		},
 	}
-	_, err := backups_config_logical.GetBackupConfigService().SaveBackupConfig(t.Context(), backupConfig)
+	_, err := backups_bridge.SaveTestBackupConfig(t.Context(), backupConfig)
 	assert.NoError(t, err)
 
 	now := time.Now().UTC()
@@ -1025,18 +1090,26 @@ func Test_CleanByGFS_WithDailySlotsAndWeeklyBackups_DeletesExcessBackups(t *test
 		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	}()
 
-	interval := createTestInterval()
+	interval := createTestSchedule()
 
-	backupConfig := &backups_config_logical.LogicalBackupConfig{
-		DatabaseID:          database.ID,
-		IsBackupsEnabled:    true,
-		RetentionPolicyType: backups_config_logical.RetentionPolicyTypeGFS,
-		RetentionGfsDays:    7,
-		RetentionGfsWeeks:   4,
-		StorageID:           &testStorage.ID,
-		BackupInterval:      interval,
+	backupConfig := backups.LogicalBackupConfig{
+		BackupConfig: backups.BackupConfig{
+			Encryption:       backups.EncryptionNone,
+			DatabaseID:       database.ID,
+			IsBackupsEnabled: true,
+			StorageID:        &testStorage.ID,
+		},
+		Schedule: interval,
+		Retention: backups.LogicalRetention{
+			Period: backups.RetentionPeriod3Months,
+			Policy: backups.LogicalRetentionPolicyGfs,
+			Gfs: backups.GfsRetention{
+				Days:  7,
+				Weeks: 4,
+			},
+		},
 	}
-	_, err := backups_config_logical.GetBackupConfigService().SaveBackupConfig(t.Context(), backupConfig)
+	_, err := backups_bridge.SaveTestBackupConfig(t.Context(), backupConfig)
 	assert.NoError(t, err)
 
 	now := time.Now().UTC()
@@ -1105,18 +1178,26 @@ func Test_CleanByGFS_WithWeeklySlotsAndMonthlyBackups_DeletesExcessBackups(t *te
 		workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
 	}()
 
-	interval := createTestInterval()
+	interval := createTestSchedule()
 
-	backupConfig := &backups_config_logical.LogicalBackupConfig{
-		DatabaseID:          database.ID,
-		IsBackupsEnabled:    true,
-		RetentionPolicyType: backups_config_logical.RetentionPolicyTypeGFS,
-		RetentionGfsWeeks:   52,
-		RetentionGfsMonths:  3,
-		StorageID:           &testStorage.ID,
-		BackupInterval:      interval,
+	backupConfig := backups.LogicalBackupConfig{
+		BackupConfig: backups.BackupConfig{
+			Encryption:       backups.EncryptionNone,
+			DatabaseID:       database.ID,
+			IsBackupsEnabled: true,
+			StorageID:        &testStorage.ID,
+		},
+		Schedule: interval,
+		Retention: backups.LogicalRetention{
+			Period: backups.RetentionPeriod3Months,
+			Policy: backups.LogicalRetentionPolicyGfs,
+			Gfs: backups.GfsRetention{
+				Weeks:  52,
+				Months: 3,
+			},
+		},
 	}
-	_, err := backups_config_logical.GetBackupConfigService().SaveBackupConfig(t.Context(), backupConfig)
+	_, err := backups_bridge.SaveTestBackupConfig(t.Context(), backupConfig)
 	assert.NoError(t, err)
 
 	now := time.Now().UTC()

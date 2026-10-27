@@ -5,9 +5,9 @@ import (
 	"log/slog"
 
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
-	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
 	restores_core "databasus-backend/internal/features/restores/core"
 	"databasus-backend/internal/lib/crypto"
+	"databasus-backend/internal/modules/backups"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/storages"
 )
@@ -32,7 +32,7 @@ type restoreRun struct {
 
 func (uc *RestoreBackupUsecase) Execute(
 	ctx context.Context,
-	_ *backups_config_logical.LogicalBackupConfig,
+	_ backups.LogicalBackupConfig,
 	restore restores_core.Restore,
 	source restores_core.SourceDatabase,
 	target restores_core.RestoreBackupRequest,

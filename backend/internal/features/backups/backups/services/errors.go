@@ -14,5 +14,10 @@ var (
 		Detail: "a backup of the database is in progress, so the database cannot be deleted",
 		Errors: nil,
 	}
+	ErrStorageChangeBackupInProgress = &apierror.Problem{
+		Code:   apierror.CodeInUse,
+		Detail: "a backup of the database is in progress, so its backups cannot move to another storage",
+		Errors: nil,
+	}
 	errBackupInProgress = errors.New("backup is in progress, storage cannot be removed")
 )

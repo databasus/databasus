@@ -20,7 +20,7 @@ import (
 // slot. The returned func tears them down after m.Run(). Each version package calls this in its own
 // TestMain, so the two majors run with fully isolated control planes.
 func Setup() func() {
-	backuping_physical.SetupDependencies()
+	backuping_physical.SubscribeToBackupConfigEventsWithoutApp()
 
 	stopScheduler := backuping_physical.StartPhysicalSchedulerForTest(&testing.T{})
 	stopWalStreamSupervisor := backuping_physical.StartPhysicalWalStreamSupervisorForTest(&testing.T{})

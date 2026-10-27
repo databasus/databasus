@@ -2,15 +2,12 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import {
-  type LogicalBackupConfig,
-  logicalBackupConfigApi,
-  logicalBackupsApi,
-} from '../../../entity/backups/logical';
-import {
-  type PhysicalBackupConfig,
-  physicalBackupConfigApi,
-  physicalBackupsApi,
-} from '../../../entity/backups/physical';
+  type LogicalBackupConfigInput,
+  type PhysicalBackupConfigInput,
+  backupConfigApi,
+} from '../../../entity/backups/config';
+import { logicalBackupsApi } from '../../../entity/backups/logical';
+import { physicalBackupsApi } from '../../../entity/backups/physical';
 import {
   type Database,
   DatabaseType,
@@ -54,9 +51,9 @@ export const CreateDatabaseComponent = ({
 }: Props) => {
   const { t } = useTranslation();
   const [isCreating, setIsCreating] = useState(false);
-  const [backupConfig, setBackupConfig] = useState<LogicalBackupConfig | undefined>();
+  const [backupConfig, setBackupConfig] = useState<LogicalBackupConfigInput | undefined>();
   const [physicalBackupConfig, setPhysicalBackupConfig] = useState<
-    PhysicalBackupConfig | undefined
+    PhysicalBackupConfigInput | undefined
   >();
   const [database, setDatabase] = useState<Database>(createInitialDatabase(workspaceId));
 
@@ -88,15 +85,13 @@ export const CreateDatabaseComponent = ({
       setDatabase({ ...createdDatabase });
 
       if (isPhysical && physicalBackupConfig) {
-        physicalBackupConfig.databaseId = createdDatabase.id;
-        await physicalBackupConfigApi.savePhysicalBackupConfig(physicalBackupConfig);
+        await backupConfigApi.updateBackupConfig(createdDatabase.id, physicalBackupConfig);
 
         if (physicalBackupConfig.isBackupsEnabled) {
           await physicalBackupsApi.triggerPhysicalBackup(createdDatabase.id, 'auto');
         }
       } else if (backupConfig) {
-        backupConfig.databaseId = createdDatabase.id;
-        await logicalBackupConfigApi.saveBackupConfig(backupConfig);
+        await backupConfigApi.updateBackupConfig(createdDatabase.id, backupConfig);
 
         if (backupConfig.isBackupsEnabled) {
           await logicalBackupsApi.makeBackup(createdDatabase.id);

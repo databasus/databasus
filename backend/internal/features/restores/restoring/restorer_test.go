@@ -17,7 +17,7 @@ import (
 	"databasus-backend/internal/config"
 	backups_controllers_logical "databasus-backend/internal/features/backups/backups/controllers/logical"
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
-	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
+	backups_bridge "databasus-backend/internal/features/backups/config"
 	"databasus-backend/internal/features/caching"
 	databases_bridge "databasus-backend/internal/features/databases"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
@@ -64,7 +64,7 @@ func Test_MakeRestore_WhenCacheMissed_RestoreFails(t *testing.T) {
 	storage := storages_bridge.CreateTestStorage(workspace.ID)
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
 	database := databases_bridge.CreateTestDatabase(workspace.ID, notifier)
-	backups_config_logical.EnableBackupsForTestDatabase(t.Context(), database.ID, storage.ID)
+	backups_bridge.EnableBackupsForTestDatabase(t.Context(), database.ID, storage.ID)
 
 	defer func() {
 		backupRepo := backups_core_logical.BackupRepository{}
@@ -127,7 +127,7 @@ func Test_MakeRestore_WhenTaskStarts_CacheDeletedImmediately(t *testing.T) {
 	storage := storages_bridge.CreateTestStorage(workspace.ID)
 	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
 	database := databases_bridge.CreateTestDatabase(workspace.ID, notifier)
-	backups_config_logical.EnableBackupsForTestDatabase(t.Context(), database.ID, storage.ID)
+	backups_bridge.EnableBackupsForTestDatabase(t.Context(), database.ID, storage.ID)
 
 	defer func() {
 		backupRepo := backups_core_logical.BackupRepository{}
@@ -322,10 +322,10 @@ func createRestoreWithConfigStorage(t *testing.T, configStorage configStorageCho
 
 	switch configStorage {
 	case configNamesBackupStorage:
-		backups_config_logical.EnableBackupsForTestDatabase(t.Context(), database.ID, backupStorage.ID)
+		backups_bridge.EnableBackupsForTestDatabase(t.Context(), database.ID, backupStorage.ID)
 	case configNamesOtherStorage:
 		otherStorage = storages_bridge.CreateTestStorage(workspace.ID)
-		backups_config_logical.EnableBackupsForTestDatabase(t.Context(), database.ID, otherStorage.ID)
+		backups_bridge.EnableBackupsForTestDatabase(t.Context(), database.ID, otherStorage.ID)
 	case configNamesNoStorage:
 	}
 

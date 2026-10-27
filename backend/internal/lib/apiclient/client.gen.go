@@ -91,6 +91,24 @@ func (e AzureBlobStorageSettingsType) Valid() bool {
 	}
 }
 
+// Defines values for BackupEncryption.
+const (
+	BackupEncryptionENCRYPTED BackupEncryption = "ENCRYPTED"
+	BackupEncryptionNONE      BackupEncryption = "NONE"
+)
+
+// Valid indicates whether the value is a known member of the BackupEncryption enum.
+func (e BackupEncryption) Valid() bool {
+	switch e {
+	case BackupEncryptionENCRYPTED:
+		return true
+	case BackupEncryptionNONE:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for DatabaseConnectionFailure.
 const (
 	DatabaseConnectionFailureBADCREDENTIALS           DatabaseConnectionFailure = "BAD_CREDENTIALS"
@@ -199,6 +217,24 @@ func (e FtpStorageSettingsType) Valid() bool {
 	}
 }
 
+// Defines values for FullBackupsRetentionPolicy.
+const (
+	FullBackupsRetentionPolicyGFS   FullBackupsRetentionPolicy = "GFS"
+	FullBackupsRetentionPolicyLASTN FullBackupsRetentionPolicy = "LAST_N"
+)
+
+// Valid indicates whether the value is a known member of the FullBackupsRetentionPolicy enum.
+func (e FullBackupsRetentionPolicy) Valid() bool {
+	switch e {
+	case FullBackupsRetentionPolicyGFS:
+		return true
+	case FullBackupsRetentionPolicyLASTN:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for GoogleDriveStorageSettingsType.
 const (
 	GoogleDriveStorageSettingsTypeGOOGLEDRIVE GoogleDriveStorageSettingsType = "GOOGLE_DRIVE"
@@ -223,6 +259,60 @@ const (
 func (e LocalStorageSettingsType) Valid() bool {
 	switch e {
 	case LocalStorageSettingsTypeLOCAL:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LogicalBackupSettingsType.
+const (
+	LogicalBackupSettingsTypeLOGICAL LogicalBackupSettingsType = "LOGICAL"
+)
+
+// Valid indicates whether the value is a known member of the LogicalBackupSettingsType enum.
+func (e LogicalBackupSettingsType) Valid() bool {
+	switch e {
+	case LogicalBackupSettingsTypeLOGICAL:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LogicalNotificationTrigger.
+const (
+	LogicalNotificationTriggerBACKUPFAILED  LogicalNotificationTrigger = "BACKUP_FAILED"
+	LogicalNotificationTriggerBACKUPSUCCESS LogicalNotificationTrigger = "BACKUP_SUCCESS"
+)
+
+// Valid indicates whether the value is a known member of the LogicalNotificationTrigger enum.
+func (e LogicalNotificationTrigger) Valid() bool {
+	switch e {
+	case LogicalNotificationTriggerBACKUPFAILED:
+		return true
+	case LogicalNotificationTriggerBACKUPSUCCESS:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LogicalRetentionPolicy.
+const (
+	LogicalRetentionPolicyCOUNT      LogicalRetentionPolicy = "COUNT"
+	LogicalRetentionPolicyGFS        LogicalRetentionPolicy = "GFS"
+	LogicalRetentionPolicyTIMEPERIOD LogicalRetentionPolicy = "TIME_PERIOD"
+)
+
+// Valid indicates whether the value is a known member of the LogicalRetentionPolicy enum.
+func (e LogicalRetentionPolicy) Valid() bool {
+	switch e {
+	case LogicalRetentionPolicyCOUNT:
+		return true
+	case LogicalRetentionPolicyGFS:
+		return true
+	case LogicalRetentionPolicyTIMEPERIOD:
 		return true
 	default:
 		return false
@@ -460,6 +550,45 @@ func (e NotificationCategory) Valid() bool {
 	}
 }
 
+// Defines values for NotificationTrigger.
+const (
+	NotificationTriggerBACKUPFAILED  NotificationTrigger = "BACKUP_FAILED"
+	NotificationTriggerBACKUPSUCCESS NotificationTrigger = "BACKUP_SUCCESS"
+	NotificationTriggerCHAINBROKEN   NotificationTrigger = "CHAIN_BROKEN"
+	NotificationTriggerWALGAP        NotificationTrigger = "WAL_GAP"
+)
+
+// Valid indicates whether the value is a known member of the NotificationTrigger enum.
+func (e NotificationTrigger) Valid() bool {
+	switch e {
+	case NotificationTriggerBACKUPFAILED:
+		return true
+	case NotificationTriggerBACKUPSUCCESS:
+		return true
+	case NotificationTriggerCHAINBROKEN:
+		return true
+	case NotificationTriggerWALGAP:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PhysicalBackupSettingsType.
+const (
+	PhysicalBackupSettingsTypePHYSICAL PhysicalBackupSettingsType = "PHYSICAL"
+)
+
+// Valid indicates whether the value is a known member of the PhysicalBackupSettingsType enum.
+func (e PhysicalBackupSettingsType) Valid() bool {
+	switch e {
+	case PhysicalBackupSettingsTypePHYSICAL:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for PhysicalBackupType.
 const (
 	PhysicalBackupTypeFULL                     PhysicalBackupType = "FULL"
@@ -475,6 +604,27 @@ func (e PhysicalBackupType) Valid() bool {
 	case PhysicalBackupTypeFULLINCREMENTAL:
 		return true
 	case PhysicalBackupTypeFULLINCREMENTALWALSTREAM:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PhysicalRetentionPolicy.
+const (
+	PhysicalRetentionPolicyCHAINS               PhysicalRetentionPolicy = "CHAINS"
+	PhysicalRetentionPolicyCHAINSANDFULLBACKUPS PhysicalRetentionPolicy = "CHAINS_AND_FULL_BACKUPS"
+	PhysicalRetentionPolicyFULLBACKUPS          PhysicalRetentionPolicy = "FULL_BACKUPS"
+)
+
+// Valid indicates whether the value is a known member of the PhysicalRetentionPolicy enum.
+func (e PhysicalRetentionPolicy) Valid() bool {
+	switch e {
+	case PhysicalRetentionPolicyCHAINS:
+		return true
+	case PhysicalRetentionPolicyCHAINSANDFULLBACKUPS:
+		return true
+	case PhysicalRetentionPolicyFULLBACKUPS:
 		return true
 	default:
 		return false
@@ -676,6 +826,51 @@ func (e RcloneStorageSettingsType) Valid() bool {
 	}
 }
 
+// Defines values for RetentionPeriod.
+const (
+	RetentionPeriodDAY         RetentionPeriod = "DAY"
+	RetentionPeriodFIVEYEARS   RetentionPeriod = "FIVE_YEARS"
+	RetentionPeriodFOREVER     RetentionPeriod = "FOREVER"
+	RetentionPeriodFOURYEARS   RetentionPeriod = "FOUR_YEARS"
+	RetentionPeriodMONTH       RetentionPeriod = "MONTH"
+	RetentionPeriodSIXMONTHS   RetentionPeriod = "SIX_MONTHS"
+	RetentionPeriodTHREEMONTHS RetentionPeriod = "THREE_MONTHS"
+	RetentionPeriodTHREEYEARS  RetentionPeriod = "THREE_YEARS"
+	RetentionPeriodTWOYEARS    RetentionPeriod = "TWO_YEARS"
+	RetentionPeriodWEEK        RetentionPeriod = "WEEK"
+	RetentionPeriodYEAR        RetentionPeriod = "YEAR"
+)
+
+// Valid indicates whether the value is a known member of the RetentionPeriod enum.
+func (e RetentionPeriod) Valid() bool {
+	switch e {
+	case RetentionPeriodDAY:
+		return true
+	case RetentionPeriodFIVEYEARS:
+		return true
+	case RetentionPeriodFOREVER:
+		return true
+	case RetentionPeriodFOURYEARS:
+		return true
+	case RetentionPeriodMONTH:
+		return true
+	case RetentionPeriodSIXMONTHS:
+		return true
+	case RetentionPeriodTHREEMONTHS:
+		return true
+	case RetentionPeriodTHREEYEARS:
+		return true
+	case RetentionPeriodTWOYEARS:
+		return true
+	case RetentionPeriodWEEK:
+		return true
+	case RetentionPeriodYEAR:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for S3StorageClass.
 const (
 	S3StorageClassGLACIERIR          S3StorageClass = "GLACIER_IR"
@@ -715,6 +910,33 @@ const (
 func (e S3StorageSettingsType) Valid() bool {
 	switch e {
 	case S3StorageSettingsTypeS3:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ScheduleType.
+const (
+	ScheduleTypeCRON    ScheduleType = "CRON"
+	ScheduleTypeDAILY   ScheduleType = "DAILY"
+	ScheduleTypeHOURLY  ScheduleType = "HOURLY"
+	ScheduleTypeMONTHLY ScheduleType = "MONTHLY"
+	ScheduleTypeWEEKLY  ScheduleType = "WEEKLY"
+)
+
+// Valid indicates whether the value is a known member of the ScheduleType enum.
+func (e ScheduleType) Valid() bool {
+	switch e {
+	case ScheduleTypeCRON:
+		return true
+	case ScheduleTypeDAILY:
+		return true
+	case ScheduleTypeHOURLY:
+		return true
+	case ScheduleTypeMONTHLY:
+		return true
+	case ScheduleTypeWEEKLY:
 		return true
 	default:
 		return false
@@ -814,6 +1036,36 @@ func (e SshAuthType) Valid() bool {
 	case SshAuthTypePASSWORD:
 		return true
 	case SshAuthTypePRIVATEKEY:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for StorageMovedWithDatabaseType.
+const (
+	StorageMovedWithDatabaseTypeMOVEWITHDATABASE StorageMovedWithDatabaseType = "MOVE_WITH_DATABASE"
+)
+
+// Valid indicates whether the value is a known member of the StorageMovedWithDatabaseType enum.
+func (e StorageMovedWithDatabaseType) Valid() bool {
+	switch e {
+	case StorageMovedWithDatabaseTypeMOVEWITHDATABASE:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for StorageSwitchedOnTransferType.
+const (
+	StorageSwitchedOnTransferTypeSWITCHTOSTORAGE StorageSwitchedOnTransferType = "SWITCH_TO_STORAGE"
+)
+
+// Valid indicates whether the value is a known member of the StorageSwitchedOnTransferType enum.
+func (e StorageSwitchedOnTransferType) Valid() bool {
+	switch e {
+	case StorageSwitchedOnTransferTypeSWITCHTOSTORAGE:
 		return true
 	default:
 		return false
@@ -1063,6 +1315,56 @@ type AzureBlobStorageSettings struct {
 // AzureBlobStorageSettingsType Always `AZURE_BLOB`
 type AzureBlobStorageSettingsType string
 
+// BackupConfig How a database is backed up
+type BackupConfig struct {
+	// DatabaseId The database the config belongs to
+	DatabaseId openapi_types.UUID `json:"databaseId"`
+
+	// Encryption Whether the backup files are encrypted with the instance's master key
+	Encryption BackupEncryption `json:"encryption"`
+
+	// IsBackupsEnabled Whether backups run on the schedule
+	IsBackupsEnabled bool `json:"isBackupsEnabled"`
+
+	// Settings The settings of the database's backup method; `type` tells the methods apart
+	Settings BackupSettings `json:"settings"`
+
+	// StorageId The storage the backups are written to, null while the config names none
+	StorageId *openapi_types.UUID `json:"storageId"`
+}
+
+// BackupConfigInput The editable fields of a backup config
+type BackupConfigInput struct {
+	// Encryption Whether the backup files are encrypted with the instance's master key
+	Encryption BackupEncryption `json:"encryption"`
+
+	// IsBackupsEnabled Whether backups run on the schedule
+	IsBackupsEnabled bool `json:"isBackupsEnabled"`
+
+	// Settings The settings of the database's backup method; `type` tells the methods apart
+	Settings BackupSettings `json:"settings"`
+
+	// StorageId A storage of the database's workspace, or null to name none
+	StorageId *openapi_types.UUID `json:"storageId"`
+}
+
+// BackupConfigPage One page of backup configs, ordered by database ID
+type BackupConfigPage struct {
+	// Items The configs on the page
+	Items []BackupConfig `json:"items"`
+
+	// NextCursor The `after` of the next page, absent on the last page
+	NextCursor *string `json:"nextCursor,omitempty"`
+}
+
+// BackupEncryption Whether the backup files are encrypted with the instance's master key
+type BackupEncryption string
+
+// BackupSettings The settings of the database's backup method; `type` tells the methods apart
+type BackupSettings struct {
+	union json.RawMessage
+}
+
 // Database A database a workspace backs up, without its secrets
 type Database struct {
 	// HealthStatus The outcome of the last scheduled health check, absent while health checks are off
@@ -1147,6 +1449,26 @@ type DatabaseTestResult struct {
 
 	// Reason The class of a failed connection where the type tells it, absent for any other failure
 	Reason *DatabaseConnectionFailure `json:"reason,omitempty"`
+}
+
+// DatabaseTransfer The workspace a database moves to, and what happens to its storage and notifiers
+type DatabaseTransfer struct {
+	// IsMovingNotifiers Whether the database's notifiers move along; a notifier another database uses stays in its workspace
+	IsMovingNotifiers bool `json:"isMovingNotifiers"`
+
+	// Storage What happens to the database's storage; `type` tells the options apart
+	Storage DatabaseTransferStorage `json:"storage"`
+
+	// TargetNotifierIds Notifiers of the target workspace that replace the database's notifiers
+	TargetNotifierIds *[]openapi_types.UUID `json:"targetNotifierIds,omitempty"`
+
+	// TargetWorkspaceId The ID of the target workspace
+	TargetWorkspaceId openapi_types.UUID `json:"targetWorkspaceId"`
+}
+
+// DatabaseTransferStorage What happens to the database's storage; `type` tells the options apart
+type DatabaseTransferStorage struct {
+	union json.RawMessage
 }
 
 // DatabaseUpdate The editable fields of a database
@@ -1248,6 +1570,33 @@ type FtpStorageSettings struct {
 // FtpStorageSettingsType Always `FTP`
 type FtpStorageSettingsType string
 
+// FullBackupsRetention Which full backups are kept
+type FullBackupsRetention struct {
+	// Count How many of the newest full backups `LAST_N` keeps; 0 with `GFS`
+	Count int `json:"count"`
+
+	// GfsDays For how many of the last days `GFS` keeps the newest full backup of each day
+	GfsDays int `json:"gfsDays"`
+
+	// GfsHours For how many of the last hours `GFS` keeps the newest full backup of each hour
+	GfsHours int `json:"gfsHours"`
+
+	// GfsMonths For how many of the last months `GFS` keeps the newest full backup of each month
+	GfsMonths int `json:"gfsMonths"`
+
+	// GfsWeeks For how many of the last weeks `GFS` keeps the newest full backup of each week
+	GfsWeeks int `json:"gfsWeeks"`
+
+	// GfsYears For how many of the last years `GFS` keeps the newest full backup of each year
+	GfsYears int `json:"gfsYears"`
+
+	// Policy `LAST_N` keeps the newest `count` full backups, and `GFS` keeps them by grandfather-father-son periods, at least one of them set
+	Policy FullBackupsRetentionPolicy `json:"policy"`
+}
+
+// FullBackupsRetentionPolicy `LAST_N` keeps the newest `count` full backups, and `GFS` keeps them by grandfather-father-son periods, at least one of them set
+type FullBackupsRetentionPolicy string
+
 // GoogleDriveStorageSettings The Google Drive of the account that authorized the OAuth client
 type GoogleDriveStorageSettings struct {
 	// ClientId The ID of the OAuth client
@@ -1328,6 +1677,63 @@ type LocalStorageSettings struct {
 
 // LocalStorageSettingsType Always `LOCAL`
 type LocalStorageSettingsType string
+
+// LogicalBackupSettings The settings of a logical backup, a dump of a PostgreSQL, MySQL, MariaDB or MongoDB database
+type LogicalBackupSettings struct {
+	// IsRetryIfFailed Whether a failed backup is retried
+	IsRetryIfFailed bool `json:"isRetryIfFailed"`
+
+	// MaxFailedTriesCount How many times a failed backup is tried before it stays failed
+	MaxFailedTriesCount int `json:"maxFailedTriesCount"`
+
+	// NotificationTriggers The backup outcomes that send a notification through the database's notifiers
+	NotificationTriggers []LogicalNotificationTrigger `json:"notificationTriggers"`
+
+	// Retention Which logical backups are kept. `policy` picks the rule; the fields of the other rules keep their saved values.
+	Retention LogicalRetention `json:"retention"`
+
+	// Schedule When a recurring backup runs; times of day are in UTC
+	Schedule Schedule `json:"schedule"`
+
+	// Type Always `LOGICAL`
+	Type LogicalBackupSettingsType `json:"type"`
+}
+
+// LogicalBackupSettingsType Always `LOGICAL`
+type LogicalBackupSettingsType string
+
+// LogicalNotificationTrigger A logical backup outcome that sends a notification, a failed or a successful backup
+type LogicalNotificationTrigger string
+
+// LogicalRetention Which logical backups are kept. `policy` picks the rule; the fields of the other rules keep their saved values.
+type LogicalRetention struct {
+	// Count How many of the newest backups `COUNT` keeps; greater than 0 with it
+	Count int `json:"count"`
+
+	// GfsDays For how many of the last days `GFS` keeps the newest backup of each day
+	GfsDays int `json:"gfsDays"`
+
+	// GfsHours For how many of the last hours `GFS` keeps the newest backup of each hour
+	GfsHours int `json:"gfsHours"`
+
+	// GfsMonths For how many of the last months `GFS` keeps the newest backup of each month
+	GfsMonths int `json:"gfsMonths"`
+
+	// GfsWeeks For how many of the last weeks `GFS` keeps the newest backup of each week
+	GfsWeeks int `json:"gfsWeeks"`
+
+	// GfsYears For how many of the last years `GFS` keeps the newest backup of each year
+	GfsYears int `json:"gfsYears"`
+
+	// Period How long the `TIME_PERIOD` retention keeps a backup
+	Period RetentionPeriod `json:"period"`
+
+	// Policy `TIME_PERIOD` keeps backups for `period`, `COUNT` keeps the newest `count` backups, and `GFS` keeps backups by grandfather-father-son periods, at least one of them set
+	Policy LogicalRetentionPolicy `json:"policy"`
+}
+
+// LogicalRetentionPolicy `TIME_PERIOD` keeps backups for `period`, `COUNT` keeps the newest `count` backups, and `GFS` keeps backups by grandfather-father-son periods, at least one of them set
+type LogicalRetentionPolicy string
 
 // MariadbSettings One MariaDB database backed up with mariadb-dump
 type MariadbSettings struct {
@@ -1545,6 +1951,9 @@ type NasStorageSettingsType string
 // NotificationCategory What a notification is about
 type NotificationCategory string
 
+// NotificationTrigger A backup outcome that sends a notification: a failed or a successful backup, a broken chain of incremental backups, or a gap in the streamed WAL
+type NotificationTrigger string
+
 // Notifier A notification channel of a workspace, without its secrets
 type Notifier struct {
 	// Id The ID of the notifier
@@ -1676,8 +2085,47 @@ type PendingSignIn struct {
 	PendingSignInId openapi_types.UUID `json:"pendingSignInId"`
 }
 
+// PhysicalBackupSettings The settings of the physical backups of a physical PostgreSQL database. They must fit the database's physical backup type.
+type PhysicalBackupSettings struct {
+	// FullBackupSchedule When a recurring backup runs; times of day are in UTC
+	FullBackupSchedule Schedule `json:"fullBackupSchedule"`
+
+	// IncrementalBackupSchedule When incremental backups run, null for a backup type without them. It must run more often than the full backups.
+	IncrementalBackupSchedule *Schedule `json:"incrementalBackupSchedule"`
+
+	// NotificationTriggers The backup outcomes that send a notification through the database's notifiers
+	NotificationTriggers []NotificationTrigger `json:"notificationTriggers"`
+
+	// Retention Which physical backups are kept
+	Retention PhysicalRetention `json:"retention"`
+
+	// Type Always `PHYSICAL`
+	Type PhysicalBackupSettingsType `json:"type"`
+
+	// WalLagThresholdBytes The WAL lag after which the replication slot is rebuilt; 0 without WAL streaming and greater than 0 with it
+	WalLagThresholdBytes int64 `json:"walLagThresholdBytes"`
+}
+
+// PhysicalBackupSettingsType Always `PHYSICAL`
+type PhysicalBackupSettingsType string
+
 // PhysicalBackupType What the physical backups of the cluster take
 type PhysicalBackupType string
+
+// PhysicalRetention Which physical backups are kept
+type PhysicalRetention struct {
+	// ChainsCount How many of the newest chains, a full backup with its incrementals, are kept; greater than 0 with `CHAINS` and `CHAINS_AND_FULL_BACKUPS`, and 0 with `FULL_BACKUPS`
+	ChainsCount int `json:"chainsCount"`
+
+	// FullBackups Which full backups are kept; null with `CHAINS`
+	FullBackups *FullBackupsRetention `json:"fullBackups"`
+
+	// Policy `CHAINS` keeps chains, `FULL_BACKUPS` keeps full backups, and `CHAINS_AND_FULL_BACKUPS` keeps both; a backup type without incremental backups takes only `FULL_BACKUPS`, and one with them takes the other two
+	Policy PhysicalRetentionPolicy `json:"policy"`
+}
+
+// PhysicalRetentionPolicy `CHAINS` keeps chains, `FULL_BACKUPS` keeps full backups, and `CHAINS_AND_FULL_BACKUPS` keeps both; a backup type without incremental backups takes only `FULL_BACKUPS`, and one with them takes the other two
+type PhysicalRetentionPolicy string
 
 // PostgresqlLogicalSettings One PostgreSQL database backed up with pg_dump
 type PostgresqlLogicalSettings struct {
@@ -1835,6 +2283,9 @@ type ResendSignInCodeRequest struct {
 	CloudflareTurnstileToken *string `json:"cloudflareTurnstileToken,omitempty"`
 }
 
+// RetentionPeriod How long the `TIME_PERIOD` retention keeps a backup
+type RetentionPeriod string
+
 // S3StorageClass The storage class of the stored objects; absent means the bucket's default
 type S3StorageClass string
 
@@ -1873,6 +2324,27 @@ type S3StorageSettings struct {
 
 // S3StorageSettingsType Always `S3`
 type S3StorageSettingsType string
+
+// Schedule When a recurring backup runs; times of day are in UTC
+type Schedule struct {
+	// CronExpression The five-field cron expression of a cron schedule
+	CronExpression *string `json:"cronExpression,omitempty"`
+
+	// DayOfMonth The day of a monthly schedule
+	DayOfMonth *int `json:"dayOfMonth,omitempty"`
+
+	// TimeOfDay The time of day as `HH:MM`, required for daily, weekly and monthly schedules
+	TimeOfDay *string `json:"timeOfDay,omitempty"`
+
+	// Type How often a schedule runs
+	Type ScheduleType `json:"type"`
+
+	// Weekday The day of a weekly schedule; 1 is Monday, and both 0 and 7 are Sunday
+	Weekday *int `json:"weekday,omitempty"`
+}
+
+// ScheduleType How often a schedule runs
+type ScheduleType string
 
 // Session A session of a signed-in user. The operation that creates it returns the token once; no other operation returns it
 type Session struct {
@@ -2062,6 +2534,15 @@ type StorageCreate struct {
 	WorkspaceId openapi_types.UUID `json:"workspaceId"`
 }
 
+// StorageMovedWithDatabase The database's storage moves to the target workspace too; no other database may back up into it
+type StorageMovedWithDatabase struct {
+	// Type Always `MOVE_WITH_DATABASE`
+	Type StorageMovedWithDatabaseType `json:"type"`
+}
+
+// StorageMovedWithDatabaseType Always `MOVE_WITH_DATABASE`
+type StorageMovedWithDatabaseType string
+
 // StoragePage One page of storages, ordered by name
 type StoragePage struct {
 	// Items The storages on the page
@@ -2087,6 +2568,18 @@ type StorageSettingsTest struct {
 	// WorkspaceId The workspace the test is made in
 	WorkspaceId openapi_types.UUID `json:"workspaceId"`
 }
+
+// StorageSwitchedOnTransfer The database switches to a storage of the target workspace; the backups in its previous storage stay there
+type StorageSwitchedOnTransfer struct {
+	// StorageId The storage of the target workspace
+	StorageId openapi_types.UUID `json:"storageId"`
+
+	// Type Always `SWITCH_TO_STORAGE`
+	Type StorageSwitchedOnTransferType `json:"type"`
+}
+
+// StorageSwitchedOnTransferType Always `SWITCH_TO_STORAGE`
+type StorageSwitchedOnTransferType string
 
 // StorageTestResult The outcome of a connection test
 type StorageTestResult struct {
@@ -2358,6 +2851,9 @@ type WorkspaceUpdate struct {
 	Name string `json:"name"`
 }
 
+// BackupConfigDatabaseId defines model for BackupConfigDatabaseId.
+type BackupConfigDatabaseId = openapi_types.UUID
+
 // DatabaseId defines model for DatabaseId.
 type DatabaseId = openapi_types.UUID
 
@@ -2388,6 +2884,21 @@ type ListAuditEventsParams struct {
 	AuthorUserId *openapi_types.UUID `form:"authorUserId,omitempty" json:"authorUserId,omitempty"`
 
 	// Limit The largest number of events on the page
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// After The `nextCursor` of the previous page
+	After *string `form:"after,omitempty" json:"after,omitempty"`
+}
+
+// ListBackupConfigsParams defines parameters for ListBackupConfigs.
+type ListBackupConfigsParams struct {
+	// WorkspaceId The workspace whose databases' configs to list
+	WorkspaceId *openapi_types.UUID `form:"workspaceId,omitempty" json:"workspaceId,omitempty"`
+
+	// StorageId The storage whose configs to list, the ones that back up into it
+	StorageId *openapi_types.UUID `form:"storageId,omitempty" json:"storageId,omitempty"`
+
+	// Limit The largest number of configs on the page
 	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
 
 	// After The `nextCursor` of the previous page
@@ -2466,6 +2977,9 @@ type ListWorkspacesParams struct {
 	After *string `form:"after,omitempty" json:"after,omitempty"`
 }
 
+// UpdateBackupConfigJSONRequestBody defines body for UpdateBackupConfig for application/json ContentType.
+type UpdateBackupConfigJSONRequestBody = BackupConfigInput
+
 // TestDatabaseSettingsJSONRequestBody defines body for TestDatabaseSettings for application/json ContentType.
 type TestDatabaseSettingsJSONRequestBody = DatabaseSettingsTarget
 
@@ -2474,6 +2988,9 @@ type CreateDatabaseJSONRequestBody = DatabaseCreate
 
 // UpdateDatabaseJSONRequestBody defines body for UpdateDatabase for application/json ContentType.
 type UpdateDatabaseJSONRequestBody = DatabaseUpdate
+
+// TransferDatabaseJSONRequestBody defines body for TransferDatabase for application/json ContentType.
+type TransferDatabaseJSONRequestBody = DatabaseTransfer
 
 // SignInWithGitHubJSONRequestBody defines body for SignInWithGitHub for application/json ContentType.
 type SignInWithGitHubJSONRequestBody = OAuthSignInRequest
@@ -2555,6 +3072,107 @@ type UpdateWorkspaceJSONRequestBody = WorkspaceUpdate
 
 // TransferWorkspaceOwnershipJSONRequestBody defines body for TransferWorkspaceOwnership for application/json ContentType.
 type TransferWorkspaceOwnershipJSONRequestBody = OwnershipTransfer
+
+// AsLogicalBackupSettings returns the union data inside the BackupSettings as a LogicalBackupSettings
+func (t BackupSettings) AsLogicalBackupSettings() (LogicalBackupSettings, error) {
+	var body LogicalBackupSettings
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromLogicalBackupSettings overwrites any union data inside the BackupSettings as the provided LogicalBackupSettings
+func (t *BackupSettings) FromLogicalBackupSettings(v LogicalBackupSettings) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"LOGICAL"}`))
+	t.union = b
+	return err
+}
+
+// MergeLogicalBackupSettings performs a merge with any union data inside the BackupSettings, using the provided LogicalBackupSettings
+func (t *BackupSettings) MergeLogicalBackupSettings(v LogicalBackupSettings) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"LOGICAL"}`))
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsPhysicalBackupSettings returns the union data inside the BackupSettings as a PhysicalBackupSettings
+func (t BackupSettings) AsPhysicalBackupSettings() (PhysicalBackupSettings, error) {
+	var body PhysicalBackupSettings
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromPhysicalBackupSettings overwrites any union data inside the BackupSettings as the provided PhysicalBackupSettings
+func (t *BackupSettings) FromPhysicalBackupSettings(v PhysicalBackupSettings) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"PHYSICAL"}`))
+	t.union = b
+	return err
+}
+
+// MergePhysicalBackupSettings performs a merge with any union data inside the BackupSettings, using the provided PhysicalBackupSettings
+func (t *BackupSettings) MergePhysicalBackupSettings(v PhysicalBackupSettings) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"PHYSICAL"}`))
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t BackupSettings) Discriminator() (string, error) {
+	var discriminator struct {
+		Discriminator string `json:"type"`
+	}
+	err := json.Unmarshal(t.union, &discriminator)
+	return discriminator.Discriminator, err
+}
+
+func (t BackupSettings) ValueByDiscriminator() (interface{}, error) {
+	discriminator, err := t.Discriminator()
+	if err != nil {
+		return nil, err
+	}
+	switch discriminator {
+	case "LOGICAL":
+		return t.AsLogicalBackupSettings()
+	case "PHYSICAL":
+		return t.AsPhysicalBackupSettings()
+	default:
+		return nil, errors.New("unknown discriminator value: " + discriminator)
+	}
+}
+
+func (t BackupSettings) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *BackupSettings) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
 
 // AsPostgresqlLogicalSettings returns the union data inside the DatabaseSettings as a PostgresqlLogicalSettings
 func (t DatabaseSettings) AsPostgresqlLogicalSettings() (PostgresqlLogicalSettings, error) {
@@ -2761,6 +3379,107 @@ func (t DatabaseSettings) MarshalJSON() ([]byte, error) {
 }
 
 func (t *DatabaseSettings) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsStorageMovedWithDatabase returns the union data inside the DatabaseTransferStorage as a StorageMovedWithDatabase
+func (t DatabaseTransferStorage) AsStorageMovedWithDatabase() (StorageMovedWithDatabase, error) {
+	var body StorageMovedWithDatabase
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromStorageMovedWithDatabase overwrites any union data inside the DatabaseTransferStorage as the provided StorageMovedWithDatabase
+func (t *DatabaseTransferStorage) FromStorageMovedWithDatabase(v StorageMovedWithDatabase) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"MOVE_WITH_DATABASE"}`))
+	t.union = b
+	return err
+}
+
+// MergeStorageMovedWithDatabase performs a merge with any union data inside the DatabaseTransferStorage, using the provided StorageMovedWithDatabase
+func (t *DatabaseTransferStorage) MergeStorageMovedWithDatabase(v StorageMovedWithDatabase) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"MOVE_WITH_DATABASE"}`))
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsStorageSwitchedOnTransfer returns the union data inside the DatabaseTransferStorage as a StorageSwitchedOnTransfer
+func (t DatabaseTransferStorage) AsStorageSwitchedOnTransfer() (StorageSwitchedOnTransfer, error) {
+	var body StorageSwitchedOnTransfer
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromStorageSwitchedOnTransfer overwrites any union data inside the DatabaseTransferStorage as the provided StorageSwitchedOnTransfer
+func (t *DatabaseTransferStorage) FromStorageSwitchedOnTransfer(v StorageSwitchedOnTransfer) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"SWITCH_TO_STORAGE"}`))
+	t.union = b
+	return err
+}
+
+// MergeStorageSwitchedOnTransfer performs a merge with any union data inside the DatabaseTransferStorage, using the provided StorageSwitchedOnTransfer
+func (t *DatabaseTransferStorage) MergeStorageSwitchedOnTransfer(v StorageSwitchedOnTransfer) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"SWITCH_TO_STORAGE"}`))
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t DatabaseTransferStorage) Discriminator() (string, error) {
+	var discriminator struct {
+		Discriminator string `json:"type"`
+	}
+	err := json.Unmarshal(t.union, &discriminator)
+	return discriminator.Discriminator, err
+}
+
+func (t DatabaseTransferStorage) ValueByDiscriminator() (interface{}, error) {
+	discriminator, err := t.Discriminator()
+	if err != nil {
+		return nil, err
+	}
+	switch discriminator {
+	case "MOVE_WITH_DATABASE":
+		return t.AsStorageMovedWithDatabase()
+	case "SWITCH_TO_STORAGE":
+		return t.AsStorageSwitchedOnTransfer()
+	default:
+		return nil, errors.New("unknown discriminator value: " + discriminator)
+	}
+}
+
+func (t DatabaseTransferStorage) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *DatabaseTransferStorage) UnmarshalJSON(b []byte) error {
 	err := t.union.UnmarshalJSON(b)
 	return err
 }
@@ -3545,6 +4264,38 @@ type ClientInterface interface {
 	// Corresponds with GET /audit-events (the `ListAuditEvents` operationId).
 	ListAuditEvents(ctx context.Context, params *ListAuditEventsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// ListBackupConfigs List the saved backup configs of a workspace or of a storage
+	//
+	// Takes exactly one of `workspaceId` and `storageId`; both or neither get 400 `invalid_request`. Ordered by database ID. A database whose config was never saved is not listed. A user who is not a member of the workspace, or of the storage's workspace, gets 404 `not_found`.
+	//
+	// Corresponds with GET /backup-configs (the `ListBackupConfigs` operationId).
+	ListBackupConfigs(ctx context.Context, params *ListBackupConfigsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetBackupConfig Get the backup config of a database
+	//
+	// A config that was never saved reads as the default of the database's method, and the read stores nothing. A user who is not a member of the database's workspace gets 404 `not_found`.
+	//
+	// Corresponds with GET /backup-configs/{databaseId} (the `GetBackupConfig` operationId).
+	GetBackupConfig(ctx context.Context, databaseId BackupConfigDatabaseId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpdateBackupConfigWithBody Save the backup config of a database
+	//
+	// Needs the role `WORKSPACE_MEMBER` or higher. The settings must be of the database's method, and a physical config must fit the database's physical backup type; otherwise the answer is 400 `invalid_request` with the field in `errors`. A storage that is not in the database's workspace gets 400 `invalid_request`. A logical config saved with another storage removes the database's logical backups in the same step, and gets 409 `in_use` while one of them is running.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with PUT /backup-configs/{databaseId} (the `UpdateBackupConfig` operationId).
+	UpdateBackupConfigWithBody(ctx context.Context, databaseId BackupConfigDatabaseId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpdateBackupConfig Save the backup config of a database
+	//
+	// Needs the role `WORKSPACE_MEMBER` or higher. The settings must be of the database's method, and a physical config must fit the database's physical backup type; otherwise the answer is 400 `invalid_request` with the field in `errors`. A storage that is not in the database's workspace gets 400 `invalid_request`. A logical config saved with another storage removes the database's logical backups in the same step, and gets 409 `in_use` while one of them is running.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with PUT /backup-configs/{databaseId} (the `UpdateBackupConfig` operationId).
+	UpdateBackupConfig(ctx context.Context, databaseId BackupConfigDatabaseId, body UpdateBackupConfigJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// TestDatabaseSettingsWithBody Test the connection with settings that are not saved
 	//
 	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test may send stored secrets wherever the request points. With `databaseId`, a secret the request leaves out is taken from that database, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type than that database's get 400 `invalid_request`. Nothing connects on a refusal, and nothing is saved.
@@ -3633,6 +4384,24 @@ type ClientInterface interface {
 	//
 	// Corresponds with POST /databases/{databaseId}/test (the `TestDatabase` operationId).
 	TestDatabase(ctx context.Context, databaseId DatabaseId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// TransferDatabaseWithBody Move a database to another workspace
+	//
+	// Needs the role `WORKSPACE_MEMBER` or higher in both workspaces, because the move gives the target workspace's members the database's stored secrets. The database either takes its storage along or switches to a storage of the target workspace; a database whose config was never saved then gets the default config of its method with that storage. Moving the storage gets 409 `in_use` while another database backs up into it. The move happens completely or not at all.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /databases/{databaseId}/transfer (the `TransferDatabase` operationId).
+	TransferDatabaseWithBody(ctx context.Context, databaseId DatabaseId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// TransferDatabase Move a database to another workspace
+	//
+	// Needs the role `WORKSPACE_MEMBER` or higher in both workspaces, because the move gives the target workspace's members the database's stored secrets. The database either takes its storage along or switches to a storage of the target workspace; a database whose config was never saved then gets the default config of its method with that storage. Moving the storage gets 409 `in_use` while another database backs up into it. The move happens completely or not at all.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /databases/{databaseId}/transfer (the `TransferDatabase` operationId).
+	TransferDatabase(ctx context.Context, databaseId DatabaseId, body TransferDatabaseJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// SignInWithGitHubWithBody Sign in with GitHub
 	//
@@ -4285,6 +5054,78 @@ func (c *Client) ListAuditEvents(ctx context.Context, params *ListAuditEventsPar
 	return c.Client.Do(req)
 }
 
+// ListBackupConfigs List the saved backup configs of a workspace or of a storage
+//
+// Takes exactly one of `workspaceId` and `storageId`; both or neither get 400 `invalid_request`. Ordered by database ID. A database whose config was never saved is not listed. A user who is not a member of the workspace, or of the storage's workspace, gets 404 `not_found`.
+//
+// Corresponds with GET /backup-configs (the `ListBackupConfigs` operationId).
+func (c *Client) ListBackupConfigs(ctx context.Context, params *ListBackupConfigsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListBackupConfigsRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetBackupConfig Get the backup config of a database
+//
+// A config that was never saved reads as the default of the database's method, and the read stores nothing. A user who is not a member of the database's workspace gets 404 `not_found`.
+//
+// Corresponds with GET /backup-configs/{databaseId} (the `GetBackupConfig` operationId).
+func (c *Client) GetBackupConfig(ctx context.Context, databaseId BackupConfigDatabaseId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetBackupConfigRequest(c.Server, databaseId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// UpdateBackupConfigWithBody Save the backup config of a database
+//
+// Needs the role `WORKSPACE_MEMBER` or higher. The settings must be of the database's method, and a physical config must fit the database's physical backup type; otherwise the answer is 400 `invalid_request` with the field in `errors`. A storage that is not in the database's workspace gets 400 `invalid_request`. A logical config saved with another storage removes the database's logical backups in the same step, and gets 409 `in_use` while one of them is running.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with PUT /backup-configs/{databaseId} (the `UpdateBackupConfig` operationId).
+func (c *Client) UpdateBackupConfigWithBody(ctx context.Context, databaseId BackupConfigDatabaseId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateBackupConfigRequestWithBody(c.Server, databaseId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// UpdateBackupConfig Save the backup config of a database
+//
+// Needs the role `WORKSPACE_MEMBER` or higher. The settings must be of the database's method, and a physical config must fit the database's physical backup type; otherwise the answer is 400 `invalid_request` with the field in `errors`. A storage that is not in the database's workspace gets 400 `invalid_request`. A logical config saved with another storage removes the database's logical backups in the same step, and gets 409 `in_use` while one of them is running.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with PUT /backup-configs/{databaseId} (the `UpdateBackupConfig` operationId).
+func (c *Client) UpdateBackupConfig(ctx context.Context, databaseId BackupConfigDatabaseId, body UpdateBackupConfigJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateBackupConfigRequest(c.Server, databaseId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 // TestDatabaseSettingsWithBody Test the connection with settings that are not saved
 //
 // Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test may send stored secrets wherever the request points. With `databaseId`, a secret the request leaves out is taken from that database, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type than that database's get 400 `invalid_request`. Nothing connects on a refusal, and nothing is saved.
@@ -4474,6 +5315,44 @@ func (c *Client) CopyDatabase(ctx context.Context, databaseId DatabaseId, reqEdi
 // Corresponds with POST /databases/{databaseId}/test (the `TestDatabase` operationId).
 func (c *Client) TestDatabase(ctx context.Context, databaseId DatabaseId, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewTestDatabaseRequest(c.Server, databaseId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// TransferDatabaseWithBody Move a database to another workspace
+//
+// Needs the role `WORKSPACE_MEMBER` or higher in both workspaces, because the move gives the target workspace's members the database's stored secrets. The database either takes its storage along or switches to a storage of the target workspace; a database whose config was never saved then gets the default config of its method with that storage. Moving the storage gets 409 `in_use` while another database backs up into it. The move happens completely or not at all.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /databases/{databaseId}/transfer (the `TransferDatabase` operationId).
+func (c *Client) TransferDatabaseWithBody(ctx context.Context, databaseId DatabaseId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewTransferDatabaseRequestWithBody(c.Server, databaseId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// TransferDatabase Move a database to another workspace
+//
+// Needs the role `WORKSPACE_MEMBER` or higher in both workspaces, because the move gives the target workspace's members the database's stored secrets. The database either takes its storage along or switches to a storage of the target workspace; a database whose config was never saved then gets the default config of its method with that storage. Moving the storage gets 409 `in_use` while another database backs up into it. The move happens completely or not at all.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /databases/{databaseId}/transfer (the `TransferDatabase` operationId).
+func (c *Client) TransferDatabase(ctx context.Context, databaseId DatabaseId, body TransferDatabaseJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewTransferDatabaseRequest(c.Server, databaseId, body)
 	if err != nil {
 		return nil, err
 	}
@@ -5957,6 +6836,177 @@ func NewListAuditEventsRequest(server string, params *ListAuditEventsParams) (*h
 	return req, nil
 }
 
+// NewListBackupConfigsRequest constructs an http.Request for the ListBackupConfigs method
+func NewListBackupConfigsRequest(server string, params *ListBackupConfigsParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/backup-configs")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.WorkspaceId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "workspaceId", *params.WorkspaceId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: "uuid"}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.StorageId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "storageId", *params.StorageId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: "uuid"}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "limit", *params.Limit, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.After != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "after", *params.After, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetBackupConfigRequest constructs an http.Request for the GetBackupConfig method
+func NewGetBackupConfigRequest(server string, databaseId BackupConfigDatabaseId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "databaseId", databaseId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/backup-configs/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewUpdateBackupConfigRequest calls the generic UpdateBackupConfig builder with application/json body
+func NewUpdateBackupConfigRequest(server string, databaseId BackupConfigDatabaseId, body UpdateBackupConfigJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewUpdateBackupConfigRequestWithBody(server, databaseId, "application/json", bodyReader)
+}
+
+// NewUpdateBackupConfigRequestWithBody constructs an http.Request for the UpdateBackupConfig method, with any body, and a specified content type
+func NewUpdateBackupConfigRequestWithBody(server string, databaseId BackupConfigDatabaseId, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "databaseId", databaseId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/backup-configs/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPut, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewTestDatabaseSettingsRequest calls the generic TestDatabaseSettings builder with application/json body
 func NewTestDatabaseSettingsRequest(server string, body TestDatabaseSettingsJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
@@ -6302,6 +7352,53 @@ func NewTestDatabaseRequest(server string, databaseId DatabaseId) (*http.Request
 	if err != nil {
 		return nil, err
 	}
+
+	return req, nil
+}
+
+// NewTransferDatabaseRequest calls the generic TransferDatabase builder with application/json body
+func NewTransferDatabaseRequest(server string, databaseId DatabaseId, body TransferDatabaseJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewTransferDatabaseRequestWithBody(server, databaseId, "application/json", bodyReader)
+}
+
+// NewTransferDatabaseRequestWithBody constructs an http.Request for the TransferDatabase method, with any body, and a specified content type
+func NewTransferDatabaseRequestWithBody(server string, databaseId DatabaseId, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "databaseId", databaseId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/databases/%s/transfer", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
 
 	return req, nil
 }
@@ -8405,6 +9502,42 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with GET /audit-events (the `ListAuditEvents` operationId).
 	ListAuditEventsWithResponse(ctx context.Context, params *ListAuditEventsParams, reqEditors ...RequestEditorFn) (*ListAuditEventsResponse, error)
 
+	// ListBackupConfigsWithResponse List the saved backup configs of a workspace or of a storage
+	//
+	// Takes exactly one of `workspaceId` and `storageId`; both or neither get 400 `invalid_request`. Ordered by database ID. A database whose config was never saved is not listed. A user who is not a member of the workspace, or of the storage's workspace, gets 404 `not_found`.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /backup-configs (the `ListBackupConfigs` operationId).
+	ListBackupConfigsWithResponse(ctx context.Context, params *ListBackupConfigsParams, reqEditors ...RequestEditorFn) (*ListBackupConfigsResponse, error)
+
+	// GetBackupConfigWithResponse Get the backup config of a database
+	//
+	// A config that was never saved reads as the default of the database's method, and the read stores nothing. A user who is not a member of the database's workspace gets 404 `not_found`.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /backup-configs/{databaseId} (the `GetBackupConfig` operationId).
+	GetBackupConfigWithResponse(ctx context.Context, databaseId BackupConfigDatabaseId, reqEditors ...RequestEditorFn) (*GetBackupConfigResponse, error)
+
+	// UpdateBackupConfigWithBodyWithResponse Save the backup config of a database
+	//
+	// Needs the role `WORKSPACE_MEMBER` or higher. The settings must be of the database's method, and a physical config must fit the database's physical backup type; otherwise the answer is 400 `invalid_request` with the field in `errors`. A storage that is not in the database's workspace gets 400 `invalid_request`. A logical config saved with another storage removes the database's logical backups in the same step, and gets 409 `in_use` while one of them is running.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /backup-configs/{databaseId} (the `UpdateBackupConfig` operationId).
+	UpdateBackupConfigWithBodyWithResponse(ctx context.Context, databaseId BackupConfigDatabaseId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateBackupConfigResponse, error)
+
+	// UpdateBackupConfigWithResponse Save the backup config of a database
+	//
+	// Needs the role `WORKSPACE_MEMBER` or higher. The settings must be of the database's method, and a physical config must fit the database's physical backup type; otherwise the answer is 400 `invalid_request` with the field in `errors`. A storage that is not in the database's workspace gets 400 `invalid_request`. A logical config saved with another storage removes the database's logical backups in the same step, and gets 409 `in_use` while one of them is running.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /backup-configs/{databaseId} (the `UpdateBackupConfig` operationId).
+	UpdateBackupConfigWithResponse(ctx context.Context, databaseId BackupConfigDatabaseId, body UpdateBackupConfigJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateBackupConfigResponse, error)
+
 	// TestDatabaseSettingsWithBodyWithResponse Test the connection with settings that are not saved
 	//
 	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test may send stored secrets wherever the request points. With `databaseId`, a secret the request leaves out is taken from that database, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type than that database's get 400 `invalid_request`. Nothing connects on a refusal, and nothing is saved.
@@ -8503,6 +9636,24 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with POST /databases/{databaseId}/test (the `TestDatabase` operationId).
 	TestDatabaseWithResponse(ctx context.Context, databaseId DatabaseId, reqEditors ...RequestEditorFn) (*TestDatabaseResponse, error)
+
+	// TransferDatabaseWithBodyWithResponse Move a database to another workspace
+	//
+	// Needs the role `WORKSPACE_MEMBER` or higher in both workspaces, because the move gives the target workspace's members the database's stored secrets. The database either takes its storage along or switches to a storage of the target workspace; a database whose config was never saved then gets the default config of its method with that storage. Moving the storage gets 409 `in_use` while another database backs up into it. The move happens completely or not at all.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /databases/{databaseId}/transfer (the `TransferDatabase` operationId).
+	TransferDatabaseWithBodyWithResponse(ctx context.Context, databaseId DatabaseId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*TransferDatabaseResponse, error)
+
+	// TransferDatabaseWithResponse Move a database to another workspace
+	//
+	// Needs the role `WORKSPACE_MEMBER` or higher in both workspaces, because the move gives the target workspace's members the database's stored secrets. The database either takes its storage along or switches to a storage of the target workspace; a database whose config was never saved then gets the default config of its method with that storage. Moving the storage gets 409 `in_use` while another database backs up into it. The move happens completely or not at all.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /databases/{databaseId}/transfer (the `TransferDatabase` operationId).
+	TransferDatabaseWithResponse(ctx context.Context, databaseId DatabaseId, body TransferDatabaseJSONRequestBody, reqEditors ...RequestEditorFn) (*TransferDatabaseResponse, error)
 
 	// SignInWithGitHubWithBodyWithResponse Sign in with GitHub
 	//
@@ -9256,6 +10407,227 @@ func (r ListAuditEventsResponse) ContentType() string {
 	return ""
 }
 
+type ListBackupConfigsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *BackupConfigPage
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ListBackupConfigsResponse) GetJSON200() *BackupConfigPage {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r ListBackupConfigsResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r ListBackupConfigsResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r ListBackupConfigsResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r ListBackupConfigsResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r ListBackupConfigsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ListBackupConfigsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListBackupConfigsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ListBackupConfigsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetBackupConfigResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *BackupConfig
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetBackupConfigResponse) GetJSON200() *BackupConfig {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r GetBackupConfigResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r GetBackupConfigResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r GetBackupConfigResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r GetBackupConfigResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r GetBackupConfigResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetBackupConfigResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetBackupConfigResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetBackupConfigResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type UpdateBackupConfigResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *BackupConfig
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSON409 the response for an HTTP 409 `application/problem+json` response
+	ApplicationproblemJSON409 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r UpdateBackupConfigResponse) GetJSON200() *BackupConfig {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r UpdateBackupConfigResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r UpdateBackupConfigResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r UpdateBackupConfigResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r UpdateBackupConfigResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSON409 returns the response for an HTTP 409 `application/problem+json` response
+func (r UpdateBackupConfigResponse) GetApplicationproblemJSON409() *Problem {
+	return r.ApplicationproblemJSON409
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r UpdateBackupConfigResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r UpdateBackupConfigResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r UpdateBackupConfigResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r UpdateBackupConfigResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r UpdateBackupConfigResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type TestDatabaseSettingsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -9837,6 +11209,82 @@ func (r TestDatabaseResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r TestDatabaseResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type TransferDatabaseResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSON409 the response for an HTTP 409 `application/problem+json` response
+	ApplicationproblemJSON409 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r TransferDatabaseResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r TransferDatabaseResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r TransferDatabaseResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r TransferDatabaseResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSON409 returns the response for an HTTP 409 `application/problem+json` response
+func (r TransferDatabaseResponse) GetApplicationproblemJSON409() *Problem {
+	return r.ApplicationproblemJSON409
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r TransferDatabaseResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r TransferDatabaseResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r TransferDatabaseResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r TransferDatabaseResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r TransferDatabaseResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -13233,6 +14681,66 @@ func (c *ClientWithResponses) ListAuditEventsWithResponse(ctx context.Context, p
 	return ParseListAuditEventsResponse(rsp)
 }
 
+// ListBackupConfigsWithResponse List the saved backup configs of a workspace or of a storage
+//
+// Takes exactly one of `workspaceId` and `storageId`; both or neither get 400 `invalid_request`. Ordered by database ID. A database whose config was never saved is not listed. A user who is not a member of the workspace, or of the storage's workspace, gets 404 `not_found`.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /backup-configs (the `ListBackupConfigs` operationId).
+func (c *ClientWithResponses) ListBackupConfigsWithResponse(ctx context.Context, params *ListBackupConfigsParams, reqEditors ...RequestEditorFn) (*ListBackupConfigsResponse, error) {
+	rsp, err := c.ListBackupConfigs(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListBackupConfigsResponse(rsp)
+}
+
+// GetBackupConfigWithResponse Get the backup config of a database
+//
+// A config that was never saved reads as the default of the database's method, and the read stores nothing. A user who is not a member of the database's workspace gets 404 `not_found`.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /backup-configs/{databaseId} (the `GetBackupConfig` operationId).
+func (c *ClientWithResponses) GetBackupConfigWithResponse(ctx context.Context, databaseId BackupConfigDatabaseId, reqEditors ...RequestEditorFn) (*GetBackupConfigResponse, error) {
+	rsp, err := c.GetBackupConfig(ctx, databaseId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetBackupConfigResponse(rsp)
+}
+
+// UpdateBackupConfigWithBodyWithResponse Save the backup config of a database
+//
+// Needs the role `WORKSPACE_MEMBER` or higher. The settings must be of the database's method, and a physical config must fit the database's physical backup type; otherwise the answer is 400 `invalid_request` with the field in `errors`. A storage that is not in the database's workspace gets 400 `invalid_request`. A logical config saved with another storage removes the database's logical backups in the same step, and gets 409 `in_use` while one of them is running.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /backup-configs/{databaseId} (the `UpdateBackupConfig` operationId).
+func (c *ClientWithResponses) UpdateBackupConfigWithBodyWithResponse(ctx context.Context, databaseId BackupConfigDatabaseId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateBackupConfigResponse, error) {
+	rsp, err := c.UpdateBackupConfigWithBody(ctx, databaseId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateBackupConfigResponse(rsp)
+}
+
+// UpdateBackupConfigWithResponse Save the backup config of a database
+//
+// Needs the role `WORKSPACE_MEMBER` or higher. The settings must be of the database's method, and a physical config must fit the database's physical backup type; otherwise the answer is 400 `invalid_request` with the field in `errors`. A storage that is not in the database's workspace gets 400 `invalid_request`. A logical config saved with another storage removes the database's logical backups in the same step, and gets 409 `in_use` while one of them is running.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /backup-configs/{databaseId} (the `UpdateBackupConfig` operationId).
+func (c *ClientWithResponses) UpdateBackupConfigWithResponse(ctx context.Context, databaseId BackupConfigDatabaseId, body UpdateBackupConfigJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateBackupConfigResponse, error) {
+	rsp, err := c.UpdateBackupConfig(ctx, databaseId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateBackupConfigResponse(rsp)
+}
+
 // TestDatabaseSettingsWithBodyWithResponse Test the connection with settings that are not saved
 //
 // Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test may send stored secrets wherever the request points. With `databaseId`, a secret the request leaves out is taken from that database, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type than that database's get 400 `invalid_request`. Nothing connects on a refusal, and nothing is saved.
@@ -13396,6 +14904,36 @@ func (c *ClientWithResponses) TestDatabaseWithResponse(ctx context.Context, data
 		return nil, err
 	}
 	return ParseTestDatabaseResponse(rsp)
+}
+
+// TransferDatabaseWithBodyWithResponse Move a database to another workspace
+//
+// Needs the role `WORKSPACE_MEMBER` or higher in both workspaces, because the move gives the target workspace's members the database's stored secrets. The database either takes its storage along or switches to a storage of the target workspace; a database whose config was never saved then gets the default config of its method with that storage. Moving the storage gets 409 `in_use` while another database backs up into it. The move happens completely or not at all.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /databases/{databaseId}/transfer (the `TransferDatabase` operationId).
+func (c *ClientWithResponses) TransferDatabaseWithBodyWithResponse(ctx context.Context, databaseId DatabaseId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*TransferDatabaseResponse, error) {
+	rsp, err := c.TransferDatabaseWithBody(ctx, databaseId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseTransferDatabaseResponse(rsp)
+}
+
+// TransferDatabaseWithResponse Move a database to another workspace
+//
+// Needs the role `WORKSPACE_MEMBER` or higher in both workspaces, because the move gives the target workspace's members the database's stored secrets. The database either takes its storage along or switches to a storage of the target workspace; a database whose config was never saved then gets the default config of its method with that storage. Moving the storage gets 409 `in_use` while another database backs up into it. The move happens completely or not at all.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /databases/{databaseId}/transfer (the `TransferDatabase` operationId).
+func (c *ClientWithResponses) TransferDatabaseWithResponse(ctx context.Context, databaseId DatabaseId, body TransferDatabaseJSONRequestBody, reqEditors ...RequestEditorFn) (*TransferDatabaseResponse, error) {
+	rsp, err := c.TransferDatabase(ctx, databaseId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseTransferDatabaseResponse(rsp)
 }
 
 // SignInWithGitHubWithBodyWithResponse Sign in with GitHub
@@ -14584,6 +16122,182 @@ func ParseListAuditEventsResponse(rsp *http.Response) (*ListAuditEventsResponse,
 	return response, nil
 }
 
+// ParseListBackupConfigsResponse parses an HTTP response from a ListBackupConfigsWithResponse call
+func ParseListBackupConfigsResponse(rsp *http.Response) (*ListBackupConfigsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListBackupConfigsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest BackupConfigPage
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetBackupConfigResponse parses an HTTP response from a GetBackupConfigWithResponse call
+func ParseGetBackupConfigResponse(rsp *http.Response) (*GetBackupConfigResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetBackupConfigResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest BackupConfig
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseUpdateBackupConfigResponse parses an HTTP response from a UpdateBackupConfigWithResponse call
+func ParseUpdateBackupConfigResponse(rsp *http.Response) (*UpdateBackupConfigResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &UpdateBackupConfigResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest BackupConfig
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseTestDatabaseSettingsResponse parses an HTTP response from a TestDatabaseSettingsWithResponse call
 func ParseTestDatabaseSettingsResponse(rsp *http.Response) (*TestDatabaseSettingsResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -15041,6 +16755,70 @@ func ParseTestDatabaseResponse(rsp *http.Response) (*TestDatabaseResponse, error
 			return nil, err
 		}
 		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseTransferDatabaseResponse parses an HTTP response from a TransferDatabaseWithResponse call
+func ParseTransferDatabaseResponse(rsp *http.Response) (*TransferDatabaseResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &TransferDatabaseResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case rsp.StatusCode == 204:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON409 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest Problem

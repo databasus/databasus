@@ -9,8 +9,7 @@ import { Button, Input } from 'antd';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { logicalBackupConfigApi } from '../../../entity/backups/logical';
-import { physicalBackupConfigApi } from '../../../entity/backups/physical';
+import { backupConfigApi } from '../../../entity/backups/config';
 import { type Database, DatabaseType, databaseApi } from '../../../entity/databases';
 import { translateApiError } from '../../../shared/i18n';
 import { ToastHelper } from '../../../shared/toast';
@@ -77,14 +76,10 @@ export const DatabaseConfigComponent = ({
   const isPhysicalDatabase = database.settings.type === DatabaseType.POSTGRES_PHYSICAL;
 
   useEffect(() => {
-    const loadStorageId = isPhysicalDatabase
-      ? physicalBackupConfigApi.getPhysicalBackupConfigByDbId(database.id)
-      : logicalBackupConfigApi.getBackupConfigByDbID(database.id);
-
-    loadStorageId.then((config) => {
-      setCurrentStorageId(config.storage?.id);
+    backupConfigApi.getBackupConfig(database.id).then((loadedBackupConfig) => {
+      setCurrentStorageId(loadedBackupConfig.storageId ?? undefined);
     });
-  }, [database.id, isPhysicalDatabase]);
+  }, [database.id]);
 
   const loadSettings = () => {
     setDatabase(undefined);

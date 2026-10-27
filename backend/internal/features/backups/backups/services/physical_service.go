@@ -21,10 +21,10 @@ import (
 	"databasus-backend/internal/features/backups/backups/download/restore_stream"
 	"databasus-backend/internal/features/backups/backups/download/restore_token"
 	backups_dto_physical "databasus-backend/internal/features/backups/backups/dto/physical"
-	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
 	databases_bridge "databasus-backend/internal/features/databases"
 	workspaces_bridge "databasus-backend/internal/features/workspaces"
 	"databasus-backend/internal/lib/crypto"
+	"databasus-backend/internal/modules/backups"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/modules/workspaces"
@@ -54,9 +54,10 @@ var ErrBackupNotInProgress = errors.New("backup is not in progress")
 // service, the in-flight canceller, and the shared restore stream writer.
 // OpenRestoreStream is the auth-free seam reused by restore verification.
 type PhysicalBackupService struct {
-	databaseAccess              *databases_bridge.Access
-	workspaceService            *workspaces_bridge.Access
-	backupConfigService         *backups_config_physical.BackupConfigService
+	databaseAccess   *databases_bridge.Access
+	workspaceService *workspaces_bridge.Access
+	// getBackups is read per call: each test application installs its own module.
+	getBackups                  func() backups.Module
 	chainViewService            *chain_view.ChainViewService
 	physicalCoreService         *physical_core_service.PhysicalBackupService
 	fullBackupRepository        *physical_repositories.PhysicalFullBackupRepository
@@ -149,12 +150,12 @@ func (s *PhysicalBackupService) RequestBackup(
 		return err
 	}
 
-	config, err := s.backupConfigService.GetBackupConfigByDbId(databaseID)
+	config, err := s.getBackups().GetPhysicalBackupConfig(ctx, databaseID)
 	if err != nil {
 		return err
 	}
 
-	if err := s.requestSchedulerChoice(databaseID, config); err != nil {
+	if err := s.requestSchedulerChoice(ctx, databaseID, config); err != nil {
 		return err
 	}
 
@@ -174,7 +175,7 @@ func (s *PhysicalBackupService) RequestFullBackup(
 		return err
 	}
 
-	if err := s.backupConfigService.RequestFullBackupNow(databaseID); err != nil {
+	if err := s.getBackups().RequestFullBackup(ctx, databaseID); err != nil {
 		return err
 	}
 
@@ -203,7 +204,7 @@ func (s *PhysicalBackupService) RequestIncrementalBackup(
 		return ErrNoExtendableChain
 	}
 
-	if err := s.backupConfigService.RequestIncrementalBackupNow(databaseID); err != nil {
+	if err := s.getBackups().RequestIncrementalBackup(ctx, databaseID); err != nil {
 		return err
 	}
 
@@ -406,10 +407,28 @@ func (s *PhysicalBackupService) OpenRestoreStreamForBackup(
 	return s.writeRestoreStream(ctx, set, w)
 }
 
-// OnBackupsStorageChanged removes every full backup of the database kept outside storageID, each
+// OnPhysicalBackupConfigSaved runs after every save of a config that names a storage, not only when
+// the storage changed, so a removal that failed on an earlier save is retried by the next one.
+func (s *PhysicalBackupService) OnPhysicalBackupConfigSaved(
+	ctx context.Context,
+	event backups.PhysicalBackupConfigSaved,
+) error {
+	if event.Saved.StorageID == nil {
+		return nil
+	}
+
+	err := s.removeBackupsOutsideStorage(ctx, event.Saved.DatabaseID, *event.Saved.StorageID)
+	if err != nil {
+		return fmt.Errorf("remove backups kept in a previous storage: %w", err)
+	}
+
+	return nil
+}
+
+// removeBackupsOutsideStorage removes every full backup of the database kept outside storageID, each
 // with the incrementals and WAL of its chain, through the same deletion a user triggers, so an
 // in-flight backup of that chain stops and WAL another full backup needs is kept.
-func (s *PhysicalBackupService) OnBackupsStorageChanged(
+func (s *PhysicalBackupService) removeBackupsOutsideStorage(
 	ctx context.Context,
 	databaseID uuid.UUID,
 	storageID uuid.UUID,
@@ -528,11 +547,12 @@ func (s *PhysicalBackupService) stopInFlightForDelete(
 // an incremental when incrementals are enabled and an extendable chain exists,
 // otherwise a full.
 func (s *PhysicalBackupService) requestSchedulerChoice(
+	ctx context.Context,
 	databaseID uuid.UUID,
-	config *backups_config_physical.PhysicalBackupConfig,
+	config backups.PhysicalBackupConfig,
 ) error {
 	if !config.BackupType.IsRequiringWalSummary() {
-		return s.backupConfigService.RequestFullBackupNow(databaseID)
+		return s.getBackups().RequestFullBackup(ctx, databaseID)
 	}
 
 	extendable, err := s.chainViewService.FindLastExtendableChainByDatabase(databaseID)
@@ -541,10 +561,10 @@ func (s *PhysicalBackupService) requestSchedulerChoice(
 	}
 
 	if extendable == nil {
-		return s.backupConfigService.RequestFullBackupNow(databaseID)
+		return s.getBackups().RequestFullBackup(ctx, databaseID)
 	}
 
-	return s.backupConfigService.RequestIncrementalBackupNow(databaseID)
+	return s.getBackups().RequestIncrementalBackup(ctx, databaseID)
 }
 
 // authorizeManage loads the database and requires the caller to hold DB-management

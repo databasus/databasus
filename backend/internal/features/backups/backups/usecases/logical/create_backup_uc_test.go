@@ -11,13 +11,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
-	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
 	databases_bridge "databasus-backend/internal/features/databases"
 	storages_bridge "databasus-backend/internal/features/storages"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_testing "databasus-backend/internal/features/workspaces/testing"
+	"databasus-backend/internal/modules/backups"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/modules/users"
@@ -130,8 +129,12 @@ func newTestBackup() *backups_core_logical.LogicalBackup {
 	}
 }
 
-func newUnencryptedBackupConfig() *backups_config_logical.LogicalBackupConfig {
-	return &backups_config_logical.LogicalBackupConfig{Encryption: backups_core_enums.BackupEncryptionNone}
+func newUnencryptedBackupConfig() backups.LogicalBackupConfig {
+	return backups.LogicalBackupConfig{
+		BackupConfig: backups.BackupConfig{
+			Encryption: backups.EncryptionNone,
+		},
+	}
 }
 
 // failingBackupFileStore fails every write with failureErr. It either drains the whole stream

@@ -90,6 +90,7 @@ How modules talk:
 - The request's user is an `Actor` from `users`: the user ID and the global role. A module never receives a `users` model.
 - Only `workspaces.Authorize(ctx, actor, workspaceID, action)` checks access to a workspace and to anything inside it. A module first looks the object up in its own table and answers 404 when it is missing. Then it calls `Authorize`, which answers 404 when the actor is not a member of the workspace and 403 when the actor's role does not allow the action.
 - A lower module that needs something done by higher ones publishes an event declared in its `module.go`, for example `workspaces.WorkspaceDeleting`. The event's handlers run synchronously, in the publisher's transaction. They run in the order in which `internal/app` registers them in its single wiring file, and nothing else sets that order. Effects outside the database, such as cancelling a running process or dropping a replication slot, are registered as after-commit handlers. An effect that stays correct when the transaction rolls back, such as deleting files that already have a pending deletion, may run inside the handler.
+- One event is published after its transaction commits instead: `backups.PhysicalBackupConfigSaved`, and its handler's error becomes the answer of a save that has already committed. The old physical backup code needs it because it must see the new storage committed before it removes the backups kept in the previous one, so a full backup or a WAL streamer that starts meanwhile already writes to the new storage, and the user must still see a failed removal in the save's answer. No new code may publish such an event, and this one goes away when the physical backups move into `backups`.
 - If two areas keep needing a SQL JOIN of each other's tables, the boundary is wrong and they belong in one module.
 
 Inside a module's subpackage the code has three roles:
@@ -118,6 +119,8 @@ Databasus has three families of interchangeable implementations. Each family has
 - **Notifier providers** (`notifiers/internal/providers/<name>`) send a notification and test a channel.
 
 Each provider owns its behavior, its repository and one table with its settings as explicit columns. The common fields and the type sit in a parent row, in `storages`, `notifiers` or `databases`. Every other table references the parent, never a provider table. The parent repository saves the parent row and, in the same transaction, hands the provider's settings to that provider's repository. A list loads the parents first, then the provider rows in one batch per type.
+
+The backup configs of `backups` have the same shape, with the backup method in the role of the type: `backups_configs` holds the fields both methods share, and `backups_configs_logical` and `backups_configs_physical` hold the schedule and retention of each method.
 
 Adding a provider takes a package, a migration with its table, a registry entry, the contract schema and its conversion in the module's `httpapi`, which turns the generated variant of the `oneOf` into the provider's settings and back. Nothing else changes.
 

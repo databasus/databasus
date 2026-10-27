@@ -32,7 +32,10 @@ func TestCopyDatabase(t *testing.T) {
 				Settings:    fromLogicalSettings(t, logical),
 			})
 			storageID := tm.app.CreateLocalStorage(t, tm.owner, tm.workspace.Id)
-			saveDefaultLogicalBackupConfig(t, tm, originalDatabase.Id, storageID)
+			apptest.SaveBackupConfigWithStorage(t, tm.owner, apptest.StorageUse{
+				DatabaseID: originalDatabase.Id,
+				StorageID:  storageID,
+			})
 			require.NoError(t, databases_bridge.GetModule().RecordBackupSuccess(
 				t.Context(), originalDatabase.Id, time.Now().UTC()))
 			unavailable := databases.HealthStatusUnavailable
@@ -51,7 +54,7 @@ func TestCopyDatabase(t *testing.T) {
 			assert.Equal(t, new(apiclient.DatabaseHealthStatusUNAVAILABLE), copiedDatabase.HealthStatus)
 			assert.ElementsMatch(t, []string{"Orders", "Orders (Copy)"},
 				getListedDatabaseNames(t, tm.owner, tm.workspace.Id))
-			assert.Equal(t, []uuid.UUID{storageID}, getLogicalBackupConfigStorageIDs(t, tm, copiedDatabase.Id))
+			assert.Equal(t, &storageID, apptest.GetBackupConfig(t, tm.owner, copiedDatabase.Id).StorageId)
 			testResponse, err := tm.owner.Client.TestDatabaseWithResponse(t.Context(), copiedDatabase.Id)
 			require.NoError(t, err)
 			require.Equal(t, http.StatusOK, testResponse.StatusCode(), string(testResponse.Body))
@@ -64,8 +67,10 @@ func TestCopyDatabase(t *testing.T) {
 		originalDatabase := tm.createDatabaseNamed(t, "Cluster",
 			fromPhysicalSettings(t, newPhysicalSettings(physicalServer, apiclient.PhysicalBackupTypeFULL)))
 		storageID := tm.app.CreateLocalStorage(t, tm.owner, tm.workspace.Id)
-		tm.app.ExecuteSQL(t, "INSERT INTO physical_backup_configs (database_id, storage_id) VALUES (?, ?)",
-			originalDatabase.Id, storageID)
+		tm.app.InsertPhysicalBackupConfigUsingStorage(t, apptest.StorageUse{
+			DatabaseID: originalDatabase.Id,
+			StorageID:  storageID,
+		})
 
 		copiedDatabase := copyDatabase(t, tm.owner, originalDatabase.Id)
 
@@ -85,35 +90,10 @@ func TestCopyDatabase(t *testing.T) {
 		assert.NotEqual(t, originalSlots.BackupSlotName, copiedSlots.BackupSlotName)
 		var copiedConfigCount int
 		tm.app.QuerySQL(t, &copiedConfigCount,
-			"SELECT COUNT(*) FROM physical_backup_configs WHERE database_id = ?", copiedDatabase.Id)
+			"SELECT COUNT(*) FROM backups_configs WHERE database_id = ?", copiedDatabase.Id)
 		assert.Zero(t, copiedConfigCount)
-		assert.Empty(t, getLogicalBackupConfigStorageIDs(t, tm, copiedDatabase.Id))
+		assert.Nil(t, apptest.GetBackupConfig(t, tm.owner, copiedDatabase.Id).StorageId)
 	})
-}
-
-// saveDefaultLogicalBackupConfig lets the old code create its default backup config, because no
-// contract operation saves one yet, and points it at the storage.
-func saveDefaultLogicalBackupConfig(t *testing.T, tm team, databaseID, storageID uuid.UUID) {
-	t.Helper()
-
-	status, body := tm.app.CallOldAPI(t, tm.owner, apptest.OldAPICall{
-		Method: http.MethodGet,
-		Path:   "/backup-configs/database/" + databaseID.String(),
-		Body:   nil,
-	})
-	require.Equal(t, http.StatusOK, status, string(body))
-	tm.app.ExecuteSQL(t, "UPDATE logical_backup_configs SET storage_id = ? WHERE database_id = ?",
-		storageID, databaseID)
-}
-
-func getLogicalBackupConfigStorageIDs(t *testing.T, tm team, databaseID uuid.UUID) []uuid.UUID {
-	t.Helper()
-
-	var storageIDs []uuid.UUID
-	tm.app.QuerySQL(t, &storageIDs,
-		"SELECT storage_id FROM logical_backup_configs WHERE database_id = ?", databaseID)
-
-	return storageIDs
 }
 
 type replicationSlotNames struct {

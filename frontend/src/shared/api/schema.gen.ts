@@ -929,6 +929,76 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/databases/{databaseId}/transfer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the database */
+                databaseId: components["parameters"]["DatabaseId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Move a database to another workspace
+         * @description Needs the role `WORKSPACE_MEMBER` or higher in both workspaces, because the move gives the target workspace's members the database's stored secrets. The database either takes its storage along or switches to a storage of the target workspace; a database whose config was never saved then gets the default config of its method with that storage. Moving the storage gets 409 `in_use` while another database backs up into it. The move happens completely or not at all.
+         */
+        post: operations["transferDatabase"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/backup-configs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the saved backup configs of a workspace or of a storage
+         * @description Takes exactly one of `workspaceId` and `storageId`; both or neither get 400 `invalid_request`. Ordered by database ID. A database whose config was never saved is not listed. A user who is not a member of the workspace, or of the storage's workspace, gets 404 `not_found`.
+         */
+        get: operations["listBackupConfigs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/backup-configs/{databaseId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the database the config belongs to. A database has exactly one config, which has no ID of its own, so the database's ID is the key of the config. */
+                databaseId: components["parameters"]["BackupConfigDatabaseId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Get the backup config of a database
+         * @description A config that was never saved reads as the default of the database's method, and the read stores nothing. A user who is not a member of the database's workspace gets 404 `not_found`.
+         */
+        get: operations["getBackupConfig"];
+        /**
+         * Save the backup config of a database
+         * @description Needs the role `WORKSPACE_MEMBER` or higher. The settings must be of the database's method, and a physical config must fit the database's physical backup type; otherwise the answer is 400 `invalid_request` with the field in `errors`. A storage that is not in the database's workspace gets 400 `invalid_request`. A logical config saved with another storage removes the database's logical backups in the same step, and gets 409 `in_use` while one of them is running.
+         */
+        put: operations["updateBackupConfig"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2095,6 +2165,208 @@ export interface components {
             /** @description What is wrong with the field */
             detail: string;
         };
+        /** @description One page of backup configs, ordered by database ID */
+        BackupConfigPage: {
+            /** @description The configs on the page */
+            items: components["schemas"]["BackupConfig"][];
+            /** @description The `after` of the next page, absent on the last page */
+            nextCursor?: string;
+        };
+        /** @description How a database is backed up */
+        BackupConfig: {
+            /**
+             * Format: uuid
+             * @description The database the config belongs to
+             */
+            databaseId: string;
+            /** @description Whether backups run on the schedule */
+            isBackupsEnabled: boolean;
+            /**
+             * Format: uuid
+             * @description The storage the backups are written to, null while the config names none
+             */
+            storageId: string | null;
+            encryption: components["schemas"]["BackupEncryption"];
+            settings: components["schemas"]["BackupSettings"];
+        };
+        /** @description The editable fields of a backup config */
+        BackupConfigInput: {
+            /** @description Whether backups run on the schedule */
+            isBackupsEnabled: boolean;
+            /**
+             * Format: uuid
+             * @description A storage of the database's workspace, or null to name none
+             */
+            storageId: string | null;
+            encryption: components["schemas"]["BackupEncryption"];
+            settings: components["schemas"]["BackupSettings"];
+        };
+        /**
+         * @description Whether the backup files are encrypted with the instance's master key
+         * @enum {string}
+         */
+        BackupEncryption: "NONE" | "ENCRYPTED";
+        /** @description The settings of the database's backup method; `type` tells the methods apart */
+        BackupSettings: components["schemas"]["LogicalBackupSettings"] | components["schemas"]["PhysicalBackupSettings"];
+        /** @description The settings of a logical backup, a dump of a PostgreSQL, MySQL, MariaDB or MongoDB database */
+        LogicalBackupSettings: {
+            /**
+             * @description Always `LOGICAL` (enum property replaced by openapi-typescript)
+             * @enum {string}
+             */
+            type: "LOGICAL";
+            schedule: components["schemas"]["Schedule"];
+            retention: components["schemas"]["LogicalRetention"];
+            /** @description Whether a failed backup is retried */
+            isRetryIfFailed: boolean;
+            /** @description How many times a failed backup is tried before it stays failed */
+            maxFailedTriesCount: number;
+            /** @description The backup outcomes that send a notification through the database's notifiers */
+            notificationTriggers: components["schemas"]["LogicalNotificationTrigger"][];
+        };
+        /** @description The settings of the physical backups of a physical PostgreSQL database. They must fit the database's physical backup type. */
+        PhysicalBackupSettings: {
+            /**
+             * @description Always `PHYSICAL` (enum property replaced by openapi-typescript)
+             * @enum {string}
+             */
+            type: "PHYSICAL";
+            fullBackupSchedule: components["schemas"]["Schedule"];
+            /** @description When incremental backups run, null for a backup type without them. It must run more often than the full backups. */
+            incrementalBackupSchedule: components["schemas"]["Schedule"] | null;
+            retention: components["schemas"]["PhysicalRetention"];
+            /**
+             * Format: int64
+             * @description The WAL lag after which the replication slot is rebuilt; 0 without WAL streaming and greater than 0 with it
+             */
+            walLagThresholdBytes: number;
+            /** @description The backup outcomes that send a notification through the database's notifiers */
+            notificationTriggers: components["schemas"]["NotificationTrigger"][];
+        };
+        /** @description When a recurring backup runs; times of day are in UTC */
+        Schedule: {
+            type: components["schemas"]["ScheduleType"];
+            /** @description The time of day as `HH:MM`, required for daily, weekly and monthly schedules */
+            timeOfDay?: string;
+            /** @description The day of a weekly schedule; 1 is Monday, and both 0 and 7 are Sunday */
+            weekday?: number;
+            /** @description The day of a monthly schedule */
+            dayOfMonth?: number;
+            /** @description The five-field cron expression of a cron schedule */
+            cronExpression?: string;
+        };
+        /**
+         * @description How often a schedule runs
+         * @enum {string}
+         */
+        ScheduleType: "HOURLY" | "DAILY" | "WEEKLY" | "MONTHLY" | "CRON";
+        /** @description Which logical backups are kept. `policy` picks the rule; the fields of the other rules keep their saved values. */
+        LogicalRetention: {
+            policy: components["schemas"]["LogicalRetentionPolicy"];
+            period: components["schemas"]["RetentionPeriod"];
+            /** @description How many of the newest backups `COUNT` keeps; greater than 0 with it */
+            count: number;
+            /** @description For how many of the last hours `GFS` keeps the newest backup of each hour */
+            gfsHours: number;
+            /** @description For how many of the last days `GFS` keeps the newest backup of each day */
+            gfsDays: number;
+            /** @description For how many of the last weeks `GFS` keeps the newest backup of each week */
+            gfsWeeks: number;
+            /** @description For how many of the last months `GFS` keeps the newest backup of each month */
+            gfsMonths: number;
+            /** @description For how many of the last years `GFS` keeps the newest backup of each year */
+            gfsYears: number;
+        };
+        /**
+         * @description `TIME_PERIOD` keeps backups for `period`, `COUNT` keeps the newest `count` backups, and `GFS` keeps backups by grandfather-father-son periods, at least one of them set
+         * @enum {string}
+         */
+        LogicalRetentionPolicy: "TIME_PERIOD" | "COUNT" | "GFS";
+        /**
+         * @description How long the `TIME_PERIOD` retention keeps a backup
+         * @enum {string}
+         */
+        RetentionPeriod: "DAY" | "WEEK" | "MONTH" | "THREE_MONTHS" | "SIX_MONTHS" | "YEAR" | "TWO_YEARS" | "THREE_YEARS" | "FOUR_YEARS" | "FIVE_YEARS" | "FOREVER";
+        /** @description Which physical backups are kept */
+        PhysicalRetention: {
+            policy: components["schemas"]["PhysicalRetentionPolicy"];
+            /** @description How many of the newest chains, a full backup with its incrementals, are kept; greater than 0 with `CHAINS` and `CHAINS_AND_FULL_BACKUPS`, and 0 with `FULL_BACKUPS` */
+            chainsCount: number;
+            /** @description Which full backups are kept; null with `CHAINS` */
+            fullBackups: components["schemas"]["FullBackupsRetention"] | null;
+        };
+        /**
+         * @description `CHAINS` keeps chains, `FULL_BACKUPS` keeps full backups, and `CHAINS_AND_FULL_BACKUPS` keeps both; a backup type without incremental backups takes only `FULL_BACKUPS`, and one with them takes the other two
+         * @enum {string}
+         */
+        PhysicalRetentionPolicy: "CHAINS" | "FULL_BACKUPS" | "CHAINS_AND_FULL_BACKUPS";
+        /** @description Which full backups are kept */
+        FullBackupsRetention: {
+            policy: components["schemas"]["FullBackupsRetentionPolicy"];
+            /** @description How many of the newest full backups `LAST_N` keeps; 0 with `GFS` */
+            count: number;
+            /** @description For how many of the last hours `GFS` keeps the newest full backup of each hour */
+            gfsHours: number;
+            /** @description For how many of the last days `GFS` keeps the newest full backup of each day */
+            gfsDays: number;
+            /** @description For how many of the last weeks `GFS` keeps the newest full backup of each week */
+            gfsWeeks: number;
+            /** @description For how many of the last months `GFS` keeps the newest full backup of each month */
+            gfsMonths: number;
+            /** @description For how many of the last years `GFS` keeps the newest full backup of each year */
+            gfsYears: number;
+        };
+        /**
+         * @description `LAST_N` keeps the newest `count` full backups, and `GFS` keeps them by grandfather-father-son periods, at least one of them set
+         * @enum {string}
+         */
+        FullBackupsRetentionPolicy: "LAST_N" | "GFS";
+        /**
+         * @description A backup outcome that sends a notification: a failed or a successful backup, a broken chain of incremental backups, or a gap in the streamed WAL
+         * @enum {string}
+         */
+        NotificationTrigger: "BACKUP_FAILED" | "BACKUP_SUCCESS" | "CHAIN_BROKEN" | "WAL_GAP";
+        /**
+         * @description A logical backup outcome that sends a notification, a failed or a successful backup
+         * @enum {string}
+         */
+        LogicalNotificationTrigger: "BACKUP_FAILED" | "BACKUP_SUCCESS";
+        /** @description The workspace a database moves to, and what happens to its storage and notifiers */
+        DatabaseTransfer: {
+            /**
+             * Format: uuid
+             * @description The ID of the target workspace
+             */
+            targetWorkspaceId: string;
+            storage: components["schemas"]["DatabaseTransferStorage"];
+            /** @description Whether the database's notifiers move along; a notifier another database uses stays in its workspace */
+            isMovingNotifiers: boolean;
+            /** @description Notifiers of the target workspace that replace the database's notifiers */
+            targetNotifierIds?: string[];
+        };
+        /** @description What happens to the database's storage; `type` tells the options apart */
+        DatabaseTransferStorage: components["schemas"]["StorageMovedWithDatabase"] | components["schemas"]["StorageSwitchedOnTransfer"];
+        /** @description The database's storage moves to the target workspace too; no other database may back up into it */
+        StorageMovedWithDatabase: {
+            /**
+             * @description Always `MOVE_WITH_DATABASE` (enum property replaced by openapi-typescript)
+             * @enum {string}
+             */
+            type: "MOVE_WITH_DATABASE";
+        };
+        /** @description The database switches to a storage of the target workspace; the backups in its previous storage stay there */
+        StorageSwitchedOnTransfer: {
+            /**
+             * @description Always `SWITCH_TO_STORAGE` (enum property replaced by openapi-typescript)
+             * @enum {string}
+             */
+            type: "SWITCH_TO_STORAGE";
+            /**
+             * Format: uuid
+             * @description The storage of the target workspace
+             */
+            storageId: string;
+        };
     };
     responses: {
         /** @description An error in the RFC 9457 format */
@@ -2122,6 +2394,8 @@ export interface components {
         StorageId: string;
         /** @description The ID of the database */
         DatabaseId: string;
+        /** @description The ID of the database the config belongs to. A database has exactly one config, which has no ID of its own, so the database's ID is the key of the config. */
+        BackupConfigDatabaseId: string;
     };
     requestBodies: never;
     headers: never;
@@ -3786,6 +4060,132 @@ export interface operations {
             401: components["responses"]["Problem"];
             403: components["responses"]["Problem"];
             404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    transferDatabase: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the database */
+                databaseId: components["parameters"]["DatabaseId"];
+            };
+            cookie?: never;
+        };
+        /** @description The target workspace and what happens to the storage and the notifiers. */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DatabaseTransfer"];
+            };
+        };
+        responses: {
+            /** @description The database belongs to the target workspace */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    listBackupConfigs: {
+        parameters: {
+            query?: {
+                /** @description The workspace whose databases' configs to list */
+                workspaceId?: string;
+                /** @description The storage whose configs to list, the ones that back up into it */
+                storageId?: string;
+                /** @description The largest number of configs on the page */
+                limit?: number;
+                /** @description The `nextCursor` of the previous page */
+                after?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page of backup configs */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackupConfigPage"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    getBackupConfig: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the database the config belongs to. A database has exactly one config, which has no ID of its own, so the database's ID is the key of the config. */
+                databaseId: components["parameters"]["BackupConfigDatabaseId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The backup config */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackupConfig"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    updateBackupConfig: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the database the config belongs to. A database has exactly one config, which has no ID of its own, so the database's ID is the key of the config. */
+                databaseId: components["parameters"]["BackupConfigDatabaseId"];
+            };
+            cookie?: never;
+        };
+        /** @description The editable fields of the config. */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BackupConfigInput"];
+            };
+        };
+        responses: {
+            /** @description The config as it was saved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackupConfig"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
             default: components["responses"]["Problem"];
         };
     };

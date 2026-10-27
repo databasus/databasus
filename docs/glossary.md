@@ -37,7 +37,9 @@ This is the project's common language. Each concept has one term in the document
 | Actor | actor | The user on whose behalf a request runs: user ID and global role. |
 | Audit event | audit event | A record of who did what to which object, written in the transaction of the action. |
 | Audit author | audit author | The user an audit event names as the one who acted, kept in the event as a snapshot of user ID, email and name. |
-| Backup config | backup config | The settings that say how a database is backed up: type, schedule, storage, retention, encryption. A database has at most one logical and one physical backup config. |
+| Backup config | backup config, `backups.BackupConfig` | The settings that say how a database is backed up: whether backups run, the storage, the encryption, the notification triggers and the schedule and retention of its backup method. A database has one backup config, of the method its type implies. |
+| Backup method | backup method, `backups.Method`, `LOGICAL`, `PHYSICAL` | How a database is backed up: a physical PostgreSQL database physically, every other database logically. |
+| Notification trigger | notification trigger, `backups.NotificationTrigger`; `NotificationTrigger` in the API | A backup outcome for which a backup config sends a notification through the database's notifiers. |
 | Logical backup | logical backup | A dump produced by the engine's dump tool (`pg_dump`, `mysqldump`, `mariadb-dump`, `mongodump`). |
 | Physical backup | physical backup | A copy of a PostgreSQL cluster's files taken over the replication protocol. Either full or incremental. |
 | Full backup | full backup, `FULL` | A physical backup that contains the whole cluster. |

@@ -13,7 +13,7 @@ import (
 
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	usecases_logical "databasus-backend/internal/features/backups/backups/usecases/logical"
-	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
+	backups_bridge "databasus-backend/internal/features/backups/config"
 	"databasus-backend/internal/features/caching"
 	databases_bridge "databasus-backend/internal/features/databases"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
@@ -104,7 +104,7 @@ func CreateBackupTestFixture(t *testing.T, workspaceName string) *BackupTestFixt
 	createdNotifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
 	createdDatabase := databases_bridge.CreateTestDatabase(workspace.ID, createdNotifier)
 
-	backups_config_logical.EnableBackupsForTestDatabase(t.Context(), createdDatabase.ID, createdStorage.ID)
+	backups_bridge.EnableBackupsForTestDatabase(t.Context(), createdDatabase.ID, createdStorage.ID)
 
 	t.Cleanup(func() {
 		backups, _ := getBackupRepository().FindByDatabaseID(createdDatabase.ID)
@@ -127,10 +127,7 @@ func CreateBackupTestFixture(t *testing.T, workspaceName string) *BackupTestFixt
 }
 
 func CreateTestRouter() *gin.Engine {
-	router := workspaces_testing.CreateTestRouter(
-		databases_bridge.GetTestRoutes(),
-		backups_config_logical.GetBackupConfigController(),
-	)
+	router := workspaces_testing.CreateTestRouter(databases_bridge.GetTestRoutes())
 
 	return router
 }
@@ -139,7 +136,7 @@ func CreateTestBackupCleaner() *BackupCleaner {
 	return &BackupCleaner{
 		getBackupRepository(),
 		storages_bridge.GetModule,
-		backups_config_logical.GetBackupConfigService(),
+		backups_bridge.GetModule,
 		logger.GetLogger(),
 		[]backups_core_logical.BackupRemoveListener{},
 		atomic.Bool{},
@@ -152,7 +149,7 @@ func CreateTestBackuper() *Backuper {
 		databases_bridge.GetModule,
 		workspaces_bridge.GetAccess(),
 		getBackupRepository(),
-		backups_config_logical.GetBackupConfigService(),
+		backups_bridge.GetModule,
 		storages_bridge.GetModule,
 		notifiers_bridge.GetSender(),
 		getTaskCancellationRegistry(),
@@ -167,7 +164,7 @@ func CreateTestBackuperWithUseCase(useCase backups_core_logical.CreateBackupUsec
 		databases_bridge.GetModule,
 		workspaces_bridge.GetAccess(),
 		getBackupRepository(),
-		backups_config_logical.GetBackupConfigService(),
+		backups_bridge.GetModule,
 		storages_bridge.GetModule,
 		notifiers_bridge.GetSender(),
 		getTaskCancellationRegistry(),
@@ -186,7 +183,7 @@ func CreateTestScheduler() *BackupsScheduler {
 func CreateTestSchedulerWithBackuper(backuper *Backuper) *BackupsScheduler {
 	return &BackupsScheduler{
 		getBackupRepository(),
-		backups_config_logical.GetBackupConfigService(),
+		backups_bridge.GetModule,
 		getTaskCancellationRequester(),
 		databases_bridge.GetAccess(),
 		time.Now().UTC(),
