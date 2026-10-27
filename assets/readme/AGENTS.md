@@ -1,18 +1,18 @@
 # README translations — Agent Rules
 
 Translated copies of the root `README.md`, one file per locale:
-`README.ru.md`, `README.es.md`, `README.pt.md`, `README.zh.md`, `README.fr.md`.
+`README.ru.md`, `README.es.md`, `README.pt.md`, `README.zh.md`, `README.fr.md`, `README.id.md`.
 English stays at the repo root; only the translations live here.
 
 ## Sync rule (critical)
 
-**Any change to `/README.md` must be applied to all 5 copies here** — structure,
+**Any change to `/README.md` must be applied to all 6 copies here** — structure,
 headings, links, code blocks, badges. A translation that lags behind the English
 file is worse than no translation: readers act on install commands.
 
 The `## 🛡️ Security & reliability engineering` section is the sharpest case. The
 root `AGENTS.md` requires it to stay consistent with the project's actual
-security practices, so a change there now lands in 6 files.
+security practices, so a change there now lands in 7 files.
 
 ## Structure
 
@@ -59,8 +59,8 @@ gives `#️-security--reliability-engineering` (the variation selector survives)
 
 ## Language
 
-Translation content is in the target language; the six language-switcher labels
-(`English`, `Русский`, `Español`, `Português`, `中文`, `Français`) appear in the
+Translation content is in the target language; the seven language-switcher labels
+(`English`, `Русский`, `Español`, `Português`, `中文`, `Français`, `Bahasa Indonesia`) appear in the
 root `README.md` as well. Everything else in this directory stays English,
 including commit messages and this document; file names carry only the locale
 code. The root `AGENTS.md` holds the full list of places translated content is
