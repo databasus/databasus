@@ -22,7 +22,8 @@
     <a href="README.es.md">Español</a> •
     <a href="README.pt.md">Português</a> •
     <b>中文</b> •
-    <a href="README.fr.md">Français</a>
+    <a href="README.fr.md">Français</a> •
+    <a href="README.id.md">Bahasa Indonesia</a>
   </p>
 
   <p>

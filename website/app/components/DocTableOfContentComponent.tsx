@@ -1,6 +1,9 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import { usePathname } from "next/navigation";
+import { splitLocaleFromPathname } from "@/app/i18n";
+import { TABLE_OF_CONTENTS_LABELS } from "./landingLabels";
 
 interface Heading {
   id: string;
@@ -9,6 +12,7 @@ interface Heading {
 }
 
 export default function DocTableOfContentComponent() {
+  const { locale } = splitLocaleFromPathname(usePathname());
   const [headings, setHeadings] = useState<Heading[]>([]);
   const [activeId, setActiveId] = useState<string>("");
   const observerRef = useRef<IntersectionObserver | null>(null);
@@ -17,9 +21,7 @@ export default function DocTableOfContentComponent() {
     // Use a timeout to avoid cascading renders
     const timeoutId = setTimeout(() => {
       // Get all h1, h2, h3 headings from the page
-      const elements = Array.from(
-        document.querySelectorAll("article h1, article h2, article h3")
-      );
+      const elements = Array.from(document.querySelectorAll("article h1, article h2, article h3"));
 
       if (elements.length === 0) return;
 
@@ -40,7 +42,7 @@ export default function DocTableOfContentComponent() {
             }
           });
         },
-        { rootMargin: "-100px 0px -80% 0px" }
+        { rootMargin: "-100px 0px -80% 0px" },
       );
 
       elements.forEach((element) => {
@@ -73,7 +75,7 @@ export default function DocTableOfContentComponent() {
     <aside className="hidden w-64 border-l border-[#ffffff20] bg-[#0F1115] xl:block">
       <div className="sticky top-0 h-screen overflow-y-auto p-6">
         <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-500">
-          On This Page
+          {TABLE_OF_CONTENTS_LABELS[locale]}
         </h3>
         <nav>
           <ul className="space-y-2 text-sm">
@@ -93,9 +95,7 @@ export default function DocTableOfContentComponent() {
                 >
                   <span
                     className={`absolute left-0 top-0 bottom-0 w-0.5 transition-all duration-200 ${
-                      activeId === heading.id
-                        ? "bg-blue-600 opacity-100"
-                        : "bg-gray-600 opacity-0"
+                      activeId === heading.id ? "bg-blue-600 opacity-100" : "bg-gray-600 opacity-0"
                     }`}
                   />
                   {heading.text}

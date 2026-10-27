@@ -26,6 +26,7 @@ export const metadata: Metadata = {
     description:
       "Install the Databasus agent for physical backups, incremental backups, WAL archiving and Point-in-Time Recovery (PITR) of PostgreSQL databases.",
     type: "article",
+    locale: "en_US",
     url: "https://databasus.com/installation/agent",
   },
   twitter: {

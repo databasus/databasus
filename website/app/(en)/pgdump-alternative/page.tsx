@@ -25,6 +25,7 @@ export const metadata: Metadata = {
     description:
       "Databasus is built on pg_dump and extends its features with backups management, a web UI, automated scheduling, cloud storage, notifications, team collaboration and encryption.",
     type: "article",
+    locale: "en_US",
     url: "https://databasus.com/pgdump-alternative",
   },
   twitter: {

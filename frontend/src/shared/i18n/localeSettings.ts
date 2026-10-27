@@ -3,11 +3,13 @@ import type { Locale as AntdLocale } from 'antd/lib/locale';
 import enUS from 'antd/locale/en_US';
 import esES from 'antd/locale/es_ES';
 import frFR from 'antd/locale/fr_FR';
+import idID from 'antd/locale/id_ID';
 import ptBR from 'antd/locale/pt_BR';
 import ruRU from 'antd/locale/ru_RU';
 import zhCN from 'antd/locale/zh_CN';
 import 'dayjs/locale/es';
 import 'dayjs/locale/fr';
+import 'dayjs/locale/id';
 import 'dayjs/locale/pt-br';
 import 'dayjs/locale/ru';
 import 'dayjs/locale/zh-cn';
@@ -30,4 +32,5 @@ export const LOCALE_SETTINGS: Record<Locale, LocaleSettings> = {
   // Simplified Chinese is the one Chinese variant shipped
   zh: { languageTag: 'zh-CN', dayjsLocale: 'zh-cn', antdLocale: zhCN },
   fr: { languageTag: 'fr', dayjsLocale: 'fr', antdLocale: frFR },
+  id: { languageTag: 'id-ID', dayjsLocale: 'id', antdLocale: idID },
 };

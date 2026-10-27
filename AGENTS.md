@@ -81,7 +81,7 @@ When you start the app or look at its pages, load the [run-app skill](.agents/sk
 
 **English only in code, comments, identifiers, log messages, API strings, test assertions, and commit messages.** No other language inside `backend/` or `agent/` at all, and none inside `frontend/src/` outside the interface dictionaries named below — not even for user-facing fallback copy or error messages.
 
-Translated end-user content is allowed in five places and nowhere else: the website page copies (`website/app/[lang]/*/content/<locale>.tsx`), the README translations (`assets/readme/README.<locale>.md`), the six language-switcher labels in the root `README.md`, the frontend interface dictionaries (`frontend/src/shared/i18n/locales/<locale>.ts`), and the quoted example pairs in the [how-to-communicate skill](.agents/skills/humanizer/SKILL.md), which model conversation output rather than documentation prose. Even there, file names (locale codes aside), identifiers, dictionary keys and commit messages stay English.
+Translated end-user content is allowed in six places and nowhere else: the website page copies (`website/app/[lang]/*/content/<locale>.tsx`), the README translations (`assets/readme/README.<locale>.md`), the seven language-switcher labels in the root `README.md`, the frontend interface dictionaries (`frontend/src/shared/i18n/locales/<locale>.ts`), the shared website locale maps listed in [`website/AGENTS.md` - Language exception](website/AGENTS.md#language-exception), and the quoted example pairs in the [how-to-communicate skill](.agents/skills/humanizer/SKILL.md), which model conversation output rather than documentation prose. Even there, file names (locale codes aside), identifiers, dictionary keys and commit messages stay English.
 
 The dictionaries are the only target-language text anywhere under `frontend/`, `index.html` included. Every other file there stays English, fallback copy and error messages included: a component renders a translation by looking up a key, never by holding the translated string itself.
 
@@ -236,7 +236,7 @@ Databasus handles sensitive data, so security is a layered defence. When working
 - Keep Dockerfiles free of secrets, floating base-image tags and unjustified root. If root-at-start is required (PUID/PGID remap, volume chown, initdb), drop privileges with `gosu` before `exec`-ing the app.
 - Never log secrets, tokens or credentials. Redact at the logger layer, not at call sites.
 
-The README's `🛡️ Security & reliability engineering` section is the public-facing version of these practices — keep both consistent if substance changes. That section, like the rest of `README.md`, exists in 6 languages: a substantive edit lands in the English file and in all five `assets/readme/README.<locale>.md` copies.
+The README's `🛡️ Security & reliability engineering` section is the public-facing version of these practices — keep both consistent if substance changes. That section, like the rest of `README.md`, exists in 7 languages: a substantive edit lands in the English file and in all six `assets/readme/README.<locale>.md` copies.
 
 ---
 

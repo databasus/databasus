@@ -23,6 +23,7 @@ export const metadata: Metadata = {
     description:
       "Frequently asked questions about Databasus PostgreSQL backup tool with MySQL, MariaDB and MongoDB support. Learn how to backup localhost databases, understand backup formats, compression methods and more.",
     type: "article",
+    locale: "en_US",
     url: "https://databasus.com/faq",
   },
   twitter: {

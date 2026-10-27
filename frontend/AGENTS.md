@@ -109,7 +109,7 @@ The other dictionaries follow their language's own typography instead, as set ou
 
 ## Interface languages (i18n)
 
-The interface ships in English, Russian, Spanish, Portuguese (Brazilian), Chinese (Simplified) and French, through `i18next` and `react-i18next`. Everything lives in `shared/i18n`.
+The interface ships in English, Russian, Spanish, Portuguese (Brazilian), Chinese (Simplified), French and Indonesian, through `i18next` and `react-i18next`. Everything lives in `shared/i18n`.
 
 ### Dictionaries
 

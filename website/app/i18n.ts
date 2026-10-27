@@ -1,6 +1,6 @@
 export const BASE_URL = "https://databasus.com";
 
-export const LOCALES = ["ru", "es", "pt", "zh", "fr"] as const;
+export const LOCALES = ["ru", "es", "pt", "zh", "fr", "id"] as const;
 
 export type Locale = (typeof LOCALES)[number];
 
@@ -10,6 +10,7 @@ export const HREFLANG_CODES: Record<Locale, string> = {
   pt: "pt",
   zh: "zh-CN",
   fr: "fr",
+  id: "id",
 };
 
 export const HTML_LANG_CODES: Record<Locale, string> = {
@@ -18,6 +19,7 @@ export const HTML_LANG_CODES: Record<Locale, string> = {
   pt: "pt",
   zh: "zh-CN",
   fr: "fr",
+  id: "id",
 };
 
 export const OG_LOCALES: Record<Locale, string> = {
@@ -26,6 +28,7 @@ export const OG_LOCALES: Record<Locale, string> = {
   pt: "pt_BR",
   zh: "zh_CN",
   fr: "fr_FR",
+  id: "id_ID",
 };
 
 export const LOCALE_NATIVE_NAMES: Record<Locale | "en", string> = {
@@ -35,6 +38,7 @@ export const LOCALE_NATIVE_NAMES: Record<Locale | "en", string> = {
   pt: "Português",
   zh: "中文",
   fr: "Français",
+  id: "Bahasa Indonesia",
 };
 
 // Paths of the translated core, without leading slash; "" is the home page.

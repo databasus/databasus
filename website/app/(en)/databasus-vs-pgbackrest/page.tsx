@@ -25,6 +25,7 @@ export const metadata: Metadata = {
     description:
       "Compare Databasus and pgBackRest PostgreSQL backup tools. See differences in backup approach, target audience, ease of use, recovery options and when to choose each tool.",
     type: "article",
+    locale: "en_US",
     url: "https://databasus.com/databasus-vs-pgbackrest",
   },
   twitter: {
