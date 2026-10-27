@@ -7,7 +7,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 
+	"databasus-backend/internal/config"
 	"databasus-backend/internal/engines/postgresql/physical/walmath"
+	pgshared "databasus-backend/internal/engines/postgresql/shared"
 	"databasus-backend/internal/util/logger"
 )
 
@@ -93,6 +95,7 @@ func Test_RunForcedWalRotation_WhenSourceRefusesSwitchWal_SetsRefusalFlag(t *tes
 	adminConn := OpenAdminConn(t, fixture)
 
 	supervisor := NewWalStreamSupervisor(WalStreamSpec{
+		ClientTools:            pgshared.ClientTools{Root: config.GetEnv().ClientToolsDir},
 		DatabaseID:             uuid.New(),
 		SourceDB:               CreateReplicationOnlyRole(t, adminConn, fixture),
 		WatchDirRoot:           t.TempDir(),

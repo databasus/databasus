@@ -8,6 +8,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"databasus-backend/internal/config"
+	pgshared "databasus-backend/internal/engines/postgresql/shared"
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	physical_repositories "databasus-backend/internal/features/backups/backups/core/physical/repositories"
 	databases_bridge "databasus-backend/internal/features/databases"
@@ -27,6 +29,7 @@ func Test_WalStreamSupervisorRun_WhenTheDatabaseIsDeleted_LeavesNoSlot(t *testin
 	databases_bridge.RemoveTestDatabase(t.Context(), fixture.DB)
 
 	supervisor := NewWalStreamSupervisor(WalStreamSpec{
+		ClientTools:    pgshared.ClientTools{Root: config.GetEnv().ClientToolsDir},
 		DatabaseID:     fixture.DB.ID,
 		SourceDB:       fixture.SourceDB,
 		StorageID:      fixture.Storage.ID,

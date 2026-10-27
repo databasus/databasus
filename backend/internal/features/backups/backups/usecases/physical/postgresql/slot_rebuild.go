@@ -93,7 +93,8 @@ func (s *WalStreamSupervisor) rebuildSlot(ctx context.Context, logger *slog.Logg
 // A slot held by anything else (a third-party consumer, or a backend we cannot
 // attribute) must never be force-terminated or dropped during a rebuild.
 func isOwnedReceiverBackend(state *pgphysical.Slot) bool {
-	return state.ActivePID != nil && strings.HasPrefix(state.ApplicationName, receivewalApplicationNamePrefix)
+	return state.ActivePID != nil &&
+		strings.HasPrefix(state.ApplicationName, pgphysical.WalReceiverApplicationNamePrefix)
 }
 
 func (s *WalStreamSupervisor) terminateOwnedSlotBackend(ctx context.Context, logger *slog.Logger) (bool, error) {

@@ -8,8 +8,10 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 
+	"databasus-backend/internal/config"
 	pgphysical "databasus-backend/internal/engines/postgresql/physical"
 	"databasus-backend/internal/engines/postgresql/physical/walmath"
+	pgshared "databasus-backend/internal/engines/postgresql/shared"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/util/logger"
 )
@@ -80,6 +82,7 @@ func Test_RealignResumePath_WhenSourceUnreachable_LeavesQueueUntouched(t *testin
 	}
 
 	supervisor := NewWalStreamSupervisor(WalStreamSpec{
+		ClientTools:  pgshared.ClientTools{Root: config.GetEnv().ClientToolsDir},
 		DatabaseID:   uuid.New(),
 		SourceDB:     unreachableSourceDB,
 		WatchDirRoot: t.TempDir(),

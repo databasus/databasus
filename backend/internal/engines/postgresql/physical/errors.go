@@ -2,6 +2,8 @@ package physical
 
 import (
 	"errors"
+	"fmt"
+	"os/exec"
 	"strings"
 
 	"github.com/jackc/pgx/v5/pgconn"
@@ -77,4 +79,48 @@ func classifyServerError(err error) serverErrorKind {
 	}
 
 	return serverErrorOther
+}
+
+var (
+	errByteStall            = errors.New("byte-stall watcher cancelled pg_basebackup")
+	errManifestWalk         = errors.New("manifest reconstruction failed")
+	errManifestSystemIDZero = errors.New(
+		"source system identifier is 0; cannot build a manifest pg_combinebackup would accept",
+	)
+)
+
+type BaseBackupErrorKind int
+
+const (
+	BaseBackupStalled BaseBackupErrorKind = iota
+	BaseBackupCodecRejected
+	BaseBackupManifestBroken
+	BaseBackupContextEnded
+	BaseBackupToolFailed
+)
+
+type BaseBackupError struct {
+	Kind   BaseBackupErrorKind
+	Cause  error
+	Stderr []byte
+}
+
+func (e *BaseBackupError) Error() string {
+	return fmt.Sprintf("%v; stderr: %s", e.Cause, truncateStderr(e.Stderr))
+}
+func (e *BaseBackupError) Unwrap() error { return e.Cause }
+
+func getClientExitError(err error) error {
+	if exitErr, isExitErr := errors.AsType[*exec.ExitError](err); isExitErr {
+		return exitErr
+	}
+	return err
+}
+
+func truncateStderr(stderr []byte) string {
+	const limit = 2048
+	if len(stderr) > limit {
+		stderr = stderr[len(stderr)-limit:]
+	}
+	return string(stderr)
 }

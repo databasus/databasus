@@ -17,6 +17,7 @@ import (
 	"databasus-backend/internal/config"
 	pgphysical "databasus-backend/internal/engines/postgresql/physical"
 	"databasus-backend/internal/engines/postgresql/physical/walmath"
+	pgshared "databasus-backend/internal/engines/postgresql/shared"
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	physical_repositories "databasus-backend/internal/features/backups/backups/core/physical/repositories"
 	"databasus-backend/internal/features/backups/backups/core/physical/wal_health"
@@ -297,6 +298,7 @@ func (s *PhysicalWalStreamSupervisor) startStreamer(
 	})
 
 	supervisor := postgresql_executor.NewWalStreamSupervisor(postgresql_executor.WalStreamSpec{
+		ClientTools:               pgshared.ClientTools{Root: config.GetEnv().ClientToolsDir},
 		DatabaseID:                db.ID,
 		SourceDB:                  sourceThroughTunnel,
 		IsBastionReachable:        tunnel.IsBastionReachable,

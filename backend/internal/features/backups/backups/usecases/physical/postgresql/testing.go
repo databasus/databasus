@@ -19,6 +19,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
 
+	"databasus-backend/internal/config"
 	pgphysical "databasus-backend/internal/engines/postgresql/physical"
 	"databasus-backend/internal/engines/postgresql/physical/walmath"
 	pgshared "databasus-backend/internal/engines/postgresql/shared"
@@ -894,6 +895,7 @@ func StartWalStreamerForTest(t *testing.T, spec WalStreamerTestSpec) *WalStreame
 	})
 
 	supervisor := NewWalStreamSupervisor(WalStreamSpec{
+		ClientTools:               pgshared.ClientTools{Root: config.GetEnv().ClientToolsDir},
 		DatabaseID:                fixture.DB.ID,
 		SourceDB:                  sourceDB,
 		StorageID:                 fixture.Storage.ID,

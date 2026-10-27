@@ -7,8 +7,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"databasus-backend/internal/config"
 	pgphysical "databasus-backend/internal/engines/postgresql/physical"
 	"databasus-backend/internal/engines/postgresql/physical/walmath"
+	pgshared "databasus-backend/internal/engines/postgresql/shared"
 	physical_repositories "databasus-backend/internal/features/backups/backups/core/physical/repositories"
 	databases_bridge "databasus-backend/internal/features/databases"
 	storages_bridge "databasus-backend/internal/features/storages"
@@ -88,6 +90,7 @@ func Test_FullOverMtls_ProducesArtifactAndManifest(t *testing.T) {
 
 	result, err := uc.Execute(ctx, FullBackupSpec{
 		CommonBackupSpec: CommonBackupSpec{
+			ClientTools:  pgshared.ClientTools{Root: config.GetEnv().ClientToolsDir},
 			SourceDB:     fixture.SourceDB,
 			DatabaseName: fixture.DB.Name,
 			StorageID:    fixture.Storage.ID,

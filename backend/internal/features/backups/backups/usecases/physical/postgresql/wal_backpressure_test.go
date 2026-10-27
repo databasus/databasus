@@ -7,6 +7,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"databasus-backend/internal/config"
+	pgshared "databasus-backend/internal/engines/postgresql/shared"
 	databases_bridge "databasus-backend/internal/features/databases"
 	"databasus-backend/internal/util/logger"
 )
@@ -17,6 +19,7 @@ func Test_WalStream_BackpressureWatermarks_ScaleWithWalSegmentSize(t *testing.T)
 	fixture.SourceDB.WalSegmentSizeBytes = &customSegSize
 
 	supervisor := NewWalStreamSupervisor(WalStreamSpec{
+		ClientTools:  pgshared.ClientTools{Root: config.GetEnv().ClientToolsDir},
 		DatabaseID:   fixture.DB.ID,
 		BackupStatus: databases_bridge.GetModule(),
 		SourceDB:     fixture.SourceDB,
@@ -32,6 +35,7 @@ func Test_BacklogBytes_WhenSegmentsStagedOutOfResumePath_CountsThemTowardTheWate
 	fixture := SetupPhysicalDBForBackup(t)
 
 	supervisor := NewWalStreamSupervisor(WalStreamSpec{
+		ClientTools:  pgshared.ClientTools{Root: config.GetEnv().ClientToolsDir},
 		DatabaseID:   fixture.DB.ID,
 		BackupStatus: databases_bridge.GetModule(),
 		SourceDB:     fixture.SourceDB,

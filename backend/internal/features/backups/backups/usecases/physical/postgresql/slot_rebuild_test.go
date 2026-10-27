@@ -14,7 +14,7 @@ func Test_IsOwnedReceiverBackend_WhenOurReceiverHoldsSlot_ReturnsTrue(t *testing
 		CurrentLSN: new(walmath.LSN(0)), LagBytes: new(int64(0)),
 		IsActive:        true,
 		ActivePID:       new(4321),
-		ApplicationName: receivewalApplicationNamePrefix + "11111111-1111-1111-1111-111111111111",
+		ApplicationName: pgphysical.WalReceiverApplicationNamePrefix + "11111111-1111-1111-1111-111111111111",
 	}
 
 	require.True(t, isOwnedReceiverBackend(state))
@@ -36,7 +36,7 @@ func Test_IsOwnedReceiverBackend_WhenNoActiveBackend_ReturnsFalse(t *testing.T) 
 		CurrentLSN: new(walmath.LSN(0)), LagBytes: new(int64(0)),
 		IsActive:        false,
 		ActivePID:       nil,
-		ApplicationName: receivewalApplicationNamePrefix + "22222222-2222-2222-2222-222222222222",
+		ApplicationName: pgphysical.WalReceiverApplicationNamePrefix + "22222222-2222-2222-2222-222222222222",
 	}
 
 	require.False(t, isOwnedReceiverBackend(state))

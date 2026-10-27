@@ -22,6 +22,7 @@ import (
 
 	"databasus-backend/internal/config"
 	"databasus-backend/internal/engines/postgresql/physical/walmath"
+	pgshared "databasus-backend/internal/engines/postgresql/shared"
 	audit_logs "databasus-backend/internal/features/audit_logs"
 	backuping_physical "databasus-backend/internal/features/backups/backups/backuping/physical"
 	backups_controllers_physical "databasus-backend/internal/features/backups/backups/controllers/physical"
@@ -1918,6 +1919,7 @@ func registerTestRunningWalStreamer(t *testing.T, prereqs *physicalControllerPre
 	watchDirRoot := t.TempDir()
 
 	streamer := postgresql_executor.NewWalStreamSupervisor(postgresql_executor.WalStreamSpec{
+		ClientTools:    pgshared.ClientTools{Root: config.GetEnv().ClientToolsDir},
 		DatabaseID:     prereqs.database.ID,
 		SourceDB:       postgresql_executor.OpenSourceDB(t, prereqs.database.ID),
 		WalSegmentRepo: physical_repositories.GetWalSegmentRepository(),

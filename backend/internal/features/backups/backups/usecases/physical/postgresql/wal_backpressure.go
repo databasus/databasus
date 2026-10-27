@@ -13,7 +13,7 @@ import (
 
 const (
 	// pg_receivewal has no kernel-pipe back pressure (it writes files), so the
-	// watch dir IS the buffer. Above HIGH we SIGTERM it; we resume only once
+	// watch dir IS the buffer. Above HIGH we stop the receiver; we resume only once
 	// uploads drain below LOW. The 5x hysteresis prevents flapping on the
 	// boundary. HIGH scales up for clusters with non-default wal_segment_size so
 	// one segment does not stop the receiver.

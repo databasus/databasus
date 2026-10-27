@@ -8,8 +8,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"databasus-backend/internal/config"
 	pgphysical "databasus-backend/internal/engines/postgresql/physical"
 	"databasus-backend/internal/engines/postgresql/physical/walmath"
+	pgshared "databasus-backend/internal/engines/postgresql/shared"
 	physical_enums "databasus-backend/internal/features/backups/backups/core/physical/enums"
 	physical_repositories "databasus-backend/internal/features/backups/backups/core/physical/repositories"
 	"databasus-backend/internal/modules/databases"
@@ -90,7 +92,8 @@ func newLiveStateTestSupervisor(t *testing.T) *WalStreamSupervisor {
 	t.Helper()
 
 	supervisor := NewWalStreamSupervisor(WalStreamSpec{
-		DatabaseID: uuid.New(),
+		ClientTools: pgshared.ClientTools{Root: config.GetEnv().ClientToolsDir},
+		DatabaseID:  uuid.New(),
 		SourceDB: databases.PostgresqlPhysicalConnectionSettings{
 			Engine:            pgphysical.Settings{},
 			WalStreamSlotName: "databasus_live_test",

@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 
+	"databasus-backend/internal/config"
 	pgphysical "databasus-backend/internal/engines/postgresql/physical"
 	"databasus-backend/internal/engines/postgresql/physical/walmath"
 	pgshared "databasus-backend/internal/engines/postgresql/shared"
@@ -133,6 +134,7 @@ func newProbeOnlySupervisor(
 	t.Helper()
 
 	return NewWalStreamSupervisor(WalStreamSpec{
+		ClientTools:  pgshared.ClientTools{Root: config.GetEnv().ClientToolsDir},
 		DatabaseID:   uuid.New(),
 		SourceDB:     sourceDB,
 		WatchDirRoot: t.TempDir(),

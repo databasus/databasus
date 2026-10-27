@@ -42,6 +42,7 @@ This is the project's common language. Each concept has one term in the document
 | Notification trigger | notification trigger, `backups.NotificationTrigger`; `NotificationTrigger` in the API | A backup outcome for which a backup config sends a notification through the database's notifiers. |
 | Logical backup | logical backup | A dump produced by the engine's dump tool (`pg_dump`, `mysqldump`, `mariadb-dump`, `mongodump`). |
 | Physical backup | physical backup | A copy of a PostgreSQL cluster's files taken over the replication protocol. Either full or incremental. |
+| Base backup | base backup, `StreamBaseBackup` | The `pg_basebackup` stream of one full or incremental physical backup. |
 | Full backup | full backup, `FULL` | A physical backup that contains the whole cluster. |
 | Incremental backup | incremental backup, `INCREMENTAL` | A physical backup that contains only the blocks changed since its parent backup. |
 | Chain | chain | A full backup with the incremental backups built on it. |

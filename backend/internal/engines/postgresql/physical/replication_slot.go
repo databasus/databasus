@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-// pg_receivewal clears the active flag a moment after SIGTERM, so the removal polls instead of
+// pg_receivewal clears the active flag a moment after it stops, so the removal polls instead of
 // assuming the detach is instantaneous.
 const slotDetachPollInterval = 250 * time.Millisecond
 

@@ -114,6 +114,8 @@ Databasus has three families of interchangeable implementations. Each family has
   - read a physical source's replication slots, identity, timeline history and WAL position;
   - read a `pg_receivewal` directory and calculate WAL positions and filenames through `postgresql/physical/walmath`;
   - dump into an `io.Writer` and restore from an `io.Reader`;
+  - stream a physical base backup into an `io.Writer` and rebuild its manifest;
+  - receive WAL into a directory;
   - find its client tool for a server version.
 
   An engine's sources offer small sets of methods, because a physical PostgreSQL source and a logical one support different sets. A consumer that serves several engines through one shape declares the interface it needs, as `ConnectedDatabase` in the `databases` module does, and maps each database type to its implementation in one registry of its own, and only there, as the logical backup pipeline of `backups` does. The provider registry of `databases` cannot hold those entries, because they open work that `databases` knows nothing about, and a restore target has settings but no database row. The backend's restore and the verification agent call the same engine code, so a verification restores exactly the way a restore does.

@@ -12,8 +12,10 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
+	"databasus-backend/internal/config"
 	pgphysical "databasus-backend/internal/engines/postgresql/physical"
 	"databasus-backend/internal/engines/postgresql/physical/walmath"
+	pgshared "databasus-backend/internal/engines/postgresql/shared"
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	physical_enums "databasus-backend/internal/features/backups/backups/core/physical/enums"
 	physical_models "databasus-backend/internal/features/backups/backups/core/physical/models"
@@ -111,6 +113,7 @@ func (b *PhysicalBackuper) runFullBackup(
 
 	fullBackupSpec := postgresql_executor.FullBackupSpec{
 		CommonBackupSpec: postgresql_executor.CommonBackupSpec{
+			ClientTools:  pgshared.ClientTools{Root: config.GetEnv().ClientToolsDir},
 			SourceDB:     backupCtx.Source,
 			DatabaseName: backupCtx.Database.Name,
 			StorageID:    backupCtx.Storage.ID,
@@ -219,6 +222,7 @@ func (b *PhysicalBackuper) runIncrementalBackup(
 
 	incrBackupSpec := postgresql_executor.IncrementalBackupSpec{
 		CommonBackupSpec: postgresql_executor.CommonBackupSpec{
+			ClientTools:  pgshared.ClientTools{Root: config.GetEnv().ClientToolsDir},
 			SourceDB:     backupCtx.Source,
 			DatabaseName: backupCtx.Database.Name,
 			StorageID:    backupCtx.Storage.ID,

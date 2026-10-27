@@ -3,40 +3,34 @@ package usecases_physical_postgresql
 import (
 	"context"
 	"fmt"
-	"os/exec"
 	"time"
 
 	"github.com/google/uuid"
 
-	"databasus-backend/internal/config"
 	pgphysical "databasus-backend/internal/engines/postgresql/physical"
 	pgshared "databasus-backend/internal/engines/postgresql/shared"
 	physical_enums "databasus-backend/internal/features/backups/backups/core/physical/enums"
+	"databasus-backend/internal/lib/clock"
 	"databasus-backend/internal/modules/storages"
 	db "databasus-backend/internal/storage"
 	files_utils "databasus-backend/internal/util/files"
 )
 
-// runStreamParams builds the codec-independent parameters runStream needs from
-// the shared spec. backupID and systemID come from the variant-specific row and
-// the live timeline check, so they are passed explicitly rather than read off the spec.
 func (s CommonBackupSpec) runStreamParams(
 	fileName string,
 	backupID uuid.UUID,
-	systemID uint64,
 	codec physical_enums.PhysicalBackupCompression,
 ) runStreamParams {
 	return runStreamParams{
-		FileStore:        s.FileStore,
-		StorageID:        s.StorageID,
-		Logger:           s.Logger,
-		FileName:         fileName,
-		Encryption:       s.Encryption,
-		MasterKey:        s.MasterKey,
-		BackupID:         backupID,
-		SystemID:         systemID,
-		Codec:            codec,
-		ProgressListener: s.ProgressListener,
+		FileStore:  s.FileStore,
+		StorageID:  s.StorageID,
+		Logger:     s.Logger,
+		FileName:   fileName,
+		Encryption: s.Encryption,
+		MasterKey:  s.MasterKey,
+		BackupID:   backupID,
+		Source:     pgphysical.NewSource(s.SourceDB.Engine),
+		Codec:      codec,
 	}
 }
 
@@ -66,19 +60,13 @@ func streamWithCodecFallback(
 	ctx context.Context,
 	spec streamAttemptSpec,
 ) (PhysicalBackupResult, error) {
-	pgBin := pgshared.ClientTools{
-		Root: config.GetEnv().ClientToolsDir,
-	}.GetExecutable(
-		spec.Common.SourceDB.Version,
-		pgshared.ExecutablePgBasebackup,
-	)
-
 	var (
 		settled         streamOutcome
 		settledFileName string
 	)
 
-	for i, codec := range codecFallbackOrder {
+	codecs := pgphysical.GetCodecFallbackOrder()
+	for i, codec := range codecs {
 		fileName, err := spec.MintAndSaveAttemptName()
 		if err != nil {
 			return PhysicalBackupResult{}, err
@@ -86,32 +74,37 @@ func streamWithCodecFallback(
 
 		settledFileName = fileName
 
-		buildCmd := func(streamCtx context.Context) (*exec.Cmd, error) {
-			return newPgBasebackupCommand(
-				streamCtx,
-				pgBin,
-				spec.Common.SourceDB,
-				spec.Creds,
-				spec.Label,
-				codec,
-				spec.IncrementalManifestPath,
-			)
-		}
-
 		outcome, err := runStream(
 			ctx,
-			spec.Common.runStreamParams(fileName, spec.BackupID, spec.SystemID, codec),
-			buildCmd,
-			spec.Classify,
+			streamSpec{
+				Params: spec.Common.runStreamParams(fileName, spec.BackupID, getStoredCodec(codec)),
+				Backup: pgphysical.BaseBackupSpec{
+					ClientTools:             spec.Common.ClientTools,
+					Version:                 spec.Common.SourceDB.Version,
+					Credentials:             spec.Creds,
+					Label:                   spec.Label,
+					Codec:                   codec,
+					IncrementalManifestPath: spec.IncrementalManifestPath,
+					SystemID:                spec.SystemID,
+					Clock:                   clock.NewSystem(),
+					FirstByteTimeout:        10 * time.Minute,
+					StallTimeout:            60 * time.Second,
+					StallPollInterval:       10 * time.Second,
+					ProgressInterval:        5 * time.Second,
+					ProgressListener:        spec.Common.ProgressListener,
+					Logger:                  spec.Common.Logger,
+				},
+				Classify: spec.Classify,
+			},
 		)
 		if err != nil {
 			return PhysicalBackupResult{}, err
 		}
 
 		if outcome.isCompressionUnsupported {
-			if i+1 < len(codecFallbackOrder) {
+			if i+1 < len(codecs) {
 				spec.Common.Logger.Warn(
-					fmt.Sprintf("compression downgraded: %s -> %s", codec, codecFallbackOrder[i+1]),
+					fmt.Sprintf("compression downgraded: %s -> %s", codec, codecs[i+1]),
 					"backup_id", spec.BackupID)
 
 				// The next attempt writes a different name, so this one's bytes are
@@ -382,4 +375,16 @@ func inspectTimelineAgainstExpected(
 	defer func() { _ = conn.Close(context.Background()) }()
 
 	return CheckIncrementalTimelineCompatibility(ctx, conn, common.SourceDB, expectedTimelineID)
+}
+
+func getStoredCodec(codec pgphysical.Codec) physical_enums.PhysicalBackupCompression {
+	switch codec {
+	case pgphysical.CodecZstd:
+		return physical_enums.PhysicalBackupCompressionZstd
+	case pgphysical.CodecGzip:
+		return physical_enums.PhysicalBackupCompressionGzip
+	case pgphysical.CodecNone:
+		return physical_enums.PhysicalBackupCompressionNone
+	}
+	panic("unknown physical backup codec")
 }

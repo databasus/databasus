@@ -14,7 +14,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"databasus-backend/internal/config"
 	"databasus-backend/internal/engines/postgresql/physical/walmath"
+	pgshared "databasus-backend/internal/engines/postgresql/shared"
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	physical_models "databasus-backend/internal/features/backups/backups/core/physical/models"
 	physical_repositories "databasus-backend/internal/features/backups/backups/core/physical/repositories"
@@ -52,6 +54,7 @@ func createTestSupervisor(
 	t.Helper()
 
 	supervisor := NewWalStreamSupervisor(WalStreamSpec{
+		ClientTools:    pgshared.ClientTools{Root: config.GetEnv().ClientToolsDir},
 		DatabaseID:     fixture.DB.ID,
 		BackupStatus:   databases_bridge.GetModule(),
 		SourceDB:       fixture.SourceDB,

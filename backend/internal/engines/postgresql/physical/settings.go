@@ -1,6 +1,6 @@
 // Package physical is the physical PostgreSQL source: the replication connection and its
-// readiness, the cluster identity, size and liveness, the replication slots, the inspection
-// session, forced WAL rotation and the replication user. It is imported as pgphysical.
+// readiness, physical base backup streams and manifests, WAL receiving, cluster inspection,
+// replication slots, forced WAL rotation and replication users. It is imported as pgphysical.
 package physical
 
 import (

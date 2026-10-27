@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 
 	"databasus-backend/internal/engines/postgresql/physical/walmath"
+	pgshared "databasus-backend/internal/engines/postgresql/shared"
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	physical_enums "databasus-backend/internal/features/backups/backups/core/physical/enums"
 	physical_models "databasus-backend/internal/features/backups/backups/core/physical/models"
@@ -20,6 +21,7 @@ import (
 type timelineIdentityProbe func(context.Context, int) (*TimelineDecision, error)
 
 type CommonBackupSpec struct {
+	ClientTools   pgshared.ClientTools
 	SourceDB      databases.PostgresqlPhysicalConnectionSettings
 	DatabaseName  string
 	StorageID     uuid.UUID

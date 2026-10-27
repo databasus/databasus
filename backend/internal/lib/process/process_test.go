@@ -19,6 +19,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"databasus-backend/internal/lib/testwait"
+	"databasus-backend/internal/lib/toolstub"
 )
 
 func TestStart(t *testing.T) {
@@ -114,6 +115,47 @@ func TestStart(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Equal(t, "inherited|added|C\n", string(toolOutput))
+	})
+}
+
+func TestParentDeath(t *testing.T) {
+	if len(os.Args) > 2 && os.Args[len(os.Args)-2] == "process-parent-helper" {
+		running, err := Start(t.Context(), Spec{Path: os.Args[len(os.Args)-1], Stdout: os.Stdout})
+		require.NoError(t, err)
+		_ = running.Wait()
+		return
+	}
+	t.Parallel()
+	t.Run("kills the tool when its parent dies", func(t *testing.T) {
+		t.Parallel()
+		toolPath := filepath.Join(t.TempDir(), "tool")
+		toolstub.Write(t, toolPath, toolstub.Spec{Script: "echo $$; exec sleep 600"})
+		parentOutput := &lockedBuffer{}
+		parent := exec.CommandContext(
+			t.Context(),
+			os.Args[0],
+			"-test.run=^TestParentDeath$",
+			"process-parent-helper",
+			toolPath,
+		)
+		parent.Stdout = parentOutput
+		require.NoError(t, parent.Start())
+		t.Cleanup(func() { _ = parent.Process.Kill() })
+		var toolPID int
+		testwait.Until(t, "parent reports the tool pid", func(context.Context) error {
+			var err error
+			toolPID, err = strconv.Atoi(strings.TrimSpace(parentOutput.String()))
+			return err
+		})
+		t.Cleanup(func() { _ = syscall.Kill(toolPID, syscall.SIGKILL) })
+		require.NoError(t, parent.Process.Kill())
+		require.Error(t, parent.Wait())
+		testwait.Until(t, "tool exits after its parent dies", func(context.Context) error {
+			if syscall.Kill(toolPID, 0) == nil {
+				return fmt.Errorf("process %d is still running", toolPID)
+			}
+			return nil
+		})
 	})
 }
 

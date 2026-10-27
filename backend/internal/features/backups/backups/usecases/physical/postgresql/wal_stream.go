@@ -13,7 +13,6 @@ import (
 
 	"github.com/google/uuid"
 
-	"databasus-backend/internal/config"
 	"databasus-backend/internal/engines/postgresql/physical/walmath"
 	pgshared "databasus-backend/internal/engines/postgresql/shared"
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
@@ -134,6 +133,7 @@ func (e *rapidFailureEscalator) reset() {
 }
 
 type WalStreamSpec struct {
+	ClientTools  pgshared.ClientTools
 	DatabaseID   uuid.UUID
 	SourceDB     databases.PostgresqlPhysicalConnectionSettings
 	StorageID    uuid.UUID
@@ -213,10 +213,9 @@ type WalStreamSupervisor struct {
 	highWatermarkBytes atomic.Int64
 	lowWatermarkBytes  atomic.Int64
 
-	// Asks the supervision loop to SIGTERM the current pg_receivewal and respawn
-	// (sent by the back-pressure monitor and the slot-LSN watcher). Buffered size
-	// 1; sends are non-blocking and coalesced.
-	restartSignal chan struct{}
+	restartMu          sync.Mutex
+	cancelReceiver     context.CancelFunc
+	isRestartRequested bool
 
 	// Holds the supervision loop between pg_receivewal runs so a slot rebuild can
 	// drop+recreate the slot without the receiver re-attaching.
@@ -284,7 +283,6 @@ func NewWalStreamSupervisor(spec WalStreamSpec) *WalStreamSupervisor {
 		watchDir:         watchDir,
 		slotName:         spec.SourceDB.WalStreamSlotName,
 		sessionStartedAt: time.Now().UTC(),
-		restartSignal:    make(chan struct{}, 1),
 	}
 
 	supervisor.setLocalQueuePauseBytes(getDefaultLocalQueuePauseBytes(spec.SourceDB))
@@ -368,12 +366,6 @@ func (s *WalStreamSupervisor) Run(ctx context.Context) error {
 // exit or a crash loop), so Run can mark the streamer FAILED for reclaim on a
 // later tick.
 func (s *WalStreamSupervisor) runReceivewalSupervision(ctx context.Context, logger *slog.Logger) error {
-	pgBin := pgshared.ClientTools{
-		Root: config.GetEnv().ClientToolsDir,
-	}.GetExecutable(
-		s.spec.SourceDB.Version,
-		pgshared.ExecutablePgReceivewal,
-	)
 	respawnBackoff := receivewalRespawnBackoff
 
 	var (
@@ -397,9 +389,8 @@ func (s *WalStreamSupervisor) runReceivewalSupervision(ctx context.Context, logg
 			return nil
 		}
 
-		// Clear any stale restart signal so a spawn does not get cancelled by a
-		// signal raised while no process was running.
-		s.drainRestartSignal()
+		// A request after this point must reach the next run even before it registers.
+		s.clearRestartRequest()
 		s.removePartials(logger)
 		s.realignResumePath(ctx, logger)
 
@@ -411,7 +402,7 @@ func (s *WalStreamSupervisor) runReceivewalSupervision(ctx context.Context, logg
 
 		hasSpawnedReceiver = true
 
-		receiverRun := s.spawnAndSupervise(ctx, logger, pgBin)
+		receiverRun := s.spawnAndSupervise(ctx, logger)
 
 		// One probe per iteration, shared by both dispositions that judge the source: asking twice
 		// lets a bastion that comes back in between answer "gone" to the demotion and "here" to the
@@ -433,7 +424,7 @@ func (s *WalStreamSupervisor) runReceivewalSupervision(ctx context.Context, logg
 			return receiverRun.FatalErr
 
 		case receiverInternalRestart:
-			// Our own SIGTERM (back pressure or slot stall): respawn promptly; the
+			// After back pressure or a slot stall, respawn promptly; the
 			// top-of-loop backlog/pause gates already throttle the cause.
 			respawnBackoff = receivewalRespawnBackoff
 
@@ -548,17 +539,18 @@ func (s *WalStreamSupervisor) waitWhilePaused(ctx context.Context) bool {
 }
 
 func (s *WalStreamSupervisor) signalRestart() {
-	select {
-	case s.restartSignal <- struct{}{}:
-	default:
+	s.restartMu.Lock()
+	defer s.restartMu.Unlock()
+	s.isRestartRequested = true
+	if s.cancelReceiver != nil {
+		s.cancelReceiver()
 	}
 }
 
-func (s *WalStreamSupervisor) drainRestartSignal() {
-	select {
-	case <-s.restartSignal:
-	default:
-	}
+func (s *WalStreamSupervisor) clearRestartRequest() {
+	s.restartMu.Lock()
+	defer s.restartMu.Unlock()
+	s.isRestartRequested = false
 }
 
 // Zero while no receiver runs.

@@ -11,8 +11,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"databasus-backend/internal/config"
 	pgphysical "databasus-backend/internal/engines/postgresql/physical"
 	"databasus-backend/internal/engines/postgresql/physical/walmath"
+	pgshared "databasus-backend/internal/engines/postgresql/shared"
 	physical_enums "databasus-backend/internal/features/backups/backups/core/physical/enums"
 	physical_models "databasus-backend/internal/features/backups/backups/core/physical/models"
 	physical_repositories "databasus-backend/internal/features/backups/backups/core/physical/repositories"
@@ -501,7 +503,7 @@ func Test_RecordSampleAndClassifyBreak_WhenOurReceiverActive_DoesNotRebuild(t *t
 		WalStatus:       "reserved",
 		IsActive:        true,
 		ActivePID:       new(17),
-		ApplicationName: receivewalApplicationNamePrefix + "db-1",
+		ApplicationName: pgphysical.WalReceiverApplicationNamePrefix + "db-1",
 		LagBytes:        new(int64(10)),
 	}
 
@@ -617,6 +619,7 @@ func newLagMonitorTickSupervisor(
 	t.Helper()
 
 	return NewWalStreamSupervisor(WalStreamSpec{
+		ClientTools:          pgshared.ClientTools{Root: config.GetEnv().ClientToolsDir},
 		DatabaseID:           fixture.DB.ID,
 		BackupStatus:         databases_bridge.GetModule(),
 		SourceDB:             sourceDB,

@@ -2,11 +2,10 @@ package usecases_physical_postgresql_test
 
 import (
 	"context"
+	"errors"
 	"testing"
-	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -14,6 +13,7 @@ import (
 	postgresql_executor "databasus-backend/internal/features/backups/backups/usecases/physical/postgresql"
 	databases_bridge "databasus-backend/internal/features/databases"
 	storages_bridge "databasus-backend/internal/features/storages"
+	"databasus-backend/internal/lib/testwait"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/storage"
 	"databasus-backend/internal/util/logger"
@@ -145,7 +145,23 @@ func Test_DropWalSlot_WhenStreamerSlotActive_RefusesAndKeepsSlot(t *testing.T) {
 	}).Stop
 	defer stop()
 
-	waitUntilSlotActive(t, adminConn, streamerSlot, 30*time.Second)
+	testwait.Until(t, "the wal receiver attaches to its slot", func(ctx context.Context) error {
+		var isReceiverAttached bool
+		err := adminConn.QueryRow(ctx, `
+   SELECT EXISTS (
+    SELECT 1
+    FROM pg_replication_slots AS slot
+    JOIN pg_stat_replication AS receiver ON receiver.pid = slot.active_pid
+    WHERE slot.slot_name = $1 AND receiver.application_name = $2
+   )`, streamerSlot, pgphysical.WalReceiverApplicationNamePrefix+fixture.DB.ID.String()).Scan(&isReceiverAttached)
+		if err != nil {
+			return err
+		}
+		if !isReceiverAttached {
+			return errors.New("the wal receiver has not attached")
+		}
+		return nil
+	})
 
 	err := pgphysical.NewSource(fixture.SourceDB.Engine).
 		DropSlot(context.Background(), logger.GetLogger(), fixture.SourceDB.WalStreamSlotName)
@@ -154,24 +170,4 @@ func Test_DropWalSlot_WhenStreamerSlotActive_RefusesAndKeepsSlot(t *testing.T) {
 
 	assert.True(t, postgresql_executor.SlotExists(t, adminConn, streamerSlot),
 		"a refused drop must leave the active slot intact")
-}
-
-func waitUntilSlotActive(t *testing.T, conn *pgx.Conn, slotName string, timeout time.Duration) {
-	t.Helper()
-
-	deadline := time.Now().UTC().Add(timeout)
-	for time.Now().UTC().Before(deadline) {
-		var isActive bool
-		err := conn.QueryRow(context.Background(),
-			"SELECT COALESCE(active, false) FROM pg_replication_slots WHERE slot_name = $1",
-			slotName,
-		).Scan(&isActive)
-		if err == nil && isActive {
-			return
-		}
-
-		time.Sleep(200 * time.Millisecond)
-	}
-
-	t.Fatalf("slot %s did not become active within %s", slotName, timeout)
 }
