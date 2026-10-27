@@ -1,4 +1,5 @@
 import dayjs from 'dayjs';
+import 'dayjs/locale/id';
 import 'dayjs/locale/ru';
 import { describe, expect, it } from 'vitest';
 
@@ -25,6 +26,11 @@ describe('formatNumber', () => {
     expect(normalizeSpaces(formatNumber(1_800_000, 'ru'))).toBe('1 800 000');
   });
 
+  it('groups Indonesian thousands with points and writes a comma decimal', () => {
+    expect(formatNumber(1_800_000, 'id-ID')).toBe('1.800.000');
+    expect(formatNumber(1234.56, 'id-ID')).toBe('1.234,56');
+  });
+
   it('formats only the number, leaving unit words to the caller', () => {
     expect(formatNumber(1234.56, 'en')).toBe('1,234.56');
     expect(formatNumber(1234.56, 'ru')).toMatch(/^1\s234,56$/);
@@ -41,8 +47,16 @@ describe('formatRelativeTime', () => {
     expect(formatRelativeTime(twoHoursAgo, 'en')).toBe('2 hours ago');
   });
 
+  it('writes an Indonesian relative time without changing the global dayjs locale', () => {
+    const twoHoursAgo = dayjs().subtract(2, 'hour');
+
+    expect(formatRelativeTime(twoHoursAgo, 'id')).toBe('2 jam yang lalu');
+    expect(dayjs.locale()).toBe('en');
+  });
+
   it('does not change the global dayjs locale', () => {
     formatRelativeTime(dayjs(), 'ru');
+    formatRelativeTime(dayjs(), 'id');
 
     expect(dayjs.locale()).toBe('en');
   });
