@@ -9,29 +9,21 @@ import (
 	"github.com/stretchr/testify/require"
 
 	audit_logs "databasus-backend/internal/features/audit_logs"
-	backups_backups_backuping_logical "databasus-backend/internal/features/backups/backups/backuping/logical"
 	backups_backups_backuping_physical "databasus-backend/internal/features/backups/backups/backuping/physical"
-	backups_backups_controllers_logical "databasus-backend/internal/features/backups/backups/controllers/logical"
 	backups_backups_controllers_physical "databasus-backend/internal/features/backups/backups/controllers/physical"
-	backups_backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	backups_backups_core_physical_chain_view "databasus-backend/internal/features/backups/backups/core/physical/chain_view"
 	backups_backups_core_physical_repositories "databasus-backend/internal/features/backups/backups/core/physical/repositories"
 	backups_backups_core_physical_service "databasus-backend/internal/features/backups/backups/core/physical/service"
 	backups_backups_download "databasus-backend/internal/features/backups/backups/download"
 	backups_backups_services "databasus-backend/internal/features/backups/backups/services"
-	backups_backups_usecases_logical "databasus-backend/internal/features/backups/backups/usecases/logical"
 	caching "databasus-backend/internal/features/caching"
 	databases_bridge "databasus-backend/internal/features/databases"
 	disk "databasus-backend/internal/features/disk"
 	email "databasus-backend/internal/features/email"
 	healthcheck_attempt "databasus-backend/internal/features/healthcheck/attempt"
 	healthcheck_config "databasus-backend/internal/features/healthcheck/config"
-	restores "databasus-backend/internal/features/restores"
-	restores_restoring "databasus-backend/internal/features/restores/restoring"
-	restores_usecases "databasus-backend/internal/features/restores/usecases"
 	system_agent "databasus-backend/internal/features/system/agent"
 	system_healthcheck "databasus-backend/internal/features/system/healthcheck"
-	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
 	telemetry "databasus-backend/internal/features/telemetry"
 	users_bridge "databasus-backend/internal/features/users"
 	verification_agents "databasus-backend/internal/features/verification/agents"
@@ -53,18 +45,6 @@ func getOldCodeGetters() []oldCodeGetter {
 	return []oldCodeGetter{
 		{"features/audit_logs.GetAuditLogService", func() any { return audit_logs.GetAuditLogService() }},
 		{
-			"features/backups/backups/backuping/logical.GetBackupsScheduler",
-			func() any { return backups_backups_backuping_logical.GetBackupsScheduler() },
-		},
-		{
-			"features/backups/backups/backuping/logical.GetBackuper",
-			func() any { return backups_backups_backuping_logical.GetBackuper() },
-		},
-		{
-			"features/backups/backups/backuping/logical.GetBackupCleaner",
-			func() any { return backups_backups_backuping_logical.GetBackupCleaner() },
-		},
-		{
 			"features/backups/backups/backuping/physical.GetPhysicalBackuper",
 			func() any { return backups_backups_backuping_physical.GetPhysicalBackuper() },
 		},
@@ -85,16 +65,8 @@ func getOldCodeGetters() []oldCodeGetter {
 			func() any { return backups_backups_backuping_physical.GetPhysicalBackupCanceller() },
 		},
 		{
-			"features/backups/backups/controllers/logical.GetBackupController",
-			func() any { return backups_backups_controllers_logical.GetBackupController() },
-		},
-		{
 			"features/backups/backups/controllers/physical.GetPhysicalBackupController",
 			func() any { return backups_backups_controllers_physical.GetPhysicalBackupController() },
-		},
-		{
-			"features/backups/backups/core/logical.GetBackupRepository",
-			func() any { return backups_backups_core_logical.GetBackupRepository() },
 		},
 		{
 			"features/backups/backups/core/physical/chain_view.GetChainViewService",
@@ -133,32 +105,16 @@ func getOldCodeGetters() []oldCodeGetter {
 			func() any { return backups_backups_core_physical_service.GetPhysicalBackupService() },
 		},
 		{
-			"features/backups/backups/download.GetDownloadTokenService",
-			func() any { return backups_backups_download.GetDownloadTokenService() },
-		},
-		{
 			"features/backups/backups/download.GetRestoreTokenService",
 			func() any { return backups_backups_download.GetRestoreTokenService() },
-		},
-		{
-			"features/backups/backups/download.GetDownloadTokenBackgroundService",
-			func() any { return backups_backups_download.GetDownloadTokenBackgroundService() },
 		},
 		{
 			"features/backups/backups/download.GetRestoreStreamWriter",
 			func() any { return backups_backups_download.GetRestoreStreamWriter() },
 		},
 		{
-			"features/backups/backups/services.GetBackupService",
-			func() any { return backups_backups_services.GetBackupService() },
-		},
-		{
 			"features/backups/backups/services.GetPhysicalBackupService",
 			func() any { return backups_backups_services.GetPhysicalBackupService() },
-		},
-		{
-			"features/backups/backups/usecases/logical.GetCreateBackupUsecase",
-			func() any { return backups_backups_usecases_logical.GetCreateBackupUsecase() },
 		},
 		{"features/databases.GetAccess", func() any { return databases_bridge.GetAccess() }},
 		{"features/disk.GetDiskService", func() any { return disk.GetDiskService() }},
@@ -190,24 +146,11 @@ func getOldCodeGetters() []oldCodeGetter {
 			"features/healthcheck/config.GetHealthcheckConfigController",
 			func() any { return healthcheck_config.GetHealthcheckConfigController() },
 		},
-		{"features/restores.GetRestoreController", func() any { return restores.GetRestoreController() }},
-		{
-			"features/restores/restoring.GetRestoresScheduler",
-			func() any { return restores_restoring.GetRestoresScheduler() },
-		},
-		{"features/restores/restoring.GetRestorer", func() any { return restores_restoring.GetRestorer() }},
-		{
-			"features/restores/usecases.GetRestoreBackupUsecase",
-			func() any { return restores_usecases.GetRestoreBackupUsecase() },
-		},
 		{"features/system/agent.GetAgentController", func() any { return system_agent.GetAgentController() }},
 		{
 			"features/system/healthcheck.GetHealthcheckController",
 			func() any { return system_healthcheck.GetHealthcheckController() },
 		},
-		{"features/tasks/cancellation.GetRegistry", func() any { return tasks_cancellation.GetRegistry() }},
-		{"features/tasks/cancellation.GetRequester", func() any { return tasks_cancellation.GetRequester() }},
-		{"features/tasks/cancellation.GetListener", func() any { return tasks_cancellation.GetListener() }},
 		{"features/telemetry.GetTelemetryService", func() any { return telemetry.GetTelemetryService() }},
 		{
 			"features/telemetry.GetTelemetryBackgroundService",

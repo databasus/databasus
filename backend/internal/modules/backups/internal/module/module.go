@@ -3,31 +3,123 @@ package module
 
 import (
 	"context"
+	"io"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
 	"databasus-backend/internal/lib/apierror"
+	"databasus-backend/internal/lib/background"
 	"databasus-backend/internal/modules/backups/internal/config"
+	"databasus-backend/internal/modules/backups/internal/download"
 	backupshttpapi "databasus-backend/internal/modules/backups/internal/httpapi"
+	"databasus-backend/internal/modules/backups/internal/logical"
+	"databasus-backend/internal/modules/backups/internal/restore"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/modules/users"
 )
 
 type Deps struct {
-	Configs *config.Service
-	Handler *backupshttpapi.Handler
+	Configs        *config.Service
+	LogicalBackups *logical.Service
+	Downloads      *download.Service
+	Restores       *restore.Service
+	UserStreams    *download.UserStreams
+	Runs           *background.Group
+	Handler        *backupshttpapi.Handler
 }
 
 type Module struct {
-	configs *config.Service
-	handler *backupshttpapi.Handler
+	configs        *config.Service
+	logicalBackups *logical.Service
+	downloads      *download.Service
+	restores       *restore.Service
+	userStreams    *download.UserStreams
+	runs           *background.Group
+	handler        *backupshttpapi.Handler
 }
 
 func New(deps Deps) *Module {
-	return &Module{configs: deps.Configs, handler: deps.Handler}
+	return &Module{
+		configs:        deps.Configs,
+		logicalBackups: deps.LogicalBackups,
+		downloads:      deps.Downloads,
+		restores:       deps.Restores,
+		userStreams:    deps.UserStreams,
+		runs:           deps.Runs,
+		handler:        deps.Handler,
+	}
+}
+
+func (m *Module) GetLogicalBackups(ctx context.Context, backupIDs []uuid.UUID) ([]logical.LogicalBackup, error) {
+	return m.logicalBackups.GetBackups(ctx, backupIDs)
+}
+
+func (m *Module) GetLatestCompletedLogicalBackup(
+	ctx context.Context,
+	databaseID uuid.UUID,
+) (logical.LogicalBackup, bool, error) {
+	return m.logicalBackups.GetLatestCompletedBackup(ctx, databaseID)
+}
+
+func (m *Module) HasSuccessfulLogicalBackupSince(
+	ctx context.Context,
+	databaseID uuid.UUID,
+	since time.Time,
+) (bool, error) {
+	return m.logicalBackups.HasCompletedBackupSince(ctx, databaseID, since)
+}
+
+func (m *Module) OpenLogicalBackupFile(ctx context.Context, backupID uuid.UUID) (io.ReadCloser, error) {
+	return m.logicalBackups.OpenBackupFileByID(ctx, backupID)
+}
+
+func (m *Module) SetLogicalBackupVerificationStatus(
+	ctx context.Context,
+	backupID uuid.UUID,
+	status logical.VerificationStatus,
+) error {
+	return m.logicalBackups.SetVerificationStatus(ctx, backupID, status)
+}
+
+func (m *Module) IsLogicalBackupSchedulerRunning(context.Context) bool {
+	return m.logicalBackups.IsSchedulerRunning()
+}
+
+func (m *Module) SubscribeToLogicalBackupCompleted(handler logical.BackupCompletedHandler) {
+	m.logicalBackups.SubscribeToBackupCompleted(handler)
+}
+
+func (m *Module) AcquireUserStream(ctx context.Context, userID uuid.UUID) (download.UserStream, error) {
+	return m.userStreams.Acquire(ctx, userID)
+}
+
+func (m *Module) IsUserStreamHeld(ctx context.Context, userID uuid.UUID) (bool, error) {
+	return m.userStreams.IsHeld(ctx, userID)
+}
+
+// Start fails the restores and the backups the previous run left in progress.
+func (m *Module) Start(ctx context.Context) error {
+	err := m.restores.Start(ctx)
+	if err != nil {
+		return err
+	}
+
+	return m.logicalBackups.Start(ctx)
+}
+
+func (m *Module) GetJobs() []background.Job {
+	return []background.Job{
+		m.logicalBackups.GetSchedulerJob(),
+		m.logicalBackups.GetRetentionJob(),
+		m.downloads.GetTokenCleanupJob(),
+	}
+}
+
+func (m *Module) WaitForRuns(ctx context.Context) error {
+	return m.runs.Wait(ctx)
 }
 
 func (m *Module) RegisterRoutes(routes gin.IRouter, hooks *apierror.Hooks) {
@@ -108,14 +200,15 @@ func (m *Module) OnDatabaseBackupTypeChanged(ctx context.Context, event database
 	return m.configs.OnDatabaseBackupTypeChanged(ctx, event)
 }
 
+// OnDatabaseDeleting removes the logical backups first, so their refusal of a running backup or
+// restore comes before anything else of the database goes.
 func (m *Module) OnDatabaseDeleting(ctx context.Context, event databases.DatabaseDeleting) error {
-	return m.configs.OnDatabaseDeleting(ctx, event)
-}
+	err := m.logicalBackups.OnDatabaseDeleting(ctx, event)
+	if err != nil {
+		return err
+	}
 
-func (m *Module) SubscribeToLogicalBackupConfigStorageChanging(
-	handler config.LogicalBackupConfigStorageChangingHandler,
-) {
-	m.configs.SubscribeToLogicalBackupConfigStorageChanging(handler)
+	return m.configs.OnDatabaseDeleting(ctx, event)
 }
 
 func (m *Module) SubscribeToPhysicalBackupConfigSaved(handler config.PhysicalBackupConfigSavedHandler) {

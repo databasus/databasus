@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -13,15 +14,16 @@ import (
 
 	"databasus-backend/internal/features/backups/backups/core/physical/chain_view"
 	"databasus-backend/internal/features/backups/backups/download/restore_token"
-	"databasus-backend/internal/features/backups/backups/download/stream_guard"
 	backups_dto_physical "databasus-backend/internal/features/backups/backups/dto/physical"
 	backups_services "databasus-backend/internal/features/backups/backups/services"
+	"databasus-backend/internal/modules/backups"
 	"databasus-backend/internal/modules/users"
 )
 
 type PhysicalBackupController struct {
 	physicalBackupService *backups_services.PhysicalBackupService
 	restoreTokenService   *restore_token.Service
+	logger                *slog.Logger
 }
 
 func (c *PhysicalBackupController) RegisterRoutes(router *gin.RouterGroup) {
@@ -178,7 +180,7 @@ func (c *PhysicalBackupController) GenerateRestoreToken(ctx *gin.Context) {
 
 	token, err := c.physicalBackupService.GenerateRestoreToken(ctx.Request.Context(), actor, databaseID, &request)
 	if err != nil {
-		if errors.Is(err, stream_guard.ErrDownloadAlreadyInProgress) {
+		if errors.Is(err, backups.ErrUserStreamHeld) {
 			ctx.JSON(http.StatusConflict, gin.H{"error": err.Error()})
 			return
 		}
@@ -221,7 +223,7 @@ func (c *PhysicalBackupController) GenerateBackupRestoreToken(ctx *gin.Context) 
 			return
 		}
 
-		if errors.Is(err, stream_guard.ErrDownloadAlreadyInProgress) {
+		if errors.Is(err, backups.ErrUserStreamHeld) {
 			ctx.JSON(http.StatusConflict, gin.H{"error": err.Error()})
 			return
 		}
@@ -302,9 +304,9 @@ func (c *PhysicalBackupController) GetRestoreStream(ctx *gin.Context) {
 		return
 	}
 
-	restoreToken, err := c.restoreTokenService.ValidateAndConsumeRestoreToken(ctx.Request.Context(), token)
+	restoreToken, userStream, err := c.restoreTokenService.ValidateAndConsumeRestoreToken(ctx.Request.Context(), token)
 	if err != nil {
-		if errors.Is(err, stream_guard.ErrDownloadAlreadyInProgress) {
+		if errors.Is(err, backups.ErrUserStreamHeld) {
 			ctx.JSON(http.StatusConflict, gin.H{
 				"error": "a download or restore is already in progress for this user",
 			})
@@ -318,10 +320,12 @@ func (c *PhysicalBackupController) GetRestoreStream(ctx *gin.Context) {
 	heartbeatCtx, cancelHeartbeat := context.WithCancel(context.Background())
 	defer func() {
 		cancelHeartbeat()
-		c.restoreTokenService.ReleaseDownloadLock(ctx.Request.Context(), restoreToken.UserID)
+		if err := userStream.Release(context.WithoutCancel(ctx.Request.Context())); err != nil {
+			c.logger.ErrorContext(ctx.Request.Context(), "failed to release the user stream", "error", err)
+		}
 	}()
 
-	go c.startStreamHeartbeat(heartbeatCtx, restoreToken.UserID)
+	go c.startStreamHeartbeat(heartbeatCtx, userStream)
 
 	ctx.Header("Content-Type", "application/x-tar")
 	ctx.Header("Content-Disposition",
@@ -404,8 +408,8 @@ func (c *PhysicalBackupController) requestBackupOfType(
 	}
 }
 
-func (c *PhysicalBackupController) startStreamHeartbeat(ctx context.Context, userID uuid.UUID) {
-	ticker := time.NewTicker(stream_guard.GetDownloadHeartbeatInterval())
+func (c *PhysicalBackupController) startStreamHeartbeat(ctx context.Context, userStream backups.UserStream) {
+	ticker := time.NewTicker(backups.UserStreamHeartbeatInterval)
 	defer ticker.Stop()
 
 	for {
@@ -413,7 +417,9 @@ func (c *PhysicalBackupController) startStreamHeartbeat(ctx context.Context, use
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			c.restoreTokenService.RefreshDownloadLock(ctx, userID)
+			if err := userStream.Refresh(ctx); err != nil && ctx.Err() == nil {
+				c.logger.ErrorContext(ctx, "failed to refresh the user stream", "error", err)
+			}
 		}
 	}
 }

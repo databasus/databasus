@@ -26,6 +26,22 @@ type Deps struct {
 	Workspaces   workspaces.Module
 	Storages     storages.Module
 	Databases    databases.Module
+	// LogicalBackups removes a database's logical backups when its config moves to another storage.
+	LogicalBackups logicalBackupRemover
+}
+
+// logicalBackupRemover is the logical backups of the module as a save that changes the storage needs
+// them. The removal runs in the save's transaction, so the backups leave together with the save.
+type logicalBackupRemover interface {
+	RemoveBackupsForStorageChange(ctx context.Context, databaseID uuid.UUID) error
+}
+
+// LogicalBackupRemoverFunc lets internal/module hand over the logical service, which is built after
+// the config service because it reads the configs.
+type LogicalBackupRemoverFunc func(ctx context.Context, databaseID uuid.UUID) error
+
+func (f LogicalBackupRemoverFunc) RemoveBackupsForStorageChange(ctx context.Context, databaseID uuid.UUID) error {
+	return f(ctx, databaseID)
 }
 
 // Service reads, lists and saves the backup configs. A config that was never saved reads as the
@@ -38,7 +54,7 @@ type Service struct {
 	workspaces                  workspaces.Module
 	storages                    storages.Module
 	databases                   databases.Module
-	storageChangingHandlers     []LogicalBackupConfigStorageChangingHandler
+	logicalBackups              logicalBackupRemover
 	physicalConfigSavedHandlers []PhysicalBackupConfigSavedHandler
 }
 
@@ -51,17 +67,13 @@ func NewService(deps Deps) *Service {
 		workspaces:                  deps.Workspaces,
 		storages:                    deps.Storages,
 		databases:                   deps.Databases,
-		storageChangingHandlers:     nil,
+		logicalBackups:              deps.LogicalBackups,
 		physicalConfigSavedHandlers: nil,
 	}
 }
 
-// SubscribeToLogicalBackupConfigStorageChanging and SubscribeToPhysicalBackupConfigSaved add a handler
-// after the ones subscribed before it. internal/app subscribes while it builds the application.
-func (s *Service) SubscribeToLogicalBackupConfigStorageChanging(handler LogicalBackupConfigStorageChangingHandler) {
-	s.storageChangingHandlers = append(s.storageChangingHandlers, handler)
-}
-
+// SubscribeToPhysicalBackupConfigSaved adds a handler after the ones subscribed before it.
+// internal/app subscribes while it builds the application.
 func (s *Service) SubscribeToPhysicalBackupConfigSaved(handler PhysicalBackupConfigSavedHandler) {
 	s.physicalConfigSavedHandlers = append(s.physicalConfigSavedHandlers, handler)
 }
@@ -346,11 +358,7 @@ func (s *Service) saveLogicalBackupConfig(
 		}
 
 		if savedConfig.StorageID != nil && !isSameStorage(previousStorageID, savedConfig.StorageID) {
-			err := s.publishStorageChanging(ctx, LogicalBackupConfigStorageChanging{
-				DatabaseID:        savedConfig.DatabaseID,
-				PreviousStorageID: previousStorageID,
-				StorageID:         *savedConfig.StorageID,
-			})
+			err := s.logicalBackups.RemoveBackupsForStorageChange(ctx, savedConfig.DatabaseID)
 			if err != nil {
 				return err
 			}
@@ -438,17 +446,6 @@ func (s *Service) savePhysicalBackupConfig(
 	}
 
 	return savedConfig, nil
-}
-
-func (s *Service) publishStorageChanging(ctx context.Context, event LogicalBackupConfigStorageChanging) error {
-	for _, handler := range s.storageChangingHandlers {
-		err := handler(ctx, event)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
 }
 
 // checkStorageInWorkspace answers a storage that does not exist like one of another workspace, so a

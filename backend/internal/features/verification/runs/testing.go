@@ -9,8 +9,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
-	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
-	backups_dto_logical "databasus-backend/internal/features/backups/backups/dto/logical"
+	backups_bridge "databasus-backend/internal/features/backups/config"
+	"databasus-backend/internal/modules/backups"
 	test_utils "databasus-backend/internal/util/testing"
 )
 
@@ -98,33 +98,19 @@ func ClaimVerificationViaAPI(
 	return &response
 }
 
-func GetBackupViaAPI(
-	t *testing.T,
-	router *gin.Engine,
-	userToken string,
-	databaseID, backupID uuid.UUID,
-) *backups_core_logical.LogicalBackup {
+func GetLogicalBackupForTest(t *testing.T, backupID uuid.UUID) backups.LogicalBackup {
 	t.Helper()
 
-	var response backups_dto_logical.GetBackupsResponse
-	test_utils.MakeGetRequestAndUnmarshal(
-		t,
-		router,
-		"/api/v1/backups?database_id="+databaseID.String()+"&limit=1000",
-		"Bearer "+userToken,
-		http.StatusOK,
-		&response,
-	)
-
-	for _, backup := range response.Backups {
-		if backup.ID == backupID {
-			return backup
-		}
+	foundBackups, err := backups_bridge.GetModule().GetLogicalBackups(t.Context(), []uuid.UUID{backupID})
+	if err != nil {
+		t.Fatalf("read logical backup %s: %v", backupID, err)
 	}
 
-	t.Fatalf("backup %s not found for database %s", backupID, databaseID)
+	if len(foundBackups) == 0 {
+		t.Fatalf("logical backup %s not found", backupID)
+	}
 
-	return nil
+	return foundBackups[0]
 }
 
 func ListVerificationsByDatabaseViaAPI(

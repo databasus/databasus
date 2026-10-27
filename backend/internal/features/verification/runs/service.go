@@ -14,12 +14,11 @@ import (
 
 	"databasus-backend/internal/features/audit_logs"
 	audit_logs_models "databasus-backend/internal/features/audit_logs/models"
-	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
-	backups_services "databasus-backend/internal/features/backups/backups/services"
 	databases_bridge "databasus-backend/internal/features/databases"
 	verification_agents "databasus-backend/internal/features/verification/agents"
 	verification_config "databasus-backend/internal/features/verification/config"
 	workspaces_bridge "databasus-backend/internal/features/workspaces"
+	"databasus-backend/internal/modules/backups"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/modules/users"
@@ -30,9 +29,9 @@ import (
 type VerificationService struct {
 	verificationRepository *VerificationRepository
 	databaseAccess         *databases_bridge.Access
-	// getDatabases is read per call: each test application installs its own module.
+	// getDatabases and getBackups are read per call: each test application installs its own modules.
 	getDatabases     func() databases.Module
-	backupService    *backups_services.LogicalBackupService
+	getBackups       func() backups.Module
 	configService    *verification_config.VerificationConfigService
 	notifierService  NotificationSender
 	workspaceService *workspaces_bridge.Access
@@ -45,12 +44,12 @@ func (s *VerificationService) EnqueueManualVerification(
 	actor users.Actor,
 	backupID uuid.UUID,
 ) (*RestoreVerification, error) {
-	backup, err := s.backupService.GetBackup(backupID)
+	backup, isFound, err := s.getLogicalBackup(ctx, backupID)
 	if err != nil {
 		return nil, err
 	}
 
-	if backup == nil {
+	if !isFound {
 		return nil, errors.New("backup not found")
 	}
 
@@ -117,8 +116,11 @@ func (s *VerificationService) EnqueueManualVerification(
 	return created, nil
 }
 
-func (s *VerificationService) OnBackupCompleted(backupID uuid.UUID) {
-	s.scheduleVerificationForCompletedBackup(backupID)
+func (s *VerificationService) OnLogicalBackupCompleted(
+	ctx context.Context,
+	event backups.LogicalBackupCompleted,
+) error {
+	return s.scheduleVerificationForCompletedBackup(ctx, event.DatabaseID)
 }
 
 func (s *VerificationService) CancelVerification(
@@ -248,7 +250,12 @@ func (s *VerificationService) ClaimVerification(
 ) (*JobAssignment, error) {
 	logger := s.logger.With("agent_id", agent.ID)
 
-	runningBackups, err := s.verificationRepository.ListRunningBackupsByAgentID(agent.ID)
+	runningBackupIDs, err := s.verificationRepository.ListRunningBackupIDsByAgentID(agent.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	runningBackups, err := s.getBackups().GetLogicalBackups(ctx, runningBackupIDs)
 	if err != nil {
 		return nil, err
 	}
@@ -256,7 +263,12 @@ func (s *VerificationService) ClaimVerification(
 	var assignment *JobAssignment
 
 	err = storage.GetDb().Transaction(func(tx *gorm.DB) error {
-		candidates, txErr := s.verificationRepository.FindOldestPendingClaimablesTop100(tx)
+		pendingVerifications, txErr := s.verificationRepository.LockOldestPendingTop100(tx)
+		if txErr != nil {
+			return txErr
+		}
+
+		candidates, txErr := s.pairWithBackups(ctx, pendingVerifications)
 		if txErr != nil {
 			return txErr
 		}
@@ -386,12 +398,7 @@ func (s *VerificationService) GetBackupFile(
 		return nil, errors.New("verification is not owned by this agent")
 	}
 
-	reader, _, _, err := s.backupService.GetBackupFileWithoutAuth(ctx, verification.BackupID)
-	if err != nil {
-		return nil, err
-	}
-
-	return reader, nil
+	return s.getBackups().OpenLogicalBackupFile(ctx, verification.BackupID)
 }
 
 func (s *VerificationService) SubmitReport(
@@ -413,7 +420,7 @@ func (s *VerificationService) SubmitReport(
 		return s.RequeueOrFail(ctx, verification, classifyAgentReport(req), req.FailMessage)
 	}
 
-	if restoredDbTooSmall, sizeMessage := s.isRestoredTooSmall(verification, req); restoredDbTooSmall {
+	if restoredDbTooSmall, sizeMessage := s.isRestoredTooSmall(ctx, verification, req); restoredDbTooSmall {
 		return s.RequeueOrFail(ctx, verification, FailureReasonRestoredTooSmall, &sizeMessage)
 	}
 
@@ -489,53 +496,49 @@ func (s *VerificationService) reclaimDroppedRunningJobs(
 	}
 }
 
-func (s *VerificationService) scheduleVerificationForCompletedBackup(backupID uuid.UUID) {
-	ctx := context.Background()
-	logger := s.logger.With("backup_id", backupID)
-
-	backup, err := s.backupService.GetBackup(backupID)
-	if err != nil || backup == nil {
-		return
-	}
-
-	databaseID := backup.DatabaseID
-	logger = logger.With("database_id", databaseID)
+func (s *VerificationService) scheduleVerificationForCompletedBackup(
+	ctx context.Context,
+	databaseID uuid.UUID,
+) error {
+	logger := s.logger.With("database_id", databaseID)
 
 	config, err := s.configService.GetByDatabaseIDNoAuth(databaseID)
 	if err != nil {
-		logger.Error("failed to load verification config on backup completion", "error", err)
-		return
+		return fmt.Errorf("load verification config on backup completion: %w", err)
 	}
 
 	if config == nil ||
 		!config.IsScheduledVerificationEnabled ||
 		config.ScheduleType != verification_config.VerificationScheduleAfterBackup {
-		return
+		return nil
 	}
 
-	verifiableBackup, err := s.backupService.GetLatestVerifiableBackup(databaseID)
+	verifiableBackup, isFound, err := s.getBackups().GetLatestCompletedLogicalBackup(ctx, databaseID)
 	if err != nil {
-		logger.Error("failed to load latest verifiable backup", "error", err)
-		return
+		return fmt.Errorf("load latest completed backup: %w", err)
 	}
 
-	if verifiableBackup == nil {
-		logger.Info("skipping after-backup verification: no verifiable backup yet")
-		return
+	if !isFound {
+		logger.InfoContext(ctx, "skipping after-backup verification: no verifiable backup yet")
+		return nil
 	}
 
 	database, err := s.databaseAccess.GetDatabaseByID(ctx, databaseID)
 	if err != nil {
-		logger.Error("failed to load database for after-backup verification", "error", err)
-		return
+		return fmt.Errorf("load database for after-backup verification: %w", err)
 	}
 
 	if _, err := readAssignedDatabase(ctx, s.getDatabases(), database); err != nil {
-		logger.Warn("skipping after-backup verification: database not verifiable", "error", err)
-		return
+		if !errors.Is(err, errDatabaseNotVerifiable) {
+			return err
+		}
+
+		logger.WarnContext(ctx, "skipping after-backup verification: database not verifiable", "error", err)
+
+		return nil
 	}
 
-	err = storage.GetDb().Transaction(func(tx *gorm.DB) error {
+	err = storage.GetDb().WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if cancelErr := s.cancelPendingAutoScheduledVerificationsByDatabaseID(tx, databaseID); cancelErr != nil {
 			return cancelErr
 		}
@@ -551,8 +554,10 @@ func (s *VerificationService) scheduleVerificationForCompletedBackup(backupID uu
 		}).Error
 	})
 	if err != nil {
-		logger.Error("failed to enqueue after-backup verification", "error", err)
+		return fmt.Errorf("enqueue after-backup verification: %w", err)
 	}
+
+	return nil
 }
 
 func (s *VerificationService) cancelPendingAutoScheduledVerificationsByDatabaseID(
@@ -609,6 +614,7 @@ func classifyAgentReport(req *ReportRequest) FailureReason {
 }
 
 func (s *VerificationService) isRestoredTooSmall(
+	ctx context.Context,
 	verification *RestoreVerification,
 	req *ReportRequest,
 ) (bool, string) {
@@ -616,8 +622,8 @@ func (s *VerificationService) isRestoredTooSmall(
 		return false, ""
 	}
 
-	backup, err := s.backupService.GetBackup(verification.BackupID)
-	if err != nil || backup == nil || backup.BackupRawDbSizeMb <= 0 {
+	backup, isFound, err := s.getLogicalBackup(ctx, verification.BackupID)
+	if err != nil || !isFound || backup.BackupRawDbSizeMb <= 0 {
 		return false, ""
 	}
 
@@ -641,18 +647,18 @@ func (s *VerificationService) syncBackupVerificationStatus(
 	verification *RestoreVerification,
 	terminalStatus VerificationStatus,
 ) {
-	var status backups_core_logical.RestoreVerificationStatus
+	var status backups.LogicalBackupVerificationStatus
 
 	switch terminalStatus {
 	case VerificationStatusCompleted:
-		status = backups_core_logical.RestoreVerificationStatusVerifiedSuccessful
+		status = backups.LogicalBackupVerificationStatusVerifiedSuccessful
 	case VerificationStatusFailed:
-		status = backups_core_logical.RestoreVerificationStatusVerificationFailed
+		status = backups.LogicalBackupVerificationStatusVerificationFailed
 	default:
 		return
 	}
 
-	if err := s.backupService.SetRestoreVerificationStatus(verification.BackupID, status); err != nil {
+	if err := s.getBackups().SetLogicalBackupVerificationStatus(ctx, verification.BackupID, status); err != nil {
 		s.logger.ErrorContext(
 			ctx,
 			"failed to sync backup restore-verification status",
@@ -722,14 +728,56 @@ func (s *VerificationService) notifyTerminal(
 	})
 }
 
-func (s *VerificationService) guardBackupIsVerifiable(
-	backup *backups_core_logical.LogicalBackup,
-) error {
-	if backup.Status != backups_core_logical.BackupStatusCompleted {
+func (s *VerificationService) guardBackupIsVerifiable(backup backups.LogicalBackup) error {
+	if backup.Status != backups.LogicalBackupStatusCompleted {
 		return errors.New("only COMPLETED backups can be verified")
 	}
 
 	return nil
+}
+
+func (s *VerificationService) getLogicalBackup(
+	ctx context.Context,
+	backupID uuid.UUID,
+) (backups.LogicalBackup, bool, error) {
+	foundBackups, err := s.getBackups().GetLogicalBackups(ctx, []uuid.UUID{backupID})
+	if err != nil || len(foundBackups) == 0 {
+		return backups.LogicalBackup{}, false, err
+	}
+
+	return foundBackups[0], true, nil
+}
+
+func (s *VerificationService) pairWithBackups(
+	ctx context.Context,
+	verifications []*RestoreVerification,
+) ([]ClaimCandidate, error) {
+	backupIDs := make([]uuid.UUID, len(verifications))
+	for i, verification := range verifications {
+		backupIDs[i] = verification.BackupID
+	}
+
+	foundBackups, err := s.getBackups().GetLogicalBackups(ctx, backupIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	backupByID := make(map[uuid.UUID]backups.LogicalBackup, len(foundBackups))
+	for _, backup := range foundBackups {
+		backupByID[backup.ID] = backup
+	}
+
+	candidates := make([]ClaimCandidate, 0, len(verifications))
+	for _, verification := range verifications {
+		backup, isFound := backupByID[verification.BackupID]
+		if !isFound {
+			continue
+		}
+
+		candidates = append(candidates, ClaimCandidate{Verification: verification, Backup: backup})
+	}
+
+	return candidates, nil
 }
 
 const (

@@ -22,7 +22,7 @@ import (
 	databases_bridge "databasus-backend/internal/features/databases"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	storages_bridge "databasus-backend/internal/features/storages"
-	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
+	"databasus-backend/internal/lib/background"
 	"databasus-backend/internal/modules/backups"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/notifiers"
@@ -544,7 +544,7 @@ func Test_PhysicalWalStreamSupervisorRun_WhenContextCancelledWithRunningStreamer
 		_ = physical_repositories.GetWalStreamerRepository().DeleteByDatabaseID(prereqs.DB.ID)
 	})
 
-	registry := tasks_cancellation.NewRegistry()
+	registry := background.NewCancellationRegistry()
 	supervisor := CreateTestWalStreamSupervisor(WalStreamSupervisorTestSpec{
 		NotificationSender:       notifiers_bridge.GetSender(),
 		TaskCancellationRegistry: registry,
@@ -578,13 +578,11 @@ func Test_PhysicalWalStreamSupervisorRun_WhenContextCancelledWithRunningStreamer
 	waitCtx, cancelWait := context.WithTimeout(t.Context(), 6*time.Second)
 	defer cancelWait()
 
-	require.NoError(t, registry.WaitUntilNoTasksRegistered(waitCtx),
+	require.NoError(t, registry.WaitUntilEmpty(waitCtx),
 		"a cancelled supervisor unregisters its streamers before the shutdown deadline")
 }
 
 func Test_Reconcile_AfterBackupsStorageChanged_StartsStreamerOnNewStorage(t *testing.T) {
-	tasks_cancellation.SetupDependencies()
-
 	prereqs := seedBackupPrereqsOnSharedSource(t, databases.PhysicalBackupTypeFullIncrementalWalStream)
 	dropStreamerSlotOnCleanup(t, prereqs)
 	newStorage := storages_bridge.CreateTestStorage(prereqs.Workspace.ID)

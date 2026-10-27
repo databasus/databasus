@@ -432,7 +432,7 @@ func TestDeleteDatabaseBackupConfig(t *testing.T) {
 		databaseID := tm.insertLogicalDatabase(t)
 		storageID := tm.createLocalStorage(t)
 		saveLogicalBackupConfig(t, tm.owner, databaseID, storageID)
-		tm.app.ExecuteSQL(t, `INSERT INTO logical_backups (id, database_id, storage_id, status, file_name)
+		tm.app.ExecuteSQL(t, `INSERT INTO backups_logical (id, database_id, storage_id, status, file_name)
 			VALUES (?, ?, ?, 'IN_PROGRESS', ?)`, uuid.New(), databaseID, storageID, "running-"+uuid.NewString())
 
 		response, err := tm.owner.Client.DeleteDatabaseWithResponse(t.Context(), databaseID)

@@ -10,7 +10,6 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
-	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	"databasus-backend/internal/storage"
 )
 
@@ -82,37 +81,23 @@ func (r *VerificationRepository) CountByDatabaseID(databaseID uuid.UUID) (int64,
 	return count, err
 }
 
-func (r *VerificationRepository) ListRunningBackupsByAgentID(
-	agentID uuid.UUID,
-) ([]*backups_core_logical.LogicalBackup, error) {
-	backups := make([]*backups_core_logical.LogicalBackup, 0)
+func (r *VerificationRepository) ListRunningBackupIDsByAgentID(agentID uuid.UUID) ([]uuid.UUID, error) {
+	backupIDs := make([]uuid.UUID, 0)
 
 	err := storage.GetDb().
-		Table("logical_backups b").
-		Select("b.*").
-		Joins("JOIN restore_verifications v ON v.backup_id = b.id").
-		Where("v.agent_id = ? AND v.status = ?", agentID, VerificationStatusRunning).
-		Scan(&backups).Error
+		Model(&RestoreVerification{}).
+		Where("agent_id = ? AND status = ?", agentID, VerificationStatusRunning).
+		Pluck("backup_id", &backupIDs).Error
 
-	return backups, err
+	return backupIDs, err
 }
 
-// ClaimCandidate pairs a PENDING verification with its backup so the service can run
-// the disk-fit check in Go without re-fetching the backup row.
-type ClaimCandidate struct {
-	Verification *RestoreVerification
-	Backup       *backups_core_logical.LogicalBackup
-}
-
-// FindOldestPendingClaimablesTop100 locks up to 100 oldest PENDING verification rows
-// with SKIP LOCKED and returns each one paired with its backup. The service iterates
-// these in order and picks the first that fits the agent's budget — see
-// DoesVerificationFit. Locks held for the rest are released when the caller's tx
-// commits or rolls back; SKIP LOCKED ensures concurrent agents don't queue on them.
-func (r *VerificationRepository) FindOldestPendingClaimablesTop100(
-	tx *gorm.DB,
-) ([]ClaimCandidate, error) {
-	var verifications []*RestoreVerification
+// LockOldestPendingTop100 locks up to 100 oldest PENDING verification rows with SKIP LOCKED.
+// The service walks them in order and claims the first that fits the agent's budget. Locks
+// held for the rest are released when the caller's tx ends; SKIP LOCKED keeps concurrent
+// agents from queueing on them.
+func (r *VerificationRepository) LockOldestPendingTop100(tx *gorm.DB) ([]*RestoreVerification, error) {
+	verifications := make([]*RestoreVerification, 0)
 
 	err := tx.
 		Where("status = ?", VerificationStatusPending).
@@ -120,43 +105,8 @@ func (r *VerificationRepository) FindOldestPendingClaimablesTop100(
 		Clauses(clause.Locking{Strength: "UPDATE", Options: "SKIP LOCKED"}).
 		Limit(100).
 		Find(&verifications).Error
-	if err != nil {
-		return nil, err
-	}
 
-	if len(verifications) == 0 {
-		return nil, nil
-	}
-
-	backupIDs := make([]uuid.UUID, len(verifications))
-	for i, verification := range verifications {
-		backupIDs[i] = verification.BackupID
-	}
-
-	var backups []*backups_core_logical.LogicalBackup
-	if err := tx.Where("id IN ?", backupIDs).Find(&backups).Error; err != nil {
-		return nil, err
-	}
-
-	backupByID := make(map[uuid.UUID]*backups_core_logical.LogicalBackup, len(backups))
-	for _, backup := range backups {
-		backupByID[backup.ID] = backup
-	}
-
-	candidates := make([]ClaimCandidate, 0, len(verifications))
-	for _, verification := range verifications {
-		backup, ok := backupByID[verification.BackupID]
-		if !ok {
-			continue
-		}
-
-		candidates = append(candidates, ClaimCandidate{
-			Verification: verification,
-			Backup:       backup,
-		})
-	}
-
-	return candidates, nil
+	return verifications, err
 }
 
 func (r *VerificationRepository) UpdateClaim(

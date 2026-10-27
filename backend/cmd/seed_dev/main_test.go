@@ -19,12 +19,8 @@ import (
 	contract "databasus-backend/api"
 	"databasus-backend/internal/config"
 	"databasus-backend/internal/engines/clienttools"
-	backuping_logical "databasus-backend/internal/features/backups/backups/backuping/logical"
 	backuping_physical "databasus-backend/internal/features/backups/backups/backuping/physical"
-	backups_controllers_logical "databasus-backend/internal/features/backups/backups/controllers/logical"
 	backups_controllers_physical "databasus-backend/internal/features/backups/backups/controllers/physical"
-	backups_dto_logical "databasus-backend/internal/features/backups/backups/dto/logical"
-	backups_services "databasus-backend/internal/features/backups/backups/services"
 	backups_bridge "databasus-backend/internal/features/backups/config"
 	databases_bridge "databasus-backend/internal/features/databases"
 	storages_bridge "databasus-backend/internal/features/storages"
@@ -75,11 +71,11 @@ func Test_Seed_WhenAccountIsNew_CreatesWorkspaceStorageAndDatabasesWithBackups(t
 	assert.Equal(t, apiclient.LogicalRetentionPolicyCOUNT, logicalSettings.Retention.Policy)
 	assert.Equal(t, 3, logicalSettings.Retention.Count)
 
-	var logicalBackups backups_dto_logical.GetBackupsResponse
+	var logicalBackups apiclient.LogicalBackupPage
 	test_utils.MakeGetRequestAndUnmarshal(t, router,
-		"/api/v1/backups?database_id="+logicalDatabaseID.String(),
+		"/api/v1/logical-backups?databaseId="+logicalDatabaseID.String(),
 		"Bearer "+token, http.StatusOK, &logicalBackups)
-	assert.NotEmpty(t, logicalBackups.Backups, "the first logical backup was not started")
+	assert.NotEmpty(t, logicalBackups.Items, "the first logical backup was not started")
 
 	walConfig := getBackupConfig(t, router, token, walDatabaseID)
 	walSettings, err := walConfig.Settings.AsPhysicalBackupSettings()
@@ -348,12 +344,10 @@ func newSeedTestRouter() *gin.Engine {
 	protected := v1.Group("")
 	protected.Use(users_testing.GetSessionMiddleware())
 
-	backups_controllers_logical.GetBackupController().RegisterRoutes(protected)
 	backups_controllers_physical.GetPhysicalBackupController().RegisterRoutes(protected)
 
 	databases_bridge.SetupDependencies()
 	backuping_physical.SubscribeToBackupConfigEventsWithoutApp()
-	backups_services.SubscribeToDatabaseEventsWithoutApp()
 	backuping_physical.SubscribeToDatabaseDeletingWithoutApp()
 
 	return router
@@ -539,12 +533,34 @@ func listSeededItems(t *testing.T, router *gin.Engine, token string) seededItems
 	return items
 }
 
-// A logical backup the seed started still writes its file, and deleting its database before it
-// finishes would leave the file behind.
+// A logical backup the seed started still writes its file, and its database cannot be deleted before
+// it finishes. The wait runs in the test's cleanup, after the test's context ended, so it keeps a
+// deadline of its own instead of testwait's.
 func waitForLogicalBackups(t *testing.T, databaseID uuid.UUID) {
 	t.Helper()
 
-	backuping_logical.WaitForBackupCompletion(t, databaseID, 0, firstBackupTimeout)
+	waitCtx, cancelWait := context.WithTimeout(context.Background(), firstBackupTimeout)
+	defer cancelWait()
+
+	ticker := time.NewTicker(time.Second)
+	defer ticker.Stop()
+
+	for {
+		var runningCount int64
+		require.NoError(t, storage.GetDb().WithContext(waitCtx).
+			Raw("SELECT COUNT(*) FROM backups_logical WHERE database_id = ? AND status = 'IN_PROGRESS'", databaseID).
+			Scan(&runningCount).Error)
+
+		if runningCount == 0 {
+			return
+		}
+
+		select {
+		case <-ticker.C:
+		case <-waitCtx.Done():
+			t.Fatalf("the logical backups of database %s did not finish in %s", databaseID, firstBackupTimeout)
+		}
+	}
 }
 
 func removeAccountWithItems(t *testing.T, router *gin.Engine, email string) {

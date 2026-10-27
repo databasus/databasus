@@ -5,6 +5,7 @@ import { PagedListController } from './PagedListController';
 
 interface Row {
   id: string;
+  status?: string;
 }
 
 type RowPage = PagedListPage<Row, string>;
@@ -85,6 +86,35 @@ describe('PagedListController', () => {
     expect(fetchPage).toHaveBeenLastCalledWith(undefined);
     expect(getLoadedIds(controller)).toEqual(['new', 'a', 'b', 'c', 'd']);
     expect(controller.getState().list.nextCursor).toBe('after-d');
+  });
+
+  it('puts a row that is not loaded at the top and keeps the cursor', async () => {
+    const fetchPage = vi.fn().mockResolvedValue({ items: rows('a', 'b'), nextCursor: 'after-b' });
+    const { controller } = createController(fetchPage);
+
+    await controller.reload();
+    controller.replaceOrPrependItem({ id: 'started' });
+
+    expect(getLoadedIds(controller)).toEqual(['started', 'a', 'b']);
+    expect(controller.getState().list.nextCursor).toBe('after-b');
+  });
+
+  it('replaces the loaded copy in its place when the row is already loaded', async () => {
+    const fetchPage = vi.fn().mockResolvedValue({
+      items: [
+        { id: 'a', status: 'running' },
+        { id: 'b', status: 'running' },
+      ],
+    });
+    const { controller } = createController(fetchPage);
+
+    await controller.reload();
+    controller.replaceOrPrependItem({ id: 'b', status: 'canceled' });
+
+    expect(controller.getState().list.items).toEqual([
+      { id: 'a', status: 'running' },
+      { id: 'b', status: 'canceled' },
+    ]);
   });
 
   it('skips a refresh while the previous one is in flight', async () => {

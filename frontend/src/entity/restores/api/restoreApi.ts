@@ -1,29 +1,41 @@
-import { getApplicationServer } from '../../../constants';
-import { apiHelper } from '../../../shared/api/apiHelper';
-import RequestOptions from '../../../shared/api/RequestOptions';
+import { getApiClient, requireData } from '../../../shared/api';
 import type { Restore } from '../model/Restore';
-import type { RestoreBackupRequest } from '../model/RestoreTarget';
+import type { RestoreTarget } from '../model/RestoreTarget';
+
+// The largest page the contract serves; a backup rarely has more restores than one page holds.
+const RESTORE_PAGE_LIMIT = 100;
 
 export const restoreApi = {
-  async getRestores(backupId: string) {
-    return apiHelper.fetchGetJson<Restore[]>(
-      `${getApplicationServer()}/api/v1/restores/${backupId}`,
-      undefined,
-      true,
-    );
+  // The restore dialog shows every restore of the backup, newest first, so this follows the
+  // cursor to the last page.
+  async listAllRestores(backupId: string): Promise<Restore[]> {
+    const restores: Restore[] = [];
+    let after: string | undefined;
+
+    do {
+      const page = requireData(
+        await getApiClient().GET('/restores', {
+          params: { query: { backupId, limit: RESTORE_PAGE_LIMIT, after } },
+        }),
+      );
+
+      restores.push(...page.items);
+      after = page.nextCursor;
+    } while (after !== undefined);
+
+    return restores;
   },
 
-  async restoreBackup(backupId: string, request: RestoreBackupRequest) {
-    const requestOptions: RequestOptions = new RequestOptions();
-    requestOptions.setBody(JSON.stringify(request));
-
-    return apiHelper.fetchPostJson<{ message: string }>(
-      `${getApplicationServer()}/api/v1/restores/${backupId}/restore`,
-      requestOptions,
-    );
+  // Answers once the target is reachable, with the restore in progress.
+  async startRestore(backupId: string, target: RestoreTarget): Promise<Restore> {
+    return requireData(await getApiClient().POST('/restores', { body: { backupId, target } }));
   },
 
-  async cancelRestore(restoreId: string) {
-    return apiHelper.fetchPostRaw(`${getApplicationServer()}/api/v1/restores/cancel/${restoreId}`);
+  async cancelRestore(restoreId: string): Promise<Restore> {
+    return requireData(
+      await getApiClient().POST('/restores/{restoreId}/cancel', {
+        params: { path: { restoreId } },
+      }),
+    );
   },
 };

@@ -3,10 +3,13 @@ package telemetry
 import (
 	"context"
 	"sync"
+	"time"
+
+	"github.com/google/uuid"
 
 	"databasus-backend/internal/config"
 	physical_service "databasus-backend/internal/features/backups/backups/core/physical/service"
-	backups_services "databasus-backend/internal/features/backups/backups/services"
+	backups_bridge "databasus-backend/internal/features/backups/config"
 	databases_bridge "databasus-backend/internal/features/databases"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	storages_bridge "databasus-backend/internal/features/storages"
@@ -14,6 +17,7 @@ import (
 	users_bridge "databasus-backend/internal/features/users"
 	verification_agents "databasus-backend/internal/features/verification/agents"
 	verification_config "databasus-backend/internal/features/verification/config"
+	"databasus-backend/internal/modules/backups"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/modules/storages"
@@ -39,7 +43,7 @@ var (
 			installedDatabases{},
 			installedStorageTypes{},
 			installedNotifierTypes{},
-			backups_services.GetBackupService(),
+			installedLogicalBackups{},
 			physical_service.GetPhysicalBackupService(),
 			verification_agents.GetAgentService(),
 			verification_config.GetVerificationConfigService(),
@@ -68,6 +72,24 @@ func GetTelemetryBackgroundService() *TelemetryBackgroundService {
 var SetupDependencies = sync.OnceFunc(func() {
 	getInstanceLoader().path = config.GetEnv().TelemetryInstancePath
 })
+
+// installedLogicalBackups reads the module per call: each test application installs its own module.
+type installedLogicalBackups struct{}
+
+func (installedLogicalBackups) HasSuccessfulLogicalBackupSince(
+	ctx context.Context,
+	databaseID uuid.UUID,
+	since time.Time,
+) (bool, error) {
+	return backups_bridge.GetModule().HasSuccessfulLogicalBackupSince(ctx, databaseID, since)
+}
+
+func (installedLogicalBackups) GetLatestCompletedLogicalBackup(
+	ctx context.Context,
+	databaseID uuid.UUID,
+) (backups.LogicalBackup, bool, error) {
+	return backups_bridge.GetModule().GetLatestCompletedLogicalBackup(ctx, databaseID)
+}
 
 // installedUserCounter reads the module per call: each test application installs its own module.
 type installedUserCounter struct{}

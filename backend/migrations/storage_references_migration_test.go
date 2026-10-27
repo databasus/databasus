@@ -28,7 +28,7 @@ func TestStorageReferencesMigration(t *testing.T) {
 			WHERE contype = 'f' AND confrelid = 'storages'::regclass AND conname IN ?`,
 			[]string{
 				"fk_backups_configs_storage",
-				"fk_backups_storage_id",
+				"fk_backups_logical_storage",
 				"fk_physical_full_backups_storage_id",
 				"fk_physical_incremental_backups_storage_id",
 				"fk_physical_wal_segments_storage_id",
@@ -44,7 +44,7 @@ func TestStorageReferencesMigration(t *testing.T) {
 
 		assert.Equal(t, map[string]string{
 			"fk_backups_configs_storage":                 "r",
-			"fk_backups_storage_id":                      "r",
+			"fk_backups_logical_storage":                 "r",
 			"fk_physical_full_backups_storage_id":        "r",
 			"fk_physical_incremental_backups_storage_id": "r",
 			"fk_physical_wal_segments_storage_id":        "r",
@@ -65,7 +65,7 @@ func TestStorageReferencesMigration(t *testing.T) {
 
 		logicalBackupStorageID := insertStorage(t, db, workspaceID)
 		logicalBackupID := uuid.New()
-		execute(t, db, `INSERT INTO logical_backups (id, database_id, storage_id, status, file_name)
+		execute(t, db, `INSERT INTO backups_logical (id, database_id, storage_id, status, file_name)
 			VALUES (?, ?, ?, 'COMPLETED', 'backup.dump')`, logicalBackupID, databaseID, logicalBackupStorageID)
 
 		physicalBackupStorageID := insertStorage(t, db, workspaceID)
@@ -81,7 +81,7 @@ func TestStorageReferencesMigration(t *testing.T) {
 
 		assert.ElementsMatch(t, []uuid.UUID{configStorageID},
 			listIDs(t, db, "SELECT storage_id FROM backups_configs"))
-		assert.ElementsMatch(t, []uuid.UUID{logicalBackupID}, listIDs(t, db, "SELECT id FROM logical_backups"))
+		assert.ElementsMatch(t, []uuid.UUID{logicalBackupID}, listIDs(t, db, "SELECT id FROM backups_logical"))
 		assert.ElementsMatch(t, []uuid.UUID{physicalBackupID}, listIDs(t, db, "SELECT id FROM physical_full_backups"))
 		assert.ElementsMatch(t,
 			[]uuid.UUID{configStorageID, logicalBackupStorageID, physicalBackupStorageID},

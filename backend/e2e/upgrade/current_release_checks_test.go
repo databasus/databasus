@@ -74,19 +74,28 @@ type currentAuditEventWorkspace struct {
 	ID string `json:"id"`
 }
 
-type currentRestoreRequest struct {
-	PostgresqlDatabase currentRestoreTarget `json:"postgresqlDatabase"`
+type currentRestoreStart struct {
+	BackupID string               `json:"backupId"`
+	Target   currentRestoreTarget `json:"target"`
 }
 
 type currentRestoreTarget struct {
-	Version  string `json:"version"`
-	Host     string `json:"host"`
-	Port     int    `json:"port"`
-	Username string `json:"username"`
-	Password string `json:"password"`
-	Database string `json:"database"`
-	SslMode  string `json:"sslMode"`
-	CPUCount int    `json:"cpuCount"`
+	Type                string                `json:"type"`
+	Host                string                `json:"host"`
+	Port                int                   `json:"port"`
+	Username            string                `json:"username"`
+	Password            string                `json:"password"`
+	Database            string                `json:"database"`
+	SslMode             string                `json:"sslMode"`
+	SSHTunnel           currentDisabledTunnel `json:"sshTunnel"`
+	CPUCount            int                   `json:"cpuCount"`
+	IsExcludeExtensions bool                  `json:"isExcludeExtensions"`
+	IsRestoreOwnership  bool                  `json:"isRestoreOwnership"`
+	IsRestorePrivileges bool                  `json:"isRestorePrivileges"`
+}
+
+type currentDisabledTunnel struct {
+	IsEnabled bool `json:"isEnabled"`
 }
 
 type currentDatabaseTestResult struct {
@@ -95,6 +104,7 @@ type currentDatabaseTestResult struct {
 }
 
 type currentRestore struct {
+	ID          string  `json:"id"`
 	Status      string  `json:"status"`
 	FailMessage *string `json:"failMessage"`
 }
@@ -288,18 +298,25 @@ func checkStoredCredentials(ctx context.Context, api *apiClient, databaseIDs map
 func restoreBackup(t *testing.T, api *apiClient, backupID string) error {
 	t.Helper()
 
-	err := api.post(t.Context(), "/restores/"+backupID+"/restore", currentRestoreRequest{
-		PostgresqlDatabase: currentRestoreTarget{
-			Version:  sourceVersion,
-			Host:     sourceNetworkAlias,
-			Port:     sourcePort,
-			Username: sourceUsername,
-			Password: sourcePassword,
-			Database: restoredDatabase,
-			SslMode:  "disable",
-			CPUCount: 1,
+	var startedRestore currentRestore
+
+	err := api.post(t.Context(), "/restores", currentRestoreStart{
+		BackupID: backupID,
+		Target: currentRestoreTarget{
+			Type:                "POSTGRES_LOGICAL",
+			Host:                sourceNetworkAlias,
+			Port:                sourcePort,
+			Username:            sourceUsername,
+			Password:            sourcePassword,
+			Database:            restoredDatabase,
+			SslMode:             "disable",
+			SSHTunnel:           currentDisabledTunnel{IsEnabled: false},
+			CPUCount:            1,
+			IsExcludeExtensions: false,
+			IsRestoreOwnership:  false,
+			IsRestorePrivileges: false,
 		},
-	}, nil)
+	}, &startedRestore)
 	if err != nil {
 		return fmt.Errorf("start the restore: %w", err)
 	}
@@ -307,18 +324,11 @@ func restoreBackup(t *testing.T, api *apiClient, backupID string) error {
 	var finishedRestore currentRestore
 
 	err = testwait.Poll(t, "the restore of the pre-upgrade backup to finish", func(ctx context.Context) error {
-		var restores []currentRestore
-
-		listErr := api.get(ctx, "/restores/"+backupID, &restores)
-		if listErr != nil {
-			return listErr
+		readErr := api.get(ctx, "/restores/"+startedRestore.ID, &finishedRestore)
+		if readErr != nil {
+			return readErr
 		}
 
-		if len(restores) == 0 {
-			return errors.New("no restore is listed yet")
-		}
-
-		finishedRestore = restores[0]
 		if finishedRestore.Status == "IN_PROGRESS" {
 			return errors.New("the restore is in progress")
 		}

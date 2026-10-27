@@ -27,7 +27,7 @@ Adding an engine version is mostly about the binary, not about the code that rea
 - [ ] **Never add a version to a lookup table.** If adding a version seems to need a table entry, the table is the bug: derive the behavior from the numbers in the identity.
 - [ ] **An identity names a line, so its digits do not name the patch in the bundle.** A bundle holding a release from a different line is a mistake.
 - [ ] **Add the identity constant on both sides**: in the backend and in `frontend/src/entity/databases/model/<engine>/`.
-- [ ] **Add the version to the test matrices** that boot a real server of each version, such as the engine tests in `backend/internal/engines/<engine>/` and `backend/internal/features/tests/logical/<engine>/backup_restore_test.go`. A unit test of the version mapping proves nothing about a dump.
+- [ ] **Add the version to the test matrices** that boot a real server of each version, such as the engine tests in `backend/internal/engines/<engine>/` and `backend/internal/modules/backups/e2e/<engine>/engine_<engine>_test.go`. A unit test of the version mapping proves nothing about a dump.
 - [ ] **Update the supported-version lists** in the root `README.md`, in all five copies under `assets/readme/`, and the tables in `assets/tools/README.md`.
 
 ## Refreshing a patch level

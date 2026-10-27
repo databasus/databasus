@@ -30,8 +30,8 @@ type currentBackupConfig struct {
 	Settings         map[string]any `json:"settings"`
 }
 
-type currentBackupList struct {
-	Backups []currentBackup `json:"backups"`
+type currentBackupPage struct {
+	Items []currentBackup `json:"items"`
 }
 
 type currentBackup struct {
@@ -122,9 +122,9 @@ func readBackupItems(ctx context.Context, api *apiClient, database currentDataba
 		return nil, fmt.Errorf("read the backup config of database %q: %w", database.Name, err)
 	}
 
-	var backupList currentBackupList
+	var backupPage currentBackupPage
 
-	err = api.get(ctx, "/backups?database_id="+database.ID, &backupList)
+	err = api.get(ctx, "/logical-backups?limit=100&databaseId="+database.ID, &backupPage)
 	if err != nil {
 		return nil, fmt.Errorf("list backups of database %q: %w", database.Name, err)
 	}
@@ -140,7 +140,7 @@ func readBackupItems(ctx context.Context, api *apiClient, database currentDataba
 		{Kind: "backup config", Name: database.Name, Values: backupConfigValues},
 	}
 
-	for _, backup := range backupList.Backups {
+	for _, backup := range backupPage.Items {
 		backupItems = append(backupItems, upgradecheck.Item{
 			Kind:   "backup",
 			Name:   backup.ID,

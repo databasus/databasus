@@ -9,7 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	old_config "databasus-backend/internal/config"
-	task_cancellation "databasus-backend/internal/features/tasks/cancellation"
+	backups_bridge "databasus-backend/internal/features/backups/config"
 	"databasus-backend/internal/lib/background"
 	"databasus-backend/internal/lib/config"
 	"databasus-backend/internal/lib/httpserver"
@@ -46,6 +46,17 @@ func (a *App) Serve(ctx context.Context, address string) error {
 		return err
 	}
 
+	loopsCtx, cancelLoops := context.WithCancel(context.WithoutCancel(ctx))
+
+	defer cancelLoops()
+
+	// The recovery fails the backups the previous run left in progress, so it runs before a request
+	// can start a new one.
+	err = a.StartModules(loopsCtx)
+	if err != nil {
+		return err
+	}
+
 	server, err := httpserver.Listen(ctx, address, handler)
 	if err != nil {
 		return err
@@ -54,9 +65,6 @@ func (a *App) Serve(ctx context.Context, address string) error {
 	a.logger.InfoContext(ctx, "http server listening", slog.String("address", server.GetAddress()))
 
 	a.backgroundGroup = background.New(background.Deps{Logger: a.logger})
-	loopsCtx, cancelLoops := context.WithCancel(context.WithoutCancel(ctx))
-
-	defer cancelLoops()
 
 	a.startBackgroundLoops(loopsCtx)
 	a.runner.Start(loopsCtx)
@@ -75,7 +83,8 @@ func (a *App) Serve(ctx context.Context, address string) error {
 	shutdown.Drain(ctx, shutdown.DrainSpec{
 		Steps: []shutdown.Step{
 			{Name: "http server", Run: server.Shutdown},
-			{Name: "running tasks", Run: task_cancellation.GetRegistry().WaitUntilNoTasksRegistered},
+			{Name: "running tasks", Run: backups_bridge.GetCancellationRegistry().WaitUntilEmpty},
+			{Name: "backup runs", Run: a.backupsModule.WaitForRuns},
 			{Name: "notification deliveries", Run: a.notifiersModule.WaitForDeliveries},
 			{Name: "background loops", Run: a.backgroundGroup.Wait},
 			{Name: "background jobs", Run: a.runner.Wait},

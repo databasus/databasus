@@ -5,8 +5,7 @@ import (
 	"sync/atomic"
 
 	"databasus-backend/internal/features/audit_logs"
-	backuping_logical "databasus-backend/internal/features/backups/backups/backuping/logical"
-	backups_services "databasus-backend/internal/features/backups/backups/services"
+	backups_bridge "databasus-backend/internal/features/backups/config"
 	databases_bridge "databasus-backend/internal/features/databases"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	verification_agents "databasus-backend/internal/features/verification/agents"
@@ -24,7 +23,7 @@ var getVerificationService = sync.OnceValue(func() *VerificationService {
 		getVerificationRepository(),
 		databases_bridge.GetAccess(),
 		databases_bridge.GetModule,
-		backups_services.GetBackupService(),
+		backups_bridge.GetModule,
 		verification_config.GetVerificationConfigService(),
 		notifiers_bridge.GetSender(),
 		workspaces_bridge.GetAccess(),
@@ -39,8 +38,8 @@ var getVerificationScheduler = sync.OnceValue(func() *VerificationScheduler {
 		getVerificationService(),
 		verification_config.GetVerificationConfigService(),
 		verification_agents.GetAgentService(),
-		backups_services.GetBackupService(),
 		databases_bridge.GetAccess(),
+		backups_bridge.GetModule,
 		databases_bridge.GetModule,
 		logger.GetLogger(),
 		atomic.Bool{},
@@ -79,5 +78,4 @@ func GetVerificationAgentController() *VerificationAgentController {
 
 var SetupDependencies = sync.OnceFunc(func() {
 	verification_agents.GetAgentService().AddAgentHeartbeatedListener(getVerificationService())
-	backuping_logical.GetBackupsScheduler().AddBackupCompletionListener(getVerificationService())
 })

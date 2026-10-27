@@ -11,13 +11,13 @@ import (
 
 	"github.com/google/uuid"
 
-	"databasus-backend/internal/features/backups/backups/backuping/shared/gfs"
 	"databasus-backend/internal/features/backups/backups/core/physical/chain_view"
 	physical_models "databasus-backend/internal/features/backups/backups/core/physical/models"
 	physical_repositories "databasus-backend/internal/features/backups/backups/core/physical/repositories"
 	physical_service "databasus-backend/internal/features/backups/backups/core/physical/service"
 	"databasus-backend/internal/features/backups/backups/core/physical/wal_health"
 	usecases_physical_postgresql "databasus-backend/internal/features/backups/backups/usecases/physical/postgresql"
+	"databasus-backend/internal/lib/gfs"
 	"databasus-backend/internal/lib/schedule"
 	"databasus-backend/internal/modules/backups"
 )

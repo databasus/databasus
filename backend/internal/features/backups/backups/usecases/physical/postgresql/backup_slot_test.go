@@ -22,7 +22,6 @@ import (
 	postgresql_executor "databasus-backend/internal/features/backups/backups/usecases/physical/postgresql"
 	backups_bridge "databasus-backend/internal/features/backups/config"
 	storages_bridge "databasus-backend/internal/features/storages"
-	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
 	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/storage"
 	"databasus-backend/internal/util/logger"
@@ -786,7 +785,7 @@ func Test_BackupSlot_DroppedAfterCancelledMidRun(t *testing.T) {
 
 			if exists {
 				slotObserved.Store(true)
-				_ = tasks_cancellation.GetRequester().RequestCancellation(context.Background(), fixture.BackupID)
+				backups_bridge.GetCancellationRegistry().Cancel(fixture.BackupID)
 				return
 			}
 		}

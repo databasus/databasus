@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	backuping_logical "databasus-backend/internal/features/backups/backups/backuping/logical"
+	backups_bridge "databasus-backend/internal/features/backups/config"
 	databases_bridge "databasus-backend/internal/features/databases"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	storages_bridge "databasus-backend/internal/features/storages"
@@ -103,7 +103,7 @@ func Test_OnAgentHeartbeated_WhenLiveAgentDropsRunningJobPastGrace_Requeues(t *t
 	router, ownerToken, database, storageID := newReclaimFixture(t)
 	agent := newReclaimAgent(t, router, ownerToken)
 
-	backup := backuping_logical.SeedTestBackup(t, database.ID, storageID, 100)
+	backup := backups_bridge.SeedTestLogicalBackup(t, database.ID, storageID, 100)
 	assignment := claimRunningJob(t, router, ownerToken, agent, backup.ID)
 	backdateStartedAt(t, assignment.VerificationID)
 
@@ -123,7 +123,7 @@ func Test_OnAgentHeartbeated_WhenJobStillReportedByAgent_DoesNotRequeue(t *testi
 	router, ownerToken, database, storageID := newReclaimFixture(t)
 	agent := newReclaimAgent(t, router, ownerToken)
 
-	backup := backuping_logical.SeedTestBackup(t, database.ID, storageID, 100)
+	backup := backups_bridge.SeedTestLogicalBackup(t, database.ID, storageID, 100)
 	assignment := claimRunningJob(t, router, ownerToken, agent, backup.ID)
 	backdateStartedAt(t, assignment.VerificationID)
 
@@ -146,7 +146,7 @@ func Test_OnAgentHeartbeated_WhenRunningJobWithinGrace_DoesNotRequeue(t *testing
 	router, ownerToken, database, storageID := newReclaimFixture(t)
 	agent := newReclaimAgent(t, router, ownerToken)
 
-	backup := backuping_logical.SeedTestBackup(t, database.ID, storageID, 100)
+	backup := backups_bridge.SeedTestLogicalBackup(t, database.ID, storageID, 100)
 	assignment := claimRunningJob(t, router, ownerToken, agent, backup.ID)
 
 	_, err := GetVerificationService().OnAgentHeartbeated(t.Context(), agent.Agent, nil)
@@ -164,7 +164,7 @@ func Test_OnAgentHeartbeated_WhenDroppedJobAtMaxAttempts_MarksTerminal(t *testin
 	router, ownerToken, database, storageID := newReclaimFixture(t)
 	agent := newReclaimAgent(t, router, ownerToken)
 
-	backup := backuping_logical.SeedTestBackup(t, database.ID, storageID, 100)
+	backup := backups_bridge.SeedTestLogicalBackup(t, database.ID, storageID, 100)
 	assignment := claimRunningJob(t, router, ownerToken, agent, backup.ID)
 
 	require.NoError(t, storage.GetDb().
@@ -192,7 +192,7 @@ func Test_OnAgentHeartbeated_WhenJobAlreadyCompleted_DoesNotResurrect(t *testing
 	router, ownerToken, database, storageID := newReclaimFixture(t)
 	agent := newReclaimAgent(t, router, ownerToken)
 
-	backup := backuping_logical.SeedTestBackup(t, database.ID, storageID, 100)
+	backup := backups_bridge.SeedTestLogicalBackup(t, database.ID, storageID, 100)
 	assignment := claimRunningJob(t, router, ownerToken, agent, backup.ID)
 
 	require.NoError(t, storage.GetDb().
@@ -234,8 +234,8 @@ func Test_OnAgentHeartbeated_WhenAgentDropsOneStillRunsAnother_ReclaimsOnlyDropp
 
 	agent := newReclaimAgent(t, router, owner.Token)
 
-	backupKept := backuping_logical.SeedTestBackup(t, databaseKept.ID, testStorage.ID, 100)
-	backupDropped := backuping_logical.SeedTestBackup(t, databaseDropped.ID, testStorage.ID, 100)
+	backupKept := backups_bridge.SeedTestLogicalBackup(t, databaseKept.ID, testStorage.ID, 100)
+	backupDropped := backups_bridge.SeedTestLogicalBackup(t, databaseDropped.ID, testStorage.ID, 100)
 
 	kept := claimRunningJob(t, router, owner.Token, agent, backupKept.ID)
 	dropped := claimRunningJob(t, router, owner.Token, agent, backupDropped.ID)
@@ -264,7 +264,7 @@ func Test_OnAgentHeartbeated_WhenAgentReportsNoLongerOwnedJob_ReturnsItInAbortLi
 	router, ownerToken, database, storageID := newReclaimFixture(t)
 	agent := newReclaimAgent(t, router, ownerToken)
 
-	backup := backuping_logical.SeedTestBackup(t, database.ID, storageID, 100)
+	backup := backups_bridge.SeedTestLogicalBackup(t, database.ID, storageID, 100)
 	assignment := claimRunningJob(t, router, ownerToken, agent, backup.ID)
 
 	require.NoError(t, storage.GetDb().

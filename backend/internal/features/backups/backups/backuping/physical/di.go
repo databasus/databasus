@@ -15,7 +15,6 @@ import (
 	databases_bridge "databasus-backend/internal/features/databases"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	storages_bridge "databasus-backend/internal/features/storages"
-	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
 	workspaces_bridge "databasus-backend/internal/features/workspaces"
 	"databasus-backend/internal/util/encryption"
 	"databasus-backend/internal/util/logger"
@@ -33,7 +32,7 @@ var getPhysicalBackuper = sync.OnceValue(func() *PhysicalBackuper {
 		backups_bridge.GetModule,
 		storages_bridge.GetModule,
 		notifiers_bridge.GetSender(),
-		tasks_cancellation.GetRegistry(),
+		backups_bridge.GetCancellationRegistry(),
 		encryption.GetMasterKey(),
 		logger.GetLogger(),
 		postgresql_executor.NewCreateFullBackupUsecase(),
@@ -50,7 +49,7 @@ var getPhysicalBackupsScheduler = sync.OnceValue(func() *PhysicalBackupsSchedule
 		physical_repositories.GetInFlightBackupRepository(),
 		backups_bridge.GetModule,
 		chain_view.GetChainViewService(),
-		tasks_cancellation.GetRequester(),
+		backups_bridge.GetCancellationRegistry(),
 		storages_bridge.GetModule,
 		getPhysicalBackuper(),
 		atomicTime{},
@@ -88,7 +87,7 @@ var getPhysicalWalStreamSupervisor = sync.OnceValue(func() *PhysicalWalStreamSup
 		physical_repositories.GetWalStreamerRepository(),
 		physical_repositories.GetWalStreamSampleRepository(),
 		notifiers_bridge.GetSender(),
-		tasks_cancellation.GetRegistry(),
+		backups_bridge.GetCancellationRegistry(),
 		encryption.GetMasterKey(),
 		logger.GetLogger(),
 		defaultChainAlertMinInterval,
@@ -116,7 +115,7 @@ func GetPhysicalSlotCleanupListener() *postgresql_executor.PhysicalSlotCleanupLi
 var getPhysicalBackupCanceller = sync.OnceValue(func() *PhysicalBackupCanceller {
 	return NewPhysicalBackupCanceller(
 		physical_repositories.GetInFlightBackupRepository(),
-		tasks_cancellation.GetRequester(),
+		backups_bridge.GetCancellationRegistry(),
 		logger.GetLogger(),
 	)
 })
@@ -127,7 +126,7 @@ var getPhysicalBackupCancellationListener = sync.OnceValue(func() *PhysicalBacku
 	return &PhysicalBackupCancellationListener{
 		getPhysicalBackupCanceller(),
 		physical_repositories.GetWalStreamerRepository(),
-		tasks_cancellation.GetRequester(),
+		backups_bridge.GetCancellationRegistry(),
 		logger.GetLogger(),
 	}
 })

@@ -5,11 +5,11 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
+	"databasus-backend/internal/modules/backups"
 )
 
-func backupWithSize(archiveMb, restoredMb float64) *backups_core_logical.LogicalBackup {
-	return &backups_core_logical.LogicalBackup{
+func backupWithSize(archiveMb, restoredMb float64) backups.LogicalBackup {
+	return backups.LogicalBackup{
 		BackupSizeMb:      archiveMb,
 		BackupRawDbSizeMb: restoredMb,
 	}
@@ -19,8 +19,8 @@ func Test_EvaluateDiskAdmission_AcrossScenarios_RespectsAgentBudget(t *testing.T
 	cases := []struct {
 		name              string
 		capacity          AgentCapacity
-		runningBackups    []*backups_core_logical.LogicalBackup
-		candidate         *backups_core_logical.LogicalBackup
+		runningBackups    []backups.LogicalBackup
+		candidate         backups.LogicalBackup
 		isFitWithinBudget bool
 	}{
 		{
@@ -48,7 +48,7 @@ func Test_EvaluateDiskAdmission_AcrossScenarios_RespectsAgentBudget(t *testing.T
 		{
 			name:     "one running, room for another small",
 			capacity: AgentCapacity{MaxDiskGb: 12},
-			runningBackups: []*backups_core_logical.LogicalBackup{
+			runningBackups: []backups.LogicalBackup{
 				backupWithSize(50, 200),
 			},
 			candidate:         backupWithSize(50, 200),
@@ -57,7 +57,7 @@ func Test_EvaluateDiskAdmission_AcrossScenarios_RespectsAgentBudget(t *testing.T
 		{
 			name:     "one running, restored size of candidate blows budget",
 			capacity: AgentCapacity{MaxDiskGb: 10},
-			runningBackups: []*backups_core_logical.LogicalBackup{
+			runningBackups: []backups.LogicalBackup{
 				backupWithSize(500, 4000),
 			},
 			candidate:         backupWithSize(500, 4000),
@@ -66,7 +66,7 @@ func Test_EvaluateDiskAdmission_AcrossScenarios_RespectsAgentBudget(t *testing.T
 		{
 			name:     "three concurrent small jobs fit in 25 GB",
 			capacity: AgentCapacity{MaxDiskGb: 25},
-			runningBackups: []*backups_core_logical.LogicalBackup{
+			runningBackups: []backups.LogicalBackup{
 				backupWithSize(100, 500),
 				backupWithSize(100, 500),
 				backupWithSize(100, 500),
@@ -77,7 +77,7 @@ func Test_EvaluateDiskAdmission_AcrossScenarios_RespectsAgentBudget(t *testing.T
 		{
 			name:     "per-job gap saturation: three RUNNING already over a 5 GB agent",
 			capacity: AgentCapacity{MaxDiskGb: 5},
-			runningBackups: []*backups_core_logical.LogicalBackup{
+			runningBackups: []backups.LogicalBackup{
 				backupWithSize(100, 400),
 				backupWithSize(100, 400),
 				backupWithSize(100, 400),
@@ -128,13 +128,6 @@ func Test_EvaluateDiskAdmission_AcrossScenarios_RespectsAgentBudget(t *testing.T
 			isFitWithinBudget: false,
 		},
 		{
-			name:              "nil candidate is rejected",
-			capacity:          AgentCapacity{MaxDiskGb: 10},
-			runningBackups:    nil,
-			candidate:         nil,
-			isFitWithinBudget: false,
-		},
-		{
 			name:              "raw DB size dominates archive size in the cost",
 			capacity:          AgentCapacity{MaxDiskGb: 2},
 			runningBackups:    nil,
@@ -159,7 +152,7 @@ func Test_EvaluateDiskAdmission_AcrossScenarios_RespectsAgentBudget(t *testing.T
 func Test_EstimateRequiredForRestoreDiskMb_AcrossRestoredSizes_ClampsGapBetweenFloorAndCap(t *testing.T) {
 	cases := []struct {
 		name           string
-		backup         *backups_core_logical.LogicalBackup
+		backup         backups.LogicalBackup
 		requiredDiskMb int64
 	}{
 		{

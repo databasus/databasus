@@ -19,8 +19,8 @@ import (
 	databases_bridge "databasus-backend/internal/features/databases"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	storages_bridge "databasus-backend/internal/features/storages"
-	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
 	workspaces_bridge "databasus-backend/internal/features/workspaces"
+	"databasus-backend/internal/lib/background"
 	"databasus-backend/internal/util/encryption"
 	"databasus-backend/internal/util/logger"
 )
@@ -46,7 +46,7 @@ func CreateTestPhysicalBackuper(notificationSender NotificationSender) *Physical
 		backups_bridge.GetModule,
 		storages_bridge.GetModule,
 		sender,
-		tasks_cancellation.GetRegistry(),
+		backups_bridge.GetCancellationRegistry(),
 		encryption.GetMasterKey(),
 		logger.GetLogger(),
 		postgresql_executor.NewCreateFullBackupUsecase(),
@@ -63,7 +63,7 @@ func CreateTestPhysicalScheduler() *PhysicalBackupsScheduler {
 		physical_repositories.GetInFlightBackupRepository(),
 		backups_bridge.GetModule,
 		chain_view.GetChainViewService(),
-		tasks_cancellation.GetRequester(),
+		backups_bridge.GetCancellationRegistry(),
 		storages_bridge.GetModule,
 		CreateTestPhysicalBackuper(nil),
 		atomicTime{},
@@ -81,7 +81,7 @@ type WalStreamSupervisorTestSpec struct {
 	ChainAlertMinIntervalOverride time.Duration
 
 	// Nil means the process-wide registry.
-	TaskCancellationRegistry *tasks_cancellation.Registry
+	TaskCancellationRegistry *background.CancellationRegistry
 }
 
 // CreateTestWalStreamSupervisor returns a fresh WAL stream supervisor wired to
@@ -96,7 +96,7 @@ func CreateTestWalStreamSupervisor(spec WalStreamSupervisorTestSpec) *PhysicalWa
 
 	taskCancellationRegistry := spec.TaskCancellationRegistry
 	if taskCancellationRegistry == nil {
-		taskCancellationRegistry = tasks_cancellation.GetRegistry()
+		taskCancellationRegistry = backups_bridge.GetCancellationRegistry()
 	}
 
 	return &PhysicalWalStreamSupervisor{

@@ -79,6 +79,24 @@ export class PagedListController<TItem, TCursor> {
     }
   }
 
+  // Shows a row a request answered with before the next refresh lists it: the loaded copy is
+  // replaced, and a new row goes to the top of the newest-first list.
+  replaceOrPrependItem(item: TItem) {
+    const itemKey = this.options.getItemKey(item);
+    const loadedItems = this.state.list.items;
+    const isLoaded = loadedItems.some(
+      (loadedItem) => this.options.getItemKey(loadedItem) === itemKey,
+    );
+
+    const items = isLoaded
+      ? loadedItems.map((loadedItem) =>
+          this.options.getItemKey(loadedItem) === itemKey ? item : loadedItem,
+        )
+      : [item, ...loadedItems];
+
+    this.updateState({ list: { ...this.state.list, items } });
+  }
+
   async loadNextPage() {
     const cursor = this.state.list.nextCursor;
     if (this.state.isLoadingMore || cursor === undefined) return;

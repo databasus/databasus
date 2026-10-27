@@ -16,4 +16,7 @@ var (
 	errUnknownStorageOption = apierror.NewInvalidFieldsProblem([]apierror.FieldError{
 		{Field: "storage.type", Detail: "is not a storage option"},
 	})
+	errUnknownRestoreTarget = apierror.NewInvalidFieldsProblem([]apierror.FieldError{
+		{Field: "target.type", Detail: "is not a database type with logical backups"},
+	})
 )

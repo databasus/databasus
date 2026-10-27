@@ -31,7 +31,6 @@ import (
 	physical_repositories "databasus-backend/internal/features/backups/backups/core/physical/repositories"
 	physical_testing "databasus-backend/internal/features/backups/backups/core/physical/testing"
 	"databasus-backend/internal/features/backups/backups/core/physical/wal_health"
-	backups_download "databasus-backend/internal/features/backups/backups/download"
 	backups_dto_physical "databasus-backend/internal/features/backups/backups/dto/physical"
 	backups_services "databasus-backend/internal/features/backups/backups/services"
 	postgresql_executor "databasus-backend/internal/features/backups/backups/usecases/physical/postgresql"
@@ -1335,20 +1334,20 @@ func runRolePermissionMatrix(
 	assert.Equal(t, successCode, doRequest("Bearer "+admin.Token), "global admin")
 }
 
-// occupyUserStreamSlot takes the user's shared download/restore slot to stand in
-// for an in-flight heavy stream, releasing it at test end. Both token services
-// embed the same guard, so this blocks token issuance and a second stream alike —
-// letting the 409 path be asserted deterministically instead of via a timing race.
+// occupyUserStreamSlot takes the user stream of the backups module to stand in for an in-flight heavy
+// stream, releasing it at test end. Downloads and restore streams share it, so this blocks token
+// issuance and a second stream alike — letting the 409 path be asserted deterministically instead of
+// via a timing race.
 func occupyUserStreamSlot(t *testing.T, userID uuid.UUID) {
 	t.Helper()
 
-	restoreTokenService := backups_download.GetRestoreTokenService()
-	if err := restoreTokenService.AcquireSlot(t.Context(), userID); err != nil {
+	userStream, err := backups_bridge.GetModule().AcquireUserStream(t.Context(), userID)
+	if err != nil {
 		t.Fatalf("occupy stream slot: %v", err)
 	}
 
 	t.Cleanup(func() {
-		restoreTokenService.ReleaseDownloadLock(t.Context(), userID)
+		_ = userStream.Release(context.Background())
 	})
 }
 

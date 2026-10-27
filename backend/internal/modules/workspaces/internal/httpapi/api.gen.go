@@ -59,17 +59,20 @@ func (e AssignableWorkspaceRole) Valid() bool {
 const (
 	ProblemCodeAdminEmailMissing        ProblemCode = "admin_email_missing"
 	ProblemCodeAlreadyMember            ProblemCode = "already_member"
+	ProblemCodeAlreadyRunning           ProblemCode = "already_running"
 	ProblemCodeCannotChangeOwnRole      ProblemCode = "cannot_change_own_role"
 	ProblemCodeDatabaseConnectionFailed ProblemCode = "database_connection_failed"
 	ProblemCodeEmailNotConfigured       ProblemCode = "email_not_configured"
 	ProblemCodeEmailTaken               ProblemCode = "email_taken"
 	ProblemCodeHumanVerificationFailed  ProblemCode = "human_verification_failed"
 	ProblemCodeInUse                    ProblemCode = "in_use"
+	ProblemCodeInsufficientDiskSpace    ProblemCode = "insufficient_disk_space"
 	ProblemCodeInternal                 ProblemCode = "internal"
 	ProblemCodeInvalidCredentials       ProblemCode = "invalid_credentials"
 	ProblemCodeInvalidRequest           ProblemCode = "invalid_request"
 	ProblemCodeInvalidResetCode         ProblemCode = "invalid_reset_code"
 	ProblemCodeNotFound                 ProblemCode = "not_found"
+	ProblemCodeNotRunning               ProblemCode = "not_running"
 	ProblemCodeOauthFailed              ProblemCode = "oauth_failed"
 	ProblemCodeOauthNotConfigured       ProblemCode = "oauth_not_configured"
 	ProblemCodeOwnerRequiresTransfer    ProblemCode = "owner_requires_transfer"
@@ -93,6 +96,8 @@ func (e ProblemCode) Valid() bool {
 		return true
 	case ProblemCodeAlreadyMember:
 		return true
+	case ProblemCodeAlreadyRunning:
+		return true
 	case ProblemCodeCannotChangeOwnRole:
 		return true
 	case ProblemCodeDatabaseConnectionFailed:
@@ -105,6 +110,8 @@ func (e ProblemCode) Valid() bool {
 		return true
 	case ProblemCodeInUse:
 		return true
+	case ProblemCodeInsufficientDiskSpace:
+		return true
 	case ProblemCodeInternal:
 		return true
 	case ProblemCodeInvalidCredentials:
@@ -114,6 +121,8 @@ func (e ProblemCode) Valid() bool {
 	case ProblemCodeInvalidResetCode:
 		return true
 	case ProblemCodeNotFound:
+		return true
+	case ProblemCodeNotRunning:
 		return true
 	case ProblemCodeOauthFailed:
 		return true
@@ -391,6 +400,9 @@ type WorkspaceUpdate struct {
 // BackupConfigDatabaseId defines model for BackupConfigDatabaseId.
 type BackupConfigDatabaseId = openapi_types.UUID
 
+// BackupId defines model for BackupId.
+type BackupId = openapi_types.UUID
+
 // DatabaseId defines model for DatabaseId.
 type DatabaseId = openapi_types.UUID
 
@@ -402,6 +414,9 @@ type NotifierId = openapi_types.UUID
 
 // PendingSignInId defines model for PendingSignInId.
 type PendingSignInId = openapi_types.UUID
+
+// RestoreId defines model for RestoreId.
+type RestoreId = openapi_types.UUID
 
 // StorageId defines model for StorageId.
 type StorageId = openapi_types.UUID

@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	backuping_logical "databasus-backend/internal/features/backups/backups/backuping/logical"
+	backups_bridge "databasus-backend/internal/features/backups/config"
 	databases_bridge "databasus-backend/internal/features/databases"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	storages_bridge "databasus-backend/internal/features/storages"
@@ -36,7 +36,7 @@ func TestClaimVerification(t *testing.T) {
 		database := databases_bridge.CreateTestDatabase(workspace.ID, notifier)
 		defer databases_bridge.RemoveTestDatabase(t.Context(), database)
 
-		backup := backuping_logical.SeedTestBackup(t, database.ID, testStorage.ID, 100)
+		backup := backups_bridge.SeedTestLogicalBackup(t, database.ID, testStorage.ID, 100)
 		agent := verification_agents.CreateTestVerificationAgent(
 			t, router, owner.Token, "sanitize-"+uuid.New().String(),
 		)

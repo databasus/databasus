@@ -19,8 +19,8 @@ import (
 	physical_repositories "databasus-backend/internal/features/backups/backups/core/physical/repositories"
 	postgresql_executor "databasus-backend/internal/features/backups/backups/usecases/physical/postgresql"
 	databases_bridge "databasus-backend/internal/features/databases"
-	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
 	workspaces_bridge "databasus-backend/internal/features/workspaces"
+	"databasus-backend/internal/lib/background"
 	"databasus-backend/internal/lib/crypto"
 	"databasus-backend/internal/lib/database"
 	"databasus-backend/internal/modules/backups"
@@ -49,7 +49,7 @@ type PhysicalBackuper struct {
 	// getStorages is read per call: each test application installs its own module.
 	getStorages              func() storages.Module
 	notificationSender       NotificationSender
-	taskCancellationRegistry *tasks_cancellation.Registry
+	taskCancellationRegistry *background.CancellationRegistry
 	masterKey                *crypto.MasterKey
 	logger                   *slog.Logger
 	fullExecutor             FullBackupExecutor
@@ -104,8 +104,8 @@ func (b *PhysicalBackuper) runFullBackup(
 	// Detached from the caller so a finished HTTP request cannot cancel a running backup; the
 	// caller's ctx stays in use for logging, which is what carries request_id and user_id.
 	executionCtx, cancel := context.WithCancel(context.Background())
-	b.taskCancellationRegistry.RegisterTask(fullBackup.ID, cancel)
-	defer b.taskCancellationRegistry.UnregisterTask(fullBackup.ID)
+	b.taskCancellationRegistry.Register(fullBackup.ID, cancel)
+	defer b.taskCancellationRegistry.Unregister(fullBackup.ID)
 
 	rawSizeMb := b.getSourceClusterSizeMb(executionCtx, logger, backupCtx.Source)
 
@@ -209,8 +209,8 @@ func (b *PhysicalBackuper) runIncrementalBackup(
 	}
 
 	executionCtx, cancel := context.WithCancel(context.Background())
-	b.taskCancellationRegistry.RegisterTask(incrBackup.ID, cancel)
-	defer b.taskCancellationRegistry.UnregisterTask(incrBackup.ID)
+	b.taskCancellationRegistry.Register(incrBackup.ID, cancel)
+	defer b.taskCancellationRegistry.Unregister(incrBackup.ID)
 
 	var incrementalCadence time.Duration
 	if backupCtx.Config.IncrementalBackupSchedule != nil {

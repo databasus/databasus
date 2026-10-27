@@ -43,7 +43,7 @@ Rules for writing Go code in `backend/`, which holds the server and the verifica
 
 ## Engines and providers
 
-Code outside a family never switches on a database, storage or notifier type: only the family's registry maps a type to its implementation. To add a provider:
+Code outside a family never switches on a database, storage or notifier type: only the family's registry maps a type to its implementation. A consumer that serves several engines through an interface of its own maps each database type to its implementation in one registry, and only there. To add a provider:
 
 1. Add a package under the family with its settings struct, its repository and its behavior.
 2. Add a migration with its table. Columns carry `NOT NULL`, `DEFAULT` and `CHECK` where they apply, and the row references the parent through the composite key `(id, type)`.

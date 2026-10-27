@@ -129,7 +129,11 @@ export const en = {
     workspaceNotEmpty:
       'The workspace still has databases. Delete them first, then delete the workspace.',
     databaseConnectionFailed: 'Could not connect to the database: {{detail}}',
-    inUse: 'Databases still use it. Remove it from those databases first.',
+    inUse:
+      'It is still in use by a database or by a running backup or restore. Try again once nothing uses it.',
+    alreadyRunning: 'This is already running. Wait for it to finish and try again.',
+    notRunning: 'It is no longer running, so there is nothing to cancel.',
+    insufficientDiskSpace: 'The Databasus server does not have enough free disk space: {{detail}}',
     unknown: 'Something went wrong. Please try again.',
     networkUnreachable: 'Cannot reach the Databasus server. Check your connection and try again.',
     requestFailed:
@@ -166,7 +170,6 @@ export const en = {
       inProgress: 'In progress',
       completed: 'Successful',
       failed: 'Failed',
-      deleted: 'Deleted',
       canceled: 'Canceled',
     },
     physicalBackup: {

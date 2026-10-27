@@ -114,7 +114,7 @@ Databasus has three families of interchangeable implementations. Each family has
   - dump into an `io.Writer` and restore from an `io.Reader`;
   - find its client tool for a server version.
 
-  An engine's sources offer small sets of methods, because a physical PostgreSQL source and a logical one support different sets. A consumer that serves several engines through one shape declares the interface it needs, as `ConnectedDatabase` in the `databases` module does. The backend's restore and the verification agent call the same engine code, so a verification restores exactly the way a restore does.
+  An engine's sources offer small sets of methods, because a physical PostgreSQL source and a logical one support different sets. A consumer that serves several engines through one shape declares the interface it needs, as `ConnectedDatabase` in the `databases` module does, and maps each database type to its implementation in one registry of its own, and only there, as the logical backup pipeline of `backups` does. The provider registry of `databases` cannot hold those entries, because they open work that `databases` knows nothing about, and a restore target has settings but no database row. The backend's restore and the verification agent call the same engine code, so a verification restores exactly the way a restore does.
 - **Storage providers** (`storages/internal/providers/<name>`) save, read and delete files and test a connection.
 - **Notifier providers** (`notifiers/internal/providers/<name>`) send a notification and test a channel.
 
@@ -144,6 +144,7 @@ Settings stay in columns rather than in a JSON document for two reasons. The dat
 | `mailer` | email |
 | `cache`, `ratelimit` | the in-memory cache and rate limiter |
 | `schedule` | schedules |
+| `gfs` | the grandfather-father-son selection of the backups a retention keeps |
 | `sshtunnel` | SSH tunnels |
 | `diskusage` | disk usage |
 | `iox` | stream helpers |

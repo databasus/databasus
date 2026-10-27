@@ -1,14 +1,3 @@
-import { RestoreStatus } from './RestoreStatus';
-import type { PostgresqlRestoreTarget } from './RestoreTarget';
+import type { ApiComponents } from '../../../shared/api';
 
-export interface Restore {
-  id: string;
-  status: RestoreStatus;
-
-  postgresqlDatabase?: PostgresqlRestoreTarget;
-
-  failMessage?: string;
-
-  restoreDurationMs: number;
-  createdAt: string;
-}
+export type Restore = ApiComponents['schemas']['Restore'];

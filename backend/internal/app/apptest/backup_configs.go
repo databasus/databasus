@@ -7,7 +7,6 @@ import (
 	"github.com/google/uuid"
 
 	apiclient "databasus-backend/internal/lib/apiclient"
-	"databasus-backend/internal/modules/backups"
 )
 
 // GetBackupConfig reads the backup config of the database through the API and fails the test unless
@@ -50,10 +49,4 @@ func SaveBackupConfigWithStorage(tb testing.TB, member Session, use StorageUse) 
 	}
 
 	return *response.JSON200
-}
-
-// SubscribeToLogicalBackupConfigStorageChanging adds a handler after the ones internal/app subscribed,
-// the way the old logical backups do.
-func (a *App) SubscribeToLogicalBackupConfigStorageChanging(handler backups.LogicalBackupConfigStorageChangingHandler) {
-	a.app.SubscribeToLogicalBackupConfigStorageChanging(handler)
 }

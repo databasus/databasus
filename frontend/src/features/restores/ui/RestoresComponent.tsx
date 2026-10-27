@@ -5,7 +5,7 @@ import {
   ExclamationCircleOutlined,
   SyncOutlined,
 } from '@ant-design/icons';
-import { App, Button, Modal, Spin, Tooltip } from 'antd';
+import { Alert, App, Button, Modal, Spin, Tooltip } from 'antd';
 import dayjs from 'dayjs';
 import { useEffect, useRef, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
@@ -24,7 +24,7 @@ import { ClipboardHelper } from '../../../shared/lib/ClipboardHelper';
 import { getUserTimeFormat } from '../../../shared/time';
 import { ConfirmationComponent } from '../../../shared/ui';
 import { EditDatabaseSpecificDataComponent } from '../../databases/ui/edit/EditDatabaseSpecificDataComponent';
-import { toRestoreBackupRequest } from './toRestoreBackupRequest';
+import { toRestoreTarget } from './toRestoreTarget';
 
 interface Props {
   database: Database;
@@ -57,6 +57,7 @@ export const RestoresComponent = ({ database, backup }: Props) => {
   const [showingRestoreError, setShowingRestoreError] = useState<Restore | undefined>();
 
   const [isShowRestore, setIsShowRestore] = useState(false);
+  const [restoreStartError, setRestoreStartError] = useState<unknown>();
 
   const [cancellingRestoreId, setCancellingRestoreId] = useState<string | undefined>();
   const [showCancelConfirmation, setShowCancelConfirmation] = useState(false);
@@ -72,8 +73,7 @@ export const RestoresComponent = ({ database, backup }: Props) => {
     isReloadInProgress.current = true;
 
     try {
-      const restores = await restoreApi.getRestores(backup.id);
-      setRestores(restores);
+      setRestores(await restoreApi.listAllRestores(backup.id));
     } catch (e) {
       alert(translateApiError(e, t));
     }
@@ -81,27 +81,45 @@ export const RestoresComponent = ({ database, backup }: Props) => {
     isReloadInProgress.current = false;
   };
 
-  const restore = async (
-    editingDatabase: Database,
+  // The restore a request answered with is shown at once, before the next poll lists it.
+  const showRestore = (answeredRestore: Restore) => {
+    setRestores((loadedRestores) => {
+      const isLoaded = loadedRestores.some(
+        (loadedRestore) => loadedRestore.id === answeredRestore.id,
+      );
+      if (!isLoaded) {
+        return [answeredRestore, ...loadedRestores];
+      }
+
+      return loadedRestores.map((loadedRestore) =>
+        loadedRestore.id === answeredRestore.id ? answeredRestore : loadedRestore,
+      );
+    });
+  };
+
+  const startRestore = async (
+    targetDatabase: Database,
     restoreOptions: PostgresqlRestoreOptions | undefined,
   ) => {
-    try {
-      await restoreApi.restoreBackup(
-        backup.id,
-        toRestoreBackupRequest(editingDatabase.settings, restoreOptions),
-      );
-      await loadRestores();
+    const target = toRestoreTarget(targetDatabase.settings, restoreOptions);
+    if (!target) {
+      return;
+    }
 
+    setRestoreStartError(undefined);
+
+    try {
+      showRestore(await restoreApi.startRestore(backup.id, target));
       setIsShowRestore(false);
     } catch (e) {
-      alert(translateApiError(e, t));
+      setRestoreStartError(e);
     }
   };
 
   const cancelRestore = async (restoreId: string) => {
     setCancellingRestoreId(restoreId);
     try {
-      await restoreApi.cancelRestore(restoreId);
+      showRestore(await restoreApi.cancelRestore(restoreId));
       await loadRestores();
     } catch (e) {
       alert(translateApiError(e, t));
@@ -144,10 +162,19 @@ export const RestoresComponent = ({ database, backup }: Props) => {
           isSaveToApi={false}
           onSaved={(database, restoreOptions) => {
             setEditingDatabase({ ...database });
-            restore(database, restoreOptions);
+            startRestore(database, restoreOptions);
           }}
           isRestoreMode={true}
         />
+
+        {restoreStartError !== undefined && (
+          <Alert
+            className="mt-3"
+            type="error"
+            showIcon
+            message={translateApiError(restoreStartError, t)}
+          />
+        )}
       </>
     );
   }
@@ -165,7 +192,10 @@ export const RestoresComponent = ({ database, backup }: Props) => {
             type="primary"
             disabled={isRestoreInProgress}
             loading={isRestoreInProgress}
-            onClick={() => setIsShowRestore(true)}
+            onClick={() => {
+              setRestoreStartError(undefined);
+              setIsShowRestore(true);
+            }}
           >
             {t('restores.targetDatabase.select')}
           </Button>
@@ -180,7 +210,7 @@ export const RestoresComponent = ({ database, backup }: Props) => {
               if (restore.status === RestoreStatus.IN_PROGRESS) {
                 restoreDurationMs = Date.now() - new Date(restore.createdAt).getTime();
               } else {
-                restoreDurationMs = restore.restoreDurationMs;
+                restoreDurationMs = restore.durationMs;
               }
 
               const minutes = Math.floor(restoreDurationMs / 60000);
@@ -189,7 +219,7 @@ export const RestoresComponent = ({ database, backup }: Props) => {
               // eslint-disable-next-line i18next/no-literal-string -- unit letters stay English in every language
               const duration = `${minutes}m ${seconds}s ${milliseconds}ms`;
 
-              const backupDurationMs = backup.backupDurationMs;
+              const backupDurationMs = backup.durationMs;
               const expectedRestoreDurationMs = backupDurationMs * 5;
               // eslint-disable-next-line i18next/no-literal-string -- unit letters stay English in every language
               const expectedRestoreDuration = `${Math.floor(expectedRestoreDurationMs / 60000)}m ${Math.floor((expectedRestoreDurationMs % 60000) / 1000)}s`;

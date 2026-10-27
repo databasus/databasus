@@ -9,7 +9,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/oapi-codegen/runtime"
@@ -67,6 +69,51 @@ func (e LogicalBackupSettingsType) Valid() bool {
 	}
 }
 
+// Defines values for LogicalBackupStatus.
+const (
+	LogicalBackupStatusCANCELED   LogicalBackupStatus = "CANCELED"
+	LogicalBackupStatusCOMPLETED  LogicalBackupStatus = "COMPLETED"
+	LogicalBackupStatusFAILED     LogicalBackupStatus = "FAILED"
+	LogicalBackupStatusINPROGRESS LogicalBackupStatus = "IN_PROGRESS"
+)
+
+// Valid indicates whether the value is a known member of the LogicalBackupStatus enum.
+func (e LogicalBackupStatus) Valid() bool {
+	switch e {
+	case LogicalBackupStatusCANCELED:
+		return true
+	case LogicalBackupStatusCOMPLETED:
+		return true
+	case LogicalBackupStatusFAILED:
+		return true
+	case LogicalBackupStatusINPROGRESS:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LogicalBackupVerificationStatus.
+const (
+	LogicalBackupVerificationStatusNOTVERIFIED        LogicalBackupVerificationStatus = "NOT_VERIFIED"
+	LogicalBackupVerificationStatusVERIFICATIONFAILED LogicalBackupVerificationStatus = "VERIFICATION_FAILED"
+	LogicalBackupVerificationStatusVERIFIEDSUCCESSFUL LogicalBackupVerificationStatus = "VERIFIED_SUCCESSFUL"
+)
+
+// Valid indicates whether the value is a known member of the LogicalBackupVerificationStatus enum.
+func (e LogicalBackupVerificationStatus) Valid() bool {
+	switch e {
+	case LogicalBackupVerificationStatusNOTVERIFIED:
+		return true
+	case LogicalBackupVerificationStatusVERIFICATIONFAILED:
+		return true
+	case LogicalBackupVerificationStatusVERIFIEDSUCCESSFUL:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for LogicalNotificationTrigger.
 const (
 	LogicalNotificationTriggerBACKUPFAILED  LogicalNotificationTrigger = "BACKUP_FAILED"
@@ -100,6 +147,51 @@ func (e LogicalRetentionPolicy) Valid() bool {
 	case LogicalRetentionPolicyGFS:
 		return true
 	case LogicalRetentionPolicyTIMEPERIOD:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MariadbRestoreTargetType.
+const (
+	MariadbRestoreTargetTypeMARIADB MariadbRestoreTargetType = "MARIADB"
+)
+
+// Valid indicates whether the value is a known member of the MariadbRestoreTargetType enum.
+func (e MariadbRestoreTargetType) Valid() bool {
+	switch e {
+	case MariadbRestoreTargetTypeMARIADB:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MongodbRestoreTargetType.
+const (
+	MongodbRestoreTargetTypeMONGODB MongodbRestoreTargetType = "MONGODB"
+)
+
+// Valid indicates whether the value is a known member of the MongodbRestoreTargetType enum.
+func (e MongodbRestoreTargetType) Valid() bool {
+	switch e {
+	case MongodbRestoreTargetTypeMONGODB:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MysqlRestoreTargetType.
+const (
+	MysqlRestoreTargetTypeMYSQL MysqlRestoreTargetType = "MYSQL"
+)
+
+// Valid indicates whether the value is a known member of the MysqlRestoreTargetType enum.
+func (e MysqlRestoreTargetType) Valid() bool {
+	switch e {
+	case MysqlRestoreTargetTypeMYSQL:
 		return true
 	default:
 		return false
@@ -166,21 +258,63 @@ func (e PhysicalRetentionPolicy) Valid() bool {
 	}
 }
 
+// Defines values for PostgresqlRestoreTargetType.
+const (
+	PostgresqlRestoreTargetTypePOSTGRESLOGICAL PostgresqlRestoreTargetType = "POSTGRES_LOGICAL"
+)
+
+// Valid indicates whether the value is a known member of the PostgresqlRestoreTargetType enum.
+func (e PostgresqlRestoreTargetType) Valid() bool {
+	switch e {
+	case PostgresqlRestoreTargetTypePOSTGRESLOGICAL:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PostgresqlSslMode.
+const (
+	PostgresqlSslModeDisable    PostgresqlSslMode = "disable"
+	PostgresqlSslModeRequire    PostgresqlSslMode = "require"
+	PostgresqlSslModeVerifyCa   PostgresqlSslMode = "verify-ca"
+	PostgresqlSslModeVerifyFull PostgresqlSslMode = "verify-full"
+)
+
+// Valid indicates whether the value is a known member of the PostgresqlSslMode enum.
+func (e PostgresqlSslMode) Valid() bool {
+	switch e {
+	case PostgresqlSslModeDisable:
+		return true
+	case PostgresqlSslModeRequire:
+		return true
+	case PostgresqlSslModeVerifyCa:
+		return true
+	case PostgresqlSslModeVerifyFull:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ProblemCode.
 const (
 	ProblemCodeAdminEmailMissing        ProblemCode = "admin_email_missing"
 	ProblemCodeAlreadyMember            ProblemCode = "already_member"
+	ProblemCodeAlreadyRunning           ProblemCode = "already_running"
 	ProblemCodeCannotChangeOwnRole      ProblemCode = "cannot_change_own_role"
 	ProblemCodeDatabaseConnectionFailed ProblemCode = "database_connection_failed"
 	ProblemCodeEmailNotConfigured       ProblemCode = "email_not_configured"
 	ProblemCodeEmailTaken               ProblemCode = "email_taken"
 	ProblemCodeHumanVerificationFailed  ProblemCode = "human_verification_failed"
 	ProblemCodeInUse                    ProblemCode = "in_use"
+	ProblemCodeInsufficientDiskSpace    ProblemCode = "insufficient_disk_space"
 	ProblemCodeInternal                 ProblemCode = "internal"
 	ProblemCodeInvalidCredentials       ProblemCode = "invalid_credentials"
 	ProblemCodeInvalidRequest           ProblemCode = "invalid_request"
 	ProblemCodeInvalidResetCode         ProblemCode = "invalid_reset_code"
 	ProblemCodeNotFound                 ProblemCode = "not_found"
+	ProblemCodeNotRunning               ProblemCode = "not_running"
 	ProblemCodeOauthFailed              ProblemCode = "oauth_failed"
 	ProblemCodeOauthNotConfigured       ProblemCode = "oauth_not_configured"
 	ProblemCodeOwnerRequiresTransfer    ProblemCode = "owner_requires_transfer"
@@ -204,6 +338,8 @@ func (e ProblemCode) Valid() bool {
 		return true
 	case ProblemCodeAlreadyMember:
 		return true
+	case ProblemCodeAlreadyRunning:
+		return true
 	case ProblemCodeCannotChangeOwnRole:
 		return true
 	case ProblemCodeDatabaseConnectionFailed:
@@ -216,6 +352,8 @@ func (e ProblemCode) Valid() bool {
 		return true
 	case ProblemCodeInUse:
 		return true
+	case ProblemCodeInsufficientDiskSpace:
+		return true
 	case ProblemCodeInternal:
 		return true
 	case ProblemCodeInvalidCredentials:
@@ -225,6 +363,8 @@ func (e ProblemCode) Valid() bool {
 	case ProblemCodeInvalidResetCode:
 		return true
 	case ProblemCodeNotFound:
+		return true
+	case ProblemCodeNotRunning:
 		return true
 	case ProblemCodeOauthFailed:
 		return true
@@ -253,6 +393,30 @@ func (e ProblemCode) Valid() bool {
 	case ProblemCodeUserDeactivated:
 		return true
 	case ProblemCodeWorkspaceNotEmpty:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RestoreStatus.
+const (
+	RestoreStatusCANCELED   RestoreStatus = "CANCELED"
+	RestoreStatusCOMPLETED  RestoreStatus = "COMPLETED"
+	RestoreStatusFAILED     RestoreStatus = "FAILED"
+	RestoreStatusINPROGRESS RestoreStatus = "IN_PROGRESS"
+)
+
+// Valid indicates whether the value is a known member of the RestoreStatus enum.
+func (e RestoreStatus) Valid() bool {
+	switch e {
+	case RestoreStatusCANCELED:
+		return true
+	case RestoreStatusCOMPLETED:
+		return true
+	case RestoreStatusFAILED:
+		return true
+	case RestoreStatusINPROGRESS:
 		return true
 	default:
 		return false
@@ -325,6 +489,24 @@ func (e ScheduleType) Valid() bool {
 	case ScheduleTypeMONTHLY:
 		return true
 	case ScheduleTypeWEEKLY:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SshAuthType.
+const (
+	SshAuthTypePASSWORD   SshAuthType = "PASSWORD"
+	SshAuthTypePRIVATEKEY SshAuthType = "PRIVATE_KEY"
+)
+
+// Valid indicates whether the value is a known member of the SshAuthType enum.
+func (e SshAuthType) Valid() bool {
+	switch e {
+	case SshAuthTypePASSWORD:
+		return true
+	case SshAuthTypePRIVATEKEY:
 		return true
 	default:
 		return false
@@ -431,6 +613,24 @@ type DatabaseTransferStorage struct {
 	union json.RawMessage
 }
 
+// DownloadToken A single-use token that downloads one backup file within five minutes
+type DownloadToken struct {
+	// ExpiresAt When the token stops working
+	ExpiresAt time.Time `json:"expiresAt"`
+
+	// FileName The name the downloaded file gets
+	FileName string `json:"fileName"`
+
+	// Token The token, returned only in this response
+	Token string `json:"token"`
+}
+
+// DownloadTokenCreate The backup whose file to download
+type DownloadTokenCreate struct {
+	// BackupId The backup to download
+	BackupId openapi_types.UUID `json:"backupId"`
+}
+
 // FieldError A field of the request that breaks the contract or a validation rule
 type FieldError struct {
 	// Detail What is wrong with the field
@@ -467,6 +667,51 @@ type FullBackupsRetention struct {
 // FullBackupsRetentionPolicy `LAST_N` keeps the newest `count` full backups, and `GFS` keeps them by grandfather-father-son periods, at least one of them set
 type FullBackupsRetentionPolicy string
 
+// LogicalBackup One logical backup of a database
+type LogicalBackup struct {
+	// CreatedAt When the backup started
+	CreatedAt time.Time `json:"createdAt"`
+
+	// DatabaseId The database the backup was taken of
+	DatabaseId openapi_types.UUID `json:"databaseId"`
+
+	// DurationMs How long the backup ran in milliseconds
+	DurationMs int64 `json:"durationMs"`
+
+	// Encryption Whether the backup files are encrypted with the instance's master key
+	Encryption BackupEncryption `json:"encryption"`
+
+	// FailMessage Why the backup failed, absent unless it failed
+	FailMessage *string `json:"failMessage,omitempty"`
+
+	// Id The ID of the backup
+	Id openapi_types.UUID `json:"id"`
+
+	// RawDatabaseSizeMb The size of the database before the dump in megabytes, 0 when unknown
+	RawDatabaseSizeMb float64 `json:"rawDatabaseSizeMb"`
+
+	// SizeMb The size of the stored file in megabytes, growing while the backup runs
+	SizeMb float64 `json:"sizeMb"`
+
+	// Status Where a logical backup is in its life
+	Status LogicalBackupStatus `json:"status"`
+
+	// StorageId The storage that holds the backup's file
+	StorageId openapi_types.UUID `json:"storageId"`
+
+	// VerificationStatus The outcome of the last restore verification of the backup
+	VerificationStatus LogicalBackupVerificationStatus `json:"verificationStatus"`
+}
+
+// LogicalBackupPage One page of logical backups, newest first
+type LogicalBackupPage struct {
+	// Items The backups on the page
+	Items []LogicalBackup `json:"items"`
+
+	// NextCursor The `after` of the next page, absent on the last page
+	NextCursor *string `json:"nextCursor,omitempty"`
+}
+
 // LogicalBackupSettings The settings of a logical backup, a dump of a PostgreSQL, MySQL, MariaDB or MongoDB database
 type LogicalBackupSettings struct {
 	// IsRetryIfFailed Whether a failed backup is retried
@@ -490,6 +735,18 @@ type LogicalBackupSettings struct {
 
 // LogicalBackupSettingsType Always `LOGICAL`
 type LogicalBackupSettingsType string
+
+// LogicalBackupStart The database whose backup to start
+type LogicalBackupStart struct {
+	// DatabaseId The database to back up
+	DatabaseId openapi_types.UUID `json:"databaseId"`
+}
+
+// LogicalBackupStatus Where a logical backup is in its life
+type LogicalBackupStatus string
+
+// LogicalBackupVerificationStatus The outcome of the last restore verification of the backup
+type LogicalBackupVerificationStatus string
 
 // LogicalNotificationTrigger A logical backup outcome that sends a notification, a failed or a successful backup
 type LogicalNotificationTrigger string
@@ -523,6 +780,111 @@ type LogicalRetention struct {
 
 // LogicalRetentionPolicy `TIME_PERIOD` keeps backups for `period`, `COUNT` keeps the newest `count` backups, and `GFS` keeps backups by grandfather-father-son periods, at least one of them set
 type LogicalRetentionPolicy string
+
+// MariadbRestoreTarget A MariaDB database the dump is replayed into
+type MariadbRestoreTarget struct {
+	// Database The database the restore writes into
+	Database string `json:"database"`
+
+	// Host The host of the server
+	Host string `json:"host"`
+
+	// IsHttps Whether the connection is encrypted, without verifying the server certificate
+	IsHttps bool `json:"isHttps"`
+
+	// IsSkipGaleraDisable Whether the restore keeps Galera replication on for its session
+	IsSkipGaleraDisable bool `json:"isSkipGaleraDisable"`
+
+	// Password The password
+	Password *string `json:"password,omitempty"`
+
+	// Port The port of the server
+	Port int `json:"port"`
+
+	// SshTunnel The SSH bastion a database is reached through. When it is enabled, the host and the port of the database address it as the bastion sees it
+	SshTunnel SshTunnelSettings `json:"sshTunnel"`
+
+	// Type Always `MARIADB`
+	Type MariadbRestoreTargetType `json:"type"`
+
+	// Username The user name
+	Username string `json:"username"`
+}
+
+// MariadbRestoreTargetType Always `MARIADB`
+type MariadbRestoreTargetType string
+
+// MongodbRestoreTarget A MongoDB database that mongorestore writes into
+type MongodbRestoreTarget struct {
+	// AuthDatabase The database the user authenticates against
+	AuthDatabase string `json:"authDatabase"`
+
+	// CpuCount The number of collections mongorestore writes at once
+	CpuCount int `json:"cpuCount"`
+
+	// Database The database the restore writes into
+	Database string `json:"database"`
+
+	// Host The host of the server, or the DNS name of an SRV connection
+	Host string `json:"host"`
+
+	// IsDirectConnection Whether the client talks to the host alone instead of discovering the replica set
+	IsDirectConnection bool `json:"isDirectConnection"`
+
+	// IsHttps Whether TLS is on, without verifying the server certificate
+	IsHttps bool `json:"isHttps"`
+
+	// IsSrv Whether the host is resolved through DNS SRV records
+	IsSrv bool `json:"isSrv"`
+
+	// Password The password
+	Password *string `json:"password,omitempty"`
+
+	// Port The port of the server, absent for an SRV connection
+	Port *int `json:"port,omitempty"`
+
+	// SshTunnel The SSH bastion a database is reached through. When it is enabled, the host and the port of the database address it as the bastion sees it
+	SshTunnel SshTunnelSettings `json:"sshTunnel"`
+
+	// Type Always `MONGODB`
+	Type MongodbRestoreTargetType `json:"type"`
+
+	// Username The user name
+	Username string `json:"username"`
+}
+
+// MongodbRestoreTargetType Always `MONGODB`
+type MongodbRestoreTargetType string
+
+// MysqlRestoreTarget A MySQL database the dump is replayed into
+type MysqlRestoreTarget struct {
+	// Database The database the restore writes into
+	Database string `json:"database"`
+
+	// Host The host of the server
+	Host string `json:"host"`
+
+	// IsHttps Whether the connection is encrypted, without verifying the server certificate
+	IsHttps bool `json:"isHttps"`
+
+	// Password The password
+	Password *string `json:"password,omitempty"`
+
+	// Port The port of the server
+	Port int `json:"port"`
+
+	// SshTunnel The SSH bastion a database is reached through. When it is enabled, the host and the port of the database address it as the bastion sees it
+	SshTunnel SshTunnelSettings `json:"sshTunnel"`
+
+	// Type Always `MYSQL`
+	Type MysqlRestoreTargetType `json:"type"`
+
+	// Username The user name
+	Username string `json:"username"`
+}
+
+// MysqlRestoreTargetType Always `MYSQL`
+type MysqlRestoreTargetType string
 
 // NotificationTrigger A backup outcome that sends a notification: a failed or a successful backup, a broken chain of incremental backups, or a gap in the streamed WAL
 type NotificationTrigger string
@@ -566,6 +928,60 @@ type PhysicalRetention struct {
 // PhysicalRetentionPolicy `CHAINS` keeps chains, `FULL_BACKUPS` keeps full backups, and `CHAINS_AND_FULL_BACKUPS` keeps both; a backup type without incremental backups takes only `FULL_BACKUPS`, and one with them takes the other two
 type PhysicalRetentionPolicy string
 
+// PostgresqlRestoreTarget A PostgreSQL database that pg_restore writes into
+type PostgresqlRestoreTarget struct {
+	// CpuCount The number of parallel jobs of pg_restore; more than one restores through a file
+	CpuCount int `json:"cpuCount"`
+
+	// Database The database the restore writes into
+	Database string `json:"database"`
+
+	// Host The host of the server
+	Host string `json:"host"`
+
+	// IsExcludeExtensions Whether the restore leaves out the extensions, which needs a file
+	IsExcludeExtensions bool `json:"isExcludeExtensions"`
+
+	// IsRestoreOwnership Whether the restore keeps the owners of the objects
+	IsRestoreOwnership bool `json:"isRestoreOwnership"`
+
+	// IsRestorePrivileges Whether the restore keeps the grants of the objects
+	IsRestorePrivileges bool `json:"isRestorePrivileges"`
+
+	// Password The password
+	Password *string `json:"password,omitempty"`
+
+	// Port The port of the server
+	Port int `json:"port"`
+
+	// SshTunnel The SSH bastion a database is reached through. When it is enabled, the host and the port of the database address it as the bastion sees it
+	SshTunnel SshTunnelSettings `json:"sshTunnel"`
+
+	// SslClientCert The PEM client certificate, absent without one
+	SslClientCert *string `json:"sslClientCert,omitempty"`
+
+	// SslClientKey The PEM key of the client certificate
+	SslClientKey *string `json:"sslClientKey,omitempty"`
+
+	// SslMode The libpq SSL mode of the connection
+	SslMode PostgresqlSslMode `json:"sslMode"`
+
+	// SslRootCert The PEM root certificate the server is verified against, absent without one
+	SslRootCert *string `json:"sslRootCert,omitempty"`
+
+	// Type Always `POSTGRES_LOGICAL`
+	Type PostgresqlRestoreTargetType `json:"type"`
+
+	// Username The user name
+	Username string `json:"username"`
+}
+
+// PostgresqlRestoreTargetType Always `POSTGRES_LOGICAL`
+type PostgresqlRestoreTargetType string
+
+// PostgresqlSslMode The libpq SSL mode of the connection
+type PostgresqlSslMode string
+
 // Problem An error in the RFC 9457 format. The client chooses its text by `code`
 type Problem struct {
 	// Code The cause of the error for programs; a value never changes its meaning
@@ -589,6 +1005,53 @@ type Problem struct {
 
 // ProblemCode The cause of the error for programs; a value never changes its meaning
 type ProblemCode string
+
+// Restore One restore of a logical backup, without any field of its target
+type Restore struct {
+	// BackupId The backup the restore reads
+	BackupId openapi_types.UUID `json:"backupId"`
+
+	// CreatedAt When the restore started
+	CreatedAt time.Time `json:"createdAt"`
+
+	// DurationMs How long the restore ran in milliseconds
+	DurationMs int64 `json:"durationMs"`
+
+	// FailMessage Why the restore failed, absent unless it failed
+	FailMessage *string `json:"failMessage,omitempty"`
+
+	// Id The ID of the restore
+	Id openapi_types.UUID `json:"id"`
+
+	// Status Where a restore is in its life
+	Status RestoreStatus `json:"status"`
+}
+
+// RestorePage One page of restores, newest first
+type RestorePage struct {
+	// Items The restores on the page
+	Items []Restore `json:"items"`
+
+	// NextCursor The `after` of the next page, absent on the last page
+	NextCursor *string `json:"nextCursor,omitempty"`
+}
+
+// RestoreStart The backup to restore and the database to restore it into
+type RestoreStart struct {
+	// BackupId The completed backup to restore
+	BackupId openapi_types.UUID `json:"backupId"`
+
+	// Target The database a restore writes into, of the backup's engine; `type` takes the database type of the backup's database
+	Target RestoreTarget `json:"target"`
+}
+
+// RestoreStatus Where a restore is in its life
+type RestoreStatus string
+
+// RestoreTarget The database a restore writes into, of the backup's engine; `type` takes the database type of the backup's database
+type RestoreTarget struct {
+	union json.RawMessage
+}
 
 // RetentionPeriod How long the `TIME_PERIOD` retention keeps a backup
 type RetentionPeriod string
@@ -614,6 +1077,36 @@ type Schedule struct {
 // ScheduleType How often a schedule runs
 type ScheduleType string
 
+// SshAuthType How Databasus signs in to the bastion
+type SshAuthType string
+
+// SshTunnelSettings The SSH bastion a database is reached through. When it is enabled, the host and the port of the database address it as the bastion sees it
+type SshTunnelSettings struct {
+	// AuthType How Databasus signs in to the bastion
+	AuthType *SshAuthType `json:"authType,omitempty"`
+
+	// Host The host of the bastion
+	Host *string `json:"host,omitempty"`
+
+	// IsEnabled Whether the connection goes through the bastion
+	IsEnabled bool `json:"isEnabled"`
+
+	// Password The password, with `PASSWORD` authentication
+	Password *string `json:"password,omitempty"`
+
+	// Port The SSH port of the bastion
+	Port *int `json:"port,omitempty"`
+
+	// PrivateKey The private key, with `PRIVATE_KEY` authentication
+	PrivateKey *string `json:"privateKey,omitempty"`
+
+	// PrivateKeyPassphrase The passphrase of the private key, absent for a key without one
+	PrivateKeyPassphrase *string `json:"privateKeyPassphrase,omitempty"`
+
+	// Username The user name on the bastion
+	Username *string `json:"username,omitempty"`
+}
+
 // StorageMovedWithDatabase The database's storage moves to the target workspace too; no other database may back up into it
 type StorageMovedWithDatabase struct {
 	// Type Always `MOVE_WITH_DATABASE`
@@ -638,6 +1131,9 @@ type StorageSwitchedOnTransferType string
 // BackupConfigDatabaseId defines model for BackupConfigDatabaseId.
 type BackupConfigDatabaseId = openapi_types.UUID
 
+// BackupId defines model for BackupId.
+type BackupId = openapi_types.UUID
+
 // DatabaseId defines model for DatabaseId.
 type DatabaseId = openapi_types.UUID
 
@@ -649,6 +1145,9 @@ type NotifierId = openapi_types.UUID
 
 // PendingSignInId defines model for PendingSignInId.
 type PendingSignInId = openapi_types.UUID
+
+// RestoreId defines model for RestoreId.
+type RestoreId = openapi_types.UUID
 
 // StorageId defines model for StorageId.
 type StorageId = openapi_types.UUID
@@ -674,11 +1173,56 @@ type ListBackupConfigsParams struct {
 	After *string `form:"after,omitempty" json:"after,omitempty"`
 }
 
+// ListLogicalBackupsParams defines parameters for ListLogicalBackups.
+type ListLogicalBackupsParams struct {
+	// DatabaseId The database whose backups to list
+	DatabaseId openapi_types.UUID `form:"databaseId" json:"databaseId"`
+
+	// Status Only backups in one of these statuses
+	Status *[]LogicalBackupStatus `form:"status,omitempty" json:"status,omitempty"`
+
+	// CreatedBefore Only backups made before this time
+	CreatedBefore *time.Time `form:"createdBefore,omitempty" json:"createdBefore,omitempty"`
+
+	// Limit The largest number of backups on the page
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// After The `nextCursor` of the previous page
+	After *string `form:"after,omitempty" json:"after,omitempty"`
+}
+
+// DownloadLogicalBackupParams defines parameters for DownloadLogicalBackup.
+type DownloadLogicalBackupParams struct {
+	// Token The download token issued for this backup
+	Token string `form:"token" json:"token"`
+}
+
+// ListRestoresParams defines parameters for ListRestores.
+type ListRestoresParams struct {
+	// BackupId The backup whose restores to list
+	BackupId openapi_types.UUID `form:"backupId" json:"backupId"`
+
+	// Limit The largest number of restores on the page
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// After The `nextCursor` of the previous page
+	After *string `form:"after,omitempty" json:"after,omitempty"`
+}
+
 // UpdateBackupConfigJSONRequestBody defines body for UpdateBackupConfig for application/json ContentType.
 type UpdateBackupConfigJSONRequestBody = BackupConfigInput
 
 // TransferDatabaseJSONRequestBody defines body for TransferDatabase for application/json ContentType.
 type TransferDatabaseJSONRequestBody = DatabaseTransfer
+
+// CreateDownloadTokenJSONRequestBody defines body for CreateDownloadToken for application/json ContentType.
+type CreateDownloadTokenJSONRequestBody = DownloadTokenCreate
+
+// StartLogicalBackupJSONRequestBody defines body for StartLogicalBackup for application/json ContentType.
+type StartLogicalBackupJSONRequestBody = LogicalBackupStart
+
+// StartRestoreJSONRequestBody defines body for StartRestore for application/json ContentType.
+type StartRestoreJSONRequestBody = RestoreStart
 
 // AsLogicalBackupSettings returns the union data inside the BackupSettings as a LogicalBackupSettings
 func (t BackupSettings) AsLogicalBackupSettings() (LogicalBackupSettings, error) {
@@ -882,6 +1426,179 @@ func (t *DatabaseTransferStorage) UnmarshalJSON(b []byte) error {
 	return err
 }
 
+// AsPostgresqlRestoreTarget returns the union data inside the RestoreTarget as a PostgresqlRestoreTarget
+func (t RestoreTarget) AsPostgresqlRestoreTarget() (PostgresqlRestoreTarget, error) {
+	var body PostgresqlRestoreTarget
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromPostgresqlRestoreTarget overwrites any union data inside the RestoreTarget as the provided PostgresqlRestoreTarget
+func (t *RestoreTarget) FromPostgresqlRestoreTarget(v PostgresqlRestoreTarget) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"POSTGRES_LOGICAL"}`))
+	t.union = b
+	return err
+}
+
+// MergePostgresqlRestoreTarget performs a merge with any union data inside the RestoreTarget, using the provided PostgresqlRestoreTarget
+func (t *RestoreTarget) MergePostgresqlRestoreTarget(v PostgresqlRestoreTarget) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"POSTGRES_LOGICAL"}`))
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsMysqlRestoreTarget returns the union data inside the RestoreTarget as a MysqlRestoreTarget
+func (t RestoreTarget) AsMysqlRestoreTarget() (MysqlRestoreTarget, error) {
+	var body MysqlRestoreTarget
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromMysqlRestoreTarget overwrites any union data inside the RestoreTarget as the provided MysqlRestoreTarget
+func (t *RestoreTarget) FromMysqlRestoreTarget(v MysqlRestoreTarget) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"MYSQL"}`))
+	t.union = b
+	return err
+}
+
+// MergeMysqlRestoreTarget performs a merge with any union data inside the RestoreTarget, using the provided MysqlRestoreTarget
+func (t *RestoreTarget) MergeMysqlRestoreTarget(v MysqlRestoreTarget) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"MYSQL"}`))
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsMariadbRestoreTarget returns the union data inside the RestoreTarget as a MariadbRestoreTarget
+func (t RestoreTarget) AsMariadbRestoreTarget() (MariadbRestoreTarget, error) {
+	var body MariadbRestoreTarget
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromMariadbRestoreTarget overwrites any union data inside the RestoreTarget as the provided MariadbRestoreTarget
+func (t *RestoreTarget) FromMariadbRestoreTarget(v MariadbRestoreTarget) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"MARIADB"}`))
+	t.union = b
+	return err
+}
+
+// MergeMariadbRestoreTarget performs a merge with any union data inside the RestoreTarget, using the provided MariadbRestoreTarget
+func (t *RestoreTarget) MergeMariadbRestoreTarget(v MariadbRestoreTarget) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"MARIADB"}`))
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsMongodbRestoreTarget returns the union data inside the RestoreTarget as a MongodbRestoreTarget
+func (t RestoreTarget) AsMongodbRestoreTarget() (MongodbRestoreTarget, error) {
+	var body MongodbRestoreTarget
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromMongodbRestoreTarget overwrites any union data inside the RestoreTarget as the provided MongodbRestoreTarget
+func (t *RestoreTarget) FromMongodbRestoreTarget(v MongodbRestoreTarget) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"MONGODB"}`))
+	t.union = b
+	return err
+}
+
+// MergeMongodbRestoreTarget performs a merge with any union data inside the RestoreTarget, using the provided MongodbRestoreTarget
+func (t *RestoreTarget) MergeMongodbRestoreTarget(v MongodbRestoreTarget) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"MONGODB"}`))
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t RestoreTarget) Discriminator() (string, error) {
+	var discriminator struct {
+		Discriminator string `json:"type"`
+	}
+	err := json.Unmarshal(t.union, &discriminator)
+	return discriminator.Discriminator, err
+}
+
+func (t RestoreTarget) ValueByDiscriminator() (interface{}, error) {
+	discriminator, err := t.Discriminator()
+	if err != nil {
+		return nil, err
+	}
+	switch discriminator {
+	case "MARIADB":
+		return t.AsMariadbRestoreTarget()
+	case "MONGODB":
+		return t.AsMongodbRestoreTarget()
+	case "MYSQL":
+		return t.AsMysqlRestoreTarget()
+	case "POSTGRES_LOGICAL":
+		return t.AsPostgresqlRestoreTarget()
+	default:
+		return nil, errors.New("unknown discriminator value: " + discriminator)
+	}
+}
+
+func (t RestoreTarget) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *RestoreTarget) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 	// ListBackupConfigs List the saved backup configs of a workspace or of a storage
@@ -896,6 +1613,39 @@ type ServerInterface interface {
 	// TransferDatabase Move a database to another workspace
 	// (POST /databases/{databaseId}/transfer)
 	TransferDatabase(c *gin.Context, databaseId DatabaseId)
+	// CreateDownloadToken Issue a single-use token to download a backup file
+	// (POST /download-tokens)
+	CreateDownloadToken(c *gin.Context)
+	// ListLogicalBackups List the logical backups of a database
+	// (GET /logical-backups)
+	ListLogicalBackups(c *gin.Context, params ListLogicalBackupsParams)
+	// StartLogicalBackup Start a backup of a database
+	// (POST /logical-backups)
+	StartLogicalBackup(c *gin.Context)
+	// DeleteLogicalBackup Delete a logical backup and its file
+	// (DELETE /logical-backups/{backupId})
+	DeleteLogicalBackup(c *gin.Context, backupId BackupId)
+	// GetLogicalBackup Get a logical backup
+	// (GET /logical-backups/{backupId})
+	GetLogicalBackup(c *gin.Context, backupId BackupId)
+	// CancelLogicalBackup Cancel a running logical backup
+	// (POST /logical-backups/{backupId}/cancel)
+	CancelLogicalBackup(c *gin.Context, backupId BackupId)
+	// DownloadLogicalBackup Download the file of a logical backup
+	// (GET /logical-backups/{backupId}/file)
+	DownloadLogicalBackup(c *gin.Context, backupId BackupId, params DownloadLogicalBackupParams)
+	// ListRestores List the restores of a logical backup
+	// (GET /restores)
+	ListRestores(c *gin.Context, params ListRestoresParams)
+	// StartRestore Restore a logical backup into a target database
+	// (POST /restores)
+	StartRestore(c *gin.Context)
+	// GetRestore Get a restore
+	// (GET /restores/{restoreId})
+	GetRestore(c *gin.Context, restoreId RestoreId)
+	// CancelRestore Cancel a running restore
+	// (POST /restores/{restoreId}/cancel)
+	CancelRestore(c *gin.Context, restoreId RestoreId)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -1033,6 +1783,308 @@ func (siw *ServerInterfaceWrapper) TransferDatabase(c *gin.Context) {
 	siw.Handler.TransferDatabase(c, databaseId)
 }
 
+// CreateDownloadToken operation middleware
+func (siw *ServerInterfaceWrapper) CreateDownloadToken(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.CreateDownloadToken(c)
+}
+
+// ListLogicalBackups operation middleware
+func (siw *ServerInterfaceWrapper) ListLogicalBackups(c *gin.Context) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListLogicalBackupsParams
+
+	// ------------- Required query parameter "databaseId" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "databaseId", c.Request.URL.Query(), &params.DatabaseId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter databaseId: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Optional query parameter "status" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "status", c.Request.URL.Query(), &params.Status, runtime.BindQueryParameterOptions{Type: "array", Format: ""})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter status: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Optional query parameter "createdBefore" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "createdBefore", c.Request.URL.Query(), &params.CreatedBefore, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter createdBefore: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", c.Request.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter limit: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Optional query parameter "after" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "after", c.Request.URL.Query(), &params.After, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter after: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.ListLogicalBackups(c, params)
+}
+
+// StartLogicalBackup operation middleware
+func (siw *ServerInterfaceWrapper) StartLogicalBackup(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.StartLogicalBackup(c)
+}
+
+// DeleteLogicalBackup operation middleware
+func (siw *ServerInterfaceWrapper) DeleteLogicalBackup(c *gin.Context) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "backupId" -------------
+	var backupId BackupId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "backupId", c.Param("backupId"), &backupId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter backupId: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.DeleteLogicalBackup(c, backupId)
+}
+
+// GetLogicalBackup operation middleware
+func (siw *ServerInterfaceWrapper) GetLogicalBackup(c *gin.Context) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "backupId" -------------
+	var backupId BackupId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "backupId", c.Param("backupId"), &backupId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter backupId: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.GetLogicalBackup(c, backupId)
+}
+
+// CancelLogicalBackup operation middleware
+func (siw *ServerInterfaceWrapper) CancelLogicalBackup(c *gin.Context) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "backupId" -------------
+	var backupId BackupId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "backupId", c.Param("backupId"), &backupId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter backupId: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.CancelLogicalBackup(c, backupId)
+}
+
+// DownloadLogicalBackup operation middleware
+func (siw *ServerInterfaceWrapper) DownloadLogicalBackup(c *gin.Context) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "backupId" -------------
+	var backupId BackupId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "backupId", c.Param("backupId"), &backupId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter backupId: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params DownloadLogicalBackupParams
+
+	// ------------- Required query parameter "token" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "token", c.Request.URL.Query(), &params.Token, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter token: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.DownloadLogicalBackup(c, backupId, params)
+}
+
+// ListRestores operation middleware
+func (siw *ServerInterfaceWrapper) ListRestores(c *gin.Context) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListRestoresParams
+
+	// ------------- Required query parameter "backupId" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "backupId", c.Request.URL.Query(), &params.BackupId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter backupId: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", c.Request.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter limit: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Optional query parameter "after" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "after", c.Request.URL.Query(), &params.After, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter after: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.ListRestores(c, params)
+}
+
+// StartRestore operation middleware
+func (siw *ServerInterfaceWrapper) StartRestore(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.StartRestore(c)
+}
+
+// GetRestore operation middleware
+func (siw *ServerInterfaceWrapper) GetRestore(c *gin.Context) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "restoreId" -------------
+	var restoreId RestoreId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "restoreId", c.Param("restoreId"), &restoreId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter restoreId: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.GetRestore(c, restoreId)
+}
+
+// CancelRestore operation middleware
+func (siw *ServerInterfaceWrapper) CancelRestore(c *gin.Context) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "restoreId" -------------
+	var restoreId RestoreId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "restoreId", c.Param("restoreId"), &restoreId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter restoreId: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.CancelRestore(c, restoreId)
+}
+
 // GinServerOptions provides options for the Gin server.
 type GinServerOptions struct {
 	BaseURL      string
@@ -1064,6 +2116,17 @@ func RegisterHandlersWithOptions(router gin.IRouter, si ServerInterface, options
 	router.GET(options.BaseURL+"/backup-configs", wrapper.ListBackupConfigs)
 	router.GET(options.BaseURL+"/backup-configs/:databaseId", wrapper.GetBackupConfig)
 	router.PUT(options.BaseURL+"/backup-configs/:databaseId", wrapper.UpdateBackupConfig)
+	router.GET(options.BaseURL+"/logical-backups", wrapper.ListLogicalBackups)
+	router.POST(options.BaseURL+"/logical-backups", wrapper.StartLogicalBackup)
+	router.DELETE(options.BaseURL+"/logical-backups/:backupId", wrapper.DeleteLogicalBackup)
+	router.GET(options.BaseURL+"/logical-backups/:backupId", wrapper.GetLogicalBackup)
+	router.POST(options.BaseURL+"/logical-backups/:backupId/cancel", wrapper.CancelLogicalBackup)
+	router.GET(options.BaseURL+"/logical-backups/:backupId/file", wrapper.DownloadLogicalBackup)
+	router.POST(options.BaseURL+"/download-tokens", wrapper.CreateDownloadToken)
+	router.GET(options.BaseURL+"/restores", wrapper.ListRestores)
+	router.POST(options.BaseURL+"/restores", wrapper.StartRestore)
+	router.GET(options.BaseURL+"/restores/:restoreId", wrapper.GetRestore)
+	router.POST(options.BaseURL+"/restores/:restoreId/cancel", wrapper.CancelRestore)
 }
 
 type ProblemApplicationProblemPlusJSONResponse Problem
@@ -1452,6 +2515,1082 @@ func (response TransferDatabasedefaultApplicationProblemPlusJSONResponse) VisitT
 	return err
 }
 
+type CreateDownloadTokenRequestObject struct {
+	Body *CreateDownloadTokenJSONRequestBody
+}
+
+type CreateDownloadTokenResponseObject interface {
+	VisitCreateDownloadTokenResponse(w http.ResponseWriter) error
+}
+
+type CreateDownloadToken201JSONResponse DownloadToken
+
+func (response CreateDownloadToken201JSONResponse) VisitCreateDownloadTokenResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateDownloadToken400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response CreateDownloadToken400ApplicationProblemPlusJSONResponse) VisitCreateDownloadTokenResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateDownloadToken401ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateDownloadToken401ApplicationProblemPlusJSONResponse) VisitCreateDownloadTokenResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateDownloadToken404ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateDownloadToken404ApplicationProblemPlusJSONResponse) VisitCreateDownloadTokenResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateDownloadToken409ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateDownloadToken409ApplicationProblemPlusJSONResponse) VisitCreateDownloadTokenResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateDownloadTokendefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response CreateDownloadTokendefaultApplicationProblemPlusJSONResponse) VisitCreateDownloadTokenResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListLogicalBackupsRequestObject struct {
+	Params ListLogicalBackupsParams
+}
+
+type ListLogicalBackupsResponseObject interface {
+	VisitListLogicalBackupsResponse(w http.ResponseWriter) error
+}
+
+type ListLogicalBackups200JSONResponse LogicalBackupPage
+
+func (response ListLogicalBackups200JSONResponse) VisitListLogicalBackupsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListLogicalBackups400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response ListLogicalBackups400ApplicationProblemPlusJSONResponse) VisitListLogicalBackupsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListLogicalBackups401ApplicationProblemPlusJSONResponse Problem
+
+func (response ListLogicalBackups401ApplicationProblemPlusJSONResponse) VisitListLogicalBackupsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListLogicalBackups404ApplicationProblemPlusJSONResponse Problem
+
+func (response ListLogicalBackups404ApplicationProblemPlusJSONResponse) VisitListLogicalBackupsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListLogicalBackupsdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response ListLogicalBackupsdefaultApplicationProblemPlusJSONResponse) VisitListLogicalBackupsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StartLogicalBackupRequestObject struct {
+	Body *StartLogicalBackupJSONRequestBody
+}
+
+type StartLogicalBackupResponseObject interface {
+	VisitStartLogicalBackupResponse(w http.ResponseWriter) error
+}
+
+type StartLogicalBackup202JSONResponse LogicalBackup
+
+func (response StartLogicalBackup202JSONResponse) VisitStartLogicalBackupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(202)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StartLogicalBackup400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response StartLogicalBackup400ApplicationProblemPlusJSONResponse) VisitStartLogicalBackupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StartLogicalBackup401ApplicationProblemPlusJSONResponse Problem
+
+func (response StartLogicalBackup401ApplicationProblemPlusJSONResponse) VisitStartLogicalBackupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StartLogicalBackup403ApplicationProblemPlusJSONResponse Problem
+
+func (response StartLogicalBackup403ApplicationProblemPlusJSONResponse) VisitStartLogicalBackupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StartLogicalBackup404ApplicationProblemPlusJSONResponse Problem
+
+func (response StartLogicalBackup404ApplicationProblemPlusJSONResponse) VisitStartLogicalBackupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StartLogicalBackup409ApplicationProblemPlusJSONResponse Problem
+
+func (response StartLogicalBackup409ApplicationProblemPlusJSONResponse) VisitStartLogicalBackupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StartLogicalBackupdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response StartLogicalBackupdefaultApplicationProblemPlusJSONResponse) VisitStartLogicalBackupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteLogicalBackupRequestObject struct {
+	BackupId BackupId `json:"backupId"`
+}
+
+type DeleteLogicalBackupResponseObject interface {
+	VisitDeleteLogicalBackupResponse(w http.ResponseWriter) error
+}
+
+type DeleteLogicalBackup204Response struct {
+}
+
+func (response DeleteLogicalBackup204Response) VisitDeleteLogicalBackupResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteLogicalBackup400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteLogicalBackup400ApplicationProblemPlusJSONResponse) VisitDeleteLogicalBackupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteLogicalBackup401ApplicationProblemPlusJSONResponse Problem
+
+func (response DeleteLogicalBackup401ApplicationProblemPlusJSONResponse) VisitDeleteLogicalBackupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteLogicalBackup403ApplicationProblemPlusJSONResponse Problem
+
+func (response DeleteLogicalBackup403ApplicationProblemPlusJSONResponse) VisitDeleteLogicalBackupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteLogicalBackup404ApplicationProblemPlusJSONResponse Problem
+
+func (response DeleteLogicalBackup404ApplicationProblemPlusJSONResponse) VisitDeleteLogicalBackupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteLogicalBackup409ApplicationProblemPlusJSONResponse Problem
+
+func (response DeleteLogicalBackup409ApplicationProblemPlusJSONResponse) VisitDeleteLogicalBackupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteLogicalBackupdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response DeleteLogicalBackupdefaultApplicationProblemPlusJSONResponse) VisitDeleteLogicalBackupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetLogicalBackupRequestObject struct {
+	BackupId BackupId `json:"backupId"`
+}
+
+type GetLogicalBackupResponseObject interface {
+	VisitGetLogicalBackupResponse(w http.ResponseWriter) error
+}
+
+type GetLogicalBackup200JSONResponse LogicalBackup
+
+func (response GetLogicalBackup200JSONResponse) VisitGetLogicalBackupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetLogicalBackup400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response GetLogicalBackup400ApplicationProblemPlusJSONResponse) VisitGetLogicalBackupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetLogicalBackup401ApplicationProblemPlusJSONResponse Problem
+
+func (response GetLogicalBackup401ApplicationProblemPlusJSONResponse) VisitGetLogicalBackupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetLogicalBackup404ApplicationProblemPlusJSONResponse Problem
+
+func (response GetLogicalBackup404ApplicationProblemPlusJSONResponse) VisitGetLogicalBackupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetLogicalBackupdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response GetLogicalBackupdefaultApplicationProblemPlusJSONResponse) VisitGetLogicalBackupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CancelLogicalBackupRequestObject struct {
+	BackupId BackupId `json:"backupId"`
+}
+
+type CancelLogicalBackupResponseObject interface {
+	VisitCancelLogicalBackupResponse(w http.ResponseWriter) error
+}
+
+type CancelLogicalBackup202JSONResponse LogicalBackup
+
+func (response CancelLogicalBackup202JSONResponse) VisitCancelLogicalBackupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(202)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CancelLogicalBackup400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response CancelLogicalBackup400ApplicationProblemPlusJSONResponse) VisitCancelLogicalBackupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CancelLogicalBackup401ApplicationProblemPlusJSONResponse Problem
+
+func (response CancelLogicalBackup401ApplicationProblemPlusJSONResponse) VisitCancelLogicalBackupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CancelLogicalBackup403ApplicationProblemPlusJSONResponse Problem
+
+func (response CancelLogicalBackup403ApplicationProblemPlusJSONResponse) VisitCancelLogicalBackupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CancelLogicalBackup404ApplicationProblemPlusJSONResponse Problem
+
+func (response CancelLogicalBackup404ApplicationProblemPlusJSONResponse) VisitCancelLogicalBackupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CancelLogicalBackup409ApplicationProblemPlusJSONResponse Problem
+
+func (response CancelLogicalBackup409ApplicationProblemPlusJSONResponse) VisitCancelLogicalBackupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CancelLogicalBackupdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response CancelLogicalBackupdefaultApplicationProblemPlusJSONResponse) VisitCancelLogicalBackupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DownloadLogicalBackupRequestObject struct {
+	BackupId BackupId `json:"backupId"`
+	Params   DownloadLogicalBackupParams
+}
+
+type DownloadLogicalBackupResponseObject interface {
+	VisitDownloadLogicalBackupResponse(w http.ResponseWriter) error
+}
+
+type DownloadLogicalBackup200ResponseHeaders struct {
+	ContentDisposition *string
+}
+
+type DownloadLogicalBackup200ApplicationoctetStreamResponse struct {
+	Body          io.Reader
+	Headers       DownloadLogicalBackup200ResponseHeaders
+	ContentLength int64
+}
+
+func (response DownloadLogicalBackup200ApplicationoctetStreamResponse) VisitDownloadLogicalBackupResponse(w http.ResponseWriter) error {
+
+	w.Header().Set("Content-Type", "application/octet-stream")
+	if response.ContentLength != 0 {
+		w.Header().Set("Content-Length", fmt.Sprint(response.ContentLength))
+	}
+	if response.Headers.ContentDisposition != nil {
+		w.Header().Set("Content-Disposition", fmt.Sprint(*response.Headers.ContentDisposition))
+	}
+	w.WriteHeader(200)
+
+	if closer, ok := response.Body.(io.ReadCloser); ok {
+		defer closer.Close()
+	}
+	_, err := io.Copy(w, response.Body)
+	return err
+}
+
+type DownloadLogicalBackup400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response DownloadLogicalBackup400ApplicationProblemPlusJSONResponse) VisitDownloadLogicalBackupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DownloadLogicalBackup401ApplicationProblemPlusJSONResponse Problem
+
+func (response DownloadLogicalBackup401ApplicationProblemPlusJSONResponse) VisitDownloadLogicalBackupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DownloadLogicalBackup409ApplicationProblemPlusJSONResponse Problem
+
+func (response DownloadLogicalBackup409ApplicationProblemPlusJSONResponse) VisitDownloadLogicalBackupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DownloadLogicalBackupdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response DownloadLogicalBackupdefaultApplicationProblemPlusJSONResponse) VisitDownloadLogicalBackupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListRestoresRequestObject struct {
+	Params ListRestoresParams
+}
+
+type ListRestoresResponseObject interface {
+	VisitListRestoresResponse(w http.ResponseWriter) error
+}
+
+type ListRestores200JSONResponse RestorePage
+
+func (response ListRestores200JSONResponse) VisitListRestoresResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListRestores400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response ListRestores400ApplicationProblemPlusJSONResponse) VisitListRestoresResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListRestores401ApplicationProblemPlusJSONResponse Problem
+
+func (response ListRestores401ApplicationProblemPlusJSONResponse) VisitListRestoresResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListRestores404ApplicationProblemPlusJSONResponse Problem
+
+func (response ListRestores404ApplicationProblemPlusJSONResponse) VisitListRestoresResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListRestoresdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response ListRestoresdefaultApplicationProblemPlusJSONResponse) VisitListRestoresResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StartRestoreRequestObject struct {
+	Body *StartRestoreJSONRequestBody
+}
+
+type StartRestoreResponseObject interface {
+	VisitStartRestoreResponse(w http.ResponseWriter) error
+}
+
+type StartRestore202JSONResponse Restore
+
+func (response StartRestore202JSONResponse) VisitStartRestoreResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(202)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StartRestore400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response StartRestore400ApplicationProblemPlusJSONResponse) VisitStartRestoreResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StartRestore401ApplicationProblemPlusJSONResponse Problem
+
+func (response StartRestore401ApplicationProblemPlusJSONResponse) VisitStartRestoreResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StartRestore403ApplicationProblemPlusJSONResponse Problem
+
+func (response StartRestore403ApplicationProblemPlusJSONResponse) VisitStartRestoreResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StartRestore404ApplicationProblemPlusJSONResponse Problem
+
+func (response StartRestore404ApplicationProblemPlusJSONResponse) VisitStartRestoreResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StartRestore409ApplicationProblemPlusJSONResponse Problem
+
+func (response StartRestore409ApplicationProblemPlusJSONResponse) VisitStartRestoreResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StartRestoredefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response StartRestoredefaultApplicationProblemPlusJSONResponse) VisitStartRestoreResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetRestoreRequestObject struct {
+	RestoreId RestoreId `json:"restoreId"`
+}
+
+type GetRestoreResponseObject interface {
+	VisitGetRestoreResponse(w http.ResponseWriter) error
+}
+
+type GetRestore200JSONResponse Restore
+
+func (response GetRestore200JSONResponse) VisitGetRestoreResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetRestore400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response GetRestore400ApplicationProblemPlusJSONResponse) VisitGetRestoreResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetRestore401ApplicationProblemPlusJSONResponse Problem
+
+func (response GetRestore401ApplicationProblemPlusJSONResponse) VisitGetRestoreResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetRestore404ApplicationProblemPlusJSONResponse Problem
+
+func (response GetRestore404ApplicationProblemPlusJSONResponse) VisitGetRestoreResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetRestoredefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response GetRestoredefaultApplicationProblemPlusJSONResponse) VisitGetRestoreResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CancelRestoreRequestObject struct {
+	RestoreId RestoreId `json:"restoreId"`
+}
+
+type CancelRestoreResponseObject interface {
+	VisitCancelRestoreResponse(w http.ResponseWriter) error
+}
+
+type CancelRestore202JSONResponse Restore
+
+func (response CancelRestore202JSONResponse) VisitCancelRestoreResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(202)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CancelRestore400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response CancelRestore400ApplicationProblemPlusJSONResponse) VisitCancelRestoreResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CancelRestore401ApplicationProblemPlusJSONResponse Problem
+
+func (response CancelRestore401ApplicationProblemPlusJSONResponse) VisitCancelRestoreResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CancelRestore403ApplicationProblemPlusJSONResponse Problem
+
+func (response CancelRestore403ApplicationProblemPlusJSONResponse) VisitCancelRestoreResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CancelRestore404ApplicationProblemPlusJSONResponse Problem
+
+func (response CancelRestore404ApplicationProblemPlusJSONResponse) VisitCancelRestoreResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CancelRestore409ApplicationProblemPlusJSONResponse Problem
+
+func (response CancelRestore409ApplicationProblemPlusJSONResponse) VisitCancelRestoreResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CancelRestoredefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response CancelRestoredefaultApplicationProblemPlusJSONResponse) VisitCancelRestoreResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
 	// ListBackupConfigs List the saved backup configs of a workspace or of a storage
@@ -1466,6 +3605,39 @@ type StrictServerInterface interface {
 	// TransferDatabase Move a database to another workspace
 	// (POST /databases/{databaseId}/transfer)
 	TransferDatabase(ctx context.Context, request TransferDatabaseRequestObject) (TransferDatabaseResponseObject, error)
+	// CreateDownloadToken Issue a single-use token to download a backup file
+	// (POST /download-tokens)
+	CreateDownloadToken(ctx context.Context, request CreateDownloadTokenRequestObject) (CreateDownloadTokenResponseObject, error)
+	// ListLogicalBackups List the logical backups of a database
+	// (GET /logical-backups)
+	ListLogicalBackups(ctx context.Context, request ListLogicalBackupsRequestObject) (ListLogicalBackupsResponseObject, error)
+	// StartLogicalBackup Start a backup of a database
+	// (POST /logical-backups)
+	StartLogicalBackup(ctx context.Context, request StartLogicalBackupRequestObject) (StartLogicalBackupResponseObject, error)
+	// DeleteLogicalBackup Delete a logical backup and its file
+	// (DELETE /logical-backups/{backupId})
+	DeleteLogicalBackup(ctx context.Context, request DeleteLogicalBackupRequestObject) (DeleteLogicalBackupResponseObject, error)
+	// GetLogicalBackup Get a logical backup
+	// (GET /logical-backups/{backupId})
+	GetLogicalBackup(ctx context.Context, request GetLogicalBackupRequestObject) (GetLogicalBackupResponseObject, error)
+	// CancelLogicalBackup Cancel a running logical backup
+	// (POST /logical-backups/{backupId}/cancel)
+	CancelLogicalBackup(ctx context.Context, request CancelLogicalBackupRequestObject) (CancelLogicalBackupResponseObject, error)
+	// DownloadLogicalBackup Download the file of a logical backup
+	// (GET /logical-backups/{backupId}/file)
+	DownloadLogicalBackup(ctx context.Context, request DownloadLogicalBackupRequestObject) (DownloadLogicalBackupResponseObject, error)
+	// ListRestores List the restores of a logical backup
+	// (GET /restores)
+	ListRestores(ctx context.Context, request ListRestoresRequestObject) (ListRestoresResponseObject, error)
+	// StartRestore Restore a logical backup into a target database
+	// (POST /restores)
+	StartRestore(ctx context.Context, request StartRestoreRequestObject) (StartRestoreResponseObject, error)
+	// GetRestore Get a restore
+	// (GET /restores/{restoreId})
+	GetRestore(ctx context.Context, request GetRestoreRequestObject) (GetRestoreResponseObject, error)
+	// CancelRestore Cancel a running restore
+	// (POST /restores/{restoreId}/cancel)
+	CancelRestore(ctx context.Context, request CancelRestoreRequestObject) (CancelRestoreResponseObject, error)
 }
 
 type StrictHandlerFunc func(ctx *gin.Context, request any) (any, error)
@@ -1636,6 +3808,308 @@ func (sh *strictHandler) TransferDatabase(ctx *gin.Context, databaseId DatabaseI
 		sh.options.HandlerErrorFunc(ctx, err)
 	} else if validResponse, ok := response.(TransferDatabaseResponseObject); ok {
 		if err := validResponse.VisitTransferDatabaseResponse(ctx.Writer); err != nil {
+			sh.options.ResponseErrorHandlerFunc(ctx, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(ctx, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateDownloadToken operation middleware
+func (sh *strictHandler) CreateDownloadToken(ctx *gin.Context) {
+	var request CreateDownloadTokenRequestObject
+
+	var body CreateDownloadTokenJSONRequestBody
+	if err := ctx.ShouldBindJSON(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(ctx, err)
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateDownloadToken(ctx, request.(CreateDownloadTokenRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateDownloadToken")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		sh.options.HandlerErrorFunc(ctx, err)
+	} else if validResponse, ok := response.(CreateDownloadTokenResponseObject); ok {
+		if err := validResponse.VisitCreateDownloadTokenResponse(ctx.Writer); err != nil {
+			sh.options.ResponseErrorHandlerFunc(ctx, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(ctx, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListLogicalBackups operation middleware
+func (sh *strictHandler) ListLogicalBackups(ctx *gin.Context, params ListLogicalBackupsParams) {
+	var request ListLogicalBackupsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListLogicalBackups(ctx, request.(ListLogicalBackupsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListLogicalBackups")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		sh.options.HandlerErrorFunc(ctx, err)
+	} else if validResponse, ok := response.(ListLogicalBackupsResponseObject); ok {
+		if err := validResponse.VisitListLogicalBackupsResponse(ctx.Writer); err != nil {
+			sh.options.ResponseErrorHandlerFunc(ctx, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(ctx, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// StartLogicalBackup operation middleware
+func (sh *strictHandler) StartLogicalBackup(ctx *gin.Context) {
+	var request StartLogicalBackupRequestObject
+
+	var body StartLogicalBackupJSONRequestBody
+	if err := ctx.ShouldBindJSON(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(ctx, err)
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.StartLogicalBackup(ctx, request.(StartLogicalBackupRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "StartLogicalBackup")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		sh.options.HandlerErrorFunc(ctx, err)
+	} else if validResponse, ok := response.(StartLogicalBackupResponseObject); ok {
+		if err := validResponse.VisitStartLogicalBackupResponse(ctx.Writer); err != nil {
+			sh.options.ResponseErrorHandlerFunc(ctx, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(ctx, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DeleteLogicalBackup operation middleware
+func (sh *strictHandler) DeleteLogicalBackup(ctx *gin.Context, backupId BackupId) {
+	var request DeleteLogicalBackupRequestObject
+
+	request.BackupId = backupId
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteLogicalBackup(ctx, request.(DeleteLogicalBackupRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteLogicalBackup")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		sh.options.HandlerErrorFunc(ctx, err)
+	} else if validResponse, ok := response.(DeleteLogicalBackupResponseObject); ok {
+		if err := validResponse.VisitDeleteLogicalBackupResponse(ctx.Writer); err != nil {
+			sh.options.ResponseErrorHandlerFunc(ctx, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(ctx, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetLogicalBackup operation middleware
+func (sh *strictHandler) GetLogicalBackup(ctx *gin.Context, backupId BackupId) {
+	var request GetLogicalBackupRequestObject
+
+	request.BackupId = backupId
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetLogicalBackup(ctx, request.(GetLogicalBackupRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetLogicalBackup")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		sh.options.HandlerErrorFunc(ctx, err)
+	} else if validResponse, ok := response.(GetLogicalBackupResponseObject); ok {
+		if err := validResponse.VisitGetLogicalBackupResponse(ctx.Writer); err != nil {
+			sh.options.ResponseErrorHandlerFunc(ctx, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(ctx, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CancelLogicalBackup operation middleware
+func (sh *strictHandler) CancelLogicalBackup(ctx *gin.Context, backupId BackupId) {
+	var request CancelLogicalBackupRequestObject
+
+	request.BackupId = backupId
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.CancelLogicalBackup(ctx, request.(CancelLogicalBackupRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CancelLogicalBackup")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		sh.options.HandlerErrorFunc(ctx, err)
+	} else if validResponse, ok := response.(CancelLogicalBackupResponseObject); ok {
+		if err := validResponse.VisitCancelLogicalBackupResponse(ctx.Writer); err != nil {
+			sh.options.ResponseErrorHandlerFunc(ctx, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(ctx, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DownloadLogicalBackup operation middleware
+func (sh *strictHandler) DownloadLogicalBackup(ctx *gin.Context, backupId BackupId, params DownloadLogicalBackupParams) {
+	var request DownloadLogicalBackupRequestObject
+
+	request.BackupId = backupId
+	request.Params = params
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.DownloadLogicalBackup(ctx, request.(DownloadLogicalBackupRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DownloadLogicalBackup")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		sh.options.HandlerErrorFunc(ctx, err)
+	} else if validResponse, ok := response.(DownloadLogicalBackupResponseObject); ok {
+		if err := validResponse.VisitDownloadLogicalBackupResponse(ctx.Writer); err != nil {
+			sh.options.ResponseErrorHandlerFunc(ctx, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(ctx, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListRestores operation middleware
+func (sh *strictHandler) ListRestores(ctx *gin.Context, params ListRestoresParams) {
+	var request ListRestoresRequestObject
+
+	request.Params = params
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListRestores(ctx, request.(ListRestoresRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListRestores")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		sh.options.HandlerErrorFunc(ctx, err)
+	} else if validResponse, ok := response.(ListRestoresResponseObject); ok {
+		if err := validResponse.VisitListRestoresResponse(ctx.Writer); err != nil {
+			sh.options.ResponseErrorHandlerFunc(ctx, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(ctx, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// StartRestore operation middleware
+func (sh *strictHandler) StartRestore(ctx *gin.Context) {
+	var request StartRestoreRequestObject
+
+	var body StartRestoreJSONRequestBody
+	if err := ctx.ShouldBindJSON(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(ctx, err)
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.StartRestore(ctx, request.(StartRestoreRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "StartRestore")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		sh.options.HandlerErrorFunc(ctx, err)
+	} else if validResponse, ok := response.(StartRestoreResponseObject); ok {
+		if err := validResponse.VisitStartRestoreResponse(ctx.Writer); err != nil {
+			sh.options.ResponseErrorHandlerFunc(ctx, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(ctx, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetRestore operation middleware
+func (sh *strictHandler) GetRestore(ctx *gin.Context, restoreId RestoreId) {
+	var request GetRestoreRequestObject
+
+	request.RestoreId = restoreId
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetRestore(ctx, request.(GetRestoreRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetRestore")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		sh.options.HandlerErrorFunc(ctx, err)
+	} else if validResponse, ok := response.(GetRestoreResponseObject); ok {
+		if err := validResponse.VisitGetRestoreResponse(ctx.Writer); err != nil {
+			sh.options.ResponseErrorHandlerFunc(ctx, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(ctx, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CancelRestore operation middleware
+func (sh *strictHandler) CancelRestore(ctx *gin.Context, restoreId RestoreId) {
+	var request CancelRestoreRequestObject
+
+	request.RestoreId = restoreId
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.CancelRestore(ctx, request.(CancelRestoreRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CancelRestore")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		sh.options.HandlerErrorFunc(ctx, err)
+	} else if validResponse, ok := response.(CancelRestoreResponseObject); ok {
+		if err := validResponse.VisitCancelRestoreResponse(ctx.Writer); err != nil {
 			sh.options.ResponseErrorHandlerFunc(ctx, err)
 		}
 	} else if response != nil {

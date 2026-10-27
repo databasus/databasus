@@ -1,8 +1,6 @@
 package backups_services
 
 import (
-	"errors"
-
 	"databasus-backend/internal/lib/apierror"
 )
 
@@ -19,5 +17,4 @@ var (
 		Detail: "a backup of the database is in progress, so its backups cannot move to another storage",
 		Errors: nil,
 	}
-	errBackupInProgress = errors.New("backup is in progress, storage cannot be removed")
 )

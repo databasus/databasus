@@ -2,7 +2,6 @@ package workspaces_test
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"net/http"
 	"testing"
@@ -67,7 +66,7 @@ func TestDeleteWorkspace(t *testing.T) {
 			otherWorkspace := apptest.CreateWorkspace(t, tm.owner, "Moved database")
 			otherDatabaseID := tm.app.InsertDatabase(t, otherWorkspace.Id)
 			backupID := uuid.New()
-			tm.app.ExecuteSQL(t, `INSERT INTO logical_backups (id, database_id, storage_id, status, file_name)
+			tm.app.ExecuteSQL(t, `INSERT INTO backups_logical (id, database_id, storage_id, status, file_name)
 				VALUES (?, ?, ?, 'COMPLETED', 'backup.dump')`, backupID, otherDatabaseID, storageID)
 
 			response := deleteWorkspace(t, tm.owner, tm.workspace.Id)
@@ -78,7 +77,7 @@ func TestDeleteWorkspace(t *testing.T) {
 				tm,
 				workspaceContent{databaseCount: 0, notifierCount: 1, storageCount: 1},
 			)
-			assert.Equal(t, []uuid.UUID{backupID}, listBackupIDs(t, tm.app, tm.owner, otherDatabaseID))
+			assert.Equal(t, []uuid.UUID{backupID}, listBackupIDs(t, tm.owner, otherDatabaseID))
 		})
 
 	t.Run("returns 409 workspace_not_empty when it has a database and its storage holds backups",
@@ -87,7 +86,7 @@ func TestDeleteWorkspace(t *testing.T) {
 			tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEVIEWER)
 			storageID := tm.app.CreateLocalStorage(t, tm.owner, tm.workspace.Id)
 			databaseID := tm.app.InsertDatabase(t, tm.workspace.Id)
-			tm.app.ExecuteSQL(t, `INSERT INTO logical_backups (id, database_id, storage_id, status, file_name)
+			tm.app.ExecuteSQL(t, `INSERT INTO backups_logical (id, database_id, storage_id, status, file_name)
 				VALUES (?, ?, ?, 'COMPLETED', 'backup.dump')`, uuid.New(), databaseID, storageID)
 
 			response := deleteWorkspace(t, tm.owner, tm.workspace.Id)
@@ -237,26 +236,22 @@ func requireWorkspaceMembersAndContentListed(t *testing.T, tm team, expectedCont
 
 // listBackupIDs lists the backups of a database through the old backups route, which the contract
 // does not describe yet.
-func listBackupIDs(t *testing.T, app *apptest.App, session apptest.Session, databaseID uuid.UUID) []uuid.UUID {
+func listBackupIDs(t *testing.T, session apptest.Session, databaseID uuid.UUID) []uuid.UUID {
 	t.Helper()
 
-	status, body := app.CallOldAPI(t, session, apptest.OldAPICall{
-		Method: http.MethodGet,
-		Path:   "/backups?database_id=" + databaseID.String(),
-		Body:   nil,
+	response, err := session.Client.ListLogicalBackupsWithResponse(t.Context(), &apiclient.ListLogicalBackupsParams{
+		DatabaseId:    databaseID,
+		Status:        nil,
+		CreatedBefore: nil,
+		Limit:         nil,
+		After:         nil,
 	})
-	require.Equal(t, http.StatusOK, status, string(body))
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, response.StatusCode(), string(response.Body))
 
-	var listedBackups struct {
-		Backups []struct {
-			ID uuid.UUID `json:"id"`
-		} `json:"backups"`
-	}
-	require.NoError(t, json.Unmarshal(body, &listedBackups), string(body))
-
-	backupIDs := make([]uuid.UUID, 0, len(listedBackups.Backups))
-	for _, listedBackup := range listedBackups.Backups {
-		backupIDs = append(backupIDs, listedBackup.ID)
+	backupIDs := make([]uuid.UUID, 0, len(response.JSON200.Items))
+	for _, listedBackup := range response.JSON200.Items {
+		backupIDs = append(backupIDs, listedBackup.Id)
 	}
 
 	return backupIDs

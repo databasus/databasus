@@ -7,17 +7,17 @@ import (
 	"github.com/google/uuid"
 
 	physical_repositories "databasus-backend/internal/features/backups/backups/core/physical/repositories"
-	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
+	"databasus-backend/internal/lib/background"
 	"databasus-backend/internal/lib/database"
 	"databasus-backend/internal/modules/backups"
 	"databasus-backend/internal/modules/databases"
 )
 
 type PhysicalBackupCancellationListener struct {
-	canceller                 *PhysicalBackupCanceller
-	walStreamerRepo           *physical_repositories.PhysicalWalStreamerRepository
-	taskCancellationRequester *tasks_cancellation.Requester
-	logger                    *slog.Logger
+	canceller                *PhysicalBackupCanceller
+	walStreamerRepo          *physical_repositories.PhysicalWalStreamerRepository
+	taskCancellationRegistry *background.CancellationRegistry
+	logger                   *slog.Logger
 }
 
 func (l *PhysicalBackupCancellationListener) OnBackupsDisabled(ctx context.Context, databaseID uuid.UUID) {
@@ -85,21 +85,12 @@ func (l *PhysicalBackupCancellationListener) OnDatabaseDeleting(
 		return err
 	}
 
-	return database.AfterCommit(ctx, func(ctx context.Context) {
-		logger := l.logger.With("database_id", event.DatabaseID)
-
+	return database.AfterCommit(ctx, func(context.Context) {
 		if claim != nil {
-			err := l.taskCancellationRequester.RequestCancellation(ctx, claim.BackupID)
-			if err != nil {
-				logger.ErrorContext(ctx, "failed to request in-flight backup cancellation",
-					"backup_id", claim.BackupID, "error", err)
-			}
+			l.taskCancellationRegistry.Cancel(claim.BackupID)
 		}
 
-		err := l.taskCancellationRequester.RequestCancellation(ctx, event.DatabaseID)
-		if err != nil {
-			logger.ErrorContext(ctx, "failed to cancel wal streamer task", "error", err)
-		}
+		l.taskCancellationRegistry.Cancel(event.DatabaseID)
 	})
 }
 
@@ -111,9 +102,7 @@ func (l *PhysicalBackupCancellationListener) cancelStreamingAndDeleteStreamerRow
 ) {
 	logger := l.logger.With("database_id", databaseID)
 
-	if err := l.taskCancellationRequester.RequestCancellation(ctx, databaseID); err != nil {
-		logger.ErrorContext(ctx, "failed to cancel wal streamer task", "error", err)
-	}
+	l.taskCancellationRegistry.Cancel(databaseID)
 
 	if err := l.walStreamerRepo.DeleteByDatabaseID(databaseID); err != nil {
 		logger.ErrorContext(ctx, "failed to delete wal streamer row", "error", err)

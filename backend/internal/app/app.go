@@ -240,14 +240,21 @@ func New(ctx context.Context, environment *Environment) (*App, error) {
 	databases_bridge.Install(databasesModule)
 
 	backupsModule := backups.New(backups.Deps{
-		DB:         db,
-		Transactor: transactor,
-		Logger:     appLogger,
-		Clock:      environment.Clock,
-		Workspaces: workspacesModule,
-		Notifiers:  notifiersModule,
-		Storages:   storagesModule,
-		Databases:  databasesModule,
+		DB:             db,
+		Transactor:     transactor,
+		Logger:         appLogger,
+		Clock:          environment.Clock,
+		AuditLog:       auditLog,
+		MasterKey:      masterKey,
+		ClientToolsDir: environment.ClientToolsDir,
+		TempDir:        environment.Config.TempFolder,
+		Cancellations:  backups_bridge.GetCancellationRegistry(),
+		Cache:          cacheStore,
+		Users:          usersModule,
+		Workspaces:     workspacesModule,
+		Notifiers:      notifiersModule,
+		Storages:       storagesModule,
+		Databases:      databasesModule,
 	})
 	backups_bridge.Install(backupsModule)
 
@@ -260,9 +267,11 @@ func New(ctx context.Context, environment *Environment) (*App, error) {
 	subscribeToStorageTransferring(storagesModule, backupsModule)
 	subscribeToDatabaseEvents(databasesModule, backupsModule)
 	subscribeToBackupConfigEvents(backupsModule)
+	subscribeToLogicalBackupEvents(backupsModule)
 
 	jobs := append([]background.Job{newAuditEventsCleanupJob(auditLog, appLogger)}, usersModule.GetJobs()...)
 	jobs = append(jobs, storagesModule.GetJobs()...)
+	jobs = append(jobs, backupsModule.GetJobs()...)
 	runner := background.NewRunner(background.RunnerDeps{Logger: appLogger, Clock: environment.Clock}, jobs...)
 
 	return &App{
@@ -280,6 +289,17 @@ func New(ctx context.Context, environment *Environment) (*App, error) {
 		runner:             runner,
 		clientToolsChecker: clientToolsChecker,
 	}, nil
+}
+
+// StartModules runs the startup work of the modules on ctx, which ends when the application stops.
+// Serve calls it before it accepts requests, and a test application before its first request.
+func (a *App) StartModules(ctx context.Context) error {
+	return a.backupsModule.Start(ctx)
+}
+
+// WaitForBackupRuns returns once every backup run has written its outcome, or with ctx's error.
+func (a *App) WaitForBackupRuns(ctx context.Context) error {
+	return a.backupsModule.WaitForRuns(ctx)
 }
 
 // RunJobPass runs one pass of the named background job and returns its error.
@@ -324,12 +344,6 @@ func (a *App) GetPhysicalBackupTypes(
 	databaseIDs []uuid.UUID,
 ) (map[uuid.UUID]databases.PhysicalBackupType, error) {
 	return a.databasesModule.GetPhysicalBackupTypes(ctx, databaseIDs)
-}
-
-// SubscribeToLogicalBackupConfigStorageChanging adds a handler after the ones internal/app subscribed,
-// the way the old logical backups do.
-func (a *App) SubscribeToLogicalBackupConfigStorageChanging(handler backups.LogicalBackupConfigStorageChangingHandler) {
-	a.backupsModule.SubscribeToLogicalBackupConfigStorageChanging(handler)
 }
 
 // Notify hands a notification to the notifiers module. A test application uses it to stand in for

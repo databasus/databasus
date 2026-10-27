@@ -152,7 +152,7 @@ For a logical PostgreSQL, MySQL, MariaDB or MongoDB database, checking SHALL rep
 
 ### Requirement: A database is deleted completely or not at all
 
-Deleting a database while one of its logical backups is in progress SHALL get `409` with `code` `in_use` and SHALL delete nothing, as today. Otherwise deleting a database SHALL remove, in one step, the database, its settings, its notifier attachments, its backup configs, and the records of its logical and physical backups and WAL. It SHALL ask for the deletion of every stored file those records describe. When any part fails, nothing SHALL be removed. Only after the deletion has succeeded SHALL a running backup of the database be cancelled, its WAL streaming stopped and its replication slots dropped on the source server.
+Deleting a database while one of its logical backups or a restore of one of them is in progress SHALL get `409` with `code` `in_use` and SHALL delete nothing. Otherwise deleting a database SHALL remove, in one step, the database, its settings, its notifier attachments, its backup configs, and the records of its logical backups with their restores and download tokens, of its physical backups and of its WAL. It SHALL ask for the deletion of every stored file those records describe. When any part fails, nothing SHALL be removed. Only after the deletion has succeeded SHALL a running backup of the database be cancelled, its WAL streaming stopped and its replication slots dropped on the source server.
 
 #### Scenario: Deleting a database with backups
 
@@ -162,6 +162,11 @@ Deleting a database while one of its logical backups is in progress SHALL get `4
 #### Scenario: A logical backup is running
 
 - **WHEN** a member deletes a database while its logical backup is in progress
+- **THEN** the response is `409` with `code` `in_use`, and the database and its backups are still listed
+
+#### Scenario: A restore of the database is running
+
+- **WHEN** a member deletes a database while a restore of one of its backups is running
 - **THEN** the response is `409` with `code` `in_use`, and the database and its backups are still listed
 
 #### Scenario: A failure during the deletion

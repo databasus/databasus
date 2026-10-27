@@ -2,28 +2,24 @@ package disk
 
 import (
 	"context"
-	"fmt"
 	"path/filepath"
 
-	"github.com/shirou/gopsutil/v4/disk"
-
 	"databasus-backend/internal/config"
+	"databasus-backend/internal/lib/diskusage"
 )
 
 type DiskService struct{}
 
-func (s *DiskService) GetDiskUsage(ctx context.Context) (*DiskUsage, error) {
-	cfg := config.GetEnv()
-	path := filepath.Dir(cfg.DataFolder) // Gets /databasus-data from /databasus-data/backups
-
-	diskUsage, err := disk.Usage(path)
+func (s *DiskService) GetDiskUsage(_ context.Context) (*DiskUsage, error) {
+	// The data folder is /databasus-data/backups, and the volume is mounted at /databasus-data.
+	volumeUsage, err := diskusage.Get(filepath.Dir(config.GetEnv().DataFolder))
 	if err != nil {
-		return nil, fmt.Errorf("failed to get disk usage for path %s: %w", path, err)
+		return nil, err
 	}
 
 	return &DiskUsage{
-		TotalSpaceBytes: int64(diskUsage.Total),
-		UsedSpaceBytes:  int64(diskUsage.Used),
-		FreeSpaceBytes:  int64(diskUsage.Free),
+		TotalSpaceBytes: volumeUsage.TotalBytes,
+		UsedSpaceBytes:  volumeUsage.UsedBytes,
+		FreeSpaceBytes:  volumeUsage.FreeBytes,
 	}, nil
 }

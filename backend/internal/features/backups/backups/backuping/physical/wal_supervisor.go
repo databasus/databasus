@@ -21,7 +21,7 @@ import (
 	"databasus-backend/internal/features/backups/backups/core/physical/wal_health"
 	postgresql_executor "databasus-backend/internal/features/backups/backups/usecases/physical/postgresql"
 	databases_bridge "databasus-backend/internal/features/databases"
-	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
+	"databasus-backend/internal/lib/background"
 	"databasus-backend/internal/lib/crypto"
 	"databasus-backend/internal/modules/backups"
 	"databasus-backend/internal/modules/databases"
@@ -45,7 +45,7 @@ type PhysicalWalStreamSupervisor struct {
 	walStreamerRepo          *physical_repositories.PhysicalWalStreamerRepository
 	walStreamSampleRepo      *physical_repositories.PhysicalWalStreamSampleRepository
 	notificationSender       NotificationSender
-	taskCancellationRegistry *tasks_cancellation.Registry
+	taskCancellationRegistry *background.CancellationRegistry
 	masterKey                *crypto.MasterKey
 	logger                   *slog.Logger
 
@@ -291,7 +291,7 @@ func (s *PhysicalWalStreamSupervisor) startStreamer(
 		storageID: storage.ID,
 	}
 
-	s.taskCancellationRegistry.RegisterTask(db.ID, func() {
+	s.taskCancellationRegistry.Register(db.ID, func() {
 		streamer.shouldRemoveWatchDir.Store(true)
 		cancel()
 	})
@@ -331,7 +331,7 @@ func (s *PhysicalWalStreamSupervisor) startStreamer(
 	go func() {
 		defer close(done)
 		defer tunnel.Close()
-		defer s.taskCancellationRegistry.UnregisterTask(db.ID)
+		defer s.taskCancellationRegistry.Unregister(db.ID)
 		defer s.removeWatchDirIfRequested(logger, streamer)
 
 		if err := supervisor.Run(streamerCtx); err != nil {

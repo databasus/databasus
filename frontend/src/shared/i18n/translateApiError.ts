@@ -33,6 +33,9 @@ const CONTRACT_ERROR_CODE_KEYS = {
   workspace_not_empty: 'errors.workspaceNotEmpty',
   in_use: 'errors.inUse',
   database_connection_failed: 'errors.databaseConnectionFailed',
+  already_running: 'errors.alreadyRunning',
+  not_running: 'errors.notRunning',
+  insufficient_disk_space: 'errors.insufficientDiskSpace',
   internal: 'errors.internal',
 } as const satisfies Record<ApiComponents['schemas']['ProblemCode'], TranslationKey>;
 

@@ -150,7 +150,7 @@ func (s *TelemetryService) collectActiveDatabases(
 	entries := make([]DatabaseEntry, 0, len(allDatabases))
 
 	for _, db := range allDatabases {
-		isActive, err := s.isDatabaseActive(db, since)
+		isActive, err := s.isDatabaseActive(ctx, db, since)
 		if err != nil {
 			return nil, err
 		}
@@ -161,7 +161,7 @@ func (s *TelemetryService) collectActiveDatabases(
 
 		entry := buildDatabaseEntry(db)
 
-		if err := s.attachBackupSizes(&entry, db); err != nil {
+		if err := s.attachBackupSizes(ctx, &entry, db); err != nil {
 			return nil, err
 		}
 
@@ -212,6 +212,7 @@ func (s *TelemetryService) collectVerificationAgents(ctx context.Context) ([]Ver
 // Physical databases have no logical backup rows, so their size comes from the
 // latest completed physical FULL backup.
 func (s *TelemetryService) attachBackupSizes(
+	ctx context.Context,
 	entry *DatabaseEntry,
 	db databases.TelemetryEntry,
 ) error {
@@ -219,12 +220,12 @@ func (s *TelemetryService) attachBackupSizes(
 		return s.attachPhysicalBackupSizes(entry, db.DatabaseID)
 	}
 
-	backup, err := s.backupService.GetLatestCompletedBackup(db.DatabaseID)
+	backup, isFound, err := s.backupService.GetLatestCompletedLogicalBackup(ctx, db.DatabaseID)
 	if err != nil {
 		return err
 	}
 
-	if backup == nil {
+	if !isFound {
 		return nil
 	}
 
@@ -265,7 +266,11 @@ func (s *TelemetryService) attachPhysicalBackupSizes(
 
 // A nil HealthStatus means the healthcheck is switched off for that database, not that it is
 // broken, so the backup recency of the owning engine decides instead.
-func (s *TelemetryService) isDatabaseActive(db databases.TelemetryEntry, since time.Time) (bool, error) {
+func (s *TelemetryService) isDatabaseActive(
+	ctx context.Context,
+	db databases.TelemetryEntry,
+	since time.Time,
+) (bool, error) {
 	if db.HealthStatus != nil {
 		return *db.HealthStatus == databases.HealthStatusAvailable, nil
 	}
@@ -274,7 +279,7 @@ func (s *TelemetryService) isDatabaseActive(db databases.TelemetryEntry, since t
 		return db.LastBackupTime != nil && db.LastBackupTime.After(since), nil
 	}
 
-	return s.backupService.HasSuccessfulBackupSince(db.DatabaseID, since)
+	return s.backupService.HasSuccessfulLogicalBackupSince(ctx, db.DatabaseID, since)
 }
 
 func buildDatabaseEntry(db databases.TelemetryEntry) DatabaseEntry {

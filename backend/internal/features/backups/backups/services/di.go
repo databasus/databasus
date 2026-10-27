@@ -4,47 +4,17 @@ import (
 	"sync"
 
 	audit_logs "databasus-backend/internal/features/audit_logs"
-	backuping_logical "databasus-backend/internal/features/backups/backups/backuping/logical"
 	backuping_physical "databasus-backend/internal/features/backups/backups/backuping/physical"
-	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	"databasus-backend/internal/features/backups/backups/core/physical/chain_view"
 	physical_repositories "databasus-backend/internal/features/backups/backups/core/physical/repositories"
 	physical_core_service "databasus-backend/internal/features/backups/backups/core/physical/service"
 	backups_download "databasus-backend/internal/features/backups/backups/download"
-	usecases_logical "databasus-backend/internal/features/backups/backups/usecases/logical"
 	backups_bridge "databasus-backend/internal/features/backups/config"
 	databases_bridge "databasus-backend/internal/features/databases"
-	notifiers_bridge "databasus-backend/internal/features/notifiers"
-	storages_bridge "databasus-backend/internal/features/storages"
-	task_cancellation "databasus-backend/internal/features/tasks/cancellation"
 	workspaces_bridge "databasus-backend/internal/features/workspaces"
 	"databasus-backend/internal/util/encryption"
 	"databasus-backend/internal/util/logger"
 )
-
-var getTaskCancellationRequester = sync.OnceValue(task_cancellation.GetRequester)
-
-var getBackupService = sync.OnceValue(func() *LogicalBackupService {
-	return &LogicalBackupService{
-		databases_bridge.GetAccess(),
-		storages_bridge.GetModule,
-		backups_core_logical.GetBackupRepository(),
-		notifiers_bridge.GetSender(),
-		encryption.GetMasterKey(),
-		usecases_logical.GetCreateBackupUsecase(),
-		logger.GetLogger(),
-		workspaces_bridge.GetAccess(),
-		audit_logs.GetAuditLogService(),
-		getTaskCancellationRequester(),
-		backups_download.GetDownloadTokenService(),
-		backuping_logical.GetBackupsScheduler(),
-		backuping_logical.GetBackupCleaner(),
-	}
-})
-
-func GetBackupService() *LogicalBackupService {
-	return getBackupService()
-}
 
 var getPhysicalBackupService = sync.OnceValue(func() *PhysicalBackupService {
 	return &PhysicalBackupService{

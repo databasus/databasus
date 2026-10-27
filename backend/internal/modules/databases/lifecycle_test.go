@@ -165,7 +165,7 @@ func insertCompletedLogicalBackupRow(
 	backupID := uuid.New()
 	storageID := tm.app.CreateLocalStorage(t, member, workspaceID)
 	tm.app.InsertBackupConfigUsingStorage(t, apptest.StorageUse{DatabaseID: databaseID, StorageID: storageID})
-	tm.app.ExecuteSQL(t, `INSERT INTO logical_backups (id, database_id, storage_id, status, file_name)
+	tm.app.ExecuteSQL(t, `INSERT INTO backups_logical (id, database_id, storage_id, status, file_name)
 		VALUES (?, ?, ?, 'COMPLETED', ?)`, backupID, databaseID, storageID, "backup-"+backupID.String())
 
 	return backupID
@@ -175,7 +175,7 @@ func listLogicalBackupIDs(t *testing.T, tm team, databaseID uuid.UUID) []uuid.UU
 	t.Helper()
 
 	var backupIDs []uuid.UUID
-	tm.app.QuerySQL(t, &backupIDs, "SELECT id FROM logical_backups WHERE database_id = ? ORDER BY id", databaseID)
+	tm.app.QuerySQL(t, &backupIDs, "SELECT id FROM backups_logical WHERE database_id = ? ORDER BY id", databaseID)
 
 	return backupIDs
 }

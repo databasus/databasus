@@ -241,7 +241,7 @@ func createLogicalDatabase(
 		return err
 	}
 
-	if err := client.post(ctx, "/backups", makeLogicalBackupRequest{DatabaseID: databaseID}, nil); err != nil {
+	if err := client.post(ctx, "/logical-backups", startLogicalBackupRequest{DatabaseID: databaseID}, nil); err != nil {
 		return fmt.Errorf("cannot start the first backup of database %q: %w", params.LogicalDatabaseName, err)
 	}
 

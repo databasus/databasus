@@ -999,6 +999,193 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/logical-backups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the logical backups of a database
+         * @description Ordered newest first by creation time, then by ID. `status` and `createdBefore` filter the list. A user who is not a member of the database's workspace gets 404 `not_found`. A cursor this list did not issue gets 400 `invalid_request`.
+         */
+        get: operations["listLogicalBackups"];
+        put?: never;
+        /**
+         * Start a backup of a database
+         * @description Needs the role `WORKSPACE_VIEWER` or higher. Answers at once with the backup in `IN_PROGRESS`; `getLogicalBackup` follows it. A backup of the database that is already running gets 409 `already_running`. A database whose config names no storage, or a physical PostgreSQL database, gets 400 `invalid_request`.
+         */
+        post: operations["startLogicalBackup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/logical-backups/{backupId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the logical backup */
+                backupId: components["parameters"]["BackupId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Get a logical backup
+         * @description A user who is not a member of the database's workspace gets 404 `not_found`.
+         */
+        get: operations["getLogicalBackup"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete a logical backup and its file
+         * @description Needs the role `WORKSPACE_MEMBER` or higher. Removes the backup and requests the deletion of its file and its metadata file in one step. A running backup gets 409 `already_running`, and a backup a running restore reads gets 409 `in_use`; neither changes anything.
+         */
+        delete: operations["deleteLogicalBackup"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/logical-backups/{backupId}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the logical backup */
+                backupId: components["parameters"]["BackupId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel a running logical backup
+         * @description Needs the role `WORKSPACE_MEMBER` or higher. Stops the dump tool and every process it started; the backup then shows `CANCELED`. A backup that is no longer running gets 409 `not_running` and stays as it is.
+         */
+        post: operations["cancelLogicalBackup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/logical-backups/{backupId}/file": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the logical backup */
+                backupId: components["parameters"]["BackupId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Download the file of a logical backup
+         * @description Public, because a browser link cannot carry the session: the single-use `token` from `createDownloadToken` is the credential. Returns the decrypted file. An expired, used, unknown or mismatched token gets 401 `unauthenticated`. While another download or restore stream of the token's user runs, the request gets 409 `already_running` and the token stays usable.
+         */
+        get: operations["downloadLogicalBackup"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/download-tokens": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Issue a single-use token to download a backup file
+         * @description Needs the role `WORKSPACE_VIEWER` or higher. The token downloads the backup once and expires after five minutes. While another download or restore stream of the user runs, the request gets 409 `already_running` and no token is issued.
+         */
+        post: operations["createDownloadToken"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/restores": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the restores of a logical backup
+         * @description Ordered newest first by creation time, then by ID. A user who is not a member of the backup's workspace gets 404 `not_found`.
+         */
+        get: operations["listRestores"];
+        put?: never;
+        /**
+         * Restore a logical backup into a target database
+         * @description Needs the role `WORKSPACE_VIEWER` or higher. Connects to the target and detects its version before it answers, then answers at once with the restore in `IN_PROGRESS`; `getRestore` follows it. A backup that is not completed, a target of another engine or a target whose version cannot take the backup gets 400 `invalid_request`. A target that cannot be reached or refuses the credentials gets 400 `database_connection_failed`. A restore into the same database that is already running gets 409 `already_running`. A PostgreSQL restore that needs the archive as a file and lacks disk space gets 409 `insufficient_disk_space`, whose `detail` names the bytes needed and free. The target's secrets are used only by the running restore and are never stored.
+         */
+        post: operations["startRestore"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/restores/{restoreId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the restore */
+                restoreId: components["parameters"]["RestoreId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Get a restore
+         * @description Holds no field of the target. A user who is not a member of the backup's workspace gets 404 `not_found`.
+         */
+        get: operations["getRestore"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/restores/{restoreId}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the restore */
+                restoreId: components["parameters"]["RestoreId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel a running restore
+         * @description Needs the role `WORKSPACE_MEMBER` or higher. Stops the restore tool and every process it started, also while the backup is still read from storage; the restore then shows `CANCELED`. A restore that is no longer running gets 409 `not_running` and stays as it is.
+         */
+        post: operations["cancelRestore"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2157,7 +2344,7 @@ export interface components {
          * @description The cause of the error for programs; a value never changes its meaning
          * @enum {string}
          */
-        ProblemCode: "invalid_request" | "unauthenticated" | "permission_denied" | "not_found" | "rate_limited" | "human_verification_failed" | "invalid_credentials" | "user_deactivated" | "registration_closed" | "email_taken" | "invalid_reset_code" | "oauth_not_configured" | "oauth_failed" | "pending_sign_in_not_usable" | "sign_in_code_not_sent" | "too_many_sign_in_codes" | "sign_in_code_resent_too_soon" | "sign_in_code_incorrect" | "email_not_configured" | "admin_email_missing" | "already_member" | "cannot_change_own_role" | "owner_requires_transfer" | "workspace_not_empty" | "in_use" | "database_connection_failed" | "internal";
+        ProblemCode: "invalid_request" | "unauthenticated" | "permission_denied" | "not_found" | "rate_limited" | "human_verification_failed" | "invalid_credentials" | "user_deactivated" | "registration_closed" | "email_taken" | "invalid_reset_code" | "oauth_not_configured" | "oauth_failed" | "pending_sign_in_not_usable" | "sign_in_code_not_sent" | "too_many_sign_in_codes" | "sign_in_code_resent_too_soon" | "sign_in_code_incorrect" | "email_not_configured" | "admin_email_missing" | "already_member" | "cannot_change_own_role" | "owner_requires_transfer" | "workspace_not_empty" | "in_use" | "database_connection_failed" | "already_running" | "not_running" | "insufficient_disk_space" | "internal";
         /** @description A field of the request that breaks the contract or a validation rule */
         FieldError: {
             /** @description The path of the field in the request, such as `name` or `settings.bucket` */
@@ -2367,6 +2554,250 @@ export interface components {
              */
             storageId: string;
         };
+        /**
+         * @description Where a logical backup is in its life
+         * @enum {string}
+         */
+        LogicalBackupStatus: "IN_PROGRESS" | "COMPLETED" | "FAILED" | "CANCELED";
+        /**
+         * @description The outcome of the last restore verification of the backup
+         * @enum {string}
+         */
+        LogicalBackupVerificationStatus: "NOT_VERIFIED" | "VERIFIED_SUCCESSFUL" | "VERIFICATION_FAILED";
+        /** @description One logical backup of a database */
+        LogicalBackup: {
+            /**
+             * Format: uuid
+             * @description The ID of the backup
+             */
+            id: string;
+            /**
+             * Format: uuid
+             * @description The database the backup was taken of
+             */
+            databaseId: string;
+            /**
+             * Format: uuid
+             * @description The storage that holds the backup's file
+             */
+            storageId: string;
+            status: components["schemas"]["LogicalBackupStatus"];
+            /** @description Why the backup failed, absent unless it failed */
+            failMessage?: string;
+            /**
+             * Format: double
+             * @description The size of the stored file in megabytes, growing while the backup runs
+             */
+            sizeMb: number;
+            /**
+             * Format: double
+             * @description The size of the database before the dump in megabytes, 0 when unknown
+             */
+            rawDatabaseSizeMb: number;
+            /**
+             * Format: int64
+             * @description How long the backup ran in milliseconds
+             */
+            durationMs: number;
+            encryption: components["schemas"]["BackupEncryption"];
+            verificationStatus: components["schemas"]["LogicalBackupVerificationStatus"];
+            /**
+             * Format: date-time
+             * @description When the backup started
+             */
+            createdAt: string;
+        };
+        /** @description One page of logical backups, newest first */
+        LogicalBackupPage: {
+            /** @description The backups on the page */
+            items: components["schemas"]["LogicalBackup"][];
+            /** @description The `after` of the next page, absent on the last page */
+            nextCursor?: string;
+        };
+        /** @description The database whose backup to start */
+        LogicalBackupStart: {
+            /**
+             * Format: uuid
+             * @description The database to back up
+             */
+            databaseId: string;
+        };
+        /** @description The backup whose file to download */
+        DownloadTokenCreate: {
+            /**
+             * Format: uuid
+             * @description The backup to download
+             */
+            backupId: string;
+        };
+        /** @description A single-use token that downloads one backup file within five minutes */
+        DownloadToken: {
+            /** @description The token, returned only in this response */
+            token: string;
+            /** @description The name the downloaded file gets */
+            fileName: string;
+            /**
+             * Format: date-time
+             * @description When the token stops working
+             */
+            expiresAt: string;
+        };
+        /**
+         * @description Where a restore is in its life
+         * @enum {string}
+         */
+        RestoreStatus: "IN_PROGRESS" | "COMPLETED" | "FAILED" | "CANCELED";
+        /** @description One restore of a logical backup, without any field of its target */
+        Restore: {
+            /**
+             * Format: uuid
+             * @description The ID of the restore
+             */
+            id: string;
+            /**
+             * Format: uuid
+             * @description The backup the restore reads
+             */
+            backupId: string;
+            status: components["schemas"]["RestoreStatus"];
+            /** @description Why the restore failed, absent unless it failed */
+            failMessage?: string;
+            /**
+             * Format: int64
+             * @description How long the restore ran in milliseconds
+             */
+            durationMs: number;
+            /**
+             * Format: date-time
+             * @description When the restore started
+             */
+            createdAt: string;
+        };
+        /** @description One page of restores, newest first */
+        RestorePage: {
+            /** @description The restores on the page */
+            items: components["schemas"]["Restore"][];
+            /** @description The `after` of the next page, absent on the last page */
+            nextCursor?: string;
+        };
+        /** @description The backup to restore and the database to restore it into */
+        RestoreStart: {
+            /**
+             * Format: uuid
+             * @description The completed backup to restore
+             */
+            backupId: string;
+            target: components["schemas"]["RestoreTarget"];
+        };
+        /** @description The database a restore writes into, of the backup's engine; `type` takes the database type of the backup's database */
+        RestoreTarget: components["schemas"]["PostgresqlRestoreTarget"] | components["schemas"]["MysqlRestoreTarget"] | components["schemas"]["MariadbRestoreTarget"] | components["schemas"]["MongodbRestoreTarget"];
+        /** @description A PostgreSQL database that pg_restore writes into */
+        PostgresqlRestoreTarget: {
+            /**
+             * @description Always `POSTGRES_LOGICAL` (enum property replaced by openapi-typescript)
+             * @enum {string}
+             */
+            type: "POSTGRES_LOGICAL";
+            /** @description The host of the server */
+            host: string;
+            /** @description The port of the server */
+            port: number;
+            /** @description The user name */
+            username: string;
+            /** @description The password */
+            password: string;
+            /** @description The database the restore writes into */
+            database: string;
+            sslMode: components["schemas"]["PostgresqlSslMode"];
+            /** @description The PEM client certificate, absent without one */
+            sslClientCert?: string;
+            /** @description The PEM key of the client certificate */
+            sslClientKey?: string;
+            /** @description The PEM root certificate the server is verified against, absent without one */
+            sslRootCert?: string;
+            sshTunnel: components["schemas"]["SshTunnelSettings"];
+            /** @description The number of parallel jobs of pg_restore; more than one restores through a file */
+            cpuCount: number;
+            /** @description Whether the restore leaves out the extensions, which needs a file */
+            isExcludeExtensions: boolean;
+            /** @description Whether the restore keeps the owners of the objects */
+            isRestoreOwnership: boolean;
+            /** @description Whether the restore keeps the grants of the objects */
+            isRestorePrivileges: boolean;
+        };
+        /** @description A MySQL database the dump is replayed into */
+        MysqlRestoreTarget: {
+            /**
+             * @description Always `MYSQL` (enum property replaced by openapi-typescript)
+             * @enum {string}
+             */
+            type: "MYSQL";
+            /** @description The host of the server */
+            host: string;
+            /** @description The port of the server */
+            port: number;
+            /** @description The user name */
+            username: string;
+            /** @description The password */
+            password: string;
+            /** @description The database the restore writes into */
+            database: string;
+            /** @description Whether the connection is encrypted, without verifying the server certificate */
+            isHttps: boolean;
+            sshTunnel: components["schemas"]["SshTunnelSettings"];
+        };
+        /** @description A MariaDB database the dump is replayed into */
+        MariadbRestoreTarget: {
+            /**
+             * @description Always `MARIADB` (enum property replaced by openapi-typescript)
+             * @enum {string}
+             */
+            type: "MARIADB";
+            /** @description The host of the server */
+            host: string;
+            /** @description The port of the server */
+            port: number;
+            /** @description The user name */
+            username: string;
+            /** @description The password */
+            password: string;
+            /** @description The database the restore writes into */
+            database: string;
+            /** @description Whether the connection is encrypted, without verifying the server certificate */
+            isHttps: boolean;
+            sshTunnel: components["schemas"]["SshTunnelSettings"];
+            /** @description Whether the restore keeps Galera replication on for its session */
+            isSkipGaleraDisable: boolean;
+        };
+        /** @description A MongoDB database that mongorestore writes into */
+        MongodbRestoreTarget: {
+            /**
+             * @description Always `MONGODB` (enum property replaced by openapi-typescript)
+             * @enum {string}
+             */
+            type: "MONGODB";
+            /** @description The host of the server, or the DNS name of an SRV connection */
+            host: string;
+            /** @description The port of the server, absent for an SRV connection */
+            port?: number;
+            /** @description The user name */
+            username: string;
+            /** @description The password */
+            password: string;
+            /** @description The database the restore writes into */
+            database: string;
+            /** @description The database the user authenticates against */
+            authDatabase: string;
+            /** @description Whether TLS is on, without verifying the server certificate */
+            isHttps: boolean;
+            /** @description Whether the host is resolved through DNS SRV records */
+            isSrv: boolean;
+            /** @description Whether the client talks to the host alone instead of discovering the replica set */
+            isDirectConnection: boolean;
+            sshTunnel: components["schemas"]["SshTunnelSettings"];
+            /** @description The number of collections mongorestore writes at once */
+            cpuCount: number;
+        };
     };
     responses: {
         /** @description An error in the RFC 9457 format */
@@ -2396,6 +2827,10 @@ export interface components {
         DatabaseId: string;
         /** @description The ID of the database the config belongs to. A database has exactly one config, which has no ID of its own, so the database's ID is the key of the config. */
         BackupConfigDatabaseId: string;
+        /** @description The ID of the logical backup */
+        BackupId: string;
+        /** @description The ID of the restore */
+        RestoreId: string;
     };
     requestBodies: never;
     headers: never;
@@ -4179,6 +4614,335 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BackupConfig"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    listLogicalBackups: {
+        parameters: {
+            query: {
+                /** @description The database whose backups to list */
+                databaseId: string;
+                /** @description Only backups in one of these statuses */
+                status?: components["schemas"]["LogicalBackupStatus"][];
+                /** @description Only backups made before this time */
+                createdBefore?: string;
+                /** @description The largest number of backups on the page */
+                limit?: number;
+                /** @description The `nextCursor` of the previous page */
+                after?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page of backups */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LogicalBackupPage"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    startLogicalBackup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The database to back up. */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LogicalBackupStart"];
+            };
+        };
+        responses: {
+            /** @description The backup started */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LogicalBackup"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    getLogicalBackup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the logical backup */
+                backupId: components["parameters"]["BackupId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The backup */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LogicalBackup"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    deleteLogicalBackup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the logical backup */
+                backupId: components["parameters"]["BackupId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The backup is deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    cancelLogicalBackup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the logical backup */
+                backupId: components["parameters"]["BackupId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The backup is being cancelled */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LogicalBackup"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    downloadLogicalBackup: {
+        parameters: {
+            query: {
+                /** @description The download token issued for this backup */
+                token: string;
+            };
+            header?: never;
+            path: {
+                /** @description The ID of the logical backup */
+                backupId: components["parameters"]["BackupId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The decrypted backup file */
+            200: {
+                headers: {
+                    /** @description The file name of the backup */
+                    "Content-Disposition"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": string;
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    createDownloadToken: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The backup to download. */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DownloadTokenCreate"];
+            };
+        };
+        responses: {
+            /** @description The issued token */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DownloadToken"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    listRestores: {
+        parameters: {
+            query: {
+                /** @description The backup whose restores to list */
+                backupId: string;
+                /** @description The largest number of restores on the page */
+                limit?: number;
+                /** @description The `nextCursor` of the previous page */
+                after?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page of restores */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RestorePage"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    startRestore: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The backup and the target to restore it into. */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RestoreStart"];
+            };
+        };
+        responses: {
+            /** @description The restore started */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Restore"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    getRestore: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the restore */
+                restoreId: components["parameters"]["RestoreId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The restore */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Restore"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    cancelRestore: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the restore */
+                restoreId: components["parameters"]["RestoreId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The restore is being cancelled */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Restore"];
                 };
             };
             400: components["responses"]["Problem"];

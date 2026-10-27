@@ -10,10 +10,10 @@ import (
 
 	"github.com/google/uuid"
 
-	backups_services "databasus-backend/internal/features/backups/backups/services"
 	databases_bridge "databasus-backend/internal/features/databases"
 	verification_agents "databasus-backend/internal/features/verification/agents"
 	verification_config "databasus-backend/internal/features/verification/config"
+	"databasus-backend/internal/modules/backups"
 	"databasus-backend/internal/modules/databases"
 )
 
@@ -29,9 +29,9 @@ type VerificationScheduler struct {
 	service                  *VerificationService
 	verificaionConfigService *verification_config.VerificationConfigService
 	agentService             *verification_agents.AgentService
-	backupService            *backups_services.LogicalBackupService
 	databaseAccess           *databases_bridge.Access
-	// getDatabases is read per call: each test application installs its own module.
+	// getBackups and getDatabases are read per call: each test application installs its own modules.
+	getBackups   func() backups.Module
 	getDatabases func() databases.Module
 	logger       *slog.Logger
 
@@ -130,12 +130,12 @@ func (s *VerificationScheduler) createScheduledRunForConfig(
 		return nil
 	}
 
-	backup, err := s.backupService.GetLatestVerifiableBackup(config.DatabaseID)
+	backup, isFound, err := s.getBackups().GetLatestCompletedLogicalBackup(ctx, config.DatabaseID)
 	if err != nil {
 		return err
 	}
 
-	if backup == nil {
+	if !isFound {
 		logger.DebugContext(ctx, "skipping scheduled verification: no verifiable backup yet",
 			"database_id", config.DatabaseID)
 

@@ -5,6 +5,5 @@ export const LOGICAL_BACKUP_STATUS_LABEL_KEYS: Record<LogicalBackupStatus, Trans
   [LogicalBackupStatus.IN_PROGRESS]: 'status.logicalBackup.inProgress',
   [LogicalBackupStatus.COMPLETED]: 'status.logicalBackup.completed',
   [LogicalBackupStatus.FAILED]: 'status.logicalBackup.failed',
-  [LogicalBackupStatus.DELETED]: 'status.logicalBackup.deleted',
   [LogicalBackupStatus.CANCELED]: 'status.logicalBackup.canceled',
 };

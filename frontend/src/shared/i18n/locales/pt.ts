@@ -132,7 +132,12 @@ export const pt: typeof en = {
     workspaceNotEmpty:
       'O espaço de trabalho ainda tem bancos de dados. Exclua-os primeiro e depois exclua o espaço de trabalho.',
     databaseConnectionFailed: 'Não foi possível conectar ao banco de dados: {{detail}}',
-    inUse: 'Alguns bancos de dados ainda o usam. Remova-o desses bancos de dados primeiro.',
+    inUse:
+      'Ainda está em uso por um banco de dados ou por um backup ou restauração em andamento. Tente novamente quando nada o estiver usando.',
+    alreadyRunning: 'Isso já está em andamento. Aguarde a conclusão e tente novamente.',
+    notRunning: 'Isso não está mais em andamento, então não há nada para cancelar.',
+    insufficientDiskSpace:
+      'O servidor do Databasus não tem espaço livre em disco suficiente: {{detail}}',
     unknown: 'Algo deu errado. Tente novamente.',
     networkUnreachable:
       'Não foi possível acessar o servidor do Databasus. Verifique sua conexão e tente novamente.',
@@ -173,7 +178,6 @@ export const pt: typeof en = {
       inProgress: 'Em andamento',
       completed: 'Bem-sucedido',
       failed: 'Falhou',
-      deleted: 'Excluído',
       canceled: 'Cancelado',
     },
     physicalBackup: {

@@ -1,17 +1,11 @@
 package features
 
 import (
-	"sync"
 	"testing"
-	"time"
 
-	backuping_logical "databasus-backend/internal/features/backups/backups/backuping/logical"
 	backuping_physical "databasus-backend/internal/features/backups/backups/backuping/physical"
 	databases_bridge "databasus-backend/internal/features/databases"
 	healthcheck_config "databasus-backend/internal/features/healthcheck/config"
-	"databasus-backend/internal/features/restores"
-	"databasus-backend/internal/features/restores/restoring"
-	task_cancellation "databasus-backend/internal/features/tasks/cancellation"
 )
 
 // Test_SetupDependencies_CalledTwice_LogsWarning verifies SetupDependencies is idempotent
@@ -26,78 +20,6 @@ func Test_SetupDependencies_CalledTwice_LogsWarning(t *testing.T) {
 	healthcheck_config.SetupDependencies()
 	healthcheck_config.SetupDependencies()
 
-	restores.SetupDependencies()
-	restores.SetupDependencies()
-
-	task_cancellation.SetupDependencies()
-	task_cancellation.SetupDependencies()
-
 	// If we reach here without panic, test passes
 	t.Log("All SetupDependencies calls completed successfully (idempotent)")
-}
-
-// Test_SetupDependencies_ConcurrentCalls_Safe verifies thread safety
-func Test_SetupDependencies_ConcurrentCalls_Safe(t *testing.T) {
-	var wg sync.WaitGroup
-
-	// Call SetupDependencies concurrently from 10 goroutines
-	for range 10 {
-		wg.Go(func() {
-		})
-	}
-
-	wg.Wait()
-	t.Log("Concurrent SetupDependencies calls completed successfully")
-}
-
-// Test_BackupsScheduler_Run_CalledTwice_Panics verifies scheduler panics on duplicate calls
-func Test_BackupsScheduler_Run_CalledTwice_Panics(t *testing.T) {
-	ctx := t.Context()
-
-	scheduler := backuping_logical.GetBackupsScheduler()
-
-	// Start first Run() in goroutine
-	go func() {
-		scheduler.Run(ctx)
-	}()
-
-	// Give first call time to initialize
-	time.Sleep(100 * time.Millisecond)
-
-	// Second call should panic
-	defer func() {
-		if r := recover(); r != nil {
-			t.Logf("Successfully caught panic: %v", r)
-		} else {
-			t.Error("Expected panic on second Run() call, but did not panic")
-		}
-	}()
-
-	scheduler.Run(ctx)
-}
-
-// Test_RestoresScheduler_Run_CalledTwice_Panics verifies restore scheduler panics on duplicate calls
-func Test_RestoresScheduler_Run_CalledTwice_Panics(t *testing.T) {
-	ctx := t.Context()
-
-	scheduler := restoring.GetRestoresScheduler()
-
-	// Start first Run() in goroutine
-	go func() {
-		scheduler.Run(ctx)
-	}()
-
-	// Give first call time to initialize
-	time.Sleep(100 * time.Millisecond)
-
-	// Second call should panic
-	defer func() {
-		if r := recover(); r != nil {
-			t.Logf("Successfully caught panic: %v", r)
-		} else {
-			t.Error("Expected panic on second Run() call, but did not panic")
-		}
-	}()
-
-	scheduler.Run(ctx)
 }

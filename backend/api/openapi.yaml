@@ -1967,6 +1967,391 @@ paths:
           $ref: "#/components/responses/Problem"
         default:
           $ref: "#/components/responses/Problem"
+  /logical-backups:
+    get:
+      operationId: listLogicalBackups
+      tags: [backups]
+      summary: List the logical backups of a database
+      description: >-
+        Ordered newest first by creation time, then by ID. `status` and `createdBefore` filter the
+        list. A user who is not a member of the database's workspace gets 404 `not_found`. A cursor
+        this list did not issue gets 400 `invalid_request`.
+      parameters:
+        - name: databaseId
+          in: query
+          required: true
+          description: The database whose backups to list
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          description: Only backups in one of these statuses
+          style: form
+          explode: true
+          schema:
+            type: array
+            items:
+              $ref: "#/components/schemas/LogicalBackupStatus"
+        - name: createdBefore
+          in: query
+          description: Only backups made before this time
+          schema:
+            type: string
+            format: date-time
+        - name: limit
+          in: query
+          description: The largest number of backups on the page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: after
+          in: query
+          description: The `nextCursor` of the previous page
+          schema:
+            type: string
+      responses:
+        "200":
+          description: One page of backups
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LogicalBackupPage"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+    post:
+      operationId: startLogicalBackup
+      tags: [backups]
+      summary: Start a backup of a database
+      description: >-
+        Needs the role `WORKSPACE_VIEWER` or higher. Answers at once with the backup in
+        `IN_PROGRESS`; `getLogicalBackup` follows it. A backup of the database that is already
+        running gets 409 `already_running`. A database whose config names no storage, or a physical
+        PostgreSQL database, gets 400 `invalid_request`.
+      requestBody:
+        description: The database to back up.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LogicalBackupStart"
+      responses:
+        "202":
+          description: The backup started
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LogicalBackup"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        "409":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /logical-backups/{backupId}:
+    parameters:
+      - $ref: "#/components/parameters/BackupId"
+    get:
+      operationId: getLogicalBackup
+      tags: [backups]
+      summary: Get a logical backup
+      description: A user who is not a member of the database's workspace gets 404 `not_found`.
+      responses:
+        "200":
+          description: The backup
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LogicalBackup"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+    delete:
+      operationId: deleteLogicalBackup
+      tags: [backups]
+      summary: Delete a logical backup and its file
+      description: >-
+        Needs the role `WORKSPACE_MEMBER` or higher. Removes the backup and requests the deletion of
+        its file and its metadata file in one step. A running backup gets 409 `already_running`, and
+        a backup a running restore reads gets 409 `in_use`; neither changes anything.
+      responses:
+        "204":
+          description: The backup is deleted
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        "409":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /logical-backups/{backupId}/cancel:
+    parameters:
+      - $ref: "#/components/parameters/BackupId"
+    post:
+      operationId: cancelLogicalBackup
+      tags: [backups]
+      summary: Cancel a running logical backup
+      description: >-
+        Needs the role `WORKSPACE_MEMBER` or higher. Stops the dump tool and every process it
+        started; the backup then shows `CANCELED`. A backup that is no longer running gets 409
+        `not_running` and stays as it is.
+      responses:
+        "202":
+          description: The backup is being cancelled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LogicalBackup"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        "409":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /logical-backups/{backupId}/file:
+    parameters:
+      - $ref: "#/components/parameters/BackupId"
+    get:
+      operationId: downloadLogicalBackup
+      tags: [backups]
+      x-access: public
+      summary: Download the file of a logical backup
+      description: >-
+        Public, because a browser link cannot carry the session: the single-use `token` from
+        `createDownloadToken` is the credential. Returns the decrypted file. An expired, used,
+        unknown or mismatched token gets 401 `unauthenticated`. While another download or restore
+        stream of the token's user runs, the request gets 409 `already_running` and the token stays
+        usable.
+      parameters:
+        - name: token
+          in: query
+          required: true
+          description: The download token issued for this backup
+          schema:
+            type: string
+      responses:
+        "200":
+          description: The decrypted backup file
+          headers:
+            Content-Disposition:
+              description: The file name of the backup
+              schema:
+                type: string
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "409":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /download-tokens:
+    post:
+      operationId: createDownloadToken
+      tags: [backups]
+      summary: Issue a single-use token to download a backup file
+      description: >-
+        Needs the role `WORKSPACE_VIEWER` or higher. The token downloads the backup once and expires
+        after five minutes. While another download or restore stream of the user runs, the request
+        gets 409 `already_running` and no token is issued.
+      requestBody:
+        description: The backup to download.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DownloadTokenCreate"
+      responses:
+        "201":
+          description: The issued token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DownloadToken"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        "409":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /restores:
+    get:
+      operationId: listRestores
+      tags: [backups]
+      summary: List the restores of a logical backup
+      description: >-
+        Ordered newest first by creation time, then by ID. A user who is not a member of the
+        backup's workspace gets 404 `not_found`.
+      parameters:
+        - name: backupId
+          in: query
+          required: true
+          description: The backup whose restores to list
+          schema:
+            type: string
+            format: uuid
+        - name: limit
+          in: query
+          description: The largest number of restores on the page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: after
+          in: query
+          description: The `nextCursor` of the previous page
+          schema:
+            type: string
+      responses:
+        "200":
+          description: One page of restores
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestorePage"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+    post:
+      operationId: startRestore
+      tags: [backups]
+      summary: Restore a logical backup into a target database
+      description: >-
+        Needs the role `WORKSPACE_VIEWER` or higher. Connects to the target and detects its version
+        before it answers, then answers at once with the restore in `IN_PROGRESS`; `getRestore`
+        follows it. A backup that is not completed, a target of another engine or a target whose
+        version cannot take the backup gets 400 `invalid_request`. A target that cannot be reached
+        or refuses the credentials gets 400 `database_connection_failed`. A restore into the same
+        database that is already running gets 409 `already_running`. A PostgreSQL restore that
+        needs the archive as a file and lacks disk space gets 409 `insufficient_disk_space`, whose
+        `detail` names the bytes needed and free. The target's secrets are used only by the running
+        restore and are never stored.
+      requestBody:
+        description: The backup and the target to restore it into.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RestoreStart"
+      responses:
+        "202":
+          description: The restore started
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Restore"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        "409":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /restores/{restoreId}:
+    parameters:
+      - $ref: "#/components/parameters/RestoreId"
+    get:
+      operationId: getRestore
+      tags: [backups]
+      summary: Get a restore
+      description: >-
+        Holds no field of the target. A user who is not a member of the backup's workspace gets 404
+        `not_found`.
+      responses:
+        "200":
+          description: The restore
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Restore"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /restores/{restoreId}/cancel:
+    parameters:
+      - $ref: "#/components/parameters/RestoreId"
+    post:
+      operationId: cancelRestore
+      tags: [backups]
+      summary: Cancel a running restore
+      description: >-
+        Needs the role `WORKSPACE_MEMBER` or higher. Stops the restore tool and every process it
+        started, also while the backup is still read from storage; the restore then shows
+        `CANCELED`. A restore that is no longer running gets 409 `not_running` and stays as it is.
+      responses:
+        "202":
+          description: The restore is being cancelled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Restore"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        "409":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
 components:
   parameters:
     UserId:
@@ -2032,6 +2417,22 @@ components:
       description: >-
         The ID of the database the config belongs to. A database has exactly one config, which has no
         ID of its own, so the database's ID is the key of the config.
+      schema:
+        type: string
+        format: uuid
+    BackupId:
+      name: backupId
+      in: path
+      required: true
+      description: The ID of the logical backup
+      schema:
+        type: string
+        format: uuid
+    RestoreId:
+      name: restoreId
+      in: path
+      required: true
+      description: The ID of the restore
       schema:
         type: string
         format: uuid
@@ -3853,6 +4254,9 @@ components:
         - workspace_not_empty
         - in_use
         - database_connection_failed
+        - already_running
+        - not_running
+        - insufficient_disk_space
         - internal
     FieldError:
       type: object
@@ -4179,3 +4583,372 @@ components:
           type: string
           format: uuid
           description: The storage of the target workspace
+    LogicalBackupStatus:
+      type: string
+      description: Where a logical backup is in its life
+      enum: [IN_PROGRESS, COMPLETED, FAILED, CANCELED]
+    LogicalBackupVerificationStatus:
+      type: string
+      description: The outcome of the last restore verification of the backup
+      enum: [NOT_VERIFIED, VERIFIED_SUCCESSFUL, VERIFICATION_FAILED]
+    LogicalBackup:
+      type: object
+      description: One logical backup of a database
+      required:
+        - id
+        - databaseId
+        - storageId
+        - status
+        - sizeMb
+        - rawDatabaseSizeMb
+        - durationMs
+        - encryption
+        - verificationStatus
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: The ID of the backup
+        databaseId:
+          type: string
+          format: uuid
+          description: The database the backup was taken of
+        storageId:
+          type: string
+          format: uuid
+          description: The storage that holds the backup's file
+        status:
+          $ref: "#/components/schemas/LogicalBackupStatus"
+        failMessage:
+          type: string
+          description: Why the backup failed, absent unless it failed
+        sizeMb:
+          type: number
+          format: double
+          description: The size of the stored file in megabytes, growing while the backup runs
+        rawDatabaseSizeMb:
+          type: number
+          format: double
+          description: The size of the database before the dump in megabytes, 0 when unknown
+        durationMs:
+          type: integer
+          format: int64
+          description: How long the backup ran in milliseconds
+        encryption:
+          $ref: "#/components/schemas/BackupEncryption"
+        verificationStatus:
+          $ref: "#/components/schemas/LogicalBackupVerificationStatus"
+        createdAt:
+          type: string
+          format: date-time
+          description: When the backup started
+    LogicalBackupPage:
+      type: object
+      description: One page of logical backups, newest first
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/LogicalBackup"
+          description: The backups on the page
+        nextCursor:
+          type: string
+          description: The `after` of the next page, absent on the last page
+    LogicalBackupStart:
+      type: object
+      description: The database whose backup to start
+      required: [databaseId]
+      properties:
+        databaseId:
+          type: string
+          format: uuid
+          description: The database to back up
+    DownloadTokenCreate:
+      type: object
+      description: The backup whose file to download
+      required: [backupId]
+      properties:
+        backupId:
+          type: string
+          format: uuid
+          description: The backup to download
+    DownloadToken:
+      type: object
+      description: A single-use token that downloads one backup file within five minutes
+      required: [token, fileName, expiresAt]
+      properties:
+        token:
+          type: string
+          description: The token, returned only in this response
+        fileName:
+          type: string
+          description: The name the downloaded file gets
+        expiresAt:
+          type: string
+          format: date-time
+          description: When the token stops working
+    RestoreStatus:
+      type: string
+      description: Where a restore is in its life
+      enum: [IN_PROGRESS, COMPLETED, FAILED, CANCELED]
+    Restore:
+      type: object
+      description: One restore of a logical backup, without any field of its target
+      required: [id, backupId, status, durationMs, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: The ID of the restore
+        backupId:
+          type: string
+          format: uuid
+          description: The backup the restore reads
+        status:
+          $ref: "#/components/schemas/RestoreStatus"
+        failMessage:
+          type: string
+          description: Why the restore failed, absent unless it failed
+        durationMs:
+          type: integer
+          format: int64
+          description: How long the restore ran in milliseconds
+        createdAt:
+          type: string
+          format: date-time
+          description: When the restore started
+    RestorePage:
+      type: object
+      description: One page of restores, newest first
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Restore"
+          description: The restores on the page
+        nextCursor:
+          type: string
+          description: The `after` of the next page, absent on the last page
+    RestoreStart:
+      type: object
+      description: The backup to restore and the database to restore it into
+      required: [backupId, target]
+      properties:
+        backupId:
+          type: string
+          format: uuid
+          description: The completed backup to restore
+        target:
+          $ref: "#/components/schemas/RestoreTarget"
+    RestoreTarget:
+      description: >-
+        The database a restore writes into, of the backup's engine; `type` takes the database type
+        of the backup's database
+      oneOf:
+        - $ref: "#/components/schemas/PostgresqlRestoreTarget"
+        - $ref: "#/components/schemas/MysqlRestoreTarget"
+        - $ref: "#/components/schemas/MariadbRestoreTarget"
+        - $ref: "#/components/schemas/MongodbRestoreTarget"
+      discriminator:
+        propertyName: type
+        mapping:
+          POSTGRES_LOGICAL: "#/components/schemas/PostgresqlRestoreTarget"
+          MYSQL: "#/components/schemas/MysqlRestoreTarget"
+          MARIADB: "#/components/schemas/MariadbRestoreTarget"
+          MONGODB: "#/components/schemas/MongodbRestoreTarget"
+    PostgresqlRestoreTarget:
+      type: object
+      description: A PostgreSQL database that pg_restore writes into
+      required:
+        - type
+        - host
+        - port
+        - username
+        - password
+        - database
+        - sslMode
+        - sshTunnel
+        - cpuCount
+        - isExcludeExtensions
+        - isRestoreOwnership
+        - isRestorePrivileges
+      properties:
+        type:
+          type: string
+          enum: [POSTGRES_LOGICAL]
+          description: Always `POSTGRES_LOGICAL`
+        host:
+          type: string
+          description: The host of the server
+        port:
+          type: integer
+          minimum: 1
+          maximum: 65535
+          description: The port of the server
+        username:
+          type: string
+          description: The user name
+        password:
+          type: string
+          writeOnly: true
+          description: The password
+        database:
+          type: string
+          minLength: 1
+          description: The database the restore writes into
+        sslMode:
+          $ref: "#/components/schemas/PostgresqlSslMode"
+        sslClientCert:
+          type: string
+          description: The PEM client certificate, absent without one
+        sslClientKey:
+          type: string
+          writeOnly: true
+          description: The PEM key of the client certificate
+        sslRootCert:
+          type: string
+          description: The PEM root certificate the server is verified against, absent without one
+        sshTunnel:
+          $ref: "#/components/schemas/SshTunnelSettings"
+        cpuCount:
+          type: integer
+          minimum: 1
+          description: The number of parallel jobs of pg_restore; more than one restores through a file
+        isExcludeExtensions:
+          type: boolean
+          description: Whether the restore leaves out the extensions, which needs a file
+        isRestoreOwnership:
+          type: boolean
+          description: Whether the restore keeps the owners of the objects
+        isRestorePrivileges:
+          type: boolean
+          description: Whether the restore keeps the grants of the objects
+    MysqlRestoreTarget:
+      type: object
+      description: A MySQL database the dump is replayed into
+      required: [type, host, port, username, password, database, isHttps, sshTunnel]
+      properties:
+        type:
+          type: string
+          enum: [MYSQL]
+          description: Always `MYSQL`
+        host:
+          type: string
+          description: The host of the server
+        port:
+          type: integer
+          minimum: 1
+          maximum: 65535
+          description: The port of the server
+        username:
+          type: string
+          description: The user name
+        password:
+          type: string
+          writeOnly: true
+          description: The password
+        database:
+          type: string
+          minLength: 1
+          description: The database the restore writes into
+        isHttps:
+          type: boolean
+          description: Whether the connection is encrypted, without verifying the server certificate
+        sshTunnel:
+          $ref: "#/components/schemas/SshTunnelSettings"
+    MariadbRestoreTarget:
+      type: object
+      description: A MariaDB database the dump is replayed into
+      required: [type, host, port, username, password, database, isHttps, sshTunnel, isSkipGaleraDisable]
+      properties:
+        type:
+          type: string
+          enum: [MARIADB]
+          description: Always `MARIADB`
+        host:
+          type: string
+          description: The host of the server
+        port:
+          type: integer
+          minimum: 1
+          maximum: 65535
+          description: The port of the server
+        username:
+          type: string
+          description: The user name
+        password:
+          type: string
+          writeOnly: true
+          description: The password
+        database:
+          type: string
+          minLength: 1
+          description: The database the restore writes into
+        isHttps:
+          type: boolean
+          description: Whether the connection is encrypted, without verifying the server certificate
+        sshTunnel:
+          $ref: "#/components/schemas/SshTunnelSettings"
+        isSkipGaleraDisable:
+          type: boolean
+          description: Whether the restore keeps Galera replication on for its session
+    MongodbRestoreTarget:
+      type: object
+      description: A MongoDB database that mongorestore writes into
+      required:
+        - type
+        - host
+        - username
+        - password
+        - database
+        - authDatabase
+        - isHttps
+        - isSrv
+        - isDirectConnection
+        - sshTunnel
+        - cpuCount
+      properties:
+        type:
+          type: string
+          enum: [MONGODB]
+          description: Always `MONGODB`
+        host:
+          type: string
+          description: The host of the server, or the DNS name of an SRV connection
+        port:
+          type: integer
+          minimum: 1
+          maximum: 65535
+          description: The port of the server, absent for an SRV connection
+        username:
+          type: string
+          description: The user name
+        password:
+          type: string
+          writeOnly: true
+          description: The password
+        database:
+          type: string
+          minLength: 1
+          description: The database the restore writes into
+        authDatabase:
+          type: string
+          description: The database the user authenticates against
+        isHttps:
+          type: boolean
+          description: Whether TLS is on, without verifying the server certificate
+        isSrv:
+          type: boolean
+          description: Whether the host is resolved through DNS SRV records
+        isDirectConnection:
+          type: boolean
+          description: Whether the client talks to the host alone instead of discovering the replica set
+        sshTunnel:
+          $ref: "#/components/schemas/SshTunnelSettings"
+        cpuCount:
+          type: integer
+          minimum: 1
+          description: The number of collections mongorestore writes at once

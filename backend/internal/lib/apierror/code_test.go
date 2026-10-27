@@ -47,6 +47,10 @@ func TestCode(t *testing.T) {
 		{apierror.CodeOwnerRequiresTransfer, http.StatusConflict},
 		{apierror.CodeWorkspaceNotEmpty, http.StatusConflict},
 		{apierror.CodeInUse, http.StatusConflict},
+		{apierror.CodeDatabaseConnectionFailed, http.StatusBadRequest},
+		{apierror.CodeAlreadyRunning, http.StatusConflict},
+		{apierror.CodeNotRunning, http.StatusConflict},
+		{apierror.CodeInsufficientDiskSpace, http.StatusConflict},
 		{apierror.CodeInternal, http.StatusInternalServerError},
 	}
 
@@ -94,6 +98,10 @@ func TestCode(t *testing.T) {
 			apierror.CodeOwnerRequiresTransfer,
 			apierror.CodeWorkspaceNotEmpty,
 			apierror.CodeInUse,
+			apierror.CodeDatabaseConnectionFailed,
+			apierror.CodeAlreadyRunning,
+			apierror.CodeNotRunning,
+			apierror.CodeInsufficientDiskSpace,
 			apierror.CodeInternal,
 		}
 

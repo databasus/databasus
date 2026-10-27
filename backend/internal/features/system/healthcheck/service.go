@@ -7,18 +7,19 @@ import (
 	"log/slog"
 	"strings"
 
-	backuping_logical "databasus-backend/internal/features/backups/backups/backuping/logical"
 	"databasus-backend/internal/features/disk"
 	verification_agents "databasus-backend/internal/features/verification/agents"
 	verification_runs "databasus-backend/internal/features/verification/runs"
+	"databasus-backend/internal/modules/backups"
 	"databasus-backend/internal/storage"
 )
 
 type HealthcheckService struct {
-	diskService             *disk.DiskService
-	backupBackgroundService *backuping_logical.BackupsScheduler
-	agentService            *verification_agents.AgentService
-	logger                  *slog.Logger
+	diskService *disk.DiskService
+	// getBackups is read per call: each test application installs its own module.
+	getBackups   func() backups.Module
+	agentService *verification_agents.AgentService
+	logger       *slog.Logger
 }
 
 func (s *HealthcheckService) IsHealthy(ctx context.Context) error {
@@ -54,7 +55,7 @@ func (s *HealthcheckService) performHealthCheck(ctx context.Context) error {
 		return errors.New("cannot connect to the database")
 	}
 
-	if !s.backupBackgroundService.IsSchedulerRunning() {
+	if !s.getBackups().IsLogicalBackupSchedulerRunning(ctx) {
 		s.logger.WarnContext(ctx, "healthcheck degraded: the backup scheduler has not ticked in 5 minutes")
 
 		return errors.New("backups are not running for more than 5 minutes")

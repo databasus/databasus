@@ -10,12 +10,12 @@ Defines who may see and change a workspace and what is inside it: what each work
 
 A member's workspace role SHALL decide what the member may do in the workspace, and the roles SHALL build on each other:
 
-- a viewer MAY see the workspace, its members and its content, MAY send test messages through the workspace's notifiers, and MAY test the connection of the workspace's saved storages and saved databases;
-- a member MAY also create, change and delete the workspace's databases, storages and notifiers and everything attached to them, MAY test storage and database settings that are not saved yet, except where the `storages` spec reserves rclone settings for instance admins, and MAY check and create limited users of the workspace's databases;
+- a viewer MAY see the workspace, its members and its content, MAY send test messages through the workspace's notifiers, MAY test the connection of the workspace's saved storages and saved databases, and MAY start, download and restore the logical backups of the workspace's databases;
+- a member MAY also create, change and delete the workspace's databases, storages and notifiers and everything attached to them, MAY cancel and delete logical backups and cancel restores, MAY test storage and database settings that are not saved yet, except where the `storages` spec reserves rclone settings for instance admins, and MAY check and create limited users of the workspace's databases;
 - an admin MAY also rename the workspace and add, change and remove members who are not admins or the owner;
 - the owner MAY also add, change and remove admins, transfer ownership and delete the workspace.
 
-The operations on workspaces, their members, their notifiers, their storages, their databases and their databases' backup configs SHALL apply these rules with the answers of the requirements below. Moving a database to another workspace SHALL need the right to edit content in both workspaces.
+The operations on workspaces, their members, their notifiers, their storages, their databases, their databases' backup configs, logical backups and restores SHALL apply these rules with the answers of the requirements below. Moving a database to another workspace SHALL need the right to edit content in both workspaces.
 
 #### Scenario: Viewer reads the workspace
 
@@ -92,6 +92,16 @@ The operations on workspaces, their members, their notifiers, their storages, th
 - **WHEN** a user with the role `WORKSPACE_MEMBER` in two workspaces saves the backup config of a database of the first and then moves the database to the second
 - **THEN** both requests succeed
 
+#### Scenario: Viewer backs up, downloads and restores
+
+- **WHEN** a viewer of a workspace starts a backup of one of its databases, gets a download token for a completed backup and starts a restore of it
+- **THEN** each request succeeds
+
+#### Scenario: Member cancels and deletes a backup
+
+- **WHEN** a user with the role `WORKSPACE_MEMBER` cancels a running backup of a database of the workspace and deletes a completed one
+- **THEN** both requests succeed
+
 #### Scenario: Admin renames the workspace
 
 - **WHEN** an admin of a workspace renames it
@@ -118,7 +128,7 @@ An instance admin SHALL be allowed every action in every workspace, whether or n
 
 ### Requirement: A user outside a workspace learns nothing about it
 
-An operation on a workspace, on one of its members, on one of its notifiers, on one of its storages, on one of its databases or on a database's backup config, asked by a user who is not a member and not an instance admin, SHALL get `404` with `code` `not_found`, the same answer as for a workspace, a notifier, a storage or a database that does not exist. The response SHALL NOT reveal the workspace's name, its members, its notifiers, its storages, its databases or their backup configs.
+An operation on a workspace, on one of its members, on one of its notifiers, on one of its storages, on one of its databases, on a database's backup config, on its logical backups or on their restores, asked by a user who is not a member and not an instance admin, SHALL get `404` with `code` `not_found`, the same answer as for a workspace, a notifier, a storage, a database, a logical backup or a restore that does not exist. The download of a backup file with a token is outside this rule: it carries no session, and a token that does not fit gets `401` as the `logical-backups` spec states. The response SHALL NOT reveal the workspace's name, its members, its notifiers, its storages, its databases, their backup configs, their backups or their restores.
 
 #### Scenario: Reading another team's workspace
 
@@ -185,9 +195,25 @@ An operation on a workspace, on one of its members, on one of its notifiers, on 
 - **WHEN** a user who is not a member of a workspace reads the backup config of one of its databases, saves it and lists the workspace's backup configs
 - **THEN** each response is `404` with `code` `not_found`, and the config is unchanged
 
+#### Scenario: Reading another team's backups
+
+- **WHEN** a user who is not a member of a workspace lists the logical backups of one of its databases, reads one backup, asks for its download token and lists its restores
+- **THEN** each response is `404` with `code` `not_found`
+
+#### Scenario: Same answer as a missing backup or restore
+
+- **WHEN** a user who is not a member of a workspace reads one of its logical backups and then a backup ID that does not exist, and reads one of its restores and then a restore ID that does not exist
+- **THEN** every response is `404` with `code` `not_found`, and each pair has the same body apart from the ID
+
+#### Scenario: Changing another team's backups and restores
+
+- **WHEN** a user who is not a member of a workspace starts a backup of one of its databases, cancels a running backup, deletes a completed backup, starts a restore of it and cancels a running restore
+- **THEN** each response is `404` with `code` `not_found`
+- **AND** no backup or restore is started, the running backup and restore keep running, and the completed backup is still listed
+
 ### Requirement: A role too low for the action is refused without a change
 
-An operation on a workspace, on one of its members, on one of its notifiers, on one of its storages, on one of its databases or on a database's backup config, asked by a member whose role does not allow it, SHALL get `403` with `code` `permission_denied` and SHALL change nothing.
+An operation on a workspace, on one of its members, on one of its notifiers, on one of its storages, on one of its databases, on a database's backup config, on its logical backups or on their restores, asked by a member whose role does not allow it, SHALL get `403` with `code` `permission_denied` and SHALL change nothing.
 
 #### Scenario: Viewer adds a member
 
@@ -213,6 +239,11 @@ An operation on a workspace, on one of its members, on one of its notifiers, on 
 
 - **WHEN** a viewer of a workspace saves the backup config of one of its databases and then moves the database to a workspace where the viewer is a member
 - **THEN** both responses are `403` with `code` `permission_denied`, the config is unchanged, and the database stays in its workspace
+
+#### Scenario: Viewer cancels and deletes a backup and cancels a restore
+
+- **WHEN** a viewer of a workspace cancels a running backup of one of its databases, deletes a completed backup and cancels a running restore
+- **THEN** each response is `403` with `code` `permission_denied`, the running backup is still `IN_PROGRESS`, the completed backup is still listed, and the restore keeps running
 
 ### Requirement: A user sees only their own workspaces
 

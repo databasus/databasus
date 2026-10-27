@@ -16,7 +16,7 @@ import (
 	physical_enums "databasus-backend/internal/features/backups/backups/core/physical/enums"
 	physical_models "databasus-backend/internal/features/backups/backups/core/physical/models"
 	physical_repositories "databasus-backend/internal/features/backups/backups/core/physical/repositories"
-	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
+	"databasus-backend/internal/lib/background"
 	"databasus-backend/internal/lib/database"
 	"databasus-backend/internal/modules/backups"
 	"databasus-backend/internal/modules/storages"
@@ -39,12 +39,12 @@ import (
 //   - CANCELED: neither COMPLETED nor CHAIN_BROKEN; the chain it belonged to stays
 //     extendable and resumes on cadence — no immediate auto-retry.
 type PhysicalBackupsScheduler struct {
-	fullRepo                  *physical_repositories.PhysicalFullBackupRepository
-	incrRepo                  *physical_repositories.PhysicalIncrementalBackupRepository
-	inFlightRepo              *physical_repositories.PhysicalInFlightBackupRepository
-	getBackups                func() backups.Module
-	chainViewService          *chain_view.ChainViewService
-	taskCancellationRequester *tasks_cancellation.Requester
+	fullRepo                 *physical_repositories.PhysicalFullBackupRepository
+	incrRepo                 *physical_repositories.PhysicalIncrementalBackupRepository
+	inFlightRepo             *physical_repositories.PhysicalInFlightBackupRepository
+	getBackups               func() backups.Module
+	chainViewService         *chain_view.ChainViewService
+	taskCancellationRegistry *background.CancellationRegistry
 	// getStorages is read per call: each test application installs its own module.
 	getStorages func() storages.Module
 	backuper    *PhysicalBackuper
@@ -753,9 +753,7 @@ func (s *PhysicalBackupsScheduler) failOrphanedBackup(
 
 	// Best-effort cancel of any locally-registered task; harmless if none
 	// (a fresh process holds no registrations).
-	if err := s.taskCancellationRequester.RequestCancellation(ctx, spec.BackupID); err != nil {
-		logger.ErrorContext(ctx, "failed to cancel orphaned backup task", "error", err)
-	}
+	s.taskCancellationRegistry.Cancel(spec.BackupID)
 
 	if err := s.failBackupAndReleaseClaim(ctx, spec,
 		physical_enums.PhysicalBackupErrorApplicationRestart,

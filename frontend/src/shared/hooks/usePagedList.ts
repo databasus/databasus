@@ -62,5 +62,6 @@ export function usePagedList<TItem, TCursor>({
     hasMore: state.list.nextCursor !== undefined,
     reload: () => controller.reload(),
     refreshFirstPage: () => controller.refreshFirstPage(),
+    replaceOrPrependItem: (item: TItem) => controller.replaceOrPrependItem(item),
   };
 }

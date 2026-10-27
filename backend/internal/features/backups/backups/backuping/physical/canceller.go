@@ -7,7 +7,7 @@ import (
 	"github.com/google/uuid"
 
 	physical_repositories "databasus-backend/internal/features/backups/backups/core/physical/repositories"
-	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
+	"databasus-backend/internal/lib/background"
 )
 
 // PhysicalBackupCanceller stands a database's in-flight physical backup down: it
@@ -17,17 +17,17 @@ import (
 // listener, the database-remove listener, and the user-facing cancel/delete
 // endpoints.
 type PhysicalBackupCanceller struct {
-	inFlightRepo              *physical_repositories.PhysicalInFlightBackupRepository
-	taskCancellationRequester *tasks_cancellation.Requester
-	logger                    *slog.Logger
+	inFlightRepo             *physical_repositories.PhysicalInFlightBackupRepository
+	taskCancellationRegistry *background.CancellationRegistry
+	logger                   *slog.Logger
 }
 
 func NewPhysicalBackupCanceller(
 	inFlightRepo *physical_repositories.PhysicalInFlightBackupRepository,
-	taskCancellationRequester *tasks_cancellation.Requester,
+	taskCancellationRegistry *background.CancellationRegistry,
 	logger *slog.Logger,
 ) *PhysicalBackupCanceller {
-	return &PhysicalBackupCanceller{inFlightRepo, taskCancellationRequester, logger}
+	return &PhysicalBackupCanceller{inFlightRepo, taskCancellationRegistry, logger}
 }
 
 // CancelInFlightForDatabase cancels whatever backup the database currently holds
@@ -81,10 +81,7 @@ func (c *PhysicalBackupCanceller) cancelClaim(
 	logger *slog.Logger,
 	spec CancelInFlightBackupSpec,
 ) {
-	if err := c.taskCancellationRequester.RequestCancellation(ctx, spec.BackupID); err != nil {
-		logger.ErrorContext(ctx, "failed to request in-flight backup cancellation",
-			"backup_id", spec.BackupID, "error", err)
-	}
+	c.taskCancellationRegistry.Cancel(spec.BackupID)
 
 	if err := c.inFlightRepo.ReleaseOwned(spec.DatabaseID, spec.BackupID); err != nil {
 		logger.ErrorContext(ctx, "failed to release in-flight claim",

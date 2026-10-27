@@ -6,7 +6,7 @@ import {
   type PhysicalBackupConfigInput,
   backupConfigApi,
 } from '../../../entity/backups/config';
-import { logicalBackupsApi } from '../../../entity/backups/logical';
+import { logicalBackupApi } from '../../../entity/backups/logical';
 import { physicalBackupsApi } from '../../../entity/backups/physical';
 import {
   type Database,
@@ -94,7 +94,7 @@ export const CreateDatabaseComponent = ({
         await backupConfigApi.updateBackupConfig(createdDatabase.id, backupConfig);
 
         if (backupConfig.isBackupsEnabled) {
-          await logicalBackupsApi.makeBackup(createdDatabase.id);
+          await logicalBackupApi.startLogicalBackup(createdDatabase.id);
         }
       }
 

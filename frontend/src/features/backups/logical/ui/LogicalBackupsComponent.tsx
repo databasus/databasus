@@ -21,13 +21,13 @@ import { Trans, useTranslation } from 'react-i18next';
 
 import { type BackupConfig, backupConfigApi } from '../../../../entity/backups/config';
 import {
-  type BackupsFilters,
   LOGICAL_BACKUP_STATUS_LABEL_KEYS,
+  LOGICAL_BACKUP_VERIFICATION_STATUS_LABEL_KEYS,
   type LogicalBackup,
+  type LogicalBackupListFilter,
   LogicalBackupStatus,
-  RESTORE_VERIFICATION_STATUS_LABEL_KEYS,
-  RestoreVerificationStatus,
-  logicalBackupsApi,
+  LogicalBackupVerificationStatus,
+  logicalBackupApi,
 } from '../../../../entity/backups/logical';
 import { BackupEncryption } from '../../../../entity/backups/shared';
 import { type Database, DatabaseType } from '../../../../entity/databases';
@@ -43,7 +43,8 @@ import { formatDuration } from '../../../../shared/lib';
 import { getUserTimeFormat } from '../../../../shared/time';
 import { ConfirmationComponent } from '../../../../shared/ui';
 import { RestoresComponent } from '../../../restores';
-import { RESTORE_VERIFICATION_STATUS_BADGE_STYLES } from '../model/restoreVerificationStatus';
+import { isLogicalBackupListedByFilter } from '../model/isLogicalBackupListedByFilter';
+import { VERIFICATION_STATUS_BADGE_STYLES } from '../model/verificationStatusBadgeStyles';
 import { LogicalBackupsFiltersPanelComponent } from './LogicalBackupsFiltersPanelComponent';
 
 const BACKUPS_PAGE_SIZE = 50;
@@ -66,16 +67,29 @@ interface Props {
   onNavigateToVerifications?: () => void;
 }
 
-const renderRestoreVerificationTag = (
-  status: RestoreVerificationStatus | undefined,
+// The file is served with Content-Disposition, so following the link downloads it and leaves the
+// page in place.
+const openFileLink = (url: string, fileName: string) => {
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = fileName;
+  link.style.display = 'none';
+
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+
+const renderVerificationTag = (
+  status: LogicalBackupVerificationStatus,
   t: TFunction,
 ): JSX.Element | null => {
-  if (!status || status === RestoreVerificationStatus.NOT_VERIFIED) {
+  if (status === LogicalBackupVerificationStatus.NOT_VERIFIED) {
     return null;
   }
 
-  const badgeStyle = RESTORE_VERIFICATION_STATUS_BADGE_STYLES[status];
-  const labelKey = RESTORE_VERIFICATION_STATUS_LABEL_KEYS[status];
+  const badgeStyle = VERIFICATION_STATUS_BADGE_STYLES[status];
+  const labelKey = LOGICAL_BACKUP_VERIFICATION_STATUS_LABEL_KEYS[status];
   if (!badgeStyle || !labelKey) {
     return null;
   }
@@ -117,12 +131,19 @@ export const LogicalBackupsComponent = ({
   const [verifyingBackupId, setVerifyingBackupId] = useState<string | undefined>();
 
   const [isFilterPanelVisible, setIsFilterPanelVisible] = useState(false);
-  // eslint-disable-next-line i18next/no-literal-string -- localStorage key
-  const [filters, setFilters] = usePersistentState<BackupsFilters>('logicalBackupsFilters', {});
+  const [filter, setFilter] = usePersistentState<LogicalBackupListFilter>(
+    // eslint-disable-next-line i18next/no-literal-string -- localStorage key
+    'logicalBackupListFilter',
+    {},
+  );
 
   const downloadBackup = async (backupId: string) => {
     try {
-      await logicalBackupsApi.downloadBackup(backupId);
+      const downloadToken = await logicalBackupApi.createDownloadToken(backupId);
+      openFileLink(
+        logicalBackupApi.getLogicalBackupFileUrl(backupId, downloadToken.token),
+        downloadToken.fileName,
+      );
     } catch (e) {
       alert(translateApiError(e, t));
     } finally {
@@ -130,30 +151,22 @@ export const LogicalBackupsComponent = ({
     }
   };
 
-  const fetchBackupsPage = async (offset: number | undefined) => {
-    const pageOffset = offset ?? 0;
-    const response = await logicalBackupsApi.getBackups(
-      database.id,
-      BACKUPS_PAGE_SIZE,
-      pageOffset,
-      filters,
-    );
-
-    const loadedCount = pageOffset + response.backups.length;
-
-    return {
-      items: response.backups,
-      nextCursor: loadedCount < response.total ? loadedCount : undefined,
-    };
-  };
+  const fetchBackupsPage = (after: string | undefined) =>
+    logicalBackupApi.listLogicalBackups({
+      databaseId: database.id,
+      filter,
+      limit: BACKUPS_PAGE_SIZE,
+      after,
+    });
 
   const makeBackup = async () => {
     setIsMakeBackupRequestLoading(true);
 
     try {
-      await logicalBackupsApi.makeBackup(database.id);
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      await reloadBackups();
+      const startedBackup = await logicalBackupApi.startLogicalBackup(database.id);
+      if (isLogicalBackupListedByFilter(startedBackup, filter)) {
+        replaceOrPrependBackup(startedBackup);
+      }
     } catch (e) {
       alert(translateApiError(e, t));
     }
@@ -170,7 +183,7 @@ export const LogicalBackupsComponent = ({
     setDeletingBackupId(deleteConfimationId);
 
     try {
-      await logicalBackupsApi.deleteBackup(deleteConfimationId);
+      await logicalBackupApi.deleteLogicalBackup(deleteConfimationId);
       await reloadBackups();
     } catch (e) {
       alert(translateApiError(e, t));
@@ -184,8 +197,7 @@ export const LogicalBackupsComponent = ({
     setCancellingBackupId(backupId);
 
     try {
-      await logicalBackupsApi.cancelBackup(backupId);
-      await refreshBackups();
+      replaceOrPrependBackup(await logicalBackupApi.cancelLogicalBackup(backupId));
     } catch (e) {
       alert(translateApiError(e, t));
     }
@@ -241,13 +253,13 @@ export const LogicalBackupsComponent = ({
     isLoadingMore,
     hasMore,
     reload: reloadBackups,
-    refreshFirstPage: refreshBackups,
+    replaceOrPrependItem: replaceOrPrependBackup,
   } = usePolledPagedList({
     fetchPage: fetchBackupsPage,
     getItemKey: (backup: LogicalBackup) => backup.id,
     refreshIntervalMs: BACKUPS_REFRESH_MS,
     scrollContainerRef,
-    resetKey: JSON.stringify([database.id, filters]),
+    resetKey: JSON.stringify([database.id, filter]),
     onError: (e) => alert(translateApiError(e, t)),
   });
 
@@ -295,15 +307,6 @@ export const LogicalBackupsComponent = ({
       );
     }
 
-    if (status === LogicalBackupStatus.DELETED) {
-      return (
-        <div className="flex items-center text-gray-600">
-          <DeleteOutlined className="mr-2" style={{ fontSize: 16 }} />
-          <div>{t(LOGICAL_BACKUP_STATUS_LABEL_KEYS[status])}</div>
-        </div>
-      );
-    }
-
     if (status === LogicalBackupStatus.IN_PROGRESS) {
       return (
         <div className="flex items-center font-bold text-blue-600">
@@ -326,7 +329,7 @@ export const LogicalBackupsComponent = ({
   };
 
   const renderStatus = (status: LogicalBackupStatus, record: LogicalBackup) => {
-    const verificationTag = renderRestoreVerificationTag(record.restoreVerificationStatus, t);
+    const verificationTag = renderVerificationTag(record.verificationStatus, t);
     if (!verificationTag) {
       return renderBackupStatusLabel(status, record);
     }
@@ -476,16 +479,16 @@ export const LogicalBackupsComponent = ({
           </Tooltip>
         </div>
       ),
-      dataIndex: 'backupSizeMb',
-      key: 'backupSizeMb',
+      dataIndex: 'sizeMb',
+      key: 'sizeMb',
       width: 150,
       render: (sizeMb: number, record: LogicalBackup) => (
         <div>
           <div>{formatSize(sizeMb)}</div>
-          {record.backupRawDbSizeMb > 0 && (
+          {record.rawDatabaseSizeMb > 0 && (
             <div className="text-xs text-gray-500 dark:text-gray-500">
               {t('backups.logical.list.databaseSize', {
-                size: formatSize(record.backupRawDbSizeMb),
+                size: formatSize(record.rawDatabaseSizeMb),
               })}
             </div>
           )}
@@ -494,8 +497,8 @@ export const LogicalBackupsComponent = ({
     },
     {
       title: t('backups.list.columns.duration'),
-      dataIndex: 'backupDurationMs',
-      key: 'backupDurationMs',
+      dataIndex: 'durationMs',
+      key: 'durationMs',
       width: 150,
       render: (durationMs: number) => formatDuration(durationMs),
     },
@@ -508,7 +511,7 @@ export const LogicalBackupsComponent = ({
   ];
 
   const isAnyFilterApplied =
-    (filters.statuses && filters.statuses.length > 0) || filters.beforeDate !== undefined;
+    (filter.statuses && filter.statuses.length > 0) || filter.createdBefore !== undefined;
 
   if (isBackupConfigLoading) {
     return (
@@ -544,7 +547,7 @@ export const LogicalBackupsComponent = ({
 
       {isFilterPanelVisible && (
         <div className="mt-3">
-          <LogicalBackupsFiltersPanelComponent filters={filters} onFiltersChange={setFilters} />
+          <LogicalBackupsFiltersPanelComponent filter={filter} onFilterChange={setFilter} />
         </div>
       )}
 
@@ -602,11 +605,11 @@ export const LogicalBackupsComponent = ({
                         <div className="text-xs text-gray-500 dark:text-gray-400">
                           {t('backups.list.columns.size')}
                         </div>
-                        <div className="text-sm font-medium">{formatSize(backup.backupSizeMb)}</div>
-                        {backup.backupRawDbSizeMb > 0 && (
+                        <div className="text-sm font-medium">{formatSize(backup.sizeMb)}</div>
+                        {backup.rawDatabaseSizeMb > 0 && (
                           <div className="text-xs text-gray-500 dark:text-gray-500">
                             {t('backups.logical.list.databaseSize', {
-                              size: formatSize(backup.backupRawDbSizeMb),
+                              size: formatSize(backup.rawDatabaseSizeMb),
                             })}
                           </div>
                         )}
@@ -616,7 +619,7 @@ export const LogicalBackupsComponent = ({
                           {t('backups.list.columns.duration')}
                         </div>
                         <div className="text-sm font-medium">
-                          {formatDuration(backup.backupDurationMs)}
+                          {formatDuration(backup.durationMs)}
                         </div>
                       </div>
                     </div>

@@ -131,7 +131,11 @@ export const fr: typeof en = {
     workspaceNotEmpty:
       "L'espace de travail contient encore des bases de données. Supprimez-les d'abord, puis supprimez l'espace de travail.",
     databaseConnectionFailed: 'Impossible de se connecter à la base de données : {{detail}}',
-    inUse: "Des bases de données l'utilisent encore. Retirez-le d'abord de ces bases de données.",
+    inUse:
+      "Il est encore utilisé par une base de données ou par une sauvegarde ou une restauration en cours. Réessayez quand plus rien ne l'utilise.",
+    alreadyRunning: "C'est déjà en cours. Attendez la fin et réessayez.",
+    notRunning: "Ce n'est plus en cours : il n'y a rien à annuler.",
+    insufficientDiskSpace: "Le serveur Databasus n'a pas assez d'espace disque libre : {{detail}}",
     unknown: "Une erreur s'est produite. Réessayez.",
     networkUnreachable:
       'Impossible de joindre le serveur Databasus. Vérifiez votre connexion et réessayez.',
@@ -172,7 +176,6 @@ export const fr: typeof en = {
       inProgress: 'En cours',
       completed: 'Réussie',
       failed: 'Échouée',
-      deleted: 'Supprimée',
       canceled: 'Annulée',
     },
     physicalBackup: {

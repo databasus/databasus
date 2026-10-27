@@ -4,14 +4,14 @@ import dayjs from 'dayjs';
 import { useTranslation } from 'react-i18next';
 
 import {
-  type BackupsFilters,
   LOGICAL_BACKUP_STATUS_LABEL_KEYS,
+  type LogicalBackupListFilter,
   LogicalBackupStatus,
 } from '../../../../entity/backups/logical';
 
 interface Props {
-  filters: BackupsFilters;
-  onFiltersChange: (filters: BackupsFilters) => void;
+  filter: LogicalBackupListFilter;
+  onFilterChange: (filter: LogicalBackupListFilter) => void;
 }
 
 const FILTERABLE_STATUSES = [
@@ -21,17 +21,17 @@ const FILTERABLE_STATUSES = [
   LogicalBackupStatus.CANCELED,
 ];
 
-export const LogicalBackupsFiltersPanelComponent = ({ filters, onFiltersChange }: Props) => {
+export const LogicalBackupsFiltersPanelComponent = ({ filter, onFilterChange }: Props) => {
   const { t } = useTranslation();
 
-  const handleStatusChange = (statuses: string[]) => {
-    onFiltersChange({ ...filters, statuses: statuses.length > 0 ? statuses : undefined });
+  const handleStatusChange = (statuses: LogicalBackupStatus[]) => {
+    onFilterChange({ ...filter, statuses: statuses.length > 0 ? statuses : undefined });
   };
 
-  const handleBeforeDateChange = (date: Dayjs | null) => {
-    onFiltersChange({
-      ...filters,
-      beforeDate: date ? date.toISOString() : undefined,
+  const handleCreatedBeforeChange = (date: Dayjs | null) => {
+    onFilterChange({
+      ...filter,
+      createdBefore: date ? date.toISOString() : undefined,
     });
   };
 
@@ -48,7 +48,7 @@ export const LogicalBackupsFiltersPanelComponent = ({ filters, onFiltersChange }
         </span>
         <Select
           mode="multiple"
-          value={filters.statuses ?? []}
+          value={filter.statuses ?? []}
           onChange={handleStatusChange}
           options={statusOptions}
           placeholder={t('backups.filters.allStatuses')}
@@ -64,8 +64,8 @@ export const LogicalBackupsFiltersPanelComponent = ({ filters, onFiltersChange }
           {t('backups.filters.before')}
         </span>
         <DatePicker
-          value={filters.beforeDate ? dayjs(filters.beforeDate) : null}
-          onChange={handleBeforeDateChange}
+          value={filter.createdBefore ? dayjs(filter.createdBefore) : null}
+          onChange={handleCreatedBeforeChange}
           size="small"
           variant="filled"
           className="w-[200px] !rounded-md"

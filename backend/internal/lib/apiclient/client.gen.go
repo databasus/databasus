@@ -280,6 +280,51 @@ func (e LogicalBackupSettingsType) Valid() bool {
 	}
 }
 
+// Defines values for LogicalBackupStatus.
+const (
+	LogicalBackupStatusCANCELED   LogicalBackupStatus = "CANCELED"
+	LogicalBackupStatusCOMPLETED  LogicalBackupStatus = "COMPLETED"
+	LogicalBackupStatusFAILED     LogicalBackupStatus = "FAILED"
+	LogicalBackupStatusINPROGRESS LogicalBackupStatus = "IN_PROGRESS"
+)
+
+// Valid indicates whether the value is a known member of the LogicalBackupStatus enum.
+func (e LogicalBackupStatus) Valid() bool {
+	switch e {
+	case LogicalBackupStatusCANCELED:
+		return true
+	case LogicalBackupStatusCOMPLETED:
+		return true
+	case LogicalBackupStatusFAILED:
+		return true
+	case LogicalBackupStatusINPROGRESS:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LogicalBackupVerificationStatus.
+const (
+	LogicalBackupVerificationStatusNOTVERIFIED        LogicalBackupVerificationStatus = "NOT_VERIFIED"
+	LogicalBackupVerificationStatusVERIFICATIONFAILED LogicalBackupVerificationStatus = "VERIFICATION_FAILED"
+	LogicalBackupVerificationStatusVERIFIEDSUCCESSFUL LogicalBackupVerificationStatus = "VERIFIED_SUCCESSFUL"
+)
+
+// Valid indicates whether the value is a known member of the LogicalBackupVerificationStatus enum.
+func (e LogicalBackupVerificationStatus) Valid() bool {
+	switch e {
+	case LogicalBackupVerificationStatusNOTVERIFIED:
+		return true
+	case LogicalBackupVerificationStatusVERIFICATIONFAILED:
+		return true
+	case LogicalBackupVerificationStatusVERIFIEDSUCCESSFUL:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for LogicalNotificationTrigger.
 const (
 	LogicalNotificationTriggerBACKUPFAILED  LogicalNotificationTrigger = "BACKUP_FAILED"
@@ -313,6 +358,21 @@ func (e LogicalRetentionPolicy) Valid() bool {
 	case LogicalRetentionPolicyGFS:
 		return true
 	case LogicalRetentionPolicyTIMEPERIOD:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MariadbRestoreTargetType.
+const (
+	MariadbRestoreTargetTypeMARIADB MariadbRestoreTargetType = "MARIADB"
+)
+
+// Valid indicates whether the value is a known member of the MariadbRestoreTargetType enum.
+func (e MariadbRestoreTargetType) Valid() bool {
+	switch e {
+	case MariadbRestoreTargetTypeMARIADB:
 		return true
 	default:
 		return false
@@ -415,6 +475,21 @@ func (e MattermostNotifierSettingsType) Valid() bool {
 	}
 }
 
+// Defines values for MongodbRestoreTargetType.
+const (
+	MongodbRestoreTargetTypeMONGODB MongodbRestoreTargetType = "MONGODB"
+)
+
+// Valid indicates whether the value is a known member of the MongodbRestoreTargetType enum.
+func (e MongodbRestoreTargetType) Valid() bool {
+	switch e {
+	case MongodbRestoreTargetTypeMONGODB:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for MongodbSettingsType.
 const (
 	MongodbSettingsTypeMONGODB MongodbSettingsType = "MONGODB"
@@ -454,6 +529,21 @@ func (e MongodbVersion) Valid() bool {
 	case MongodbVersionN8:
 		return true
 	case MongodbVersionN9:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MysqlRestoreTargetType.
+const (
+	MysqlRestoreTargetTypeMYSQL MysqlRestoreTargetType = "MYSQL"
+)
+
+// Valid indicates whether the value is a known member of the MysqlRestoreTargetType enum.
+func (e MysqlRestoreTargetType) Valid() bool {
+	switch e {
+	case MysqlRestoreTargetTypeMYSQL:
 		return true
 	default:
 		return false
@@ -661,6 +751,21 @@ func (e PostgresqlPhysicalSettingsType) Valid() bool {
 	}
 }
 
+// Defines values for PostgresqlRestoreTargetType.
+const (
+	PostgresqlRestoreTargetTypePOSTGRESLOGICAL PostgresqlRestoreTargetType = "POSTGRES_LOGICAL"
+)
+
+// Valid indicates whether the value is a known member of the PostgresqlRestoreTargetType enum.
+func (e PostgresqlRestoreTargetType) Valid() bool {
+	switch e {
+	case PostgresqlRestoreTargetTypePOSTGRESLOGICAL:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for PostgresqlSslMode.
 const (
 	PostgresqlSslModeDisable    PostgresqlSslMode = "disable"
@@ -722,17 +827,20 @@ func (e PostgresqlVersion) Valid() bool {
 const (
 	ProblemCodeAdminEmailMissing        ProblemCode = "admin_email_missing"
 	ProblemCodeAlreadyMember            ProblemCode = "already_member"
+	ProblemCodeAlreadyRunning           ProblemCode = "already_running"
 	ProblemCodeCannotChangeOwnRole      ProblemCode = "cannot_change_own_role"
 	ProblemCodeDatabaseConnectionFailed ProblemCode = "database_connection_failed"
 	ProblemCodeEmailNotConfigured       ProblemCode = "email_not_configured"
 	ProblemCodeEmailTaken               ProblemCode = "email_taken"
 	ProblemCodeHumanVerificationFailed  ProblemCode = "human_verification_failed"
 	ProblemCodeInUse                    ProblemCode = "in_use"
+	ProblemCodeInsufficientDiskSpace    ProblemCode = "insufficient_disk_space"
 	ProblemCodeInternal                 ProblemCode = "internal"
 	ProblemCodeInvalidCredentials       ProblemCode = "invalid_credentials"
 	ProblemCodeInvalidRequest           ProblemCode = "invalid_request"
 	ProblemCodeInvalidResetCode         ProblemCode = "invalid_reset_code"
 	ProblemCodeNotFound                 ProblemCode = "not_found"
+	ProblemCodeNotRunning               ProblemCode = "not_running"
 	ProblemCodeOauthFailed              ProblemCode = "oauth_failed"
 	ProblemCodeOauthNotConfigured       ProblemCode = "oauth_not_configured"
 	ProblemCodeOwnerRequiresTransfer    ProblemCode = "owner_requires_transfer"
@@ -756,6 +864,8 @@ func (e ProblemCode) Valid() bool {
 		return true
 	case ProblemCodeAlreadyMember:
 		return true
+	case ProblemCodeAlreadyRunning:
+		return true
 	case ProblemCodeCannotChangeOwnRole:
 		return true
 	case ProblemCodeDatabaseConnectionFailed:
@@ -768,6 +878,8 @@ func (e ProblemCode) Valid() bool {
 		return true
 	case ProblemCodeInUse:
 		return true
+	case ProblemCodeInsufficientDiskSpace:
+		return true
 	case ProblemCodeInternal:
 		return true
 	case ProblemCodeInvalidCredentials:
@@ -777,6 +889,8 @@ func (e ProblemCode) Valid() bool {
 	case ProblemCodeInvalidResetCode:
 		return true
 	case ProblemCodeNotFound:
+		return true
+	case ProblemCodeNotRunning:
 		return true
 	case ProblemCodeOauthFailed:
 		return true
@@ -820,6 +934,30 @@ const (
 func (e RcloneStorageSettingsType) Valid() bool {
 	switch e {
 	case RcloneStorageSettingsTypeRCLONE:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RestoreStatus.
+const (
+	RestoreStatusCANCELED   RestoreStatus = "CANCELED"
+	RestoreStatusCOMPLETED  RestoreStatus = "COMPLETED"
+	RestoreStatusFAILED     RestoreStatus = "FAILED"
+	RestoreStatusINPROGRESS RestoreStatus = "IN_PROGRESS"
+)
+
+// Valid indicates whether the value is a known member of the RestoreStatus enum.
+func (e RestoreStatus) Valid() bool {
+	switch e {
+	case RestoreStatusCANCELED:
+		return true
+	case RestoreStatusCOMPLETED:
+		return true
+	case RestoreStatusFAILED:
+		return true
+	case RestoreStatusINPROGRESS:
 		return true
 	default:
 		return false
@@ -1495,6 +1633,24 @@ type DiscordNotifierSettings struct {
 // DiscordNotifierSettingsType Always `DISCORD`
 type DiscordNotifierSettingsType string
 
+// DownloadToken A single-use token that downloads one backup file within five minutes
+type DownloadToken struct {
+	// ExpiresAt When the token stops working
+	ExpiresAt time.Time `json:"expiresAt"`
+
+	// FileName The name the downloaded file gets
+	FileName string `json:"fileName"`
+
+	// Token The token, returned only in this response
+	Token string `json:"token"`
+}
+
+// DownloadTokenCreate The backup whose file to download
+type DownloadTokenCreate struct {
+	// BackupId The backup to download
+	BackupId openapi_types.UUID `json:"backupId"`
+}
+
 // EmailNotifierSettings Email through the SMTP server of the notifier
 type EmailNotifierSettings struct {
 	// From The sender, absent to derive it from the user and the host
@@ -1678,6 +1834,51 @@ type LocalStorageSettings struct {
 // LocalStorageSettingsType Always `LOCAL`
 type LocalStorageSettingsType string
 
+// LogicalBackup One logical backup of a database
+type LogicalBackup struct {
+	// CreatedAt When the backup started
+	CreatedAt time.Time `json:"createdAt"`
+
+	// DatabaseId The database the backup was taken of
+	DatabaseId openapi_types.UUID `json:"databaseId"`
+
+	// DurationMs How long the backup ran in milliseconds
+	DurationMs int64 `json:"durationMs"`
+
+	// Encryption Whether the backup files are encrypted with the instance's master key
+	Encryption BackupEncryption `json:"encryption"`
+
+	// FailMessage Why the backup failed, absent unless it failed
+	FailMessage *string `json:"failMessage,omitempty"`
+
+	// Id The ID of the backup
+	Id openapi_types.UUID `json:"id"`
+
+	// RawDatabaseSizeMb The size of the database before the dump in megabytes, 0 when unknown
+	RawDatabaseSizeMb float64 `json:"rawDatabaseSizeMb"`
+
+	// SizeMb The size of the stored file in megabytes, growing while the backup runs
+	SizeMb float64 `json:"sizeMb"`
+
+	// Status Where a logical backup is in its life
+	Status LogicalBackupStatus `json:"status"`
+
+	// StorageId The storage that holds the backup's file
+	StorageId openapi_types.UUID `json:"storageId"`
+
+	// VerificationStatus The outcome of the last restore verification of the backup
+	VerificationStatus LogicalBackupVerificationStatus `json:"verificationStatus"`
+}
+
+// LogicalBackupPage One page of logical backups, newest first
+type LogicalBackupPage struct {
+	// Items The backups on the page
+	Items []LogicalBackup `json:"items"`
+
+	// NextCursor The `after` of the next page, absent on the last page
+	NextCursor *string `json:"nextCursor,omitempty"`
+}
+
 // LogicalBackupSettings The settings of a logical backup, a dump of a PostgreSQL, MySQL, MariaDB or MongoDB database
 type LogicalBackupSettings struct {
 	// IsRetryIfFailed Whether a failed backup is retried
@@ -1701,6 +1902,18 @@ type LogicalBackupSettings struct {
 
 // LogicalBackupSettingsType Always `LOGICAL`
 type LogicalBackupSettingsType string
+
+// LogicalBackupStart The database whose backup to start
+type LogicalBackupStart struct {
+	// DatabaseId The database to back up
+	DatabaseId openapi_types.UUID `json:"databaseId"`
+}
+
+// LogicalBackupStatus Where a logical backup is in its life
+type LogicalBackupStatus string
+
+// LogicalBackupVerificationStatus The outcome of the last restore verification of the backup
+type LogicalBackupVerificationStatus string
 
 // LogicalNotificationTrigger A logical backup outcome that sends a notification, a failed or a successful backup
 type LogicalNotificationTrigger string
@@ -1734,6 +1947,39 @@ type LogicalRetention struct {
 
 // LogicalRetentionPolicy `TIME_PERIOD` keeps backups for `period`, `COUNT` keeps the newest `count` backups, and `GFS` keeps backups by grandfather-father-son periods, at least one of them set
 type LogicalRetentionPolicy string
+
+// MariadbRestoreTarget A MariaDB database the dump is replayed into
+type MariadbRestoreTarget struct {
+	// Database The database the restore writes into
+	Database string `json:"database"`
+
+	// Host The host of the server
+	Host string `json:"host"`
+
+	// IsHttps Whether the connection is encrypted, without verifying the server certificate
+	IsHttps bool `json:"isHttps"`
+
+	// IsSkipGaleraDisable Whether the restore keeps Galera replication on for its session
+	IsSkipGaleraDisable bool `json:"isSkipGaleraDisable"`
+
+	// Password The password
+	Password *string `json:"password,omitempty"`
+
+	// Port The port of the server
+	Port int `json:"port"`
+
+	// SshTunnel The SSH bastion a database is reached through. When it is enabled, the host and the port of the database address it as the bastion sees it
+	SshTunnel SshTunnelSettings `json:"sshTunnel"`
+
+	// Type Always `MARIADB`
+	Type MariadbRestoreTargetType `json:"type"`
+
+	// Username The user name
+	Username string `json:"username"`
+}
+
+// MariadbRestoreTargetType Always `MARIADB`
+type MariadbRestoreTargetType string
 
 // MariadbSettings One MariaDB database backed up with mariadb-dump
 type MariadbSettings struct {
@@ -1822,6 +2068,48 @@ type MattermostNotifierSettingsDeliveryMode string
 // MattermostNotifierSettingsType Always `MATTERMOST`
 type MattermostNotifierSettingsType string
 
+// MongodbRestoreTarget A MongoDB database that mongorestore writes into
+type MongodbRestoreTarget struct {
+	// AuthDatabase The database the user authenticates against
+	AuthDatabase string `json:"authDatabase"`
+
+	// CpuCount The number of collections mongorestore writes at once
+	CpuCount int `json:"cpuCount"`
+
+	// Database The database the restore writes into
+	Database string `json:"database"`
+
+	// Host The host of the server, or the DNS name of an SRV connection
+	Host string `json:"host"`
+
+	// IsDirectConnection Whether the client talks to the host alone instead of discovering the replica set
+	IsDirectConnection bool `json:"isDirectConnection"`
+
+	// IsHttps Whether TLS is on, without verifying the server certificate
+	IsHttps bool `json:"isHttps"`
+
+	// IsSrv Whether the host is resolved through DNS SRV records
+	IsSrv bool `json:"isSrv"`
+
+	// Password The password
+	Password *string `json:"password,omitempty"`
+
+	// Port The port of the server, absent for an SRV connection
+	Port *int `json:"port,omitempty"`
+
+	// SshTunnel The SSH bastion a database is reached through. When it is enabled, the host and the port of the database address it as the bastion sees it
+	SshTunnel SshTunnelSettings `json:"sshTunnel"`
+
+	// Type Always `MONGODB`
+	Type MongodbRestoreTargetType `json:"type"`
+
+	// Username The user name
+	Username string `json:"username"`
+}
+
+// MongodbRestoreTargetType Always `MONGODB`
+type MongodbRestoreTargetType string
+
 // MongodbSettings One MongoDB database backed up with mongodump
 type MongodbSettings struct {
 	// AuthDatabase The database the user authenticates against
@@ -1872,6 +2160,36 @@ type MongodbSettingsType string
 
 // MongodbVersion The major version the server reported at the last save
 type MongodbVersion string
+
+// MysqlRestoreTarget A MySQL database the dump is replayed into
+type MysqlRestoreTarget struct {
+	// Database The database the restore writes into
+	Database string `json:"database"`
+
+	// Host The host of the server
+	Host string `json:"host"`
+
+	// IsHttps Whether the connection is encrypted, without verifying the server certificate
+	IsHttps bool `json:"isHttps"`
+
+	// Password The password
+	Password *string `json:"password,omitempty"`
+
+	// Port The port of the server
+	Port int `json:"port"`
+
+	// SshTunnel The SSH bastion a database is reached through. When it is enabled, the host and the port of the database address it as the bastion sees it
+	SshTunnel SshTunnelSettings `json:"sshTunnel"`
+
+	// Type Always `MYSQL`
+	Type MysqlRestoreTargetType `json:"type"`
+
+	// Username The user name
+	Username string `json:"username"`
+}
+
+// MysqlRestoreTargetType Always `MYSQL`
+type MysqlRestoreTargetType string
 
 // MysqlSettings One MySQL database backed up with mysqldump
 type MysqlSettings struct {
@@ -2232,6 +2550,57 @@ type PostgresqlPhysicalSettings struct {
 // PostgresqlPhysicalSettingsType Always `POSTGRES_PHYSICAL`
 type PostgresqlPhysicalSettingsType string
 
+// PostgresqlRestoreTarget A PostgreSQL database that pg_restore writes into
+type PostgresqlRestoreTarget struct {
+	// CpuCount The number of parallel jobs of pg_restore; more than one restores through a file
+	CpuCount int `json:"cpuCount"`
+
+	// Database The database the restore writes into
+	Database string `json:"database"`
+
+	// Host The host of the server
+	Host string `json:"host"`
+
+	// IsExcludeExtensions Whether the restore leaves out the extensions, which needs a file
+	IsExcludeExtensions bool `json:"isExcludeExtensions"`
+
+	// IsRestoreOwnership Whether the restore keeps the owners of the objects
+	IsRestoreOwnership bool `json:"isRestoreOwnership"`
+
+	// IsRestorePrivileges Whether the restore keeps the grants of the objects
+	IsRestorePrivileges bool `json:"isRestorePrivileges"`
+
+	// Password The password
+	Password *string `json:"password,omitempty"`
+
+	// Port The port of the server
+	Port int `json:"port"`
+
+	// SshTunnel The SSH bastion a database is reached through. When it is enabled, the host and the port of the database address it as the bastion sees it
+	SshTunnel SshTunnelSettings `json:"sshTunnel"`
+
+	// SslClientCert The PEM client certificate, absent without one
+	SslClientCert *string `json:"sslClientCert,omitempty"`
+
+	// SslClientKey The PEM key of the client certificate
+	SslClientKey *string `json:"sslClientKey,omitempty"`
+
+	// SslMode The libpq SSL mode of the connection
+	SslMode PostgresqlSslMode `json:"sslMode"`
+
+	// SslRootCert The PEM root certificate the server is verified against, absent without one
+	SslRootCert *string `json:"sslRootCert,omitempty"`
+
+	// Type Always `POSTGRES_LOGICAL`
+	Type PostgresqlRestoreTargetType `json:"type"`
+
+	// Username The user name
+	Username string `json:"username"`
+}
+
+// PostgresqlRestoreTargetType Always `POSTGRES_LOGICAL`
+type PostgresqlRestoreTargetType string
+
 // PostgresqlSslMode The libpq SSL mode of the connection
 type PostgresqlSslMode string
 
@@ -2281,6 +2650,53 @@ type RcloneStorageSettingsType string
 type ResendSignInCodeRequest struct {
 	// CloudflareTurnstileToken The answer to the human-verification challenge, required when the instance has one
 	CloudflareTurnstileToken *string `json:"cloudflareTurnstileToken,omitempty"`
+}
+
+// Restore One restore of a logical backup, without any field of its target
+type Restore struct {
+	// BackupId The backup the restore reads
+	BackupId openapi_types.UUID `json:"backupId"`
+
+	// CreatedAt When the restore started
+	CreatedAt time.Time `json:"createdAt"`
+
+	// DurationMs How long the restore ran in milliseconds
+	DurationMs int64 `json:"durationMs"`
+
+	// FailMessage Why the restore failed, absent unless it failed
+	FailMessage *string `json:"failMessage,omitempty"`
+
+	// Id The ID of the restore
+	Id openapi_types.UUID `json:"id"`
+
+	// Status Where a restore is in its life
+	Status RestoreStatus `json:"status"`
+}
+
+// RestorePage One page of restores, newest first
+type RestorePage struct {
+	// Items The restores on the page
+	Items []Restore `json:"items"`
+
+	// NextCursor The `after` of the next page, absent on the last page
+	NextCursor *string `json:"nextCursor,omitempty"`
+}
+
+// RestoreStart The backup to restore and the database to restore it into
+type RestoreStart struct {
+	// BackupId The completed backup to restore
+	BackupId openapi_types.UUID `json:"backupId"`
+
+	// Target The database a restore writes into, of the backup's engine; `type` takes the database type of the backup's database
+	Target RestoreTarget `json:"target"`
+}
+
+// RestoreStatus Where a restore is in its life
+type RestoreStatus string
+
+// RestoreTarget The database a restore writes into, of the backup's engine; `type` takes the database type of the backup's database
+type RestoreTarget struct {
+	union json.RawMessage
 }
 
 // RetentionPeriod How long the `TIME_PERIOD` retention keeps a backup
@@ -2854,6 +3270,9 @@ type WorkspaceUpdate struct {
 // BackupConfigDatabaseId defines model for BackupConfigDatabaseId.
 type BackupConfigDatabaseId = openapi_types.UUID
 
+// BackupId defines model for BackupId.
+type BackupId = openapi_types.UUID
+
 // DatabaseId defines model for DatabaseId.
 type DatabaseId = openapi_types.UUID
 
@@ -2865,6 +3284,9 @@ type NotifierId = openapi_types.UUID
 
 // PendingSignInId defines model for PendingSignInId.
 type PendingSignInId = openapi_types.UUID
+
+// RestoreId defines model for RestoreId.
+type RestoreId = openapi_types.UUID
 
 // StorageId defines model for StorageId.
 type StorageId = openapi_types.UUID
@@ -2920,12 +3342,48 @@ type ListDatabasesParams struct {
 	After *string `form:"after,omitempty" json:"after,omitempty"`
 }
 
+// ListLogicalBackupsParams defines parameters for ListLogicalBackups.
+type ListLogicalBackupsParams struct {
+	// DatabaseId The database whose backups to list
+	DatabaseId openapi_types.UUID `form:"databaseId" json:"databaseId"`
+
+	// Status Only backups in one of these statuses
+	Status *[]LogicalBackupStatus `form:"status,omitempty" json:"status,omitempty"`
+
+	// CreatedBefore Only backups made before this time
+	CreatedBefore *time.Time `form:"createdBefore,omitempty" json:"createdBefore,omitempty"`
+
+	// Limit The largest number of backups on the page
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// After The `nextCursor` of the previous page
+	After *string `form:"after,omitempty" json:"after,omitempty"`
+}
+
+// DownloadLogicalBackupParams defines parameters for DownloadLogicalBackup.
+type DownloadLogicalBackupParams struct {
+	// Token The download token issued for this backup
+	Token string `form:"token" json:"token"`
+}
+
 // ListNotifiersParams defines parameters for ListNotifiers.
 type ListNotifiersParams struct {
 	// WorkspaceId The workspace whose notifiers to list
 	WorkspaceId openapi_types.UUID `form:"workspaceId" json:"workspaceId"`
 
 	// Limit The largest number of notifiers on the page
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// After The `nextCursor` of the previous page
+	After *string `form:"after,omitempty" json:"after,omitempty"`
+}
+
+// ListRestoresParams defines parameters for ListRestores.
+type ListRestoresParams struct {
+	// BackupId The backup whose restores to list
+	BackupId openapi_types.UUID `form:"backupId" json:"backupId"`
+
+	// Limit The largest number of restores on the page
 	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
 
 	// After The `nextCursor` of the previous page
@@ -2992,6 +3450,9 @@ type UpdateDatabaseJSONRequestBody = DatabaseUpdate
 // TransferDatabaseJSONRequestBody defines body for TransferDatabase for application/json ContentType.
 type TransferDatabaseJSONRequestBody = DatabaseTransfer
 
+// CreateDownloadTokenJSONRequestBody defines body for CreateDownloadToken for application/json ContentType.
+type CreateDownloadTokenJSONRequestBody = DownloadTokenCreate
+
 // SignInWithGitHubJSONRequestBody defines body for SignInWithGitHub for application/json ContentType.
 type SignInWithGitHubJSONRequestBody = OAuthSignInRequest
 
@@ -3006,6 +3467,9 @@ type CheckLimitedUserJSONRequestBody = DatabaseSettingsTarget
 
 // CreateLimitedUserJSONRequestBody defines body for CreateLimitedUser for application/json ContentType.
 type CreateLimitedUserJSONRequestBody = DatabaseSettingsTarget
+
+// StartLogicalBackupJSONRequestBody defines body for StartLogicalBackup for application/json ContentType.
+type StartLogicalBackupJSONRequestBody = LogicalBackupStart
 
 // TestNotifierSettingsJSONRequestBody defines body for TestNotifierSettings for application/json ContentType.
 type TestNotifierSettingsJSONRequestBody = NotifierSettingsTest
@@ -3030,6 +3494,9 @@ type ResendSignInCodeJSONRequestBody = ResendSignInCodeRequest
 
 // VerifySignInCodeJSONRequestBody defines body for VerifySignInCode for application/json ContentType.
 type VerifySignInCodeJSONRequestBody = VerifySignInCodeRequest
+
+// StartRestoreJSONRequestBody defines body for StartRestore for application/json ContentType.
+type StartRestoreJSONRequestBody = RestoreStart
 
 // SignInJSONRequestBody defines body for SignIn for application/json ContentType.
 type SignInJSONRequestBody = SignInRequest
@@ -3765,6 +4232,179 @@ func (t *NotifierSettings) UnmarshalJSON(b []byte) error {
 	return err
 }
 
+// AsPostgresqlRestoreTarget returns the union data inside the RestoreTarget as a PostgresqlRestoreTarget
+func (t RestoreTarget) AsPostgresqlRestoreTarget() (PostgresqlRestoreTarget, error) {
+	var body PostgresqlRestoreTarget
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromPostgresqlRestoreTarget overwrites any union data inside the RestoreTarget as the provided PostgresqlRestoreTarget
+func (t *RestoreTarget) FromPostgresqlRestoreTarget(v PostgresqlRestoreTarget) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"POSTGRES_LOGICAL"}`))
+	t.union = b
+	return err
+}
+
+// MergePostgresqlRestoreTarget performs a merge with any union data inside the RestoreTarget, using the provided PostgresqlRestoreTarget
+func (t *RestoreTarget) MergePostgresqlRestoreTarget(v PostgresqlRestoreTarget) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"POSTGRES_LOGICAL"}`))
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsMysqlRestoreTarget returns the union data inside the RestoreTarget as a MysqlRestoreTarget
+func (t RestoreTarget) AsMysqlRestoreTarget() (MysqlRestoreTarget, error) {
+	var body MysqlRestoreTarget
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromMysqlRestoreTarget overwrites any union data inside the RestoreTarget as the provided MysqlRestoreTarget
+func (t *RestoreTarget) FromMysqlRestoreTarget(v MysqlRestoreTarget) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"MYSQL"}`))
+	t.union = b
+	return err
+}
+
+// MergeMysqlRestoreTarget performs a merge with any union data inside the RestoreTarget, using the provided MysqlRestoreTarget
+func (t *RestoreTarget) MergeMysqlRestoreTarget(v MysqlRestoreTarget) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"MYSQL"}`))
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsMariadbRestoreTarget returns the union data inside the RestoreTarget as a MariadbRestoreTarget
+func (t RestoreTarget) AsMariadbRestoreTarget() (MariadbRestoreTarget, error) {
+	var body MariadbRestoreTarget
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromMariadbRestoreTarget overwrites any union data inside the RestoreTarget as the provided MariadbRestoreTarget
+func (t *RestoreTarget) FromMariadbRestoreTarget(v MariadbRestoreTarget) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"MARIADB"}`))
+	t.union = b
+	return err
+}
+
+// MergeMariadbRestoreTarget performs a merge with any union data inside the RestoreTarget, using the provided MariadbRestoreTarget
+func (t *RestoreTarget) MergeMariadbRestoreTarget(v MariadbRestoreTarget) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"MARIADB"}`))
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsMongodbRestoreTarget returns the union data inside the RestoreTarget as a MongodbRestoreTarget
+func (t RestoreTarget) AsMongodbRestoreTarget() (MongodbRestoreTarget, error) {
+	var body MongodbRestoreTarget
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromMongodbRestoreTarget overwrites any union data inside the RestoreTarget as the provided MongodbRestoreTarget
+func (t *RestoreTarget) FromMongodbRestoreTarget(v MongodbRestoreTarget) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"MONGODB"}`))
+	t.union = b
+	return err
+}
+
+// MergeMongodbRestoreTarget performs a merge with any union data inside the RestoreTarget, using the provided MongodbRestoreTarget
+func (t *RestoreTarget) MergeMongodbRestoreTarget(v MongodbRestoreTarget) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"MONGODB"}`))
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t RestoreTarget) Discriminator() (string, error) {
+	var discriminator struct {
+		Discriminator string `json:"type"`
+	}
+	err := json.Unmarshal(t.union, &discriminator)
+	return discriminator.Discriminator, err
+}
+
+func (t RestoreTarget) ValueByDiscriminator() (interface{}, error) {
+	discriminator, err := t.Discriminator()
+	if err != nil {
+		return nil, err
+	}
+	switch discriminator {
+	case "MARIADB":
+		return t.AsMariadbRestoreTarget()
+	case "MONGODB":
+		return t.AsMongodbRestoreTarget()
+	case "MYSQL":
+		return t.AsMysqlRestoreTarget()
+	case "POSTGRES_LOGICAL":
+		return t.AsPostgresqlRestoreTarget()
+	default:
+		return nil, errors.New("unknown discriminator value: " + discriminator)
+	}
+}
+
+func (t RestoreTarget) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *RestoreTarget) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
 // AsSignInCompleted returns the union data inside the SignInOutcome as a SignInCompleted
 func (t SignInOutcome) AsSignInCompleted() (SignInCompleted, error) {
 	var body SignInCompleted
@@ -4403,6 +5043,24 @@ type ClientInterface interface {
 	// Corresponds with POST /databases/{databaseId}/transfer (the `TransferDatabase` operationId).
 	TransferDatabase(ctx context.Context, databaseId DatabaseId, body TransferDatabaseJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// CreateDownloadTokenWithBody Issue a single-use token to download a backup file
+	//
+	// Needs the role `WORKSPACE_VIEWER` or higher. The token downloads the backup once and expires after five minutes. While another download or restore stream of the user runs, the request gets 409 `already_running` and no token is issued.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /download-tokens (the `CreateDownloadToken` operationId).
+	CreateDownloadTokenWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateDownloadToken Issue a single-use token to download a backup file
+	//
+	// Needs the role `WORKSPACE_VIEWER` or higher. The token downloads the backup once and expires after five minutes. While another download or restore stream of the user runs, the request gets 409 `already_running` and no token is issued.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /download-tokens (the `CreateDownloadToken` operationId).
+	CreateDownloadToken(ctx context.Context, body CreateDownloadTokenJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// SignInWithGitHubWithBody Sign in with GitHub
 	//
 	// Public, because it creates the session the caller does not have yet. The code from GitHub's authorization page signs in the user linked to the GitHub account, or the user with the same email address, linking the account and finishing the sign-up of an invited user. An unknown address creates a user under the same rules as sign-up. The second factor does not apply, because GitHub verified the user. A deactivated user gets 403 `user_deactivated`, an instance without the GitHub client gets 409 `oauth_not_configured`, and a code GitHub refuses or an account without an email address gets 400 `oauth_failed`.
@@ -4499,6 +5157,59 @@ type ClientInterface interface {
 	//
 	// Corresponds with POST /limited-users (the `CreateLimitedUser` operationId).
 	CreateLimitedUser(ctx context.Context, body CreateLimitedUserJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListLogicalBackups List the logical backups of a database
+	//
+	// Ordered newest first by creation time, then by ID. `status` and `createdBefore` filter the list. A user who is not a member of the database's workspace gets 404 `not_found`. A cursor this list did not issue gets 400 `invalid_request`.
+	//
+	// Corresponds with GET /logical-backups (the `ListLogicalBackups` operationId).
+	ListLogicalBackups(ctx context.Context, params *ListLogicalBackupsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// StartLogicalBackupWithBody Start a backup of a database
+	//
+	// Needs the role `WORKSPACE_VIEWER` or higher. Answers at once with the backup in `IN_PROGRESS`; `getLogicalBackup` follows it. A backup of the database that is already running gets 409 `already_running`. A database whose config names no storage, or a physical PostgreSQL database, gets 400 `invalid_request`.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /logical-backups (the `StartLogicalBackup` operationId).
+	StartLogicalBackupWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// StartLogicalBackup Start a backup of a database
+	//
+	// Needs the role `WORKSPACE_VIEWER` or higher. Answers at once with the backup in `IN_PROGRESS`; `getLogicalBackup` follows it. A backup of the database that is already running gets 409 `already_running`. A database whose config names no storage, or a physical PostgreSQL database, gets 400 `invalid_request`.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /logical-backups (the `StartLogicalBackup` operationId).
+	StartLogicalBackup(ctx context.Context, body StartLogicalBackupJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DeleteLogicalBackup Delete a logical backup and its file
+	//
+	// Needs the role `WORKSPACE_MEMBER` or higher. Removes the backup and requests the deletion of its file and its metadata file in one step. A running backup gets 409 `already_running`, and a backup a running restore reads gets 409 `in_use`; neither changes anything.
+	//
+	// Corresponds with DELETE /logical-backups/{backupId} (the `DeleteLogicalBackup` operationId).
+	DeleteLogicalBackup(ctx context.Context, backupId BackupId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetLogicalBackup Get a logical backup
+	//
+	// A user who is not a member of the database's workspace gets 404 `not_found`.
+	//
+	// Corresponds with GET /logical-backups/{backupId} (the `GetLogicalBackup` operationId).
+	GetLogicalBackup(ctx context.Context, backupId BackupId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CancelLogicalBackup Cancel a running logical backup
+	//
+	// Needs the role `WORKSPACE_MEMBER` or higher. Stops the dump tool and every process it started; the backup then shows `CANCELED`. A backup that is no longer running gets 409 `not_running` and stays as it is.
+	//
+	// Corresponds with POST /logical-backups/{backupId}/cancel (the `CancelLogicalBackup` operationId).
+	CancelLogicalBackup(ctx context.Context, backupId BackupId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DownloadLogicalBackup Download the file of a logical backup
+	//
+	// Public, because a browser link cannot carry the session: the single-use `token` from `createDownloadToken` is the credential. Returns the decrypted file. An expired, used, unknown or mismatched token gets 401 `unauthenticated`. While another download or restore stream of the token's user runs, the request gets 409 `already_running` and the token stays usable.
+	//
+	// Corresponds with GET /logical-backups/{backupId}/file (the `DownloadLogicalBackup` operationId).
+	DownloadLogicalBackup(ctx context.Context, backupId BackupId, params *DownloadLogicalBackupParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// TestNotifierSettingsWithBody Send a test message with settings that are not saved
 	//
@@ -4671,6 +5382,45 @@ type ClientInterface interface {
 	//
 	// Corresponds with POST /pending-sign-ins/{pendingSignInId}/verify (the `VerifySignInCode` operationId).
 	VerifySignInCode(ctx context.Context, pendingSignInId PendingSignInId, body VerifySignInCodeJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListRestores List the restores of a logical backup
+	//
+	// Ordered newest first by creation time, then by ID. A user who is not a member of the backup's workspace gets 404 `not_found`.
+	//
+	// Corresponds with GET /restores (the `ListRestores` operationId).
+	ListRestores(ctx context.Context, params *ListRestoresParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// StartRestoreWithBody Restore a logical backup into a target database
+	//
+	// Needs the role `WORKSPACE_VIEWER` or higher. Connects to the target and detects its version before it answers, then answers at once with the restore in `IN_PROGRESS`; `getRestore` follows it. A backup that is not completed, a target of another engine or a target whose version cannot take the backup gets 400 `invalid_request`. A target that cannot be reached or refuses the credentials gets 400 `database_connection_failed`. A restore into the same database that is already running gets 409 `already_running`. A PostgreSQL restore that needs the archive as a file and lacks disk space gets 409 `insufficient_disk_space`, whose `detail` names the bytes needed and free. The target's secrets are used only by the running restore and are never stored.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /restores (the `StartRestore` operationId).
+	StartRestoreWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// StartRestore Restore a logical backup into a target database
+	//
+	// Needs the role `WORKSPACE_VIEWER` or higher. Connects to the target and detects its version before it answers, then answers at once with the restore in `IN_PROGRESS`; `getRestore` follows it. A backup that is not completed, a target of another engine or a target whose version cannot take the backup gets 400 `invalid_request`. A target that cannot be reached or refuses the credentials gets 400 `database_connection_failed`. A restore into the same database that is already running gets 409 `already_running`. A PostgreSQL restore that needs the archive as a file and lacks disk space gets 409 `insufficient_disk_space`, whose `detail` names the bytes needed and free. The target's secrets are used only by the running restore and are never stored.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /restores (the `StartRestore` operationId).
+	StartRestore(ctx context.Context, body StartRestoreJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetRestore Get a restore
+	//
+	// Holds no field of the target. A user who is not a member of the backup's workspace gets 404 `not_found`.
+	//
+	// Corresponds with GET /restores/{restoreId} (the `GetRestore` operationId).
+	GetRestore(ctx context.Context, restoreId RestoreId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CancelRestore Cancel a running restore
+	//
+	// Needs the role `WORKSPACE_MEMBER` or higher. Stops the restore tool and every process it started, also while the backup is still read from storage; the restore then shows `CANCELED`. A restore that is no longer running gets 409 `not_running` and stays as it is.
+	//
+	// Corresponds with POST /restores/{restoreId}/cancel (the `CancelRestore` operationId).
+	CancelRestore(ctx context.Context, restoreId RestoreId, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// SignInWithBody Sign in with an email address and a password
 	//
@@ -5363,6 +6113,44 @@ func (c *Client) TransferDatabase(ctx context.Context, databaseId DatabaseId, bo
 	return c.Client.Do(req)
 }
 
+// CreateDownloadTokenWithBody Issue a single-use token to download a backup file
+//
+// Needs the role `WORKSPACE_VIEWER` or higher. The token downloads the backup once and expires after five minutes. While another download or restore stream of the user runs, the request gets 409 `already_running` and no token is issued.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /download-tokens (the `CreateDownloadToken` operationId).
+func (c *Client) CreateDownloadTokenWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateDownloadTokenRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// CreateDownloadToken Issue a single-use token to download a backup file
+//
+// Needs the role `WORKSPACE_VIEWER` or higher. The token downloads the backup once and expires after five minutes. While another download or restore stream of the user runs, the request gets 409 `already_running` and no token is issued.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /download-tokens (the `CreateDownloadToken` operationId).
+func (c *Client) CreateDownloadToken(ctx context.Context, body CreateDownloadTokenJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateDownloadTokenRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 // SignInWithGitHubWithBody Sign in with GitHub
 //
 // Public, because it creates the session the caller does not have yet. The code from GitHub's authorization page signs in the user linked to the GitHub account, or the user with the same email address, linking the account and finishing the sign-up of an invited user. An unknown address creates a user under the same rules as sign-up. The second factor does not apply, because GitHub verified the user. A deactivated user gets 403 `user_deactivated`, an instance without the GitHub client gets 409 `oauth_not_configured`, and a code GitHub refuses or an account without an email address gets 400 `oauth_failed`.
@@ -5560,6 +6348,129 @@ func (c *Client) CreateLimitedUserWithBody(ctx context.Context, contentType stri
 // Corresponds with POST /limited-users (the `CreateLimitedUser` operationId).
 func (c *Client) CreateLimitedUser(ctx context.Context, body CreateLimitedUserJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewCreateLimitedUserRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ListLogicalBackups List the logical backups of a database
+//
+// Ordered newest first by creation time, then by ID. `status` and `createdBefore` filter the list. A user who is not a member of the database's workspace gets 404 `not_found`. A cursor this list did not issue gets 400 `invalid_request`.
+//
+// Corresponds with GET /logical-backups (the `ListLogicalBackups` operationId).
+func (c *Client) ListLogicalBackups(ctx context.Context, params *ListLogicalBackupsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListLogicalBackupsRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// StartLogicalBackupWithBody Start a backup of a database
+//
+// Needs the role `WORKSPACE_VIEWER` or higher. Answers at once with the backup in `IN_PROGRESS`; `getLogicalBackup` follows it. A backup of the database that is already running gets 409 `already_running`. A database whose config names no storage, or a physical PostgreSQL database, gets 400 `invalid_request`.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /logical-backups (the `StartLogicalBackup` operationId).
+func (c *Client) StartLogicalBackupWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewStartLogicalBackupRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// StartLogicalBackup Start a backup of a database
+//
+// Needs the role `WORKSPACE_VIEWER` or higher. Answers at once with the backup in `IN_PROGRESS`; `getLogicalBackup` follows it. A backup of the database that is already running gets 409 `already_running`. A database whose config names no storage, or a physical PostgreSQL database, gets 400 `invalid_request`.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /logical-backups (the `StartLogicalBackup` operationId).
+func (c *Client) StartLogicalBackup(ctx context.Context, body StartLogicalBackupJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewStartLogicalBackupRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// DeleteLogicalBackup Delete a logical backup and its file
+//
+// Needs the role `WORKSPACE_MEMBER` or higher. Removes the backup and requests the deletion of its file and its metadata file in one step. A running backup gets 409 `already_running`, and a backup a running restore reads gets 409 `in_use`; neither changes anything.
+//
+// Corresponds with DELETE /logical-backups/{backupId} (the `DeleteLogicalBackup` operationId).
+func (c *Client) DeleteLogicalBackup(ctx context.Context, backupId BackupId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteLogicalBackupRequest(c.Server, backupId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetLogicalBackup Get a logical backup
+//
+// A user who is not a member of the database's workspace gets 404 `not_found`.
+//
+// Corresponds with GET /logical-backups/{backupId} (the `GetLogicalBackup` operationId).
+func (c *Client) GetLogicalBackup(ctx context.Context, backupId BackupId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetLogicalBackupRequest(c.Server, backupId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// CancelLogicalBackup Cancel a running logical backup
+//
+// Needs the role `WORKSPACE_MEMBER` or higher. Stops the dump tool and every process it started; the backup then shows `CANCELED`. A backup that is no longer running gets 409 `not_running` and stays as it is.
+//
+// Corresponds with POST /logical-backups/{backupId}/cancel (the `CancelLogicalBackup` operationId).
+func (c *Client) CancelLogicalBackup(ctx context.Context, backupId BackupId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCancelLogicalBackupRequest(c.Server, backupId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// DownloadLogicalBackup Download the file of a logical backup
+//
+// Public, because a browser link cannot carry the session: the single-use `token` from `createDownloadToken` is the credential. Returns the decrypted file. An expired, used, unknown or mismatched token gets 401 `unauthenticated`. While another download or restore stream of the token's user runs, the request gets 409 `already_running` and the token stays usable.
+//
+// Corresponds with GET /logical-backups/{backupId}/file (the `DownloadLogicalBackup` operationId).
+func (c *Client) DownloadLogicalBackup(ctx context.Context, backupId BackupId, params *DownloadLogicalBackupParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDownloadLogicalBackupRequest(c.Server, backupId, params)
 	if err != nil {
 		return nil, err
 	}
@@ -5932,6 +6843,95 @@ func (c *Client) VerifySignInCodeWithBody(ctx context.Context, pendingSignInId P
 // Corresponds with POST /pending-sign-ins/{pendingSignInId}/verify (the `VerifySignInCode` operationId).
 func (c *Client) VerifySignInCode(ctx context.Context, pendingSignInId PendingSignInId, body VerifySignInCodeJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewVerifySignInCodeRequest(c.Server, pendingSignInId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ListRestores List the restores of a logical backup
+//
+// Ordered newest first by creation time, then by ID. A user who is not a member of the backup's workspace gets 404 `not_found`.
+//
+// Corresponds with GET /restores (the `ListRestores` operationId).
+func (c *Client) ListRestores(ctx context.Context, params *ListRestoresParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListRestoresRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// StartRestoreWithBody Restore a logical backup into a target database
+//
+// Needs the role `WORKSPACE_VIEWER` or higher. Connects to the target and detects its version before it answers, then answers at once with the restore in `IN_PROGRESS`; `getRestore` follows it. A backup that is not completed, a target of another engine or a target whose version cannot take the backup gets 400 `invalid_request`. A target that cannot be reached or refuses the credentials gets 400 `database_connection_failed`. A restore into the same database that is already running gets 409 `already_running`. A PostgreSQL restore that needs the archive as a file and lacks disk space gets 409 `insufficient_disk_space`, whose `detail` names the bytes needed and free. The target's secrets are used only by the running restore and are never stored.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /restores (the `StartRestore` operationId).
+func (c *Client) StartRestoreWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewStartRestoreRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// StartRestore Restore a logical backup into a target database
+//
+// Needs the role `WORKSPACE_VIEWER` or higher. Connects to the target and detects its version before it answers, then answers at once with the restore in `IN_PROGRESS`; `getRestore` follows it. A backup that is not completed, a target of another engine or a target whose version cannot take the backup gets 400 `invalid_request`. A target that cannot be reached or refuses the credentials gets 400 `database_connection_failed`. A restore into the same database that is already running gets 409 `already_running`. A PostgreSQL restore that needs the archive as a file and lacks disk space gets 409 `insufficient_disk_space`, whose `detail` names the bytes needed and free. The target's secrets are used only by the running restore and are never stored.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /restores (the `StartRestore` operationId).
+func (c *Client) StartRestore(ctx context.Context, body StartRestoreJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewStartRestoreRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetRestore Get a restore
+//
+// Holds no field of the target. A user who is not a member of the backup's workspace gets 404 `not_found`.
+//
+// Corresponds with GET /restores/{restoreId} (the `GetRestore` operationId).
+func (c *Client) GetRestore(ctx context.Context, restoreId RestoreId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetRestoreRequest(c.Server, restoreId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// CancelRestore Cancel a running restore
+//
+// Needs the role `WORKSPACE_MEMBER` or higher. Stops the restore tool and every process it started, also while the backup is still read from storage; the restore then shows `CANCELED`. A restore that is no longer running gets 409 `not_running` and stays as it is.
+//
+// Corresponds with POST /restores/{restoreId}/cancel (the `CancelRestore` operationId).
+func (c *Client) CancelRestore(ctx context.Context, restoreId RestoreId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCancelRestoreRequest(c.Server, restoreId)
 	if err != nil {
 		return nil, err
 	}
@@ -7403,6 +8403,46 @@ func NewTransferDatabaseRequestWithBody(server string, databaseId DatabaseId, co
 	return req, nil
 }
 
+// NewCreateDownloadTokenRequest calls the generic CreateDownloadToken builder with application/json body
+func NewCreateDownloadTokenRequest(server string, body CreateDownloadTokenJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCreateDownloadTokenRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewCreateDownloadTokenRequestWithBody constructs an http.Request for the CreateDownloadToken method, with any body, and a specified content type
+func NewCreateDownloadTokenRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/download-tokens")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewSignInWithGitHubRequest calls the generic SignInWithGitHub builder with application/json body
 func NewSignInWithGitHubRequest(server string, body SignInWithGitHubJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
@@ -7626,6 +8666,303 @@ func NewCreateLimitedUserRequestWithBody(server string, contentType string, body
 	}
 
 	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewListLogicalBackupsRequest constructs an http.Request for the ListLogicalBackups method
+func NewListLogicalBackupsRequest(server string, params *ListLogicalBackupsParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/logical-backups")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "databaseId", params.DatabaseId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: "uuid"}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if params.Status != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "status", *params.Status, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "array", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.CreatedBefore != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "createdBefore", *params.CreatedBefore, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: "date-time"}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "limit", *params.Limit, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.After != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "after", *params.After, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewStartLogicalBackupRequest calls the generic StartLogicalBackup builder with application/json body
+func NewStartLogicalBackupRequest(server string, body StartLogicalBackupJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewStartLogicalBackupRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewStartLogicalBackupRequestWithBody constructs an http.Request for the StartLogicalBackup method, with any body, and a specified content type
+func NewStartLogicalBackupRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/logical-backups")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewDeleteLogicalBackupRequest constructs an http.Request for the DeleteLogicalBackup method
+func NewDeleteLogicalBackupRequest(server string, backupId BackupId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "backupId", backupId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/logical-backups/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodDelete, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetLogicalBackupRequest constructs an http.Request for the GetLogicalBackup method
+func NewGetLogicalBackupRequest(server string, backupId BackupId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "backupId", backupId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/logical-backups/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewCancelLogicalBackupRequest constructs an http.Request for the CancelLogicalBackup method
+func NewCancelLogicalBackupRequest(server string, backupId BackupId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "backupId", backupId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/logical-backups/%s/cancel", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewDownloadLogicalBackupRequest constructs an http.Request for the DownloadLogicalBackup method
+func NewDownloadLogicalBackupRequest(server string, backupId BackupId, params *DownloadLogicalBackupParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "backupId", backupId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/logical-backups/%s/file", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "token", params.Token, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
 
 	return req, nil
 }
@@ -8150,6 +9487,188 @@ func NewVerifySignInCodeRequestWithBody(server string, pendingSignInId PendingSi
 	}
 
 	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewListRestoresRequest constructs an http.Request for the ListRestores method
+func NewListRestoresRequest(server string, params *ListRestoresParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/restores")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "backupId", params.BackupId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: "uuid"}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "limit", *params.Limit, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.After != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "after", *params.After, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewStartRestoreRequest calls the generic StartRestore builder with application/json body
+func NewStartRestoreRequest(server string, body StartRestoreJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewStartRestoreRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewStartRestoreRequestWithBody constructs an http.Request for the StartRestore method, with any body, and a specified content type
+func NewStartRestoreRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/restores")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewGetRestoreRequest constructs an http.Request for the GetRestore method
+func NewGetRestoreRequest(server string, restoreId RestoreId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "restoreId", restoreId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/restores/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewCancelRestoreRequest constructs an http.Request for the CancelRestore method
+func NewCancelRestoreRequest(server string, restoreId RestoreId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "restoreId", restoreId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/restores/%s/cancel", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
 
 	return req, nil
 }
@@ -9655,6 +11174,24 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with POST /databases/{databaseId}/transfer (the `TransferDatabase` operationId).
 	TransferDatabaseWithResponse(ctx context.Context, databaseId DatabaseId, body TransferDatabaseJSONRequestBody, reqEditors ...RequestEditorFn) (*TransferDatabaseResponse, error)
 
+	// CreateDownloadTokenWithBodyWithResponse Issue a single-use token to download a backup file
+	//
+	// Needs the role `WORKSPACE_VIEWER` or higher. The token downloads the backup once and expires after five minutes. While another download or restore stream of the user runs, the request gets 409 `already_running` and no token is issued.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /download-tokens (the `CreateDownloadToken` operationId).
+	CreateDownloadTokenWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateDownloadTokenResponse, error)
+
+	// CreateDownloadTokenWithResponse Issue a single-use token to download a backup file
+	//
+	// Needs the role `WORKSPACE_VIEWER` or higher. The token downloads the backup once and expires after five minutes. While another download or restore stream of the user runs, the request gets 409 `already_running` and no token is issued.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /download-tokens (the `CreateDownloadToken` operationId).
+	CreateDownloadTokenWithResponse(ctx context.Context, body CreateDownloadTokenJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateDownloadTokenResponse, error)
+
 	// SignInWithGitHubWithBodyWithResponse Sign in with GitHub
 	//
 	// Public, because it creates the session the caller does not have yet. The code from GitHub's authorization page signs in the user linked to the GitHub account, or the user with the same email address, linking the account and finishing the sign-up of an invited user. An unknown address creates a user under the same rules as sign-up. The second factor does not apply, because GitHub verified the user. A deactivated user gets 403 `user_deactivated`, an instance without the GitHub client gets 409 `oauth_not_configured`, and a code GitHub refuses or an account without an email address gets 400 `oauth_failed`.
@@ -9753,6 +11290,69 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with POST /limited-users (the `CreateLimitedUser` operationId).
 	CreateLimitedUserWithResponse(ctx context.Context, body CreateLimitedUserJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateLimitedUserResponse, error)
+
+	// ListLogicalBackupsWithResponse List the logical backups of a database
+	//
+	// Ordered newest first by creation time, then by ID. `status` and `createdBefore` filter the list. A user who is not a member of the database's workspace gets 404 `not_found`. A cursor this list did not issue gets 400 `invalid_request`.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /logical-backups (the `ListLogicalBackups` operationId).
+	ListLogicalBackupsWithResponse(ctx context.Context, params *ListLogicalBackupsParams, reqEditors ...RequestEditorFn) (*ListLogicalBackupsResponse, error)
+
+	// StartLogicalBackupWithBodyWithResponse Start a backup of a database
+	//
+	// Needs the role `WORKSPACE_VIEWER` or higher. Answers at once with the backup in `IN_PROGRESS`; `getLogicalBackup` follows it. A backup of the database that is already running gets 409 `already_running`. A database whose config names no storage, or a physical PostgreSQL database, gets 400 `invalid_request`.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /logical-backups (the `StartLogicalBackup` operationId).
+	StartLogicalBackupWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*StartLogicalBackupResponse, error)
+
+	// StartLogicalBackupWithResponse Start a backup of a database
+	//
+	// Needs the role `WORKSPACE_VIEWER` or higher. Answers at once with the backup in `IN_PROGRESS`; `getLogicalBackup` follows it. A backup of the database that is already running gets 409 `already_running`. A database whose config names no storage, or a physical PostgreSQL database, gets 400 `invalid_request`.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /logical-backups (the `StartLogicalBackup` operationId).
+	StartLogicalBackupWithResponse(ctx context.Context, body StartLogicalBackupJSONRequestBody, reqEditors ...RequestEditorFn) (*StartLogicalBackupResponse, error)
+
+	// DeleteLogicalBackupWithResponse Delete a logical backup and its file
+	//
+	// Needs the role `WORKSPACE_MEMBER` or higher. Removes the backup and requests the deletion of its file and its metadata file in one step. A running backup gets 409 `already_running`, and a backup a running restore reads gets 409 `in_use`; neither changes anything.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with DELETE /logical-backups/{backupId} (the `DeleteLogicalBackup` operationId).
+	DeleteLogicalBackupWithResponse(ctx context.Context, backupId BackupId, reqEditors ...RequestEditorFn) (*DeleteLogicalBackupResponse, error)
+
+	// GetLogicalBackupWithResponse Get a logical backup
+	//
+	// A user who is not a member of the database's workspace gets 404 `not_found`.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /logical-backups/{backupId} (the `GetLogicalBackup` operationId).
+	GetLogicalBackupWithResponse(ctx context.Context, backupId BackupId, reqEditors ...RequestEditorFn) (*GetLogicalBackupResponse, error)
+
+	// CancelLogicalBackupWithResponse Cancel a running logical backup
+	//
+	// Needs the role `WORKSPACE_MEMBER` or higher. Stops the dump tool and every process it started; the backup then shows `CANCELED`. A backup that is no longer running gets 409 `not_running` and stays as it is.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /logical-backups/{backupId}/cancel (the `CancelLogicalBackup` operationId).
+	CancelLogicalBackupWithResponse(ctx context.Context, backupId BackupId, reqEditors ...RequestEditorFn) (*CancelLogicalBackupResponse, error)
+
+	// DownloadLogicalBackupWithResponse Download the file of a logical backup
+	//
+	// Public, because a browser link cannot carry the session: the single-use `token` from `createDownloadToken` is the credential. Returns the decrypted file. An expired, used, unknown or mismatched token gets 401 `unauthenticated`. While another download or restore stream of the token's user runs, the request gets 409 `already_running` and the token stays usable.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /logical-backups/{backupId}/file (the `DownloadLogicalBackup` operationId).
+	DownloadLogicalBackupWithResponse(ctx context.Context, backupId BackupId, params *DownloadLogicalBackupParams, reqEditors ...RequestEditorFn) (*DownloadLogicalBackupResponse, error)
 
 	// TestNotifierSettingsWithBodyWithResponse Send a test message with settings that are not saved
 	//
@@ -9933,6 +11533,51 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with POST /pending-sign-ins/{pendingSignInId}/verify (the `VerifySignInCode` operationId).
 	VerifySignInCodeWithResponse(ctx context.Context, pendingSignInId PendingSignInId, body VerifySignInCodeJSONRequestBody, reqEditors ...RequestEditorFn) (*VerifySignInCodeResponse, error)
+
+	// ListRestoresWithResponse List the restores of a logical backup
+	//
+	// Ordered newest first by creation time, then by ID. A user who is not a member of the backup's workspace gets 404 `not_found`.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /restores (the `ListRestores` operationId).
+	ListRestoresWithResponse(ctx context.Context, params *ListRestoresParams, reqEditors ...RequestEditorFn) (*ListRestoresResponse, error)
+
+	// StartRestoreWithBodyWithResponse Restore a logical backup into a target database
+	//
+	// Needs the role `WORKSPACE_VIEWER` or higher. Connects to the target and detects its version before it answers, then answers at once with the restore in `IN_PROGRESS`; `getRestore` follows it. A backup that is not completed, a target of another engine or a target whose version cannot take the backup gets 400 `invalid_request`. A target that cannot be reached or refuses the credentials gets 400 `database_connection_failed`. A restore into the same database that is already running gets 409 `already_running`. A PostgreSQL restore that needs the archive as a file and lacks disk space gets 409 `insufficient_disk_space`, whose `detail` names the bytes needed and free. The target's secrets are used only by the running restore and are never stored.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /restores (the `StartRestore` operationId).
+	StartRestoreWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*StartRestoreResponse, error)
+
+	// StartRestoreWithResponse Restore a logical backup into a target database
+	//
+	// Needs the role `WORKSPACE_VIEWER` or higher. Connects to the target and detects its version before it answers, then answers at once with the restore in `IN_PROGRESS`; `getRestore` follows it. A backup that is not completed, a target of another engine or a target whose version cannot take the backup gets 400 `invalid_request`. A target that cannot be reached or refuses the credentials gets 400 `database_connection_failed`. A restore into the same database that is already running gets 409 `already_running`. A PostgreSQL restore that needs the archive as a file and lacks disk space gets 409 `insufficient_disk_space`, whose `detail` names the bytes needed and free. The target's secrets are used only by the running restore and are never stored.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /restores (the `StartRestore` operationId).
+	StartRestoreWithResponse(ctx context.Context, body StartRestoreJSONRequestBody, reqEditors ...RequestEditorFn) (*StartRestoreResponse, error)
+
+	// GetRestoreWithResponse Get a restore
+	//
+	// Holds no field of the target. A user who is not a member of the backup's workspace gets 404 `not_found`.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /restores/{restoreId} (the `GetRestore` operationId).
+	GetRestoreWithResponse(ctx context.Context, restoreId RestoreId, reqEditors ...RequestEditorFn) (*GetRestoreResponse, error)
+
+	// CancelRestoreWithResponse Cancel a running restore
+	//
+	// Needs the role `WORKSPACE_MEMBER` or higher. Stops the restore tool and every process it started, also while the backup is still read from storage; the restore then shows `CANCELED`. A restore that is no longer running gets 409 `not_running` and stays as it is.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /restores/{restoreId}/cancel (the `CancelRestore` operationId).
+	CancelRestoreWithResponse(ctx context.Context, restoreId RestoreId, reqEditors ...RequestEditorFn) (*CancelRestoreResponse, error)
 
 	// SignInWithBodyWithResponse Sign in with an email address and a password
 	//
@@ -11291,6 +12936,82 @@ func (r TransferDatabaseResponse) ContentType() string {
 	return ""
 }
 
+type CreateDownloadTokenResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON201 the response for an HTTP 201 `application/json` response
+	JSON201 *DownloadToken
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSON409 the response for an HTTP 409 `application/problem+json` response
+	ApplicationproblemJSON409 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON201 returns the response for an HTTP 201 `application/json` response
+func (r CreateDownloadTokenResponse) GetJSON201() *DownloadToken {
+	return r.JSON201
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r CreateDownloadTokenResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r CreateDownloadTokenResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r CreateDownloadTokenResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSON409 returns the response for an HTTP 409 `application/problem+json` response
+func (r CreateDownloadTokenResponse) GetApplicationproblemJSON409() *Problem {
+	return r.ApplicationproblemJSON409
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r CreateDownloadTokenResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r CreateDownloadTokenResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r CreateDownloadTokenResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreateDownloadTokenResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r CreateDownloadTokenResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type SignInWithGitHubResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -11699,6 +13420,455 @@ func (r CreateLimitedUserResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r CreateLimitedUserResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type ListLogicalBackupsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *LogicalBackupPage
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ListLogicalBackupsResponse) GetJSON200() *LogicalBackupPage {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r ListLogicalBackupsResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r ListLogicalBackupsResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r ListLogicalBackupsResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r ListLogicalBackupsResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r ListLogicalBackupsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ListLogicalBackupsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListLogicalBackupsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ListLogicalBackupsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type StartLogicalBackupResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON202 the response for an HTTP 202 `application/json` response
+	JSON202 *LogicalBackup
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSON409 the response for an HTTP 409 `application/problem+json` response
+	ApplicationproblemJSON409 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON202 returns the response for an HTTP 202 `application/json` response
+func (r StartLogicalBackupResponse) GetJSON202() *LogicalBackup {
+	return r.JSON202
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r StartLogicalBackupResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r StartLogicalBackupResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r StartLogicalBackupResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r StartLogicalBackupResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSON409 returns the response for an HTTP 409 `application/problem+json` response
+func (r StartLogicalBackupResponse) GetApplicationproblemJSON409() *Problem {
+	return r.ApplicationproblemJSON409
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r StartLogicalBackupResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r StartLogicalBackupResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r StartLogicalBackupResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r StartLogicalBackupResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r StartLogicalBackupResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type DeleteLogicalBackupResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSON409 the response for an HTTP 409 `application/problem+json` response
+	ApplicationproblemJSON409 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r DeleteLogicalBackupResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r DeleteLogicalBackupResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r DeleteLogicalBackupResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r DeleteLogicalBackupResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSON409 returns the response for an HTTP 409 `application/problem+json` response
+func (r DeleteLogicalBackupResponse) GetApplicationproblemJSON409() *Problem {
+	return r.ApplicationproblemJSON409
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r DeleteLogicalBackupResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r DeleteLogicalBackupResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r DeleteLogicalBackupResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DeleteLogicalBackupResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r DeleteLogicalBackupResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetLogicalBackupResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *LogicalBackup
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetLogicalBackupResponse) GetJSON200() *LogicalBackup {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r GetLogicalBackupResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r GetLogicalBackupResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r GetLogicalBackupResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r GetLogicalBackupResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r GetLogicalBackupResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetLogicalBackupResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetLogicalBackupResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetLogicalBackupResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type CancelLogicalBackupResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON202 the response for an HTTP 202 `application/json` response
+	JSON202 *LogicalBackup
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSON409 the response for an HTTP 409 `application/problem+json` response
+	ApplicationproblemJSON409 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON202 returns the response for an HTTP 202 `application/json` response
+func (r CancelLogicalBackupResponse) GetJSON202() *LogicalBackup {
+	return r.JSON202
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r CancelLogicalBackupResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r CancelLogicalBackupResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r CancelLogicalBackupResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r CancelLogicalBackupResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSON409 returns the response for an HTTP 409 `application/problem+json` response
+func (r CancelLogicalBackupResponse) GetApplicationproblemJSON409() *Problem {
+	return r.ApplicationproblemJSON409
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r CancelLogicalBackupResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r CancelLogicalBackupResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r CancelLogicalBackupResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CancelLogicalBackupResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r CancelLogicalBackupResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// DownloadLogicalBackupResponse200Headers the declared response headers of an HTTP 200 response for DownloadLogicalBackup
+type DownloadLogicalBackupResponse200Headers struct {
+	ContentDisposition *string
+}
+
+type DownloadLogicalBackupResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON409 the response for an HTTP 409 `application/problem+json` response
+	ApplicationproblemJSON409 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+	// Headers200 the parsed response headers for an HTTP 200 response
+	Headers200 *DownloadLogicalBackupResponse200Headers
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r DownloadLogicalBackupResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r DownloadLogicalBackupResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON409 returns the response for an HTTP 409 `application/problem+json` response
+func (r DownloadLogicalBackupResponse) GetApplicationproblemJSON409() *Problem {
+	return r.ApplicationproblemJSON409
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r DownloadLogicalBackupResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r DownloadLogicalBackupResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r DownloadLogicalBackupResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DownloadLogicalBackupResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r DownloadLogicalBackupResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -12527,6 +14697,310 @@ func (r VerifySignInCodeResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r VerifySignInCodeResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type ListRestoresResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *RestorePage
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ListRestoresResponse) GetJSON200() *RestorePage {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r ListRestoresResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r ListRestoresResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r ListRestoresResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r ListRestoresResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r ListRestoresResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ListRestoresResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListRestoresResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ListRestoresResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type StartRestoreResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON202 the response for an HTTP 202 `application/json` response
+	JSON202 *Restore
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSON409 the response for an HTTP 409 `application/problem+json` response
+	ApplicationproblemJSON409 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON202 returns the response for an HTTP 202 `application/json` response
+func (r StartRestoreResponse) GetJSON202() *Restore {
+	return r.JSON202
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r StartRestoreResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r StartRestoreResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r StartRestoreResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r StartRestoreResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSON409 returns the response for an HTTP 409 `application/problem+json` response
+func (r StartRestoreResponse) GetApplicationproblemJSON409() *Problem {
+	return r.ApplicationproblemJSON409
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r StartRestoreResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r StartRestoreResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r StartRestoreResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r StartRestoreResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r StartRestoreResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetRestoreResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *Restore
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetRestoreResponse) GetJSON200() *Restore {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r GetRestoreResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r GetRestoreResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r GetRestoreResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r GetRestoreResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r GetRestoreResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetRestoreResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetRestoreResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetRestoreResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type CancelRestoreResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON202 the response for an HTTP 202 `application/json` response
+	JSON202 *Restore
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSON409 the response for an HTTP 409 `application/problem+json` response
+	ApplicationproblemJSON409 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON202 returns the response for an HTTP 202 `application/json` response
+func (r CancelRestoreResponse) GetJSON202() *Restore {
+	return r.JSON202
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r CancelRestoreResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r CancelRestoreResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r CancelRestoreResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r CancelRestoreResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSON409 returns the response for an HTTP 409 `application/problem+json` response
+func (r CancelRestoreResponse) GetApplicationproblemJSON409() *Problem {
+	return r.ApplicationproblemJSON409
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r CancelRestoreResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r CancelRestoreResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r CancelRestoreResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CancelRestoreResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r CancelRestoreResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -14936,6 +17410,36 @@ func (c *ClientWithResponses) TransferDatabaseWithResponse(ctx context.Context, 
 	return ParseTransferDatabaseResponse(rsp)
 }
 
+// CreateDownloadTokenWithBodyWithResponse Issue a single-use token to download a backup file
+//
+// Needs the role `WORKSPACE_VIEWER` or higher. The token downloads the backup once and expires after five minutes. While another download or restore stream of the user runs, the request gets 409 `already_running` and no token is issued.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /download-tokens (the `CreateDownloadToken` operationId).
+func (c *ClientWithResponses) CreateDownloadTokenWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateDownloadTokenResponse, error) {
+	rsp, err := c.CreateDownloadTokenWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateDownloadTokenResponse(rsp)
+}
+
+// CreateDownloadTokenWithResponse Issue a single-use token to download a backup file
+//
+// Needs the role `WORKSPACE_VIEWER` or higher. The token downloads the backup once and expires after five minutes. While another download or restore stream of the user runs, the request gets 409 `already_running` and no token is issued.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /download-tokens (the `CreateDownloadToken` operationId).
+func (c *ClientWithResponses) CreateDownloadTokenWithResponse(ctx context.Context, body CreateDownloadTokenJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateDownloadTokenResponse, error) {
+	rsp, err := c.CreateDownloadToken(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateDownloadTokenResponse(rsp)
+}
+
 // SignInWithGitHubWithBodyWithResponse Sign in with GitHub
 //
 // Public, because it creates the session the caller does not have yet. The code from GitHub's authorization page signs in the user linked to the GitHub account, or the user with the same email address, linking the account and finishing the sign-up of an invited user. An unknown address creates a user under the same rules as sign-up. The second factor does not apply, because GitHub verified the user. A deactivated user gets 403 `user_deactivated`, an instance without the GitHub client gets 409 `oauth_not_configured`, and a code GitHub refuses or an account without an email address gets 400 `oauth_failed`.
@@ -15099,6 +17603,111 @@ func (c *ClientWithResponses) CreateLimitedUserWithResponse(ctx context.Context,
 		return nil, err
 	}
 	return ParseCreateLimitedUserResponse(rsp)
+}
+
+// ListLogicalBackupsWithResponse List the logical backups of a database
+//
+// Ordered newest first by creation time, then by ID. `status` and `createdBefore` filter the list. A user who is not a member of the database's workspace gets 404 `not_found`. A cursor this list did not issue gets 400 `invalid_request`.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /logical-backups (the `ListLogicalBackups` operationId).
+func (c *ClientWithResponses) ListLogicalBackupsWithResponse(ctx context.Context, params *ListLogicalBackupsParams, reqEditors ...RequestEditorFn) (*ListLogicalBackupsResponse, error) {
+	rsp, err := c.ListLogicalBackups(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListLogicalBackupsResponse(rsp)
+}
+
+// StartLogicalBackupWithBodyWithResponse Start a backup of a database
+//
+// Needs the role `WORKSPACE_VIEWER` or higher. Answers at once with the backup in `IN_PROGRESS`; `getLogicalBackup` follows it. A backup of the database that is already running gets 409 `already_running`. A database whose config names no storage, or a physical PostgreSQL database, gets 400 `invalid_request`.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /logical-backups (the `StartLogicalBackup` operationId).
+func (c *ClientWithResponses) StartLogicalBackupWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*StartLogicalBackupResponse, error) {
+	rsp, err := c.StartLogicalBackupWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseStartLogicalBackupResponse(rsp)
+}
+
+// StartLogicalBackupWithResponse Start a backup of a database
+//
+// Needs the role `WORKSPACE_VIEWER` or higher. Answers at once with the backup in `IN_PROGRESS`; `getLogicalBackup` follows it. A backup of the database that is already running gets 409 `already_running`. A database whose config names no storage, or a physical PostgreSQL database, gets 400 `invalid_request`.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /logical-backups (the `StartLogicalBackup` operationId).
+func (c *ClientWithResponses) StartLogicalBackupWithResponse(ctx context.Context, body StartLogicalBackupJSONRequestBody, reqEditors ...RequestEditorFn) (*StartLogicalBackupResponse, error) {
+	rsp, err := c.StartLogicalBackup(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseStartLogicalBackupResponse(rsp)
+}
+
+// DeleteLogicalBackupWithResponse Delete a logical backup and its file
+//
+// Needs the role `WORKSPACE_MEMBER` or higher. Removes the backup and requests the deletion of its file and its metadata file in one step. A running backup gets 409 `already_running`, and a backup a running restore reads gets 409 `in_use`; neither changes anything.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with DELETE /logical-backups/{backupId} (the `DeleteLogicalBackup` operationId).
+func (c *ClientWithResponses) DeleteLogicalBackupWithResponse(ctx context.Context, backupId BackupId, reqEditors ...RequestEditorFn) (*DeleteLogicalBackupResponse, error) {
+	rsp, err := c.DeleteLogicalBackup(ctx, backupId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDeleteLogicalBackupResponse(rsp)
+}
+
+// GetLogicalBackupWithResponse Get a logical backup
+//
+// A user who is not a member of the database's workspace gets 404 `not_found`.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /logical-backups/{backupId} (the `GetLogicalBackup` operationId).
+func (c *ClientWithResponses) GetLogicalBackupWithResponse(ctx context.Context, backupId BackupId, reqEditors ...RequestEditorFn) (*GetLogicalBackupResponse, error) {
+	rsp, err := c.GetLogicalBackup(ctx, backupId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetLogicalBackupResponse(rsp)
+}
+
+// CancelLogicalBackupWithResponse Cancel a running logical backup
+//
+// Needs the role `WORKSPACE_MEMBER` or higher. Stops the dump tool and every process it started; the backup then shows `CANCELED`. A backup that is no longer running gets 409 `not_running` and stays as it is.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /logical-backups/{backupId}/cancel (the `CancelLogicalBackup` operationId).
+func (c *ClientWithResponses) CancelLogicalBackupWithResponse(ctx context.Context, backupId BackupId, reqEditors ...RequestEditorFn) (*CancelLogicalBackupResponse, error) {
+	rsp, err := c.CancelLogicalBackup(ctx, backupId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCancelLogicalBackupResponse(rsp)
+}
+
+// DownloadLogicalBackupWithResponse Download the file of a logical backup
+//
+// Public, because a browser link cannot carry the session: the single-use `token` from `createDownloadToken` is the credential. Returns the decrypted file. An expired, used, unknown or mismatched token gets 401 `unauthenticated`. While another download or restore stream of the token's user runs, the request gets 409 `already_running` and the token stays usable.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /logical-backups/{backupId}/file (the `DownloadLogicalBackup` operationId).
+func (c *ClientWithResponses) DownloadLogicalBackupWithResponse(ctx context.Context, backupId BackupId, params *DownloadLogicalBackupParams, reqEditors ...RequestEditorFn) (*DownloadLogicalBackupResponse, error) {
+	rsp, err := c.DownloadLogicalBackup(ctx, backupId, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDownloadLogicalBackupResponse(rsp)
 }
 
 // TestNotifierSettingsWithBodyWithResponse Send a test message with settings that are not saved
@@ -15399,6 +18008,81 @@ func (c *ClientWithResponses) VerifySignInCodeWithResponse(ctx context.Context, 
 		return nil, err
 	}
 	return ParseVerifySignInCodeResponse(rsp)
+}
+
+// ListRestoresWithResponse List the restores of a logical backup
+//
+// Ordered newest first by creation time, then by ID. A user who is not a member of the backup's workspace gets 404 `not_found`.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /restores (the `ListRestores` operationId).
+func (c *ClientWithResponses) ListRestoresWithResponse(ctx context.Context, params *ListRestoresParams, reqEditors ...RequestEditorFn) (*ListRestoresResponse, error) {
+	rsp, err := c.ListRestores(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListRestoresResponse(rsp)
+}
+
+// StartRestoreWithBodyWithResponse Restore a logical backup into a target database
+//
+// Needs the role `WORKSPACE_VIEWER` or higher. Connects to the target and detects its version before it answers, then answers at once with the restore in `IN_PROGRESS`; `getRestore` follows it. A backup that is not completed, a target of another engine or a target whose version cannot take the backup gets 400 `invalid_request`. A target that cannot be reached or refuses the credentials gets 400 `database_connection_failed`. A restore into the same database that is already running gets 409 `already_running`. A PostgreSQL restore that needs the archive as a file and lacks disk space gets 409 `insufficient_disk_space`, whose `detail` names the bytes needed and free. The target's secrets are used only by the running restore and are never stored.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /restores (the `StartRestore` operationId).
+func (c *ClientWithResponses) StartRestoreWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*StartRestoreResponse, error) {
+	rsp, err := c.StartRestoreWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseStartRestoreResponse(rsp)
+}
+
+// StartRestoreWithResponse Restore a logical backup into a target database
+//
+// Needs the role `WORKSPACE_VIEWER` or higher. Connects to the target and detects its version before it answers, then answers at once with the restore in `IN_PROGRESS`; `getRestore` follows it. A backup that is not completed, a target of another engine or a target whose version cannot take the backup gets 400 `invalid_request`. A target that cannot be reached or refuses the credentials gets 400 `database_connection_failed`. A restore into the same database that is already running gets 409 `already_running`. A PostgreSQL restore that needs the archive as a file and lacks disk space gets 409 `insufficient_disk_space`, whose `detail` names the bytes needed and free. The target's secrets are used only by the running restore and are never stored.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /restores (the `StartRestore` operationId).
+func (c *ClientWithResponses) StartRestoreWithResponse(ctx context.Context, body StartRestoreJSONRequestBody, reqEditors ...RequestEditorFn) (*StartRestoreResponse, error) {
+	rsp, err := c.StartRestore(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseStartRestoreResponse(rsp)
+}
+
+// GetRestoreWithResponse Get a restore
+//
+// Holds no field of the target. A user who is not a member of the backup's workspace gets 404 `not_found`.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /restores/{restoreId} (the `GetRestore` operationId).
+func (c *ClientWithResponses) GetRestoreWithResponse(ctx context.Context, restoreId RestoreId, reqEditors ...RequestEditorFn) (*GetRestoreResponse, error) {
+	rsp, err := c.GetRestore(ctx, restoreId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetRestoreResponse(rsp)
+}
+
+// CancelRestoreWithResponse Cancel a running restore
+//
+// Needs the role `WORKSPACE_MEMBER` or higher. Stops the restore tool and every process it started, also while the backup is still read from storage; the restore then shows `CANCELED`. A restore that is no longer running gets 409 `not_running` and stays as it is.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /restores/{restoreId}/cancel (the `CancelRestore` operationId).
+func (c *ClientWithResponses) CancelRestoreWithResponse(ctx context.Context, restoreId RestoreId, reqEditors ...RequestEditorFn) (*CancelRestoreResponse, error) {
+	rsp, err := c.CancelRestore(ctx, restoreId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCancelRestoreResponse(rsp)
 }
 
 // SignInWithBodyWithResponse Sign in with an email address and a password
@@ -16832,6 +19516,67 @@ func ParseTransferDatabaseResponse(rsp *http.Response) (*TransferDatabaseRespons
 	return response, nil
 }
 
+// ParseCreateDownloadTokenResponse parses an HTTP response from a CreateDownloadTokenWithResponse call
+func ParseCreateDownloadTokenResponse(rsp *http.Response) (*CreateDownloadTokenResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CreateDownloadTokenResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest DownloadToken
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseSignInWithGitHubResponse parses an HTTP response from a SignInWithGitHubWithResponse call
 func ParseSignInWithGitHubResponse(rsp *http.Response) (*SignInWithGitHubResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -17151,6 +19896,374 @@ func ParseCreateLimitedUserResponse(rsp *http.Response) (*CreateLimitedUserRespo
 		}
 		response.ApplicationproblemJSONDefault = &dest
 
+	}
+
+	return response, nil
+}
+
+// ParseListLogicalBackupsResponse parses an HTTP response from a ListLogicalBackupsWithResponse call
+func ParseListLogicalBackupsResponse(rsp *http.Response) (*ListLogicalBackupsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListLogicalBackupsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest LogicalBackupPage
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseStartLogicalBackupResponse parses an HTTP response from a StartLogicalBackupWithResponse call
+func ParseStartLogicalBackupResponse(rsp *http.Response) (*StartLogicalBackupResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &StartLogicalBackupResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 202:
+		var dest LogicalBackup
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON202 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseDeleteLogicalBackupResponse parses an HTTP response from a DeleteLogicalBackupWithResponse call
+func ParseDeleteLogicalBackupResponse(rsp *http.Response) (*DeleteLogicalBackupResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeleteLogicalBackupResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case rsp.StatusCode == 204:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetLogicalBackupResponse parses an HTTP response from a GetLogicalBackupWithResponse call
+func ParseGetLogicalBackupResponse(rsp *http.Response) (*GetLogicalBackupResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetLogicalBackupResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest LogicalBackup
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCancelLogicalBackupResponse parses an HTTP response from a CancelLogicalBackupWithResponse call
+func ParseCancelLogicalBackupResponse(rsp *http.Response) (*CancelLogicalBackupResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CancelLogicalBackupResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 202:
+		var dest LogicalBackup
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON202 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseDownloadLogicalBackupResponse parses an HTTP response from a DownloadLogicalBackupWithResponse call
+func ParseDownloadLogicalBackupResponse(rsp *http.Response) (*DownloadLogicalBackupResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DownloadLogicalBackupResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 200:
+		var headers DownloadLogicalBackupResponse200Headers
+		if values := rsp.Header.Values("Content-Disposition"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "Content-Disposition", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.ContentDisposition = &value
+		}
+		response.Headers200 = &headers
 	}
 
 	return response, nil
@@ -17803,6 +20916,250 @@ func ParseVerifySignInCodeResponse(rsp *http.Response) (*VerifySignInCodeRespons
 			return nil, err
 		}
 		response.ApplicationproblemJSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListRestoresResponse parses an HTTP response from a ListRestoresWithResponse call
+func ParseListRestoresResponse(rsp *http.Response) (*ListRestoresResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListRestoresResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest RestorePage
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseStartRestoreResponse parses an HTTP response from a StartRestoreWithResponse call
+func ParseStartRestoreResponse(rsp *http.Response) (*StartRestoreResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &StartRestoreResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 202:
+		var dest Restore
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON202 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetRestoreResponse parses an HTTP response from a GetRestoreWithResponse call
+func ParseGetRestoreResponse(rsp *http.Response) (*GetRestoreResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetRestoreResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Restore
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCancelRestoreResponse parses an HTTP response from a CancelRestoreWithResponse call
+func ParseCancelRestoreResponse(rsp *http.Response) (*CancelRestoreResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CancelRestoreResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 202:
+		var dest Restore
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON202 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON409 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest Problem

@@ -92,8 +92,8 @@ type postgresqlPhysicalSettings struct {
 	SshTunnel  disabledSshTunnel `json:"sshTunnel"`
 }
 
-type makeLogicalBackupRequest struct {
-	DatabaseID uuid.UUID `json:"database_id"`
+type startLogicalBackupRequest struct {
+	DatabaseID uuid.UUID `json:"databaseId"`
 }
 
 type triggerPhysicalBackupRequest struct {

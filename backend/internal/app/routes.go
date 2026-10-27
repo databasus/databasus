@@ -5,12 +5,10 @@ import (
 
 	contract "databasus-backend/api"
 	systemhttpapi "databasus-backend/internal/app/systemhttpapi"
-	backups_controllers_logical "databasus-backend/internal/features/backups/backups/controllers/logical"
 	backups_controllers_physical "databasus-backend/internal/features/backups/backups/controllers/physical"
 	"databasus-backend/internal/features/disk"
 	healthcheck_attempt "databasus-backend/internal/features/healthcheck/attempt"
 	healthcheck_config "databasus-backend/internal/features/healthcheck/config"
-	"databasus-backend/internal/features/restores"
 	system_agent "databasus-backend/internal/features/system/agent"
 	system_healthcheck "databasus-backend/internal/features/system/healthcheck"
 	system_version "databasus-backend/internal/features/system/version"
@@ -59,7 +57,6 @@ func (a *App) registerRoutes(router *gin.Engine) {
 	// Public routes: only the user sign-in routes, the health check and the agent-facing routes.
 	system_healthcheck.GetHealthcheckController().RegisterRoutes(v1)
 	system_agent.GetAgentController().RegisterRoutes(v1)
-	backups_controllers_logical.GetBackupController().RegisterPublicRoutes(v1)
 	backups_controllers_physical.GetPhysicalBackupController().RegisterPublicRoutes(v1)
 	verification_agents.GetAgentFacingController().RegisterRoutes(v1)
 	verification_runs.GetVerificationAgentController().RegisterRoutes(v1)
@@ -68,9 +65,7 @@ func (a *App) registerRoutes(router *gin.Engine) {
 	protected.Use(a.usersModule.GetSessionMiddleware())
 
 	disk.GetDiskController().RegisterRoutes(protected)
-	backups_controllers_logical.GetBackupController().RegisterRoutes(protected)
 	backups_controllers_physical.GetPhysicalBackupController().RegisterRoutes(protected)
-	restores.GetRestoreController().RegisterRoutes(protected)
 	healthcheck_config.GetHealthcheckConfigController().RegisterRoutes(protected)
 	healthcheck_attempt.GetHealthcheckAttemptController().RegisterRoutes(protected)
 	verification_agents.GetAgentController().RegisterRoutes(protected)

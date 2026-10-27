@@ -71,7 +71,7 @@ func TestDeleteStorage(t *testing.T) {
 		assert.Equal(t, []uuid.UUID{createdStorage.Id}, getListedStorageIDs(t, tm.owner, tm.workspace.Id))
 		assert.True(t, tm.app.IsLocalStorageFilePresent(t, pendingFileName))
 		assert.Equal(t, 1, countPendingDeletions(t, tm.app, createdStorage.Id))
-		assert.Equal(t, 1, countRows(t, tm.app, "SELECT COUNT(*) FROM logical_backups WHERE id = ?", backupID))
+		assert.Equal(t, 1, countRows(t, tm.app, "SELECT COUNT(*) FROM backups_logical WHERE id = ?", backupID))
 	})
 
 	t.Run("removes the files waiting for cleanup before the deletion answers", func(t *testing.T) {
@@ -202,13 +202,13 @@ func deleteStorage(t *testing.T, session apptest.Session, storageID uuid.UUID) *
 	return response
 }
 
-// insertCompletedBackup writes the backup record directly, because no contract operation creates a
-// backup yet.
+// insertCompletedBackup writes the backup record directly, because a completed backup through the
+// contract needs a reachable database.
 func insertCompletedBackup(t *testing.T, tm team, databaseID, storageID uuid.UUID) uuid.UUID {
 	t.Helper()
 
 	backupID := uuid.New()
-	tm.app.ExecuteSQL(t, `INSERT INTO logical_backups (id, database_id, storage_id, status, file_name)
+	tm.app.ExecuteSQL(t, `INSERT INTO backups_logical (id, database_id, storage_id, status, file_name)
 		VALUES (?, ?, ?, 'COMPLETED', ?)`, backupID, databaseID, storageID, "backup-"+backupID.String())
 
 	return backupID

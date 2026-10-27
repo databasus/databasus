@@ -34,9 +34,9 @@ type RestoreSpec struct {
 	Logger  *slog.Logger
 }
 
-// needsArchiveFile reports whether pg_restore must read the archive more than once: -j seeks in it,
+// NeedsArchiveFile reports whether pg_restore must read the archive more than once: -j seeks in it,
 // and a filtered restore lists it with -l before restoring the filtered list with -L.
-func (spec RestoreSpec) needsArchiveFile() bool {
+func (spec RestoreSpec) NeedsArchiveFile() bool {
 	return spec.IsExcludeExtensions || spec.IsSkipUserMappings || spec.ParallelJobs > 1
 }
 
@@ -104,7 +104,7 @@ func (s *Source) restoreArchive(ctx context.Context, spec RestoreSpec, input io.
 
 	pgRestore := spec.ClientTools.GetExecutable(spec.Version, pgshared.ExecutablePgRestore)
 
-	if !spec.needsArchiveFile() {
+	if !spec.NeedsArchiveFile() {
 		spec.Logger.InfoContext(ctx, "restoring via stdin streaming (CPU=1)")
 
 		return s.runPgRestore(ctx, spec, clientToolRun{
@@ -201,7 +201,7 @@ func (s *Source) runPgRestore(ctx context.Context, spec RestoreSpec, run clientT
 func (s *Source) buildRestoreArgs(spec RestoreSpec, fileArgs []string) []string {
 	args := []string{"-Fc"}
 
-	if spec.needsArchiveFile() {
+	if spec.NeedsArchiveFile() {
 		args = append(args, "-j", strconv.Itoa(spec.getParallelJobs()))
 	}
 

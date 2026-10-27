@@ -45,7 +45,7 @@ describe('NotifierComponent', () => {
 
     await waitFor(() =>
       expect(alertSpy).toHaveBeenCalledWith(
-        'Databases still use it. Remove it from those databases first.',
+        'It is still in use by a database or by a running backup or restore. Try again once nothing uses it.',
       ),
     );
     expect(onNotifierDeleted).not.toHaveBeenCalled();

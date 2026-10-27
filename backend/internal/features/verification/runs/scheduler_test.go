@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	backuping_logical "databasus-backend/internal/features/backups/backups/backuping/logical"
+	backups_bridge "databasus-backend/internal/features/backups/config"
 	databases_bridge "databasus-backend/internal/features/databases"
 	"databasus-backend/internal/features/intervals"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
@@ -71,11 +71,13 @@ func Test_CreateScheduledRuns_WhenMultipleBackupsExist_PicksLatestForVerificatio
 	database := databases_bridge.CreateTestDatabase(workspace.ID, notifier)
 	defer databases_bridge.RemoveTestDatabase(t.Context(), database)
 
-	older := backuping_logical.SeedTestBackup(t, database.ID, testStorage.ID, 50)
-	older.CreatedAt = time.Now().UTC().Add(-2 * time.Hour)
-	require.NoError(t, storage.GetDb().Save(older).Error)
+	olderBackup := backups_bridge.SeedTestLogicalBackup(t, database.ID, testStorage.ID, 50)
+	require.NoError(t, storage.GetDb().Exec(
+		"UPDATE backups_logical SET created_at = ? WHERE id = ?",
+		time.Now().UTC().Add(-2*time.Hour), olderBackup.ID,
+	).Error)
 
-	latestBackup := backuping_logical.SeedTestBackup(t, database.ID, testStorage.ID, 100)
+	latestBackup := backups_bridge.SeedTestLogicalBackup(t, database.ID, testStorage.ID, 100)
 
 	enableHourlyVerificationViaAPI(t, router, owner.Token, database.ID)
 
@@ -104,7 +106,7 @@ func Test_CreateScheduledRuns_WhenScheduledPendingAlreadyExists_DoesNotInsertNew
 	database := databases_bridge.CreateTestDatabase(workspace.ID, notifier)
 	defer databases_bridge.RemoveTestDatabase(t.Context(), database)
 
-	backuping_logical.SeedTestBackup(t, database.ID, testStorage.ID, 100)
+	backups_bridge.SeedTestLogicalBackup(t, database.ID, testStorage.ID, 100)
 
 	enableHourlyVerificationViaAPI(t, router, owner.Token, database.ID)
 
@@ -131,7 +133,7 @@ func Test_CreateScheduledRuns_WhenManualPendingExists_StillCreatesScheduledRun(t
 	database := databases_bridge.CreateTestDatabase(workspace.ID, notifier)
 	defer databases_bridge.RemoveTestDatabase(t.Context(), database)
 
-	backup := backuping_logical.SeedTestBackup(t, database.ID, testStorage.ID, 100)
+	backup := backups_bridge.SeedTestLogicalBackup(t, database.ID, testStorage.ID, 100)
 
 	EnqueueManualVerificationViaAPI(t, router, owner.Token, backup.ID)
 
@@ -175,7 +177,7 @@ func Test_ReapStaleRuns_WhenPendingExceedsMaxDuration_MarksFailedWithoutRetry(t 
 	database := databases_bridge.CreateTestDatabase(workspace.ID, notifier)
 	defer databases_bridge.RemoveTestDatabase(t.Context(), database)
 
-	backup := backuping_logical.SeedTestBackup(t, database.ID, testStorage.ID, 100)
+	backup := backups_bridge.SeedTestLogicalBackup(t, database.ID, testStorage.ID, 100)
 
 	stalePending := EnqueueManualVerificationViaAPI(t, router, owner.Token, backup.ID)
 	require.NoError(t, storage.GetDb().
@@ -209,7 +211,7 @@ func Test_ReapStaleRuns_WhenOwningAgentRemoved_RequeuesThenRetiresIfUnclaimed(t 
 	database := databases_bridge.CreateTestDatabase(workspace.ID, notifier)
 	defer databases_bridge.RemoveTestDatabase(t.Context(), database)
 
-	backup := backuping_logical.SeedTestBackup(t, database.ID, testStorage.ID, 100)
+	backup := backups_bridge.SeedTestLogicalBackup(t, database.ID, testStorage.ID, 100)
 	agent := verification_agents.CreateTestVerificationAgent(t, router, owner.Token, "soft-del-"+uuid.New().String())
 	defer verification_agents.RemoveTestVerificationAgent(t, router, owner.Token, agent.Agent.ID)
 
@@ -273,7 +275,7 @@ func Test_ReapStaleRuns_WhenAgentLostContactWithRetriesRemaining_RequeuesVerific
 
 	enableHourlyVerificationViaAPI(t, router, owner.Token, database.ID)
 
-	backup := backuping_logical.SeedTestBackup(t, database.ID, testStorage.ID, 100)
+	backup := backups_bridge.SeedTestLogicalBackup(t, database.ID, testStorage.ID, 100)
 	agent := verification_agents.CreateTestVerificationAgent(
 		t,
 		router,
@@ -321,7 +323,7 @@ func Test_ReapStaleRuns_WhenPendingExceedsMaxDuration_MarksTerminalRegardlessOfP
 
 	enableHourlyVerificationViaAPI(t, router, owner.Token, database.ID)
 
-	backup := backuping_logical.SeedTestBackup(t, database.ID, testStorage.ID, 100)
+	backup := backups_bridge.SeedTestLogicalBackup(t, database.ID, testStorage.ID, 100)
 	stalePending := EnqueueManualVerificationViaAPI(t, router, owner.Token, backup.ID)
 	require.NoError(t, storage.GetDb().
 		Model(&RestoreVerification{}).
@@ -355,7 +357,7 @@ func Test_CancelAutomaticVerificationsForDisabledSchedules_WhenScheduledVerifica
 	database := databases_bridge.CreateTestDatabase(workspace.ID, notifier)
 	defer databases_bridge.RemoveTestDatabase(t.Context(), database)
 
-	backuping_logical.SeedTestBackup(t, database.ID, testStorage.ID, 100)
+	backups_bridge.SeedTestLogicalBackup(t, database.ID, testStorage.ID, 100)
 
 	enableHourlyVerificationViaAPI(t, router, owner.Token, database.ID)
 
@@ -405,7 +407,7 @@ func Test_CancelAutomaticVerificationsForDisabledSchedules_WhenManualVerificatio
 			VerificationInterval:           intervals.Interval{Type: intervals.IntervalHourly},
 		})
 
-	backup := backuping_logical.SeedTestBackup(t, database.ID, testStorage.ID, 100)
+	backup := backups_bridge.SeedTestLogicalBackup(t, database.ID, testStorage.ID, 100)
 	manualVerification := EnqueueManualVerificationViaAPI(t, router, owner.Token, backup.ID)
 
 	require.NoError(
@@ -442,7 +444,7 @@ func Test_CancelAutomaticVerificationsForDisabledSchedules_WhenManualVerificatio
 			VerificationInterval:           intervals.Interval{Type: intervals.IntervalHourly},
 		})
 
-	backup := backuping_logical.SeedTestBackup(t, database.ID, testStorage.ID, 100)
+	backup := backups_bridge.SeedTestLogicalBackup(t, database.ID, testStorage.ID, 100)
 	manualVerification := EnqueueManualVerificationViaAPI(t, router, owner.Token, backup.ID)
 
 	agent := verification_agents.CreateTestVerificationAgent(
@@ -498,7 +500,7 @@ func Test_CancelAutomaticVerificationsForDisabledSchedules_WhenAutomaticVerifica
 			database := databases_bridge.CreateTestDatabase(workspace.ID, notifier)
 			defer databases_bridge.RemoveTestDatabase(t.Context(), database)
 
-			backup := backuping_logical.SeedTestBackup(t, database.ID, testStorage.ID, 100)
+			backup := backups_bridge.SeedTestLogicalBackup(t, database.ID, testStorage.ID, 100)
 
 			switch verificationCase.trigger {
 			case VerificationTriggerScheduled:
@@ -506,7 +508,7 @@ func Test_CancelAutomaticVerificationsForDisabledSchedules_WhenAutomaticVerifica
 				require.NoError(t, GetVerificationScheduler().createScheduledRuns(t.Context(), logger.GetLogger()))
 			case VerificationTriggerAfterBackup:
 				enableAfterBackupVerificationViaAPI(t, router, owner.Token, database.ID)
-				GetVerificationService().OnBackupCompleted(backup.ID)
+				publishLogicalBackupCompleted(t, backup)
 			default:
 				t.Fatalf("unsupported automatic verification trigger %q", verificationCase.trigger)
 			}
@@ -576,7 +578,7 @@ func Test_CancelAutomaticVerificationsForDisabledSchedules_WhenManualAndAutomati
 	database := databases_bridge.CreateTestDatabase(workspace.ID, notifier)
 	defer databases_bridge.RemoveTestDatabase(t.Context(), database)
 
-	backup := backuping_logical.SeedTestBackup(t, database.ID, testStorage.ID, 100)
+	backup := backups_bridge.SeedTestLogicalBackup(t, database.ID, testStorage.ID, 100)
 	manualVerification := EnqueueManualVerificationViaAPI(t, router, owner.Token, backup.ID)
 
 	enableHourlyVerificationViaAPI(t, router, owner.Token, database.ID)
@@ -635,7 +637,7 @@ func Test_CreateScheduledRuns_AfterUserCancel_DoesNotImmediatelyRecreate(t *test
 	database := databases_bridge.CreateTestDatabase(workspace.ID, notifier)
 	defer databases_bridge.RemoveTestDatabase(t.Context(), database)
 
-	backuping_logical.SeedTestBackup(t, database.ID, testStorage.ID, 100)
+	backups_bridge.SeedTestLogicalBackup(t, database.ID, testStorage.ID, 100)
 
 	enableHourlyVerificationViaAPI(t, router, owner.Token, database.ID)
 
@@ -675,7 +677,7 @@ func Test_CreateScheduledRuns_AfterUserCancel_DoesNotRequeueOrRestart(t *testing
 	database := databases_bridge.CreateTestDatabase(workspace.ID, notifier)
 	defer databases_bridge.RemoveTestDatabase(t.Context(), database)
 
-	backuping_logical.SeedTestBackup(t, database.ID, testStorage.ID, 100)
+	backups_bridge.SeedTestLogicalBackup(t, database.ID, testStorage.ID, 100)
 
 	enableHourlyVerificationViaAPI(t, router, owner.Token, database.ID)
 

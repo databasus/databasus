@@ -4,6 +4,7 @@
 package apptest
 
 import (
+	"context"
 	"fmt"
 	"net/http/httptest"
 	"os"
@@ -36,7 +37,12 @@ type App struct {
 	databaseDsn   string
 	secretKeyPath string
 	app           *app.App
+	stopModules   context.CancelFunc
 }
+
+// backupRunsWaitTimeout bounds the wait for the backup runs a test leaves behind; a run whose context
+// ended writes its outcome at once.
+const backupRunsWaitTimeout = 30 * time.Second
 
 // The old code reaches its configuration and database through process-wide state, so one test
 // application at a time can own it. A test that builds a second one while the first is alive fails
@@ -159,6 +165,8 @@ func New(tb testing.TB, options ...Option) *App {
 
 	tb.Cleanup(createdApp.Close)
 
+	stopModules := startModules(tb, createdApp)
+
 	handler, err := createdApp.NewHandler()
 	if err != nil {
 		tb.Fatalf("build the handler of the test application: %v", err)
@@ -176,6 +184,7 @@ func New(tb testing.TB, options ...Option) *App {
 		databaseDsn:   databaseDsn,
 		secretKeyPath: appConfig.SecretKeyPath,
 		app:           createdApp,
+		stopModules:   stopModules,
 	}
 }
 
@@ -224,6 +233,52 @@ func (a *App) RunJobPass(tb testing.TB, name string) {
 	if err != nil {
 		tb.Fatalf("run a pass of the background job %s: %v", name, err)
 	}
+}
+
+// RestartModules stops the modules as a shutdown does, waits for the runs to write their outcome and
+// starts the modules again on the same database, as the next start of the application does.
+func (a *App) RestartModules(tb testing.TB) {
+	tb.Helper()
+
+	a.stopModules()
+
+	waitCtx, cancelWait := context.WithTimeout(tb.Context(), backupRunsWaitTimeout)
+	defer cancelWait()
+
+	err := a.app.WaitForBackupRuns(waitCtx)
+	if err != nil {
+		tb.Fatalf("wait for the backup runs of the test application: %v", err)
+	}
+
+	a.stopModules = startModules(tb, a.app)
+}
+
+// startModules stops the runs the test started and waits for their outcome before the database
+// closes, as Serve does on shutdown. It returns the function that stops the modules.
+func startModules(tb testing.TB, createdApp *app.App) context.CancelFunc {
+	tb.Helper()
+
+	modulesCtx, stopModules := context.WithCancel(context.WithoutCancel(tb.Context()))
+
+	err := createdApp.StartModules(modulesCtx)
+	if err != nil {
+		stopModules()
+		tb.Fatalf("start the modules of the test application: %v", err)
+	}
+
+	tb.Cleanup(func() {
+		stopModules()
+
+		waitCtx, cancelWait := context.WithTimeout(context.Background(), backupRunsWaitTimeout)
+		defer cancelWait()
+
+		err := createdApp.WaitForBackupRuns(waitCtx)
+		if err != nil {
+			tb.Errorf("wait for the backup runs of the test application: %v", err)
+		}
+	})
+
+	return stopModules
 }
 
 // newConfig sets the database after loading, so a DATABASE_DSN in the environment of the test run

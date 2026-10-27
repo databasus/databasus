@@ -133,7 +133,7 @@ func (r *Runner) runPass(ctx context.Context, job *scheduledJob) error {
 	)
 	now := r.clock.Now()
 
-	err := runRecovering(passContext, func(ctx context.Context) error {
+	err := RunRecovering(passContext, func(ctx context.Context) error {
 		return job.job.Run(ctx, now)
 	})
 

@@ -35,7 +35,7 @@ func (g *Group) Go(ctx context.Context, name string, fn func(ctx context.Context
 	g.waitGroup.Go(func() {
 		defer g.runningCount.Add(-1)
 
-		err := runRecovering(ctx, fn)
+		err := RunRecovering(ctx, fn)
 		if err == nil || (ctx.Err() != nil && errors.Is(err, ctx.Err())) {
 			return
 		}
@@ -82,7 +82,9 @@ func (g *Group) GetRunningCount() int {
 	return int(g.runningCount.Load())
 }
 
-func runRecovering(ctx context.Context, fn func(ctx context.Context) error) (err error) {
+// RunRecovering calls fn and turns a panic in it into a *PanicError, so a caller that must record an
+// outcome gets one.
+func RunRecovering(ctx context.Context, fn func(ctx context.Context) error) (err error) {
 	defer func() {
 		if recovered := recover(); recovered != nil {
 			err = &PanicError{Value: recovered, Stack: string(debug.Stack())}

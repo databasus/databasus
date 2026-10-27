@@ -34,6 +34,9 @@ const (
 	CodeWorkspaceNotEmpty        Code = "workspace_not_empty"
 	CodeInUse                    Code = "in_use"
 	CodeDatabaseConnectionFailed Code = "database_connection_failed"
+	CodeAlreadyRunning           Code = "already_running"
+	CodeNotRunning               Code = "not_running"
+	CodeInsufficientDiskSpace    Code = "insufficient_disk_space"
 	CodeInternal                 Code = "internal"
 )
 
@@ -91,6 +94,12 @@ func describeCode(code Code) (int, string) {
 		return http.StatusConflict, "In use"
 	case CodeDatabaseConnectionFailed:
 		return http.StatusBadRequest, "Database connection failed"
+	case CodeAlreadyRunning:
+		return http.StatusConflict, "Already running"
+	case CodeNotRunning:
+		return http.StatusConflict, "Not running"
+	case CodeInsufficientDiskSpace:
+		return http.StatusConflict, "Insufficient disk space"
 	case CodeInternal:
 		return http.StatusInternalServerError, "Internal error"
 	}

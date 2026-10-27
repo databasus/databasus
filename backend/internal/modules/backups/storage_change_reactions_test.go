@@ -1,8 +1,6 @@
 package backups_test
 
 import (
-	"context"
-	"errors"
 	"net/http"
 	"testing"
 
@@ -12,7 +10,6 @@ import (
 
 	"databasus-backend/internal/app/apptest"
 	apiclient "databasus-backend/internal/lib/apiclient"
-	"databasus-backend/internal/modules/backups"
 	"databasus-backend/internal/util/testing/containers"
 )
 
@@ -85,10 +82,11 @@ func TestMoveLogicalBackupConfigToAnotherStorage(t *testing.T) {
 		nextStorageID := tm.createLocalStorage(t)
 		saveLogicalBackupConfig(t, tm.owner, databaseID, previousStorageID)
 		completedBackup := insertLogicalBackupInStorage(t, tm, databaseID, previousStorageID, "COMPLETED")
-		tm.app.SubscribeToLogicalBackupConfigStorageChanging(
-			func(context.Context, backups.LogicalBackupConfigStorageChanging) error {
-				return errors.New("backup removal refused by the test")
-			})
+		tm.app.ExecuteSQL(t, `CREATE FUNCTION refuse_logical_backup_deletion() RETURNS trigger AS $$
+			BEGIN RAISE EXCEPTION 'backup removal refused by the test'; END
+			$$ LANGUAGE plpgsql`)
+		tm.app.ExecuteSQL(t, `CREATE TRIGGER refuse_logical_backup_deletion BEFORE DELETE ON backups_logical
+			FOR EACH ROW EXECUTE FUNCTION refuse_logical_backup_deletion()`)
 
 		response := updateBackupConfig(t, tm.owner, databaseID,
 			newLogicalBackupConfigInput(t, &nextStorageID, newLogicalBackupSettings()))
@@ -162,7 +160,7 @@ func insertLogicalBackupInStorage(
 	tm.app.WriteUnpublishedFile(t, storageID, seededBackup.fileName)
 	tm.app.ExecuteSQL(t, "DELETE FROM storages_pending_deletions WHERE storage_id = ? AND file_name = ?",
 		storageID, seededBackup.fileName)
-	tm.app.ExecuteSQL(t, `INSERT INTO logical_backups (id, database_id, storage_id, status, file_name)
+	tm.app.ExecuteSQL(t, `INSERT INTO backups_logical (id, database_id, storage_id, status, file_name)
 		VALUES (?, ?, ?, ?, ?)`, seededBackup.id, databaseID, storageID, status, seededBackup.fileName)
 
 	return seededBackup
@@ -215,5 +213,5 @@ func requireConfigStorage(t *testing.T, tm team, databaseID, expectedStorageID u
 func countLogicalBackups(t *testing.T, tm team, databaseID uuid.UUID) int {
 	t.Helper()
 
-	return countRows(t, tm, "SELECT COUNT(*) FROM logical_backups WHERE database_id = ?", databaseID)
+	return countRows(t, tm, "SELECT COUNT(*) FROM backups_logical WHERE database_id = ?", databaseID)
 }

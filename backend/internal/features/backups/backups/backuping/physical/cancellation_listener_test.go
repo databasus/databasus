@@ -11,7 +11,7 @@ import (
 
 	physical_enums "databasus-backend/internal/features/backups/backups/core/physical/enums"
 	physical_repositories "databasus-backend/internal/features/backups/backups/core/physical/repositories"
-	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
+	backups_bridge "databasus-backend/internal/features/backups/config"
 	"databasus-backend/internal/lib/testwait"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/storage"
@@ -22,11 +22,11 @@ func newTestCancellationListener() *PhysicalBackupCancellationListener {
 	return &PhysicalBackupCancellationListener{
 		NewPhysicalBackupCanceller(
 			physical_repositories.GetInFlightBackupRepository(),
-			tasks_cancellation.GetRequester(),
+			backups_bridge.GetCancellationRegistry(),
 			logger.GetLogger(),
 		),
 		physical_repositories.GetWalStreamerRepository(),
-		tasks_cancellation.GetRequester(),
+		backups_bridge.GetCancellationRegistry(),
 		logger.GetLogger(),
 	}
 }
@@ -78,7 +78,6 @@ func Test_OnWalStreamingDisabled_DeletesStreamerKeepsInFlight(t *testing.T) {
 }
 
 func Test_OnDatabaseDeleting_CancelsTheRunningBackupAndTheStreamerAfterTheCommit(t *testing.T) {
-	tasks_cancellation.SetupDependencies()
 	prereqs := seedBackupPrereqs(t)
 	backupID := seedClaimAndStreamer(t, prereqs.DB.ID)
 	backupTaskCtx := registerTestTask(t, backupID)
@@ -115,10 +114,10 @@ func registerTestTask(t *testing.T, taskID uuid.UUID) context.Context {
 	t.Helper()
 
 	taskCtx, cancelTask := context.WithCancel(context.Background())
-	tasks_cancellation.GetRegistry().RegisterTask(taskID, cancelTask)
+	backups_bridge.GetCancellationRegistry().Register(taskID, cancelTask)
 
 	t.Cleanup(func() {
-		tasks_cancellation.GetRegistry().UnregisterTask(taskID)
+		backups_bridge.GetCancellationRegistry().Unregister(taskID)
 		cancelTask()
 	})
 

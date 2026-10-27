@@ -2,31 +2,33 @@ package restore_token
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/base64"
 	"errors"
 	"log/slog"
 	"time"
 
 	"github.com/google/uuid"
 
-	"databasus-backend/internal/features/backups/backups/download/stream_guard"
 	"databasus-backend/internal/lib/cache"
+	"databasus-backend/internal/modules/backups"
 )
 
-// Service issues and consumes single-use tokens authorizing a physical restore
-// stream. It embeds the SAME stream_guard.Guard as the download-token service
-// (RefreshDownloadLock, ReleaseDownloadLock are promoted from it), so a user
-// cannot run two heavy streams — download or restore — at once.
+// Service issues and consumes single-use tokens authorizing a physical restore stream. The stream
+// takes the user stream of the backups module, so a user cannot run a download and a restore stream
+// at once.
 type Service struct {
-	*stream_guard.Guard
-	store  *store
-	logger *slog.Logger
+	store *store
+	// getBackups is read per call: each test application installs its own module.
+	getBackups func() backups.Module
+	logger     *slog.Logger
 }
 
-func NewService(guard *stream_guard.Guard, cacheStore cache.Store, logger *slog.Logger) *Service {
+func NewService(getBackups func() backups.Module, cacheStore cache.Store, logger *slog.Logger) *Service {
 	return &Service{
-		guard,
-		newStore(cacheStore),
-		logger,
+		store:      newStore(cacheStore),
+		getBackups: getBackups,
+		logger:     logger,
 	}
 }
 
@@ -37,11 +39,12 @@ func (s *Service) GenerateRestoreToken(
 	databaseID, userID uuid.UUID,
 	targetTime *time.Time,
 ) (string, error) {
-	if s.IsDownloadInProgress(ctx, userID) {
-		return "", stream_guard.ErrDownloadAlreadyInProgress
+	err := s.refuseWhileStreamHeld(ctx, userID)
+	if err != nil {
+		return "", err
 	}
 
-	token := stream_guard.GenerateSecureToken()
+	token := generateSecureToken()
 
 	if err := s.store.issue(ctx, token, Token{
 		DatabaseID: databaseID,
@@ -63,11 +66,12 @@ func (s *Service) GenerateBackupRestoreToken(
 	ctx context.Context,
 	databaseID, userID, backupID uuid.UUID,
 ) (string, error) {
-	if s.IsDownloadInProgress(ctx, userID) {
-		return "", stream_guard.ErrDownloadAlreadyInProgress
+	err := s.refuseWhileStreamHeld(ctx, userID)
+	if err != nil {
+		return "", err
 	}
 
-	token := stream_guard.GenerateSecureToken()
+	token := generateSecureToken()
 
 	if err := s.store.issue(ctx, token, Token{
 		DatabaseID: databaseID,
@@ -83,34 +87,59 @@ func (s *Service) GenerateBackupRestoreToken(
 	return token, nil
 }
 
-// ValidateAndConsumeRestoreToken consumes a restore token, then acquires the
-// per-user stream lock. The caller must release the lock when the stream ends.
+// ValidateAndConsumeRestoreToken consumes a restore token, then acquires the user stream. The caller
+// must release the stream when the restore stream ends.
 //
-// The token is consumed (GETDEL) BEFORE the slot is acquired, so it can be
-// validated at most once even under concurrency. The trade-off: if slot
-// acquisition then fails (a competing stream slipped in after the token was
+// The token is consumed (GETDEL) BEFORE the stream is acquired, so it can be
+// validated at most once even under concurrency. The trade-off: if the stream
+// cannot be acquired (a competing stream slipped in after the token was
 // issued), the token is already spent and the user must request a new one. That
-// race is narrow — GenerateRestoreToken already gates on IsDownloadInProgress —
+// race is narrow — GenerateRestoreToken already refuses while a stream is held —
 // and burning the token beats a validate-then-consume window that two requests
 // could both pass.
 func (s *Service) ValidateAndConsumeRestoreToken(
 	ctx context.Context,
 	token string,
-) (*Token, error) {
+) (*Token, backups.UserStream, error) {
 	restoreToken, err := s.store.consume(ctx, token)
 	if err != nil {
-		return nil, err
+		return nil, backups.UserStream{}, err
 	}
 	if restoreToken == nil {
-		return nil, errors.New("invalid or expired restore token")
+		return nil, backups.UserStream{}, errors.New("invalid or expired restore token")
 	}
 
-	if err := s.AcquireSlot(ctx, restoreToken.UserID); err != nil {
-		return nil, err
+	userStream, err := s.getBackups().AcquireUserStream(ctx, restoreToken.UserID)
+	if err != nil {
+		return nil, backups.UserStream{}, err
 	}
 
 	s.logger.InfoContext(ctx, "restore token validated and consumed",
 		"database_id", restoreToken.DatabaseID, "user_id", restoreToken.UserID)
 
-	return restoreToken, nil
+	return restoreToken, userStream, nil
+}
+
+func (s *Service) refuseWhileStreamHeld(ctx context.Context, userID uuid.UUID) error {
+	isStreamHeld, err := s.getBackups().IsUserStreamHeld(ctx, userID)
+	if err != nil {
+		return err
+	}
+
+	if isStreamHeld {
+		return backups.ErrUserStreamHeld
+	}
+
+	return nil
+}
+
+// generateSecureToken returns a URL-safe 256-bit random token. A read failure from the OS CSPRNG is
+// unrecoverable, so it panics rather than hand back a weak token.
+func generateSecureToken() string {
+	randomBytes := make([]byte, 32)
+	if _, err := rand.Read(randomBytes); err != nil {
+		panic("failed to generate secure random token: " + err.Error())
+	}
+
+	return base64.URLEncoding.EncodeToString(randomBytes)
 }

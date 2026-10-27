@@ -17,11 +17,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	physical_models "databasus-backend/internal/features/backups/backups/core/physical/models"
 	"databasus-backend/internal/features/intervals"
 	verification_agents "databasus-backend/internal/features/verification/agents"
 	verification_config "databasus-backend/internal/features/verification/config"
+	"databasus-backend/internal/modules/backups"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/modules/storages"
@@ -66,12 +66,13 @@ func (f *fakeNotifierLister) GetNotifierTypes(context.Context) ([]notifiers.Type
 
 type fakeBackupChecker struct {
 	hasBackupSince map[uuid.UUID]bool
-	latestBackups  map[uuid.UUID]*backups_core_logical.LogicalBackup
+	latestBackups  map[uuid.UUID]backups.LogicalBackup
 	err            error
 	latestErr      error
 }
 
-func (f *fakeBackupChecker) HasSuccessfulBackupSince(
+func (f *fakeBackupChecker) HasSuccessfulLogicalBackupSince(
+	_ context.Context,
 	databaseID uuid.UUID,
 	_ time.Time,
 ) (bool, error) {
@@ -82,14 +83,17 @@ func (f *fakeBackupChecker) HasSuccessfulBackupSince(
 	return f.hasBackupSince[databaseID], nil
 }
 
-func (f *fakeBackupChecker) GetLatestCompletedBackup(
+func (f *fakeBackupChecker) GetLatestCompletedLogicalBackup(
+	_ context.Context,
 	databaseID uuid.UUID,
-) (*backups_core_logical.LogicalBackup, error) {
+) (backups.LogicalBackup, bool, error) {
 	if f.latestErr != nil {
-		return nil, f.latestErr
+		return backups.LogicalBackup{}, false, f.latestErr
 	}
 
-	return f.latestBackups[databaseID], nil
+	latestBackup, isFound := f.latestBackups[databaseID]
+
+	return latestBackup, isFound, nil
 }
 
 type fakeLatestPhysicalBackupReader struct {
@@ -515,7 +519,7 @@ func Test_BuildAndSend_WhenLatestBackupHasBothSizes_IncludesBoth(t *testing.T) {
 	service := newServiceUnderTest(t, serviceDependencies{
 		databaseLister: &fakeDatabaseLister{databases: []databases.TelemetryEntry{db}},
 		backupChecker: &fakeBackupChecker{
-			latestBackups: map[uuid.UUID]*backups_core_logical.LogicalBackup{
+			latestBackups: map[uuid.UUID]backups.LogicalBackup{
 				db.DatabaseID: {BackupSizeMb: 870.4, BackupRawDbSizeMb: 4321.7},
 			},
 		},
@@ -538,7 +542,7 @@ func Test_BuildAndSend_WhenSizesAreSubMb_RoundsUpToOne(t *testing.T) {
 	service := newServiceUnderTest(t, serviceDependencies{
 		databaseLister: &fakeDatabaseLister{databases: []databases.TelemetryEntry{db}},
 		backupChecker: &fakeBackupChecker{
-			latestBackups: map[uuid.UUID]*backups_core_logical.LogicalBackup{
+			latestBackups: map[uuid.UUID]backups.LogicalBackup{
 				db.DatabaseID: {BackupSizeMb: 0.3, BackupRawDbSizeMb: 0.1},
 			},
 		},
@@ -566,7 +570,7 @@ func Test_BuildAndSend_WhenRawSizeZero_IncludesOnlyBackupSize(t *testing.T) {
 	service := newServiceUnderTest(t, serviceDependencies{
 		databaseLister: &fakeDatabaseLister{databases: []databases.TelemetryEntry{db}},
 		backupChecker: &fakeBackupChecker{
-			latestBackups: map[uuid.UUID]*backups_core_logical.LogicalBackup{
+			latestBackups: map[uuid.UUID]backups.LogicalBackup{
 				db.DatabaseID: {BackupSizeMb: 100, BackupRawDbSizeMb: 0},
 			},
 		},
@@ -594,7 +598,7 @@ func Test_BuildAndSend_WhenBackupSizeZero_IncludesOnlyRawSize(t *testing.T) {
 	service := newServiceUnderTest(t, serviceDependencies{
 		databaseLister: &fakeDatabaseLister{databases: []databases.TelemetryEntry{db}},
 		backupChecker: &fakeBackupChecker{
-			latestBackups: map[uuid.UUID]*backups_core_logical.LogicalBackup{
+			latestBackups: map[uuid.UUID]backups.LogicalBackup{
 				db.DatabaseID: {BackupSizeMb: 0, BackupRawDbSizeMb: 999},
 			},
 		},

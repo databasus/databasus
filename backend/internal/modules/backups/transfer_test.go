@@ -51,7 +51,7 @@ func TestTransferDatabase(t *testing.T) {
 			assert.Equal(t, []uuid.UUID{sourceStorageID}, listWorkspaceStorageIDs(t, tm.owner, tm.workspace.Id))
 			assert.Equal(t, &targetStorageID, apptest.GetBackupConfig(t, tm.owner, databaseID).StorageId)
 			assert.Equal(t, 1, countRows(t, tm,
-				"SELECT COUNT(*) FROM logical_backups WHERE id = ? AND storage_id = ?", keptBackup.id, sourceStorageID))
+				"SELECT COUNT(*) FROM backups_logical WHERE id = ? AND storage_id = ?", keptBackup.id, sourceStorageID))
 			tm.app.RunJobPass(t, storageFileDeletionJobName)
 			assert.True(t, tm.app.IsLocalStorageFilePresent(t, keptBackup.fileName))
 		})

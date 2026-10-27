@@ -6,10 +6,10 @@ import (
 
 	"github.com/google/uuid"
 
-	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	physical_models "databasus-backend/internal/features/backups/backups/core/physical/models"
 	verification_agents "databasus-backend/internal/features/verification/agents"
 	verification_config "databasus-backend/internal/features/verification/config"
+	"databasus-backend/internal/modules/backups"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/modules/storages"
@@ -64,8 +64,8 @@ type notifierLister interface {
 }
 
 type backupChecker interface {
-	HasSuccessfulBackupSince(databaseID uuid.UUID, since time.Time) (bool, error)
-	GetLatestCompletedBackup(databaseID uuid.UUID) (*backups_core_logical.LogicalBackup, error)
+	HasSuccessfulLogicalBackupSince(ctx context.Context, databaseID uuid.UUID, since time.Time) (bool, error)
+	GetLatestCompletedLogicalBackup(ctx context.Context, databaseID uuid.UUID) (backups.LogicalBackup, bool, error)
 }
 
 type latestPhysicalBackupReader interface {

@@ -3,7 +3,7 @@ package verification_runs
 import (
 	"math"
 
-	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
+	"databasus-backend/internal/modules/backups"
 )
 
 // A restore peaks above archive + final DB size: WAL, index sort spill and the
@@ -27,19 +27,16 @@ type DiskAdmission struct {
 
 func EvaluateDiskAdmission(
 	capacity AgentCapacity,
-	runningBackups []*backups_core_logical.LogicalBackup,
-	candidateBackup *backups_core_logical.LogicalBackup,
+	runningBackups []backups.LogicalBackup,
+	candidateBackup backups.LogicalBackup,
 ) DiskAdmission {
 	admission := DiskAdmission{
-		RunningUsedMb: sumEstimatedRequiredDiskMb(runningBackups),
-		TotalBudgetMb: int64(capacity.MaxDiskGb) * 1024,
+		CandidateRequiredMb: EstimateRequiredForRestoreDiskMb(candidateBackup),
+		RunningUsedMb:       sumEstimatedRequiredDiskMb(runningBackups),
+		TotalBudgetMb:       int64(capacity.MaxDiskGb) * 1024,
 	}
 
-	if candidateBackup != nil {
-		admission.CandidateRequiredMb = EstimateRequiredForRestoreDiskMb(candidateBackup)
-	}
-
-	if capacity.MaxDiskGb <= 0 || candidateBackup == nil {
+	if capacity.MaxDiskGb <= 0 {
 		return admission
 	}
 
@@ -48,7 +45,7 @@ func EvaluateDiskAdmission(
 	return admission
 }
 
-func EstimateRequiredForRestoreDiskMb(backup *backups_core_logical.LogicalBackup) int64 {
+func EstimateRequiredForRestoreDiskMb(backup backups.LogicalBackup) int64 {
 	archiveSizeMb := max(backup.BackupSizeMb, 0)
 	restoredSizeMb := max(backup.BackupRawDbSizeMb, 0)
 
@@ -60,9 +57,9 @@ func EstimateRequiredForRestoreDiskMb(backup *backups_core_logical.LogicalBackup
 	return int64(math.Ceil(archiveSizeMb + restoredSizeMb + gapMb))
 }
 
-func sumEstimatedRequiredDiskMb(backups []*backups_core_logical.LogicalBackup) int64 {
+func sumEstimatedRequiredDiskMb(runningBackups []backups.LogicalBackup) int64 {
 	var total int64
-	for _, backup := range backups {
+	for _, backup := range runningBackups {
 		total += EstimateRequiredForRestoreDiskMb(backup)
 	}
 

@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"databasus-backend/internal/app/apptest"
-	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
+	backups_bridge "databasus-backend/internal/features/backups/config"
 	apiclient "databasus-backend/internal/lib/apiclient"
 	"databasus-backend/internal/lib/testwait"
 	"databasus-backend/internal/util/testing/containers"
@@ -42,7 +42,7 @@ func TestDeleteDatabase(t *testing.T) {
 
 		require.Equal(t, http.StatusNoContent, response.StatusCode(), string(response.Body))
 		assert.Empty(t, tm.listDatabaseIDs(t))
-		assert.Zero(t, tm.countRows(t, "SELECT COUNT(*) FROM logical_backups WHERE database_id = ?", savedDatabase.Id))
+		assert.Zero(t, tm.countRows(t, "SELECT COUNT(*) FROM backups_logical WHERE database_id = ?", savedDatabase.Id))
 		assert.Zero(t, tm.countRows(t, "SELECT COUNT(*) FROM backups_configs WHERE database_id = ?",
 			savedDatabase.Id))
 		assert.Zero(t, tm.countRows(t, "SELECT COUNT(*) FROM databases_postgresql_logical WHERE database_id = ?",
@@ -69,7 +69,7 @@ func TestDeleteDatabase(t *testing.T) {
 
 		requireProblem(t, response.StatusCode(), response.Body, http.StatusConflict, apiclient.ProblemCodeInUse)
 		assert.Equal(t, []uuid.UUID{savedDatabase.Id}, tm.listDatabaseIDs(t))
-		assert.Equal(t, 1, tm.countRows(t, "SELECT COUNT(*) FROM logical_backups WHERE id = ?", runningBackup.id))
+		assert.Equal(t, 1, tm.countRows(t, "SELECT COUNT(*) FROM backups_logical WHERE id = ?", runningBackup.id))
 	})
 
 	t.Run("keeps the database, its backups and their files when deleting the backup records fails", func(t *testing.T) {
@@ -92,7 +92,7 @@ func TestDeleteDatabase(t *testing.T) {
 			apiclient.ProblemCodeInternal)
 		assert.NotContains(t, string(response.Body), refusedBackupDeletionMessage)
 		assert.Equal(t, []uuid.UUID{savedDatabase.Id}, tm.listDatabaseIDs(t))
-		assert.Equal(t, 1, tm.countRows(t, "SELECT COUNT(*) FROM logical_backups WHERE id = ?", storedBackup.id))
+		assert.Equal(t, 1, tm.countRows(t, "SELECT COUNT(*) FROM backups_logical WHERE id = ?", storedBackup.id))
 		assert.Zero(t, tm.countRows(t, "SELECT COUNT(*) FROM storages_pending_deletions WHERE storage_id = ?",
 			storageID))
 
@@ -244,7 +244,7 @@ func insertPublishedLogicalBackup(t *testing.T, tm team, spec logicalBackupSpec)
 	tm.app.ExecuteSQL(t, "DELETE FROM storages_pending_deletions WHERE storage_id = ? AND file_name = ?",
 		spec.storageID, storedBackup.fileName)
 	tm.app.InsertBackupConfigUsingStorage(t, apptest.StorageUse{DatabaseID: spec.databaseID, StorageID: spec.storageID})
-	tm.app.ExecuteSQL(t, `INSERT INTO logical_backups (id, database_id, storage_id, status, file_name)
+	tm.app.ExecuteSQL(t, `INSERT INTO backups_logical (id, database_id, storage_id, status, file_name)
 		VALUES (?, ?, ?, ?, ?)`, storedBackup.id, spec.databaseID, spec.storageID, spec.status, storedBackup.fileName)
 
 	return storedBackup
@@ -260,7 +260,7 @@ func refuseLogicalBackupDeletion(t *testing.T, app *apptest.App) {
 	app.ExecuteSQL(t, `CREATE FUNCTION refuse_logical_backup_deletion() RETURNS trigger AS $$
 		BEGIN RAISE EXCEPTION '`+refusedBackupDeletionMessage+`'; END
 		$$ LANGUAGE plpgsql`)
-	app.ExecuteSQL(t, `CREATE TRIGGER refuse_logical_backup_deletion BEFORE DELETE ON logical_backups
+	app.ExecuteSQL(t, `CREATE TRIGGER refuse_logical_backup_deletion BEFORE DELETE ON backups_logical
 		FOR EACH ROW EXECUTE FUNCTION refuse_logical_backup_deletion()`)
 }
 
@@ -298,11 +298,11 @@ func startWalStreamerTask(
 	walStream := attachWalStream(t, server, walSlotName)
 	streamer := walStreamerTask{stopped: make(chan struct{})}
 
-	tasks_cancellation.GetRegistry().RegisterTask(databaseID, func() {
+	backups_bridge.GetCancellationRegistry().Register(databaseID, func() {
 		_ = walStream.Close(t.Context())
 		close(streamer.stopped)
 	})
-	t.Cleanup(func() { tasks_cancellation.GetRegistry().UnregisterTask(databaseID) })
+	t.Cleanup(func() { backups_bridge.GetCancellationRegistry().Unregister(databaseID) })
 
 	return streamer
 }
