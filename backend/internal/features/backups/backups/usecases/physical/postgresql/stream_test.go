@@ -23,7 +23,7 @@ import (
 
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	physical_enums "databasus-backend/internal/features/backups/backups/core/physical/enums"
-	backup_encryption "databasus-backend/internal/features/backups/backups/encryption"
+	"databasus-backend/internal/lib/crypto"
 )
 
 // fakeStorageFileSaver records SaveFile payloads in memory and can be told to
@@ -99,7 +99,7 @@ func testRunStreamParams(
 		Logger:     slog.New(slog.NewTextHandler(io.Discard, nil)),
 		FileName:   "test-obj",
 		Encryption: backups_core_enums.BackupEncryptionNone,
-		MasterKey:  "",
+		MasterKey:  nil,
 		BackupID:   uuid.New(),
 		SystemID:   7361234567890123456,
 		Codec:      codec,
@@ -311,7 +311,8 @@ func Test_RunStream_WhenCmdStartFails_ReturnsErrorWithoutLeaking(t *testing.T) {
 func Test_SaveManifestSidecar_WhenEncrypted_RoundTripsWithOwnSaltIV(t *testing.T) {
 	storage := newFakeStorage()
 	backupID := uuid.New()
-	masterKey := "test-master-key-0123456789"
+	masterKey, err := crypto.OpenOrCreateMasterKey(filepath.Join(t.TempDir(), "secret.key"))
+	require.NoError(t, err)
 	manifest := []byte(`{ "PostgreSQL-Backup-Manifest-Version": 2, "System-Identifier": 42 }`)
 
 	params := runStreamParams{
@@ -338,7 +339,9 @@ func Test_SaveManifestSidecar_WhenEncrypted_RoundTripsWithOwnSaltIV(t *testing.T
 	nonce, err := base64.StdEncoding.DecodeString(nonceB64)
 	require.NoError(t, err)
 
-	decryptor, err := backup_encryption.NewDecryptionReader(bytes.NewReader(stored), masterKey, backupID, salt, nonce)
+	decryptor, err := crypto.NewDecryptingReader(
+		bytes.NewReader(stored), masterKey, backupID, crypto.StreamHeader{Salt: salt, Nonce: nonce},
+	)
 	require.NoError(t, err)
 
 	plaintext, err := io.ReadAll(decryptor)

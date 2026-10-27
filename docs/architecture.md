@@ -146,7 +146,7 @@ Settings stay in columns rather than in a JSON document for two reasons. The dat
 | `iox` | stream helpers |
 | `namelist` | the lists of object names a user enters, such as excluded tables |
 
-Test support lives in `lib` too: `testdb`, `testwait`, the contract-checking test clients `apiclient` and `agentclienttest`, and `testcontainers` with the containers of every engine and storage.
+Test support lives in `lib` too: `testdb`, `testwait`, the contract-checking test clients `apiclient` and `agentclienttest`, `toolstub`, which stands in for a client tool and records how it was started, and `testcontainers` with the containers of every engine and storage.
 
 Audit events are written through `lib/audit` in the transaction of the operation they describe. Each event stores a snapshot of its audit author's user ID, email and name as they were at the time of the action. The event reads the same after the user changes or is deleted, and reading it needs no join with `users`. `workspaces` serves every audit log view, the global one included: each view shows the name of the workspace an event belongs to, which only `workspaces` can read, and `workspaces` can apply each view's access rule.
 
@@ -191,7 +191,7 @@ Backup and restore data streams in bounded chunks with backpressure. The produce
 
 Backup data does not touch the host's disk, with two exceptions:
 
-- `pg_restore -j` needs a real file, so the restore first checks that the disk has room for it.
+- A PostgreSQL restore that runs `pg_restore -j`, excludes extensions or skips user mappings reads the archive more than once, so it downloads the archive into a file. The restore first checks that the disk has room for it.
 - `pg_receivewal` writes WAL segments into a local queue before they are uploaded.
 
 Backups are encrypted per file. The key for each file is derived from the master key and the file's ID with PBKDF2-SHA256, and data is encrypted with AES-GCM in chunks.

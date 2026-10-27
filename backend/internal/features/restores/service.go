@@ -131,7 +131,7 @@ func (s *RestoreService) RestoreBackupWithAuth(
 	}
 
 	// Validate disk space before starting restore
-	if err := s.validateDiskSpace(ctx, backup, requestDTO); err != nil {
+	if err := s.validateDiskSpace(ctx, backup, source, requestDTO); err != nil {
 		return err
 	}
 
@@ -349,21 +349,23 @@ func copyDetectedVersions(detected, request restores_core.RestoreBackupRequest) 
 	}
 }
 
+// validateDiskSpace checks the room for the archive of a PostgreSQL restore that downloads it into a
+// file: one with parallel jobs, or one that filters the table of contents because it excludes
+// extensions or its source database skips user mappings. Every other restore streams.
 func (s *RestoreService) validateDiskSpace(
 	ctx context.Context,
 	backup *backups_core_logical.LogicalBackup,
+	source restores_core.SourceDatabase,
 	requestDTO restores_core.RestoreBackupRequest,
 ) error {
-	// Only validate disk space for PostgreSQL when file-based restore is needed:
-	// - CPU > 1 (parallel jobs require file)
-	// - IsExcludeExtensions (TOC filtering requires file)
-	// Other databases and PostgreSQL with CPU=1 without extension exclusion stream directly
 	if requestDTO.PostgresqlLogicalDatabase == nil {
 		return nil
 	}
 
+	isSkippingUserMappings := source.PostgresqlLogical != nil && source.PostgresqlLogical.IsSkipUserMappings
 	needsFileBased := requestDTO.PostgresqlLogicalDatabase.CpuCount > 1 ||
-		requestDTO.PostgresqlLogicalDatabase.IsExcludeExtensions
+		requestDTO.PostgresqlLogicalDatabase.IsExcludeExtensions ||
+		isSkippingUserMappings
 	if !needsFileBased {
 		return nil
 	}

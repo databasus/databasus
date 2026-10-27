@@ -405,7 +405,7 @@ func Test_BuildWalSegmentArtifactReader_WhenLargeSegment_StreamsAndCountsArtifac
 	artifact, salt, iv, err := buildWalSegmentArtifactReader(
 		localPath,
 		backups_core_enums.BackupEncryptionNone,
-		"",
+		nil,
 		uuid.New(),
 	)
 	require.NoError(t, err)

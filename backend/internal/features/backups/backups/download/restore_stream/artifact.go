@@ -15,7 +15,7 @@ import (
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	physical_dto "databasus-backend/internal/features/backups/backups/core/physical/dto"
 	physical_enums "databasus-backend/internal/features/backups/backups/core/physical/enums"
-	backup_encryption "databasus-backend/internal/features/backups/backups/encryption"
+	"databasus-backend/internal/lib/crypto"
 	"databasus-backend/internal/modules/storages"
 )
 
@@ -81,7 +81,7 @@ type artifactSource struct {
 func openArtifact(
 	ctx context.Context,
 	storageReader storages.StorageReader,
-	masterKey string,
+	masterKey *crypto.MasterKey,
 	src artifactSource,
 ) (io.Reader, func(), error) {
 	base, err := storageReader.OpenFile(ctx, src.fileName)
@@ -154,10 +154,10 @@ func newDecompressor(
 
 func newDecryptingReader(
 	reader io.Reader,
-	masterKey string,
+	masterKey *crypto.MasterKey,
 	src artifactSource,
 ) (io.Reader, error) {
-	if masterKey == "" {
+	if masterKey == nil {
 		return nil, fmt.Errorf("artifact %q is encrypted but no master key was provided", src.fileName)
 	}
 	if src.salt == nil || src.iv == nil {
@@ -174,7 +174,7 @@ func newDecryptingReader(
 		return nil, fmt.Errorf("decode iv for %q: %w", src.fileName, err)
 	}
 
-	return backup_encryption.NewDecryptionReader(reader, masterKey, src.keyID, salt, iv)
+	return crypto.NewDecryptingReader(reader, masterKey, src.keyID, crypto.StreamHeader{Salt: salt, Nonce: iv})
 }
 
 func readHistoryMetadata(

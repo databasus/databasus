@@ -20,7 +20,7 @@ import (
 	physical_dto "databasus-backend/internal/features/backups/backups/core/physical/dto"
 	physical_models "databasus-backend/internal/features/backups/backups/core/physical/models"
 	physical_repositories "databasus-backend/internal/features/backups/backups/core/physical/repositories"
-	backup_encryption "databasus-backend/internal/features/backups/backups/encryption"
+	"databasus-backend/internal/lib/crypto"
 	"databasus-backend/internal/lib/database"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/storages"
@@ -193,7 +193,7 @@ type HistoryUploadSpec struct {
 	StorageID   uuid.UUID
 	HistoryRepo *physical_repositories.PhysicalWalHistoryRepository
 	Encryption  backups_core_enums.BackupEncryption
-	MasterKey   string
+	MasterKey   *crypto.MasterKey
 	Logger      *slog.Logger
 }
 
@@ -473,7 +473,7 @@ func (b *limitedBuffer) Len() int {
 func buildHistoryArtifactReader(
 	body []byte,
 	encryption backups_core_enums.BackupEncryption,
-	masterKey string,
+	masterKey *crypto.MasterKey,
 	historyFileID uuid.UUID,
 ) (*limitedBuffer, string, string, error) {
 	compressed, err := compressZstd(body)
@@ -490,16 +490,16 @@ func buildHistoryArtifactReader(
 
 	var encBuf bytes.Buffer
 
-	encSetup, err := backup_encryption.SetupEncryptionWriter(&encBuf, masterKey, historyFileID)
+	encryptingWriter, header, err := crypto.NewEncryptingWriter(&encBuf, masterKey, historyFileID)
 	if err != nil {
 		return nil, "", "", fmt.Errorf("setup history encryption: %w", err)
 	}
 
-	if _, err := encSetup.Writer.Write(compressed); err != nil {
+	if _, err := encryptingWriter.Write(compressed); err != nil {
 		return nil, "", "", fmt.Errorf("encrypt history body: %w", err)
 	}
 
-	if err := encSetup.Writer.Close(); err != nil {
+	if err := encryptingWriter.Close(); err != nil {
 		return nil, "", "", fmt.Errorf("close history encryption writer: %w", err)
 	}
 
@@ -508,7 +508,7 @@ func buildHistoryArtifactReader(
 	return &limitedBuffer{
 		Reader: bytes.NewReader(encryptedBytes),
 		length: len(encryptedBytes),
-	}, encSetup.SaltBase64, encSetup.NonceBase64, nil
+	}, base64.StdEncoding.EncodeToString(header.Salt), base64.StdEncoding.EncodeToString(header.Nonce), nil
 }
 
 func compressZstd(input []byte) ([]byte, error) {
@@ -549,7 +549,3 @@ func isUniqueViolation(err error) bool {
 }
 
 var errUniqueViolationSentinel = errors.New("unique constraint violation")
-
-// _ keeps the base64 import live for sidecar-shape changes; encryption
-// salt/IV currently passed as base64 strings from SetupEncryptionWriter.
-var _ = base64.StdEncoding

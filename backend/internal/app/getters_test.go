@@ -20,10 +20,6 @@ import (
 	backups_backups_download "databasus-backend/internal/features/backups/backups/download"
 	backups_backups_services "databasus-backend/internal/features/backups/backups/services"
 	backups_backups_usecases_logical "databasus-backend/internal/features/backups/backups/usecases/logical"
-	backups_backups_usecases_logical_mariadb "databasus-backend/internal/features/backups/backups/usecases/logical/mariadb"
-	backups_backups_usecases_logical_mongodb "databasus-backend/internal/features/backups/backups/usecases/logical/mongodb"
-	backups_backups_usecases_logical_mysql "databasus-backend/internal/features/backups/backups/usecases/logical/mysql"
-	backups_backups_usecases_logical_postgresql "databasus-backend/internal/features/backups/backups/usecases/logical/postgresql"
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
 	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
 	caching "databasus-backend/internal/features/caching"
@@ -35,10 +31,6 @@ import (
 	restores "databasus-backend/internal/features/restores"
 	restores_restoring "databasus-backend/internal/features/restores/restoring"
 	restores_usecases "databasus-backend/internal/features/restores/usecases"
-	restores_usecases_mariadb "databasus-backend/internal/features/restores/usecases/mariadb"
-	restores_usecases_mongodb "databasus-backend/internal/features/restores/usecases/mongodb"
-	restores_usecases_mysql "databasus-backend/internal/features/restores/usecases/mysql"
-	restores_usecases_postgresql "databasus-backend/internal/features/restores/usecases/postgresql"
 	system_agent "databasus-backend/internal/features/system/agent"
 	system_healthcheck "databasus-backend/internal/features/system/healthcheck"
 	tasks_cancellation "databasus-backend/internal/features/tasks/cancellation"
@@ -171,22 +163,6 @@ func getOldCodeGetters() []oldCodeGetter {
 			func() any { return backups_backups_usecases_logical.GetCreateBackupUsecase() },
 		},
 		{
-			"features/backups/backups/usecases/logical/mariadb.GetCreateMariadbBackupUsecase",
-			func() any { return backups_backups_usecases_logical_mariadb.GetCreateMariadbBackupUsecase() },
-		},
-		{
-			"features/backups/backups/usecases/logical/mongodb.GetCreateMongodbBackupUsecase",
-			func() any { return backups_backups_usecases_logical_mongodb.GetCreateMongodbBackupUsecase() },
-		},
-		{
-			"features/backups/backups/usecases/logical/mysql.GetCreateMysqlBackupUsecase",
-			func() any { return backups_backups_usecases_logical_mysql.GetCreateMysqlBackupUsecase() },
-		},
-		{
-			"features/backups/backups/usecases/logical/postgresql.GetCreatePostgresqlBackupUsecase",
-			func() any { return backups_backups_usecases_logical_postgresql.GetCreatePostgresqlBackupUsecase() },
-		},
-		{
 			"features/backups/config/logical.GetBackupConfigController",
 			func() any { return backups_config_logical.GetBackupConfigController() },
 		},
@@ -241,22 +217,6 @@ func getOldCodeGetters() []oldCodeGetter {
 		{
 			"features/restores/usecases.GetRestoreBackupUsecase",
 			func() any { return restores_usecases.GetRestoreBackupUsecase() },
-		},
-		{
-			"features/restores/usecases/mariadb.GetRestoreMariadbBackupUsecase",
-			func() any { return restores_usecases_mariadb.GetRestoreMariadbBackupUsecase() },
-		},
-		{
-			"features/restores/usecases/mongodb.GetRestoreMongodbBackupUsecase",
-			func() any { return restores_usecases_mongodb.GetRestoreMongodbBackupUsecase() },
-		},
-		{
-			"features/restores/usecases/mysql.GetRestoreMysqlBackupUsecase",
-			func() any { return restores_usecases_mysql.GetRestoreMysqlBackupUsecase() },
-		},
-		{
-			"features/restores/usecases/postgresql.GetRestorePostgresqlBackupUsecase",
-			func() any { return restores_usecases_postgresql.GetRestorePostgresqlBackupUsecase() },
 		},
 		{"features/system/agent.GetAgentController", func() any { return system_agent.GetAgentController() }},
 		{

@@ -13,6 +13,9 @@ var (
 	ErrUnsupportedVersion   = errors.New("unsupported PostgreSQL version")
 	ErrUnreadableVersion    = errors.New("could not parse version")
 	ErrRowLevelSecurity     = errors.New("row-level security is enabled")
+
+	ErrDumpDatabaseNameRequired    = errors.New("database name is required for pg_dump backups")
+	ErrRestoreDatabaseNameRequired = errors.New("target database name is required for pg_restore")
 )
 
 type serverErrorKind int

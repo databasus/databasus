@@ -11,6 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	env_config "databasus-backend/internal/config"
 	mysql_engine "databasus-backend/internal/engines/mysql"
@@ -31,6 +32,7 @@ import (
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/modules/users"
+	internal_storage "databasus-backend/internal/storage"
 	test_utils "databasus-backend/internal/util/testing"
 )
 
@@ -252,12 +254,20 @@ func Test_RestoreBackup_DiskSpaceValidation(t *testing.T) {
 		name                string
 		dbType              databases.Type
 		cpuCount            int
+		isSkipUserMappings  bool
 		expectDiskValidated bool
 	}{
 		{
 			name:                "PostgreSQL_CPU4_SpaceValidated",
 			dbType:              databases.TypePostgresqlLogical,
 			cpuCount:            4,
+			expectDiskValidated: true,
+		},
+		{
+			name:                "PostgreSQL_CPU1_SkipUserMappings_SpaceValidated",
+			dbType:              databases.TypePostgresqlLogical,
+			cpuCount:            1,
+			isSkipUserMappings:  true,
 			expectDiskValidated: true,
 		},
 		{
@@ -290,6 +300,16 @@ func Test_RestoreBackup_DiskSpaceValidation(t *testing.T) {
 			if tc.dbType == databases.TypePostgresqlLogical {
 				database, backup = createTestDatabaseWithBackupForRestore(t.Context(), workspace)
 				defer cleanupDatabaseWithBackup(t.Context(), database, backup)
+
+				if tc.isSkipUserMappings {
+					// The old test database helpers insert rows directly and have no option for it.
+					err := internal_storage.GetDb().Exec(
+						"UPDATE databases_postgresql_logical SET is_skip_user_mappings = TRUE WHERE database_id = ?",
+						database.ID,
+					).Error
+					require.NoError(t, err)
+				}
+
 				request = restores_core.RestoreBackupRequest{
 					PostgresqlLogicalDatabase: &restores_core.PostgresqlTargetDatabase{
 						Version:  pgshared.Version16,

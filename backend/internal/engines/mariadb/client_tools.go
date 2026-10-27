@@ -90,11 +90,3 @@ func parseClientVersion(output string) (string, error) {
 
 	return match[1], nil
 }
-
-// EscapePassword escapes a password for the double-quoted value of a .my.cnf file.
-func EscapePassword(password string) string {
-	password = strings.ReplaceAll(password, "\\", "\\\\")
-	password = strings.ReplaceAll(password, "\"", "\\\"")
-
-	return password
-}

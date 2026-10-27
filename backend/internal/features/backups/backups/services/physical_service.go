@@ -448,7 +448,7 @@ func (s *PhysicalBackupService) writeRestoreStream(
 	set *chain_view.RestoreSet,
 	w io.Writer,
 ) error {
-	return s.restoreStreamWriter.Write(ctx, w, set, s.masterKey.GetSecret())
+	return s.restoreStreamWriter.Write(ctx, w, set, s.masterKey)
 }
 
 func (s *PhysicalBackupService) deleteFull(ctx context.Context, full *physical_models.PhysicalFullBackup) error {

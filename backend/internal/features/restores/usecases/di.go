@@ -3,18 +3,17 @@ package usecases
 import (
 	"sync"
 
-	usecases_mariadb "databasus-backend/internal/features/restores/usecases/mariadb"
-	usecases_mongodb "databasus-backend/internal/features/restores/usecases/mongodb"
-	usecases_mysql "databasus-backend/internal/features/restores/usecases/mysql"
-	usecases_postgresql "databasus-backend/internal/features/restores/usecases/postgresql"
+	"databasus-backend/internal/config"
+	"databasus-backend/internal/util/encryption"
+	"databasus-backend/internal/util/logger"
 )
 
 var getRestoreBackupUsecase = sync.OnceValue(func() *RestoreBackupUsecase {
 	return &RestoreBackupUsecase{
-		usecases_postgresql.GetRestorePostgresqlBackupUsecase(),
-		usecases_mysql.GetRestoreMysqlBackupUsecase(),
-		usecases_mariadb.GetRestoreMariadbBackupUsecase(),
-		usecases_mongodb.GetRestoreMongodbBackupUsecase(),
+		logger:         logger.GetLogger(),
+		masterKey:      encryption.GetMasterKey(),
+		clientToolsDir: config.GetEnv().ClientToolsDir,
+		tempDir:        config.GetEnv().TempFolder,
 	}
 })
 

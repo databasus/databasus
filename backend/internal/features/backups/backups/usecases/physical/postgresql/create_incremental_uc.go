@@ -15,7 +15,7 @@ import (
 	pgshared "databasus-backend/internal/engines/postgresql/shared"
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	physical_enums "databasus-backend/internal/features/backups/backups/core/physical/enums"
-	backup_encryption "databasus-backend/internal/features/backups/backups/encryption"
+	"databasus-backend/internal/lib/crypto"
 )
 
 type CreateIncrementalBackupUsecase struct{}
@@ -312,7 +312,9 @@ func decryptParentManifest(reader io.Reader, spec IncrementalBackupSpec) (io.Rea
 		return nil, fmt.Errorf("decode parent manifest nonce: %w", err)
 	}
 
-	dec, err := backup_encryption.NewDecryptionReader(reader, spec.MasterKey, spec.ParentManifest.BackupID, salt, nonce)
+	dec, err := crypto.NewDecryptingReader(
+		reader, spec.MasterKey, spec.ParentManifest.BackupID, crypto.StreamHeader{Salt: salt, Nonce: nonce},
+	)
 	if err != nil {
 		return nil, fmt.Errorf("init decryption reader: %w", err)
 	}

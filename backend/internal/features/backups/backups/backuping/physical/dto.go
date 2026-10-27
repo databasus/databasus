@@ -8,6 +8,7 @@ import (
 	pgphysical "databasus-backend/internal/engines/postgresql/physical"
 	"databasus-backend/internal/features/backups/backups/core/physical/chain_view"
 	backups_config_physical "databasus-backend/internal/features/backups/config/physical"
+	"databasus-backend/internal/lib/crypto"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/storages"
 )
@@ -21,7 +22,7 @@ type backupContext struct {
 	Source databases.PostgresqlPhysicalConnectionSettings
 
 	Storage   storages.Storage
-	MasterKey string
+	MasterKey *crypto.MasterKey
 	tunnel    *pgphysical.Tunnel
 }
 

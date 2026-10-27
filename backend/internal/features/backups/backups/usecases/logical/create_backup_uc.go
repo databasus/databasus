@@ -3,21 +3,20 @@ package usecases_logical
 import (
 	"context"
 	"errors"
+	"log/slog"
 
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
-	usecases_logical_mariadb "databasus-backend/internal/features/backups/backups/usecases/logical/mariadb"
-	usecases_logical_mongodb "databasus-backend/internal/features/backups/backups/usecases/logical/mongodb"
-	usecases_logical_mysql "databasus-backend/internal/features/backups/backups/usecases/logical/mysql"
-	usecases_logical_postgresql "databasus-backend/internal/features/backups/backups/usecases/logical/postgresql"
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
+	"databasus-backend/internal/lib/crypto"
 	"databasus-backend/internal/modules/databases"
 )
 
 type CreateBackupUsecase struct {
-	CreatePostgresqlBackupUsecase *usecases_logical_postgresql.CreatePostgresqlBackupUsecase
-	CreateMysqlBackupUsecase      *usecases_logical_mysql.CreateMysqlBackupUsecase
-	CreateMariadbBackupUsecase    *usecases_logical_mariadb.CreateMariadbBackupUsecase
-	CreateMongodbBackupUsecase    *usecases_logical_mongodb.CreateMongodbBackupUsecase
+	logger    *slog.Logger
+	masterKey *crypto.MasterKey
+	// getDatabases is read per call: each test application installs its own module.
+	getDatabases   func() databases.Module
+	clientToolsDir string
 }
 
 func (uc *CreateBackupUsecase) Execute(
@@ -28,47 +27,46 @@ func (uc *CreateBackupUsecase) Execute(
 	fileStore backups_core_logical.BackupFileStore,
 	backupProgressListener func(completedMBs float64),
 ) (*backups_core_logical.BackupArtifacts, error) {
+	logger := uc.logger.With("database_id", database.ID, "storage_id", backup.StorageID, "backup_id", backup.ID)
+
+	dumpSource, err := uc.openDumpSource(ctx, database, logger)
+	if err != nil {
+		return nil, err
+	}
+	defer dumpSource.Close()
+
+	if rawSizeMb, isMeasured := dumpSource.GetRawSizeMb(ctx); isMeasured {
+		backup.BackupRawDbSizeMb = rawSizeMb
+	}
+
+	backup.TimescaledbVersion = dumpSource.GetTimescaleDBVersion(ctx)
+
+	return uc.streamDumpToStorage(ctx, backupStream{
+		backup:           backup,
+		backupConfig:     backupConfig,
+		dumpSource:       dumpSource,
+		fileStore:        fileStore,
+		progressListener: backupProgressListener,
+		logger:           logger,
+	})
+}
+
+// openDumpSource picks the engine by the database type until the backups module replaces this
+// switch with its registry of engines.
+func (uc *CreateBackupUsecase) openDumpSource(
+	ctx context.Context,
+	database databases.Database,
+	logger *slog.Logger,
+) (logicalDumpSource, error) {
 	switch database.Type {
 	case databases.TypePostgresqlLogical:
-		return uc.CreatePostgresqlBackupUsecase.Execute(
-			ctx,
-			backup,
-			backupConfig,
-			database,
-			fileStore,
-			backupProgressListener,
-		)
-
+		return uc.openPostgresqlDumpSource(ctx, database, logger)
 	case databases.TypeMysql:
-		return uc.CreateMysqlBackupUsecase.Execute(
-			ctx,
-			backup,
-			backupConfig,
-			database,
-			fileStore,
-			backupProgressListener,
-		)
-
+		return uc.openMysqlDumpSource(ctx, database, logger)
 	case databases.TypeMariadb:
-		return uc.CreateMariadbBackupUsecase.Execute(
-			ctx,
-			backup,
-			backupConfig,
-			database,
-			fileStore,
-			backupProgressListener,
-		)
-
+		return uc.openMariadbDumpSource(ctx, database, logger)
 	case databases.TypeMongodb:
-		return uc.CreateMongodbBackupUsecase.Execute(
-			ctx,
-			backup,
-			backupConfig,
-			database,
-			fileStore,
-			backupProgressListener,
-		)
-
+		return uc.openMongodbDumpSource(ctx, database, logger)
 	default:
 		return nil, errors.New("database type not supported")
 	}

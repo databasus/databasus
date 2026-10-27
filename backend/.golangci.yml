@@ -99,6 +99,7 @@ linters:
             - "!$test"
             - "!**/internal/lib/testdb/**"
             - "!**/internal/lib/testwait/**"
+            - "!**/internal/lib/toolstub/**"
             - "!**/internal/lib/cache/cachetest/**"
             - "!**/internal/lib/ratelimit/ratelimittest/**"
             - "!**/internal/lib/testcontainers/**"

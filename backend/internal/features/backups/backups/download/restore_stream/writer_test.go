@@ -83,7 +83,7 @@ func Test_Writer_Write_ProducesCombineableLayoutWithIntegrityManifest(t *testing
 
 	var out bytes.Buffer
 	writer := restore_stream.NewWriter(storages_bridge.GetModule)
-	err := writer.Write(t.Context(), &out, set, "")
+	err := writer.Write(t.Context(), &out, set, nil)
 	require.NoError(t, err)
 
 	entries := readTar(t, &out)

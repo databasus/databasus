@@ -7,7 +7,7 @@ import (
 	"github.com/google/uuid"
 
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
-	"databasus-backend/internal/features/backups/backups/encryption"
+	"databasus-backend/internal/lib/crypto"
 )
 
 type GetBackupsRequest struct {
@@ -26,7 +26,7 @@ type GetBackupsResponse struct {
 }
 
 type DecryptionReaderCloser struct {
-	*encryption.DecryptionReader
+	*crypto.DecryptingReader
 	BaseReader io.ReadCloser
 }
 

@@ -318,11 +318,9 @@ func (b *PhysicalBackuper) openBackupContext(
 		return nil, false
 	}
 
-	masterKey := ""
+	var masterKey *crypto.MasterKey
 	if cfg.Encryption == backups_core_enums.BackupEncryptionEncrypted {
-		key := b.masterKey.GetSecret()
-
-		masterKey = key
+		masterKey = b.masterKey
 	}
 
 	// Opened last, because a bail-out after this point would strand a live SSH session and its

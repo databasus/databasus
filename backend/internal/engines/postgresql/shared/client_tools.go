@@ -13,6 +13,7 @@ type Executable string
 
 const (
 	ExecutablePgDump          Executable = "pg_dump"
+	ExecutablePgRestore       Executable = "pg_restore"
 	ExecutablePsql            Executable = "psql"
 	ExecutablePgBasebackup    Executable = "pg_basebackup"
 	ExecutablePgReceivewal    Executable = "pg_receivewal"

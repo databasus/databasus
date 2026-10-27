@@ -17,6 +17,7 @@ import (
 	pgshared "databasus-backend/internal/engines/postgresql/shared"
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	physical_repositories "databasus-backend/internal/features/backups/backups/core/physical/repositories"
+	"databasus-backend/internal/lib/crypto"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/util/walmath"
 )
@@ -143,7 +144,7 @@ type WalStreamSpec struct {
 	Databases StreamedDatabases
 
 	Encryption     backups_core_enums.BackupEncryption
-	MasterKey      string
+	MasterKey      *crypto.MasterKey
 	WalSegmentRepo *physical_repositories.PhysicalWalSegmentRepository
 	HistoryRepo    *physical_repositories.PhysicalWalHistoryRepository
 

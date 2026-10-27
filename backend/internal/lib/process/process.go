@@ -16,8 +16,10 @@ import (
 )
 
 type Spec struct {
-	Path   string
-	Args   []string
+	Path string
+	Args []string
+	// Env is added to the environment the backend runs with; a variable set in both takes the
+	// value from Env.
 	Env    []string
 	Dir    string
 	Stdin  io.Reader
@@ -41,7 +43,9 @@ type Running struct {
 
 func Start(ctx context.Context, spec Spec) (*Running, error) {
 	cmd := exec.CommandContext(ctx, spec.Path, spec.Args...)
-	cmd.Env = spec.Env
+	if len(spec.Env) > 0 {
+		cmd.Env = append(cmd.Environ(), spec.Env...)
+	}
 	cmd.Dir = spec.Dir
 	cmd.Stdin = spec.Stdin
 	cmd.Stdout = spec.Stdout

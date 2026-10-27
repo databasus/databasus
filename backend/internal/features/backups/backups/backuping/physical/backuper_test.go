@@ -1105,7 +1105,7 @@ func publishWalSegment(t *testing.T, prereqs *backupPrereqs) time.Time {
 		FileStore:           storages_bridge.GetModule(),
 		BackupStatus:        databases_bridge.GetModule(),
 		Encryption:          backups_core_enums.BackupEncryptionNone,
-		MasterKey:           "",
+		MasterKey:           nil,
 		WalSegmentRepo:      physical_repositories.GetWalSegmentRepository(),
 		WalSegmentSizeBytes: walSegmentSizeBytes,
 		Logger:              logger.GetLogger(),

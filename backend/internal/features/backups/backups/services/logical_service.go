@@ -18,7 +18,6 @@ import (
 	backups_core_logical "databasus-backend/internal/features/backups/backups/core/logical"
 	"databasus-backend/internal/features/backups/backups/download/download_token"
 	backups_dto_logical "databasus-backend/internal/features/backups/backups/dto/logical"
-	"databasus-backend/internal/features/backups/backups/encryption"
 	backups_config_logical "databasus-backend/internal/features/backups/config/logical"
 	databases_bridge "databasus-backend/internal/features/databases"
 	task_cancellation "databasus-backend/internal/features/tasks/cancellation"
@@ -288,8 +287,6 @@ func (s *LogicalBackupService) GetBackupReader(
 		return nil, fmt.Errorf("backup marked as encrypted but missing encryption metadata")
 	}
 
-	masterKey := s.masterKey.GetSecret()
-
 	salt, err := base64.StdEncoding.DecodeString(*backup.EncryptionSalt)
 	if err != nil {
 		if closeErr := fileReader.Close(); closeErr != nil {
@@ -306,12 +303,11 @@ func (s *LogicalBackupService) GetBackupReader(
 		return nil, fmt.Errorf("failed to decode IV: %w", err)
 	}
 
-	decryptionReader, err := encryption.NewDecryptionReader(
+	decryptionReader, err := crypto.NewDecryptingReader(
 		fileReader,
-		masterKey,
+		s.masterKey,
 		backup.ID,
-		salt,
-		iv,
+		crypto.StreamHeader{Salt: salt, Nonce: iv},
 	)
 	if err != nil {
 		if closeErr := fileReader.Close(); closeErr != nil {
@@ -323,7 +319,7 @@ func (s *LogicalBackupService) GetBackupReader(
 	logger.InfoContext(ctx, "returning encrypted backup with decryption")
 
 	return &backups_dto_logical.DecryptionReaderCloser{
-		DecryptionReader: decryptionReader,
+		DecryptingReader: decryptionReader,
 		BaseReader:       fileReader,
 	}, nil
 }

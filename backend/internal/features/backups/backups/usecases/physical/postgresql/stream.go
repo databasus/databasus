@@ -3,6 +3,7 @@ package usecases_physical_postgresql
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"io"
@@ -14,7 +15,7 @@ import (
 
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	physical_enums "databasus-backend/internal/features/backups/backups/core/physical/enums"
-	backup_encryption "databasus-backend/internal/features/backups/backups/encryption"
+	"databasus-backend/internal/lib/crypto"
 	"databasus-backend/internal/modules/storages"
 )
 
@@ -40,7 +41,7 @@ type runStreamParams struct {
 
 	FileName   string
 	Encryption backups_core_enums.BackupEncryption
-	MasterKey  string
+	MasterKey  *crypto.MasterKey
 	BackupID   uuid.UUID
 
 	SystemID uint64
@@ -288,7 +289,7 @@ type successOutcomeSpec struct {
 	Params           runStreamParams
 	Files            []manifestFileEntry
 	Counter          *ByteCounter
-	EncryptionWriter *backup_encryption.EncryptionWriter
+	EncryptionWriter *crypto.EncryptingWriter
 	EncryptionSalt   string
 	EncryptionIV     string
 	Stderr           []byte
@@ -363,7 +364,7 @@ func manifestSaveTimeout(payloadSizeBytes int) time.Duration {
 }
 
 // saveManifestSidecar uploads the reconstructed manifest. When encryption is on
-// it uses a FRESH salt+nonce (SetupEncryptionWriter) — never the tar's — because
+// it uses a FRESH salt+nonce (NewEncryptingWriter) — never the tar's — because
 // the chunk nonce is baseNonce||chunkIndex, so reusing the tar's (salt, nonce)
 // would reuse (key, nonce) on chunk 0 (a catastrophic GCM failure). The fresh
 // salt/IV are returned (base64) for persistence so the INCR consumer can decrypt.
@@ -384,22 +385,23 @@ func saveManifestSidecar(
 	if p.Encryption == backups_core_enums.BackupEncryptionEncrypted {
 		var encrypted bytes.Buffer
 
-		encSetup, setupErr := backup_encryption.SetupEncryptionWriter(&encrypted, p.MasterKey, p.BackupID)
+		encryptingWriter, header, setupErr := crypto.NewEncryptingWriter(&encrypted, p.MasterKey, p.BackupID)
 		if setupErr != nil {
 			return manifestSidecar{}, fmt.Errorf("setup manifest encryption: %w", setupErr)
 		}
 
-		if _, writeErr := encSetup.Writer.Write(manifestBytes); writeErr != nil {
+		if _, writeErr := encryptingWriter.Write(manifestBytes); writeErr != nil {
 			return manifestSidecar{}, fmt.Errorf("encrypt manifest: %w", writeErr)
 		}
 
-		if closeErr := encSetup.Writer.Close(); closeErr != nil {
+		if closeErr := encryptingWriter.Close(); closeErr != nil {
 			return manifestSidecar{}, fmt.Errorf("flush manifest encryption: %w", closeErr)
 		}
 
 		payload = bytes.NewReader(encrypted.Bytes())
 		payloadSizeBytes = encrypted.Len()
-		saltBase64, nonceBase64 = encSetup.SaltBase64, encSetup.NonceBase64
+		saltBase64 = base64.StdEncoding.EncodeToString(header.Salt)
+		nonceBase64 = base64.StdEncoding.EncodeToString(header.Nonce)
 	}
 
 	// The deadline starts here, after encryption, so CPU-bound work never eats the

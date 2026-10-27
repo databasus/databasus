@@ -11,6 +11,7 @@ import (
 	physical_enums "databasus-backend/internal/features/backups/backups/core/physical/enums"
 	physical_models "databasus-backend/internal/features/backups/backups/core/physical/models"
 	physical_repositories "databasus-backend/internal/features/backups/backups/core/physical/repositories"
+	"databasus-backend/internal/lib/crypto"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/util/walmath"
@@ -24,7 +25,7 @@ type CommonBackupSpec struct {
 	StorageID     uuid.UUID
 	FileStore     FileStore
 	Encryption    backups_core_enums.BackupEncryption
-	MasterKey     string
+	MasterKey     *crypto.MasterKey
 	FullRepo      *physical_repositories.PhysicalFullBackupRepository
 	HistoryRepo   *physical_repositories.PhysicalWalHistoryRepository
 	Logger        *slog.Logger

@@ -11,6 +11,7 @@ import (
 	"databasus-backend/internal/features/backups/backups/core/physical/chain_view"
 	physical_enums "databasus-backend/internal/features/backups/backups/core/physical/enums"
 	physical_models "databasus-backend/internal/features/backups/backups/core/physical/models"
+	"databasus-backend/internal/lib/crypto"
 	"databasus-backend/internal/modules/storages"
 )
 
@@ -39,7 +40,7 @@ func (rw *Writer) Write(
 	ctx context.Context,
 	w io.Writer,
 	set *chain_view.RestoreSet,
-	masterKey string,
+	masterKey *crypto.MasterKey,
 ) error {
 	tarWriter := tar.NewWriter(w)
 
@@ -116,7 +117,7 @@ func (rw *Writer) writeBackupDir(
 	tarWriter *tar.Writer,
 	dirName string,
 	artifact backupArtifact,
-	masterKey string,
+	masterKey *crypto.MasterKey,
 	storageCache map[uuid.UUID]storages.StorageReader,
 	checksums *checksumLedger,
 ) error {
@@ -165,7 +166,7 @@ func (rw *Writer) writeManifest(
 	tarWriter *tar.Writer,
 	dirName string,
 	artifact backupArtifact,
-	masterKey string,
+	masterKey *crypto.MasterKey,
 	storageCache map[uuid.UUID]storages.StorageReader,
 	checksums *checksumLedger,
 ) error {
@@ -200,7 +201,7 @@ func (rw *Writer) writeWalSegment(
 	ctx context.Context,
 	tarWriter *tar.Writer,
 	segment *physical_models.PhysicalWalSegment,
-	masterKey string,
+	masterKey *crypto.MasterKey,
 	storageCache map[uuid.UUID]storages.StorageReader,
 	checksums *checksumLedger,
 ) error {
@@ -241,7 +242,7 @@ func (rw *Writer) writeHistoryFile(
 	ctx context.Context,
 	tarWriter *tar.Writer,
 	history *physical_models.PhysicalWalHistoryFile,
-	masterKey string,
+	masterKey *crypto.MasterKey,
 	storageCache map[uuid.UUID]storages.StorageReader,
 	checksums *checksumLedger,
 ) error {

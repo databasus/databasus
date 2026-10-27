@@ -3,18 +3,18 @@ package usecases_logical
 import (
 	"sync"
 
-	usecases_logical_mariadb "databasus-backend/internal/features/backups/backups/usecases/logical/mariadb"
-	usecases_logical_mongodb "databasus-backend/internal/features/backups/backups/usecases/logical/mongodb"
-	usecases_logical_mysql "databasus-backend/internal/features/backups/backups/usecases/logical/mysql"
-	usecases_logical_postgresql "databasus-backend/internal/features/backups/backups/usecases/logical/postgresql"
+	"databasus-backend/internal/config"
+	databases_bridge "databasus-backend/internal/features/databases"
+	"databasus-backend/internal/util/encryption"
+	"databasus-backend/internal/util/logger"
 )
 
 var getCreateBackupUsecase = sync.OnceValue(func() *CreateBackupUsecase {
 	return &CreateBackupUsecase{
-		usecases_logical_postgresql.GetCreatePostgresqlBackupUsecase(),
-		usecases_logical_mysql.GetCreateMysqlBackupUsecase(),
-		usecases_logical_mariadb.GetCreateMariadbBackupUsecase(),
-		usecases_logical_mongodb.GetCreateMongodbBackupUsecase(),
+		logger:         logger.GetLogger(),
+		masterKey:      encryption.GetMasterKey(),
+		getDatabases:   databases_bridge.GetModule,
+		clientToolsDir: config.GetEnv().ClientToolsDir,
 	}
 })
 

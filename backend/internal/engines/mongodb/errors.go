@@ -13,6 +13,9 @@ var (
 	ErrUserNameCollision       = errors.New("failed to generate unique username")
 	ErrTunnelPortRequired      = errors.New("SSH tunnel requires an explicit MongoDB port")
 
+	ErrDumpDatabaseNameRequired    = errors.New("database name is required for mongodump backups")
+	ErrRestoreDatabaseNameRequired = errors.New("target database name is required for mongorestore")
+
 	errUserNotListed   = errors.New("user not listed")
 	errUserUnparseable = errors.New("could not parse user info")
 )

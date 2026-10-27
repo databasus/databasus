@@ -360,14 +360,12 @@ func (s *PhysicalWalStreamSupervisor) startStreamer(
 func (s *PhysicalWalStreamSupervisor) resolveMasterKey(
 	logger *slog.Logger,
 	backupConfig *backups_config_physical.PhysicalBackupConfig,
-) (string, bool) {
+) (*crypto.MasterKey, bool) {
 	if backupConfig.Encryption != backups_core_enums.BackupEncryptionEncrypted {
-		return "", true
+		return nil, true
 	}
 
-	key := s.masterKey.GetSecret()
-
-	return key, true
+	return s.masterKey, true
 }
 
 func (s *PhysicalWalStreamSupervisor) gapNotifier(

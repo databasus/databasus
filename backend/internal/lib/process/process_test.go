@@ -102,6 +102,19 @@ func TestStart(t *testing.T) {
 		require.True(t, isWaitStatus)
 		assert.Equal(t, syscall.SIGKILL, waitStatus.Signal())
 	})
+
+	t.Run("adds Env to the environment the backend runs with", func(t *testing.T) {
+		t.Parallel()
+
+		toolOutput, err := CombinedOutput(t.Context(), Spec{
+			Path: "sh",
+			Args: []string{"-c", `echo "${PATH:+inherited}|$DATABASUS_PROCESS_TEST|$LC_ALL"`},
+			Env:  []string{"DATABASUS_PROCESS_TEST=added", "LC_ALL=C"},
+		})
+
+		require.NoError(t, err)
+		assert.Equal(t, "inherited|added|C\n", string(toolOutput))
+	})
 }
 
 func TestWait(t *testing.T) {

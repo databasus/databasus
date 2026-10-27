@@ -3,6 +3,7 @@ package usecases_physical_postgresql
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -19,7 +20,7 @@ import (
 	physical_dto "databasus-backend/internal/features/backups/backups/core/physical/dto"
 	physical_models "databasus-backend/internal/features/backups/backups/core/physical/models"
 	physical_repositories "databasus-backend/internal/features/backups/backups/core/physical/repositories"
-	backup_encryption "databasus-backend/internal/features/backups/backups/encryption"
+	"databasus-backend/internal/lib/crypto"
 	"databasus-backend/internal/lib/database"
 	"databasus-backend/internal/modules/storages"
 	db "databasus-backend/internal/storage"
@@ -42,7 +43,7 @@ type WalUploadDeps struct {
 	FileStore           FileStore
 	BackupStatus        BackupStatusRecorder
 	Encryption          backups_core_enums.BackupEncryption
-	MasterKey           string
+	MasterKey           *crypto.MasterKey
 	WalSegmentRepo      *physical_repositories.PhysicalWalSegmentRepository
 	WalSegmentSizeBytes int64
 	Logger              *slog.Logger
@@ -600,7 +601,7 @@ func (r *countingReader) Read(p []byte) (int, error) {
 func buildWalSegmentArtifactReader(
 	localPath string,
 	encryption backups_core_enums.BackupEncryption,
-	masterKey string,
+	masterKey *crypto.MasterKey,
 	segmentID uuid.UUID,
 ) (*walSegmentArtifactReader, string, string, error) {
 	file, err := os.Open(localPath)
@@ -614,7 +615,7 @@ func buildWalSegmentArtifactReader(
 	var salt, iv string
 
 	if encryption == backups_core_enums.BackupEncryptionEncrypted {
-		encSetup, err := backup_encryption.SetupEncryptionWriter(pipeWriter, masterKey, segmentID)
+		encryptingWriter, header, err := crypto.NewEncryptingWriter(pipeWriter, masterKey, segmentID)
 		if err != nil {
 			_ = file.Close()
 			_ = pipeReader.Close()
@@ -623,10 +624,10 @@ func buildWalSegmentArtifactReader(
 			return nil, "", "", fmt.Errorf("setup wal segment encryption: %w", err)
 		}
 
-		output = encSetup.Writer
-		encryptionWriter = encSetup.Writer
-		salt = encSetup.SaltBase64
-		iv = encSetup.NonceBase64
+		output = encryptingWriter
+		encryptionWriter = encryptingWriter
+		salt = base64.StdEncoding.EncodeToString(header.Salt)
+		iv = base64.StdEncoding.EncodeToString(header.Nonce)
 	}
 
 	artifact := &walSegmentArtifactReader{
