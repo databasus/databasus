@@ -21,5 +21,5 @@ type PhysicalWalHistoryFile struct {
 }
 
 func (PhysicalWalHistoryFile) TableName() string {
-	return "physical_wal_history_files"
+	return "backups_physical_wal_history_files"
 }

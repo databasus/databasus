@@ -240,7 +240,7 @@ type WalStreamSupervisor struct {
 
 	// rebuildMu serializes slot rebuilds in this process; rebuildTimestamps powers
 	// the per-hour loop-protection cap. One supervisor owns a DB at a time (the
-	// physical_wal_streamers heartbeat claim), so this is the only guard needed.
+	// backups_physical_wal_streamers heartbeat claim), so this is the only guard needed.
 	rebuildMu         sync.Mutex
 	rebuildTimestamps []time.Time
 

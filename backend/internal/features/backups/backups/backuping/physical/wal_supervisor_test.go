@@ -29,7 +29,7 @@ import (
 	"databasus-backend/internal/storage"
 )
 
-// seedStreamerRow inserts a physical_wal_streamers row with an explicit
+// seedStreamerRow inserts a backups_physical_wal_streamers row with an explicit
 // last_heartbeat_at and status, for ClaimIfClaimable tests. database_id must FK
 // to a real databases row.
 func seedStreamerRow(
@@ -41,7 +41,7 @@ func seedStreamerRow(
 	t.Helper()
 
 	require.NoError(t, storage.GetDb().Exec(`
-		INSERT INTO physical_wal_streamers (database_id, started_at, last_heartbeat_at, status)
+		INSERT INTO backups_physical_wal_streamers (database_id, started_at, last_heartbeat_at, status)
 		VALUES (?, NOW(), ?, ?)
 		ON CONFLICT (database_id) DO UPDATE
 		  SET last_heartbeat_at = EXCLUDED.last_heartbeat_at, status = EXCLUDED.status

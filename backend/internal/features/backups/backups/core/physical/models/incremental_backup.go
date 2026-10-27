@@ -50,7 +50,7 @@ type PhysicalIncrementalBackup struct {
 }
 
 func (PhysicalIncrementalBackup) TableName() string {
-	return "physical_incremental_backups"
+	return "backups_physical_incremental"
 }
 
 func (b *PhysicalIncrementalBackup) ParentBackupID() uuid.UUID {

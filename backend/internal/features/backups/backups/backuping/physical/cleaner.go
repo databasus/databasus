@@ -75,8 +75,7 @@ func (c *PhysicalBackupCleaner) RunPass(ctx context.Context) error {
 	return errors.Join(retentionErr, orphanErr)
 }
 
-// One statement for every database, so samples of a database that no longer
-// streams expire as well; a removed database's samples go with it by cascade.
+// Samples also expire for databases that have stopped streaming.
 func (c *PhysicalBackupCleaner) deleteExpiredWalStreamSamples(ctx context.Context, logger *slog.Logger, now time.Time) {
 	deletedCount, err := c.walStreamSampleRepo.DeleteOlderThan(now.Add(-wal_health.SampleRetention))
 	if err != nil {

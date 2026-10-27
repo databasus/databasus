@@ -74,8 +74,7 @@ func (l *PhysicalBackupCancellationListener) OnDatabaseBackupTypeChanged(
 	})
 }
 
-// OnDatabaseDeleting stops the running backup and the WAL streamer once the deletion commits. The
-// in-flight claim and the streamer row go with the database by cascade, so the claim is read now.
+// The claim must be read before the physical deletion handler removes it in this transaction.
 func (l *PhysicalBackupCancellationListener) OnDatabaseDeleting(
 	ctx context.Context,
 	event databases.DatabaseDeleting,

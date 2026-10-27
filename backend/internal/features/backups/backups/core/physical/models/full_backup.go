@@ -45,5 +45,5 @@ type PhysicalFullBackup struct {
 }
 
 func (PhysicalFullBackup) TableName() string {
-	return "physical_full_backups"
+	return "backups_physical_full"
 }

@@ -11,8 +11,8 @@ import (
 // The source server holds the database the previous release backs up, and later the database the
 // current code restores that backup into.
 const (
-	sourceImage         = "postgres:16"
-	sourceVersion       = "16"
+	sourceImage         = "postgres:17"
+	sourceVersion       = "17"
 	sourceNetworkAlias  = "upgrade-source"
 	sourcePort          = 5432
 	sourcePublishedPort = "5432/tcp"
@@ -33,9 +33,14 @@ const rowAddedAfterBackup = "row added after the backup"
 
 func startSourceServer(ctx context.Context, docker *dockerHost, resources upgradeResources) error {
 	return docker.startContainer(ctx, containerSpec{
-		name:       resources.sourceContainerName,
-		image:      sourceImage,
-		entrypoint: nil,
+		name:  resources.sourceContainerName,
+		image: sourceImage,
+		entrypoint: []string{
+			"sh",
+			"-ec",
+			`printf '%s\n' '#!/bin/sh' 'echo "host replication all all scram-sha-256" >> "$PGDATA/pg_hba.conf"' > /docker-entrypoint-initdb.d/replication.sh
+exec docker-entrypoint.sh postgres -c summarize_wal=on`,
+		},
 		env: []string{
 			"POSTGRES_USER=" + sourceUsername,
 			"POSTGRES_PASSWORD=" + sourcePassword,

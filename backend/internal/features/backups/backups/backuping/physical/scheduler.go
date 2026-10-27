@@ -535,15 +535,15 @@ func hasUnresolvedSystemIdentifierMismatch(db *gorm.DB, databaseID uuid.UUID) (b
 			(
 				SELECT MAX(terminal_at)
 				FROM (
-					SELECT COALESCE(completed_at, created_at) AS terminal_at FROM physical_full_backups
+					SELECT COALESCE(completed_at, created_at) AS terminal_at FROM backups_physical_full
 					WHERE database_id = ? AND error_reason = ?
 					UNION ALL
-					SELECT COALESCE(completed_at, created_at) AS terminal_at FROM physical_incremental_backups
+					SELECT COALESCE(completed_at, created_at) AS terminal_at FROM backups_physical_incremental
 					WHERE database_id = ? AND error_reason = ?
 				) mismatches
 			) AS latest_mismatch_at,
 			(
-				SELECT MAX(completed_at) FROM physical_full_backups
+				SELECT MAX(completed_at) FROM backups_physical_full
 				WHERE database_id = ? AND status = ?
 			) AS latest_completed_full_at
 	`,

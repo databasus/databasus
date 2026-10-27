@@ -175,9 +175,11 @@ func Test_PersistFullResult_WhenCompletedWithMeasuredClusterSize_StoresRawSizeMb
 	claimInFlight(t, prereqs.DB.ID, physical_enums.PhysicalBackupTypeFull, fullBackup.ID)
 
 	result := postgresql_executor.PhysicalBackupResult{
-		Status:       physical_enums.PhysicalBackupStatusCompleted,
-		BackupSizeMb: 42.5,
-		CompletedAt:  time.Now().UTC(),
+		Compression:    physical_enums.PhysicalBackupCompressionZstd,
+		EncryptionAlgo: backups_core_enums.BackupEncryptionNone,
+		Status:         physical_enums.PhysicalBackupStatusCompleted,
+		BackupSizeMb:   42.5,
+		CompletedAt:    time.Now().UTC(),
 	}
 
 	require.NoError(t, backuper.persistFullResult(t.Context(), fullBackup, result, new(4321.5)))
@@ -198,9 +200,11 @@ func Test_PersistFullResult_WhenClusterSizeUnmeasured_LeavesRawSizeMbNil(t *test
 	claimInFlight(t, prereqs.DB.ID, physical_enums.PhysicalBackupTypeFull, fullBackup.ID)
 
 	result := postgresql_executor.PhysicalBackupResult{
-		Status:       physical_enums.PhysicalBackupStatusCompleted,
-		BackupSizeMb: 42.5,
-		CompletedAt:  time.Now().UTC(),
+		Compression:    physical_enums.PhysicalBackupCompressionZstd,
+		EncryptionAlgo: backups_core_enums.BackupEncryptionNone,
+		Status:         physical_enums.PhysicalBackupStatusCompleted,
+		BackupSizeMb:   42.5,
+		CompletedAt:    time.Now().UTC(),
 	}
 
 	require.NoError(t, backuper.persistFullResult(t.Context(), fullBackup, result, nil))
@@ -819,7 +823,9 @@ func Test_PersistFullResult_WhenRowNoLongerInProgress_DoesNotResurrect(t *testin
 	claimInFlight(t, prereqs.DB.ID, physical_enums.PhysicalBackupTypeFull, newBackupID)
 
 	err := backuper.persistFullResult(t.Context(), full, postgresql_executor.PhysicalBackupResult{
-		Status: physical_enums.PhysicalBackupStatusCompleted,
+		Compression:    physical_enums.PhysicalBackupCompressionZstd,
+		EncryptionAlgo: backups_core_enums.BackupEncryptionNone,
+		Status:         physical_enums.PhysicalBackupStatusCompleted,
 	}, nil)
 	require.NoError(t, err)
 
@@ -936,10 +942,12 @@ func Test_PersistFullResult_WhenCompleted_KeepsTheFilesTheAttemptWrote(t *testin
 	require.NoError(t, err)
 
 	result := postgresql_executor.PhysicalBackupResult{
-		Status:      physical_enums.PhysicalBackupStatusCompleted,
-		FileName:    fileName,
-		Receipts:    []storages.WriteReceipt{receipt},
-		CompletedAt: time.Now().UTC(),
+		Compression:    physical_enums.PhysicalBackupCompressionZstd,
+		EncryptionAlgo: backups_core_enums.BackupEncryptionNone,
+		Status:         physical_enums.PhysicalBackupStatusCompleted,
+		FileName:       fileName,
+		Receipts:       []storages.WriteReceipt{receipt},
+		CompletedAt:    time.Now().UTC(),
 	}
 
 	require.NoError(t, backuper.persistFullResult(t.Context(), fullBackup, result, nil))
@@ -1083,8 +1091,10 @@ func completeFullBackup(t *testing.T, prereqs *backupPrereqs, startedAt time.Tim
 	claimInFlight(t, prereqs.DB.ID, physical_enums.PhysicalBackupTypeFull, fullBackup.ID)
 
 	result := postgresql_executor.PhysicalBackupResult{
-		Status:      physical_enums.PhysicalBackupStatusCompleted,
-		CompletedAt: time.Now().UTC(),
+		Compression:    physical_enums.PhysicalBackupCompressionZstd,
+		EncryptionAlgo: backups_core_enums.BackupEncryptionNone,
+		Status:         physical_enums.PhysicalBackupStatusCompleted,
+		CompletedAt:    time.Now().UTC(),
 	}
 
 	require.NoError(t, CreateTestPhysicalBackuper(nil).persistFullResult(t.Context(), fullBackup, result, nil))
@@ -1154,8 +1164,10 @@ func TestPersistFullResultRacingDatabaseDeletion(t *testing.T) {
 			persistErr := make(chan error, 1)
 			go func() {
 				persistErr <- backuper.persistFullResult(t.Context(), fullBackup, postgresql_executor.PhysicalBackupResult{
-					Status:      physical_enums.PhysicalBackupStatusCompleted,
-					CompletedAt: time.Now().UTC(),
+					Compression:    physical_enums.PhysicalBackupCompressionZstd,
+					EncryptionAlgo: backups_core_enums.BackupEncryptionNone,
+					Status:         physical_enums.PhysicalBackupStatusCompleted,
+					CompletedAt:    time.Now().UTC(),
 				}, nil)
 			}()
 

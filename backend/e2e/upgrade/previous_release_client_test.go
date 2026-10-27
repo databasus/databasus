@@ -55,8 +55,10 @@ var (
 type writtenUpgradeData struct {
 	items []upgradecheck.Item
 	// databaseIDs are keyed by the database's name.
-	databaseIDs map[string]string
-	backupID    string
+	databaseIDs        map[string]string
+	backupID           string
+	physicalDatabaseID string
+	physicalItems      []upgradecheck.Item
 }
 
 type previousSignUpRequest struct {
@@ -115,7 +117,7 @@ type previousBackup struct {
 // a workspace with two more members, one of them a second owner, one storage and one notifier of every
 // type, a database of every logical type, the PostgreSQL one using every notifier and the local
 // storage with an encrypted backup config, and one completed backup.
-func writeUpgradeData(t *testing.T, api *apiClient) (writtenUpgradeData, error) {
+func writeUpgradeData(t *testing.T, api *apiClient, sourceHostPort int) (writtenUpgradeData, error) {
 	t.Helper()
 
 	ctx := t.Context()
@@ -172,6 +174,15 @@ func writeUpgradeData(t *testing.T, api *apiClient) (writtenUpgradeData, error) 
 		return writtenUpgradeData{}, err
 	}
 
+	physicalDatabaseID, physicalItems, err := writePhysicalBackup(
+		t,
+		api,
+		physicalSourceSpec{workspaceID: workspace.ID, storageID: localStorageID, hostPort: sourceHostPort},
+	)
+	if err != nil {
+		return writtenUpgradeData{}, err
+	}
+
 	auditEventItems, err := readAuditEventItems(ctx, api)
 	if err != nil {
 		return writtenUpgradeData{}, err
@@ -208,8 +219,10 @@ func writeUpgradeData(t *testing.T, api *apiClient) (writtenUpgradeData, error) 
 			}},
 			newDatabaseNotifiersItem(notifierItems),
 		}, databases.items, storageItems, notifierItems, auditEventItems),
-		databaseIDs: databases.ids,
-		backupID:    backup.ID,
+		databaseIDs:        databases.ids,
+		backupID:           backup.ID,
+		physicalDatabaseID: physicalDatabaseID,
+		physicalItems:      physicalItems,
 	}, nil
 }
 

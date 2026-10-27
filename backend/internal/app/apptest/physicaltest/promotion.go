@@ -50,7 +50,7 @@ func (team Team) waitForTimelineHistory(t *testing.T, timelineID int) {
 		team.App.QuerySQL(
 			t,
 			&hasHistory,
-			`SELECT EXISTS(SELECT 1 FROM physical_wal_history_files WHERE database_id = ? AND timeline_id = ?)`,
+			`SELECT EXISTS(SELECT 1 FROM backups_physical_wal_history_files WHERE database_id = ? AND timeline_id = ?)`,
 			team.Database.Id,
 			timelineID,
 		)
@@ -107,7 +107,7 @@ func (team Team) waitForReanchoredFull(t *testing.T, staleFullID uuid.UUID, time
 		team.App.QuerySQL(
 			t,
 			&incrementals,
-			`SELECT status, COALESCE(error_reason, '') AS error_reason FROM physical_incremental_backups WHERE root_full_backup_id = ?`,
+			`SELECT status, COALESCE(error_reason, '') AS error_reason FROM backups_physical_incremental WHERE root_full_backup_id = ?`,
 			staleFullID,
 		)
 		hasTimelineRefusal := false

@@ -20,5 +20,5 @@ type PhysicalInFlightBackup struct {
 }
 
 func (PhysicalInFlightBackup) TableName() string {
-	return "physical_in_flight_backups"
+	return "backups_physical_in_flight"
 }

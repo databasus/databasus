@@ -31,7 +31,7 @@ import (
 	"databasus-backend/internal/modules/storages"
 )
 
-// Ownership and restart recovery run through the physical_wal_streamers
+// Ownership and restart recovery run through the backups_physical_wal_streamers
 // heartbeat table: every tick CAS-claims the databases that are unclaimed /
 // FAILED / stale, so exactly one process streams a given database at a time.
 type PhysicalWalStreamSupervisor struct {

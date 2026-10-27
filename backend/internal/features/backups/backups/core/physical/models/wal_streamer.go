@@ -26,5 +26,5 @@ type PhysicalWalStreamer struct {
 }
 
 func (PhysicalWalStreamer) TableName() string {
-	return "physical_wal_streamers"
+	return "backups_physical_wal_streamers"
 }

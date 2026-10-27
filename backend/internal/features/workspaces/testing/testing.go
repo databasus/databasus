@@ -158,12 +158,17 @@ func insertWorkspace(ctx context.Context, name string, ownerID uuid.UUID) (*Test
 	return workspace, nil
 }
 
-// removeWorkspace deletes what the cascade from the workspace deleted before the references to
-// workspaces became RESTRICT; the cascades of the old features remove what hangs off the databases,
-// notifiers and storages. A workspace that is already gone is not an error.
+// A workspace's physical records must be removed before its databases and storages.
 func removeWorkspace(ctx context.Context, workspaceID uuid.UUID) error {
 	return storage.GetDb().WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		for _, statement := range []string{
+			"DELETE FROM backups_physical_wal_stream_samples WHERE database_id IN (SELECT id FROM databases WHERE workspace_id = ?)",
+			"DELETE FROM backups_physical_wal_streamers WHERE database_id IN (SELECT id FROM databases WHERE workspace_id = ?)",
+			"DELETE FROM backups_physical_in_flight WHERE database_id IN (SELECT id FROM databases WHERE workspace_id = ?)",
+			"DELETE FROM backups_physical_wal_segments WHERE database_id IN (SELECT id FROM databases WHERE workspace_id = ?)",
+			"DELETE FROM backups_physical_wal_history_files WHERE database_id IN (SELECT id FROM databases WHERE workspace_id = ?)",
+			"DELETE FROM backups_physical_incremental WHERE database_id IN (SELECT id FROM databases WHERE workspace_id = ?)",
+			"DELETE FROM backups_physical_full WHERE database_id IN (SELECT id FROM databases WHERE workspace_id = ?)",
 			"DELETE FROM databases WHERE workspace_id = ?",
 			"DELETE FROM notifiers WHERE workspace_id = ?",
 			"DELETE FROM storages WHERE workspace_id = ?",

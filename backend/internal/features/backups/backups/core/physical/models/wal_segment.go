@@ -33,5 +33,5 @@ type PhysicalWalSegment struct {
 }
 
 func (PhysicalWalSegment) TableName() string {
-	return "physical_wal_segments"
+	return "backups_physical_wal_segments"
 }

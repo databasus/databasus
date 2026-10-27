@@ -113,7 +113,7 @@ func whereInChainSpan(
 		database_id = ? AND timeline_id = ?
 		AND start_lsn >= COALESCE(
 			(SELECT boundary.start_lsn
-			 FROM physical_wal_segments boundary
+			 FROM backups_physical_wal_segments boundary
 			 WHERE boundary.database_id = ? AND boundary.timeline_id = ? AND boundary.start_lsn <= ?::pg_lsn
 			 ORDER BY boundary.start_lsn DESC
 			 LIMIT 1),
@@ -127,8 +127,8 @@ func whereInChainSpan(
 	)
 }
 
-// Anti-join not covered by idx_physical_wal_segments_database_id_received_at;
-// expect a seq scan on physical_full_backups when invoked in bulk.
+// Anti-join not covered by idx_backups_physical_wal_segments_database_received_at;
+// expect a seq scan on backups_physical_full when invoked in bulk.
 //
 // The comparison anchors on the segment's end_lsn because a FULL's start_lsn is
 // a real recovery position a short way inside the segment that holds it, while a
@@ -144,11 +144,11 @@ func (r *PhysicalWalSegmentRepository) FindOrphans(
 		GetDb().
 		Raw(`
 			SELECT *
-			FROM physical_wal_segments w
+			FROM backups_physical_wal_segments w
 			WHERE w.database_id = ?
 			  AND NOT EXISTS (
 			    SELECT 1
-			    FROM physical_full_backups f
+			    FROM backups_physical_full f
 			    WHERE f.database_id = w.database_id
 			      AND f.timeline_id = w.timeline_id
 			      AND f.start_lsn IS NOT NULL

@@ -122,6 +122,10 @@ func readBackupItems(ctx context.Context, api *apiClient, database currentDataba
 		return nil, fmt.Errorf("read the backup config of database %q: %w", database.Name, err)
 	}
 
+	if database.Settings["type"] == "POSTGRES_PHYSICAL" {
+		return nil, nil
+	}
+
 	var backupPage currentBackupPage
 
 	err = api.get(ctx, "/logical-backups?limit=100&databaseId="+database.ID, &backupPage)

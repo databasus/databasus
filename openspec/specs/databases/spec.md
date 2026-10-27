@@ -159,6 +159,11 @@ Deleting a database while one of its logical backups or a restore of one of them
 - **WHEN** a member deletes a database that has logical backups in a storage
 - **THEN** the response is `204`, the database and its backups are no longer listed, and the backup files are removed from the storage
 
+#### Scenario: Deleting a database with physical backups
+
+- **WHEN** a member deletes a physical PostgreSQL database that has, in a storage, a full backup, incremental backups that continue each other, archived WAL segments and a timeline history file, and also has a WAL streamer, an in-flight claim and WAL stream samples
+- **THEN** the response is `204`, no record of any of them remains, and the deletion of every file they name is requested
+
 #### Scenario: A logical backup is running
 
 - **WHEN** a member deletes a database while its logical backup is in progress

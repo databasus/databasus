@@ -149,7 +149,7 @@ func (r *PhysicalWalStreamSampleRepository) GetSeries(
 						/ NULLIF(SUM(archived_segments) FILTER (WHERE segment_write_avg_millis IS NOT NULL), 0)
 					)::bigint AS segment_write_avg_millis,
 					MAX(segment_write_max_millis)::bigint AS segment_write_max_millis
-				FROM physical_wal_stream_samples
+				FROM backups_physical_wal_stream_samples
 				WHERE database_id = @database_id
 				  AND sampled_at >= @first_bucket_at
 				  AND sampled_at < @series_end_at
@@ -159,7 +159,7 @@ func (r *PhysicalWalStreamSampleRepository) GetSeries(
 				SELECT
 					date_bin(make_interval(secs => @bucket_seconds), session_started_at, CAST(@origin AS TIMESTAMPTZ)) AS started_at,
 					COUNT(DISTINCT session_started_at) AS session_starts
-				FROM physical_wal_stream_samples
+				FROM backups_physical_wal_stream_samples
 				WHERE database_id = @database_id
 				  AND sampled_at >= @first_bucket_at
 				  AND session_started_at >= @first_bucket_at

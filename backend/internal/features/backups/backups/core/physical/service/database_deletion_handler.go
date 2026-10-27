@@ -14,9 +14,7 @@ import (
 	db "databasus-backend/internal/storage"
 )
 
-// OnDatabaseDeleting records the obligation to remove every file of the database's physical backups.
-// Every physical table cascades on databases.id, so the deletion drops the rows that are the only
-// record of the file names; the obligation commits with it in the same transaction.
+// File deletion requests and the removal of their physical records commit together.
 func (s *PhysicalBackupService) OnDatabaseDeleting(ctx context.Context, event databases.DatabaseDeleting) error {
 	return db.GetTransactor().Transaction(ctx, func(ctx context.Context) error {
 		tx := database.Conn(ctx, db.GetDb())
@@ -26,7 +24,25 @@ func (s *PhysicalBackupService) OnDatabaseDeleting(ctx context.Context, event da
 			return err
 		}
 
-		return s.getStorages().RequestFileDeletions(ctx, references)
+		if err := s.getStorages().RequestFileDeletions(ctx, references); err != nil {
+			return err
+		}
+
+		for _, table := range []string{
+			"backups_physical_wal_stream_samples",
+			"backups_physical_wal_streamers",
+			"backups_physical_in_flight",
+			"backups_physical_wal_segments",
+			"backups_physical_wal_history_files",
+			"backups_physical_incremental",
+			"backups_physical_full",
+		} {
+			if err := tx.Exec("DELETE FROM "+table+" WHERE database_id = ?", event.DatabaseID).Error; err != nil {
+				return fmt.Errorf("delete physical records from %s: %w", table, err)
+			}
+		}
+
+		return nil
 	})
 }
 

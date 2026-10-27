@@ -47,11 +47,8 @@ const (
 	// in-flight backups cancelled when the user disables backups.
 	PhysicalBackupErrorCanceledByUser PhysicalBackupErrorReason = "CANCELED_BY_USER"
 
-	// In-flight backup killed because the parent DB was removed via
-	// OnBeforeDatabaseRemove. The backup row is cascade-deleted moments
-	// later — so this value is rarely observed in steady-state queries, but
-	// it appears in archived audit logs and in tests that snapshot status
-	// between the CANCEL and the DROP.
+	// Database deletion removes the backup row in its transaction, so this reason is rarely
+	// observable in the catalog.
 	PhysicalBackupErrorCanceledByDbRemoval PhysicalBackupErrorReason = "CANCELED_BY_DB_REMOVAL"
 
 	// INCR-specific and chain-killing (status = CHAIN_BROKEN).

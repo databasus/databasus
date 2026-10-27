@@ -53,7 +53,7 @@ type PhysicalWalStreamSample struct {
 }
 
 func (PhysicalWalStreamSample) TableName() string {
-	return "physical_wal_stream_samples"
+	return "backups_physical_wal_stream_samples"
 }
 
 func (s *PhysicalWalStreamSample) IsSourceReachable() bool {

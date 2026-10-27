@@ -191,40 +191,45 @@ func CreateTestInFlightClaim(
 	}
 }
 
-// Call from t.Cleanup; deletes in FK-safe order so the cascade can't fight
-// the explicit deletes.
 func DeleteAllPhysicalCatalogForDatabase(t *testing.T, databaseID uuid.UUID) {
 	t.Helper()
 
 	db := storage.GetDb()
 
+	if err := db.Exec(
+		"DELETE FROM backups_physical_wal_stream_samples WHERE database_id = ?",
+		databaseID,
+	).Error; err != nil {
+		t.Fatalf("cleanup wal stream samples: %v", err)
+	}
+
 	if err := db.
-		Exec(`DELETE FROM physical_wal_segments WHERE database_id = ?`, databaseID).Error; err != nil {
+		Exec(`DELETE FROM backups_physical_wal_segments WHERE database_id = ?`, databaseID).Error; err != nil {
 		t.Fatalf("cleanup wal segments: %v", err)
 	}
 
 	if err := db.
-		Exec(`DELETE FROM physical_wal_history_files WHERE database_id = ?`, databaseID).Error; err != nil {
+		Exec(`DELETE FROM backups_physical_wal_history_files WHERE database_id = ?`, databaseID).Error; err != nil {
 		t.Fatalf("cleanup wal history: %v", err)
 	}
 
 	if err := db.
-		Exec(`DELETE FROM physical_in_flight_backups WHERE database_id = ?`, databaseID).Error; err != nil {
+		Exec(`DELETE FROM backups_physical_in_flight WHERE database_id = ?`, databaseID).Error; err != nil {
 		t.Fatalf("cleanup in-flight: %v", err)
 	}
 
 	if err := db.
-		Exec(`DELETE FROM physical_wal_streamers WHERE database_id = ?`, databaseID).Error; err != nil {
+		Exec(`DELETE FROM backups_physical_wal_streamers WHERE database_id = ?`, databaseID).Error; err != nil {
 		t.Fatalf("cleanup wal streamers: %v", err)
 	}
 
 	if err := db.
-		Exec(`DELETE FROM physical_incremental_backups WHERE database_id = ?`, databaseID).Error; err != nil {
+		Exec(`DELETE FROM backups_physical_incremental WHERE database_id = ?`, databaseID).Error; err != nil {
 		t.Fatalf("cleanup incremental backups: %v", err)
 	}
 
 	if err := db.
-		Exec(`DELETE FROM physical_full_backups WHERE database_id = ?`, databaseID).Error; err != nil {
+		Exec(`DELETE FROM backups_physical_full WHERE database_id = ?`, databaseID).Error; err != nil {
 		t.Fatalf("cleanup full backups: %v", err)
 	}
 }

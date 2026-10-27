@@ -598,6 +598,10 @@ func Test_RunStartupCleanup_OrphanFromDeletedDB_NotCleaned(t *testing.T) {
 	require.True(t, postgresql_executor.SlotExists(t, adminConn, slotName),
 		"orphan slot must exist before deletion")
 
+	for _, table := range []string{"backups_physical_wal_stream_samples", "backups_physical_wal_streamers", "backups_physical_in_flight", "backups_physical_wal_segments", "backups_physical_wal_history_files", "backups_physical_incremental", "backups_physical_full"} {
+		require.NoError(t, storage.GetDb().Exec("DELETE FROM "+table+" WHERE database_id = ?", fixture.DB.ID).Error)
+	}
+
 	require.NoError(t, storage.GetDb().Exec(
 		"WITH deleted_config AS (DELETE FROM backups_configs WHERE database_id = @id) "+
 			"DELETE FROM databases WHERE id = @id",

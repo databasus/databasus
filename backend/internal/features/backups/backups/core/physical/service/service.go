@@ -412,11 +412,11 @@ func (s *PhysicalBackupService) GetTotalUsageMBByDatabase(databaseID uuid.UUID) 
 
 	err := storage.GetDb().Raw(`
 		SELECT
-		    COALESCE((SELECT SUM(backup_size_mb) FROM physical_full_backups
+		    COALESCE((SELECT SUM(backup_size_mb) FROM backups_physical_full
 		              WHERE database_id = ? AND status = ?), 0)
-		  + COALESCE((SELECT SUM(backup_size_mb) FROM physical_incremental_backups
+		  + COALESCE((SELECT SUM(backup_size_mb) FROM backups_physical_incremental
 		              WHERE database_id = ? AND status = ?), 0)
-		  + COALESCE((SELECT SUM(compressed_size_mb) FROM physical_wal_segments
+		  + COALESCE((SELECT SUM(compressed_size_mb) FROM backups_physical_wal_segments
 		              WHERE database_id = ?), 0)
 	`,
 		databaseID, physical_enums.PhysicalBackupStatusCompleted,
@@ -439,7 +439,7 @@ func backupListItemsQuery(filterClause string) string {
 			           LAG(end_lsn) OVER (PARTITION BY timeline_id ORDER BY start_lsn) <> start_lsn,
 			           FALSE
 			       ) AS is_gap_start
-			FROM physical_wal_segments
+			FROM backups_physical_wal_segments
 			WHERE database_id = ? AND file_name IS NOT NULL
 		),
 		merged AS (
@@ -450,7 +450,7 @@ func backupListItemsQuery(filterClause string) string {
 			       COALESCE(backup_size_mb, 0) AS size_mb,
 			       fail_message, created_at, completed_at,
 			       FALSE AS is_gap_start
-			FROM physical_full_backups
+			FROM backups_physical_full
 			WHERE database_id = ?
 			UNION ALL
 			SELECT id, 'INCREMENTAL', status, timeline_id, start_lsn, stop_lsn,
@@ -458,7 +458,7 @@ func backupListItemsQuery(filterClause string) string {
 			       COALESCE(backup_size_mb, 0),
 			       fail_message, created_at, completed_at,
 			       FALSE
-			FROM physical_incremental_backups
+			FROM backups_physical_incremental
 			WHERE database_id = ?
 			UNION ALL
 			SELECT id, 'WAL', 'COMPLETED', timeline_id, start_lsn, end_lsn,
@@ -581,10 +581,10 @@ func (s *PhysicalBackupService) findNextAnchorLSNAfter(
 ) (walmath.LSN, error) {
 	row := storage.GetDb().WithContext(ctx).Raw(`
 		SELECT MIN(start_lsn)::text FROM (
-			SELECT start_lsn FROM physical_full_backups
+			SELECT start_lsn FROM backups_physical_full
 			WHERE database_id = ? AND timeline_id = ? AND start_lsn IS NOT NULL AND start_lsn > ?::pg_lsn
 			UNION ALL
-			SELECT start_lsn FROM physical_incremental_backups
+			SELECT start_lsn FROM backups_physical_incremental
 			WHERE database_id = ? AND timeline_id = ? AND start_lsn IS NOT NULL AND start_lsn > ?::pg_lsn
 		) anchors
 	`,

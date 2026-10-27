@@ -37,7 +37,7 @@ func plantHistoryFileOnSource(t *testing.T, conn *pgx.Conn, timelineID int) {
 	require.NoError(t, err)
 }
 
-// fk_physical_wal_history_files_database_id REFERENCES databases(id), so a row keyed on anything
+// fk_backups_physical_wal_history_files_database REFERENCES databases(id), so a row keyed on anything
 // else fails the insert with SQLSTATE 23503 and aborts the WAL-stream supervisor before any segment
 // is recorded (issue #643).
 func Test_UploadHistoryFile_KeysRowOnParentDatabaseID(t *testing.T) {
@@ -66,7 +66,7 @@ func Test_UploadHistoryFile_KeysRowOnParentDatabaseID(t *testing.T) {
 		Encryption:  backups_core_enums.BackupEncryptionNone,
 		Logger:      logger.GetLogger(),
 	})
-	require.NoError(t, err, "history insert must not violate fk_physical_wal_history_files_database_id")
+	require.NoError(t, err, "history insert must not violate fk_backups_physical_wal_history_files_database")
 	require.NotNil(t, row)
 	t.Cleanup(func() { _ = historyRepo.DeleteByID(row.ID) })
 

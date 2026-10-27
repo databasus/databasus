@@ -1439,7 +1439,7 @@ func createCompletedFullBackupsInBulk(t *testing.T, prereqs *physicalControllerP
 	t.Helper()
 
 	err := storage.GetDb().Exec(`
-		INSERT INTO physical_full_backups
+		INSERT INTO backups_physical_full
 		    (database_id, storage_id, timeline_id, status, start_lsn, stop_lsn, created_at, completed_at)
 		SELECT ?, ?, 1, ?, '0/0'::pg_lsn, '0/100'::pg_lsn,
 		       NOW() - make_interval(secs => series_index), NOW() - make_interval(secs => series_index)

@@ -17,9 +17,8 @@ import (
 
 var errNoDatabaseWriteWaiting = errors.New("no write of the databases table waits for a lock yet")
 
-// TestDatabaseDeletion deletes a database in the lock order of DeleteDatabase, the database row first
-// and then its children by cascade, but stops after the first lock, so a test can race a writer of
-// the database's children against the deletion.
+// Pausing after the database lock lets a test race publication against deletion of the dependent
+// backup rows.
 type TestDatabaseDeletion struct {
 	tx         *gorm.DB
 	databaseID uuid.UUID
@@ -64,9 +63,14 @@ func (d *TestDatabaseDeletion) WaitForBlockedDatabaseWrite(t *testing.T) {
 	})
 }
 
-// Finish deletes the database and commits. The backup configs reference the database with RESTRICT,
-// so they go first, as the DatabaseDeleting handler of the backups module removes them.
+// Finish removes the referencing backup records before committing the database deletion.
 func (d *TestDatabaseDeletion) Finish() error {
+	for _, table := range []string{"backups_physical_wal_stream_samples", "backups_physical_wal_streamers", "backups_physical_in_flight", "backups_physical_wal_segments", "backups_physical_wal_history_files", "backups_physical_incremental", "backups_physical_full"} {
+		if err := d.tx.Exec("DELETE FROM "+table+" WHERE database_id = ?", d.databaseID).Error; err != nil {
+			return err
+		}
+	}
+
 	err := d.tx.Exec("DELETE FROM backups_configs WHERE database_id = ?", d.databaseID).Error
 	if err != nil {
 		return err

@@ -29,10 +29,10 @@ func TestStorageReferencesMigration(t *testing.T) {
 			[]string{
 				"fk_backups_configs_storage",
 				"fk_backups_logical_storage",
-				"fk_physical_full_backups_storage_id",
-				"fk_physical_incremental_backups_storage_id",
-				"fk_physical_wal_segments_storage_id",
-				"fk_physical_wal_history_files_storage_id",
+				"fk_backups_physical_full_storage",
+				"fk_backups_physical_incremental_storage",
+				"fk_backups_physical_wal_segments_storage",
+				"fk_backups_physical_wal_history_files_storage",
 				"fk_storages_pending_deletions_storage_id",
 			},
 		).Scan(&deleteActions).Error)
@@ -43,13 +43,13 @@ func TestStorageReferencesMigration(t *testing.T) {
 		}
 
 		assert.Equal(t, map[string]string{
-			"fk_backups_configs_storage":                 "r",
-			"fk_backups_logical_storage":                 "r",
-			"fk_physical_full_backups_storage_id":        "r",
-			"fk_physical_incremental_backups_storage_id": "r",
-			"fk_physical_wal_segments_storage_id":        "r",
-			"fk_physical_wal_history_files_storage_id":   "r",
-			"fk_storages_pending_deletions_storage_id":   "c",
+			"fk_backups_configs_storage":                    "r",
+			"fk_backups_logical_storage":                    "r",
+			"fk_backups_physical_full_storage":              "r",
+			"fk_backups_physical_incremental_storage":       "r",
+			"fk_backups_physical_wal_segments_storage":      "r",
+			"fk_backups_physical_wal_history_files_storage": "r",
+			"fk_storages_pending_deletions_storage_id":      "c",
 		}, deleteActionByConstraint)
 	})
 
@@ -70,7 +70,7 @@ func TestStorageReferencesMigration(t *testing.T) {
 
 		physicalBackupStorageID := insertStorage(t, db, workspaceID)
 		physicalBackupID := uuid.New()
-		execute(t, db, `INSERT INTO physical_full_backups (id, database_id, storage_id, timeline_id, status)
+		execute(t, db, `INSERT INTO backups_physical_full (id, database_id, storage_id, timeline_id, status)
 			VALUES (?, ?, ?, 1, 'COMPLETED')`, physicalBackupID, databaseID, physicalBackupStorageID)
 
 		for _, storageID := range []uuid.UUID{configStorageID, logicalBackupStorageID, physicalBackupStorageID} {
@@ -82,7 +82,7 @@ func TestStorageReferencesMigration(t *testing.T) {
 		assert.ElementsMatch(t, []uuid.UUID{configStorageID},
 			listIDs(t, db, "SELECT storage_id FROM backups_configs"))
 		assert.ElementsMatch(t, []uuid.UUID{logicalBackupID}, listIDs(t, db, "SELECT id FROM backups_logical"))
-		assert.ElementsMatch(t, []uuid.UUID{physicalBackupID}, listIDs(t, db, "SELECT id FROM physical_full_backups"))
+		assert.ElementsMatch(t, []uuid.UUID{physicalBackupID}, listIDs(t, db, "SELECT id FROM backups_physical_full"))
 		assert.ElementsMatch(t,
 			[]uuid.UUID{configStorageID, logicalBackupStorageID, physicalBackupStorageID},
 			listIDs(t, db, "SELECT id FROM storages"))

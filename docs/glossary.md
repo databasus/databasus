@@ -47,6 +47,10 @@ This is the project's common language. Each concept has one term in the document
 | Incremental backup | incremental backup, `INCREMENTAL` | A physical backup that contains only the blocks changed since its parent backup. |
 | Chain | chain | A full backup with the incremental backups built on it. |
 | WAL segment | WAL segment | One file of PostgreSQL's write-ahead log, archived to the storage after it is completed. |
+| WAL range | `WAL` row | Consecutive archived WAL segments shown as one row in the physical backup list. |
+| Timeline history file | timeline history file | The `.history` file PostgreSQL writes when a timeline starts, archived beside the WAL segments. |
+| In-flight claim | `backups_physical_in_flight` | The record that a full or incremental backup of a database is running, at most one per database. |
+| WAL stream sample | `backups_physical_wal_stream_samples` | The state of a WAL stream recorded every 30 seconds, from which its health is computed. |
 | WAL stream | WAL stream | Continuous archiving of a database's WAL segments by `pg_receivewal`. |
 | WAL streamer | WAL streamer | The process that runs the WAL stream of one database. |
 | Replication slot | slot | A slot on the source that keeps WAL until Databasus has received it. |

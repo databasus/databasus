@@ -82,7 +82,7 @@ func runUpgradeSteps(t *testing.T, docker *dockerHost, spec upgradeSpec, resourc
 		return err
 	}
 
-	writtenData, err := writeThroughPreviousRelease(t, docker, spec, resources)
+	writtenData, err := writeThroughPreviousRelease(t, docker, spec, resources, sourceHostPort)
 	if err != nil {
 		return err
 	}
@@ -146,6 +146,7 @@ func writeThroughPreviousRelease(
 	docker *dockerHost,
 	spec upgradeSpec,
 	resources upgradeResources,
+	sourceHostPort int,
 ) (writtenUpgradeData, error) {
 	t.Helper()
 
@@ -163,7 +164,7 @@ func writeThroughPreviousRelease(
 		return writtenUpgradeData{}, err
 	}
 
-	writtenData, err := writeUpgradeData(t, previousAPI)
+	writtenData, err := writeUpgradeData(t, previousAPI, sourceHostPort)
 	if err != nil {
 		return writtenUpgradeData{}, docker.withLogTail(t.Context(), resources.previousContainerName,
 			fmt.Errorf("write through the previous release: %w", err))
@@ -206,6 +207,11 @@ func checkThroughCurrentCode(
 	err = upgradecheck.Compare(writtenData.items, listedItems)
 	if err != nil {
 		return err
+	}
+
+	err = checkPhysicalBackup(ctx, currentAPI, writtenData)
+	if err != nil {
+		return docker.withLogTail(ctx, resources.currentContainerName, err)
 	}
 
 	err = checkStoredCredentials(ctx, currentAPI, writtenData.databaseIDs)

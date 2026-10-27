@@ -24,7 +24,7 @@ func (r *PhysicalWalStreamerRepository) Claim(databaseID uuid.UUID) error {
 	return storage.
 		GetDb().
 		Exec(`
-			INSERT INTO physical_wal_streamers (database_id, started_at, last_heartbeat_at, status)
+			INSERT INTO backups_physical_wal_streamers (database_id, started_at, last_heartbeat_at, status)
 			VALUES (?, NOW(), NOW(), ?)
 			ON CONFLICT (database_id) DO UPDATE
 			    SET started_at        = NOW(),
@@ -52,14 +52,14 @@ func (r *PhysicalWalStreamerRepository) ClaimIfClaimable(
 	err := storage.
 		GetDb().
 		Raw(`
-			INSERT INTO physical_wal_streamers (database_id, started_at, last_heartbeat_at, status)
+			INSERT INTO backups_physical_wal_streamers (database_id, started_at, last_heartbeat_at, status)
 			VALUES (?, NOW(), NOW(), ?)
 			ON CONFLICT (database_id) DO UPDATE
 			    SET started_at        = NOW(),
 			        last_heartbeat_at = NOW(),
 			        status            = EXCLUDED.status
-			    WHERE physical_wal_streamers.last_heartbeat_at < NOW() - make_interval(secs => ?)
-			       OR physical_wal_streamers.status = ?
+			    WHERE backups_physical_wal_streamers.last_heartbeat_at < NOW() - make_interval(secs => ?)
+			       OR backups_physical_wal_streamers.status = ?
 			RETURNING database_id
 		`,
 			databaseID,

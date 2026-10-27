@@ -120,13 +120,13 @@ func TestSavePhysicalBackupConfig(t *testing.T) {
 		tm := newTeam(t)
 		physicalDatabase := tm.createPhysicalDatabase(t, physicalServer,
 			apiclient.PhysicalBackupTypeFULLINCREMENTALWALSTREAM)
-		tm.app.ExecuteSQL(t, "INSERT INTO physical_wal_streamers (database_id, status) VALUES (?, 'RUNNING')",
+		tm.app.ExecuteSQL(t, "INSERT INTO backups_physical_wal_streamers (database_id, status) VALUES (?, 'RUNNING')",
 			physicalDatabase.Id)
 
 		switchPhysicalBackupType(t, tm, physicalDatabase, apiclient.PhysicalBackupTypeFULLINCREMENTAL)
 
 		assert.Zero(t, countRows(t, tm,
-			"SELECT COUNT(*) FROM physical_wal_streamers WHERE database_id = ?", physicalDatabase.Id))
+			"SELECT COUNT(*) FROM backups_physical_wal_streamers WHERE database_id = ?", physicalDatabase.Id))
 	})
 
 	t.Run(

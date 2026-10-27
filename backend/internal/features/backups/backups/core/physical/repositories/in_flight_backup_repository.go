@@ -33,7 +33,7 @@ func (r *PhysicalInFlightBackupRepository) Claim(db *gorm.DB, spec ClaimSpec) (b
 	}
 
 	result := db.Exec(
-		`INSERT INTO physical_in_flight_backups (database_id, backup_type, backup_id, claimed_at)
+		`INSERT INTO backups_physical_in_flight (database_id, backup_type, backup_id, claimed_at)
 		 VALUES (?, ?, ?, NOW())
 		 ON CONFLICT (database_id) DO NOTHING`,
 		spec.DatabaseID, spec.BackupType, spec.BackupID,
