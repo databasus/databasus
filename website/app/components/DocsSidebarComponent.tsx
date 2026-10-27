@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { getLocalizedHref, isTranslatedPath, type Locale } from "@/app/i18n";
 
 interface NavItem {
@@ -87,6 +87,25 @@ const navItems: NavItem[] = [
 
 // Keyed by the English titles used in navItems.
 const SIDEBAR_TITLES: Record<Locale, Record<string, string>> = {
+  id: {
+    Installation: "Instalasi",
+    "Restore verification": "Verifikasi restore",
+    Storages: "Penyimpanan",
+    Notifiers: "Kanal notifikasi",
+    "Access management": "Pengelolaan akses",
+    "Reset password": "Atur ulang kata sandi",
+    Security: "Keamanan",
+    FAQ: "Pertanyaan umum",
+    "How to backup localhost": "Cara backup localhost",
+    "How to backup Supabase": "Cara backup Supabase",
+    Contribute: "Berkontribusi",
+    "How to add storage": "Cara menambahkan penyimpanan",
+    "How to add notifier": "Cara menambahkan kanal notifikasi",
+    Comparisons: "Perbandingan",
+    "pg_dump alternative": "Alternatif pg_dump",
+    "Manual recovery from backup without Databasus": "Restore manual dari backup tanpa Databasus",
+    "Advanced config": "Konfigurasi lanjutan",
+  },
   ru: {
     Installation: "Установка",
     "Restore verification": "Проверка восстановления",
@@ -143,8 +162,7 @@ const SIDEBAR_TITLES: Record<Locale, Record<string, string>> = {
     "How to add notifier": "Como adicionar um notificador",
     Comparisons: "Comparações",
     "pg_dump alternative": "Alternativa ao pg_dump",
-    "Manual recovery from backup without Databasus":
-      "Recuperação manual do backup sem Databasus",
+    "Manual recovery from backup without Databasus": "Recuperação manual do backup sem Databasus",
     "Advanced config": "Configuração avançada",
   },
   zh: {
@@ -163,8 +181,7 @@ const SIDEBAR_TITLES: Record<Locale, Record<string, string>> = {
     "How to add notifier": "如何添加通知器",
     Comparisons: "对比",
     "pg_dump alternative": "pg_dump 替代方案",
-    "Manual recovery from backup without Databasus":
-      "不使用 Databasus 手动恢复备份",
+    "Manual recovery from backup without Databasus": "不使用 Databasus 手动恢复备份",
     "Advanced config": "高级配置",
   },
   fr: {
@@ -196,13 +213,51 @@ const NAVIGATION_HEADINGS: Record<Locale | "en", string> = {
   pt: "Navegação",
   zh: "导航",
   fr: "Navigation",
+  id: "Navigasi",
 };
 
-export default function DocsSidebarComponent({
-  lang = "en",
-}: {
-  lang?: Locale | "en";
-}) {
+const NAVIGATION_ACTIONS: Record<
+  Locale | "en",
+  { toggleMenu: string; closeMenu: string; toggleSection: string }
+> = {
+  en: {
+    toggleMenu: "Toggle navigation menu",
+    closeMenu: "Close menu",
+    toggleSection: "Toggle {title} section",
+  },
+  ru: {
+    toggleMenu: "Toggle navigation menu",
+    closeMenu: "Close menu",
+    toggleSection: "Toggle {title} section",
+  },
+  es: {
+    toggleMenu: "Toggle navigation menu",
+    closeMenu: "Close menu",
+    toggleSection: "Toggle {title} section",
+  },
+  pt: {
+    toggleMenu: "Toggle navigation menu",
+    closeMenu: "Close menu",
+    toggleSection: "Toggle {title} section",
+  },
+  zh: {
+    toggleMenu: "Toggle navigation menu",
+    closeMenu: "Close menu",
+    toggleSection: "Toggle {title} section",
+  },
+  fr: {
+    toggleMenu: "Toggle navigation menu",
+    closeMenu: "Close menu",
+    toggleSection: "Toggle {title} section",
+  },
+  id: {
+    toggleMenu: "Buka/tutup menu navigasi",
+    closeMenu: "Tutup menu",
+    toggleSection: "Buka/tutup bagian {title}",
+  },
+};
+
+export default function DocsSidebarComponent({ lang = "en" }: { lang?: Locale | "en" }) {
   const pathname = usePathname();
 
   const localizeHref = (href: string) => {
@@ -224,32 +279,25 @@ export default function DocsSidebarComponent({
     })),
   }));
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [manuallyToggledSections, setManuallyToggledSections] = useState<
-    Set<string>
-  >(new Set());
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const [manuallyToggledSections, setManuallyToggledSections] = useState<Set<string>>(new Set());
 
   const isActive = (href: string) => {
     // Normalize paths by removing trailing slashes for comparison
     const normalizedPathname =
-      pathname.endsWith("/") && pathname !== "/"
-        ? pathname.slice(0, -1)
-        : pathname;
-    const normalizedHref =
-      href.endsWith("/") && href !== "/" ? href.slice(0, -1) : href;
+      pathname.endsWith("/") && pathname !== "/" ? pathname.slice(0, -1) : pathname;
+    const normalizedHref = href.endsWith("/") && href !== "/" ? href.slice(0, -1) : href;
     return normalizedPathname === normalizedHref;
   };
 
   const isParentActive = (item: NavItem) => {
     if (item.children) {
       const normalizedPathname =
-        pathname.endsWith("/") && pathname !== "/"
-          ? pathname.slice(0, -1)
-          : pathname;
+        pathname.endsWith("/") && pathname !== "/" ? pathname.slice(0, -1) : pathname;
       return item.children.some((child) => {
         const normalizedChildHref =
-          child.href.endsWith("/") && child.href !== "/"
-            ? child.href.slice(0, -1)
-            : child.href;
+          child.href.endsWith("/") && child.href !== "/" ? child.href.slice(0, -1) : child.href;
         return normalizedPathname === normalizedChildHref;
       });
     }
@@ -274,6 +322,7 @@ export default function DocsSidebarComponent({
   useEffect(() => {
     if (isMobileMenuOpen) {
       document.body.style.overflow = "hidden";
+      closeButtonRef.current?.focus();
     } else {
       document.body.style.overflow = "";
     }
@@ -282,6 +331,23 @@ export default function DocsSidebarComponent({
     return () => {
       document.body.style.overflow = "";
     };
+  }, [isMobileMenuOpen]);
+
+  const closeMenu = () => {
+    setIsMobileMenuOpen(false);
+    menuButtonRef.current?.focus();
+  };
+
+  useEffect(() => {
+    if (!isMobileMenuOpen) return;
+    const dismissOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      setIsMobileMenuOpen(false);
+      menuButtonRef.current?.focus();
+    };
+    document.addEventListener("keydown", dismissOnEscape);
+    return () => document.removeEventListener("keydown", dismissOnEscape);
   }, [isMobileMenuOpen]);
 
   const toggleSection = (href: string, hasChildren: boolean) => {
@@ -307,16 +373,12 @@ export default function DocsSidebarComponent({
               href={item.href}
               onClick={() => setIsMobileMenuOpen(false)}
               className={`flex-1 rounded-md px-2 py-1.5 text-sm transition-colors relative pl-4 ${
-                isActive(item.href)
-                  ? "text-white font-medium"
-                  : "text-gray-400 hover:text-white"
+                isActive(item.href) ? "text-white font-medium" : "text-gray-400 hover:text-white"
               }`}
             >
               <span
                 className={`absolute left-0 top-0 bottom-0 w-0.5 rounded-full transition-all duration-200 ${
-                  isActive(item.href)
-                    ? "bg-blue-600 opacity-100"
-                    : "bg-transparent opacity-0"
+                  isActive(item.href) ? "bg-blue-600 opacity-100" : "bg-transparent opacity-0"
                 }`}
               />
               {item.title}
@@ -325,11 +387,10 @@ export default function DocsSidebarComponent({
               <button
                 onClick={() => toggleSection(item.href, !!item.children)}
                 className={`ml-1 rounded-md p-1 transition-all duration-200 ${
-                  isActive(item.href)
-                    ? "text-white"
-                    : "text-gray-500 hover:text-gray-300"
+                  isActive(item.href) ? "text-white" : "text-gray-500 hover:text-gray-300"
                 }`}
-                aria-label={`Toggle ${item.title} section`}
+                aria-label={NAVIGATION_ACTIONS[lang].toggleSection.replace("{title}", item.title)}
+                aria-expanded={isSectionExpanded(item.href)}
               >
                 <svg
                   className={`h-3.5 w-3.5 transition-transform duration-200 ${
@@ -340,21 +401,16 @@ export default function DocsSidebarComponent({
                   viewBox="0 0 24 24"
                   strokeWidth={2}
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M9 5l7 7-7 7"
-                  />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                 </svg>
               </button>
             )}
           </div>
           {item.children && (
             <div
+              inert={!isSectionExpanded(item.href)}
               className={`overflow-hidden transition-all duration-200 ease-in-out ${
-                isSectionExpanded(item.href)
-                  ? "max-h-96 opacity-100"
-                  : "max-h-0 opacity-0"
+                isSectionExpanded(item.href) ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
               }`}
             >
               <div className="ml-3 mt-0.5 space-y-0.5 border-l border-[#ffffff20] pl-3">
@@ -391,17 +447,14 @@ export default function DocsSidebarComponent({
     <>
       {/* Mobile Menu Button */}
       <button
+        ref={menuButtonRef}
         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-        className="fixed bottom-4 right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg hover:bg-blue-700 lg:hidden"
-        aria-label="Toggle navigation menu"
+        className="docs-mobile-navigation mx-4 my-3 flex h-11 w-11 items-center justify-center rounded-lg bg-blue-600 text-white hover:bg-blue-700 lg:hidden"
+        aria-label={NAVIGATION_ACTIONS[lang].toggleMenu}
+        aria-expanded={isMobileMenuOpen}
       >
         {isMobileMenuOpen ? (
-          <svg
-            className="h-6 w-6"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
+          <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -410,12 +463,7 @@ export default function DocsSidebarComponent({
             />
           </svg>
         ) : (
-          <svg
-            className="h-6 w-6"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
+          <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -430,31 +478,26 @@ export default function DocsSidebarComponent({
       {isMobileMenuOpen && (
         <div
           className="fixed inset-0 z-40 backdrop-blur-md bg-black/50 lg:hidden"
-          onClick={() => setIsMobileMenuOpen(false)}
+          onClick={closeMenu}
         />
       )}
 
       {/* Mobile Menu */}
       <aside
+        inert={!isMobileMenuOpen}
         className={`fixed bottom-0 left-0 right-0 z-40 max-h-[80vh] overflow-y-auto rounded-t-2xl border-t border-[#ffffff20] bg-[#0F1115] p-6 shadow-2xl transition-transform duration-300 lg:hidden ${
           isMobileMenuOpen ? "translate-y-0" : "translate-y-full"
         }`}
       >
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-white">
-            {NAVIGATION_HEADINGS[lang]}
-          </h2>
+          <h2 className="text-lg font-semibold text-white">{NAVIGATION_HEADINGS[lang]}</h2>
           <button
-            onClick={() => setIsMobileMenuOpen(false)}
-            className="rounded-lg p-2 text-gray-400 hover:bg-[#1f2937]"
-            aria-label="Close menu"
+            ref={closeButtonRef}
+            onClick={closeMenu}
+            className="flex h-11 w-11 items-center justify-center rounded-lg text-gray-400 hover:bg-[#1f2937]"
+            aria-label={NAVIGATION_ACTIONS[lang].closeMenu}
           >
-            <svg
-              className="h-5 w-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -469,9 +512,7 @@ export default function DocsSidebarComponent({
 
       {/* Desktop Sidebar */}
       <aside className="hidden w-64 border-r border-[#ffffff20] bg-[#0F1115] lg:block">
-        <div className="sticky top-0 h-screen overflow-y-auto p-6">
-          {renderSidebarContent()}
-        </div>
+        <div className="sticky top-0 h-screen overflow-y-auto p-6">{renderSidebarContent()}</div>
       </aside>
     </>
   );

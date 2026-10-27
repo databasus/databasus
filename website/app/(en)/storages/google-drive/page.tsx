@@ -23,6 +23,7 @@ export const metadata: Metadata = {
     description:
       "Step-by-step guide to configure Google Drive storage for PostgreSQL backups with Databasus. Learn how to set up Google Cloud project and OAuth.",
     type: "article",
+    locale: "en_US",
     url: "https://databasus.com/storages/google-drive",
   },
   twitter: {

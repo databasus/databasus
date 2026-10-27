@@ -1,5 +1,25 @@
 import type { Locale } from "@/app/i18n";
 
+export const TABLE_OF_CONTENTS_LABELS: Record<Locale | "en", string> = {
+  en: "On This Page",
+  ru: "On This Page",
+  es: "On This Page",
+  pt: "On This Page",
+  zh: "On This Page",
+  fr: "On This Page",
+  id: "Di halaman ini",
+};
+
+export const LANGUAGE_SELECTOR_LABELS: Record<Locale | "en", string> = {
+  en: "Select language",
+  ru: "Select language",
+  es: "Select language",
+  pt: "Select language",
+  zh: "Select language",
+  fr: "Select language",
+  id: "Pilih bahasa",
+};
+
 export interface LandingLabels {
   logoAlt: string;
   docs: string;
@@ -16,6 +36,20 @@ export interface LandingLabels {
 }
 
 export const LANDING_LABELS: Record<Locale | "en", LandingLabels> = {
+  id: {
+    logoAlt: "Logo Databasus",
+    docs: "Dokumentasi",
+    community: "Komunitas",
+    starOnGithub: "Beri bintang di GitHub, dukunganmu sangat berarti ❤️",
+    postgresqlBackup: "Backup PostgreSQL",
+    mysqlBackup: "Backup MySQL dan MariaDB",
+    mongodbBackup: "Backup MongoDB",
+    documentation: "Dokumentasi",
+    developer: "Pengembang",
+    privacy: "Privasi",
+    termsOfUse: "Ketentuan penggunaan",
+    copyright: "© 2026 Databasus™. Hak cipta dilindungi.",
+  },
   en: {
     logoAlt: "Databasus logo",
     docs: "Docs",

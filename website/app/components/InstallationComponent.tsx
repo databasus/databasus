@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { getLocalizedHref, type Locale } from "@/app/i18n";
-import { COPY_LABELS } from "./copyLabels";
+import { COPY_LABELS, VIDEO_PLAY_LABELS } from "./copyLabels";
 import LiteYouTubeEmbed from "./LiteYouTubeEmbed";
 
 type InstallationTexts = {
@@ -22,6 +22,25 @@ type InstallationTexts = {
 };
 
 const INSTALLATION_TEXTS: Record<Locale | "en", InstallationTexts> = {
+  id: {
+    automatedLabel: "Skrip otomatis",
+    automatedTitle: "Skrip otomatis (disarankan)",
+    automatedDescription:
+      "Skrip instalasi akan memasang Docker beserta Docker Compose (jika belum terpasang), menyiapkan Databasus, dan mengaturnya agar berjalan otomatis saat sistem dinyalakan ulang.",
+    dockerDescription:
+      "Cara termudah menjalankan Databasus. Satu perintah ini akan menjalankan Databasus, menyimpan semua data di direktori ./databasus-data, dan mengaturnya agar berjalan otomatis saat sistem dinyalakan ulang.",
+    composeDescription:
+      "Buat file docker-compose.yml dengan konfigurasi berikut, lalu jalankan: docker compose up -d",
+    helmDescription:
+      "Untuk deployment Kubernetes, instal langsung dari registry OCI. Pilih cara akses: ClusterIP dengan port-forward untuk pengembangan, LoadBalancer untuk lingkungan cloud, atau Ingress untuk akses melalui domain.",
+    withSudo: "dengan sudo",
+    withoutSudo: "tanpa sudo",
+    helmClusterIP: "Dengan ClusterIP + port-forward (pengembangan)",
+    helmLoadBalancer: "Dengan LoadBalancer (lingkungan cloud)",
+    helmIngress: "Dengan Ingress (akses melalui domain)",
+    readMore: "Selengkapnya tentang instalasi",
+    videoTitle: "Cara menginstal Databasus",
+  },
   en: {
     automatedLabel: "Automated script",
     automatedTitle: "Automated script (recommended)",
@@ -138,8 +157,7 @@ const INSTALLATION_TEXTS: Record<Locale | "en", InstallationTexts> = {
   },
 };
 
-type InstallMethod =
-  "Automated Script" | "Docker Run" | "Docker Compose" | "Helm";
+type InstallMethod = "Automated Script" | "Docker Run" | "Docker Compose" | "Helm";
 
 type ScriptVariant = {
   label: string;
@@ -160,9 +178,7 @@ type Installation = {
   description: string;
 };
 
-function getInstallationMethods(
-  texts: InstallationTexts,
-): Record<InstallMethod, Installation> {
+function getInstallationMethods(texts: InstallationTexts): Record<InstallMethod, Installation> {
   return {
     "Automated Script": {
       label: texts.automatedLabel,
@@ -245,20 +261,10 @@ kubectl get svc databasus-service -n databasus
   };
 }
 
-const methods: InstallMethod[] = [
-  "Automated Script",
-  "Docker Run",
-  "Docker Compose",
-  "Helm",
-];
+const methods: InstallMethod[] = ["Automated Script", "Docker Run", "Docker Compose", "Helm"];
 
-export default function InstallationComponent({
-  lang = "en",
-}: {
-  lang?: Locale | "en";
-}) {
-  const [selectedMethod, setSelectedMethod] =
-    useState<InstallMethod>("Automated Script");
+export default function InstallationComponent({ lang = "en" }: { lang?: Locale | "en" }) {
+  const [selectedMethod, setSelectedMethod] = useState<InstallMethod>("Automated Script");
   const texts = INSTALLATION_TEXTS[lang];
   const installationMethods = getInstallationMethods(texts);
   const [selectedVariant, setSelectedVariant] = useState(0);
@@ -267,10 +273,8 @@ export default function InstallationComponent({
 
   const currentInstallation = installationMethods[selectedMethod];
   const hasVariants =
-    Array.isArray(currentInstallation.code) &&
-    currentInstallation.code.length > 0;
-  const hasCodeBlocks =
-    currentInstallation.codeBlocks && currentInstallation.codeBlocks.length > 0;
+    Array.isArray(currentInstallation.code) && currentInstallation.code.length > 0;
+  const hasCodeBlocks = currentInstallation.codeBlocks && currentInstallation.codeBlocks.length > 0;
 
   const handleMethodChange = (method: InstallMethod) => {
     setSelectedMethod(method);
@@ -286,8 +290,7 @@ export default function InstallationComponent({
 
   const getCurrentCode = () => {
     if (hasVariants) {
-      return (currentInstallation.code as ScriptVariant[])[selectedVariant]
-        .code;
+      return (currentInstallation.code as ScriptVariant[])[selectedVariant].code;
     }
     return currentInstallation.code as string;
   };
@@ -345,21 +348,19 @@ export default function InstallationComponent({
           {/* Script variants tabs (only for Automated Script) */}
           {hasVariants && (
             <div className="mb-4 flex flex-wrap gap-2">
-              {(currentInstallation.code as ScriptVariant[]).map(
-                (variant, index) => (
-                  <button
-                    key={index}
-                    onClick={() => handleVariantChange(index)}
-                    className={`cursor-pointer rounded-lg px-3 py-1.5 text-sm sm:px-4 sm:py-2 font-medium transition-colors ${
-                      selectedVariant === index
-                        ? "bg-[#2C2F35] text-white border border-[#2C2F35]"
-                        : "border border-[#ffffff20] hover:border-[#2C2F35] hover:bg-[#2C2F35] hover:text-white"
-                    }`}
-                  >
-                    {variant.label}
-                  </button>
-                ),
-              )}
+              {(currentInstallation.code as ScriptVariant[]).map((variant, index) => (
+                <button
+                  key={index}
+                  onClick={() => handleVariantChange(index)}
+                  className={`cursor-pointer rounded-lg px-3 py-1.5 text-sm sm:px-4 sm:py-2 font-medium transition-colors ${
+                    selectedVariant === index
+                      ? "bg-[#2C2F35] text-white border border-[#2C2F35]"
+                      : "border border-[#ffffff20] hover:border-[#2C2F35] hover:bg-[#2C2F35] hover:text-white"
+                  }`}
+                >
+                  {variant.label}
+                </button>
+              ))}
             </div>
           )}
 
@@ -368,9 +369,7 @@ export default function InstallationComponent({
             <div className="space-y-4">
               {currentInstallation.codeBlocks!.map((block, index) => (
                 <div key={index}>
-                  <p className="mb-2 text-gray-400 text-sm md:text-base">
-                    {block.label}
-                  </p>
+                  <p className="mb-2 text-gray-400 text-sm md:text-base">{block.label}</p>
                   <div className="relative">
                     <pre className="rounded-lg p-3 md:p-4 sm:pr-14 md:pr-16 text-sm border border-[#ffffff20] overflow-x-auto">
                       <code className="block whitespace-pre-wrap wrap-break-word">
@@ -438,6 +437,7 @@ export default function InstallationComponent({
             <LiteYouTubeEmbed
               videoId="KaNLPkuu03M"
               title={texts.videoTitle}
+              playLabel={VIDEO_PLAY_LABELS[lang].replace("{title}", texts.videoTitle)}
               thumbnailSrc="/images/index/how-to-install-preview.svg"
             />
           </div>

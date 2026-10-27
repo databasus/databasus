@@ -22,6 +22,7 @@ export const metadata: Metadata = {
     description:
       "Step-by-step guide to set up Slack notifications for PostgreSQL backup alerts with Databasus. Learn how to create a Slack bot app and configure notifications.",
     type: "article",
+    locale: "en_US",
     url: "https://databasus.com/notifiers/slack",
   },
   twitter: {
