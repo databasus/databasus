@@ -29,10 +29,14 @@ func Test_OnDatabaseDeleting_DropsBothPerBackupAndStreamerSlotsAfterTheCommit(t 
 	adminConn := postgresql_executor.OpenAdminConn(t, fixture)
 
 	perBackupSlot := fixture.SourceDB.BackupSlotName
-	streamerSlot := fixture.SourceDB.Engine.ReplicationSlotName
+	streamerSlot := fixture.SourceDB.WalStreamSlotName
 	require.NotEmpty(t, streamerSlot, "streamer slot name should be populated by BeforeCreate")
 
-	require.NoError(t, pgphysical.NewSource(fixture.SourceDB.Engine).VerifySlot(t.Context(), logger.GetLogger()))
+	require.NoError(
+		t,
+		pgphysical.NewSource(fixture.SourceDB.Engine).
+			VerifySlot(t.Context(), logger.GetLogger(), fixture.SourceDB.WalStreamSlotName),
+	)
 
 	// Simulate an orphan per-backup slot a crashed/interrupted backup left behind
 	// that neither the next run nor startup cleanup recovered before removal.
@@ -73,7 +77,7 @@ func Test_OnDatabaseDeleting_WhenTheSourceIsBehindABastion_DropsBothPerBackupAnd
 	adminConn := postgresql_executor.OpenAdminConn(t, fixture)
 
 	perBackupSlot := fixture.SourceDB.BackupSlotName
-	streamerSlot := fixture.SourceDB.Engine.ReplicationSlotName
+	streamerSlot := fixture.SourceDB.WalStreamSlotName
 	require.NotEmpty(t, streamerSlot, "streamer slot name should be populated by BeforeCreate")
 
 	for _, slotName := range []string{perBackupSlot, streamerSlot} {
@@ -132,7 +136,7 @@ func Test_DropWalSlot_WhenStreamerSlotActive_RefusesAndKeepsSlot(t *testing.T) {
 	fixture := postgresql_executor.SetupPhysicalDBForBackup(t)
 
 	adminConn := postgresql_executor.OpenAdminConn(t, fixture)
-	streamerSlot := fixture.SourceDB.Engine.ReplicationSlotName
+	streamerSlot := fixture.SourceDB.WalStreamSlotName
 
 	stop := postgresql_executor.StartWalStreamerForTest(t, postgresql_executor.WalStreamerTestSpec{
 		Fixture:      fixture,
@@ -143,7 +147,8 @@ func Test_DropWalSlot_WhenStreamerSlotActive_RefusesAndKeepsSlot(t *testing.T) {
 
 	waitUntilSlotActive(t, adminConn, streamerSlot, 30*time.Second)
 
-	err := pgphysical.NewSource(fixture.SourceDB.Engine).DropSlot(context.Background(), logger.GetLogger())
+	err := pgphysical.NewSource(fixture.SourceDB.Engine).
+		DropSlot(context.Background(), logger.GetLogger(), fixture.SourceDB.WalStreamSlotName)
 	require.Error(t, err, "DropWalSlot must refuse a slot held by an active consumer")
 	assert.Contains(t, err.Error(), "is active")
 

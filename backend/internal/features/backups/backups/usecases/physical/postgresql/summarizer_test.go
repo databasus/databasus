@@ -6,12 +6,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jackc/pgx/v5"
 	"github.com/stretchr/testify/require"
 
+	pgphysical "databasus-backend/internal/engines/postgresql/physical"
+	"databasus-backend/internal/engines/postgresql/physical/walmath"
 	physical_enums "databasus-backend/internal/features/backups/backups/core/physical/enums"
+	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/util/testing/containers"
-	"databasus-backend/internal/util/walmath"
 )
 
 // Test_CheckSummarizerReadiness_WhenSummarizerOff_FallsBackToFullNewChain proves
@@ -26,13 +27,23 @@ func Test_CheckSummarizerReadiness_WhenSummarizerOff_FallsBackToFullNewChain(t *
 	source := containers.StartPhysicalPostgres(t, "postgres:17", containers.WithoutSummarizer())
 	ctx := context.Background()
 
-	conn := openPhysicalTestConn(t, ctx, source)
+	inspection := OpenTestInspection(
+		t,
+		databases.PostgresqlPhysicalConnectionSettings{
+			Engine: pgphysical.Settings{
+				Host:     source.Host,
+				Port:     source.Port,
+				Username: "testuser",
+				Password: "testpassword",
+			},
+		},
+	)
 
-	enabled, err := isSummarizerEnabled(ctx, conn)
+	state, err := inspection.GetWalSummarizerState(ctx)
 	require.NoError(t, err)
-	require.False(t, enabled, "the no-summary cluster must report summarize_wal off")
+	require.False(t, state.IsEnabled, "the no-summary cluster must report summarize_wal off")
 
-	result, err := CheckSummarizerReadiness(ctx, conn, walmath.LSN(0), time.Hour)
+	result, err := CheckSummarizerReadiness(ctx, inspection, walmath.LSN(0), time.Hour)
 	require.NoError(t, err)
 
 	require.Equal(t, DecisionFullNewChain, result.Decision)
@@ -52,15 +63,16 @@ func Test_CheckSummarizerReadiness_WhenStopLsnPredatesOldestSummary_FallsBackToF
 
 	ExpireWalSummaries(t, conn)
 
-	enabled, err := isSummarizerEnabled(context.Background(), conn)
+	inspection := OpenTestInspection(t, fixture.SourceDB)
+	state, err := inspection.GetWalSummarizerState(t.Context())
 	require.NoError(t, err)
-	require.True(t, enabled, "the standard fixture runs with summarize_wal on")
+	require.True(t, state.IsEnabled, "the standard fixture runs with summarize_wal on")
 
 	// LSN 0/1 sits before any summary the running cluster can hold, so it predates
 	// the oldest retained summary regardless of where the summarizer currently starts.
 	expiredTargetLSN := walmath.LSN(1)
 
-	result, err := CheckSummarizerReadiness(context.Background(), conn, expiredTargetLSN, time.Hour)
+	result, err := CheckSummarizerReadiness(t.Context(), inspection, expiredTargetLSN, time.Hour)
 	require.NoError(t, err)
 
 	require.Equal(t, DecisionFullNewChain, result.Decision)
@@ -91,7 +103,7 @@ func Test_CheckSummarizerReadiness_WhenStopLsnAheadOfSummaries_GoesIncremental(t
 			var walTipLSN walmath.LSN
 			require.NoError(t, conn.QueryRow(ctx, "SELECT pg_current_wal_lsn()::text").Scan(&walTipLSN))
 
-			result, err := CheckSummarizerReadiness(ctx, conn, walTipLSN, time.Hour)
+			result, err := CheckSummarizerReadiness(ctx, OpenTestInspection(t, fixture.SourceDB), walTipLSN, time.Hour)
 			require.NoError(t, err)
 
 			require.Equal(t, DecisionGoIncremental, result.Decision,
@@ -114,7 +126,7 @@ func stubSummarizerCheck(t *testing.T, steps ...summarizerStep) {
 
 	callIndex := 0
 	summarizerCheck = func(
-		_ context.Context, _ *pgx.Conn, _ walmath.LSN, _ time.Duration,
+		_ context.Context, _ *pgphysical.Inspection, _ walmath.LSN, _ time.Duration,
 	) (SummarizerResult, error) {
 		step := steps[min(callIndex, len(steps)-1)]
 		callIndex++
@@ -177,28 +189,6 @@ func Test_WaitWindowForCadence_WhenHourlyCadence_UsesQuarterOfCadence(t *testing
 
 func Test_WaitWindowForCadence_WhenDailyCadence_ClampsToCap(t *testing.T) {
 	require.Equal(t, summarizerWaitCap, waitWindowForCadence(24*time.Hour))
-}
-
-func Test_IsSummarizerRunning_OnClusterWithSummarizerOn_ReturnsTrue(t *testing.T) {
-	fixture := SetupPhysicalDBForBackup(t)
-	conn := OpenAdminConn(t, fixture)
-
-	isRunning, err := isSummarizerRunning(context.Background(), conn)
-
-	require.NoError(t, err)
-	require.True(t, isRunning)
-}
-
-func Test_IsSummarizerRunning_OnClusterWithoutSummarizer_ReturnsFalse(t *testing.T) {
-	source := containers.StartPhysicalPostgres(t, "postgres:17", containers.WithoutSummarizer())
-	ctx := context.Background()
-
-	conn := openPhysicalTestConn(t, ctx, source)
-
-	isRunning, err := isSummarizerRunning(ctx, conn)
-
-	require.NoError(t, err)
-	require.False(t, isRunning, "the summarizer process never starts when summarize_wal is off")
 }
 
 func Test_WaitForSummarizer_SummariesExpireMidWait_FallsBackToFullNewChain(t *testing.T) {

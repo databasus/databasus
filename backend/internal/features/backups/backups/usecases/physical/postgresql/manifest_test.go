@@ -13,8 +13,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"databasus-backend/internal/engines/postgresql/physical/walmath"
 	physical_enums "databasus-backend/internal/features/backups/backups/core/physical/enums"
-	"databasus-backend/internal/util/walmath"
 )
 
 func Test_SerializeManifest_ProducesParseableVersion2Manifest(t *testing.T) {

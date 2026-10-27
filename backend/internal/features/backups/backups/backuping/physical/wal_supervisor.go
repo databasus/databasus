@@ -16,6 +16,7 @@ import (
 
 	"databasus-backend/internal/config"
 	pgphysical "databasus-backend/internal/engines/postgresql/physical"
+	"databasus-backend/internal/engines/postgresql/physical/walmath"
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	physical_repositories "databasus-backend/internal/features/backups/backups/core/physical/repositories"
 	"databasus-backend/internal/features/backups/backups/core/physical/wal_health"
@@ -27,7 +28,6 @@ import (
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/modules/storages"
-	"databasus-backend/internal/util/walmath"
 )
 
 // Ownership and restart recovery run through the physical_wal_streamers

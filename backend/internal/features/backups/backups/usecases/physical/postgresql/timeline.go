@@ -12,9 +12,10 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 	"github.com/klauspost/compress/zstd"
 
+	pgphysical "databasus-backend/internal/engines/postgresql/physical"
+	"databasus-backend/internal/engines/postgresql/physical/walmath"
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	chain_view "databasus-backend/internal/features/backups/backups/core/physical/chain_view"
 	physical_dto "databasus-backend/internal/features/backups/backups/core/physical/dto"
@@ -25,7 +26,6 @@ import (
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/storages"
 	db "databasus-backend/internal/storage"
-	"databasus-backend/internal/util/walmath"
 )
 
 type TimelineDecisionKind int
@@ -54,12 +54,12 @@ type timelineComparison struct {
 
 func CheckFullTimelineCompatibility(
 	ctx context.Context,
-	conn *pgx.Conn,
+	conn *pgphysical.Inspection,
 	db databases.PostgresqlPhysicalConnectionSettings,
 	fullRepo *physical_repositories.PhysicalFullBackupRepository,
 	historyRepo *physical_repositories.PhysicalWalHistoryRepository,
 ) (*TimelineDecision, error) {
-	liveTimelineID, liveSystemIdentifier, err := readClusterIdentity(ctx, conn)
+	liveTimelineID, liveSystemIdentifier, err := conn.ReadLiveTimeline(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -88,11 +88,11 @@ func CheckFullTimelineCompatibility(
 
 func CheckIncrementalTimelineCompatibility(
 	ctx context.Context,
-	conn *pgx.Conn,
+	conn *pgphysical.Inspection,
 	db databases.PostgresqlPhysicalConnectionSettings,
 	rootFullTimelineID int,
 ) (*TimelineDecision, error) {
-	liveTimelineID, liveSystemIdentifier, err := readClusterIdentity(ctx, conn)
+	liveTimelineID, liveSystemIdentifier, err := conn.ReadLiveTimeline(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -186,7 +186,7 @@ func ValidateStartLsnAgainstHistory(
 }
 
 type HistoryUploadSpec struct {
-	Conn        *pgx.Conn
+	Inspection  *pgphysical.Inspection
 	TimelineID  int
 	FileStore   FileStore
 	SourceDB    databases.PostgresqlPhysicalConnectionSettings
@@ -203,7 +203,7 @@ func UploadHistoryFile(
 	ctx context.Context,
 	spec HistoryUploadSpec,
 ) (*physical_models.PhysicalWalHistoryFile, error) {
-	conn := spec.Conn
+	conn := spec.Inspection
 	timelineID := spec.TimelineID
 	historyRepo := spec.HistoryRepo
 	encryption := spec.Encryption
@@ -228,7 +228,7 @@ func UploadHistoryFile(
 
 	historyFilename := walmath.FormatHistoryFilename(uint32(timelineID))
 
-	body, err := readHistoryFromCluster(ctx, conn, historyFilename)
+	body, err := conn.GetTimelineHistory(ctx, historyFilename)
 	if err != nil {
 		return nil, err
 	}
@@ -328,69 +328,6 @@ func UploadHistoryFile(
 	return row, nil
 }
 
-type clusterIdentitySources struct {
-	// NULL during recovery, where pg_current_wal_lsn() cannot be called.
-	CurrentWalFilename    *string
-	ControlFileTimelineID int
-	SystemIdentifier      string
-}
-
-func readClusterIdentitySources(ctx context.Context, conn *pgx.Conn) (clusterIdentitySources, error) {
-	var sources clusterIdentitySources
-
-	err := conn.QueryRow(ctx, `
-		SELECT
-			CASE WHEN pg_is_in_recovery() THEN NULL ELSE pg_walfile_name(pg_current_wal_lsn()) END,
-			(SELECT timeline_id FROM pg_control_checkpoint()),
-			(SELECT system_identifier::text FROM pg_control_system())
-	`).Scan(
-		&sources.CurrentWalFilename,
-		&sources.ControlFileTimelineID,
-		&sources.SystemIdentifier,
-	)
-	if err != nil {
-		return clusterIdentitySources{}, fmt.Errorf("read cluster identity: %w", err)
-	}
-
-	return sources, nil
-}
-
-func readClusterIdentity(ctx context.Context, conn *pgx.Conn) (int, string, error) {
-	sources, err := readClusterIdentitySources(ctx, conn)
-	if err != nil {
-		return 0, "", err
-	}
-
-	timelineID, err := resolveLiveTimelineID(sources)
-	if err != nil {
-		return 0, "", err
-	}
-
-	return timelineID, sources.SystemIdentifier, nil
-}
-
-// Every cluster answers the control file, but it lags a promotion: PostgreSQL stamps it
-// at checkpoints, and the checkpoint a promotion requests is spread across
-// checkpoint_completion_target, so a promoted primary keeps naming the pre-failover
-// timeline for minutes. A stale reading lets an incremental extend a chain anchored to a
-// timeline the cluster has already left.
-//
-// A source still in recovery has no fresher reading to offer: pg_walfile_name() refuses
-// to run there, and pg_stat_wal_receiver hides received_tli from a role without
-// pg_read_all_stats, which the replication user this product provisions does not have.
-func resolveLiveTimelineID(sources clusterIdentitySources) (int, error) {
-	if sources.CurrentWalFilename != nil {
-		timelineID, err := walmath.ParseWALFilenameTimeline(*sources.CurrentWalFilename)
-		if err != nil {
-			return 0, fmt.Errorf("read timeline from current WAL file name: %w", err)
-		}
-
-		return int(timelineID), nil
-	}
-
-	return sources.ControlFileTimelineID, nil
-}
-
 func newestKnownTimeline(
 	dbID uuid.UUID,
 	fullRepo *physical_repositories.PhysicalFullBackupRepository,
@@ -440,21 +377,6 @@ func historyIsGapped(rows []*physical_models.PhysicalWalHistoryFile, timelineID 
 	}
 
 	return false
-}
-
-func readHistoryFromCluster(ctx context.Context, conn *pgx.Conn, historyFilename string) ([]byte, error) {
-	var body []byte
-
-	err := conn.QueryRow(
-		ctx,
-		`SELECT pg_read_binary_file('pg_wal/' || $1)`,
-		historyFilename,
-	).Scan(&body)
-	if err != nil {
-		return nil, fmt.Errorf("read history file %q from cluster: %w", historyFilename, err)
-	}
-
-	return body, nil
 }
 
 // limitedBuffer is bytes.Buffer plus a Len() accessor for size reporting.

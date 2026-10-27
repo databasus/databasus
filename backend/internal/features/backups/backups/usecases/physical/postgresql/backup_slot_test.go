@@ -36,7 +36,7 @@ func Test_BackupSlot_PresentDuringRun_GoneAfterCompleted(t *testing.T) {
 	require.False(t, postgresql_executor.SlotExists(t, adminConn, slotName),
 		"slot must not exist before backup")
 
-	pollConn, err := pgphysical.NewSource(fixture.SourceDB.Engine).OpenInspectionConn(context.Background())
+	pollConn, err := postgresql_executor.OpenPhysicalTestConn(context.Background(), fixture.SourceDB.Engine)
 	require.NoError(t, err)
 	defer func() { _ = pollConn.Close(context.Background()) }()
 
@@ -233,14 +233,19 @@ func Test_RunStartupCleanup_WhenTheSourceIsBehindABastion_DropsOrphanSlots(t *te
 func Test_RunStartupCleanup_PreservesStreamerSlot(t *testing.T) {
 	fixture := postgresql_executor.SetupPhysicalDBForBackup(t)
 
-	streamerSlot := fixture.SourceDB.Engine.ReplicationSlotName
+	streamerSlot := fixture.SourceDB.WalStreamSlotName
 	require.NotEmpty(t, streamerSlot, "streamer slot name should be populated by BeforeCreate")
 
 	adminConn := postgresql_executor.OpenAdminConn(t, fixture)
 
-	require.NoError(t, pgphysical.NewSource(fixture.SourceDB.Engine).VerifySlot(t.Context(), logger.GetLogger()))
+	require.NoError(
+		t,
+		pgphysical.NewSource(fixture.SourceDB.Engine).
+			VerifySlot(t.Context(), logger.GetLogger(), fixture.SourceDB.WalStreamSlotName),
+	)
 	t.Cleanup(func() {
-		_ = pgphysical.NewSource(fixture.SourceDB.Engine).DropSlot(context.Background(), logger.GetLogger())
+		_ = pgphysical.NewSource(fixture.SourceDB.Engine).
+			DropSlot(context.Background(), logger.GetLogger(), fixture.SourceDB.WalStreamSlotName)
 	})
 
 	require.True(t, postgresql_executor.SlotExists(t, adminConn, streamerSlot),
@@ -446,7 +451,7 @@ func Test_BackupSlot_HasExpectedCharacteristics(t *testing.T) {
 
 	slotName := fixture.SourceDB.BackupSlotName
 
-	pollConn, err := pgphysical.NewSource(fixture.SourceDB.Engine).OpenInspectionConn(context.Background())
+	pollConn, err := postgresql_executor.OpenPhysicalTestConn(context.Background(), fixture.SourceDB.Engine)
 	require.NoError(t, err)
 	defer func() { _ = pollConn.Close(context.Background()) }()
 
@@ -569,7 +574,7 @@ func Test_RunStartupCleanup_OrphanFromDeletedDB_NotCleaned(t *testing.T) {
 	// (defer fires before t.Cleanup) and reusing it would silently no-op.
 	sourceDB := fixture.SourceDB
 
-	adminConn, err := pgphysical.NewSource(fixture.SourceDB.Engine).OpenInspectionConn(context.Background())
+	adminConn, err := postgresql_executor.OpenPhysicalTestConn(context.Background(), fixture.SourceDB.Engine)
 	require.NoError(t, err)
 	defer func() { _ = adminConn.Close(context.Background()) }()
 
@@ -578,7 +583,7 @@ func Test_RunStartupCleanup_OrphanFromDeletedDB_NotCleaned(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Cleanup(func() {
-		cleanupConn, cleanupErr := pgphysical.NewSource(sourceDB.Engine).OpenInspectionConn(context.Background())
+		cleanupConn, cleanupErr := postgresql_executor.OpenPhysicalTestConn(context.Background(), sourceDB.Engine)
 		if cleanupErr != nil {
 			return
 		}
@@ -750,7 +755,7 @@ func Test_BackupSlot_DroppedAfterCancelledMidRun(t *testing.T) {
 	slotName := fixture.SourceDB.BackupSlotName
 	adminConn := postgresql_executor.OpenAdminConn(t, fixture)
 
-	pollConn, err := pgphysical.NewSource(fixture.SourceDB.Engine).OpenInspectionConn(context.Background())
+	pollConn, err := postgresql_executor.OpenPhysicalTestConn(context.Background(), fixture.SourceDB.Engine)
 	require.NoError(t, err)
 	defer func() { _ = pollConn.Close(context.Background()) }()
 

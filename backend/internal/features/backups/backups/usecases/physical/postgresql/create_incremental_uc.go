@@ -12,6 +12,7 @@ import (
 
 	"github.com/google/uuid"
 
+	pgphysical "databasus-backend/internal/engines/postgresql/physical"
 	pgshared "databasus-backend/internal/engines/postgresql/shared"
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	physical_enums "databasus-backend/internal/features/backups/backups/core/physical/enums"
@@ -157,7 +158,7 @@ func verifyIncrTimelineCompatibility(
 		}, 0, false
 	}
 
-	conn, err := openInspectionConn(ctx, spec.SourceDB)
+	conn, err := pgphysical.NewSource(spec.SourceDB.Engine).OpenInspection(ctx)
 	if err != nil {
 		return errorResult(physical_enums.PhysicalBackupErrorNetworkFailure,
 			"open inspection connection", err), 0, false
@@ -184,7 +185,7 @@ func verifyIncrTimelineCompatibility(
 //   - DecisionFullNewChain     → CHAIN_BROKEN / SUMMARIZER_OFF | SUMMARIES_EXPIRED
 //   - ctx cancelled mid-wait   → CANCELED / CANCELED_BY_USER
 func runSummarizerPreCheck(ctx context.Context, spec IncrementalBackupSpec) (PhysicalBackupResult, bool) {
-	conn, err := openInspectionConn(ctx, spec.SourceDB)
+	conn, err := pgphysical.NewSource(spec.SourceDB.Engine).OpenInspection(ctx)
 	if err != nil {
 		return errorResult(physical_enums.PhysicalBackupErrorNetworkFailure,
 			"open inspection conn for summarizer pre-check", err), false

@@ -59,24 +59,21 @@ func TestGetClusterSizeMb(t *testing.T) {
 	})
 }
 
-func TestOpenInspectionConn(t *testing.T) {
+func TestOpenInspection(t *testing.T) {
 	runOnEverySupportedVersion(t, func(t *testing.T, server testServer) {
 		t.Helper()
 
 		t.Run("returns an ordinary connection that runs sql when cluster is reachable", func(t *testing.T) {
 			t.Parallel()
 
-			inspectionConn, err := server.newSource(adminRole).OpenInspectionConn(t.Context())
+			inspectionConn, err := server.newSource(adminRole).OpenInspection(t.Context())
 			require.NoError(t, err)
 
 			t.Cleanup(func() {
 				closeTestConn(t, inspectionConn.Close)
 			})
 
-			var databaseName string
-
-			require.NoError(t, inspectionConn.QueryRow(t.Context(), "SELECT current_database()").Scan(&databaseName))
-			assert.Equal(t, "postgres", databaseName)
+			require.NoError(t, inspectionConn.Ping(t.Context()))
 		})
 	})
 }

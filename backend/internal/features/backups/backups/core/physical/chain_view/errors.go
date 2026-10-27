@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"databasus-backend/internal/util/walmath"
+	"databasus-backend/internal/engines/postgresql/physical/walmath"
 )
 
 // ErrNoChainForRestore means the database has no COMPLETED FULL backup to

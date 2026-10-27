@@ -4,11 +4,15 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	pgphysical "databasus-backend/internal/engines/postgresql/physical"
+	"databasus-backend/internal/engines/postgresql/physical/walmath"
 )
 
 func Test_IsOwnedReceiverBackend_WhenOurReceiverHoldsSlot_ReturnsTrue(t *testing.T) {
-	state := &SlotState{
-		Active:          true,
+	state := &pgphysical.Slot{
+		CurrentLSN: new(walmath.LSN(0)), LagBytes: new(int64(0)),
+		IsActive:        true,
 		ActivePID:       new(4321),
 		ApplicationName: receivewalApplicationNamePrefix + "11111111-1111-1111-1111-111111111111",
 	}
@@ -17,8 +21,9 @@ func Test_IsOwnedReceiverBackend_WhenOurReceiverHoldsSlot_ReturnsTrue(t *testing
 }
 
 func Test_IsOwnedReceiverBackend_WhenForeignConsumerHoldsSlot_ReturnsFalse(t *testing.T) {
-	state := &SlotState{
-		Active:          true,
+	state := &pgphysical.Slot{
+		CurrentLSN: new(walmath.LSN(0)), LagBytes: new(int64(0)),
+		IsActive:        true,
 		ActivePID:       new(9999),
 		ApplicationName: "some_other_replica",
 	}
@@ -27,8 +32,9 @@ func Test_IsOwnedReceiverBackend_WhenForeignConsumerHoldsSlot_ReturnsFalse(t *te
 }
 
 func Test_IsOwnedReceiverBackend_WhenNoActiveBackend_ReturnsFalse(t *testing.T) {
-	state := &SlotState{
-		Active:          false,
+	state := &pgphysical.Slot{
+		CurrentLSN: new(walmath.LSN(0)), LagBytes: new(int64(0)),
+		IsActive:        false,
 		ActivePID:       nil,
 		ApplicationName: receivewalApplicationNamePrefix + "22222222-2222-2222-2222-222222222222",
 	}
@@ -37,8 +43,9 @@ func Test_IsOwnedReceiverBackend_WhenNoActiveBackend_ReturnsFalse(t *testing.T) 
 }
 
 func Test_IsOwnedReceiverBackend_WhenActiveButEmptyApplicationName_ReturnsFalse(t *testing.T) {
-	state := &SlotState{
-		Active:          true,
+	state := &pgphysical.Slot{
+		CurrentLSN: new(walmath.LSN(0)), LagBytes: new(int64(0)),
+		IsActive:        true,
 		ActivePID:       new(1234),
 		ApplicationName: "",
 	}

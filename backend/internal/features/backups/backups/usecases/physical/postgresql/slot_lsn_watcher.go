@@ -6,7 +6,8 @@ import (
 	"log/slog"
 	"time"
 
-	"databasus-backend/internal/util/walmath"
+	pgphysical "databasus-backend/internal/engines/postgresql/physical"
+	"databasus-backend/internal/engines/postgresql/physical/walmath"
 )
 
 const (
@@ -87,7 +88,7 @@ const (
 // Only a reachable probe carries a slot state.
 type slotProbe struct {
 	Outcome slotProbeOutcome
-	State   *SlotState
+	State   *pgphysical.Slot
 }
 
 func (p slotProbe) IsReachableWithSlot() bool {
@@ -109,7 +110,7 @@ func (s *WalStreamSupervisor) inspectSourceSlot(ctx context.Context, logger *slo
 	probeCtx, cancel := context.WithTimeout(ctx, slotProbeTimeout)
 	defer cancel()
 
-	conn, err := openInspectionConn(probeCtx, s.spec.SourceDB)
+	conn, err := pgphysical.NewSource(s.spec.SourceDB.Engine).OpenInspection(probeCtx)
 	if err != nil {
 		logger.DebugContext(ctx, "source unreachable during the slot probe", "error", err)
 
@@ -117,7 +118,10 @@ func (s *WalStreamSupervisor) inspectSourceSlot(ctx context.Context, logger *slo
 	}
 	defer func() { _ = conn.Close(context.Background()) }()
 
-	state, err := InspectSlot(probeCtx, conn, s.slotName)
+	state, err := conn.GetSlot(probeCtx, s.slotName)
+	if err == nil && state != nil && state.CurrentLSN == nil {
+		err = errSourceWalPositionUnavailable
+	}
 	if err != nil {
 		logger.DebugContext(ctx, "failed to inspect the replication slot", "error", err)
 
@@ -130,8 +134,7 @@ func (s *WalStreamSupervisor) inspectSourceSlot(ctx context.Context, logger *slo
 		return slotProbe{Outcome: slotProbeOutcomeSlotMissing}
 	}
 
-	var alive int
-	if err := conn.QueryRow(probeCtx, "SELECT 1").Scan(&alive); err != nil {
+	if err := conn.Ping(probeCtx); err != nil {
 		logger.DebugContext(ctx, "source stopped responding during the slot probe", "error", err)
 
 		return slotProbe{Outcome: slotProbeOutcomeUnreachable}
@@ -163,7 +166,7 @@ func (s *WalStreamSupervisor) runSlotLsnWatcher(ctx context.Context, logger *slo
 
 			sample := slotLivenessSample{
 				RestartLSN:        state.RestartLSN,
-				LagBytes:          state.LagBytes,
+				LagBytes:          *state.LagBytes,
 				IsReceiverRunning: s.isReceiverRunning(),
 				ObservedAt:        time.Now().UTC(),
 			}
@@ -172,7 +175,7 @@ func (s *WalStreamSupervisor) runSlotLsnWatcher(ctx context.Context, logger *slo
 				logger.WarnContext(
 					ctx,
 					fmt.Sprintf("slot restart_lsn stalled with %d bytes pending; restarting pg_receivewal",
-						state.LagBytes),
+						*state.LagBytes),
 					"restart_lsn", state.RestartLSN.String(),
 				)
 

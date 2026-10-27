@@ -192,6 +192,7 @@ func (p *Provider) GetConnectionSettings(
 		SystemIdentifier:    physicalSettings.SystemIdentifier,
 		WalSegmentSizeBytes: physicalSettings.WalSegmentSizeBytes,
 		BackupType:          physicalSettings.BackupType,
+		WalStreamSlotName:   physicalSettings.ReplicationSlotName,
 		BackupSlotName:      physicalSettings.BackupSlotName,
 	}, nil
 }
@@ -213,14 +214,13 @@ func (p *Provider) decryptEngineSettings(settings Settings) (pgphysical.Settings
 	}
 
 	return pgphysical.Settings{
-		Host:                settings.Host,
-		HostAddr:            "",
-		Port:                settings.Port,
-		Username:            settings.Username,
-		Password:            password,
-		TLS:                 tls,
-		SSHTunnel:           tunnelSettings,
-		ReplicationSlotName: settings.ReplicationSlotName,
+		Host:      settings.Host,
+		HostAddr:  "",
+		Port:      settings.Port,
+		Username:  settings.Username,
+		Password:  password,
+		TLS:       tls,
+		SSHTunnel: tunnelSettings,
 	}, nil
 }
 

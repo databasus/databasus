@@ -14,13 +14,13 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 
+	"databasus-backend/internal/engines/postgresql/physical/walmath"
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	physical_models "databasus-backend/internal/features/backups/backups/core/physical/models"
 	physical_repositories "databasus-backend/internal/features/backups/backups/core/physical/repositories"
 	databases_bridge "databasus-backend/internal/features/databases"
 	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/util/logger"
-	"databasus-backend/internal/util/walmath"
 )
 
 // newTestUploader wires a WalUploader against the real catalog repo and a mock

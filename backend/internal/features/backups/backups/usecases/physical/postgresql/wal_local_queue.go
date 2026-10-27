@@ -2,11 +2,11 @@ package usecases_physical_postgresql
 
 import (
 	"cmp"
-	"os"
 	"path/filepath"
 	"slices"
 
-	"databasus-backend/internal/util/walmath"
+	pgphysical "databasus-backend/internal/engines/postgresql/physical"
+	"databasus-backend/internal/engines/postgresql/physical/walmath"
 )
 
 // A finalized segment waiting in the watch directory or in pending-upload/, including one whose
@@ -31,35 +31,15 @@ func listQueuedWalSegments(watchDir string, segmentSizeBytes int64) []queuedWalS
 }
 
 func listQueuedWalSegmentsIn(directory string, segmentSizeBytes int64) []queuedWalSegment {
-	entries, err := os.ReadDir(directory)
-	if err != nil {
-		return nil
-	}
-
-	queuedSegments := make([]queuedWalSegment, 0, len(entries))
-
-	for _, entry := range entries {
-		if entry.IsDir() || !walmath.IsWalFilename(entry.Name()) {
+	segments := pgphysical.GetWalSegmentFiles(directory, segmentSizeBytes)
+	queuedSegments := make([]queuedWalSegment, 0, len(segments))
+	for _, segment := range segments {
+		if !walmath.IsWalFilename(segment.Filename, walmath.DefaultSegmentSizeBytes) {
 			continue
 		}
-
-		timelineID, startLSN, endLSN, err := segmentBounds(entry.Name(), segmentSizeBytes)
-		if err != nil {
-			continue
-		}
-
-		info, err := entry.Info()
-		if err != nil {
-			continue
-		}
-
 		queuedSegments = append(queuedSegments, queuedWalSegment{
-			walFilename: entry.Name(),
-			localPath:   filepath.Join(directory, entry.Name()),
-			timelineID:  timelineID,
-			startLSN:    startLSN,
-			endLSN:      endLSN,
-			isComplete:  info.Size() == segmentSizeBytes,
+			walFilename: segment.Filename, localPath: segment.LocalPath, timelineID: segment.TimelineID,
+			startLSN: segment.StartLSN, endLSN: segment.EndLSN, isComplete: segment.IsComplete,
 		})
 	}
 

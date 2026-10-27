@@ -9,10 +9,10 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
+	"databasus-backend/internal/engines/postgresql/physical/walmath"
 	physical_enums "databasus-backend/internal/features/backups/backups/core/physical/enums"
 	physical_models "databasus-backend/internal/features/backups/backups/core/physical/models"
 	"databasus-backend/internal/storage"
-	"databasus-backend/internal/util/walmath"
 )
 
 type PhysicalWalSegmentRepository struct{}

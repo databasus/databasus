@@ -12,9 +12,11 @@ import (
 	"github.com/stretchr/testify/require"
 
 	pgphysical "databasus-backend/internal/engines/postgresql/physical"
+	"databasus-backend/internal/engines/postgresql/physical/walmath"
+	pgshared "databasus-backend/internal/engines/postgresql/shared"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/util/logger"
-	"databasus-backend/internal/util/walmath"
+	"databasus-backend/internal/util/testing/containers"
 )
 
 func streamingSample(restartLSN walmath.LSN, observedAt time.Time) slotLivenessSample {
@@ -143,19 +145,19 @@ func Test_ProbeSlot_WhenSlotRemovedOnReachableSource_ReportsSlotMissing(t *testi
 	adminConn := OpenAdminConn(t, fixture)
 
 	sourceDB := fixture.SourceDB
-	sourceDB.Engine.ReplicationSlotName = "databasus_probe_" + strings.ReplaceAll(uuid.New().String(), "-", "")[:12]
+	sourceDB.WalStreamSlotName = "databasus_probe_" + strings.ReplaceAll(uuid.New().String(), "-", "")[:12]
 
 	_, err := adminConn.Exec(
 		t.Context(),
 		"SELECT pg_create_physical_replication_slot($1, true)",
-		sourceDB.Engine.ReplicationSlotName,
+		sourceDB.WalStreamSlotName,
 	)
 	require.NoError(t, err)
 	t.Cleanup(func() {
 		_, _ = adminConn.Exec(
 			context.Background(),
 			"SELECT pg_drop_replication_slot($1)",
-			sourceDB.Engine.ReplicationSlotName,
+			sourceDB.WalStreamSlotName,
 		)
 	})
 
@@ -165,7 +167,7 @@ func Test_ProbeSlot_WhenSlotRemovedOnReachableSource_ReportsSlotMissing(t *testi
 	require.Equal(t, slotProbeOutcomeReachable, probe.Outcome)
 	require.NotNil(t, probe.State)
 
-	DropReplicationSlotExternally(t, adminConn, sourceDB.Engine.ReplicationSlotName)
+	DropReplicationSlotExternally(t, adminConn, sourceDB.WalStreamSlotName)
 
 	probe = supervisor.probeSlot(t.Context(), logger.GetLogger())
 	require.Equal(t, slotProbeOutcomeSlotMissing, probe.Outcome,
@@ -178,12 +180,12 @@ func Test_ProbeSlot_WhenSourceAcceptsButNeverAnswers_ReportsUnreachableWithinTim
 
 	supervisor := newProbeOnlySupervisor(t, databases.PostgresqlPhysicalConnectionSettings{
 		Engine: pgphysical.Settings{
-			Host:                "127.0.0.1",
-			Port:                silentListener.Addr().(*net.TCPAddr).Port,
-			Username:            "streamer",
-			Password:            "streamer",
-			ReplicationSlotName: "databasus_silent_source",
+			Host:     "127.0.0.1",
+			Port:     silentListener.Addr().(*net.TCPAddr).Port,
+			Username: "streamer",
+			Password: "streamer",
 		},
+		WalStreamSlotName: "databasus_silent_source",
 	})
 
 	probeStartedAt := time.Now().UTC()
@@ -232,4 +234,42 @@ func startSilentListener(t *testing.T) net.Listener {
 	})
 
 	return listener
+}
+
+func TestStandbySlotInspection(t *testing.T) {
+	for _, image := range []string{"postgres:17", "postgres:18"} {
+		t.Run(image, func(t *testing.T) {
+			t.Run("reports unreachable when the source is in recovery", func(t *testing.T) {
+				_, standby := containers.StartPhysicalPrimaryWithStandby(t, image)
+				sourceDB := databases.PostgresqlPhysicalConnectionSettings{
+					Engine: pgphysical.Settings{
+						Host: standby.Host, Port: standby.Port,
+						Username: containers.PostgresUsername, Password: containers.PostgresPassword,
+						TLS: pgshared.TLS{Mode: pgshared.SslModeDisable},
+					},
+					WalStreamSlotName: "databasus_standby_" + strings.ReplaceAll(uuid.NewString(), "-", ""),
+				}
+				inspection := OpenTestInspection(t, sourceDB)
+				require.NoError(t, inspection.CreateSlot(t.Context(), sourceDB.WalStreamSlotName))
+				slot, err := inspection.GetSlot(t.Context(), sourceDB.WalStreamSlotName)
+				require.NoError(t, err)
+				require.NotNil(t, slot)
+				require.Nil(t, slot.CurrentLSN)
+
+				supervisor := newProbeOnlySupervisor(t, sourceDB)
+				probe := supervisor.probeSlot(t.Context(), logger.GetLogger())
+
+				require.Equal(t, slotProbeOutcomeUnreachable, probe.Outcome)
+				require.Nil(t, probe.State)
+
+				isTerminated, err := supervisor.terminateOwnedSlotBackend(t.Context(), logger.GetLogger())
+				require.ErrorIs(t, err, errSourceWalPositionUnavailable)
+				require.False(t, isTerminated)
+
+				isActive, canInspect := supervisor.isSlotActive(t.Context(), logger.GetLogger())
+				require.False(t, isActive)
+				require.False(t, canInspect)
+			})
+		})
+	}
 }

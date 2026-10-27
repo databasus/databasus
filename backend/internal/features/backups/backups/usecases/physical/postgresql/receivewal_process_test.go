@@ -21,11 +21,11 @@ func Test_NewReceivewalCommand_SetsParentDeathSignalAndApplicationName(t *testin
 	sourceDB := databases.PostgresqlPhysicalConnectionSettings{
 		DatabaseID: databaseID,
 		Engine: pgphysical.Settings{
-			Host:                "localhost",
-			Port:                5432,
-			Username:            "replicator",
-			ReplicationSlotName: "slot",
+			Host:     "localhost",
+			Port:     5432,
+			Username: "replicator",
 		},
+		WalStreamSlotName: "slot",
 	}
 
 	cmd, err := newReceivewalCommand(t.Context(), receivewalCommandSpec{

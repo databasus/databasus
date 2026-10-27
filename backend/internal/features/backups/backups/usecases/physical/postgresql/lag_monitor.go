@@ -6,9 +6,10 @@ import (
 	"log/slog"
 	"time"
 
+	pgphysical "databasus-backend/internal/engines/postgresql/physical"
+	"databasus-backend/internal/engines/postgresql/physical/walmath"
 	physical_enums "databasus-backend/internal/features/backups/backups/core/physical/enums"
 	"databasus-backend/internal/features/backups/backups/core/physical/wal_health"
-	"databasus-backend/internal/util/walmath"
 )
 
 const (
@@ -45,7 +46,7 @@ const (
 )
 
 type slotBreakSample struct {
-	SlotState            *SlotState
+	SlotState            *pgphysical.Slot
 	WalLagThresholdBytes int64
 	// Zero when no receiver ran at the tick.
 	ReceiverRunStartedAt time.Time
@@ -88,7 +89,7 @@ func (m *lagMonitorState) rememberSourcePosition(probe slotProbe) {
 	m.previousSourceLSN = nil
 
 	if probe.IsReachableWithSlot() {
-		m.previousSourceLSN = new(probe.State.CurrentLSN)
+		m.previousSourceLSN = probe.State.CurrentLSN
 	}
 }
 
@@ -116,7 +117,7 @@ func (c *slotBreakClassifier) recordSampleAndClassifyBreak(
 	// it as SLOT_STOLEN and let the rebuild path decide — terminateOwnedSlotBackend
 	// refuses to drop a slot held by a consumer we cannot attribute, so a genuine
 	// third party trips loop-protection rather than getting force-dropped.
-	if state.Active && !isOwnedReceiverBackend(state) {
+	if state.IsActive && !isOwnedReceiverBackend(state) {
 		return breakReasonSlotStolen, slotBreakActionRebuild
 	}
 
@@ -221,7 +222,7 @@ func (s *WalStreamSupervisor) runLagMonitorTick(
 		s.reportArchivingProgress(ctx, logger, state, snapshot)
 
 		s.reportArchiveStalenessIfDue(logger, &monitorState.stalenessTracker, state, walArchiveSample{
-			SourceCurrentLSN:     state.CurrentLSN,
+			SourceCurrentLSN:     *state.CurrentLSN,
 			ArchiveProgressPoint: archiveProgressLSN,
 			ObservedAt:           now,
 			StalenessThreshold:   s.spec.ArchiveStalenessThreshold,
@@ -261,7 +262,7 @@ func (s *WalStreamSupervisor) runLagMonitorTick(
 
 	case slotBreakActionRebuild:
 		logger.WarnContext(ctx, "wal stream break observed", "reason", string(reason),
-			"lag_bytes", probe.State.LagBytes, "wal_status", probe.State.WalStatus)
+			"lag_bytes", *probe.State.LagBytes, "wal_status", probe.State.WalStatus)
 
 		if err := s.rebuildSlot(ctx, logger, reason); err != nil {
 			logger.ErrorContext(ctx, "slot rebuild failed", "reason", string(reason), "error", err)
@@ -269,7 +270,7 @@ func (s *WalStreamSupervisor) runLagMonitorTick(
 	}
 }
 
-func (s *WalStreamSupervisor) buildSlotBreakSample(state *SlotState, now time.Time) slotBreakSample {
+func (s *WalStreamSupervisor) buildSlotBreakSample(state *pgphysical.Slot, now time.Time) slotBreakSample {
 	return slotBreakSample{
 		SlotState:            state,
 		WalLagThresholdBytes: s.spec.WalLagThresholdBytes,
@@ -320,12 +321,12 @@ func (s *WalStreamSupervisor) recordWalStreamSample(
 func (s *WalStreamSupervisor) reportArchivingProgress(
 	ctx context.Context,
 	logger *slog.Logger,
-	state *SlotState,
+	state *pgphysical.Slot,
 	snapshot ArchivingSnapshot,
 ) {
 	if snapshot.ArchivedSegments == 0 {
 		logger.DebugContext(ctx, fmt.Sprintf("no wal archived since the last report, %d bytes behind",
-			state.LagBytes), "wal_status", state.WalStatus)
+			*state.LagBytes), "wal_status", state.WalStatus)
 
 		return
 	}
@@ -340,7 +341,7 @@ func (s *WalStreamSupervisor) reportArchivingProgress(
 		formatUploadStepTiming(snapshot.SegmentWrite, snapshot.ArchivedSegments),
 		formatUploadStepTiming(snapshot.SidecarWrite, snapshot.ArchivedSegments),
 		formatUploadStepTiming(snapshot.Commit, snapshot.ArchivedSegments),
-		state.LagBytes,
+		*state.LagBytes,
 	), "wal_status", state.WalStatus)
 }
 
@@ -353,7 +354,7 @@ func formatUploadStepTiming(timing uploadStepTiming, archivedSegments int64) str
 func (s *WalStreamSupervisor) reportArchiveStalenessIfDue(
 	logger *slog.Logger,
 	stalenessTracker *walArchiveStalenessTracker,
-	state *SlotState,
+	state *pgphysical.Slot,
 	archiveSample walArchiveSample,
 	lastCommittedWalAt *time.Time,
 ) {
@@ -365,7 +366,7 @@ func (s *WalStreamSupervisor) reportArchiveStalenessIfDue(
 
 	logger.Warn("wal archiving fell behind the source; the recovery point is no longer advancing",
 		"reason", ChainRiskReasonArchiveStale,
-		"lag_bytes", state.LagBytes,
+		"lag_bytes", *state.LagBytes,
 		"wal_status", state.WalStatus,
 	)
 
@@ -376,18 +377,18 @@ func (s *WalStreamSupervisor) reportArchiveStalenessIfDue(
 	s.spec.OnChainAtRisk(ChainRiskReport{
 		Reason:            ChainRiskReasonArchiveStale,
 		SlotWalStatus:     state.WalStatus,
-		LagBytes:          state.LagBytes,
+		LagBytes:          *state.LagBytes,
 		LastArchivedWalAt: lastCommittedWalAt,
 	})
 }
 
 // state is nil for a risk that is not about the slot at all (a refused rotation).
-func (s *WalStreamSupervisor) reportChainAtRisk(logger *slog.Logger, reason walBreakReason, state *SlotState) {
+func (s *WalStreamSupervisor) reportChainAtRisk(logger *slog.Logger, reason walBreakReason, state *pgphysical.Slot) {
 	report := ChainRiskReport{Reason: string(reason)}
 
 	if state != nil {
 		report.SlotWalStatus = state.WalStatus
-		report.LagBytes = state.LagBytes
+		report.LagBytes = *state.LagBytes
 	}
 
 	logger.Warn(

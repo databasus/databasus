@@ -2,14 +2,11 @@ package usecases_physical_postgresql
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"time"
 
-	"github.com/jackc/pgx/v5"
-
+	pgphysical "databasus-backend/internal/engines/postgresql/physical"
+	"databasus-backend/internal/engines/postgresql/physical/walmath"
 	physical_enums "databasus-backend/internal/features/backups/backups/core/physical/enums"
-	"databasus-backend/internal/util/walmath"
 )
 
 // SummarizerDecision encodes the outcome of a per-tick incremental pre-check.
@@ -61,16 +58,16 @@ const (
 // "WAL summarization is not progressing".
 func CheckSummarizerReadiness(
 	ctx context.Context,
-	conn *pgx.Conn,
+	conn *pgphysical.Inspection,
 	prevStopLSN walmath.LSN,
 	incrementalCadence time.Duration,
 ) (SummarizerResult, error) {
-	isEnabled, err := isSummarizerEnabled(ctx, conn)
+	state, err := conn.GetWalSummarizerState(ctx)
 	if err != nil {
 		return SummarizerResult{}, err
 	}
 
-	if !isEnabled {
+	if !state.IsEnabled {
 		reason := physical_enums.PhysicalBackupErrorSummarizerOff
 
 		return SummarizerResult{
@@ -79,14 +76,9 @@ func CheckSummarizerReadiness(
 		}, nil
 	}
 
-	window, err := readSummaryWindow(ctx, conn)
-	if err != nil {
-		return SummarizerResult{}, err
-	}
-
 	// A parent stop_lsn below the oldest retained summary has aged out for good — no
 	// future summary will ever cover it, so the chain must re-anchor on a fresh FULL.
-	if window.hasAny && prevStopLSN < window.oldestStart {
+	if state.OldestStartLSN != nil && prevStopLSN < *state.OldestStartLSN {
 		reason := physical_enums.PhysicalBackupErrorSummariesExpired
 
 		return SummarizerResult{
@@ -96,16 +88,11 @@ func CheckSummarizerReadiness(
 	}
 
 	// Summarizer on but nothing published yet: not expiry, just not ready.
-	if !window.hasAny {
+	if state.OldestStartLSN == nil {
 		return newWaitResult(incrementalCadence), nil
 	}
 
-	isRunning, err := isSummarizerRunning(ctx, conn)
-	if err != nil {
-		return SummarizerResult{}, err
-	}
-
-	if !isRunning {
+	if !state.IsRunning {
 		return newWaitResult(incrementalCadence), nil
 	}
 
@@ -132,7 +119,7 @@ var summarizerCheck = CheckSummarizerReadiness
 // summarizer that is not coming back within the tick.
 func resolveSummarizerDecision(
 	ctx context.Context,
-	conn *pgx.Conn,
+	conn *pgphysical.Inspection,
 	prevStopLSN walmath.LSN,
 	cadence time.Duration,
 ) (SummarizerResult, error) {
@@ -155,7 +142,7 @@ func resolveSummarizerDecision(
 // intermediate failure row.
 func waitForSummarizer(
 	ctx context.Context,
-	conn *pgx.Conn,
+	conn *pgphysical.Inspection,
 	prevStopLSN walmath.LSN,
 	cadence time.Duration,
 	initial SummarizerResult,
@@ -185,69 +172,6 @@ func waitForSummarizer(
 			}
 		}
 	}
-}
-
-func isSummarizerEnabled(ctx context.Context, conn *pgx.Conn) (bool, error) {
-	var setting string
-
-	if err := conn.QueryRow(
-		ctx,
-		"SELECT setting FROM pg_settings WHERE name = 'summarize_wal'",
-	).Scan(&setting); err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return false, nil
-		}
-
-		return false, fmt.Errorf("read summarize_wal setting: %w", err)
-	}
-
-	return setting == "on", nil
-}
-
-// pg_get_wal_summarizer_state() reports a NULL pid once the summarizer has
-// exited, and collapses pending_lsn onto summarized_lsn at the same moment, so
-// the pid is the only field that tells a dead summarizer from an idle one.
-func isSummarizerRunning(ctx context.Context, conn *pgx.Conn) (bool, error) {
-	var isRunning bool
-
-	if err := conn.QueryRow(
-		ctx,
-		"SELECT summarizer_pid IS NOT NULL FROM pg_get_wal_summarizer_state()",
-	).Scan(&isRunning); err != nil {
-		return false, fmt.Errorf("read WAL summarizer state: %w", err)
-	}
-
-	return isRunning, nil
-}
-
-type summaryWindow struct {
-	// hasAny is false when the summarizer is on but has produced no summary file yet —
-	// just enabled, or idle before the first checkpoint.
-	hasAny      bool
-	oldestStart walmath.LSN
-}
-
-func readSummaryWindow(ctx context.Context, conn *pgx.Conn) (summaryWindow, error) {
-	var oldestStart *string
-
-	err := conn.QueryRow(ctx, `
-		SELECT MIN(start_lsn)::text
-		FROM pg_available_wal_summaries()
-	`).Scan(&oldestStart)
-	if err != nil {
-		return summaryWindow{}, fmt.Errorf("read WAL summary window: %w", err)
-	}
-
-	if oldestStart == nil {
-		return summaryWindow{}, nil
-	}
-
-	start, err := walmath.ParseLSN(*oldestStart)
-	if err != nil {
-		return summaryWindow{}, fmt.Errorf("parse oldest summary start_lsn: %w", err)
-	}
-
-	return summaryWindow{hasAny: true, oldestStart: start}, nil
 }
 
 func waitWindowForCadence(cadence time.Duration) time.Duration {

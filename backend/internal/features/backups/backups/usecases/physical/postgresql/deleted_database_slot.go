@@ -24,7 +24,7 @@ type StreamedDatabases interface {
 func (s *WalStreamSupervisor) createSlotUnlessDatabaseDeleted(ctx context.Context, logger *slog.Logger) error {
 	source := pgphysical.NewSource(s.spec.SourceDB.Engine)
 
-	if err := source.VerifySlot(ctx, logger); err != nil {
+	if err := source.VerifySlot(ctx, logger, s.spec.SourceDB.WalStreamSlotName); err != nil {
 		return err
 	}
 
@@ -41,7 +41,7 @@ func (s *WalStreamSupervisor) createSlotUnlessDatabaseDeleted(ctx context.Contex
 		return nil
 	}
 
-	if err := source.DropSlot(ctx, logger); err != nil {
+	if err := source.DropSlot(ctx, logger, s.spec.SourceDB.WalStreamSlotName); err != nil {
 		return fmt.Errorf("drop the slot of a deleted database: %w", err)
 	}
 

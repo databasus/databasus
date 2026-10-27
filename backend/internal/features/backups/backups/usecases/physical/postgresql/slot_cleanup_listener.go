@@ -73,7 +73,7 @@ func (l *PhysicalSlotCleanupListener) dropSlots(
 ) {
 	logger := l.logger.With("database_id", connectionSettings.DatabaseID)
 	slotName := connectionSettings.BackupSlotName
-	walSlotName := connectionSettings.Engine.ReplicationSlotName
+	walSlotName := connectionSettings.WalStreamSlotName
 
 	cleanupCtx, cancel := context.WithTimeout(ctx, slotCleanupDeadline)
 	defer cancel()
@@ -95,7 +95,7 @@ func (l *PhysicalSlotCleanupListener) dropSlots(
 
 	source := tunnel.GetSource()
 
-	conn, err := source.OpenInspectionConn(cleanupCtx)
+	conn, err := source.OpenInspection(cleanupCtx)
 	if err != nil {
 		logger.WarnContext(ctx, "physical slot cleanup: source PG unreachable, leaving slots orphaned",
 			"slot_name", slotName,
@@ -107,7 +107,7 @@ func (l *PhysicalSlotCleanupListener) dropSlots(
 	}
 	defer func() { _ = conn.Close(context.Background()) }()
 
-	err = dropBackupSlotIfExists(cleanupCtx, conn, slotName)
+	err = conn.DropBackupSlotIfExists(cleanupCtx, slotName)
 	if err != nil {
 		logger.WarnContext(
 			ctx,
@@ -119,7 +119,7 @@ func (l *PhysicalSlotCleanupListener) dropSlots(
 		)
 	}
 
-	err = source.DropSlotForRemoval(cleanupCtx, logger)
+	err = source.DropSlotForRemoval(cleanupCtx, logger, walSlotName)
 	if err != nil {
 		logger.WarnContext(ctx, "physical slot cleanup: WAL streamer slot drop failed",
 			"slot_name", walSlotName,

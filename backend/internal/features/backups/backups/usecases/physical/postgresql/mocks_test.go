@@ -15,7 +15,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 
-	"databasus-backend/internal/util/walmath"
+	"databasus-backend/internal/engines/postgresql/physical/walmath"
 )
 
 const testWalSegmentSize = int64(16 * 1024 * 1024)

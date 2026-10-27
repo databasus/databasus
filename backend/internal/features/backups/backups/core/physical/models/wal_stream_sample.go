@@ -5,8 +5,8 @@ import (
 
 	"github.com/google/uuid"
 
+	"databasus-backend/internal/engines/postgresql/physical/walmath"
 	physical_enums "databasus-backend/internal/features/backups/backups/core/physical/enums"
-	"databasus-backend/internal/util/walmath"
 )
 
 // One sample of a WAL-streaming database's archiving health, taken by the

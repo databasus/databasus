@@ -5,9 +5,9 @@ import (
 
 	"github.com/google/uuid"
 
+	"databasus-backend/internal/engines/postgresql/physical/walmath"
 	physical_enums "databasus-backend/internal/features/backups/backups/core/physical/enums"
 	physical_models "databasus-backend/internal/features/backups/backups/core/physical/models"
-	"databasus-backend/internal/util/walmath"
 )
 
 // Everything one lag-monitor tick knows when it records its sample. The trackers'
@@ -92,11 +92,11 @@ func buildWalStreamSample(input walStreamSampleInput) *physical_models.PhysicalW
 // timeline, and that tick's write volume is unknown rather than negative.
 func fillSourceSideValues(sample *physical_models.PhysicalWalStreamSample, input walStreamSampleInput) {
 	state := input.Probe.State
-	currentLSN := state.CurrentLSN
+	currentLSN := *state.CurrentLSN
 
 	sample.SourceCurrentLSN = new(currentLSN)
 	sample.SlotWalStatus = new(state.WalStatus)
-	sample.SlotLagBytes = new(state.LagBytes)
+	sample.SlotLagBytes = state.LagBytes
 	sample.SlotSafeWalSizeBytes = state.SafeWalSizeBytes
 
 	if input.PreviousSourceLSN != nil && currentLSN >= *input.PreviousSourceLSN {

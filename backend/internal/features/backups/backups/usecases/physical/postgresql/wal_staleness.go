@@ -4,7 +4,7 @@ import (
 	"log/slog"
 	"time"
 
-	"databasus-backend/internal/util/walmath"
+	"databasus-backend/internal/engines/postgresql/physical/walmath"
 )
 
 type walArchiveSample struct {

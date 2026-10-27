@@ -21,6 +21,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"databasus-backend/internal/config"
+	"databasus-backend/internal/engines/postgresql/physical/walmath"
 	audit_logs "databasus-backend/internal/features/audit_logs"
 	backuping_physical "databasus-backend/internal/features/backups/backups/backuping/physical"
 	backups_controllers_physical "databasus-backend/internal/features/backups/backups/controllers/physical"
@@ -49,7 +50,6 @@ import (
 	"databasus-backend/internal/storage"
 	"databasus-backend/internal/util/logger"
 	test_utils "databasus-backend/internal/util/testing"
-	"databasus-backend/internal/util/walmath"
 )
 
 const segmentBytes = 16 * 1024 * 1024
@@ -1466,8 +1466,16 @@ func createContiguousWalSegments(
 		segmentNo := walmath.WalSegmentNo(firstSegmentNo + uint64(index))
 
 		segmentModel := physical_testing.NewTestWalSegment(
-			prereqs.database.ID, prereqs.storage.ID, timelineID,
-			segmentNo.GetFilename(uint32(timelineID)), segmentNo.FirstLSN(), segmentNo.Next().FirstLSN())
+			prereqs.database.ID,
+			prereqs.storage.ID,
+			timelineID,
+			segmentNo.GetFilename(
+				uint32(timelineID),
+				walmath.DefaultSegmentSizeBytes,
+			),
+			segmentNo.FirstLSN(walmath.DefaultSegmentSizeBytes),
+			segmentNo.Next().FirstLSN(walmath.DefaultSegmentSizeBytes),
+		)
 		segmentModel.ReceivedAt = firstReceivedAt.Add(time.Duration(index) * time.Minute)
 
 		segments = append(segments, physical_testing.CreateTestWalSegment(t, segmentModel))
@@ -1489,9 +1497,14 @@ func seedWalAroundFull(t *testing.T, prereqs *physicalControllerPrereqs) (
 	olderSegments := createContiguousWalSegments(t, prereqs, 1, 1, 2, base)
 
 	fullModel := physical_testing.NewTestCompletedFullBackup(
-		prereqs.database.ID, prereqs.storage.ID, 1,
-		walmath.WalSegmentNo(3).FirstLSN()+physical_testing.FirstRecordOffset,
-		walmath.WalSegmentNo(3).FirstLSN()+physical_testing.FirstRecordOffset+physical_testing.FullLSNSpan)
+		prereqs.database.ID,
+		prereqs.storage.ID,
+		1,
+		walmath.WalSegmentNo(3).FirstLSN(walmath.DefaultSegmentSizeBytes)+physical_testing.FirstRecordOffset,
+		walmath.WalSegmentNo(3).
+			FirstLSN(walmath.DefaultSegmentSizeBytes)+
+			physical_testing.FirstRecordOffset+physical_testing.FullLSNSpan,
+	)
 	fullModel.CreatedAt = base.Add(5 * time.Minute)
 	full := physical_testing.CreateTestFullBackup(t, fullModel)
 
@@ -1813,7 +1826,12 @@ func Test_GetWalStreamLive_WhenStreamerRuns_ReturnsValuesReadAtRequestTime(t *te
 
 	watchDir := registerTestRunningWalStreamer(t, prereqs)
 	require.NoError(t, os.MkdirAll(watchDir, 0o700))
-	writeTestWalFile(t, watchDir, walmath.WalSegmentNo(0x11).GetFilename(1), 3*1024*1024)
+	writeTestWalFile(
+		t,
+		watchDir,
+		walmath.WalSegmentNo(0x11).GetFilename(1, walmath.DefaultSegmentSizeBytes),
+		3*1024*1024,
+	)
 
 	firstReading := getWalStreamLive(t, prereqs)
 
@@ -1826,7 +1844,10 @@ func Test_GetWalStreamLive_WhenStreamerRuns_ReturnsValuesReadAtRequestTime(t *te
 	assert.Nil(t, firstReading.Current.SourceProbedAt, "no probe of the source has run yet")
 	assert.Nil(t, firstReading.Current.SlotLagBytes)
 
-	require.NoError(t, os.Remove(filepath.Join(watchDir, walmath.WalSegmentNo(0x11).GetFilename(1))))
+	require.NoError(
+		t,
+		os.Remove(filepath.Join(watchDir, walmath.WalSegmentNo(0x11).GetFilename(1, walmath.DefaultSegmentSizeBytes))),
+	)
 
 	secondReading := getWalStreamLive(t, prereqs)
 
@@ -2202,8 +2223,13 @@ func seedCompletedFullWithWalGap(t *testing.T, prereqs *physicalControllerPrereq
 
 	for _, segmentNo := range []uint64{0x10, 0x11, 0x13, 0x14} {
 		physical_testing.CreateTestWalSegment(t, physical_testing.NewTestWalSegment(
-			prereqs.database.ID, prereqs.storage.ID, 1, walmath.WalSegmentNo(segmentNo).GetFilename(1),
-			walmath.LSN(segmentNo*segmentBytes), walmath.LSN((segmentNo+1)*segmentBytes)))
+			prereqs.database.ID,
+			prereqs.storage.ID,
+			1,
+			walmath.WalSegmentNo(segmentNo).GetFilename(1, walmath.DefaultSegmentSizeBytes),
+			walmath.LSN(segmentNo*segmentBytes),
+			walmath.LSN((segmentNo+1)*segmentBytes),
+		))
 	}
 
 	return full
@@ -2452,7 +2478,7 @@ func seedTestWalSegmentReceivedAt(
 	t.Helper()
 
 	segment := physical_testing.NewTestWalSegment(prereqs.database.ID, prereqs.storage.ID, 1,
-		walmath.WalSegmentNo(segmentNo).GetFilename(1),
+		walmath.WalSegmentNo(segmentNo).GetFilename(1, walmath.DefaultSegmentSizeBytes),
 		walmath.LSN(segmentNo*segmentBytes), walmath.LSN((segmentNo+1)*segmentBytes))
 	segment.ReceivedAt = receivedAt
 

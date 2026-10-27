@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 
+	pgphysical "databasus-backend/internal/engines/postgresql/physical"
 	pgshared "databasus-backend/internal/engines/postgresql/shared"
 	chain_view "databasus-backend/internal/features/backups/backups/core/physical/chain_view"
 	physical_enums "databasus-backend/internal/features/backups/backups/core/physical/enums"
@@ -143,7 +144,7 @@ func (uc *CreateFullBackupUsecase) Execute(ctx context.Context, spec FullBackupS
 // artifact itself is valid, and a missing .history only degrades later chain
 // validation, which the scheduler tolerates.
 func uploadHistoryForTimelineSwitch(ctx context.Context, common CommonBackupSpec, timelineID int) {
-	historyConn, err := openInspectionConn(ctx, common.SourceDB)
+	historyConn, err := pgphysical.NewSource(common.SourceDB.Engine).OpenInspection(ctx)
 	if err != nil {
 		common.Logger.Warn("could not open connection for history upload; FULL stays COMPLETED",
 			"timeline_id", timelineID,
@@ -154,7 +155,7 @@ func uploadHistoryForTimelineSwitch(ctx context.Context, common CommonBackupSpec
 	defer func() { _ = historyConn.Close(ctx) }()
 
 	if _, err := UploadHistoryFile(ctx, HistoryUploadSpec{
-		Conn:        historyConn,
+		Inspection:  historyConn,
 		TimelineID:  timelineID,
 		FileStore:   common.FileStore,
 		SourceDB:    common.SourceDB,

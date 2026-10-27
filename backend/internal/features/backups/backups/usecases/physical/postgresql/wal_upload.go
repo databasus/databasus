@@ -17,6 +17,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/klauspost/compress/zstd"
 
+	pgphysical "databasus-backend/internal/engines/postgresql/physical"
+	"databasus-backend/internal/engines/postgresql/physical/walmath"
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	physical_dto "databasus-backend/internal/features/backups/backups/core/physical/dto"
 	physical_models "databasus-backend/internal/features/backups/backups/core/physical/models"
@@ -26,7 +28,6 @@ import (
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/storages"
 	db "databasus-backend/internal/storage"
-	"databasus-backend/internal/util/walmath"
 )
 
 // walSegmentUploadTimeout bounds a single WAL-segment SaveFile. A segment is one
@@ -34,11 +35,6 @@ import (
 // multi-hour stream like a FULL.
 const walSegmentUploadTimeout = 2 * time.Minute
 
-// WalUploadDeps carries everything the WAL uploader needs. WalSegmentSizeBytes is
-// the source cluster's wal_segment_size (captured on the DB row), used to derive
-// per-segment LSN bounds WITHOUT the walmath.WalSegmentSize package global — so a
-// cluster with a non-default segsize is parsed correctly even when several DBs
-// stream concurrently in one process.
 type WalUploadDeps struct {
 	DatabaseID          uuid.UUID
 	StorageID           uuid.UUID
@@ -89,7 +85,7 @@ func (u *WalUploader) ProcessSegment(ctx context.Context, localPath, walFilename
 		return err
 	}
 
-	if !isCompleteSegmentFile(localPath, u.deps.WalSegmentSizeBytes) {
+	if !pgphysical.IsCompleteSegmentFile(localPath, u.deps.WalSegmentSizeBytes) {
 		u.warnIncompleteSegmentOnce(walFilename)
 
 		return nil
@@ -137,7 +133,7 @@ func (u *WalUploader) RecoverSegment(ctx context.Context, localPath, walFilename
 		return err
 	}
 
-	if !isCompleteSegmentFile(localPath, u.deps.WalSegmentSizeBytes) {
+	if !pgphysical.IsCompleteSegmentFile(localPath, u.deps.WalSegmentSizeBytes) {
 		u.warnIncompleteSegmentOnce(walFilename)
 
 		return nil
@@ -552,7 +548,7 @@ func (u *WalUploader) forgetIncompleteSegment(walFilename string) {
 }
 
 func segmentBounds(walFilename string, segSizeBytes int64) (timelineID int, startLSN, endLSN walmath.LSN, err error) {
-	timeline, segmentNo, err := walmath.ParseWALFilenameWithSize(walFilename, uint64(segSizeBytes))
+	timeline, segmentNo, err := walmath.ParseWALFilename(walFilename, uint64(segSizeBytes))
 	if err != nil {
 		return 0, 0, 0, err
 	}

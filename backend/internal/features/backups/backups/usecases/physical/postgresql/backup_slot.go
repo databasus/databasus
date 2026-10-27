@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 
 	pgphysical "databasus-backend/internal/engines/postgresql/physical"
 	databases_bridge "databasus-backend/internal/features/databases"
@@ -42,7 +41,7 @@ func WithBackupSlot(
 	logger *slog.Logger,
 	fn func() error,
 ) error {
-	conn, err := openInspectionConn(ctx, sourceDB)
+	conn, err := pgphysical.NewSource(sourceDB.Engine).OpenInspection(ctx)
 	if err != nil {
 		return fmt.Errorf("open conn for backup slot: %w", err)
 	}
@@ -50,15 +49,11 @@ func WithBackupSlot(
 
 	slotName := sourceDB.BackupSlotName
 
-	if err := dropBackupSlotIfExists(ctx, conn, slotName); err != nil {
+	if err := conn.DropBackupSlotIfExists(ctx, slotName); err != nil {
 		return fmt.Errorf("pre-create drop of backup slot %q: %w", slotName, err)
 	}
 
-	if _, err := conn.Exec(
-		ctx,
-		"SELECT pg_create_physical_replication_slot($1, true)",
-		slotName,
-	); err != nil {
+	if err := conn.CreateSlot(ctx, slotName); err != nil {
 		if dropErr := dropBackupSlotAfterFailedCreate(sourceDB, logger); dropErr != nil {
 			logger.WarnContext(
 				ctx,
@@ -75,7 +70,7 @@ func WithBackupSlot(
 
 	defer func() {
 		// Background context so defer runs even when ctx is cancelled.
-		if dropErr := dropBackupSlotIfExists(context.Background(), conn, slotName); dropErr == nil {
+		if dropErr := conn.DropBackupSlotIfExists(context.Background(), slotName); dropErr == nil {
 			logger.InfoContext(ctx, "per-backup replication slot dropped", "slot_name", slotName)
 
 			return
@@ -107,10 +102,7 @@ func dropBackupSlotAfterFailedCreate(
 	ctx, cancel := context.WithTimeout(context.Background(), slotDropRetryTimeout)
 	defer cancel()
 
-	backupSlotSettings := sourceDB.Engine
-	backupSlotSettings.ReplicationSlotName = sourceDB.BackupSlotName
-
-	return pgphysical.NewSource(backupSlotSettings).DropSlotForRemoval(ctx, logger)
+	return pgphysical.NewSource(sourceDB.Engine).DropSlotForRemoval(ctx, logger, sourceDB.BackupSlotName)
 }
 
 func dropBackupSlotOverFreshConn(
@@ -120,24 +112,13 @@ func dropBackupSlotOverFreshConn(
 	ctx, cancel := context.WithTimeout(context.Background(), slotDropRetryTimeout)
 	defer cancel()
 
-	conn, err := openInspectionConn(ctx, sourceDB)
+	conn, err := pgphysical.NewSource(sourceDB.Engine).OpenInspection(ctx)
 	if err != nil {
 		return fmt.Errorf("reopen conn to drop backup slot %q: %w", slotName, err)
 	}
 	defer func() { _ = conn.Close(context.Background()) }()
 
-	return dropBackupSlotIfExists(ctx, conn, slotName)
-}
-
-func dropBackupSlotIfExists(ctx context.Context, conn *pgx.Conn, slotName string) error {
-	_, err := conn.Exec(
-		ctx,
-		`SELECT pg_drop_replication_slot(slot_name)
-		   FROM pg_replication_slots WHERE slot_name = $1`,
-		slotName,
-	)
-
-	return err
+	return conn.DropBackupSlotIfExists(ctx, slotName)
 }
 
 // RunStartupCleanup iterates every physical PG database and drops the per-backup
@@ -221,7 +202,7 @@ func RunStartupCleanup(
 			}
 			defer tunnel.Close()
 
-			conn, err := tunnel.GetSource().OpenInspectionConn(cleanupCtx)
+			conn, err := tunnel.GetSource().OpenInspection(cleanupCtx)
 			if err != nil {
 				scopedLogger.Warn("startup slot cleanup: skip unreachable source", "error", err)
 				skippedCount.Store(databaseID, struct{}{})
@@ -229,7 +210,7 @@ func RunStartupCleanup(
 			}
 			defer func() { _ = conn.Close(context.Background()) }()
 
-			if err := dropBackupSlotIfExists(cleanupCtx, conn, slotName); err != nil {
+			if err := conn.DropBackupSlotIfExists(cleanupCtx, slotName); err != nil {
 				scopedLogger.Warn("startup slot cleanup: drop failed", "error", err)
 				failureCount.Store(databaseID, struct{}{})
 				return

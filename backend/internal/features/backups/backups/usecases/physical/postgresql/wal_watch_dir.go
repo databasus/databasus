@@ -2,28 +2,18 @@ package usecases_physical_postgresql
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"os"
 	"path/filepath"
-	"strconv"
-	"strings"
 	"time"
+
+	pgphysical "databasus-backend/internal/engines/postgresql/physical"
+	"databasus-backend/internal/engines/postgresql/physical/walmath"
 )
 
 // Segments rotate at the source write rate; a tight loop keeps local dwell time
 // low without measurable CPU.
 const uploaderPollInterval = 1 * time.Second
-
-// A segment's LSN bounds come from its filename, so a file that is not exactly
-// one wal_segment_size long would be catalogued as covering WAL it does not hold.
-// pg_receivewal only renames a segment into place once it is full, so anything
-// short is a torn leftover the receiver will re-stream.
-func isCompleteSegmentFile(localPath string, segmentSizeBytes int64) bool {
-	info, err := os.Stat(localPath)
-
-	return err == nil && info.Size() == segmentSizeBytes
-}
 
 func (s *WalStreamSupervisor) runUploaderLoop(ctx context.Context, logger *slog.Logger) {
 	ticker := time.NewTicker(uploaderPollInterval)
@@ -89,7 +79,7 @@ func (s *WalStreamSupervisor) archiveTimelineHistoryFiles(ctx context.Context, l
 	}
 
 	for _, entry := range entries {
-		if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".history") {
+		if !entry.IsDir() && pgphysical.IsTimelineHistoryFile(entry.Name()) {
 			s.archiveTimelineHistoryFile(ctx, logger, entry.Name())
 		}
 	}
@@ -98,14 +88,14 @@ func (s *WalStreamSupervisor) archiveTimelineHistoryFiles(ctx context.Context, l
 // UploadHistoryFile reads the body from the source cluster and is idempotent on
 // (database_id, timeline_id), so re-processing the same file is free.
 func (s *WalStreamSupervisor) archiveTimelineHistoryFile(ctx context.Context, logger *slog.Logger, name string) {
-	timelineID, err := parseHistoryTimeline(name)
+	timelineID, err := walmath.ParseHistoryFilename(name)
 	if err != nil {
 		logger.WarnContext(ctx, "skip unparseable history file", "name", name, "error", err)
 
 		return
 	}
 
-	conn, err := openInspectionConn(ctx, s.spec.SourceDB)
+	conn, err := pgphysical.NewSource(s.spec.SourceDB.Engine).OpenInspection(ctx)
 	if err != nil {
 		logger.WarnContext(ctx, "could not open connection to upload history file; will retry", "error", err)
 
@@ -114,7 +104,7 @@ func (s *WalStreamSupervisor) archiveTimelineHistoryFile(ctx context.Context, lo
 	defer func() { _ = conn.Close(context.Background()) }()
 
 	if _, err := UploadHistoryFile(ctx, HistoryUploadSpec{
-		Conn:        conn,
+		Inspection:  conn,
 		TimelineID:  timelineID,
 		FileStore:   s.spec.FileStore,
 		SourceDB:    s.spec.SourceDB,
@@ -143,7 +133,7 @@ func (s *WalStreamSupervisor) removePartials(logger *slog.Logger) {
 	}
 
 	for _, entry := range entries {
-		if !strings.HasSuffix(entry.Name(), ".partial") {
+		if !pgphysical.IsPartialWalFile(entry.Name()) {
 			continue
 		}
 
@@ -151,18 +141,4 @@ func (s *WalStreamSupervisor) removePartials(logger *slog.Logger) {
 			logger.Warn("failed to remove partial wal file", "name", entry.Name(), "error", err)
 		}
 	}
-}
-
-func parseHistoryTimeline(name string) (int, error) {
-	trimmed := strings.TrimSuffix(name, ".history")
-	if trimmed == name {
-		return 0, fmt.Errorf("not a history filename: %q", name)
-	}
-
-	timelineID, err := strconv.ParseUint(trimmed, 16, 32)
-	if err != nil {
-		return 0, fmt.Errorf("parse timeline from %q: %w", name, err)
-	}
-
-	return int(timelineID), nil
 }

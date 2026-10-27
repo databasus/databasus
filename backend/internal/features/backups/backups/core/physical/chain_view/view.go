@@ -1,8 +1,8 @@
 package chain_view
 
 import (
+	"databasus-backend/internal/engines/postgresql/physical/walmath"
 	physical_models "databasus-backend/internal/features/backups/backups/core/physical/models"
-	"databasus-backend/internal/util/walmath"
 )
 
 // ChainView is one backup chain — its FULL and its INCRs, from one FULL to the

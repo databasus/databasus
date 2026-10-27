@@ -5,13 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"strings"
 	"time"
 
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
-
-	"databasus-backend/internal/util/walmath"
+	pgphysical "databasus-backend/internal/engines/postgresql/physical"
+	"databasus-backend/internal/engines/postgresql/physical/walmath"
 )
 
 // Only a finalized segment is uploaded, so a database that writes a few bytes an
@@ -22,8 +19,6 @@ import (
 const DefaultForcedRotationInterval = 5 * time.Minute
 
 const forcedRotationPollInterval = 30 * time.Second
-
-const pgErrorCodeInsufficientPrivilege = "42501"
 
 type walRotationSample struct {
 	CurrentLSN walmath.LSN
@@ -99,7 +94,7 @@ func (s *WalStreamSupervisor) runForcedWalRotation(ctx context.Context, logger *
 
 			currentLSNAfterRotation, err := s.forceWalRotation(ctx)
 			if err != nil {
-				if !isInsufficientPrivilegeError(err) {
+				if !errors.Is(err, pgphysical.ErrWalSwitchDenied) {
 					logger.WarnContext(ctx, "forced wal rotation failed; will retry", "error", err)
 
 					continue
@@ -126,7 +121,7 @@ func (s *WalStreamSupervisor) getCurrentWalLsnIfReachable(
 	ctx context.Context,
 	logger *slog.Logger,
 ) (currentLSN walmath.LSN, isSourceReachable bool) {
-	conn, err := openInspectionConn(ctx, s.spec.SourceDB)
+	conn, err := pgphysical.NewSource(s.spec.SourceDB.Engine).OpenInspection(ctx)
 	if err != nil {
 		logger.DebugContext(ctx, "forced wal rotation: source unreachable this tick", "error", err)
 
@@ -134,7 +129,7 @@ func (s *WalStreamSupervisor) getCurrentWalLsnIfReachable(
 	}
 	defer func() { _ = conn.Close(context.Background()) }()
 
-	currentLSN, err = readCurrentWalLSN(ctx, conn)
+	currentLSN, err = conn.GetCurrentWalLSN(ctx)
 	if err != nil {
 		return 0, false
 	}
@@ -142,34 +137,12 @@ func (s *WalStreamSupervisor) getCurrentWalLsnIfReachable(
 	return currentLSN, true
 }
 
-func readCurrentWalLSN(ctx context.Context, conn *pgx.Conn) (walmath.LSN, error) {
-	var currentLSNText string
-	if err := conn.QueryRow(ctx, "SELECT pg_current_wal_lsn()::text").Scan(&currentLSNText); err != nil {
-		return 0, fmt.Errorf("read current wal position: %w", err)
-	}
-
-	return walmath.ParseLSN(currentLSNText)
-}
-
 func (s *WalStreamSupervisor) forceWalRotation(ctx context.Context) (currentLSNAfterRotation walmath.LSN, err error) {
-	conn, err := openInspectionConn(ctx, s.spec.SourceDB)
+	conn, err := pgphysical.NewSource(s.spec.SourceDB.Engine).OpenInspection(ctx)
 	if err != nil {
 		return 0, fmt.Errorf("open conn for wal switch: %w", err)
 	}
 	defer func() { _ = conn.Close(context.Background()) }()
 
-	if _, err := conn.Exec(ctx, "SELECT pg_switch_wal()"); err != nil {
-		return 0, fmt.Errorf("pg_switch_wal: %w", err)
-	}
-
-	return readCurrentWalLSN(ctx, conn)
-}
-
-func isInsufficientPrivilegeError(err error) bool {
-	var pgErr *pgconn.PgError
-	if errors.As(err, &pgErr) {
-		return pgErr.Code == pgErrorCodeInsufficientPrivilege
-	}
-
-	return strings.Contains(strings.ToLower(err.Error()), "permission denied")
+	return conn.SwitchWal(ctx)
 }

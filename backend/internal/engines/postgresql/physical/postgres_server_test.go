@@ -91,20 +91,12 @@ func (s testServer) getSettings(role testRole) Settings {
 			ClientKey:  "",
 			RootCert:   "",
 		},
-		SSHTunnel:           nil,
-		ReplicationSlotName: "",
+		SSHTunnel: nil,
 	}
 }
 
 func (s testServer) newSource(role testRole) *Source {
 	return NewSource(s.getSettings(role))
-}
-
-func (s testServer) newSlotSource(slotName string) *Source {
-	settings := s.getSettings(adminRole)
-	settings.ReplicationSlotName = slotName
-
-	return NewSource(settings)
 }
 
 func (s testServer) connectAs(t *testing.T, role testRole) *pgx.Conn {
@@ -118,6 +110,14 @@ func (s testServer) connectAs(t *testing.T, role testRole) *pgx.Conn {
 	})
 
 	return conn
+}
+
+func (s testServer) openInspection(t *testing.T, role testRole) *Inspection {
+	t.Helper()
+	inspection, err := s.newSource(role).OpenInspection(t.Context())
+	require.NoError(t, err)
+	t.Cleanup(func() { closeTestConn(t, inspection.Close) })
+	return inspection
 }
 
 func (s testServer) openReplicationConn(t *testing.T, role testRole) (*pgconn.PgConn, error) {
@@ -228,10 +228,13 @@ func (s testServer) createReservedPhysicalSlot(t *testing.T, slotName string) {
 func (s testServer) readSlotType(t *testing.T, slotName string) (string, bool) {
 	t.Helper()
 
-	slot, isSlotPresent, err := readSlot(t.Context(), s.connectAs(t, adminRole), slotName)
+	slot, err := (&Inspection{conn: s.connectAs(t, adminRole)}).GetSlot(t.Context(), slotName)
 	require.NoError(t, err)
 
-	return slot.Type, isSlotPresent
+	if slot == nil {
+		return "", false
+	}
+	return slot.Type, true
 }
 
 // attachSlotConsumer streams from the slot over a physical replication connection, as
@@ -274,13 +277,13 @@ func (s testServer) waitForSlotActive(t *testing.T, slotName string) {
 	adminConn := s.connectAs(t, adminRole)
 
 	testwait.Until(t, "replication slot "+slotName+" becomes active", func(ctx context.Context) error {
-		slot, isSlotPresent, err := readSlot(ctx, adminConn, slotName)
+		slot, err := (&Inspection{conn: adminConn}).GetSlot(ctx, slotName)
 		if err != nil {
 			return err
 		}
 
-		if !isSlotPresent || !slot.IsActive {
-			return fmt.Errorf("slot present=%t, active=%t", isSlotPresent, slot.IsActive)
+		if slot == nil || !slot.IsActive {
+			return fmt.Errorf("slot is absent or inactive")
 		}
 
 		return nil

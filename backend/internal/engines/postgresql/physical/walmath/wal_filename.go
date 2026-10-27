@@ -6,25 +6,17 @@ package walmath
 import (
 	"fmt"
 	"math"
-	"regexp"
 	"strconv"
+	"strings"
 )
 
-var regexpTimelineAndLogSegNo = regexp.MustCompile(PatternTimelineAndLogSegNo)
-
-func ParseWALFilename(name string) (timelineID uint32, logSegNo uint64, err error) {
-	return ParseWALFilenameWithSize(name, WalSegmentSize)
-}
-
-// Unlike ParseWALFilename, this holds for a cluster whose WAL segment size differs
-// from the configured one: the timeline field does not depend on it.
 func ParseWALFilenameTimeline(name string) (uint32, error) {
 	timelineID, _, err := parseWalSegmentFields(name)
 
 	return timelineID, err
 }
 
-func ParseWALFilenameWithSize(name string, segmentSize uint64) (timelineID uint32, logSegNo uint64, err error) {
+func ParseWALFilename(name string, segmentSize uint64) (timelineID uint32, logSegNo uint64, err error) {
 	timelineID, logSegmentFields, err := parseWalSegmentFields(name)
 	if err != nil {
 		return 0, 0, err
@@ -65,32 +57,23 @@ func parseWalSegmentFields(name string) (timelineID uint32, logSegmentFields uin
 	return uint32(parsedTimelineID), logSegmentFields, nil
 }
 
-func formatWALFileName(timeline uint32, logSegNo uint64) string {
-	return fmt.Sprintf(walFileFormat, timeline, logSegNo/xLogSegmentsPerXLogID, logSegNo%xLogSegmentsPerXLogID)
-}
-
-func GetNextWalFilename(name string) (string, error) {
-	timelineID, logSegNo, err := ParseWALFilename(name)
-	if err != nil {
-		return "", err
-	}
-
-	return formatWALFileName(timelineID, logSegNo+1), nil
-}
-
-func TryFetchTimelineAndLogSegNo(objectName string) (uint32, uint64, bool) {
-	foundLsn := regexpTimelineAndLogSegNo.FindAllString(objectName, maxCountOfLSN)
-	if len(foundLsn) > 0 {
-		timelineID, logSegNo, err := ParseWALFilename(foundLsn[0])
-		if err == nil {
-			return timelineID, logSegNo, true
-		}
-	}
-
-	return 0, 0, false
-}
-
-func IsWalFilename(filename string) bool {
-	_, _, err := ParseWALFilename(filename)
+func IsWalFilename(filename string, segmentSize uint64) bool {
+	_, _, err := ParseWALFilename(filename, segmentSize)
 	return err == nil
+}
+
+func FormatHistoryFilename(timeline uint32) string {
+	return fmt.Sprintf(walHistoryFileFormat, timeline)
+}
+
+func ParseHistoryFilename(name string) (int, error) {
+	trimmed := strings.TrimSuffix(name, ".history")
+	if trimmed == name {
+		return 0, fmt.Errorf("not a history filename: %q", name)
+	}
+	timelineID, err := strconv.ParseUint(trimmed, 16, 32)
+	if err != nil {
+		return 0, fmt.Errorf("parse timeline from %q: %w", name, err)
+	}
+	return int(timelineID), nil
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	pgphysical "databasus-backend/internal/engines/postgresql/physical"
+	"databasus-backend/internal/engines/postgresql/physical/walmath"
 	physical_enums "databasus-backend/internal/features/backups/backups/core/physical/enums"
 	physical_models "databasus-backend/internal/features/backups/backups/core/physical/models"
 	physical_repositories "databasus-backend/internal/features/backups/backups/core/physical/repositories"
@@ -20,10 +21,9 @@ import (
 	databases_bridge "databasus-backend/internal/features/databases"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/util/logger"
-	"databasus-backend/internal/util/walmath"
 )
 
-func runningSlotBreakSample(state *SlotState, walLagThresholdBytes int64, observedAt time.Time) slotBreakSample {
+func runningSlotBreakSample(state *pgphysical.Slot, walLagThresholdBytes int64, observedAt time.Time) slotBreakSample {
 	return slotBreakSample{
 		SlotState:            state,
 		WalLagThresholdBytes: walLagThresholdBytes,
@@ -57,7 +57,11 @@ func (l *lagSampleTimeline) getNextObservedAt() time.Time {
 // A zero runStartedAt is a tick with no receiver running.
 func (l *lagSampleTimeline) addSample(runStartedAt time.Time, walStatus string, lagBytes int64) {
 	l.samples = append(l.samples, slotBreakSample{
-		SlotState:            &SlotState{WalStatus: walStatus, LagBytes: lagBytes},
+		SlotState: &pgphysical.Slot{
+			CurrentLSN: new(walmath.LSN(0)),
+			WalStatus:  walStatus,
+			LagBytes:   new(int64(lagBytes)),
+		},
 		WalLagThresholdBytes: l.walLagThresholdBytes,
 		ReceiverRunStartedAt: runStartedAt,
 		ObservedAt:           l.getNextObservedAt(),
@@ -121,7 +125,11 @@ func Test_RecordSampleAndClassifyBreak_WhenWalStatusLost_Rebuilds(t *testing.T) 
 	var classifier slotBreakClassifier
 
 	reason, action := classifier.recordSampleAndClassifyBreak(
-		runningSlotBreakSample(&SlotState{WalStatus: "lost"}, 0, time.Now().UTC()),
+		runningSlotBreakSample(
+			&pgphysical.Slot{CurrentLSN: new(walmath.LSN(0)), LagBytes: new(int64(0)), WalStatus: "lost"},
+			0,
+			time.Now().UTC(),
+		),
 	)
 
 	require.Equal(t, slotBreakActionRebuild, action)
@@ -132,7 +140,7 @@ func Test_RecordSampleAndClassifyBreak_WhenWalStatusUnreserved_AlertsWithoutRebu
 	var classifier slotBreakClassifier
 
 	firstSeenAt := time.Now().UTC()
-	state := &SlotState{WalStatus: "unreserved"}
+	state := &pgphysical.Slot{CurrentLSN: new(walmath.LSN(0)), LagBytes: new(int64(0)), WalStatus: "unreserved"}
 
 	_, immediateAction := classifier.recordSampleAndClassifyBreak(runningSlotBreakSample(state, 0, firstSeenAt))
 	require.Equal(t, slotBreakActionNone, immediateAction,
@@ -151,7 +159,7 @@ func Test_RecordSampleAndClassifyBreak_WhenWalStatusExtendedPastHold_AlertsWitho
 	var classifier slotBreakClassifier
 
 	firstSeenAt := time.Now().UTC()
-	state := &SlotState{WalStatus: "extended"}
+	state := &pgphysical.Slot{CurrentLSN: new(walmath.LSN(0)), LagBytes: new(int64(0)), WalStatus: "extended"}
 
 	classifier.recordSampleAndClassifyBreak(runningSlotBreakSample(state, 0, firstSeenAt))
 
@@ -471,9 +479,10 @@ func Test_RecordSampleAndClassifyBreak_WhenExtendedSlotLagsAboveThreshold_Alerts
 func Test_RecordSampleAndClassifyBreak_WhenForeignConsumerHoldsSlot_Rebuilds(t *testing.T) {
 	var classifier slotBreakClassifier
 
-	state := &SlotState{
+	state := &pgphysical.Slot{
+		CurrentLSN: new(walmath.LSN(0)), LagBytes: new(int64(0)),
 		WalStatus:       "reserved",
-		Active:          true,
+		IsActive:        true,
 		ActivePID:       new(4242),
 		ApplicationName: "some_other_consumer",
 	}
@@ -487,12 +496,13 @@ func Test_RecordSampleAndClassifyBreak_WhenForeignConsumerHoldsSlot_Rebuilds(t *
 func Test_RecordSampleAndClassifyBreak_WhenOurReceiverActive_DoesNotRebuild(t *testing.T) {
 	var classifier slotBreakClassifier
 
-	state := &SlotState{
+	state := &pgphysical.Slot{
+		CurrentLSN:      new(walmath.LSN(0)),
 		WalStatus:       "reserved",
-		Active:          true,
+		IsActive:        true,
 		ActivePID:       new(17),
 		ApplicationName: receivewalApplicationNamePrefix + "db-1",
-		LagBytes:        10,
+		LagBytes:        new(int64(10)),
 	}
 
 	_, action := classifier.recordSampleAndClassifyBreak(runningSlotBreakSample(state, 100, time.Now().UTC()))
@@ -506,17 +516,31 @@ func Test_RecordSampleAndClassifyBreak_WhenSlotHealthy_DoesNotRebuildAndClearsWa
 	firstSeenAt := time.Now().UTC()
 
 	classifier.recordSampleAndClassifyBreak(
-		runningSlotBreakSample(&SlotState{WalStatus: "extended"}, 100, firstSeenAt),
+		runningSlotBreakSample(
+			&pgphysical.Slot{CurrentLSN: new(walmath.LSN(0)), LagBytes: new(int64(0)), WalStatus: "extended"},
+			100,
+			firstSeenAt,
+		),
 	)
 
 	_, healthyAction := classifier.recordSampleAndClassifyBreak(
-		runningSlotBreakSample(&SlotState{WalStatus: "reserved", LagBytes: 10}, 100, firstSeenAt.Add(time.Minute)),
+		runningSlotBreakSample(
+			&pgphysical.Slot{CurrentLSN: new(walmath.LSN(0)), WalStatus: "reserved", LagBytes: new(int64(10))},
+			100,
+			firstSeenAt.Add(time.Minute),
+		),
 	)
 	require.Equal(t, slotBreakActionNone, healthyAction)
 
 	_, actionAfterRecovery := classifier.recordSampleAndClassifyBreak(
 		runningSlotBreakSample(
-			&SlotState{WalStatus: "extended"}, 100, firstSeenAt.Add(wal_health.WarningSlotStatusHoldPeriod+time.Second),
+			&pgphysical.Slot{
+				CurrentLSN: new(walmath.LSN(0)),
+				LagBytes:   new(int64(0)),
+				WalStatus:  "extended",
+			},
+			100,
+			firstSeenAt.Add(wal_health.WarningSlotStatusHoldPeriod+time.Second),
 		),
 	)
 
@@ -550,7 +574,7 @@ func Test_ReportArchivingProgress_AfterBusyInterval_LogsCountsStepTimingsAndConc
 	supervisor.reportArchivingProgress(
 		t.Context(),
 		supervisorLogger,
-		&SlotState{LagBytes: 2048, WalStatus: "reserved"},
+		&pgphysical.Slot{CurrentLSN: new(walmath.LSN(0)), LagBytes: new(int64(2048)), WalStatus: "reserved"},
 		supervisor.uploader.TakeArchivingSnapshot(),
 	)
 
@@ -572,7 +596,7 @@ func Test_ReportArchivingProgress_AfterQuietInterval_LogsOnlyBytesBehindAtDebug(
 	supervisor.reportArchivingProgress(
 		t.Context(),
 		supervisorLogger,
-		&SlotState{LagBytes: 4096, WalStatus: "reserved"},
+		&pgphysical.Slot{CurrentLSN: new(walmath.LSN(0)), LagBytes: new(int64(4096)), WalStatus: "reserved"},
 		supervisor.uploader.TakeArchivingSnapshot(),
 	)
 
@@ -612,10 +636,14 @@ func createStreamerSlot(t *testing.T, fixture *PhysicalDBFixture) {
 
 	adminConn := OpenAdminConn(t, fixture)
 
-	require.NoError(t, pgphysical.NewSource(fixture.SourceDB.Engine).VerifySlot(t.Context(), logger.GetLogger()))
+	require.NoError(
+		t,
+		pgphysical.NewSource(fixture.SourceDB.Engine).
+			VerifySlot(t.Context(), logger.GetLogger(), fixture.SourceDB.WalStreamSlotName),
+	)
 
 	t.Cleanup(func() {
-		DropReplicationSlotExternally(t, adminConn, fixture.SourceDB.Engine.ReplicationSlotName)
+		DropReplicationSlotExternally(t, adminConn, fixture.SourceDB.WalStreamSlotName)
 	})
 }
 
@@ -624,7 +652,7 @@ func createStreamerSlot(t *testing.T, fixture *PhysicalDBFixture) {
 func seedCommittedSegmentBelowCurrentPosition(t *testing.T, fixture *PhysicalDBFixture) {
 	t.Helper()
 
-	currentLSN, err := readCurrentWalLSN(t.Context(), OpenAdminConn(t, fixture))
+	currentLSN, err := OpenTestInspection(t, fixture.SourceDB).GetCurrentWalLSN(t.Context())
 	require.NoError(t, err)
 
 	segmentSizeBytes := walSegmentSizeBytes(fixture.SourceDB)
@@ -749,12 +777,14 @@ func Test_RunLagMonitorTick_WhenSlotHeldExtended_RecordsTimeClassifierStartedIts
 	createStreamerSlot(t, fixture)
 	setMaxWalSizeForTest(t, adminConn, "32MB")
 
-	slotName := fixture.SourceDB.Engine.ReplicationSlotName
+	slotName := fixture.SourceDB.WalStreamSlotName
+
+	inspection := OpenTestInspection(t, fixture.SourceDB)
 
 	require.Eventually(t, func() bool {
 		ForceReplicationLag(t, adminConn, 16*1024*1024)
 
-		slotState, err := InspectSlot(t.Context(), adminConn, slotName)
+		slotState, err := inspection.GetSlot(t.Context(), slotName)
 
 		return err == nil && slotState != nil && slotState.WalStatus == slotWalStatusExtendedForTest
 	}, 90*time.Second, time.Second, "a slot lagging past max_wal_size is reported as extended")
@@ -805,7 +835,7 @@ func Test_RunLagMonitorTick_WhenTickRebuildsSlot_RecordsSlotAsProbedBeforeRebuil
 
 	const walLagThresholdBytes = 64 * 1024
 
-	slotName := fixture.SourceDB.Engine.ReplicationSlotName
+	slotName := fixture.SourceDB.WalStreamSlotName
 	ForceReplicationLag(t, adminConn, 4*walLagThresholdBytes)
 	WaitUntilSlotLag(t, adminConn, slotName, 2*walLagThresholdBytes, 30*time.Second)
 

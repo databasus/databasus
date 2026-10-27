@@ -1,10 +1,10 @@
 package usecases_physical_postgresql
 
 import (
+	"databasus-backend/internal/engines/postgresql/physical/walmath"
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	physical_enums "databasus-backend/internal/features/backups/backups/core/physical/enums"
 	"databasus-backend/internal/modules/storages"
-	"databasus-backend/internal/util/walmath"
 )
 
 // streamOutcome is the codec-agnostic result of one runStream attempt. Exactly

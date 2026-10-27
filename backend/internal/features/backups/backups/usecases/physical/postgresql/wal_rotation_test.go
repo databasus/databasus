@@ -1,17 +1,14 @@
 package usecases_physical_postgresql
 
 import (
-	"errors"
-	"fmt"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/stretchr/testify/require"
 
+	"databasus-backend/internal/engines/postgresql/physical/walmath"
 	"databasus-backend/internal/util/logger"
-	"databasus-backend/internal/util/walmath"
 )
 
 const testRotationInterval = 5 * time.Minute
@@ -65,20 +62,6 @@ func Test_RecordSampleAndDecideRotation_WhenIntervalNotElapsed_SkipsRotation(t *
 		CurrentLSN: walmath.LSN(2_000),
 		ObservedAt: base.Add(testRotationInterval / 2),
 	}, testRotationInterval), "a busy source rotates on its own; forcing it more often than the interval is waste")
-}
-
-func Test_IsInsufficientPrivilegeError_WhenSwitchWalRefused_DetectsMissingPrivilege(t *testing.T) {
-	refusal := fmt.Errorf("pg_switch_wal: %w", &pgconn.PgError{
-		Code:    pgErrorCodeInsufficientPrivilege,
-		Message: "permission denied for function pg_switch_wal",
-	})
-
-	require.True(t, isInsufficientPrivilegeError(refusal),
-		"physical backups only require REPLICATION, so a refusal is the expected case, not a retryable blip")
-}
-
-func Test_IsInsufficientPrivilegeError_WhenSourceUnreachable_ReportsRetryable(t *testing.T) {
-	require.False(t, isInsufficientPrivilegeError(errors.New("dial tcp 127.0.0.1:5432: connect: connection refused")))
 }
 
 func Test_RecordRotation_WhenSwitchMovedTheInsertPoint_DoesNotCountItAsFreshWal(t *testing.T) {

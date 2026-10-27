@@ -65,7 +65,8 @@ func (s *WalStreamSupervisor) rebuildSlot(ctx context.Context, logger *slog.Logg
 		}
 	}
 
-	if err := pgphysical.NewSource(s.spec.SourceDB.Engine).DropSlot(ctx, logger); err != nil {
+	if err := pgphysical.NewSource(s.spec.SourceDB.Engine).
+		DropSlot(ctx, logger, s.spec.SourceDB.WalStreamSlotName); err != nil {
 		return fmt.Errorf("drop slot: %w", err)
 	}
 
@@ -91,23 +92,26 @@ func (s *WalStreamSupervisor) rebuildSlot(ctx context.Context, logger *slog.Logg
 
 // A slot held by anything else (a third-party consumer, or a backend we cannot
 // attribute) must never be force-terminated or dropped during a rebuild.
-func isOwnedReceiverBackend(state *SlotState) bool {
+func isOwnedReceiverBackend(state *pgphysical.Slot) bool {
 	return state.ActivePID != nil && strings.HasPrefix(state.ApplicationName, receivewalApplicationNamePrefix)
 }
 
 func (s *WalStreamSupervisor) terminateOwnedSlotBackend(ctx context.Context, logger *slog.Logger) (bool, error) {
-	conn, err := openInspectionConn(ctx, s.spec.SourceDB)
+	conn, err := pgphysical.NewSource(s.spec.SourceDB.Engine).OpenInspection(ctx)
 	if err != nil {
 		return false, fmt.Errorf("open inspection connection: %w", err)
 	}
 	defer func() { _ = conn.Close(context.Background()) }()
 
-	state, err := InspectSlot(ctx, conn, s.slotName)
+	state, err := conn.GetSlot(ctx, s.slotName)
+	if err == nil && state != nil && state.CurrentLSN == nil {
+		err = errSourceWalPositionUnavailable
+	}
 	if err != nil {
 		return false, err
 	}
 
-	if state == nil || !state.Active {
+	if state == nil || !state.IsActive {
 		return true, nil
 	}
 
@@ -115,8 +119,8 @@ func (s *WalStreamSupervisor) terminateOwnedSlotBackend(ctx context.Context, log
 		return false, nil
 	}
 
-	var terminated bool
-	if err := conn.QueryRow(ctx, "SELECT pg_terminate_backend($1)", *state.ActivePID).Scan(&terminated); err != nil {
+	terminated, err := conn.TerminateBackend(ctx, *state.ActivePID)
+	if err != nil {
 		return false, err
 	}
 
@@ -145,7 +149,7 @@ func (s *WalStreamSupervisor) waitForSlotReleased(ctx context.Context, logger *s
 }
 
 func (s *WalStreamSupervisor) isSlotActive(ctx context.Context, logger *slog.Logger) (active, ok bool) {
-	conn, err := openInspectionConn(ctx, s.spec.SourceDB)
+	conn, err := pgphysical.NewSource(s.spec.SourceDB.Engine).OpenInspection(ctx)
 	if err != nil {
 		logger.DebugContext(ctx, "rebuild: source unreachable while waiting for slot release", "error", err)
 
@@ -153,7 +157,10 @@ func (s *WalStreamSupervisor) isSlotActive(ctx context.Context, logger *slog.Log
 	}
 	defer func() { _ = conn.Close(context.Background()) }()
 
-	state, err := InspectSlot(ctx, conn, s.slotName)
+	state, err := conn.GetSlot(ctx, s.slotName)
+	if err == nil && state != nil && state.CurrentLSN == nil {
+		err = errSourceWalPositionUnavailable
+	}
 	if err != nil {
 		return false, false
 	}
@@ -162,7 +169,7 @@ func (s *WalStreamSupervisor) isSlotActive(ctx context.Context, logger *slog.Log
 		return false, true
 	}
 
-	return state.Active, true
+	return state.IsActive, true
 }
 
 func (s *WalStreamSupervisor) recordRebuildAttemptWithinCap() bool {

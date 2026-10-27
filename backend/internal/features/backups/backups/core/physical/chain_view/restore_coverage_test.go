@@ -7,11 +7,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"databasus-backend/internal/engines/postgresql/physical/walmath"
 	"databasus-backend/internal/features/backups/backups/core/physical/chain_view"
 	physical_enums "databasus-backend/internal/features/backups/backups/core/physical/enums"
 	physical_models "databasus-backend/internal/features/backups/backups/core/physical/models"
 	physical_testing "databasus-backend/internal/features/backups/backups/core/physical/testing"
-	"databasus-backend/internal/util/walmath"
 )
 
 // An incremental's start and stop sit inside one segment, as they do in a real
@@ -182,7 +182,7 @@ func Test_GetRestoreCoverage_WhenSegmentIsStillUploading_EndsRangeBeforeIt(t *te
 	seedCoverageFull(t, prereqs, 0, clock.at(0))
 	seedCoverageSegment(t, prereqs, 1, clock.at(5))
 	uploadingSegment := physical_testing.NewTestWalSegment(prereqs.database.ID, prereqs.storage.ID, 1,
-		walmath.WalSegmentNo(2).GetFilename(1), lsnAt(2), lsnAt(3))
+		walmath.WalSegmentNo(2).GetFilename(1, walmath.DefaultSegmentSizeBytes), lsnAt(2), lsnAt(3))
 	uploadingSegment.FileName = nil
 	uploadingSegment.ReceivedAt = clock.at(10)
 	physical_testing.CreateTestWalSegment(t, uploadingSegment)
@@ -293,6 +293,6 @@ func seedCoverageSegment(
 ) *physical_models.PhysicalWalSegment {
 	t.Helper()
 
-	return seedWalSegment(t, prereqs, walmath.WalSegmentNo(segmentNo).GetFilename(1),
+	return seedWalSegment(t, prereqs, walmath.WalSegmentNo(segmentNo).GetFilename(1, walmath.DefaultSegmentSizeBytes),
 		lsnAt(segmentNo), lsnAt(segmentNo+1), receivedAt)
 }

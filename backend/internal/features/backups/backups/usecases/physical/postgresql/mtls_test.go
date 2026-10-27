@@ -8,13 +8,13 @@ import (
 	"github.com/stretchr/testify/require"
 
 	pgphysical "databasus-backend/internal/engines/postgresql/physical"
+	"databasus-backend/internal/engines/postgresql/physical/walmath"
 	physical_repositories "databasus-backend/internal/features/backups/backups/core/physical/repositories"
 	databases_bridge "databasus-backend/internal/features/databases"
 	storages_bridge "databasus-backend/internal/features/storages"
 	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/util/logger"
 	"databasus-backend/internal/util/testing/containers"
-	"databasus-backend/internal/util/walmath"
 )
 
 // The image build gives PostgreSQL a private server key; it rejects group/world-readable keys.
@@ -41,15 +41,19 @@ func Test_PhysicalMtls_ReplicationConnectionAndSlot_Succeeds(t *testing.T) {
 		"a basic query over the mTLS inspection connection must succeed")
 
 	logg := logger.GetLogger()
-	require.NoError(t,
-		pgphysical.NewSource(fixture.SourceDB.Engine).VerifySlot(context.Background(), logg),
-		"creating the persistent replication slot must work over mTLS")
+	require.NoError(
+		t,
+		pgphysical.NewSource(fixture.SourceDB.Engine).
+			VerifySlot(context.Background(), logg, fixture.SourceDB.WalStreamSlotName),
+		"creating the persistent replication slot must work over mTLS",
+	)
 
-	require.True(t, SlotExists(t, conn, fixture.SourceDB.Engine.ReplicationSlotName),
+	require.True(t, SlotExists(t, conn, fixture.SourceDB.WalStreamSlotName),
 		"the persistent slot must exist after VerifyWalSlot over mTLS")
 
 	t.Cleanup(func() {
-		_ = pgphysical.NewSource(fixture.SourceDB.Engine).DropSlot(context.Background(), logg)
+		_ = pgphysical.NewSource(fixture.SourceDB.Engine).
+			DropSlot(context.Background(), logg, fixture.SourceDB.WalStreamSlotName)
 	})
 }
 
@@ -63,7 +67,7 @@ func Test_PhysicalMtls_MissingClientCert_Rejected(t *testing.T) {
 	noCert.Engine.TLS.ClientCert = ""
 	noCert.Engine.TLS.ClientKey = ""
 
-	_, err := pgphysical.NewSource(noCert.Engine).OpenInspectionConn(context.Background())
+	_, err := pgphysical.NewSource(noCert.Engine).OpenInspection(context.Background())
 	require.Error(t, err, "a connection without the client certificate must be rejected by the mTLS cluster")
 }
 

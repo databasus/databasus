@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"databasus-backend/internal/engines/postgresql/physical/walmath"
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	physical_enums "databasus-backend/internal/features/backups/backups/core/physical/enums"
 	physical_models "databasus-backend/internal/features/backups/backups/core/physical/models"
@@ -14,7 +15,6 @@ import (
 	"databasus-backend/internal/lib/crypto"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/storages"
-	"databasus-backend/internal/util/walmath"
 )
 
 type timelineIdentityProbe func(context.Context, int) (*TimelineDecision, error)

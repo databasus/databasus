@@ -17,11 +17,3 @@ type IncorrectLogSegNoError struct {
 func (e IncorrectLogSegNoError) Error() string {
 	return fmt.Sprintf("walmath: incorrect log seg no in WAL filename: %q", e.Filename)
 }
-
-type HistoryFileNotFoundError struct {
-	Filename string
-}
-
-func (e HistoryFileNotFoundError) Error() string {
-	return fmt.Sprintf("walmath: history file not found: %q", e.Filename)
-}

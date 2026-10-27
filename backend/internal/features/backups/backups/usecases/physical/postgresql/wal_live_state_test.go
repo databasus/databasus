@@ -9,11 +9,11 @@ import (
 	"github.com/stretchr/testify/require"
 
 	pgphysical "databasus-backend/internal/engines/postgresql/physical"
+	"databasus-backend/internal/engines/postgresql/physical/walmath"
 	physical_enums "databasus-backend/internal/features/backups/backups/core/physical/enums"
 	physical_repositories "databasus-backend/internal/features/backups/backups/core/physical/repositories"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/util/logger"
-	"databasus-backend/internal/util/walmath"
 )
 
 const liveStateQueuedStartLSN = walmath.LSN(0x40000000)
@@ -23,10 +23,10 @@ func Test_GetLiveState_WhenSourceProbed_ReportsValuesOfNewestProbe(t *testing.T)
 	probedAt := time.Now().UTC().Add(-7 * time.Second)
 
 	supervisor.latestProbe.Store(&timedSlotProbe{
-		probe: slotProbe{Outcome: slotProbeOutcomeReachable, State: &SlotState{
+		probe: slotProbe{Outcome: slotProbeOutcomeReachable, State: &pgphysical.Slot{
 			WalStatus:  "reserved",
-			LagBytes:   1024 * 1024,
-			CurrentLSN: liveStateQueuedStartLSN + 5*1024*1024,
+			LagBytes:   new(int64(1024 * 1024)),
+			CurrentLSN: new(walmath.LSN(liveStateQueuedStartLSN + 5*1024*1024)),
 		}},
 		probedAt: probedAt,
 	})
@@ -46,9 +46,10 @@ func Test_GetLiveState_WhenSourceProbed_ReportsValuesOfNewestProbe(t *testing.T)
 func Test_GetLiveState_WhenArchiveProgressPassedOlderProbe_ReportsNothingUnsaved(t *testing.T) {
 	supervisor := newLiveStateTestSupervisor(t)
 	supervisor.latestProbe.Store(&timedSlotProbe{
-		probe: slotProbe{Outcome: slotProbeOutcomeReachable, State: &SlotState{
+		probe: slotProbe{Outcome: slotProbeOutcomeReachable, State: &pgphysical.Slot{
+			LagBytes:   new(int64(0)),
 			WalStatus:  "reserved",
-			CurrentLSN: liveStateQueuedStartLSN - 1024,
+			CurrentLSN: new(walmath.LSN(liveStateQueuedStartLSN - 1024)),
 		}},
 		probedAt: time.Now().UTC().Add(-9 * time.Second),
 	})
@@ -91,7 +92,8 @@ func newLiveStateTestSupervisor(t *testing.T) *WalStreamSupervisor {
 	supervisor := NewWalStreamSupervisor(WalStreamSpec{
 		DatabaseID: uuid.New(),
 		SourceDB: databases.PostgresqlPhysicalConnectionSettings{
-			Engine: pgphysical.Settings{ReplicationSlotName: "databasus_live_test"},
+			Engine:            pgphysical.Settings{},
+			WalStreamSlotName: "databasus_live_test",
 		},
 		WalSegmentRepo: physical_repositories.GetWalSegmentRepository(),
 		WatchDirRoot:   t.TempDir(),

@@ -68,7 +68,6 @@ func TestOpenTunnel(t *testing.T) {
 			settings := newUnreachableSettings()
 			settings.Host = topology.Database.Host
 			settings.Port = topology.Database.Port
-			settings.ReplicationSlotName = newSlotName()
 			settings.SSHTunnel = newBastionSettings(topology.Bastion)
 
 			tunnel, err := NewSource(settings).OpenTunnel(t.Context(), newTestLogger(t))
@@ -83,7 +82,6 @@ func TestOpenTunnel(t *testing.T) {
 			assert.Equal(t, topology.Database.Host, settingsThroughTunnel.Host)
 			assert.Equal(t, localEndpoint.Host, settingsThroughTunnel.HostAddr)
 			assert.Equal(t, localEndpoint.Port, settingsThroughTunnel.Port)
-			assert.Equal(t, settings.ReplicationSlotName, settingsThroughTunnel.ReplicationSlotName)
 			assert.Nil(t, settingsThroughTunnel.SSHTunnel)
 			assert.True(t, tunnel.IsBastionReachable(t.Context()))
 
@@ -112,8 +110,7 @@ func newUnreachableSettings() Settings {
 			ClientKey:  "",
 			RootCert:   "",
 		},
-		SSHTunnel:           nil,
-		ReplicationSlotName: "",
+		SSHTunnel: nil,
 	}
 }
 

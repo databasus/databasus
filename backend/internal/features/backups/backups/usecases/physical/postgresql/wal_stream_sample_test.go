@@ -8,9 +8,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	pgphysical "databasus-backend/internal/engines/postgresql/physical"
+	"databasus-backend/internal/engines/postgresql/physical/walmath"
 	physical_enums "databasus-backend/internal/features/backups/backups/core/physical/enums"
 	physical_models "databasus-backend/internal/features/backups/backups/core/physical/models"
-	"databasus-backend/internal/util/walmath"
 )
 
 const testSampleSegmentSize = int64(16 * 1024 * 1024)
@@ -20,11 +21,11 @@ var testSampleStartedAt = time.Date(2026, time.October, 18, 12, 0, 0, 0, time.UT
 func reachableProbe(currentLSN walmath.LSN, walStatus string) slotProbe {
 	return slotProbe{
 		Outcome: slotProbeOutcomeReachable,
-		State: &SlotState{
+		State: &pgphysical.Slot{
 			WalStatus:  walStatus,
 			RestartLSN: currentLSN - 4096,
-			LagBytes:   4096,
-			CurrentLSN: currentLSN,
+			LagBytes:   new(int64(4096)),
+			CurrentLSN: new(walmath.LSN(currentLSN)),
 		},
 	}
 }
@@ -76,7 +77,7 @@ func Test_BuildWalStreamSample_WhenSlotLost_KeepsRealCurrentPositionWithoutNegat
 
 	lostProbe := slotProbe{
 		Outcome: slotProbeOutcomeReachable,
-		State:   &SlotState{WalStatus: "lost", CurrentLSN: currentLSN},
+		State:   &pgphysical.Slot{LagBytes: new(int64(0)), WalStatus: "lost", CurrentLSN: new(walmath.LSN(currentLSN))},
 	}
 
 	sampleBehindProgress := buildWalStreamSample(newTestSampleInput(lostProbe, currentLSN+0x1000))

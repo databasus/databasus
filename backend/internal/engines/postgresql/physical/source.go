@@ -35,13 +35,6 @@ func (s *Source) GetSettings() Settings {
 	return s.settings
 }
 
-// OpenInspectionConn opens an ordinary connection to the cluster. Replication connections cannot
-// run the SQL identity checks or read timeline history files, so inspection uses PostgreSQL's
-// regular protocol. The caller closes the connection.
-func (s *Source) OpenInspectionConn(ctx context.Context) (*pgx.Conn, error) {
-	return s.connect(ctx)
-}
-
 // ProbeLiveness answers only whether the source accepts the stored credentials. It deliberately
 // avoids a replication connection: that would take a WAL sender slot, which on a source sized
 // tightly for its replicas makes the probe fail during every backup and can starve the backup
@@ -122,12 +115,7 @@ func (s *Source) connectReplication(ctx context.Context) (*pgconn.PgConn, error)
 	return pgconn.ConnectConfig(ctx, connConfig)
 }
 
-func detectVersion(ctx context.Context, conn *pgx.Conn) (pgshared.Version, error) {
-	var rawServerVersion string
-	if err := conn.QueryRow(ctx, "SELECT version()").Scan(&rawServerVersion); err != nil {
-		return "", fmt.Errorf("failed to query version(): %w", err)
-	}
-
+func parseVersion(rawServerVersion string) (pgshared.Version, error) {
 	matches := versionPattern.FindStringSubmatch(rawServerVersion)
 	if len(matches) < 2 {
 		return "", fmt.Errorf("%w from: %s", ErrUnreadableVersion, rawServerVersion)

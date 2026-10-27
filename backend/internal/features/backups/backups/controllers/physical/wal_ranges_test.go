@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"databasus-backend/internal/util/walmath"
+	"databasus-backend/internal/engines/postgresql/physical/walmath"
 )
 
 func TestGetPhysicalBackupWalRanges(t *testing.T) {

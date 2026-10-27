@@ -454,7 +454,7 @@ func dropStreamerSlotOnCleanup(t *testing.T, prereqs *backupPrereqs) {
 	})
 
 	t.Cleanup(func() {
-		postgresql_executor.DropReplicationSlotExternally(t, adminConn, sourceDB.Engine.ReplicationSlotName)
+		postgresql_executor.DropReplicationSlotExternally(t, adminConn, sourceDB.WalStreamSlotName)
 	})
 }
 

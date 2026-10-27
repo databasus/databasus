@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"databasus-backend/internal/engines/postgresql/physical/walmath"
 	physical_enums "databasus-backend/internal/features/backups/backups/core/physical/enums"
 	physical_models "databasus-backend/internal/features/backups/backups/core/physical/models"
 	physical_repositories "databasus-backend/internal/features/backups/backups/core/physical/repositories"
@@ -22,7 +23,6 @@ import (
 	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/storage"
 	"databasus-backend/internal/util/logger"
-	"databasus-backend/internal/util/walmath"
 )
 
 const testSegmentMB = 16

@@ -8,6 +8,8 @@ import (
 )
 
 var (
+	ErrSlotNameTaken       = errors.New("replication slot name is taken")
+	ErrWalSwitchDenied     = errors.New("WAL switch permission denied")
 	ErrUnsupportedVersion  = errors.New("physical backup requires PostgreSQL 17 or 18")
 	ErrUnreadableVersion   = errors.New("could not parse version")
 	ErrSlotNameEmpty       = errors.New("replication slot name is empty; row corruption or BeforeCreate bypassed")

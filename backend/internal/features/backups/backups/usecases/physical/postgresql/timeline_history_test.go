@@ -10,10 +10,10 @@ import (
 	"github.com/stretchr/testify/require"
 
 	pgphysical "databasus-backend/internal/engines/postgresql/physical"
+	"databasus-backend/internal/engines/postgresql/physical/walmath"
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	physical_repositories "databasus-backend/internal/features/backups/backups/core/physical/repositories"
 	"databasus-backend/internal/util/logger"
-	"databasus-backend/internal/util/walmath"
 )
 
 // plantHistoryFileOnSource writes a synthetic .history file into the source
@@ -50,14 +50,14 @@ func Test_UploadHistoryFile_KeysRowOnParentDatabaseID(t *testing.T) {
 	adminConn := OpenAdminConn(t, fixture)
 	plantHistoryFileOnSource(t, adminConn, timelineID)
 
-	conn, err := pgphysical.NewSource(sourceDB.Engine).OpenInspectionConn(t.Context())
+	conn, err := pgphysical.NewSource(sourceDB.Engine).OpenInspection(t.Context())
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = conn.Close(context.Background()) })
 
 	historyRepo := physical_repositories.GetWalHistoryRepository()
 
 	row, err := UploadHistoryFile(t.Context(), HistoryUploadSpec{
-		Conn:        conn,
+		Inspection:  conn,
 		TimelineID:  timelineID,
 		FileStore:   newMockWalStoreFor(newMockWalStorage()),
 		SourceDB:    sourceDB,

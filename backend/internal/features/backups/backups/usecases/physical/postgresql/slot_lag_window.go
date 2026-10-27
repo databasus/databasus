@@ -24,7 +24,7 @@ type slotLagWindow struct {
 }
 
 func (w *slotLagWindow) recordSampleAndDetectUnreducedLag(sample slotBreakSample) bool {
-	lagBytes := sample.SlotState.LagBytes
+	lagBytes := *sample.SlotState.LagBytes
 	thresholdBytes := sample.WalLagThresholdBytes
 
 	if thresholdBytes <= 0 || lagBytes <= thresholdBytes {
@@ -68,7 +68,7 @@ func (w *slotLagWindow) rememberPreviousSample(sample slotBreakSample) {
 	w.hasPreviousSample = true
 	w.previousRunStartedAt = sample.ReceiverRunStartedAt
 	w.previousObservedAt = sample.ObservedAt
-	w.previousLagBytes = sample.SlotState.LagBytes
+	w.previousLagBytes = *sample.SlotState.LagBytes
 }
 
 func (w *slotLagWindow) clear() {

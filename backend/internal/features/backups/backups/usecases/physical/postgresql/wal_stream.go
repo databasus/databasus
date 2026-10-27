@@ -14,12 +14,12 @@ import (
 	"github.com/google/uuid"
 
 	"databasus-backend/internal/config"
+	"databasus-backend/internal/engines/postgresql/physical/walmath"
 	pgshared "databasus-backend/internal/engines/postgresql/shared"
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	physical_repositories "databasus-backend/internal/features/backups/backups/core/physical/repositories"
 	"databasus-backend/internal/lib/crypto"
 	"databasus-backend/internal/modules/databases"
-	"databasus-backend/internal/util/walmath"
 )
 
 const (
@@ -260,7 +260,7 @@ func NewWalStreamSupervisor(spec WalStreamSpec) *WalStreamSupervisor {
 	// raw spec logger leaves every archiving line unattributable on a multi-database instance.
 	scopedLogger := spec.Logger.With(
 		"database_id", spec.DatabaseID,
-		"slot_name", spec.SourceDB.Engine.ReplicationSlotName,
+		"slot_name", spec.SourceDB.WalStreamSlotName,
 	)
 
 	uploader := NewWalUploader(WalUploadDeps{
@@ -282,7 +282,7 @@ func NewWalStreamSupervisor(spec WalStreamSpec) *WalStreamSupervisor {
 		logger:           scopedLogger,
 		uploader:         uploader,
 		watchDir:         watchDir,
-		slotName:         spec.SourceDB.Engine.ReplicationSlotName,
+		slotName:         spec.SourceDB.WalStreamSlotName,
 		sessionStartedAt: time.Now().UTC(),
 		restartSignal:    make(chan struct{}, 1),
 	}
@@ -580,7 +580,7 @@ func walSegmentSizeBytes(sourceDB databases.PostgresqlPhysicalConnectionSettings
 		return *sourceDB.WalSegmentSizeBytes
 	}
 
-	return int64(walmath.WalSegmentSize)
+	return int64(walmath.DefaultSegmentSizeBytes)
 }
 
 func sleepCtx(ctx context.Context, d time.Duration) bool {

@@ -9,39 +9,10 @@ import (
 	"github.com/stretchr/testify/require"
 
 	pgphysical "databasus-backend/internal/engines/postgresql/physical"
+	"databasus-backend/internal/engines/postgresql/physical/walmath"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/util/logger"
-	"databasus-backend/internal/util/walmath"
 )
-
-func Test_GetResumeSegmentNo_WithCompletePartialAndTornFiles_ReturnsHighestCompletePlusOne(t *testing.T) {
-	watchDir := t.TempDir()
-
-	writeSegmentOfSize(t, watchDir, walName(1, 40), testWalSegmentSize)
-	writeSegmentOfSize(t, watchDir, walName(1, 41), testWalSegmentSize)
-	writeSegmentOfSize(t, watchDir, walName(1, 42), testWalSegmentSize/2)
-	writeSegmentOfSize(t, watchDir, walName(1, 43)+".partial", testWalSegmentSize)
-	writeSegmentOfSize(t, watchDir, "00000002.history", 64)
-
-	resumeSegmentNo, isResumeSegmentFound := GetResumeSegmentNo(watchDir, testWalSegmentSize)
-
-	require.True(t, isResumeSegmentFound)
-	require.Equal(t, walmath.WalSegmentNo(42), resumeSegmentNo,
-		"a torn segment is re-streamed, so 42 is not a resume point — 41 is the highest complete one")
-}
-
-func Test_GetResumeSegmentNo_WhenWatchDirHasNoSegments_ReportsNotFound(t *testing.T) {
-	watchDir := t.TempDir()
-
-	writeSegmentOfSize(t, watchDir, "00000002.history", 64)
-	require.NoError(t, os.MkdirAll(filepath.Join(watchDir, pendingUploadDirName), 0o700))
-	writeSegmentOfSize(t, filepath.Join(watchDir, pendingUploadDirName), walName(1, 40), testWalSegmentSize)
-
-	_, isResumeSegmentFound := GetResumeSegmentNo(watchDir, testWalSegmentSize)
-
-	require.False(t, isResumeSegmentFound,
-		"pg_receivewal reads only the top level, so a staged segment must not anchor the resume point")
-}
 
 func Test_MovePendingUploadsOutOfResumePath_MovesOnlySegmentsBelowFloor(t *testing.T) {
 	watchDir := t.TempDir()
@@ -100,12 +71,12 @@ func Test_MovePendingUploadsOutOfResumePath_WhenSegmentIsShort_LeavesItForRestre
 func Test_RealignResumePath_WhenSourceUnreachable_LeavesQueueUntouched(t *testing.T) {
 	unreachableSourceDB := databases.PostgresqlPhysicalConnectionSettings{
 		Engine: pgphysical.Settings{
-			Host:                "127.0.0.1",
-			Port:                1,
-			Username:            "streamer",
-			Password:            "streamer",
-			ReplicationSlotName: "databasus_unreachable_source",
+			Host:     "127.0.0.1",
+			Port:     1,
+			Username: "streamer",
+			Password: "streamer",
 		},
+		WalStreamSlotName: "databasus_unreachable_source",
 	}
 
 	supervisor := NewWalStreamSupervisor(WalStreamSpec{
@@ -129,13 +100,4 @@ func Test_RealignResumePath_WhenSourceUnreachable_LeavesQueueUntouched(t *testin
 	}
 
 	require.NoDirExists(t, filepath.Join(supervisor.watchDir, pendingUploadDirName))
-}
-
-func Test_SegmentNoAtLsn_WithNonDefaultSegmentSize_UsesTheClusterSize(t *testing.T) {
-	const customSegmentSize = int64(64 * 1024 * 1024)
-
-	lsn := walmath.LSN(3 * uint64(customSegmentSize))
-
-	require.Equal(t, walmath.WalSegmentNo(3), segmentNoAtLSN(lsn, customSegmentSize),
-		"the package-global segment size would give 12 here")
 }

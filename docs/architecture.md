@@ -111,6 +111,8 @@ Databasus has three families of interchangeable implementations. Each family has
 
   - connect and test a connection;
   - inspect privileges and provision a read-only or replication user;
+  - read a physical source's replication slots, identity, timeline history and WAL position;
+  - read a `pg_receivewal` directory and calculate WAL positions and filenames through `postgresql/physical/walmath`;
   - dump into an `io.Writer` and restore from an `io.Reader`;
   - find its client tool for a server version.
 

@@ -16,13 +16,13 @@ import (
 	"github.com/stretchr/testify/require"
 
 	pgphysical "databasus-backend/internal/engines/postgresql/physical"
+	"databasus-backend/internal/engines/postgresql/physical/walmath"
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	"databasus-backend/internal/features/backups/backups/core/physical/chain_view"
 	physical_models "databasus-backend/internal/features/backups/backups/core/physical/models"
 	physical_repositories "databasus-backend/internal/features/backups/backups/core/physical/repositories"
 	databases_bridge "databasus-backend/internal/features/databases"
 	"databasus-backend/internal/util/logger"
-	"databasus-backend/internal/util/walmath"
 )
 
 func Test_WalStream_FullIncrementalAndWalStream_StreamerArchivesSegments(t *testing.T) {
@@ -218,7 +218,7 @@ func Test_WalStream_SlotLagGrowsWithoutConsumer_DrainsOnceStreaming(t *testing.T
 	})
 
 	adminConn := OpenAdminConn(t, fixture)
-	slotName := fixture.SourceDB.Engine.ReplicationSlotName
+	slotName := fixture.SourceDB.WalStreamSlotName
 
 	ctx, cancel := context.WithTimeout(t.Context(), 2*time.Minute)
 	defer cancel()
@@ -227,7 +227,8 @@ func Test_WalStream_SlotLagGrowsWithoutConsumer_DrainsOnceStreaming(t *testing.T
 	// slot's restart_lsn falls behind — the signal the lag monitor reads.
 	require.NoError(
 		t,
-		pgphysical.NewSource(fixture.SourceDB.Engine).VerifySlot(ctx, logger.GetLogger()),
+		pgphysical.NewSource(fixture.SourceDB.Engine).
+			VerifySlot(ctx, logger.GetLogger(), fixture.SourceDB.WalStreamSlotName),
 	)
 
 	const lagTarget = 8 * 1024 * 1024
@@ -333,7 +334,7 @@ func Test_WalStream_ResumePointBelowSlotRestartLsn_RealignsAndKeepsStreaming(t *
 	})
 
 	adminConn := OpenAdminConn(t, fixture)
-	slotName := fixture.SourceDB.Engine.ReplicationSlotName
+	slotName := fixture.SourceDB.WalStreamSlotName
 	watchDirRoot := t.TempDir()
 
 	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Minute)
@@ -368,9 +369,9 @@ func Test_WalStream_ResumePointBelowSlotRestartLsn_RealignsAndKeepsStreaming(t *
 	// above them and pg_receivewal would otherwise resume below it.
 	DropReplicationSlotExternally(t, adminConn, slotName)
 
-	segmentSizeBytes := int64(walmath.WalSegmentSize)
+	segmentSizeBytes := int64(walmath.DefaultSegmentSizeBytes)
 
-	resumeSegmentNo, isResumeSegmentFound := GetResumeSegmentNo(firstRun.WatchDir, segmentSizeBytes)
+	resumeSegmentNo, isResumeSegmentFound := pgphysical.GetResumeSegmentNo(firstRun.WatchDir, segmentSizeBytes)
 	require.True(t, isResumeSegmentFound, "the local queue must hold at least one complete segment")
 
 	burnWalPastSegment(t, ctx, adminConn, resumeSegmentNo+1)
@@ -381,9 +382,13 @@ func Test_WalStream_ResumePointBelowSlotRestartLsn_RealignsAndKeepsStreaming(t *
 	_, err := adminConn.Exec(ctx, "CHECKPOINT")
 	require.NoError(t, err)
 
-	require.NoError(t, pgphysical.NewSource(fixture.SourceDB.Engine).VerifySlot(ctx, logger.GetLogger()))
+	require.NoError(
+		t,
+		pgphysical.NewSource(fixture.SourceDB.Engine).
+			VerifySlot(ctx, logger.GetLogger(), fixture.SourceDB.WalStreamSlotName),
+	)
 
-	requireQueueBelowSlot(t, ctx, adminConn, slotName, resumeSegmentNo)
+	requireQueueBelowSlot(t, ctx, OpenTestInspection(t, fixture.SourceDB), slotName, resumeSegmentNo)
 
 	secondRun := StartWalStreamerForTest(t, WalStreamerTestSpec{
 		Fixture:      fixture,
@@ -434,7 +439,7 @@ func queuedSegmentNames(t *testing.T, watchDir string) []string {
 	var queuedSegments []string
 
 	for _, entry := range entries {
-		if !entry.IsDir() && walmath.IsWalFilename(entry.Name()) {
+		if !entry.IsDir() && walmath.IsWalFilename(entry.Name(), walmath.DefaultSegmentSizeBytes) {
 			queuedSegments = append(queuedSegments, entry.Name())
 		}
 	}
@@ -460,7 +465,7 @@ func burnWalPastSegment(
 ) {
 	t.Helper()
 
-	segmentSizeBytes := int64(walmath.WalSegmentSize)
+	segmentSizeBytes := int64(walmath.DefaultSegmentSizeBytes)
 
 	require.Eventually(t, func() bool {
 		if _, err := GenerateWalActivity(ctx, adminConn, segmentSizeBytes); err != nil {
@@ -476,7 +481,7 @@ func burnWalPastSegment(
 			return false
 		}
 
-		return segmentNoAtLSN(currentLSN, segmentSizeBytes) > targetSegmentNo
+		return walmath.NewWalSegmentNo(currentLSN, uint64(segmentSizeBytes)) > targetSegmentNo
 	}, 2*time.Minute, 100*time.Millisecond, "cluster never wrote past segment %d", uint64(targetSegmentNo))
 }
 
@@ -486,20 +491,24 @@ func burnWalPastSegment(
 func requireQueueBelowSlot(
 	t *testing.T,
 	ctx context.Context,
-	adminConn *pgx.Conn,
+	inspection *pgphysical.Inspection,
 	slotName string,
 	resumeSegmentNo walmath.WalSegmentNo,
 ) {
 	t.Helper()
 
-	segmentSizeBytes := int64(walmath.WalSegmentSize)
+	segmentSizeBytes := int64(walmath.DefaultSegmentSizeBytes)
 
-	slotState, err := InspectSlot(ctx, adminConn, slotName)
+	slotState, err := inspection.GetSlot(ctx, slotName)
 	require.NoError(t, err)
 	require.NotNil(t, slotState)
 
-	require.Less(t, uint64(resumeSegmentNo), uint64(segmentNoAtLSN(slotState.RestartLSN, segmentSizeBytes)),
-		"the queue must sit below the recreated slot for this test to mean anything")
+	require.Less(
+		t,
+		uint64(resumeSegmentNo),
+		uint64(walmath.NewWalSegmentNo(slotState.RestartLSN, uint64(segmentSizeBytes))),
+		"the queue must sit below the recreated slot for this test to mean anything",
+	)
 }
 
 // The supervisor invokes these callbacks from its own loops, so a plain slice
@@ -689,8 +698,8 @@ func Test_WalStream_WhenSourceIsIdle_KeepsReceiverAliveAndDoesNotRebuildSlot(t *
 		_ = physical_repositories.GetWalStreamerRepository().DeleteByDatabaseID(fixture.DB.ID)
 	})
 
-	adminConn := OpenAdminConn(t, fixture)
-	slotName := fixture.SourceDB.Engine.ReplicationSlotName
+	inspection := OpenTestInspection(t, fixture.SourceDB)
+	slotName := fixture.SourceDB.WalStreamSlotName
 
 	var slotRebuilds, chainRisks chainEventRecorder
 
@@ -709,14 +718,14 @@ func Test_WalStream_WhenSourceIsIdle_KeepsReceiverAliveAndDoesNotRebuildSlot(t *
 	})
 	t.Cleanup(streamer.Stop)
 
-	attachedReceiverPID := waitForAttachedReceiverPID(t, adminConn, slotName)
+	attachedReceiverPID := waitForAttachedReceiverPID(t, inspection, slotName)
 
 	// The stall window is 60 s and the watcher polls every 10 s, so this outlasts
 	// several full detection cycles: restart_lsn parking on an idle source is not a
 	// stall, and must not cost the receiver its connection.
 	idleDeadline := time.Now().UTC().Add(150 * time.Second)
 	for time.Now().UTC().Before(idleDeadline) {
-		slotState, err := InspectSlot(t.Context(), adminConn, slotName)
+		slotState, err := inspection.GetSlot(t.Context(), slotName)
 		require.NoError(t, err)
 		require.NotNil(t, slotState)
 		require.NotNil(t, slotState.ActivePID, "an idle database is not a reason to drop the replication connection")
@@ -734,13 +743,13 @@ func Test_WalStream_WhenSourceIsIdle_KeepsReceiverAliveAndDoesNotRebuildSlot(t *
 	require.Empty(t, streamer.Supervisor.GetSlotRebuildTimestamps())
 }
 
-func waitForAttachedReceiverPID(t *testing.T, adminConn *pgx.Conn, slotName string) int {
+func waitForAttachedReceiverPID(t *testing.T, inspection *pgphysical.Inspection, slotName string) int {
 	t.Helper()
 
 	var attachedReceiverPID int
 
 	require.Eventually(t, func() bool {
-		slotState, err := InspectSlot(t.Context(), adminConn, slotName)
+		slotState, err := inspection.GetSlot(t.Context(), slotName)
 		// While the slot is being created, the creating backend holds it, so an active PID alone
 		// can belong to that backend rather than to pg_receivewal.
 		if err != nil || slotState == nil || !isOwnedReceiverBackend(slotState) {
@@ -924,7 +933,7 @@ func Test_WalStream_WhenQueueFillsAndReceiverExitsOnItsOwn_CountsOnePauseAndOneR
 	// so the only respawn left to count is the one this test causes.
 	supervisor.setLocalQueuePauseBytes(getDefaultLocalQueuePauseBytes(fixture.SourceDB))
 
-	terminateWalReceiverBackend(t, adminConn, fixture.SourceDB.Engine.ReplicationSlotName)
+	terminateWalReceiverBackend(t, adminConn, fixture.SourceDB.WalStreamSlotName)
 
 	require.Eventually(t, func() bool {
 		takeCounts()
@@ -975,7 +984,10 @@ func Test_WalStream_WhileReceiverRunsAndAfterItExits_SlotBreakSampleCarriesItsRu
 	var runningSample slotBreakSample
 
 	require.Eventually(t, func() bool {
-		runningSample = supervisor.buildSlotBreakSample(&SlotState{}, time.Now().UTC())
+		runningSample = supervisor.buildSlotBreakSample(
+			&pgphysical.Slot{CurrentLSN: new(walmath.LSN(0)), LagBytes: new(int64(0))},
+			time.Now().UTC(),
+		)
 
 		return !runningSample.ReceiverRunStartedAt.IsZero()
 	}, 60*time.Second, 200*time.Millisecond, "a running receiver gives the sample its start time")
@@ -986,6 +998,9 @@ func Test_WalStream_WhileReceiverRunsAndAfterItExits_SlotBreakSampleCarriesItsRu
 	streamer.Stop()
 
 	require.Eventually(t, func() bool {
-		return supervisor.buildSlotBreakSample(&SlotState{}, time.Now().UTC()).ReceiverRunStartedAt.IsZero()
+		return supervisor.buildSlotBreakSample(
+			&pgphysical.Slot{CurrentLSN: new(walmath.LSN(0)), LagBytes: new(int64(0))},
+			time.Now().UTC(),
+		).ReceiverRunStartedAt.IsZero()
 	}, 30*time.Second, 200*time.Millisecond, "an exited receiver leaves the sample without a start time")
 }

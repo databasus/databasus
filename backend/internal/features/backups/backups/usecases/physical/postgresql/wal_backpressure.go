@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"time"
 
+	"databasus-backend/internal/engines/postgresql/physical/walmath"
 	"databasus-backend/internal/modules/databases"
-	"databasus-backend/internal/util/walmath"
 )
 
 const (
@@ -95,7 +95,7 @@ func sumWalSegmentBytes(dir string) int64 {
 	var total int64
 
 	for _, entry := range entries {
-		if entry.IsDir() || !walmath.IsWalFilename(entry.Name()) {
+		if entry.IsDir() || !walmath.IsWalFilename(entry.Name(), walmath.DefaultSegmentSizeBytes) {
 			continue
 		}
 

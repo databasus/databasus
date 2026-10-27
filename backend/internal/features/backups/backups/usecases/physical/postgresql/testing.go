@@ -20,6 +20,8 @@ import (
 	"gorm.io/gorm"
 
 	pgphysical "databasus-backend/internal/engines/postgresql/physical"
+	"databasus-backend/internal/engines/postgresql/physical/walmath"
+	pgshared "databasus-backend/internal/engines/postgresql/shared"
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	"databasus-backend/internal/features/backups/backups/core/physical/chain_view"
 	physical_enums "databasus-backend/internal/features/backups/backups/core/physical/enums"
@@ -40,7 +42,6 @@ import (
 	"databasus-backend/internal/util/logger"
 	"databasus-backend/internal/util/testing/bastion"
 	"databasus-backend/internal/util/testing/containers"
-	"databasus-backend/internal/util/walmath"
 )
 
 // PhysicalDBFixture is a fully-wired physical DB ready for FULL backup
@@ -305,7 +306,7 @@ func OpenSourceDB(t *testing.T, databaseID uuid.UUID) databases.PostgresqlPhysic
 func OpenAdminConn(t *testing.T, fixture *PhysicalDBFixture) *pgx.Conn {
 	t.Helper()
 
-	conn, err := pgphysical.NewSource(fixture.SourceDB.Engine).OpenInspectionConn(context.Background())
+	conn, err := OpenPhysicalTestConn(context.Background(), fixture.SourceDB.Engine)
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = conn.Close(context.Background()) })
 
@@ -338,7 +339,7 @@ func RunBackupAndPoll(
 ) bool {
 	t.Helper()
 
-	pollConn, err := pgphysical.NewSource(fixture.SourceDB.Engine).OpenInspectionConn(context.Background())
+	pollConn, err := OpenPhysicalTestConn(context.Background(), fixture.SourceDB.Engine)
 	require.NoError(t, err)
 	defer func() { _ = pollConn.Close(context.Background()) }()
 
@@ -889,7 +890,7 @@ func StartWalStreamerForTest(t *testing.T, spec WalStreamerTestSpec) *WalStreame
 
 	adminConn := OpenAdminConn(t, fixture)
 	t.Cleanup(func() {
-		DropReplicationSlotExternally(t, adminConn, sourceDB.Engine.ReplicationSlotName)
+		DropReplicationSlotExternally(t, adminConn, sourceDB.WalStreamSlotName)
 	})
 
 	supervisor := NewWalStreamSupervisor(WalStreamSpec{
@@ -1130,4 +1131,26 @@ func CreateReplicationOnlyRole(
 	replicationOnlySourceDB.Engine.Password = "switchless"
 
 	return replicationOnlySourceDB
+}
+
+func OpenPhysicalTestConn(ctx context.Context, settings pgphysical.Settings) (*pgx.Conn, error) {
+	credentialSpec := settings.GetCredentialSpec()
+	files, err := pgshared.WriteCredentialFilesToTempDir(credentialSpec, settings.Password)
+	if err != nil {
+		return nil, err
+	}
+	defer files.Remove()
+	connConfig, err := pgshared.BuildConnConfig(credentialSpec, settings.Password, "postgres", files)
+	if err != nil {
+		return nil, err
+	}
+	return pgx.ConnectConfig(ctx, connConfig)
+}
+
+func OpenTestInspection(t *testing.T, sourceDB databases.PostgresqlPhysicalConnectionSettings) *pgphysical.Inspection {
+	t.Helper()
+	inspection, err := pgphysical.NewSource(sourceDB.Engine).OpenInspection(t.Context())
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = inspection.Close(context.WithoutCancel(t.Context())) })
+	return inspection
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 
 	"databasus-backend/internal/config"
+	pgphysical "databasus-backend/internal/engines/postgresql/physical"
 	pgshared "databasus-backend/internal/engines/postgresql/shared"
 	physical_enums "databasus-backend/internal/features/backups/backups/core/physical/enums"
 	"databasus-backend/internal/modules/storages"
@@ -215,7 +216,7 @@ func verifyFullTimelineCompatibility(
 	ctx context.Context,
 	common CommonBackupSpec,
 ) (refusal PhysicalBackupResult, liveTimelineID int, canProceed bool) {
-	conn, err := openInspectionConn(ctx, common.SourceDB)
+	conn, err := pgphysical.NewSource(common.SourceDB.Engine).OpenInspection(ctx)
 	if err != nil {
 		return errorResult(physical_enums.PhysicalBackupErrorNetworkFailure,
 			"open inspection connection", err), 0, false
@@ -374,7 +375,7 @@ func inspectTimelineAgainstExpected(
 		return common.timelineProbe(ctx, expectedTimelineID)
 	}
 
-	conn, err := openInspectionConn(ctx, common.SourceDB)
+	conn, err := pgphysical.NewSource(common.SourceDB.Engine).OpenInspection(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("open inspection connection: %w", err)
 	}

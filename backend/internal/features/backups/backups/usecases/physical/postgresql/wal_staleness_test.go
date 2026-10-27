@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"databasus-backend/internal/util/walmath"
+	"databasus-backend/internal/engines/postgresql/physical/walmath"
 )
 
 const testStalenessThreshold = 30 * time.Minute

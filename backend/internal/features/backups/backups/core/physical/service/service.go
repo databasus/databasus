@@ -10,6 +10,7 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
+	"databasus-backend/internal/engines/postgresql/physical/walmath"
 	"databasus-backend/internal/features/backups/backups/core/physical/chain_view"
 	physical_enums "databasus-backend/internal/features/backups/backups/core/physical/enums"
 	physical_models "databasus-backend/internal/features/backups/backups/core/physical/models"
@@ -18,7 +19,6 @@ import (
 	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/storage"
 	util_encryption "databasus-backend/internal/util/encryption"
-	"databasus-backend/internal/util/walmath"
 )
 
 const (

@@ -23,12 +23,12 @@ const (
 func tunneledSourceDatabase() databases.PostgresqlPhysicalConnectionSettings {
 	return databases.PostgresqlPhysicalConnectionSettings{
 		Engine: pgphysical.Settings{
-			Host:                tunneledSourceHost,
-			HostAddr:            "127.0.0.1",
-			Port:                forwardedLocalPort,
-			Username:            "replicator",
-			ReplicationSlotName: "slot",
+			Host:     tunneledSourceHost,
+			HostAddr: "127.0.0.1",
+			Port:     forwardedLocalPort,
+			Username: "replicator",
 		},
+		WalStreamSlotName: "slot",
 	}
 }
 

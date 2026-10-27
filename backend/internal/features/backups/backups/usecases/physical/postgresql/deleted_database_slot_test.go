@@ -18,7 +18,7 @@ import (
 // deletion dropped the slot; it must not leave a slot of the deleted database behind.
 func Test_WalStreamSupervisorRun_WhenTheDatabaseIsDeleted_LeavesNoSlot(t *testing.T) {
 	fixture := SetupPhysicalDBForBackup(t)
-	walSlotName := fixture.SourceDB.Engine.ReplicationSlotName
+	walSlotName := fixture.SourceDB.WalStreamSlotName
 	adminConn := OpenAdminConn(t, fixture)
 	t.Cleanup(func() {
 		DropReplicationSlotExternally(t, adminConn, walSlotName)

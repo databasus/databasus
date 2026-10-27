@@ -3,8 +3,8 @@ package usecases_physical_postgresql
 import (
 	"time"
 
+	"databasus-backend/internal/engines/postgresql/physical/walmath"
 	physical_enums "databasus-backend/internal/features/backups/backups/core/physical/enums"
-	"databasus-backend/internal/util/walmath"
 )
 
 // WalStreamLiveState is what the running streamer knows at one moment, read
@@ -74,9 +74,9 @@ func (s *WalStreamSupervisor) GetLiveState(now time.Time) WalStreamLiveState {
 	}
 
 	slotState := latestProbe.probe.State
-	liveState.SourceCurrentLSN = &slotState.CurrentLSN
+	liveState.SourceCurrentLSN = slotState.CurrentLSN
 	liveState.SlotWalStatus = &slotState.WalStatus
-	liveState.SlotLagBytes = &slotState.LagBytes
+	liveState.SlotLagBytes = slotState.LagBytes
 	liveState.SlotSafeWalSizeBytes = slotState.SafeWalSizeBytes
 
 	// The probe can be up to one watcher interval old while segments keep
@@ -85,8 +85,8 @@ func (s *WalStreamSupervisor) GetLiveState(now time.Time) WalStreamLiveState {
 	if archiveProgressLSN > 0 {
 		liveState.UnarchivedWalBytes = new(int64(0))
 
-		if slotState.CurrentLSN > archiveProgressLSN {
-			liveState.UnarchivedWalBytes = new(int64(slotState.CurrentLSN - archiveProgressLSN))
+		if *slotState.CurrentLSN > archiveProgressLSN {
+			liveState.UnarchivedWalBytes = new(int64(*slotState.CurrentLSN - archiveProgressLSN))
 		}
 	}
 

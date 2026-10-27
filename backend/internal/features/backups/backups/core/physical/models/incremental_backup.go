@@ -5,9 +5,9 @@ import (
 
 	"github.com/google/uuid"
 
+	"databasus-backend/internal/engines/postgresql/physical/walmath"
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	physical_enums "databasus-backend/internal/features/backups/backups/core/physical/enums"
-	"databasus-backend/internal/util/walmath"
 )
 
 type PhysicalIncrementalBackup struct {

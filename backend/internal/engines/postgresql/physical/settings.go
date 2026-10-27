@@ -1,6 +1,6 @@
 // Package physical is the physical PostgreSQL source: the replication connection and its
 // readiness, the cluster identity, size and liveness, the replication slots, the inspection
-// connection, forced WAL rotation and the replication user. It is imported as pgphysical.
+// session, forced WAL rotation and the replication user. It is imported as pgphysical.
 package physical
 
 import (
@@ -20,8 +20,7 @@ type Settings struct {
 	Password string
 	TLS      pgshared.TLS
 	// SSHTunnel is nil when the cluster is reached directly.
-	SSHTunnel           *sshtunnel.Settings
-	ReplicationSlotName string
+	SSHTunnel *sshtunnel.Settings
 }
 
 func (s Settings) GetCredentialSpec() pgshared.CredentialSpec {

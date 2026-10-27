@@ -47,8 +47,7 @@ func (s PostgresqlLogicalConnectionSettings) GetDumpFilter() pglogical.DumpFilte
 
 type PostgresqlPhysicalConnectionSettings struct {
 	DatabaseID uuid.UUID
-	// Engine carries the password, the certificates and the tunnel secrets in clear text, and the
-	// replication slot of the WAL stream.
+	// Engine carries the password, the certificates and the tunnel secrets in clear text.
 	Engine  pgphysical.Settings
 	Version pgshared.Version
 	// SystemIdentifier is nil until the first connection detected it.
@@ -56,6 +55,7 @@ type PostgresqlPhysicalConnectionSettings struct {
 	// WalSegmentSizeBytes is nil until the first connection detected it.
 	WalSegmentSizeBytes *int64
 	BackupType          PhysicalBackupType
+	WalStreamSlotName   string
 	// BackupSlotName names the replication slot each pg_basebackup holds while it runs.
 	BackupSlotName string
 }

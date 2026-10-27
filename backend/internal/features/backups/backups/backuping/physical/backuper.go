@@ -13,6 +13,7 @@ import (
 	"gorm.io/gorm/clause"
 
 	pgphysical "databasus-backend/internal/engines/postgresql/physical"
+	"databasus-backend/internal/engines/postgresql/physical/walmath"
 	backups_core_enums "databasus-backend/internal/features/backups/backups/core/enums"
 	physical_enums "databasus-backend/internal/features/backups/backups/core/physical/enums"
 	physical_models "databasus-backend/internal/features/backups/backups/core/physical/models"
@@ -28,7 +29,6 @@ import (
 	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/storage"
-	"databasus-backend/internal/util/walmath"
 )
 
 // PhysicalBackuper drives a FULL or INCR through the postgresql executor.

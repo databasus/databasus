@@ -7,51 +7,11 @@ import (
 	"os"
 	"path/filepath"
 
-	"databasus-backend/internal/util/walmath"
+	pgphysical "databasus-backend/internal/engines/postgresql/physical"
+	"databasus-backend/internal/engines/postgresql/physical/walmath"
 )
 
 const pendingUploadDirName = "pending-upload"
-
-// Mirrors pg_receivewal's FindStreamingStart: it starts at the segment after the
-// highest complete file in --directory, and falls back to the slot's restart_lsn
-// only when it finds none (PG 15+).
-func GetResumeSegmentNo(
-	watchDir string,
-	segmentSizeBytes int64,
-) (resumeSegmentNo walmath.WalSegmentNo, isResumeSegmentFound bool) {
-	entries, err := os.ReadDir(watchDir)
-	if err != nil {
-		return 0, false
-	}
-
-	var highestSegmentNo uint64
-
-	for _, entry := range entries {
-		if entry.IsDir() {
-			continue
-		}
-
-		_, segmentNo, err := walmath.ParseWALFilenameWithSize(entry.Name(), uint64(segmentSizeBytes))
-		if err != nil {
-			continue
-		}
-
-		if !isCompleteSegmentFile(filepath.Join(watchDir, entry.Name()), segmentSizeBytes) {
-			continue
-		}
-
-		if !isResumeSegmentFound || segmentNo > highestSegmentNo {
-			highestSegmentNo = segmentNo
-			isResumeSegmentFound = true
-		}
-	}
-
-	if !isResumeSegmentFound {
-		return 0, false
-	}
-
-	return walmath.WalSegmentNo(highestSegmentNo).Next(), true
-}
 
 // pg_receivewal reads only the top level of --directory, so a pending segment
 // below the slot's restart_lsn drags the resume point into WAL the server has
@@ -77,14 +37,14 @@ func movePendingUploadsOutOfResumePath(
 			continue
 		}
 
-		_, segmentNo, err := walmath.ParseWALFilenameWithSize(entry.Name(), uint64(segmentSizeBytes))
+		_, segmentNo, err := walmath.ParseWALFilename(entry.Name(), uint64(segmentSizeBytes))
 		if err != nil || walmath.WalSegmentNo(segmentNo) >= resumeFloor {
 			continue
 		}
 
 		segmentPath := filepath.Join(watchDir, entry.Name())
 
-		if !isCompleteSegmentFile(segmentPath, segmentSizeBytes) {
+		if !pgphysical.IsCompleteSegmentFile(segmentPath, segmentSizeBytes) {
 			continue
 		}
 
@@ -99,12 +59,6 @@ func movePendingUploadsOutOfResumePath(
 	return movedCount, nil
 }
 
-// walmath.NewWalSegmentNo divides by the package-global segment size, which is
-// wrong for a cluster with a non-default wal_segment_size.
-func segmentNoAtLSN(lsn walmath.LSN, segmentSizeBytes int64) walmath.WalSegmentNo {
-	return walmath.WalSegmentNo(uint64(lsn) / uint64(segmentSizeBytes))
-}
-
 func (s *WalStreamSupervisor) realignResumePath(ctx context.Context, logger *slog.Logger) {
 	probe := s.probeSlot(ctx, logger)
 	if !probe.IsReachableWithSlot() {
@@ -115,12 +69,12 @@ func (s *WalStreamSupervisor) realignResumePath(ctx context.Context, logger *slo
 
 	segmentSizeBytes := walSegmentSizeBytes(s.spec.SourceDB)
 
-	resumeSegmentNo, isResumeSegmentFound := GetResumeSegmentNo(s.watchDir, segmentSizeBytes)
+	resumeSegmentNo, isResumeSegmentFound := pgphysical.GetResumeSegmentNo(s.watchDir, segmentSizeBytes)
 	if !isResumeSegmentFound {
 		return
 	}
 
-	slotSegmentNo := segmentNoAtLSN(state.RestartLSN, segmentSizeBytes)
+	slotSegmentNo := walmath.NewWalSegmentNo(state.RestartLSN, uint64(segmentSizeBytes))
 	if resumeSegmentNo >= slotSegmentNo {
 		return
 	}
