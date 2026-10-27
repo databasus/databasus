@@ -1,0 +1,69 @@
+{
+  "description": "Databasus review hooks shared with Claude Code; reviewers run in Claude Code.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "command": "\"$(git rev-parse --show-toplevel)/.agent-hooks/run.sh\" session-start",
+            "timeout": 10,
+            "type": "command"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "command": "\"$(git rev-parse --show-toplevel)/.agent-hooks/run.sh\" snapshot",
+            "timeout": 30,
+            "type": "command"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "command": "\"$(git rev-parse --show-toplevel)/.agent-hooks/run.sh\" diff",
+            "statusMessage": "Reviewing the diff",
+            "timeout": 600,
+            "type": "command"
+          },
+          {
+            "command": "\"$(git rev-parse --show-toplevel)/.agent-hooks/run.sh\" necessity",
+            "statusMessage": "Checking whether the task is needed",
+            "timeout": 600,
+            "type": "command"
+          },
+          {
+            "command": "\"$(git rev-parse --show-toplevel)/.agent-hooks/run.sh\" architecture",
+            "statusMessage": "Checking architecture",
+            "timeout": 600,
+            "type": "command"
+          },
+          {
+            "command": "\"$(git rev-parse --show-toplevel)/.agent-hooks/run.sh\" code-shape",
+            "statusMessage": "Checking code shape",
+            "timeout": 600,
+            "type": "command"
+          },
+          {
+            "command": "\"$(git rev-parse --show-toplevel)/.agent-hooks/run.sh\" implementation",
+            "statusMessage": "Full implementation review",
+            "timeout": 7200,
+            "type": "command"
+          },
+          {
+            "command": "\"$(git rev-parse --show-toplevel)/.agent-hooks/run.sh\" proposal",
+            "statusMessage": "Full proposal review",
+            "timeout": 7200,
+            "type": "command"
+          }
+        ]
+      }
+    ]
+  }
+}

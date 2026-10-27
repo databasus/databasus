@@ -1,12 +1,21 @@
 #!/usr/bin/env python3
-"""Review hooks for Claude Code, wired in .claude/settings.json.
+"""Review hooks for Claude Code and Codex, wired in .claude/settings.json and .codex/hooks.json.
 
 Usage: review_gate.py <action>
        review_gate.py doctor
        review_gate.py review [change]
 
-Claude Code starts it through run.sh, which runs it with the Python and OpenSpec versions pinned
+Both clients start it through run.sh, which runs it with the Python and OpenSpec versions pinned
 in mise.toml and stops the agent with the reason when the hook cannot start or crashes.
+
+Codex loads the project configuration only for a trusted project and runs its hooks only after
+the user trusts their current definitions. Trust the project and its hooks when Codex asks.
+The `claude` CLI must be installed and signed in, including when implementing in Codex.
+The plan gates intercept ExitPlanMode only in Claude Code; Codex runs the Stop gates.
+Codex 0.164.0 needs persisted project trust to load a new clone's .codex/ layer; a command-line
+trust override alone is insufficient. The project's chrome-devtools entry replaces the global one.
+A linked worktree of this trusted repository starts without a separate project trust prompt.
+Each worktree still needs its own .codex/ files: without them, Codex uses the global browser server.
 
 Actions:
   session-start  SessionStart: tells the agent to load the communication skill in a fresh context.
@@ -42,7 +51,7 @@ Actions:
 Both full reviews run within FULL_REVIEW_BUDGET_SECONDS from the hook's start: the checks share
 one total limit, and a reviewer starts only when the budget still holds its whole limit.
 
-Every review runs a separate read-only process of the same agent.
+Every review runs a separate read-only Claude Code process, including reviews of a Codex session.
 The review prompt lives in .agent-hooks/<action>-prompt.md, the shared part in common-prompt.md:
 they say what the reviewer reads and checks.
 A review that could not run never accepts the result, and a missing openspec stops the agent.
@@ -102,8 +111,8 @@ class Reviewer:
     timeout_seconds: int
 
 
-# The quick reviewers run on the same model as the agent that writes the code, with low effort, so
-# they answer fast. The full proposal and implementation reviews run once per change and look for
+# The quick reviewers always run in Claude Code on Opus with low effort, so they answer fast.
+# The full proposal and implementation reviews run once per change and look for
 # what the quick checks miss, so their effort is higher.
 QUICK_REVIEWER = Reviewer(
     claude_model="opus",

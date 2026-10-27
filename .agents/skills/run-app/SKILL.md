@@ -5,7 +5,7 @@ description: Start, reuse and stop the local Databasus app, and check its pages 
 
 # Run the app and check it in the browser
 
-The browser server is registered for Claude Code as `chrome-devtools`. It opens a fresh browser profile in every session, so sign in at the start of each one. Whether the browser is headless or visible is the developer's choice in `.env`; leave `BROWSER_HEADLESS` as it is.
+The browser server is registered for Claude Code and Codex as `chrome-devtools`. It opens a fresh browser profile in every session, so sign in at the start of each one. Whether the browser is headless or visible is the developer's choice in `.env`; leave `BROWSER_HEADLESS` as it is.
 
 The ports to check and open are the ones the `links` process prints in [`process-compose.yaml`](../../../process-compose.yaml). The account, the seeded databases and their sources are listed in the package comment of the [seed command](../../../backend/cmd/seed_dev/doc.go).
 

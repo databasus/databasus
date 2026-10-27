@@ -121,7 +121,7 @@ The architecture reviewer SHALL check all code that belongs to the change, inclu
 - **THEN** the tests reviewer returns no finding about the missing section, because the module check runs the hook tests
 
 ### Requirement: Full review models
-The full review reviewers SHALL run on Opus with `medium` effort. The quick checks SHALL run on Opus with `low` effort.
+The full review reviewers SHALL run on Opus with `medium` effort. The quick checks SHALL run on Opus with `low` effort. The reviewers SHALL run in Claude Code whichever client the agent works in, so a change implemented in Codex gets the same review as one implemented in Claude Code.
 
 #### Scenario: Full review in Claude Code
 - **WHEN** the full implementation review starts from Claude Code
@@ -130,6 +130,14 @@ The full review reviewers SHALL run on Opus with `medium` effort. The quick chec
 #### Scenario: Quick check in Claude Code
 - **WHEN** the diff check starts from Claude Code
 - **THEN** the reviewer runs on Opus with `low` effort
+
+#### Scenario: Full review in Codex
+- **WHEN** the full implementation review starts from Codex
+- **THEN** the reviewers run in Claude Code on Opus with `medium` effort
+
+#### Scenario: Quick check in Codex
+- **WHEN** the diff check starts from Codex
+- **THEN** the reviewer runs in Claude Code on Opus with `low` effort
 
 ### Requirement: Which findings block the turn
 A reviewer SHALL return findings, each with a category (`bug`, `spec_mismatch`, `missing_test`, `architecture`, `docs`, `minor`), a path and a description. The hook SHALL block the turn when at least one finding is not `minor`, and pass the agent every finding with `minor` marked optional. The block text SHALL require the agent to resolve every finding without asking the user: fix the code or, when the implementation is right, the change's delta spec; for an `architecture` finding, move the code to follow `docs/architecture.md`, or change `docs/architecture.md` in the same change when the rule itself is wrong. The block text SHALL also require the agent to finish the turn again with one short line about its fixes that names every rejected finding with the reason, and to leave the summary for the user until the review accepts the change. With no findings or only `minor` ones, the review SHALL count as accepted. When the review accepts the change, the hook SHALL block the turn once and ask the agent to write the user the full summary of the change. The summary SHALL open by saying that the automatic review passed and accepted the change in its current state, because the agent's reply before the review could not know the outcome. It SHALL then give what was done for the change's tasks, which decisions were made, which checks passed, which `minor` findings were left, and the next step, and SHALL end with a short list of what the review made the agent fix. The hook SHALL pass the `minor` findings in that request.

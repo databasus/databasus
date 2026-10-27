@@ -20,11 +20,13 @@ Per-folder rules live next to the code they govern:
 
 This root file holds the rules for every module.
 
+Before changing a file under a folder with its own `AGENTS.md`, read that file unless it is already in context. For `agent/verification/`, read both `agent/verification/AGENTS.md` and `backend/AGENTS.md`.
+
 ---
 
 ## Mandatory communication skill
 
-Read the [how-to-communicate skill](.agents/skills/humanizer/SKILL.md) completely once per context, before the first message or action: at the start of a session, after the context is compacted, and at the start of each subagent. Load it explicitly regardless of automatic skill selection. The skill then stays in context, so it is not reread on later turns. This applies to all agents working in this repository, including Claude Code and its subagents.
+Read the [how-to-communicate skill](.agents/skills/humanizer/SKILL.md) completely once per context, before the first message or action: at the start of a session, after the context is compacted, and at the start of each subagent. Load it explicitly regardless of automatic skill selection. The skill then stays in context, so it is not reread on later turns. This applies to all agents working in this repository, including Claude Code, Codex and their subagents.
 
 Apply the skill in embedded mode to all agent-authored prose, including chat responses, progress updates, plans, documentation, OpenSpec artifacts, review findings, commit messages and pull request text. Prioritize the reader's understanding, factual accuracy and necessary context before style and brevity. Run its draft, audit and final pass internally, then emit only the final text. Preserve exact code, commands, paths, identifiers, schemas, required templates, quotations and user-provided text unless the user asks to edit them. Select relevant information for original answers without hiding material limitations; preserve substantive claims when editing supplied text unless summarization is requested. Editing must not change facts, behavior, scope or technical meaning.
 
@@ -36,7 +38,7 @@ Reply to the user in the language they write in, and keep everything committed t
 
 Work happens on a Fedora host; any other host distro is on its own. Tool versions are pinned in [`mise.toml`](mise.toml), and the `mise run` commands below are tasks from the same file and `mise-tasks/` that run from any directory of the repository. Run `mise install` once and activate mise in your shell, so every command resolves to the pinned version. Once per clone, run `mise exec lefthook@2.2.1 -- lefthook uninstall` if an older checkout installed lefthook, then `hk install --mise`, so the commit hook from [`hk.pkl`](hk.pkl) checks formatting and lint without changing files; worktrees share the clone's hook. In a fresh worktree, copy `.env.example` to `.env`.
 
-The repository's skills live in `.agents/skills/`; `.claude/skills` is a symlink to that directory, so each skill has one source file.
+The repository's skills live in `.agents/skills/`, which Codex reads directly; Claude Code reads them through `.claude/skills`, a symlink to that directory, so each skill has one source file.
 
 | Command | Purpose |
 |---|---|
@@ -57,6 +59,8 @@ The repository's skills live in `.agents/skills/`; `.claude/skills` is a symlink
 
 Search text with `rg`. For definitions, references, callers, implementations and type errors, use the LSP tool: the project enables the gopls and typescript-language-server plugins in `.claude/settings.json`, and `mise.toml` pins both servers. The TypeScript server takes TypeScript from `frontend/node_modules`, so it needs `pnpm install` in `frontend/`. It answers "who calls this" and "what breaks if I rename this" more reliably than a text search, and reports compile errors right after an edit. Check shell scripts with `shellcheck`.
 
+For a client without the LSP tool, such as Codex, use the `gopls` command line for Go navigation and diagnostics, and `pnpm --dir frontend typecheck` to check TypeScript types.
+
 ### Running commands
 
 Run tests, linters and builds as ordinary foreground commands, so the user sees which command runs and that the agent is working. A backend, frontend or other long-lived process the agent started to check its work is stopped before the task ends. Long-lived processes the user wants running are started by the user.
@@ -76,7 +80,7 @@ The layout and the tooling described in `docs/` arrive milestone by milestone. U
 
 - The old code gets the configuration, the database and the logger through `config.GetEnv()`, `storage.GetDb()` and `logger.GetLogger()`, which `internal/app` fills; in a test build with the `testhelpers` tag they load themselves.
 - Go code under `backend/` and `agent/` outside the layout block in "Backend layout" of [`docs/architecture.md`](docs/architecture.md#backend-layout) keeps its existing structure until the milestone that moves it, as the first section of that document says.
-- Packages outside that layout keep their cross-package test helpers in files behind the `testhelpers` build tag, so the production binary does not link them. `mise run backend:test-package` passes the tag itself; a `go test` that runs such a package directly passes it too: `go test -race -tags testhelpers -count=1 ./internal/features/databases/...` in `backend/`. Every `go` command in a Claude Code session sees the tag, and the repository's Zed and VS Code settings pass it to gopls, so the production graph is checked with `go run ./tools/archlint` or with `GOFLAGS=` in front of `go list`.
+- Packages outside that layout keep their cross-package test helpers in files behind the `testhelpers` build tag, so the production binary does not link them. `mise run backend:test-package` passes the tag itself; a `go test` that runs such a package directly passes it too: `go test -race -tags testhelpers -count=1 ./internal/features/databases/...` in `backend/`. Every `go` command in a Claude Code or Codex session sees the tag, and the repository's Zed and VS Code settings pass it to gopls, so the production graph is checked with `go run ./tools/archlint` or with `GOFLAGS=` in front of `go list`.
 
 Temporary docs and plan for migration is here - @temp/refactor
 
@@ -143,7 +147,7 @@ Several agents sometimes work in one branch at once. A file or change the agent 
 
 ## Agent memory
 
-The agent writes no rules, preferences or facts to its local memory outside the repository, such as `~/.claude/projects/*/memory`. Other agents and people cannot read that memory, and it drifts from the repository rules. A rule or preference that must outlive the session goes, with the user's consent, into an `AGENTS.md` file or a repository skill.
+The agent writes no rules, preferences or facts to its local memory outside the repository, such as `~/.claude/projects/*/memory` or Codex's `~/.codex/memories`. Other agents and people cannot read that memory, and it drifts from the repository rules. A rule or preference that must outlive the session goes, with the user's consent, into an `AGENTS.md` file or a repository skill.
 
 ## Naming
 
@@ -238,6 +242,12 @@ The `openspec-*` skills are generated by OpenSpec for Claude Code, plus a hand-a
 A request to write a spec, write up a change or write its artifacts goes through the `openspec-propose` skill, and an edit to a finished change through `openspec-update-change`. This way the change gets every artifact in OpenSpec format at once.
 
 When the user asks to pack a change, in any language, the agent first checks that every task in its `tasks.md` is checked; if one is not, it changes nothing and names the unchecked tasks. Otherwise it archives the change through the `openspec-archive-change` skill, and the pack request answers that skill's sync prompt: "Sync now" when the main specs need the delta specs, "Archive now" when they are already synced. Then it commits the implementation, the main specs and the archived change in one commit per the [Git commits skill](.agents/skills/git-commits/SKILL.md). The request is the user's consent to the sync and to that commit, so the agent asks about neither again. The commit leaves out changes the agent did not make, per [Other agents' changes in the working tree](#other-agents-changes-in-the-working-tree), and the agent does not push.
+
+### Decisions during apply
+
+During `/opsx:apply` or the `openspec-apply-change` skill, the agent resolves questions within the agreed change using its own judgment and continues working. It investigates uncertainty and fixes routine problems itself. When a decision is both difficult and consequential, it consults Opus 5.5 in Claude Code with `medium` effort, considers the advice and makes the decision.
+
+The agent asks the user only when it cannot proceed without a decision, information or authorization that only the user can provide. It first checks whether the existing conversation and repository already supply what it needs. Human intervention during apply is exceptional; uncertainty alone is not a reason to stop and ask.
 
 ### Discussing a task in explore
 

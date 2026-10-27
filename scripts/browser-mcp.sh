@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Starts the Chrome DevTools MCP server that Claude Code registers in .mcp.json,
-# at the version pinned in mise.toml. BROWSER_HEADLESS chooses a headless browser (true,
+# Starts the pinned Chrome DevTools MCP server registered for Claude Code in .mcp.json
+# and for Codex in .codex/config.toml. BROWSER_HEADLESS chooses a headless browser (true,
 # the default) or a visible window (false); a value in the client's environment wins over .env.
 # --isolated gives every session a temporary profile, so parallel sessions never share a lock.
 set -euo pipefail

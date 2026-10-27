@@ -10,6 +10,7 @@ import sys
 import tempfile
 import textwrap
 import time
+import tomllib
 import unittest
 from unittest import mock
 
@@ -622,9 +623,141 @@ class RunChecksTest(unittest.TestCase):
         self.assertIn("End of output:\n(no output)", failure)
 
 
+class HookConfigurationTest(unittest.TestCase):
+    def setUp(self):
+        root = HOOK_PATH.parent.parent
+        self.claude_config = json.loads((root / ".claude/settings.json").read_text())
+        self.claude_hooks = self.claude_config["hooks"]
+        self.codex_hooks = json.loads((root / ".codex/hooks.json").read_text())["hooks"]
+
+    def get_hooks(self, configuration, event):
+        return [hook for group in configuration.get(event, []) for hook in group["hooks"]]
+
+    def test_matches_actions_timeouts_and_status_messages_when_both_clients_finish_turns(self):
+        self.assertEqual(set(self.codex_hooks), {"SessionStart", "UserPromptSubmit", "Stop"})
+        for event in self.codex_hooks:
+            claude_hooks = self.get_hooks(self.claude_hooks, event)
+            codex_hooks = self.get_hooks(self.codex_hooks, event)
+            self.assertEqual(
+                [hook["command"].rsplit(" ", 1)[1] for hook in claude_hooks],
+                [hook["command"].rsplit(" ", 1)[1] for hook in codex_hooks],
+                event,
+            )
+            for claude_hook, codex_hook in zip(claude_hooks, codex_hooks, strict=True):
+                action = claude_hook["command"].rsplit(" ", 1)[1]
+                with self.subTest(event=event, action=action):
+                    self.assertEqual(codex_hook["command"], f'"$(git rev-parse --show-toplevel)/.agent-hooks/run.sh" {action}')
+                    self.assertEqual(
+                        {key: value for key, value in claude_hook.items() if key != "command"},
+                        {key: value for key, value in codex_hook.items() if key != "command"},
+                    )
+
+    def test_intercepts_plans_only_when_client_is_claude_code(self):
+        [plan_group] = self.claude_hooks["PreToolUse"]
+        self.assertEqual(plan_group["matcher"], "ExitPlanMode")
+        self.assertEqual(
+            [hook["command"].rsplit(" ", 1)[1] for hook in plan_group["hooks"]],
+            ["plan", "necessity", "architecture"],
+        )
+        self.assertNotIn("PreToolUse", self.codex_hooks)
+        self.assertNotIn("plan", [hook["command"].rsplit(" ", 1)[1] for hook in self.get_hooks(self.codex_hooks, "Stop")])
+
+    def test_matches_browser_launcher_and_build_tag_when_clients_share_project_settings(self):
+        root = HOOK_PATH.parent.parent
+        codex_config = tomllib.loads((root / ".codex/config.toml").read_text())
+        browser_config = json.loads((root / ".mcp.json").read_text())["mcpServers"]["chrome-devtools"]
+
+        self.assertEqual(codex_config["mcp_servers"]["chrome-devtools"], browser_config)
+        self.assertEqual(codex_config["shell_environment_policy"]["set"]["GOFLAGS"], self.claude_config["env"]["GOFLAGS"])
+
+    def create_repository(self):
+        repository = HookRepository(self)
+        shutil.copytree(HOOK_PATH.parent, repository.root / ".agent-hooks", ignore=shutil.ignore_patterns("__pycache__"))
+        repository.git("add", ".agent-hooks")
+        repository.git("commit", "--quiet", "-m", "Add hook configuration fixture")
+        repository.environment.pop("CLAUDE_PROJECT_DIR", None)
+        mise_stub = Path(repository.environment["PATH"].split(os.pathsep)[0]) / "mise"
+        mise_stub.write_text(
+            f"#!{sys.executable}\n"
+            "import os, sys\n"
+            "if sys.argv[3] == 'exec':\n"
+            "    os.execv(sys.executable, [sys.executable, *sys.argv[6:]])\n"
+        )
+        return repository
+
+    def run_codex_hook(self, repository, action, payload):
+        event = {"session-start": "SessionStart", "snapshot": "UserPromptSubmit"}.get(action, "Stop")
+        hook = next(hook for hook in self.get_hooks(self.codex_hooks, event) if hook["command"].endswith(f" {action}"))
+        subdirectory = repository.root / "nested folder"
+        subdirectory.mkdir(exist_ok=True)
+        process = subprocess.run(
+            ["bash", "-c", hook["command"]],
+            cwd=subdirectory,
+            env=repository.environment,
+            input=json.dumps({"hook_event_name": event, "session_id": "codex-session", "cwd": str(subdirectory), **payload}),
+            text=True,
+            capture_output=True,
+            check=True,
+        )
+        return json.loads(process.stdout) if process.stdout.strip() else None
+
+    def test_runs_every_codex_command_when_started_in_subdirectory_without_claude_project_dir(self):
+        repository = self.create_repository()
+        for event in ("SessionStart", "UserPromptSubmit", "Stop"):
+            for hook in self.get_hooks(self.codex_hooks, event):
+                action = hook["command"].rsplit(" ", 1)[1]
+                with self.subTest(event=event, action=action):
+                    response = self.run_codex_hook(repository, action, {"prompt": "Read the repository"})
+                    if action == "session-start":
+                        self.assertIn(".agents/skills/humanizer/SKILL.md", response["hookSpecificOutput"]["additionalContext"])
+                    elif action == "snapshot":
+                        self.assertIsNone(response)
+                    else:
+                        self.assertEqual(response, {})
+        self.assertTrue((repository.root / ".git/agent-review-hooks/codex-session.json").is_file())
+
+    def test_runs_claude_reviewers_with_required_model_and_effort_when_codex_finishes_changes(self):
+        for gate, effort, reviewer_count in (("diff", "low", 1), ("implementation", "medium", 4)):
+            with self.subTest(gate=gate):
+                repository = self.create_repository()
+                self.run_codex_hook(repository, "snapshot", {"prompt": "Continue implementing widgets"})
+                repository.write("src/widgets.py", "WIDGETS = []\n")
+                if gate == "implementation":
+                    repository.complete_tasks()
+
+                response = self.run_codex_hook(repository, gate, {"last_assistant_message": "Done."})
+
+                if gate == "implementation":
+                    self.assertIn("Full implementation review accepted the change.", response["reason"])
+                else:
+                    self.assertEqual(response, {})
+                reviewer_calls = repository.reviewer_calls()
+                self.assertEqual(len(reviewer_calls), reviewer_count)
+                for reviewer_call in reviewer_calls:
+                    self.assertIn(f"--model opus --effort {effort}", " ".join(reviewer_call["arguments"]))
+                    self.assertEqual(reviewer_call["effort_env"], effort)
+
+    def test_preserves_user_request_baseline_when_codex_submits_automatic_review_continuation(self):
+        repository = self.create_repository()
+        repository.write("existing.md", "Existing user edit\n")
+        self.run_codex_hook(repository, "snapshot", {"prompt": "Add widgets"})
+        request_path = repository.root / ".git/agent-review-hooks/codex-session.json"
+        original_request = json.loads(request_path.read_text())
+        repository.write("src/widgets.py", "WIDGETS = []\n")
+        self.run_codex_hook(repository, "snapshot", {"prompt": f"{review_gate.AUTOMATIC_REVIEW_PREFIX} Fix the widgets"})
+
+        self.assertEqual(json.loads(request_path.read_text()), original_request)
+        response = self.run_codex_hook(repository, "diff", {"last_assistant_message": "Fixed."})
+
+        self.assertEqual(response, {})
+        [reviewer_call] = repository.reviewer_calls()
+        self.assertIn("src/widgets.py", reviewer_call["prompt"])
+        self.assertIn("Add widgets", reviewer_call["prompt"])
+
+
 class FullReviewBudgetTest(unittest.TestCase):
-    def get_hook_timeouts(self, gate):
-        config = json.loads((HOOK_PATH.parent.parent / ".claude" / "settings.json").read_text())
+    def get_hook_timeouts(self, gate, config_path):
+        config = json.loads((HOOK_PATH.parent.parent / config_path).read_text())
         return [
             hook["timeout"]
             for groups in config["hooks"].values()
@@ -641,9 +774,11 @@ class FullReviewBudgetTest(unittest.TestCase):
             )
 
     def test_budget_ends_before_full_review_hook_timeouts(self):
-        for gate in review_gate.FULL_REVIEWS:
-            [timeout_seconds] = self.get_hook_timeouts(gate)
-            self.assertLess(review_gate.FULL_REVIEW_BUDGET_SECONDS, timeout_seconds, gate)
+        for config_path in (".claude/settings.json", ".codex/hooks.json"):
+            for gate in review_gate.FULL_REVIEWS:
+                with self.subTest(configuration=config_path, gate=gate):
+                    [timeout_seconds] = self.get_hook_timeouts(gate, config_path)
+                    self.assertLess(review_gate.FULL_REVIEW_BUDGET_SECONDS, timeout_seconds, gate)
 
 
 class ChangeVerificationParsingTest(unittest.TestCase):

@@ -69,15 +69,19 @@ The agent MUST NOT write rules, preferences or facts to its local memory outside
 - **THEN** the agent proposes the edit to `AGENTS.md` or a skill and writes nothing to its local memory
 
 ### Requirement: Every repository skill has one source file
-Every skill of the repository, including the generated `openspec-*` skills, SHALL have one source file under `.agents/skills/`. Claude Code SHALL load it through `.claude/skills`, a symlink to that directory, so no copy can drift from the source.
+Every skill of the repository, including the generated `openspec-*` skills, SHALL have one source file under `.agents/skills/`. Claude Code SHALL load it through `.claude/skills`, a symlink to that directory, and Codex SHALL load it from `.agents/skills/` itself, so both clients read the same file and no copy can drift from the source.
 
 #### Scenario: The commit skill in Claude Code
 - **WHEN** Claude Code lists the skills it can load in this repository
 - **THEN** the list contains the Git commits skill, read from `.agents/skills/git-commits/SKILL.md`
 
+#### Scenario: The apply skill in Codex
+- **WHEN** Codex lists the skills it can load in this repository
+- **THEN** the list contains the OpenSpec apply skill, read from `.agents/skills/openspec-apply-change/SKILL.md`
+
 ### Requirement: The agent can see and drive the local app
 
-The repository SHALL register one browser automation server for Claude Code. With it, an agent opens pages of the local app and reads what the page shows, including a screenshot, the page structure, console messages and network requests. It also clicks, types and navigates. Claude Code SHALL start the server from the repository configuration. The server SHALL drive the Chrome browser installed on the host. Each agent session SHALL get its own temporary browser profile, which is discarded when the session's browser closes, so that two sessions running at once do not block each other and no sign-in carries over between sessions.
+The repository SHALL register one browser automation server for Claude Code and Codex. With it, an agent opens pages of the local app and reads what the page shows, including a screenshot, the page structure, console messages and network requests. It also clicks, types and navigates. Both clients SHALL start the server from the repository configuration with the same command. The server SHALL drive the Chrome browser installed on the host. Each agent session SHALL get its own temporary browser profile, which is discarded when the session's browser closes, so that two sessions running at once do not block each other and no sign-in carries over between sessions.
 
 The repository SHALL hold a skill that tells the agent how to check the app in the browser:
 
@@ -122,6 +126,11 @@ A browser check SHALL add to the tests a task names and SHALL NOT replace them.
 
 - **WHEN** two agent sessions open the browser at the same time
 - **THEN** both browsers start, each with its own empty profile
+
+#### Scenario: Codex opens a page
+
+- **WHEN** Codex is started in the repository
+- **THEN** it lists the same browser server Claude Code uses, started by the same command
 
 ### Requirement: The developer chooses a visible or headless browser
 
@@ -193,3 +202,21 @@ When a finished turn changes a Go or TypeScript source file of the backend, the 
 #### Scenario: A comment that restates the code
 - **WHEN** a turn adds a comment above a function that only says what the function does
 - **THEN** the quick code-shape check rejects the turn and suggests a name for the function that makes the comment redundant
+
+### Requirement: The module rules reach every agent
+Before the agent changes a file under a folder that holds its own `AGENTS.md`, it SHALL read that `AGENTS.md`, unless the file is already in its context. A folder whose rules extend another module's rules SHALL name that module's `AGENTS.md`, and the agent SHALL read both. The rule SHALL hold for every client, including one that loads only the `AGENTS.md` files on the path from the repository root to the directory it was started in.
+
+#### Scenario: Codex changes backend code
+- **WHEN** Codex, started at the repository root, is about to change a file under `backend/`
+- **THEN** it reads `backend/AGENTS.md` first
+
+#### Scenario: Codex changes the verification agent
+- **WHEN** Codex is about to change a file under `agent/verification/`
+- **THEN** it reads `agent/verification/AGENTS.md` and `backend/AGENTS.md` first
+
+### Requirement: Go commands of a Codex session see the test build tag
+A `go` command that the agent runs in a Codex session SHALL see the test helpers build tag without passing it, the same way it does in a Claude Code session, so a package whose cross-package test helpers sit behind that tag builds and its tests run.
+
+#### Scenario: Codex runs a package's tests directly
+- **WHEN** in a Codex session the agent runs `go test` on a backend package whose helpers sit behind the test helpers build tag, without passing the tag
+- **THEN** the package builds with its helpers and its tests run
