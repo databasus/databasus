@@ -52,7 +52,7 @@ The names reviewer SHALL check every name the proposal, design and delta specs i
 
 The consistency reviewer SHALL check that the decisions agree with each other and with the proposal, and that the facts the proposal and design state about the code are true.
 
-The task reviewer SHALL check that a task with a test covers every scenario, that every task has a verification, and that the task order is feasible. The task reviewer SHALL also check that a change whose tasks add or change tests in a backend package, a verification agent package or the frontend has a "Change verification" section, and that the section runs the tests of every such package the tasks' verifications name. Tests that no allowed command form runs and that a module check already runs, such as the hook tests, need no section.
+The task reviewer SHALL check that a task with a test covers every scenario, that every task has a verification, and that the task order is feasible. The task reviewer SHALL also check that a change whose tasks add or change tests in a backend package, a verification agent package or the frontend has a "Change verification" section, and that the section runs the tests of every such package the tasks' verifications name. Tests that no allowed command form runs, such as the hook tests, SHALL name an explicit verification command in their task instead of this section.
 
 #### Scenario: A change with two delta specs
 - **WHEN** the full proposal review starts for a change with two delta specs

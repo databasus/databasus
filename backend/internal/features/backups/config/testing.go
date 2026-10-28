@@ -17,58 +17,16 @@ import (
 // configs without a member of the database's workspace.
 var testHelperActor = users.Actor{UserID: uuid.Nil, Role: users.RoleAdmin}
 
-// SaveTestBackupConfig saves the config through the module's save, with its checks, and returns its error.
-func SaveTestBackupConfig[C backups.LogicalBackupConfig | backups.PhysicalBackupConfig](
-	ctx context.Context,
-	config C,
-) (C, error) {
-	var noConfig C
-
-	savedConfig, err := GetModule().SaveBackupConfig(ctx, testHelperActor, toAnyBackupConfig(config))
-	if err != nil {
-		return noConfig, err
-	}
-
-	typedConfig, isSameMethod := savedConfig.(C)
-	if !isSameMethod {
-		return noConfig, fmt.Errorf("the save returned a %T config for a %T one", savedConfig, config)
-	}
-
-	return typedConfig, nil
-}
-
-// SaveLogicalTestBackupConfig saves the config through the module's save, with its checks.
 func SaveLogicalTestBackupConfig(ctx context.Context, config backups.LogicalBackupConfig) backups.LogicalBackupConfig {
-	savedConfig, err := SaveTestBackupConfig(ctx, config)
+	savedConfig, err := GetModule().SaveBackupConfig(ctx, testHelperActor, config)
 	if err != nil {
 		panic(fmt.Sprintf("save the logical test backup config: %v", err))
 	}
-
-	return savedConfig
-}
-
-// SavePhysicalTestBackupConfig saves the config through the module's save, with its checks.
-func SavePhysicalTestBackupConfig(
-	ctx context.Context,
-	config backups.PhysicalBackupConfig,
-) backups.PhysicalBackupConfig {
-	savedConfig, err := SaveTestBackupConfig(ctx, config)
-	if err != nil {
-		panic(fmt.Sprintf("save the physical test backup config: %v", err))
+	logicalConfig, isLogical := savedConfig.(backups.LogicalBackupConfig)
+	if !isLogical {
+		panic(fmt.Sprintf("the save returned a %T config for a logical one", savedConfig))
 	}
-
-	return savedConfig
-}
-
-func toAnyBackupConfig[C backups.LogicalBackupConfig | backups.PhysicalBackupConfig](config C) backups.AnyBackupConfig {
-	switch typedConfig := any(config).(type) {
-	case backups.LogicalBackupConfig:
-		return typedConfig
-	case backups.PhysicalBackupConfig:
-		return typedConfig
-	default:
-		panic(fmt.Sprintf("unknown backup config type %T", config))
-	}
+	return logicalConfig
 }
 
 // EnableBackupsForTestDatabase saves a logical config that backs up daily at 16:00 into the storage and
@@ -98,43 +56,6 @@ func EnableBackupsForTestDatabase(
 		},
 		IsRetryIfFailed:     false,
 		MaxFailedTriesCount: 0,
-	})
-}
-
-// EnableBackupsForPhysicalTestDatabase saves a physical config of a database that takes full backups
-// only, backing up daily at 16:00 into the storage and keeping the last seven full backups.
-func EnableBackupsForPhysicalTestDatabase(
-	ctx context.Context,
-	databaseID uuid.UUID,
-	storageID uuid.UUID,
-) backups.PhysicalBackupConfig {
-	return SavePhysicalTestBackupConfig(ctx, backups.PhysicalBackupConfig{
-		BackupConfig: backups.BackupConfig{
-			DatabaseID:       databaseID,
-			IsBackupsEnabled: true,
-			StorageID:        &storageID,
-			Encryption:       backups.EncryptionNone,
-			NotificationTriggers: []backups.NotificationTrigger{
-				backups.NotificationTriggerBackupFailed,
-				backups.NotificationTriggerBackupSuccess,
-				backups.NotificationTriggerChainBroken,
-			},
-		},
-		BackupType:                "",
-		FullBackupSchedule:        NewDailyTestSchedule("16:00"),
-		IncrementalBackupSchedule: nil,
-		Retention: backups.PhysicalRetention{
-			Policy:      backups.PhysicalRetentionPolicyFullBackups,
-			ChainsCount: 0,
-			FullBackups: backups.FullBackupsRetention{
-				Policy: backups.FullBackupsRetentionPolicyLastN,
-				Count:  7,
-				Gfs:    backups.GfsRetention{},
-			},
-		},
-		WalLagThresholdBytes:        0,
-		ForceFullRequestedAt:        nil,
-		ForceIncrementalRequestedAt: nil,
 	})
 }
 

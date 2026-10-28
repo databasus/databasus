@@ -9,13 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	audit_logs "databasus-backend/internal/features/audit_logs"
-	backups_backups_backuping_physical "databasus-backend/internal/features/backups/backups/backuping/physical"
 	backups_backups_controllers_physical "databasus-backend/internal/features/backups/backups/controllers/physical"
-	backups_backups_core_physical_chain_view "databasus-backend/internal/features/backups/backups/core/physical/chain_view"
-	backups_backups_core_physical_repositories "databasus-backend/internal/features/backups/backups/core/physical/repositories"
-	backups_backups_core_physical_service "databasus-backend/internal/features/backups/backups/core/physical/service"
-	backups_backups_download "databasus-backend/internal/features/backups/backups/download"
-	backups_backups_services "databasus-backend/internal/features/backups/backups/services"
 	caching "databasus-backend/internal/features/caching"
 	databases_bridge "databasus-backend/internal/features/databases"
 	disk "databasus-backend/internal/features/disk"
@@ -45,64 +39,8 @@ func getOldCodeGetters() []oldCodeGetter {
 	return []oldCodeGetter{
 		{"features/audit_logs.GetAuditLogService", func() any { return audit_logs.GetAuditLogService() }},
 		{
-			"features/backups/backups/backuping/physical.GetPhysicalBackuper",
-			func() any { return backups_backups_backuping_physical.GetPhysicalBackuper() },
-		},
-		{
-			"features/backups/backups/backuping/physical.GetPhysicalBackupCanceller",
-			func() any { return backups_backups_backuping_physical.GetPhysicalBackupCanceller() },
-		},
-		{
 			"features/backups/backups/controllers/physical.GetPhysicalBackupController",
 			func() any { return backups_backups_controllers_physical.GetPhysicalBackupController() },
-		},
-		{
-			"features/backups/backups/core/physical/chain_view.GetChainViewService",
-			func() any { return backups_backups_core_physical_chain_view.GetChainViewService() },
-		},
-		{
-			"features/backups/backups/core/physical/repositories.GetFullBackupRepository",
-			func() any { return backups_backups_core_physical_repositories.GetFullBackupRepository() },
-		},
-		{
-			"features/backups/backups/core/physical/repositories.GetIncrementalBackupRepository",
-			func() any { return backups_backups_core_physical_repositories.GetIncrementalBackupRepository() },
-		},
-		{
-			"features/backups/backups/core/physical/repositories.GetInFlightBackupRepository",
-			func() any { return backups_backups_core_physical_repositories.GetInFlightBackupRepository() },
-		},
-		{
-			"features/backups/backups/core/physical/repositories.GetWalSegmentRepository",
-			func() any { return backups_backups_core_physical_repositories.GetWalSegmentRepository() },
-		},
-		{
-			"features/backups/backups/core/physical/repositories.GetWalHistoryRepository",
-			func() any { return backups_backups_core_physical_repositories.GetWalHistoryRepository() },
-		},
-		{
-			"features/backups/backups/core/physical/repositories.GetWalStreamerRepository",
-			func() any { return backups_backups_core_physical_repositories.GetWalStreamerRepository() },
-		},
-		{
-			"features/backups/backups/core/physical/repositories.GetWalStreamSampleRepository",
-			func() any { return backups_backups_core_physical_repositories.GetWalStreamSampleRepository() },
-		},
-		{
-			"features/backups/backups/core/physical/service.GetPhysicalBackupService",
-			func() any { return backups_backups_core_physical_service.GetPhysicalBackupService() },
-		},
-		{
-			"features/backups/backups/download.GetRestoreTokenService",
-			func() any { return backups_backups_download.GetRestoreTokenService() },
-		},
-		{
-			"features/backups/backups/download.GetRestoreStreamWriter",
-			func() any { return backups_backups_download.GetRestoreStreamWriter() },
-		},
-		{
-			"features/backups/backups/services.GetPhysicalBackupService",
-			func() any { return backups_backups_services.GetPhysicalBackupService() },
 		},
 		{"features/databases.GetAccess", func() any { return databases_bridge.GetAccess() }},
 		{"features/disk.GetDiskService", func() any { return disk.GetDiskService() }},

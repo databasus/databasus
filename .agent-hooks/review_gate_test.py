@@ -41,7 +41,9 @@ STUB_SOURCE = textwrap.dedent(
     prompt = sys.stdin.read() if name == "claude" else ""
     calls_dir = stubs_dir / "calls"
     calls_dir.mkdir(exist_ok=True)
-    (calls_dir / f"{name}-{uuid.uuid4().hex}.json").write_text(
+    call_path = calls_dir / f"{name}-{uuid.uuid4().hex}.json"
+    call_temporary_path = call_path.with_suffix(".tmp")
+    call_temporary_path.write_text(
         json.dumps(
             {
                 "name": name,
@@ -54,12 +56,29 @@ STUB_SOURCE = textwrap.dedent(
         )
     )
 
+    call_temporary_path.replace(call_path)
+
     config_path = stubs_dir / f"{name}.json"
     config = json.loads(config_path.read_text()) if config_path.exists() else {}
     if name == "openspec":
         config = config.get(arguments[0], {})
     elif name == "npm":
         config = config.get(arguments[-1], {})
+
+    required_efforts = set(config.get("wait_for_efforts", []))
+    if required_efforts:
+        deadline = time.monotonic() + 3
+        while True:
+            started_efforts = {
+                json.loads(path.read_text())["effort_env"]
+                for path in calls_dir.glob("claude-*.json")
+            }
+            if required_efforts <= started_efforts:
+                break
+            if time.monotonic() >= deadline:
+                sys.stderr.write("reviewers did not run concurrently")
+                sys.exit(1)
+            time.sleep(0.01)
 
     time.sleep(config.get("sleep_seconds", 0))
     if config.get("exit_code"):
@@ -73,16 +92,6 @@ STUB_SOURCE = textwrap.dedent(
         sys.stdout.write(config.get("output", json.dumps({"isPlanningComplete": True})))
     else:
         sys.stdout.write(config.get("output", ""))
-    """
-)
-PASSING_HOOK_TEST = textwrap.dedent(
-    """
-    import unittest
-
-
-    class SampleTest(unittest.TestCase):
-        def test_passes(self):
-            self.assertTrue(True)
     """
 )
 FAILING_HOOK_TEST = textwrap.dedent(
@@ -821,7 +830,7 @@ class ChangeVerificationParsingTest(unittest.TestCase):
             "the argument `./internal/a;rm` in `mise run backend:test-package ./internal/a;rm` has a forbidden character",
         )
 
-    def test_runs_backend_package_tests_from_repository_root(self):
+    def test_accepts_backend_package_tests_from_repository_root(self):
         checks = self.parse(verification_section("mise run backend:test-package ./internal/features/intervals/..."))
 
         self.assertEqual(
@@ -844,7 +853,7 @@ class ChangeVerificationParsingTest(unittest.TestCase):
     def test_rejects_backend_shards_with_shell_substitution(self):
         self.assert_rejected(verification_section("mise run backend:test-group physical-api-1-of-3;rm"), "forbidden character")
 
-    def test_runs_verification_agent_tests_from_repository_root(self):
+    def test_accepts_verification_agent_tests_from_repository_root(self):
         checks = self.parse(verification_section("mise run agent:test"))
 
         self.assertEqual(checks, [review_gate.Check(".", ("mise", "run", "agent:test"))])
@@ -1293,136 +1302,20 @@ class ImplementationGateStartTest(SummaryAssertions, unittest.TestCase):
 
 
 class ImplementationGateChecksTest(ShortReplyAssertions, SummaryAssertions, unittest.TestCase):
-    def test_runs_only_backend_linter_when_change_touches_backend(self):
+    def test_runs_no_verification_commands_when_implementation_review_starts(self):
         repository = HookRepository(self)
         repository.submit_prompt("Continue")
         repository.write("backend/internal/features/widgets/service.go", "package widgets\n")
-        repository.complete_tasks()
-
-        repository.stop("implementation")
-
-        [call] = repository.check_calls()
-        self.assertEqual(call["name"], "golangci-lint")
-        self.assertEqual(call["arguments"], ["run", "./cmd/...", "./internal/...", "./migrations/...", "./tools/..."])
-        self.assertEqual(Path(call["cwd"]), repository.root / "backend")
-
-    def test_runs_agent_linter_in_verification_agent_directory(self):
-        repository = HookRepository(self)
-        repository.submit_prompt("Continue")
-        repository.write("agent/verification/internal/heartbeat/heartbeat.go", "package heartbeat\n")
-        repository.complete_tasks()
-
-        repository.stop("implementation")
-
-        [call] = repository.check_calls()
-        self.assertEqual(call["arguments"], ["run", "./cmd/...", "./internal/...", "./e2e/..."])
-        self.assertEqual(Path(call["cwd"]), repository.root / "agent" / "verification")
-
-    def test_runs_only_frontend_linter_when_change_touches_frontend(self):
-        repository = HookRepository(self)
-        repository.submit_prompt("Continue")
-        repository.write("frontend/src/pages/widgets/ui/WidgetsPage.tsx", "export {};\n")
-        repository.complete_tasks()
-
-        repository.stop("implementation")
-
-        self.assertEqual([call["arguments"] for call in repository.check_calls()], [["--dir", "frontend", "lint"]])
-
-    def test_runs_website_lint_and_build_when_change_touches_website(self):
-        repository = HookRepository(self)
-        repository.submit_prompt("Continue")
-        repository.write("website/app/[lang]/pricing/page.tsx", "export {};\n")
-        repository.complete_tasks()
-
-        repository.stop("implementation")
-
-        self.assertEqual(
-            sorted(call["arguments"] for call in repository.calls("npm")),
-            [["--prefix", "website", "run", "build"], ["--prefix", "website", "run", "lint"]],
-        )
-
-    def test_runs_no_checks_when_change_touches_no_module(self):
-        repository = HookRepository(self)
-        repository.submit_prompt("Continue")
-        repository.write("docs/widgets.md", "# Widgets\n")
-        repository.complete_tasks()
-
-        repository.stop("implementation")
-
-        self.assertEqual(repository.check_calls(), [])
-        self.assertEqual(len(repository.reviewer_calls()), 4)
-
-    def test_blocks_turn_with_output_tail_when_linter_fails(self):
-        repository = HookRepository(self)
-        repository.set_stub("golangci-lint", {"exit_code": 1, "output": "service.go:12:2: ineffectual assignment to err\n"})
-        repository.submit_prompt("Continue")
-        repository.write("backend/internal/features/widgets/service.go", "package widgets\n")
-        repository.complete_tasks()
-
-        response = repository.stop("implementation")
-
-        self.assertEqual(response["decision"], "block")
-        self.assertIn("`golangci-lint run ./cmd/... ./internal/... ./migrations/... ./tools/...` in `backend`", response["reason"])
-        self.assertIn("service.go:12:2: ineffectual assignment to err", response["reason"])
-        self.assert_asks_for_short_reply(response["reason"])
-        self.assertEqual(repository.reviewer_calls(), [])
-
-    def test_never_runs_formatters_and_runs_mise_only_from_change_verification_block(self):
-        repository = HookRepository(self)
-        repository.submit_prompt("Continue")
-        repository.write("backend/internal/features/widgets/service.go", "package widgets\n")
-        repository.write("frontend/src/pages/widgets/ui/WidgetsPage.tsx", "export {};\n")
+        repository.set_stub("golangci-lint", {"exit_code": 1, "output": "must not run"})
         repository.complete_tasks(verification_section=verification_section("mise run backend:test-package ./internal/features/widgets/..."))
 
         response = repository.stop("implementation")
 
         self.assert_accepts_change_and_asks_for_summary(response)
-        self.assertEqual([call["arguments"] for call in repository.calls("mise")], [["run", "backend:test-package", "./internal/features/widgets/..."]])
-        arguments = [" ".join(call["arguments"]) for call in repository.check_calls()]
-        self.assertEqual(len(arguments), 3)
-        self.assertFalse(any("fmt" in argument or "format" in argument for argument in arguments))
+        self.assertEqual(repository.check_calls(), [])
         self.assertEqual(len(repository.reviewer_calls()), 4)
 
-    def test_blocks_turn_with_command_and_output_tail_when_package_test_fails(self):
-        repository = HookRepository(self)
-        repository.set_stub("mise", {"exit_code": 1, "output": "--- FAIL: Test_CreateInterval_WhenOverlapping_ReturnsConflict\n"})
-        repository.submit_prompt("Continue")
-        repository.write("backend/internal/features/intervals/service.go", "package intervals\n")
-        repository.complete_tasks(verification_section=verification_section("mise run backend:test-package ./internal/features/intervals/..."))
-
-        response = repository.stop("implementation")
-
-        self.assertEqual(response["decision"], "block")
-        self.assertIn("`mise run backend:test-package ./internal/features/intervals/...` in `.` exited with code 1", response["reason"])
-        self.assertIn("--- FAIL: Test_CreateInterval_WhenOverlapping_ReturnsConflict", response["reason"])
-        self.assert_asks_for_short_reply(response["reason"])
-        self.assertEqual(repository.reviewer_calls(), [])
-
-    def test_runs_backend_package_tests_from_repository_root_after_linter(self):
-        repository = HookRepository(self)
-        repository.submit_prompt("Continue")
-        repository.write("backend/internal/features/intervals/service.go", "package intervals\n")
-        repository.complete_tasks(verification_section=verification_section("mise run backend:test-package ./internal/features/intervals/..."))
-
-        repository.stop("implementation")
-
-        [linter_call] = repository.calls("golangci-lint")
-        [test_call] = repository.calls("mise")
-        self.assertEqual(test_call["arguments"], ["run", "backend:test-package", "./internal/features/intervals/..."])
-        self.assertEqual(Path(test_call["cwd"]), repository.root)
-        self.assertLess(linter_call["started_at"], test_call["started_at"])
-
-    def test_runs_command_named_by_two_changes_once(self):
-        repository = HookRepository(self)
-        repository.submit_prompt("Continue")
-        repository.complete_tasks(verification_section=verification_section("pnpm --dir frontend test"))
-        repository.write_change(spec_names=("gizmos",), tasks="- [x] 1.1 Build\n" + verification_section("pnpm --dir frontend test"), name="add-gizmos")
-
-        repository.stop("implementation")
-
-        self.assertEqual([call["arguments"] for call in repository.calls("pnpm")], [["--dir", "frontend", "test"]])
-
-    def test_starts_reviewers_without_test_run_when_change_has_no_verification_section(self):
+    def test_starts_reviewers_without_checks_when_change_has_no_verification_section(self):
         repository = HookRepository(self)
         repository.submit_prompt("Continue")
         repository.write("frontend/src/pages/widgets/ui/WidgetsPage.tsx", "export {};\n")
@@ -1431,13 +1324,24 @@ class ImplementationGateChecksTest(ShortReplyAssertions, SummaryAssertions, unit
         response = repository.stop("implementation")
 
         self.assert_accepts_change_and_asks_for_summary(response)
-        self.assertEqual([call["arguments"] for call in repository.check_calls()], [["--dir", "frontend", "lint"]])
+        self.assertEqual(repository.check_calls(), [])
         self.assertEqual(len(repository.reviewer_calls()), 4)
 
-    def test_blocks_turn_before_any_check_when_verification_section_is_malformed(self):
+    def test_runs_no_shared_verification_command_when_two_changes_name_it(self):
         repository = HookRepository(self)
         repository.submit_prompt("Continue")
-        repository.write("backend/internal/features/intervals/service.go", "package intervals\n")
+        repository.complete_tasks(verification_section=verification_section("pnpm --dir frontend test"))
+        repository.write_change(spec_names=("gizmos",), tasks="- [x] 1.1 Build\n" + verification_section("pnpm --dir frontend test"), name="add-gizmos")
+
+        response = repository.stop("implementation")
+
+        self.assert_accepts_change_and_asks_for_summary(response)
+        self.assertEqual(repository.check_calls(), [])
+        self.assertEqual(len(repository.reviewer_calls()), 8)
+
+    def test_blocks_turn_before_reviewers_when_verification_section_is_malformed(self):
+        repository = HookRepository(self)
+        repository.submit_prompt("Continue")
         repository.complete_tasks(verification_section=verification_section("mise run test"))
 
         response = repository.stop("implementation")
@@ -1445,22 +1349,10 @@ class ImplementationGateChecksTest(ShortReplyAssertions, SummaryAssertions, unit
         self.assertEqual(response["decision"], "block")
         self.assertIn("`mise run test` is not an allowed command", response["reason"])
         self.assertIn(review_gate.ALLOWED_VERIFICATION_FORMS, response["reason"])
-        self.assertIn("No check or reviewer ran.", response["reason"])
         self.assertEqual(repository.check_calls(), [])
         self.assertEqual(repository.reviewer_calls(), [])
 
-    def test_runs_hook_tests_when_change_touches_hooks(self):
-        repository = HookRepository(self)
-        repository.submit_prompt("Continue")
-        repository.write(".agent-hooks/sample_test.py", PASSING_HOOK_TEST)
-        repository.complete_tasks()
-
-        response = repository.stop("implementation")
-
-        self.assert_accepts_change_and_asks_for_summary(response)
-        self.assertEqual(len(repository.reviewer_calls()), 4)
-
-    def test_blocks_turn_when_hook_tests_fail(self):
+    def test_runs_no_hook_tests_when_change_touches_hooks(self):
         repository = HookRepository(self)
         repository.submit_prompt("Continue")
         repository.write(".agent-hooks/sample_test.py", FAILING_HOOK_TEST)
@@ -1468,9 +1360,20 @@ class ImplementationGateChecksTest(ShortReplyAssertions, SummaryAssertions, unit
 
         response = repository.stop("implementation")
 
-        self.assertEqual(response["decision"], "block")
-        self.assertIn("gate returned block for an accepted turn", response["reason"])
-        self.assertEqual(repository.reviewer_calls(), [])
+        self.assert_accepts_change_and_asks_for_summary(response)
+        self.assertEqual(repository.check_calls(), [])
+        self.assertEqual(len(repository.reviewer_calls()), 4)
+
+    def test_does_not_claim_checks_passed_when_reviewer_prompt_is_built(self):
+        repository = HookRepository(self)
+        repository.submit_prompt("Continue")
+        repository.complete_tasks()
+
+        repository.stop("implementation")
+
+        for call in repository.reviewer_calls():
+            self.assertNotIn("The hook already ran the linters", call["prompt"])
+            self.assertIn("does not run linters, builds or tests", call["prompt"])
 
 
 class ImplementationGateReviewTest(ShortReplyAssertions, SummaryAssertions, unittest.TestCase):
@@ -1553,7 +1456,7 @@ class ImplementationGateReviewTest(ShortReplyAssertions, SummaryAssertions, unit
             "run the tests of every backend package, verification agent package and frontend test file in which the change added or changed tests",
             tests_role,
         )
-        self.assertIn("such as the hook tests in `.agent-hooks/`, count as covered", tests_role)
+        self.assertIn("such as the hook tests in `.agent-hooks/`, need an explicit verification in their task instead", tests_role)
 
     def test_blocks_turn_with_budget_reason_when_third_wave_of_reviewers_does_not_fit(self):
         repository = HookRepository(self)
@@ -1568,7 +1471,7 @@ class ImplementationGateReviewTest(ShortReplyAssertions, SummaryAssertions, unit
         self.assertIn(review_gate.BUDGET_EXHAUSTED_ERROR, response["reason"])
         self.assertEqual(len(repository.reviewer_calls()), 12)
 
-    def test_runs_two_waves_of_reviewers_after_checks_use_their_total_limit(self):
+    def test_runs_two_waves_of_reviewers_without_running_checks(self):
         repository = HookRepository(self)
         repository.set_stub("golangci-lint", {"sleep_seconds": TWO_WAVES_CHECKS_TIMEOUT_SECONDS - 0.1})
         repository.set_stub("claude", {"sleep_seconds": TWO_WAVES_REVIEWER_TIMEOUT_SECONDS - 0.2})
@@ -1585,7 +1488,7 @@ class ImplementationGateReviewTest(ShortReplyAssertions, SummaryAssertions, unit
         )
 
         self.assert_accepts_change_and_asks_for_summary(response)
-        self.assertEqual(len(repository.calls("golangci-lint")), 1)
+        self.assertEqual(repository.check_calls(), [])
         self.assertEqual(len(repository.reviewer_calls()), 8)
 
     def test_blocks_turn_and_requires_agent_to_resolve_findings_when_reviewer_finds_bug(self):
@@ -1751,6 +1654,38 @@ class ManualReviewTest(unittest.TestCase):
             capture_output=True,
         )
 
+    def test_runs_no_verification_commands_when_manual_review_starts(self):
+        repository = HookRepository(self)
+        repository.write("backend/internal/features/widgets/service.go", "package widgets\n")
+        repository.write("frontend/src/widgets.ts", "export {};\n")
+        repository.write("website/app/widgets.tsx", "export {};\n")
+        repository.write("agent/verification/internal/widgets/widgets.go", "package widgets\n")
+        repository.write(".agent-hooks/sample_test.py", FAILING_HOOK_TEST)
+        for name in ("golangci-lint", "pnpm", "npm", "mise"):
+            repository.set_stub(name, {"exit_code": 1, "output": "must not run"})
+        repository.complete_tasks(verification_section=verification_section(
+            "mise run backend:test-package ./internal/features/widgets/...",
+            "mise run agent:test",
+            "pnpm --dir frontend test",
+        ))
+
+        process = self.run_review(repository)
+
+        self.assertEqual(process.returncode, 0, process.stdout + process.stderr)
+        self.assertEqual(repository.check_calls(), [])
+        self.assertEqual(len(repository.reviewer_calls()), 7)
+
+    def test_runs_manual_reviewers_concurrently_across_quick_and_full_reviews(self):
+        repository = HookRepository(self)
+        repository.write("backend/internal/features/widgets/service.go", "package widgets\n")
+        repository.complete_tasks()
+        repository.set_stub("claude", {"wait_for_efforts": ["low", "medium"]})
+
+        process = self.run_review(repository)
+
+        self.assertEqual(process.returncode, 0, process.stdout + process.stderr)
+        self.assertEqual(len(repository.reviewer_calls()), 7)
+
     def test_runs_quick_checks_and_full_review_and_exits_with_code_0_when_everything_accepts(self):
         repository = HookRepository(self)
         repository.write("backend/internal/features/widgets/service.go", "package widgets\n")
@@ -1763,7 +1698,7 @@ class ManualReviewTest(unittest.TestCase):
         self.assertEqual(efforts, ["low"] * 3 + ["medium"] * 4)
         quick_prompts = [call["prompt"] for call in repository.reviewer_calls() if get_effort(call) == "low"]
         self.assertTrue(all("started `mise run review` by hand" in prompt for prompt in quick_prompts))
-        self.assertEqual(len(repository.calls("golangci-lint")), 1)
+        self.assertEqual(repository.check_calls(), [])
         self.assertIn("Quick check `code-shape`: accepted.", process.stdout)
         self.assertIn("Full implementation review accepted the change.", process.stdout)
         self.assertIn("Result: the review accepted the change in its current state.", process.stdout)
@@ -2146,7 +2081,7 @@ class ProposalGateReviewTest(ShortReplyAssertions, SummaryAssertions, unittest.T
         )
         self.assertIn("run the tests of every such package the tasks' verifications name", tasks_role)
         self.assertIn("a package the section leaves out, is a `tasks` finding that names the package", tasks_role)
-        self.assertIn("such as the hook tests in `.agent-hooks/`, need no section", tasks_role)
+        self.assertIn("such as the hook tests in `.agent-hooks/`, need an explicit verification in their task instead", tasks_role)
 
     def test_blocks_turn_with_budget_reason_when_third_wave_of_reviewers_does_not_fit(self):
         repository = HookRepository(self)

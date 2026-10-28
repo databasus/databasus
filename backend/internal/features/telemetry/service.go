@@ -217,7 +217,7 @@ func (s *TelemetryService) attachBackupSizes(
 	db databases.TelemetryEntry,
 ) error {
 	if db.Type == databases.TypePostgresqlPhysical {
-		return s.attachPhysicalBackupSizes(entry, db.DatabaseID)
+		return s.attachPhysicalBackupSizes(ctx, entry, db.DatabaseID)
 	}
 
 	backup, isFound, err := s.backupService.GetLatestCompletedLogicalBackup(ctx, db.DatabaseID)
@@ -240,11 +240,11 @@ func (s *TelemetryService) attachBackupSizes(
 	return nil
 }
 
-func (s *TelemetryService) attachPhysicalBackupSizes(
+func (s *TelemetryService) attachPhysicalBackupSizes(ctx context.Context,
 	entry *DatabaseEntry,
 	databaseID uuid.UUID,
 ) error {
-	fullBackup, err := s.physicalBackupService.GetLatestCompletedFullBackup(databaseID)
+	fullBackup, err := s.physicalBackupService.GetLatestCompletedPhysicalFullBackup(ctx, databaseID)
 	if err != nil {
 		return err
 	}

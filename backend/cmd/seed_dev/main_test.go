@@ -19,7 +19,6 @@ import (
 	contract "databasus-backend/api"
 	"databasus-backend/internal/config"
 	"databasus-backend/internal/engines/clienttools"
-	backuping_physical "databasus-backend/internal/features/backups/backups/backuping/physical"
 	backups_controllers_physical "databasus-backend/internal/features/backups/backups/controllers/physical"
 	backups_bridge "databasus-backend/internal/features/backups/config"
 	databases_bridge "databasus-backend/internal/features/databases"
@@ -347,8 +346,6 @@ func newSeedTestRouter() *gin.Engine {
 	backups_controllers_physical.GetPhysicalBackupController().RegisterRoutes(protected)
 
 	databases_bridge.SetupDependencies()
-	backuping_physical.SubscribeToBackupConfigEventsWithoutApp()
-	backuping_physical.SubscribeToDatabaseDeletingWithoutApp()
 
 	return router
 }

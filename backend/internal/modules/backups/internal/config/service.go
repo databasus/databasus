@@ -27,7 +27,8 @@ type Deps struct {
 	Storages     storages.Module
 	Databases    databases.Module
 	// LogicalBackups removes a database's logical backups when its config moves to another storage.
-	LogicalBackups logicalBackupRemover
+	LogicalBackups      logicalBackupRemover
+	PhysicalConfigSaved PhysicalConfigSavedReactionFunc
 }
 
 // logicalBackupRemover is the logical backups of the module as a save that changes the storage needs
@@ -47,35 +48,29 @@ func (f LogicalBackupRemoverFunc) RemoveBackupsForStorageChange(ctx context.Cont
 // Service reads, lists and saves the backup configs. A config that was never saved reads as the
 // default of its database's method, and nothing but a save writes one.
 type Service struct {
-	repository                  *configRepository
-	transactor                  *database.Transactor
-	logger                      *slog.Logger
-	clock                       clock.Source
-	workspaces                  workspaces.Module
-	storages                    storages.Module
-	databases                   databases.Module
-	logicalBackups              logicalBackupRemover
-	physicalConfigSavedHandlers []PhysicalBackupConfigSavedHandler
+	repository          *configRepository
+	transactor          *database.Transactor
+	logger              *slog.Logger
+	clock               clock.Source
+	workspaces          workspaces.Module
+	storages            storages.Module
+	databases           databases.Module
+	logicalBackups      logicalBackupRemover
+	physicalConfigSaved PhysicalConfigSavedReactionFunc
 }
 
 func NewService(deps Deps) *Service {
 	return &Service{
-		repository:                  deps.Repositories.configs,
-		transactor:                  deps.Transactor,
-		logger:                      deps.Logger,
-		clock:                       deps.Clock,
-		workspaces:                  deps.Workspaces,
-		storages:                    deps.Storages,
-		databases:                   deps.Databases,
-		logicalBackups:              deps.LogicalBackups,
-		physicalConfigSavedHandlers: nil,
+		repository:          deps.Repositories.configs,
+		transactor:          deps.Transactor,
+		logger:              deps.Logger,
+		clock:               deps.Clock,
+		workspaces:          deps.Workspaces,
+		storages:            deps.Storages,
+		databases:           deps.Databases,
+		logicalBackups:      deps.LogicalBackups,
+		physicalConfigSaved: deps.PhysicalConfigSaved,
 	}
-}
-
-// SubscribeToPhysicalBackupConfigSaved adds a handler after the ones subscribed before it.
-// internal/app subscribes while it builds the application.
-func (s *Service) SubscribeToPhysicalBackupConfigSaved(handler PhysicalBackupConfigSavedHandler) {
-	s.physicalConfigSavedHandlers = append(s.physicalConfigSavedHandlers, handler)
 }
 
 func (s *Service) GetBackupConfig(
@@ -373,9 +368,7 @@ func (s *Service) saveLogicalBackupConfig(
 	return savedConfig, nil
 }
 
-// savePhysicalBackupConfig publishes PhysicalBackupConfigSaved after the commit: the old physical code
-// removes the backups kept in another storage only once the new storage is committed, so a full backup
-// or a WAL streamer that starts meanwhile already writes there.
+// The physical reaction runs after commit, so concurrent backups already see the new storage.
 func (s *Service) savePhysicalBackupConfig(
 	ctx context.Context,
 	workspaceID uuid.UUID,
@@ -438,11 +431,8 @@ func (s *Service) savePhysicalBackupConfig(
 		return nil, err
 	}
 
-	for _, handler := range s.physicalConfigSavedHandlers {
-		err := handler(ctx, PhysicalBackupConfigSaved{Previous: previousConfig, Saved: savedConfig})
-		if err != nil {
-			return nil, err
-		}
+	if err := s.physicalConfigSaved.ReactToSavedConfig(ctx, previousConfig, savedConfig); err != nil {
+		return nil, err
 	}
 
 	return savedConfig, nil
@@ -656,4 +646,14 @@ func isSameStorage(first, second *uuid.UUID) bool {
 	}
 
 	return *first == *second
+}
+
+type PhysicalConfigSavedReactionFunc func(context.Context, *PhysicalBackupConfig, PhysicalBackupConfig) error
+
+func (f PhysicalConfigSavedReactionFunc) ReactToSavedConfig(
+	ctx context.Context,
+	previous *PhysicalBackupConfig,
+	saved PhysicalBackupConfig,
+) error {
+	return f(ctx, previous, saved)
 }

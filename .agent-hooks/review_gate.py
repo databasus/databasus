@@ -27,11 +27,10 @@ Actions:
   code-shape     Checks how code the request changed is split into files and functions, and its names
                  and comments, against AGENTS.md and the module docs. Runs when a .go, .ts or .tsx
                  file under backend/, agent/, frontend/src/ or website/ changed.
-  implementation Full review of an OpenSpec change whose tasks are all checked: first the read-only
-                 checks of the touched modules, then the commands of the "Change verification"
-                 section of tasks.md, then parallel reviewers: one per delta spec, and one each for
-                 architecture, documentation and tasks, and tests; after a block a repeat over the
-                 previous findings only.
+  implementation Full review of an OpenSpec change whose tasks are all checked: parallel reviewers,
+                 one per delta spec, and one each for architecture, documentation and tasks, and tests;
+                 after a block a repeat over the previous findings only. The implementing agent runs
+                 linting and tests before finishing the turn; this hook never runs them.
   proposal       Full review of a finished OpenSpec proposal with no checked task: first the format
                  check of the "Change verification" section without running it, then
                  openspec validate --strict, then parallel reviewers: one per delta spec, and one each
@@ -40,16 +39,17 @@ Actions:
   doctor         Reports whether Python, git, openspec and a reviewer CLI are found, one line per tool,
                  and exits with a non-zero code when one is missing. `mise run doctor` runs it.
   review [change]
-                 Manual run, `mise run review [change]`: the quick checks diff, architecture and code-shape
-                 over the whole working tree, then the full implementation review of the named change, or of
-                 every active change whose tasks are all checked: a repeat over stored findings, otherwise a
-                 fresh one even for a state the hook accepted. Reads no hook payload, prints a report for
-                 a person, and exits with 0 when everything accepted the change, 1 when something did not and
-                 2 when there is nothing to review. Its outcome is stored like the hook's, so the next Stop hook
+                 Manual fallback or repeat, `mise run review [change]`: quick reviewers for diff, architecture
+                 and code-shape over the whole working tree run in the same parallel pool as the full
+                 implementation reviewers of the named change, or of every active change whose tasks are
+                 all checked. It runs no linting, tests or builds. The full review repeats stored findings,
+                 otherwise it starts fresh even for a state the hook accepted. Reads no hook payload, prints
+                 a report for a person, and exits with 0 when everything accepted the change, 1 when
+                 something did not and 2 when there is nothing to review. Its outcome is stored like the hook's, so the next Stop hook
                  repeats over its findings or skips an accepted state.
 
-Both full reviews run within FULL_REVIEW_BUDGET_SECONDS from the hook's start: the checks share
-one total limit, and a reviewer starts only when the budget still holds its whole limit.
+Both full reviews run within FULL_REVIEW_BUDGET_SECONDS from the hook's start. Proposal validation
+has a total limit; a reviewer starts only when the budget still holds its whole limit.
 
 Every review runs a separate read-only Claude Code process, including reviews of a Codex session.
 The review prompt lives in .agent-hooks/<action>-prompt.md, the shared part in common-prompt.md:
@@ -59,6 +59,7 @@ A review that could not run never accepts the result, and a missing openspec sto
 
 import argparse
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import nullcontext
 from collections.abc import Callable
 from dataclasses import dataclass, replace
 import hashlib
@@ -151,28 +152,6 @@ class Check:
     arguments: tuple
 
 
-# The hook only runs checks that leave files untouched: a formatter would rewrite files a parallel
-# agent is editing. Tests run only through the change verification commands a change names, and
-# their forms leave out `mise run test`, which takes too long for a hook and runs only when the user asks.
-MODULE_CHECKS = (
-    ("backend/", (Check("backend", ("golangci-lint", "run", "./cmd/...", "./internal/...", "./migrations/...", "./tools/...")),)),
-    (
-        "agent/",
-        (Check("agent/verification", ("golangci-lint", "run", "./cmd/...", "./internal/...", "./e2e/...")),),
-    ),
-    ("frontend/", (Check(".", ("pnpm", "--dir", "frontend", "lint")),)),
-    (
-        "website/",
-        (
-            Check(".", ("npm", "--prefix", "website", "run", "lint")),
-            Check(".", ("npm", "--prefix", "website", "run", "build")),
-        ),
-    ),
-    # Under test PATH holds stubs, so the hook tests run on this interpreter rather than python3 from PATH.
-    (".agent-hooks/", (Check(".", (sys.executable, "-m", "unittest", "discover", "-s", ".agent-hooks", "-p", "*_test.py")),)),
-)
-
-
 class ChangeVerificationError(Exception):
     pass
 
@@ -222,10 +201,8 @@ VERIFICATION_FORMS = (
         is_package_list=False,
     ),
 )
-# The commands run outside the agent's permission prompts, and both runners pass the arguments
-# through a shell: `backend:test-package` hands them to a bash script. The set leaves out
-# every shell operator, redirection and substitution character, so `./internal/a;rm` is refused
-# although it holds no separate operator word.
+# Verification entries describe commands for the implementing agent, not for review to execute.
+# Restrict arguments because the backend tasks eventually pass them to shell scripts.
 VERIFICATION_ARGUMENT_PATTERN = re.compile(r"[A-Za-z0-9._/=:@-]+")
 ALLOWED_VERIFICATION_FORMS = (
     "Allowed forms, one command per line in one ```sh block:\n"
@@ -310,15 +287,6 @@ def parse_change_verification(change_dir):
             f"The \"Change verification\" section of `{change_dir.name}/tasks.md` is not valid: {error}.\n\n"
             f"{ALLOWED_VERIFICATION_FORMS}"
         ) from None
-
-
-def get_change_verification_checks(targets):
-    checks = []
-    for target in targets:
-        for check in parse_change_verification(target.change_dir):
-            if check not in checks:
-                checks.append(check)
-    return checks
 
 
 def read_payload():
@@ -937,16 +905,6 @@ def run_checks(root, checks, check_timeout_seconds=CHECK_TIMEOUT_SECONDS, total_
     return None
 
 
-def get_module_checks(root):
-    changed_paths = get_changed_paths(root)
-    return [
-        check
-        for prefix, checks in MODULE_CHECKS
-        if any(path.startswith(prefix) for path in changed_paths)
-        for check in checks
-    ]
-
-
 @dataclass(frozen=True)
 class ReviewTarget:
     change_dir: Path
@@ -968,7 +926,7 @@ class FullReview:
     first_roles: tuple
     files_title: str
     select_targets: Callable
-    get_checks: Callable
+    get_checks: Callable | None
     block_instruction: str
     optional_findings_title: str
     summary_instruction: str
@@ -1095,21 +1053,24 @@ class FullReviewOutcome:
     has_summary_findings: bool = False
 
 
-def run_full_review(session, full_review, targets, deadline):
+def run_full_review(session, full_review, targets, deadline, executor=None):
     root = session.root
     try:
-        checks = full_review.get_checks(root, targets)
+        for target in targets:
+            parse_change_verification(target.change_dir)
+        checks = full_review.get_checks(root, targets) if full_review.get_checks else []
     except ChangeVerificationError as error:
         return FullReviewOutcome(False, f"{error}\n\nNo check or reviewer ran.", "Fix the section. " + FULL_REVIEW_REPLY_INSTRUCTION)
 
-    checks_timeout_seconds = min(CHECKS_TOTAL_TIMEOUT_SECONDS, max(deadline - time.monotonic(), 0))
-    check_failure = run_checks(root, checks, total_timeout_seconds=checks_timeout_seconds)
-    if check_failure:
-        return FullReviewOutcome(False, f"{check_failure}\n\nNo reviewer ran.", "Fix the failure. " + FULL_REVIEW_REPLY_INSTRUCTION)
+    if checks:
+        checks_timeout_seconds = min(CHECKS_TOTAL_TIMEOUT_SECONDS, max(deadline - time.monotonic(), 0))
+        check_failure = run_checks(root, checks, total_timeout_seconds=checks_timeout_seconds)
+        if check_failure:
+            return FullReviewOutcome(False, f"{check_failure}\n\nNo reviewer ran.", "Fix the failure. " + FULL_REVIEW_REPLY_INSTRUCTION)
 
     jobs = [job for target in targets for job in build_review_jobs(session, full_review, target)]
-    with ThreadPoolExecutor(max_workers=MAX_PARALLEL_REVIEWERS) as executor:
-        results = list(executor.map(lambda job: run_review_job(root, full_review, job, deadline), jobs))
+    with (ThreadPoolExecutor(max_workers=MAX_PARALLEL_REVIEWERS) if executor is None else nullcontext(executor)) as review_executor:
+        results = list(review_executor.map(lambda job: run_review_job(root, full_review, job, deadline), jobs))
 
     reports = []
     has_blocking = False
@@ -1221,16 +1182,7 @@ def select_proposal_targets(session):
     return targets
 
 
-# Every section is parsed before the first check, so a malformed one blocks the turn before anything runs.
-def get_implementation_checks(root, targets):
-    verification_checks = get_change_verification_checks(targets)
-    return [*get_module_checks(root), *verification_checks]
-
-
-# The proposal review checks the section's format only: no code exists yet for its commands to test.
 def get_proposal_checks(root, targets):
-    for target in targets:
-        parse_change_verification(target.change_dir)
     return [Check(".", ("openspec", "validate", target.change_dir.name, "--strict")) for target in targets]
 
 
@@ -1246,7 +1198,7 @@ IMPLEMENTATION_REVIEW = FullReview(
     first_roles=("architecture", "documentation and tasks", "tests"),
     files_title="Paths changed relative to HEAD",
     select_targets=select_implementation_targets,
-    get_checks=get_implementation_checks,
+    get_checks=None,
     block_instruction="Resolve every finding yourself, without asking the user. Fix a bug in the code. "
     "On a spec mismatch, pick the right side and fix the other one, including the change's delta spec. "
     "On an architecture finding, move the code to follow docs/architecture.md, "
@@ -1298,8 +1250,7 @@ MANUAL_REVIEW_REQUEST = (
     "of the change, as the hooks do when the agent finishes its last task."
 )
 MANUAL_REVIEW_CANDIDATE = "(none: the user started the review by hand, so there is no agent response to check)"
-# The Stop gates that review a finished change; necessity reviews only proposals, and the full
-# implementation review runs after them.
+# The Stop gates that review a finished change; necessity reviews only proposals.
 MANUAL_REVIEW_QUICK_GATES = ("diff", "architecture", "code-shape")
 
 
@@ -1361,9 +1312,11 @@ def run_manual_review(change_name, deadline):
 
     change_names = ", ".join(f"`{target.change_dir.name}`" for target in targets)
     changed_paths = get_changed_paths(root)
-    report_progress(f"Reviewing {change_names}: the quick checks {', '.join(MANUAL_REVIEW_QUICK_GATES)}, then the full implementation review.")
-    with ThreadPoolExecutor(max_workers=len(MANUAL_REVIEW_QUICK_GATES)) as executor:
-        quick_results = list(executor.map(lambda gate: run_manual_quick_gate(session, gate, changed_paths), MANUAL_REVIEW_QUICK_GATES))
+    report_progress(f"Reviewing {change_names}: quick and full AI reviewers run in parallel; linting and tests must already be complete.")
+    with ThreadPoolExecutor(max_workers=MAX_PARALLEL_REVIEWERS) as executor:
+        quick_futures = [executor.submit(run_manual_quick_gate, session, gate, changed_paths) for gate in MANUAL_REVIEW_QUICK_GATES]
+        outcome = run_full_review(session, IMPLEMENTATION_REVIEW, targets, deadline, executor)
+        quick_results = [future.result() for future in quick_futures]
 
     sections = []
     is_accepted = True
@@ -1375,8 +1328,6 @@ def run_manual_review(change_name, deadline):
         is_accepted = is_accepted and is_gate_accepted
         sections.append(f"Quick check `{gate}`: accepted." if is_gate_accepted else f"Quick check `{gate}`: not accepted.\n{reason}")
 
-    report_progress("Running the full implementation review: linters, change verification commands and reviewers.")
-    outcome = run_full_review(session, IMPLEMENTATION_REVIEW, targets, deadline)
     is_accepted = is_accepted and outcome.is_accepted
     if outcome.is_accepted:
         optional_findings = f" {IMPLEMENTATION_REVIEW.optional_findings_title}:\n\n{outcome.report}" if outcome.report else ""

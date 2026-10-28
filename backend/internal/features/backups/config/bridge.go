@@ -7,7 +7,6 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"databasus-backend/internal/lib/background"
 	"databasus-backend/internal/modules/backups"
 )
 
@@ -19,11 +18,6 @@ var installed atomic.Pointer[installedModule]
 
 var getModuleWithoutApp = sync.OnceValue(loadWithoutApp)
 
-// The registry is one per process, like the old code that registers in it: internal/app hands it to the
-// backups module and the shutdown, and the old physical code reads it here, so every test application
-// of a process shares the instance the old singletons captured.
-var getCancellationRegistry = sync.OnceValue(background.NewCancellationRegistry)
-
 func Install(module backups.Module) {
 	installed.Store(&installedModule{module: module})
 }
@@ -34,8 +28,4 @@ func GetModule() backups.Module {
 	}
 
 	return getModuleWithoutApp()
-}
-
-func GetCancellationRegistry() *background.CancellationRegistry {
-	return getCancellationRegistry()
 }

@@ -11,6 +11,7 @@ import (
 
 	"databasus-backend/internal/modules/backups/internal/config"
 	"databasus-backend/internal/modules/backups/internal/pipeline"
+	"databasus-backend/internal/modules/backups/internal/runcontext"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/storages"
 )
@@ -52,7 +53,7 @@ func (s *Service) runBackup(runCtx context.Context, backup LogicalBackup, backup
 		},
 		Logger: s.logger,
 	})
-	if errors.Is(err, pipeline.ErrBackupCancelled) {
+	if errors.Is(err, runcontext.ErrBackupCancelled) {
 		s.cancelBackup(runCtx, backup, startedAt)
 
 		return

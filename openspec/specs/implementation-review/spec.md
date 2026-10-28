@@ -28,43 +28,25 @@ The hook that runs when the agent finishes a turn SHALL start the full implement
 - **WHEN** after an accepted review the agent changes files and finishes the turn
 - **THEN** the full implementation review starts again
 
-### Requirement: Read-only checks of the touched modules run first
-Before starting reviewers the hook SHALL run the checks of every module the working tree changes relative to the last commit: the Go linter for the backend and for the verification agent, the linter for the frontend, the linter and the build for the website, and the hook tests when the hooks changed. After them the hook SHALL run the change verification commands of every change it reviews, each command once even when several changes name it. The checks MUST NOT modify files in the working tree, so formatters do not run. The hook MUST NOT run the full backend suite or the Docker filesystem suite. When a check fails, the hook SHALL block the turn and pass the agent the command and the end of its output. Reviewers MUST NOT start in that case.
+### Requirement: Verification precedes AI review
+The implementing agent SHALL run the relevant formatters, linters and tests before finishing the implementation turn that starts review. The implementation review hook SHALL run only read-only AI reviewers and SHALL NOT run linters, formatters, builds, hook tests or change verification commands. It SHALL validate the format of the change verification section without executing its commands. Reviewer prompts MUST NOT claim that review ran checks or that those checks passed; reviewers SHALL assess verification claims against the available evidence.
 
-Each check SHALL have its own time limit, and all checks of one review SHALL share a total time limit, both within the time budget of the requirement "The full review ends within the hook timeout". When a check exceeds either limit, the hook SHALL stop the check together with every process it started, block the turn and name the limit that was exceeded.
+#### Scenario: A change names package tests
+- **WHEN** implementation review starts for a change whose verification section names backend package tests
+- **THEN** the hook starts AI reviewers without running those tests or any module linter
 
-#### Scenario: The backend linter fails
-- **WHEN** the change touches the backend and its linter fails
-- **THEN** the turn is blocked, the agent gets the end of the linter output, and no reviewer starts
+#### Scenario: The hooks changed
+- **WHEN** implementation review starts for a change that modifies the review hooks
+- **THEN** the hook does not run its own tests; the implementing agent runs them before review
 
-#### Scenario: Only the frontend changed
-- **WHEN** the change touches only the frontend and has no change verification commands
-- **THEN** the hook runs the frontend linter and no backend, agent or website check
-
-#### Scenario: The website changed
-- **WHEN** the change touches the website
-- **THEN** the hook runs both the website linter and the website build
-
-#### Scenario: A package test fails
-- **WHEN** the change verification commands run the tests of a backend package and one of them fails
-- **THEN** the turn is blocked, the agent gets the command and the end of the test output, and no reviewer starts
-
-#### Scenario: A test hangs
-- **WHEN** a change verification command runs longer than its time limit
-- **THEN** the hook stops the command and every process it started, blocks the turn and names the exceeded limit
-
-#### Scenario: The checks together exceed the total limit
-- **WHEN** each check stays under its own time limit, but together they run past the total limit
-- **THEN** the hook stops the running check and every process it started, blocks the turn and names the total limit
-
-#### Scenario: The linters pass and the change has no verification commands
-- **WHEN** the change has no "Change verification" section and the linters pass
-- **THEN** the reviewers start without any test run
+#### Scenario: A verification claim
+- **WHEN** a reviewer receives an implementation review prompt
+- **THEN** the prompt requires checking the agent's verification evidence and does not assert that review ran or passed checks
 
 ### Requirement: What the full implementation review checks
 The full implementation review SHALL run several read-only reviewers in parallel: one per delta spec of the change, one for documentation and the task list, one for tests, and one for architecture. The delta spec reviewer SHALL find the code and the test for every requirement and scenario, check that the test actually proves the scenario, check the design decisions against the code, and look for bugs. The documentation reviewer SHALL check that everything each task states was done, including its verification, and that documentation agrees with itself and with the code. The documentation reviewer SHALL also check edits to agent instructions made by the change against the requirement "What belongs in agent instructions" of the `agent-instructions` capability.
 
-The tests reviewer SHALL check every test the change added or changed against the repository's testing skill and the testing rules of the module docs: the test fails without the behavior it pins, a bug fix has a test that reproduces the bug, the cases the module doc asks for are covered, the test waits for a condition instead of a fixed pause, and it cleans up its data. The tests reviewer SHALL also check that the change verification commands run the tests of every backend package, verification agent package and frontend test file the change added or changed tests in. Tests that no allowed command form runs and that a module check already runs, such as the hook tests, count as covered.
+The tests reviewer SHALL check every test the change added or changed against the repository's testing skill and the testing rules of the module docs: the test fails without the behavior it pins, a bug fix has a test that reproduces the bug, the cases the module doc asks for are covered, the test waits for a condition instead of a fixed pause, and it cleans up its data. The tests reviewer SHALL also check that the change verification commands run the tests of every backend package, verification agent package and frontend test file the change added or changed tests in. Tests that no allowed command form runs, such as the hook tests, SHALL name an explicit verification command in their task instead of this section.
 
 The architecture reviewer SHALL check all code that belongs to the change, including parts committed or written in earlier requests, against `docs/architecture.md` and the architecture rules of the module docs: layer direction, module boundaries, roles of files inside a module, data ownership and migrations. It SHALL report a violation that appears only when several edits of the change are read together, such as an import added in one request and used across a module boundary in another. When the change edits an HTTP contract file under `backend/api/`, the architecture reviewer SHALL also check the edit against the repository's API design skill and report each broken rule as an `architecture` finding. Code under `backend/` and `agent/` outside the layout block in "Backend layout" of `docs/architecture.md`, which keeps its existing structure, SHALL NOT be reported, unless the change moves that code. The exemption does not cover the frontend.
 
@@ -118,7 +100,7 @@ The architecture reviewer SHALL check all code that belongs to the change, inclu
 
 #### Scenario: A change with only hook tests
 - **WHEN** the change adds tests only to the hook tests and has no "Change verification" section
-- **THEN** the tests reviewer returns no finding about the missing section, because the module check runs the hook tests
+- **THEN** the tests reviewer returns no finding about the missing section when the task names an explicit command for the agent to run those tests
 
 ### Requirement: Full review models
 The full review reviewers SHALL run on Opus with `medium` effort. The quick checks SHALL run on Opus with `low` effort. The reviewers SHALL run in Claude Code whichever client the agent works in, so a change implemented in Codex gets the same review as one implemented in Claude Code.
@@ -178,11 +160,19 @@ After a blocked full review the next run SHALL check the previous findings and t
 - **THEN** the hook stops the agent and shows the remaining findings, says that the edits stay in the working tree without being accepted, and names `mise run review` for running the review again
 
 ### Requirement: The whole review runs by hand
-The repository SHALL have a command, `mise run review [<change>]`, that runs the review a finished change gets from the hooks without a hook event: the quick checks `diff`, `architecture` and `code-shape` over the working tree, `code-shape` only when a code file changed, then the full implementation review of the named change, or of every active change whose tasks are all checked. The full review SHALL run even when the hook accepted this state. When an earlier review stored findings for the change, the full review SHALL be the repeat over those findings, as in the hook; otherwise it SHALL start from scratch. The command SHALL read no hook payload, print a report with every finding and a closing verdict, and exit with code 0 when everything accepted the change, 1 when something did not, and 2 when there is nothing to review. It SHALL store the full review's outcome per change like the hook does, so the next turn of the agent repeats the review over those findings. The command SHALL run through the launcher of the hooks; when the launcher cannot start it, the command SHALL print the reason and exit with a non-zero code instead of answering with a stop message for the agent.
+The repository SHALL have a command, `mise run review [<change>]`, that runs the review a finished change gets from the hooks without a hook event, as a fallback when hooks did not run or another review is needed. It SHALL run only AI reviewers: the quick checks `diff`, `architecture` and `code-shape` over the working tree, `code-shape` only when a code file changed, and the full implementation review of the named change, or of every active change whose tasks are all checked. Quick and full reviewers SHALL share one parallel pool with at most six reviewers running at a time; full reviewers MUST NOT wait for all quick reviewers to finish. The command MUST NOT run linting, tests or builds. Verification is the implementing agent's preceding step, and manual review is not a routine extra step after the automatic hooks. The full review SHALL run even when the hook accepted this state. When an earlier review stored findings for the change, the full review SHALL be the repeat over those findings, as in the hook; otherwise it SHALL start from scratch. The command SHALL read no hook payload, print a report with every finding and a closing verdict, and exit with code 0 when everything accepted the change, 1 when something did not, and 2 when there is nothing to review. It SHALL store the full review's outcome per change like the hook does, so the next turn of the agent repeats the review over those findings. The command SHALL run through the launcher of the hooks; when the launcher cannot start it, the command SHALL print the reason and exit with a non-zero code instead of answering with a stop message for the agent.
 
 #### Scenario: Everything accepts
 - **WHEN** the user runs `mise run review` with an implemented change and every reviewer accepts
 - **THEN** the command prints that the review accepted the change in its current state and exits with code 0
+
+#### Scenario: Parallel manual review
+- **WHEN** a manual review includes quick reviewers and full implementation reviewers
+- **THEN** both kinds run concurrently in the same pool without a separate quick-review phase
+
+#### Scenario: Verification already ran
+- **WHEN** the implementing agent completed linting and tests and starts manual review because a hook did not run
+- **THEN** the command starts AI reviewers without repeating linting, tests or builds
 
 #### Scenario: A finding to fix
 - **WHEN** a reviewer of the manual run returns a `bug` finding, and the agent then fixes it and finishes its turn
@@ -203,15 +193,15 @@ While a change has an unaccepted full implementation review, the necessity check
 - **WHEN** after a `spec_mismatch` finding the agent edits the change's delta spec and finishes the turn
 - **THEN** the necessity check does not start, and the full review checks the edit
 
-### Requirement: Which change verification commands the hook runs
+### Requirement: Which change verification commands the hook accepts
 The change verification commands SHALL be the lines of the first code block fenced as `sh` under the "Change verification" heading of the change's task list. A block fenced as `bash`, `shell` or without a language does not count. Empty lines and comment lines are skipped. The hook SHALL accept only these command forms:
 
-- backend package tests: `mise run backend:test-package` followed by one or more package paths, which the hook runs from the repository root and the task resolves in the backend directory;
-- backend CI shards: `mise run backend:test-group` followed by one or more shard names of `physical`, `logical` or `physical-api`, which the hook runs from the repository root;
-- the verification agent's tests: `mise run agent:test`, with no further arguments, which the hook runs from the repository root;
+- backend package tests: `mise run backend:test-package` followed by one or more package paths, which the agent runs from the repository root and the task resolves in the backend directory;
+- backend CI shards: `mise run backend:test-group` followed by one or more shard names of `physical`, `logical` or `physical-api`, which the agent runs from the repository root;
+- the verification agent's tests: `mise run agent:test`, with no further arguments, which the agent runs from the repository root;
 - frontend tests: `pnpm --dir frontend test`, optionally followed by test file paths or filters.
 
-The hook SHALL run each command directly, without a shell. The backend task passes its package paths on to a shell script, so every argument after the fixed prefix MUST consist only of letters, digits and the characters `.`, `/`, `_`, `-`, `=`, `:` and `@`, and a package path MUST start with `./`. A shard name MUST match `<group>-<index>-of-<count>` with positive integers, and its index MUST NOT exceed its count. Unsharded groups, unknown groups and `other` MUST be rejected. This character set leaves out every shell operator and substitution. A line that is not one of the allowed forms or has an argument outside the allowed characters, a section without a closed `sh` block, and a block without commands SHALL each block the turn with the reason and the list of allowed forms. No check or reviewer runs in that case.
+The implementing agent SHALL run these commands before review. The hook SHALL parse them only to validate the section and MUST NOT execute them. The backend task passes its package paths on to a shell script, so every argument after the fixed prefix MUST consist only of letters, digits and the characters `.`, `/`, `_`, `-`, `=`, `:` and `@`, and a package path MUST start with `./`. A shard name MUST match `<group>-<index>-of-<count>` with positive integers, and its index MUST NOT exceed its count. Unsharded groups, unknown groups and `other` MUST be rejected. This character set leaves out every shell operator and substitution. A line that is not one of the allowed forms or has an argument outside the allowed characters, a section without a closed `sh` block, and a block without commands SHALL each block the turn with the reason and the list of allowed forms. No reviewer starts in that case.
 
 #### Scenario: A full suite run in the block
 - **WHEN** the change verification block contains `mise run test`
@@ -227,11 +217,11 @@ The hook SHALL run each command directly, without a shell. The backend task pass
 
 #### Scenario: Two changes name the same command
 - **WHEN** the hook reviews two changes whose blocks both contain `pnpm --dir frontend test`
-- **THEN** the command runs once
+- **THEN** the hook validates both sections without running the command
 
 #### Scenario: Backend package tests
 - **WHEN** a block contains `mise run backend:test-package ./internal/features/intervals/...`
-- **THEN** the hook runs that command, and the tests of that backend package run
+- **THEN** the hook accepts the command format without running the package tests
 
 #### Scenario: The old command form
 - **WHEN** a block contains `just test-package ./internal/features/intervals/...`
@@ -239,7 +229,7 @@ The hook SHALL run each command directly, without a shell. The backend task pass
 
 #### Scenario: Verification agent tests
 - **WHEN** a block contains `mise run agent:test`
-- **THEN** the hook runs that command from the repository root, and the verification agent's tests run
+- **THEN** the hook accepts the command format without running the verification agent tests
 
 #### Scenario: Verification agent tests with an argument
 - **WHEN** a block contains `mise run agent:test ./x`
@@ -247,19 +237,19 @@ The hook SHALL run each command directly, without a shell. The backend task pass
 
 #### Scenario: Parallel physical API shards
 - **WHEN** the block contains `mise run backend:test-group physical-api-1-of-3 physical-api-2-of-3 physical-api-3-of-3`
-- **THEN** the hook runs that command, which runs the three CI selections concurrently in separate processes and fails if any selection fails
+- **THEN** the hook accepts the command format without running the CI selections
 
 #### Scenario: An unbounded backend group
 - **WHEN** the block names an unsharded group, `other`, an unknown group or a shard outside its count
 - **THEN** the hook rejects the command before any test or reviewer starts
 
 ### Requirement: The full review ends within the hook timeout
-The full implementation review SHALL work within a time budget that ends before the hook timeout of the client configuration, with a margin for the hook's own Git, OpenSpec and file work. The checks SHALL run inside that budget. A reviewer SHALL start only when the budget still holds its whole time limit. A reviewer that cannot start for that reason SHALL count as a reviewer that could not run: the review is not accepted, and the agent gets the reason. The hook MUST NOT be killed by the client timeout without a message.
+The full implementation review SHALL work within a time budget that ends before the hook timeout of the client configuration, with a margin for the hook's own Git, OpenSpec and file work. A reviewer SHALL start only when the budget still holds its whole time limit. A reviewer that cannot start for that reason SHALL count as a reviewer that could not run: the review is not accepted, and the agent gets the reason. The hook MUST NOT be killed by the client timeout without a message.
 
 #### Scenario: Too many reviewers for the budget
 - **WHEN** a change has so many delta specs that a third wave of reviewers would not fit in the remaining budget
 - **THEN** the reviewers of that wave do not start, the turn is blocked, and the agent gets the reason that the review time budget ran out
 
-#### Scenario: Two waves of reviewers after slow checks
-- **WHEN** the checks use their whole total limit and the change needs two waves of reviewers
+#### Scenario: Two waves of reviewers
+- **WHEN** the change needs two waves of reviewers and their time limits fit the review budget
 - **THEN** both waves run and the hook answers before the client timeout

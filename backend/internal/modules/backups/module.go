@@ -26,6 +26,11 @@ import (
 	backupshttpapi "databasus-backend/internal/modules/backups/internal/httpapi"
 	"databasus-backend/internal/modules/backups/internal/logical"
 	"databasus-backend/internal/modules/backups/internal/module"
+	"databasus-backend/internal/modules/backups/internal/physical"
+	"databasus-backend/internal/modules/backups/internal/physical/catalog"
+	"databasus-backend/internal/modules/backups/internal/physical/chains"
+	"databasus-backend/internal/modules/backups/internal/physical/restorestream"
+	"databasus-backend/internal/modules/backups/internal/physical/walstreaming"
 	"databasus-backend/internal/modules/backups/internal/pipeline"
 	"databasus-backend/internal/modules/backups/internal/restore"
 	"databasus-backend/internal/modules/backups/internal/transfer"
@@ -58,18 +63,6 @@ type (
 	FullBackupsRetention       = config.FullBackupsRetention
 	FullBackupsRetentionPolicy = config.FullBackupsRetentionPolicy
 
-	// PhysicalBackupConfigSaved is published after the transaction that saves a physical config commits,
-	// and its handler's error becomes the save's error. It lets the old physical backups react to a saved
-	// config until they move into this module.
-	PhysicalBackupConfigSaved = config.PhysicalBackupConfigSaved
-
-	PhysicalBackupConfigSavedHandler = config.PhysicalBackupConfigSavedHandler
-
-	// UserStream is the one heavy stream a user may run at a time: a backup file download or the
-	// restore set of a physical backup. Its holder refreshes it every UserStreamHeartbeatInterval and
-	// releases it when the stream ends.
-	UserStream = download.UserStream
-
 	LogicalBackup                   = logical.LogicalBackup
 	LogicalBackupStatus             = logical.Status
 	LogicalBackupVerificationStatus = logical.VerificationStatus
@@ -88,8 +81,6 @@ const (
 	LogicalBackupVerificationStatusVerifiedSuccessful = logical.VerificationStatusVerifiedSuccessful
 	LogicalBackupVerificationStatusVerificationFailed = logical.VerificationStatusVerificationFailed
 )
-
-const UserStreamHeartbeatInterval = download.UserStreamHeartbeatInterval
 
 // ErrUserStreamHeld answers 409 already_running while another stream of the user runs.
 var ErrUserStreamHeld = download.ErrUserStreamHeld
@@ -131,6 +122,37 @@ const (
 )
 
 type Module interface {
+	// These temporary methods are removed by physical-backups-api; telemetry moves in milestone 13.
+	ListPhysicalBackups(
+		ctx context.Context,
+		actor users.Actor,
+		databaseID uuid.UUID,
+		query *GetPhysicalBackupsRequest,
+	) (*GetPhysicalBackupsResponse, error)
+	RequestPhysicalBackup(ctx context.Context, actor users.Actor, databaseID uuid.UUID, kind TriggerBackupType) error
+	CancelPhysicalBackup(ctx context.Context, actor users.Actor, backupID uuid.UUID) error
+	DeletePhysicalBackup(ctx context.Context, actor users.Actor, backupID uuid.UUID) error
+	IssuePhysicalRestoreToken(
+		ctx context.Context,
+		actor users.Actor,
+		databaseID uuid.UUID,
+		targetTime *time.Time,
+	) (string, error)
+	IssuePhysicalBackupRestoreToken(ctx context.Context, actor users.Actor, backupID uuid.UUID) (string, error)
+	OpenPhysicalRestoreStream(ctx context.Context, token string) (PhysicalRestoreStream, error)
+	GetWalStreamStatistics(
+		ctx context.Context,
+		actor users.Actor,
+		databaseID uuid.UUID,
+		period WalStreamStatisticsPeriod,
+	) (*GetWalStreamStatisticsResponse, error)
+	GetWalStreamLiveState(
+		ctx context.Context,
+		actor users.Actor,
+		databaseID uuid.UUID,
+	) (*GetWalStreamLiveResponse, error)
+	GetLatestCompletedPhysicalFullBackup(ctx context.Context, databaseID uuid.UUID) (*PhysicalFullBackup, error)
+
 	RegisterRoutes(routes gin.IRouter, hooks *apierror.Hooks)
 	// Start fails the backups the previous run left in progress and keeps ctx, the application's
 	// context, from which every backup run derives its own. internal/app calls it before the jobs
@@ -155,13 +177,6 @@ type Module interface {
 	// and the seed of the dev database.
 	SaveBackupConfig(ctx context.Context, actor users.Actor, config AnyBackupConfig) (AnyBackupConfig, error)
 
-	// The force requests each change one column of a saved physical config. A clear given the request
-	// it served leaves a newer request in place.
-	RequestFullBackup(ctx context.Context, databaseID uuid.UUID) error
-	ClearFullBackupRequest(ctx context.Context, databaseID uuid.UUID, requestedAt *time.Time) error
-	RequestIncrementalBackup(ctx context.Context, databaseID uuid.UUID) error
-	ClearIncrementalBackupRequest(ctx context.Context, databaseID uuid.UUID, requestedAt *time.Time) error
-
 	OnStorageTransferring(ctx context.Context, event storages.StorageTransferring) error
 	OnDatabaseCopied(ctx context.Context, event databases.DatabaseCopied) error
 	OnDatabaseBackupTypeChanged(ctx context.Context, event databases.DatabaseBackupTypeChanged) error
@@ -184,32 +199,25 @@ type Module interface {
 	// made no pass in the last five minutes.
 	IsLogicalBackupSchedulerRunning(ctx context.Context) bool
 
-	// The user streams serve the old physical restore stream until it moves into this module.
-	AcquireUserStream(ctx context.Context, userID uuid.UUID) (UserStream, error)
-	IsUserStreamHeld(ctx context.Context, userID uuid.UUID) (bool, error)
-
-	// The subscription is made by internal/app while it builds the application. The handlers run in
-	// the order they subscribed. The event goes away when the physical backups move into this module.
-	SubscribeToPhysicalBackupConfigSaved(handler PhysicalBackupConfigSavedHandler)
 	// The handlers of LogicalBackupCompleted run after the publication's commit, in the run of the
 	// backup; an error is logged.
 	SubscribeToLogicalBackupCompleted(handler LogicalBackupCompletedHandler)
 }
 
 type Deps struct {
-	DB         *gorm.DB
-	Transactor *database.Transactor
-	Logger     *slog.Logger
-	Clock      clock.Source
-	AuditLog   *audit.Log
-	MasterKey  *crypto.MasterKey
+	DB                     *gorm.DB
+	Transactor             *database.Transactor
+	Logger                 *slog.Logger
+	Clock                  clock.Source
+	PhysicalExecutionClock clock.Source
+	AuditLog               *audit.Log
+	MasterKey              *crypto.MasterKey
 	// ClientToolsDir holds the client tool bundles of every engine.
 	ClientToolsDir string
 	// TempDir holds the archive of a PostgreSQL restore that needs it as a file.
-	TempDir string
-	// Cancellations is the process-wide registry the old physical code shares until it moves into
-	// this module.
-	Cancellations *background.CancellationRegistry
+	TempDir          string
+	WalQueueDir      string
+	WalStreamTimings WalStreamTimings
 	// Cache holds the user streams, so they expire on their own when a stream dies.
 	Cache      cache.Store
 	Users      users.Module
@@ -221,8 +229,15 @@ type Deps struct {
 
 func New(deps Deps) Module {
 	var logicalService *logical.Service
+	var physicalService *physical.Service
+	cancellations := background.NewCancellationRegistry()
 
 	configService := config.NewService(config.Deps{
+		PhysicalConfigSaved: config.PhysicalConfigSavedReactionFunc(
+			func(ctx context.Context, previous *config.PhysicalBackupConfig, saved config.PhysicalBackupConfig) error {
+				return physicalService.ReactToSavedConfig(ctx, previous, saved)
+			},
+		),
 		Repositories: config.NewRepositories(deps.DB),
 		Transactor:   deps.Transactor,
 		Logger:       deps.Logger,
@@ -257,7 +272,7 @@ func New(deps Deps) Module {
 		Configs:       configService,
 		Pipeline:      backupPipeline,
 		Runs:          runs,
-		Cancellations: deps.Cancellations,
+		Cancellations: cancellations,
 		Audit:         recorder,
 		Workspaces:    deps.Workspaces,
 		Databases:     deps.Databases,
@@ -287,13 +302,47 @@ func New(deps Deps) Module {
 		LogicalBackups: logicalService,
 		Pipeline:       backupPipeline,
 		Runs:           runs,
-		Cancellations:  deps.Cancellations,
+		Cancellations:  cancellations,
 		Audit:          recorder,
 		Workspaces:     deps.Workspaces,
 		TempDir:        deps.TempDir,
 	})
 
+	physicalService = physical.New(physical.Deps{
+		ExecutionClock: deps.PhysicalExecutionClock,
+		Repository:     catalog.NewRepository(deps.DB),
+		FullBackups:    catalog.NewFullBackupRepository(deps.DB),
+		IncrementalBackups: catalog.NewIncrementalBackupRepository(
+			deps.DB,
+		),
+		InFlightBackups: catalog.NewInFlightBackupRepository(deps.DB),
+		WalSegments:     catalog.NewWalSegmentRepository(deps.DB),
+		WalHistory:      catalog.NewWalHistoryRepository(deps.DB),
+		WalStreamers: catalog.NewWalStreamerRepository(
+			deps.DB,
+		),
+		WalStreamSamples: catalog.NewWalStreamSampleRepository(deps.DB),
+		Configs:          configService,
+		Cancellations:    cancellations,
+		Runs:             runs,
+		UserStreams:      userStreams,
+		Cache:            deps.Cache,
+		Databases:        deps.Databases,
+		Storages:         deps.Storages,
+		Workspaces:       deps.Workspaces,
+		Notifiers:        deps.Notifiers,
+		Auditing:         recorder,
+		Transactor:       deps.Transactor,
+		Clock:            deps.Clock,
+		MasterKey:        deps.MasterKey,
+		Logger:           deps.Logger,
+		ClientToolsDir:   deps.ClientToolsDir,
+		WalQueueDir:      deps.WalQueueDir,
+		WalStreamTimings: deps.WalStreamTimings,
+	})
+
 	return module.New(module.Deps{
+		Physical:       physicalService,
 		Configs:        configService,
 		LogicalBackups: logicalService,
 		Downloads:      downloadService,
@@ -317,11 +366,7 @@ func New(deps Deps) Module {
 	})
 }
 
-type WalStreamTimings struct {
-	ForcedRotationInterval    time.Duration
-	ArchiveStalenessThreshold time.Duration
-	LocalQueuePauseBytes      int64
-}
+type WalStreamTimings = walstreaming.Timings
 
 func ProductionWalStreamTimings() WalStreamTimings {
 	return WalStreamTimings{
@@ -330,3 +375,44 @@ func ProductionWalStreamTimings() WalStreamTimings {
 		LocalQueuePauseBytes:      0,
 	}
 }
+
+// These route adapters and aliases are removed by physical-backups-api.
+type (
+	PhysicalBackupListItem          = physical.PhysicalBackupListItem
+	GetPhysicalBackupsRequest       = physical.GetPhysicalBackupsRequest
+	GetPhysicalBackupsResponse      = physical.GetPhysicalBackupsResponse
+	TriggerBackupType               = physical.TriggerBackupType
+	TriggerBackupRequest            = physical.TriggerBackupRequest
+	GenerateRestoreTokenRequest     = physical.GenerateRestoreTokenRequest
+	GenerateRestoreTokenResponse    = physical.GenerateRestoreTokenResponse
+	WalStreamStatisticsPeriod       = physical.WalStreamStatisticsPeriod
+	GetWalStreamStatisticsRequest   = physical.GetWalStreamStatisticsRequest
+	GetWalStreamStatisticsResponse  = physical.GetWalStreamStatisticsResponse
+	WalStreamTimeRange              = physical.WalStreamTimeRange
+	WalStreamHealth                 = physical.WalStreamHealth
+	WalStreamStreamer               = physical.WalStreamStreamer
+	WalStreamCurrent                = physical.WalStreamCurrent
+	WalStreamSeries                 = physical.WalStreamSeries
+	GetWalStreamLiveResponse        = physical.GetWalStreamLiveResponse
+	WalStreamLive                   = physical.WalStreamLive
+	PhysicalRestoreStream           = physical.RestoreStream
+	PhysicalFullBackup              = catalog.FullBackup
+	PhysicalWalGapBeforeTargetError = chains.WalGapBeforeTargetError
+)
+
+const (
+	TriggerBackupTypeAuto         = physical.TriggerBackupTypeAuto
+	TriggerBackupTypeFull         = physical.TriggerBackupTypeFull
+	TriggerBackupTypeIncremental  = physical.TriggerBackupTypeIncremental
+	WalStreamStatisticsPeriodHour = physical.WalStreamStatisticsPeriodHour
+	WalStreamStatisticsPeriodDay  = physical.WalStreamStatisticsPeriodDay
+	WalStreamStatisticsPeriodWeek = physical.WalStreamStatisticsPeriodWeek
+)
+
+var (
+	ErrNoExtendablePhysicalChain    = physical.ErrNoExtendableChain
+	ErrPhysicalBackupNotFound       = physical.ErrBackupNotFound
+	ErrPhysicalTargetBeforeEarliest = chains.ErrTargetBeforeEarliest
+	ErrNoPhysicalChainForRestore    = chains.ErrNoChainForRestore
+	ErrInvalidPhysicalRestoreToken  = restorestream.ErrInvalidToken
+)

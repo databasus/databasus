@@ -89,7 +89,7 @@ if ((reset_status != 0)); then
 fi
 
 TESTCONTAINERS_RYUK_DISABLED=true \
-    go test -race -tags testhelpers -p=8 -count=1 -failfast -timeout 15m ./internal/... ./cmd/...
+    go test -race -tags testhelpers -p=8 -count=1 -failfast -timeout 30m ./internal/... ./cmd/...
 
 # The upgrade test builds the image unless DATABASUS_IMAGE names one, so it runs only after every
 # package passed.

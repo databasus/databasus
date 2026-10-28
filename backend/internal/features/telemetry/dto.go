@@ -6,7 +6,6 @@ import (
 
 	"github.com/google/uuid"
 
-	physical_models "databasus-backend/internal/features/backups/backups/core/physical/models"
 	verification_agents "databasus-backend/internal/features/verification/agents"
 	verification_config "databasus-backend/internal/features/verification/config"
 	"databasus-backend/internal/modules/backups"
@@ -69,7 +68,7 @@ type backupChecker interface {
 }
 
 type latestPhysicalBackupReader interface {
-	GetLatestCompletedFullBackup(databaseID uuid.UUID) (*physical_models.PhysicalFullBackup, error)
+	GetLatestCompletedPhysicalFullBackup(ctx context.Context, databaseID uuid.UUID) (*backups.PhysicalFullBackup, error)
 }
 
 type userCounter interface {

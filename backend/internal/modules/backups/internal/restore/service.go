@@ -18,6 +18,7 @@ import (
 	"databasus-backend/internal/modules/backups/internal/auditing"
 	"databasus-backend/internal/modules/backups/internal/logical"
 	"databasus-backend/internal/modules/backups/internal/pipeline"
+	"databasus-backend/internal/modules/backups/internal/runcontext"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/modules/workspaces"
@@ -343,7 +344,14 @@ func (s *Service) launchRun(
 	storedBackup pipeline.StoredBackup,
 	openedTarget *pipeline.OpenedRestoreTarget,
 ) {
-	runCtx, cancel, release := pipeline.NewRestoreRunContext(s.getAppContext(ctx))
+	runCtx, cancel, release := runcontext.New(
+		s.getAppContext(ctx),
+		runcontext.Limits{
+			Shutdown:  runcontext.ErrRestoreShutdown,
+			Timeout:   runcontext.ErrRestoreTimeout,
+			TimeLimit: runcontext.LogicalTimeLimit,
+		},
+	)
 	runCtx = logging.With(runCtx, "restore_id", startedRestore.ID, "backup_id", startedRestore.BackupID)
 
 	s.cancellations.Register(startedRestore.ID, cancel)
@@ -380,7 +388,7 @@ func (s *Service) runRestore(
 		_, err = s.repository.complete(ctx, startedRestore.ID, durationMs)
 
 		s.logger.InfoContext(ctx, "logical restore completed", slog.Int64("duration_ms", durationMs))
-	case errors.Is(restoreErr, pipeline.ErrRestoreCancelled):
+	case errors.Is(restoreErr, runcontext.ErrRestoreCancelled):
 		_, err = s.repository.cancel(ctx, startedRestore.ID, durationMs)
 
 		s.logger.WarnContext(ctx, "logical restore cancelled on request")

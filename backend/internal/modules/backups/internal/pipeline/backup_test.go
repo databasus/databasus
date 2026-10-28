@@ -18,6 +18,7 @@ import (
 	pgshared "databasus-backend/internal/engines/postgresql/shared"
 	"databasus-backend/internal/lib/testwait"
 	"databasus-backend/internal/lib/toolstub"
+	"databasus-backend/internal/modules/backups/internal/runcontext"
 )
 
 const (
@@ -128,7 +129,7 @@ func TestStreamDumpToStorage(t *testing.T) {
 					})
 					cancel()
 
-					require.ErrorIs(t, <-backupErrors, ErrBackupCancelled)
+					require.ErrorIs(t, <-backupErrors, runcontext.ErrBackupCancelled)
 				},
 			)
 		})
@@ -204,7 +205,7 @@ func assertStorageErrorReported(t *testing.T, backupErr, storageErr error) {
 
 	require.ErrorIs(t, backupErr, storageErr)
 	assert.Contains(t, backupErr.Error(), "save to storage")
-	assert.NotErrorIs(t, backupErr, ErrBackupCancelled)
+	assert.NotErrorIs(t, backupErr, runcontext.ErrBackupCancelled)
 }
 
 func decodeBase64(t *testing.T, value string) []byte {

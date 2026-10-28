@@ -9,7 +9,6 @@ import (
 	"github.com/gin-gonic/gin"
 
 	old_config "databasus-backend/internal/config"
-	backups_bridge "databasus-backend/internal/features/backups/config"
 	"databasus-backend/internal/lib/background"
 	"databasus-backend/internal/lib/config"
 	"databasus-backend/internal/lib/httpserver"
@@ -20,7 +19,7 @@ import (
 // The drain and the log flush together stay under 8 seconds, which leaves the embedded PostgreSQL
 // server time for a clean shutdown within Docker's default stop timeout of 10 seconds.
 const (
-	shutdownDrainTimeout    = 6 * time.Second
+	ShutdownDrainTimeout    = 6 * time.Second
 	shutdownLogFlushTimeout = 2 * time.Second
 )
 
@@ -83,13 +82,12 @@ func (a *App) Serve(ctx context.Context, address string) error {
 	shutdown.Drain(ctx, shutdown.DrainSpec{
 		Steps: []shutdown.Step{
 			{Name: "http server", Run: server.Shutdown},
-			{Name: "running tasks", Run: backups_bridge.GetCancellationRegistry().WaitUntilEmpty},
+			{Name: "background jobs", Run: a.runner.Wait},
 			{Name: "backup runs", Run: a.backupsModule.WaitForRuns},
 			{Name: "notification deliveries", Run: a.notifiersModule.WaitForDeliveries},
 			{Name: "background loops", Run: a.backgroundGroup.Wait},
-			{Name: "background jobs", Run: a.runner.Wait},
 		},
-		DrainTimeout: shutdownDrainTimeout,
+		DrainTimeout: ShutdownDrainTimeout,
 		FlushLogs:    a.environment.Logging.Shutdown,
 		FlushTimeout: shutdownLogFlushTimeout,
 		Logger:       a.logger,

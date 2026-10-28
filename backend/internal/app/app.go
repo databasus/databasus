@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"path/filepath"
 	"sync"
 
 	"github.com/google/uuid"
@@ -14,7 +15,6 @@ import (
 	old_config "databasus-backend/internal/config"
 	"databasus-backend/internal/engines/clienttools"
 	"databasus-backend/internal/features/audit_logs"
-	backuping_physical "databasus-backend/internal/features/backups/backups/backuping/physical"
 	backups_bridge "databasus-backend/internal/features/backups/config"
 	"databasus-backend/internal/features/caching"
 	databases_bridge "databasus-backend/internal/features/databases"
@@ -27,6 +27,7 @@ import (
 	"databasus-backend/internal/lib/audit"
 	"databasus-backend/internal/lib/background"
 	"databasus-backend/internal/lib/cache"
+	"databasus-backend/internal/lib/clock"
 	"databasus-backend/internal/lib/crypto"
 	"databasus-backend/internal/lib/database"
 	"databasus-backend/internal/lib/ratelimit"
@@ -64,11 +65,9 @@ type App struct {
 	backgroundGroup *background.Group
 	// runner is started only by Serve; a console command and a test application run its passes
 	// through RunJobPass.
+	jobs               []background.Job
 	runner             *background.Runner
 	clientToolsChecker *clienttools.Checker
-	physicalScheduler  *backuping_physical.PhysicalBackupsScheduler
-	physicalCleaner    *backuping_physical.PhysicalBackupCleaner
-	physicalSupervisor *backuping_physical.PhysicalWalStreamSupervisor
 }
 
 // New prepares everything the server and the console commands share: the schema of the current
@@ -244,21 +243,23 @@ func New(ctx context.Context, environment *Environment) (*App, error) {
 	databases_bridge.Install(databasesModule)
 
 	backupsModule := backups.New(backups.Deps{
-		DB:             db,
-		Transactor:     transactor,
-		Logger:         appLogger,
-		Clock:          environment.Clock,
-		AuditLog:       auditLog,
-		MasterKey:      masterKey,
-		ClientToolsDir: environment.ClientToolsDir,
-		TempDir:        environment.Config.TempFolder,
-		Cancellations:  backups_bridge.GetCancellationRegistry(),
-		Cache:          cacheStore,
-		Users:          usersModule,
-		Workspaces:     workspacesModule,
-		Notifiers:      notifiersModule,
-		Storages:       storagesModule,
-		Databases:      databasesModule,
+		PhysicalExecutionClock: clock.NewSystem(),
+		DB:                     db,
+		Transactor:             transactor,
+		Logger:                 appLogger,
+		Clock:                  environment.Clock,
+		AuditLog:               auditLog,
+		MasterKey:              masterKey,
+		ClientToolsDir:         environment.ClientToolsDir,
+		TempDir:                environment.Config.TempFolder,
+		WalQueueDir:            filepath.Join(environment.Config.DataFolder, "wal-queue"),
+		WalStreamTimings:       environment.WalStreamTimings,
+		Cache:                  cacheStore,
+		Users:                  usersModule,
+		Workspaces:             workspacesModule,
+		Notifiers:              notifiersModule,
+		Storages:               storagesModule,
+		Databases:              databasesModule,
 	})
 	backups_bridge.Install(backupsModule)
 
@@ -270,7 +271,6 @@ func New(ctx context.Context, environment *Environment) (*App, error) {
 	subscribeToNotifierTransferring(notifiersModule, databasesModule)
 	subscribeToStorageTransferring(storagesModule, backupsModule)
 	subscribeToDatabaseEvents(databasesModule, backupsModule)
-	subscribeToBackupConfigEvents(backupsModule)
 	subscribeToLogicalBackupEvents(backupsModule)
 
 	jobs := append([]background.Job{newAuditEventsCleanupJob(auditLog, appLogger)}, usersModule.GetJobs()...)
@@ -279,22 +279,19 @@ func New(ctx context.Context, environment *Environment) (*App, error) {
 	runner := background.NewRunner(background.RunnerDeps{Logger: appLogger, Clock: environment.Clock}, jobs...)
 
 	return &App{
-		usersModule:        usersModule,
-		workspacesModule:   workspacesModule,
-		notifiersModule:    notifiersModule,
-		storagesModule:     storagesModule,
-		databasesModule:    databasesModule,
-		backupsModule:      backupsModule,
-		environment:        environment,
-		db:                 db,
-		transactor:         transactor,
-		logger:             appLogger,
-		backgroundGroup:    nil,
-		runner:             runner,
+		usersModule:      usersModule,
+		workspacesModule: workspacesModule,
+		notifiersModule:  notifiersModule,
+		storagesModule:   storagesModule,
+		databasesModule:  databasesModule,
+		backupsModule:    backupsModule,
+		environment:      environment,
+		db:               db,
+		transactor:       transactor,
+		logger:           appLogger,
+		backgroundGroup:  nil,
+		jobs:             jobs, runner: runner,
 		clientToolsChecker: clientToolsChecker,
-		physicalScheduler:  backuping_physical.NewPhysicalBackupsScheduler(),
-		physicalCleaner:    backuping_physical.NewPhysicalBackupCleaner(),
-		physicalSupervisor: backuping_physical.NewPhysicalWalStreamSupervisor(environment.WalStreamTimings),
 	}, nil
 }
 
@@ -304,7 +301,7 @@ func (a *App) StartModules(ctx context.Context) error {
 	if err := a.backupsModule.Start(ctx); err != nil {
 		return err
 	}
-	return backuping_physical.RunStartupWork(ctx)
+	return nil
 }
 
 // WaitForBackupRuns returns once every backup run has written its outcome, or with ctx's error.
@@ -314,14 +311,7 @@ func (a *App) WaitForBackupRuns(ctx context.Context) error {
 
 // RunJobPass runs one pass of the named background job and returns its error.
 func (a *App) RunJobPass(ctx context.Context, name string) error {
-	switch name {
-	case "backups_physical_scheduler":
-		return a.physicalScheduler.RunPass(ctx)
-	case "backups_physical_cleaner":
-		return a.physicalCleaner.RunPass(ctx)
-	default:
-		return a.runner.RunPass(ctx, name)
-	}
+	return a.runner.RunPass(ctx, name)
 }
 
 // moveLegacyAndOpenMasterKey runs before the old code is wired, so nothing encrypts with a key that a
@@ -391,4 +381,16 @@ func (a *App) PublishStorageFile(ctx context.Context, reference storages.StoredF
 	return a.transactor.Transaction(ctx, func(txCtx context.Context) error {
 		return a.storagesModule.ConfirmFileWrites(txCtx, []storages.WriteReceipt{receipt})
 	})
+}
+
+func (a *App) NewJobRunner(names []string) *background.Runner {
+	jobs := make([]background.Job, 0, len(names))
+	for _, job := range a.jobs {
+		for _, name := range names {
+			if job.Name == name {
+				jobs = append(jobs, job)
+			}
+		}
+	}
+	return background.NewRunner(background.RunnerDeps{Logger: a.logger, Clock: a.environment.Clock}, jobs...)
 }

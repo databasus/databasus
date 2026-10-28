@@ -3,6 +3,8 @@
 package backups_bridge
 
 import (
+	"path/filepath"
+
 	"databasus-backend/internal/config"
 	"databasus-backend/internal/features/caching"
 	databases_bridge "databasus-backend/internal/features/databases"
@@ -22,23 +24,25 @@ import (
 // internal/app does for the module it builds, so a database whose config was saved can still be deleted.
 func loadWithoutApp() backups.Module {
 	backupsModule := backups.New(backups.Deps{
-		DB:         storage.GetDb(),
-		Transactor: storage.GetTransactor(),
-		Logger:     logger.GetLogger(),
-		Clock:      clock.NewSystem(),
+		PhysicalExecutionClock: clock.NewSystem(),
+		DB:                     storage.GetDb(),
+		Transactor:             storage.GetTransactor(),
+		Logger:                 logger.GetLogger(),
+		Clock:                  clock.NewSystem(),
 		AuditLog: audit.New(
 			audit.Deps{DB: storage.GetDb(), Clock: clock.NewSystem(), AuditLogger: logger.GetAuditLogger()},
 		),
-		MasterKey:      encryption.GetMasterKey(),
-		ClientToolsDir: config.GetEnv().ClientToolsDir,
-		TempDir:        config.GetEnv().TempFolder,
-		Cancellations:  GetCancellationRegistry(),
-		Cache:          caching.GetStore(),
-		Users:          users_bridge.GetModule(),
-		Workspaces:     workspaces_bridge.GetModule(),
-		Notifiers:      notifiers_bridge.GetModule(),
-		Storages:       storages_bridge.GetModule(),
-		Databases:      databases_bridge.GetModule(),
+		MasterKey:        encryption.GetMasterKey(),
+		ClientToolsDir:   config.GetEnv().ClientToolsDir,
+		TempDir:          config.GetEnv().TempFolder,
+		WalQueueDir:      filepath.Join(config.GetEnv().DataFolder, "wal-queue"),
+		WalStreamTimings: backups.ProductionWalStreamTimings(),
+		Cache:            caching.GetStore(),
+		Users:            users_bridge.GetModule(),
+		Workspaces:       workspaces_bridge.GetModule(),
+		Notifiers:        notifiers_bridge.GetModule(),
+		Storages:         storages_bridge.GetModule(),
+		Databases:        databases_bridge.GetModule(),
 	})
 
 	storages_bridge.GetModule().SubscribeToStorageTransferring(backupsModule.OnStorageTransferring)

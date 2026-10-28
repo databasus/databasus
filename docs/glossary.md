@@ -52,10 +52,11 @@ This is the project's common language. Each concept has one term in the document
 | In-flight claim | `backups_physical_in_flight` | The record that a full or incremental backup of a database is running, at most one per database. |
 | WAL stream sample | `backups_physical_wal_stream_samples` | The state of a WAL stream recorded every 30 seconds, from which its health is computed. |
 | WAL stream | WAL stream | Continuous archiving of a database's WAL segments by `pg_receivewal`. |
-| WAL streamer | WAL streamer | The process that runs the WAL stream of one database. |
+| WAL stream manager | `walstreaming.Manager` | The process that starts, stops and monitors the WAL streamers of all databases. |
+| WAL streamer | WAL streamer, `walstreaming.Streamer` | The process that runs the WAL stream of one database. |
 | Forced WAL rotation | `ForcedRotationInterval` | A WAL switch Databasus asks the source for, so a segment completes even when the source writes rarely. |
 | Archive staleness threshold | `ArchiveStalenessThreshold` | How long the archive progress point may stay still while the source writes before archiving counts as fallen behind. |
-| Local WAL queue | local WAL queue, `LocalQueuePauseBytes` | The directory where `pg_receivewal` writes segments before they are uploaded. |
+| Local WAL queue | local WAL queue, `WalQueueDir`, `LocalQueuePauseBytes` | The directory where `pg_receivewal` writes segments before they are uploaded. |
 | Replication slot | slot | A slot on the source that keeps WAL until Databasus has received it. |
 | Timeline | timeline | PostgreSQL's history branch number, which changes when a replica is promoted. |
 | Restore set | restore set | The files needed to restore a database to a moment: a full backup, its incrementals and the WAL up to the target. |

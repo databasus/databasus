@@ -1,9 +1,6 @@
 package app
 
 import (
-	backuping_physical "databasus-backend/internal/features/backups/backups/backuping/physical"
-	physical_service "databasus-backend/internal/features/backups/backups/core/physical/service"
-	backups_services "databasus-backend/internal/features/backups/backups/services"
 	healthcheck_config "databasus-backend/internal/features/healthcheck/config"
 	"databasus-backend/internal/features/telemetry"
 	verification_config "databasus-backend/internal/features/verification/config"
@@ -48,13 +45,6 @@ func subscribeToStorageTransferring(storagesModule storages.Module, backupsModul
 	storagesModule.SubscribeToStorageTransferring(backupsModule.OnStorageTransferring)
 }
 
-// subscribeToDatabaseEvents subscribes the backups module and the old features to the databases
-// module. A deletion runs its handlers in this order: the physical cancellation registers the stop of
-// the running backup and of pg_receivewal, the physical backups request the deletion of their files,
-// the slot cleanup registers the drop of the slots, and the backups module goes last: it refuses while
-// a logical backup or restore runs, removes the logical backups, then the backup config, so the
-// handlers before it still read the config. The after-commit hooks run in the same order, so the WAL
-// streamer is stopped before its slot is dropped.
 func subscribeToDatabaseEvents(databasesModule databases.Module, backupsModule backups.Module) {
 	databasesModule.SubscribeToDatabaseCreated(healthcheck_config.GetHealthcheckConfigService().OnDatabaseCreated)
 
@@ -62,28 +52,7 @@ func subscribeToDatabaseEvents(databasesModule databases.Module, backupsModule b
 	databasesModule.SubscribeToDatabaseCopied(verification_config.GetVerificationConfigService().OnDatabaseCopied)
 
 	databasesModule.SubscribeToDatabaseBackupTypeChanged(backupsModule.OnDatabaseBackupTypeChanged)
-	databasesModule.SubscribeToDatabaseBackupTypeChanged(
-		backuping_physical.GetPhysicalBackupCancellationListener().OnDatabaseBackupTypeChanged,
-	)
-
-	databasesModule.SubscribeToDatabaseDeleting(
-		backuping_physical.GetPhysicalBackupCancellationListener().OnDatabaseDeleting,
-	)
-	databasesModule.SubscribeToDatabaseDeleting(physical_service.GetPhysicalBackupService().OnDatabaseDeleting)
-	databasesModule.SubscribeToDatabaseDeleting(backuping_physical.GetPhysicalSlotCleanupListener().OnDatabaseDeleting)
 	databasesModule.SubscribeToDatabaseDeleting(backupsModule.OnDatabaseDeleting)
-}
-
-// subscribeToBackupConfigEvents lets the old physical backups react to a saved config until they move
-// into the backups module. A saved physical config first cancels what it disabled or moved, then
-// removes the backups kept in another storage.
-func subscribeToBackupConfigEvents(backupsModule backups.Module) {
-	backupsModule.SubscribeToPhysicalBackupConfigSaved(
-		backuping_physical.GetPhysicalBackupCancellationListener().OnPhysicalBackupConfigSaved,
-	)
-	backupsModule.SubscribeToPhysicalBackupConfigSaved(
-		backups_services.GetPhysicalBackupService().OnPhysicalBackupConfigSaved,
-	)
 }
 
 // subscribeToLogicalBackupEvents lets the old verification runs enqueue the after-backup verification

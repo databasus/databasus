@@ -3,16 +3,13 @@ package backups_controllers_physical
 import (
 	"sync"
 
-	backups_download "databasus-backend/internal/features/backups/backups/download"
-	backups_services "databasus-backend/internal/features/backups/backups/services"
+	backups_bridge "databasus-backend/internal/features/backups/config"
 	"databasus-backend/internal/util/logger"
 )
 
 var getPhysicalBackupController = sync.OnceValue(func() *PhysicalBackupController {
 	return &PhysicalBackupController{
-		backups_services.GetPhysicalBackupService(),
-		backups_download.GetRestoreTokenService(),
-		logger.GetLogger(),
+		getBackups: backups_bridge.GetModule, logger: logger.GetLogger(),
 	}
 })
 

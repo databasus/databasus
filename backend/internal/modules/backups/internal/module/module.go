@@ -15,6 +15,7 @@ import (
 	"databasus-backend/internal/modules/backups/internal/download"
 	backupshttpapi "databasus-backend/internal/modules/backups/internal/httpapi"
 	"databasus-backend/internal/modules/backups/internal/logical"
+	"databasus-backend/internal/modules/backups/internal/physical"
 	"databasus-backend/internal/modules/backups/internal/restore"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/storages"
@@ -22,6 +23,7 @@ import (
 )
 
 type Deps struct {
+	Physical       *physical.Service
 	Configs        *config.Service
 	LogicalBackups *logical.Service
 	Downloads      *download.Service
@@ -32,6 +34,7 @@ type Deps struct {
 }
 
 type Module struct {
+	physical       *physical.Service
 	configs        *config.Service
 	logicalBackups *logical.Service
 	downloads      *download.Service
@@ -43,6 +46,7 @@ type Module struct {
 
 func New(deps Deps) *Module {
 	return &Module{
+		physical:       deps.Physical,
 		configs:        deps.Configs,
 		logicalBackups: deps.LogicalBackups,
 		downloads:      deps.Downloads,
@@ -92,14 +96,6 @@ func (m *Module) SubscribeToLogicalBackupCompleted(handler logical.BackupComplet
 	m.logicalBackups.SubscribeToBackupCompleted(handler)
 }
 
-func (m *Module) AcquireUserStream(ctx context.Context, userID uuid.UUID) (download.UserStream, error) {
-	return m.userStreams.Acquire(ctx, userID)
-}
-
-func (m *Module) IsUserStreamHeld(ctx context.Context, userID uuid.UUID) (bool, error) {
-	return m.userStreams.IsHeld(ctx, userID)
-}
-
 // Start fails the restores and the backups the previous run left in progress.
 func (m *Module) Start(ctx context.Context) error {
 	err := m.restores.Start(ctx)
@@ -107,15 +103,18 @@ func (m *Module) Start(ctx context.Context) error {
 		return err
 	}
 
-	return m.logicalBackups.Start(ctx)
+	if err := m.logicalBackups.Start(ctx); err != nil {
+		return err
+	}
+	return m.physical.Start(ctx)
 }
 
 func (m *Module) GetJobs() []background.Job {
-	return []background.Job{
+	return append([]background.Job{
 		m.logicalBackups.GetSchedulerJob(),
 		m.logicalBackups.GetRetentionJob(),
 		m.downloads.GetTokenCleanupJob(),
-	}
+	}, m.physical.GetJobs()...)
 }
 
 func (m *Module) WaitForRuns(ctx context.Context) error {
@@ -197,20 +196,22 @@ func (m *Module) OnDatabaseCopied(ctx context.Context, event databases.DatabaseC
 }
 
 func (m *Module) OnDatabaseBackupTypeChanged(ctx context.Context, event databases.DatabaseBackupTypeChanged) error {
-	return m.configs.OnDatabaseBackupTypeChanged(ctx, event)
+	if err := m.configs.OnDatabaseBackupTypeChanged(ctx, event); err != nil {
+		return err
+	}
+	return m.physical.OnDatabaseBackupTypeChanged(ctx, event)
 }
 
 // OnDatabaseDeleting removes the logical backups first, so their refusal of a running backup or
 // restore comes before anything else of the database goes.
 func (m *Module) OnDatabaseDeleting(ctx context.Context, event databases.DatabaseDeleting) error {
+	if err := m.physical.OnDatabaseDeleting(ctx, event); err != nil {
+		return err
+	}
 	err := m.logicalBackups.OnDatabaseDeleting(ctx, event)
 	if err != nil {
 		return err
 	}
 
 	return m.configs.OnDatabaseDeleting(ctx, event)
-}
-
-func (m *Module) SubscribeToPhysicalBackupConfigSaved(handler config.PhysicalBackupConfigSavedHandler) {
-	m.configs.SubscribeToPhysicalBackupConfigSaved(handler)
 }

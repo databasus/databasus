@@ -18,6 +18,7 @@ import (
 	"databasus-backend/internal/modules/backups/internal/auditing"
 	"databasus-backend/internal/modules/backups/internal/config"
 	"databasus-backend/internal/modules/backups/internal/pipeline"
+	"databasus-backend/internal/modules/backups/internal/runcontext"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/modules/storages"
@@ -384,7 +385,14 @@ func (s *Service) startBackup(
 // launchRun hands the committed backup to the group under a run context derived from the
 // application's, so the request that started it can end without ending the backup.
 func (s *Service) launchRun(ctx context.Context, backup LogicalBackup, backupDatabase databases.Database) {
-	runCtx, cancel, release := pipeline.NewBackupRunContext(s.getAppContext(ctx))
+	runCtx, cancel, release := runcontext.New(
+		s.getAppContext(ctx),
+		runcontext.Limits{
+			Shutdown:  runcontext.ErrBackupShutdown,
+			Timeout:   runcontext.ErrBackupTimeout,
+			TimeLimit: runcontext.LogicalTimeLimit,
+		},
+	)
 	runCtx = logging.With(runCtx, "backup_id", backup.ID, "database_id", backup.DatabaseID)
 
 	s.cancellations.Register(backup.ID, cancel)

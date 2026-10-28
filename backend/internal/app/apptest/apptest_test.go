@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"runtime"
 	"sync"
@@ -16,8 +17,9 @@ import (
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
 
-	backups_bridge "databasus-backend/internal/features/backups/config"
 	apiclient "databasus-backend/internal/lib/apiclient"
+	"databasus-backend/internal/lib/background"
+	"databasus-backend/internal/lib/clock"
 	"databasus-backend/internal/lib/database"
 	"databasus-backend/internal/lib/testwait"
 	"databasus-backend/internal/modules/backups"
@@ -79,6 +81,15 @@ func TestNew(t *testing.T) {
 }
 
 func TestRunJobPass(t *testing.T) {
+	t.Run("refuses a WAL manager pass when live physical jobs are disabled", func(t *testing.T) {
+		testApp := New(t)
+		recordingTest := &fatalRecorder{TB: t, failure: "", mutex: sync.Mutex{}}
+		isDone := make(chan struct{})
+		go func() { defer close(isDone); testApp.RunJobPass(recordingTest, "backups_physical_wal_stream_manager") }()
+		<-isDone
+		assert.Contains(t, recordingTest.getFailure(), "runs only with live physical jobs")
+	})
+
 	t.Run("starts a full backup when one scheduler pass finds a database without a full backup", func(t *testing.T) {
 		testApp := New(t)
 		source := containers.StartPhysicalPostgres(t, "postgres:17")
@@ -155,6 +166,67 @@ func (r *fatalRecorder) getFailure() string {
 }
 
 func TestPhysicalBackupLoops(t *testing.T) {
+	t.Run("records distinct sample times and exposes no manual clock with live jobs", func(t *testing.T) {
+		testApp := New(t, WithPhysicalBackupLoops())
+		require.Nil(t, testApp.Clock)
+		source := containers.StartPhysicalPostgres(t, "postgres:17")
+		owner, backupDatabase := enablePhysicalBackupLoops(t, testApp, source)
+		var firstSample time.Time
+		testwait.Until(t, "the WAL streamer records two samples at distinct times", func(context.Context) error {
+			statistics := getPhysicalStreamStatistics(t, testApp, owner, backupDatabase.Id)
+			if statistics.Streamer.State != "RUNNING" || statistics.Current == nil {
+				return fmt.Errorf("no running sampled WAL session")
+			}
+			if firstSample.IsZero() {
+				firstSample = statistics.Current.SampledAt
+			}
+			if !statistics.Current.SampledAt.After(firstSample) {
+				return fmt.Errorf("waiting for the second WAL sample")
+			}
+			return nil
+		})
+	})
+	t.Run("keeps orphan WAL until an explicit cleaner pass with live jobs", func(t *testing.T) {
+		testApp := New(t, WithPhysicalBackupLoops())
+		source := containers.StartPhysicalPostgres(t, "postgres:17")
+		owner, backupDatabase := enablePhysicalBackupLoops(t, testApp, source)
+		testApp.WaitForPhysicalBackups(t)
+		backupConfig := GetBackupConfig(t, owner, backupDatabase.Id)
+		require.NotNil(t, backupConfig.StorageId)
+		segment := testApp.InsertPhysicalWalSegment(
+			t,
+			PhysicalWalSegmentSeed{
+				DatabaseID:  backupDatabase.Id,
+				StorageID:   *backupConfig.StorageId,
+				TimelineID:  999,
+				FileName:    new("orphan-live-wal"),
+				WalFilename: "000003E70000000000000001",
+				StartLSN:    "0/1000000",
+				EndLSN:      "0/2000000",
+				ReceivedAt:  time.Now().Add(-2 * time.Hour),
+			},
+		)
+		observationEnds := time.Now().Add(time.Minute + time.Second)
+		testwait.Until(t, "a cleaner interval passes without deleting orphan WAL", func(context.Context) error {
+			var segmentCount int
+			testApp.QuerySQL(
+				t,
+				&segmentCount,
+				"SELECT count(*) FROM backups_physical_wal_segments WHERE id=?",
+				segment.ID,
+			)
+			require.Equal(t, 1, segmentCount)
+			if time.Now().Before(observationEnds) {
+				return fmt.Errorf("the cleaner observation window is still open")
+			}
+			return nil
+		})
+		testApp.RunJobPass(t, "backups_physical_cleaner")
+		var segmentCount int
+		testApp.QuerySQL(t, &segmentCount, "SELECT count(*) FROM backups_physical_wal_segments WHERE id=?", segment.ID)
+		assert.Zero(t, segmentCount)
+	})
+
 	t.Run("starts no physical backup or wal stream without the option", func(t *testing.T) {
 		testApp := New(t)
 		source := containers.StartPhysicalPostgres(t, "postgres:17")
@@ -223,9 +295,6 @@ func TestPhysicalBackupLoops(t *testing.T) {
 					return nil
 				})
 			})
-			stopCtx, cancelStop := context.WithTimeout(t.Context(), time.Second)
-			require.NoError(t, backups_bridge.GetCancellationRegistry().WaitUntilEmpty(stopCtx))
-			cancelStop()
 			assert.Zero(
 				t,
 				getActivePhysicalReplicationSlotCount(t, source),
@@ -234,17 +303,37 @@ func TestPhysicalBackupLoops(t *testing.T) {
 		}
 	})
 
-	t.Run("reports a cleanup failure when registered work outlives the stop bound", func(t *testing.T) {
+	t.Run("reports a cleanup failure when a background job outlives the stop bound", func(t *testing.T) {
 		var recordingTest *fatalRecorder
 		t.Run("application cleanup", func(t *testing.T) {
 			recordingTest = &fatalRecorder{TB: t, failure: "", mutex: sync.Mutex{}}
-			registry := backups_bridge.GetCancellationRegistry()
-			runID := uuid.New()
-			t.Cleanup(func() { registry.Unregister(runID) })
-			New(recordingTest, WithPhysicalBackupLoops(), func(applied *settings) {
-				applied.physicalBackupStopTimeout = 100 * time.Millisecond
-			})
-			registry.Register(runID, func() {})
+			releaseJob := make(chan struct{})
+			startedJob := make(chan struct{})
+			t.Cleanup(func() { close(releaseJob) })
+			testApp := New(
+				recordingTest,
+				func(applied *settings) { applied.physicalBackupStopTimeout = 100 * time.Millisecond },
+			)
+			testApp.physicalRunner = background.NewRunner(
+				background.RunnerDeps{Logger: slog.Default(), Clock: clock.NewSystem()},
+				background.Job{
+					Name:     "held_job",
+					Interval: time.Hour,
+					Run: func(context.Context, time.Time) error {
+						close(startedJob)
+						<-releaseJob
+						return nil
+					},
+				},
+			)
+			loopsCtx, cancel := context.WithCancel(t.Context())
+			testApp.cancelPhysicalLoops = cancel
+			testApp.physicalRunner.Start(loopsCtx)
+			select {
+			case <-startedJob:
+			case <-t.Context().Done():
+				t.Fatal("held job did not start")
+			}
 		})
 		assert.Contains(t, recordingTest.getFailure(), "stop physical backup loops and runs")
 		assert.Contains(t, recordingTest.getFailure(), context.DeadlineExceeded.Error())
@@ -402,8 +491,7 @@ func TestPhysicalStartupWork(t *testing.T) {
 			initialRestarts = statistics.Streamer.RestartsLastHour
 			return nil
 		})
-		// A backup is detached from the scheduler until it becomes a module run.
-		require.NoError(t, testApp.app.WaitForPhysicalBackups(t.Context()))
+		testApp.WaitForPhysicalBackups(t)
 		testApp.RestartModules(t)
 
 		conn := openPhysicalSource(t, source)
@@ -429,6 +517,7 @@ type physicalStreamStatistics struct {
 	} `json:"streamer"`
 	Current *struct {
 		SessionStartedAt time.Time `json:"sessionStartedAt"`
+		SampledAt        time.Time `json:"sampledAt"`
 	} `json:"current"`
 }
 

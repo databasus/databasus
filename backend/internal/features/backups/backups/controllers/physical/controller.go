@@ -4,26 +4,19 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"log/slog"
 	"net/http"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
-	"databasus-backend/internal/features/backups/backups/core/physical/chain_view"
-	"databasus-backend/internal/features/backups/backups/download/restore_token"
-	backups_dto_physical "databasus-backend/internal/features/backups/backups/dto/physical"
-	backups_services "databasus-backend/internal/features/backups/backups/services"
 	"databasus-backend/internal/modules/backups"
 	"databasus-backend/internal/modules/users"
 )
 
 type PhysicalBackupController struct {
-	physicalBackupService *backups_services.PhysicalBackupService
-	restoreTokenService   *restore_token.Service
-	logger                *slog.Logger
+	getBackups func() backups.Module
+	logger     *slog.Logger
 }
 
 func (c *PhysicalBackupController) RegisterRoutes(router *gin.RouterGroup) {
@@ -62,13 +55,13 @@ func (c *PhysicalBackupController) GetBackups(ctx *gin.Context) {
 		return
 	}
 
-	var request backups_dto_physical.GetPhysicalBackupsRequest
+	var request backups.GetPhysicalBackupsRequest
 	if err := ctx.ShouldBindQuery(&request); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	response, err := c.physicalBackupService.GetBackups(ctx.Request.Context(), actor, databaseID, &request)
+	response, err := c.getBackups().ListPhysicalBackups(ctx.Request.Context(), actor, databaseID, &request)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -90,7 +83,7 @@ func (c *PhysicalBackupController) GetWalStreamLive(ctx *gin.Context) {
 		return
 	}
 
-	response, err := c.physicalBackupService.GetWalStreamLive(ctx.Request.Context(), actor, databaseID)
+	response, err := c.getBackups().GetWalStreamLiveState(ctx.Request.Context(), actor, databaseID)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -112,13 +105,13 @@ func (c *PhysicalBackupController) GetWalStreamStatistics(ctx *gin.Context) {
 		return
 	}
 
-	var request backups_dto_physical.GetWalStreamStatisticsRequest
+	var request backups.GetWalStreamStatisticsRequest
 	if err := ctx.ShouldBindQuery(&request); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	response, err := c.physicalBackupService.GetWalStreamStatistics(ctx.Request.Context(), actor, databaseID, &request)
+	response, err := c.getBackups().GetWalStreamStatistics(ctx.Request.Context(), actor, databaseID, request.Period)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -140,14 +133,14 @@ func (c *PhysicalBackupController) TriggerBackup(ctx *gin.Context) {
 		return
 	}
 
-	var request backups_dto_physical.TriggerBackupRequest
+	var request backups.TriggerBackupRequest
 	if err := ctx.ShouldBindJSON(&request); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	if err := c.requestBackupOfType(ctx.Request.Context(), actor, databaseID, request.Type); err != nil {
-		if errors.Is(err, backups_services.ErrNoExtendableChain) {
+		if errors.Is(err, backups.ErrNoExtendablePhysicalChain) {
 			ctx.JSON(http.StatusConflict, gin.H{"error": err.Error()})
 			return
 		}
@@ -172,13 +165,13 @@ func (c *PhysicalBackupController) GenerateRestoreToken(ctx *gin.Context) {
 		return
 	}
 
-	var request backups_dto_physical.GenerateRestoreTokenRequest
+	var request backups.GenerateRestoreTokenRequest
 	if err := ctx.ShouldBindJSON(&request); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	token, err := c.physicalBackupService.GenerateRestoreToken(ctx.Request.Context(), actor, databaseID, &request)
+	token, err := c.getBackups().IssuePhysicalRestoreToken(ctx.Request.Context(), actor, databaseID, request.TargetTime)
 	if err != nil {
 		if errors.Is(err, backups.ErrUserStreamHeld) {
 			ctx.JSON(http.StatusConflict, gin.H{"error": err.Error()})
@@ -197,7 +190,7 @@ func (c *PhysicalBackupController) GenerateRestoreToken(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, backups_dto_physical.GenerateRestoreTokenResponse{
+	ctx.JSON(http.StatusOK, backups.GenerateRestoreTokenResponse{
 		Token: token,
 		URL:   "/api/v1/backups/physical/restore-stream?token=" + token,
 	})
@@ -216,9 +209,9 @@ func (c *PhysicalBackupController) GenerateBackupRestoreToken(ctx *gin.Context) 
 		return
 	}
 
-	token, err := c.physicalBackupService.GenerateBackupRestoreToken(ctx.Request.Context(), actor, backupID)
+	token, err := c.getBackups().IssuePhysicalBackupRestoreToken(ctx.Request.Context(), actor, backupID)
 	if err != nil {
-		if errors.Is(err, backups_services.ErrBackupNotFound) {
+		if errors.Is(err, backups.ErrPhysicalBackupNotFound) {
 			ctx.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return
 		}
@@ -239,7 +232,7 @@ func (c *PhysicalBackupController) GenerateBackupRestoreToken(ctx *gin.Context) 
 		return
 	}
 
-	ctx.JSON(http.StatusOK, backups_dto_physical.GenerateRestoreTokenResponse{
+	ctx.JSON(http.StatusOK, backups.GenerateRestoreTokenResponse{
 		Token: token,
 		URL:   "/api/v1/backups/physical/restore-stream?token=" + token,
 	})
@@ -258,8 +251,8 @@ func (c *PhysicalBackupController) CancelBackup(ctx *gin.Context) {
 		return
 	}
 
-	if err := c.physicalBackupService.CancelBackup(ctx.Request.Context(), actor, backupID); err != nil {
-		if errors.Is(err, backups_services.ErrBackupNotFound) {
+	if err := c.getBackups().CancelPhysicalBackup(ctx.Request.Context(), actor, backupID); err != nil {
+		if errors.Is(err, backups.ErrPhysicalBackupNotFound) {
 			ctx.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return
 		}
@@ -284,8 +277,8 @@ func (c *PhysicalBackupController) DeleteBackup(ctx *gin.Context) {
 		return
 	}
 
-	if err := c.physicalBackupService.DeleteBackup(ctx.Request.Context(), actor, backupID); err != nil {
-		if errors.Is(err, backups_services.ErrBackupNotFound) {
+	if err := c.getBackups().DeletePhysicalBackup(ctx.Request.Context(), actor, backupID); err != nil {
+		if errors.Is(err, backups.ErrPhysicalBackupNotFound) {
 			ctx.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return
 		}
@@ -304,42 +297,28 @@ func (c *PhysicalBackupController) GetRestoreStream(ctx *gin.Context) {
 		return
 	}
 
-	restoreToken, userStream, err := c.restoreTokenService.ValidateAndConsumeRestoreToken(ctx.Request.Context(), token)
+	restoreStream, err := c.getBackups().OpenPhysicalRestoreStream(ctx.Request.Context(), token)
 	if err != nil {
 		if errors.Is(err, backups.ErrUserStreamHeld) {
-			ctx.JSON(http.StatusConflict, gin.H{
-				"error": "a download or restore is already in progress for this user",
-			})
+			ctx.JSON(http.StatusConflict, gin.H{"error": "a download or restore is already in progress for this user"})
 			return
 		}
-
-		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "invalid or expired restore token"})
+		if errors.Is(err, backups.ErrInvalidPhysicalRestoreToken) {
+			ctx.JSON(http.StatusUnauthorized, gin.H{"error": "invalid or expired restore token"})
+			return
+		}
+		status, message := mapRestoreStreamError(err)
+		ctx.JSON(status, gin.H{"error": message})
 		return
 	}
-
-	heartbeatCtx, cancelHeartbeat := context.WithCancel(context.Background())
-	defer func() {
-		cancelHeartbeat()
-		if err := userStream.Release(context.WithoutCancel(ctx.Request.Context())); err != nil {
-			c.logger.ErrorContext(ctx.Request.Context(), "failed to release the user stream", "error", err)
-		}
-	}()
-
-	go c.startStreamHeartbeat(heartbeatCtx, userStream)
-
+	defer restoreStream.Close()
 	ctx.Header("Content-Type", "application/x-tar")
-	ctx.Header("Content-Disposition",
-		fmt.Sprintf(`attachment; filename="restore-%s.tar"`, restoreToken.DatabaseID))
-
-	if err := c.openRestoreStream(ctx.Request.Context(), restoreToken, ctx.Writer); err != nil {
-		// Resolution runs before any bytes are written, so if nothing has been
-		// flushed yet we can still answer with a proper status. Once the tar has
-		// started, the status is already 200 and we can only log.
+	ctx.Header("Content-Disposition", fmt.Sprintf(`attachment; filename="restore-%s.tar"`, restoreStream.DatabaseID))
+	if err := restoreStream.Write(ctx.Writer); err != nil {
 		if !ctx.Writer.Written() {
 			status, message := mapRestoreStreamError(err)
 			ctx.JSON(status, gin.H{"error": message})
 		}
-
 		return
 	}
 }
@@ -359,67 +338,27 @@ func mapRestoreStreamError(err error) (int, string) {
 // the caller's mistake to correct (422); no chain is a not-found (404). The bool
 // lets callers fall through to their own default for everything else.
 func classifyRestoreStreamError(err error) (int, string, bool) {
-	var gapErr chain_view.WalGapBeforeTargetError
+	var gapErr backups.PhysicalWalGapBeforeTargetError
 	if errors.As(err, &gapErr) {
 		return http.StatusUnprocessableEntity, gapErr.Error(), true
 	}
 
-	if errors.Is(err, chain_view.ErrTargetBeforeEarliest) {
+	if errors.Is(err, backups.ErrPhysicalTargetBeforeEarliest) {
 		return http.StatusUnprocessableEntity, err.Error(), true
 	}
 
-	if errors.Is(err, chain_view.ErrNoChainForRestore) {
+	if errors.Is(err, backups.ErrNoPhysicalChainForRestore) {
 		return http.StatusNotFound, err.Error(), true
 	}
 
 	return 0, "", false
 }
 
-// openRestoreStream dispatches by what the token carries: a BackupID streams a
-// per-backup restore (FULL + incremental ancestors, no WAL); otherwise
-// TargetTime drives a point-in-time restore.
-func (c *PhysicalBackupController) openRestoreStream(
-	streamCtx context.Context,
-	token *restore_token.Token,
-	w io.Writer,
-) error {
-	if token.BackupID != nil {
-		return c.physicalBackupService.OpenRestoreStreamForBackup(streamCtx, token.DatabaseID, *token.BackupID, w)
-	}
-
-	return c.physicalBackupService.OpenRestoreStream(streamCtx, token.DatabaseID, token.TargetTime, w)
-}
-
 func (c *PhysicalBackupController) requestBackupOfType(
 	ctx context.Context,
 	actor users.Actor,
 	databaseID uuid.UUID,
-	backupType backups_dto_physical.TriggerBackupType,
+	backupType backups.TriggerBackupType,
 ) error {
-	switch backupType {
-	case backups_dto_physical.TriggerBackupTypeFull:
-		return c.physicalBackupService.RequestFullBackup(ctx, actor, databaseID)
-
-	case backups_dto_physical.TriggerBackupTypeIncremental:
-		return c.physicalBackupService.RequestIncrementalBackup(ctx, actor, databaseID)
-
-	default:
-		return c.physicalBackupService.RequestBackup(ctx, actor, databaseID)
-	}
-}
-
-func (c *PhysicalBackupController) startStreamHeartbeat(ctx context.Context, userStream backups.UserStream) {
-	ticker := time.NewTicker(backups.UserStreamHeartbeatInterval)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-ticker.C:
-			if err := userStream.Refresh(ctx); err != nil && ctx.Err() == nil {
-				c.logger.ErrorContext(ctx, "failed to refresh the user stream", "error", err)
-			}
-		}
-	}
+	return c.getBackups().RequestPhysicalBackup(ctx, actor, databaseID, backupType)
 }

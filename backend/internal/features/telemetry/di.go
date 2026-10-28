@@ -8,7 +8,6 @@ import (
 	"github.com/google/uuid"
 
 	"databasus-backend/internal/config"
-	physical_service "databasus-backend/internal/features/backups/backups/core/physical/service"
 	backups_bridge "databasus-backend/internal/features/backups/config"
 	databases_bridge "databasus-backend/internal/features/databases"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
@@ -44,7 +43,7 @@ var (
 			installedStorageTypes{},
 			installedNotifierTypes{},
 			installedLogicalBackups{},
-			physical_service.GetPhysicalBackupService(),
+			installedPhysicalBackups{},
 			verification_agents.GetAgentService(),
 			verification_config.GetVerificationConfigService(),
 			installedUserCounter{},
@@ -117,4 +116,13 @@ type installedNotifierTypes struct{}
 
 func (installedNotifierTypes) GetNotifierTypes(ctx context.Context) ([]notifiers.Type, error) {
 	return notifiers_bridge.GetModule().GetNotifierTypes(ctx)
+}
+
+type installedPhysicalBackups struct{}
+
+func (installedPhysicalBackups) GetLatestCompletedPhysicalFullBackup(
+	ctx context.Context,
+	databaseID uuid.UUID,
+) (*backups.PhysicalFullBackup, error) {
+	return backups_bridge.GetModule().GetLatestCompletedPhysicalFullBackup(ctx, databaseID)
 }

@@ -13,6 +13,7 @@ import (
 
 	"databasus-backend/internal/lib/background"
 	"databasus-backend/internal/lib/crypto"
+	"databasus-backend/internal/modules/backups/internal/runcontext"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/storages"
 	io_utils "databasus-backend/internal/util/io"
@@ -80,7 +81,7 @@ func (t *OpenedRestoreTarget) IsArchiveFileNeeded() bool {
 }
 
 // Restore streams the backup from its storage into the target under runCtx, which
-// NewRestoreRunContext derives. An ended runCtx returns the error DescribeRestoreInterruption gives,
+// runcontext.New derives. An ended runCtx returns the error DescribeRestoreInterruption gives,
 // and a panic returns a *background.PanicError, so the caller always records an outcome.
 func (t *OpenedRestoreTarget) Restore(runCtx context.Context, backup StoredBackup) error {
 	return background.RunRecovering(runCtx, func(runCtx context.Context) error {
@@ -96,7 +97,7 @@ func (t *OpenedRestoreTarget) restore(runCtx context.Context, backup StoredBacku
 	storageReader, err := t.pipeline.storages.GetStorageReader(runCtx, backup.StorageID)
 	if err != nil {
 		if runCtx.Err() != nil {
-			return DescribeRestoreInterruption(runCtx)
+			return runcontext.DescribeRestoreInterruption(runCtx)
 		}
 
 		return fmt.Errorf("open the backup's storage: %w", err)
@@ -127,7 +128,7 @@ func (p *Pipeline) restoreFromStorage(runCtx context.Context, run restoreRun) er
 	backupFile, err := run.storageReader.OpenFile(runCtx, run.backup.FileName)
 	if err != nil {
 		if runCtx.Err() != nil {
-			return DescribeRestoreInterruption(runCtx)
+			return runcontext.DescribeRestoreInterruption(runCtx)
 		}
 
 		return fmt.Errorf("failed to get backup file from storage: %w", err)
@@ -163,7 +164,7 @@ func (p *Pipeline) restoreFromStorage(runCtx context.Context, run restoreRun) er
 	restoreErr := run.sink.Restore(runCtx, decodedStreamRead)
 
 	if runCtx.Err() != nil {
-		return DescribeRestoreInterruption(runCtx)
+		return runcontext.DescribeRestoreInterruption(runCtx)
 	}
 
 	streamErr := getBackupStreamFailure(backupStreamTrackers{

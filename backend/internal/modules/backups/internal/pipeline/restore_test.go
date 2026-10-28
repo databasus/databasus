@@ -23,6 +23,7 @@ import (
 	"databasus-backend/internal/lib/crypto"
 	"databasus-backend/internal/lib/testwait"
 	"databasus-backend/internal/lib/toolstub"
+	"databasus-backend/internal/modules/backups/internal/runcontext"
 	"databasus-backend/internal/modules/storages"
 )
 
@@ -136,7 +137,7 @@ func TestRestoreFromStorage(t *testing.T) {
 				})
 				cancel()
 
-				require.ErrorIs(t, <-restoreErrors, ErrRestoreCancelled)
+				require.ErrorIs(t, <-restoreErrors, runcontext.ErrRestoreCancelled)
 			})
 		})
 	}

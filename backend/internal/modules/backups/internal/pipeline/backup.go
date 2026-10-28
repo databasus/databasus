@@ -13,6 +13,7 @@ import (
 
 	"databasus-backend/internal/lib/background"
 	"databasus-backend/internal/lib/crypto"
+	"databasus-backend/internal/modules/backups/internal/runcontext"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/storages"
 	io_utils "databasus-backend/internal/util/io"
@@ -49,7 +50,7 @@ type EncryptionHeader struct {
 	Nonce string
 }
 
-// RunBackup dumps the database into its storage under ctx, which NewBackupRunContext derives. An
+// RunBackup dumps the database into its storage under ctx, which runcontext.New derives from the application context. An
 // ended ctx returns the error DescribeBackupInterruption gives, and a panic returns a
 // *background.PanicError, so the caller always records an outcome.
 func (p *Pipeline) RunBackup(ctx context.Context, spec BackupSpec) (BackupResult, error) {
@@ -189,7 +190,7 @@ func finishBackupStream(run backupRun, dumpErr error) error {
 		run.chain.abandon()
 		_ = run.storageWrite.wait()
 
-		return DescribeBackupInterruption(run.runCtx, run.backupCtx)
+		return runcontext.DescribeBackupInterruption(run.runCtx, run.backupCtx)
 	}
 
 	closeErr := run.chain.close()
@@ -214,7 +215,7 @@ func finishBackupStream(run backupRun, dumpErr error) error {
 
 func pickInterruptionOr(run backupRun, err error) error {
 	if run.backupCtx.Err() != nil {
-		return DescribeBackupInterruption(run.runCtx, run.backupCtx)
+		return runcontext.DescribeBackupInterruption(run.runCtx, run.backupCtx)
 	}
 
 	return err

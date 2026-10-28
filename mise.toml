@@ -62,7 +62,7 @@ description = "Check that the review hooks find the tools they need"
 run = ".agent-hooks/run.sh doctor"
 
 [tasks.review]
-description = "Run every review hook of a finished OpenSpec change by hand, e.g. mise run review notifiers-module"
+description = "Manually rerun parallel AI reviews of a finished OpenSpec change; runs no linting or tests"
 usage = 'arg "[change]" help="The OpenSpec change to review; every active change with all tasks checked when omitted"'
 run = '.agent-hooks/run.sh review "${usage_change:-}"'
 
@@ -89,9 +89,8 @@ dir = "backend"
 run = "go generate ./..."
 
 # The libedit shim lets the bundled PostgreSQL clients start on Fedora; without it a package that
-# checks them at startup exits before its first test. The timeout matches scripts/test.sh: the
-# physical restore packages take about 7 minutes alone and outlast go test's 10-minute default when
-# other runs share the machine.
+# checks them at startup exits before its first test. Unsharded physical API packages can exceed
+# 15 minutes, especially when other runs share the machine. The timeout matches scripts/test.sh.
 [tasks."backend:test-package"]
 description = "Run the given backend test packages, e.g. mise run backend:test-package ./internal/features/intervals/..."
 dir = "backend"
@@ -101,7 +100,7 @@ run = """
 source ../scripts/fedora.sh
 apply_libedit_shim
 # shellcheck disable=SC2086 # one package path per word
-go test -race -tags testhelpers -count=1 -timeout 15m $usage_packages
+go test -race -tags testhelpers -count=1 -timeout 30m $usage_packages
 """
 
 [tasks."agent:build"]

@@ -403,8 +403,7 @@ jobs:
           # Separate assignments let a failing task stop the step instead of running no tests.
           packages=$(mise run backend:test-group-packages "$TEST_GROUP")
           run_pattern=$(mise run backend:test-group-tests "$TEST_GROUP")
-          # Each leg runs one group on its own runner, so a group needs more wall-clock than the
-          # 15m scripts/test.sh allows on a developer machine.
+          # Each leg runs one group on its own runner and allows extra time for CI contention.
           # shellcheck disable=SC2086 # one import path per word
           go test -race -tags testhelpers -p=8 -count=1 -failfast -timeout 40m ${run_pattern:+-run "$run_pattern"} $packages
 

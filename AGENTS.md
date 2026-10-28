@@ -50,7 +50,7 @@ The repository's skills live in `.agents/skills/`, which Codex reads directly; C
 | `mise run lint` | Check every module without changing files; `mise run backend:lint`, `agent:lint` and `frontend:lint` check one |
 | `mise run format` | Format every module; `backend:format`, `agent:format` and `frontend:format` format one |
 | `mise run doctor` | Check that the review hooks find the tools they need |
-| `mise run review [<change>]` | Run every review hook of a finished OpenSpec change by hand: the quick checks, then the full implementation review |
+| `mise run review [<change>]` | Manually rerun parallel AI reviews of a finished OpenSpec change when hooks did not run or another review is needed |
 | `goose -dir backend/migrations create <name> sql` | Create a migration |
 | `goose -dir backend/migrations up` (or `down`), with `.env` exported | Apply or roll back migrations on the dev database; goose reads `GOOSE_DRIVER` and `GOOSE_DBSTRING` from the environment. The server also applies migrations itself at startup |
 | `mise run generate-api` | Regenerate the servers, the test clients and the frontend types from `backend/api/*.yaml` |
@@ -119,6 +119,8 @@ A temporary working document the agent writes for the user outside code, such as
 Every change answers to this document **and** the module doc for each area it touches. The module docs add stack-specific rules on top of this one; they never replace it, so a change under `backend/` answers to both.
 
 Which review hooks exist, when they run and which model reviews are described in the docstring and comments of [`.agent-hooks/review_gate.py`](.agent-hooks/review_gate.py), the reviewer prompts in `.agent-hooks/*-prompt.md`, and the specs `openspec/specs/proposal-review` and `openspec/specs/implementation-review`.
+
+Before finishing an implementation, the agent runs the relevant formatters, linters and tests itself, then finishes the turn so the review hooks run. Implementation review runs only AI reviewers; it does not rerun linting, tests or builds. `mise run review` is a manual fallback when the hooks did not run or a review needs repeating, not a routine step after implementation.
 
 What the agent does with findings:
 
