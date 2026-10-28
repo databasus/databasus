@@ -44,23 +44,56 @@ type timedSlotProbe struct {
 // reset on read and belong to the next sample. The archive progress point and
 // the unsaved amount are derived the way the sample derives them.
 func (s *WalStreamSupervisor) GetLiveState(now time.Time) WalStreamLiveState {
-	liveState := WalStreamLiveState{
-		MeasuredAt:           now,
+	newestCommitted, lastCommittedWalAt := s.getLastCommittedWal(s.logger)
+	return s.getLiveStateForArchive(
+		walLiveArchive{MeasuredAt: now, NewestCommitted: newestCommitted, LastCommittedWalAt: lastCommittedWalAt},
+	)
+}
+
+type walLiveArchive struct {
+	MeasuredAt         time.Time
+	NewestCommitted    *walPosition
+	LastCommittedWalAt *time.Time
+}
+
+func (s *WalStreamSupervisor) getLiveStateForArchive(archive walLiveArchive) WalStreamLiveState {
+	return buildWalStreamLiveState(walStreamLiveInputs{
+		MeasuredAt:           archive.MeasuredAt,
 		LocalQueueBytes:      s.backlogBytes(),
 		LocalQueuePauseBytes: s.highWatermarkBytes.Load(),
 		IsReceiverRunning:    s.isReceiverRunning(),
-	}
+		ArchiveProgressLSN:   getArchiveProgressPoint(s.getLowestQueuedSegment(), archive.NewestCommitted),
+		LastArchivedWalAt:    archive.LastCommittedWalAt,
+		LatestProbe:          s.latestProbe.Load(),
+	})
+}
 
-	newestCommitted, lastCommittedWalAt := s.getLastCommittedWal(s.logger)
-	archiveProgressLSN := getArchiveProgressPoint(s.getLowestQueuedSegment(), newestCommitted)
+type walStreamLiveInputs struct {
+	MeasuredAt           time.Time
+	LocalQueueBytes      int64
+	LocalQueuePauseBytes int64
+	IsReceiverRunning    bool
+	ArchiveProgressLSN   walmath.LSN
+	LastArchivedWalAt    *time.Time
+	LatestProbe          *timedSlotProbe
+}
+
+func buildWalStreamLiveState(inputs walStreamLiveInputs) WalStreamLiveState {
+	liveState := WalStreamLiveState{
+		MeasuredAt:           inputs.MeasuredAt,
+		LocalQueueBytes:      inputs.LocalQueueBytes,
+		LocalQueuePauseBytes: inputs.LocalQueuePauseBytes,
+		IsReceiverRunning:    inputs.IsReceiverRunning,
+	}
+	archiveProgressLSN := inputs.ArchiveProgressLSN
 
 	if archiveProgressLSN > 0 {
 		liveState.ArchiveProgressLSN = &archiveProgressLSN
 	}
 
-	liveState.LastArchivedWalAt = lastCommittedWalAt
+	liveState.LastArchivedWalAt = inputs.LastArchivedWalAt
 
-	latestProbe := s.latestProbe.Load()
+	latestProbe := inputs.LatestProbe
 	if latestProbe == nil {
 		return liveState
 	}

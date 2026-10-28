@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 
+	backuping_physical "databasus-backend/internal/features/backups/backups/backuping/physical"
 	backups_dto_physical "databasus-backend/internal/features/backups/backups/dto/physical"
 	usecases_physical_postgresql "databasus-backend/internal/features/backups/backups/usecases/physical/postgresql"
 	"databasus-backend/internal/modules/databases"
@@ -30,7 +31,8 @@ func (s *PhysicalBackupService) GetWalStreamLive(
 		return nil, ErrWalStreamStatisticsNotPhysical
 	}
 
-	liveState, isRunning := s.walStreamSupervisor.GetLiveState(databaseID, time.Now().UTC())
+	liveState, isRunning := backuping_physical.GetRunningWalStreamSupervisor().
+		GetLiveState(databaseID, time.Now().UTC())
 	if !isRunning {
 		return &backups_dto_physical.GetWalStreamLiveResponse{}, nil
 	}

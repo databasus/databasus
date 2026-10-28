@@ -3,6 +3,7 @@ package apptest
 import (
 	"context"
 	"io"
+	"testing"
 
 	"databasus-backend/internal/modules/storages"
 )
@@ -14,4 +15,11 @@ func (a *App) WriteStorageFile(ctx context.Context, reference storages.StoredFil
 	_, err := a.app.WriteStorageFile(ctx, reference, content)
 
 	return err
+}
+
+func (a *App) PublishStorageFile(tb testing.TB, reference storages.StoredFileReference, content io.Reader) {
+	tb.Helper()
+	if err := a.app.PublishStorageFile(tb.Context(), reference, content); err != nil {
+		tb.Fatalf("publish %s in storage %s: %v", reference.FileName, reference.StorageID, err)
+	}
 }

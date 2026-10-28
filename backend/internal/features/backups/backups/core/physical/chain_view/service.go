@@ -128,31 +128,6 @@ func findGapsBetweenSegments(segments []*physical_models.PhysicalWalSegment) []L
 	return gaps
 }
 
-func (s *ChainViewService) CheckHistoryFilePresence(
-	databaseID uuid.UUID,
-	timelineID int,
-) (ValidationResult, error) {
-	histories, err := s.walHistoryRepository.FindAllByDatabase(databaseID)
-	if err != nil {
-		return ValidationResult{}, err
-	}
-
-	if len(histories) == 0 {
-		return ValidationResult{Status: ValidationStatusOK}, nil
-	}
-
-	for _, history := range histories {
-		if history.TimelineID == timelineID {
-			return ValidationResult{Status: ValidationStatusOK}, nil
-		}
-	}
-
-	return ValidationResult{
-		Status:  ValidationStatusOKWithWarning,
-		Message: fmt.Sprintf("no history file for timeline %d", timelineID),
-	}, nil
-}
-
 func (s *ChainViewService) GetChainEndTimestamp(view *ChainView) (time.Time, error) {
 	latest := time.Time{}
 	if view.RootFull.CompletedAt != nil {

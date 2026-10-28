@@ -170,11 +170,11 @@ func (u *WalUploader) RecoverSegment(ctx context.Context, localPath, walFilename
 		return fmt.Errorf("probe existing wal claim: %w", err)
 	}
 
-	if existing == nil {
+	action := decideExistingWalClaim(existingWalClaim{Segment: existing, IsRecovering: true})
+	if action == walClaimWait {
 		return nil
 	}
-
-	if existing.FileName != nil {
+	if action == walClaimRemoveLocal {
 		u.removeLocal(localPath, claim.WalFilename)
 
 		return nil
@@ -207,19 +207,14 @@ func (u *WalUploader) handleClaimConflict(localPath string, claim *physical_mode
 		return fmt.Errorf("probe existing wal claim: %w", err)
 	}
 
-	if existing == nil {
-		// Row vanished between the conflict and the probe — leave the local file;
-		// the next uploader tick re-claims.
+	action := decideExistingWalClaim(existingWalClaim{Segment: existing, IsRecovering: false})
+	if action == walClaimWait && existing == nil {
 		logger.Debug("wal claim row vanished before the probe, re-claiming on the next tick")
-
 		return nil
 	}
-
-	if existing.FileName != nil {
+	if action == walClaimRemoveLocal {
 		logger.Debug("wal segment already durable, dropping the local copy")
-
 		u.removeLocal(localPath, claim.WalFilename)
-
 		return nil
 	}
 
@@ -370,7 +365,13 @@ func (u *WalUploader) probeChainGap(claim *physical_models.PhysicalWalSegment) {
 		return
 	}
 
-	gapStart := max(*prevEnd, getHighestQueuedEndBelow(queuedSegments, claim))
+	gap := decideWalChainGap(walGapState{
+		PreviousEnd: prevEnd, Claim: claim, QueuedSegments: queuedSegments, HasPredecessor: predecessor != nil,
+	})
+	if gap == nil {
+		return
+	}
+	gapStart := gap.Start
 
 	u.deps.Logger.Warn(
 		fmt.Sprintf("wal_gap_detected_post_upload: gap [%s, %s)", gapStart.String(), claim.StartLSN.String()),

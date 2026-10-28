@@ -16,6 +16,7 @@ import (
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	storages_bridge "databasus-backend/internal/features/storages"
 	workspaces_bridge "databasus-backend/internal/features/workspaces"
+	"databasus-backend/internal/modules/backups"
 	"databasus-backend/internal/util/encryption"
 	"databasus-backend/internal/util/logger"
 )
@@ -37,12 +38,11 @@ var getPhysicalBackuper = sync.OnceValue(func() *PhysicalBackuper {
 		logger.GetLogger(),
 		postgresql_executor.NewCreateFullBackupUsecase(),
 		postgresql_executor.NewCreateIncrementalBackupUsecase(),
+		sync.WaitGroup{},
 	}
 })
 
 func GetPhysicalBackuper() *PhysicalBackuper { return getPhysicalBackuper() }
-
-var getPhysicalBackupsScheduler = sync.OnceValue(NewPhysicalBackupsScheduler)
 
 func NewPhysicalBackupsScheduler() *PhysicalBackupsScheduler {
 	return &PhysicalBackupsScheduler{
@@ -61,10 +61,6 @@ func NewPhysicalBackupsScheduler() *PhysicalBackupsScheduler {
 	}
 }
 
-func GetPhysicalBackupsScheduler() *PhysicalBackupsScheduler { return getPhysicalBackupsScheduler() }
-
-var getPhysicalBackupCleaner = sync.OnceValue(NewPhysicalBackupCleaner)
-
 func NewPhysicalBackupCleaner() *PhysicalBackupCleaner {
 	return &PhysicalBackupCleaner{
 		physical_service.GetPhysicalBackupService(),
@@ -78,11 +74,7 @@ func NewPhysicalBackupCleaner() *PhysicalBackupCleaner {
 	}
 }
 
-func GetPhysicalBackupCleaner() *PhysicalBackupCleaner { return getPhysicalBackupCleaner() }
-
-var getPhysicalWalStreamSupervisor = sync.OnceValue(NewPhysicalWalStreamSupervisor)
-
-func NewPhysicalWalStreamSupervisor() *PhysicalWalStreamSupervisor {
+func NewPhysicalWalStreamSupervisor(timings backups.WalStreamTimings) *PhysicalWalStreamSupervisor {
 	return &PhysicalWalStreamSupervisor{
 		databases_bridge.GetAccess(),
 		databases_bridge.GetModule,
@@ -97,6 +89,7 @@ func NewPhysicalWalStreamSupervisor() *PhysicalWalStreamSupervisor {
 		encryption.GetMasterKey(),
 		logger.GetLogger(),
 		defaultChainAlertMinInterval,
+		timings,
 		sync.Mutex{},
 		make(map[uuid.UUID]*runningStreamer),
 		atomicTime{},
@@ -104,10 +97,6 @@ func NewPhysicalWalStreamSupervisor() *PhysicalWalStreamSupervisor {
 		atomic.Bool{},
 		atomic.Bool{},
 	}
-}
-
-func GetPhysicalWalStreamSupervisor() *PhysicalWalStreamSupervisor {
-	return getPhysicalWalStreamSupervisor()
 }
 
 var getPhysicalSlotCleanupListener = sync.OnceValue(func() *postgresql_executor.PhysicalSlotCleanupListener {

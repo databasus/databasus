@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+#MISE description="Run one or more CI test shards concurrently"
+#MISE dir="backend"
+#USAGE arg "<shards>" var=#true help="Sharded physical, logical or physical-api CI group names"
+set -euo pipefail
+
+# shellcheck source=scripts/fedora.sh
+source ../scripts/fedora.sh
+apply_libedit_shim
+
+read -r -a shards <<<"${usage_shards:?}"
+declare -A seen_shards=()
+declare -a package_lists=() run_patterns=() process_ids=()
+for shard in "${shards[@]}"; do
+    if [[ ! "$shard" =~ ^(physical|logical|physical-api)-([1-9][0-9]*)-of-([1-9][0-9]*)$ ]] ||
+        ((BASH_REMATCH[2] > BASH_REMATCH[3])); then
+        echo "invalid CI shard: $shard" >&2
+        exit 1
+    fi
+    if [[ -v "seen_shards[$shard]" ]]; then
+        echo "duplicate CI shard: $shard" >&2
+        exit 1
+    fi
+    seen_shards[$shard]=1
+    package_lists+=("$(mise run --quiet backend:test-group-packages "$shard")")
+    run_patterns+=("$(mise run --quiet backend:test-group-tests "$shard")")
+done
+
+log_directory=$(mktemp -d "${TMPDIR:-/tmp}/databasus-test-shards.XXXXXXXX")
+# shellcheck disable=SC2329 # Invoked by the EXIT trap.
+cleanup() {
+    for process_id in "${process_ids[@]}"; do
+        pkill -TERM -P "$process_id" 2>/dev/null || true
+        kill -TERM "$process_id" 2>/dev/null || true
+        wait "$process_id" 2>/dev/null || true
+    done
+    rm -rf "$log_directory"
+}
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+
+for index in "${!shards[@]}"; do
+    mapfile -t packages <<<"${package_lists[$index]}"
+    echo "running ${shards[$index]}"
+    go test -race -tags testhelpers -count=1 -failfast -timeout 15m -run "${run_patterns[$index]}" \
+        "${packages[@]}" >"$log_directory/$index.log" 2>&1 &
+    process_ids+=("$!")
+done
+
+exit_status=0
+for index in "${!process_ids[@]}"; do
+    if ! wait "${process_ids[$index]}"; then
+        exit_status=1
+    fi
+    unset 'process_ids[index]'
+    sed "s/^/[${shards[$index]}] /" "$log_directory/$index.log"
+done
+exit "$exit_status"

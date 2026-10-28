@@ -83,7 +83,7 @@ func (s *WalStreamSupervisor) waitForBacklogBelowLow(
 // uploader on the same disk, so they count too — otherwise a storage outage plus a
 // realign grows the queue past the watermark with nothing throttling the receiver.
 func (s *WalStreamSupervisor) backlogBytes() int64 {
-	return sumWalSegmentBytes(s.watchDir) + sumWalSegmentBytes(filepath.Join(s.watchDir, pendingUploadDirName))
+	return getWalBacklogBytes(s.watchDir)
 }
 
 func sumWalSegmentBytes(dir string) int64 {
@@ -108,4 +108,8 @@ func sumWalSegmentBytes(dir string) int64 {
 	}
 
 	return total
+}
+
+func getWalBacklogBytes(watchDir string) int64 {
+	return sumWalSegmentBytes(watchDir) + sumWalSegmentBytes(filepath.Join(watchDir, pendingUploadDirName))
 }

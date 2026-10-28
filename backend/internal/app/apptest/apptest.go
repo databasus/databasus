@@ -35,10 +35,13 @@ type App struct {
 	GitHub *FakeGitHub
 	Google *FakeGoogle
 
-	databaseDsn   string
-	secretKeyPath string
-	app           *app.App
-	stopModules   context.CancelFunc
+	databaseDsn               string
+	secretKeyPath             string
+	app                       *app.App
+	stopModules               context.CancelFunc
+	cancelPhysicalLoops       context.CancelFunc
+	stopPhysicalLoops         func(context.Context) error
+	physicalBackupStopTimeout time.Duration
 }
 
 // backupRunsWaitTimeout bounds the wait for the backup runs a test leaves behind; a run whose context
@@ -80,6 +83,8 @@ func New(tb testing.TB, options ...Option) *App {
 		isGitHubEnabled:              false,
 		isGoogleEnabled:              false,
 		publicURL:                    "",
+		walStreamTimings:             nil,
+		fileTimings:                  nil,
 		notificationDeliveryTimeout:  0,
 		// A test never reaches the real Slack or Telegram: an unset address points at a host that
 		// does not resolve.
@@ -158,6 +163,10 @@ func New(tb testing.TB, options ...Option) *App {
 		environment.StorageFileTimings = *applied.fileTimings
 	}
 
+	if applied.walStreamTimings != nil {
+		environment.WalStreamTimings = *applied.walStreamTimings
+	}
+
 	mailRecorder := newMailRecorder(!applied.isMailServerMissing)
 	environment.Mailer = mailRecorder
 
@@ -172,40 +181,33 @@ func New(tb testing.TB, options ...Option) *App {
 
 	handler, err := createdApp.NewHandler()
 	if err != nil {
+		stopModules()
 		tb.Fatalf("build the handler of the test application: %v", err)
 	}
 
 	server := httptest.NewServer(handler)
 	tb.Cleanup(server.Close)
 
+	testApp := &App{
+		URL:                       server.URL,
+		Clock:                     manualClock,
+		Mail:                      mailRecorder,
+		GitHub:                    fakeGitHub,
+		Google:                    fakeGoogle,
+		databaseDsn:               databaseDsn,
+		secretKeyPath:             appConfig.SecretKeyPath,
+		app:                       createdApp,
+		stopModules:               stopModules,
+		cancelPhysicalLoops:       nil,
+		stopPhysicalLoops:         nil,
+		physicalBackupStopTimeout: applied.physicalBackupStopTimeout,
+	}
 	if applied.isPhysicalBackupLoopsEnabled {
-		loopsCtx, cancelLoops := context.WithCancel(context.WithoutCancel(tb.Context()))
-		stopLoops := createdApp.StartPhysicalBackupLoops(loopsCtx)
-		tb.Cleanup(func() {
-			cancelLoops()
-			stopCtx, cancelStop := context.WithTimeout(
-				context.WithoutCancel(tb.Context()),
-				applied.physicalBackupStopTimeout,
-			)
-			defer cancelStop()
-
-			if err := stopLoops(stopCtx); err != nil {
-				tb.Errorf("stop physical backup loops and runs: %v", err)
-			}
-		})
+		testApp.startPhysicalLoops(tb)
 	}
+	tb.Cleanup(func() { testApp.stop(tb) })
 
-	return &App{
-		URL:           server.URL,
-		Clock:         manualClock,
-		Mail:          mailRecorder,
-		GitHub:        fakeGitHub,
-		Google:        fakeGoogle,
-		databaseDsn:   databaseDsn,
-		secretKeyPath: appConfig.SecretKeyPath,
-		app:           createdApp,
-		stopModules:   stopModules,
-	}
+	return testApp
 }
 
 // ExecuteSQL runs a statement on the database of the test application. A test uses it only for a
@@ -255,50 +257,91 @@ func (a *App) RunJobPass(tb testing.TB, name string) {
 	}
 }
 
+func (a *App) WaitForPhysicalBackups(tb testing.TB) {
+	tb.Helper()
+	if err := a.app.WaitForPhysicalBackups(tb.Context()); err != nil {
+		tb.Fatalf("wait for dispatched physical backups: %v", err)
+	}
+}
+
 // RestartModules stops the modules as a shutdown does, waits for the runs to write their outcome and
 // starts the modules again on the same database, as the next start of the application does.
 func (a *App) RestartModules(tb testing.TB) {
 	tb.Helper()
 
-	a.stopModules()
-
-	waitCtx, cancelWait := context.WithTimeout(tb.Context(), backupRunsWaitTimeout)
+	hasPhysicalLoops := a.stopPhysicalLoops != nil
+	if hasPhysicalLoops {
+		if err := a.stopPhysicalWork(tb); err != nil {
+			tb.Fatalf("stop physical backup loops before restarting modules: %v", err)
+		}
+	}
+	waitCtx, cancelWait := context.WithTimeout(tb.Context(), a.physicalBackupStopTimeout)
 	defer cancelWait()
-
-	err := a.app.WaitForBackupRuns(waitCtx)
-	if err != nil {
+	if err := a.app.WaitForPhysicalBackups(waitCtx); err != nil {
+		tb.Fatalf("wait for physical backups before restarting modules: %v", err)
+	}
+	a.stopModules()
+	if err := a.app.WaitForBackupRuns(waitCtx); err != nil {
 		tb.Fatalf("wait for the backup runs of the test application: %v", err)
 	}
-
+	if err := a.app.WaitForNotificationDeliveries(waitCtx); err != nil {
+		tb.Fatalf("wait for notification deliveries before restarting modules: %v", err)
+	}
 	a.stopModules = startModules(tb, a.app)
+	if hasPhysicalLoops {
+		a.startPhysicalLoops(tb)
+	}
 }
 
-// startModules stops the runs the test started and waits for their outcome before the database
-// closes, as Serve does on shutdown. It returns the function that stops the modules.
 func startModules(tb testing.TB, createdApp *app.App) context.CancelFunc {
 	tb.Helper()
-
 	modulesCtx, stopModules := context.WithCancel(context.WithoutCancel(tb.Context()))
-
-	err := createdApp.StartModules(modulesCtx)
-	if err != nil {
+	if err := createdApp.StartModules(modulesCtx); err != nil {
 		stopModules()
 		tb.Fatalf("start the modules of the test application: %v", err)
 	}
-
-	tb.Cleanup(func() {
-		stopModules()
-
-		waitCtx, cancelWait := context.WithTimeout(context.Background(), backupRunsWaitTimeout)
-		defer cancelWait()
-
-		err := createdApp.WaitForBackupRuns(waitCtx)
-		if err != nil {
-			tb.Errorf("wait for the backup runs of the test application: %v", err)
-		}
-	})
-
 	return stopModules
+}
+
+func (a *App) startPhysicalLoops(tb testing.TB) {
+	tb.Helper()
+	loopsCtx, cancelLoops := context.WithCancel(context.WithoutCancel(tb.Context()))
+	a.cancelPhysicalLoops = cancelLoops
+	a.stopPhysicalLoops = a.app.StartPhysicalBackupLoops(loopsCtx)
+}
+
+func (a *App) stopPhysicalWork(tb testing.TB) error {
+	tb.Helper()
+	a.cancelPhysicalLoops()
+	stopCtx, cancelStop := context.WithTimeout(context.WithoutCancel(tb.Context()), a.physicalBackupStopTimeout)
+	defer cancelStop()
+	if err := a.stopPhysicalLoops(stopCtx); err != nil {
+		return err
+	}
+	a.cancelPhysicalLoops = nil
+	a.stopPhysicalLoops = nil
+	return nil
+}
+
+func (a *App) stop(tb testing.TB) {
+	tb.Helper()
+	if a.stopPhysicalLoops != nil {
+		if err := a.stopPhysicalWork(tb); err != nil {
+			tb.Errorf("stop physical backup loops and runs: %v", err)
+		}
+	}
+	a.stopModules()
+	waitCtx, cancelWait := context.WithTimeout(context.WithoutCancel(tb.Context()), backupRunsWaitTimeout)
+	defer cancelWait()
+	if err := a.app.WaitForBackupRuns(waitCtx); err != nil {
+		tb.Errorf("wait for the backup runs of the test application: %v", err)
+	}
+	if err := a.app.WaitForPhysicalBackups(waitCtx); err != nil {
+		tb.Errorf("wait for the physical backups of the test application: %v", err)
+	}
+	if err := a.app.WaitForNotificationDeliveries(waitCtx); err != nil {
+		tb.Errorf("wait for notification deliveries of the test application: %v", err)
+	}
 }
 
 // newConfig sets the database after loading, so a DATABASE_DSN in the environment of the test run
@@ -337,13 +380,5 @@ func closeConnections(db *gorm.DB) {
 	sqlDB, err := db.DB()
 	if err == nil {
 		_ = sqlDB.Close()
-	}
-}
-
-func (a *App) RunPhysicalBackupCleanerPass(tb testing.TB) {
-	tb.Helper()
-
-	if err := a.app.RunPhysicalBackupCleanerPass(tb.Context()); err != nil {
-		tb.Fatalf("run the physical backup cleaner pass: %v", err)
 	}
 }

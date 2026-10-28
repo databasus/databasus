@@ -108,16 +108,6 @@ type DeletedSummary struct {
 	ChainFullyDeleted bool
 }
 
-// DependentsSummary counts a chain's dependents and total on-disk size without
-// deleting anything. Powers "what would DeleteFull remove?" UI/audit.
-type DependentsSummary struct {
-	RootFullBackupID uuid.UUID
-	WalSegments      int
-	Incrementals     int
-	HistoryFiles     int
-	TotalSizeMB      float64
-}
-
 type WalStreamStatisticsQuery struct {
 	DatabaseID     uuid.UUID
 	Period         time.Duration

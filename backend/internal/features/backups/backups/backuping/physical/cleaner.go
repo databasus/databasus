@@ -49,8 +49,6 @@ func (c *PhysicalBackupCleaner) Run(ctx context.Context) {
 		return
 	}
 
-	c.runStartupSlotCleanup(ctx)
-
 	ticker := time.NewTicker(cleanerTickInterval)
 	defer ticker.Stop()
 
@@ -94,12 +92,10 @@ func (c *PhysicalBackupCleaner) deleteExpiredWalStreamSamples(ctx context.Contex
 // process, so no slot is protected — the scheduler's restart recovery fails and
 // releases every in-flight claim, and the matching slots are reclaimable orphans.
 func (c *PhysicalBackupCleaner) runStartupSlotCleanup(ctx context.Context) {
-	isSlotProtected := func(uuid.UUID) (bool, error) { return false, nil }
-
 	logger := c.logger.With("job_id", uuid.New(), "job_name", cleanerJobName)
 
 	// Best effort at boot: a slot that cannot be dropped is retried by the orphan sweep.
-	if err := usecases_physical_postgresql.RunStartupCleanup(ctx, logger, isSlotProtected); err != nil {
+	if err := usecases_physical_postgresql.RunStartupCleanup(ctx, logger); err != nil {
 		logger.WarnContext(ctx, "physical startup slot cleanup reported failures", "error", err)
 	}
 }

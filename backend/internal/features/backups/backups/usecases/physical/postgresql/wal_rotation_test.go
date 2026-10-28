@@ -4,13 +4,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 
-	"databasus-backend/internal/config"
 	"databasus-backend/internal/engines/postgresql/physical/walmath"
-	pgshared "databasus-backend/internal/engines/postgresql/shared"
-	"databasus-backend/internal/util/logger"
 )
 
 const testRotationInterval = 5 * time.Minute
@@ -88,40 +84,4 @@ func Test_RecordRotation_WhenSwitchMovedTheInsertPoint_DoesNotCountItAsFreshWal(
 		CurrentLSN: currentLSNAfterRotation,
 		ObservedAt: base.Add(10 * testRotationInterval),
 	}, testRotationInterval), "the switch itself moved the insert point; that is not the source writing")
-}
-
-func Test_RunForcedWalRotation_WhenSourceRefusesSwitchWal_SetsRefusalFlag(t *testing.T) {
-	fixture := SetupPhysicalDBForBackup(t)
-	adminConn := OpenAdminConn(t, fixture)
-
-	supervisor := NewWalStreamSupervisor(WalStreamSpec{
-		ClientTools:            pgshared.ClientTools{Root: config.GetEnv().ClientToolsDir},
-		DatabaseID:             uuid.New(),
-		SourceDB:               CreateReplicationOnlyRole(t, adminConn, fixture),
-		WatchDirRoot:           t.TempDir(),
-		ForcedRotationInterval: time.Second,
-		Logger:                 logger.GetLogger(),
-	})
-
-	rotationDone := make(chan struct{})
-
-	go func() {
-		defer close(rotationDone)
-
-		supervisor.runForcedWalRotation(t.Context(), logger.GetLogger())
-	}()
-
-	require.False(t, supervisor.isForcedRotationDenied.Load())
-
-	require.Eventually(t, func() bool {
-		_, err := GenerateWalActivity(t.Context(), adminConn, 4096)
-
-		return err == nil && supervisor.isForcedRotationDenied.Load()
-	}, 60*time.Second, time.Second, "a refused pg_switch_wal must be visible to the samples")
-
-	select {
-	case <-rotationDone:
-	case <-time.After(10 * time.Second):
-		t.Fatal("the rotation loop must stop after a permanent refusal")
-	}
 }

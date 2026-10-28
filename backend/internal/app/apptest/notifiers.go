@@ -130,3 +130,10 @@ func (a *App) HoldNotifierTransfer(tb testing.TB, transfer NotifierTransfer) fun
 		}
 	}
 }
+
+func (a *App) WaitForNotificationDeliveries(tb testing.TB) {
+	tb.Helper()
+	if err := a.app.WaitForNotificationDeliveries(tb.Context()); err != nil {
+		tb.Fatalf("wait for notification deliveries: %v", err)
+	}
+}

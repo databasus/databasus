@@ -333,6 +333,9 @@ const (
 
 func classifyIncrStreamError(streamErr error, stderr []byte) streamOutcome {
 	message := fmt.Sprintf("%v; stderr: %s", streamErr, truncateStderr(stderr))
+	if strings.Contains(string(stderr), "could not parse backup manifest") {
+		return outcomeManifestCorrupted(fmt.Errorf("%s", message), stderr)
+	}
 
 	if isSummariesExpiredError(stderr) {
 		reason := physical_enums.PhysicalBackupErrorSummariesExpired

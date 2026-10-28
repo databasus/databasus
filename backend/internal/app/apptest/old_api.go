@@ -30,7 +30,7 @@ func (a *App) CallOldPublicAPI(tb testing.TB, call OldAPICall) (int, []byte) {
 	return a.callOldAPI(tb, "", call)
 }
 
-func (a *App) callOldAPI(tb testing.TB, token string, call OldAPICall) (int, []byte) {
+func (a *App) openOldAPI(tb testing.TB, token string, call OldAPICall) *http.Response {
 	tb.Helper()
 
 	var requestBody bytes.Buffer
@@ -56,16 +56,7 @@ func (a *App) callOldAPI(tb testing.TB, token string, call OldAPICall) (int, []b
 		tb.Fatalf("send %s %s: %v", call.Method, call.Path, err)
 	}
 
-	defer func() { _ = response.Body.Close() }()
-
-	var responseBody bytes.Buffer
-
-	_, err = responseBody.ReadFrom(response.Body)
-	if err != nil {
-		tb.Fatalf("read the answer of %s %s: %v", call.Method, call.Path, err)
-	}
-
-	return response.StatusCode, responseBody.Bytes()
+	return response
 }
 
 func (a *App) DownloadOldPublicAPI(tb testing.TB, path, destinationPath string) int {
@@ -96,4 +87,27 @@ func (a *App) DownloadOldPublicAPI(tb testing.TB, path, destinationPath string) 
 	}
 
 	return response.StatusCode
+}
+
+func (a *App) callOldAPI(tb testing.TB, token string, call OldAPICall) (int, []byte) {
+	tb.Helper()
+	response := a.openOldAPI(tb, token, call)
+
+	defer func() { _ = response.Body.Close() }()
+
+	var responseBody bytes.Buffer
+
+	_, err := responseBody.ReadFrom(response.Body)
+	if err != nil {
+		tb.Fatalf("read the answer of %s %s: %v", call.Method, call.Path, err)
+	}
+
+	return response.StatusCode, responseBody.Bytes()
+}
+
+func (a *App) OpenOldPublicAPI(tb testing.TB, call OldAPICall) *http.Response {
+	tb.Helper()
+	response := a.openOldAPI(tb, "", call)
+	tb.Cleanup(func() { _ = response.Body.Close() })
+	return response
 }

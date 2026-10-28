@@ -828,6 +828,22 @@ class ChangeVerificationParsingTest(unittest.TestCase):
             checks, [review_gate.Check(".", ("mise", "run", "backend:test-package", "./internal/features/intervals/..."))]
         )
 
+    def test_accepts_parallel_backend_shards(self):
+        shards = ("physical-api-1-of-3", "physical-api-2-of-3", "physical-api-3-of-3")
+        checks = self.parse(verification_section("mise run backend:test-group " + " ".join(shards)))
+        self.assertEqual(checks, [review_gate.Check(".", ("mise", "run", "backend:test-group", *shards))])
+
+    def test_rejects_unbounded_or_invalid_backend_shards(self):
+        for shard in ("other", "other-1-of-3", "physical-api", "unknown-1-of-3", "physical-api-0-of-3", "physical-api-4-of-3"):
+            with self.subTest(shard=shard):
+                self.assert_rejected(verification_section("mise run backend:test-group " + shard), "must name a shard")
+
+    def test_rejects_backend_shards_without_names(self):
+        self.assert_rejected(verification_section("mise run backend:test-group"), "does not match the form")
+
+    def test_rejects_backend_shards_with_shell_substitution(self):
+        self.assert_rejected(verification_section("mise run backend:test-group physical-api-1-of-3;rm"), "forbidden character")
+
     def test_runs_verification_agent_tests_from_repository_root(self):
         checks = self.parse(verification_section("mise run agent:test"))
 

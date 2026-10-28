@@ -71,16 +71,9 @@ func (s *PhysicalBackupsScheduler) Run(ctx context.Context) {
 		panic(fmt.Sprintf("%T.Run() called multiple times", s))
 	}
 
-	startupRecoveryLogger := s.logger.With("job_id", uuid.New(), "job_name", schedulerJobName)
 	lifecycleLogger := s.logger.With("job_name", schedulerJobName)
 
 	s.lastTickTime.Store(time.Now().UTC())
-
-	if err := s.recoverInFlightBackupsOnRestart(ctx, startupRecoveryLogger); err != nil {
-		startupRecoveryLogger.ErrorContext(ctx, "failed to recover in-flight physical backups on restart", "error", err)
-
-		panic(err)
-	}
 
 	s.isReady.Store(true)
 	defer s.isReady.Store(false)
@@ -104,13 +97,20 @@ func (s *PhysicalBackupsScheduler) Run(ctx context.Context) {
 			// A fresh job_id per tick: it is the correlation ID for one run, not for the process.
 			tickLogger := s.logger.With("job_id", uuid.New(), "job_name", schedulerJobName)
 
-			if err := s.runPendingBackups(ctx, tickLogger); err != nil {
+			if err := s.RunPass(ctx); err != nil {
 				tickLogger.ErrorContext(ctx, "failed to run pending physical backups", "error", err)
 			}
 
 			s.lastTickTime.Store(time.Now().UTC())
 		}
 	}
+}
+
+func (s *PhysicalBackupsScheduler) RunPass(ctx context.Context) error {
+	logger := s.logger.With("job_id", uuid.New(), "job_name", schedulerJobName)
+	defer func() { s.lastTickTime.Store(time.Now().UTC()) }()
+
+	return s.runPendingBackups(ctx, logger)
 }
 
 func (s *PhysicalBackupsScheduler) runPendingBackups(ctx context.Context, logger *slog.Logger) error {
@@ -168,150 +168,22 @@ type backupTrigger struct {
 	backupID uuid.UUID
 }
 
-// decideBackupKind picks FULL or INCR purely from catalog state and cadence, with
-// no source-PG connection: the shipped executors handle summarizer and timeline
-// reality at run time.
 func (s *PhysicalBackupsScheduler) decideBackupKind(
 	ctx context.Context,
 	logger *slog.Logger,
 	now time.Time,
 	backupConfig backups.PhysicalBackupConfig,
 ) (backupDecision, bool) {
-	lastFull, err := s.fullRepo.FindLastFullAnyStatusByDatabase(backupConfig.DatabaseID)
+	state, err := s.loadSchedulingState(logger, now, backupConfig)
 	if err != nil {
-		logger.Error("failed to find last full backup", "error", err)
-
+		logger.ErrorContext(ctx, "failed to load physical backup scheduling state", "error", err)
 		return backupDecision{}, false
 	}
-
-	if backupConfig.ForceFullRequestedAt != nil {
-		return backupDecision{
-			kind:                 physical_enums.PhysicalBackupTypeFull,
-			reason:               "full requested out of cadence",
-			forceFullRequestedAt: backupConfig.ForceFullRequestedAt,
-		}, true
-	}
-
-	hasUnresolvedMismatch, err := hasUnresolvedSystemIdentifierMismatch(storage.GetDb(), backupConfig.DatabaseID)
-	if err != nil {
-		logger.Error("failed to inspect system identifier mismatch state", "error", err)
-
-		return backupDecision{}, false
-	}
-	if hasUnresolvedMismatch {
-		logger.Debug("automatic scheduling suppressed after system identifier mismatch")
-
-		return backupDecision{}, false
-	}
-
-	lastIncr, err := s.incrRepo.FindLastByDatabase(backupConfig.DatabaseID)
-	if err != nil {
-		logger.Error("failed to find last incremental backup", "error", err)
-
-		return backupDecision{}, false
-	}
-
-	if decision, ok := decideImmediateReplacementFull(lastFull, lastIncr); ok {
-		return decision, true
-	}
-
-	if backupConfig.ForceIncrementalRequestedAt != nil {
-		if decision, ok := s.decideForcedIncremental(ctx, logger, backupConfig); ok {
-			return decision, true
-		}
-	}
-
-	if backupConfig.FullBackupSchedule.IsDue(now, createdAtOrNil(lastFull)) {
-		return backupDecision{
-			kind:   physical_enums.PhysicalBackupTypeFull,
-			reason: "full cadence is due",
-		}, true
-	}
-
-	if !isIncrementalEnabled(backupConfig) {
-		logger.Debug("nothing due: full cadence is not due and incrementals are disabled")
-
-		return backupDecision{}, false
-	}
-
-	lastBackupTime := newestCreatedAt(lastFull, lastIncr)
-
-	if !backupConfig.IncrementalBackupSchedule.IsDue(now, lastBackupTime) {
-		logger.Debug("nothing due: neither cadence has elapsed")
-
-		return backupDecision{}, false
-	}
-
-	extendableChain, err := s.chainViewService.FindLastExtendableChainByDatabase(backupConfig.DatabaseID)
-	if err != nil {
-		logger.Error("failed to find extendable chain", "error", err)
-
-		return backupDecision{}, false
-	}
-
-	if extendableChain == nil {
-		return s.decideReAnchoringFull(logger, backupConfig, lastIncr)
-	}
-
-	parentIncrID, err := s.resolveIncrParent(extendableChain.RootFull.ID)
-	if err != nil {
-		logger.Error("failed to resolve incremental parent", "error", err)
-
-		return backupDecision{}, false
-	}
-
-	return backupDecision{
-		kind:                 physical_enums.PhysicalBackupTypeIncremental,
-		reason:               "incremental cadence is due",
-		incrRootFullBackupID: extendableChain.RootFull.ID,
-		incrParentIncrID:     parentIncrID,
-	}, true
-}
-
-// decideForcedIncremental honors an out-of-cadence incremental request. It can
-// only be satisfied when incrementals are enabled and an extendable chain
-// exists; otherwise the stale request is cleared (so it can't loop forever) and
-// ok=false lets the caller fall through to normal cadence evaluation. The
-// controller already rejects "incremental with no chain" up front, but the
-// chain can disappear between request and tick, so the scheduler must cope.
-func (s *PhysicalBackupsScheduler) decideForcedIncremental(
-	ctx context.Context,
-	logger *slog.Logger,
-	backupConfig backups.PhysicalBackupConfig,
-) (backupDecision, bool) {
-	if !isIncrementalEnabled(backupConfig) {
+	choice := decidePhysicalBackup(state, backupConfig, now)
+	if choice.shouldClearIncrementalRequest {
 		s.clearIncrementalRequest(ctx, logger, backupConfig)
-
-		return backupDecision{}, false
 	}
-
-	extendableChain, err := s.chainViewService.FindLastExtendableChainByDatabase(backupConfig.DatabaseID)
-	if err != nil {
-		logger.Error("failed to find extendable chain for forced incremental", "error", err)
-
-		return backupDecision{}, false
-	}
-
-	if extendableChain == nil {
-		logger.Warn("forced incremental requested but no extendable chain exists; clearing request")
-		s.clearIncrementalRequest(ctx, logger, backupConfig)
-
-		return backupDecision{}, false
-	}
-
-	parentIncrID, err := s.resolveIncrParent(extendableChain.RootFull.ID)
-	if err != nil {
-		logger.Error("failed to resolve incremental parent for forced incremental", "error", err)
-
-		return backupDecision{}, false
-	}
-
-	return backupDecision{
-		kind:                        physical_enums.PhysicalBackupTypeIncremental,
-		incrRootFullBackupID:        extendableChain.RootFull.ID,
-		incrParentIncrID:            parentIncrID,
-		forceIncrementalRequestedAt: backupConfig.ForceIncrementalRequestedAt,
-	}, true
+	return choice.decision, choice.canSchedule
 }
 
 func (s *PhysicalBackupsScheduler) clearIncrementalRequest(
@@ -382,7 +254,7 @@ func (s *PhysicalBackupsScheduler) scheduleBackup(
 		}
 	}
 
-	go s.backuper.MakeBackup(ctx, backupID, true)
+	s.backuper.Dispatch(ctx, backupID, true)
 
 	logger.InfoContext(ctx, fmt.Sprintf("scheduled physical %s backup: %s", decision.kind, decision.reason))
 }
@@ -796,6 +668,7 @@ func (s *PhysicalBackupsScheduler) failBackupAndReleaseClaim(
 			Where("id = ? AND status = ?", spec.BackupID, physical_enums.PhysicalBackupStatusInProgress).
 			Updates(map[string]any{
 				"status":       physical_enums.PhysicalBackupStatusError,
+				"completed_at": time.Now().UTC(),
 				"error_reason": reason,
 				"fail_message": message,
 			})
@@ -864,48 +737,6 @@ func newestCreatedAt(
 	default:
 		return &full.CreatedAt
 	}
-}
-
-// decideReAnchoringFull answers the incremental cadence when no chain is left to
-// extend. Waiting for the FULL cadence instead would leave the database without
-// new restore points for a whole FULL interval, which on a weekly FULL is a week.
-// Two exceptions fall back to that wait anyway: a chain broken by SUMMARIZER_OFF
-// (a fresh FULL cannot fix a server-side setting, so re-anchoring at incremental
-// speed would just alternate full backups with broken incrementals forever) and
-// a source that produced no completed FULL in its newest few attempts (the
-// cluster is broken rather than merely chainless, and re-anchoring it at
-// incremental speed only burns it).
-func (s *PhysicalBackupsScheduler) decideReAnchoringFull(
-	logger *slog.Logger,
-	backupConfig backups.PhysicalBackupConfig,
-	lastIncr *physical_models.PhysicalIncrementalBackup,
-) (backupDecision, bool) {
-	if isChainBrokenBySummarizerOff(lastIncr) {
-		logger.Debug("nothing due: chain broken by summarizer off, which a fresh FULL cannot fix")
-
-		return backupDecision{}, false
-	}
-
-	recentFullBackups, err := s.fullRepo.FindNewestAnyStatusByDatabase(
-		backupConfig.DatabaseID, recentFullAttemptsWindow)
-	if err != nil {
-		logger.Error("failed to find recent full backups", "error", err)
-
-		return backupDecision{}, false
-	}
-
-	if hasNoRecentCompletedFull(recentFullBackups) {
-		logger.Debug(fmt.Sprintf(
-			"nothing due: no extendable chain and no completed full among the newest %d",
-			recentFullAttemptsWindow))
-
-		return backupDecision{}, false
-	}
-
-	return backupDecision{
-		kind:   physical_enums.PhysicalBackupTypeFull,
-		reason: "re-anchoring: no extendable chain",
-	}, true
 }
 
 // The newest incremental row is the right witness: any completed INCR after it

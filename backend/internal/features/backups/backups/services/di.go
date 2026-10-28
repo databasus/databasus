@@ -28,7 +28,6 @@ var getPhysicalBackupService = sync.OnceValue(func() *PhysicalBackupService {
 		physical_repositories.GetWalSegmentRepository(),
 		physical_repositories.GetInFlightBackupRepository(),
 		backuping_physical.GetPhysicalBackupCanceller(),
-		backuping_physical.GetPhysicalWalStreamSupervisor(),
 		backups_download.GetRestoreStreamWriter(),
 		backups_download.GetRestoreTokenService(),
 		encryption.GetMasterKey(),

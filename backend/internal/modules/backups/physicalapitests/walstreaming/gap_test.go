@@ -1,0 +1,97 @@
+package walstreaming_test
+
+import (
+	"context"
+	"fmt"
+	"net/http"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"databasus-backend/internal/app/apptest"
+	"databasus-backend/internal/lib/testwait"
+)
+
+func TestIncrementalPhysicalBackupAfterWalGap(t *testing.T) {
+	t.Run(
+		"completes an incremental after a missing streamed segment while reporting the catalog gap",
+		func(t *testing.T) {
+			team := newWalTeam(t, walTeamSpec{})
+			team.enable(t)
+			team.waitForReceiver(t)
+			var full backupRow
+			testwait.Until(t, "the initial full backup completes", func(context.Context) error {
+				for _, backup := range team.listBackups(t) {
+					if backup.Type == "FULL" && backup.Status == "COMPLETED" {
+						full = backup
+						return nil
+					}
+				}
+				return fmt.Errorf("no completed full")
+			})
+			source := team.openSource(t)
+			for range 4 {
+				rotateWal(t, source)
+			}
+			var segmentIDs []string
+			testwait.Until(t, "at least three committed WAL segments follow the full", func(context.Context) error {
+				team.App.QuerySQL(
+					t,
+					&segmentIDs,
+					"SELECT id FROM backups_physical_wal_segments WHERE database_id=? AND file_name IS NOT NULL AND end_lsn>?::pg_lsn ORDER BY start_lsn",
+					team.Database.Id,
+					full.StopLSN,
+				)
+				if len(segmentIDs) < 3 {
+					return fmt.Errorf("too few post-full segments")
+				}
+				return nil
+			})
+			team.App.ExecuteSQL(
+				t,
+				"DELETE FROM backups_physical_wal_segments WHERE id=?",
+				segmentIDs[len(segmentIDs)/2],
+			)
+			var page struct {
+				Backups []struct {
+					HasGapBefore bool `json:"hasGapBefore"`
+				} `json:"backups"`
+			}
+			team.call(
+				t,
+				apptest.OldAPICall{
+					Method: http.MethodGet,
+					Path:   "/backups/physical/database/" + team.Database.Id.String() + "/backups?types=WAL&limit=1000",
+				},
+				http.StatusOK,
+				&page,
+			)
+			hasGap := false
+			for _, backup := range page.Backups {
+				hasGap = hasGap || backup.HasGapBefore
+			}
+			require.True(t, hasGap)
+			team.call(
+				t,
+				apptest.OldAPICall{
+					Method: http.MethodPost,
+					Path:   "/backups/physical/database/" + team.Database.Id.String() + "/trigger",
+					Body:   map[string]string{"type": "incremental"},
+				},
+				http.StatusAccepted,
+				nil,
+			)
+			team.App.RunJobPass(t, "backups_physical_scheduler")
+			team.App.WaitForPhysicalBackups(t)
+			hasIncremental := false
+			for _, backup := range team.listBackups(t) {
+				if backup.Type == "INCREMENTAL" {
+					assert.Equal(t, "COMPLETED", backup.Status)
+					hasIncremental = true
+				}
+			}
+			assert.True(t, hasIncremental)
+		},
+	)
+}

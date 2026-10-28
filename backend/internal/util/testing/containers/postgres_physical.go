@@ -39,6 +39,7 @@ type physicalPostgresOptions struct {
 	shouldSpreadCheckpoints       bool
 	maxConnections                int
 	maxWalSenders                 int
+	walKeepSizeMB                 int
 }
 
 // PhysicalPostgresOption tunes a physical source container away from its replication-ready default.
@@ -61,6 +62,10 @@ func WithTablespace() PhysicalPostgresOption {
 // connections but refuses physical replication — the mode pg_basebackup / pg_receivewal actually use.
 func WithoutReplicationHbaEntry() PhysicalPostgresOption {
 	return func(o *physicalPostgresOptions) { o.shouldOmitReplicationHbaEntry = true }
+}
+
+func WithWalKeepSize(megabytes int) PhysicalPostgresOption {
+	return func(options *physicalPostgresOptions) { options.walKeepSizeMB = megabytes }
 }
 
 // WithMaxConnections runs the source with a raised max_connections so a restored cluster booted at
@@ -113,11 +118,6 @@ func createTablespaceInitScript() testcontainers.ContainerFile {
 }
 
 func physicalPostgresCmd(opts physicalPostgresOptions) []string {
-	summarize := "summarize_wal=on"
-	if !opts.shouldSummarizeWal {
-		summarize = "summarize_wal=off"
-	}
-
 	// pg_basebackup from a standby refuses a cluster whose WAL was generated with full_page_writes=off
 	// ("backup ... is corrupt"), so the replication-pair callers turn it on; single-node sources keep
 	// it off for the throwaway-durability speedup.
@@ -133,9 +133,9 @@ func physicalPostgresCmd(opts physicalPostgresOptions) []string {
 
 	cmd := []string{
 		"-c", "fsync=off", "-c", fullPageWrites, "-c", "synchronous_commit=off",
-		"-c", "wal_level=logical", "-c", summarize,
+		"-c", "wal_level=logical",
 		"-c", fmt.Sprintf("max_wal_senders=%d", maxWalSenders),
-		"-c", "max_replication_slots=10", "-c", "wal_keep_size=512MB",
+		"-c", "max_replication_slots=10", "-c", fmt.Sprintf("wal_keep_size=%dMB", opts.walKeepSizeMB),
 	}
 	if opts.maxConnections > 0 {
 		cmd = append(cmd, "-c", fmt.Sprintf("max_connections=%d", opts.maxConnections))
@@ -185,7 +185,7 @@ func StartPhysicalPostgresBehindSshBastion(
 }
 
 func resolvePhysicalPostgresOptions(opts []PhysicalPostgresOption) physicalPostgresOptions {
-	options := physicalPostgresOptions{shouldSummarizeWal: true}
+	options := physicalPostgresOptions{shouldSummarizeWal: true, walKeepSizeMB: 512}
 	for _, apply := range opts {
 		apply(&options)
 	}
@@ -194,7 +194,7 @@ func resolvePhysicalPostgresOptions(opts []PhysicalPostgresOption) physicalPostg
 }
 
 func physicalPostgresRequest(image string, options physicalPostgresOptions) testcontainers.ContainerRequest {
-	var files []testcontainers.ContainerFile
+	files := []testcontainers.ContainerFile{summarizerInitScript(options.shouldSummarizeWal)}
 	if !options.shouldOmitReplicationHbaEntry {
 		files = append(files, allowReplicationInitScript())
 	}

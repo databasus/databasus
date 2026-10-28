@@ -5,7 +5,6 @@ package databases_bridge
 import (
 	"encoding/json"
 	"net/http"
-	"net/http/httptest"
 	"strconv"
 	"testing"
 
@@ -71,44 +70,4 @@ func CreateTestDatabaseViaAPI(
 	require.NoError(t, err)
 
 	return database
-}
-
-// GetTestDatabaseViaAPI reads a database through the contract route.
-func GetTestDatabaseViaAPI(t *testing.T, router *gin.Engine, token string, databaseID uuid.UUID) apiclient.Database {
-	t.Helper()
-
-	response := workspaces_testing.MakeAPIRequest(
-		router, http.MethodGet, "/api/v1/databases/"+databaseID.String(), "Bearer "+token, nil,
-	)
-	require.Equalf(t, http.StatusOK, response.Code, "get database: %s", response.Body.String())
-
-	var foundDatabase apiclient.Database
-	require.NoError(t, json.Unmarshal(response.Body.Bytes(), &foundDatabase))
-
-	return foundDatabase
-}
-
-// UpdateTestDatabaseViaAPI reads a database through the contract route, lets change edit the update
-// built from it and sends the update. Secrets stay out of the update, so the stored ones are kept.
-func UpdateTestDatabaseViaAPI(
-	t *testing.T,
-	router *gin.Engine,
-	token string,
-	databaseID uuid.UUID,
-	change func(update *apiclient.DatabaseUpdate),
-) *httptest.ResponseRecorder {
-	t.Helper()
-
-	foundDatabase := GetTestDatabaseViaAPI(t, router, token, databaseID)
-
-	update := apiclient.DatabaseUpdate{
-		Name:        foundDatabase.Name,
-		NotifierIds: foundDatabase.NotifierIds,
-		Settings:    foundDatabase.Settings,
-	}
-	change(&update)
-
-	return workspaces_testing.MakeAPIRequest(
-		router, http.MethodPut, "/api/v1/databases/"+databaseID.String(), "Bearer "+token, update,
-	)
 }

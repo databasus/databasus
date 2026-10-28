@@ -45,20 +45,11 @@ func (s *WalStreamSupervisor) runUploaderLoop(ctx context.Context, logger *slog.
 func (s *WalStreamSupervisor) recoverLocalSegmentsOnStartup(ctx context.Context, logger *slog.Logger) {
 	s.archiveTimelineHistoryFiles(ctx, logger)
 
-	dispatcher := newSegmentUploadDispatcher(s.uploader.RecoverSegment, s.uploader.RecordConcurrentUploads)
-	defer dispatcher.waitForUploads()
-
-	notStartedSegments := s.listAndRecordQueuedSegments()
-
-	for ctx.Err() == nil {
-		notStartedSegments = dispatcher.startUploads(ctx, logger, notStartedSegments)
-
-		if dispatcher.getInFlightCount() == 0 {
-			return
-		}
-
-		dispatcher.markFinished(<-dispatcher.finishedUploads)
-	}
+	recoverQueuedWalSegments(ctx, logger, queuedWalRecoverySpec{
+		Upload:                  s.uploader.RecoverSegment,
+		RecordConcurrentUploads: s.uploader.RecordConcurrentUploads,
+		Segments:                s.listAndRecordQueuedSegments(),
+	})
 }
 
 func (s *WalStreamSupervisor) listAndRecordQueuedSegments() []queuedWalSegment {

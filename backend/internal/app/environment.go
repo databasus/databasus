@@ -17,6 +17,7 @@ import (
 	"databasus-backend/internal/lib/config"
 	"databasus-backend/internal/lib/logging"
 	"databasus-backend/internal/lib/mailer"
+	"databasus-backend/internal/modules/backups"
 	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/util/logger"
 )
@@ -42,6 +43,7 @@ type Environment struct {
 	// StorageFileTimings are the deadlines of stored files and their cleanup. A test application
 	// shortens them.
 	StorageFileTimings storages.FileTimings
+	WalStreamTimings   backups.WalStreamTimings
 }
 
 const notificationDeliveryTimeout = 30 * time.Second
@@ -133,6 +135,7 @@ func NewEnvironment(ctx context.Context, loadedConfig config.Config, clockSource
 		ExternalEndpoints:           GetPublicExternalEndpoints(),
 		NotificationDeliveryTimeout: notificationDeliveryTimeout,
 		StorageFileTimings:          storages.ProductionFileTimings(),
+		WalStreamTimings:            backups.ProductionWalStreamTimings(),
 	}, nil
 }
 

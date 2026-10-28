@@ -75,7 +75,7 @@ func (s *WalStreamSupervisor) realignResumePath(ctx context.Context, logger *slo
 	}
 
 	slotSegmentNo := walmath.NewWalSegmentNo(state.RestartLSN, uint64(segmentSizeBytes))
-	if resumeSegmentNo >= slotSegmentNo {
+	if !shouldRealignResumePath(resumePathState{ResumeSegmentNo: resumeSegmentNo, SlotSegmentNo: &slotSegmentNo}) {
 		return
 	}
 
@@ -92,4 +92,13 @@ func (s *WalStreamSupervisor) realignResumePath(ctx context.Context, logger *slo
 		"slot_restart_lsn", state.RestartLSN.String(),
 		"resume_segment_no", uint64(resumeSegmentNo),
 	)
+}
+
+type resumePathState struct {
+	ResumeSegmentNo walmath.WalSegmentNo
+	SlotSegmentNo   *walmath.WalSegmentNo
+}
+
+func shouldRealignResumePath(state resumePathState) bool {
+	return state.SlotSegmentNo != nil && state.ResumeSegmentNo < *state.SlotSegmentNo
 }

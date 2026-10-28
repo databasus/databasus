@@ -5,15 +5,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 
-	"databasus-backend/internal/config"
-	pgphysical "databasus-backend/internal/engines/postgresql/physical"
 	"databasus-backend/internal/engines/postgresql/physical/walmath"
-	pgshared "databasus-backend/internal/engines/postgresql/shared"
-	"databasus-backend/internal/modules/databases"
-	"databasus-backend/internal/util/logger"
 )
 
 func Test_MovePendingUploadsOutOfResumePath_MovesOnlySegmentsBelowFloor(t *testing.T) {
@@ -68,39 +62,4 @@ func Test_MovePendingUploadsOutOfResumePath_WhenSegmentIsShort_LeavesItForRestre
 		"a torn segment is re-streamed, and it cannot anchor the resume point, so staging it would only risk uploading it",
 	)
 	require.NoFileExists(t, filepath.Join(watchDir, pendingUploadDirName, walName(1, 41)))
-}
-
-func Test_RealignResumePath_WhenSourceUnreachable_LeavesQueueUntouched(t *testing.T) {
-	unreachableSourceDB := databases.PostgresqlPhysicalConnectionSettings{
-		Engine: pgphysical.Settings{
-			Host:     "127.0.0.1",
-			Port:     1,
-			Username: "streamer",
-			Password: "streamer",
-		},
-		WalStreamSlotName: "databasus_unreachable_source",
-	}
-
-	supervisor := NewWalStreamSupervisor(WalStreamSpec{
-		ClientTools:  pgshared.ClientTools{Root: config.GetEnv().ClientToolsDir},
-		DatabaseID:   uuid.New(),
-		SourceDB:     unreachableSourceDB,
-		WatchDirRoot: t.TempDir(),
-		Logger:       logger.GetLogger(),
-	})
-
-	require.NoError(t, os.MkdirAll(supervisor.watchDir, 0o700))
-
-	for _, segmentNo := range []uint64{60, 61} {
-		writeSegmentOfSize(t, supervisor.watchDir, walName(1, segmentNo), testWalSegmentSize)
-	}
-
-	supervisor.realignResumePath(t.Context(), logger.GetLogger())
-
-	for _, segmentNo := range []uint64{60, 61} {
-		require.FileExists(t, filepath.Join(supervisor.watchDir, walName(1, segmentNo)),
-			"without the slot's restart_lsn there is no floor to realign against, so the queue must stay put")
-	}
-
-	require.NoDirExists(t, filepath.Join(supervisor.watchDir, pendingUploadDirName))
 }

@@ -119,19 +119,18 @@ func (s *WalStreamSupervisor) inspectSourceSlot(ctx context.Context, logger *slo
 	defer func() { _ = conn.Close(context.Background()) }()
 
 	state, err := conn.GetSlot(probeCtx, s.slotName)
-	if err == nil && state != nil && state.CurrentLSN == nil {
-		err = errSourceWalPositionUnavailable
+	probe := classifySlotInspection(slotInspection{State: state, Error: err})
+	if probe.Outcome == slotProbeOutcomeUnreachable {
+		inspectionError := err
+		if inspectionError == nil {
+			inspectionError = errSourceWalPositionUnavailable
+		}
+		logger.DebugContext(ctx, "failed to inspect the replication slot", "error", inspectionError)
+		return probe
 	}
-	if err != nil {
-		logger.DebugContext(ctx, "failed to inspect the replication slot", "error", err)
-
-		return slotProbe{Outcome: slotProbeOutcomeUnreachable}
-	}
-
-	if state == nil {
+	if probe.Outcome == slotProbeOutcomeSlotMissing {
 		logger.WarnContext(ctx, "the replication slot no longer exists on the source")
-
-		return slotProbe{Outcome: slotProbeOutcomeSlotMissing}
+		return probe
 	}
 
 	if err := conn.Ping(probeCtx); err != nil {
@@ -183,4 +182,19 @@ func (s *WalStreamSupervisor) runSlotLsnWatcher(ctx context.Context, logger *slo
 			}
 		}
 	}
+}
+
+type slotInspection struct {
+	State *pgphysical.Slot
+	Error error
+}
+
+func classifySlotInspection(inspection slotInspection) slotProbe {
+	if inspection.Error != nil || (inspection.State != nil && inspection.State.CurrentLSN == nil) {
+		return slotProbe{Outcome: slotProbeOutcomeUnreachable}
+	}
+	if inspection.State == nil {
+		return slotProbe{Outcome: slotProbeOutcomeSlotMissing}
+	}
+	return slotProbe{Outcome: slotProbeOutcomeReachable, State: inspection.State}
 }

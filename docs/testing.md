@@ -25,6 +25,8 @@ Paths under `internal/` are inside `backend/`.
 
 A frontend screen test runs in a browser-like DOM, which it selects with `// @vitest-environment happy-dom` on its first line, and renders the screen through `renderScreen` from `shared/lib/test`, which adds the language and the antd `App` the application wraps it in. Testing Library drives it the way a user does, by labels, placeholders and button names. The other frontend tests run in node.
 
+A module whose API tests outlast one package may split them into test-only packages under its directory, such as `internal/modules/backups/physicalapitests/`.
+
 Module API tests cover most behavior. A unit test without the application is used only for pure logic that has no HTTP entry point, or that is too slow to enumerate through HTTP. Examples are the scheduler's decision function, retention arithmetic, WAL position math, manifest reconstruction and parsers.
 
 ## The test application
@@ -36,7 +38,11 @@ Module API tests cover most behavior. A unit test without the application is use
 - fakes for external systems: an email recorder, an HTTP server for webhook and chat notifiers, and a local directory or a MinIO bucket for storages;
 - background jobs that never run on their own; the test runs each pass of a job explicitly.
 
-`apptest.WithPhysicalBackupLoops()` explicitly starts the old physical backup scheduler and WAL stream supervisor for the lifetime of the test application, until they become jobs of the backups module. Cleanup stops the loops and waits for their backups and WAL streams before closing the internal database; a run that outlives the cleanup fails the test. The physical cleaner runs only through `RunPhysicalBackupCleanerPass`. Without the option, physical loops never start.
+`apptest.WithPhysicalBackupLoops()` starts the old physical backup scheduler and WAL stream supervisor for the lifetime of the test application, until they become jobs of the backups module. Without the option, physical loops never start. The physical cleaner never runs on its own. With or without the option, `RunJobPass` runs one scheduler pass as `backups_physical_scheduler` or one cleaner pass as `backups_physical_cleaner`. A scheduler pass returns after dispatching its backups; the test waits for their outcome through the API.
+
+`RestartModules` runs the physical startup work in the server's order: fail backups left in progress, fail stale streamers, then sweep orphan backup slots on reachable sources. With live loops it first stops them, preserving streaming slots and the local queue, and starts them again after the modules restart. In both modes it waits for dispatched physical backups to finish before startup recovery runs. Cleanup stops the loops and waits for dispatched backups and WAL streams before closing the internal database. Work that outlives the cleanup fails the test.
+
+`apptest.WithWalStreamTimings` shortens forced WAL rotation, archive staleness and the queue pause size for one application. The server keeps the production values. Physical tests leave `App.Clock` at its initial real time while the old code reads the wall clock, and seed timestamps with margins of minutes. Negative checks use explicit scheduler or cleaner passes; live-loop checks wait only for positive outcomes.
 
 While old code is wired through process-wide state, the `apptest` tests of one package run one at a time: they never call `t.Parallel`, and a second `apptest.New` while one instance is alive in the process fails the test. Test packages still run in parallel with each other. The limit goes away once no old code is left.
 
@@ -61,6 +67,8 @@ While working, run the package or the test you need right now. Before handing th
 
 The full run is `mise run test`. It holds a machine-wide lock, so only one full run goes at a time and the others wait. Single packages and single tests run without the lock. CI runs everything on every pull request.
 
+`mise run backend:test-group physical-api-1-of-3 physical-api-2-of-3 physical-api-3-of-3` runs the physical API suite with the same selections as CI. The selected shards run concurrently in separate processes, each with the package task's race checks and 15-minute timeout. Each process stops after its first failed test, as CI does. Use a single shard name to repeat that selection. The task also accepts the `physical` and `logical` shards; it rejects unsharded groups and `other`.
+
 ## Runs
 
 - Backend tests run with `-race`, and a data race fails the test.
@@ -75,6 +83,7 @@ Until the tests of old code move into modules, the filesystem tests run only thr
 | What | Command |
 |---|---|
 | Given backend packages | `mise run backend:test-package <packages>` |
+| Selected CI shards, concurrently | `mise run backend:test-group <shard>...` |
 | Everything | `mise run test` |
 | One backend package | `go test -race -count=1 ./internal/modules/<module>/...` in `backend/` |
 | One backend test | `go test -race -count=1 -run 'TestName/scenario text' ./internal/modules/<module>/...` in `backend/` |

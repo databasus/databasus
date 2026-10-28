@@ -9,8 +9,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"databasus-backend/internal/config"
-	pgshared "databasus-backend/internal/engines/postgresql/shared"
 	physical_enums "databasus-backend/internal/features/backups/backups/core/physical/enums"
 )
 
@@ -117,7 +115,6 @@ func Test_RecheckFullStreamFailure_WhenCanceled_PreservesResultWithoutProbe(t *t
 
 	probeCalls := 0
 	common := CommonBackupSpec{
-		ClientTools: pgshared.ClientTools{Root: config.GetEnv().ClientToolsDir},
 		timelineProbe: func(context.Context, int) (*TimelineDecision, error) {
 			probeCalls++
 
@@ -139,7 +136,6 @@ func Test_RecheckIncrementalStreamFailure_WhenCanceled_PreservesResultWithoutPro
 	}
 	probeCalls := 0
 	common := CommonBackupSpec{
-		ClientTools: pgshared.ClientTools{Root: config.GetEnv().ClientToolsDir},
 		timelineProbe: func(context.Context, int) (*TimelineDecision, error) {
 			probeCalls++
 
@@ -160,8 +156,7 @@ func Test_RecheckFullStreamFailure_WhenTimelineAdvanced_ClassifiesFailover(t *te
 		ErrorReason: &originalReason,
 	}
 	common := CommonBackupSpec{
-		ClientTools: pgshared.ClientTools{Root: config.GetEnv().ClientToolsDir},
-		Logger:      slog.New(slog.NewTextHandler(io.Discard, nil)),
+		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)),
 		timelineProbe: func(_ context.Context, expectedTimelineID int) (*TimelineDecision, error) {
 			require.Equal(t, 3, expectedTimelineID)
 
@@ -186,8 +181,7 @@ func Test_RecheckIncrementalStreamFailure_WhenTimelineAdvanced_BreaksChain(t *te
 		ErrorReason: &originalReason,
 	}
 	common := CommonBackupSpec{
-		ClientTools: pgshared.ClientTools{Root: config.GetEnv().ClientToolsDir},
-		Logger:      slog.New(slog.NewTextHandler(io.Discard, nil)),
+		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)),
 		timelineProbe: func(_ context.Context, expectedTimelineID int) (*TimelineDecision, error) {
 			require.Equal(t, 3, expectedTimelineID)
 
@@ -213,8 +207,7 @@ func Test_RecheckStreamFailure_WhenIdentityProbeFails_PreservesOriginalResult(t 
 		ErrorMessage: "original stream failure",
 	}
 	common := CommonBackupSpec{
-		ClientTools: pgshared.ClientTools{Root: config.GetEnv().ClientToolsDir},
-		Logger:      slog.New(slog.NewTextHandler(io.Discard, nil)),
+		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)),
 		timelineProbe: func(context.Context, int) (*TimelineDecision, error) {
 			return nil, errors.New("identity probe failed")
 		},

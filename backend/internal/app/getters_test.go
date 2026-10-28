@@ -49,18 +49,6 @@ func getOldCodeGetters() []oldCodeGetter {
 			func() any { return backups_backups_backuping_physical.GetPhysicalBackuper() },
 		},
 		{
-			"features/backups/backups/backuping/physical.GetPhysicalBackupsScheduler",
-			func() any { return backups_backups_backuping_physical.GetPhysicalBackupsScheduler() },
-		},
-		{
-			"features/backups/backups/backuping/physical.GetPhysicalBackupCleaner",
-			func() any { return backups_backups_backuping_physical.GetPhysicalBackupCleaner() },
-		},
-		{
-			"features/backups/backups/backuping/physical.GetPhysicalWalStreamSupervisor",
-			func() any { return backups_backups_backuping_physical.GetPhysicalWalStreamSupervisor() },
-		},
-		{
 			"features/backups/backups/backuping/physical.GetPhysicalBackupCanceller",
 			func() any { return backups_backups_backuping_physical.GetPhysicalBackupCanceller() },
 		},

@@ -28,16 +28,9 @@ type receiverRunResult struct {
 func (s *WalStreamSupervisor) spawnAndSupervise(ctx context.Context, logger *slog.Logger) receiverRunResult {
 	procCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
-	s.restartMu.Lock()
-	s.cancelReceiver = cancel
-	if s.isRestartRequested {
-		cancel()
-	}
-	s.restartMu.Unlock()
+	s.restartLatch.SetReceiver(cancel)
 	defer func() {
-		s.restartMu.Lock()
-		s.cancelReceiver = nil
-		s.restartMu.Unlock()
+		s.restartLatch.ClearReceiver()
 		s.receiverRunStartedAtUnixNano.Store(0)
 	}()
 	source := pgphysical.NewSource(s.spec.SourceDB.Engine)
@@ -50,10 +43,7 @@ func (s *WalStreamSupervisor) spawnAndSupervise(ctx context.Context, logger *slo
 	if ctx.Err() != nil {
 		return receiverRunResult{Exit: receiverCtxCancelled, RanFor: receiver.RanFor}
 	}
-	s.restartMu.Lock()
-	isRestartRequested := s.isRestartRequested
-	s.restartMu.Unlock()
-	if isRestartRequested {
+	if s.restartLatch.IsRequested() {
 		return receiverRunResult{Exit: receiverInternalRestart, RanFor: receiver.RanFor}
 	}
 

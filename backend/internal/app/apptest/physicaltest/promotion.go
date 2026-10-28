@@ -89,7 +89,7 @@ func RunPromotionReanchorsChain(t *testing.T, image string) {
 	team.waitForTimelineHistory(t, 2)
 	team.triggerIncremental(t)
 	team.waitForReanchoredFull(t, initialFullID, 2)
-	team.App.RunPhysicalBackupCleanerPass(t)
+	team.App.RunJobPass(t, "backups_physical_cleaner")
 	bundle := team.downloadRestoreBundle(t, nil)
 	reconstructCluster(t, target, restoreSpec{App: team.App, Image: image, BundlePath: bundle, TargetTime: nil})
 	startRestoredCluster(t, target, image)

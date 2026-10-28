@@ -67,6 +67,16 @@ func runStream(ctx context.Context, spec streamSpec) (streamOutcome, error) {
 	}
 	_ = storageWriter.Close()
 	saveErr := <-fileWrite.Errors
+	if ctx.Err() != nil {
+		reason := physical_enums.PhysicalBackupErrorCanceledByUser
+
+		return streamOutcome{
+			Status:       physical_enums.PhysicalBackupStatusCanceled,
+			ErrorReason:  &reason,
+			ErrorMessage: ctx.Err().Error(),
+		}, nil
+	}
+
 	var failure *pgphysical.BaseBackupError
 	if errors.As(streamErr, &failure) {
 		switch failure.Kind {

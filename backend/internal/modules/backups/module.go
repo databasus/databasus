@@ -316,3 +316,17 @@ func New(deps Deps) Module {
 		}),
 	})
 }
+
+type WalStreamTimings struct {
+	ForcedRotationInterval    time.Duration
+	ArchiveStalenessThreshold time.Duration
+	LocalQueuePauseBytes      int64
+}
+
+func ProductionWalStreamTimings() WalStreamTimings {
+	return WalStreamTimings{
+		ForcedRotationInterval:    5 * time.Minute,
+		ArchiveStalenessThreshold: 30 * time.Minute,
+		LocalQueuePauseBytes:      0,
+	}
+}

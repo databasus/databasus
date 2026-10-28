@@ -3,6 +3,7 @@ package apptest
 import (
 	"time"
 
+	"databasus-backend/internal/modules/backups"
 	"databasus-backend/internal/modules/storages"
 )
 
@@ -21,7 +22,8 @@ type settings struct {
 	notificationDeliveryTimeout time.Duration
 	notifierEndpoints           NotifierEndpoints
 	// fileTimings is nil for the timings the server uses.
-	fileTimings *storages.FileTimings
+	fileTimings      *storages.FileTimings
+	walStreamTimings *backups.WalStreamTimings
 }
 
 // NotifierEndpoints are the addresses a test points the Slack and Telegram notifiers at.
@@ -101,5 +103,11 @@ func WithPublicURL(publicURL string) Option {
 func WithPhysicalBackupLoops() Option {
 	return func(applied *settings) {
 		applied.isPhysicalBackupLoopsEnabled = true
+	}
+}
+
+func WithWalStreamTimings(timings backups.WalStreamTimings) Option {
+	return func(applied *settings) {
+		applied.walStreamTimings = &timings
 	}
 }

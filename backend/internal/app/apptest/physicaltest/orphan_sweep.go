@@ -27,6 +27,6 @@ func RunOrphanSweep(t *testing.T, image string) {
 	insertMarker(t, conn, markerRow{Phase: "after-target", Payload: "row-after-target"})
 	generateWalActivity(t, conn, 64*1024*1024)
 	team.waitForTargetTimeReplayable(t, targetTime)
-	team.App.RunPhysicalBackupCleanerPass(t)
+	team.App.RunJobPass(t, "backups_physical_cleaner")
 	assert.NotEmpty(t, team.restoreToken(t, &targetTime))
 }

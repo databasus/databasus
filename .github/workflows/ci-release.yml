@@ -313,11 +313,11 @@ jobs:
             runner: namespace-profile-4vcpu-8ram-ubuntu-22-x64
           - group: physical-3-of-3
             runner: namespace-profile-4vcpu-8ram-ubuntu-22-x64
-          - group: wal-usecases-1-of-3
+          - group: physical-api-1-of-3
             runner: namespace-profile-4vcpu-8ram-ubuntu-22-x64
-          - group: wal-usecases-2-of-3
+          - group: physical-api-2-of-3
             runner: namespace-profile-4vcpu-8ram-ubuntu-22-x64
-          - group: wal-usecases-3-of-3
+          - group: physical-api-3-of-3
             runner: namespace-profile-4vcpu-8ram-ubuntu-22-x64
     steps:
       - name: Check out code

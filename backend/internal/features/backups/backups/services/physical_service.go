@@ -65,7 +65,6 @@ type PhysicalBackupService struct {
 	walSegmentRepository        *physical_repositories.PhysicalWalSegmentRepository
 	inFlightBackupRepository    *physical_repositories.PhysicalInFlightBackupRepository
 	canceller                   *backuping_physical.PhysicalBackupCanceller
-	walStreamSupervisor         *backuping_physical.PhysicalWalStreamSupervisor
 	restoreStreamWriter         *restore_stream.Writer
 	restoreTokenService         *restore_token.Service
 	masterKey                   *crypto.MasterKey

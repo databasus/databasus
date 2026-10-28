@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"slices"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -33,8 +34,6 @@ import (
 	"databasus-backend/internal/storage"
 )
 
-// PhysicalBackuper drives a FULL or INCR through the postgresql executor.
-// The scheduler invokes MakeBackup directly in a goroutine.
 // Every stored artifact carries a sidecar under the same name plus this suffix.
 const metadataSuffix = ".metadata"
 
@@ -56,6 +55,7 @@ type PhysicalBackuper struct {
 	logger                   *slog.Logger
 	fullExecutor             FullBackupExecutor
 	incrExecutor             IncrementalBackupExecutor
+	dispatchedBackups        sync.WaitGroup
 }
 
 func (b *PhysicalBackuper) MakeBackup(ctx context.Context, backupID uuid.UUID, isCallNotifier bool) {
@@ -731,6 +731,7 @@ func (b *PhysicalBackuper) finalizeIncrWithStatus(
 	r := reason
 
 	incrBackup.Status = status
+	incrBackup.CompletedAt = new(time.Now().UTC())
 	incrBackup.ErrorReason = &r
 	incrBackup.FailMessage = nilOrPtr(message)
 
@@ -837,27 +838,14 @@ func classifyFullBackupNotification(
 		workspaceName = ws.Name
 	}
 
-	switch fullBackup.Status {
-	case physical_enums.PhysicalBackupStatusCompleted:
-		return backups.NotificationTriggerBackupSuccess,
-			fmt.Sprintf("Physical FULL completed for %q (workspace %q)", db.Name, workspaceName),
-			fmt.Sprintf("backup_id=%s size=%.2f MB duration=%dms",
-				fullBackup.ID, backupResult.BackupSizeMb, backupResult.BackupDurationMs)
-
-	case physical_enums.PhysicalBackupStatusError:
-		return backups.NotificationTriggerBackupFailed,
-			fmt.Sprintf("Physical FULL failed for %q (workspace %q)", db.Name, workspaceName),
-			fmt.Sprintf("backup_id=%s reason=%s message=%s",
-				fullBackup.ID, reasonOrEmpty(fullBackup.ErrorReason), backupResult.ErrorMessage)
-
-	case physical_enums.PhysicalBackupStatusChainBroken:
-		return backups.NotificationTriggerChainBroken,
-			fmt.Sprintf("Physical FULL chain-broken for %q (workspace %q)", db.Name, workspaceName),
-			fmt.Sprintf("backup_id=%s reason=%s message=%s",
-				fullBackup.ID, reasonOrEmpty(fullBackup.ErrorReason), backupResult.ErrorMessage)
-	}
-
-	return "", "", ""
+	return classifyFullNotification(
+		backupNotificationSpec{
+			Database:      db,
+			WorkspaceName: workspaceName,
+			BackupResult:  backupResult,
+			FullBackup:    fullBackup,
+		},
+	)
 }
 
 func classifyIncrBackupNotification(
@@ -872,27 +860,14 @@ func classifyIncrBackupNotification(
 		workspaceName = ws.Name
 	}
 
-	switch incrBackup.Status {
-	case physical_enums.PhysicalBackupStatusCompleted:
-		return backups.NotificationTriggerBackupSuccess,
-			fmt.Sprintf("Physical INCR completed for %q (workspace %q)", db.Name, workspaceName),
-			fmt.Sprintf("backup_id=%s size=%.2f MB duration=%dms",
-				incrBackup.ID, backupResult.BackupSizeMb, backupResult.BackupDurationMs)
-
-	case physical_enums.PhysicalBackupStatusError:
-		return backups.NotificationTriggerBackupFailed,
-			fmt.Sprintf("Physical INCR failed for %q (workspace %q)", db.Name, workspaceName),
-			fmt.Sprintf("backup_id=%s reason=%s message=%s",
-				incrBackup.ID, reasonOrEmpty(incrBackup.ErrorReason), backupResult.ErrorMessage)
-
-	case physical_enums.PhysicalBackupStatusChainBroken:
-		return backups.NotificationTriggerChainBroken,
-			fmt.Sprintf("Physical INCR chain-broken for %q (workspace %q)", db.Name, workspaceName),
-			fmt.Sprintf("backup_id=%s reason=%s message=%s",
-				incrBackup.ID, reasonOrEmpty(incrBackup.ErrorReason), backupResult.ErrorMessage)
-	}
-
-	return "", "", ""
+	return classifyIncrNotification(
+		backupNotificationSpec{
+			Database:          db,
+			WorkspaceName:     workspaceName,
+			BackupResult:      backupResult,
+			IncrementalBackup: incrBackup,
+		},
+	)
 }
 
 func reasonOrEmpty(r *physical_enums.PhysicalBackupErrorReason) string {

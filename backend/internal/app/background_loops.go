@@ -20,10 +20,10 @@ type backgroundLoop struct {
 func (a *App) startBackgroundLoops(ctx context.Context) {
 	loops := []backgroundLoop{
 		{"verification scheduler", verification_runs.GetVerificationScheduler().Run},
-		{"physical backup scheduler background service", backuping_physical.GetPhysicalBackupsScheduler().Run},
-		{"physical backup cleaner background service", backuping_physical.GetPhysicalBackupCleaner().Run},
+		{"physical backup scheduler background service", a.physicalScheduler.Run},
+		{"physical backup cleaner background service", a.physicalCleaner.Run},
 		{"healthcheck attempt background service", healthcheck_attempt.GetHealthcheckAttemptBackgroundService().Run},
-		{"physical wal stream supervisor background service", backuping_physical.GetPhysicalWalStreamSupervisor().Run},
+		{"physical wal stream supervisor background service", a.physicalSupervisor.Run},
 		{"telemetry background service", telemetry.GetTelemetryBackgroundService().Run},
 	}
 
@@ -42,7 +42,10 @@ func (a *App) StartPhysicalBackupLoops(ctx context.Context) func(context.Context
 	group := background.New(background.Deps{Logger: a.logger})
 	loops := []backgroundLoop{
 		{"physical backup scheduler", backuping_physical.NewPhysicalBackupsScheduler().Run},
-		{"physical wal stream supervisor", backuping_physical.NewPhysicalWalStreamSupervisor().Run},
+		{
+			"physical wal stream supervisor",
+			backuping_physical.NewPhysicalWalStreamSupervisor(a.environment.WalStreamTimings).Run,
+		},
 	}
 	for _, loop := range loops {
 		group.Go(ctx, loop.name, func(loopCtx context.Context) error {
@@ -61,6 +64,6 @@ func (a *App) StartPhysicalBackupLoops(ctx context.Context) func(context.Context
 	}
 }
 
-func (a *App) RunPhysicalBackupCleanerPass(ctx context.Context) error {
-	return backuping_physical.NewPhysicalBackupCleaner().RunPass(ctx)
+func (a *App) WaitForPhysicalBackups(ctx context.Context) error {
+	return backuping_physical.GetPhysicalBackuper().WaitForDispatchedBackups(ctx)
 }

@@ -1,22 +1,15 @@
 package databases_test
 
 import (
-	"context"
-	"errors"
-	"fmt"
 	"net/http"
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/jackc/pgx/v5/pgproto3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"databasus-backend/internal/app/apptest"
-	backups_bridge "databasus-backend/internal/features/backups/config"
 	apiclient "databasus-backend/internal/lib/apiclient"
-	"databasus-backend/internal/lib/testwait"
 	"databasus-backend/internal/util/testing/containers"
 )
 
@@ -98,55 +91,6 @@ func TestDeleteDatabase(t *testing.T) {
 
 		tm.app.RunJobPass(t, storageFileDeletionJob)
 		assert.True(t, tm.app.IsLocalStorageFilePresent(t, storedBackup.fileName))
-	})
-}
-
-func TestDeletePhysicalDatabase(t *testing.T) {
-	physicalServer := containers.StartPhysicalPostgres(t, "postgres:17")
-
-	t.Run("stops the WAL streamer and drops its replication slots after the database is gone", func(t *testing.T) {
-		tm := newTeam(t)
-		savedDatabase := tm.createDatabase(t,
-			newPostgresqlPhysicalSettings(t, physicalServer, apiclient.PhysicalBackupTypeFULLINCREMENTALWALSTREAM))
-		slotNames := readReplicationSlotNames(t, tm, savedDatabase.Id)
-		walSlotName := slotNames[0]
-		adminConn := connectAsAdmin(t, physicalServer, containers.PostgresDatabase)
-
-		for _, slotName := range slotNames {
-			_, err := adminConn.Exec(t.Context(), "SELECT pg_create_physical_replication_slot($1, true)", slotName)
-			require.NoError(t, err)
-		}
-
-		walStreamer := startWalStreamerTask(t, physicalServer, savedDatabase.Id, walSlotName)
-
-		response := deleteDatabase(t, tm.owner, savedDatabase.Id)
-
-		require.Equal(t, http.StatusNoContent, response.StatusCode(), string(response.Body))
-		assert.Empty(t, tm.listDatabaseIDs(t))
-
-		testwait.Until(t, "the WAL streamer task is cancelled", func(context.Context) error {
-			select {
-			case <-walStreamer.stopped:
-				return nil
-			default:
-				return errors.New("the WAL streamer task is still running")
-			}
-		})
-
-		testwait.Until(t, "the replication slots are dropped", func(ctx context.Context) error {
-			var remainingSlotCount int
-			err := adminConn.QueryRow(ctx, "SELECT COUNT(*) FROM pg_replication_slots WHERE slot_name = ANY($1)",
-				slotNames).Scan(&remainingSlotCount)
-			if err != nil {
-				return err
-			}
-
-			if remainingSlotCount > 0 {
-				return fmt.Errorf("%d replication slots remain", remainingSlotCount)
-			}
-
-			return nil
-		})
 	})
 }
 
@@ -262,83 +206,4 @@ func refuseLogicalBackupDeletion(t *testing.T, app *apptest.App) {
 		$$ LANGUAGE plpgsql`)
 	app.ExecuteSQL(t, `CREATE TRIGGER refuse_logical_backup_deletion BEFORE DELETE ON backups_logical
 		FOR EACH ROW EXECUTE FUNCTION refuse_logical_backup_deletion()`)
-}
-
-// readReplicationSlotNames reads the slot names the module gave the database, which the API does not
-// return: the WAL streamer's slot first, then the per-backup slot.
-func readReplicationSlotNames(t *testing.T, tm team, databaseID uuid.UUID) []string {
-	t.Helper()
-
-	var slotRows []struct {
-		ReplicationSlotName string
-		BackupSlotName      string
-	}
-	tm.app.QuerySQL(t, &slotRows, `SELECT replication_slot_name, backup_slot_name
-		FROM databases_postgresql_physical WHERE database_id = ?`, databaseID)
-	require.Len(t, slotRows, 1)
-
-	return []string{slotRows[0].ReplicationSlotName, slotRows[0].BackupSlotName}
-}
-
-// walStreamerTask stands in for the WAL supervisor's streamer: it streams from the slot and is
-// registered for cancellation under the database ID, as the supervisor registers pg_receivewal.
-// When cancelled, it closes its stream and reports that it stopped.
-type walStreamerTask struct {
-	stopped chan struct{}
-}
-
-func startWalStreamerTask(
-	t *testing.T,
-	server containers.Endpoint,
-	databaseID uuid.UUID,
-	walSlotName string,
-) walStreamerTask {
-	t.Helper()
-
-	walStream := attachWalStream(t, server, walSlotName)
-	streamer := walStreamerTask{stopped: make(chan struct{})}
-
-	backups_bridge.GetCancellationRegistry().Register(databaseID, func() {
-		_ = walStream.Close(t.Context())
-		close(streamer.stopped)
-	})
-	t.Cleanup(func() { backups_bridge.GetCancellationRegistry().Unregister(databaseID) })
-
-	return streamer
-}
-
-// attachWalStream streams from the slot over a physical replication connection, as the WAL streamer's
-// pg_receivewal does, so the server reports the slot active until the stream ends.
-func attachWalStream(t *testing.T, server containers.Endpoint, slotName string) *pgconn.PgConn {
-	t.Helper()
-
-	adminConn := connectAsAdmin(t, server, containers.PostgresDatabase)
-
-	var restartLsn string
-	require.NoError(t, adminConn.QueryRow(t.Context(),
-		"SELECT restart_lsn::text FROM pg_replication_slots WHERE slot_name = $1", slotName).Scan(&restartLsn))
-
-	streamConn, err := pgconn.Connect(t.Context(), fmt.Sprintf(
-		"host=%s port=%d user='%s' password='%s' dbname=postgres sslmode=disable replication=true",
-		server.Host, server.Port, containers.PostgresUsername, containers.PostgresPassword,
-	))
-	require.NoError(t, err)
-
-	t.Cleanup(func() { _ = streamConn.Close(t.Context()) })
-
-	frontend := streamConn.Frontend()
-	frontend.Send(&pgproto3.Query{String: fmt.Sprintf("START_REPLICATION SLOT %s PHYSICAL %s", slotName, restartLsn)})
-	require.NoError(t, frontend.Flush())
-
-	for {
-		message, err := frontend.Receive()
-		require.NoError(t, err)
-
-		switch typedMessage := message.(type) {
-		case *pgproto3.CopyBothResponse:
-			return streamConn
-		case *pgproto3.ErrorResponse:
-			t.Fatalf("failed to start streaming from slot %s: %s", slotName, typedMessage.Message)
-		}
-	}
 }

@@ -168,6 +168,7 @@ type WalStreamSpec struct {
 	// segment, so the newest WAL reaches storage without waiting for the segment to
 	// fill (wal_rotation.go). Zero disables it.
 	ForcedRotationInterval time.Duration
+	LocalQueuePauseBytes   int64
 
 	// How far the archived recovery point may fall behind a source that keeps
 	// writing before the operator is alerted (wal_staleness.go). Zero disables it.
@@ -213,9 +214,7 @@ type WalStreamSupervisor struct {
 	highWatermarkBytes atomic.Int64
 	lowWatermarkBytes  atomic.Int64
 
-	restartMu          sync.Mutex
-	cancelReceiver     context.CancelFunc
-	isRestartRequested bool
+	restartLatch receiverRestartLatch
 
 	// Holds the supervision loop between pg_receivewal runs so a slot rebuild can
 	// drop+recreate the slot without the receiver re-attaching.
@@ -285,7 +284,11 @@ func NewWalStreamSupervisor(spec WalStreamSpec) *WalStreamSupervisor {
 		sessionStartedAt: time.Now().UTC(),
 	}
 
-	supervisor.setLocalQueuePauseBytes(getDefaultLocalQueuePauseBytes(spec.SourceDB))
+	pauseBytes := spec.LocalQueuePauseBytes
+	if pauseBytes <= 0 {
+		pauseBytes = getDefaultLocalQueuePauseBytes(spec.SourceDB)
+	}
+	supervisor.setLocalQueuePauseBytes(pauseBytes)
 
 	return supervisor
 }
@@ -539,18 +542,11 @@ func (s *WalStreamSupervisor) waitWhilePaused(ctx context.Context) bool {
 }
 
 func (s *WalStreamSupervisor) signalRestart() {
-	s.restartMu.Lock()
-	defer s.restartMu.Unlock()
-	s.isRestartRequested = true
-	if s.cancelReceiver != nil {
-		s.cancelReceiver()
-	}
+	s.restartLatch.Request()
 }
 
 func (s *WalStreamSupervisor) clearRestartRequest() {
-	s.restartMu.Lock()
-	defer s.restartMu.Unlock()
-	s.isRestartRequested = false
+	s.restartLatch.Reset()
 }
 
 // Zero while no receiver runs.

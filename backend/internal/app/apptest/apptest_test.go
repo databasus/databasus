@@ -20,6 +20,7 @@ import (
 	apiclient "databasus-backend/internal/lib/apiclient"
 	"databasus-backend/internal/lib/database"
 	"databasus-backend/internal/lib/testwait"
+	"databasus-backend/internal/modules/backups"
 	"databasus-backend/internal/util/testing/containers"
 )
 
@@ -78,6 +79,28 @@ func TestNew(t *testing.T) {
 }
 
 func TestRunJobPass(t *testing.T) {
+	t.Run("starts a full backup when one scheduler pass finds a database without a full backup", func(t *testing.T) {
+		testApp := New(t)
+		source := containers.StartPhysicalPostgres(t, "postgres:17")
+		owner, database := enablePhysicalBackupLoops(t, testApp, source)
+
+		testApp.RunJobPass(t, "backups_physical_scheduler")
+
+		dispatchedBackups := listPhysicalBackups(t, testApp, owner, database.Id)
+		require.Len(t, dispatchedBackups, 1)
+		assert.Equal(t, "FULL", dispatchedBackups[0].Type)
+		require.Contains(t, []string{"IN_PROGRESS", "COMPLETED"}, dispatchedBackups[0].Status)
+
+		testwait.Until(t, "the dispatched physical backup completes without another pass", func(context.Context) error {
+			listedBackups := listPhysicalBackups(t, testApp, owner, database.Id)
+			require.Len(t, listedBackups, 1)
+			if listedBackups[0].Status != "COMPLETED" {
+				return fmt.Errorf("backup status: %s", listedBackups[0].Status)
+			}
+			return nil
+		})
+	})
+
 	t.Run("fails the test when no job has the name", func(t *testing.T) {
 		testApp := New(t)
 		recordingTest := &fatalRecorder{TB: t, failure: "", mutex: sync.Mutex{}}
@@ -277,4 +300,215 @@ func getActivePhysicalReplicationSlotCount(t *testing.T, source containers.Endpo
 			Scan(&activeSlotCount),
 	)
 	return activeSlotCount
+}
+
+type physicalBackupRow struct {
+	ID            uuid.UUID `json:"id"`
+	Type          string    `json:"type"`
+	Status        string    `json:"status"`
+	FailMessage   *string   `json:"failMessage"`
+	ToWalFilename *string   `json:"toWalFilename"`
+}
+
+func listPhysicalBackups(t *testing.T, testApp *App, owner Session, databaseID uuid.UUID) []physicalBackupRow {
+	t.Helper()
+	status, body := testApp.CallOldAPI(t, owner, OldAPICall{
+		Method: http.MethodGet,
+		Path:   "/backups/physical/database/" + databaseID.String() + "/backups?limit=1000",
+	})
+	require.Equal(t, http.StatusOK, status, "%s", body)
+	var listed struct {
+		Backups []physicalBackupRow `json:"backups"`
+	}
+	require.NoError(t, json.Unmarshal(body, &listed))
+	return listed.Backups
+}
+
+func TestPhysicalStartupWork(t *testing.T) {
+	t.Run("fails an unfinished backup when modules restart", func(t *testing.T) {
+		testApp := New(t)
+		source := containers.StartPhysicalPostgres(t, "postgres:17")
+		owner, database := enablePhysicalBackupLoops(t, testApp, source)
+		config := GetBackupConfig(t, owner, database.Id)
+		require.NotNil(t, config.StorageId)
+		storageID := *config.StorageId
+		backup := testApp.InsertPhysicalFullBackup(t, PhysicalFullBackupSeed{
+			DatabaseID: database.Id, StorageID: storageID, Status: "IN_PROGRESS",
+		})
+		backupID := backup.ID
+
+		testApp.RestartModules(t)
+
+		listedBackups := listPhysicalBackups(t, testApp, owner, database.Id)
+		require.Len(t, listedBackups, 1)
+		assert.Equal(t, backupID, listedBackups[0].ID)
+		assert.Equal(t, "ERROR", listedBackups[0].Status)
+		require.NotNil(t, listedBackups[0].FailMessage)
+		assert.Contains(t, *listedBackups[0].FailMessage, "application restart")
+	})
+	t.Run("removes an orphan WAL segment when one cleaner pass runs", func(t *testing.T) {
+		testApp := New(t)
+		source := containers.StartPhysicalPostgres(t, "postgres:17")
+		owner, database := enablePhysicalBackupLoops(t, testApp, source)
+		testApp.ExecuteSQL(t, `INSERT INTO backups_physical_wal_segments
+   (database_id, storage_id, timeline_id, wal_filename, start_lsn, end_lsn, file_name, received_at, claimed_at)
+   SELECT database_id, storage_id, 1, '000000010000000000000001', '0/1000000', '0/2000000',
+    'orphan-wal', ?, ? FROM backups_configs WHERE database_id = ?`,
+			time.Now().Add(-2*time.Hour), time.Now().Add(-2*time.Hour), database.Id)
+		require.Len(t, listPhysicalBackups(t, testApp, owner, database.Id), 1)
+
+		testApp.RunJobPass(t, "backups_physical_cleaner")
+
+		assert.Empty(t, listPhysicalBackups(t, testApp, owner, database.Id))
+	})
+	t.Run("removes an orphan backup slot and fails a stale streamer when modules restart", func(t *testing.T) {
+		testApp := New(t)
+		source := containers.StartPhysicalPostgres(t, "postgres:17")
+		_, database := enablePhysicalBackupLoops(t, testApp, source)
+		conn := openPhysicalSource(t, source)
+		var backupSlotName string
+		testApp.QuerySQL(t, &backupSlotName,
+			"SELECT backup_slot_name FROM databases_postgresql_physical WHERE database_id = ?", database.Id)
+		_, err := conn.Exec(t.Context(), "SELECT pg_create_physical_replication_slot($1)", backupSlotName)
+		require.NoError(t, err)
+		testApp.InsertPhysicalWalStreamer(t, PhysicalWalStreamerSeed{
+			DatabaseID: database.Id, LastHeartbeatAt: time.Now().Add(-5 * time.Minute),
+		})
+
+		testApp.RestartModules(t)
+
+		var slotCount int
+		require.NoError(t, conn.QueryRow(t.Context(),
+			"SELECT count(*) FROM pg_replication_slots WHERE slot_name = $1", backupSlotName).Scan(&slotCount))
+		assert.Zero(t, slotCount)
+		var streamerStatus string
+		testApp.QuerySQL(t, &streamerStatus,
+			"SELECT status FROM backups_physical_wal_streamers WHERE database_id = ?", database.Id)
+		assert.Equal(t, "FAILED", streamerStatus)
+	})
+	t.Run("keeps the replication slot and starts a new session when live modules restart", func(t *testing.T) {
+		testApp := New(t, WithPhysicalBackupLoops())
+		source := containers.StartPhysicalPostgres(t, "postgres:17")
+		owner, database := enablePhysicalBackupLoops(t, testApp, source)
+		var initialSession time.Time
+		var initialRestarts int
+		testwait.Until(t, "the first WAL session records a sample", func(context.Context) error {
+			statistics := getPhysicalStreamStatistics(t, testApp, owner, database.Id)
+			if statistics.Streamer.State != "RUNNING" || statistics.Current == nil ||
+				getActivePhysicalReplicationSlotCount(t, source) != 1 {
+				return fmt.Errorf("no running sampled session")
+			}
+			initialSession = statistics.Current.SessionStartedAt
+			initialRestarts = statistics.Streamer.RestartsLastHour
+			return nil
+		})
+		// A backup is detached from the scheduler until it becomes a module run.
+		require.NoError(t, testApp.app.WaitForPhysicalBackups(t.Context()))
+		testApp.RestartModules(t)
+
+		conn := openPhysicalSource(t, source)
+		var slotCount int
+		require.NoError(t, conn.QueryRow(t.Context(),
+			"SELECT count(*) FROM pg_replication_slots WHERE slot_name LIKE 'databasus_slot_%'").Scan(&slotCount))
+		assert.Equal(t, 1, slotCount)
+		testwait.Until(t, "the restarted WAL session records a sample", func(context.Context) error {
+			statistics := getPhysicalStreamStatistics(t, testApp, owner, database.Id)
+			if statistics.Current == nil || !statistics.Current.SessionStartedAt.After(initialSession) {
+				return fmt.Errorf("no sample from a new session")
+			}
+			assert.Equal(t, initialRestarts+1, statistics.Streamer.RestartsLastHour)
+			return nil
+		})
+	})
+}
+
+type physicalStreamStatistics struct {
+	Streamer struct {
+		State            string `json:"state"`
+		RestartsLastHour int    `json:"restartsLastHour"`
+	} `json:"streamer"`
+	Current *struct {
+		SessionStartedAt time.Time `json:"sessionStartedAt"`
+	} `json:"current"`
+}
+
+func getPhysicalStreamStatistics(
+	t *testing.T,
+	testApp *App,
+	owner Session,
+	databaseID uuid.UUID,
+) physicalStreamStatistics {
+	t.Helper()
+	status, body := testApp.CallOldAPI(t, owner, OldAPICall{
+		Method: http.MethodGet,
+		Path:   "/backups/physical/database/" + databaseID.String() + "/wal-stream/statistics?period=HOUR",
+	})
+	require.Equal(t, http.StatusOK, status, "%s", body)
+	var statistics physicalStreamStatistics
+	require.NoError(t, json.Unmarshal(body, &statistics))
+	return statistics
+}
+
+func openPhysicalSource(t *testing.T, source containers.Endpoint) *pgx.Conn {
+	t.Helper()
+	conn, err := pgx.Connect(t.Context(), fmt.Sprintf(
+		"host=%s port=%d user=testuser password=testpassword dbname=testdb sslmode=disable", source.Host, source.Port))
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, conn.Close(context.WithoutCancel(t.Context()))) })
+	return conn
+}
+
+func TestWalStreamTimings(t *testing.T) {
+	t.Run("archives WAL from a quiet source when the application shortens forced rotation", func(t *testing.T) {
+		timings := backups.ProductionWalStreamTimings()
+		timings.ForcedRotationInterval = 2 * time.Second
+		testApp := New(t, WithPhysicalBackupLoops(), WithWalStreamTimings(timings))
+		source := containers.StartPhysicalPostgres(t, "postgres:17")
+		owner, database := enablePhysicalBackupLoops(t, testApp, source)
+
+		testwait.Until(t, "the WAL receiver owns the source slot", func(context.Context) error {
+			if getActivePhysicalReplicationSlotCount(t, source) != 1 {
+				return fmt.Errorf("no active WAL receiver")
+			}
+			return nil
+		})
+		testwait.Until(
+			t,
+			"the initial full backup completes before measuring forced rotation",
+			func(context.Context) error {
+				for _, backup := range listPhysicalBackups(t, testApp, owner, database.Id) {
+					if backup.Type == "FULL" && backup.Status == "COMPLETED" {
+						return nil
+					}
+				}
+				return fmt.Errorf("the initial full backup has not completed")
+			},
+		)
+		conn := openPhysicalSource(t, source)
+		var quietWalFilename string
+		require.NoError(
+			t,
+			conn.QueryRow(t.Context(), "SELECT pg_walfile_name(pg_current_wal_lsn())").Scan(&quietWalFilename),
+		)
+		_, err := conn.Exec(t.Context(), "CREATE TABLE quiet_source (id int)")
+		require.NoError(t, err)
+		rotationStartedAt := time.Now()
+		rotationTimeout := 10 * timings.ForcedRotationInterval
+		testwait.Until(t, "forced rotation archives a segment from the quiet source", func(context.Context) error {
+			listedBackups := listPhysicalBackups(t, testApp, owner, database.Id)
+			require.Less(
+				t,
+				time.Since(rotationStartedAt),
+				rotationTimeout,
+				"forced rotation did not archive the quiet source WAL in time",
+			)
+			for _, backup := range listedBackups {
+				if backup.Type == "WAL" && backup.ToWalFilename != nil && *backup.ToWalFilename >= quietWalFilename {
+					return nil
+				}
+			}
+			return fmt.Errorf("no archived WAL segment")
+		})
+		assert.Equal(t, 5*time.Minute, backups.ProductionWalStreamTimings().ForcedRotationInterval)
+	})
 }

@@ -190,6 +190,14 @@ class VerificationForm:
 CHANGE_VERIFICATION_HEADING = "## Change verification"
 VERIFICATION_FORMS = (
     VerificationForm(
+        prefix=("mise", "run", "backend:test-group"),
+        directory=".",
+        usage="mise run backend:test-group <shard>...",
+        min_arguments=1,
+        max_arguments=None,
+        is_package_list=False,
+    ),
+    VerificationForm(
         prefix=("mise", "run", "backend:test-package"),
         directory=".",
         usage="mise run backend:test-package <package>...",
@@ -222,6 +230,7 @@ VERIFICATION_ARGUMENT_PATTERN = re.compile(r"[A-Za-z0-9._/=:@-]+")
 ALLOWED_VERIFICATION_FORMS = (
     "Allowed forms, one command per line in one ```sh block:\n"
     "- `mise run backend:test-package <package>...`, every package starting with `./`, resolved in `backend/`\n"
+    "- `mise run backend:test-group <shard>...`, sharded physical, logical or physical-api groups only\n"
     "- `mise run agent:test`, with nothing after it\n"
     "- `pnpm --dir frontend test [<argument>...]`\n"
     "Arguments may hold only letters, digits and `.`, `/`, `_`, `-`, `=`, `:`, `@`."
@@ -273,6 +282,11 @@ def parse_verification_command(line):
             raise ChangeVerificationError(f"`{line}` does not match the form `{form.usage}`")
         if form.is_package_list and not all(argument.startswith("./") for argument in arguments):
             raise ChangeVerificationError(f"every package in `{line}` must start with `./`")
+        if form.prefix == ("mise", "run", "backend:test-group"):
+            for argument in arguments:
+                shard = re.fullmatch(r"(?:physical|logical|physical-api)-([1-9][0-9]*)-of-([1-9][0-9]*)", argument)
+                if shard is None or int(shard[1]) > int(shard[2]):
+                    raise ChangeVerificationError(f"the argument `{argument}` must name a shard of physical, logical or physical-api")
         return Check(form.directory, tuple(words))
     raise ChangeVerificationError(f"`{line}` is not an allowed command")
 

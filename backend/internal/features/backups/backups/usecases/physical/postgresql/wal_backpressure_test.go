@@ -7,53 +7,35 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"databasus-backend/internal/config"
-	pgshared "databasus-backend/internal/engines/postgresql/shared"
-	databases_bridge "databasus-backend/internal/features/databases"
-	"databasus-backend/internal/util/logger"
+	"databasus-backend/internal/modules/databases"
 )
 
-func Test_WalStream_BackpressureWatermarks_ScaleWithWalSegmentSize(t *testing.T) {
-	fixture := SetupPhysicalDBForBackup(t)
-	customSegSize := int64(512 * 1024 * 1024)
-	fixture.SourceDB.WalSegmentSizeBytes = &customSegSize
+func TestLocalQueuePauseBytes(t *testing.T) {
+	t.Run("scales the watermark when the WAL segment size exceeds the default", func(t *testing.T) {
+		customSegSize := int64(512 * 1024 * 1024)
+		sourceDB := databases.PostgresqlPhysicalConnectionSettings{WalSegmentSizeBytes: &customSegSize}
 
-	supervisor := NewWalStreamSupervisor(WalStreamSpec{
-		ClientTools:  pgshared.ClientTools{Root: config.GetEnv().ClientToolsDir},
-		DatabaseID:   fixture.DB.ID,
-		BackupStatus: databases_bridge.GetModule(),
-		SourceDB:     fixture.SourceDB,
-		WatchDirRoot: t.TempDir(),
-		Logger:       logger.GetLogger(),
+		require.Equal(t, 8*customSegSize, getDefaultLocalQueuePauseBytes(sourceDB))
+		require.Equal(t, 8*customSegSize/5, getDefaultLocalQueuePauseBytes(sourceDB)/5)
 	})
-
-	require.Equal(t, 8*customSegSize, supervisor.highWatermarkBytes.Load())
-	require.Equal(t, 8*customSegSize/5, supervisor.lowWatermarkBytes.Load())
 }
 
-func Test_BacklogBytes_WhenSegmentsStagedOutOfResumePath_CountsThemTowardTheWatermark(t *testing.T) {
-	fixture := SetupPhysicalDBForBackup(t)
+func TestWalBacklogBytes(t *testing.T) {
+	t.Run("counts every staged segment when it leaves the receivewal resume directory", func(t *testing.T) {
+		watchDir := t.TempDir()
 
-	supervisor := NewWalStreamSupervisor(WalStreamSpec{
-		ClientTools:  pgshared.ClientTools{Root: config.GetEnv().ClientToolsDir},
-		DatabaseID:   fixture.DB.ID,
-		BackupStatus: databases_bridge.GetModule(),
-		SourceDB:     fixture.SourceDB,
-		WatchDirRoot: t.TempDir(),
-		Logger:       logger.GetLogger(),
+		pendingUploadDir := filepath.Join(watchDir, pendingUploadDirName)
+		require.NoError(t, os.MkdirAll(pendingUploadDir, 0o700))
+
+		for _, segmentNo := range []uint64{50, 51} {
+			writeSegmentOfSize(t, watchDir, walName(1, segmentNo), testWalSegmentSize)
+		}
+
+		for _, stagedSegmentNo := range []uint64{47, 48, 49} {
+			writeSegmentOfSize(t, pendingUploadDir, walName(1, stagedSegmentNo), testWalSegmentSize)
+		}
+
+		require.Equal(t, 5*testWalSegmentSize, getWalBacklogBytes(watchDir),
+			"segments awaiting upload still occupy the local queue's disk, wherever they were staged")
 	})
-
-	pendingUploadDir := filepath.Join(supervisor.watchDir, pendingUploadDirName)
-	require.NoError(t, os.MkdirAll(pendingUploadDir, 0o700))
-
-	for _, segmentNo := range []uint64{50, 51} {
-		writeSegmentOfSize(t, supervisor.watchDir, walName(1, segmentNo), testWalSegmentSize)
-	}
-
-	for _, stagedSegmentNo := range []uint64{47, 48, 49} {
-		writeSegmentOfSize(t, pendingUploadDir, walName(1, stagedSegmentNo), testWalSegmentSize)
-	}
-
-	require.Equal(t, 5*testWalSegmentSize, supervisor.backlogBytes(),
-		"segments awaiting upload still occupy the local queue's disk, wherever they were staged")
 }

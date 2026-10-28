@@ -7,6 +7,7 @@ import (
 	pgphysical "databasus-backend/internal/engines/postgresql/physical"
 	"databasus-backend/internal/engines/postgresql/physical/walmath"
 	physical_enums "databasus-backend/internal/features/backups/backups/core/physical/enums"
+	"databasus-backend/internal/lib/clock"
 )
 
 // SummarizerDecision encodes the outcome of a per-tick incremental pre-check.
@@ -107,10 +108,6 @@ func newWaitResult(incrementalCadence time.Duration) SummarizerResult {
 	}
 }
 
-// summarizerCheck is the readiness probe behind a package var so the
-// bounded-wait loop can be unit-tested without a live summarizer.
-var summarizerCheck = CheckSummarizerReadiness
-
 // resolveSummarizerDecision runs the readiness probe and, when it reports
 // DecisionWait (no summaries published yet, or the summarizer process is gone),
 // polls until the state resolves or the bounded window elapses. The returned
@@ -123,16 +120,28 @@ func resolveSummarizerDecision(
 	prevStopLSN walmath.LSN,
 	cadence time.Duration,
 ) (SummarizerResult, error) {
-	result, err := summarizerCheck(ctx, conn, prevStopLSN, cadence)
+	return resolveSummarizerProbe(ctx, summarizerWaitSpec{
+		Probe: func(probeCtx context.Context) (SummarizerResult, error) {
+			return CheckSummarizerReadiness(probeCtx, conn, prevStopLSN, cadence)
+		},
+		Clock: clock.NewSystem(),
+	})
+}
+
+type summarizerWaitSpec struct {
+	Probe func(context.Context) (SummarizerResult, error)
+	Clock clock.Source
+}
+
+func resolveSummarizerProbe(ctx context.Context, spec summarizerWaitSpec) (SummarizerResult, error) {
+	result, err := spec.Probe(ctx)
 	if err != nil {
 		return SummarizerResult{}, err
 	}
-
 	if result.Decision != DecisionWait {
 		return result, nil
 	}
-
-	return waitForSummarizer(ctx, conn, prevStopLSN, cadence, result)
+	return waitForSummarizer(ctx, spec, result)
 }
 
 // waitForSummarizer polls the readiness probe on result.PollEvery until the
@@ -142,12 +151,10 @@ func resolveSummarizerDecision(
 // intermediate failure row.
 func waitForSummarizer(
 	ctx context.Context,
-	conn *pgphysical.Inspection,
-	prevStopLSN walmath.LSN,
-	cadence time.Duration,
+	spec summarizerWaitSpec,
 	initial SummarizerResult,
 ) (SummarizerResult, error) {
-	deadline := time.Now().UTC().Add(initial.WaitFor)
+	deadline := spec.Clock.Now().Add(initial.WaitFor)
 
 	ticker := time.NewTicker(initial.PollEvery)
 	defer ticker.Stop()
@@ -158,7 +165,7 @@ func waitForSummarizer(
 			return SummarizerResult{}, ctx.Err()
 
 		case <-ticker.C:
-			result, err := summarizerCheck(ctx, conn, prevStopLSN, cadence)
+			result, err := spec.Probe(ctx)
 			if err != nil {
 				return SummarizerResult{}, err
 			}
@@ -167,7 +174,7 @@ func waitForSummarizer(
 				return result, nil
 			}
 
-			if time.Now().UTC().After(deadline) {
+			if spec.Clock.Now().After(deadline) {
 				return SummarizerResult{Decision: DecisionRetryNextCadence}, nil
 			}
 		}

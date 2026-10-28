@@ -8,8 +8,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/google/uuid"
-
 	pgphysical "databasus-backend/internal/engines/postgresql/physical"
 	databases_bridge "databasus-backend/internal/features/databases"
 	"databasus-backend/internal/modules/databases"
@@ -121,17 +119,11 @@ func dropBackupSlotOverFreshConn(
 	return conn.DropBackupSlotIfExists(ctx, slotName)
 }
 
-// RunStartupCleanup iterates every physical PG database and drops the per-backup
-// replication slot left behind by a crash, EXCEPT where isSlotProtected reports
-// the slot is still in use by an in-flight backup — a blind drop would unpin the
-// WAL a running pg_basebackup still needs. Runs once at boot.
-//
-// Cleanup never blocks boot beyond startupCleanupTimeout per DB; unreachable
-// sources and protected slots are logged and skipped.
+// Startup recovery has already failed every in-flight backup before this sweep runs.
+// Each source gets a bounded cleanup attempt so an unreachable source cannot hold boot indefinitely.
 func RunStartupCleanup(
 	ctx context.Context,
 	logger *slog.Logger,
-	isSlotProtected func(databaseID uuid.UUID) (bool, error),
 ) error {
 	allDatabases, err := databases_bridge.GetModule().ListAllDatabases(ctx)
 	if err != nil {
@@ -173,21 +165,6 @@ func RunStartupCleanup(
 			databaseID := connectionSettings.DatabaseID
 			slotName := connectionSettings.BackupSlotName
 			scopedLogger := logger.With("database_id", databaseID, "slot_name", slotName)
-
-			// Decided from the in-flight claim, not the source PG, so it runs
-			// before we open a connection.
-			protected, protErr := isSlotProtected(databaseID)
-			if protErr != nil {
-				scopedLogger.Warn("startup slot cleanup: skip, cannot determine owner liveness", "error", protErr)
-				skippedCount.Store(databaseID, struct{}{})
-				return
-			}
-
-			if protected {
-				scopedLogger.Info("startup slot cleanup: skip, backup still in flight")
-				skippedCount.Store(databaseID, struct{}{})
-				return
-			}
 
 			cleanupCtx, cancel := context.WithTimeout(ctx, startupCleanupTimeout)
 			defer cancel()

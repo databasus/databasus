@@ -207,10 +207,11 @@ While a change has an unaccepted full implementation review, the necessity check
 The change verification commands SHALL be the lines of the first code block fenced as `sh` under the "Change verification" heading of the change's task list. A block fenced as `bash`, `shell` or without a language does not count. Empty lines and comment lines are skipped. The hook SHALL accept only these command forms:
 
 - backend package tests: `mise run backend:test-package` followed by one or more package paths, which the hook runs from the repository root and the task resolves in the backend directory;
+- backend CI shards: `mise run backend:test-group` followed by one or more shard names of `physical`, `logical` or `physical-api`, which the hook runs from the repository root;
 - the verification agent's tests: `mise run agent:test`, with no further arguments, which the hook runs from the repository root;
 - frontend tests: `pnpm --dir frontend test`, optionally followed by test file paths or filters.
 
-The hook SHALL run each command directly, without a shell. The backend task passes its package paths on to a shell script, so every argument after the fixed prefix MUST consist only of letters, digits and the characters `.`, `/`, `_`, `-`, `=`, `:` and `@`, and a package path MUST start with `./`. This character set leaves out every shell operator and substitution. A line that is not one of the allowed forms or has an argument outside the allowed characters, a section without a closed `sh` block, and a block without commands SHALL each block the turn with the reason and the list of allowed forms. No check or reviewer runs in that case.
+The hook SHALL run each command directly, without a shell. The backend task passes its package paths on to a shell script, so every argument after the fixed prefix MUST consist only of letters, digits and the characters `.`, `/`, `_`, `-`, `=`, `:` and `@`, and a package path MUST start with `./`. A shard name MUST match `<group>-<index>-of-<count>` with positive integers, and its index MUST NOT exceed its count. Unsharded groups, unknown groups and `other` MUST be rejected. This character set leaves out every shell operator and substitution. A line that is not one of the allowed forms or has an argument outside the allowed characters, a section without a closed `sh` block, and a block without commands SHALL each block the turn with the reason and the list of allowed forms. No check or reviewer runs in that case.
 
 #### Scenario: A full suite run in the block
 - **WHEN** the change verification block contains `mise run test`
@@ -243,6 +244,14 @@ The hook SHALL run each command directly, without a shell. The backend task pass
 #### Scenario: Verification agent tests with an argument
 - **WHEN** a block contains `mise run agent:test ./x`
 - **THEN** the turn is blocked with the reason that the line does not match the form, and nothing runs
+
+#### Scenario: Parallel physical API shards
+- **WHEN** the block contains `mise run backend:test-group physical-api-1-of-3 physical-api-2-of-3 physical-api-3-of-3`
+- **THEN** the hook runs that command, which runs the three CI selections concurrently in separate processes and fails if any selection fails
+
+#### Scenario: An unbounded backend group
+- **WHEN** the block names an unsharded group, `other`, an unknown group or a shard outside its count
+- **THEN** the hook rejects the command before any test or reviewer starts
 
 ### Requirement: The full review ends within the hook timeout
 The full implementation review SHALL work within a time budget that ends before the hook timeout of the client configuration, with a margin for the hook's own Git, OpenSpec and file work. The checks SHALL run inside that budget. A reviewer SHALL start only when the budget still holds its whole time limit. A reviewer that cannot start for that reason SHALL count as a reviewer that could not run: the review is not accepted, and the agent gets the reason. The hook MUST NOT be killed by the client timeout without a message.

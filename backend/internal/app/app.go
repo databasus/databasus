@@ -14,6 +14,7 @@ import (
 	old_config "databasus-backend/internal/config"
 	"databasus-backend/internal/engines/clienttools"
 	"databasus-backend/internal/features/audit_logs"
+	backuping_physical "databasus-backend/internal/features/backups/backups/backuping/physical"
 	backups_bridge "databasus-backend/internal/features/backups/config"
 	"databasus-backend/internal/features/caching"
 	databases_bridge "databasus-backend/internal/features/databases"
@@ -65,6 +66,9 @@ type App struct {
 	// through RunJobPass.
 	runner             *background.Runner
 	clientToolsChecker *clienttools.Checker
+	physicalScheduler  *backuping_physical.PhysicalBackupsScheduler
+	physicalCleaner    *backuping_physical.PhysicalBackupCleaner
+	physicalSupervisor *backuping_physical.PhysicalWalStreamSupervisor
 }
 
 // New prepares everything the server and the console commands share: the schema of the current
@@ -288,13 +292,19 @@ func New(ctx context.Context, environment *Environment) (*App, error) {
 		backgroundGroup:    nil,
 		runner:             runner,
 		clientToolsChecker: clientToolsChecker,
+		physicalScheduler:  backuping_physical.NewPhysicalBackupsScheduler(),
+		physicalCleaner:    backuping_physical.NewPhysicalBackupCleaner(),
+		physicalSupervisor: backuping_physical.NewPhysicalWalStreamSupervisor(environment.WalStreamTimings),
 	}, nil
 }
 
 // StartModules runs the startup work of the modules on ctx, which ends when the application stops.
 // Serve calls it before it accepts requests, and a test application before its first request.
 func (a *App) StartModules(ctx context.Context) error {
-	return a.backupsModule.Start(ctx)
+	if err := a.backupsModule.Start(ctx); err != nil {
+		return err
+	}
+	return backuping_physical.RunStartupWork(ctx)
 }
 
 // WaitForBackupRuns returns once every backup run has written its outcome, or with ctx's error.
@@ -304,7 +314,14 @@ func (a *App) WaitForBackupRuns(ctx context.Context) error {
 
 // RunJobPass runs one pass of the named background job and returns its error.
 func (a *App) RunJobPass(ctx context.Context, name string) error {
-	return a.runner.RunPass(ctx, name)
+	switch name {
+	case "backups_physical_scheduler":
+		return a.physicalScheduler.RunPass(ctx)
+	case "backups_physical_cleaner":
+		return a.physicalCleaner.RunPass(ctx)
+	default:
+		return a.runner.RunPass(ctx, name)
+	}
 }
 
 // moveLegacyAndOpenMasterKey runs before the old code is wired, so nothing encrypts with a key that a
@@ -352,6 +369,10 @@ func (a *App) Notify(ctx context.Context, notifierIDs []uuid.UUID, notification 
 	a.notifiersModule.Notify(ctx, notifierIDs, notification)
 }
 
+func (a *App) WaitForNotificationDeliveries(ctx context.Context) error {
+	return a.notifiersModule.WaitForDeliveries(ctx)
+}
+
 // WriteStorageFile hands a file to the file store of the storages module. A test application uses it
 // to stand in for the old backup code that writes files.
 func (a *App) WriteStorageFile(
@@ -360,4 +381,14 @@ func (a *App) WriteStorageFile(
 	file io.Reader,
 ) (storages.WriteReceipt, error) {
 	return a.storagesModule.WriteFile(ctx, reference, file)
+}
+
+func (a *App) PublishStorageFile(ctx context.Context, reference storages.StoredFileReference, content io.Reader) error {
+	receipt, err := a.storagesModule.WriteFile(ctx, reference, content)
+	if err != nil {
+		return err
+	}
+	return a.transactor.Transaction(ctx, func(txCtx context.Context) error {
+		return a.storagesModule.ConfirmFileWrites(txCtx, []storages.WriteReceipt{receipt})
+	})
 }

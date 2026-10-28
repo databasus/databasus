@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"maps"
 	"os"
 	"path/filepath"
 	"slices"
@@ -34,6 +33,12 @@ import (
 // Ownership and restart recovery run through the backups_physical_wal_streamers
 // heartbeat table: every tick CAS-claims the databases that are unclaimed /
 // FAILED / stale, so exactly one process streams a given database at a time.
+var runningWalStreamSupervisor atomic.Pointer[PhysicalWalStreamSupervisor]
+
+func GetRunningWalStreamSupervisor() *PhysicalWalStreamSupervisor {
+	return runningWalStreamSupervisor.Load()
+}
+
 type PhysicalWalStreamSupervisor struct {
 	databaseAccess *databases_bridge.Access
 	// getDatabases is read per call: each test application installs its own module.
@@ -51,6 +56,7 @@ type PhysicalWalStreamSupervisor struct {
 	logger                   *slog.Logger
 
 	chainAlertMinInterval time.Duration
+	timings               backups.WalStreamTimings
 
 	mu      sync.Mutex
 	running map[uuid.UUID]*runningStreamer
@@ -60,7 +66,7 @@ type PhysicalWalStreamSupervisor struct {
 	// A FAILED streamer is reclaimable on the next tick, so an unfixable break
 	// re-enters startStreamer every ~45 s. Without this the operator would get one
 	// notification per cycle instead of one per incident.
-	lastChainAlertAt map[chainAlertKey]time.Time
+	lastChainAlertAt chainAlertThrottle
 
 	hasRun  atomic.Bool
 	isReady atomic.Bool
@@ -84,6 +90,9 @@ func (s *PhysicalWalStreamSupervisor) GetLiveState(
 	databaseID uuid.UUID,
 	now time.Time,
 ) (*postgresql_executor.WalStreamLiveState, bool) {
+	if s == nil {
+		return nil, false
+	}
 	s.mu.Lock()
 	streamer, isRunning := s.running[databaseID]
 	s.mu.Unlock()
@@ -110,20 +119,12 @@ func (s *PhysicalWalStreamSupervisor) Run(ctx context.Context) {
 		panic(fmt.Sprintf("%T.Run() called multiple times", s))
 	}
 
+	runningWalStreamSupervisor.Store(s)
+	defer runningWalStreamSupervisor.CompareAndSwap(s, nil)
+
 	s.logger = s.logger.With("job_id", uuid.New(), "job_name", walStreamSupervisorJobName)
 
 	s.lastTickTime.Store(time.Now().UTC())
-
-	if err := s.recoverStreamersOnStartup(); err != nil {
-		s.logger.ErrorContext(
-			ctx,
-			"failed to recover wal streamers on startup",
-			"error",
-			err,
-		)
-
-		panic(err)
-	}
 
 	s.isReady.Store(true)
 
@@ -314,8 +315,9 @@ func (s *PhysicalWalStreamSupervisor) startStreamer(
 		WalStreamerRepo:           s.walStreamerRepo,
 		WatchDirRoot:              config.GetEnv().DataFolder,
 		WalLagThresholdBytes:      backupConfig.WalLagThresholdBytes,
-		ForcedRotationInterval:    postgresql_executor.DefaultForcedRotationInterval,
-		ArchiveStalenessThreshold: wal_health.DefaultArchiveStalenessThreshold,
+		ForcedRotationInterval:    s.timings.ForcedRotationInterval,
+		ArchiveStalenessThreshold: s.timings.ArchiveStalenessThreshold,
+		LocalQueuePauseBytes:      s.timings.LocalQueuePauseBytes,
 		OnGapDetected:             s.gapNotifier(ctx, db, backupConfig),
 		OnSlotRebuilt:             s.slotRebuildFullRequester(ctx, logger, db, backupConfig),
 		OnChainAtRisk:             s.chainRiskNotifier(ctx, db, backupConfig),
@@ -496,16 +498,9 @@ func (s *PhysicalWalStreamSupervisor) recordChainAlertIfDue(key chainAlertKey) b
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	now := time.Now().UTC()
-
-	if sentAt, wasNotified := s.lastChainAlertAt[key]; wasNotified &&
-		now.Sub(sentAt) < s.chainAlertMinInterval {
-		return false
-	}
-
-	s.lastChainAlertAt[key] = now
-
-	return true
+	return s.lastChainAlertAt.RecordIfDue(chainAlertAttempt{
+		Key: key, Now: time.Now().UTC(), MinInterval: s.chainAlertMinInterval,
+	})
 }
 
 func (s *PhysicalWalStreamSupervisor) stopNonCandidates(candidates map[uuid.UUID]bool) {
@@ -549,9 +544,7 @@ func (s *PhysicalWalStreamSupervisor) stopStreamer(databaseID uuid.UUID, shouldR
 	s.mu.Lock()
 	delete(s.running, databaseID)
 
-	maps.DeleteFunc(s.lastChainAlertAt, func(key chainAlertKey, _ time.Time) bool {
-		return key.DatabaseID == databaseID
-	})
+	s.lastChainAlertAt.ForgetDatabase(databaseID)
 
 	s.mu.Unlock()
 
