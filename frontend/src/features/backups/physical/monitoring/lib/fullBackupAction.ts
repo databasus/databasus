@@ -17,13 +17,13 @@ interface FullBackupActionInput {
 
 // Not streaming takes no backups at all, and collecting data lasts two minutes at most, so neither
 // offers a full backup.
-const LEVELS_OFFERING_FULL_BACKUP = new Set([
+const LEVELS_OFFERING_FULL_BACKUP = new Set<WalStreamHealthLevel>([
   WalStreamHealthLevel.HEALTHY,
   WalStreamHealthLevel.NEEDS_ATTENTION,
   WalStreamHealthLevel.BROKEN,
 ]);
 
-const REASONS_REPAIRED_BY_FULL_BACKUP = new Set([
+const REASONS_REPAIRED_BY_FULL_BACKUP = new Set<WalStreamReasonCode>([
   WalStreamReasonCode.WAL_CHAIN_BROKEN,
   WalStreamReasonCode.SLOT_MISSING,
 ]);

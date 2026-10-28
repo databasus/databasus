@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"net/url"
 	"testing"
 	"time"
 
@@ -225,22 +224,15 @@ func waitUntilBackupDownloads(t *testing.T, tm team, backupID uuid.UUID, token s
 	return downloadedFile
 }
 
-// openBackupDownloadStream starts a download and returns as soon as the headers arrive, leaving the
-// file unread, so the download keeps streaming until the test reads or closes the body. The contract
-// client reads every body whole, so this request goes through a plain HTTP client.
 func openBackupDownloadStream(t *testing.T, tm team, backupID uuid.UUID, token string) *http.Response {
 	t.Helper()
-
-	downloadURL := fmt.Sprintf("%s/api/v1/logical-backups/%s/file?token=%s",
-		tm.app.URL, backupID, url.QueryEscape(token))
-
-	request, err := http.NewRequestWithContext(t.Context(), http.MethodGet, downloadURL, nil)
-	require.NoError(t, err)
-
-	response, err := http.DefaultClient.Do(request)
+	response, err := tm.owner.Client.DownloadLogicalBackup(
+		t.Context(),
+		backupID,
+		&apiclient.DownloadLogicalBackupParams{Token: token},
+	)
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = response.Body.Close() })
-
 	return response
 }
 

@@ -101,3 +101,29 @@ func (s *Service) requestSchedulerChoice(
 
 	return s.configs.RequestIncrementalBackup(ctx, databaseID)
 }
+
+type BackupStartKind string
+
+const (
+	BackupStartAuto        BackupStartKind = "AUTO"
+	BackupStartFull        BackupStartKind = "FULL"
+	BackupStartIncremental BackupStartKind = "INCREMENTAL"
+)
+
+type BackupStart struct {
+	DatabaseID uuid.UUID
+	Kind       BackupStartKind
+}
+
+func (s *Service) StartBackup(ctx context.Context, actor users.Actor, request BackupStart) error {
+	switch request.Kind {
+	case BackupStartAuto:
+		return s.RequestBackup(ctx, actor, request.DatabaseID)
+	case BackupStartFull:
+		return s.RequestFullBackup(ctx, actor, request.DatabaseID)
+	case BackupStartIncremental:
+		return s.RequestIncrementalBackup(ctx, actor, request.DatabaseID)
+	default:
+		return errInvalidBackupKind
+	}
+}

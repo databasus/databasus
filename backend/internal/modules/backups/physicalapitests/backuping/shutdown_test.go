@@ -136,15 +136,12 @@ func startHeldPhysicalStream(t *testing.T, team *backupTeam, kind string) (backu
 
 func cancelPhysicalBackup(t *testing.T, team *backupTeam, backup backupRow) {
 	t.Helper()
-	status, body := team.App.CallOldAPI(
+	status, body := team.App.CallPhysicalAPI(
 		t,
 		team.Owner,
-		apptest.OldAPICall{
-			Method: http.MethodPost,
-			Path:   "/backups/physical/backups/" + backup.ID.String() + "/cancel",
-		},
+		apptest.PhysicalCancelRequest(backup.ID),
 	)
-	require.Equal(t, http.StatusNoContent, status, "%s", body)
+	require.Equal(t, http.StatusAccepted, status, "%s", body)
 }
 
 func findPhysicalBackup(t *testing.T, team *backupTeam, backup backupRow) backupRow {

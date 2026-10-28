@@ -150,32 +150,30 @@ type restoreRequest struct {
 
 func (catalog *catalogFixture) downloadRestore(t *testing.T, spec restoreRequest) map[string]string {
 	t.Helper()
-	path := "/backups/physical/database/" + catalog.DatabaseID.String() + "/restore-token"
+	request := apptest.PhysicalPitrTokenRequest(catalog.DatabaseID, spec.TargetTime)
 	if spec.BackupID != nil {
-		path = "/backups/physical/backups/" + spec.BackupID.String() + "/restore-token"
+		request = apptest.PhysicalBackupTokenRequest(*spec.BackupID)
 	}
 	status := spec.StatusCode
 	if status == 0 {
-		status = http.StatusOK
+		status = http.StatusCreated
 	}
 	var token restoreTokenResponse
 	catalog.call(
 		t,
 		catalogCall{
-			Method:        http.MethodPost,
-			Path:          path,
+			Request:       request,
 			Authorization: "Bearer " + catalog.Owner.Token,
-			Body:          restoreTokenRequest{TargetTime: spec.TargetTime},
 			StatusCode:    status,
 			Destination:   &token,
 		},
 	)
-	if status != http.StatusOK {
+	if status != http.StatusCreated {
 		return nil
 	}
 	response := catalog.call(
 		t,
-		catalogCall{Path: "/backups/physical/restore-stream?token=" + token.Token, StatusCode: http.StatusOK},
+		catalogCall{Request: apptest.PhysicalDownloadRequest(token.Token), StatusCode: http.StatusOK},
 	)
 	return readTarEntries(t, response.Body)
 }

@@ -27,15 +27,12 @@ func (team Team) listBackups(t *testing.T, backupType string) []backupRow {
 	t.Helper()
 
 	var response struct {
-		Backups []backupRow `json:"backups"`
+		Backups []backupRow `json:"items"`
 	}
 	team.call(
 		t,
-		oldAPIResponseSpec{
-			Call: apptest.OldAPICall{
-				Method: http.MethodGet,
-				Path:   team.getDatabasePath() + "/backups?limit=1000&type=" + backupType,
-			},
+		physicalResponseSpec{
+			Call:        apptest.PhysicalListRequest(team.Database.Id, "?limit=1000&type="+backupType),
 			Status:      http.StatusOK,
 			Destination: &response,
 		},

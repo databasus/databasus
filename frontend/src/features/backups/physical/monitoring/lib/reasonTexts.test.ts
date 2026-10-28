@@ -38,7 +38,7 @@ const flattenEnglish = (dictionary: Dictionary, prefix: string): [string, string
 
 const buildReason = (
   code: WalStreamReasonCode,
-  level = WalStreamReasonLevel.BROKEN,
+  level: WalStreamReasonLevel = WalStreamReasonLevel.BROKEN,
 ): WalStreamReason => ({
   code,
   level,

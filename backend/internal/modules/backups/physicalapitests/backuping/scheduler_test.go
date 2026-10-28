@@ -11,6 +11,28 @@ import (
 )
 
 func TestSchedulePhysicalBackup(t *testing.T) {
+	t.Run(
+		"starts a full backup when AUTO is requested for a full-only database with a completed full",
+		func(t *testing.T) {
+			team := newBackupState(t)
+			team.setSchedules(t, true)
+			team.seedFull(t, schedulerFullSpec{Age: time.Minute})
+			team.trigger(t, "auto")
+			var requests struct {
+				IsFullRequested        bool
+				IsIncrementalRequested bool
+			}
+			team.App.QuerySQL(t, &requests,
+				`SELECT force_full_requested_at IS NOT NULL AS is_full_requested,
+                        force_incremental_requested_at IS NOT NULL AS is_incremental_requested
+                 FROM backups_configs_physical WHERE database_id=?`, team.Database.Id)
+			assert.True(t, requests.IsFullRequested)
+			assert.False(t, requests.IsIncrementalRequested)
+			backup := team.runAutomaticBackup(t)
+			assert.Equal(t, "FULL", backup.Type)
+		},
+	)
+
 	t.Run("starts a replacement full immediately when an incremental detected a timeline switch", func(t *testing.T) {
 		team := newBackupState(t)
 		full := team.seedFull(t, schedulerFullSpec{Age: 3 * time.Hour})

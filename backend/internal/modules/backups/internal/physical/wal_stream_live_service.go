@@ -6,7 +6,6 @@ import (
 	"github.com/google/uuid"
 
 	"databasus-backend/internal/modules/backups/internal/physical/walstreaming"
-	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/modules/workspaces"
 )
@@ -16,13 +15,9 @@ func (s *Service) GetWalStreamLive(
 	actor users.Actor,
 	databaseID uuid.UUID,
 ) (*GetWalStreamLiveResponse, error) {
-	database, err := s.authorizeDatabase(ctx, actor, databaseID, workspaces.ActionView)
+	_, err := s.authorizeDatabase(ctx, actor, databaseID, workspaces.ActionView)
 	if err != nil {
 		return nil, err
-	}
-
-	if database.Type != databases.TypePostgresqlPhysical {
-		return nil, ErrWalStreamStatisticsNotPhysical
 	}
 
 	liveState, isRunning := s.streams.GetLiveState(ctx, databaseID, s.clock.Now())

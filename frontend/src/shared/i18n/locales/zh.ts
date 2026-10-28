@@ -128,6 +128,9 @@ export const zh: typeof en = {
     databaseConnectionFailed: '无法连接到数据库：{{detail}}',
     inUse: '它仍被数据库或正在进行的备份或恢复使用。请在不再被使用后重试。',
     alreadyRunning: '该操作已在进行中。请等待其完成后重试。',
+    noExtendableChain: '请先执行全量备份，再启动增量备份。',
+    noRestorableBackup: '没有可用于恢复的已完成备份。',
+    targetTimeUnreachable: '现有备份和 WAL 无法恢复到指定时间。',
     notRunning: '该操作已不在进行中，无需取消。',
     insufficientDiskSpace: 'Databasus 服务器的可用磁盘空间不足：{{detail}}',
     unknown: '出了点问题，请重试。',
@@ -1549,7 +1552,8 @@ export const zh: typeof en = {
       },
       restore: {
         errorHints: {
-          downloadInProgress: '这个数据库已有一个恢复下载正在进行。请等待它完成后重试。',
+          downloadInProgress: '您已有一个备份下载或恢复数据流正在进行。请等待它完成后重试。',
+          noRestorableBackup: '请运行一次全量备份，等待完成后重试。',
           targetTimeUnreachable:
             '无法恢复到所选的目标时间：WAL 存在缺口，或者时间超出了可用范围。请选择其他时间，或恢复到最新的可用时间点。',
         },

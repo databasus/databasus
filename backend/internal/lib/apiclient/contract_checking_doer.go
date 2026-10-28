@@ -29,6 +29,13 @@ func (d *contractCheckingDoer) Do(request *http.Request) (*http.Response, error)
 		return nil, err
 	}
 
+	if d.isBinaryResponse(request, response) {
+		if err := d.checkResponse(request.Context(), request, response, nil); err != nil {
+			d.tb.Errorf("%v", err)
+		}
+		return response, nil
+	}
+
 	body, err := io.ReadAll(response.Body)
 	_ = response.Body.Close()
 
@@ -68,6 +75,7 @@ func (d *contractCheckingDoer) checkResponse(
 		Body:   io.NopCloser(bytes.NewReader(body)),
 		Options: &openapi3filter.Options{
 			IncludeResponseStatus: true,
+			ExcludeResponseBody:   d.isBinaryResponse(request, response),
 			MultiError:            true,
 			SchemaValidationOptions: []openapi3.SchemaValidationOption{
 				openapi3.WithStringFormatValidator("uuid", openapi3.NewRegexpFormatValidator(uuidPattern)),
@@ -80,4 +88,20 @@ func (d *contractCheckingDoer) checkResponse(
 	}
 
 	return nil
+}
+
+func (d *contractCheckingDoer) isBinaryResponse(request *http.Request, response *http.Response) bool {
+	route, _, err := d.contractRouter.FindRoute(request)
+	if err != nil {
+		return false
+	}
+	responseSchema := route.Operation.Responses.Status(response.StatusCode)
+	if responseSchema == nil {
+		responseSchema = route.Operation.Responses.Default()
+	}
+	if responseSchema == nil || responseSchema.Value == nil {
+		return false
+	}
+	media := responseSchema.Value.Content.Get(response.Header.Get("Content-Type"))
+	return media != nil && media.Schema != nil && media.Schema.Value != nil && media.Schema.Value.Format == "binary"
 }

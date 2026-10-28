@@ -1,11 +1,13 @@
 package apiclient
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -120,4 +122,85 @@ func (r *failureRecorder) getFailures() []string {
 	defer r.mutex.Unlock()
 
 	return append([]string(nil), r.failures...)
+}
+
+const contractWithBinary = `
+openapi: 3.0.3
+info:
+  title: Contract with an archive
+  version: 1.0.0
+servers:
+  - url: /api/v1
+paths:
+  /archives:
+    get:
+      operationId: downloadArchive
+      responses:
+        "200":
+          description: The archive stream
+          headers:
+            X-Archive-Id:
+              required: true
+              schema:
+                type: string
+                format: uuid
+          content:
+            application/x-tar:
+              schema:
+                type: string
+                format: binary
+`
+
+func TestContractCheckingBinaryResponse(t *testing.T) {
+	t.Parallel()
+	t.Run("returns headers before the archive finishes when the contract declares a binary stream", func(t *testing.T) {
+		t.Parallel()
+		server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+			writer.Header().Set("Content-Type", "application/x-tar")
+			writer.Header().Set("X-Archive-Id", "0192f5c4-7c2a-7b3e-9d41-2f6a8c1e5b07")
+			_, _ = writer.Write([]byte("archive"))
+			assert.NoError(t, http.NewResponseController(writer).Flush())
+			<-request.Context().Done()
+		}))
+		t.Cleanup(server.Close)
+		router, err := httpserver.NewContractRouter([]byte(contractWithBinary))
+		require.NoError(t, err)
+		doer := &contractCheckingDoer{tb: t, contractRouter: router, httpClient: server.Client()}
+		ctx, cancel := context.WithTimeout(t.Context(), 2*time.Second)
+		defer cancel()
+		request, err := http.NewRequestWithContext(ctx, http.MethodGet, server.URL+"/api/v1/archives", nil)
+		require.NoError(t, err)
+		response, err := doer.Do(request)
+		require.NoError(t, err)
+		defer func() { _ = response.Body.Close() }()
+		firstByte := make([]byte, 1)
+		_, err = response.Body.Read(firstByte)
+		require.NoError(t, err)
+		assert.Equal(t, "a", string(firstByte))
+	})
+}
+
+func TestContractCheckingBinaryHeaders(t *testing.T) {
+	t.Parallel()
+	t.Run("reports the invalid header when a binary response breaks its header schema", func(t *testing.T) {
+		t.Parallel()
+		server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
+			writer.Header().Set("Content-Type", "application/x-tar")
+			writer.Header().Set("X-Archive-Id", "not-a-uuid")
+			_, _ = writer.Write([]byte("archive"))
+		}))
+		t.Cleanup(server.Close)
+		router, err := httpserver.NewContractRouter([]byte(contractWithBinary))
+		require.NoError(t, err)
+		recorder := &failureRecorder{TB: t, failures: nil, mutex: sync.Mutex{}}
+		doer := &contractCheckingDoer{tb: recorder, contractRouter: router, httpClient: server.Client()}
+		request, err := http.NewRequestWithContext(t.Context(), http.MethodGet, server.URL+"/api/v1/archives", nil)
+		require.NoError(t, err)
+		response, err := doer.Do(request)
+		require.NoError(t, err)
+		require.NoError(t, response.Body.Close())
+		failures := recorder.getFailures()
+		require.Len(t, failures, 1)
+		assert.Contains(t, failures[0], "X-Archive-Id")
+	})
 }

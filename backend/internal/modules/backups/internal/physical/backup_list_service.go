@@ -20,7 +20,13 @@ func (s *Service) GetBackups(
 		return nil, err
 	}
 
-	limit := normalizeBackupsPageLimit(request.Limit)
+	limit := 50
+	if request.Limit != nil {
+		limit = *request.Limit
+	}
+	if limit < 1 || limit > 1000 {
+		return nil, errInvalidPageLimit
+	}
 	filter := toBackupListFilter(request)
 
 	after, err := decodePhysicalListCursor(request.Cursor)
@@ -105,21 +111,4 @@ func toBackupListFilter(
 	}
 
 	return filter
-}
-
-func normalizeBackupsPageLimit(limit int) int {
-	const (
-		defaultLimit = 50
-		maxLimit     = 1000
-	)
-
-	if limit <= 0 {
-		return defaultLimit
-	}
-
-	if limit > maxLimit {
-		return maxLimit
-	}
-
-	return limit
 }

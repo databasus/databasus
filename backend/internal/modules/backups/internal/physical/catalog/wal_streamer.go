@@ -12,15 +12,15 @@ import (
 // liveness, and runtime PG-slot semantics (active_pid != ours ⇒ refuse)
 // prevent concurrent-claim races.
 type WalStreamer struct {
-	DatabaseID      uuid.UUID         `json:"databaseId"      gorm:"column:database_id;type:uuid;primaryKey"`
-	StartedAt       time.Time         `json:"startedAt"       gorm:"column:started_at"`
-	LastHeartbeatAt time.Time         `json:"lastHeartbeatAt" gorm:"column:last_heartbeat_at"`
-	Status          WalStreamerStatus `json:"status"          gorm:"column:status;type:text;not null"`
+	DatabaseID      uuid.UUID         `gorm:"column:database_id;type:uuid;primaryKey"`
+	StartedAt       time.Time         `gorm:"column:started_at"`
+	LastHeartbeatAt time.Time         `gorm:"column:last_heartbeat_at"`
+	Status          WalStreamerStatus `gorm:"column:status;type:text;not null"`
 
 	// The first failure since a session last recorded a sample. A crash loop keeps
 	// it, so a streamer that never gets as far as its first sample still shows how
 	// long it has been failing.
-	FailingSince *time.Time `json:"failingSince" gorm:"column:failing_since"`
+	FailingSince *time.Time `gorm:"column:failing_since"`
 }
 
 func (WalStreamer) TableName() string {

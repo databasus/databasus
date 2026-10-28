@@ -24,7 +24,7 @@ func getWalStreamStatistics(
 	catalog.call(
 		t,
 		catalogCall{
-			Path:          getWalStreamStatisticsURL(catalog.DatabaseID, period),
+			Request:       statisticsRequest(catalog.DatabaseID, period),
 			Authorization: "Bearer " + catalog.Owner.Token,
 			StatusCode:    http.StatusOK,
 			Destination:   &response,
@@ -34,8 +34,8 @@ func getWalStreamStatistics(
 	return &response
 }
 
-func getWalStreamStatisticsURL(databaseID uuid.UUID, period string) string {
-	return "/api/v1/backups/physical/database/" + databaseID.String() + "/wal-stream/statistics?period=" + period
+func statisticsRequest(databaseID uuid.UUID, period string) apptest.PhysicalRequest {
+	return apptest.PhysicalStatisticsRequest(databaseID, period)
 }
 
 func getReasonCodes(reasons []healthReason) []string {

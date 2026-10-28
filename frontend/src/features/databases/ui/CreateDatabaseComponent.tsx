@@ -88,7 +88,7 @@ export const CreateDatabaseComponent = ({
         await backupConfigApi.updateBackupConfig(createdDatabase.id, physicalBackupConfig);
 
         if (physicalBackupConfig.isBackupsEnabled) {
-          await physicalBackupsApi.triggerPhysicalBackup(createdDatabase.id, 'auto');
+          await physicalBackupsApi.triggerPhysicalBackup(createdDatabase.id, 'AUTO');
         }
       } else if (backupConfig) {
         await backupConfigApi.updateBackupConfig(createdDatabase.id, backupConfig);

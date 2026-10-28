@@ -235,13 +235,10 @@ func TestPhysicalBackupLoops(t *testing.T) {
 		// The scheduler ticks every second; observe five ticks after the config save answered.
 		observationEnds := time.Now().Add(5 * time.Second)
 		testwait.Until(t, "five scheduler ticks pass without physical work", func(context.Context) error {
-			status, body := testApp.CallOldAPI(t, owner, OldAPICall{
-				Method: http.MethodGet,
-				Path:   "/backups/physical/database/" + database.Id.String() + "/backups?limit=1000",
-			})
+			status, body := testApp.CallPhysicalAPI(t, owner, PhysicalListRequest(database.Id, "?limit=1000"))
 			require.Equal(t, http.StatusOK, status, "%s", body)
 			var listed struct {
-				Backups []json.RawMessage `json:"backups"`
+				Backups []json.RawMessage `json:"items"`
 			}
 			require.NoError(t, json.Unmarshal(body, &listed))
 			require.Empty(t, listed.Backups)
@@ -275,10 +272,11 @@ func TestPhysicalBackupLoops(t *testing.T) {
 				testApp := New(t, WithPhysicalBackupLoops())
 				owner, createdDatabase := enablePhysicalBackupLoops(t, testApp, source)
 				testwait.Until(t, "the application owns a running WAL stream", func(context.Context) error {
-					status, body := testApp.CallOldAPI(t, owner, OldAPICall{
-						Method: http.MethodGet,
-						Path:   "/backups/physical/database/" + createdDatabase.Id.String() + "/wal-stream/statistics?period=HOUR",
-					})
+					status, body := testApp.CallPhysicalAPI(
+						t,
+						owner,
+						PhysicalStatisticsRequest(createdDatabase.Id, "HOUR"),
+					)
 					require.Equal(t, http.StatusOK, status, "%s", body)
 					var statistics struct {
 						Streamer struct {
@@ -401,13 +399,10 @@ type physicalBackupRow struct {
 
 func listPhysicalBackups(t *testing.T, testApp *App, owner Session, databaseID uuid.UUID) []physicalBackupRow {
 	t.Helper()
-	status, body := testApp.CallOldAPI(t, owner, OldAPICall{
-		Method: http.MethodGet,
-		Path:   "/backups/physical/database/" + databaseID.String() + "/backups?limit=1000",
-	})
+	status, body := testApp.CallPhysicalAPI(t, owner, PhysicalListRequest(databaseID, "?limit=1000"))
 	require.Equal(t, http.StatusOK, status, "%s", body)
 	var listed struct {
-		Backups []physicalBackupRow `json:"backups"`
+		Backups []physicalBackupRow `json:"items"`
 	}
 	require.NoError(t, json.Unmarshal(body, &listed))
 	return listed.Backups
@@ -528,10 +523,7 @@ func getPhysicalStreamStatistics(
 	databaseID uuid.UUID,
 ) physicalStreamStatistics {
 	t.Helper()
-	status, body := testApp.CallOldAPI(t, owner, OldAPICall{
-		Method: http.MethodGet,
-		Path:   "/backups/physical/database/" + databaseID.String() + "/wal-stream/statistics?period=HOUR",
-	})
+	status, body := testApp.CallPhysicalAPI(t, owner, PhysicalStatisticsRequest(databaseID, "HOUR"))
 	require.Equal(t, http.StatusOK, status, "%s", body)
 	var statistics physicalStreamStatistics
 	require.NoError(t, json.Unmarshal(body, &statistics))

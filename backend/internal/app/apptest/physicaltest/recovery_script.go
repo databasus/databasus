@@ -23,9 +23,9 @@ type restoreSpec struct {
 func fetchRecoveryScript(t *testing.T, testApp *apptest.App) string {
 	t.Helper()
 
-	status, body := testApp.CallOldPublicAPI(
-		t,
-		apptest.OldAPICall{Method: http.MethodGet, Path: "/backups/physical/recovery-script"},
+	status, body := testApp.CallPhysicalAPI(
+		t, apptest.Session{},
+		apptest.PhysicalScriptRequest(),
 	)
 	require.Equal(t, http.StatusOK, status, "%s", body)
 	require.NotEmpty(t, body)

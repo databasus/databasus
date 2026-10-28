@@ -35,6 +35,9 @@ const (
 	CodeInUse                    Code = "in_use"
 	CodeDatabaseConnectionFailed Code = "database_connection_failed"
 	CodeAlreadyRunning           Code = "already_running"
+	CodeNoExtendableChain        Code = "no_extendable_chain"
+	CodeNoRestorableBackup       Code = "no_restorable_backup"
+	CodeTargetTimeUnreachable    Code = "target_time_unreachable"
 	CodeNotRunning               Code = "not_running"
 	CodeInsufficientDiskSpace    Code = "insufficient_disk_space"
 	CodeInternal                 Code = "internal"
@@ -96,6 +99,12 @@ func describeCode(code Code) (int, string) {
 		return http.StatusBadRequest, "Database connection failed"
 	case CodeAlreadyRunning:
 		return http.StatusConflict, "Already running"
+	case CodeNoExtendableChain:
+		return http.StatusConflict, "No extendable chain"
+	case CodeNoRestorableBackup:
+		return http.StatusConflict, "No restorable backup"
+	case CodeTargetTimeUnreachable:
+		return http.StatusConflict, "Target time unreachable"
 	case CodeNotRunning:
 		return http.StatusConflict, "Not running"
 	case CodeInsufficientDiskSpace:

@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 
 	"databasus-backend/internal/lib/cache"
+	"databasus-backend/internal/lib/clock"
 	"databasus-backend/internal/modules/backups/internal/download"
 	"databasus-backend/internal/modules/storages"
 )
@@ -22,6 +23,7 @@ type Service struct {
 	streams *download.UserStreams
 	*Writer
 	logger *slog.Logger
+	clock  clock.Source
 }
 
 type Deps struct {
@@ -29,6 +31,7 @@ type Deps struct {
 	Streams  *download.UserStreams
 	Storages storages.Module
 	Logger   *slog.Logger
+	Clock    clock.Source
 }
 
 func New(deps Deps) *Service {
@@ -37,72 +40,31 @@ func New(deps Deps) *Service {
 		streams: deps.Streams,
 		Writer:  &Writer{storages: deps.Storages},
 		logger:  deps.Logger,
+		clock:   deps.Clock,
 	}
 }
 
-// GenerateRestoreToken issues a single-use, short-TTL token authorizing a
-// physical restore stream of databaseID to targetTime (nil ⇒ latest).
-func (s *Service) GenerateRestoreToken(
-	ctx context.Context,
-	databaseID, userID uuid.UUID,
-	targetTime *time.Time,
-) (string, error) {
-	err := s.refuseWhileStreamHeld(ctx, userID)
-	if err != nil {
-		return "", err
-	}
+type IssuedToken struct {
+	Token     string
+	ExpiresAt time.Time
+}
 
+func (s *Service) IssueToken(ctx context.Context, subject Token) (IssuedToken, error) {
+	if err := s.refuseWhileStreamHeld(ctx, subject.UserID); err != nil {
+		return IssuedToken{}, err
+	}
 	token := generateSecureToken()
-
-	if err := s.store.issue(ctx, token, Token{
-		DatabaseID: databaseID,
-		UserID:     userID,
-		TargetTime: targetTime,
-	}); err != nil {
-		return "", err
+	expiresAt := s.clock.Now().Add(TokenLifetime)
+	if err := s.store.issue(ctx, token, subject); err != nil {
+		return IssuedToken{}, err
 	}
-
 	s.logger.InfoContext(
 		ctx,
 		"generated restore token",
-		slog.Any("database_id", databaseID),
-		slog.Any("user_id", userID),
+		slog.Any("database_id", subject.DatabaseID),
+		slog.Any("user_id", subject.UserID),
 	)
-
-	return token, nil
-}
-
-// GenerateBackupRestoreToken issues a single-use, short-TTL token authorizing a
-// per-backup restore stream (the FULL plus its incremental ancestors, no WAL)
-// of backupID within databaseID.
-func (s *Service) GenerateBackupRestoreToken(
-	ctx context.Context,
-	databaseID, userID, backupID uuid.UUID,
-) (string, error) {
-	err := s.refuseWhileStreamHeld(ctx, userID)
-	if err != nil {
-		return "", err
-	}
-
-	token := generateSecureToken()
-
-	if err := s.store.issue(ctx, token, Token{
-		DatabaseID: databaseID,
-		UserID:     userID,
-		BackupID:   &backupID,
-	}); err != nil {
-		return "", err
-	}
-
-	s.logger.InfoContext(
-		ctx,
-		"generated backup restore token",
-		slog.Any("database_id", databaseID),
-		slog.Any("user_id", userID),
-		slog.Any("backup_id", backupID),
-	)
-
-	return token, nil
+	return IssuedToken{Token: token, ExpiresAt: expiresAt}, nil
 }
 
 // ValidateAndConsumeRestoreToken consumes a restore token, then acquires the user stream. The caller
@@ -112,7 +74,7 @@ func (s *Service) GenerateBackupRestoreToken(
 // validated at most once even under concurrency. The trade-off: if the stream
 // cannot be acquired (a competing stream slipped in after the token was
 // issued), the token is already spent and the user must request a new one. That
-// race is narrow — GenerateRestoreToken already refuses while a stream is held —
+// race is narrow — IssueToken already refuses while a stream is held —
 // and burning the token beats a validate-then-consume window that two requests
 // could both pass.
 func (s *Service) ValidateAndConsumeRestoreToken(

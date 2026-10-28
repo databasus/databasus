@@ -50,6 +50,9 @@ func TestCode(t *testing.T) {
 		{apierror.CodeDatabaseConnectionFailed, http.StatusBadRequest},
 		{apierror.CodeAlreadyRunning, http.StatusConflict},
 		{apierror.CodeNotRunning, http.StatusConflict},
+		{apierror.CodeNoExtendableChain, http.StatusConflict},
+		{apierror.CodeNoRestorableBackup, http.StatusConflict},
+		{apierror.CodeTargetTimeUnreachable, http.StatusConflict},
 		{apierror.CodeInsufficientDiskSpace, http.StatusConflict},
 		{apierror.CodeInternal, http.StatusInternalServerError},
 	}
@@ -101,6 +104,9 @@ func TestCode(t *testing.T) {
 			apierror.CodeDatabaseConnectionFailed,
 			apierror.CodeAlreadyRunning,
 			apierror.CodeNotRunning,
+			apierror.CodeNoExtendableChain,
+			apierror.CodeNoRestorableBackup,
+			apierror.CodeTargetTimeUnreachable,
 			apierror.CodeInsufficientDiskSpace,
 			apierror.CodeInternal,
 		}

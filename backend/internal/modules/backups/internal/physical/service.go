@@ -2,10 +2,12 @@ package physical
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 
 	"github.com/google/uuid"
 
+	"databasus-backend/internal/lib/apierror"
 	"databasus-backend/internal/lib/background"
 	"databasus-backend/internal/lib/clock"
 	"databasus-backend/internal/lib/crypto"
@@ -70,11 +72,18 @@ func (s *Service) authorizeDatabase(
 		return databases.Database{}, err
 	}
 	if len(listedDatabases) == 0 {
-		return databases.Database{}, databases.ErrDatabaseNotFound
+		return databases.Database{}, ErrDatabaseNotFound
 	}
 	backupDatabase := listedDatabases[0]
 	if err := s.workspaces.Authorize(ctx, actor, backupDatabase.WorkspaceID, action); err != nil {
+		var problem *apierror.Problem
+		if errors.As(err, &problem) && problem.Code == apierror.CodeNotFound {
+			return databases.Database{}, ErrDatabaseNotFound
+		}
 		return databases.Database{}, err
+	}
+	if backupDatabase.Type != databases.TypePostgresqlPhysical {
+		return databases.Database{}, ErrNotPhysicalDatabase
 	}
 	return backupDatabase, nil
 }
@@ -112,4 +121,11 @@ func (s *Service) resolveBackupDatabaseAndStatus(ctx context.Context,
 	}
 
 	return uuid.Nil, "", false, nil
+}
+
+func toBackupAccessProblem(err error) error {
+	if errors.Is(err, ErrDatabaseNotFound) {
+		return ErrBackupNotFound
+	}
+	return err
 }

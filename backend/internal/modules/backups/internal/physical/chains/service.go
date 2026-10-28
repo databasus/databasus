@@ -227,33 +227,6 @@ func (s *Service) DeleteIncrementalCascade(
 	return summary, nil
 }
 
-// DeleteWalSegment removes one WAL segment and every later WAL segment on its
-// timeline up to (not including) the next FULL/INCR anchor LSN — the span
-// [segment.start_lsn, nextAnchor). Deleting a WAL segment makes every PITR
-// target after it unreachable until the next backup re-anchors replay, so the
-// now-dead tail goes with it. Earlier WAL and all backups stay. Idempotent.
-func (s *Service) DeleteWalSegment(
-	ctx context.Context,
-	walSegmentID uuid.UUID,
-) (int, float64, error) {
-	segment, _, err := s.walSegmentRepository.FindByID(ctx, walSegmentID)
-	if err != nil {
-		return 0, 0, err
-	}
-	if segment == nil {
-		return 0, 0, nil
-	}
-
-	end, err := s.repository.GetNextAnchorLSNAfter(ctx, segment.DatabaseID, segment.TimelineID, segment.StartLSN)
-	if err != nil {
-		return 0, 0, err
-	}
-
-	span := catalog.LSNRange{Start: segment.StartLSN, End: end}
-
-	return s.DeleteWalSegmentsInSpan(ctx, segment.DatabaseID, segment.TimelineID, span, unboundedWalBudgetMB)
-}
-
 // GetTotalUsageMBByDatabase sums every COMPLETED FULL + COMPLETED INCR backup
 // size and every WAL segment's compressed size for one database. Failed /
 // canceled rows (NULL backup_size_mb) are excluded by the status filter.

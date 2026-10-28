@@ -7,7 +7,7 @@ import (
 )
 
 type backupPage struct {
-	Backups      []backupRow `json:"backups"`
+	Backups      []backupRow `json:"items"`
 	TotalUsageMb float64     `json:"totalUsageMb"`
 	NextCursor   string      `json:"nextCursor"`
 }

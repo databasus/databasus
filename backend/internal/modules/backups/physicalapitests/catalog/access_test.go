@@ -1,73 +1,80 @@
 package catalog_test
 
 import (
+	"encoding/json"
 	"net/http"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"databasus-backend/internal/app/apptest"
 	apiclient "databasus-backend/internal/lib/apiclient"
 )
 
 func TestPhysicalBackupAccess(t *testing.T) {
-	t.Run(
-		"permits readers and managers according to workspace role when listing or triggering backups",
-		func(t *testing.T) {
+	for _, scenario := range []struct {
+		name          string
+		role          string
+		listStatus    int
+		triggerStatus int
+		code          apiclient.ProblemCode
+	}{
+		{"allows both operations when the user owns the workspace", "OWNER", http.StatusOK, http.StatusAccepted, ""},
+		{"allows both operations when the user is a workspace member", "MEMBER", http.StatusOK, http.StatusAccepted, ""},
+		{"allows reading and returns 403 for changes when the user is a viewer", "VIEWER", http.StatusOK, http.StatusForbidden, apiclient.ProblemCodePermissionDenied},
+		{"returns 404 for both operations when the user is not a workspace member", "OUTSIDER", http.StatusNotFound, http.StatusNotFound, apiclient.ProblemCodeNotFound},
+		{"allows both operations when the user is an instance admin", "ADMIN", http.StatusOK, http.StatusAccepted, ""},
+		{"returns 401 for both operations when the request has no session", "NO_SESSION", http.StatusUnauthorized, http.StatusUnauthorized, apiclient.ProblemCodeUnauthenticated},
+	} {
+		t.Run(scenario.name, func(t *testing.T) {
 			catalog := newCatalog(t)
-			apptest.SaveBackupConfigWithStorage(
-				t,
-				catalog.Owner,
-				apptest.StorageUse{DatabaseID: catalog.DatabaseID, StorageID: catalog.StorageID},
-			)
-			member := catalog.App.CreateNonAdminUser(t, catalog.Admin)
-			apptest.AddWorkspaceMember(
-				t,
-				catalog.Owner,
-				catalog.WorkspaceID,
-				member.Email,
-				apiclient.AssignableWorkspaceRoleWORKSPACEMEMBER,
-			)
-			viewer := catalog.addViewer(t)
-			outsider := catalog.App.CreateNonAdminUser(t, catalog.Admin)
-			for _, testCase := range []struct {
-				name          string
-				session       apptest.Session
-				listStatus    int
-				triggerStatus int
-			}{
-				{"allows both operations when the user owns the workspace", catalog.Owner, http.StatusOK, http.StatusAccepted},
-				{"allows both operations when the user is a workspace member", member, http.StatusOK, http.StatusAccepted},
-				{"allows reading and returns 400 for changes when the user is a viewer", viewer, http.StatusOK, http.StatusBadRequest},
-				{"returns 400 for both operations when the user is not a workspace member", outsider, http.StatusBadRequest, http.StatusBadRequest},
-				{"allows both operations when the user is an instance admin", catalog.Admin, http.StatusOK, http.StatusAccepted},
-				{"returns 401 for both operations when the request has no session", apptest.Session{}, http.StatusUnauthorized, http.StatusUnauthorized},
-			} {
-				t.Run(testCase.name, func(t *testing.T) {
-					path := "/backups/physical/database/" + catalog.DatabaseID.String()
-					catalog.call(
-						t,
-						catalogCall{
-							Path:          path + "/backups",
-							Authorization: "Bearer " + testCase.session.Token,
-							StatusCode:    testCase.listStatus,
-						},
-					)
-					catalog.call(
-						t,
-						catalogCall{
-							Method:        http.MethodPost,
-							Path:          path + "/trigger",
-							Authorization: "Bearer " + testCase.session.Token,
-							Body:          map[string]string{"type": "full"},
-							StatusCode:    testCase.triggerStatus,
-						},
-					)
-				})
+
+			apptest.SaveBackupConfigWithStorage(t, catalog.Owner,
+				apptest.StorageUse{DatabaseID: catalog.DatabaseID, StorageID: catalog.StorageID})
+
+			session := catalog.Owner
+
+			switch scenario.role {
+			case "MEMBER":
+				session = catalog.App.CreateNonAdminUser(t, catalog.Admin)
+				apptest.AddWorkspaceMember(t, catalog.Owner, catalog.WorkspaceID, session.Email,
+					apiclient.AssignableWorkspaceRoleWORKSPACEMEMBER)
+			case "VIEWER":
+				session = catalog.addViewer(t)
+			case "OUTSIDER":
+				session = catalog.App.CreateNonAdminUser(t, catalog.Admin)
+			case "ADMIN":
+				session = catalog.Admin
+			case "NO_SESSION":
+				session = apptest.Session{}
 			}
-		},
-	)
+
+			listResponse := catalog.call(t, catalogCall{
+				Request:       apptest.PhysicalListRequest(catalog.DatabaseID, ""),
+				Authorization: "Bearer " + session.Token, StatusCode: scenario.listStatus,
+			})
+
+			startResponse := catalog.call(t, catalogCall{
+				Request:       apptest.PhysicalStartRequest(catalog.DatabaseID, "FULL"),
+				Authorization: "Bearer " + session.Token, StatusCode: scenario.triggerStatus,
+			})
+
+			if scenario.triggerStatus >= 400 {
+				var problem apiclient.Problem
+				require.NoError(t, json.Unmarshal(startResponse.Body, &problem))
+				assert.Equal(t, scenario.code, problem.Code)
+				assert.Equal(t, backupRequests{}, catalog.getBackupRequests(t))
+			}
+
+			if scenario.listStatus >= 400 {
+				var problem apiclient.Problem
+				require.NoError(t, json.Unmarshal(listResponse.Body, &problem))
+				assert.Equal(t, scenario.code, problem.Code)
+			}
+		})
+	}
 }
 
 func TestTriggerPhysicalBackup(t *testing.T) {
@@ -81,10 +88,8 @@ func TestTriggerPhysicalBackup(t *testing.T) {
 		catalog.call(
 			t,
 			catalogCall{
-				Method:        http.MethodPost,
-				Path:          "/backups/physical/database/" + catalog.DatabaseID.String() + "/trigger",
+				Request:       apptest.PhysicalStartRequest(catalog.DatabaseID, "FULL"),
 				Authorization: "Bearer " + catalog.Owner.Token,
-				Body:          map[string]string{"type": "full"},
 				StatusCode:    http.StatusAccepted,
 			},
 		)
@@ -99,16 +104,20 @@ func TestTriggerPhysicalBackup(t *testing.T) {
 	})
 	t.Run("returns 409 when an incremental has no extendable chain", func(t *testing.T) {
 		catalog := newCatalog(t)
+		apptest.SaveBackupConfigWithStorage(t, catalog.Owner,
+			apptest.StorageUse{DatabaseID: catalog.DatabaseID, StorageID: catalog.StorageID})
+		var problem apiclient.Problem
 		catalog.call(
 			t,
 			catalogCall{
-				Method:        http.MethodPost,
-				Path:          "/backups/physical/database/" + catalog.DatabaseID.String() + "/trigger",
+				Request:       apptest.PhysicalStartRequest(catalog.DatabaseID, "INCREMENTAL"),
 				Authorization: "Bearer " + catalog.Owner.Token,
-				Body:          map[string]string{"type": "incremental"},
 				StatusCode:    http.StatusConflict,
+				Destination:   &problem,
 			},
 		)
+		assert.Equal(t, apiclient.ProblemCodeNoExtendableChain, problem.Code)
+		assert.Equal(t, backupRequests{}, catalog.getBackupRequests(t))
 	})
 	t.Run("accepts an automatic request when no backup is running", func(t *testing.T) {
 		catalog := newCatalog(t)
@@ -116,10 +125,8 @@ func TestTriggerPhysicalBackup(t *testing.T) {
 		catalog.call(
 			t,
 			catalogCall{
-				Method:        http.MethodPost,
-				Path:          "/backups/physical/database/" + catalog.DatabaseID.String() + "/trigger",
+				Request:       apptest.PhysicalStartRequest(catalog.DatabaseID, "AUTO"),
 				Authorization: "Bearer " + catalog.Owner.Token,
-				Body:          map[string]string{"type": "auto"},
 				StatusCode:    http.StatusAccepted,
 			},
 		)

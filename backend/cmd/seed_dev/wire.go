@@ -95,7 +95,3 @@ type postgresqlPhysicalSettings struct {
 type startLogicalBackupRequest struct {
 	DatabaseID uuid.UUID `json:"databaseId"`
 }
-
-type triggerPhysicalBackupRequest struct {
-	Type string `json:"type"`
-}

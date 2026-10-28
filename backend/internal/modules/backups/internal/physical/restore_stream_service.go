@@ -2,6 +2,7 @@ package physical
 
 import (
 	"context"
+	"errors"
 	"io"
 	"log/slog"
 	"sync"
@@ -22,7 +23,7 @@ type RestoreStream struct {
 func (s *Service) OpenRestoreStream(ctx context.Context, token string) (RestoreStream, error) {
 	restoreToken, userStream, err := s.restoreTokenService.ValidateAndConsumeRestoreToken(ctx, token)
 	if err != nil {
-		return RestoreStream{}, err
+		return RestoreStream{}, toRestoreProblem(err)
 	}
 	var restoreSet *chains.RestoreSet
 	if restoreToken.BackupID != nil {
@@ -31,12 +32,20 @@ func (s *Service) OpenRestoreStream(ctx context.Context, token string) (RestoreS
 			restoreToken.DatabaseID,
 			*restoreToken.BackupID,
 		)
+		if errors.Is(err, chains.ErrNoChainForRestore) {
+			_, _, isFound, lookupErr := s.resolveBackupDatabaseAndStatus(ctx, *restoreToken.BackupID)
+			if lookupErr != nil {
+				err = lookupErr
+			} else if !isFound {
+				err = ErrBackupNotFound
+			}
+		}
 	} else {
 		restoreSet, err = s.chains.ResolveRestoreSet(ctx, restoreToken.DatabaseID, restoreToken.TargetTime)
 	}
 	if err != nil {
 		_ = userStream.Release(context.WithoutCancel(ctx))
-		return RestoreStream{}, err
+		return RestoreStream{}, toRestoreProblem(err)
 	}
 	streamCtx, cancel := context.WithCancel(ctx)
 	stopShutdown := context.AfterFunc(s.appCtx, cancel)
@@ -58,7 +67,16 @@ func (s *Service) OpenRestoreStream(ctx context.Context, token string) (RestoreS
 	return RestoreStream{
 		DatabaseID: restoreToken.DatabaseID,
 		Write: func(writer io.Writer) error {
-			return s.restoreStreamWriter.Write(streamCtx, writer, restoreSet, s.masterKey)
+			err := s.restoreStreamWriter.Write(streamCtx, writer, restoreSet, s.masterKey)
+			if err != nil {
+				s.logger.ErrorContext(
+					streamCtx,
+					"failed to write physical restore set",
+					slog.Any("database_id", restoreToken.DatabaseID),
+					slog.Any("error", err),
+				)
+			}
+			return err
 		},
 		Close: func() {
 			closeOnce.Do(func() {

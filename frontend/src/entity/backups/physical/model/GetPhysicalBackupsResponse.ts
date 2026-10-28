@@ -1,9 +1,3 @@
-import type { PhysicalBackupListItem } from './PhysicalBackupListItem';
+import type { ApiComponents } from '../../../../shared/api';
 
-export interface GetPhysicalBackupsResponse {
-  backups: PhysicalBackupListItem[];
-  totalUsageMb: number;
-
-  // continues the list after this page; absent on the last page
-  nextCursor?: string;
-}
+export type GetPhysicalBackupsResponse = ApiComponents['schemas']['PhysicalBackupPage'];

@@ -9,7 +9,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	audit_logs "databasus-backend/internal/features/audit_logs"
-	backups_backups_controllers_physical "databasus-backend/internal/features/backups/backups/controllers/physical"
 	caching "databasus-backend/internal/features/caching"
 	databases_bridge "databasus-backend/internal/features/databases"
 	disk "databasus-backend/internal/features/disk"
@@ -38,10 +37,6 @@ type oldCodeGetter struct {
 func getOldCodeGetters() []oldCodeGetter {
 	return []oldCodeGetter{
 		{"features/audit_logs.GetAuditLogService", func() any { return audit_logs.GetAuditLogService() }},
-		{
-			"features/backups/backups/controllers/physical.GetPhysicalBackupController",
-			func() any { return backups_backups_controllers_physical.GetPhysicalBackupController() },
-		},
 		{"features/databases.GetAccess", func() any { return databases_bridge.GetAccess() }},
 		{"features/disk.GetDiskService", func() any { return disk.GetDiskService() }},
 		{"features/disk.GetDiskController", func() any { return disk.GetDiskController() }},

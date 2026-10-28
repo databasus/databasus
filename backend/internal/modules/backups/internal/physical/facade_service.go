@@ -114,7 +114,13 @@ func New(deps Deps) *Service {
 		},
 	)
 	restoreService := restorestream.New(
-		restorestream.Deps{Cache: deps.Cache, Streams: deps.UserStreams, Storages: deps.Storages, Logger: deps.Logger},
+		restorestream.Deps{
+			Cache:    deps.Cache,
+			Streams:  deps.UserStreams,
+			Storages: deps.Storages,
+			Logger:   deps.Logger,
+			Clock:    deps.Clock,
+		},
 	)
 	cleaner := retention.New(
 		retention.Deps{

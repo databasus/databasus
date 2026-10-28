@@ -47,10 +47,7 @@ func (team *walTeam) statistics(t *testing.T) streamStatistics {
 	var statistics streamStatistics
 	team.call(
 		t,
-		apptest.OldAPICall{
-			Method: http.MethodGet,
-			Path:   "/backups/physical/database/" + team.Database.Id.String() + "/wal-stream/statistics?period=HOUR",
-		},
+		apptest.PhysicalStatisticsRequest(team.Database.Id, "HOUR"),
 		http.StatusOK,
 		&statistics,
 	)

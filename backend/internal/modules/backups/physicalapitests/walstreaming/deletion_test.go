@@ -30,11 +30,7 @@ func TestDeleteStreamingPhysicalDatabase(t *testing.T) {
 			require.Len(t, storageIDs, 1)
 			team.call(
 				t,
-				apptest.OldAPICall{
-					Method: http.MethodPost,
-					Path:   "/backups/physical/database/" + team.Database.Id.String() + "/trigger",
-					Body:   map[string]string{"type": "full"},
-				},
+				apptest.PhysicalStartRequest(team.Database.Id, "FULL"),
 				http.StatusAccepted,
 				nil,
 			)

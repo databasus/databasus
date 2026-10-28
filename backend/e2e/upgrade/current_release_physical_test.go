@@ -14,7 +14,7 @@ import (
 )
 
 type currentPhysicalBackupPage struct {
-	Backups []currentPhysicalBackup `json:"backups"`
+	Backups []currentPhysicalBackup `json:"items"`
 }
 
 type currentPhysicalBackup struct {
@@ -34,7 +34,7 @@ type currentPhysicalRestoreToken struct {
 
 func checkPhysicalBackup(ctx context.Context, api *apiClient, written writtenUpgradeData) error {
 	var page currentPhysicalBackupPage
-	err := api.get(ctx, "/backups/physical/database/"+written.physicalDatabaseID+"/backups?limit=100", &page)
+	err := api.get(ctx, "/physical-backups?databaseId="+written.physicalDatabaseID+"&limit=100", &page)
 	if err != nil {
 		return fmt.Errorf("list physical backups after the upgrade: %w", err)
 	}
@@ -58,8 +58,8 @@ func checkPhysicalBackup(ctx context.Context, api *apiClient, written writtenUpg
 	var token currentPhysicalRestoreToken
 	err = api.post(
 		ctx,
-		"/backups/physical/database/"+written.physicalDatabaseID+"/restore-token",
-		map[string]any{},
+		"/physical-restore-tokens",
+		map[string]any{"type": "POINT_IN_TIME", "databaseId": written.physicalDatabaseID},
 		&token,
 	)
 	if err != nil {
@@ -68,7 +68,7 @@ func checkPhysicalBackup(ctx context.Context, api *apiClient, written writtenUpg
 	request, err := http.NewRequestWithContext(
 		ctx,
 		http.MethodGet,
-		api.baseURL+"/backups/physical/restore-stream?token="+url.QueryEscape(token.Token),
+		api.baseURL+"/physical-restore-sets?token="+url.QueryEscape(token.Token),
 		nil,
 	)
 	if err != nil {

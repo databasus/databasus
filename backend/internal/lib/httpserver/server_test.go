@@ -142,6 +142,19 @@ func newGuardedEngine(t *testing.T, routePath string) guardedEngine {
 func TestRecover(t *testing.T) {
 	t.Parallel()
 
+	t.Run("aborts the response when a streaming handler raises ErrAbortHandler", func(t *testing.T) {
+		t.Parallel()
+		engine := gin.New()
+		engine.Use(Recover(slog.New(slog.DiscardHandler)))
+		engine.GET("/stream", func(*gin.Context) { panic(http.ErrAbortHandler) })
+		require.PanicsWithValue(t, http.ErrAbortHandler, func() {
+			engine.ServeHTTP(
+				httptest.NewRecorder(),
+				httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/stream", nil),
+			)
+		})
+	})
+
 	t.Run("answers 500 when a handler panics", func(t *testing.T) {
 		t.Parallel()
 

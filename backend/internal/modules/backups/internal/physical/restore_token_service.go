@@ -3,49 +3,49 @@ package physical
 import (
 	"context"
 
-	"github.com/google/uuid"
-
+	"databasus-backend/internal/modules/backups/internal/physical/restorestream"
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/modules/workspaces"
 )
 
-func (s *Service) GenerateRestoreToken(
+func (s *Service) IssueRestoreToken(
 	ctx context.Context,
 	actor users.Actor,
-	databaseID uuid.UUID,
-	request *GenerateRestoreTokenRequest,
-) (string, error) {
+	subject RestoreTokenSubject,
+) (restorestream.IssuedToken, error) {
+	databaseID := subject.DatabaseID
+	if subject.BackupID != nil {
+		resolvedDatabaseID, _, isFound, err := s.resolveBackupDatabaseAndStatus(ctx, *subject.BackupID)
+		if err != nil {
+			return restorestream.IssuedToken{}, err
+		}
+		if !isFound {
+			return restorestream.IssuedToken{}, ErrBackupNotFound
+		}
+		databaseID = resolvedDatabaseID
+	}
 	if _, err := s.authorizeDatabase(ctx, actor, databaseID, workspaces.ActionView); err != nil {
-		return "", err
+		if subject.BackupID != nil {
+			err = toBackupAccessProblem(err)
+		}
+		return restorestream.IssuedToken{}, err
 	}
-
-	if _, err := s.chains.ResolveRestoreSet(ctx, databaseID, request.TargetTime); err != nil {
-		return "", err
+	if subject.BackupID != nil {
+		if _, err := s.chains.ResolveRestoreSetForBackup(ctx, databaseID, *subject.BackupID); err != nil {
+			return restorestream.IssuedToken{}, toRestoreProblem(err)
+		}
+	} else {
+		if _, err := s.chains.ResolveRestoreSet(ctx, databaseID, subject.TargetTime); err != nil {
+			return restorestream.IssuedToken{}, toRestoreProblem(err)
+		}
 	}
-
-	return s.restoreTokenService.GenerateRestoreToken(ctx, databaseID, actor.UserID, request.TargetTime)
-}
-
-func (s *Service) GenerateBackupRestoreToken(
-	ctx context.Context,
-	actor users.Actor,
-	backupID uuid.UUID,
-) (string, error) {
-	databaseID, _, found, err := s.resolveBackupDatabaseAndStatus(ctx, backupID)
-	if err != nil {
-		return "", err
-	}
-	if !found {
-		return "", ErrBackupNotFound
-	}
-
-	if _, err := s.authorizeDatabase(ctx, actor, databaseID, workspaces.ActionView); err != nil {
-		return "", err
-	}
-
-	if _, err := s.chains.ResolveRestoreSetForBackup(ctx, databaseID, backupID); err != nil {
-		return "", err
-	}
-
-	return s.restoreTokenService.GenerateBackupRestoreToken(ctx, databaseID, actor.UserID, backupID)
+	return s.restoreTokenService.IssueToken(
+		ctx,
+		restorestream.Token{
+			DatabaseID: databaseID,
+			UserID:     actor.UserID,
+			BackupID:   subject.BackupID,
+			TargetTime: subject.TargetTime,
+		},
+	)
 }

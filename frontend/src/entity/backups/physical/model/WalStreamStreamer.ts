@@ -1,8 +1,3 @@
-import type { WalStreamStreamerState } from './WalStreamStreamerState';
+import type { ApiComponents } from '../../../../shared/api';
 
-export interface WalStreamStreamer {
-  state: WalStreamStreamerState;
-  sessionStartedAt: string | null;
-  failingSince: string | null;
-  restartsLastHour: number;
-}
+export type WalStreamStreamer = ApiComponents['schemas']['WalStreamStreamer'];

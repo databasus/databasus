@@ -8,6 +8,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"databasus-backend/internal/app/apptest"
 )
 
 func TestGetPhysicalBackups(t *testing.T) {
@@ -59,7 +61,7 @@ func TestGetPhysicalBackups(t *testing.T) {
 		catalog.call(
 			t,
 			catalogCall{
-				Path:          "/api/v1/backups/physical/database/" + catalog.DatabaseID.String() + "/backups",
+				Request:       apptest.PhysicalListRequest(catalog.DatabaseID, ""),
 				Authorization: "Bearer " + catalog.Owner.Token,
 				StatusCode:    http.StatusOK,
 				Destination:   &response,
@@ -117,7 +119,7 @@ func TestGetPhysicalBackups(t *testing.T) {
 		catalog.call(
 			t,
 			catalogCall{
-				Path:          "/api/v1/backups/physical/database/" + catalog.DatabaseID.String() + "/backups",
+				Request:       apptest.PhysicalListRequest(catalog.DatabaseID, ""),
 				Authorization: "Bearer " + catalog.Owner.Token,
 				StatusCode:    http.StatusOK,
 				Destination:   &response,
@@ -143,11 +145,11 @@ func TestGetPhysicalBackups(t *testing.T) {
 		require.Len(t, firstPage.Backups, 2)
 		require.NotEmpty(t, firstPage.NextCursor)
 
-		secondPage := getBackups(t, catalog, "?limit=2&cursor="+firstPage.NextCursor)
+		secondPage := getBackups(t, catalog, "?limit=2&after="+firstPage.NextCursor)
 		require.Len(t, secondPage.Backups, 2)
 		require.NotEmpty(t, secondPage.NextCursor)
 
-		lastPage := getBackups(t, catalog, "?limit=2&cursor="+secondPage.NextCursor)
+		lastPage := getBackups(t, catalog, "?limit=2&after="+secondPage.NextCursor)
 		require.Len(t, lastPage.Backups, 1)
 		assert.Empty(t, lastPage.NextCursor, "the page holding the oldest row carries no cursor")
 
@@ -175,7 +177,7 @@ func TestGetPhysicalBackups(t *testing.T) {
 			),
 		)
 
-		secondPage := getBackups(t, catalog, "?limit=2&cursor="+firstPage.NextCursor)
+		secondPage := getBackups(t, catalog, "?limit=2&after="+firstPage.NextCursor)
 
 		listedIDs := collectBackupIDs(firstPage, secondPage)
 		assert.Equal(t, []uuid.UUID{fulls[2].ID, fulls[1].ID, fulls[0].ID}, listedIDs)
@@ -183,13 +185,11 @@ func TestGetPhysicalBackups(t *testing.T) {
 	t.Run("returns 400 when the cursor is malformed", func(t *testing.T) {
 		catalog := newCatalog(t)
 
-		listURL := "/api/v1/backups/physical/database/" + catalog.DatabaseID.String() + "/backups"
-
 		for _, malformedCursor := range []string{"not-a-cursor", "e30", "eyJ0IjoieCJ9"} {
 			catalog.call(
 				t,
 				catalogCall{
-					Path:          listURL + "?cursor=" + malformedCursor,
+					Request:       apptest.PhysicalListRequest(catalog.DatabaseID, "?after="+malformedCursor),
 					Authorization: "Bearer " + catalog.Owner.Token,
 					StatusCode:    http.StatusBadRequest,
 				},
@@ -221,7 +221,7 @@ func TestGetPhysicalBackups(t *testing.T) {
 		catalog.call(
 			t,
 			catalogCall{
-				Path:          "/api/v1/backups/physical/database/" + other.ID.String() + "/backups?limit=1",
+				Request:       apptest.PhysicalListRequest(other.ID, "?limit=1"),
 				Authorization: "Bearer " + catalog.Owner.Token,
 				StatusCode:    http.StatusOK,
 				Destination:   &otherPage,
@@ -229,11 +229,11 @@ func TestGetPhysicalBackups(t *testing.T) {
 		)
 		require.NotEmpty(t, otherPage.NextCursor)
 
-		page := getBackups(t, catalog, "?cursor="+otherPage.NextCursor)
+		page := getBackups(t, catalog, "?after="+otherPage.NextCursor)
 
 		assert.Equal(t, []uuid.UUID{ownFulls[1].ID, ownFulls[0].ID}, collectBackupIDs(page))
 	})
-	t.Run("returns 400 when a nonmember uses a cursor", func(t *testing.T) {
+	t.Run("returns 404 when a nonmember uses a cursor", func(t *testing.T) {
 		catalog := newCatalog(t)
 
 		catalog.insertFulls(t, fullsSeedSpec{Count: 2, FirstCreatedAt: time.Now().UTC().Add(-1 * time.Hour)})
@@ -246,13 +246,13 @@ func TestGetPhysicalBackups(t *testing.T) {
 		catalog.call(
 			t,
 			catalogCall{
-				Path:          "/api/v1/backups/physical/database/" + catalog.DatabaseID.String() + "/backups?cursor=" + firstPage.NextCursor,
+				Request:       apptest.PhysicalListRequest(catalog.DatabaseID, "?after="+firstPage.NextCursor),
 				Authorization: "Bearer " + outsider.Token,
-				StatusCode:    http.StatusBadRequest,
+				StatusCode:    http.StatusNotFound,
 			},
 		)
 	})
-	t.Run("returns 400 when the user is not a workspace member", func(t *testing.T) {
+	t.Run("returns 404 when the user is not a workspace member", func(t *testing.T) {
 		catalog := newCatalog(t)
 
 		outsider := catalog.App.CreateNonAdminUser(t, catalog.Admin)
@@ -260,9 +260,9 @@ func TestGetPhysicalBackups(t *testing.T) {
 		catalog.call(
 			t,
 			catalogCall{
-				Path:          "/api/v1/backups/physical/database/" + catalog.DatabaseID.String() + "/backups",
+				Request:       apptest.PhysicalListRequest(catalog.DatabaseID, ""),
 				Authorization: "Bearer " + outsider.Token,
-				StatusCode:    http.StatusBadRequest,
+				StatusCode:    http.StatusNotFound,
 			},
 		)
 	})
@@ -343,7 +343,7 @@ func TestGetPhysicalBackups(t *testing.T) {
 		catalog.insertFull(t, newerModel)
 
 		cutoff := now.Add(-1 * time.Hour).Format(time.RFC3339)
-		page := getBackups(t, catalog, "?beforeDate="+cutoff)
+		page := getBackups(t, catalog, "?createdBefore="+cutoff)
 
 		require.Len(t, page.Backups, 1)
 		assert.Equal(t, older.ID, page.Backups[0].ID)
@@ -490,7 +490,7 @@ func TestGetPhysicalBackups(t *testing.T) {
 		require.Len(t, page.Backups, 1)
 		assert.Equal(t, ownFull.ID, page.Backups[0].ID)
 	})
-	t.Run("uses the default and capped limits when the caller omits or exceeds the limit", func(t *testing.T) {
+	t.Run("uses the default or maximum page size when the caller requests it", func(t *testing.T) {
 		catalog := newCatalog(t)
 
 		createCompletedFullBackupsInBulk(t, catalog, 1001)
@@ -499,9 +499,9 @@ func TestGetPhysicalBackups(t *testing.T) {
 		assert.Len(t, unset.Backups, 50)
 		assert.NotEmpty(t, unset.NextCursor)
 
-		capped := getBackups(t, catalog, "?limit=5000")
-		assert.Len(t, capped.Backups, 1000)
-		assert.NotEmpty(t, capped.NextCursor)
+		maximumPage := getBackups(t, catalog, "?limit=1000")
+		assert.Len(t, maximumPage.Backups, 1000)
+		assert.NotEmpty(t, maximumPage.NextCursor)
 	})
 	t.Run("groups consecutive WAL segments when their timeline matches", func(t *testing.T) {
 		catalog := newCatalog(t)
@@ -628,7 +628,7 @@ func TestGetPhysicalBackups(t *testing.T) {
 		)
 
 		cutoff := segments[1].ReceivedAt.Add(30 * time.Second).Format(time.RFC3339Nano)
-		page := getBackups(t, catalog, "?beforeDate="+cutoff)
+		page := getBackups(t, catalog, "?createdBefore="+cutoff)
 		require.Len(t, page.Backups, 1)
 
 		assert.Equal(t, 2, *page.Backups[0].WalSegmentsCount)

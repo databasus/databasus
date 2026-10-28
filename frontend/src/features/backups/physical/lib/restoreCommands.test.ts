@@ -9,8 +9,8 @@ import {
   containerVolumeDir,
 } from './restoreCommands';
 
-const scriptUrl = 'https://app.example.com/api/v1/backups/physical/recovery-script';
-const bundleUrl = 'https://app.example.com/api/v1/backups/physical/restore-stream?token=abc';
+const scriptUrl = 'https://app.example.com/api/v1/physical-recovery-scripts';
+const bundleUrl = 'https://app.example.com/api/v1/physical-restore-sets?token=abc';
 
 describe('container paths', () => {
   it('uses the flat data path for PostgreSQL 17 and below', () => {
@@ -82,7 +82,7 @@ describe('buildDockerScriptCommand', () => {
     expect(command).toContain(`curl -fsSL "${scriptUrl}" | sh -s --`);
     expect(command).toContain('--combine-image "postgres:18"');
     expect(command).not.toContain('--target-time');
-    expect(command.match(/restore-stream/g)).toHaveLength(1);
+    expect(command.match(/physical-restore-sets/g)).toHaveLength(1);
   });
 
   it('passes --target-time to the host script when a target time is set', () => {

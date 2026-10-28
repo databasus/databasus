@@ -5,7 +5,6 @@ import (
 
 	contract "databasus-backend/api"
 	systemhttpapi "databasus-backend/internal/app/systemhttpapi"
-	backups_controllers_physical "databasus-backend/internal/features/backups/backups/controllers/physical"
 	"databasus-backend/internal/features/disk"
 	healthcheck_attempt "databasus-backend/internal/features/healthcheck/attempt"
 	healthcheck_config "databasus-backend/internal/features/healthcheck/config"
@@ -57,7 +56,6 @@ func (a *App) registerRoutes(router *gin.Engine) {
 	// Public routes: only the user sign-in routes, the health check and the agent-facing routes.
 	system_healthcheck.GetHealthcheckController().RegisterRoutes(v1)
 	system_agent.GetAgentController().RegisterRoutes(v1)
-	backups_controllers_physical.GetPhysicalBackupController().RegisterPublicRoutes(v1)
 	verification_agents.GetAgentFacingController().RegisterRoutes(v1)
 	verification_runs.GetVerificationAgentController().RegisterRoutes(v1)
 
@@ -65,7 +63,6 @@ func (a *App) registerRoutes(router *gin.Engine) {
 	protected.Use(a.usersModule.GetSessionMiddleware())
 
 	disk.GetDiskController().RegisterRoutes(protected)
-	backups_controllers_physical.GetPhysicalBackupController().RegisterRoutes(protected)
 	healthcheck_config.GetHealthcheckConfigController().RegisterRoutes(protected)
 	healthcheck_attempt.GetHealthcheckAttemptController().RegisterRoutes(protected)
 	verification_agents.GetAgentController().RegisterRoutes(protected)

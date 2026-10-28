@@ -159,9 +159,9 @@ func (team *walTeam) openSource(t *testing.T) *pgx.Conn {
 	return connection
 }
 
-func (team *walTeam) call(t *testing.T, call apptest.OldAPICall, status int, destination any) {
+func (team *walTeam) call(t *testing.T, call apptest.PhysicalRequest, status int, destination any) {
 	t.Helper()
-	code, body := team.App.CallOldAPI(t, team.Owner, call)
+	code, body := team.App.CallPhysicalAPI(t, team.Owner, call)
 	require.Equal(t, status, code, "%s", body)
 	if destination != nil {
 		require.NoError(t, json.Unmarshal(body, destination))
@@ -190,10 +190,7 @@ func (team *walTeam) live(t *testing.T) liveReading {
 	var reading liveReading
 	team.call(
 		t,
-		apptest.OldAPICall{
-			Method: http.MethodGet,
-			Path:   "/backups/physical/database/" + team.Database.Id.String() + "/wal-stream/live",
-		},
+		apptest.PhysicalLiveRequest(team.Database.Id),
 		http.StatusOK,
 		&reading,
 	)
@@ -222,14 +219,11 @@ type backupRow struct {
 func (team *walTeam) listBackups(t *testing.T) []backupRow {
 	t.Helper()
 	var page struct {
-		Backups []backupRow `json:"backups"`
+		Backups []backupRow `json:"items"`
 	}
 	team.call(
 		t,
-		apptest.OldAPICall{
-			Method: http.MethodGet,
-			Path:   "/backups/physical/database/" + team.Database.Id.String() + "/backups?limit=1000",
-		},
+		apptest.PhysicalListRequest(team.Database.Id, "?limit=1000"),
 		http.StatusOK,
 		&page,
 	)

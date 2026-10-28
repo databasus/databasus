@@ -222,6 +222,42 @@ func (e NotificationTrigger) Valid() bool {
 	}
 }
 
+// Defines values for PhysicalBackupListRowType.
+const (
+	PhysicalBackupListRowTypeFULL        PhysicalBackupListRowType = "FULL"
+	PhysicalBackupListRowTypeINCREMENTAL PhysicalBackupListRowType = "INCREMENTAL"
+	PhysicalBackupListRowTypeWAL         PhysicalBackupListRowType = "WAL"
+)
+
+// Valid indicates whether the value is a known member of the PhysicalBackupListRowType enum.
+func (e PhysicalBackupListRowType) Valid() bool {
+	switch e {
+	case PhysicalBackupListRowTypeFULL:
+		return true
+	case PhysicalBackupListRowTypeINCREMENTAL:
+		return true
+	case PhysicalBackupListRowTypeWAL:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PhysicalBackupRestoreTokenCreateType.
+const (
+	PhysicalBackupRestoreTokenCreateTypeBACKUP PhysicalBackupRestoreTokenCreateType = "BACKUP"
+)
+
+// Valid indicates whether the value is a known member of the PhysicalBackupRestoreTokenCreateType enum.
+func (e PhysicalBackupRestoreTokenCreateType) Valid() bool {
+	switch e {
+	case PhysicalBackupRestoreTokenCreateTypeBACKUP:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for PhysicalBackupSettingsType.
 const (
 	PhysicalBackupSettingsTypePHYSICAL PhysicalBackupSettingsType = "PHYSICAL"
@@ -231,6 +267,69 @@ const (
 func (e PhysicalBackupSettingsType) Valid() bool {
 	switch e {
 	case PhysicalBackupSettingsTypePHYSICAL:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PhysicalBackupStartKind.
+const (
+	PhysicalBackupStartKindAUTO        PhysicalBackupStartKind = "AUTO"
+	PhysicalBackupStartKindFULL        PhysicalBackupStartKind = "FULL"
+	PhysicalBackupStartKindINCREMENTAL PhysicalBackupStartKind = "INCREMENTAL"
+)
+
+// Valid indicates whether the value is a known member of the PhysicalBackupStartKind enum.
+func (e PhysicalBackupStartKind) Valid() bool {
+	switch e {
+	case PhysicalBackupStartKindAUTO:
+		return true
+	case PhysicalBackupStartKindFULL:
+		return true
+	case PhysicalBackupStartKindINCREMENTAL:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PhysicalBackupStatus.
+const (
+	PhysicalBackupStatusCANCELED    PhysicalBackupStatus = "CANCELED"
+	PhysicalBackupStatusCHAINBROKEN PhysicalBackupStatus = "CHAIN_BROKEN"
+	PhysicalBackupStatusCOMPLETED   PhysicalBackupStatus = "COMPLETED"
+	PhysicalBackupStatusERROR       PhysicalBackupStatus = "ERROR"
+	PhysicalBackupStatusINPROGRESS  PhysicalBackupStatus = "IN_PROGRESS"
+)
+
+// Valid indicates whether the value is a known member of the PhysicalBackupStatus enum.
+func (e PhysicalBackupStatus) Valid() bool {
+	switch e {
+	case PhysicalBackupStatusCANCELED:
+		return true
+	case PhysicalBackupStatusCHAINBROKEN:
+		return true
+	case PhysicalBackupStatusCOMPLETED:
+		return true
+	case PhysicalBackupStatusERROR:
+		return true
+	case PhysicalBackupStatusINPROGRESS:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PhysicalPointInTimeRestoreTokenCreateType.
+const (
+	PhysicalPointInTimeRestoreTokenCreateTypePOINTINTIME PhysicalPointInTimeRestoreTokenCreateType = "POINT_IN_TIME"
+)
+
+// Valid indicates whether the value is a known member of the PhysicalPointInTimeRestoreTokenCreateType enum.
+func (e PhysicalPointInTimeRestoreTokenCreateType) Valid() bool {
+	switch e {
+	case PhysicalPointInTimeRestoreTokenCreateTypePOINTINTIME:
 		return true
 	default:
 		return false
@@ -313,6 +412,8 @@ const (
 	ProblemCodeInvalidCredentials       ProblemCode = "invalid_credentials"
 	ProblemCodeInvalidRequest           ProblemCode = "invalid_request"
 	ProblemCodeInvalidResetCode         ProblemCode = "invalid_reset_code"
+	ProblemCodeNoExtendableChain        ProblemCode = "no_extendable_chain"
+	ProblemCodeNoRestorableBackup       ProblemCode = "no_restorable_backup"
 	ProblemCodeNotFound                 ProblemCode = "not_found"
 	ProblemCodeNotRunning               ProblemCode = "not_running"
 	ProblemCodeOauthFailed              ProblemCode = "oauth_failed"
@@ -325,6 +426,7 @@ const (
 	ProblemCodeSignInCodeIncorrect      ProblemCode = "sign_in_code_incorrect"
 	ProblemCodeSignInCodeNotSent        ProblemCode = "sign_in_code_not_sent"
 	ProblemCodeSignInCodeResentTooSoon  ProblemCode = "sign_in_code_resent_too_soon"
+	ProblemCodeTargetTimeUnreachable    ProblemCode = "target_time_unreachable"
 	ProblemCodeTooManySignInCodes       ProblemCode = "too_many_sign_in_codes"
 	ProblemCodeUnauthenticated          ProblemCode = "unauthenticated"
 	ProblemCodeUserDeactivated          ProblemCode = "user_deactivated"
@@ -362,6 +464,10 @@ func (e ProblemCode) Valid() bool {
 		return true
 	case ProblemCodeInvalidResetCode:
 		return true
+	case ProblemCodeNoExtendableChain:
+		return true
+	case ProblemCodeNoRestorableBackup:
+		return true
 	case ProblemCodeNotFound:
 		return true
 	case ProblemCodeNotRunning:
@@ -385,6 +491,8 @@ func (e ProblemCode) Valid() bool {
 	case ProblemCodeSignInCodeNotSent:
 		return true
 	case ProblemCodeSignInCodeResentTooSoon:
+		return true
+	case ProblemCodeTargetTimeUnreachable:
 		return true
 	case ProblemCodeTooManySignInCodes:
 		return true
@@ -537,6 +645,216 @@ const (
 func (e StorageSwitchedOnTransferType) Valid() bool {
 	switch e {
 	case StorageSwitchedOnTransferTypeSWITCHTOSTORAGE:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for WalStreamHealthLevel.
+const (
+	WalStreamHealthLevelBROKEN         WalStreamHealthLevel = "BROKEN"
+	WalStreamHealthLevelCOLLECTINGDATA WalStreamHealthLevel = "COLLECTING_DATA"
+	WalStreamHealthLevelHEALTHY        WalStreamHealthLevel = "HEALTHY"
+	WalStreamHealthLevelNEEDSATTENTION WalStreamHealthLevel = "NEEDS_ATTENTION"
+	WalStreamHealthLevelNOTSTREAMING   WalStreamHealthLevel = "NOT_STREAMING"
+)
+
+// Valid indicates whether the value is a known member of the WalStreamHealthLevel enum.
+func (e WalStreamHealthLevel) Valid() bool {
+	switch e {
+	case WalStreamHealthLevelBROKEN:
+		return true
+	case WalStreamHealthLevelCOLLECTINGDATA:
+		return true
+	case WalStreamHealthLevelHEALTHY:
+		return true
+	case WalStreamHealthLevelNEEDSATTENTION:
+		return true
+	case WalStreamHealthLevelNOTSTREAMING:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for WalStreamKeepingUpState.
+const (
+	WalStreamKeepingUpStateCATCHINGUP    WalStreamKeepingUpState = "CATCHING_UP"
+	WalStreamKeepingUpStateFALLINGBEHIND WalStreamKeepingUpState = "FALLING_BEHIND"
+	WalStreamKeepingUpStateIDLE          WalStreamKeepingUpState = "IDLE"
+	WalStreamKeepingUpStateKEEPINGUP     WalStreamKeepingUpState = "KEEPING_UP"
+	WalStreamKeepingUpStateUNKNOWN       WalStreamKeepingUpState = "UNKNOWN"
+)
+
+// Valid indicates whether the value is a known member of the WalStreamKeepingUpState enum.
+func (e WalStreamKeepingUpState) Valid() bool {
+	switch e {
+	case WalStreamKeepingUpStateCATCHINGUP:
+		return true
+	case WalStreamKeepingUpStateFALLINGBEHIND:
+		return true
+	case WalStreamKeepingUpStateIDLE:
+		return true
+	case WalStreamKeepingUpStateKEEPINGUP:
+		return true
+	case WalStreamKeepingUpStateUNKNOWN:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for WalStreamNoticeCode.
+const (
+	WalStreamNoticeCodeNOFULLBACKUPYET           WalStreamNoticeCode = "NO_FULL_BACKUP_YET"
+	WalStreamNoticeCodeNOSLOTWALLIMIT            WalStreamNoticeCode = "NO_SLOT_WAL_LIMIT"
+	WalStreamNoticeCodeSLOTKEEPSEXTRAWALSTEADILY WalStreamNoticeCode = "SLOT_KEEPS_EXTRA_WAL_STEADILY"
+)
+
+// Valid indicates whether the value is a known member of the WalStreamNoticeCode enum.
+func (e WalStreamNoticeCode) Valid() bool {
+	switch e {
+	case WalStreamNoticeCodeNOFULLBACKUPYET:
+		return true
+	case WalStreamNoticeCodeNOSLOTWALLIMIT:
+		return true
+	case WalStreamNoticeCodeSLOTKEEPSEXTRAWALSTEADILY:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for WalStreamReasonCode.
+const (
+	WalStreamReasonCodeARCHIVENOTADVANCING     WalStreamReasonCode = "ARCHIVE_NOT_ADVANCING"
+	WalStreamReasonCodeARCHIVESLOWERTHANSOURCE WalStreamReasonCode = "ARCHIVE_SLOWER_THAN_SOURCE"
+	WalStreamReasonCodeFORCEDROTATIONREFUSED   WalStreamReasonCode = "FORCED_ROTATION_REFUSED"
+	WalStreamReasonCodeFREQUENTRESTARTS        WalStreamReasonCode = "FREQUENT_RESTARTS"
+	WalStreamReasonCodeLOCALQUEUEFILLING       WalStreamReasonCode = "LOCAL_QUEUE_FILLING"
+	WalStreamReasonCodeNEARSLOTREBUILD         WalStreamReasonCode = "NEAR_SLOT_REBUILD"
+	WalStreamReasonCodeSLOTKEEPSEXTRAWAL       WalStreamReasonCode = "SLOT_KEEPS_EXTRA_WAL"
+	WalStreamReasonCodeSLOTLIMITAPPROACHING    WalStreamReasonCode = "SLOT_LIMIT_APPROACHING"
+	WalStreamReasonCodeSLOTLOST                WalStreamReasonCode = "SLOT_LOST"
+	WalStreamReasonCodeSLOTMISSING             WalStreamReasonCode = "SLOT_MISSING"
+	WalStreamReasonCodeSOURCEUNREACHABLE       WalStreamReasonCode = "SOURCE_UNREACHABLE"
+	WalStreamReasonCodeSTREAMINGSTOPPED        WalStreamReasonCode = "STREAMING_STOPPED"
+	WalStreamReasonCodeWALCHAINBROKEN          WalStreamReasonCode = "WAL_CHAIN_BROKEN"
+)
+
+// Valid indicates whether the value is a known member of the WalStreamReasonCode enum.
+func (e WalStreamReasonCode) Valid() bool {
+	switch e {
+	case WalStreamReasonCodeARCHIVENOTADVANCING:
+		return true
+	case WalStreamReasonCodeARCHIVESLOWERTHANSOURCE:
+		return true
+	case WalStreamReasonCodeFORCEDROTATIONREFUSED:
+		return true
+	case WalStreamReasonCodeFREQUENTRESTARTS:
+		return true
+	case WalStreamReasonCodeLOCALQUEUEFILLING:
+		return true
+	case WalStreamReasonCodeNEARSLOTREBUILD:
+		return true
+	case WalStreamReasonCodeSLOTKEEPSEXTRAWAL:
+		return true
+	case WalStreamReasonCodeSLOTLIMITAPPROACHING:
+		return true
+	case WalStreamReasonCodeSLOTLOST:
+		return true
+	case WalStreamReasonCodeSLOTMISSING:
+		return true
+	case WalStreamReasonCodeSOURCEUNREACHABLE:
+		return true
+	case WalStreamReasonCodeSTREAMINGSTOPPED:
+		return true
+	case WalStreamReasonCodeWALCHAINBROKEN:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for WalStreamReasonLevel.
+const (
+	WalStreamReasonLevelBROKEN         WalStreamReasonLevel = "BROKEN"
+	WalStreamReasonLevelINFO           WalStreamReasonLevel = "INFO"
+	WalStreamReasonLevelNEEDSATTENTION WalStreamReasonLevel = "NEEDS_ATTENTION"
+)
+
+// Valid indicates whether the value is a known member of the WalStreamReasonLevel enum.
+func (e WalStreamReasonLevel) Valid() bool {
+	switch e {
+	case WalStreamReasonLevelBROKEN:
+		return true
+	case WalStreamReasonLevelINFO:
+		return true
+	case WalStreamReasonLevelNEEDSATTENTION:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for WalStreamSourceState.
+const (
+	WalStreamSourceStateREACHABLE   WalStreamSourceState = "REACHABLE"
+	WalStreamSourceStateSLOTMISSING WalStreamSourceState = "SLOT_MISSING"
+	WalStreamSourceStateUNREACHABLE WalStreamSourceState = "UNREACHABLE"
+)
+
+// Valid indicates whether the value is a known member of the WalStreamSourceState enum.
+func (e WalStreamSourceState) Valid() bool {
+	switch e {
+	case WalStreamSourceStateREACHABLE:
+		return true
+	case WalStreamSourceStateSLOTMISSING:
+		return true
+	case WalStreamSourceStateUNREACHABLE:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for WalStreamStatisticsPeriod.
+const (
+	WalStreamStatisticsPeriodDAY  WalStreamStatisticsPeriod = "DAY"
+	WalStreamStatisticsPeriodHOUR WalStreamStatisticsPeriod = "HOUR"
+	WalStreamStatisticsPeriodWEEK WalStreamStatisticsPeriod = "WEEK"
+)
+
+// Valid indicates whether the value is a known member of the WalStreamStatisticsPeriod enum.
+func (e WalStreamStatisticsPeriod) Valid() bool {
+	switch e {
+	case WalStreamStatisticsPeriodDAY:
+		return true
+	case WalStreamStatisticsPeriodHOUR:
+		return true
+	case WalStreamStatisticsPeriodWEEK:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for WalStreamStreamerState.
+const (
+	WalStreamStreamerStateNOTRUNNING WalStreamStreamerState = "NOT_RUNNING"
+	WalStreamStreamerStateNOTSTARTED WalStreamStreamerState = "NOT_STARTED"
+	WalStreamStreamerStateRUNNING    WalStreamStreamerState = "RUNNING"
+)
+
+// Valid indicates whether the value is a known member of the WalStreamStreamerState enum.
+func (e WalStreamStreamerState) Valid() bool {
+	switch e {
+	case WalStreamStreamerStateNOTRUNNING:
+		return true
+	case WalStreamStreamerStateNOTSTARTED:
+		return true
+	case WalStreamStreamerStateRUNNING:
 		return true
 	default:
 		return false
@@ -889,6 +1207,84 @@ type MysqlRestoreTargetType string
 // NotificationTrigger A backup outcome that sends a notification: a failed or a successful backup, a broken chain of incremental backups, or a gap in the streamed WAL
 type NotificationTrigger string
 
+// PhysicalBackupListRow physical backup list row
+type PhysicalBackupListRow struct {
+	// CompletedAt completed at
+	CompletedAt *time.Time `json:"completedAt,omitempty"`
+
+	// CreatedAt created at
+	CreatedAt time.Time `json:"createdAt"`
+
+	// FailMessage fail message
+	FailMessage *string `json:"failMessage,omitempty"`
+
+	// FromWalFilename from wal filename
+	FromWalFilename *string `json:"fromWalFilename,omitempty"`
+
+	// HasGapBefore Whether a WAL gap precedes the range
+	HasGapBefore bool `json:"hasGapBefore"`
+
+	// Id id
+	Id openapi_types.UUID `json:"id"`
+
+	// ParentIncrementalBackupId parent incremental backup id
+	ParentIncrementalBackupId *openapi_types.UUID `json:"parentIncrementalBackupId,omitempty"`
+
+	// RootFullBackupId root full backup id
+	RootFullBackupId *openapi_types.UUID `json:"rootFullBackupId,omitempty"`
+
+	// SizeMb size mb
+	SizeMb float64 `json:"sizeMb"`
+
+	// StartLsn start lsn
+	StartLsn string `json:"startLsn"`
+
+	// Status physical backup status
+	Status PhysicalBackupStatus `json:"status"`
+
+	// StopLsn stop lsn
+	StopLsn string `json:"stopLsn"`
+
+	// TimelineId timeline id
+	TimelineId int `json:"timelineId"`
+
+	// ToWalFilename to wal filename
+	ToWalFilename *string `json:"toWalFilename,omitempty"`
+
+	// Type physical backup list row type
+	Type PhysicalBackupListRowType `json:"type"`
+
+	// WalSegmentsCount wal segments count
+	WalSegmentsCount *int `json:"walSegmentsCount,omitempty"`
+}
+
+// PhysicalBackupListRowType physical backup list row type
+type PhysicalBackupListRowType string
+
+// PhysicalBackupPage physical backup page
+type PhysicalBackupPage struct {
+	// Items items
+	Items []PhysicalBackupListRow `json:"items"`
+
+	// NextCursor next cursor
+	NextCursor *string `json:"nextCursor,omitempty"`
+
+	// TotalUsageMb Storage used by every physical backup of the database, independently of this page and its filters
+	TotalUsageMb float64 `json:"totalUsageMb"`
+}
+
+// PhysicalBackupRestoreTokenCreate One backup restored with its ancestors without WAL replay
+type PhysicalBackupRestoreTokenCreate struct {
+	// BackupId The full or incremental backup to restore
+	BackupId openapi_types.UUID `json:"backupId"`
+
+	// Type Restore one full or incremental backup
+	Type PhysicalBackupRestoreTokenCreateType `json:"type"`
+}
+
+// PhysicalBackupRestoreTokenCreateType Restore one full or incremental backup
+type PhysicalBackupRestoreTokenCreateType string
+
 // PhysicalBackupSettings The settings of the physical backups of a physical PostgreSQL database. They must fit the database's physical backup type.
 type PhysicalBackupSettings struct {
 	// FullBackupSchedule When a recurring backup runs; times of day are in UTC
@@ -912,6 +1308,50 @@ type PhysicalBackupSettings struct {
 
 // PhysicalBackupSettingsType Always `PHYSICAL`
 type PhysicalBackupSettingsType string
+
+// PhysicalBackupStart A request for the scheduler to start a physical backup
+type PhysicalBackupStart struct {
+	// DatabaseId The physical PostgreSQL database to back up
+	DatabaseId openapi_types.UUID `json:"databaseId"`
+
+	// Kind The requested kind, or AUTO for the scheduler choice
+	Kind PhysicalBackupStartKind `json:"kind"`
+}
+
+// PhysicalBackupStartKind The requested kind, or AUTO for the scheduler choice
+type PhysicalBackupStartKind string
+
+// PhysicalBackupStatus physical backup status
+type PhysicalBackupStatus string
+
+// PhysicalPointInTimeRestoreTokenCreate A database restored to a target time or its latest restorable moment
+type PhysicalPointInTimeRestoreTokenCreate struct {
+	// DatabaseId The physical database to restore
+	DatabaseId openapi_types.UUID `json:"databaseId"`
+
+	// TargetTime The target time, absent for the latest restorable moment
+	TargetTime *time.Time `json:"targetTime,omitempty"`
+
+	// Type Restore a database to a point in time
+	Type PhysicalPointInTimeRestoreTokenCreateType `json:"type"`
+}
+
+// PhysicalPointInTimeRestoreTokenCreateType Restore a database to a point in time
+type PhysicalPointInTimeRestoreTokenCreateType string
+
+// PhysicalRestoreToken physical restore token
+type PhysicalRestoreToken struct {
+	// ExpiresAt The expiry time, 15 minutes after issue
+	ExpiresAt time.Time `json:"expiresAt"`
+
+	// Token token
+	Token string `json:"token"`
+}
+
+// PhysicalRestoreTokenCreate What the restore token opens
+type PhysicalRestoreTokenCreate struct {
+	union json.RawMessage
+}
 
 // PhysicalRetention Which physical backups are kept
 type PhysicalRetention struct {
@@ -1128,6 +1568,363 @@ type StorageSwitchedOnTransfer struct {
 // StorageSwitchedOnTransferType Always `SWITCH_TO_STORAGE`
 type StorageSwitchedOnTransferType string
 
+// WalStreamCurrent wal stream current
+type WalStreamCurrent struct {
+	// ArchiveProgressLsn archive progress lsn
+	ArchiveProgressLsn *string `json:"archiveProgressLsn"`
+
+	// ArchiveStalledSince archive stalled since
+	ArchiveStalledSince *time.Time `json:"archiveStalledSince"`
+
+	// ArchivedSegments archived segments
+	ArchivedSegments int `json:"archivedSegments"`
+
+	// ArchivedStoredBytes archived stored bytes
+	ArchivedStoredBytes int64 `json:"archivedStoredBytes"`
+
+	// ArchivedWalBytes archived wal bytes
+	ArchivedWalBytes int64 `json:"archivedWalBytes"`
+
+	// HighestConcurrentUploads highest concurrent uploads
+	HighestConcurrentUploads int `json:"highestConcurrentUploads"`
+
+	// IsForcedRotationDenied is forced rotation denied
+	IsForcedRotationDenied bool `json:"isForcedRotationDenied"`
+
+	// IsReceiverRunning is receiver running
+	IsReceiverRunning bool `json:"isReceiverRunning"`
+
+	// LastArchivedWalAt last archived wal at
+	LastArchivedWalAt *time.Time `json:"lastArchivedWalAt"`
+
+	// LocalQueueBytes local queue bytes
+	LocalQueueBytes int64 `json:"localQueueBytes"`
+
+	// LocalQueuePauseBytes local queue pause bytes
+	LocalQueuePauseBytes int64 `json:"localQueuePauseBytes"`
+
+	// ReceiverPauses receiver pauses
+	ReceiverPauses int `json:"receiverPauses"`
+
+	// ReceiverRestarts receiver restarts
+	ReceiverRestarts int `json:"receiverRestarts"`
+
+	// SampledAt sampled at
+	SampledAt time.Time `json:"sampledAt"`
+
+	// SegmentWriteAvgMillis segment write avg millis
+	SegmentWriteAvgMillis *int64 `json:"segmentWriteAvgMillis"`
+
+	// SegmentWriteMaxMillis segment write max millis
+	SegmentWriteMaxMillis *int64 `json:"segmentWriteMaxMillis"`
+
+	// SessionStartedAt session started at
+	SessionStartedAt time.Time `json:"sessionStartedAt"`
+
+	// SlotExtraWalSince slot extra wal since
+	SlotExtraWalSince *time.Time `json:"slotExtraWalSince"`
+
+	// SlotLagBytes slot lag bytes
+	SlotLagBytes *int64 `json:"slotLagBytes"`
+
+	// SlotSafeWalSizeBytes slot safe wal size bytes
+	SlotSafeWalSizeBytes *int64 `json:"slotSafeWalSizeBytes"`
+
+	// SlotWalStatus slot wal status
+	SlotWalStatus *string `json:"slotWalStatus"`
+
+	// SourceCurrentLsn source current lsn
+	SourceCurrentLsn *string `json:"sourceCurrentLsn"`
+
+	// SourceState wal stream source state
+	SourceState WalStreamSourceState `json:"sourceState"`
+
+	// SourceUnreachableSince source unreachable since
+	SourceUnreachableSince *time.Time `json:"sourceUnreachableSince"`
+
+	// SourceWrittenBytes source written bytes
+	SourceWrittenBytes *int64 `json:"sourceWrittenBytes"`
+
+	// UnarchivedWalBytes unarchived wal bytes
+	UnarchivedWalBytes *int64 `json:"unarchivedWalBytes"`
+
+	// WalSegmentSizeBytes wal segment size bytes
+	WalSegmentSizeBytes int64 `json:"walSegmentSizeBytes"`
+}
+
+// WalStreamHealth wal stream health
+type WalStreamHealth struct {
+	// IsFullBackupPending is full backup pending
+	IsFullBackupPending bool `json:"isFullBackupPending"`
+
+	// Level wal stream health level
+	Level WalStreamHealthLevel `json:"level"`
+
+	// Notices notices
+	Notices []WalStreamNotice `json:"notices"`
+
+	// Reasons reasons
+	Reasons []WalStreamReason `json:"reasons"`
+}
+
+// WalStreamHealthLevel wal stream health level
+type WalStreamHealthLevel string
+
+// WalStreamKeepingUp wal stream keeping up
+type WalStreamKeepingUp struct {
+	// ArchiveBytesPerSecond archive bytes per second
+	ArchiveBytesPerSecond *float64 `json:"archiveBytesPerSecond"`
+
+	// EstimatedCatchUpSeconds estimated catch up seconds
+	EstimatedCatchUpSeconds *int64 `json:"estimatedCatchUpSeconds"`
+
+	// EstimatedSlotLimitSeconds estimated slot limit seconds
+	EstimatedSlotLimitSeconds *int64 `json:"estimatedSlotLimitSeconds"`
+
+	// EstimatedSlotRebuildSeconds estimated slot rebuild seconds
+	EstimatedSlotRebuildSeconds *int64 `json:"estimatedSlotRebuildSeconds"`
+
+	// SlotLagBytes slot lag bytes
+	SlotLagBytes *int64 `json:"slotLagBytes"`
+
+	// SlotLagChangeBytesPerSecond slot lag change bytes per second
+	SlotLagChangeBytesPerSecond *float64 `json:"slotLagChangeBytesPerSecond"`
+
+	// SlotRebuildLagBytes slot rebuild lag bytes
+	SlotRebuildLagBytes int64 `json:"slotRebuildLagBytes"`
+
+	// SourceWriteBytesPerSecond source write bytes per second
+	SourceWriteBytesPerSecond *float64 `json:"sourceWriteBytesPerSecond"`
+
+	// State wal stream keeping up state
+	State WalStreamKeepingUpState `json:"state"`
+
+	// UnarchivedWalBytes unarchived wal bytes
+	UnarchivedWalBytes *int64 `json:"unarchivedWalBytes"`
+
+	// UnarchivedWalChangeBytesPerSecond unarchived wal change bytes per second
+	UnarchivedWalChangeBytesPerSecond *float64 `json:"unarchivedWalChangeBytesPerSecond"`
+}
+
+// WalStreamKeepingUpState wal stream keeping up state
+type WalStreamKeepingUpState string
+
+// WalStreamLive wal stream live
+type WalStreamLive struct {
+	// Current current
+	Current *WalStreamLiveValues `json:"current"`
+
+	// IsStreamerRunning is streamer running
+	IsStreamerRunning bool `json:"isStreamerRunning"`
+}
+
+// WalStreamLiveValues wal stream live values
+type WalStreamLiveValues struct {
+	// ArchiveProgressLsn archive progress lsn
+	ArchiveProgressLsn *string `json:"archiveProgressLsn"`
+
+	// IsReceiverRunning is receiver running
+	IsReceiverRunning bool `json:"isReceiverRunning"`
+
+	// LastArchivedWalAt last archived wal at
+	LastArchivedWalAt *time.Time `json:"lastArchivedWalAt"`
+
+	// LocalQueueBytes local queue bytes
+	LocalQueueBytes int64 `json:"localQueueBytes"`
+
+	// LocalQueuePauseBytes local queue pause bytes
+	LocalQueuePauseBytes int64 `json:"localQueuePauseBytes"`
+
+	// MeasuredAt measured at
+	MeasuredAt time.Time `json:"measuredAt"`
+
+	// SlotLagBytes slot lag bytes
+	SlotLagBytes *int64 `json:"slotLagBytes"`
+
+	// SlotSafeWalSizeBytes slot safe wal size bytes
+	SlotSafeWalSizeBytes *int64 `json:"slotSafeWalSizeBytes"`
+
+	// SlotWalStatus slot wal status
+	SlotWalStatus *string `json:"slotWalStatus"`
+
+	// SourceCurrentLsn source current lsn
+	SourceCurrentLsn *string `json:"sourceCurrentLsn"`
+
+	// SourceProbedAt source probed at
+	SourceProbedAt *time.Time `json:"sourceProbedAt"`
+
+	// SourceState source state
+	SourceState *WalStreamSourceState `json:"sourceState"`
+
+	// UnarchivedWalBytes unarchived wal bytes
+	UnarchivedWalBytes *int64 `json:"unarchivedWalBytes"`
+}
+
+// WalStreamNotice wal stream notice
+type WalStreamNotice struct {
+	// Code wal stream notice code
+	Code WalStreamNoticeCode `json:"code"`
+
+	// Level wal stream reason level
+	Level WalStreamReasonLevel `json:"level"`
+
+	// Since since
+	Since *time.Time `json:"since,omitempty"`
+}
+
+// WalStreamNoticeCode wal stream notice code
+type WalStreamNoticeCode string
+
+// WalStreamReason wal stream reason
+type WalStreamReason struct {
+	// Code wal stream reason code
+	Code WalStreamReasonCode `json:"code"`
+
+	// Count count
+	Count *int `json:"count,omitempty"`
+
+	// EstimatedSeconds estimated seconds
+	EstimatedSeconds *int64 `json:"estimatedSeconds,omitempty"`
+
+	// Level wal stream reason level
+	Level WalStreamReasonLevel `json:"level"`
+
+	// Since since
+	Since *time.Time `json:"since,omitempty"`
+
+	// ThresholdBytes threshold bytes
+	ThresholdBytes *int64 `json:"thresholdBytes,omitempty"`
+
+	// ValueBytes value bytes
+	ValueBytes *int64 `json:"valueBytes,omitempty"`
+}
+
+// WalStreamReasonCode wal stream reason code
+type WalStreamReasonCode string
+
+// WalStreamReasonLevel wal stream reason level
+type WalStreamReasonLevel string
+
+// WalStreamSeries wal stream series
+type WalStreamSeries struct {
+	// BucketSeconds bucket seconds
+	BucketSeconds int64 `json:"bucketSeconds"`
+
+	// From from
+	From time.Time `json:"from"`
+
+	// Period wal stream statistics period
+	Period WalStreamStatisticsPeriod `json:"period"`
+
+	// Points points
+	Points []WalStreamSeriesPoint `json:"points"`
+
+	// To to
+	To time.Time `json:"to"`
+}
+
+// WalStreamSeriesPoint wal stream series point
+type WalStreamSeriesPoint struct {
+	// ArchiveBytesPerSecond archive bytes per second
+	ArchiveBytesPerSecond *float64 `json:"archiveBytesPerSecond"`
+
+	// ArchivedStoredBytesPerSecond archived stored bytes per second
+	ArchivedStoredBytesPerSecond *float64 `json:"archivedStoredBytesPerSecond"`
+
+	// HighestConcurrentUploads highest concurrent uploads
+	HighestConcurrentUploads *int `json:"highestConcurrentUploads"`
+
+	// LocalQueuePauseBytes local queue pause bytes
+	LocalQueuePauseBytes *int64 `json:"localQueuePauseBytes"`
+
+	// MaxLocalQueueBytes max local queue bytes
+	MaxLocalQueueBytes *int64 `json:"maxLocalQueueBytes"`
+
+	// MaxSlotLagBytes max slot lag bytes
+	MaxSlotLagBytes *int64 `json:"maxSlotLagBytes"`
+
+	// MaxUnarchivedWalBytes max unarchived wal bytes
+	MaxUnarchivedWalBytes *int64 `json:"maxUnarchivedWalBytes"`
+
+	// Pauses pauses
+	Pauses *int `json:"pauses"`
+
+	// Restarts restarts
+	Restarts *int `json:"restarts"`
+
+	// SegmentWriteAvgMillis segment write avg millis
+	SegmentWriteAvgMillis *int64 `json:"segmentWriteAvgMillis"`
+
+	// SegmentWriteMaxMillis segment write max millis
+	SegmentWriteMaxMillis *int64 `json:"segmentWriteMaxMillis"`
+
+	// SessionStarts session starts
+	SessionStarts *int `json:"sessionStarts"`
+
+	// SourceWriteBytesPerSecond source write bytes per second
+	SourceWriteBytesPerSecond *float64 `json:"sourceWriteBytesPerSecond"`
+
+	// StartedAt started at
+	StartedAt time.Time `json:"startedAt"`
+}
+
+// WalStreamSourceState wal stream source state
+type WalStreamSourceState string
+
+// WalStreamStatistics wal stream statistics
+type WalStreamStatistics struct {
+	// Current current
+	Current *WalStreamCurrent `json:"current"`
+
+	// Health wal stream health
+	Health WalStreamHealth `json:"health"`
+
+	// KeepingUp wal stream keeping up
+	KeepingUp WalStreamKeepingUp `json:"keepingUp"`
+
+	// LatestRestorableAt latest restorable at
+	LatestRestorableAt *time.Time `json:"latestRestorableAt"`
+
+	// RestorableRanges restorable ranges
+	RestorableRanges []WalStreamTimeRange `json:"restorableRanges"`
+
+	// Series wal stream series
+	Series WalStreamSeries `json:"series"`
+
+	// Streamer wal stream streamer
+	Streamer WalStreamStreamer `json:"streamer"`
+}
+
+// WalStreamStatisticsPeriod wal stream statistics period
+type WalStreamStatisticsPeriod string
+
+// WalStreamStreamer wal stream streamer
+type WalStreamStreamer struct {
+	// FailingSince failing since
+	FailingSince *time.Time `json:"failingSince"`
+
+	// RestartsLastHour restarts last hour
+	RestartsLastHour int `json:"restartsLastHour"`
+
+	// SessionStartedAt session started at
+	SessionStartedAt *time.Time `json:"sessionStartedAt"`
+
+	// State wal stream streamer state
+	State WalStreamStreamerState `json:"state"`
+}
+
+// WalStreamStreamerState wal stream streamer state
+type WalStreamStreamerState string
+
+// WalStreamTimeRange wal stream time range
+type WalStreamTimeRange struct {
+	// From from
+	From time.Time `json:"from"`
+
+	// To to
+	To time.Time `json:"to"`
+}
+
 // BackupConfigDatabaseId defines model for BackupConfigDatabaseId.
 type BackupConfigDatabaseId = openapi_types.UUID
 
@@ -1145,6 +1942,9 @@ type NotifierId = openapi_types.UUID
 
 // PendingSignInId defines model for PendingSignInId.
 type PendingSignInId = openapi_types.UUID
+
+// PhysicalBackupId defines model for PhysicalBackupId.
+type PhysicalBackupId = openapi_types.UUID
 
 // RestoreId defines model for RestoreId.
 type RestoreId = openapi_types.UUID
@@ -1197,6 +1997,33 @@ type DownloadLogicalBackupParams struct {
 	Token string `form:"token" json:"token"`
 }
 
+// ListPhysicalBackupsParams defines parameters for ListPhysicalBackups.
+type ListPhysicalBackupsParams struct {
+	// DatabaseId The database whose backups to list
+	DatabaseId openapi_types.UUID `form:"databaseId" json:"databaseId"`
+
+	// Type Only these backup types
+	Type *[]PhysicalBackupListRowType `form:"type,omitempty" json:"type,omitempty"`
+
+	// Status Only these backup statuses
+	Status *[]PhysicalBackupStatus `form:"status,omitempty" json:"status,omitempty"`
+
+	// CreatedBefore Only rows created before this time
+	CreatedBefore *time.Time `form:"createdBefore,omitempty" json:"createdBefore,omitempty"`
+
+	// Limit The largest number of rows on the page
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// After The nextCursor of the previous page
+	After *string `form:"after,omitempty" json:"after,omitempty"`
+}
+
+// DownloadPhysicalRestoreSetParams defines parameters for DownloadPhysicalRestoreSet.
+type DownloadPhysicalRestoreSetParams struct {
+	// Token The single-use restore token
+	Token string `form:"token" json:"token"`
+}
+
 // ListRestoresParams defines parameters for ListRestores.
 type ListRestoresParams struct {
 	// BackupId The backup whose restores to list
@@ -1207,6 +2034,12 @@ type ListRestoresParams struct {
 
 	// After The `nextCursor` of the previous page
 	After *string `form:"after,omitempty" json:"after,omitempty"`
+}
+
+// GetWalStreamStatisticsParams defines parameters for GetWalStreamStatistics.
+type GetWalStreamStatisticsParams struct {
+	// Period The statistics window
+	Period WalStreamStatisticsPeriod `form:"period" json:"period"`
 }
 
 // UpdateBackupConfigJSONRequestBody defines body for UpdateBackupConfig for application/json ContentType.
@@ -1220,6 +2053,12 @@ type CreateDownloadTokenJSONRequestBody = DownloadTokenCreate
 
 // StartLogicalBackupJSONRequestBody defines body for StartLogicalBackup for application/json ContentType.
 type StartLogicalBackupJSONRequestBody = LogicalBackupStart
+
+// StartPhysicalBackupJSONRequestBody defines body for StartPhysicalBackup for application/json ContentType.
+type StartPhysicalBackupJSONRequestBody = PhysicalBackupStart
+
+// CreatePhysicalRestoreTokenJSONRequestBody defines body for CreatePhysicalRestoreToken for application/json ContentType.
+type CreatePhysicalRestoreTokenJSONRequestBody = PhysicalRestoreTokenCreate
 
 // StartRestoreJSONRequestBody defines body for StartRestore for application/json ContentType.
 type StartRestoreJSONRequestBody = RestoreStart
@@ -1422,6 +2261,107 @@ func (t DatabaseTransferStorage) MarshalJSON() ([]byte, error) {
 }
 
 func (t *DatabaseTransferStorage) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsPhysicalPointInTimeRestoreTokenCreate returns the union data inside the PhysicalRestoreTokenCreate as a PhysicalPointInTimeRestoreTokenCreate
+func (t PhysicalRestoreTokenCreate) AsPhysicalPointInTimeRestoreTokenCreate() (PhysicalPointInTimeRestoreTokenCreate, error) {
+	var body PhysicalPointInTimeRestoreTokenCreate
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromPhysicalPointInTimeRestoreTokenCreate overwrites any union data inside the PhysicalRestoreTokenCreate as the provided PhysicalPointInTimeRestoreTokenCreate
+func (t *PhysicalRestoreTokenCreate) FromPhysicalPointInTimeRestoreTokenCreate(v PhysicalPointInTimeRestoreTokenCreate) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"POINT_IN_TIME"}`))
+	t.union = b
+	return err
+}
+
+// MergePhysicalPointInTimeRestoreTokenCreate performs a merge with any union data inside the PhysicalRestoreTokenCreate, using the provided PhysicalPointInTimeRestoreTokenCreate
+func (t *PhysicalRestoreTokenCreate) MergePhysicalPointInTimeRestoreTokenCreate(v PhysicalPointInTimeRestoreTokenCreate) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"POINT_IN_TIME"}`))
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsPhysicalBackupRestoreTokenCreate returns the union data inside the PhysicalRestoreTokenCreate as a PhysicalBackupRestoreTokenCreate
+func (t PhysicalRestoreTokenCreate) AsPhysicalBackupRestoreTokenCreate() (PhysicalBackupRestoreTokenCreate, error) {
+	var body PhysicalBackupRestoreTokenCreate
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromPhysicalBackupRestoreTokenCreate overwrites any union data inside the PhysicalRestoreTokenCreate as the provided PhysicalBackupRestoreTokenCreate
+func (t *PhysicalRestoreTokenCreate) FromPhysicalBackupRestoreTokenCreate(v PhysicalBackupRestoreTokenCreate) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"BACKUP"}`))
+	t.union = b
+	return err
+}
+
+// MergePhysicalBackupRestoreTokenCreate performs a merge with any union data inside the PhysicalRestoreTokenCreate, using the provided PhysicalBackupRestoreTokenCreate
+func (t *PhysicalRestoreTokenCreate) MergePhysicalBackupRestoreTokenCreate(v PhysicalBackupRestoreTokenCreate) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"BACKUP"}`))
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t PhysicalRestoreTokenCreate) Discriminator() (string, error) {
+	var discriminator struct {
+		Discriminator string `json:"type"`
+	}
+	err := json.Unmarshal(t.union, &discriminator)
+	return discriminator.Discriminator, err
+}
+
+func (t PhysicalRestoreTokenCreate) ValueByDiscriminator() (interface{}, error) {
+	discriminator, err := t.Discriminator()
+	if err != nil {
+		return nil, err
+	}
+	switch discriminator {
+	case "BACKUP":
+		return t.AsPhysicalBackupRestoreTokenCreate()
+	case "POINT_IN_TIME":
+		return t.AsPhysicalPointInTimeRestoreTokenCreate()
+	default:
+		return nil, errors.New("unknown discriminator value: " + discriminator)
+	}
+}
+
+func (t PhysicalRestoreTokenCreate) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *PhysicalRestoreTokenCreate) UnmarshalJSON(b []byte) error {
 	err := t.union.UnmarshalJSON(b)
 	return err
 }
@@ -1634,6 +2574,27 @@ type ServerInterface interface {
 	// DownloadLogicalBackup Download the file of a logical backup
 	// (GET /logical-backups/{backupId}/file)
 	DownloadLogicalBackup(c *gin.Context, backupId BackupId, params DownloadLogicalBackupParams)
+	// ListPhysicalBackups List the physical backups of a database
+	// (GET /physical-backups)
+	ListPhysicalBackups(c *gin.Context, params ListPhysicalBackupsParams)
+	// StartPhysicalBackup Request a physical backup
+	// (POST /physical-backups)
+	StartPhysicalBackup(c *gin.Context)
+	// DeletePhysicalBackup Delete a physical backup and its descendants
+	// (DELETE /physical-backups/{backupId})
+	DeletePhysicalBackup(c *gin.Context, backupId PhysicalBackupId)
+	// CancelPhysicalBackup Cancel a running physical backup
+	// (POST /physical-backups/{backupId}/cancel)
+	CancelPhysicalBackup(c *gin.Context, backupId PhysicalBackupId)
+	// GetRecoveryScript Get the physical recovery script
+	// (GET /physical-recovery-scripts)
+	GetRecoveryScript(c *gin.Context)
+	// DownloadPhysicalRestoreSet Download a physical restore set
+	// (GET /physical-restore-sets)
+	DownloadPhysicalRestoreSet(c *gin.Context, params DownloadPhysicalRestoreSetParams)
+	// CreatePhysicalRestoreToken Issue a token for one physical restore set
+	// (POST /physical-restore-tokens)
+	CreatePhysicalRestoreToken(c *gin.Context)
 	// ListRestores List the restores of a logical backup
 	// (GET /restores)
 	ListRestores(c *gin.Context, params ListRestoresParams)
@@ -1646,6 +2607,12 @@ type ServerInterface interface {
 	// CancelRestore Cancel a running restore
 	// (POST /restores/{restoreId}/cancel)
 	CancelRestore(c *gin.Context, restoreId RestoreId)
+	// GetWalStream Read the current values of a WAL stream
+	// (GET /wal-streams/{databaseId})
+	GetWalStream(c *gin.Context, databaseId DatabaseId)
+	// GetWalStreamStatistics Read the statistics of a WAL stream
+	// (GET /wal-streams/{databaseId}/statistics)
+	GetWalStreamStatistics(c *gin.Context, databaseId DatabaseId, params GetWalStreamStatisticsParams)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -1979,6 +2946,189 @@ func (siw *ServerInterfaceWrapper) DownloadLogicalBackup(c *gin.Context) {
 	siw.Handler.DownloadLogicalBackup(c, backupId, params)
 }
 
+// ListPhysicalBackups operation middleware
+func (siw *ServerInterfaceWrapper) ListPhysicalBackups(c *gin.Context) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListPhysicalBackupsParams
+
+	// ------------- Required query parameter "databaseId" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "databaseId", c.Request.URL.Query(), &params.DatabaseId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter databaseId: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Optional query parameter "type" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "type", c.Request.URL.Query(), &params.Type, runtime.BindQueryParameterOptions{Type: "array", Format: ""})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter type: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Optional query parameter "status" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "status", c.Request.URL.Query(), &params.Status, runtime.BindQueryParameterOptions{Type: "array", Format: ""})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter status: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Optional query parameter "createdBefore" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "createdBefore", c.Request.URL.Query(), &params.CreatedBefore, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter createdBefore: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", c.Request.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter limit: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Optional query parameter "after" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "after", c.Request.URL.Query(), &params.After, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter after: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.ListPhysicalBackups(c, params)
+}
+
+// StartPhysicalBackup operation middleware
+func (siw *ServerInterfaceWrapper) StartPhysicalBackup(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.StartPhysicalBackup(c)
+}
+
+// DeletePhysicalBackup operation middleware
+func (siw *ServerInterfaceWrapper) DeletePhysicalBackup(c *gin.Context) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "backupId" -------------
+	var backupId PhysicalBackupId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "backupId", c.Param("backupId"), &backupId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter backupId: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.DeletePhysicalBackup(c, backupId)
+}
+
+// CancelPhysicalBackup operation middleware
+func (siw *ServerInterfaceWrapper) CancelPhysicalBackup(c *gin.Context) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "backupId" -------------
+	var backupId PhysicalBackupId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "backupId", c.Param("backupId"), &backupId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter backupId: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.CancelPhysicalBackup(c, backupId)
+}
+
+// GetRecoveryScript operation middleware
+func (siw *ServerInterfaceWrapper) GetRecoveryScript(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.GetRecoveryScript(c)
+}
+
+// DownloadPhysicalRestoreSet operation middleware
+func (siw *ServerInterfaceWrapper) DownloadPhysicalRestoreSet(c *gin.Context) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params DownloadPhysicalRestoreSetParams
+
+	// ------------- Required query parameter "token" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "token", c.Request.URL.Query(), &params.Token, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter token: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.DownloadPhysicalRestoreSet(c, params)
+}
+
+// CreatePhysicalRestoreToken operation middleware
+func (siw *ServerInterfaceWrapper) CreatePhysicalRestoreToken(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.CreatePhysicalRestoreToken(c)
+}
+
 // ListRestores operation middleware
 func (siw *ServerInterfaceWrapper) ListRestores(c *gin.Context) {
 
@@ -2085,6 +3235,67 @@ func (siw *ServerInterfaceWrapper) CancelRestore(c *gin.Context) {
 	siw.Handler.CancelRestore(c, restoreId)
 }
 
+// GetWalStream operation middleware
+func (siw *ServerInterfaceWrapper) GetWalStream(c *gin.Context) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "databaseId" -------------
+	var databaseId DatabaseId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "databaseId", c.Param("databaseId"), &databaseId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter databaseId: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.GetWalStream(c, databaseId)
+}
+
+// GetWalStreamStatistics operation middleware
+func (siw *ServerInterfaceWrapper) GetWalStreamStatistics(c *gin.Context) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "databaseId" -------------
+	var databaseId DatabaseId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "databaseId", c.Param("databaseId"), &databaseId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter databaseId: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetWalStreamStatisticsParams
+
+	// ------------- Required query parameter "period" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "period", c.Request.URL.Query(), &params.Period, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter period: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.GetWalStreamStatistics(c, databaseId, params)
+}
+
 // GinServerOptions provides options for the Gin server.
 type GinServerOptions struct {
 	BaseURL      string
@@ -2116,6 +3327,15 @@ func RegisterHandlersWithOptions(router gin.IRouter, si ServerInterface, options
 	router.GET(options.BaseURL+"/backup-configs", wrapper.ListBackupConfigs)
 	router.GET(options.BaseURL+"/backup-configs/:databaseId", wrapper.GetBackupConfig)
 	router.PUT(options.BaseURL+"/backup-configs/:databaseId", wrapper.UpdateBackupConfig)
+	router.GET(options.BaseURL+"/physical-backups", wrapper.ListPhysicalBackups)
+	router.POST(options.BaseURL+"/physical-backups", wrapper.StartPhysicalBackup)
+	router.DELETE(options.BaseURL+"/physical-backups/:backupId", wrapper.DeletePhysicalBackup)
+	router.POST(options.BaseURL+"/physical-backups/:backupId/cancel", wrapper.CancelPhysicalBackup)
+	router.POST(options.BaseURL+"/physical-restore-tokens", wrapper.CreatePhysicalRestoreToken)
+	router.GET(options.BaseURL+"/physical-restore-sets", wrapper.DownloadPhysicalRestoreSet)
+	router.GET(options.BaseURL+"/physical-recovery-scripts", wrapper.GetRecoveryScript)
+	router.GET(options.BaseURL+"/wal-streams/:databaseId", wrapper.GetWalStream)
+	router.GET(options.BaseURL+"/wal-streams/:databaseId/statistics", wrapper.GetWalStreamStatistics)
 	router.GET(options.BaseURL+"/logical-backups", wrapper.ListLogicalBackups)
 	router.POST(options.BaseURL+"/logical-backups", wrapper.StartLogicalBackup)
 	router.DELETE(options.BaseURL+"/logical-backups/:backupId", wrapper.DeleteLogicalBackup)
@@ -3203,6 +4423,650 @@ func (response DownloadLogicalBackupdefaultApplicationProblemPlusJSONResponse) V
 	return err
 }
 
+type ListPhysicalBackupsRequestObject struct {
+	Params ListPhysicalBackupsParams
+}
+
+type ListPhysicalBackupsResponseObject interface {
+	VisitListPhysicalBackupsResponse(w http.ResponseWriter) error
+}
+
+type ListPhysicalBackups200JSONResponse PhysicalBackupPage
+
+func (response ListPhysicalBackups200JSONResponse) VisitListPhysicalBackupsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListPhysicalBackups400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response ListPhysicalBackups400ApplicationProblemPlusJSONResponse) VisitListPhysicalBackupsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListPhysicalBackups401ApplicationProblemPlusJSONResponse Problem
+
+func (response ListPhysicalBackups401ApplicationProblemPlusJSONResponse) VisitListPhysicalBackupsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListPhysicalBackups404ApplicationProblemPlusJSONResponse Problem
+
+func (response ListPhysicalBackups404ApplicationProblemPlusJSONResponse) VisitListPhysicalBackupsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListPhysicalBackupsdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response ListPhysicalBackupsdefaultApplicationProblemPlusJSONResponse) VisitListPhysicalBackupsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StartPhysicalBackupRequestObject struct {
+	Body *StartPhysicalBackupJSONRequestBody
+}
+
+type StartPhysicalBackupResponseObject interface {
+	VisitStartPhysicalBackupResponse(w http.ResponseWriter) error
+}
+
+type StartPhysicalBackup202Response struct {
+}
+
+func (response StartPhysicalBackup202Response) VisitStartPhysicalBackupResponse(w http.ResponseWriter) error {
+	w.WriteHeader(202)
+	return nil
+}
+
+type StartPhysicalBackup400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response StartPhysicalBackup400ApplicationProblemPlusJSONResponse) VisitStartPhysicalBackupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StartPhysicalBackup401ApplicationProblemPlusJSONResponse Problem
+
+func (response StartPhysicalBackup401ApplicationProblemPlusJSONResponse) VisitStartPhysicalBackupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StartPhysicalBackup403ApplicationProblemPlusJSONResponse Problem
+
+func (response StartPhysicalBackup403ApplicationProblemPlusJSONResponse) VisitStartPhysicalBackupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StartPhysicalBackup404ApplicationProblemPlusJSONResponse Problem
+
+func (response StartPhysicalBackup404ApplicationProblemPlusJSONResponse) VisitStartPhysicalBackupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StartPhysicalBackup409ApplicationProblemPlusJSONResponse Problem
+
+func (response StartPhysicalBackup409ApplicationProblemPlusJSONResponse) VisitStartPhysicalBackupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StartPhysicalBackupdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response StartPhysicalBackupdefaultApplicationProblemPlusJSONResponse) VisitStartPhysicalBackupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeletePhysicalBackupRequestObject struct {
+	BackupId PhysicalBackupId `json:"backupId"`
+}
+
+type DeletePhysicalBackupResponseObject interface {
+	VisitDeletePhysicalBackupResponse(w http.ResponseWriter) error
+}
+
+type DeletePhysicalBackup204Response struct {
+}
+
+func (response DeletePhysicalBackup204Response) VisitDeletePhysicalBackupResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeletePhysicalBackup400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response DeletePhysicalBackup400ApplicationProblemPlusJSONResponse) VisitDeletePhysicalBackupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeletePhysicalBackup401ApplicationProblemPlusJSONResponse Problem
+
+func (response DeletePhysicalBackup401ApplicationProblemPlusJSONResponse) VisitDeletePhysicalBackupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeletePhysicalBackup403ApplicationProblemPlusJSONResponse Problem
+
+func (response DeletePhysicalBackup403ApplicationProblemPlusJSONResponse) VisitDeletePhysicalBackupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeletePhysicalBackup404ApplicationProblemPlusJSONResponse Problem
+
+func (response DeletePhysicalBackup404ApplicationProblemPlusJSONResponse) VisitDeletePhysicalBackupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeletePhysicalBackupdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response DeletePhysicalBackupdefaultApplicationProblemPlusJSONResponse) VisitDeletePhysicalBackupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CancelPhysicalBackupRequestObject struct {
+	BackupId PhysicalBackupId `json:"backupId"`
+}
+
+type CancelPhysicalBackupResponseObject interface {
+	VisitCancelPhysicalBackupResponse(w http.ResponseWriter) error
+}
+
+type CancelPhysicalBackup202Response struct {
+}
+
+func (response CancelPhysicalBackup202Response) VisitCancelPhysicalBackupResponse(w http.ResponseWriter) error {
+	w.WriteHeader(202)
+	return nil
+}
+
+type CancelPhysicalBackup400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response CancelPhysicalBackup400ApplicationProblemPlusJSONResponse) VisitCancelPhysicalBackupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CancelPhysicalBackup401ApplicationProblemPlusJSONResponse Problem
+
+func (response CancelPhysicalBackup401ApplicationProblemPlusJSONResponse) VisitCancelPhysicalBackupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CancelPhysicalBackup403ApplicationProblemPlusJSONResponse Problem
+
+func (response CancelPhysicalBackup403ApplicationProblemPlusJSONResponse) VisitCancelPhysicalBackupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CancelPhysicalBackup404ApplicationProblemPlusJSONResponse Problem
+
+func (response CancelPhysicalBackup404ApplicationProblemPlusJSONResponse) VisitCancelPhysicalBackupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CancelPhysicalBackup409ApplicationProblemPlusJSONResponse Problem
+
+func (response CancelPhysicalBackup409ApplicationProblemPlusJSONResponse) VisitCancelPhysicalBackupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CancelPhysicalBackupdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response CancelPhysicalBackupdefaultApplicationProblemPlusJSONResponse) VisitCancelPhysicalBackupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetRecoveryScriptRequestObject struct {
+}
+
+type GetRecoveryScriptResponseObject interface {
+	VisitGetRecoveryScriptResponse(w http.ResponseWriter) error
+}
+
+type GetRecoveryScript200ResponseHeaders struct {
+	ContentDisposition *string
+}
+
+type GetRecoveryScript200TextxShellscriptResponse struct {
+	Body          io.Reader
+	Headers       GetRecoveryScript200ResponseHeaders
+	ContentLength int64
+}
+
+func (response GetRecoveryScript200TextxShellscriptResponse) VisitGetRecoveryScriptResponse(w http.ResponseWriter) error {
+
+	w.Header().Set("Content-Type", "text/x-shellscript")
+	if response.ContentLength != 0 {
+		w.Header().Set("Content-Length", fmt.Sprint(response.ContentLength))
+	}
+	if response.Headers.ContentDisposition != nil {
+		w.Header().Set("Content-Disposition", fmt.Sprint(*response.Headers.ContentDisposition))
+	}
+	w.WriteHeader(200)
+
+	if closer, ok := response.Body.(io.ReadCloser); ok {
+		defer closer.Close()
+	}
+	_, err := io.Copy(w, response.Body)
+	return err
+}
+
+type GetRecoveryScriptdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response GetRecoveryScriptdefaultApplicationProblemPlusJSONResponse) VisitGetRecoveryScriptResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DownloadPhysicalRestoreSetRequestObject struct {
+	Params DownloadPhysicalRestoreSetParams
+}
+
+type DownloadPhysicalRestoreSetResponseObject interface {
+	VisitDownloadPhysicalRestoreSetResponse(w http.ResponseWriter) error
+}
+
+type DownloadPhysicalRestoreSet200ResponseHeaders struct {
+	ContentDisposition *string
+}
+
+type DownloadPhysicalRestoreSet200ApplicationxTarResponse struct {
+	Body          io.Reader
+	Headers       DownloadPhysicalRestoreSet200ResponseHeaders
+	ContentLength int64
+}
+
+func (response DownloadPhysicalRestoreSet200ApplicationxTarResponse) VisitDownloadPhysicalRestoreSetResponse(w http.ResponseWriter) error {
+
+	w.Header().Set("Content-Type", "application/x-tar")
+	if response.ContentLength != 0 {
+		w.Header().Set("Content-Length", fmt.Sprint(response.ContentLength))
+	}
+	if response.Headers.ContentDisposition != nil {
+		w.Header().Set("Content-Disposition", fmt.Sprint(*response.Headers.ContentDisposition))
+	}
+	w.WriteHeader(200)
+
+	if closer, ok := response.Body.(io.ReadCloser); ok {
+		defer closer.Close()
+	}
+	_, err := io.Copy(w, response.Body)
+	return err
+}
+
+type DownloadPhysicalRestoreSet400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response DownloadPhysicalRestoreSet400ApplicationProblemPlusJSONResponse) VisitDownloadPhysicalRestoreSetResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DownloadPhysicalRestoreSet401ApplicationProblemPlusJSONResponse Problem
+
+func (response DownloadPhysicalRestoreSet401ApplicationProblemPlusJSONResponse) VisitDownloadPhysicalRestoreSetResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DownloadPhysicalRestoreSet404ApplicationProblemPlusJSONResponse Problem
+
+func (response DownloadPhysicalRestoreSet404ApplicationProblemPlusJSONResponse) VisitDownloadPhysicalRestoreSetResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DownloadPhysicalRestoreSet409ApplicationProblemPlusJSONResponse Problem
+
+func (response DownloadPhysicalRestoreSet409ApplicationProblemPlusJSONResponse) VisitDownloadPhysicalRestoreSetResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DownloadPhysicalRestoreSetdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response DownloadPhysicalRestoreSetdefaultApplicationProblemPlusJSONResponse) VisitDownloadPhysicalRestoreSetResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreatePhysicalRestoreTokenRequestObject struct {
+	Body *CreatePhysicalRestoreTokenJSONRequestBody
+}
+
+type CreatePhysicalRestoreTokenResponseObject interface {
+	VisitCreatePhysicalRestoreTokenResponse(w http.ResponseWriter) error
+}
+
+type CreatePhysicalRestoreToken201JSONResponse PhysicalRestoreToken
+
+func (response CreatePhysicalRestoreToken201JSONResponse) VisitCreatePhysicalRestoreTokenResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreatePhysicalRestoreToken400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response CreatePhysicalRestoreToken400ApplicationProblemPlusJSONResponse) VisitCreatePhysicalRestoreTokenResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreatePhysicalRestoreToken401ApplicationProblemPlusJSONResponse Problem
+
+func (response CreatePhysicalRestoreToken401ApplicationProblemPlusJSONResponse) VisitCreatePhysicalRestoreTokenResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreatePhysicalRestoreToken404ApplicationProblemPlusJSONResponse Problem
+
+func (response CreatePhysicalRestoreToken404ApplicationProblemPlusJSONResponse) VisitCreatePhysicalRestoreTokenResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreatePhysicalRestoreToken409ApplicationProblemPlusJSONResponse Problem
+
+func (response CreatePhysicalRestoreToken409ApplicationProblemPlusJSONResponse) VisitCreatePhysicalRestoreTokenResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreatePhysicalRestoreTokendefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response CreatePhysicalRestoreTokendefaultApplicationProblemPlusJSONResponse) VisitCreatePhysicalRestoreTokenResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type ListRestoresRequestObject struct {
 	Params ListRestoresParams
 }
@@ -3591,6 +5455,173 @@ func (response CancelRestoredefaultApplicationProblemPlusJSONResponse) VisitCanc
 	return err
 }
 
+type GetWalStreamRequestObject struct {
+	DatabaseId DatabaseId `json:"databaseId"`
+}
+
+type GetWalStreamResponseObject interface {
+	VisitGetWalStreamResponse(w http.ResponseWriter) error
+}
+
+type GetWalStream200JSONResponse WalStreamLive
+
+func (response GetWalStream200JSONResponse) VisitGetWalStreamResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetWalStream400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response GetWalStream400ApplicationProblemPlusJSONResponse) VisitGetWalStreamResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetWalStream401ApplicationProblemPlusJSONResponse Problem
+
+func (response GetWalStream401ApplicationProblemPlusJSONResponse) VisitGetWalStreamResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetWalStream404ApplicationProblemPlusJSONResponse Problem
+
+func (response GetWalStream404ApplicationProblemPlusJSONResponse) VisitGetWalStreamResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetWalStreamdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response GetWalStreamdefaultApplicationProblemPlusJSONResponse) VisitGetWalStreamResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetWalStreamStatisticsRequestObject struct {
+	DatabaseId DatabaseId `json:"databaseId"`
+	Params     GetWalStreamStatisticsParams
+}
+
+type GetWalStreamStatisticsResponseObject interface {
+	VisitGetWalStreamStatisticsResponse(w http.ResponseWriter) error
+}
+
+type GetWalStreamStatistics200JSONResponse WalStreamStatistics
+
+func (response GetWalStreamStatistics200JSONResponse) VisitGetWalStreamStatisticsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetWalStreamStatistics400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response GetWalStreamStatistics400ApplicationProblemPlusJSONResponse) VisitGetWalStreamStatisticsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetWalStreamStatistics401ApplicationProblemPlusJSONResponse Problem
+
+func (response GetWalStreamStatistics401ApplicationProblemPlusJSONResponse) VisitGetWalStreamStatisticsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetWalStreamStatistics404ApplicationProblemPlusJSONResponse Problem
+
+func (response GetWalStreamStatistics404ApplicationProblemPlusJSONResponse) VisitGetWalStreamStatisticsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetWalStreamStatisticsdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response GetWalStreamStatisticsdefaultApplicationProblemPlusJSONResponse) VisitGetWalStreamStatisticsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
 	// ListBackupConfigs List the saved backup configs of a workspace or of a storage
@@ -3626,6 +5657,27 @@ type StrictServerInterface interface {
 	// DownloadLogicalBackup Download the file of a logical backup
 	// (GET /logical-backups/{backupId}/file)
 	DownloadLogicalBackup(ctx context.Context, request DownloadLogicalBackupRequestObject) (DownloadLogicalBackupResponseObject, error)
+	// ListPhysicalBackups List the physical backups of a database
+	// (GET /physical-backups)
+	ListPhysicalBackups(ctx context.Context, request ListPhysicalBackupsRequestObject) (ListPhysicalBackupsResponseObject, error)
+	// StartPhysicalBackup Request a physical backup
+	// (POST /physical-backups)
+	StartPhysicalBackup(ctx context.Context, request StartPhysicalBackupRequestObject) (StartPhysicalBackupResponseObject, error)
+	// DeletePhysicalBackup Delete a physical backup and its descendants
+	// (DELETE /physical-backups/{backupId})
+	DeletePhysicalBackup(ctx context.Context, request DeletePhysicalBackupRequestObject) (DeletePhysicalBackupResponseObject, error)
+	// CancelPhysicalBackup Cancel a running physical backup
+	// (POST /physical-backups/{backupId}/cancel)
+	CancelPhysicalBackup(ctx context.Context, request CancelPhysicalBackupRequestObject) (CancelPhysicalBackupResponseObject, error)
+	// GetRecoveryScript Get the physical recovery script
+	// (GET /physical-recovery-scripts)
+	GetRecoveryScript(ctx context.Context, request GetRecoveryScriptRequestObject) (GetRecoveryScriptResponseObject, error)
+	// DownloadPhysicalRestoreSet Download a physical restore set
+	// (GET /physical-restore-sets)
+	DownloadPhysicalRestoreSet(ctx context.Context, request DownloadPhysicalRestoreSetRequestObject) (DownloadPhysicalRestoreSetResponseObject, error)
+	// CreatePhysicalRestoreToken Issue a token for one physical restore set
+	// (POST /physical-restore-tokens)
+	CreatePhysicalRestoreToken(ctx context.Context, request CreatePhysicalRestoreTokenRequestObject) (CreatePhysicalRestoreTokenResponseObject, error)
 	// ListRestores List the restores of a logical backup
 	// (GET /restores)
 	ListRestores(ctx context.Context, request ListRestoresRequestObject) (ListRestoresResponseObject, error)
@@ -3638,6 +5690,12 @@ type StrictServerInterface interface {
 	// CancelRestore Cancel a running restore
 	// (POST /restores/{restoreId}/cancel)
 	CancelRestore(ctx context.Context, request CancelRestoreRequestObject) (CancelRestoreResponseObject, error)
+	// GetWalStream Read the current values of a WAL stream
+	// (GET /wal-streams/{databaseId})
+	GetWalStream(ctx context.Context, request GetWalStreamRequestObject) (GetWalStreamResponseObject, error)
+	// GetWalStreamStatistics Read the statistics of a WAL stream
+	// (GET /wal-streams/{databaseId}/statistics)
+	GetWalStreamStatistics(ctx context.Context, request GetWalStreamStatisticsRequestObject) (GetWalStreamStatisticsResponseObject, error)
 }
 
 type StrictHandlerFunc func(ctx *gin.Context, request any) (any, error)
@@ -4008,6 +6066,196 @@ func (sh *strictHandler) DownloadLogicalBackup(ctx *gin.Context, backupId Backup
 	}
 }
 
+// ListPhysicalBackups operation middleware
+func (sh *strictHandler) ListPhysicalBackups(ctx *gin.Context, params ListPhysicalBackupsParams) {
+	var request ListPhysicalBackupsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListPhysicalBackups(ctx, request.(ListPhysicalBackupsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListPhysicalBackups")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		sh.options.HandlerErrorFunc(ctx, err)
+	} else if validResponse, ok := response.(ListPhysicalBackupsResponseObject); ok {
+		if err := validResponse.VisitListPhysicalBackupsResponse(ctx.Writer); err != nil {
+			sh.options.ResponseErrorHandlerFunc(ctx, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(ctx, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// StartPhysicalBackup operation middleware
+func (sh *strictHandler) StartPhysicalBackup(ctx *gin.Context) {
+	var request StartPhysicalBackupRequestObject
+
+	var body StartPhysicalBackupJSONRequestBody
+	if err := ctx.ShouldBindJSON(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(ctx, err)
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.StartPhysicalBackup(ctx, request.(StartPhysicalBackupRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "StartPhysicalBackup")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		sh.options.HandlerErrorFunc(ctx, err)
+	} else if validResponse, ok := response.(StartPhysicalBackupResponseObject); ok {
+		if err := validResponse.VisitStartPhysicalBackupResponse(ctx.Writer); err != nil {
+			sh.options.ResponseErrorHandlerFunc(ctx, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(ctx, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DeletePhysicalBackup operation middleware
+func (sh *strictHandler) DeletePhysicalBackup(ctx *gin.Context, backupId PhysicalBackupId) {
+	var request DeletePhysicalBackupRequestObject
+
+	request.BackupId = backupId
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.DeletePhysicalBackup(ctx, request.(DeletePhysicalBackupRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeletePhysicalBackup")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		sh.options.HandlerErrorFunc(ctx, err)
+	} else if validResponse, ok := response.(DeletePhysicalBackupResponseObject); ok {
+		if err := validResponse.VisitDeletePhysicalBackupResponse(ctx.Writer); err != nil {
+			sh.options.ResponseErrorHandlerFunc(ctx, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(ctx, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CancelPhysicalBackup operation middleware
+func (sh *strictHandler) CancelPhysicalBackup(ctx *gin.Context, backupId PhysicalBackupId) {
+	var request CancelPhysicalBackupRequestObject
+
+	request.BackupId = backupId
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.CancelPhysicalBackup(ctx, request.(CancelPhysicalBackupRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CancelPhysicalBackup")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		sh.options.HandlerErrorFunc(ctx, err)
+	} else if validResponse, ok := response.(CancelPhysicalBackupResponseObject); ok {
+		if err := validResponse.VisitCancelPhysicalBackupResponse(ctx.Writer); err != nil {
+			sh.options.ResponseErrorHandlerFunc(ctx, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(ctx, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetRecoveryScript operation middleware
+func (sh *strictHandler) GetRecoveryScript(ctx *gin.Context) {
+	var request GetRecoveryScriptRequestObject
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetRecoveryScript(ctx, request.(GetRecoveryScriptRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetRecoveryScript")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		sh.options.HandlerErrorFunc(ctx, err)
+	} else if validResponse, ok := response.(GetRecoveryScriptResponseObject); ok {
+		if err := validResponse.VisitGetRecoveryScriptResponse(ctx.Writer); err != nil {
+			sh.options.ResponseErrorHandlerFunc(ctx, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(ctx, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DownloadPhysicalRestoreSet operation middleware
+func (sh *strictHandler) DownloadPhysicalRestoreSet(ctx *gin.Context, params DownloadPhysicalRestoreSetParams) {
+	var request DownloadPhysicalRestoreSetRequestObject
+
+	request.Params = params
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.DownloadPhysicalRestoreSet(ctx, request.(DownloadPhysicalRestoreSetRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DownloadPhysicalRestoreSet")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		sh.options.HandlerErrorFunc(ctx, err)
+	} else if validResponse, ok := response.(DownloadPhysicalRestoreSetResponseObject); ok {
+		if err := validResponse.VisitDownloadPhysicalRestoreSetResponse(ctx.Writer); err != nil {
+			sh.options.ResponseErrorHandlerFunc(ctx, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(ctx, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreatePhysicalRestoreToken operation middleware
+func (sh *strictHandler) CreatePhysicalRestoreToken(ctx *gin.Context) {
+	var request CreatePhysicalRestoreTokenRequestObject
+
+	var body CreatePhysicalRestoreTokenJSONRequestBody
+	if err := ctx.ShouldBindJSON(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(ctx, err)
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.CreatePhysicalRestoreToken(ctx, request.(CreatePhysicalRestoreTokenRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreatePhysicalRestoreToken")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		sh.options.HandlerErrorFunc(ctx, err)
+	} else if validResponse, ok := response.(CreatePhysicalRestoreTokenResponseObject); ok {
+		if err := validResponse.VisitCreatePhysicalRestoreTokenResponse(ctx.Writer); err != nil {
+			sh.options.ResponseErrorHandlerFunc(ctx, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(ctx, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // ListRestores operation middleware
 func (sh *strictHandler) ListRestores(ctx *gin.Context, params ListRestoresParams) {
 	var request ListRestoresRequestObject
@@ -4110,6 +6358,59 @@ func (sh *strictHandler) CancelRestore(ctx *gin.Context, restoreId RestoreId) {
 		sh.options.HandlerErrorFunc(ctx, err)
 	} else if validResponse, ok := response.(CancelRestoreResponseObject); ok {
 		if err := validResponse.VisitCancelRestoreResponse(ctx.Writer); err != nil {
+			sh.options.ResponseErrorHandlerFunc(ctx, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(ctx, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetWalStream operation middleware
+func (sh *strictHandler) GetWalStream(ctx *gin.Context, databaseId DatabaseId) {
+	var request GetWalStreamRequestObject
+
+	request.DatabaseId = databaseId
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetWalStream(ctx, request.(GetWalStreamRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetWalStream")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		sh.options.HandlerErrorFunc(ctx, err)
+	} else if validResponse, ok := response.(GetWalStreamResponseObject); ok {
+		if err := validResponse.VisitGetWalStreamResponse(ctx.Writer); err != nil {
+			sh.options.ResponseErrorHandlerFunc(ctx, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(ctx, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetWalStreamStatistics operation middleware
+func (sh *strictHandler) GetWalStreamStatistics(ctx *gin.Context, databaseId DatabaseId, params GetWalStreamStatisticsParams) {
+	var request GetWalStreamStatisticsRequestObject
+
+	request.DatabaseId = databaseId
+	request.Params = params
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetWalStreamStatistics(ctx, request.(GetWalStreamStatisticsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetWalStreamStatistics")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		sh.options.HandlerErrorFunc(ctx, err)
+	} else if validResponse, ok := response.(GetWalStreamStatisticsResponseObject); ok {
+		if err := validResponse.VisitGetWalStreamStatisticsResponse(ctx.Writer); err != nil {
 			sh.options.ResponseErrorHandlerFunc(ctx, err)
 		}
 	} else if response != nil {

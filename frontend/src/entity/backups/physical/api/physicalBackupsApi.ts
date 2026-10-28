@@ -1,73 +1,62 @@
 import { getApplicationServer } from '../../../../constants';
-import { apiHelper } from '../../../../shared/api/apiHelper';
-import RequestOptions from '../../../../shared/api/RequestOptions';
-import type { GetPhysicalBackupsResponse } from '../model/GetPhysicalBackupsResponse';
+import {
+  API_BASE_PATH,
+  getApiClient,
+  requireData,
+  requireSuccess,
+  type ApiComponents,
+} from '../../../../shared/api';
 import type { PhysicalBackupsFilters } from '../model/PhysicalBackupsFilters';
-import type { PhysicalRestoreTokenResponse } from '../model/PhysicalRestoreTokenResponse';
 
-// 'auto' lets the backend pick FULL vs incremental based on the chain state;
-// 'full'/'incremental' force a specific kind (incremental 409s with no chain).
-export type TriggerPhysicalBackupType = 'auto' | 'full' | 'incremental';
+export type TriggerPhysicalBackupType = ApiComponents['schemas']['PhysicalBackupStartKind'];
+export type PhysicalRestoreTokenCreate = ApiComponents['schemas']['PhysicalRestoreTokenCreate'];
 
 export const physicalBackupsApi = {
   async getPhysicalBackups(
     databaseId: string,
     limit?: number,
-    cursor?: string,
+    after?: string,
     filters?: PhysicalBackupsFilters,
   ) {
-    const params = new URLSearchParams();
-    if (limit !== undefined) params.append('limit', limit.toString());
-    if (cursor !== undefined) params.append('cursor', cursor);
-
-    if (filters?.types) for (const type of filters.types) params.append('type', type);
-    if (filters?.statuses) for (const status of filters.statuses) params.append('status', status);
-    if (filters?.beforeDate) params.append('beforeDate', filters.beforeDate);
-
-    return apiHelper.fetchGetJson<GetPhysicalBackupsResponse>(
-      `${getApplicationServer()}/api/v1/backups/physical/database/${databaseId}/backups?${params.toString()}`,
-      undefined,
-      true,
+    return requireData(
+      await getApiClient().GET('/physical-backups', {
+        params: {
+          query: {
+            databaseId,
+            limit,
+            after,
+            type: filters?.types,
+            status: filters?.statuses,
+            createdBefore: filters?.createdBefore,
+          },
+        },
+      }),
     );
   },
-
-  async triggerPhysicalBackup(databaseId: string, type: TriggerPhysicalBackupType) {
-    const requestOptions: RequestOptions = new RequestOptions();
-    requestOptions.setBody(JSON.stringify({ type }));
-    return apiHelper.fetchPostJson<{ message: string }>(
-      `${getApplicationServer()}/api/v1/backups/physical/database/${databaseId}/trigger`,
-      requestOptions,
-    );
+  async triggerPhysicalBackup(databaseId: string, kind: TriggerPhysicalBackupType) {
+    requireSuccess(await getApiClient().POST('/physical-backups', { body: { databaseId, kind } }));
   },
-
   async cancelPhysicalBackup(backupId: string) {
-    return apiHelper.fetchPostRaw(
-      `${getApplicationServer()}/api/v1/backups/physical/backups/${backupId}/cancel`,
+    requireSuccess(
+      await getApiClient().POST('/physical-backups/{backupId}/cancel', {
+        params: { path: { backupId } },
+      }),
     );
   },
-
   async deletePhysicalBackup(backupId: string) {
-    return apiHelper.fetchDeleteRaw(
-      `${getApplicationServer()}/api/v1/backups/physical/backups/${backupId}`,
+    requireSuccess(
+      await getApiClient().DELETE('/physical-backups/{backupId}', {
+        params: { path: { backupId } },
+      }),
     );
   },
-
-  // Point-in-time restore: omit targetTime to restore to the latest available point.
-  async generatePitrRestoreToken(databaseId: string, targetTime?: string) {
-    const requestOptions: RequestOptions = new RequestOptions();
-    requestOptions.setBody(JSON.stringify({ targetTime }));
-    return apiHelper.fetchPostJson<PhysicalRestoreTokenResponse>(
-      `${getApplicationServer()}/api/v1/backups/physical/database/${databaseId}/restore-token`,
-      requestOptions,
-    );
+  async createPhysicalRestoreToken(body: PhysicalRestoreTokenCreate) {
+    return requireData(await getApiClient().POST('/physical-restore-tokens', { body }));
   },
-
-  // Per-backup restore: a FULL restores itself; an incremental restores its FULL +
-  // incremental ancestors (no WAL replay).
-  async generateBackupRestoreToken(backupId: string) {
-    return apiHelper.fetchPostJson<PhysicalRestoreTokenResponse>(
-      `${getApplicationServer()}/api/v1/backups/physical/backups/${backupId}/restore-token`,
-      new RequestOptions(),
-    );
+  getPhysicalRestoreSetUrl(token: string): string {
+    return `${getApplicationServer()}${API_BASE_PATH}/physical-restore-sets?${new URLSearchParams({ token })}`;
+  },
+  getPhysicalRecoveryScriptUrl(): string {
+    return `${getApplicationServer()}${API_BASE_PATH}/physical-recovery-scripts`;
   },
 };

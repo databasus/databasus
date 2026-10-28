@@ -1,8 +1,3 @@
-import type { WalStreamNoticeCode } from './WalStreamNoticeCode';
-import type { WalStreamReasonLevel } from './WalStreamReasonLevel';
+import type { ApiComponents } from '../../../../shared/api';
 
-export interface WalStreamNotice {
-  code: WalStreamNoticeCode;
-  level: WalStreamReasonLevel;
-  since?: string;
-}
+export type WalStreamNotice = ApiComponents['schemas']['WalStreamNotice'];

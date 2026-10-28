@@ -11,11 +11,11 @@ import (
 
 const restoreTokenPrefix = "physical_restore_token:"
 
-// restoreTokenTTL is longer than a download token's 5 min: a physical restore
+// TokenLifetime is longer than a download token's 5 min: a physical restore
 // stream can be large (full + incrementals + WAL) and is often piped straight
 // into an extract, so the window to start it must comfortably outlast a human
 // pasting the curl command.
-const restoreTokenTTL = 15 * time.Minute
+const TokenLifetime = 15 * time.Minute
 
 // Token authorizes one agent-less physical restore stream. Unlike a download
 // token (one backup file) it is keyed by a restore SPEC — a database and an
@@ -51,7 +51,7 @@ func (s *store) issue(ctx context.Context, token string, restoreToken Token) err
 	return s.tokens.SetWithLifetime(ctx, cache.ExpiringValue[Token]{
 		Key:      token,
 		Value:    restoreToken,
-		Lifetime: restoreTokenTTL,
+		Lifetime: TokenLifetime,
 	})
 }
 

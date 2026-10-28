@@ -56,14 +56,11 @@ func TestIncrementalPhysicalBackupAfterWalGap(t *testing.T) {
 			var page struct {
 				Backups []struct {
 					HasGapBefore bool `json:"hasGapBefore"`
-				} `json:"backups"`
+				} `json:"items"`
 			}
 			team.call(
 				t,
-				apptest.OldAPICall{
-					Method: http.MethodGet,
-					Path:   "/backups/physical/database/" + team.Database.Id.String() + "/backups?types=WAL&limit=1000",
-				},
+				apptest.PhysicalListRequest(team.Database.Id, "?type=WAL&limit=1000"),
 				http.StatusOK,
 				&page,
 			)
@@ -74,11 +71,7 @@ func TestIncrementalPhysicalBackupAfterWalGap(t *testing.T) {
 			require.True(t, hasGap)
 			team.call(
 				t,
-				apptest.OldAPICall{
-					Method: http.MethodPost,
-					Path:   "/backups/physical/database/" + team.Database.Id.String() + "/trigger",
-					Body:   map[string]string{"type": "incremental"},
-				},
+				apptest.PhysicalStartRequest(team.Database.Id, "INCREMENTAL"),
 				http.StatusAccepted,
 				nil,
 			)

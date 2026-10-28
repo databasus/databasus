@@ -1,10 +1,3 @@
-import type { WalStreamSeriesPoint } from './WalStreamSeriesPoint';
-import type { WalStreamStatisticsPeriod } from './WalStreamStatisticsPeriod';
+import type { ApiComponents } from '../../../../shared/api';
 
-export interface WalStreamSeries {
-  period: WalStreamStatisticsPeriod;
-  bucketSeconds: number;
-  from: string;
-  to: string;
-  points: WalStreamSeriesPoint[];
-}
+export type WalStreamSeries = ApiComponents['schemas']['WalStreamSeries'];

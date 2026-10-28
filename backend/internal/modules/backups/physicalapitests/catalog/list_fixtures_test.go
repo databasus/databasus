@@ -21,7 +21,7 @@ func getBackups(
 	catalog.call(
 		t,
 		catalogCall{
-			Path:          "/api/v1/backups/physical/database/" + catalog.DatabaseID.String() + "/backups" + query,
+			Request:       apptest.PhysicalListRequest(catalog.DatabaseID, ""+query),
 			Authorization: "Bearer " + catalog.Owner.Token,
 			StatusCode:    http.StatusOK,
 			Destination:   &response,

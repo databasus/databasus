@@ -67,11 +67,8 @@ func (team Team) getStreamStatistics(t *testing.T) streamStatistics {
 	var statistics streamStatistics
 	team.call(
 		t,
-		oldAPIResponseSpec{
-			Call: apptest.OldAPICall{
-				Method: http.MethodGet,
-				Path:   team.getDatabasePath() + "/wal-stream/statistics?period=HOUR",
-			},
+		physicalResponseSpec{
+			Call:        apptest.PhysicalStatisticsRequest(team.Database.Id, "HOUR"),
 			Status:      http.StatusOK,
 			Destination: &statistics,
 		},

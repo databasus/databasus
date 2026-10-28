@@ -30,7 +30,7 @@ export const PhysicalBackupsFiltersPanelComponent = ({ filters, onFiltersChange 
   const handleBeforeDateChange = (date: Dayjs | null) => {
     onFiltersChange({
       ...filters,
-      beforeDate: date ? date.toISOString() : undefined,
+      createdBefore: date ? date.toISOString() : undefined,
     });
   };
 
@@ -85,7 +85,7 @@ export const PhysicalBackupsFiltersPanelComponent = ({ filters, onFiltersChange 
           {t('backups.filters.before')}
         </span>
         <DatePicker
-          value={filters.beforeDate ? dayjs(filters.beforeDate) : null}
+          value={filters.createdBefore ? dayjs(filters.createdBefore) : null}
           onChange={handleBeforeDateChange}
           size="small"
           variant="filled"

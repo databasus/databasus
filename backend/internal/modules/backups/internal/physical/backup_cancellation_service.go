@@ -22,7 +22,7 @@ func (s *Service) CancelBackup(ctx context.Context, actor users.Actor, backupID 
 
 	database, err := s.authorizeManage(ctx, actor, databaseID)
 	if err != nil {
-		return err
+		return toBackupAccessProblem(err)
 	}
 
 	if status != catalog.BackupStatusInProgress {

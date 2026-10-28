@@ -32,42 +32,42 @@ type VerdictInput struct {
 }
 
 type Reason struct {
-	Code             ReasonCode  `json:"code"`
-	Level            ReasonLevel `json:"level"`
-	Since            *time.Time  `json:"since,omitempty"`
-	ValueBytes       *int64      `json:"valueBytes,omitempty"`
-	ThresholdBytes   *int64      `json:"thresholdBytes,omitempty"`
-	Count            *int        `json:"count,omitempty"`
-	EstimatedSeconds *int64      `json:"estimatedSeconds,omitempty"`
+	Code             ReasonCode
+	Level            ReasonLevel
+	Since            *time.Time
+	ValueBytes       *int64
+	ThresholdBytes   *int64
+	Count            *int
+	EstimatedSeconds *int64
 }
 
 type Notice struct {
-	Code  NoticeCode  `json:"code"`
-	Level ReasonLevel `json:"level"`
-	Since *time.Time  `json:"since,omitempty"`
+	Code  NoticeCode
+	Level ReasonLevel
+	Since *time.Time
 }
 
 type Verdict struct {
-	Level   HealthLevel `json:"level"`
-	Reasons []Reason    `json:"reasons"`
-	Notices []Notice    `json:"notices"`
+	Level   HealthLevel
+	Reasons []Reason
+	Notices []Notice
 }
 
 type KeepingUp struct {
-	State KeepingUpState `json:"state"`
+	State KeepingUpState
 
-	SourceWriteBytesPerSecond *float64 `json:"sourceWriteBytesPerSecond"`
-	ArchiveBytesPerSecond     *float64 `json:"archiveBytesPerSecond"`
+	SourceWriteBytesPerSecond *float64
+	ArchiveBytesPerSecond     *float64
 
-	UnarchivedWalBytes                *int64   `json:"unarchivedWalBytes"`
-	UnarchivedWalChangeBytesPerSecond *float64 `json:"unarchivedWalChangeBytesPerSecond"`
+	UnarchivedWalBytes                *int64
+	UnarchivedWalChangeBytesPerSecond *float64
 
-	SlotLagBytes                *int64   `json:"slotLagBytes"`
-	SlotLagChangeBytesPerSecond *float64 `json:"slotLagChangeBytesPerSecond"`
+	SlotLagBytes                *int64
+	SlotLagChangeBytesPerSecond *float64
 
-	SlotRebuildLagBytes int64 `json:"slotRebuildLagBytes"`
+	SlotRebuildLagBytes int64
 
-	EstimatedCatchUpSeconds     *int64 `json:"estimatedCatchUpSeconds"`
-	EstimatedSlotRebuildSeconds *int64 `json:"estimatedSlotRebuildSeconds"`
-	EstimatedSlotLimitSeconds   *int64 `json:"estimatedSlotLimitSeconds"`
+	EstimatedCatchUpSeconds     *int64
+	EstimatedSlotRebuildSeconds *int64
+	EstimatedSlotLimitSeconds   *int64
 }

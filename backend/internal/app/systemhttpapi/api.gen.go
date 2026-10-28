@@ -30,6 +30,8 @@ const (
 	ProblemCodeInvalidCredentials       ProblemCode = "invalid_credentials"
 	ProblemCodeInvalidRequest           ProblemCode = "invalid_request"
 	ProblemCodeInvalidResetCode         ProblemCode = "invalid_reset_code"
+	ProblemCodeNoExtendableChain        ProblemCode = "no_extendable_chain"
+	ProblemCodeNoRestorableBackup       ProblemCode = "no_restorable_backup"
 	ProblemCodeNotFound                 ProblemCode = "not_found"
 	ProblemCodeNotRunning               ProblemCode = "not_running"
 	ProblemCodeOauthFailed              ProblemCode = "oauth_failed"
@@ -42,6 +44,7 @@ const (
 	ProblemCodeSignInCodeIncorrect      ProblemCode = "sign_in_code_incorrect"
 	ProblemCodeSignInCodeNotSent        ProblemCode = "sign_in_code_not_sent"
 	ProblemCodeSignInCodeResentTooSoon  ProblemCode = "sign_in_code_resent_too_soon"
+	ProblemCodeTargetTimeUnreachable    ProblemCode = "target_time_unreachable"
 	ProblemCodeTooManySignInCodes       ProblemCode = "too_many_sign_in_codes"
 	ProblemCodeUnauthenticated          ProblemCode = "unauthenticated"
 	ProblemCodeUserDeactivated          ProblemCode = "user_deactivated"
@@ -79,6 +82,10 @@ func (e ProblemCode) Valid() bool {
 		return true
 	case ProblemCodeInvalidResetCode:
 		return true
+	case ProblemCodeNoExtendableChain:
+		return true
+	case ProblemCodeNoRestorableBackup:
+		return true
 	case ProblemCodeNotFound:
 		return true
 	case ProblemCodeNotRunning:
@@ -102,6 +109,8 @@ func (e ProblemCode) Valid() bool {
 	case ProblemCodeSignInCodeNotSent:
 		return true
 	case ProblemCodeSignInCodeResentTooSoon:
+		return true
+	case ProblemCodeTargetTimeUnreachable:
 		return true
 	case ProblemCodeTooManySignInCodes:
 		return true
@@ -172,6 +181,9 @@ type NotifierId = openapi_types.UUID
 
 // PendingSignInId defines model for PendingSignInId.
 type PendingSignInId = openapi_types.UUID
+
+// PhysicalBackupId defines model for PhysicalBackupId.
+type PhysicalBackupId = openapi_types.UUID
 
 // RestoreId defines model for RestoreId.
 type RestoreId = openapi_types.UUID

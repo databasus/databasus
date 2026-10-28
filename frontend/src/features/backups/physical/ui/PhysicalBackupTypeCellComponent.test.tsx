@@ -38,8 +38,8 @@ const createWalRange = (change: Partial<PhysicalBackupListItem>): PhysicalBackup
   walSegmentsCount: 240,
   hasGapBefore: false,
   sizeMb: 3840,
-  createdAt: new Date('2026-10-10T03:00:00Z'),
-  completedAt: new Date('2026-10-10T09:12:00Z'),
+  createdAt: new Date('2026-10-10T03:00:00Z').toISOString(),
+  completedAt: new Date('2026-10-10T09:12:00Z').toISOString(),
   ...change,
 });
 

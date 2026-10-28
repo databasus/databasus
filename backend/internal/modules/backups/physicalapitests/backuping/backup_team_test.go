@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 
@@ -169,17 +170,14 @@ type backupRow struct {
 
 func (team *backupTeam) listBackups(t *testing.T) []backupRow {
 	t.Helper()
-	status, body := team.App.CallOldAPI(
+	status, body := team.App.CallPhysicalAPI(
 		t,
 		team.Owner,
-		apptest.OldAPICall{
-			Method: http.MethodGet,
-			Path:   "/backups/physical/database/" + team.Database.Id.String() + "/backups?limit=1000",
-		},
+		apptest.PhysicalListRequest(team.Database.Id, "?limit=1000"),
 	)
 	require.Equal(t, http.StatusOK, status, "%s", body)
 	var page struct {
-		Backups []backupRow `json:"backups"`
+		Backups []backupRow `json:"items"`
 	}
 	require.NoError(t, json.Unmarshal(body, &page))
 	return page.Backups
@@ -187,14 +185,10 @@ func (team *backupTeam) listBackups(t *testing.T) []backupRow {
 
 func (team *backupTeam) trigger(t *testing.T, backupType string) {
 	t.Helper()
-	status, body := team.App.CallOldAPI(
+	status, body := team.App.CallPhysicalAPI(
 		t,
 		team.Owner,
-		apptest.OldAPICall{
-			Method: http.MethodPost,
-			Path:   "/backups/physical/database/" + team.Database.Id.String() + "/trigger",
-			Body:   map[string]string{"type": backupType},
-		},
+		apptest.PhysicalStartRequest(team.Database.Id, strings.ToUpper(backupType)),
 	)
 	require.Equal(t, http.StatusAccepted, status, "%s", body)
 }

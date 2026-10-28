@@ -29,83 +29,83 @@ func (p WalStreamStatisticsPeriod) GetDurations() (period, bucket time.Duration,
 }
 
 type GetWalStreamStatisticsRequest struct {
-	Period WalStreamStatisticsPeriod `form:"period" binding:"required"`
+	Period WalStreamStatisticsPeriod
 }
 
 type GetWalStreamStatisticsResponse struct {
-	Health WalStreamHealth `json:"health"`
+	Health WalStreamHealth
 
-	LatestRestorableAt *time.Time `json:"latestRestorableAt"`
+	LatestRestorableAt *time.Time
 
-	RestorableRanges []WalStreamTimeRange `json:"restorableRanges"`
+	RestorableRanges []WalStreamTimeRange
 
-	Streamer  WalStreamStreamer      `json:"streamer"`
-	Current   *WalStreamCurrent      `json:"current"`
-	KeepingUp streamhealth.KeepingUp `json:"keepingUp"`
-	Series    WalStreamSeries        `json:"series"`
+	Streamer  WalStreamStreamer
+	Current   *WalStreamCurrent
+	KeepingUp streamhealth.KeepingUp
+	Series    WalStreamSeries
 }
 
 type WalStreamTimeRange struct {
-	From time.Time `json:"from"`
-	To   time.Time `json:"to"`
+	From time.Time
+	To   time.Time
 }
 
 type WalStreamHealth struct {
-	Level   streamhealth.HealthLevel `json:"level"`
-	Reasons []streamhealth.Reason    `json:"reasons"`
-	Notices []streamhealth.Notice    `json:"notices"`
+	Level   streamhealth.HealthLevel
+	Reasons []streamhealth.Reason
+	Notices []streamhealth.Notice
 
-	IsFullBackupPending bool `json:"isFullBackupPending"`
+	IsFullBackupPending bool
 }
 
 type WalStreamStreamer struct {
-	State            streamhealth.StreamerState `json:"state"`
-	SessionStartedAt *time.Time                 `json:"sessionStartedAt"`
-	FailingSince     *time.Time                 `json:"failingSince"`
-	RestartsLastHour int                        `json:"restartsLastHour"`
+	State            streamhealth.StreamerState
+	SessionStartedAt *time.Time
+	FailingSince     *time.Time
+	RestartsLastHour int
 }
 
 type WalStreamCurrent struct {
-	SampledAt         time.Time  `json:"sampledAt"`
-	LastArchivedWalAt *time.Time `json:"lastArchivedWalAt"`
-	SessionStartedAt  time.Time  `json:"sessionStartedAt"`
+	SampledAt         time.Time
+	LastArchivedWalAt *time.Time
+	SessionStartedAt  time.Time
 
-	SourceState            catalog.WalStreamSourceState `json:"sourceState"`
-	SourceUnreachableSince *time.Time                   `json:"sourceUnreachableSince"`
+	SourceState            catalog.WalStreamSourceState
+	SourceUnreachableSince *time.Time
 
-	SourceCurrentLsn   *string `json:"sourceCurrentLsn"`
-	ArchiveProgressLsn *string `json:"archiveProgressLsn"`
-	SourceWrittenBytes *int64  `json:"sourceWrittenBytes"`
+	SourceCurrentLsn   *string
+	ArchiveProgressLsn *string
+	SourceWrittenBytes *int64
 
-	ArchivedSegments         int    `json:"archivedSegments"`
-	ArchivedWalBytes         int64  `json:"archivedWalBytes"`
-	ArchivedStoredBytes      int64  `json:"archivedStoredBytes"`
-	WalSegmentSizeBytes      int64  `json:"walSegmentSizeBytes"`
-	HighestConcurrentUploads int    `json:"highestConcurrentUploads"`
-	SegmentWriteAvgMillis    *int64 `json:"segmentWriteAvgMillis"`
-	SegmentWriteMaxMillis    *int64 `json:"segmentWriteMaxMillis"`
+	ArchivedSegments         int
+	ArchivedWalBytes         int64
+	ArchivedStoredBytes      int64
+	WalSegmentSizeBytes      int64
+	HighestConcurrentUploads int
+	SegmentWriteAvgMillis    *int64
+	SegmentWriteMaxMillis    *int64
 
-	SlotWalStatus        *string    `json:"slotWalStatus"`
-	SlotExtraWalSince    *time.Time `json:"slotExtraWalSince"`
-	SlotLagBytes         *int64     `json:"slotLagBytes"`
-	SlotSafeWalSizeBytes *int64     `json:"slotSafeWalSizeBytes"`
+	SlotWalStatus        *string
+	SlotExtraWalSince    *time.Time
+	SlotLagBytes         *int64
+	SlotSafeWalSizeBytes *int64
 
-	UnarchivedWalBytes  *int64     `json:"unarchivedWalBytes"`
-	ArchiveStalledSince *time.Time `json:"archiveStalledSince"`
+	UnarchivedWalBytes  *int64
+	ArchiveStalledSince *time.Time
 
-	LocalQueueBytes      int64 `json:"localQueueBytes"`
-	LocalQueuePauseBytes int64 `json:"localQueuePauseBytes"`
+	LocalQueueBytes      int64
+	LocalQueuePauseBytes int64
 
-	ReceiverRestarts       int  `json:"receiverRestarts"`
-	ReceiverPauses         int  `json:"receiverPauses"`
-	IsReceiverRunning      bool `json:"isReceiverRunning"`
-	IsForcedRotationDenied bool `json:"isForcedRotationDenied"`
+	ReceiverRestarts       int
+	ReceiverPauses         int
+	IsReceiverRunning      bool
+	IsForcedRotationDenied bool
 }
 
 type WalStreamSeries struct {
-	Period        WalStreamStatisticsPeriod       `json:"period"`
-	BucketSeconds int64                           `json:"bucketSeconds"`
-	From          time.Time                       `json:"from"`
-	To            time.Time                       `json:"to"`
-	Points        []*catalog.WalStreamSeriesPoint `json:"points"`
+	Period        WalStreamStatisticsPeriod
+	BucketSeconds int64
+	From          time.Time
+	To            time.Time
+	Points        []*catalog.WalStreamSeriesPoint
 }

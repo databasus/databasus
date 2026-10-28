@@ -44,21 +44,13 @@ func TestCascadePhysicalBackupDuringClaim(t *testing.T) {
 				err    error
 			}
 			outcomes := make(chan cascadeOutcome, 1)
-			request, err := http.NewRequestWithContext(
-				t.Context(),
-				http.MethodDelete,
-				catalog.App.URL+"/api/v1/backups/physical/backups/"+full.ID.String(),
-				nil,
-			)
-			require.NoError(t, err)
-			request.Header.Set("Authorization", "Bearer "+catalog.Owner.Token)
 			go func() {
 				if testCase.shouldKeepFull {
 					catalog.App.RunJobPass(t, "backups_physical_cleaner")
 					outcomes <- cascadeOutcome{}
 					return
 				}
-				response, err := http.DefaultClient.Do(request)
+				response, err := catalog.Owner.Client.DeletePhysicalBackup(t.Context(), full.ID)
 				if err != nil {
 					outcomes <- cascadeOutcome{err: err}
 					return

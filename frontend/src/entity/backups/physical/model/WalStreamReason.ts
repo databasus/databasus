@@ -1,12 +1,3 @@
-import type { WalStreamReasonCode } from './WalStreamReasonCode';
-import type { WalStreamReasonLevel } from './WalStreamReasonLevel';
+import type { ApiComponents } from '../../../../shared/api';
 
-export interface WalStreamReason {
-  code: WalStreamReasonCode;
-  level: WalStreamReasonLevel;
-  since?: string;
-  valueBytes?: number;
-  thresholdBytes?: number;
-  count?: number;
-  estimatedSeconds?: number;
-}
+export type WalStreamReason = ApiComponents['schemas']['WalStreamReason'];

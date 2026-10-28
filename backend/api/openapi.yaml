@@ -1967,6 +1967,246 @@ paths:
           $ref: "#/components/responses/Problem"
         default:
           $ref: "#/components/responses/Problem"
+  /physical-backups:
+    get:
+      operationId: "listPhysicalBackups"
+      tags:
+        - "backups"
+      summary: "List the physical backups of a database"
+      description: "Needs WORKSPACE_VIEWER. Ordered newest first by creation time and ID. Includes full backups, incremental backups and WAL ranges. totalUsageMb covers every backup of the database, independently of the page and filters. An outsider gets 404 not_found; a nonphysical database, invalid limit or malformed cursor gets 400 invalid_request."
+      parameters:
+        - {"name": "databaseId", "in": "query", "required": true, "description": "The database whose backups to list", "schema": {"type": "string", "format": "uuid"}}
+        - {"name": "type", "in": "query", "required": false, "description": "Only these backup types", "schema": {"type": "array", "items": {"$ref": "#/components/schemas/PhysicalBackupListRowType"}}, "style": "form", "explode": true}
+        - {"name": "status", "in": "query", "required": false, "description": "Only these backup statuses", "schema": {"type": "array", "items": {"$ref": "#/components/schemas/PhysicalBackupStatus"}}, "style": "form", "explode": true}
+        - {"name": "createdBefore", "in": "query", "required": false, "description": "Only rows created before this time", "schema": {"type": "string", "format": "date-time"}}
+        - {"name": "limit", "in": "query", "required": false, "description": "The largest number of rows on the page", "schema": {"type": "integer", "minimum": 1, "maximum": 1000, "default": 50}}
+        - {"name": "after", "in": "query", "required": false, "description": "The nextCursor of the previous page", "schema": {"type": "string"}}
+      responses:
+        "200":
+          description: "List the physical backups of a database"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PhysicalBackupPage"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+    post:
+      operationId: "startPhysicalBackup"
+      tags:
+        - "backups"
+      summary: "Request a physical backup"
+      description: "Needs WORKSPACE_MEMBER. Records the request; the scheduler creates the backup on its next pass. AUTO chooses an incremental when the backup type supports it and a chain can be extended, otherwise a full backup. An incremental without an extendable chain gets 409 no_extendable_chain. A nonphysical database gets 400 invalid_request."
+      requestBody:
+        description: "The request to apply"
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PhysicalBackupStart"
+      responses:
+        "202":
+          description: "Request a physical backup"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        "409":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /physical-backups/{backupId}:
+    parameters:
+      - {"$ref": "#/components/parameters/PhysicalBackupId"}
+    delete:
+      operationId: "deletePhysicalBackup"
+      tags:
+        - "backups"
+      summary: "Delete a physical backup and its descendants"
+      description: "Needs WORKSPACE_MEMBER. Stops a running backup before deleting it. A full backup removes its incremental chain; an incremental removes its descendants. A WAL segment ID gets 404 not_found and deletes nothing."
+      responses:
+        "204":
+          description: "Delete a physical backup and its descendants"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /physical-backups/{backupId}/cancel:
+    parameters:
+      - {"$ref": "#/components/parameters/PhysicalBackupId"}
+    post:
+      operationId: "cancelPhysicalBackup"
+      tags:
+        - "backups"
+      summary: "Cancel a running physical backup"
+      description: "Needs WORKSPACE_MEMBER. Interrupts the process; the backup then becomes CANCELED. A finished backup gets 409 not_running."
+      responses:
+        "202":
+          description: "Cancel a running physical backup"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        "409":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /physical-restore-tokens:
+    post:
+      operationId: "createPhysicalRestoreToken"
+      tags:
+        - "backups"
+      summary: "Issue a token for one physical restore set"
+      description: "Needs WORKSPACE_VIEWER. The token expires in 15 minutes. A database without a completed full backup or an unrestorable backup gets 409 no_restorable_backup. An unreachable target time gets 409 target_time_unreachable, with the latest restorable LSN in the detail for a WAL gap. A running download or restore stream gets 409 already_running. A nonphysical database gets 400 invalid_request."
+      requestBody:
+        description: "The request to apply"
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PhysicalRestoreTokenCreate"
+      responses:
+        "201":
+          description: "Issue a token for one physical restore set"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PhysicalRestoreToken"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        "409":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /physical-restore-sets:
+    get:
+      operationId: "downloadPhysicalRestoreSet"
+      tags:
+        - "backups"
+      summary: "Download a physical restore set"
+      description: "Public because the single-use restore token is the credential; a browser link cannot carry a session. Consumes the token before acquiring the user stream. Unknown, expired and used tokens get 401 unauthenticated. A running user stream gets 409 already_running and spends the token. A restore set that can no longer be built gets the same problem as at token issue."
+      x-access: "public"
+      parameters:
+        - {"name": "token", "in": "query", "required": true, "description": "The single-use restore token", "schema": {"type": "string"}}
+      responses:
+        "200":
+          description: "Download a physical restore set"
+          content:
+            application/x-tar:
+              schema:
+                type: "string"
+                format: "binary"
+          headers:
+            Content-Disposition:
+              description: "The archive or script file name"
+              schema:
+                type: "string"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        "409":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /physical-recovery-scripts:
+    get:
+      operationId: "getRecoveryScript"
+      tags:
+        - "backups"
+      summary: "Get the physical recovery script"
+      description: "Public because this static script contains no instance address or credentials. Takes a restore set URL or path and an output directory as arguments."
+      x-access: "public"
+      responses:
+        "200":
+          description: "Get the physical recovery script"
+          content:
+            text/x-shellscript:
+              schema:
+                type: "string"
+                format: "binary"
+          headers:
+            Content-Disposition:
+              description: "The archive or script file name"
+              schema:
+                type: "string"
+        default:
+          $ref: "#/components/responses/Problem"
+  /wal-streams/{databaseId}:
+    parameters:
+      - {"$ref": "#/components/parameters/DatabaseId"}
+    get:
+      operationId: "getWalStream"
+      tags:
+        - "backups"
+      summary: "Read the current values of a WAL stream"
+      description: "Needs WORKSPACE_VIEWER. An outsider or missing database gets 404 not_found. A nonphysical database gets 400 invalid_request. Source-side values come from the streamer probes and open no connection to the source."
+      responses:
+        "200":
+          description: "Read the current values of a WAL stream"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WalStreamLive"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /wal-streams/{databaseId}/statistics:
+    parameters:
+      - {"$ref": "#/components/parameters/DatabaseId"}
+    get:
+      operationId: "getWalStreamStatistics"
+      tags:
+        - "backups"
+      summary: "Read the statistics of a WAL stream"
+      description: "Needs WORKSPACE_VIEWER. An outsider or missing database gets 404 not_found. A nonphysical database gets 400 invalid_request. Source-side values come from the streamer probes and open no connection to the source."
+      parameters:
+        - {"name": "period", "in": "query", "required": true, "description": "The statistics window", "schema": {"$ref": "#/components/schemas/WalStreamStatisticsPeriod"}}
+      responses:
+        "200":
+          description: "Read the statistics of a WAL stream"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WalStreamStatistics"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
   /logical-backups:
     get:
       operationId: listLogicalBackups
@@ -2417,6 +2657,14 @@ components:
       description: >-
         The ID of the database the config belongs to. A database has exactly one config, which has no
         ID of its own, so the database's ID is the key of the config.
+      schema:
+        type: string
+        format: uuid
+    PhysicalBackupId:
+      name: backupId
+      in: path
+      required: true
+      description: The ID of a full or incremental physical backup
       schema:
         type: string
         format: uuid
@@ -4256,6 +4504,9 @@ components:
         - database_connection_failed
         - already_running
         - not_running
+        - no_extendable_chain
+        - no_restorable_backup
+        - target_time_unreachable
         - insufficient_disk_space
         - internal
     FieldError:
@@ -4583,6 +4834,812 @@ components:
           type: string
           format: uuid
           description: The storage of the target workspace
+    PhysicalBackupStatus:
+      type: "string"
+      description: "physical backup status"
+      enum:
+        - "IN_PROGRESS"
+        - "COMPLETED"
+        - "ERROR"
+        - "CHAIN_BROKEN"
+        - "CANCELED"
+    PhysicalBackupListRowType:
+      type: "string"
+      description: "physical backup list row type"
+      enum:
+        - "FULL"
+        - "INCREMENTAL"
+        - "WAL"
+    PhysicalRestoreToken:
+      type: "object"
+      description: "physical restore token"
+      required:
+        - "token"
+        - "expiresAt"
+      properties:
+        token:
+          type: "string"
+          description: "token"
+        expiresAt:
+          type: "string"
+          description: "The expiry time, 15 minutes after issue"
+          format: "date-time"
+    PhysicalBackupPage:
+      type: "object"
+      description: "physical backup page"
+      required:
+        - "items"
+        - "totalUsageMb"
+      properties:
+        items:
+          type: "array"
+          items:
+            $ref: "#/components/schemas/PhysicalBackupListRow"
+          description: "items"
+        totalUsageMb:
+          type: "number"
+          format: "double"
+          description: "Storage used by every physical backup of the database, independently of this page and its filters"
+        nextCursor:
+          type: "string"
+          description: "next cursor"
+    PhysicalBackupListRow:
+      type: "object"
+      description: "physical backup list row"
+      required:
+        - "id"
+        - "type"
+        - "status"
+        - "timelineId"
+        - "startLsn"
+        - "stopLsn"
+        - "sizeMb"
+        - "createdAt"
+        - "hasGapBefore"
+      properties:
+        id:
+          type: "string"
+          format: "uuid"
+          description: "id"
+        type:
+          $ref: "#/components/schemas/PhysicalBackupListRowType"
+        status:
+          $ref: "#/components/schemas/PhysicalBackupStatus"
+        timelineId:
+          type: "integer"
+          description: "timeline id"
+        startLsn:
+          type: "string"
+          description: "start lsn"
+        stopLsn:
+          type: "string"
+          description: "stop lsn"
+        rootFullBackupId:
+          type: "string"
+          format: "uuid"
+          description: "root full backup id"
+        parentIncrementalBackupId:
+          type: "string"
+          format: "uuid"
+          description: "parent incremental backup id"
+        fromWalFilename:
+          type: "string"
+          description: "from wal filename"
+        toWalFilename:
+          type: "string"
+          description: "to wal filename"
+        walSegmentsCount:
+          type: "integer"
+          description: "wal segments count"
+        hasGapBefore:
+          type: "boolean"
+          description: "Whether a WAL gap precedes the range"
+        sizeMb:
+          type: "number"
+          format: "double"
+          description: "size mb"
+        failMessage:
+          type: "string"
+          description: "fail message"
+        createdAt:
+          type: "string"
+          format: "date-time"
+          description: "created at"
+        completedAt:
+          type: "string"
+          format: "date-time"
+          description: "completed at"
+    WalStreamCurrent:
+      type: "object"
+      description: "wal stream current"
+      required:
+        - "sampledAt"
+        - "lastArchivedWalAt"
+        - "sessionStartedAt"
+        - "sourceState"
+        - "sourceUnreachableSince"
+        - "sourceCurrentLsn"
+        - "archiveProgressLsn"
+        - "sourceWrittenBytes"
+        - "archivedSegments"
+        - "archivedWalBytes"
+        - "archivedStoredBytes"
+        - "walSegmentSizeBytes"
+        - "highestConcurrentUploads"
+        - "segmentWriteAvgMillis"
+        - "segmentWriteMaxMillis"
+        - "slotWalStatus"
+        - "slotExtraWalSince"
+        - "slotLagBytes"
+        - "slotSafeWalSizeBytes"
+        - "unarchivedWalBytes"
+        - "archiveStalledSince"
+        - "localQueueBytes"
+        - "localQueuePauseBytes"
+        - "receiverRestarts"
+        - "receiverPauses"
+        - "isReceiverRunning"
+        - "isForcedRotationDenied"
+      properties:
+        sampledAt:
+          type: "string"
+          format: "date-time"
+          description: "sampled at"
+        lastArchivedWalAt:
+          type: "string"
+          format: "date-time"
+          nullable: true
+          description: "last archived wal at"
+        sessionStartedAt:
+          type: "string"
+          format: "date-time"
+          description: "session started at"
+        sourceState:
+          $ref: "#/components/schemas/WalStreamSourceState"
+        sourceUnreachableSince:
+          type: "string"
+          nullable: true
+          description: "source unreachable since"
+          format: "date-time"
+        sourceCurrentLsn:
+          type: "string"
+          nullable: true
+          description: "source current lsn"
+        archiveProgressLsn:
+          type: "string"
+          nullable: true
+          description: "archive progress lsn"
+        sourceWrittenBytes:
+          type: "integer"
+          format: "int64"
+          nullable: true
+          description: "source written bytes"
+        archivedSegments:
+          type: "integer"
+          description: "archived segments"
+        archivedWalBytes:
+          type: "integer"
+          format: "int64"
+          description: "archived wal bytes"
+        archivedStoredBytes:
+          type: "integer"
+          format: "int64"
+          description: "archived stored bytes"
+        walSegmentSizeBytes:
+          type: "integer"
+          format: "int64"
+          description: "wal segment size bytes"
+        highestConcurrentUploads:
+          type: "integer"
+          description: "highest concurrent uploads"
+        segmentWriteAvgMillis:
+          type: "integer"
+          format: "int64"
+          nullable: true
+          description: "segment write avg millis"
+        segmentWriteMaxMillis:
+          type: "integer"
+          format: "int64"
+          nullable: true
+          description: "segment write max millis"
+        slotWalStatus:
+          type: "string"
+          nullable: true
+          description: "slot wal status"
+        slotExtraWalSince:
+          type: "string"
+          nullable: true
+          description: "slot extra wal since"
+          format: "date-time"
+        slotLagBytes:
+          type: "integer"
+          format: "int64"
+          nullable: true
+          description: "slot lag bytes"
+        slotSafeWalSizeBytes:
+          type: "integer"
+          format: "int64"
+          nullable: true
+          description: "slot safe wal size bytes"
+        unarchivedWalBytes:
+          type: "integer"
+          format: "int64"
+          nullable: true
+          description: "unarchived wal bytes"
+        archiveStalledSince:
+          type: "string"
+          nullable: true
+          description: "archive stalled since"
+          format: "date-time"
+        localQueueBytes:
+          type: "integer"
+          format: "int64"
+          description: "local queue bytes"
+        localQueuePauseBytes:
+          type: "integer"
+          format: "int64"
+          description: "local queue pause bytes"
+        receiverRestarts:
+          type: "integer"
+          description: "receiver restarts"
+        receiverPauses:
+          type: "integer"
+          description: "receiver pauses"
+        isReceiverRunning:
+          type: "boolean"
+          description: "is receiver running"
+        isForcedRotationDenied:
+          type: "boolean"
+          description: "is forced rotation denied"
+    WalStreamHealth:
+      type: "object"
+      description: "wal stream health"
+      required:
+        - "level"
+        - "reasons"
+        - "notices"
+        - "isFullBackupPending"
+      properties:
+        level:
+          $ref: "#/components/schemas/WalStreamHealthLevel"
+        reasons:
+          type: "array"
+          items:
+            $ref: "#/components/schemas/WalStreamReason"
+          description: "reasons"
+        notices:
+          type: "array"
+          items:
+            $ref: "#/components/schemas/WalStreamNotice"
+          description: "notices"
+        isFullBackupPending:
+          type: "boolean"
+          description: "is full backup pending"
+    WalStreamHealthLevel:
+      type: "string"
+      description: "wal stream health level"
+      enum:
+        - "NOT_STREAMING"
+        - "COLLECTING_DATA"
+        - "BROKEN"
+        - "NEEDS_ATTENTION"
+        - "HEALTHY"
+    WalStreamKeepingUp:
+      type: "object"
+      description: "wal stream keeping up"
+      required:
+        - "state"
+        - "sourceWriteBytesPerSecond"
+        - "archiveBytesPerSecond"
+        - "unarchivedWalBytes"
+        - "unarchivedWalChangeBytesPerSecond"
+        - "slotLagBytes"
+        - "slotLagChangeBytesPerSecond"
+        - "slotRebuildLagBytes"
+        - "estimatedCatchUpSeconds"
+        - "estimatedSlotRebuildSeconds"
+        - "estimatedSlotLimitSeconds"
+      properties:
+        state:
+          $ref: "#/components/schemas/WalStreamKeepingUpState"
+        sourceWriteBytesPerSecond:
+          type: "number"
+          format: "double"
+          nullable: true
+          description: "source write bytes per second"
+        archiveBytesPerSecond:
+          type: "number"
+          format: "double"
+          nullable: true
+          description: "archive bytes per second"
+        unarchivedWalBytes:
+          type: "integer"
+          format: "int64"
+          nullable: true
+          description: "unarchived wal bytes"
+        unarchivedWalChangeBytesPerSecond:
+          type: "number"
+          format: "double"
+          nullable: true
+          description: "unarchived wal change bytes per second"
+        slotLagBytes:
+          type: "integer"
+          format: "int64"
+          nullable: true
+          description: "slot lag bytes"
+        slotLagChangeBytesPerSecond:
+          type: "number"
+          format: "double"
+          nullable: true
+          description: "slot lag change bytes per second"
+        slotRebuildLagBytes:
+          type: "integer"
+          format: "int64"
+          description: "slot rebuild lag bytes"
+        estimatedCatchUpSeconds:
+          type: "integer"
+          format: "int64"
+          nullable: true
+          description: "estimated catch up seconds"
+        estimatedSlotRebuildSeconds:
+          type: "integer"
+          format: "int64"
+          nullable: true
+          description: "estimated slot rebuild seconds"
+        estimatedSlotLimitSeconds:
+          type: "integer"
+          format: "int64"
+          nullable: true
+          description: "estimated slot limit seconds"
+    WalStreamKeepingUpState:
+      type: "string"
+      description: "wal stream keeping up state"
+      enum:
+        - "UNKNOWN"
+        - "FALLING_BEHIND"
+        - "CATCHING_UP"
+        - "IDLE"
+        - "KEEPING_UP"
+    WalStreamNotice:
+      type: "object"
+      description: "wal stream notice"
+      required:
+        - "code"
+        - "level"
+      properties:
+        code:
+          $ref: "#/components/schemas/WalStreamNoticeCode"
+        level:
+          $ref: "#/components/schemas/WalStreamReasonLevel"
+        since:
+          type: "string"
+          description: "since"
+          format: "date-time"
+    WalStreamNoticeCode:
+      type: "string"
+      description: "wal stream notice code"
+      enum:
+        - "NO_SLOT_WAL_LIMIT"
+        - "SLOT_KEEPS_EXTRA_WAL_STEADILY"
+        - "NO_FULL_BACKUP_YET"
+    WalStreamReason:
+      type: "object"
+      description: "wal stream reason"
+      required:
+        - "code"
+        - "level"
+      properties:
+        code:
+          $ref: "#/components/schemas/WalStreamReasonCode"
+        level:
+          $ref: "#/components/schemas/WalStreamReasonLevel"
+        since:
+          type: "string"
+          description: "since"
+          format: "date-time"
+        valueBytes:
+          type: "integer"
+          format: "int64"
+          description: "value bytes"
+        thresholdBytes:
+          type: "integer"
+          format: "int64"
+          description: "threshold bytes"
+        count:
+          type: "integer"
+          description: "count"
+        estimatedSeconds:
+          type: "integer"
+          format: "int64"
+          description: "estimated seconds"
+    WalStreamReasonCode:
+      type: "string"
+      description: "wal stream reason code"
+      enum:
+        - "STREAMING_STOPPED"
+        - "SOURCE_UNREACHABLE"
+        - "WAL_CHAIN_BROKEN"
+        - "SLOT_MISSING"
+        - "SLOT_LOST"
+        - "ARCHIVE_NOT_ADVANCING"
+        - "ARCHIVE_SLOWER_THAN_SOURCE"
+        - "SLOT_KEEPS_EXTRA_WAL"
+        - "SLOT_LIMIT_APPROACHING"
+        - "NEAR_SLOT_REBUILD"
+        - "LOCAL_QUEUE_FILLING"
+        - "FREQUENT_RESTARTS"
+        - "FORCED_ROTATION_REFUSED"
+    WalStreamReasonLevel:
+      type: "string"
+      description: "wal stream reason level"
+      enum:
+        - "BROKEN"
+        - "NEEDS_ATTENTION"
+        - "INFO"
+    WalStreamSeries:
+      type: "object"
+      description: "wal stream series"
+      required:
+        - "period"
+        - "bucketSeconds"
+        - "from"
+        - "to"
+        - "points"
+      properties:
+        period:
+          $ref: "#/components/schemas/WalStreamStatisticsPeriod"
+        bucketSeconds:
+          type: "integer"
+          format: "int64"
+          description: "bucket seconds"
+        from:
+          type: "string"
+          format: "date-time"
+          description: "from"
+        to:
+          type: "string"
+          format: "date-time"
+          description: "to"
+        points:
+          type: "array"
+          items:
+            $ref: "#/components/schemas/WalStreamSeriesPoint"
+          description: "points"
+    WalStreamSeriesPoint:
+      type: "object"
+      description: "wal stream series point"
+      required:
+        - "startedAt"
+        - "sourceWriteBytesPerSecond"
+        - "archiveBytesPerSecond"
+        - "archivedStoredBytesPerSecond"
+        - "maxSlotLagBytes"
+        - "maxUnarchivedWalBytes"
+        - "maxLocalQueueBytes"
+        - "localQueuePauseBytes"
+        - "restarts"
+        - "pauses"
+        - "sessionStarts"
+        - "highestConcurrentUploads"
+        - "segmentWriteAvgMillis"
+        - "segmentWriteMaxMillis"
+      properties:
+        startedAt:
+          type: "string"
+          format: "date-time"
+          description: "started at"
+        sourceWriteBytesPerSecond:
+          type: "number"
+          format: "double"
+          nullable: true
+          description: "source write bytes per second"
+        archiveBytesPerSecond:
+          type: "number"
+          format: "double"
+          nullable: true
+          description: "archive bytes per second"
+        archivedStoredBytesPerSecond:
+          type: "number"
+          format: "double"
+          nullable: true
+          description: "archived stored bytes per second"
+        maxSlotLagBytes:
+          type: "integer"
+          format: "int64"
+          nullable: true
+          description: "max slot lag bytes"
+        maxUnarchivedWalBytes:
+          type: "integer"
+          format: "int64"
+          nullable: true
+          description: "max unarchived wal bytes"
+        maxLocalQueueBytes:
+          type: "integer"
+          format: "int64"
+          nullable: true
+          description: "max local queue bytes"
+        localQueuePauseBytes:
+          type: "integer"
+          format: "int64"
+          nullable: true
+          description: "local queue pause bytes"
+        restarts:
+          type: "integer"
+          nullable: true
+          description: "restarts"
+        pauses:
+          type: "integer"
+          nullable: true
+          description: "pauses"
+        sessionStarts:
+          type: "integer"
+          nullable: true
+          description: "session starts"
+        highestConcurrentUploads:
+          type: "integer"
+          nullable: true
+          description: "highest concurrent uploads"
+        segmentWriteAvgMillis:
+          type: "integer"
+          format: "int64"
+          nullable: true
+          description: "segment write avg millis"
+        segmentWriteMaxMillis:
+          type: "integer"
+          format: "int64"
+          nullable: true
+          description: "segment write max millis"
+    WalStreamSourceState:
+      type: "string"
+      description: "wal stream source state"
+      enum:
+        - "REACHABLE"
+        - "UNREACHABLE"
+        - "SLOT_MISSING"
+    WalStreamStatisticsPeriod:
+      type: "string"
+      description: "wal stream statistics period"
+      enum:
+        - "HOUR"
+        - "DAY"
+        - "WEEK"
+    WalStreamStreamer:
+      type: "object"
+      description: "wal stream streamer"
+      required:
+        - "state"
+        - "sessionStartedAt"
+        - "failingSince"
+        - "restartsLastHour"
+      properties:
+        state:
+          $ref: "#/components/schemas/WalStreamStreamerState"
+        sessionStartedAt:
+          type: "string"
+          format: "date-time"
+          nullable: true
+          description: "session started at"
+        failingSince:
+          type: "string"
+          nullable: true
+          description: "failing since"
+          format: "date-time"
+        restartsLastHour:
+          type: "integer"
+          description: "restarts last hour"
+    WalStreamStreamerState:
+      type: "string"
+      description: "wal stream streamer state"
+      enum:
+        - "RUNNING"
+        - "NOT_RUNNING"
+        - "NOT_STARTED"
+    WalStreamLiveValues:
+      type: "object"
+      description: "wal stream live values"
+      required:
+        - "measuredAt"
+        - "sourceProbedAt"
+        - "sourceState"
+        - "sourceCurrentLsn"
+        - "slotWalStatus"
+        - "slotLagBytes"
+        - "slotSafeWalSizeBytes"
+        - "archiveProgressLsn"
+        - "lastArchivedWalAt"
+        - "unarchivedWalBytes"
+        - "localQueueBytes"
+        - "localQueuePauseBytes"
+        - "isReceiverRunning"
+      properties:
+        measuredAt:
+          type: "string"
+          format: "date-time"
+          description: "measured at"
+        sourceProbedAt:
+          type: "string"
+          format: "date-time"
+          nullable: true
+          description: "source probed at"
+        sourceState:
+          allOf:
+            - {"$ref": "#/components/schemas/WalStreamSourceState"}
+          nullable: true
+          description: "source state"
+        sourceCurrentLsn:
+          type: "string"
+          nullable: true
+          description: "source current lsn"
+        slotWalStatus:
+          type: "string"
+          nullable: true
+          description: "slot wal status"
+        slotLagBytes:
+          type: "integer"
+          format: "int64"
+          nullable: true
+          description: "slot lag bytes"
+        slotSafeWalSizeBytes:
+          type: "integer"
+          format: "int64"
+          nullable: true
+          description: "slot safe wal size bytes"
+        archiveProgressLsn:
+          type: "string"
+          nullable: true
+          description: "archive progress lsn"
+        lastArchivedWalAt:
+          type: "string"
+          format: "date-time"
+          nullable: true
+          description: "last archived wal at"
+        unarchivedWalBytes:
+          type: "integer"
+          format: "int64"
+          nullable: true
+          description: "unarchived wal bytes"
+        localQueueBytes:
+          type: "integer"
+          format: "int64"
+          description: "local queue bytes"
+        localQueuePauseBytes:
+          type: "integer"
+          format: "int64"
+          description: "local queue pause bytes"
+        isReceiverRunning:
+          type: "boolean"
+          description: "is receiver running"
+    WalStreamLive:
+      type: "object"
+      description: "wal stream live"
+      required:
+        - "isStreamerRunning"
+        - "current"
+      properties:
+        isStreamerRunning:
+          type: "boolean"
+          description: "is streamer running"
+        current:
+          allOf:
+            - {"$ref": "#/components/schemas/WalStreamLiveValues"}
+          nullable: true
+          description: "current"
+    WalStreamStatistics:
+      type: "object"
+      description: "wal stream statistics"
+      required:
+        - "health"
+        - "latestRestorableAt"
+        - "restorableRanges"
+        - "streamer"
+        - "current"
+        - "keepingUp"
+        - "series"
+      properties:
+        health:
+          $ref: "#/components/schemas/WalStreamHealth"
+        latestRestorableAt:
+          type: "string"
+          format: "date-time"
+          nullable: true
+          description: "latest restorable at"
+        restorableRanges:
+          type: "array"
+          items:
+            $ref: "#/components/schemas/WalStreamTimeRange"
+          description: "restorable ranges"
+        streamer:
+          $ref: "#/components/schemas/WalStreamStreamer"
+        current:
+          allOf:
+            - {"$ref": "#/components/schemas/WalStreamCurrent"}
+          nullable: true
+          description: "current"
+        keepingUp:
+          $ref: "#/components/schemas/WalStreamKeepingUp"
+        series:
+          $ref: "#/components/schemas/WalStreamSeries"
+    WalStreamTimeRange:
+      type: "object"
+      description: "wal stream time range"
+      required:
+        - "from"
+        - "to"
+      properties:
+        from:
+          type: "string"
+          format: "date-time"
+          description: "from"
+        to:
+          type: "string"
+          format: "date-time"
+          description: "to"
+    PhysicalBackupStartKind:
+      type: "string"
+      description: "The requested kind, or AUTO for the scheduler choice"
+      enum:
+        - "AUTO"
+        - "FULL"
+        - "INCREMENTAL"
+    PhysicalBackupStart:
+      type: "object"
+      description: "A request for the scheduler to start a physical backup"
+      required:
+        - "databaseId"
+        - "kind"
+      properties:
+        databaseId:
+          type: "string"
+          description: "The physical PostgreSQL database to back up"
+          format: "uuid"
+        kind:
+          $ref: "#/components/schemas/PhysicalBackupStartKind"
+    PhysicalPointInTimeRestoreTokenCreate:
+      type: "object"
+      description: "A database restored to a target time or its latest restorable moment"
+      required:
+        - "type"
+        - "databaseId"
+      properties:
+        type:
+          type: "string"
+          description: "Restore a database to a point in time"
+          enum:
+            - "POINT_IN_TIME"
+        databaseId:
+          type: "string"
+          description: "The physical database to restore"
+          format: "uuid"
+        targetTime:
+          type: "string"
+          description: "The target time, absent for the latest restorable moment"
+          format: "date-time"
+    PhysicalBackupRestoreTokenCreate:
+      type: "object"
+      description: "One backup restored with its ancestors without WAL replay"
+      required:
+        - "type"
+        - "backupId"
+      properties:
+        type:
+          type: "string"
+          description: "Restore one full or incremental backup"
+          enum:
+            - "BACKUP"
+        backupId:
+          type: "string"
+          description: "The full or incremental backup to restore"
+          format: "uuid"
+    PhysicalRestoreTokenCreate:
+      description: "What the restore token opens"
+      oneOf:
+        - {"$ref": "#/components/schemas/PhysicalPointInTimeRestoreTokenCreate"}
+        - {"$ref": "#/components/schemas/PhysicalBackupRestoreTokenCreate"}
+      discriminator:
+        propertyName: "type"
+        mapping:
+          POINT_IN_TIME: "#/components/schemas/PhysicalPointInTimeRestoreTokenCreate"
+          BACKUP: "#/components/schemas/PhysicalBackupRestoreTokenCreate"
     LogicalBackupStatus:
       type: string
       description: Where a logical backup is in its life

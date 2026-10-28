@@ -1,7 +1,3 @@
-import type { WalStreamLive } from './WalStreamLive';
+import type { ApiComponents } from '../../../../shared/api';
 
-// Current is null while no streamer runs for the database.
-export interface WalStreamLiveResponse {
-  isStreamerRunning: boolean;
-  current: WalStreamLive | null;
-}
+export type WalStreamLiveResponse = ApiComponents['schemas']['WalStreamLive'];

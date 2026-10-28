@@ -285,8 +285,12 @@ func createWalDatabase(
 		return err
 	}
 
-	if err := client.post(ctx, "/backups/physical/database/"+databaseID.String()+"/trigger",
-		triggerPhysicalBackupRequest{Type: "auto"}, nil); err != nil {
+	if err := client.post(
+		ctx,
+		"/physical-backups",
+		map[string]any{"databaseId": databaseID, "kind": "AUTO"},
+		nil,
+	); err != nil {
 		return fmt.Errorf("cannot start the first backup of database %q: %w", params.WalDatabaseName, err)
 	}
 

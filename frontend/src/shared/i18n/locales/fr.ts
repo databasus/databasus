@@ -134,6 +134,10 @@ export const fr: typeof en = {
     inUse:
       "Il est encore utilisé par une base de données ou par une sauvegarde ou une restauration en cours. Réessayez quand plus rien ne l'utilise.",
     alreadyRunning: "C'est déjà en cours. Attendez la fin et réessayez.",
+    noExtendableChain: 'Effectuez un backup complet avant de lancer un backup incrémental.',
+    noRestorableBackup: 'Aucun backup terminé ne peut être restauré.',
+    targetTimeUnreachable:
+      'Les backups et le WAL disponibles ne permettent pas de restaurer à l’instant demandé.',
     notRunning: "Ce n'est plus en cours : il n'y a rien à annuler.",
     insufficientDiskSpace: "Le serveur Databasus n'a pas assez d'espace disque libre : {{detail}}",
     unknown: "Une erreur s'est produite. Réessayez.",
@@ -1656,7 +1660,8 @@ export const fr: typeof en = {
       restore: {
         errorHints: {
           downloadInProgress:
-            "Un téléchargement pour restauration est déjà en cours pour cette base de données. Attendez qu'il se termine, puis réessayez.",
+            'Vous avez déjà un téléchargement de sauvegarde ou de restauration en cours. Attendez sa fin, puis réessayez.',
+          noRestorableBackup: 'Lancez une sauvegarde complète, attendez sa fin, puis réessayez.',
           targetTimeUnreachable:
             "Impossible d'atteindre l'instant demandé : il y a un trou dans les WAL ou l'instant est hors de la plage disponible. Choisissez un autre instant ou restaurez le dernier point disponible.",
         },

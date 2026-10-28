@@ -11,10 +11,10 @@ import (
 // claim; the typed row INSERT and this table's claim happen in the same
 // transaction.
 type InFlightBackup struct {
-	DatabaseID uuid.UUID  `json:"databaseId" gorm:"column:database_id;type:uuid;primaryKey"`
-	BackupType BackupType `json:"backupType" gorm:"column:backup_type;type:text;not null"`
-	BackupID   uuid.UUID  `json:"backupId"   gorm:"column:backup_id;type:uuid;not null"`
-	ClaimedAt  time.Time  `json:"claimedAt"  gorm:"column:claimed_at"`
+	DatabaseID uuid.UUID  `gorm:"column:database_id;type:uuid;primaryKey"`
+	BackupType BackupType `gorm:"column:backup_type;type:text;not null"`
+	BackupID   uuid.UUID  `gorm:"column:backup_id;type:uuid;not null"`
+	ClaimedAt  time.Time  `gorm:"column:claimed_at"`
 }
 
 func (InFlightBackup) TableName() string {

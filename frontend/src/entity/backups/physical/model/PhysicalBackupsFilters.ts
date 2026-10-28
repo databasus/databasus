@@ -4,5 +4,5 @@ import type { PhysicalBackupType } from './PhysicalBackupType';
 export interface PhysicalBackupsFilters {
   types?: PhysicalBackupType[];
   statuses?: PhysicalBackupStatus[];
-  beforeDate?: string;
+  createdBefore?: string;
 }

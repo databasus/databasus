@@ -134,6 +134,10 @@ export const es: typeof en = {
     inUse:
       'Todavía lo usa una base de datos o una copia de seguridad o restauración en curso. Inténtelo de nuevo cuando nada lo use.',
     alreadyRunning: 'Esto ya está en curso. Espere a que termine e inténtelo de nuevo.',
+    noExtendableChain: 'Realiza un backup completo antes de iniciar uno incremental.',
+    noRestorableBackup: 'No hay ningún backup completado que se pueda restaurar.',
+    targetTimeUnreachable:
+      'Los backups y el WAL disponibles no permiten restaurar al momento solicitado.',
     notRunning: 'Ya no está en curso, así que no hay nada que cancelar.',
     insufficientDiskSpace:
       'El servidor de Databasus no tiene suficiente espacio libre en disco: {{detail}}',
@@ -1649,7 +1653,9 @@ export const es: typeof en = {
       restore: {
         errorHints: {
           downloadInProgress:
-            'Ya hay una descarga de restauración en curso para esta base de datos. Espere a que termine y vuelva a intentarlo.',
+            'Ya tiene una descarga de copia de seguridad o restauración en curso. Espere a que termine y vuelva a intentarlo.',
+          noRestorableBackup:
+            'Ejecute una copia de seguridad completa, espere a que termine y vuelva a intentarlo.',
           targetTimeUnreachable:
             'No se puede llegar al momento solicitado: hay un hueco en el WAL o el momento está fuera del rango disponible. Elija otro momento o restaure el último punto disponible.',
         },

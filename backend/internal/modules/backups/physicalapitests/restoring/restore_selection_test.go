@@ -6,6 +6,9 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+
+	"databasus-backend/internal/app/apptest"
+	apiclient "databasus-backend/internal/lib/apiclient"
 )
 
 func TestSelectPhysicalRestoreArtifacts(t *testing.T) {
@@ -34,9 +37,9 @@ func TestSelectPhysicalRestoreArtifacts(t *testing.T) {
 		backupID := uuid.New()
 		catalog.downloadRestore(t, restoreRequest{BackupID: &backupID, StatusCode: http.StatusNotFound})
 	})
-	t.Run("returns 404 when there is no full backup", func(t *testing.T) {
+	t.Run("returns 409 when there is no full backup", func(t *testing.T) {
 		catalog := newCatalog(t)
-		catalog.downloadRestore(t, restoreRequest{StatusCode: http.StatusNotFound})
+		catalog.downloadRestore(t, restoreRequest{StatusCode: http.StatusConflict})
 	})
 	t.Run("ships the latest full with no WAL when its replay window is empty", func(t *testing.T) {
 		catalog := newCatalog(t)
@@ -82,23 +85,24 @@ func TestSelectPhysicalRestoreArtifacts(t *testing.T) {
 		entries := catalog.downloadRestore(t, restoreRequest{TargetTime: new(timeline.at(7))})
 		assertRestoreArtifacts(t, entries, older.ID, nil, 1, 2, 3, 4)
 	})
-	t.Run("returns 422 for a target beyond a WAL gap", func(t *testing.T) {
+	t.Run("returns 409 for a target beyond a WAL gap", func(t *testing.T) {
 		catalog := newCatalog(t)
 		timeline := newRestoreTimeline()
 		seedFullTwoIncrementals(t, catalog, timeline)
 		catalog.seedRestoreWal(t, restoreWalSpec{Segment: 2, ReceivedAt: timeline.at(12)})
 		catalog.seedRestoreWal(t, restoreWalSpec{Segment: 4, ReceivedAt: timeline.at(30)})
-		response := catalog.call(
+		var problem apiclient.Problem
+		catalog.call(
 			t,
 			catalogCall{
-				Method:        http.MethodPost,
-				Path:          "/backups/physical/database/" + catalog.DatabaseID.String() + "/restore-token",
+				Request:       apptest.PhysicalPitrTokenRequest(catalog.DatabaseID, new(timeline.at(25))),
 				Authorization: "Bearer " + catalog.Owner.Token,
-				Body:          restoreTokenRequest{TargetTime: new(timeline.at(25))},
-				StatusCode:    http.StatusUnprocessableEntity,
+				StatusCode:    http.StatusConflict,
+				Destination:   &problem,
 			},
 		)
-		assert.Contains(t, string(response.Body), "0/3000000")
+		assert.Equal(t, apiclient.ProblemCodeTargetTimeUnreachable, problem.Code)
+		assert.Contains(t, problem.Detail, "0/3000000")
 	})
 	t.Run("clamps a latest restore to the contiguous WAL before the gap", func(t *testing.T) {
 		catalog := newCatalog(t)
@@ -118,13 +122,13 @@ func TestSelectPhysicalRestoreArtifacts(t *testing.T) {
 		entries := catalog.downloadRestore(t, restoreRequest{})
 		assertRestoreArtifacts(t, entries, full.ID, nil, 0, 1)
 	})
-	t.Run("returns 422 for a target before the earliest full", func(t *testing.T) {
+	t.Run("returns 409 for a target before the earliest full", func(t *testing.T) {
 		catalog := newCatalog(t)
 		timeline := newRestoreTimeline()
 		catalog.seedRestoreFull(t, restoreFullSpec{StopLSN: lsnAt(1), CompletedAt: timeline.at(0)})
 		catalog.downloadRestore(
 			t,
-			restoreRequest{TargetTime: new(timeline.at(-60)), StatusCode: http.StatusUnprocessableEntity},
+			restoreRequest{TargetTime: new(timeline.at(-60)), StatusCode: http.StatusConflict},
 		)
 	})
 }

@@ -68,7 +68,6 @@ func TestCascadePhysicalBackup(t *testing.T) {
 	})
 	t.Run("keeps shared WAL restorable when an older full survives", func(t *testing.T) {
 		catalog := newCatalog(t)
-		base := time.Now().UTC().Add(-time.Hour)
 		predecessor := catalog.seedCascadeFull(t, cascadeFullSpec{Age: time.Hour})
 		successor := catalog.seedCascadeFull(t, cascadeFullSpec{Segment: 2, Age: 55 * time.Minute})
 		segments := []*apptest.PhysicalWalSegmentSeed{}
@@ -92,11 +91,9 @@ func TestCascadePhysicalBackup(t *testing.T) {
 		catalog.call(
 			t,
 			catalogCall{
-				Method:        http.MethodPost,
-				Path:          "/backups/physical/database/" + catalog.DatabaseID.String() + "/restore-token",
+				Request:       apptest.PhysicalPitrTokenRequest(catalog.DatabaseID, nil),
 				Authorization: "Bearer " + catalog.Owner.Token,
-				Body:          map[string]any{"targetTime": base.Add(7 * time.Minute)},
-				StatusCode:    http.StatusOK,
+				StatusCode:    http.StatusCreated,
 				Destination:   &token,
 			},
 		)

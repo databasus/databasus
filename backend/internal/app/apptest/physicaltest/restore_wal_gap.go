@@ -45,14 +45,15 @@ func RunWalGap(t *testing.T, image string) {
 		return fmt.Errorf("no WAL range reports a gap")
 	})
 	targetTime := sourceTime(t, conn)
-	var response map[string]string
+	var response apiclient.Problem
 	team.call(
 		t,
-		oldAPIResponseSpec{
+		physicalResponseSpec{
 			Call:        team.restoreTokenCall(&targetTime),
-			Status:      http.StatusUnprocessableEntity,
+			Status:      http.StatusConflict,
 			Destination: &response,
 		},
 	)
-	assert.Contains(t, response["error"], "wal gap")
+	assert.Equal(t, apiclient.ProblemCodeTargetTimeUnreachable, response.Code)
+	assert.Contains(t, response.Detail, "WAL gap")
 }

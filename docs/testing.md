@@ -48,7 +48,7 @@ Physical backup execution has a separate injected system clock for elapsed durat
 
 While old code is wired through process-wide state, the `apptest` tests of one package run one at a time: they never call `t.Parallel`, and a second `apptest.New` while one instance is alive in the process fails the test. Test packages still run in parallel with each other. The limit goes away once no old code is left.
 
-The test talks to the instance over real HTTP through `apiclient.New(t, url)`. The client checks every response against `openapi.yaml` and fails the test on any mismatch. It checks the status, the content type, the body and the field formats. The frontend tests mock responses by the contract, so they rely on this check. The agent tests use `agentclienttest`, which checks responses against `agent.yaml` in the same way.
+The test talks to the instance over real HTTP through `apiclient.New(t, url)`. The client checks every response against `openapi.yaml` and fails the test on any mismatch. It checks the status, the content type, the body and the field formats. A response whose contract schema has `format: binary` keeps its body unread, so the caller can stream it; the client checks its status, content type and headers. JSON errors from downloads still get full body validation. The frontend tests mock responses by the contract, so they rely on this check. The agent tests use `agentclienttest`, which checks responses against `agent.yaml` in the same way.
 
 A test creates its data through the API, the same way a user does. The testing skill lists the few cases where direct SQL is allowed.
 
@@ -69,7 +69,7 @@ While working, run the package or the test you need right now. Before handing th
 
 `mise run backend:test-package` and the full run allow 30 minutes per package, because an unsharded physical API package can exceed 15 minutes. The full run is `mise run test`. It holds a machine-wide lock, so only one full run goes at a time and the others wait. Single packages and single tests run without the lock. CI runs everything on every pull request.
 
-`mise run backend:test-group physical-api-1-of-3 physical-api-2-of-3 physical-api-3-of-3` runs the physical API suite with the same selections as CI. The selected shards run concurrently in separate processes, each with race checks and a 15-minute timeout. Each process stops after its first failed test, as CI does. Use a single shard name to repeat that selection. The task also accepts the `physical` and `logical` shards; it rejects unsharded groups and `other`.
+`mise run backend:test-group physical-api-1-of-3 physical-api-2-of-3 physical-api-3-of-3` runs the physical API suite with the same selections as CI. The selected shards run concurrently in separate processes, each with race checks and a 40-minute timeout. Each process stops after its first failed test, as CI does. Use a single shard name to repeat that selection. The task also accepts the `physical` and `logical` shards; it rejects unsharded groups and `other`.
 
 ## Runs
 

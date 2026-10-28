@@ -23,7 +23,7 @@ func TestRestorePhysicalBackupToTargetTime(t *testing.T) {
 		func(t *testing.T) { physicaltest.RunTargetTime(t, "postgres:17") },
 	)
 	t.Run(
-		"returns 422 for the restore token when a wal gap lies before the target",
+		"returns 409 target_time_unreachable for the restore token when a wal gap lies before the target",
 		func(t *testing.T) { physicaltest.RunWalGap(t, "postgres:17") },
 	)
 	t.Run(

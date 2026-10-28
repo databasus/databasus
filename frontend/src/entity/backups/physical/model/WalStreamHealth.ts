@@ -1,10 +1,3 @@
-import type { WalStreamHealthLevel } from './WalStreamHealthLevel';
-import type { WalStreamNotice } from './WalStreamNotice';
-import type { WalStreamReason } from './WalStreamReason';
+import type { ApiComponents } from '../../../../shared/api';
 
-export interface WalStreamHealth {
-  level: WalStreamHealthLevel;
-  reasons: WalStreamReason[];
-  notices: WalStreamNotice[];
-  isFullBackupPending: boolean;
-}
+export type WalStreamHealth = ApiComponents['schemas']['WalStreamHealth'];

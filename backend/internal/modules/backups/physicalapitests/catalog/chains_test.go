@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"databasus-backend/internal/app/apptest"
 	apiclient "databasus-backend/internal/lib/apiclient"
 )
 
@@ -224,10 +225,8 @@ func (catalog *catalogFixture) triggerIncremental(t *testing.T, status int) {
 	catalog.call(
 		t,
 		catalogCall{
-			Method:        http.MethodPost,
-			Path:          "/backups/physical/database/" + catalog.DatabaseID.String() + "/trigger",
+			Request:       apptest.PhysicalStartRequest(catalog.DatabaseID, "INCREMENTAL"),
 			Authorization: "Bearer " + catalog.Owner.Token,
-			Body:          map[string]string{"type": "incremental"},
 			StatusCode:    status,
 		},
 	)

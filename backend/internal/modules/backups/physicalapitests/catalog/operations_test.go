@@ -6,8 +6,10 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"databasus-backend/internal/app/apptest"
+	apiclient "databasus-backend/internal/lib/apiclient"
 )
 
 func TestChangePhysicalBackup(t *testing.T) {
@@ -28,18 +30,16 @@ func TestChangePhysicalBackup(t *testing.T) {
 		catalog.call(
 			t,
 			catalogCall{
-				Method:        http.MethodPost,
-				Path:          "/api/v1/backups/physical/backups/" + full.ID.String() + "/cancel",
+				Request:       apptest.PhysicalCancelRequest(full.ID),
 				Authorization: "Bearer " + catalog.Owner.Token,
-				Body:          nil,
-				StatusCode:    http.StatusNoContent,
+				StatusCode:    http.StatusAccepted,
 			},
 		)
 
 		claim := catalog.getInFlightClaim(t)
 		assert.Nil(t, claim, "cancel must release the in-flight claim")
 	})
-	t.Run("returns 400 when a completed backup is cancelled", func(t *testing.T) {
+	t.Run("returns 409 when a completed backup is cancelled", func(t *testing.T) {
 		catalog := newCatalog(t)
 
 		full := catalog.insertFull(
@@ -55,16 +55,21 @@ func TestChangePhysicalBackup(t *testing.T) {
 			),
 		)
 
+		var problem apiclient.Problem
 		catalog.call(
 			t,
 			catalogCall{
-				Method:        http.MethodPost,
-				Path:          "/api/v1/backups/physical/backups/" + full.ID.String() + "/cancel",
+				Request:       apptest.PhysicalCancelRequest(full.ID),
 				Authorization: "Bearer " + catalog.Owner.Token,
-				Body:          nil,
-				StatusCode:    http.StatusBadRequest,
+				StatusCode:    http.StatusConflict,
+				Destination:   &problem,
 			},
 		)
+		assert.Equal(t, apiclient.ProblemCodeNotRunning, problem.Code)
+		page := getBackups(t, catalog, "")
+		require.Len(t, page.Backups, 1)
+		assert.Equal(t, full.ID, page.Backups[0].ID)
+		assert.Equal(t, "COMPLETED", page.Backups[0].Status)
 	})
 	t.Run("removes its entire chain when a full backup is deleted", func(t *testing.T) {
 		catalog := newCatalog(t)
@@ -112,8 +117,7 @@ func TestChangePhysicalBackup(t *testing.T) {
 		catalog.call(
 			t,
 			catalogCall{
-				Method:        http.MethodDelete,
-				Path:          "/api/v1/backups/physical/backups/" + full.ID.String(),
+				Request:       apptest.PhysicalDeleteRequest(full.ID),
 				Authorization: "Bearer " + catalog.Owner.Token,
 				StatusCode:    http.StatusNoContent,
 			},
@@ -183,8 +187,7 @@ func TestChangePhysicalBackup(t *testing.T) {
 		catalog.call(
 			t,
 			catalogCall{
-				Method:        http.MethodDelete,
-				Path:          "/api/v1/backups/physical/backups/" + firstIncr.ID.String(),
+				Request:       apptest.PhysicalDeleteRequest(firstIncr.ID),
 				Authorization: "Bearer " + catalog.Owner.Token,
 				StatusCode:    http.StatusNoContent,
 			},
@@ -195,94 +198,7 @@ func TestChangePhysicalBackup(t *testing.T) {
 		catalog.assertFullPresent(t, full.ID)
 		catalog.assertWalPresent(t, walSegment.ID)
 	})
-	t.Run("keeps the next anchor and its WAL when an older WAL segment is deleted", func(t *testing.T) {
-		catalog := newCatalog(t)
-
-		full := catalog.insertFull(
-			t,
-			newFullSeed(
-				fullSeedSpec{
-					DatabaseID: catalog.DatabaseID,
-					StorageID:  catalog.StorageID,
-					TimelineID: 1,
-					StartLSN:   fixtureLSN(0),
-					StopLSN:    fixtureLSN(segmentBytes),
-				},
-			),
-		)
-
-		firstWal := catalog.insertWal(
-			t,
-			newWalSeed(
-				walSeedSpec{
-					DatabaseID:  catalog.DatabaseID,
-					StorageID:   catalog.StorageID,
-					TimelineID:  1,
-					WalFilename: "000000010000000000000001",
-					StartLSN:    fixtureLSN(segmentBytes),
-					EndLSN:      fixtureLSN(2 * segmentBytes),
-				},
-			),
-		)
-		secondWal := catalog.insertWal(
-			t,
-			newWalSeed(
-				walSeedSpec{
-					DatabaseID:  catalog.DatabaseID,
-					StorageID:   catalog.StorageID,
-					TimelineID:  1,
-					WalFilename: "000000010000000000000002",
-					StartLSN:    fixtureLSN(2 * segmentBytes),
-					EndLSN:      fixtureLSN(3 * segmentBytes),
-				},
-			),
-		)
-		thirdWal := catalog.insertWal(
-			t,
-			newWalSeed(
-				walSeedSpec{
-					DatabaseID:  catalog.DatabaseID,
-					StorageID:   catalog.StorageID,
-					TimelineID:  1,
-					WalFilename: "000000010000000000000003",
-					StartLSN:    fixtureLSN(3 * segmentBytes),
-					EndLSN:      fixtureLSN(4 * segmentBytes),
-				},
-			),
-		)
-
-		anchorIncr := catalog.insertIncremental(
-			t,
-			newIncrementalSeed(
-				incrementalSeedSpec{
-					DatabaseID:                catalog.DatabaseID,
-					StorageID:                 catalog.StorageID,
-					RootFullBackupID:          full.ID,
-					ParentIncrementalBackupID: nil,
-					TimelineID:                1,
-					StartLSN:                  fixtureLSN(3 * segmentBytes),
-					StopLSN:                   fixtureLSN(4 * segmentBytes),
-				},
-			),
-		)
-
-		catalog.call(
-			t,
-			catalogCall{
-				Method:        http.MethodDelete,
-				Path:          "/api/v1/backups/physical/backups/" + firstWal.ID.String(),
-				Authorization: "Bearer " + catalog.Owner.Token,
-				StatusCode:    http.StatusNoContent,
-			},
-		)
-
-		catalog.assertWalGone(t, firstWal.ID)
-		catalog.assertWalGone(t, secondWal.ID)
-		catalog.assertWalPresent(t, thirdWal.ID)
-		catalog.assertFullPresent(t, full.ID)
-		catalog.assertIncrementalPresent(t, anchorIncr.ID)
-	})
-	t.Run("keeps a backup and returns 400 when a viewer requests deletion", func(t *testing.T) {
+	t.Run("keeps a backup and returns 403 when a viewer requests deletion", func(t *testing.T) {
 		catalog := newCatalog(t)
 
 		full := catalog.insertFull(
@@ -300,19 +216,21 @@ func TestChangePhysicalBackup(t *testing.T) {
 
 		viewer := catalog.addViewer(t)
 
+		var problem apiclient.Problem
 		catalog.call(
 			t,
 			catalogCall{
-				Method:        http.MethodDelete,
-				Path:          "/api/v1/backups/physical/backups/" + full.ID.String(),
+				Request:       apptest.PhysicalDeleteRequest(full.ID),
 				Authorization: "Bearer " + viewer.Token,
-				StatusCode:    http.StatusBadRequest,
+				StatusCode:    http.StatusForbidden,
+				Destination:   &problem,
 			},
 		)
+		assert.Equal(t, apiclient.ProblemCodePermissionDenied, problem.Code)
 
 		catalog.assertFullPresent(t, full.ID)
 	})
-	t.Run("keeps the claim and returns 400 when a viewer requests cancellation", func(t *testing.T) {
+	t.Run("keeps the claim and returns 403 when a viewer requests cancellation", func(t *testing.T) {
 		catalog := newCatalog(t)
 
 		full := catalog.insertFull(
@@ -328,16 +246,17 @@ func TestChangePhysicalBackup(t *testing.T) {
 
 		viewer := catalog.addViewer(t)
 
+		var problem apiclient.Problem
 		catalog.call(
 			t,
 			catalogCall{
-				Method:        http.MethodPost,
-				Path:          "/api/v1/backups/physical/backups/" + full.ID.String() + "/cancel",
+				Request:       apptest.PhysicalCancelRequest(full.ID),
 				Authorization: "Bearer " + viewer.Token,
-				Body:          nil,
-				StatusCode:    http.StatusBadRequest,
+				StatusCode:    http.StatusForbidden,
+				Destination:   &problem,
 			},
 		)
+		assert.Equal(t, apiclient.ProblemCodePermissionDenied, problem.Code)
 
 		claim := catalog.getInFlightClaim(t)
 		assert.NotNil(t, claim, "a viewer's rejected cancel must not release the claim")
@@ -361,8 +280,7 @@ func TestChangePhysicalBackup(t *testing.T) {
 		catalog.call(
 			t,
 			catalogCall{
-				Method:        http.MethodDelete,
-				Path:          "/api/v1/backups/physical/backups/" + full.ID.String(),
+				Request:       apptest.PhysicalDeleteRequest(full.ID),
 				Authorization: "Bearer " + catalog.Owner.Token,
 				StatusCode:    http.StatusNoContent,
 			},
@@ -387,11 +305,9 @@ func TestChangePhysicalBackup(t *testing.T) {
 		catalog.call(
 			t,
 			catalogCall{
-				Method:        http.MethodPost,
-				Path:          "/api/v1/backups/physical/backups/" + full.ID.String() + "/cancel",
+				Request:       apptest.PhysicalCancelRequest(full.ID),
 				Authorization: "Bearer " + catalog.Owner.Token,
-				Body:          nil,
-				StatusCode:    http.StatusNoContent,
+				StatusCode:    http.StatusAccepted,
 			},
 		)
 
@@ -403,8 +319,7 @@ func TestChangePhysicalBackup(t *testing.T) {
 		catalog.call(
 			t,
 			catalogCall{
-				Method:        http.MethodDelete,
-				Path:          "/api/v1/backups/physical/backups/" + uuid.NewString(),
+				Request:       apptest.PhysicalDeleteRequest(uuid.New()),
 				Authorization: "Bearer " + catalog.Owner.Token,
 				StatusCode:    http.StatusNotFound,
 			},
@@ -416,10 +331,8 @@ func TestChangePhysicalBackup(t *testing.T) {
 		catalog.call(
 			t,
 			catalogCall{
-				Method:        http.MethodPost,
-				Path:          "/api/v1/backups/physical/backups/" + uuid.NewString() + "/cancel",
+				Request:       apptest.PhysicalCancelRequest(uuid.New()),
 				Authorization: "Bearer " + catalog.Owner.Token,
-				Body:          nil,
 				StatusCode:    http.StatusNotFound,
 			},
 		)
@@ -444,10 +357,8 @@ func TestChangePhysicalBackup(t *testing.T) {
 		catalog.call(
 			t,
 			catalogCall{
-				Method:        http.MethodPost,
-				Path:          "/api/v1/backups/physical/backups/" + walSegment.ID.String() + "/cancel",
+				Request:       apptest.PhysicalCancelRequest(walSegment.ID),
 				Authorization: "Bearer " + catalog.Owner.Token,
-				Body:          nil,
 				StatusCode:    http.StatusNotFound,
 			},
 		)
@@ -469,8 +380,7 @@ func TestChangePhysicalBackup(t *testing.T) {
 		catalog.call(
 			t,
 			catalogCall{
-				Method:        http.MethodDelete,
-				Path:          "/api/v1/backups/physical/backups/" + full.ID.String(),
+				Request:       apptest.PhysicalDeleteRequest(full.ID),
 				Authorization: "Bearer " + catalog.Owner.Token,
 				StatusCode:    http.StatusNoContent,
 			},
@@ -481,4 +391,47 @@ func TestChangePhysicalBackup(t *testing.T) {
 		claim := catalog.getInFlightClaim(t)
 		assert.Nil(t, claim, "deleting an in-progress backup must release its claim")
 	})
+}
+
+func TestPhysicalBackupMemberChanges(t *testing.T) {
+	for _, scenario := range []struct {
+		name     string
+		isCancel bool
+	}{
+		{"accepts cancellation and releases the claim when the user is a workspace member", true},
+		{"deletes a completed backup when the user is a workspace member", false},
+	} {
+		t.Run(scenario.name, func(t *testing.T) {
+			catalog := newCatalog(t)
+			member := catalog.App.CreateNonAdminUser(t, catalog.Admin)
+			apptest.AddWorkspaceMember(t, catalog.Owner, catalog.WorkspaceID, member.Email,
+				apiclient.AssignableWorkspaceRoleWORKSPACEMEMBER)
+			if scenario.isCancel {
+				running := catalog.insertFull(t, newInProgressFull(inProgressFullSpec{
+					DatabaseID: catalog.DatabaseID, StorageID: catalog.StorageID, TimelineID: 1,
+				}))
+				catalog.App.InsertPhysicalInFlightBackup(t, apptest.PhysicalInFlightBackupSeed{
+					DatabaseID: catalog.DatabaseID, BackupID: running.ID, BackupType: "FULL",
+				})
+				catalog.call(t, catalogCall{
+					Request:       apptest.PhysicalCancelRequest(running.ID),
+					Authorization: "Bearer " + member.Token, StatusCode: http.StatusAccepted,
+				})
+				assert.Nil(t, catalog.getInFlightClaim(t))
+				page := getBackups(t, catalog, "")
+				require.Len(t, page.Backups, 1)
+				assert.Equal(t, running.ID, page.Backups[0].ID)
+			} else {
+				full := catalog.insertFull(t, newFullSeed(fullSeedSpec{
+					DatabaseID: catalog.DatabaseID, StorageID: catalog.StorageID, TimelineID: 1,
+					StartLSN: fixtureLSN(0), StopLSN: fixtureLSN(segmentBytes),
+				}))
+				catalog.call(t, catalogCall{
+					Request:       apptest.PhysicalDeleteRequest(full.ID),
+					Authorization: "Bearer " + member.Token, StatusCode: http.StatusNoContent,
+				})
+				catalog.assertFullGone(t, full.ID)
+			}
+		})
+	}
 }

@@ -664,6 +664,42 @@ func (e NotificationTrigger) Valid() bool {
 	}
 }
 
+// Defines values for PhysicalBackupListRowType.
+const (
+	PhysicalBackupListRowTypeFULL        PhysicalBackupListRowType = "FULL"
+	PhysicalBackupListRowTypeINCREMENTAL PhysicalBackupListRowType = "INCREMENTAL"
+	PhysicalBackupListRowTypeWAL         PhysicalBackupListRowType = "WAL"
+)
+
+// Valid indicates whether the value is a known member of the PhysicalBackupListRowType enum.
+func (e PhysicalBackupListRowType) Valid() bool {
+	switch e {
+	case PhysicalBackupListRowTypeFULL:
+		return true
+	case PhysicalBackupListRowTypeINCREMENTAL:
+		return true
+	case PhysicalBackupListRowTypeWAL:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PhysicalBackupRestoreTokenCreateType.
+const (
+	PhysicalBackupRestoreTokenCreateTypeBACKUP PhysicalBackupRestoreTokenCreateType = "BACKUP"
+)
+
+// Valid indicates whether the value is a known member of the PhysicalBackupRestoreTokenCreateType enum.
+func (e PhysicalBackupRestoreTokenCreateType) Valid() bool {
+	switch e {
+	case PhysicalBackupRestoreTokenCreateTypeBACKUP:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for PhysicalBackupSettingsType.
 const (
 	PhysicalBackupSettingsTypePHYSICAL PhysicalBackupSettingsType = "PHYSICAL"
@@ -673,6 +709,54 @@ const (
 func (e PhysicalBackupSettingsType) Valid() bool {
 	switch e {
 	case PhysicalBackupSettingsTypePHYSICAL:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PhysicalBackupStartKind.
+const (
+	PhysicalBackupStartKindAUTO        PhysicalBackupStartKind = "AUTO"
+	PhysicalBackupStartKindFULL        PhysicalBackupStartKind = "FULL"
+	PhysicalBackupStartKindINCREMENTAL PhysicalBackupStartKind = "INCREMENTAL"
+)
+
+// Valid indicates whether the value is a known member of the PhysicalBackupStartKind enum.
+func (e PhysicalBackupStartKind) Valid() bool {
+	switch e {
+	case PhysicalBackupStartKindAUTO:
+		return true
+	case PhysicalBackupStartKindFULL:
+		return true
+	case PhysicalBackupStartKindINCREMENTAL:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PhysicalBackupStatus.
+const (
+	PhysicalBackupStatusCANCELED    PhysicalBackupStatus = "CANCELED"
+	PhysicalBackupStatusCHAINBROKEN PhysicalBackupStatus = "CHAIN_BROKEN"
+	PhysicalBackupStatusCOMPLETED   PhysicalBackupStatus = "COMPLETED"
+	PhysicalBackupStatusERROR       PhysicalBackupStatus = "ERROR"
+	PhysicalBackupStatusINPROGRESS  PhysicalBackupStatus = "IN_PROGRESS"
+)
+
+// Valid indicates whether the value is a known member of the PhysicalBackupStatus enum.
+func (e PhysicalBackupStatus) Valid() bool {
+	switch e {
+	case PhysicalBackupStatusCANCELED:
+		return true
+	case PhysicalBackupStatusCHAINBROKEN:
+		return true
+	case PhysicalBackupStatusCOMPLETED:
+		return true
+	case PhysicalBackupStatusERROR:
+		return true
+	case PhysicalBackupStatusINPROGRESS:
 		return true
 	default:
 		return false
@@ -694,6 +778,21 @@ func (e PhysicalBackupType) Valid() bool {
 	case PhysicalBackupTypeFULLINCREMENTAL:
 		return true
 	case PhysicalBackupTypeFULLINCREMENTALWALSTREAM:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PhysicalPointInTimeRestoreTokenCreateType.
+const (
+	PhysicalPointInTimeRestoreTokenCreateTypePOINTINTIME PhysicalPointInTimeRestoreTokenCreateType = "POINT_IN_TIME"
+)
+
+// Valid indicates whether the value is a known member of the PhysicalPointInTimeRestoreTokenCreateType enum.
+func (e PhysicalPointInTimeRestoreTokenCreateType) Valid() bool {
+	switch e {
+	case PhysicalPointInTimeRestoreTokenCreateTypePOINTINTIME:
 		return true
 	default:
 		return false
@@ -839,6 +938,8 @@ const (
 	ProblemCodeInvalidCredentials       ProblemCode = "invalid_credentials"
 	ProblemCodeInvalidRequest           ProblemCode = "invalid_request"
 	ProblemCodeInvalidResetCode         ProblemCode = "invalid_reset_code"
+	ProblemCodeNoExtendableChain        ProblemCode = "no_extendable_chain"
+	ProblemCodeNoRestorableBackup       ProblemCode = "no_restorable_backup"
 	ProblemCodeNotFound                 ProblemCode = "not_found"
 	ProblemCodeNotRunning               ProblemCode = "not_running"
 	ProblemCodeOauthFailed              ProblemCode = "oauth_failed"
@@ -851,6 +952,7 @@ const (
 	ProblemCodeSignInCodeIncorrect      ProblemCode = "sign_in_code_incorrect"
 	ProblemCodeSignInCodeNotSent        ProblemCode = "sign_in_code_not_sent"
 	ProblemCodeSignInCodeResentTooSoon  ProblemCode = "sign_in_code_resent_too_soon"
+	ProblemCodeTargetTimeUnreachable    ProblemCode = "target_time_unreachable"
 	ProblemCodeTooManySignInCodes       ProblemCode = "too_many_sign_in_codes"
 	ProblemCodeUnauthenticated          ProblemCode = "unauthenticated"
 	ProblemCodeUserDeactivated          ProblemCode = "user_deactivated"
@@ -888,6 +990,10 @@ func (e ProblemCode) Valid() bool {
 		return true
 	case ProblemCodeInvalidResetCode:
 		return true
+	case ProblemCodeNoExtendableChain:
+		return true
+	case ProblemCodeNoRestorableBackup:
+		return true
 	case ProblemCodeNotFound:
 		return true
 	case ProblemCodeNotRunning:
@@ -911,6 +1017,8 @@ func (e ProblemCode) Valid() bool {
 	case ProblemCodeSignInCodeNotSent:
 		return true
 	case ProblemCodeSignInCodeResentTooSoon:
+		return true
+	case ProblemCodeTargetTimeUnreachable:
 		return true
 	case ProblemCodeTooManySignInCodes:
 		return true
@@ -1273,6 +1381,216 @@ func (e UserStatus) Valid() bool {
 	case UserStatusINACTIVE:
 		return true
 	case UserStatusINVITED:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for WalStreamHealthLevel.
+const (
+	WalStreamHealthLevelBROKEN         WalStreamHealthLevel = "BROKEN"
+	WalStreamHealthLevelCOLLECTINGDATA WalStreamHealthLevel = "COLLECTING_DATA"
+	WalStreamHealthLevelHEALTHY        WalStreamHealthLevel = "HEALTHY"
+	WalStreamHealthLevelNEEDSATTENTION WalStreamHealthLevel = "NEEDS_ATTENTION"
+	WalStreamHealthLevelNOTSTREAMING   WalStreamHealthLevel = "NOT_STREAMING"
+)
+
+// Valid indicates whether the value is a known member of the WalStreamHealthLevel enum.
+func (e WalStreamHealthLevel) Valid() bool {
+	switch e {
+	case WalStreamHealthLevelBROKEN:
+		return true
+	case WalStreamHealthLevelCOLLECTINGDATA:
+		return true
+	case WalStreamHealthLevelHEALTHY:
+		return true
+	case WalStreamHealthLevelNEEDSATTENTION:
+		return true
+	case WalStreamHealthLevelNOTSTREAMING:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for WalStreamKeepingUpState.
+const (
+	WalStreamKeepingUpStateCATCHINGUP    WalStreamKeepingUpState = "CATCHING_UP"
+	WalStreamKeepingUpStateFALLINGBEHIND WalStreamKeepingUpState = "FALLING_BEHIND"
+	WalStreamKeepingUpStateIDLE          WalStreamKeepingUpState = "IDLE"
+	WalStreamKeepingUpStateKEEPINGUP     WalStreamKeepingUpState = "KEEPING_UP"
+	WalStreamKeepingUpStateUNKNOWN       WalStreamKeepingUpState = "UNKNOWN"
+)
+
+// Valid indicates whether the value is a known member of the WalStreamKeepingUpState enum.
+func (e WalStreamKeepingUpState) Valid() bool {
+	switch e {
+	case WalStreamKeepingUpStateCATCHINGUP:
+		return true
+	case WalStreamKeepingUpStateFALLINGBEHIND:
+		return true
+	case WalStreamKeepingUpStateIDLE:
+		return true
+	case WalStreamKeepingUpStateKEEPINGUP:
+		return true
+	case WalStreamKeepingUpStateUNKNOWN:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for WalStreamNoticeCode.
+const (
+	WalStreamNoticeCodeNOFULLBACKUPYET           WalStreamNoticeCode = "NO_FULL_BACKUP_YET"
+	WalStreamNoticeCodeNOSLOTWALLIMIT            WalStreamNoticeCode = "NO_SLOT_WAL_LIMIT"
+	WalStreamNoticeCodeSLOTKEEPSEXTRAWALSTEADILY WalStreamNoticeCode = "SLOT_KEEPS_EXTRA_WAL_STEADILY"
+)
+
+// Valid indicates whether the value is a known member of the WalStreamNoticeCode enum.
+func (e WalStreamNoticeCode) Valid() bool {
+	switch e {
+	case WalStreamNoticeCodeNOFULLBACKUPYET:
+		return true
+	case WalStreamNoticeCodeNOSLOTWALLIMIT:
+		return true
+	case WalStreamNoticeCodeSLOTKEEPSEXTRAWALSTEADILY:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for WalStreamReasonCode.
+const (
+	WalStreamReasonCodeARCHIVENOTADVANCING     WalStreamReasonCode = "ARCHIVE_NOT_ADVANCING"
+	WalStreamReasonCodeARCHIVESLOWERTHANSOURCE WalStreamReasonCode = "ARCHIVE_SLOWER_THAN_SOURCE"
+	WalStreamReasonCodeFORCEDROTATIONREFUSED   WalStreamReasonCode = "FORCED_ROTATION_REFUSED"
+	WalStreamReasonCodeFREQUENTRESTARTS        WalStreamReasonCode = "FREQUENT_RESTARTS"
+	WalStreamReasonCodeLOCALQUEUEFILLING       WalStreamReasonCode = "LOCAL_QUEUE_FILLING"
+	WalStreamReasonCodeNEARSLOTREBUILD         WalStreamReasonCode = "NEAR_SLOT_REBUILD"
+	WalStreamReasonCodeSLOTKEEPSEXTRAWAL       WalStreamReasonCode = "SLOT_KEEPS_EXTRA_WAL"
+	WalStreamReasonCodeSLOTLIMITAPPROACHING    WalStreamReasonCode = "SLOT_LIMIT_APPROACHING"
+	WalStreamReasonCodeSLOTLOST                WalStreamReasonCode = "SLOT_LOST"
+	WalStreamReasonCodeSLOTMISSING             WalStreamReasonCode = "SLOT_MISSING"
+	WalStreamReasonCodeSOURCEUNREACHABLE       WalStreamReasonCode = "SOURCE_UNREACHABLE"
+	WalStreamReasonCodeSTREAMINGSTOPPED        WalStreamReasonCode = "STREAMING_STOPPED"
+	WalStreamReasonCodeWALCHAINBROKEN          WalStreamReasonCode = "WAL_CHAIN_BROKEN"
+)
+
+// Valid indicates whether the value is a known member of the WalStreamReasonCode enum.
+func (e WalStreamReasonCode) Valid() bool {
+	switch e {
+	case WalStreamReasonCodeARCHIVENOTADVANCING:
+		return true
+	case WalStreamReasonCodeARCHIVESLOWERTHANSOURCE:
+		return true
+	case WalStreamReasonCodeFORCEDROTATIONREFUSED:
+		return true
+	case WalStreamReasonCodeFREQUENTRESTARTS:
+		return true
+	case WalStreamReasonCodeLOCALQUEUEFILLING:
+		return true
+	case WalStreamReasonCodeNEARSLOTREBUILD:
+		return true
+	case WalStreamReasonCodeSLOTKEEPSEXTRAWAL:
+		return true
+	case WalStreamReasonCodeSLOTLIMITAPPROACHING:
+		return true
+	case WalStreamReasonCodeSLOTLOST:
+		return true
+	case WalStreamReasonCodeSLOTMISSING:
+		return true
+	case WalStreamReasonCodeSOURCEUNREACHABLE:
+		return true
+	case WalStreamReasonCodeSTREAMINGSTOPPED:
+		return true
+	case WalStreamReasonCodeWALCHAINBROKEN:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for WalStreamReasonLevel.
+const (
+	WalStreamReasonLevelBROKEN         WalStreamReasonLevel = "BROKEN"
+	WalStreamReasonLevelINFO           WalStreamReasonLevel = "INFO"
+	WalStreamReasonLevelNEEDSATTENTION WalStreamReasonLevel = "NEEDS_ATTENTION"
+)
+
+// Valid indicates whether the value is a known member of the WalStreamReasonLevel enum.
+func (e WalStreamReasonLevel) Valid() bool {
+	switch e {
+	case WalStreamReasonLevelBROKEN:
+		return true
+	case WalStreamReasonLevelINFO:
+		return true
+	case WalStreamReasonLevelNEEDSATTENTION:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for WalStreamSourceState.
+const (
+	WalStreamSourceStateREACHABLE   WalStreamSourceState = "REACHABLE"
+	WalStreamSourceStateSLOTMISSING WalStreamSourceState = "SLOT_MISSING"
+	WalStreamSourceStateUNREACHABLE WalStreamSourceState = "UNREACHABLE"
+)
+
+// Valid indicates whether the value is a known member of the WalStreamSourceState enum.
+func (e WalStreamSourceState) Valid() bool {
+	switch e {
+	case WalStreamSourceStateREACHABLE:
+		return true
+	case WalStreamSourceStateSLOTMISSING:
+		return true
+	case WalStreamSourceStateUNREACHABLE:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for WalStreamStatisticsPeriod.
+const (
+	WalStreamStatisticsPeriodDAY  WalStreamStatisticsPeriod = "DAY"
+	WalStreamStatisticsPeriodHOUR WalStreamStatisticsPeriod = "HOUR"
+	WalStreamStatisticsPeriodWEEK WalStreamStatisticsPeriod = "WEEK"
+)
+
+// Valid indicates whether the value is a known member of the WalStreamStatisticsPeriod enum.
+func (e WalStreamStatisticsPeriod) Valid() bool {
+	switch e {
+	case WalStreamStatisticsPeriodDAY:
+		return true
+	case WalStreamStatisticsPeriodHOUR:
+		return true
+	case WalStreamStatisticsPeriodWEEK:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for WalStreamStreamerState.
+const (
+	WalStreamStreamerStateNOTRUNNING WalStreamStreamerState = "NOT_RUNNING"
+	WalStreamStreamerStateNOTSTARTED WalStreamStreamerState = "NOT_STARTED"
+	WalStreamStreamerStateRUNNING    WalStreamStreamerState = "RUNNING"
+)
+
+// Valid indicates whether the value is a known member of the WalStreamStreamerState enum.
+func (e WalStreamStreamerState) Valid() bool {
+	switch e {
+	case WalStreamStreamerStateNOTRUNNING:
+		return true
+	case WalStreamStreamerStateNOTSTARTED:
+		return true
+	case WalStreamStreamerStateRUNNING:
 		return true
 	default:
 		return false
@@ -2403,6 +2721,84 @@ type PendingSignIn struct {
 	PendingSignInId openapi_types.UUID `json:"pendingSignInId"`
 }
 
+// PhysicalBackupListRow physical backup list row
+type PhysicalBackupListRow struct {
+	// CompletedAt completed at
+	CompletedAt *time.Time `json:"completedAt,omitempty"`
+
+	// CreatedAt created at
+	CreatedAt time.Time `json:"createdAt"`
+
+	// FailMessage fail message
+	FailMessage *string `json:"failMessage,omitempty"`
+
+	// FromWalFilename from wal filename
+	FromWalFilename *string `json:"fromWalFilename,omitempty"`
+
+	// HasGapBefore Whether a WAL gap precedes the range
+	HasGapBefore bool `json:"hasGapBefore"`
+
+	// Id id
+	Id openapi_types.UUID `json:"id"`
+
+	// ParentIncrementalBackupId parent incremental backup id
+	ParentIncrementalBackupId *openapi_types.UUID `json:"parentIncrementalBackupId,omitempty"`
+
+	// RootFullBackupId root full backup id
+	RootFullBackupId *openapi_types.UUID `json:"rootFullBackupId,omitempty"`
+
+	// SizeMb size mb
+	SizeMb float64 `json:"sizeMb"`
+
+	// StartLsn start lsn
+	StartLsn string `json:"startLsn"`
+
+	// Status physical backup status
+	Status PhysicalBackupStatus `json:"status"`
+
+	// StopLsn stop lsn
+	StopLsn string `json:"stopLsn"`
+
+	// TimelineId timeline id
+	TimelineId int `json:"timelineId"`
+
+	// ToWalFilename to wal filename
+	ToWalFilename *string `json:"toWalFilename,omitempty"`
+
+	// Type physical backup list row type
+	Type PhysicalBackupListRowType `json:"type"`
+
+	// WalSegmentsCount wal segments count
+	WalSegmentsCount *int `json:"walSegmentsCount,omitempty"`
+}
+
+// PhysicalBackupListRowType physical backup list row type
+type PhysicalBackupListRowType string
+
+// PhysicalBackupPage physical backup page
+type PhysicalBackupPage struct {
+	// Items items
+	Items []PhysicalBackupListRow `json:"items"`
+
+	// NextCursor next cursor
+	NextCursor *string `json:"nextCursor,omitempty"`
+
+	// TotalUsageMb Storage used by every physical backup of the database, independently of this page and its filters
+	TotalUsageMb float64 `json:"totalUsageMb"`
+}
+
+// PhysicalBackupRestoreTokenCreate One backup restored with its ancestors without WAL replay
+type PhysicalBackupRestoreTokenCreate struct {
+	// BackupId The full or incremental backup to restore
+	BackupId openapi_types.UUID `json:"backupId"`
+
+	// Type Restore one full or incremental backup
+	Type PhysicalBackupRestoreTokenCreateType `json:"type"`
+}
+
+// PhysicalBackupRestoreTokenCreateType Restore one full or incremental backup
+type PhysicalBackupRestoreTokenCreateType string
+
 // PhysicalBackupSettings The settings of the physical backups of a physical PostgreSQL database. They must fit the database's physical backup type.
 type PhysicalBackupSettings struct {
 	// FullBackupSchedule When a recurring backup runs; times of day are in UTC
@@ -2427,8 +2823,52 @@ type PhysicalBackupSettings struct {
 // PhysicalBackupSettingsType Always `PHYSICAL`
 type PhysicalBackupSettingsType string
 
+// PhysicalBackupStart A request for the scheduler to start a physical backup
+type PhysicalBackupStart struct {
+	// DatabaseId The physical PostgreSQL database to back up
+	DatabaseId openapi_types.UUID `json:"databaseId"`
+
+	// Kind The requested kind, or AUTO for the scheduler choice
+	Kind PhysicalBackupStartKind `json:"kind"`
+}
+
+// PhysicalBackupStartKind The requested kind, or AUTO for the scheduler choice
+type PhysicalBackupStartKind string
+
+// PhysicalBackupStatus physical backup status
+type PhysicalBackupStatus string
+
 // PhysicalBackupType What the physical backups of the cluster take
 type PhysicalBackupType string
+
+// PhysicalPointInTimeRestoreTokenCreate A database restored to a target time or its latest restorable moment
+type PhysicalPointInTimeRestoreTokenCreate struct {
+	// DatabaseId The physical database to restore
+	DatabaseId openapi_types.UUID `json:"databaseId"`
+
+	// TargetTime The target time, absent for the latest restorable moment
+	TargetTime *time.Time `json:"targetTime,omitempty"`
+
+	// Type Restore a database to a point in time
+	Type PhysicalPointInTimeRestoreTokenCreateType `json:"type"`
+}
+
+// PhysicalPointInTimeRestoreTokenCreateType Restore a database to a point in time
+type PhysicalPointInTimeRestoreTokenCreateType string
+
+// PhysicalRestoreToken physical restore token
+type PhysicalRestoreToken struct {
+	// ExpiresAt The expiry time, 15 minutes after issue
+	ExpiresAt time.Time `json:"expiresAt"`
+
+	// Token token
+	Token string `json:"token"`
+}
+
+// PhysicalRestoreTokenCreate What the restore token opens
+type PhysicalRestoreTokenCreate struct {
+	union json.RawMessage
+}
 
 // PhysicalRetention Which physical backups are kept
 type PhysicalRetention struct {
@@ -3138,6 +3578,363 @@ type VersionResponse struct {
 	Version string `json:"version"`
 }
 
+// WalStreamCurrent wal stream current
+type WalStreamCurrent struct {
+	// ArchiveProgressLsn archive progress lsn
+	ArchiveProgressLsn *string `json:"archiveProgressLsn"`
+
+	// ArchiveStalledSince archive stalled since
+	ArchiveStalledSince *time.Time `json:"archiveStalledSince"`
+
+	// ArchivedSegments archived segments
+	ArchivedSegments int `json:"archivedSegments"`
+
+	// ArchivedStoredBytes archived stored bytes
+	ArchivedStoredBytes int64 `json:"archivedStoredBytes"`
+
+	// ArchivedWalBytes archived wal bytes
+	ArchivedWalBytes int64 `json:"archivedWalBytes"`
+
+	// HighestConcurrentUploads highest concurrent uploads
+	HighestConcurrentUploads int `json:"highestConcurrentUploads"`
+
+	// IsForcedRotationDenied is forced rotation denied
+	IsForcedRotationDenied bool `json:"isForcedRotationDenied"`
+
+	// IsReceiverRunning is receiver running
+	IsReceiverRunning bool `json:"isReceiverRunning"`
+
+	// LastArchivedWalAt last archived wal at
+	LastArchivedWalAt *time.Time `json:"lastArchivedWalAt"`
+
+	// LocalQueueBytes local queue bytes
+	LocalQueueBytes int64 `json:"localQueueBytes"`
+
+	// LocalQueuePauseBytes local queue pause bytes
+	LocalQueuePauseBytes int64 `json:"localQueuePauseBytes"`
+
+	// ReceiverPauses receiver pauses
+	ReceiverPauses int `json:"receiverPauses"`
+
+	// ReceiverRestarts receiver restarts
+	ReceiverRestarts int `json:"receiverRestarts"`
+
+	// SampledAt sampled at
+	SampledAt time.Time `json:"sampledAt"`
+
+	// SegmentWriteAvgMillis segment write avg millis
+	SegmentWriteAvgMillis *int64 `json:"segmentWriteAvgMillis"`
+
+	// SegmentWriteMaxMillis segment write max millis
+	SegmentWriteMaxMillis *int64 `json:"segmentWriteMaxMillis"`
+
+	// SessionStartedAt session started at
+	SessionStartedAt time.Time `json:"sessionStartedAt"`
+
+	// SlotExtraWalSince slot extra wal since
+	SlotExtraWalSince *time.Time `json:"slotExtraWalSince"`
+
+	// SlotLagBytes slot lag bytes
+	SlotLagBytes *int64 `json:"slotLagBytes"`
+
+	// SlotSafeWalSizeBytes slot safe wal size bytes
+	SlotSafeWalSizeBytes *int64 `json:"slotSafeWalSizeBytes"`
+
+	// SlotWalStatus slot wal status
+	SlotWalStatus *string `json:"slotWalStatus"`
+
+	// SourceCurrentLsn source current lsn
+	SourceCurrentLsn *string `json:"sourceCurrentLsn"`
+
+	// SourceState wal stream source state
+	SourceState WalStreamSourceState `json:"sourceState"`
+
+	// SourceUnreachableSince source unreachable since
+	SourceUnreachableSince *time.Time `json:"sourceUnreachableSince"`
+
+	// SourceWrittenBytes source written bytes
+	SourceWrittenBytes *int64 `json:"sourceWrittenBytes"`
+
+	// UnarchivedWalBytes unarchived wal bytes
+	UnarchivedWalBytes *int64 `json:"unarchivedWalBytes"`
+
+	// WalSegmentSizeBytes wal segment size bytes
+	WalSegmentSizeBytes int64 `json:"walSegmentSizeBytes"`
+}
+
+// WalStreamHealth wal stream health
+type WalStreamHealth struct {
+	// IsFullBackupPending is full backup pending
+	IsFullBackupPending bool `json:"isFullBackupPending"`
+
+	// Level wal stream health level
+	Level WalStreamHealthLevel `json:"level"`
+
+	// Notices notices
+	Notices []WalStreamNotice `json:"notices"`
+
+	// Reasons reasons
+	Reasons []WalStreamReason `json:"reasons"`
+}
+
+// WalStreamHealthLevel wal stream health level
+type WalStreamHealthLevel string
+
+// WalStreamKeepingUp wal stream keeping up
+type WalStreamKeepingUp struct {
+	// ArchiveBytesPerSecond archive bytes per second
+	ArchiveBytesPerSecond *float64 `json:"archiveBytesPerSecond"`
+
+	// EstimatedCatchUpSeconds estimated catch up seconds
+	EstimatedCatchUpSeconds *int64 `json:"estimatedCatchUpSeconds"`
+
+	// EstimatedSlotLimitSeconds estimated slot limit seconds
+	EstimatedSlotLimitSeconds *int64 `json:"estimatedSlotLimitSeconds"`
+
+	// EstimatedSlotRebuildSeconds estimated slot rebuild seconds
+	EstimatedSlotRebuildSeconds *int64 `json:"estimatedSlotRebuildSeconds"`
+
+	// SlotLagBytes slot lag bytes
+	SlotLagBytes *int64 `json:"slotLagBytes"`
+
+	// SlotLagChangeBytesPerSecond slot lag change bytes per second
+	SlotLagChangeBytesPerSecond *float64 `json:"slotLagChangeBytesPerSecond"`
+
+	// SlotRebuildLagBytes slot rebuild lag bytes
+	SlotRebuildLagBytes int64 `json:"slotRebuildLagBytes"`
+
+	// SourceWriteBytesPerSecond source write bytes per second
+	SourceWriteBytesPerSecond *float64 `json:"sourceWriteBytesPerSecond"`
+
+	// State wal stream keeping up state
+	State WalStreamKeepingUpState `json:"state"`
+
+	// UnarchivedWalBytes unarchived wal bytes
+	UnarchivedWalBytes *int64 `json:"unarchivedWalBytes"`
+
+	// UnarchivedWalChangeBytesPerSecond unarchived wal change bytes per second
+	UnarchivedWalChangeBytesPerSecond *float64 `json:"unarchivedWalChangeBytesPerSecond"`
+}
+
+// WalStreamKeepingUpState wal stream keeping up state
+type WalStreamKeepingUpState string
+
+// WalStreamLive wal stream live
+type WalStreamLive struct {
+	// Current current
+	Current *WalStreamLiveValues `json:"current"`
+
+	// IsStreamerRunning is streamer running
+	IsStreamerRunning bool `json:"isStreamerRunning"`
+}
+
+// WalStreamLiveValues wal stream live values
+type WalStreamLiveValues struct {
+	// ArchiveProgressLsn archive progress lsn
+	ArchiveProgressLsn *string `json:"archiveProgressLsn"`
+
+	// IsReceiverRunning is receiver running
+	IsReceiverRunning bool `json:"isReceiverRunning"`
+
+	// LastArchivedWalAt last archived wal at
+	LastArchivedWalAt *time.Time `json:"lastArchivedWalAt"`
+
+	// LocalQueueBytes local queue bytes
+	LocalQueueBytes int64 `json:"localQueueBytes"`
+
+	// LocalQueuePauseBytes local queue pause bytes
+	LocalQueuePauseBytes int64 `json:"localQueuePauseBytes"`
+
+	// MeasuredAt measured at
+	MeasuredAt time.Time `json:"measuredAt"`
+
+	// SlotLagBytes slot lag bytes
+	SlotLagBytes *int64 `json:"slotLagBytes"`
+
+	// SlotSafeWalSizeBytes slot safe wal size bytes
+	SlotSafeWalSizeBytes *int64 `json:"slotSafeWalSizeBytes"`
+
+	// SlotWalStatus slot wal status
+	SlotWalStatus *string `json:"slotWalStatus"`
+
+	// SourceCurrentLsn source current lsn
+	SourceCurrentLsn *string `json:"sourceCurrentLsn"`
+
+	// SourceProbedAt source probed at
+	SourceProbedAt *time.Time `json:"sourceProbedAt"`
+
+	// SourceState source state
+	SourceState *WalStreamSourceState `json:"sourceState"`
+
+	// UnarchivedWalBytes unarchived wal bytes
+	UnarchivedWalBytes *int64 `json:"unarchivedWalBytes"`
+}
+
+// WalStreamNotice wal stream notice
+type WalStreamNotice struct {
+	// Code wal stream notice code
+	Code WalStreamNoticeCode `json:"code"`
+
+	// Level wal stream reason level
+	Level WalStreamReasonLevel `json:"level"`
+
+	// Since since
+	Since *time.Time `json:"since,omitempty"`
+}
+
+// WalStreamNoticeCode wal stream notice code
+type WalStreamNoticeCode string
+
+// WalStreamReason wal stream reason
+type WalStreamReason struct {
+	// Code wal stream reason code
+	Code WalStreamReasonCode `json:"code"`
+
+	// Count count
+	Count *int `json:"count,omitempty"`
+
+	// EstimatedSeconds estimated seconds
+	EstimatedSeconds *int64 `json:"estimatedSeconds,omitempty"`
+
+	// Level wal stream reason level
+	Level WalStreamReasonLevel `json:"level"`
+
+	// Since since
+	Since *time.Time `json:"since,omitempty"`
+
+	// ThresholdBytes threshold bytes
+	ThresholdBytes *int64 `json:"thresholdBytes,omitempty"`
+
+	// ValueBytes value bytes
+	ValueBytes *int64 `json:"valueBytes,omitempty"`
+}
+
+// WalStreamReasonCode wal stream reason code
+type WalStreamReasonCode string
+
+// WalStreamReasonLevel wal stream reason level
+type WalStreamReasonLevel string
+
+// WalStreamSeries wal stream series
+type WalStreamSeries struct {
+	// BucketSeconds bucket seconds
+	BucketSeconds int64 `json:"bucketSeconds"`
+
+	// From from
+	From time.Time `json:"from"`
+
+	// Period wal stream statistics period
+	Period WalStreamStatisticsPeriod `json:"period"`
+
+	// Points points
+	Points []WalStreamSeriesPoint `json:"points"`
+
+	// To to
+	To time.Time `json:"to"`
+}
+
+// WalStreamSeriesPoint wal stream series point
+type WalStreamSeriesPoint struct {
+	// ArchiveBytesPerSecond archive bytes per second
+	ArchiveBytesPerSecond *float64 `json:"archiveBytesPerSecond"`
+
+	// ArchivedStoredBytesPerSecond archived stored bytes per second
+	ArchivedStoredBytesPerSecond *float64 `json:"archivedStoredBytesPerSecond"`
+
+	// HighestConcurrentUploads highest concurrent uploads
+	HighestConcurrentUploads *int `json:"highestConcurrentUploads"`
+
+	// LocalQueuePauseBytes local queue pause bytes
+	LocalQueuePauseBytes *int64 `json:"localQueuePauseBytes"`
+
+	// MaxLocalQueueBytes max local queue bytes
+	MaxLocalQueueBytes *int64 `json:"maxLocalQueueBytes"`
+
+	// MaxSlotLagBytes max slot lag bytes
+	MaxSlotLagBytes *int64 `json:"maxSlotLagBytes"`
+
+	// MaxUnarchivedWalBytes max unarchived wal bytes
+	MaxUnarchivedWalBytes *int64 `json:"maxUnarchivedWalBytes"`
+
+	// Pauses pauses
+	Pauses *int `json:"pauses"`
+
+	// Restarts restarts
+	Restarts *int `json:"restarts"`
+
+	// SegmentWriteAvgMillis segment write avg millis
+	SegmentWriteAvgMillis *int64 `json:"segmentWriteAvgMillis"`
+
+	// SegmentWriteMaxMillis segment write max millis
+	SegmentWriteMaxMillis *int64 `json:"segmentWriteMaxMillis"`
+
+	// SessionStarts session starts
+	SessionStarts *int `json:"sessionStarts"`
+
+	// SourceWriteBytesPerSecond source write bytes per second
+	SourceWriteBytesPerSecond *float64 `json:"sourceWriteBytesPerSecond"`
+
+	// StartedAt started at
+	StartedAt time.Time `json:"startedAt"`
+}
+
+// WalStreamSourceState wal stream source state
+type WalStreamSourceState string
+
+// WalStreamStatistics wal stream statistics
+type WalStreamStatistics struct {
+	// Current current
+	Current *WalStreamCurrent `json:"current"`
+
+	// Health wal stream health
+	Health WalStreamHealth `json:"health"`
+
+	// KeepingUp wal stream keeping up
+	KeepingUp WalStreamKeepingUp `json:"keepingUp"`
+
+	// LatestRestorableAt latest restorable at
+	LatestRestorableAt *time.Time `json:"latestRestorableAt"`
+
+	// RestorableRanges restorable ranges
+	RestorableRanges []WalStreamTimeRange `json:"restorableRanges"`
+
+	// Series wal stream series
+	Series WalStreamSeries `json:"series"`
+
+	// Streamer wal stream streamer
+	Streamer WalStreamStreamer `json:"streamer"`
+}
+
+// WalStreamStatisticsPeriod wal stream statistics period
+type WalStreamStatisticsPeriod string
+
+// WalStreamStreamer wal stream streamer
+type WalStreamStreamer struct {
+	// FailingSince failing since
+	FailingSince *time.Time `json:"failingSince"`
+
+	// RestartsLastHour restarts last hour
+	RestartsLastHour int `json:"restartsLastHour"`
+
+	// SessionStartedAt session started at
+	SessionStartedAt *time.Time `json:"sessionStartedAt"`
+
+	// State wal stream streamer state
+	State WalStreamStreamerState `json:"state"`
+}
+
+// WalStreamStreamerState wal stream streamer state
+type WalStreamStreamerState string
+
+// WalStreamTimeRange wal stream time range
+type WalStreamTimeRange struct {
+	// From from
+	From time.Time `json:"from"`
+
+	// To to
+	To time.Time `json:"to"`
+}
+
 // WebhookHeader A header of the webhook's requests
 type WebhookHeader struct {
 	// Name The name of the header
@@ -3285,6 +4082,9 @@ type NotifierId = openapi_types.UUID
 // PendingSignInId defines model for PendingSignInId.
 type PendingSignInId = openapi_types.UUID
 
+// PhysicalBackupId defines model for PhysicalBackupId.
+type PhysicalBackupId = openapi_types.UUID
+
 // RestoreId defines model for RestoreId.
 type RestoreId = openapi_types.UUID
 
@@ -3378,6 +4178,33 @@ type ListNotifiersParams struct {
 	After *string `form:"after,omitempty" json:"after,omitempty"`
 }
 
+// ListPhysicalBackupsParams defines parameters for ListPhysicalBackups.
+type ListPhysicalBackupsParams struct {
+	// DatabaseId The database whose backups to list
+	DatabaseId openapi_types.UUID `form:"databaseId" json:"databaseId"`
+
+	// Type Only these backup types
+	Type *[]PhysicalBackupListRowType `form:"type,omitempty" json:"type,omitempty"`
+
+	// Status Only these backup statuses
+	Status *[]PhysicalBackupStatus `form:"status,omitempty" json:"status,omitempty"`
+
+	// CreatedBefore Only rows created before this time
+	CreatedBefore *time.Time `form:"createdBefore,omitempty" json:"createdBefore,omitempty"`
+
+	// Limit The largest number of rows on the page
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// After The nextCursor of the previous page
+	After *string `form:"after,omitempty" json:"after,omitempty"`
+}
+
+// DownloadPhysicalRestoreSetParams defines parameters for DownloadPhysicalRestoreSet.
+type DownloadPhysicalRestoreSetParams struct {
+	// Token The single-use restore token
+	Token string `form:"token" json:"token"`
+}
+
 // ListRestoresParams defines parameters for ListRestores.
 type ListRestoresParams struct {
 	// BackupId The backup whose restores to list
@@ -3412,6 +4239,12 @@ type ListUsersParams struct {
 
 	// Query The text the email address or the name contains
 	Query *string `form:"query,omitempty" json:"query,omitempty"`
+}
+
+// GetWalStreamStatisticsParams defines parameters for GetWalStreamStatistics.
+type GetWalStreamStatisticsParams struct {
+	// Period The statistics window
+	Period WalStreamStatisticsPeriod `form:"period" json:"period"`
 }
 
 // ListWorkspaceMembersParams defines parameters for ListWorkspaceMembers.
@@ -3494,6 +4327,12 @@ type ResendSignInCodeJSONRequestBody = ResendSignInCodeRequest
 
 // VerifySignInCodeJSONRequestBody defines body for VerifySignInCode for application/json ContentType.
 type VerifySignInCodeJSONRequestBody = VerifySignInCodeRequest
+
+// StartPhysicalBackupJSONRequestBody defines body for StartPhysicalBackup for application/json ContentType.
+type StartPhysicalBackupJSONRequestBody = PhysicalBackupStart
+
+// CreatePhysicalRestoreTokenJSONRequestBody defines body for CreatePhysicalRestoreToken for application/json ContentType.
+type CreatePhysicalRestoreTokenJSONRequestBody = PhysicalRestoreTokenCreate
 
 // StartRestoreJSONRequestBody defines body for StartRestore for application/json ContentType.
 type StartRestoreJSONRequestBody = RestoreStart
@@ -4228,6 +5067,107 @@ func (t NotifierSettings) MarshalJSON() ([]byte, error) {
 }
 
 func (t *NotifierSettings) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsPhysicalPointInTimeRestoreTokenCreate returns the union data inside the PhysicalRestoreTokenCreate as a PhysicalPointInTimeRestoreTokenCreate
+func (t PhysicalRestoreTokenCreate) AsPhysicalPointInTimeRestoreTokenCreate() (PhysicalPointInTimeRestoreTokenCreate, error) {
+	var body PhysicalPointInTimeRestoreTokenCreate
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromPhysicalPointInTimeRestoreTokenCreate overwrites any union data inside the PhysicalRestoreTokenCreate as the provided PhysicalPointInTimeRestoreTokenCreate
+func (t *PhysicalRestoreTokenCreate) FromPhysicalPointInTimeRestoreTokenCreate(v PhysicalPointInTimeRestoreTokenCreate) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"POINT_IN_TIME"}`))
+	t.union = b
+	return err
+}
+
+// MergePhysicalPointInTimeRestoreTokenCreate performs a merge with any union data inside the PhysicalRestoreTokenCreate, using the provided PhysicalPointInTimeRestoreTokenCreate
+func (t *PhysicalRestoreTokenCreate) MergePhysicalPointInTimeRestoreTokenCreate(v PhysicalPointInTimeRestoreTokenCreate) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"POINT_IN_TIME"}`))
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsPhysicalBackupRestoreTokenCreate returns the union data inside the PhysicalRestoreTokenCreate as a PhysicalBackupRestoreTokenCreate
+func (t PhysicalRestoreTokenCreate) AsPhysicalBackupRestoreTokenCreate() (PhysicalBackupRestoreTokenCreate, error) {
+	var body PhysicalBackupRestoreTokenCreate
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromPhysicalBackupRestoreTokenCreate overwrites any union data inside the PhysicalRestoreTokenCreate as the provided PhysicalBackupRestoreTokenCreate
+func (t *PhysicalRestoreTokenCreate) FromPhysicalBackupRestoreTokenCreate(v PhysicalBackupRestoreTokenCreate) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"BACKUP"}`))
+	t.union = b
+	return err
+}
+
+// MergePhysicalBackupRestoreTokenCreate performs a merge with any union data inside the PhysicalRestoreTokenCreate, using the provided PhysicalBackupRestoreTokenCreate
+func (t *PhysicalRestoreTokenCreate) MergePhysicalBackupRestoreTokenCreate(v PhysicalBackupRestoreTokenCreate) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	b, err = runtime.JSONMerge(b, []byte(`{"type":"BACKUP"}`))
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t PhysicalRestoreTokenCreate) Discriminator() (string, error) {
+	var discriminator struct {
+		Discriminator string `json:"type"`
+	}
+	err := json.Unmarshal(t.union, &discriminator)
+	return discriminator.Discriminator, err
+}
+
+func (t PhysicalRestoreTokenCreate) ValueByDiscriminator() (interface{}, error) {
+	discriminator, err := t.Discriminator()
+	if err != nil {
+		return nil, err
+	}
+	switch discriminator {
+	case "BACKUP":
+		return t.AsPhysicalBackupRestoreTokenCreate()
+	case "POINT_IN_TIME":
+		return t.AsPhysicalPointInTimeRestoreTokenCreate()
+	default:
+		return nil, errors.New("unknown discriminator value: " + discriminator)
+	}
+}
+
+func (t PhysicalRestoreTokenCreate) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *PhysicalRestoreTokenCreate) UnmarshalJSON(b []byte) error {
 	err := t.union.UnmarshalJSON(b)
 	return err
 }
@@ -5383,6 +6323,77 @@ type ClientInterface interface {
 	// Corresponds with POST /pending-sign-ins/{pendingSignInId}/verify (the `VerifySignInCode` operationId).
 	VerifySignInCode(ctx context.Context, pendingSignInId PendingSignInId, body VerifySignInCodeJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// ListPhysicalBackups List the physical backups of a database
+	//
+	// Needs WORKSPACE_VIEWER. Ordered newest first by creation time and ID. Includes full backups, incremental backups and WAL ranges. totalUsageMb covers every backup of the database, independently of the page and filters. An outsider gets 404 not_found; a nonphysical database, invalid limit or malformed cursor gets 400 invalid_request.
+	//
+	// Corresponds with GET /physical-backups (the `ListPhysicalBackups` operationId).
+	ListPhysicalBackups(ctx context.Context, params *ListPhysicalBackupsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// StartPhysicalBackupWithBody Request a physical backup
+	//
+	// Needs WORKSPACE_MEMBER. Records the request; the scheduler creates the backup on its next pass. AUTO chooses an incremental when the backup type supports it and a chain can be extended, otherwise a full backup. An incremental without an extendable chain gets 409 no_extendable_chain. A nonphysical database gets 400 invalid_request.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /physical-backups (the `StartPhysicalBackup` operationId).
+	StartPhysicalBackupWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// StartPhysicalBackup Request a physical backup
+	//
+	// Needs WORKSPACE_MEMBER. Records the request; the scheduler creates the backup on its next pass. AUTO chooses an incremental when the backup type supports it and a chain can be extended, otherwise a full backup. An incremental without an extendable chain gets 409 no_extendable_chain. A nonphysical database gets 400 invalid_request.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /physical-backups (the `StartPhysicalBackup` operationId).
+	StartPhysicalBackup(ctx context.Context, body StartPhysicalBackupJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DeletePhysicalBackup Delete a physical backup and its descendants
+	//
+	// Needs WORKSPACE_MEMBER. Stops a running backup before deleting it. A full backup removes its incremental chain; an incremental removes its descendants. A WAL segment ID gets 404 not_found and deletes nothing.
+	//
+	// Corresponds with DELETE /physical-backups/{backupId} (the `DeletePhysicalBackup` operationId).
+	DeletePhysicalBackup(ctx context.Context, backupId PhysicalBackupId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CancelPhysicalBackup Cancel a running physical backup
+	//
+	// Needs WORKSPACE_MEMBER. Interrupts the process; the backup then becomes CANCELED. A finished backup gets 409 not_running.
+	//
+	// Corresponds with POST /physical-backups/{backupId}/cancel (the `CancelPhysicalBackup` operationId).
+	CancelPhysicalBackup(ctx context.Context, backupId PhysicalBackupId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetRecoveryScript Get the physical recovery script
+	//
+	// Public because this static script contains no instance address or credentials. Takes a restore set URL or path and an output directory as arguments.
+	//
+	// Corresponds with GET /physical-recovery-scripts (the `GetRecoveryScript` operationId).
+	GetRecoveryScript(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DownloadPhysicalRestoreSet Download a physical restore set
+	//
+	// Public because the single-use restore token is the credential; a browser link cannot carry a session. Consumes the token before acquiring the user stream. Unknown, expired and used tokens get 401 unauthenticated. A running user stream gets 409 already_running and spends the token. A restore set that can no longer be built gets the same problem as at token issue.
+	//
+	// Corresponds with GET /physical-restore-sets (the `DownloadPhysicalRestoreSet` operationId).
+	DownloadPhysicalRestoreSet(ctx context.Context, params *DownloadPhysicalRestoreSetParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreatePhysicalRestoreTokenWithBody Issue a token for one physical restore set
+	//
+	// Needs WORKSPACE_VIEWER. The token expires in 15 minutes. A database without a completed full backup or an unrestorable backup gets 409 no_restorable_backup. An unreachable target time gets 409 target_time_unreachable, with the latest restorable LSN in the detail for a WAL gap. A running download or restore stream gets 409 already_running. A nonphysical database gets 400 invalid_request.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /physical-restore-tokens (the `CreatePhysicalRestoreToken` operationId).
+	CreatePhysicalRestoreTokenWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreatePhysicalRestoreToken Issue a token for one physical restore set
+	//
+	// Needs WORKSPACE_VIEWER. The token expires in 15 minutes. A database without a completed full backup or an unrestorable backup gets 409 no_restorable_backup. An unreachable target time gets 409 target_time_unreachable, with the latest restorable LSN in the detail for a WAL gap. A running download or restore stream gets 409 already_running. A nonphysical database gets 400 invalid_request.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /physical-restore-tokens (the `CreatePhysicalRestoreToken` operationId).
+	CreatePhysicalRestoreToken(ctx context.Context, body CreatePhysicalRestoreTokenJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// ListRestores List the restores of a logical backup
 	//
 	// Ordered newest first by creation time, then by ID. A user who is not a member of the backup's workspace gets 404 `not_found`.
@@ -5660,6 +6671,20 @@ type ClientInterface interface {
 	//
 	// Corresponds with PUT /users/{userId}/role (the `ChangeUserRole` operationId).
 	ChangeUserRole(ctx context.Context, userId UserId, body ChangeUserRoleJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetWalStream Read the current values of a WAL stream
+	//
+	// Needs WORKSPACE_VIEWER. An outsider or missing database gets 404 not_found. A nonphysical database gets 400 invalid_request. Source-side values come from the streamer probes and open no connection to the source.
+	//
+	// Corresponds with GET /wal-streams/{databaseId} (the `GetWalStream` operationId).
+	GetWalStream(ctx context.Context, databaseId DatabaseId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetWalStreamStatistics Read the statistics of a WAL stream
+	//
+	// Needs WORKSPACE_VIEWER. An outsider or missing database gets 404 not_found. A nonphysical database gets 400 invalid_request. Source-side values come from the streamer probes and open no connection to the source.
+	//
+	// Corresponds with GET /wal-streams/{databaseId}/statistics (the `GetWalStreamStatistics` operationId).
+	GetWalStreamStatistics(ctx context.Context, databaseId DatabaseId, params *GetWalStreamStatisticsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListWorkspaceMembers List the members of a workspace
 	//
@@ -6853,6 +7878,167 @@ func (c *Client) VerifySignInCode(ctx context.Context, pendingSignInId PendingSi
 	return c.Client.Do(req)
 }
 
+// ListPhysicalBackups List the physical backups of a database
+//
+// Needs WORKSPACE_VIEWER. Ordered newest first by creation time and ID. Includes full backups, incremental backups and WAL ranges. totalUsageMb covers every backup of the database, independently of the page and filters. An outsider gets 404 not_found; a nonphysical database, invalid limit or malformed cursor gets 400 invalid_request.
+//
+// Corresponds with GET /physical-backups (the `ListPhysicalBackups` operationId).
+func (c *Client) ListPhysicalBackups(ctx context.Context, params *ListPhysicalBackupsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListPhysicalBackupsRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// StartPhysicalBackupWithBody Request a physical backup
+//
+// Needs WORKSPACE_MEMBER. Records the request; the scheduler creates the backup on its next pass. AUTO chooses an incremental when the backup type supports it and a chain can be extended, otherwise a full backup. An incremental without an extendable chain gets 409 no_extendable_chain. A nonphysical database gets 400 invalid_request.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /physical-backups (the `StartPhysicalBackup` operationId).
+func (c *Client) StartPhysicalBackupWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewStartPhysicalBackupRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// StartPhysicalBackup Request a physical backup
+//
+// Needs WORKSPACE_MEMBER. Records the request; the scheduler creates the backup on its next pass. AUTO chooses an incremental when the backup type supports it and a chain can be extended, otherwise a full backup. An incremental without an extendable chain gets 409 no_extendable_chain. A nonphysical database gets 400 invalid_request.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /physical-backups (the `StartPhysicalBackup` operationId).
+func (c *Client) StartPhysicalBackup(ctx context.Context, body StartPhysicalBackupJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewStartPhysicalBackupRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// DeletePhysicalBackup Delete a physical backup and its descendants
+//
+// Needs WORKSPACE_MEMBER. Stops a running backup before deleting it. A full backup removes its incremental chain; an incremental removes its descendants. A WAL segment ID gets 404 not_found and deletes nothing.
+//
+// Corresponds with DELETE /physical-backups/{backupId} (the `DeletePhysicalBackup` operationId).
+func (c *Client) DeletePhysicalBackup(ctx context.Context, backupId PhysicalBackupId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeletePhysicalBackupRequest(c.Server, backupId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// CancelPhysicalBackup Cancel a running physical backup
+//
+// Needs WORKSPACE_MEMBER. Interrupts the process; the backup then becomes CANCELED. A finished backup gets 409 not_running.
+//
+// Corresponds with POST /physical-backups/{backupId}/cancel (the `CancelPhysicalBackup` operationId).
+func (c *Client) CancelPhysicalBackup(ctx context.Context, backupId PhysicalBackupId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCancelPhysicalBackupRequest(c.Server, backupId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetRecoveryScript Get the physical recovery script
+//
+// Public because this static script contains no instance address or credentials. Takes a restore set URL or path and an output directory as arguments.
+//
+// Corresponds with GET /physical-recovery-scripts (the `GetRecoveryScript` operationId).
+func (c *Client) GetRecoveryScript(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetRecoveryScriptRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// DownloadPhysicalRestoreSet Download a physical restore set
+//
+// Public because the single-use restore token is the credential; a browser link cannot carry a session. Consumes the token before acquiring the user stream. Unknown, expired and used tokens get 401 unauthenticated. A running user stream gets 409 already_running and spends the token. A restore set that can no longer be built gets the same problem as at token issue.
+//
+// Corresponds with GET /physical-restore-sets (the `DownloadPhysicalRestoreSet` operationId).
+func (c *Client) DownloadPhysicalRestoreSet(ctx context.Context, params *DownloadPhysicalRestoreSetParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDownloadPhysicalRestoreSetRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// CreatePhysicalRestoreTokenWithBody Issue a token for one physical restore set
+//
+// Needs WORKSPACE_VIEWER. The token expires in 15 minutes. A database without a completed full backup or an unrestorable backup gets 409 no_restorable_backup. An unreachable target time gets 409 target_time_unreachable, with the latest restorable LSN in the detail for a WAL gap. A running download or restore stream gets 409 already_running. A nonphysical database gets 400 invalid_request.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /physical-restore-tokens (the `CreatePhysicalRestoreToken` operationId).
+func (c *Client) CreatePhysicalRestoreTokenWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreatePhysicalRestoreTokenRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// CreatePhysicalRestoreToken Issue a token for one physical restore set
+//
+// Needs WORKSPACE_VIEWER. The token expires in 15 minutes. A database without a completed full backup or an unrestorable backup gets 409 no_restorable_backup. An unreachable target time gets 409 target_time_unreachable, with the latest restorable LSN in the detail for a WAL gap. A running download or restore stream gets 409 already_running. A nonphysical database gets 400 invalid_request.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /physical-restore-tokens (the `CreatePhysicalRestoreToken` operationId).
+func (c *Client) CreatePhysicalRestoreToken(ctx context.Context, body CreatePhysicalRestoreTokenJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreatePhysicalRestoreTokenRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 // ListRestores List the restores of a logical backup
 //
 // Ordered newest first by creation time, then by ID. A user who is not a member of the backup's workspace gets 404 `not_found`.
@@ -7461,6 +8647,40 @@ func (c *Client) ChangeUserRoleWithBody(ctx context.Context, userId UserId, cont
 // Corresponds with PUT /users/{userId}/role (the `ChangeUserRole` operationId).
 func (c *Client) ChangeUserRole(ctx context.Context, userId UserId, body ChangeUserRoleJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewChangeUserRoleRequest(c.Server, userId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetWalStream Read the current values of a WAL stream
+//
+// Needs WORKSPACE_VIEWER. An outsider or missing database gets 404 not_found. A nonphysical database gets 400 invalid_request. Source-side values come from the streamer probes and open no connection to the source.
+//
+// Corresponds with GET /wal-streams/{databaseId} (the `GetWalStream` operationId).
+func (c *Client) GetWalStream(ctx context.Context, databaseId DatabaseId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetWalStreamRequest(c.Server, databaseId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetWalStreamStatistics Read the statistics of a WAL stream
+//
+// Needs WORKSPACE_VIEWER. An outsider or missing database gets 404 not_found. A nonphysical database gets 400 invalid_request. Source-side values come from the streamer probes and open no connection to the source.
+//
+// Corresponds with GET /wal-streams/{databaseId}/statistics (the `GetWalStreamStatistics` operationId).
+func (c *Client) GetWalStreamStatistics(ctx context.Context, databaseId DatabaseId, params *GetWalStreamStatisticsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetWalStreamStatisticsRequest(c.Server, databaseId, params)
 	if err != nil {
 		return nil, err
 	}
@@ -9491,6 +10711,341 @@ func NewVerifySignInCodeRequestWithBody(server string, pendingSignInId PendingSi
 	return req, nil
 }
 
+// NewListPhysicalBackupsRequest constructs an http.Request for the ListPhysicalBackups method
+func NewListPhysicalBackupsRequest(server string, params *ListPhysicalBackupsParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/physical-backups")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "databaseId", params.DatabaseId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: "uuid"}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if params.Type != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "type", *params.Type, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "array", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Status != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "status", *params.Status, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "array", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.CreatedBefore != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "createdBefore", *params.CreatedBefore, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: "date-time"}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "limit", *params.Limit, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.After != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "after", *params.After, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewStartPhysicalBackupRequest calls the generic StartPhysicalBackup builder with application/json body
+func NewStartPhysicalBackupRequest(server string, body StartPhysicalBackupJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewStartPhysicalBackupRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewStartPhysicalBackupRequestWithBody constructs an http.Request for the StartPhysicalBackup method, with any body, and a specified content type
+func NewStartPhysicalBackupRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/physical-backups")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewDeletePhysicalBackupRequest constructs an http.Request for the DeletePhysicalBackup method
+func NewDeletePhysicalBackupRequest(server string, backupId PhysicalBackupId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "backupId", backupId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/physical-backups/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodDelete, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewCancelPhysicalBackupRequest constructs an http.Request for the CancelPhysicalBackup method
+func NewCancelPhysicalBackupRequest(server string, backupId PhysicalBackupId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "backupId", backupId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/physical-backups/%s/cancel", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetRecoveryScriptRequest constructs an http.Request for the GetRecoveryScript method
+func NewGetRecoveryScriptRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/physical-recovery-scripts")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewDownloadPhysicalRestoreSetRequest constructs an http.Request for the DownloadPhysicalRestoreSet method
+func NewDownloadPhysicalRestoreSetRequest(server string, params *DownloadPhysicalRestoreSetParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/physical-restore-sets")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "token", params.Token, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewCreatePhysicalRestoreTokenRequest calls the generic CreatePhysicalRestoreToken builder with application/json body
+func NewCreatePhysicalRestoreTokenRequest(server string, body CreatePhysicalRestoreTokenJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCreatePhysicalRestoreTokenRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewCreatePhysicalRestoreTokenRequestWithBody constructs an http.Request for the CreatePhysicalRestoreToken method, with any body, and a specified content type
+func NewCreatePhysicalRestoreTokenRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/physical-restore-tokens")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewListRestoresRequest constructs an http.Request for the ListRestores method
 func NewListRestoresRequest(server string, params *ListRestoresParams) (*http.Request, error) {
 	var err error
@@ -10501,6 +12056,97 @@ func NewChangeUserRoleRequestWithBody(server string, userId UserId, contentType 
 	}
 
 	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewGetWalStreamRequest constructs an http.Request for the GetWalStream method
+func NewGetWalStreamRequest(server string, databaseId DatabaseId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "databaseId", databaseId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/wal-streams/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetWalStreamStatisticsRequest constructs an http.Request for the GetWalStreamStatistics method
+func NewGetWalStreamStatisticsRequest(server string, databaseId DatabaseId, params *GetWalStreamStatisticsParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "databaseId", databaseId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/wal-streams/%s/statistics", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "period", params.Period, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
 
 	return req, nil
 }
@@ -11534,6 +13180,87 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with POST /pending-sign-ins/{pendingSignInId}/verify (the `VerifySignInCode` operationId).
 	VerifySignInCodeWithResponse(ctx context.Context, pendingSignInId PendingSignInId, body VerifySignInCodeJSONRequestBody, reqEditors ...RequestEditorFn) (*VerifySignInCodeResponse, error)
 
+	// ListPhysicalBackupsWithResponse List the physical backups of a database
+	//
+	// Needs WORKSPACE_VIEWER. Ordered newest first by creation time and ID. Includes full backups, incremental backups and WAL ranges. totalUsageMb covers every backup of the database, independently of the page and filters. An outsider gets 404 not_found; a nonphysical database, invalid limit or malformed cursor gets 400 invalid_request.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /physical-backups (the `ListPhysicalBackups` operationId).
+	ListPhysicalBackupsWithResponse(ctx context.Context, params *ListPhysicalBackupsParams, reqEditors ...RequestEditorFn) (*ListPhysicalBackupsResponse, error)
+
+	// StartPhysicalBackupWithBodyWithResponse Request a physical backup
+	//
+	// Needs WORKSPACE_MEMBER. Records the request; the scheduler creates the backup on its next pass. AUTO chooses an incremental when the backup type supports it and a chain can be extended, otherwise a full backup. An incremental without an extendable chain gets 409 no_extendable_chain. A nonphysical database gets 400 invalid_request.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /physical-backups (the `StartPhysicalBackup` operationId).
+	StartPhysicalBackupWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*StartPhysicalBackupResponse, error)
+
+	// StartPhysicalBackupWithResponse Request a physical backup
+	//
+	// Needs WORKSPACE_MEMBER. Records the request; the scheduler creates the backup on its next pass. AUTO chooses an incremental when the backup type supports it and a chain can be extended, otherwise a full backup. An incremental without an extendable chain gets 409 no_extendable_chain. A nonphysical database gets 400 invalid_request.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /physical-backups (the `StartPhysicalBackup` operationId).
+	StartPhysicalBackupWithResponse(ctx context.Context, body StartPhysicalBackupJSONRequestBody, reqEditors ...RequestEditorFn) (*StartPhysicalBackupResponse, error)
+
+	// DeletePhysicalBackupWithResponse Delete a physical backup and its descendants
+	//
+	// Needs WORKSPACE_MEMBER. Stops a running backup before deleting it. A full backup removes its incremental chain; an incremental removes its descendants. A WAL segment ID gets 404 not_found and deletes nothing.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with DELETE /physical-backups/{backupId} (the `DeletePhysicalBackup` operationId).
+	DeletePhysicalBackupWithResponse(ctx context.Context, backupId PhysicalBackupId, reqEditors ...RequestEditorFn) (*DeletePhysicalBackupResponse, error)
+
+	// CancelPhysicalBackupWithResponse Cancel a running physical backup
+	//
+	// Needs WORKSPACE_MEMBER. Interrupts the process; the backup then becomes CANCELED. A finished backup gets 409 not_running.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /physical-backups/{backupId}/cancel (the `CancelPhysicalBackup` operationId).
+	CancelPhysicalBackupWithResponse(ctx context.Context, backupId PhysicalBackupId, reqEditors ...RequestEditorFn) (*CancelPhysicalBackupResponse, error)
+
+	// GetRecoveryScriptWithResponse Get the physical recovery script
+	//
+	// Public because this static script contains no instance address or credentials. Takes a restore set URL or path and an output directory as arguments.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /physical-recovery-scripts (the `GetRecoveryScript` operationId).
+	GetRecoveryScriptWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetRecoveryScriptResponse, error)
+
+	// DownloadPhysicalRestoreSetWithResponse Download a physical restore set
+	//
+	// Public because the single-use restore token is the credential; a browser link cannot carry a session. Consumes the token before acquiring the user stream. Unknown, expired and used tokens get 401 unauthenticated. A running user stream gets 409 already_running and spends the token. A restore set that can no longer be built gets the same problem as at token issue.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /physical-restore-sets (the `DownloadPhysicalRestoreSet` operationId).
+	DownloadPhysicalRestoreSetWithResponse(ctx context.Context, params *DownloadPhysicalRestoreSetParams, reqEditors ...RequestEditorFn) (*DownloadPhysicalRestoreSetResponse, error)
+
+	// CreatePhysicalRestoreTokenWithBodyWithResponse Issue a token for one physical restore set
+	//
+	// Needs WORKSPACE_VIEWER. The token expires in 15 minutes. A database without a completed full backup or an unrestorable backup gets 409 no_restorable_backup. An unreachable target time gets 409 target_time_unreachable, with the latest restorable LSN in the detail for a WAL gap. A running download or restore stream gets 409 already_running. A nonphysical database gets 400 invalid_request.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /physical-restore-tokens (the `CreatePhysicalRestoreToken` operationId).
+	CreatePhysicalRestoreTokenWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreatePhysicalRestoreTokenResponse, error)
+
+	// CreatePhysicalRestoreTokenWithResponse Issue a token for one physical restore set
+	//
+	// Needs WORKSPACE_VIEWER. The token expires in 15 minutes. A database without a completed full backup or an unrestorable backup gets 409 no_restorable_backup. An unreachable target time gets 409 target_time_unreachable, with the latest restorable LSN in the detail for a WAL gap. A running download or restore stream gets 409 already_running. A nonphysical database gets 400 invalid_request.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /physical-restore-tokens (the `CreatePhysicalRestoreToken` operationId).
+	CreatePhysicalRestoreTokenWithResponse(ctx context.Context, body CreatePhysicalRestoreTokenJSONRequestBody, reqEditors ...RequestEditorFn) (*CreatePhysicalRestoreTokenResponse, error)
+
 	// ListRestoresWithResponse List the restores of a logical backup
 	//
 	// Ordered newest first by creation time, then by ID. A user who is not a member of the backup's workspace gets 404 `not_found`.
@@ -11839,6 +13566,24 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with PUT /users/{userId}/role (the `ChangeUserRole` operationId).
 	ChangeUserRoleWithResponse(ctx context.Context, userId UserId, body ChangeUserRoleJSONRequestBody, reqEditors ...RequestEditorFn) (*ChangeUserRoleResponse, error)
+
+	// GetWalStreamWithResponse Read the current values of a WAL stream
+	//
+	// Needs WORKSPACE_VIEWER. An outsider or missing database gets 404 not_found. A nonphysical database gets 400 invalid_request. Source-side values come from the streamer probes and open no connection to the source.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /wal-streams/{databaseId} (the `GetWalStream` operationId).
+	GetWalStreamWithResponse(ctx context.Context, databaseId DatabaseId, reqEditors ...RequestEditorFn) (*GetWalStreamResponse, error)
+
+	// GetWalStreamStatisticsWithResponse Read the statistics of a WAL stream
+	//
+	// Needs WORKSPACE_VIEWER. An outsider or missing database gets 404 not_found. A nonphysical database gets 400 invalid_request. Source-side values come from the streamer probes and open no connection to the source.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /wal-streams/{databaseId}/statistics (the `GetWalStreamStatistics` operationId).
+	GetWalStreamStatisticsWithResponse(ctx context.Context, databaseId DatabaseId, params *GetWalStreamStatisticsParams, reqEditors ...RequestEditorFn) (*GetWalStreamStatisticsResponse, error)
 
 	// ListWorkspaceMembersWithResponse List the members of a workspace
 	//
@@ -14703,6 +16448,496 @@ func (r VerifySignInCodeResponse) ContentType() string {
 	return ""
 }
 
+type ListPhysicalBackupsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *PhysicalBackupPage
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ListPhysicalBackupsResponse) GetJSON200() *PhysicalBackupPage {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r ListPhysicalBackupsResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r ListPhysicalBackupsResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r ListPhysicalBackupsResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r ListPhysicalBackupsResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r ListPhysicalBackupsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ListPhysicalBackupsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListPhysicalBackupsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ListPhysicalBackupsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type StartPhysicalBackupResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSON409 the response for an HTTP 409 `application/problem+json` response
+	ApplicationproblemJSON409 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r StartPhysicalBackupResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r StartPhysicalBackupResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r StartPhysicalBackupResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r StartPhysicalBackupResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSON409 returns the response for an HTTP 409 `application/problem+json` response
+func (r StartPhysicalBackupResponse) GetApplicationproblemJSON409() *Problem {
+	return r.ApplicationproblemJSON409
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r StartPhysicalBackupResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r StartPhysicalBackupResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r StartPhysicalBackupResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r StartPhysicalBackupResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r StartPhysicalBackupResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type DeletePhysicalBackupResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r DeletePhysicalBackupResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r DeletePhysicalBackupResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r DeletePhysicalBackupResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r DeletePhysicalBackupResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r DeletePhysicalBackupResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r DeletePhysicalBackupResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r DeletePhysicalBackupResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DeletePhysicalBackupResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r DeletePhysicalBackupResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type CancelPhysicalBackupResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSON409 the response for an HTTP 409 `application/problem+json` response
+	ApplicationproblemJSON409 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r CancelPhysicalBackupResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r CancelPhysicalBackupResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r CancelPhysicalBackupResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r CancelPhysicalBackupResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSON409 returns the response for an HTTP 409 `application/problem+json` response
+func (r CancelPhysicalBackupResponse) GetApplicationproblemJSON409() *Problem {
+	return r.ApplicationproblemJSON409
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r CancelPhysicalBackupResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r CancelPhysicalBackupResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r CancelPhysicalBackupResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CancelPhysicalBackupResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r CancelPhysicalBackupResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// GetRecoveryScriptResponse200Headers the declared response headers of an HTTP 200 response for GetRecoveryScript
+type GetRecoveryScriptResponse200Headers struct {
+	ContentDisposition *string
+}
+
+type GetRecoveryScriptResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+	// Headers200 the parsed response headers for an HTTP 200 response
+	Headers200 *GetRecoveryScriptResponse200Headers
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r GetRecoveryScriptResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r GetRecoveryScriptResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetRecoveryScriptResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetRecoveryScriptResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetRecoveryScriptResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// DownloadPhysicalRestoreSetResponse200Headers the declared response headers of an HTTP 200 response for DownloadPhysicalRestoreSet
+type DownloadPhysicalRestoreSetResponse200Headers struct {
+	ContentDisposition *string
+}
+
+type DownloadPhysicalRestoreSetResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSON409 the response for an HTTP 409 `application/problem+json` response
+	ApplicationproblemJSON409 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+	// Headers200 the parsed response headers for an HTTP 200 response
+	Headers200 *DownloadPhysicalRestoreSetResponse200Headers
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r DownloadPhysicalRestoreSetResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r DownloadPhysicalRestoreSetResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r DownloadPhysicalRestoreSetResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSON409 returns the response for an HTTP 409 `application/problem+json` response
+func (r DownloadPhysicalRestoreSetResponse) GetApplicationproblemJSON409() *Problem {
+	return r.ApplicationproblemJSON409
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r DownloadPhysicalRestoreSetResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r DownloadPhysicalRestoreSetResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r DownloadPhysicalRestoreSetResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DownloadPhysicalRestoreSetResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r DownloadPhysicalRestoreSetResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type CreatePhysicalRestoreTokenResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON201 the response for an HTTP 201 `application/json` response
+	JSON201 *PhysicalRestoreToken
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSON409 the response for an HTTP 409 `application/problem+json` response
+	ApplicationproblemJSON409 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON201 returns the response for an HTTP 201 `application/json` response
+func (r CreatePhysicalRestoreTokenResponse) GetJSON201() *PhysicalRestoreToken {
+	return r.JSON201
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r CreatePhysicalRestoreTokenResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r CreatePhysicalRestoreTokenResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r CreatePhysicalRestoreTokenResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSON409 returns the response for an HTTP 409 `application/problem+json` response
+func (r CreatePhysicalRestoreTokenResponse) GetApplicationproblemJSON409() *Problem {
+	return r.ApplicationproblemJSON409
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r CreatePhysicalRestoreTokenResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r CreatePhysicalRestoreTokenResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r CreatePhysicalRestoreTokenResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreatePhysicalRestoreTokenResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r CreatePhysicalRestoreTokenResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type ListRestoresResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -16408,6 +18643,144 @@ func (r ChangeUserRoleResponse) ContentType() string {
 	return ""
 }
 
+type GetWalStreamResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *WalStreamLive
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetWalStreamResponse) GetJSON200() *WalStreamLive {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r GetWalStreamResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r GetWalStreamResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r GetWalStreamResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r GetWalStreamResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r GetWalStreamResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetWalStreamResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetWalStreamResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetWalStreamResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetWalStreamStatisticsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *WalStreamStatistics
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetWalStreamStatisticsResponse) GetJSON200() *WalStreamStatistics {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r GetWalStreamStatisticsResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r GetWalStreamStatisticsResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r GetWalStreamStatisticsResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r GetWalStreamStatisticsResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r GetWalStreamStatisticsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetWalStreamStatisticsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetWalStreamStatisticsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetWalStreamStatisticsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type ListWorkspaceMembersResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -18010,6 +20383,141 @@ func (c *ClientWithResponses) VerifySignInCodeWithResponse(ctx context.Context, 
 	return ParseVerifySignInCodeResponse(rsp)
 }
 
+// ListPhysicalBackupsWithResponse List the physical backups of a database
+//
+// Needs WORKSPACE_VIEWER. Ordered newest first by creation time and ID. Includes full backups, incremental backups and WAL ranges. totalUsageMb covers every backup of the database, independently of the page and filters. An outsider gets 404 not_found; a nonphysical database, invalid limit or malformed cursor gets 400 invalid_request.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /physical-backups (the `ListPhysicalBackups` operationId).
+func (c *ClientWithResponses) ListPhysicalBackupsWithResponse(ctx context.Context, params *ListPhysicalBackupsParams, reqEditors ...RequestEditorFn) (*ListPhysicalBackupsResponse, error) {
+	rsp, err := c.ListPhysicalBackups(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListPhysicalBackupsResponse(rsp)
+}
+
+// StartPhysicalBackupWithBodyWithResponse Request a physical backup
+//
+// Needs WORKSPACE_MEMBER. Records the request; the scheduler creates the backup on its next pass. AUTO chooses an incremental when the backup type supports it and a chain can be extended, otherwise a full backup. An incremental without an extendable chain gets 409 no_extendable_chain. A nonphysical database gets 400 invalid_request.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /physical-backups (the `StartPhysicalBackup` operationId).
+func (c *ClientWithResponses) StartPhysicalBackupWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*StartPhysicalBackupResponse, error) {
+	rsp, err := c.StartPhysicalBackupWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseStartPhysicalBackupResponse(rsp)
+}
+
+// StartPhysicalBackupWithResponse Request a physical backup
+//
+// Needs WORKSPACE_MEMBER. Records the request; the scheduler creates the backup on its next pass. AUTO chooses an incremental when the backup type supports it and a chain can be extended, otherwise a full backup. An incremental without an extendable chain gets 409 no_extendable_chain. A nonphysical database gets 400 invalid_request.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /physical-backups (the `StartPhysicalBackup` operationId).
+func (c *ClientWithResponses) StartPhysicalBackupWithResponse(ctx context.Context, body StartPhysicalBackupJSONRequestBody, reqEditors ...RequestEditorFn) (*StartPhysicalBackupResponse, error) {
+	rsp, err := c.StartPhysicalBackup(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseStartPhysicalBackupResponse(rsp)
+}
+
+// DeletePhysicalBackupWithResponse Delete a physical backup and its descendants
+//
+// Needs WORKSPACE_MEMBER. Stops a running backup before deleting it. A full backup removes its incremental chain; an incremental removes its descendants. A WAL segment ID gets 404 not_found and deletes nothing.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with DELETE /physical-backups/{backupId} (the `DeletePhysicalBackup` operationId).
+func (c *ClientWithResponses) DeletePhysicalBackupWithResponse(ctx context.Context, backupId PhysicalBackupId, reqEditors ...RequestEditorFn) (*DeletePhysicalBackupResponse, error) {
+	rsp, err := c.DeletePhysicalBackup(ctx, backupId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDeletePhysicalBackupResponse(rsp)
+}
+
+// CancelPhysicalBackupWithResponse Cancel a running physical backup
+//
+// Needs WORKSPACE_MEMBER. Interrupts the process; the backup then becomes CANCELED. A finished backup gets 409 not_running.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /physical-backups/{backupId}/cancel (the `CancelPhysicalBackup` operationId).
+func (c *ClientWithResponses) CancelPhysicalBackupWithResponse(ctx context.Context, backupId PhysicalBackupId, reqEditors ...RequestEditorFn) (*CancelPhysicalBackupResponse, error) {
+	rsp, err := c.CancelPhysicalBackup(ctx, backupId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCancelPhysicalBackupResponse(rsp)
+}
+
+// GetRecoveryScriptWithResponse Get the physical recovery script
+//
+// Public because this static script contains no instance address or credentials. Takes a restore set URL or path and an output directory as arguments.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /physical-recovery-scripts (the `GetRecoveryScript` operationId).
+func (c *ClientWithResponses) GetRecoveryScriptWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetRecoveryScriptResponse, error) {
+	rsp, err := c.GetRecoveryScript(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetRecoveryScriptResponse(rsp)
+}
+
+// DownloadPhysicalRestoreSetWithResponse Download a physical restore set
+//
+// Public because the single-use restore token is the credential; a browser link cannot carry a session. Consumes the token before acquiring the user stream. Unknown, expired and used tokens get 401 unauthenticated. A running user stream gets 409 already_running and spends the token. A restore set that can no longer be built gets the same problem as at token issue.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /physical-restore-sets (the `DownloadPhysicalRestoreSet` operationId).
+func (c *ClientWithResponses) DownloadPhysicalRestoreSetWithResponse(ctx context.Context, params *DownloadPhysicalRestoreSetParams, reqEditors ...RequestEditorFn) (*DownloadPhysicalRestoreSetResponse, error) {
+	rsp, err := c.DownloadPhysicalRestoreSet(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDownloadPhysicalRestoreSetResponse(rsp)
+}
+
+// CreatePhysicalRestoreTokenWithBodyWithResponse Issue a token for one physical restore set
+//
+// Needs WORKSPACE_VIEWER. The token expires in 15 minutes. A database without a completed full backup or an unrestorable backup gets 409 no_restorable_backup. An unreachable target time gets 409 target_time_unreachable, with the latest restorable LSN in the detail for a WAL gap. A running download or restore stream gets 409 already_running. A nonphysical database gets 400 invalid_request.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /physical-restore-tokens (the `CreatePhysicalRestoreToken` operationId).
+func (c *ClientWithResponses) CreatePhysicalRestoreTokenWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreatePhysicalRestoreTokenResponse, error) {
+	rsp, err := c.CreatePhysicalRestoreTokenWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreatePhysicalRestoreTokenResponse(rsp)
+}
+
+// CreatePhysicalRestoreTokenWithResponse Issue a token for one physical restore set
+//
+// Needs WORKSPACE_VIEWER. The token expires in 15 minutes. A database without a completed full backup or an unrestorable backup gets 409 no_restorable_backup. An unreachable target time gets 409 target_time_unreachable, with the latest restorable LSN in the detail for a WAL gap. A running download or restore stream gets 409 already_running. A nonphysical database gets 400 invalid_request.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /physical-restore-tokens (the `CreatePhysicalRestoreToken` operationId).
+func (c *ClientWithResponses) CreatePhysicalRestoreTokenWithResponse(ctx context.Context, body CreatePhysicalRestoreTokenJSONRequestBody, reqEditors ...RequestEditorFn) (*CreatePhysicalRestoreTokenResponse, error) {
+	rsp, err := c.CreatePhysicalRestoreToken(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreatePhysicalRestoreTokenResponse(rsp)
+}
+
 // ListRestoresWithResponse List the restores of a logical backup
 //
 // Ordered newest first by creation time, then by ID. A user who is not a member of the backup's workspace gets 404 `not_found`.
@@ -18518,6 +21026,36 @@ func (c *ClientWithResponses) ChangeUserRoleWithResponse(ctx context.Context, us
 		return nil, err
 	}
 	return ParseChangeUserRoleResponse(rsp)
+}
+
+// GetWalStreamWithResponse Read the current values of a WAL stream
+//
+// Needs WORKSPACE_VIEWER. An outsider or missing database gets 404 not_found. A nonphysical database gets 400 invalid_request. Source-side values come from the streamer probes and open no connection to the source.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /wal-streams/{databaseId} (the `GetWalStream` operationId).
+func (c *ClientWithResponses) GetWalStreamWithResponse(ctx context.Context, databaseId DatabaseId, reqEditors ...RequestEditorFn) (*GetWalStreamResponse, error) {
+	rsp, err := c.GetWalStream(ctx, databaseId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetWalStreamResponse(rsp)
+}
+
+// GetWalStreamStatisticsWithResponse Read the statistics of a WAL stream
+//
+// Needs WORKSPACE_VIEWER. An outsider or missing database gets 404 not_found. A nonphysical database gets 400 invalid_request. Source-side values come from the streamer probes and open no connection to the source.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /wal-streams/{databaseId}/statistics (the `GetWalStreamStatistics` operationId).
+func (c *ClientWithResponses) GetWalStreamStatisticsWithResponse(ctx context.Context, databaseId DatabaseId, params *GetWalStreamStatisticsParams, reqEditors ...RequestEditorFn) (*GetWalStreamStatisticsResponse, error) {
+	rsp, err := c.GetWalStreamStatistics(ctx, databaseId, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetWalStreamStatisticsResponse(rsp)
 }
 
 // ListWorkspaceMembersWithResponse List the members of a workspace
@@ -20929,6 +23467,412 @@ func ParseVerifySignInCodeResponse(rsp *http.Response) (*VerifySignInCodeRespons
 	return response, nil
 }
 
+// ParseListPhysicalBackupsResponse parses an HTTP response from a ListPhysicalBackupsWithResponse call
+func ParseListPhysicalBackupsResponse(rsp *http.Response) (*ListPhysicalBackupsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListPhysicalBackupsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest PhysicalBackupPage
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseStartPhysicalBackupResponse parses an HTTP response from a StartPhysicalBackupWithResponse call
+func ParseStartPhysicalBackupResponse(rsp *http.Response) (*StartPhysicalBackupResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &StartPhysicalBackupResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case rsp.StatusCode == 202:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseDeletePhysicalBackupResponse parses an HTTP response from a DeletePhysicalBackupWithResponse call
+func ParseDeletePhysicalBackupResponse(rsp *http.Response) (*DeletePhysicalBackupResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeletePhysicalBackupResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case rsp.StatusCode == 204:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCancelPhysicalBackupResponse parses an HTTP response from a CancelPhysicalBackupWithResponse call
+func ParseCancelPhysicalBackupResponse(rsp *http.Response) (*CancelPhysicalBackupResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CancelPhysicalBackupResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case rsp.StatusCode == 202:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetRecoveryScriptResponse parses an HTTP response from a GetRecoveryScriptWithResponse call
+func ParseGetRecoveryScriptResponse(rsp *http.Response) (*GetRecoveryScriptResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetRecoveryScriptResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 200:
+		var headers GetRecoveryScriptResponse200Headers
+		if values := rsp.Header.Values("Content-Disposition"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "Content-Disposition", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.ContentDisposition = &value
+		}
+		response.Headers200 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseDownloadPhysicalRestoreSetResponse parses an HTTP response from a DownloadPhysicalRestoreSetWithResponse call
+func ParseDownloadPhysicalRestoreSetResponse(rsp *http.Response) (*DownloadPhysicalRestoreSetResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DownloadPhysicalRestoreSetResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 200:
+		var headers DownloadPhysicalRestoreSetResponse200Headers
+		if values := rsp.Header.Values("Content-Disposition"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "Content-Disposition", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.ContentDisposition = &value
+		}
+		response.Headers200 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseCreatePhysicalRestoreTokenResponse parses an HTTP response from a CreatePhysicalRestoreTokenWithResponse call
+func ParseCreatePhysicalRestoreTokenResponse(rsp *http.Response) (*CreatePhysicalRestoreTokenResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CreatePhysicalRestoreTokenResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest PhysicalRestoreToken
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseListRestoresResponse parses an HTTP response from a ListRestoresWithResponse call
 func ParseListRestoresResponse(rsp *http.Response) (*ListRestoresResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -22263,6 +25207,114 @@ func ParseChangeUserRoleResponse(rsp *http.Response) (*ChangeUserRoleResponse, e
 			return nil, err
 		}
 		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetWalStreamResponse parses an HTTP response from a GetWalStreamWithResponse call
+func ParseGetWalStreamResponse(rsp *http.Response) (*GetWalStreamResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetWalStreamResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest WalStreamLive
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetWalStreamStatisticsResponse parses an HTTP response from a GetWalStreamStatisticsWithResponse call
+func ParseGetWalStreamStatisticsResponse(rsp *http.Response) (*GetWalStreamStatisticsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetWalStreamStatisticsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest WalStreamStatistics
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
 		var dest Problem

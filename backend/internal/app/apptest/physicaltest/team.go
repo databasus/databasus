@@ -127,16 +127,16 @@ func (team Team) enableBackups(t *testing.T, isWalStream bool) {
 	require.Equal(t, http.StatusOK, response.StatusCode(), "%s", response.Body)
 }
 
-type oldAPIResponseSpec struct {
-	Call        apptest.OldAPICall
+type physicalResponseSpec struct {
+	Call        apptest.PhysicalRequest
 	Status      int
 	Destination any
 }
 
-func (team Team) call(t *testing.T, spec oldAPIResponseSpec) []byte {
+func (team Team) call(t *testing.T, spec physicalResponseSpec) []byte {
 	t.Helper()
 
-	responseStatus, body := team.App.CallOldAPI(t, team.Owner, spec.Call)
+	responseStatus, body := team.App.CallPhysicalAPI(t, team.Owner, spec.Call)
 	require.Equal(t, spec.Status, responseStatus, "%s", body)
 	if spec.Destination != nil {
 		require.NoError(t, json.Unmarshal(body, spec.Destination))
@@ -147,15 +147,14 @@ func (team Team) call(t *testing.T, spec oldAPIResponseSpec) []byte {
 func (team Team) triggerIncremental(t *testing.T) {
 	t.Helper()
 
-	team.call(t, oldAPIResponseSpec{Call: apptest.OldAPICall{
-		Method: http.MethodPost,
-		Path:   team.getDatabasePath() + "/trigger",
-		Body:   map[string]string{"type": "incremental"},
-	}, Status: http.StatusAccepted, Destination: nil})
-}
-
-func (team Team) getDatabasePath() string {
-	return "/backups/physical/database/" + team.Database.Id.String()
+	team.call(
+		t,
+		physicalResponseSpec{
+			Call:        apptest.PhysicalStartRequest(team.Database.Id, "INCREMENTAL"),
+			Status:      http.StatusAccepted,
+			Destination: nil,
+		},
+	)
 }
 
 func (team Team) deleteDatabase(t *testing.T) {

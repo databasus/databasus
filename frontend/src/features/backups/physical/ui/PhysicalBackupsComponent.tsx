@@ -153,19 +153,19 @@ export const PhysicalBackupsComponent = ({
     database.settings.type === DatabaseType.POSTGRES_PHYSICAL &&
     database.settings.backupType !== PhysicalDatabaseBackupType.FULL;
 
-  const fetchBackupsPage = async (cursor: string | undefined) => {
+  const fetchBackupsPage = async (after: string | undefined) => {
     const response = await physicalBackupsApi.getPhysicalBackups(
       database.id,
       BACKUPS_PAGE_SIZE,
-      cursor,
+      after,
       filters,
     );
 
-    if (cursor === undefined) {
+    if (after === undefined) {
       setTotalUsageMb(response.totalUsageMb);
     }
 
-    return { items: response.backups, nextCursor: response.nextCursor };
+    return { items: response.items, nextCursor: response.nextCursor };
   };
 
   const triggerBackup = async (type: TriggerPhysicalBackupType) => {
@@ -414,7 +414,7 @@ export const PhysicalBackupsComponent = ({
   const isAnyFilterApplied =
     (filters.types !== undefined && filters.types.length > 0) ||
     (filters.statuses !== undefined && filters.statuses.length > 0) ||
-    filters.beforeDate !== undefined;
+    filters.createdBefore !== undefined;
 
   if (isBackupConfigLoading) {
     return (
@@ -470,7 +470,7 @@ export const PhysicalBackupsComponent = ({
           disabled={isTriggeringBackup}
           icon={<DownOutlined />}
           menu={backupNowMenu}
-          onClick={() => triggerBackup('auto')}
+          onClick={() => triggerBackup('AUTO')}
         >
           {t('backups.physical.list.backUpNow')}
         </Dropdown.Button>

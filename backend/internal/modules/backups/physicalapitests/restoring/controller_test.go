@@ -10,10 +10,13 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"databasus-backend/internal/app/apptest"
+	apiclient "databasus-backend/internal/lib/apiclient"
 )
 
 func TestRestorePhysicalBackup(t *testing.T) {
-	t.Run("issues a token and download URL when a full backup can be restored", func(t *testing.T) {
+	t.Run("issues a token and expiry time when a full backup can be restored", func(t *testing.T) {
 		catalog := newCatalog(t)
 
 		catalog.insertFull(
@@ -33,31 +36,30 @@ func TestRestorePhysicalBackup(t *testing.T) {
 		catalog.call(
 			t,
 			catalogCall{
-				Method:        http.MethodPost,
-				Path:          "/api/v1/backups/physical/database/" + catalog.DatabaseID.String() + "/restore-token",
+				Request:       apptest.PhysicalPitrTokenRequest(catalog.DatabaseID, nil),
 				Authorization: "Bearer " + catalog.Owner.Token,
-				Body:          restoreTokenRequest{},
-				StatusCode:    http.StatusOK,
+				StatusCode:    http.StatusCreated,
 				Destination:   &response,
 			},
 		)
 
 		assert.NotEmpty(t, response.Token)
-		assert.Contains(t, response.URL, response.Token)
+		assert.WithinDuration(t, time.Now().Add(15*time.Minute), response.ExpiresAt, time.Minute)
 	})
-	t.Run("returns 404 when the database has no restorable chain", func(t *testing.T) {
+	t.Run("returns 409 when the database has no restorable chain", func(t *testing.T) {
 		catalog := newCatalog(t)
 
+		var problem apiclient.Problem
 		catalog.call(
 			t,
 			catalogCall{
-				Method:        http.MethodPost,
-				Path:          "/api/v1/backups/physical/database/" + catalog.DatabaseID.String() + "/restore-token",
+				Request:       apptest.PhysicalPitrTokenRequest(catalog.DatabaseID, nil),
 				Authorization: "Bearer " + catalog.Owner.Token,
-				Body:          restoreTokenRequest{},
-				StatusCode:    http.StatusNotFound,
+				StatusCode:    http.StatusConflict,
+				Destination:   &problem,
 			},
 		)
+		assert.Equal(t, apiclient.ProblemCodeNoRestorableBackup, problem.Code)
 	})
 	t.Run("issues a token when the requested restore time is reachable", func(t *testing.T) {
 		catalog := newCatalog(t)
@@ -109,11 +111,9 @@ func TestRestorePhysicalBackup(t *testing.T) {
 		catalog.call(
 			t,
 			catalogCall{
-				Method:        http.MethodPost,
-				Path:          "/api/v1/backups/physical/database/" + catalog.DatabaseID.String() + "/restore-token",
+				Request:       apptest.PhysicalPitrTokenRequest(catalog.DatabaseID, &targetTime),
 				Authorization: "Bearer " + catalog.Owner.Token,
-				Body:          restoreTokenRequest{TargetTime: &targetTime},
-				StatusCode:    http.StatusOK,
+				StatusCode:    http.StatusCreated,
 				Destination:   &response,
 			},
 		)
@@ -170,18 +170,16 @@ func TestRestorePhysicalBackup(t *testing.T) {
 		catalog.call(
 			t,
 			catalogCall{
-				Method:        http.MethodPost,
-				Path:          "/api/v1/backups/physical/database/" + catalog.DatabaseID.String() + "/restore-token",
+				Request:       apptest.PhysicalPitrTokenRequest(catalog.DatabaseID, &targetTime),
 				Authorization: "Bearer " + catalog.Owner.Token,
-				Body:          restoreTokenRequest{TargetTime: &targetTime},
-				StatusCode:    http.StatusOK,
+				StatusCode:    http.StatusCreated,
 				Destination:   &response,
 			},
 		)
 
 		assert.NotEmpty(t, response.Token)
 	})
-	t.Run("returns 422 before issuing a token when the target lies beyond a WAL gap", func(t *testing.T) {
+	t.Run("returns 409 before issuing a token when the target lies beyond a WAL gap", func(t *testing.T) {
 		catalog := newCatalog(t)
 
 		base := time.Now().UTC().Add(-2 * time.Hour)
@@ -230,19 +228,18 @@ func TestRestorePhysicalBackup(t *testing.T) {
 		response := catalog.call(
 			t,
 			catalogCall{
-				Method:        http.MethodPost,
-				Path:          "/api/v1/backups/physical/database/" + catalog.DatabaseID.String() + "/restore-token",
+				Request:       apptest.PhysicalPitrTokenRequest(catalog.DatabaseID, &targetTime),
 				Authorization: "Bearer " + catalog.Owner.Token,
-				Body:          restoreTokenRequest{TargetTime: &targetTime},
-				StatusCode:    http.StatusUnprocessableEntity,
+				StatusCode:    http.StatusConflict,
 			},
 		)
 
-		var body map[string]string
-		require.NoError(t, json.Unmarshal(response.Body, &body))
-		assert.Contains(t, body["error"], "wal gap")
+		var problem apiclient.Problem
+		require.NoError(t, json.Unmarshal(response.Body, &problem))
+		assert.Equal(t, apiclient.ProblemCodeTargetTimeUnreachable, problem.Code)
+		assert.Contains(t, problem.Detail, "WAL gap")
 	})
-	t.Run("issues a token and URL when a full backup is selected", func(t *testing.T) {
+	t.Run("issues a token and expiry time when a full backup is selected", func(t *testing.T) {
 		catalog := newCatalog(t)
 
 		full := catalog.insertFull(
@@ -262,17 +259,15 @@ func TestRestorePhysicalBackup(t *testing.T) {
 		catalog.call(
 			t,
 			catalogCall{
-				Method:        http.MethodPost,
-				Path:          "/api/v1/backups/physical/backups/" + full.ID.String() + "/restore-token",
+				Request:       apptest.PhysicalBackupTokenRequest(full.ID),
 				Authorization: "Bearer " + catalog.Owner.Token,
-				Body:          nil,
-				StatusCode:    http.StatusOK,
+				StatusCode:    http.StatusCreated,
 				Destination:   &response,
 			},
 		)
 
 		assert.NotEmpty(t, response.Token)
-		assert.Contains(t, response.URL, response.Token)
+		assert.WithinDuration(t, time.Now().Add(15*time.Minute), response.ExpiresAt, time.Minute)
 	})
 	t.Run("returns 404 when the selected backup does not exist", func(t *testing.T) {
 		catalog := newCatalog(t)
@@ -280,10 +275,8 @@ func TestRestorePhysicalBackup(t *testing.T) {
 		catalog.call(
 			t,
 			catalogCall{
-				Method:        http.MethodPost,
-				Path:          "/api/v1/backups/physical/backups/" + uuid.NewString() + "/restore-token",
+				Request:       apptest.PhysicalBackupTokenRequest(uuid.New()),
 				Authorization: "Bearer " + catalog.Owner.Token,
-				Body:          nil,
 				StatusCode:    http.StatusNotFound,
 			},
 		)
@@ -294,7 +287,7 @@ func TestRestorePhysicalBackup(t *testing.T) {
 		catalog.call(
 			t,
 			catalogCall{
-				Path:          "/api/v1/backups/physical/restore-stream?token=not-a-real-token",
+				Request:       apptest.PhysicalDownloadRequest("not-a-real-token"),
 				Authorization: "",
 				StatusCode:    http.StatusUnauthorized,
 			},
@@ -309,11 +302,9 @@ func TestRestorePhysicalBackup(t *testing.T) {
 		catalog.call(
 			t,
 			catalogCall{
-				Method:        http.MethodPost,
-				Path:          "/api/v1/backups/physical/backups/" + full.ID.String() + "/restore-token",
+				Request:       apptest.PhysicalBackupTokenRequest(full.ID),
 				Authorization: "Bearer " + catalog.Owner.Token,
-				Body:          nil,
-				StatusCode:    http.StatusOK,
+				StatusCode:    http.StatusCreated,
 				Destination:   &tokenResponse,
 			},
 		)
@@ -321,7 +312,7 @@ func TestRestorePhysicalBackup(t *testing.T) {
 		response := catalog.call(
 			t,
 			catalogCall{
-				Path:          "/api/v1/backups/physical/restore-stream?token=" + tokenResponse.Token,
+				Request:       apptest.PhysicalDownloadRequest(tokenResponse.Token),
 				Authorization: "",
 				StatusCode:    http.StatusOK,
 			},
@@ -343,7 +334,7 @@ func TestRestorePhysicalBackup(t *testing.T) {
 
 		response := catalog.call(
 			t,
-			catalogCall{Path: "/api/v1/backups/physical/recovery-script", Authorization: "", StatusCode: http.StatusOK},
+			catalogCall{Request: apptest.PhysicalScriptRequest(), Authorization: "", StatusCode: http.StatusOK},
 		)
 
 		assert.Contains(t, response.Headers.Get("Content-Type"), "text/x-shellscript")
@@ -363,7 +354,7 @@ func TestRestorePhysicalBackup(t *testing.T) {
 
 		response := catalog.call(
 			t,
-			catalogCall{Path: "/api/v1/backups/physical/recovery-script", Authorization: "", StatusCode: http.StatusOK},
+			catalogCall{Request: apptest.PhysicalScriptRequest(), Authorization: "", StatusCode: http.StatusOK},
 		)
 
 		servedScript := string(response.Body)
@@ -389,19 +380,17 @@ func TestRestorePhysicalBackup(t *testing.T) {
 		catalog.call(
 			t,
 			catalogCall{
-				Method:        http.MethodPost,
-				Path:          "/api/v1/backups/physical/backups/" + full.ID.String() + "/restore-token",
+				Request:       apptest.PhysicalBackupTokenRequest(full.ID),
 				Authorization: "Bearer " + catalog.Owner.Token,
-				Body:          nil,
-				StatusCode:    http.StatusOK,
+				StatusCode:    http.StatusCreated,
 				Destination:   &tokenResponse,
 			},
 		)
 
-		streamURL := "/api/v1/backups/physical/restore-stream?token=" + tokenResponse.Token
+		streamRequest := apptest.PhysicalDownloadRequest(tokenResponse.Token)
 
-		catalog.call(t, catalogCall{Path: streamURL, Authorization: "", StatusCode: http.StatusOK})
-		catalog.call(t, catalogCall{Path: streamURL, Authorization: "", StatusCode: http.StatusUnauthorized})
+		catalog.call(t, catalogCall{Request: streamRequest, Authorization: "", StatusCode: http.StatusOK})
+		catalog.call(t, catalogCall{Request: streamRequest, Authorization: "", StatusCode: http.StatusUnauthorized})
 	})
 	t.Run("returns 409 when a restore download is already open for the same user", func(t *testing.T) {
 		catalog := newCatalog(t)
@@ -423,25 +412,26 @@ func TestRestorePhysicalBackup(t *testing.T) {
 		catalog.call(
 			t,
 			catalogCall{
-				Method:        http.MethodPost,
-				Path:          "/api/v1/backups/physical/backups/" + full.ID.String() + "/restore-token",
+				Request:       apptest.PhysicalBackupTokenRequest(full.ID),
 				Authorization: "Bearer " + catalog.Owner.Token,
-				Body:          nil,
-				StatusCode:    http.StatusOK,
+				StatusCode:    http.StatusCreated,
 				Destination:   &tokenResponse,
 			},
 		)
 
 		catalog.holdRestoreStream(t)
 
+		var problem apiclient.Problem
 		catalog.call(
 			t,
 			catalogCall{
-				Path:          "/api/v1/backups/physical/restore-stream?token=" + tokenResponse.Token,
+				Request:       apptest.PhysicalDownloadRequest(tokenResponse.Token),
 				Authorization: "",
 				StatusCode:    http.StatusConflict,
+				Destination:   &problem,
 			},
 		)
+		assert.Equal(t, apiclient.ProblemCodeAlreadyRunning, problem.Code)
 	})
 	t.Run("refuses another token with 409 when a restore download is already open", func(t *testing.T) {
 		catalog := newCatalog(t)
@@ -461,15 +451,16 @@ func TestRestorePhysicalBackup(t *testing.T) {
 
 		catalog.holdRestoreStream(t)
 
+		var problem apiclient.Problem
 		catalog.call(
 			t,
 			catalogCall{
-				Method:        http.MethodPost,
-				Path:          "/api/v1/backups/physical/backups/" + full.ID.String() + "/restore-token",
+				Request:       apptest.PhysicalBackupTokenRequest(full.ID),
 				Authorization: "Bearer " + catalog.Owner.Token,
-				Body:          nil,
 				StatusCode:    http.StatusConflict,
+				Destination:   &problem,
 			},
 		)
+		assert.Equal(t, apiclient.ProblemCodeAlreadyRunning, problem.Code)
 	})
 }

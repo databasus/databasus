@@ -72,7 +72,8 @@ This is the project's common language. Each concept has one term in the document
 | Restore target | restore target, `RestoreTarget` | The database a restore writes into, given with its connection settings and restore options. |
 | User stream | user stream, `backups.UserStream` | The one heavy download a user may run at a time: a backup download or a physical restore stream. |
 | Cancellation registry | cancellation registry, `background.CancellationRegistry` | The cancel functions of running work, keyed by its ID. |
-| Restore token | restore token | A single-use token that lets a user download one physical restore set. |
+| Restore token | restore token, `createPhysicalRestoreToken` | A single-use token that lets a user download one physical restore set. |
+| Restore token subject | restore token subject, `RestoreTokenSubject` | What a restore token opens: a database restored to a target time or its latest restorable moment, or one full or incremental backup with its ancestors. |
 
 ## Code
 

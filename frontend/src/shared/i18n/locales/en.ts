@@ -132,6 +132,10 @@ export const en = {
     inUse:
       'It is still in use by a database or by a running backup or restore. Try again once nothing uses it.',
     alreadyRunning: 'This is already running. Wait for it to finish and try again.',
+    noExtendableChain: 'Run a full backup before starting an incremental backup.',
+    noRestorableBackup: 'There is no completed backup that can be restored.',
+    targetTimeUnreachable:
+      'The requested time cannot be reached with the available backups and WAL.',
     notRunning: 'It is no longer running, so there is nothing to cancel.',
     insufficientDiskSpace: 'The Databasus server does not have enough free disk space: {{detail}}',
     unknown: 'Something went wrong. Please try again.',
@@ -1614,7 +1618,8 @@ export const en = {
       restore: {
         errorHints: {
           downloadInProgress:
-            'A restore download is already in progress for this database. Wait for it to finish, then try again.',
+            'You already have a backup download or restore stream running. Wait for it to finish, then try again.',
+          noRestorableBackup: 'Run a full backup, wait for it to complete, then try again.',
           targetTimeUnreachable:
             'The requested target time cannot be reached - there is a WAL gap or the time is out of the available range. Pick a different time or restore the latest available point.',
         },

@@ -135,6 +135,10 @@ export const pt: typeof en = {
     inUse:
       'Ainda está em uso por um banco de dados ou por um backup ou restauração em andamento. Tente novamente quando nada o estiver usando.',
     alreadyRunning: 'Isso já está em andamento. Aguarde a conclusão e tente novamente.',
+    noExtendableChain: 'Execute um backup completo antes de iniciar um incremental.',
+    noRestorableBackup: 'Não há backup concluído que possa ser restaurado.',
+    targetTimeUnreachable:
+      'Os backups e o WAL disponíveis não permitem restaurar para o momento solicitado.',
     notRunning: 'Isso não está mais em andamento, então não há nada para cancelar.',
     insufficientDiskSpace:
       'O servidor do Databasus não tem espaço livre em disco suficiente: {{detail}}',
@@ -1640,7 +1644,8 @@ export const pt: typeof en = {
       restore: {
         errorHints: {
           downloadInProgress:
-            'Já há um download de restauração em andamento para este banco de dados. Aguarde a conclusão e tente novamente.',
+            'Você já tem um download de backup ou de restauração em andamento. Aguarde a conclusão e tente novamente.',
+          noRestorableBackup: 'Execute um backup completo, aguarde a conclusão e tente novamente.',
           targetTimeUnreachable:
             'Não é possível chegar ao momento solicitado: há uma lacuna no WAL ou o horário está fora do intervalo disponível. Escolha outro horário ou restaure o ponto mais recente disponível.',
         },

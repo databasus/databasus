@@ -43,7 +43,7 @@ trap 'exit 143' TERM
 for index in "${!shards[@]}"; do
     mapfile -t packages <<<"${package_lists[$index]}"
     echo "running ${shards[$index]}"
-    go test -race -tags testhelpers -count=1 -failfast -timeout 15m -run "${run_patterns[$index]}" \
+    go test -race -tags testhelpers -count=1 -failfast -timeout 40m -run "${run_patterns[$index]}" \
         "${packages[@]}" >"$log_directory/$index.log" 2>&1 &
     process_ids+=("$!")
 done

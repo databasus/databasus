@@ -98,8 +98,7 @@ func (catalog *catalogFixture) deleteFull(t *testing.T, backupID uuid.UUID) {
 	catalog.call(
 		t,
 		catalogCall{
-			Method:        http.MethodDelete,
-			Path:          "/backups/physical/backups/" + backupID.String(),
+			Request:       apptest.PhysicalDeleteRequest(backupID),
 			Authorization: "Bearer " + catalog.Owner.Token,
 			StatusCode:    http.StatusNoContent,
 		},

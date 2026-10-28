@@ -9,42 +9,42 @@ import (
 )
 
 type IncrementalBackup struct {
-	ID         uuid.UUID `json:"id"         gorm:"column:id;type:uuid;primaryKey;default:gen_random_uuid()"`
-	DatabaseID uuid.UUID `json:"databaseId" gorm:"column:database_id;type:uuid;not null"`
-	StorageID  uuid.UUID `json:"storageId"  gorm:"column:storage_id;type:uuid;not null"`
+	ID         uuid.UUID `gorm:"column:id;type:uuid;primaryKey;default:gen_random_uuid()"`
+	DatabaseID uuid.UUID `gorm:"column:database_id;type:uuid;not null"`
+	StorageID  uuid.UUID `gorm:"column:storage_id;type:uuid;not null"`
 
 	// The FULL this chain is built on. Always set.
-	RootFullBackupID uuid.UUID `json:"rootFullBackupId" gorm:"column:root_full_backup_id;type:uuid;not null"`
+	RootFullBackupID uuid.UUID `gorm:"column:root_full_backup_id;type:uuid;not null"`
 	// The previous INCR in the chain or NULL if the previous step is the FULL.
-	ParentIncrementalBackupID *uuid.UUID `json:"parentIncrementalBackupId" gorm:"column:parent_incremental_backup_id;type:uuid"`
+	ParentIncrementalBackupID *uuid.UUID `gorm:"column:parent_incremental_backup_id;type:uuid"`
 
-	TimelineID int `json:"timelineId" gorm:"column:timeline_id;type:int;not null"`
+	TimelineID int `gorm:"column:timeline_id;type:int;not null"`
 
-	Status      BackupStatus       `json:"status"      gorm:"column:status;type:text;not null"`
-	ErrorReason *BackupErrorReason `json:"errorReason" gorm:"column:error_reason;type:text"`
-	FailMessage *string            `json:"failMessage" gorm:"column:fail_message;type:text"`
+	Status      BackupStatus       `gorm:"column:status;type:text;not null"`
+	ErrorReason *BackupErrorReason `gorm:"column:error_reason;type:text"`
+	FailMessage *string            `gorm:"column:fail_message;type:text"`
 
-	FileName *string `json:"fileName" gorm:"column:file_name;type:text"`
+	FileName *string `gorm:"column:file_name;type:text"`
 
-	StartLSN *walmath.LSN `json:"startLsn" gorm:"column:start_lsn;type:pg_lsn"`
-	StopLSN  *walmath.LSN `json:"stopLsn"  gorm:"column:stop_lsn;type:pg_lsn"`
+	StartLSN *walmath.LSN `gorm:"column:start_lsn;type:pg_lsn"`
+	StopLSN  *walmath.LSN `gorm:"column:stop_lsn;type:pg_lsn"`
 
-	BackupSizeMb     *float64 `json:"backupSizeMb"     gorm:"column:backup_size_mb;type:double precision"`
-	RawSizeMb        *float64 `json:"rawSizeMb"        gorm:"column:raw_size_mb;type:double precision"`
-	BackupDurationMs *int64   `json:"backupDurationMs" gorm:"column:backup_duration_ms;type:bigint"`
+	BackupSizeMb     *float64 `gorm:"column:backup_size_mb;type:double precision"`
+	RawSizeMb        *float64 `gorm:"column:raw_size_mb;type:double precision"`
+	BackupDurationMs *int64   `gorm:"column:backup_duration_ms;type:bigint"`
 
-	Encryption     BackupEncryption `json:"encryption" gorm:"column:encryption;type:text;not null;default:'NONE'"`
-	EncryptionSalt *string          `json:"-"          gorm:"column:encryption_salt;type:text"`
-	EncryptionIV   *string          `json:"-"          gorm:"column:encryption_iv;type:text"`
+	Encryption     BackupEncryption `gorm:"column:encryption;type:text;not null;default:'NONE'"`
+	EncryptionSalt *string          `gorm:"column:encryption_salt;type:text"`
+	EncryptionIV   *string          `gorm:"column:encryption_iv;type:text"`
 
-	Compression BackupCompression `json:"compression" gorm:"column:compression;type:text;not null;default:'ZSTD'"`
+	Compression BackupCompression `gorm:"column:compression;type:text;not null;default:'ZSTD'"`
 
-	ManifestFileName       *string `json:"manifestFileName" gorm:"column:manifest_file_name;type:text"`
-	ManifestEncryptionSalt *string `json:"-"                gorm:"column:manifest_encryption_salt;type:text"`
-	ManifestEncryptionIV   *string `json:"-"                gorm:"column:manifest_encryption_iv;type:text"`
+	ManifestFileName       *string `gorm:"column:manifest_file_name;type:text"`
+	ManifestEncryptionSalt *string `gorm:"column:manifest_encryption_salt;type:text"`
+	ManifestEncryptionIV   *string `gorm:"column:manifest_encryption_iv;type:text"`
 
-	CreatedAt   time.Time  `json:"createdAt"   gorm:"column:created_at"`
-	CompletedAt *time.Time `json:"completedAt" gorm:"column:completed_at"`
+	CreatedAt   time.Time  `gorm:"column:created_at"`
+	CompletedAt *time.Time `gorm:"column:completed_at"`
 }
 
 func (IncrementalBackup) TableName() string {

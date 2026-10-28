@@ -60,15 +60,12 @@ func TestCancelRunningPhysicalBackup(t *testing.T) {
 			team.Database.Id,
 		)
 		assert.Equal(t, backup.ID.String(), claimedBackupID)
-		status, body := team.App.CallOldAPI(
+		status, body := team.App.CallPhysicalAPI(
 			t,
 			team.Owner,
-			apptest.OldAPICall{
-				Method: http.MethodPost,
-				Path:   "/backups/physical/backups/" + backup.ID.String() + "/cancel",
-			},
+			apptest.PhysicalCancelRequest(backup.ID),
 		)
-		require.Equal(t, http.StatusNoContent, status, "%s", body)
+		require.Equal(t, http.StatusAccepted, status, "%s", body)
 		storageLock.Rollback(t)
 		team.App.WaitForPhysicalBackups(t)
 		rows := team.listBackups(t)

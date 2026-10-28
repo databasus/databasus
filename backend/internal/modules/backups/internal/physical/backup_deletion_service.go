@@ -19,7 +19,7 @@ func (s *Service) DeleteBackup(ctx context.Context, actor users.Actor, backupID 
 	if full != nil {
 		database, err := s.authorizeManage(ctx, actor, full.DatabaseID)
 		if err != nil {
-			return err
+			return toBackupAccessProblem(err)
 		}
 
 		if err := s.deleteFull(ctx, full); err != nil {
@@ -39,7 +39,7 @@ func (s *Service) DeleteBackup(ctx context.Context, actor users.Actor, backupID 
 	if incremental != nil {
 		database, err := s.authorizeManage(ctx, actor, incremental.DatabaseID)
 		if err != nil {
-			return err
+			return toBackupAccessProblem(err)
 		}
 
 		if err := s.deleteIncremental(ctx, incremental); err != nil {
@@ -48,26 +48,6 @@ func (s *Service) DeleteBackup(ctx context.Context, actor users.Actor, backupID 
 
 		s.recordAuditAfterAction(ctx, actor, database,
 			fmt.Sprintf("Physical incremental backup deleted for database: %s", database.Name))
-
-		return nil
-	}
-
-	walSegment, _, err := s.walSegmentRepository.FindByID(ctx, backupID)
-	if err != nil {
-		return err
-	}
-	if walSegment != nil {
-		database, err := s.authorizeManage(ctx, actor, walSegment.DatabaseID)
-		if err != nil {
-			return err
-		}
-
-		if _, _, err := s.chains.DeleteWalSegment(ctx, walSegment.ID); err != nil {
-			return err
-		}
-
-		s.recordAuditAfterAction(ctx, actor, database,
-			fmt.Sprintf("Physical WAL segment deleted for database: %s", database.Name))
 
 		return nil
 	}

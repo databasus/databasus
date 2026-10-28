@@ -68,7 +68,7 @@ func TestGetPhysicalBackupWalRanges(t *testing.T) {
 			query := "?type=WAL"
 			if testCase.beforeMinute != 0 {
 				cutoff := receivedAt.Add(time.Duration(testCase.beforeMinute)*time.Minute - time.Second)
-				query += "&beforeDate=" + cutoff.Format(time.RFC3339Nano)
+				query += "&createdBefore=" + cutoff.Format(time.RFC3339Nano)
 			}
 
 			page := getBackups(t, prereqs, query)

@@ -103,7 +103,7 @@ export const WalStreamMonitoringComponent = ({
   const { t } = useTranslation();
   const { message } = App.useApp();
 
-  const [period, setPeriod] = useState(WalStreamStatisticsPeriod.HOUR);
+  const [period, setPeriod] = useState<WalStreamStatisticsPeriod>(WalStreamStatisticsPeriod.HOUR);
   const [refreshState, setRefreshState] = useState<WalStreamRefreshState | null>(null);
   const [lastAnimatedPeriod, setLastAnimatedPeriod] = useState<WalStreamStatisticsPeriod | null>(
     null,
@@ -169,7 +169,7 @@ export const WalStreamMonitoringComponent = ({
   useEffect(() => {
     fullBackupRequestControllerRef.current = new FullBackupRequestController(
       {
-        requestFullBackup: () => physicalBackupsApi.triggerPhysicalBackup(database.id, 'full'),
+        requestFullBackup: () => physicalBackupsApi.triggerPhysicalBackup(database.id, 'FULL'),
         refreshNow: () => controllerRef.current?.retry(),
         reportRequested: () =>
           message.success(t('backups.physical.monitoring.banner.fullBackupRequested')),

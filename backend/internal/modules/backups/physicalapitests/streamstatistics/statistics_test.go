@@ -1,6 +1,7 @@
 package streamstatistics_test
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"testing"
@@ -61,45 +62,52 @@ func TestGetWalStreamStatistics(t *testing.T) {
 
 		testCases := []struct {
 			name           string
-			url            string
+			url            apptest.PhysicalRequest
 			authToken      string
 			expectedStatus int
+			code           apiclient.ProblemCode
 		}{
 			{
-				name:           "returns 400 without statistics when the user belongs to another workspace",
-				url:            getWalStreamStatisticsURL(catalog.DatabaseID, "HOUR"),
+				name:           "returns 404 without statistics when the user belongs to another workspace",
+				url:            statisticsRequest(catalog.DatabaseID, "HOUR"),
 				authToken:      "Bearer " + outsider.Token,
-				expectedStatus: http.StatusBadRequest,
+				expectedStatus: http.StatusNotFound,
+				code:           apiclient.ProblemCodeNotFound,
 			},
 			{
 				name:           "returns 401 without statistics when the request has no session",
-				url:            getWalStreamStatisticsURL(catalog.DatabaseID, "HOUR"),
+				url:            statisticsRequest(catalog.DatabaseID, "HOUR"),
 				authToken:      "",
 				expectedStatus: http.StatusUnauthorized,
+				code:           apiclient.ProblemCodeUnauthenticated,
 			},
 			{
-				name:           "returns 400 without statistics when the database does not exist",
-				url:            getWalStreamStatisticsURL(uuid.New(), "HOUR"),
+				name:           "returns 404 without statistics when the database does not exist",
+				url:            statisticsRequest(uuid.New(), "HOUR"),
 				authToken:      "Bearer " + catalog.Owner.Token,
-				expectedStatus: http.StatusBadRequest,
+				expectedStatus: http.StatusNotFound,
+				code:           apiclient.ProblemCodeNotFound,
 			},
 			{
 				name:           "returns 400 without statistics when the database uses logical backups",
-				url:            getWalStreamStatisticsURL(logicalDatabaseID, "HOUR"),
+				url:            statisticsRequest(logicalDatabaseID, "HOUR"),
 				authToken:      "Bearer " + catalog.Owner.Token,
 				expectedStatus: http.StatusBadRequest,
+				code:           apiclient.ProblemCodeInvalidRequest,
 			},
 			{
 				name:           "returns 400 without statistics when the period is unknown",
-				url:            getWalStreamStatisticsURL(catalog.DatabaseID, "MONTH"),
+				url:            statisticsRequest(catalog.DatabaseID, "MONTH"),
 				authToken:      "Bearer " + catalog.Owner.Token,
 				expectedStatus: http.StatusBadRequest,
+				code:           apiclient.ProblemCodeInvalidRequest,
 			},
 			{
 				name:           "returns 400 without statistics when the period is missing",
-				url:            "/api/v1/backups/physical/database/" + catalog.DatabaseID.String() + "/wal-stream/statistics",
+				url:            apptest.PhysicalStatisticsRequest(catalog.DatabaseID, ""),
 				authToken:      "Bearer " + catalog.Owner.Token,
 				expectedStatus: http.StatusBadRequest,
+				code:           apiclient.ProblemCodeInvalidRequest,
 			},
 		}
 
@@ -108,12 +116,15 @@ func TestGetWalStreamStatistics(t *testing.T) {
 				response := catalog.call(
 					t,
 					catalogCall{
-						Path:          testCase.url,
+						Request:       testCase.url,
 						Authorization: testCase.authToken,
 						StatusCode:    testCase.expectedStatus,
 					},
 				)
 
+				var problem apiclient.Problem
+				require.NoError(t, json.Unmarshal(response.Body, &problem))
+				assert.Equal(t, testCase.code, problem.Code)
 				assert.NotContains(t, string(response.Body), `"health"`)
 				assert.NotContains(t, string(response.Body), `"series"`)
 			})
@@ -251,8 +262,9 @@ func TestGetWalStreamStatistics(t *testing.T) {
 		catalog.call(
 			t,
 			catalogCall{
-				Method:        http.MethodDelete,
-				Path:          "/api/v1/databases/" + catalog.DatabaseID.String(),
+				Request: func(ctx context.Context, client *apiclient.ClientWithResponses) (*http.Response, error) {
+					return client.DeleteDatabase(ctx, catalog.DatabaseID)
+				},
 				Authorization: "Bearer " + catalog.Owner.Token,
 				StatusCode:    http.StatusNoContent,
 			},
@@ -345,7 +357,7 @@ func TestGetWalStreamStatistics(t *testing.T) {
 		response := catalog.call(
 			t,
 			catalogCall{
-				Path:          getWalStreamStatisticsURL(catalog.DatabaseID, "DAY"),
+				Request:       statisticsRequest(catalog.DatabaseID, "DAY"),
 				Authorization: "Bearer " + catalog.Owner.Token,
 				StatusCode:    http.StatusOK,
 			},
@@ -651,7 +663,7 @@ func TestGetWalStreamStatistics(t *testing.T) {
 		response := catalog.call(
 			t,
 			catalogCall{
-				Path:          getWalStreamStatisticsURL(catalog.DatabaseID, "HOUR"),
+				Request:       statisticsRequest(catalog.DatabaseID, "HOUR"),
 				Authorization: "Bearer " + catalog.Owner.Token,
 				StatusCode:    http.StatusOK,
 			},
@@ -692,10 +704,8 @@ func TestGetWalStreamStatistics(t *testing.T) {
 		catalog.call(
 			t,
 			catalogCall{
-				Method:        http.MethodPost,
-				Path:          "/api/v1/backups/physical/database/" + catalog.DatabaseID.String() + "/trigger",
+				Request:       apptest.PhysicalStartRequest(catalog.DatabaseID, "FULL"),
 				Authorization: "Bearer " + catalog.Owner.Token,
-				Body:          map[string]string{"type": "full"},
 				StatusCode:    http.StatusAccepted,
 			},
 		)

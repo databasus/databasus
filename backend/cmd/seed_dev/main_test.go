@@ -19,7 +19,6 @@ import (
 	contract "databasus-backend/api"
 	"databasus-backend/internal/config"
 	"databasus-backend/internal/engines/clienttools"
-	backups_controllers_physical "databasus-backend/internal/features/backups/backups/controllers/physical"
 	backups_bridge "databasus-backend/internal/features/backups/config"
 	databases_bridge "databasus-backend/internal/features/databases"
 	storages_bridge "databasus-backend/internal/features/storages"
@@ -342,8 +341,6 @@ func newSeedTestRouter() *gin.Engine {
 
 	protected := v1.Group("")
 	protected.Use(users_testing.GetSessionMiddleware())
-
-	backups_controllers_physical.GetPhysicalBackupController().RegisterRoutes(protected)
 
 	databases_bridge.SetupDependencies()
 

@@ -28,8 +28,6 @@ import (
 	"databasus-backend/internal/modules/backups/internal/module"
 	"databasus-backend/internal/modules/backups/internal/physical"
 	"databasus-backend/internal/modules/backups/internal/physical/catalog"
-	"databasus-backend/internal/modules/backups/internal/physical/chains"
-	"databasus-backend/internal/modules/backups/internal/physical/restorestream"
 	"databasus-backend/internal/modules/backups/internal/physical/walstreaming"
 	"databasus-backend/internal/modules/backups/internal/pipeline"
 	"databasus-backend/internal/modules/backups/internal/restore"
@@ -122,35 +120,7 @@ const (
 )
 
 type Module interface {
-	// These temporary methods are removed by physical-backups-api; telemetry moves in milestone 13.
-	ListPhysicalBackups(
-		ctx context.Context,
-		actor users.Actor,
-		databaseID uuid.UUID,
-		query *GetPhysicalBackupsRequest,
-	) (*GetPhysicalBackupsResponse, error)
-	RequestPhysicalBackup(ctx context.Context, actor users.Actor, databaseID uuid.UUID, kind TriggerBackupType) error
-	CancelPhysicalBackup(ctx context.Context, actor users.Actor, backupID uuid.UUID) error
-	DeletePhysicalBackup(ctx context.Context, actor users.Actor, backupID uuid.UUID) error
-	IssuePhysicalRestoreToken(
-		ctx context.Context,
-		actor users.Actor,
-		databaseID uuid.UUID,
-		targetTime *time.Time,
-	) (string, error)
-	IssuePhysicalBackupRestoreToken(ctx context.Context, actor users.Actor, backupID uuid.UUID) (string, error)
-	OpenPhysicalRestoreStream(ctx context.Context, token string) (PhysicalRestoreStream, error)
-	GetWalStreamStatistics(
-		ctx context.Context,
-		actor users.Actor,
-		databaseID uuid.UUID,
-		period WalStreamStatisticsPeriod,
-	) (*GetWalStreamStatisticsResponse, error)
-	GetWalStreamLiveState(
-		ctx context.Context,
-		actor users.Actor,
-		databaseID uuid.UUID,
-	) (*GetWalStreamLiveResponse, error)
+	// Telemetry reads the latest full backup until it moves into a module.
 	GetLatestCompletedPhysicalFullBackup(ctx context.Context, databaseID uuid.UUID) (*PhysicalFullBackup, error)
 
 	RegisterRoutes(routes gin.IRouter, hooks *apierror.Hooks)
@@ -350,7 +320,8 @@ func New(deps Deps) Module {
 		UserStreams:    userStreams,
 		Runs:           runs,
 		Handler: backupshttpapi.NewHandler(backupshttpapi.Deps{
-			Configs: configService,
+			PhysicalBackups: physicalService,
+			Configs:         configService,
 			Transfers: transfer.NewService(transfer.Deps{
 				Configs:    configService,
 				Transactor: deps.Transactor,
@@ -376,43 +347,4 @@ func ProductionWalStreamTimings() WalStreamTimings {
 	}
 }
 
-// These route adapters and aliases are removed by physical-backups-api.
-type (
-	PhysicalBackupListItem          = physical.PhysicalBackupListItem
-	GetPhysicalBackupsRequest       = physical.GetPhysicalBackupsRequest
-	GetPhysicalBackupsResponse      = physical.GetPhysicalBackupsResponse
-	TriggerBackupType               = physical.TriggerBackupType
-	TriggerBackupRequest            = physical.TriggerBackupRequest
-	GenerateRestoreTokenRequest     = physical.GenerateRestoreTokenRequest
-	GenerateRestoreTokenResponse    = physical.GenerateRestoreTokenResponse
-	WalStreamStatisticsPeriod       = physical.WalStreamStatisticsPeriod
-	GetWalStreamStatisticsRequest   = physical.GetWalStreamStatisticsRequest
-	GetWalStreamStatisticsResponse  = physical.GetWalStreamStatisticsResponse
-	WalStreamTimeRange              = physical.WalStreamTimeRange
-	WalStreamHealth                 = physical.WalStreamHealth
-	WalStreamStreamer               = physical.WalStreamStreamer
-	WalStreamCurrent                = physical.WalStreamCurrent
-	WalStreamSeries                 = physical.WalStreamSeries
-	GetWalStreamLiveResponse        = physical.GetWalStreamLiveResponse
-	WalStreamLive                   = physical.WalStreamLive
-	PhysicalRestoreStream           = physical.RestoreStream
-	PhysicalFullBackup              = catalog.FullBackup
-	PhysicalWalGapBeforeTargetError = chains.WalGapBeforeTargetError
-)
-
-const (
-	TriggerBackupTypeAuto         = physical.TriggerBackupTypeAuto
-	TriggerBackupTypeFull         = physical.TriggerBackupTypeFull
-	TriggerBackupTypeIncremental  = physical.TriggerBackupTypeIncremental
-	WalStreamStatisticsPeriodHour = physical.WalStreamStatisticsPeriodHour
-	WalStreamStatisticsPeriodDay  = physical.WalStreamStatisticsPeriodDay
-	WalStreamStatisticsPeriodWeek = physical.WalStreamStatisticsPeriodWeek
-)
-
-var (
-	ErrNoExtendablePhysicalChain    = physical.ErrNoExtendableChain
-	ErrPhysicalBackupNotFound       = physical.ErrBackupNotFound
-	ErrPhysicalTargetBeforeEarliest = chains.ErrTargetBeforeEarliest
-	ErrNoPhysicalChainForRestore    = chains.ErrNoChainForRestore
-	ErrInvalidPhysicalRestoreToken  = restorestream.ErrInvalidToken
-)
+type PhysicalFullBackup = catalog.FullBackup

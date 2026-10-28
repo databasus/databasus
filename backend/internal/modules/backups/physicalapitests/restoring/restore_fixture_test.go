@@ -7,23 +7,17 @@ import (
 	"io"
 	"net/http"
 	"testing"
-	"time"
 
 	"github.com/klauspost/compress/zstd"
 	"github.com/stretchr/testify/require"
 
 	"databasus-backend/internal/app/apptest"
+	apiclient "databasus-backend/internal/lib/apiclient"
 	"databasus-backend/internal/modules/storages"
 )
 
 type (
-	restoreTokenResponse struct {
-		Token string `json:"token"`
-		URL   string `json:"url"`
-	}
-	restoreTokenRequest struct {
-		TargetTime *time.Time `json:"targetTime"`
-	}
+	restoreTokenResponse = apiclient.PhysicalRestoreToken
 )
 
 func createStreamableFullBackup(t *testing.T, catalog *catalogFixture) *apptest.PhysicalFullBackupSeed {
@@ -70,16 +64,15 @@ func (catalog *catalogFixture) holdRestoreStream(t *testing.T) {
 	catalog.call(
 		t,
 		catalogCall{
-			Method:        http.MethodPost,
-			Path:          "/backups/physical/backups/" + full.ID.String() + "/restore-token",
+			Request:       apptest.PhysicalBackupTokenRequest(full.ID),
 			Authorization: "Bearer " + catalog.Owner.Token,
-			StatusCode:    http.StatusOK,
+			StatusCode:    http.StatusCreated,
 			Destination:   &token,
 		},
 	)
-	response := catalog.App.OpenOldPublicAPI(
-		t,
-		apptest.OldAPICall{Method: http.MethodGet, Path: "/backups/physical/restore-stream?token=" + token.Token},
+	response := catalog.App.OpenPhysicalAPI(
+		t, apptest.Session{},
+		apptest.PhysicalDownloadRequest(token.Token),
 	)
 	t.Cleanup(func() { _ = response.Body.Close() })
 	require.Equal(t, http.StatusOK, response.StatusCode)

@@ -4,7 +4,6 @@ import type { Dayjs } from 'dayjs';
 import { type JSX, useEffect, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
-import { getApplicationServer } from '../../../../constants';
 import {
   type PhysicalBackupListItem,
   physicalBackupsApi,
@@ -38,15 +37,14 @@ interface Props {
 
 type RestoreMethod = 'script' | 'manual';
 
-// The two restore failures with a known cause get a hint after the message: a concurrent download
-// (409) and an unreachable target time or WAL gap (422). Decided by status, never by the text.
-const RESTORE_ERROR_HINT_KEYS: Partial<Record<number, TranslationKey>> = {
-  409: 'backups.physical.restore.errorHints.downloadInProgress',
-  422: 'backups.physical.restore.errorHints.targetTimeUnreachable',
+const RESTORE_ERROR_HINT_KEYS: Partial<Record<string, TranslationKey>> = {
+  already_running: 'backups.physical.restore.errorHints.downloadInProgress',
+  target_time_unreachable: 'backups.physical.restore.errorHints.targetTimeUnreachable',
+  no_restorable_backup: 'backups.physical.restore.errorHints.noRestorableBackup',
 };
 
 const getRestoreErrorHintKey = (error: unknown): TranslationKey | undefined =>
-  error instanceof ApiError && error.status ? RESTORE_ERROR_HINT_KEYS[error.status] : undefined;
+  error instanceof ApiError && error.code ? RESTORE_ERROR_HINT_KEYS[error.code] : undefined;
 
 // Rendered for host and Docker alike: whether the source keeps its configuration outside the data
 // directory cannot be known from here, and the resulting startup failure looks identical to a
@@ -129,14 +127,16 @@ export const PhysicalRestoreComponent = ({ database, backup, onClose }: Props): 
     setCopiedKey(null);
 
     try {
-      const response = backup
-        ? await physicalBackupsApi.generateBackupRestoreToken(backup.id)
-        : await physicalBackupsApi.generatePitrRestoreToken(
-            database.id,
-            targetTime ? targetTime.utc().toISOString() : undefined,
-          );
-
-      setBundleUrl(`${getApplicationServer()}${response.url}`);
+      const response = await physicalBackupsApi.createPhysicalRestoreToken(
+        backup
+          ? { type: 'BACKUP', backupId: backup.id }
+          : {
+              type: 'POINT_IN_TIME',
+              databaseId: database.id,
+              targetTime: targetTime ? targetTime.utc().toISOString() : undefined,
+            },
+      );
+      setBundleUrl(physicalBackupsApi.getPhysicalRestoreSetUrl(response.token));
     } catch (e) {
       setRestoreError(e);
     }
@@ -160,7 +160,7 @@ export const PhysicalRestoreComponent = ({ database, backup, onClose }: Props): 
 
   const hasWal = backup === undefined;
   const dataDir = clusterDataDir(outputDir, pgVersion);
-  const scriptUrl = `${getApplicationServer()}/api/v1/backups/physical/recovery-script`;
+  const scriptUrl = physicalBackupsApi.getPhysicalRecoveryScriptUrl();
   const recoveryTargetTime = targetTime ? targetTime.utc().format('YYYY-MM-DD HH:mm:ssZ') : '';
   const restoreErrorHintKey = getRestoreErrorHintKey(restoreError);
 

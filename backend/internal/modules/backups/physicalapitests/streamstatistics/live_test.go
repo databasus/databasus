@@ -85,19 +85,24 @@ func TestGetWalStreamLive(t *testing.T) {
 			session        apptest.Session
 			databaseID     uuid.UUID
 			expectedStatus int
+			code           apiclient.ProblemCode
 		}{
-			{"returns 400 without values when the user belongs to another workspace", outsider, database.Id, http.StatusBadRequest},
-			{"returns 401 without values when the request has no session", apptest.Session{}, database.Id, http.StatusUnauthorized},
-			{"returns 400 without values when the database uses logical backups", owner, logicalDatabaseID, http.StatusBadRequest},
+			{"returns 404 without values when the user belongs to another workspace", outsider, database.Id, http.StatusNotFound, apiclient.ProblemCodeNotFound},
+			{"returns 401 without values when the request has no session", apptest.Session{}, database.Id, http.StatusUnauthorized, apiclient.ProblemCodeUnauthenticated},
+			{"returns 404 without values when the database does not exist", owner, uuid.New(), http.StatusNotFound, apiclient.ProblemCodeNotFound},
+			{"returns 400 without values when the database uses logical backups", owner, logicalDatabaseID, http.StatusBadRequest, apiclient.ProblemCodeInvalidRequest},
 		} {
 			t.Run(testCase.name, func(t *testing.T) {
-				status, body := testApp.CallOldAPI(
+				status, body := testApp.CallPhysicalAPI(
 					t,
 					testCase.session,
-					apptest.OldAPICall{Method: http.MethodGet, Path: liveStreamPath(testCase.databaseID)},
+					liveStreamRequest(testCase.databaseID),
 				)
 				assert.Equal(t, testCase.expectedStatus, status, "%s", body)
 				assert.NotContains(t, string(body), "localQueueBytes")
+				var problem apiclient.Problem
+				require.NoError(t, json.Unmarshal(body, &problem))
+				assert.Equal(t, testCase.code, problem.Code)
 			})
 		}
 	})
@@ -107,10 +112,10 @@ func TestGetWalStreamLive(t *testing.T) {
 		workspace := apptest.CreateWorkspace(t, owner, "Idle WAL stream")
 		databaseID := testApp.InsertPhysicalDatabase(t, workspace.Id)
 
-		status, body := testApp.CallOldAPI(
+		status, body := testApp.CallPhysicalAPI(
 			t,
 			owner,
-			apptest.OldAPICall{Method: http.MethodGet, Path: liveStreamPath(databaseID)},
+			liveStreamRequest(databaseID),
 		)
 
 		require.Equal(t, http.StatusOK, status, "%s", body)
@@ -118,16 +123,16 @@ func TestGetWalStreamLive(t *testing.T) {
 	})
 }
 
-func liveStreamPath(databaseID uuid.UUID) string {
-	return "/backups/physical/database/" + databaseID.String() + "/wal-stream/live"
+func liveStreamRequest(databaseID uuid.UUID) apptest.PhysicalRequest {
+	return apptest.PhysicalLiveRequest(databaseID)
 }
 
 func getLiveStream(t *testing.T, testApp *apptest.App, owner apptest.Session, databaseID uuid.UUID) liveStreamReading {
 	t.Helper()
-	status, body := testApp.CallOldAPI(
+	status, body := testApp.CallPhysicalAPI(
 		t,
 		owner,
-		apptest.OldAPICall{Method: http.MethodGet, Path: liveStreamPath(databaseID)},
+		liveStreamRequest(databaseID),
 	)
 	require.Equal(t, http.StatusOK, status, "%s", body)
 	var reading liveStreamReading

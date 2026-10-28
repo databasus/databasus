@@ -10,7 +10,6 @@ import (
 	"databasus-backend/internal/modules/backups/internal/physical/catalog"
 	"databasus-backend/internal/modules/backups/internal/physical/chains"
 	"databasus-backend/internal/modules/backups/internal/physical/streamhealth"
-	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/modules/workspaces"
 )
@@ -21,13 +20,9 @@ func (s *Service) GetWalStreamStatistics(
 	databaseID uuid.UUID,
 	request *GetWalStreamStatisticsRequest,
 ) (*GetWalStreamStatisticsResponse, error) {
-	database, err := s.authorizeDatabase(ctx, actor, databaseID, workspaces.ActionView)
+	_, err := s.authorizeDatabase(ctx, actor, databaseID, workspaces.ActionView)
 	if err != nil {
 		return nil, err
-	}
-
-	if database.Type != databases.TypePostgresqlPhysical {
-		return nil, ErrWalStreamStatisticsNotPhysical
 	}
 
 	period, bucketDuration, isKnownPeriod := request.Period.GetDurations()

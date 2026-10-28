@@ -999,6 +999,182 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/physical-backups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the physical backups of a database
+         * @description Needs WORKSPACE_VIEWER. Ordered newest first by creation time and ID. Includes full backups, incremental backups and WAL ranges. totalUsageMb covers every backup of the database, independently of the page and filters. An outsider gets 404 not_found; a nonphysical database, invalid limit or malformed cursor gets 400 invalid_request.
+         */
+        get: operations["listPhysicalBackups"];
+        put?: never;
+        /**
+         * Request a physical backup
+         * @description Needs WORKSPACE_MEMBER. Records the request; the scheduler creates the backup on its next pass. AUTO chooses an incremental when the backup type supports it and a chain can be extended, otherwise a full backup. An incremental without an extendable chain gets 409 no_extendable_chain. A nonphysical database gets 400 invalid_request.
+         */
+        post: operations["startPhysicalBackup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/physical-backups/{backupId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of a full or incremental physical backup */
+                backupId: components["parameters"]["PhysicalBackupId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete a physical backup and its descendants
+         * @description Needs WORKSPACE_MEMBER. Stops a running backup before deleting it. A full backup removes its incremental chain; an incremental removes its descendants. A WAL segment ID gets 404 not_found and deletes nothing.
+         */
+        delete: operations["deletePhysicalBackup"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/physical-backups/{backupId}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of a full or incremental physical backup */
+                backupId: components["parameters"]["PhysicalBackupId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel a running physical backup
+         * @description Needs WORKSPACE_MEMBER. Interrupts the process; the backup then becomes CANCELED. A finished backup gets 409 not_running.
+         */
+        post: operations["cancelPhysicalBackup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/physical-restore-tokens": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Issue a token for one physical restore set
+         * @description Needs WORKSPACE_VIEWER. The token expires in 15 minutes. A database without a completed full backup or an unrestorable backup gets 409 no_restorable_backup. An unreachable target time gets 409 target_time_unreachable, with the latest restorable LSN in the detail for a WAL gap. A running download or restore stream gets 409 already_running. A nonphysical database gets 400 invalid_request.
+         */
+        post: operations["createPhysicalRestoreToken"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/physical-restore-sets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download a physical restore set
+         * @description Public because the single-use restore token is the credential; a browser link cannot carry a session. Consumes the token before acquiring the user stream. Unknown, expired and used tokens get 401 unauthenticated. A running user stream gets 409 already_running and spends the token. A restore set that can no longer be built gets the same problem as at token issue.
+         */
+        get: operations["downloadPhysicalRestoreSet"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/physical-recovery-scripts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get the physical recovery script
+         * @description Public because this static script contains no instance address or credentials. Takes a restore set URL or path and an output directory as arguments.
+         */
+        get: operations["getRecoveryScript"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/wal-streams/{databaseId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the database */
+                databaseId: components["parameters"]["DatabaseId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Read the current values of a WAL stream
+         * @description Needs WORKSPACE_VIEWER. An outsider or missing database gets 404 not_found. A nonphysical database gets 400 invalid_request. Source-side values come from the streamer probes and open no connection to the source.
+         */
+        get: operations["getWalStream"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/wal-streams/{databaseId}/statistics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the database */
+                databaseId: components["parameters"]["DatabaseId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Read the statistics of a WAL stream
+         * @description Needs WORKSPACE_VIEWER. An outsider or missing database gets 404 not_found. A nonphysical database gets 400 invalid_request. Source-side values come from the streamer probes and open no connection to the source.
+         */
+        get: operations["getWalStreamStatistics"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/logical-backups": {
         parameters: {
             query?: never;
@@ -2344,7 +2520,7 @@ export interface components {
          * @description The cause of the error for programs; a value never changes its meaning
          * @enum {string}
          */
-        ProblemCode: "invalid_request" | "unauthenticated" | "permission_denied" | "not_found" | "rate_limited" | "human_verification_failed" | "invalid_credentials" | "user_deactivated" | "registration_closed" | "email_taken" | "invalid_reset_code" | "oauth_not_configured" | "oauth_failed" | "pending_sign_in_not_usable" | "sign_in_code_not_sent" | "too_many_sign_in_codes" | "sign_in_code_resent_too_soon" | "sign_in_code_incorrect" | "email_not_configured" | "admin_email_missing" | "already_member" | "cannot_change_own_role" | "owner_requires_transfer" | "workspace_not_empty" | "in_use" | "database_connection_failed" | "already_running" | "not_running" | "insufficient_disk_space" | "internal";
+        ProblemCode: "invalid_request" | "unauthenticated" | "permission_denied" | "not_found" | "rate_limited" | "human_verification_failed" | "invalid_credentials" | "user_deactivated" | "registration_closed" | "email_taken" | "invalid_reset_code" | "oauth_not_configured" | "oauth_failed" | "pending_sign_in_not_usable" | "sign_in_code_not_sent" | "too_many_sign_in_codes" | "sign_in_code_resent_too_soon" | "sign_in_code_incorrect" | "email_not_configured" | "admin_email_missing" | "already_member" | "cannot_change_own_role" | "owner_requires_transfer" | "workspace_not_empty" | "in_use" | "database_connection_failed" | "already_running" | "not_running" | "no_extendable_chain" | "no_restorable_backup" | "target_time_unreachable" | "insufficient_disk_space" | "internal";
         /** @description A field of the request that breaks the contract or a validation rule */
         FieldError: {
             /** @description The path of the field in the request, such as `name` or `settings.bucket` */
@@ -2554,6 +2730,571 @@ export interface components {
              */
             storageId: string;
         };
+        /**
+         * @description physical backup status
+         * @enum {string}
+         */
+        PhysicalBackupStatus: "IN_PROGRESS" | "COMPLETED" | "ERROR" | "CHAIN_BROKEN" | "CANCELED";
+        /**
+         * @description physical backup list row type
+         * @enum {string}
+         */
+        PhysicalBackupListRowType: "FULL" | "INCREMENTAL" | "WAL";
+        /** @description physical restore token */
+        PhysicalRestoreToken: {
+            /** @description token */
+            token: string;
+            /**
+             * Format: date-time
+             * @description The expiry time, 15 minutes after issue
+             */
+            expiresAt: string;
+        };
+        /** @description physical backup page */
+        PhysicalBackupPage: {
+            /** @description items */
+            items: components["schemas"]["PhysicalBackupListRow"][];
+            /**
+             * Format: double
+             * @description Storage used by every physical backup of the database, independently of this page and its filters
+             */
+            totalUsageMb: number;
+            /** @description next cursor */
+            nextCursor?: string;
+        };
+        /** @description physical backup list row */
+        PhysicalBackupListRow: {
+            /**
+             * Format: uuid
+             * @description id
+             */
+            id: string;
+            type: components["schemas"]["PhysicalBackupListRowType"];
+            status: components["schemas"]["PhysicalBackupStatus"];
+            /** @description timeline id */
+            timelineId: number;
+            /** @description start lsn */
+            startLsn: string;
+            /** @description stop lsn */
+            stopLsn: string;
+            /**
+             * Format: uuid
+             * @description root full backup id
+             */
+            rootFullBackupId?: string;
+            /**
+             * Format: uuid
+             * @description parent incremental backup id
+             */
+            parentIncrementalBackupId?: string;
+            /** @description from wal filename */
+            fromWalFilename?: string;
+            /** @description to wal filename */
+            toWalFilename?: string;
+            /** @description wal segments count */
+            walSegmentsCount?: number;
+            /** @description Whether a WAL gap precedes the range */
+            hasGapBefore: boolean;
+            /**
+             * Format: double
+             * @description size mb
+             */
+            sizeMb: number;
+            /** @description fail message */
+            failMessage?: string;
+            /**
+             * Format: date-time
+             * @description created at
+             */
+            createdAt: string;
+            /**
+             * Format: date-time
+             * @description completed at
+             */
+            completedAt?: string;
+        };
+        /** @description wal stream current */
+        WalStreamCurrent: {
+            /**
+             * Format: date-time
+             * @description sampled at
+             */
+            sampledAt: string;
+            /**
+             * Format: date-time
+             * @description last archived wal at
+             */
+            lastArchivedWalAt: string | null;
+            /**
+             * Format: date-time
+             * @description session started at
+             */
+            sessionStartedAt: string;
+            sourceState: components["schemas"]["WalStreamSourceState"];
+            /**
+             * Format: date-time
+             * @description source unreachable since
+             */
+            sourceUnreachableSince: string | null;
+            /** @description source current lsn */
+            sourceCurrentLsn: string | null;
+            /** @description archive progress lsn */
+            archiveProgressLsn: string | null;
+            /**
+             * Format: int64
+             * @description source written bytes
+             */
+            sourceWrittenBytes: number | null;
+            /** @description archived segments */
+            archivedSegments: number;
+            /**
+             * Format: int64
+             * @description archived wal bytes
+             */
+            archivedWalBytes: number;
+            /**
+             * Format: int64
+             * @description archived stored bytes
+             */
+            archivedStoredBytes: number;
+            /**
+             * Format: int64
+             * @description wal segment size bytes
+             */
+            walSegmentSizeBytes: number;
+            /** @description highest concurrent uploads */
+            highestConcurrentUploads: number;
+            /**
+             * Format: int64
+             * @description segment write avg millis
+             */
+            segmentWriteAvgMillis: number | null;
+            /**
+             * Format: int64
+             * @description segment write max millis
+             */
+            segmentWriteMaxMillis: number | null;
+            /** @description slot wal status */
+            slotWalStatus: string | null;
+            /**
+             * Format: date-time
+             * @description slot extra wal since
+             */
+            slotExtraWalSince: string | null;
+            /**
+             * Format: int64
+             * @description slot lag bytes
+             */
+            slotLagBytes: number | null;
+            /**
+             * Format: int64
+             * @description slot safe wal size bytes
+             */
+            slotSafeWalSizeBytes: number | null;
+            /**
+             * Format: int64
+             * @description unarchived wal bytes
+             */
+            unarchivedWalBytes: number | null;
+            /**
+             * Format: date-time
+             * @description archive stalled since
+             */
+            archiveStalledSince: string | null;
+            /**
+             * Format: int64
+             * @description local queue bytes
+             */
+            localQueueBytes: number;
+            /**
+             * Format: int64
+             * @description local queue pause bytes
+             */
+            localQueuePauseBytes: number;
+            /** @description receiver restarts */
+            receiverRestarts: number;
+            /** @description receiver pauses */
+            receiverPauses: number;
+            /** @description is receiver running */
+            isReceiverRunning: boolean;
+            /** @description is forced rotation denied */
+            isForcedRotationDenied: boolean;
+        };
+        /** @description wal stream health */
+        WalStreamHealth: {
+            level: components["schemas"]["WalStreamHealthLevel"];
+            /** @description reasons */
+            reasons: components["schemas"]["WalStreamReason"][];
+            /** @description notices */
+            notices: components["schemas"]["WalStreamNotice"][];
+            /** @description is full backup pending */
+            isFullBackupPending: boolean;
+        };
+        /**
+         * @description wal stream health level
+         * @enum {string}
+         */
+        WalStreamHealthLevel: "NOT_STREAMING" | "COLLECTING_DATA" | "BROKEN" | "NEEDS_ATTENTION" | "HEALTHY";
+        /** @description wal stream keeping up */
+        WalStreamKeepingUp: {
+            state: components["schemas"]["WalStreamKeepingUpState"];
+            /**
+             * Format: double
+             * @description source write bytes per second
+             */
+            sourceWriteBytesPerSecond: number | null;
+            /**
+             * Format: double
+             * @description archive bytes per second
+             */
+            archiveBytesPerSecond: number | null;
+            /**
+             * Format: int64
+             * @description unarchived wal bytes
+             */
+            unarchivedWalBytes: number | null;
+            /**
+             * Format: double
+             * @description unarchived wal change bytes per second
+             */
+            unarchivedWalChangeBytesPerSecond: number | null;
+            /**
+             * Format: int64
+             * @description slot lag bytes
+             */
+            slotLagBytes: number | null;
+            /**
+             * Format: double
+             * @description slot lag change bytes per second
+             */
+            slotLagChangeBytesPerSecond: number | null;
+            /**
+             * Format: int64
+             * @description slot rebuild lag bytes
+             */
+            slotRebuildLagBytes: number;
+            /**
+             * Format: int64
+             * @description estimated catch up seconds
+             */
+            estimatedCatchUpSeconds: number | null;
+            /**
+             * Format: int64
+             * @description estimated slot rebuild seconds
+             */
+            estimatedSlotRebuildSeconds: number | null;
+            /**
+             * Format: int64
+             * @description estimated slot limit seconds
+             */
+            estimatedSlotLimitSeconds: number | null;
+        };
+        /**
+         * @description wal stream keeping up state
+         * @enum {string}
+         */
+        WalStreamKeepingUpState: "UNKNOWN" | "FALLING_BEHIND" | "CATCHING_UP" | "IDLE" | "KEEPING_UP";
+        /** @description wal stream notice */
+        WalStreamNotice: {
+            code: components["schemas"]["WalStreamNoticeCode"];
+            level: components["schemas"]["WalStreamReasonLevel"];
+            /**
+             * Format: date-time
+             * @description since
+             */
+            since?: string;
+        };
+        /**
+         * @description wal stream notice code
+         * @enum {string}
+         */
+        WalStreamNoticeCode: "NO_SLOT_WAL_LIMIT" | "SLOT_KEEPS_EXTRA_WAL_STEADILY" | "NO_FULL_BACKUP_YET";
+        /** @description wal stream reason */
+        WalStreamReason: {
+            code: components["schemas"]["WalStreamReasonCode"];
+            level: components["schemas"]["WalStreamReasonLevel"];
+            /**
+             * Format: date-time
+             * @description since
+             */
+            since?: string;
+            /**
+             * Format: int64
+             * @description value bytes
+             */
+            valueBytes?: number;
+            /**
+             * Format: int64
+             * @description threshold bytes
+             */
+            thresholdBytes?: number;
+            /** @description count */
+            count?: number;
+            /**
+             * Format: int64
+             * @description estimated seconds
+             */
+            estimatedSeconds?: number;
+        };
+        /**
+         * @description wal stream reason code
+         * @enum {string}
+         */
+        WalStreamReasonCode: "STREAMING_STOPPED" | "SOURCE_UNREACHABLE" | "WAL_CHAIN_BROKEN" | "SLOT_MISSING" | "SLOT_LOST" | "ARCHIVE_NOT_ADVANCING" | "ARCHIVE_SLOWER_THAN_SOURCE" | "SLOT_KEEPS_EXTRA_WAL" | "SLOT_LIMIT_APPROACHING" | "NEAR_SLOT_REBUILD" | "LOCAL_QUEUE_FILLING" | "FREQUENT_RESTARTS" | "FORCED_ROTATION_REFUSED";
+        /**
+         * @description wal stream reason level
+         * @enum {string}
+         */
+        WalStreamReasonLevel: "BROKEN" | "NEEDS_ATTENTION" | "INFO";
+        /** @description wal stream series */
+        WalStreamSeries: {
+            period: components["schemas"]["WalStreamStatisticsPeriod"];
+            /**
+             * Format: int64
+             * @description bucket seconds
+             */
+            bucketSeconds: number;
+            /**
+             * Format: date-time
+             * @description from
+             */
+            from: string;
+            /**
+             * Format: date-time
+             * @description to
+             */
+            to: string;
+            /** @description points */
+            points: components["schemas"]["WalStreamSeriesPoint"][];
+        };
+        /** @description wal stream series point */
+        WalStreamSeriesPoint: {
+            /**
+             * Format: date-time
+             * @description started at
+             */
+            startedAt: string;
+            /**
+             * Format: double
+             * @description source write bytes per second
+             */
+            sourceWriteBytesPerSecond: number | null;
+            /**
+             * Format: double
+             * @description archive bytes per second
+             */
+            archiveBytesPerSecond: number | null;
+            /**
+             * Format: double
+             * @description archived stored bytes per second
+             */
+            archivedStoredBytesPerSecond: number | null;
+            /**
+             * Format: int64
+             * @description max slot lag bytes
+             */
+            maxSlotLagBytes: number | null;
+            /**
+             * Format: int64
+             * @description max unarchived wal bytes
+             */
+            maxUnarchivedWalBytes: number | null;
+            /**
+             * Format: int64
+             * @description max local queue bytes
+             */
+            maxLocalQueueBytes: number | null;
+            /**
+             * Format: int64
+             * @description local queue pause bytes
+             */
+            localQueuePauseBytes: number | null;
+            /** @description restarts */
+            restarts: number | null;
+            /** @description pauses */
+            pauses: number | null;
+            /** @description session starts */
+            sessionStarts: number | null;
+            /** @description highest concurrent uploads */
+            highestConcurrentUploads: number | null;
+            /**
+             * Format: int64
+             * @description segment write avg millis
+             */
+            segmentWriteAvgMillis: number | null;
+            /**
+             * Format: int64
+             * @description segment write max millis
+             */
+            segmentWriteMaxMillis: number | null;
+        };
+        /**
+         * @description wal stream source state
+         * @enum {string}
+         */
+        WalStreamSourceState: "REACHABLE" | "UNREACHABLE" | "SLOT_MISSING";
+        /**
+         * @description wal stream statistics period
+         * @enum {string}
+         */
+        WalStreamStatisticsPeriod: "HOUR" | "DAY" | "WEEK";
+        /** @description wal stream streamer */
+        WalStreamStreamer: {
+            state: components["schemas"]["WalStreamStreamerState"];
+            /**
+             * Format: date-time
+             * @description session started at
+             */
+            sessionStartedAt: string | null;
+            /**
+             * Format: date-time
+             * @description failing since
+             */
+            failingSince: string | null;
+            /** @description restarts last hour */
+            restartsLastHour: number;
+        };
+        /**
+         * @description wal stream streamer state
+         * @enum {string}
+         */
+        WalStreamStreamerState: "RUNNING" | "NOT_RUNNING" | "NOT_STARTED";
+        /** @description wal stream live values */
+        WalStreamLiveValues: {
+            /**
+             * Format: date-time
+             * @description measured at
+             */
+            measuredAt: string;
+            /**
+             * Format: date-time
+             * @description source probed at
+             */
+            sourceProbedAt: string | null;
+            /** @description source state */
+            sourceState: components["schemas"]["WalStreamSourceState"] | null;
+            /** @description source current lsn */
+            sourceCurrentLsn: string | null;
+            /** @description slot wal status */
+            slotWalStatus: string | null;
+            /**
+             * Format: int64
+             * @description slot lag bytes
+             */
+            slotLagBytes: number | null;
+            /**
+             * Format: int64
+             * @description slot safe wal size bytes
+             */
+            slotSafeWalSizeBytes: number | null;
+            /** @description archive progress lsn */
+            archiveProgressLsn: string | null;
+            /**
+             * Format: date-time
+             * @description last archived wal at
+             */
+            lastArchivedWalAt: string | null;
+            /**
+             * Format: int64
+             * @description unarchived wal bytes
+             */
+            unarchivedWalBytes: number | null;
+            /**
+             * Format: int64
+             * @description local queue bytes
+             */
+            localQueueBytes: number;
+            /**
+             * Format: int64
+             * @description local queue pause bytes
+             */
+            localQueuePauseBytes: number;
+            /** @description is receiver running */
+            isReceiverRunning: boolean;
+        };
+        /** @description wal stream live */
+        WalStreamLive: {
+            /** @description is streamer running */
+            isStreamerRunning: boolean;
+            /** @description current */
+            current: components["schemas"]["WalStreamLiveValues"] | null;
+        };
+        /** @description wal stream statistics */
+        WalStreamStatistics: {
+            health: components["schemas"]["WalStreamHealth"];
+            /**
+             * Format: date-time
+             * @description latest restorable at
+             */
+            latestRestorableAt: string | null;
+            /** @description restorable ranges */
+            restorableRanges: components["schemas"]["WalStreamTimeRange"][];
+            streamer: components["schemas"]["WalStreamStreamer"];
+            /** @description current */
+            current: components["schemas"]["WalStreamCurrent"] | null;
+            keepingUp: components["schemas"]["WalStreamKeepingUp"];
+            series: components["schemas"]["WalStreamSeries"];
+        };
+        /** @description wal stream time range */
+        WalStreamTimeRange: {
+            /**
+             * Format: date-time
+             * @description from
+             */
+            from: string;
+            /**
+             * Format: date-time
+             * @description to
+             */
+            to: string;
+        };
+        /**
+         * @description The requested kind, or AUTO for the scheduler choice
+         * @enum {string}
+         */
+        PhysicalBackupStartKind: "AUTO" | "FULL" | "INCREMENTAL";
+        /** @description A request for the scheduler to start a physical backup */
+        PhysicalBackupStart: {
+            /**
+             * Format: uuid
+             * @description The physical PostgreSQL database to back up
+             */
+            databaseId: string;
+            kind: components["schemas"]["PhysicalBackupStartKind"];
+        };
+        /** @description A database restored to a target time or its latest restorable moment */
+        PhysicalPointInTimeRestoreTokenCreate: {
+            /**
+             * @description Restore a database to a point in time (enum property replaced by openapi-typescript)
+             * @enum {string}
+             */
+            type: "POINT_IN_TIME";
+            /**
+             * Format: uuid
+             * @description The physical database to restore
+             */
+            databaseId: string;
+            /**
+             * Format: date-time
+             * @description The target time, absent for the latest restorable moment
+             */
+            targetTime?: string;
+        };
+        /** @description One backup restored with its ancestors without WAL replay */
+        PhysicalBackupRestoreTokenCreate: {
+            /**
+             * @description Restore one full or incremental backup (enum property replaced by openapi-typescript)
+             * @enum {string}
+             */
+            type: "BACKUP";
+            /**
+             * Format: uuid
+             * @description The full or incremental backup to restore
+             */
+            backupId: string;
+        };
+        /** @description What the restore token opens */
+        PhysicalRestoreTokenCreate: components["schemas"]["PhysicalPointInTimeRestoreTokenCreate"] | components["schemas"]["PhysicalBackupRestoreTokenCreate"];
         /**
          * @description Where a logical backup is in its life
          * @enum {string}
@@ -2827,6 +3568,8 @@ export interface components {
         DatabaseId: string;
         /** @description The ID of the database the config belongs to. A database has exactly one config, which has no ID of its own, so the database's ID is the key of the config. */
         BackupConfigDatabaseId: string;
+        /** @description The ID of a full or incremental physical backup */
+        PhysicalBackupId: string;
         /** @description The ID of the logical backup */
         BackupId: string;
         /** @description The ID of the restore */
@@ -4621,6 +5364,265 @@ export interface operations {
             403: components["responses"]["Problem"];
             404: components["responses"]["Problem"];
             409: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    listPhysicalBackups: {
+        parameters: {
+            query: {
+                /** @description The database whose backups to list */
+                databaseId: string;
+                /** @description Only these backup types */
+                type?: components["schemas"]["PhysicalBackupListRowType"][];
+                /** @description Only these backup statuses */
+                status?: components["schemas"]["PhysicalBackupStatus"][];
+                /** @description Only rows created before this time */
+                createdBefore?: string;
+                /** @description The largest number of rows on the page */
+                limit?: number;
+                /** @description The nextCursor of the previous page */
+                after?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List the physical backups of a database */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PhysicalBackupPage"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    startPhysicalBackup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The request to apply */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PhysicalBackupStart"];
+            };
+        };
+        responses: {
+            /** @description Request a physical backup */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    deletePhysicalBackup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of a full or incremental physical backup */
+                backupId: components["parameters"]["PhysicalBackupId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Delete a physical backup and its descendants */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    cancelPhysicalBackup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of a full or incremental physical backup */
+                backupId: components["parameters"]["PhysicalBackupId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Cancel a running physical backup */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    createPhysicalRestoreToken: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The request to apply */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PhysicalRestoreTokenCreate"];
+            };
+        };
+        responses: {
+            /** @description Issue a token for one physical restore set */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PhysicalRestoreToken"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    downloadPhysicalRestoreSet: {
+        parameters: {
+            query: {
+                /** @description The single-use restore token */
+                token: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Download a physical restore set */
+            200: {
+                headers: {
+                    /** @description The archive or script file name */
+                    "Content-Disposition"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/x-tar": string;
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    getRecoveryScript: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Get the physical recovery script */
+            200: {
+                headers: {
+                    /** @description The archive or script file name */
+                    "Content-Disposition"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/x-shellscript": string;
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    getWalStream: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the database */
+                databaseId: components["parameters"]["DatabaseId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Read the current values of a WAL stream */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WalStreamLive"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    getWalStreamStatistics: {
+        parameters: {
+            query: {
+                /** @description The statistics window */
+                period: components["schemas"]["WalStreamStatisticsPeriod"];
+            };
+            header?: never;
+            path: {
+                /** @description The ID of the database */
+                databaseId: components["parameters"]["DatabaseId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Read the statistics of a WAL stream */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WalStreamStatistics"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
             default: components["responses"]["Problem"];
         };
     };

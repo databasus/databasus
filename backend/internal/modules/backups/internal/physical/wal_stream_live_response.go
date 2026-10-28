@@ -7,25 +7,25 @@ import (
 )
 
 type GetWalStreamLiveResponse struct {
-	IsStreamerRunning bool           `json:"isStreamerRunning"`
-	Current           *WalStreamLive `json:"current"`
+	IsStreamerRunning bool
+	Current           *WalStreamLive
 }
 
 type WalStreamLive struct {
-	MeasuredAt time.Time `json:"measuredAt"`
+	MeasuredAt time.Time
 
-	SourceProbedAt       *time.Time                    `json:"sourceProbedAt"`
-	SourceState          *catalog.WalStreamSourceState `json:"sourceState"`
-	SourceCurrentLsn     *string                       `json:"sourceCurrentLsn"`
-	SlotWalStatus        *string                       `json:"slotWalStatus"`
-	SlotLagBytes         *int64                        `json:"slotLagBytes"`
-	SlotSafeWalSizeBytes *int64                        `json:"slotSafeWalSizeBytes"`
+	SourceProbedAt       *time.Time
+	SourceState          *catalog.WalStreamSourceState
+	SourceCurrentLsn     *string
+	SlotWalStatus        *string
+	SlotLagBytes         *int64
+	SlotSafeWalSizeBytes *int64
 
-	ArchiveProgressLsn *string    `json:"archiveProgressLsn"`
-	LastArchivedWalAt  *time.Time `json:"lastArchivedWalAt"`
-	UnarchivedWalBytes *int64     `json:"unarchivedWalBytes"`
+	ArchiveProgressLsn *string
+	LastArchivedWalAt  *time.Time
+	UnarchivedWalBytes *int64
 
-	LocalQueueBytes      int64 `json:"localQueueBytes"`
-	LocalQueuePauseBytes int64 `json:"localQueuePauseBytes"`
-	IsReceiverRunning    bool  `json:"isReceiverRunning"`
+	LocalQueueBytes      int64
+	LocalQueuePauseBytes int64
+	IsReceiverRunning    bool
 }

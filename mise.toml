@@ -55,7 +55,14 @@ depends = ["backend:format", "agent:format", "frontend:format"]
 [tasks.lint-shell]
 description = "Check the shell scripts with shellcheck"
 shell = "bash -euo pipefail -c"
-run = "git ls-files -z --cached --others --exclude-standard '*.sh' tools/lsp mise-tasks | xargs -0 shellcheck"
+run = """
+git ls-files -z --cached --others --exclude-standard '*.sh' tools/lsp mise-tasks |
+    while IFS= read -r -d '' script; do
+        if [[ -f "$script" ]]; then
+            printf '%s\\0' "$script"
+        fi
+    done | xargs -0 -r shellcheck
+"""
 
 [tasks.doctor]
 description = "Check that the review hooks find the tools they need"
