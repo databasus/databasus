@@ -253,7 +253,7 @@ When the user asks to pack a change, in any language, the agent first checks tha
 
 The standing repair authorization in [Tests](#tests) applies even when a repair requires updating the change's artifacts.
 
-During `/opsx:apply` or the `openspec-apply-change` skill, the agent resolves questions within the agreed change using its own judgment and continues working. It investigates uncertainty and fixes routine problems itself. When a decision is both difficult and consequential, it consults Opus 5.5 in Claude Code with `medium` effort, considers the advice and makes the decision.
+During `/opsx:apply` or the `openspec-apply-change` skill, the agent resolves questions within the agreed change using its own judgment and continues working. It investigates uncertainty and fixes routine problems itself. When a decision is both difficult and consequential, it seeks advice through a separate read-only instance of its active review client, using that client's review profile for full reviews and the [native invocation and child restrictions](.agent-hooks/review_gate.py) documented with the review hooks. It considers the advice and makes the decision. If consultation fails, it decides from available evidence, reports that no advice was received and never switches clients.
 
 The agent asks the user only when it cannot proceed without a decision, information or authorization that only the user can provide. It first checks whether the existing conversation and repository already supply what it needs. Human intervention during apply is exceptional; uncertainty alone is not a reason to stop and ask.
 

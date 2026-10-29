@@ -81,6 +81,8 @@ This is the project's common language. Each concept has one term in the document
 
 | Term | In code | Meaning |
 |---|---|---|
+| Review client | review client | The CLI that runs AI review and apply consultations: `codex` or `claude`, selected explicitly or by the active agent environment. |
+| Review profile | `ReviewProfile` | The model selection, reasoning effort, review contract and execution policy that identify which full-review findings and acceptance can be reused. |
 | Module | module | A part of the backend that owns one domain area and its tables. Only its `module.go` is visible from outside. |
 | Shared code | lib | Packages in `internal/lib` without domain logic. |
 | Composition root | app | `internal/app`, which builds the whole object graph and wires modules together. |

@@ -66,12 +66,13 @@ git ls-files -z --cached --others --exclude-standard '*.sh' tools/lsp mise-tasks
 
 [tasks.doctor]
 description = "Check that the review hooks find the tools they need"
-run = ".agent-hooks/run.sh doctor"
+usage = 'flag "--client <client>" help="Review client: codex or claude; defaults to AGENT_REVIEW_CLIENT"'
+run = '.agent-hooks/run.sh doctor ${usage_client:+--client "$usage_client"}'
 
 [tasks.review]
 description = "Manually rerun parallel AI reviews of a finished OpenSpec change; runs no linting or tests"
-usage = 'arg "[change]" help="The OpenSpec change to review; every active change with all tasks checked when omitted"'
-run = '.agent-hooks/run.sh review "${usage_change:-}"'
+usage = 'arg "[change]" help="The OpenSpec change to review; every active change with all tasks checked when omitted"; flag "--client <client>" help="Review client: codex or claude; defaults to AGENT_REVIEW_CLIENT"'
+run = '.agent-hooks/run.sh review "${usage_change:-}" ${usage_client:+--client "$usage_client"}'
 
 [tasks."backend:lint"]
 description = "Check the backend: contract rules, generated code, formatting, linters and go.mod"

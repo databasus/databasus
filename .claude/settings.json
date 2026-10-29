@@ -4,26 +4,27 @@
     "typescript-lsp@claude-plugins-official": true
   },
   "env": {
-    "GOFLAGS": "-tags=testhelpers"
+    "GOFLAGS": "-tags=testhelpers",
+    "AGENT_REVIEW_CLIENT": "claude"
   },
   "hooks": {
     "PreToolUse": [
       {
         "hooks": [
           {
-            "command": "\"$(git -C \"${CLAUDE_PROJECT_DIR}\" rev-parse --show-toplevel)/.agent-hooks/run.sh\" plan",
+            "command": "\"$(git -C \"${CLAUDE_PROJECT_DIR}\" rev-parse --show-toplevel)/.agent-hooks/run.sh\" plan --client claude",
             "statusMessage": "Reviewing the plan",
             "timeout": 600,
             "type": "command"
           },
           {
-            "command": "\"$(git -C \"${CLAUDE_PROJECT_DIR}\" rev-parse --show-toplevel)/.agent-hooks/run.sh\" necessity",
+            "command": "\"$(git -C \"${CLAUDE_PROJECT_DIR}\" rev-parse --show-toplevel)/.agent-hooks/run.sh\" necessity --client claude",
             "statusMessage": "Checking whether the task is needed",
             "timeout": 600,
             "type": "command"
           },
           {
-            "command": "\"$(git -C \"${CLAUDE_PROJECT_DIR}\" rev-parse --show-toplevel)/.agent-hooks/run.sh\" architecture",
+            "command": "\"$(git -C \"${CLAUDE_PROJECT_DIR}\" rev-parse --show-toplevel)/.agent-hooks/run.sh\" architecture --client claude",
             "statusMessage": "Checking architecture",
             "timeout": 600,
             "type": "command"
@@ -36,7 +37,7 @@
       {
         "hooks": [
           {
-            "command": "\"$(git -C \"${CLAUDE_PROJECT_DIR}\" rev-parse --show-toplevel)/.agent-hooks/run.sh\" session-start",
+            "command": "\"$(git -C \"${CLAUDE_PROJECT_DIR}\" rev-parse --show-toplevel)/.agent-hooks/run.sh\" session-start --client claude",
             "timeout": 10,
             "type": "command"
           }
@@ -47,37 +48,37 @@
       {
         "hooks": [
           {
-            "command": "\"$(git -C \"${CLAUDE_PROJECT_DIR}\" rev-parse --show-toplevel)/.agent-hooks/run.sh\" diff",
+            "command": "\"$(git -C \"${CLAUDE_PROJECT_DIR}\" rev-parse --show-toplevel)/.agent-hooks/run.sh\" diff --client claude",
             "statusMessage": "Reviewing the diff",
             "timeout": 600,
             "type": "command"
           },
           {
-            "command": "\"$(git -C \"${CLAUDE_PROJECT_DIR}\" rev-parse --show-toplevel)/.agent-hooks/run.sh\" necessity",
+            "command": "\"$(git -C \"${CLAUDE_PROJECT_DIR}\" rev-parse --show-toplevel)/.agent-hooks/run.sh\" necessity --client claude",
             "statusMessage": "Checking whether the task is needed",
             "timeout": 600,
             "type": "command"
           },
           {
-            "command": "\"$(git -C \"${CLAUDE_PROJECT_DIR}\" rev-parse --show-toplevel)/.agent-hooks/run.sh\" architecture",
+            "command": "\"$(git -C \"${CLAUDE_PROJECT_DIR}\" rev-parse --show-toplevel)/.agent-hooks/run.sh\" architecture --client claude",
             "statusMessage": "Checking architecture",
             "timeout": 600,
             "type": "command"
           },
           {
-            "command": "\"$(git -C \"${CLAUDE_PROJECT_DIR}\" rev-parse --show-toplevel)/.agent-hooks/run.sh\" code-shape",
+            "command": "\"$(git -C \"${CLAUDE_PROJECT_DIR}\" rev-parse --show-toplevel)/.agent-hooks/run.sh\" code-shape --client claude",
             "statusMessage": "Checking code shape",
             "timeout": 600,
             "type": "command"
           },
           {
-            "command": "\"$(git -C \"${CLAUDE_PROJECT_DIR}\" rev-parse --show-toplevel)/.agent-hooks/run.sh\" implementation",
+            "command": "\"$(git -C \"${CLAUDE_PROJECT_DIR}\" rev-parse --show-toplevel)/.agent-hooks/run.sh\" implementation --client claude",
             "statusMessage": "Full implementation review",
             "timeout": 7200,
             "type": "command"
           },
           {
-            "command": "\"$(git -C \"${CLAUDE_PROJECT_DIR}\" rev-parse --show-toplevel)/.agent-hooks/run.sh\" proposal",
+            "command": "\"$(git -C \"${CLAUDE_PROJECT_DIR}\" rev-parse --show-toplevel)/.agent-hooks/run.sh\" proposal --client claude",
             "statusMessage": "Full proposal review",
             "timeout": 7200,
             "type": "command"
@@ -89,7 +90,7 @@
       {
         "hooks": [
           {
-            "command": "\"$(git -C \"${CLAUDE_PROJECT_DIR}\" rev-parse --show-toplevel)/.agent-hooks/run.sh\" snapshot",
+            "command": "\"$(git -C \"${CLAUDE_PROJECT_DIR}\" rev-parse --show-toplevel)/.agent-hooks/run.sh\" snapshot --client claude",
             "timeout": 30,
             "type": "command"
           }

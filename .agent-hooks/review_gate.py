@@ -1,16 +1,21 @@
 #!/usr/bin/env python3
-"""Review hooks for Claude Code and Codex, wired in .claude/settings.json and .codex/hooks.json.
+r"""Review hooks for Claude Code and Codex, wired in .claude/settings.json and .codex/hooks.json.
 
-Usage: review_gate.py <action>
-       review_gate.py doctor
-       review_gate.py review [change]
+Usage: review_gate.py <action> [--client codex|claude]
+       mise run doctor [--client codex|claude]
+       mise run review [change] [--client codex|claude]
 
 Both clients start it through run.sh, which runs it with the Python and OpenSpec versions pinned
 in mise.toml and stops the agent with the reason when the hook cannot start or crashes.
 
 Codex loads the project configuration only for a trusted project and runs its hooks only after
 the user trusts their current definitions. Trust the project and its hooks when Codex asks.
-The `claude` CLI must be installed and signed in, including when implementing in Codex.
+Hooks pass --client explicitly. Terminal actions use --client first, then AGENT_REVIEW_CLIENT,
+and reject absent or invalid selection. Agent shell environments declare their own client.
+Only the selected CLI must be installed and signed in; failure never switches clients.
+Doctor checks executable availability, without a paid authentication or model probe.
+Examples outside an agent: `mise run doctor --client claude` and
+`mise run review support-codex-review-pipeline --client codex`.
 The plan gates intercept ExitPlanMode only in Claude Code; Codex runs the Stop gates.
 Codex 0.164.0 needs persisted project trust to load a new clone's .codex/ layer; a command-line
 trust override alone is insufficient. The project's chrome-devtools entry replaces the global one.
@@ -51,7 +56,62 @@ Actions:
 Both full reviews run within FULL_REVIEW_BUDGET_SECONDS from the hook's start. Proposal validation
 has a total limit; a reviewer starts only when the budget still holds its whole limit.
 
-Every review runs a separate read-only Claude Code process, including reviews of a Codex session.
+Review profiles and state:
+  Claude uses opus with low effort for quick checks and medium for full and repeat reviews.
+  Codex uses its configured default model with medium effort for quick checks and high for full
+  and repeat reviews. It inherits local Codex configuration, not the main session's one-off model
+  override. Unsupported effort or unavailable models fail the review without lowering effort.
+  Request snapshots and per-request counters retain their session-ID paths in the worktree's
+  Git directory. Full acceptance and findings use client/profile/gate/change namespaces and are
+  reusable across sessions of that profile. Identity includes model, both effort levels, prompt
+  and schema digests, execution-policy version, and digests of Codex home, system and ancestor
+  project configuration inputs. Digests store no configuration contents or credentials. An
+  unrelated configuration edit can invalidate acceptance. Remote changes behind the same model
+  alias are not detected; explicit manual review forces review even after acceptance.
+  Old unscoped full-review state stays on disk and is never imported or used as a fallback.
+
+Every review runs a separate read-only instance of its selected client. Claude uses plan
+permissions, the restricted built-in tool and Git-command allowlist, disabled hooks and no session
+persistence. Codex disables hooks, apps, multi-agent variants and plugins in the child, enumerates
+configured MCP servers and installed plugin identities through JSON CLI listings, and disables
+those servers and plugins individually. It uses read-only sandboxing, approval policy never and
+an ephemeral session. The prompt goes through stdin; only its private final-answer file is parsed
+and schema-validated. Metadata setup and execution share one timeout. Unsupported CLI restrictions
+or managed-policy conflicts fail closed. Child restrictions never edit parent configuration.
+AGENT_REVIEW_HOOK_ACTIVE=1 prevents nested hooks from replacing the initiating request snapshot.
+
+Native read-only consultations during apply:
+  Consult the active client with the full-review profile above and the same child restrictions.
+  Supply the decision and relevant repository context on stdin. Advice is plain text: no review
+  schema, acceptance state or consultation action is involved. The implementing agent considers
+  the advice and owns the decision. Failure yields no advice and never selects the other client.
+
+  Claude Code (run at the repository root, with the decision/context piped to stdin):
+    env -u CLAUDECODE -u CLAUDE_CODE_SESSION_ID AGENT_REVIEW_HOOK_ACTIVE=1 \
+      CLAUDE_CODE_EFFORT_LEVEL=medium claude --print --model opus --effort medium \
+      --permission-mode plan --settings '{"disableAllHooks": true}' \
+      --tools Read,Glob,Grep,Bash \
+      --allowed-tools 'Read,Glob,Grep,Bash(git status *),Bash(git diff *),Bash(git log *),Bash(git show *),Bash(git ls-files *),Bash(git rev-parse *)' \
+      --no-session-persistence --prompt-suggestions false
+
+  Codex: first obtain `codex mcp list --json` and `codex plugin list --json` with hooks, apps and
+  multi-agent features disabled and read-only/never settings, as get_codex_restrictions does.
+  Do not print metadata, since it can contain credentials. Build an argument array named
+  external_tool_overrides containing `-c 'mcp_servers={"<name>"={enabled=false},...}'` and
+  `-c 'plugins={"<pluginId>"={enabled=false},...}'` with an entry for every configured server
+  and installed plugin. Inline tables merge with configuration while preserving transport fields.
+  Quote and escape names as TOML table keys; CLI dotted-key overrides treat quotes literally.
+  At the repository root, pipe the decision/context to:
+    env -u CLAUDECODE -u CLAUDE_CODE_SESSION_ID AGENT_REVIEW_HOOK_ACTIVE=1 \
+      codex -c 'approval_policy="never"' -c 'sandbox_mode="read-only"' \
+      --disable hooks --disable apps --disable enable_mcp_apps --disable multi_agent \
+      --disable multi_agent_v2 --disable multi_agent_v2_dynamic_tools --disable plugins \
+      "${external_tool_overrides[@]}" exec --sandbox read-only --ephemeral \
+      -c 'model_reasoning_effort="high"' -
+  Bound metadata and the native consultation within the full-review timeout of 1800 seconds.
+  If metadata or any restriction cannot be applied, stop the consultation and report that no
+  advice was received. Decide from available evidence; ask only for something the user alone can
+  supply. Never bypass project, hook or sandbox trust, and never modify the parent's permissions.
 The review prompt lives in .agent-hooks/<action>-prompt.md, the shared part in common-prompt.md:
 they say what the reviewer reads and checks.
 A review that could not run never accepts the result, and a missing openspec stops the agent.
@@ -73,6 +133,10 @@ import signal
 import subprocess
 import sys
 import time
+
+from review_client import ReviewExecution, get_review_profile
+from codex_reviewer import run_codex_reviewer
+from review_profile import get_review_profile_identity
 
 
 AUTOMATIC_REVIEW_PREFIX = "AUTOMATIC REVIEW:"
@@ -106,24 +170,19 @@ class MissingToolError(Exception):
 
 @dataclass(frozen=True)
 class Reviewer:
-    claude_model: str
-    claude_effort: str
+    is_full: bool
     schema_path: Path
     timeout_seconds: int
 
 
-# The quick reviewers always run in Claude Code on Opus with low effort, so they answer fast.
-# The full proposal and implementation reviews run once per change and look for
-# what the quick checks miss, so their effort is higher.
+REVIEW_PROFILE = None
 QUICK_REVIEWER = Reviewer(
-    claude_model="opus",
-    claude_effort="low",
+    is_full=False,
     schema_path=HOOKS_DIR / "review-result.schema.json",
     timeout_seconds=540,
 )
 IMPLEMENTATION_REVIEWER = Reviewer(
-    claude_model="opus",
-    claude_effort="medium",
+    is_full=True,
     schema_path=HOOKS_DIR / "implementation-result.schema.json",
     timeout_seconds=1800,
 )
@@ -465,7 +524,8 @@ def get_active_changes(root):
 
 
 def get_change_state_path(root, gate, change_name):
-    return get_state_dir(root) / gate / f"{change_name}.json"
+    identity = get_review_profile_identity(root, REVIEW_PROFILE)
+    return get_state_dir(root) / REVIEW_PROFILE.client / identity / gate / f"{change_name}.json"
 
 
 def get_changes_with_findings(root):
@@ -576,14 +636,14 @@ def get_reviewer_environment():
     return environment
 
 
-def run_claude_reviewer(root, prompt, model, effort, schema_path, timeout_seconds):
+def run_claude_reviewer(request):
     command = [
         "claude",
         "--print",
         "--model",
-        model,
+        request.model,
         "--effort",
-        effort,
+        request.effort,
         "--permission-mode",
         "plan",
         # The reviewer loads this repository's hooks too, and its own turn must never be gated.
@@ -600,20 +660,20 @@ def run_claude_reviewer(root, prompt, model, effort, schema_path, timeout_second
         "--output-format",
         "json",
         "--json-schema",
-        schema_path.read_text(),
+        request.schema_path.read_text(),
     ]
-    environment = get_reviewer_environment()
-    environment["CLAUDE_CODE_EFFORT_LEVEL"] = effort
+    environment = request.environment.copy()
+    environment["CLAUDE_CODE_EFFORT_LEVEL"] = request.effort
 
     process = subprocess.run(
         command,
-        cwd=root,
-        input=prompt,
+        cwd=request.root,
+        input=request.prompt,
         text=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         env=environment,
-        timeout=timeout_seconds,
+        timeout=request.timeout_seconds,
     )
     if process.returncode != 0:
         raise RuntimeError(process.stderr.strip() or process.stdout.strip() or f"claude exited with code {process.returncode}")
@@ -621,14 +681,39 @@ def run_claude_reviewer(root, prompt, model, effort, schema_path, timeout_second
 
 
 def run_reviewer(root, prompt, reviewer):
-    return run_claude_reviewer(
-        root, prompt, reviewer.claude_model, reviewer.claude_effort, reviewer.schema_path, reviewer.timeout_seconds
+    request = ReviewExecution(
+        root=root, prompt=prompt, client=REVIEW_PROFILE.client, model=REVIEW_PROFILE.model,
+        effort=REVIEW_PROFILE.full_effort if reviewer.is_full else REVIEW_PROFILE.quick_effort,
+        schema_path=reviewer.schema_path, timeout_seconds=reviewer.timeout_seconds,
+        environment=get_reviewer_environment(),
     )
+    answer = run_codex_reviewer(request) if request.client == "codex" else run_claude_reviewer(request)
+    validate_review_answer(answer, json.loads(request.schema_path.read_text()))
+    return answer
+
+
+def validate_review_answer(answer, schema):
+    kind = schema["type"]
+    if kind == "object":
+        if not isinstance(answer, dict) or set(answer) != set(schema["properties"]):
+            raise ValueError("the reviewer result does not match the schema")
+        for name, field in schema["properties"].items():
+            validate_review_answer(answer[name], field)
+    elif kind == "array":
+        if not isinstance(answer, list):
+            raise ValueError("the reviewer result does not match the schema")
+        for item in answer:
+            validate_review_answer(item, schema["items"])
+    elif kind == "string":
+        if not isinstance(answer, str) or ("enum" in schema and answer not in schema["enum"]):
+            raise ValueError("the reviewer result does not match the schema")
+    elif kind == "boolean" and not isinstance(answer, bool):
+        raise ValueError("the reviewer result does not match the schema")
 
 
 def describe_reviewer_error(error):
     message = str(error).strip()[-1200:] or "unknown reviewer error"
-    return f"The automatic reviewer could not run: {message}"
+    return f"The automatic reviewer ({REVIEW_PROFILE.client}) could not run: {message}"
 
 
 def review(root, prompt):
@@ -1302,6 +1387,7 @@ def report_progress(message):
 # Prints a report for a person or for the agent that reads the output of `! mise run review`,
 # and returns the exit code: 0 when every review accepted the change.
 def run_manual_review(change_name, deadline):
+    print(f"Review client: {REVIEW_PROFILE.client}")
     root = find_root({})
     session = ManualSession(root)
     try:
@@ -1345,11 +1431,12 @@ def run_manual_review(change_name, deadline):
 
 
 def check_environment():
+    print(f"Review client: {REVIEW_PROFILE.client}")
     tool_paths = {
         "python": sys.executable,
         "git": shutil.which("git"),
         "openspec": shutil.which("openspec"),
-        "claude": shutil.which("claude"),
+        REVIEW_PROFILE.client: shutil.which(REVIEW_PROFILE.client),
     }
     for tool, path in tool_paths.items():
         print(f"{tool}: {path or 'not found'}")
@@ -1360,17 +1447,30 @@ def check_environment():
 def stop_for_missing_tool(error):
     message = (
         f"The review hooks could not find `{error.tool}`, so the review did not run. "
-        "Run `mise install` to install the pinned tools and `mise run doctor` to check the environment."
+        f"Run `mise install` to install the pinned tools and `mise run doctor --client {REVIEW_PROFILE.client}` to check the environment."
     )
     emit({"continue": False, "stopReason": message, "systemMessage": message})
 
 
 def main():
+    global REVIEW_PROFILE
     deadline = time.monotonic() + FULL_REVIEW_BUDGET_SECONDS
     parser = argparse.ArgumentParser()
     parser.add_argument("action", choices=("session-start", "snapshot", "doctor", "review", *GATES))
     parser.add_argument("change", nargs="?", help="the OpenSpec change that `review` checks; all implemented ones when omitted")
-    arguments = parser.parse_args()
+    parser.add_argument("--client")
+    arguments = parser.parse_intermixed_args()
+    try:
+        REVIEW_PROFILE = get_review_profile(arguments.client)
+        get_review_profile_identity.cache_clear()
+    except ValueError as error:
+        parser.error(str(error))
+    if os.environ.get(REVIEWER_ACTIVE_ENV) == "1":
+        if arguments.action in ("doctor", "review"):
+            print("Nested review action skipped inside an active reviewer.")
+        else:
+            emit({})
+        return
     if arguments.action == "doctor":
         sys.exit(check_environment())
     if arguments.change and arguments.action != "review":
@@ -1379,7 +1479,7 @@ def main():
         try:
             sys.exit(run_manual_review(arguments.change or None, deadline))
         except MissingToolError as error:
-            print(f"The review could not find `{error.tool}`. Run `mise install`, then `mise run doctor`.")
+            print(f"The review could not find `{error.tool}`. Run `mise install`, then `mise run doctor --client {REVIEW_PROFILE.client}`.")
             sys.exit(2)
 
     try:
@@ -1390,9 +1490,6 @@ def main():
 
 def run_action(action, deadline):
     payload = read_payload()
-    if os.environ.get(REVIEWER_ACTIVE_ENV) == "1":
-        emit({})
-        return
     if action == "session-start":
         start_session()
         return

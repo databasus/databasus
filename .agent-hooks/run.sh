@@ -9,7 +9,7 @@ set -uo pipefail
 hooks_dir="$(cd "${BASH_SOURCE[0]%/*}" && pwd)"
 root="${hooks_dir%/*}"
 action="${1:-}"
-environment_check_hint="Run \`mise install\` to install the pinned tools and \`mise run doctor\` to check the environment."
+environment_check_hint="Run \`mise install\` to install the pinned tools and \`mise run doctor --client codex\` to check the environment."
 
 # A person starts doctor and review, not a hook, so they print text and exit with a code.
 is_terminal_action=false
