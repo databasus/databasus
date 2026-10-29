@@ -927,6 +927,7 @@ const (
 	ProblemCodeAdminEmailMissing        ProblemCode = "admin_email_missing"
 	ProblemCodeAlreadyMember            ProblemCode = "already_member"
 	ProblemCodeAlreadyRunning           ProblemCode = "already_running"
+	ProblemCodeBackupNotCompleted       ProblemCode = "backup_not_completed"
 	ProblemCodeCannotChangeOwnRole      ProblemCode = "cannot_change_own_role"
 	ProblemCodeDatabaseConnectionFailed ProblemCode = "database_connection_failed"
 	ProblemCodeEmailNotConfigured       ProblemCode = "email_not_configured"
@@ -967,6 +968,8 @@ func (e ProblemCode) Valid() bool {
 	case ProblemCodeAlreadyMember:
 		return true
 	case ProblemCodeAlreadyRunning:
+		return true
+	case ProblemCodeBackupNotCompleted:
 		return true
 	case ProblemCodeCannotChangeOwnRole:
 		return true
@@ -1381,6 +1384,90 @@ func (e UserStatus) Valid() bool {
 	case UserStatusINACTIVE:
 		return true
 	case UserStatusINVITED:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for VerificationNotificationTrigger.
+const (
+	VerificationNotificationTriggerVERIFICATIONFAILED  VerificationNotificationTrigger = "VERIFICATION_FAILED"
+	VerificationNotificationTriggerVERIFICATIONSUCCESS VerificationNotificationTrigger = "VERIFICATION_SUCCESS"
+)
+
+// Valid indicates whether the value is a known member of the VerificationNotificationTrigger enum.
+func (e VerificationNotificationTrigger) Valid() bool {
+	switch e {
+	case VerificationNotificationTriggerVERIFICATIONFAILED:
+		return true
+	case VerificationNotificationTriggerVERIFICATIONSUCCESS:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for VerificationScheduleType.
+const (
+	VerificationScheduleTypeAFTERBACKUP VerificationScheduleType = "AFTER_BACKUP"
+	VerificationScheduleTypeINTERVAL    VerificationScheduleType = "INTERVAL"
+)
+
+// Valid indicates whether the value is a known member of the VerificationScheduleType enum.
+func (e VerificationScheduleType) Valid() bool {
+	switch e {
+	case VerificationScheduleTypeAFTERBACKUP:
+		return true
+	case VerificationScheduleTypeINTERVAL:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for VerificationStatus.
+const (
+	VerificationStatusCANCELED  VerificationStatus = "CANCELED"
+	VerificationStatusCOMPLETED VerificationStatus = "COMPLETED"
+	VerificationStatusFAILED    VerificationStatus = "FAILED"
+	VerificationStatusPENDING   VerificationStatus = "PENDING"
+	VerificationStatusRUNNING   VerificationStatus = "RUNNING"
+)
+
+// Valid indicates whether the value is a known member of the VerificationStatus enum.
+func (e VerificationStatus) Valid() bool {
+	switch e {
+	case VerificationStatusCANCELED:
+		return true
+	case VerificationStatusCOMPLETED:
+		return true
+	case VerificationStatusFAILED:
+		return true
+	case VerificationStatusPENDING:
+		return true
+	case VerificationStatusRUNNING:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for VerificationTrigger.
+const (
+	VerificationTriggerAFTERBACKUP VerificationTrigger = "AFTER_BACKUP"
+	VerificationTriggerMANUAL      VerificationTrigger = "MANUAL"
+	VerificationTriggerSCHEDULED   VerificationTrigger = "SCHEDULED"
+)
+
+// Valid indicates whether the value is a known member of the VerificationTrigger enum.
+func (e VerificationTrigger) Valid() bool {
+	switch e {
+	case VerificationTriggerAFTERBACKUP:
+		return true
+	case VerificationTriggerMANUAL:
+		return true
+	case VerificationTriggerSCHEDULED:
 		return true
 	default:
 		return false
@@ -1821,6 +1908,13 @@ type BackupSettings struct {
 	union json.RawMessage
 }
 
+// CreatedVerificationAgent Created Verification Agent
+type CreatedVerificationAgent struct {
+	// Agent Verification Agent
+	Agent VerificationAgent `json:"agent"`
+	Token string            `json:"token"`
+}
+
 // Database A database a workspace backs up, without its secrets
 type Database struct {
 	// HealthStatus The outcome of the last scheduled health check, absent while health checks are off
@@ -2211,7 +2305,7 @@ type LogicalBackupSettings struct {
 	// Retention Which logical backups are kept. `policy` picks the rule; the fields of the other rules keep their saved values.
 	Retention LogicalRetention `json:"retention"`
 
-	// Schedule When a recurring backup runs; times of day are in UTC
+	// Schedule When recurring work runs; times of day are in UTC
 	Schedule Schedule `json:"schedule"`
 
 	// Type Always `LOGICAL`
@@ -2801,7 +2895,7 @@ type PhysicalBackupRestoreTokenCreateType string
 
 // PhysicalBackupSettings The settings of the physical backups of a physical PostgreSQL database. They must fit the database's physical backup type.
 type PhysicalBackupSettings struct {
-	// FullBackupSchedule When a recurring backup runs; times of day are in UTC
+	// FullBackupSchedule When recurring work runs; times of day are in UTC
 	FullBackupSchedule Schedule `json:"fullBackupSchedule"`
 
 	// IncrementalBackupSchedule When incremental backups run, null for a backup type without them. It must run more often than the full backups.
@@ -3181,7 +3275,7 @@ type S3StorageSettings struct {
 // S3StorageSettingsType Always `S3`
 type S3StorageSettingsType string
 
-// Schedule When a recurring backup runs; times of day are in UTC
+// Schedule When recurring work runs; times of day are in UTC
 type Schedule struct {
 	// CronExpression The five-field cron expression of a cron schedule
 	CronExpression *string `json:"cronExpression,omitempty"`
@@ -3361,6 +3455,11 @@ type SshTunnelSettings struct {
 
 	// Username The user name on the bastion
 	Username *string `json:"username,omitempty"`
+}
+
+// StartVerificationInput Start Verification Input
+type StartVerificationInput struct {
+	BackupId openapi_types.UUID `json:"backupId"`
 }
 
 // Storage A place backups of a workspace are kept, without its secrets
@@ -3562,6 +3661,140 @@ type UserUpdate struct {
 	// Name The name other users see
 	Name string `json:"name"`
 }
+
+// Verification Verification
+type Verification struct {
+	AgentId                   *openapi_types.UUID `json:"agentId,omitempty"`
+	AttemptCount              int                 `json:"attemptCount"`
+	BackupId                  openapi_types.UUID  `json:"backupId"`
+	CreatedAt                 time.Time           `json:"createdAt"`
+	DatabaseId                openapi_types.UUID  `json:"databaseId"`
+	FailMessage               *string             `json:"failMessage,omitempty"`
+	FinishedAt                *time.Time          `json:"finishedAt,omitempty"`
+	Id                        openapi_types.UUID  `json:"id"`
+	PgRestoreExitCode         *int                `json:"pgRestoreExitCode,omitempty"`
+	RestoreDurationMs         *int64              `json:"restoreDurationMs,omitempty"`
+	RestoredDatabaseSizeBytes *int64              `json:"restoredDatabaseSizeBytes,omitempty"`
+	SchemaCount               *int                `json:"schemaCount,omitempty"`
+	StartedAt                 *time.Time          `json:"startedAt,omitempty"`
+
+	// Status Verification Status
+	Status     VerificationStatus `json:"status"`
+	TableCount *int               `json:"tableCount,omitempty"`
+
+	// Trigger Verification Trigger
+	Trigger          VerificationTrigger `json:"trigger"`
+	VerifyDurationMs *int64              `json:"verifyDurationMs,omitempty"`
+}
+
+// VerificationAgent Verification Agent
+type VerificationAgent struct {
+	CreatedAt         time.Time          `json:"createdAt"`
+	Id                openapi_types.UUID `json:"id"`
+	LastSeenAt        *time.Time         `json:"lastSeenAt,omitempty"`
+	MaxConcurrentJobs int                `json:"maxConcurrentJobs"`
+	MaxCpu            int                `json:"maxCpu"`
+	MaxDiskGb         int                `json:"maxDiskGb"`
+	MaxRamGb          int                `json:"maxRamGb"`
+	Name              string             `json:"name"`
+}
+
+// VerificationAgentCount Verification Agent Count
+type VerificationAgentCount struct {
+	AgentCount int64 `json:"agentCount"`
+}
+
+// VerificationAgentInput Verification Agent Input
+type VerificationAgentInput struct {
+	Name string `json:"name"`
+}
+
+// VerificationAgentPage Verification Agent Page
+type VerificationAgentPage struct {
+	Items      []VerificationAgent `json:"items"`
+	NextCursor *string             `json:"nextCursor,omitempty"`
+}
+
+// VerificationAgentToken Verification Agent Token
+type VerificationAgentToken struct {
+	Token string `json:"token"`
+}
+
+// VerificationConfig Verification Config
+type VerificationConfig struct {
+	DatabaseId                     openapi_types.UUID                `json:"databaseId"`
+	IsAutomaticVerificationEnabled bool                              `json:"isAutomaticVerificationEnabled"`
+	NotificationTriggers           []VerificationNotificationTrigger `json:"notificationTriggers"`
+
+	// Schedule When recurring work runs; times of day are in UTC
+	Schedule Schedule `json:"schedule"`
+
+	// ScheduleType Verification Schedule Type
+	ScheduleType VerificationScheduleType `json:"scheduleType"`
+}
+
+// VerificationConfigInput Verification Config Input
+type VerificationConfigInput struct {
+	IsAutomaticVerificationEnabled bool                              `json:"isAutomaticVerificationEnabled"`
+	NotificationTriggers           []VerificationNotificationTrigger `json:"notificationTriggers"`
+
+	// Schedule When recurring work runs; times of day are in UTC
+	Schedule Schedule `json:"schedule"`
+
+	// ScheduleType Verification Schedule Type
+	ScheduleType VerificationScheduleType `json:"scheduleType"`
+}
+
+// VerificationDetails Verification Details
+type VerificationDetails struct {
+	AgentId                   *openapi_types.UUID `json:"agentId,omitempty"`
+	AttemptCount              int                 `json:"attemptCount"`
+	BackupId                  openapi_types.UUID  `json:"backupId"`
+	CreatedAt                 time.Time           `json:"createdAt"`
+	DatabaseId                openapi_types.UUID  `json:"databaseId"`
+	FailMessage               *string             `json:"failMessage,omitempty"`
+	FinishedAt                *time.Time          `json:"finishedAt,omitempty"`
+	Id                        openapi_types.UUID  `json:"id"`
+	PgRestoreExitCode         *int                `json:"pgRestoreExitCode,omitempty"`
+	RestoreDurationMs         *int64              `json:"restoreDurationMs,omitempty"`
+	RestoredDatabaseSizeBytes *int64              `json:"restoredDatabaseSizeBytes,omitempty"`
+	SchemaCount               *int                `json:"schemaCount,omitempty"`
+	StartedAt                 *time.Time          `json:"startedAt,omitempty"`
+
+	// Status Verification Status
+	Status     VerificationStatus      `json:"status"`
+	TableCount *int                    `json:"tableCount,omitempty"`
+	TableStats []VerificationTableStat `json:"tableStats"`
+
+	// Trigger Verification Trigger
+	Trigger          VerificationTrigger `json:"trigger"`
+	VerifyDurationMs *int64              `json:"verifyDurationMs,omitempty"`
+}
+
+// VerificationNotificationTrigger Verification Notification Trigger
+type VerificationNotificationTrigger string
+
+// VerificationPage Verification Page
+type VerificationPage struct {
+	Items      []Verification `json:"items"`
+	NextCursor *string        `json:"nextCursor,omitempty"`
+}
+
+// VerificationScheduleType Verification Schedule Type
+type VerificationScheduleType string
+
+// VerificationStatus Verification Status
+type VerificationStatus string
+
+// VerificationTableStat Verification Table Stat
+type VerificationTableStat struct {
+	Name       string `json:"name"`
+	RowCount   int64  `json:"rowCount"`
+	SchemaName string `json:"schemaName"`
+}
+
+// VerificationTrigger Verification Trigger
+type VerificationTrigger string
 
 // VerifySignInCodeRequest The code emailed for a pending sign-in
 type VerifySignInCodeRequest struct {
@@ -4241,6 +4474,27 @@ type ListUsersParams struct {
 	Query *string `form:"query,omitempty" json:"query,omitempty"`
 }
 
+// ListVerificationAgentsParams defines parameters for ListVerificationAgents.
+type ListVerificationAgentsParams struct {
+	// Limit The page size
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// After The cursor from the preceding page
+	After *string `form:"after,omitempty" json:"after,omitempty"`
+}
+
+// ListVerificationsParams defines parameters for ListVerifications.
+type ListVerificationsParams struct {
+	// DatabaseId The ID of the database
+	DatabaseId openapi_types.UUID `form:"databaseId" json:"databaseId"`
+
+	// Limit The page size
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// After The cursor from the preceding page
+	After *string `form:"after,omitempty" json:"after,omitempty"`
+}
+
 // GetWalStreamStatisticsParams defines parameters for GetWalStreamStatistics.
 type GetWalStreamStatisticsParams struct {
 	// Period The statistics window
@@ -4363,6 +4617,15 @@ type ChangeUserPasswordJSONRequestBody = PasswordChange
 
 // ChangeUserRoleJSONRequestBody defines body for ChangeUserRole for application/json ContentType.
 type ChangeUserRoleJSONRequestBody = UserRoleChange
+
+// CreateVerificationAgentJSONRequestBody defines body for CreateVerificationAgent for application/json ContentType.
+type CreateVerificationAgentJSONRequestBody = VerificationAgentInput
+
+// UpdateVerificationConfigJSONRequestBody defines body for UpdateVerificationConfig for application/json ContentType.
+type UpdateVerificationConfigJSONRequestBody = VerificationConfigInput
+
+// StartVerificationJSONRequestBody defines body for StartVerification for application/json ContentType.
+type StartVerificationJSONRequestBody = StartVerificationInput
 
 // AddWorkspaceMemberJSONRequestBody defines body for AddWorkspaceMember for application/json ContentType.
 type AddWorkspaceMemberJSONRequestBody = WorkspaceMemberAddition
@@ -6672,6 +6935,102 @@ type ClientInterface interface {
 	// Corresponds with PUT /users/{userId}/role (the `ChangeUserRole` operationId).
 	ChangeUserRole(ctx context.Context, userId UserId, body ChangeUserRoleJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// GetVerificationAgentCount Read the number of verification agents
+	//
+	// Counts agents that have not been deleted, without exposing their details.
+	//
+	// Corresponds with GET /verification-agent-counts (the `GetVerificationAgentCount` operationId).
+	GetVerificationAgentCount(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListVerificationAgents List verification agents
+	//
+	// The newest entries come first, ordered by createdAt and id.
+	//
+	// Corresponds with GET /verification-agents (the `ListVerificationAgents` operationId).
+	ListVerificationAgents(ctx context.Context, params *ListVerificationAgentsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateVerificationAgentWithBody Create a verification agent
+	//
+	// Issues a token returned only in this response.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /verification-agents (the `CreateVerificationAgent` operationId).
+	CreateVerificationAgentWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateVerificationAgent Create a verification agent
+	//
+	// Issues a token returned only in this response.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /verification-agents (the `CreateVerificationAgent` operationId).
+	CreateVerificationAgent(ctx context.Context, body CreateVerificationAgentJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DeleteVerificationAgent Delete a verification agent
+	//
+	// Corresponds with DELETE /verification-agents/{agentId} (the `DeleteVerificationAgent` operationId).
+	DeleteVerificationAgent(ctx context.Context, agentId openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// RotateVerificationAgentToken Rotate a verification agent token
+	//
+	// Corresponds with POST /verification-agents/{agentId}/rotate-token (the `RotateVerificationAgentToken` operationId).
+	RotateVerificationAgentToken(ctx context.Context, agentId openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetVerificationConfig Read the verification config
+	//
+	// Corresponds with GET /verification-configs/{databaseId} (the `GetVerificationConfig` operationId).
+	GetVerificationConfig(ctx context.Context, databaseId openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpdateVerificationConfigWithBody Save the verification config
+	//
+	// Replaces the automatic verification settings and notification outcomes.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with PUT /verification-configs/{databaseId} (the `UpdateVerificationConfig` operationId).
+	UpdateVerificationConfigWithBody(ctx context.Context, databaseId openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpdateVerificationConfig Save the verification config
+	//
+	// Replaces the automatic verification settings and notification outcomes.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with PUT /verification-configs/{databaseId} (the `UpdateVerificationConfig` operationId).
+	UpdateVerificationConfig(ctx context.Context, databaseId openapi_types.UUID, body UpdateVerificationConfigJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListVerifications List the verifications of a database
+	//
+	// The newest entries come first, ordered by createdAt and id.
+	//
+	// Corresponds with GET /verifications (the `ListVerifications` operationId).
+	ListVerifications(ctx context.Context, params *ListVerificationsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// StartVerificationWithBody Start a manual backup verification
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /verifications (the `StartVerification` operationId).
+	StartVerificationWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// StartVerification Start a manual backup verification
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /verifications (the `StartVerification` operationId).
+	StartVerification(ctx context.Context, body StartVerificationJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetVerification Read a verification with table counts
+	//
+	// Corresponds with GET /verifications/{verificationId} (the `GetVerification` operationId).
+	GetVerification(ctx context.Context, verificationId openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CancelVerification Cancel a pending or running verification
+	//
+	// Corresponds with POST /verifications/{verificationId}/cancel (the `CancelVerification` operationId).
+	CancelVerification(ctx context.Context, verificationId openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// GetWalStream Read the current values of a WAL stream
 	//
 	// Needs WORKSPACE_VIEWER. An outsider or missing database gets 404 not_found. A nonphysical database gets 400 invalid_request. Source-side values come from the streamer probes and open no connection to the source.
@@ -8647,6 +9006,242 @@ func (c *Client) ChangeUserRoleWithBody(ctx context.Context, userId UserId, cont
 // Corresponds with PUT /users/{userId}/role (the `ChangeUserRole` operationId).
 func (c *Client) ChangeUserRole(ctx context.Context, userId UserId, body ChangeUserRoleJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewChangeUserRoleRequest(c.Server, userId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetVerificationAgentCount Read the number of verification agents
+//
+// Counts agents that have not been deleted, without exposing their details.
+//
+// Corresponds with GET /verification-agent-counts (the `GetVerificationAgentCount` operationId).
+func (c *Client) GetVerificationAgentCount(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetVerificationAgentCountRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ListVerificationAgents List verification agents
+//
+// The newest entries come first, ordered by createdAt and id.
+//
+// Corresponds with GET /verification-agents (the `ListVerificationAgents` operationId).
+func (c *Client) ListVerificationAgents(ctx context.Context, params *ListVerificationAgentsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListVerificationAgentsRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// CreateVerificationAgentWithBody Create a verification agent
+//
+// Issues a token returned only in this response.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /verification-agents (the `CreateVerificationAgent` operationId).
+func (c *Client) CreateVerificationAgentWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateVerificationAgentRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// CreateVerificationAgent Create a verification agent
+//
+// Issues a token returned only in this response.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /verification-agents (the `CreateVerificationAgent` operationId).
+func (c *Client) CreateVerificationAgent(ctx context.Context, body CreateVerificationAgentJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateVerificationAgentRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// DeleteVerificationAgent Delete a verification agent
+//
+// Corresponds with DELETE /verification-agents/{agentId} (the `DeleteVerificationAgent` operationId).
+func (c *Client) DeleteVerificationAgent(ctx context.Context, agentId openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteVerificationAgentRequest(c.Server, agentId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// RotateVerificationAgentToken Rotate a verification agent token
+//
+// Corresponds with POST /verification-agents/{agentId}/rotate-token (the `RotateVerificationAgentToken` operationId).
+func (c *Client) RotateVerificationAgentToken(ctx context.Context, agentId openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRotateVerificationAgentTokenRequest(c.Server, agentId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetVerificationConfig Read the verification config
+//
+// Corresponds with GET /verification-configs/{databaseId} (the `GetVerificationConfig` operationId).
+func (c *Client) GetVerificationConfig(ctx context.Context, databaseId openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetVerificationConfigRequest(c.Server, databaseId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// UpdateVerificationConfigWithBody Save the verification config
+//
+// Replaces the automatic verification settings and notification outcomes.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with PUT /verification-configs/{databaseId} (the `UpdateVerificationConfig` operationId).
+func (c *Client) UpdateVerificationConfigWithBody(ctx context.Context, databaseId openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateVerificationConfigRequestWithBody(c.Server, databaseId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// UpdateVerificationConfig Save the verification config
+//
+// Replaces the automatic verification settings and notification outcomes.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with PUT /verification-configs/{databaseId} (the `UpdateVerificationConfig` operationId).
+func (c *Client) UpdateVerificationConfig(ctx context.Context, databaseId openapi_types.UUID, body UpdateVerificationConfigJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateVerificationConfigRequest(c.Server, databaseId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ListVerifications List the verifications of a database
+//
+// The newest entries come first, ordered by createdAt and id.
+//
+// Corresponds with GET /verifications (the `ListVerifications` operationId).
+func (c *Client) ListVerifications(ctx context.Context, params *ListVerificationsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListVerificationsRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// StartVerificationWithBody Start a manual backup verification
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /verifications (the `StartVerification` operationId).
+func (c *Client) StartVerificationWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewStartVerificationRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// StartVerification Start a manual backup verification
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /verifications (the `StartVerification` operationId).
+func (c *Client) StartVerification(ctx context.Context, body StartVerificationJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewStartVerificationRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetVerification Read a verification with table counts
+//
+// Corresponds with GET /verifications/{verificationId} (the `GetVerification` operationId).
+func (c *Client) GetVerification(ctx context.Context, verificationId openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetVerificationRequest(c.Server, verificationId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// CancelVerification Cancel a pending or running verification
+//
+// Corresponds with POST /verifications/{verificationId}/cancel (the `CancelVerification` operationId).
+func (c *Client) CancelVerification(ctx context.Context, verificationId openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCancelVerificationRequest(c.Server, verificationId)
 	if err != nil {
 		return nil, err
 	}
@@ -12060,6 +12655,470 @@ func NewChangeUserRoleRequestWithBody(server string, userId UserId, contentType 
 	return req, nil
 }
 
+// NewGetVerificationAgentCountRequest constructs an http.Request for the GetVerificationAgentCount method
+func NewGetVerificationAgentCountRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/verification-agent-counts")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewListVerificationAgentsRequest constructs an http.Request for the ListVerificationAgents method
+func NewListVerificationAgentsRequest(server string, params *ListVerificationAgentsParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/verification-agents")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "limit", *params.Limit, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.After != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "after", *params.After, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewCreateVerificationAgentRequest calls the generic CreateVerificationAgent builder with application/json body
+func NewCreateVerificationAgentRequest(server string, body CreateVerificationAgentJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCreateVerificationAgentRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewCreateVerificationAgentRequestWithBody constructs an http.Request for the CreateVerificationAgent method, with any body, and a specified content type
+func NewCreateVerificationAgentRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/verification-agents")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewDeleteVerificationAgentRequest constructs an http.Request for the DeleteVerificationAgent method
+func NewDeleteVerificationAgentRequest(server string, agentId openapi_types.UUID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "agentId", agentId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/verification-agents/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodDelete, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewRotateVerificationAgentTokenRequest constructs an http.Request for the RotateVerificationAgentToken method
+func NewRotateVerificationAgentTokenRequest(server string, agentId openapi_types.UUID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "agentId", agentId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/verification-agents/%s/rotate-token", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetVerificationConfigRequest constructs an http.Request for the GetVerificationConfig method
+func NewGetVerificationConfigRequest(server string, databaseId openapi_types.UUID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "databaseId", databaseId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/verification-configs/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewUpdateVerificationConfigRequest calls the generic UpdateVerificationConfig builder with application/json body
+func NewUpdateVerificationConfigRequest(server string, databaseId openapi_types.UUID, body UpdateVerificationConfigJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewUpdateVerificationConfigRequestWithBody(server, databaseId, "application/json", bodyReader)
+}
+
+// NewUpdateVerificationConfigRequestWithBody constructs an http.Request for the UpdateVerificationConfig method, with any body, and a specified content type
+func NewUpdateVerificationConfigRequestWithBody(server string, databaseId openapi_types.UUID, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "databaseId", databaseId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/verification-configs/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPut, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewListVerificationsRequest constructs an http.Request for the ListVerifications method
+func NewListVerificationsRequest(server string, params *ListVerificationsParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/verifications")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "databaseId", params.DatabaseId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: "uuid"}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "limit", *params.Limit, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.After != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "after", *params.After, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewStartVerificationRequest calls the generic StartVerification builder with application/json body
+func NewStartVerificationRequest(server string, body StartVerificationJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewStartVerificationRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewStartVerificationRequestWithBody constructs an http.Request for the StartVerification method, with any body, and a specified content type
+func NewStartVerificationRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/verifications")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewGetVerificationRequest constructs an http.Request for the GetVerification method
+func NewGetVerificationRequest(server string, verificationId openapi_types.UUID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "verificationId", verificationId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/verifications/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewCancelVerificationRequest constructs an http.Request for the CancelVerification method
+func NewCancelVerificationRequest(server string, verificationId openapi_types.UUID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "verificationId", verificationId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/verifications/%s/cancel", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewGetWalStreamRequest constructs an http.Request for the GetWalStream method
 func NewGetWalStreamRequest(server string, databaseId DatabaseId) (*http.Request, error) {
 	var err error
@@ -13566,6 +14625,118 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with PUT /users/{userId}/role (the `ChangeUserRole` operationId).
 	ChangeUserRoleWithResponse(ctx context.Context, userId UserId, body ChangeUserRoleJSONRequestBody, reqEditors ...RequestEditorFn) (*ChangeUserRoleResponse, error)
+
+	// GetVerificationAgentCountWithResponse Read the number of verification agents
+	//
+	// Counts agents that have not been deleted, without exposing their details.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /verification-agent-counts (the `GetVerificationAgentCount` operationId).
+	GetVerificationAgentCountWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetVerificationAgentCountResponse, error)
+
+	// ListVerificationAgentsWithResponse List verification agents
+	//
+	// The newest entries come first, ordered by createdAt and id.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /verification-agents (the `ListVerificationAgents` operationId).
+	ListVerificationAgentsWithResponse(ctx context.Context, params *ListVerificationAgentsParams, reqEditors ...RequestEditorFn) (*ListVerificationAgentsResponse, error)
+
+	// CreateVerificationAgentWithBodyWithResponse Create a verification agent
+	//
+	// Issues a token returned only in this response.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /verification-agents (the `CreateVerificationAgent` operationId).
+	CreateVerificationAgentWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateVerificationAgentResponse, error)
+
+	// CreateVerificationAgentWithResponse Create a verification agent
+	//
+	// Issues a token returned only in this response.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /verification-agents (the `CreateVerificationAgent` operationId).
+	CreateVerificationAgentWithResponse(ctx context.Context, body CreateVerificationAgentJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateVerificationAgentResponse, error)
+
+	// DeleteVerificationAgentWithResponse Delete a verification agent
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with DELETE /verification-agents/{agentId} (the `DeleteVerificationAgent` operationId).
+	DeleteVerificationAgentWithResponse(ctx context.Context, agentId openapi_types.UUID, reqEditors ...RequestEditorFn) (*DeleteVerificationAgentResponse, error)
+
+	// RotateVerificationAgentTokenWithResponse Rotate a verification agent token
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /verification-agents/{agentId}/rotate-token (the `RotateVerificationAgentToken` operationId).
+	RotateVerificationAgentTokenWithResponse(ctx context.Context, agentId openapi_types.UUID, reqEditors ...RequestEditorFn) (*RotateVerificationAgentTokenResponse, error)
+
+	// GetVerificationConfigWithResponse Read the verification config
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /verification-configs/{databaseId} (the `GetVerificationConfig` operationId).
+	GetVerificationConfigWithResponse(ctx context.Context, databaseId openapi_types.UUID, reqEditors ...RequestEditorFn) (*GetVerificationConfigResponse, error)
+
+	// UpdateVerificationConfigWithBodyWithResponse Save the verification config
+	//
+	// Replaces the automatic verification settings and notification outcomes.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /verification-configs/{databaseId} (the `UpdateVerificationConfig` operationId).
+	UpdateVerificationConfigWithBodyWithResponse(ctx context.Context, databaseId openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateVerificationConfigResponse, error)
+
+	// UpdateVerificationConfigWithResponse Save the verification config
+	//
+	// Replaces the automatic verification settings and notification outcomes.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /verification-configs/{databaseId} (the `UpdateVerificationConfig` operationId).
+	UpdateVerificationConfigWithResponse(ctx context.Context, databaseId openapi_types.UUID, body UpdateVerificationConfigJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateVerificationConfigResponse, error)
+
+	// ListVerificationsWithResponse List the verifications of a database
+	//
+	// The newest entries come first, ordered by createdAt and id.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /verifications (the `ListVerifications` operationId).
+	ListVerificationsWithResponse(ctx context.Context, params *ListVerificationsParams, reqEditors ...RequestEditorFn) (*ListVerificationsResponse, error)
+
+	// StartVerificationWithBodyWithResponse Start a manual backup verification
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /verifications (the `StartVerification` operationId).
+	StartVerificationWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*StartVerificationResponse, error)
+
+	// StartVerificationWithResponse Start a manual backup verification
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /verifications (the `StartVerification` operationId).
+	StartVerificationWithResponse(ctx context.Context, body StartVerificationJSONRequestBody, reqEditors ...RequestEditorFn) (*StartVerificationResponse, error)
+
+	// GetVerificationWithResponse Read a verification with table counts
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /verifications/{verificationId} (the `GetVerification` operationId).
+	GetVerificationWithResponse(ctx context.Context, verificationId openapi_types.UUID, reqEditors ...RequestEditorFn) (*GetVerificationResponse, error)
+
+	// CancelVerificationWithResponse Cancel a pending or running verification
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /verifications/{verificationId}/cancel (the `CancelVerification` operationId).
+	CancelVerificationWithResponse(ctx context.Context, verificationId openapi_types.UUID, reqEditors ...RequestEditorFn) (*CancelVerificationResponse, error)
 
 	// GetWalStreamWithResponse Read the current values of a WAL stream
 	//
@@ -18643,6 +19814,828 @@ func (r ChangeUserRoleResponse) ContentType() string {
 	return ""
 }
 
+type GetVerificationAgentCountResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *VerificationAgentCount
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetVerificationAgentCountResponse) GetJSON200() *VerificationAgentCount {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r GetVerificationAgentCountResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r GetVerificationAgentCountResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r GetVerificationAgentCountResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r GetVerificationAgentCountResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r GetVerificationAgentCountResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetVerificationAgentCountResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetVerificationAgentCountResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetVerificationAgentCountResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type ListVerificationAgentsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *VerificationAgentPage
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ListVerificationAgentsResponse) GetJSON200() *VerificationAgentPage {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r ListVerificationAgentsResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r ListVerificationAgentsResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r ListVerificationAgentsResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r ListVerificationAgentsResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r ListVerificationAgentsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ListVerificationAgentsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListVerificationAgentsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ListVerificationAgentsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type CreateVerificationAgentResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON201 the response for an HTTP 201 `application/json` response
+	JSON201 *CreatedVerificationAgent
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON201 returns the response for an HTTP 201 `application/json` response
+func (r CreateVerificationAgentResponse) GetJSON201() *CreatedVerificationAgent {
+	return r.JSON201
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r CreateVerificationAgentResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r CreateVerificationAgentResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r CreateVerificationAgentResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r CreateVerificationAgentResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r CreateVerificationAgentResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r CreateVerificationAgentResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreateVerificationAgentResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r CreateVerificationAgentResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type DeleteVerificationAgentResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r DeleteVerificationAgentResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r DeleteVerificationAgentResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r DeleteVerificationAgentResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r DeleteVerificationAgentResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r DeleteVerificationAgentResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r DeleteVerificationAgentResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r DeleteVerificationAgentResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DeleteVerificationAgentResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r DeleteVerificationAgentResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type RotateVerificationAgentTokenResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *VerificationAgentToken
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r RotateVerificationAgentTokenResponse) GetJSON200() *VerificationAgentToken {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r RotateVerificationAgentTokenResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r RotateVerificationAgentTokenResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r RotateVerificationAgentTokenResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r RotateVerificationAgentTokenResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r RotateVerificationAgentTokenResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r RotateVerificationAgentTokenResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r RotateVerificationAgentTokenResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r RotateVerificationAgentTokenResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r RotateVerificationAgentTokenResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetVerificationConfigResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *VerificationConfig
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetVerificationConfigResponse) GetJSON200() *VerificationConfig {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r GetVerificationConfigResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r GetVerificationConfigResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r GetVerificationConfigResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r GetVerificationConfigResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r GetVerificationConfigResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r GetVerificationConfigResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetVerificationConfigResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetVerificationConfigResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetVerificationConfigResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type UpdateVerificationConfigResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *VerificationConfig
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r UpdateVerificationConfigResponse) GetJSON200() *VerificationConfig {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r UpdateVerificationConfigResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r UpdateVerificationConfigResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r UpdateVerificationConfigResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r UpdateVerificationConfigResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r UpdateVerificationConfigResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r UpdateVerificationConfigResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r UpdateVerificationConfigResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r UpdateVerificationConfigResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r UpdateVerificationConfigResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type ListVerificationsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *VerificationPage
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ListVerificationsResponse) GetJSON200() *VerificationPage {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r ListVerificationsResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r ListVerificationsResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r ListVerificationsResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r ListVerificationsResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r ListVerificationsResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r ListVerificationsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ListVerificationsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListVerificationsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ListVerificationsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type StartVerificationResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON202 the response for an HTTP 202 `application/json` response
+	JSON202 *Verification
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSON409 the response for an HTTP 409 `application/problem+json` response
+	ApplicationproblemJSON409 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON202 returns the response for an HTTP 202 `application/json` response
+func (r StartVerificationResponse) GetJSON202() *Verification {
+	return r.JSON202
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r StartVerificationResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r StartVerificationResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r StartVerificationResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r StartVerificationResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSON409 returns the response for an HTTP 409 `application/problem+json` response
+func (r StartVerificationResponse) GetApplicationproblemJSON409() *Problem {
+	return r.ApplicationproblemJSON409
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r StartVerificationResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r StartVerificationResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r StartVerificationResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r StartVerificationResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r StartVerificationResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetVerificationResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *VerificationDetails
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetVerificationResponse) GetJSON200() *VerificationDetails {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r GetVerificationResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r GetVerificationResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r GetVerificationResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r GetVerificationResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r GetVerificationResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r GetVerificationResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetVerificationResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetVerificationResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetVerificationResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type CancelVerificationResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *Verification
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSON409 the response for an HTTP 409 `application/problem+json` response
+	ApplicationproblemJSON409 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r CancelVerificationResponse) GetJSON200() *Verification {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r CancelVerificationResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r CancelVerificationResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r CancelVerificationResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r CancelVerificationResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSON409 returns the response for an HTTP 409 `application/problem+json` response
+func (r CancelVerificationResponse) GetApplicationproblemJSON409() *Problem {
+	return r.ApplicationproblemJSON409
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r CancelVerificationResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r CancelVerificationResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r CancelVerificationResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CancelVerificationResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r CancelVerificationResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type GetWalStreamResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -21026,6 +23019,202 @@ func (c *ClientWithResponses) ChangeUserRoleWithResponse(ctx context.Context, us
 		return nil, err
 	}
 	return ParseChangeUserRoleResponse(rsp)
+}
+
+// GetVerificationAgentCountWithResponse Read the number of verification agents
+//
+// Counts agents that have not been deleted, without exposing their details.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /verification-agent-counts (the `GetVerificationAgentCount` operationId).
+func (c *ClientWithResponses) GetVerificationAgentCountWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetVerificationAgentCountResponse, error) {
+	rsp, err := c.GetVerificationAgentCount(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetVerificationAgentCountResponse(rsp)
+}
+
+// ListVerificationAgentsWithResponse List verification agents
+//
+// The newest entries come first, ordered by createdAt and id.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /verification-agents (the `ListVerificationAgents` operationId).
+func (c *ClientWithResponses) ListVerificationAgentsWithResponse(ctx context.Context, params *ListVerificationAgentsParams, reqEditors ...RequestEditorFn) (*ListVerificationAgentsResponse, error) {
+	rsp, err := c.ListVerificationAgents(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListVerificationAgentsResponse(rsp)
+}
+
+// CreateVerificationAgentWithBodyWithResponse Create a verification agent
+//
+// Issues a token returned only in this response.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /verification-agents (the `CreateVerificationAgent` operationId).
+func (c *ClientWithResponses) CreateVerificationAgentWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateVerificationAgentResponse, error) {
+	rsp, err := c.CreateVerificationAgentWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateVerificationAgentResponse(rsp)
+}
+
+// CreateVerificationAgentWithResponse Create a verification agent
+//
+// Issues a token returned only in this response.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /verification-agents (the `CreateVerificationAgent` operationId).
+func (c *ClientWithResponses) CreateVerificationAgentWithResponse(ctx context.Context, body CreateVerificationAgentJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateVerificationAgentResponse, error) {
+	rsp, err := c.CreateVerificationAgent(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateVerificationAgentResponse(rsp)
+}
+
+// DeleteVerificationAgentWithResponse Delete a verification agent
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with DELETE /verification-agents/{agentId} (the `DeleteVerificationAgent` operationId).
+func (c *ClientWithResponses) DeleteVerificationAgentWithResponse(ctx context.Context, agentId openapi_types.UUID, reqEditors ...RequestEditorFn) (*DeleteVerificationAgentResponse, error) {
+	rsp, err := c.DeleteVerificationAgent(ctx, agentId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDeleteVerificationAgentResponse(rsp)
+}
+
+// RotateVerificationAgentTokenWithResponse Rotate a verification agent token
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /verification-agents/{agentId}/rotate-token (the `RotateVerificationAgentToken` operationId).
+func (c *ClientWithResponses) RotateVerificationAgentTokenWithResponse(ctx context.Context, agentId openapi_types.UUID, reqEditors ...RequestEditorFn) (*RotateVerificationAgentTokenResponse, error) {
+	rsp, err := c.RotateVerificationAgentToken(ctx, agentId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseRotateVerificationAgentTokenResponse(rsp)
+}
+
+// GetVerificationConfigWithResponse Read the verification config
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /verification-configs/{databaseId} (the `GetVerificationConfig` operationId).
+func (c *ClientWithResponses) GetVerificationConfigWithResponse(ctx context.Context, databaseId openapi_types.UUID, reqEditors ...RequestEditorFn) (*GetVerificationConfigResponse, error) {
+	rsp, err := c.GetVerificationConfig(ctx, databaseId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetVerificationConfigResponse(rsp)
+}
+
+// UpdateVerificationConfigWithBodyWithResponse Save the verification config
+//
+// Replaces the automatic verification settings and notification outcomes.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /verification-configs/{databaseId} (the `UpdateVerificationConfig` operationId).
+func (c *ClientWithResponses) UpdateVerificationConfigWithBodyWithResponse(ctx context.Context, databaseId openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateVerificationConfigResponse, error) {
+	rsp, err := c.UpdateVerificationConfigWithBody(ctx, databaseId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateVerificationConfigResponse(rsp)
+}
+
+// UpdateVerificationConfigWithResponse Save the verification config
+//
+// Replaces the automatic verification settings and notification outcomes.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /verification-configs/{databaseId} (the `UpdateVerificationConfig` operationId).
+func (c *ClientWithResponses) UpdateVerificationConfigWithResponse(ctx context.Context, databaseId openapi_types.UUID, body UpdateVerificationConfigJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateVerificationConfigResponse, error) {
+	rsp, err := c.UpdateVerificationConfig(ctx, databaseId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateVerificationConfigResponse(rsp)
+}
+
+// ListVerificationsWithResponse List the verifications of a database
+//
+// The newest entries come first, ordered by createdAt and id.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /verifications (the `ListVerifications` operationId).
+func (c *ClientWithResponses) ListVerificationsWithResponse(ctx context.Context, params *ListVerificationsParams, reqEditors ...RequestEditorFn) (*ListVerificationsResponse, error) {
+	rsp, err := c.ListVerifications(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListVerificationsResponse(rsp)
+}
+
+// StartVerificationWithBodyWithResponse Start a manual backup verification
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /verifications (the `StartVerification` operationId).
+func (c *ClientWithResponses) StartVerificationWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*StartVerificationResponse, error) {
+	rsp, err := c.StartVerificationWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseStartVerificationResponse(rsp)
+}
+
+// StartVerificationWithResponse Start a manual backup verification
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /verifications (the `StartVerification` operationId).
+func (c *ClientWithResponses) StartVerificationWithResponse(ctx context.Context, body StartVerificationJSONRequestBody, reqEditors ...RequestEditorFn) (*StartVerificationResponse, error) {
+	rsp, err := c.StartVerification(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseStartVerificationResponse(rsp)
+}
+
+// GetVerificationWithResponse Read a verification with table counts
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /verifications/{verificationId} (the `GetVerification` operationId).
+func (c *ClientWithResponses) GetVerificationWithResponse(ctx context.Context, verificationId openapi_types.UUID, reqEditors ...RequestEditorFn) (*GetVerificationResponse, error) {
+	rsp, err := c.GetVerification(ctx, verificationId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetVerificationResponse(rsp)
+}
+
+// CancelVerificationWithResponse Cancel a pending or running verification
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /verifications/{verificationId}/cancel (the `CancelVerification` operationId).
+func (c *ClientWithResponses) CancelVerificationWithResponse(ctx context.Context, verificationId openapi_types.UUID, reqEditors ...RequestEditorFn) (*CancelVerificationResponse, error) {
+	rsp, err := c.CancelVerification(ctx, verificationId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCancelVerificationResponse(rsp)
 }
 
 // GetWalStreamWithResponse Read the current values of a WAL stream
@@ -25214,6 +27403,666 @@ func ParseChangeUserRoleResponse(rsp *http.Response) (*ChangeUserRoleResponse, e
 			return nil, err
 		}
 		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetVerificationAgentCountResponse parses an HTTP response from a GetVerificationAgentCountWithResponse call
+func ParseGetVerificationAgentCountResponse(rsp *http.Response) (*GetVerificationAgentCountResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetVerificationAgentCountResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest VerificationAgentCount
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListVerificationAgentsResponse parses an HTTP response from a ListVerificationAgentsWithResponse call
+func ParseListVerificationAgentsResponse(rsp *http.Response) (*ListVerificationAgentsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListVerificationAgentsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest VerificationAgentPage
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCreateVerificationAgentResponse parses an HTTP response from a CreateVerificationAgentWithResponse call
+func ParseCreateVerificationAgentResponse(rsp *http.Response) (*CreateVerificationAgentResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CreateVerificationAgentResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest CreatedVerificationAgent
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseDeleteVerificationAgentResponse parses an HTTP response from a DeleteVerificationAgentWithResponse call
+func ParseDeleteVerificationAgentResponse(rsp *http.Response) (*DeleteVerificationAgentResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeleteVerificationAgentResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case rsp.StatusCode == 204:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseRotateVerificationAgentTokenResponse parses an HTTP response from a RotateVerificationAgentTokenWithResponse call
+func ParseRotateVerificationAgentTokenResponse(rsp *http.Response) (*RotateVerificationAgentTokenResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &RotateVerificationAgentTokenResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest VerificationAgentToken
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetVerificationConfigResponse parses an HTTP response from a GetVerificationConfigWithResponse call
+func ParseGetVerificationConfigResponse(rsp *http.Response) (*GetVerificationConfigResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetVerificationConfigResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest VerificationConfig
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseUpdateVerificationConfigResponse parses an HTTP response from a UpdateVerificationConfigWithResponse call
+func ParseUpdateVerificationConfigResponse(rsp *http.Response) (*UpdateVerificationConfigResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &UpdateVerificationConfigResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest VerificationConfig
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListVerificationsResponse parses an HTTP response from a ListVerificationsWithResponse call
+func ParseListVerificationsResponse(rsp *http.Response) (*ListVerificationsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListVerificationsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest VerificationPage
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseStartVerificationResponse parses an HTTP response from a StartVerificationWithResponse call
+func ParseStartVerificationResponse(rsp *http.Response) (*StartVerificationResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &StartVerificationResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 202:
+		var dest Verification
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON202 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetVerificationResponse parses an HTTP response from a GetVerificationWithResponse call
+func ParseGetVerificationResponse(rsp *http.Response) (*GetVerificationResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetVerificationResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest VerificationDetails
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCancelVerificationResponse parses an HTTP response from a CancelVerificationWithResponse call
+func ParseCancelVerificationResponse(rsp *http.Response) (*CancelVerificationResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CancelVerificationResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Verification
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON409 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest Problem

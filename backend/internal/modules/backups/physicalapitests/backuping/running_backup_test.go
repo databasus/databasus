@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -79,6 +80,8 @@ func TestCancelRunningPhysicalBackup(t *testing.T) {
 				Scan(&count),
 		)
 		assert.Zero(t, count)
+		// A canceled upload can retain its unspent receipt until the file commit window expires.
+		team.App.Clock.Advance(3 * time.Second)
 		team.App.RunJobPass(t, "storage_file_deletion")
 		var files []struct{ FileName *string }
 		team.App.QuerySQL(t, &files, "SELECT file_name FROM backups_physical WHERE id=?", backup.ID)

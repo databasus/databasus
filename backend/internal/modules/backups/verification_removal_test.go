@@ -1,7 +1,6 @@
 package backups_test
 
 import (
-	"encoding/json"
 	"net/http"
 	"testing"
 	"time"
@@ -10,7 +9,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"databasus-backend/internal/app/apptest"
 	apiclient "databasus-backend/internal/lib/apiclient"
 )
 
@@ -60,7 +58,7 @@ func TestRemoveBackupVerifications(t *testing.T) {
 		assert.Equal(t, []uuid.UUID{keptBackup.Id}, listLogicalBackupIDs(t, tm.owner, database.databaseID))
 		verifications := listDatabaseVerifications(t, tm, database.databaseID)
 		require.Len(t, verifications, 1)
-		assert.Equal(t, keptVerificationID, verifications[0].ID)
+		assert.Equal(t, keptVerificationID, verifications[0].Id)
 	})
 
 	t.Run("removes verifications when the backup config changes storage", func(t *testing.T) {
@@ -79,7 +77,7 @@ func TestRemoveBackupVerifications(t *testing.T) {
 		tm := newTeam(t)
 		database := newBackedUpDatabase(t, tm, server)
 		tm.app.EnqueueVerification(t, tm.owner, database.backup.Id)
-		readVerificationConfig(t, tm, database.databaseID)
+		saveVerificationConfig(t, tm, database.databaseID)
 
 		response, err := tm.owner.Client.DeleteDatabaseWithResponse(t.Context(), database.databaseID)
 
@@ -103,7 +101,7 @@ func TestRemoveBackupVerifications(t *testing.T) {
 		tm := newTeam(t)
 		database := newBackedUpDatabase(t, tm, server)
 		verificationID := tm.app.EnqueueVerification(t, tm.owner, database.backup.Id)
-		configBeforeDeletion := readVerificationConfig(t, tm, database.databaseID)
+		configBeforeDeletion := saveVerificationConfig(t, tm, database.databaseID)
 		startBlockedBackup(t, tm, server, database)
 
 		response, err := tm.owner.Client.DeleteDatabaseWithResponse(t.Context(), database.databaseID)
@@ -113,31 +111,52 @@ func TestRemoveBackupVerifications(t *testing.T) {
 		assert.Contains(t, listLogicalBackupIDs(t, tm.owner, database.databaseID), database.backup.Id)
 		verifications := listDatabaseVerifications(t, tm, database.databaseID)
 		require.Len(t, verifications, 1)
-		assert.Equal(t, verificationID, verifications[0].ID)
+		assert.Equal(t, verificationID, verifications[0].Id)
 		assert.Equal(t, configBeforeDeletion, readVerificationConfig(t, tm, database.databaseID))
 	})
 }
 
-func listDatabaseVerifications(t *testing.T, tm team, databaseID uuid.UUID) []apptest.Verification {
+func listDatabaseVerifications(t *testing.T, tm team, databaseID uuid.UUID) []apiclient.Verification {
 	t.Helper()
-	status, body := tm.app.CallOldAPI(t, tm.owner, apptest.OldAPICall{
-		Method: http.MethodGet, Path: "/verifications/by-database/" + databaseID.String(), Body: nil,
-	})
-	require.Equal(t, http.StatusOK, status, string(body))
-	var page struct {
-		Verifications []apptest.Verification `json:"verifications"`
+	var after *string
+	verifications := []apiclient.Verification{}
+	for {
+		response, err := tm.owner.Client.ListVerificationsWithResponse(
+			t.Context(),
+			&apiclient.ListVerificationsParams{DatabaseId: databaseID, Limit: nil, After: after},
+		)
+		require.NoError(t, err)
+		require.NotNil(t, response.JSON200, string(response.Body))
+		verifications = append(verifications, response.JSON200.Items...)
+		after = response.JSON200.NextCursor
+		if after == nil {
+			return verifications
+		}
 	}
-	require.NoError(t, json.Unmarshal(body, &page))
-	return page.Verifications
 }
 
-func readVerificationConfig(t *testing.T, tm team, databaseID uuid.UUID) map[string]any {
+func readVerificationConfig(t *testing.T, tm team, databaseID uuid.UUID) apiclient.VerificationConfig {
 	t.Helper()
-	status, body := tm.app.CallOldAPI(t, tm.owner, apptest.OldAPICall{
-		Method: http.MethodGet, Path: "/verification-config/" + databaseID.String(), Body: nil,
-	})
-	require.Equal(t, http.StatusOK, status, string(body))
-	var config map[string]any
-	require.NoError(t, json.Unmarshal(body, &config))
-	return config
+	response, err := tm.owner.Client.GetVerificationConfigWithResponse(t.Context(), databaseID)
+	require.NoError(t, err)
+	require.NotNil(t, response.JSON200, string(response.Body))
+	return *response.JSON200
+}
+
+func saveVerificationConfig(t *testing.T, tm team, databaseID uuid.UUID) apiclient.VerificationConfig {
+	t.Helper()
+	config := readVerificationConfig(t, tm, databaseID)
+	response, err := tm.owner.Client.UpdateVerificationConfigWithResponse(
+		t.Context(),
+		databaseID,
+		apiclient.VerificationConfigInput{
+			IsAutomaticVerificationEnabled: config.IsAutomaticVerificationEnabled,
+			ScheduleType:                   config.ScheduleType,
+			Schedule:                       config.Schedule,
+			NotificationTriggers:           config.NotificationTriggers,
+		},
+	)
+	require.NoError(t, err)
+	require.NotNil(t, response.JSON200, string(response.Body))
+	return *response.JSON200
 }

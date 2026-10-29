@@ -180,6 +180,10 @@ func (p *Provider) GetConnectionSettings(
 	}, nil
 }
 
+func (p *Provider) GetVersions(ctx context.Context, ids []uuid.UUID) (map[uuid.UUID]string, error) {
+	return p.repository.listVersions(ctx, ids)
+}
+
 func (p *Provider) decryptEngineSettings(settings Settings) (pglogical.Settings, error) {
 	password, err := providers.DecryptSecret(p.fieldEncryptor, settings.Password, "the PostgreSQL password")
 	if err != nil {

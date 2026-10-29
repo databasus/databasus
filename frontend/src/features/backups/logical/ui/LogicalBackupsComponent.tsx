@@ -209,7 +209,7 @@ export const LogicalBackupsComponent = ({
     setVerifyingBackupId(backupId);
 
     try {
-      await verificationRunsApi.enqueue(backupId);
+      await verificationRunsApi.startVerification(backupId);
       message.success(t('backups.logical.list.verifyRestore.queued'));
       onNavigateToVerifications?.();
     } catch (e) {

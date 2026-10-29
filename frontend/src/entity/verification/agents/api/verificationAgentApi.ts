@@ -1,55 +1,39 @@
-import { getApplicationServer } from '../../../../constants';
-import { apiHelper } from '../../../../shared/api/apiHelper';
-import RequestOptions from '../../../../shared/api/RequestOptions';
-import type {
-  CreatedAgentResponse,
-  RotateTokenResponse,
-  VerificationAgent,
-  VerificationAgentAvailability,
-} from '../models/VerificationAgent';
+import { getApiClient, requireData, requireSuccess } from '../../../../shared/api';
+import type { VerificationAgent } from '../models/VerificationAgent';
 
 export const verificationAgentApi = {
-  async listAgents() {
-    const requestOptions: RequestOptions = new RequestOptions();
-    return apiHelper.fetchGetJson<VerificationAgent[]>(
-      `${getApplicationServer()}/api/v1/verification/agents`,
-      requestOptions,
-      true,
-    );
+  async listAgents(): Promise<VerificationAgent[]> {
+    const agents: VerificationAgent[] = [];
+    let after: string | undefined;
+    do {
+      const page = requireData(
+        await getApiClient().GET('/verification-agents', {
+          params: { query: { limit: 100, after } },
+        }),
+      );
+      agents.push(...page.items);
+      after = page.nextCursor;
+    } while (after !== undefined);
+    return agents;
   },
-
-  async getAvailability() {
-    const requestOptions: RequestOptions = new RequestOptions();
-    return apiHelper.fetchGetJson<VerificationAgentAvailability>(
-      `${getApplicationServer()}/api/v1/verification/agents/availability`,
-      requestOptions,
-      true,
-    );
+  async getAgentCount() {
+    return requireData(await getApiClient().GET('/verification-agent-counts'));
   },
-
   async createAgent(name: string) {
-    const requestOptions: RequestOptions = new RequestOptions();
-    requestOptions.setBody(JSON.stringify({ name }));
-    return apiHelper.fetchPostJson<CreatedAgentResponse>(
-      `${getApplicationServer()}/api/v1/verification/agents`,
-      requestOptions,
+    return requireData(await getApiClient().POST('/verification-agents', { body: { name } }));
+  },
+  async rotateToken(agentId: string) {
+    return requireData(
+      await getApiClient().POST('/verification-agents/{agentId}/rotate-token', {
+        params: { path: { agentId } },
+      }),
     );
   },
-
-  async rotateToken(id: string) {
-    const requestOptions: RequestOptions = new RequestOptions();
-    requestOptions.setBody(JSON.stringify({}));
-    return apiHelper.fetchPostJson<RotateTokenResponse>(
-      `${getApplicationServer()}/api/v1/verification/agents/${id}/rotate-token`,
-      requestOptions,
-    );
-  },
-
-  async deleteAgent(id: string) {
-    const requestOptions: RequestOptions = new RequestOptions();
-    return apiHelper.fetchDeleteJson(
-      `${getApplicationServer()}/api/v1/verification/agents/${id}`,
-      requestOptions,
+  async deleteAgent(agentId: string) {
+    requireSuccess(
+      await getApiClient().DELETE('/verification-agents/{agentId}', {
+        params: { path: { agentId } },
+      }),
     );
   },
 };

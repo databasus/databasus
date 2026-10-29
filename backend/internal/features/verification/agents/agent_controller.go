@@ -4,15 +4,16 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+
+	verification_bridge "databasus-backend/internal/features/verification"
+	"databasus-backend/internal/modules/verification"
 )
 
-type AgentFacingController struct {
-	agentService *AgentService
-}
+type AgentFacingController struct{}
 
 func (c *AgentFacingController) RegisterRoutes(router *gin.RouterGroup) {
 	g := router.Group("/agent/verification/:agentId")
-	g.Use(c.agentService.RequireAgentAuth())
+	g.Use(RequireAgentAuth())
 
 	g.POST("/heartbeat", c.Heartbeat)
 }
@@ -30,7 +31,8 @@ func (c *AgentFacingController) Heartbeat(ctx *gin.Context) {
 		return
 	}
 
-	seenAt, abortVerificationIDs, err := c.agentService.Heartbeat(ctx.Request.Context(), agent, &request)
+	abortVerificationIDs, seenAt, err := verification_bridge.GetModule().
+		RecordAgentHeartbeat(ctx.Request.Context(), *agent, verification.AgentHeartbeat{Capacity: verification.HeartbeatCapacity{MaxCPU: request.MaxCPU, MaxRAMGb: request.MaxRAMGb, MaxDiskGb: request.MaxDiskGb, MaxConcurrentJobs: request.MaxConcurrentJobs}, CurrentVerificationIDs: request.CurrentVerificationIDs})
 	if err != nil {
 		_ = ctx.Error(err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

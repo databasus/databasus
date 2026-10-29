@@ -1362,10 +1362,288 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/verification-agent-counts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read the number of verification agents
+         * @description Counts agents that have not been deleted, without exposing their details.
+         */
+        get: operations["getVerificationAgentCount"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/verification-agents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List verification agents
+         * @description The newest entries come first, ordered by createdAt and id.
+         */
+        get: operations["listVerificationAgents"];
+        put?: never;
+        /**
+         * Create a verification agent
+         * @description Issues a token returned only in this response.
+         */
+        post: operations["createVerificationAgent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/verification-agents/{agentId}/rotate-token": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Rotate a verification agent token */
+        post: operations["rotateVerificationAgentToken"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/verification-agents/{agentId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete a verification agent */
+        delete: operations["deleteVerificationAgent"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/verification-configs/{databaseId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read the verification config */
+        get: operations["getVerificationConfig"];
+        /**
+         * Save the verification config
+         * @description Replaces the automatic verification settings and notification outcomes.
+         */
+        put: operations["updateVerificationConfig"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/verifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the verifications of a database
+         * @description The newest entries come first, ordered by createdAt and id.
+         */
+        get: operations["listVerifications"];
+        put?: never;
+        /** Start a manual backup verification */
+        post: operations["startVerification"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/verifications/{verificationId}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel a pending or running verification */
+        post: operations["cancelVerification"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/verifications/{verificationId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read a verification with table counts */
+        get: operations["getVerification"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @description Verification Agent Count */
+        VerificationAgentCount: {
+            /** Format: int64 */
+            agentCount: number;
+        };
+        /** @description Verification Agent Input */
+        VerificationAgentInput: {
+            name: string;
+        };
+        /** @description Verification Agent */
+        VerificationAgent: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            maxCpu: number;
+            maxRamGb: number;
+            maxDiskGb: number;
+            maxConcurrentJobs: number;
+            /** Format: date-time */
+            lastSeenAt?: string;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        /** @description Created Verification Agent */
+        CreatedVerificationAgent: {
+            agent: components["schemas"]["VerificationAgent"];
+            token: string;
+        };
+        /** @description Verification Agent Token */
+        VerificationAgentToken: {
+            token: string;
+        };
+        /**
+         * @description Verification Schedule Type
+         * @enum {string}
+         */
+        VerificationScheduleType: "INTERVAL" | "AFTER_BACKUP";
+        /**
+         * @description Verification Notification Trigger
+         * @enum {string}
+         */
+        VerificationNotificationTrigger: "VERIFICATION_SUCCESS" | "VERIFICATION_FAILED";
+        /**
+         * @description Verification Trigger
+         * @enum {string}
+         */
+        VerificationTrigger: "MANUAL" | "SCHEDULED" | "AFTER_BACKUP";
+        /**
+         * @description Verification Status
+         * @enum {string}
+         */
+        VerificationStatus: "PENDING" | "RUNNING" | "COMPLETED" | "FAILED" | "CANCELED";
+        /** @description Verification Config Input */
+        VerificationConfigInput: {
+            isAutomaticVerificationEnabled: boolean;
+            scheduleType: components["schemas"]["VerificationScheduleType"];
+            schedule: components["schemas"]["Schedule"];
+            notificationTriggers: components["schemas"]["VerificationNotificationTrigger"][];
+        };
+        /** @description Verification Config */
+        VerificationConfig: {
+            /** Format: uuid */
+            databaseId: string;
+            isAutomaticVerificationEnabled: boolean;
+            scheduleType: components["schemas"]["VerificationScheduleType"];
+            schedule: components["schemas"]["Schedule"];
+            notificationTriggers: components["schemas"]["VerificationNotificationTrigger"][];
+        };
+        /** @description Start Verification Input */
+        StartVerificationInput: {
+            /** Format: uuid */
+            backupId: string;
+        };
+        /** @description Verification */
+        Verification: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            databaseId: string;
+            /** Format: uuid */
+            backupId: string;
+            /** Format: uuid */
+            agentId?: string;
+            trigger: components["schemas"]["VerificationTrigger"];
+            status: components["schemas"]["VerificationStatus"];
+            attemptCount: number;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            startedAt?: string;
+            /** Format: date-time */
+            finishedAt?: string;
+            /** Format: int64 */
+            restoreDurationMs?: number;
+            /** Format: int64 */
+            verifyDurationMs?: number;
+            pgRestoreExitCode?: number;
+            /** Format: int64 */
+            restoredDatabaseSizeBytes?: number;
+            tableCount?: number;
+            schemaCount?: number;
+            failMessage?: string;
+        };
+        /** @description Verification Table Stat */
+        VerificationTableStat: {
+            schemaName: string;
+            name: string;
+            /** Format: int64 */
+            rowCount: number;
+        };
+        /** @description Verification Details */
+        VerificationDetails: components["schemas"]["Verification"] & {
+            tableStats: components["schemas"]["VerificationTableStat"][];
+        };
+        /** @description Verification Agent Page */
+        VerificationAgentPage: {
+            items: components["schemas"]["VerificationAgent"][];
+            nextCursor?: string;
+        };
+        /** @description Verification Page */
+        VerificationPage: {
+            items: components["schemas"]["Verification"][];
+            nextCursor?: string;
+        };
         /** @description The user to create */
         SignUpRequest: {
             /**
@@ -2520,7 +2798,7 @@ export interface components {
          * @description The cause of the error for programs; a value never changes its meaning
          * @enum {string}
          */
-        ProblemCode: "invalid_request" | "unauthenticated" | "permission_denied" | "not_found" | "rate_limited" | "human_verification_failed" | "invalid_credentials" | "user_deactivated" | "registration_closed" | "email_taken" | "invalid_reset_code" | "oauth_not_configured" | "oauth_failed" | "pending_sign_in_not_usable" | "sign_in_code_not_sent" | "too_many_sign_in_codes" | "sign_in_code_resent_too_soon" | "sign_in_code_incorrect" | "email_not_configured" | "admin_email_missing" | "already_member" | "cannot_change_own_role" | "owner_requires_transfer" | "workspace_not_empty" | "in_use" | "database_connection_failed" | "already_running" | "not_running" | "no_extendable_chain" | "no_restorable_backup" | "target_time_unreachable" | "insufficient_disk_space" | "internal";
+        ProblemCode: "invalid_request" | "unauthenticated" | "permission_denied" | "not_found" | "rate_limited" | "human_verification_failed" | "invalid_credentials" | "user_deactivated" | "registration_closed" | "email_taken" | "invalid_reset_code" | "oauth_not_configured" | "oauth_failed" | "pending_sign_in_not_usable" | "sign_in_code_not_sent" | "too_many_sign_in_codes" | "sign_in_code_resent_too_soon" | "sign_in_code_incorrect" | "email_not_configured" | "admin_email_missing" | "already_member" | "cannot_change_own_role" | "owner_requires_transfer" | "workspace_not_empty" | "in_use" | "database_connection_failed" | "backup_not_completed" | "already_running" | "not_running" | "no_extendable_chain" | "no_restorable_backup" | "target_time_unreachable" | "insufficient_disk_space" | "internal";
         /** @description A field of the request that breaks the contract or a validation rule */
         FieldError: {
             /** @description The path of the field in the request, such as `name` or `settings.bucket` */
@@ -2606,7 +2884,7 @@ export interface components {
             /** @description The backup outcomes that send a notification through the database's notifiers */
             notificationTriggers: components["schemas"]["NotificationTrigger"][];
         };
-        /** @description When a recurring backup runs; times of day are in UTC */
+        /** @description When recurring work runs; times of day are in UTC */
         Schedule: {
             type: components["schemas"]["ScheduleType"];
             /** @description The time of day as `HH:MM`, required for daily, weekly and monthly schedules */
@@ -5952,6 +6230,323 @@ export interface operations {
             403: components["responses"]["Problem"];
             404: components["responses"]["Problem"];
             409: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    getVerificationAgentCount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Read the number of verification agents */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerificationAgentCount"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    listVerificationAgents: {
+        parameters: {
+            query?: {
+                /** @description The page size */
+                limit?: number;
+                /** @description The cursor from the preceding page */
+                after?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List verification agents */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerificationAgentPage"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    createVerificationAgent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The editable fields for this operation */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VerificationAgentInput"];
+            };
+        };
+        responses: {
+            /** @description Create a verification agent */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreatedVerificationAgent"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    rotateVerificationAgentToken: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the agent */
+                agentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Rotate a verification agent token */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerificationAgentToken"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    deleteVerificationAgent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the agent */
+                agentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Delete a verification agent */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    getVerificationConfig: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the database */
+                databaseId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Read the verification config */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerificationConfig"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    updateVerificationConfig: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the database */
+                databaseId: string;
+            };
+            cookie?: never;
+        };
+        /** @description The editable fields for this operation */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VerificationConfigInput"];
+            };
+        };
+        responses: {
+            /** @description Save the verification config */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerificationConfig"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    listVerifications: {
+        parameters: {
+            query: {
+                /** @description The ID of the database */
+                databaseId: string;
+                /** @description The page size */
+                limit?: number;
+                /** @description The cursor from the preceding page */
+                after?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List the verifications of a database */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerificationPage"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    startVerification: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The editable fields for this operation */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StartVerificationInput"];
+            };
+        };
+        responses: {
+            /** @description Start a manual backup verification */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Verification"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    cancelVerification: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the verification */
+                verificationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Cancel a pending or running verification */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Verification"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    getVerification: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The ID of the verification */
+                verificationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Read a verification with table counts */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerificationDetails"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
             default: components["responses"]["Problem"];
         };
     };

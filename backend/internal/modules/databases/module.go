@@ -98,6 +98,7 @@ type Module interface {
 	// GetPhysicalBackupTypes reads the types without the settings, so it decrypts nothing. It leaves out
 	// the IDs that match no physical PostgreSQL database.
 	GetPhysicalBackupTypes(ctx context.Context, databaseIDs []uuid.UUID) (map[uuid.UUID]PhysicalBackupType, error)
+	GetPostgresqlLogicalVersions(ctx context.Context, databaseIDs []uuid.UUID) (map[uuid.UUID]string, error)
 	ListAllDatabases(ctx context.Context) ([]Database, error)
 	GetTelemetry(ctx context.Context) ([]TelemetryEntry, error)
 
@@ -163,12 +164,15 @@ func New(deps Deps) Module {
 		Logger:         deps.Logger,
 	})
 
-	registry := providers.NewRegistry(
-		postgresqllogical.New(postgresqllogical.Deps{
+	logicalDatabases := postgresqllogical.New(
+		postgresqllogical.Deps{
 			Repositories:   postgresqllogical.NewRepositories(deps.DB, deps.FieldEncryptor),
 			FieldEncryptor: deps.FieldEncryptor,
 			Logger:         deps.Logger,
-		}),
+		},
+	)
+	registry := providers.NewRegistry(
+		logicalDatabases,
 		physicalDatabases,
 		mysql.New(mysql.Deps{
 			Repositories:   mysql.NewRepositories(deps.DB, deps.FieldEncryptor),
@@ -210,6 +214,7 @@ func New(deps Deps) Module {
 		Databases:         databaseService,
 		Connections:       connectionService,
 		PhysicalDatabases: physicalDatabases,
+		LogicalDatabases:  logicalDatabases,
 		Handler: databaseshttpapi.NewHandler(databaseshttpapi.Deps{
 			Databases:   databaseService,
 			Connections: connectionService,

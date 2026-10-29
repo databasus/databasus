@@ -6,12 +6,11 @@ import (
 
 	"github.com/google/uuid"
 
-	verification_agents "databasus-backend/internal/features/verification/agents"
-	verification_config "databasus-backend/internal/features/verification/config"
 	"databasus-backend/internal/modules/backups"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/modules/storages"
+	"databasus-backend/internal/modules/verification"
 )
 
 type DatabaseEntry struct {
@@ -76,9 +75,9 @@ type userCounter interface {
 }
 
 type verificationAgentLister interface {
-	ListAgents(ctx context.Context) ([]*verification_agents.Agent, error)
+	ListAgents(ctx context.Context) ([]verification.Agent, error)
 }
 
 type verificationConfigLister interface {
-	ListEnabled() ([]*verification_config.BackupVerificationConfig, error)
+	ListEnabledConfigs(ctx context.Context) ([]verification.VerificationConfig, error)
 }

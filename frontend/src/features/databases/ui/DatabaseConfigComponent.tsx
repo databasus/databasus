@@ -24,8 +24,8 @@ import {
 } from '../../backups/physical';
 import { EditHealthcheckConfigComponent, ShowHealthcheckConfigComponent } from '../../healthcheck';
 import {
-  EditBackupVerificationConfigComponent,
-  ShowBackupVerificationConfigComponent,
+  EditVerificationConfigComponent,
+  ShowVerificationConfigComponent,
 } from '../../verification/config';
 import { DatabaseTransferDialogComponent } from './DatabaseTransferDialogComponent';
 import { EditDatabaseNotifiersComponent } from './edit/EditDatabaseNotifiersComponent';
@@ -427,7 +427,7 @@ export const DatabaseConfigComponent = ({
 
             <div className="mt-1 text-sm">
               {isEditVerificationConfig ? (
-                <EditBackupVerificationConfigComponent
+                <EditVerificationConfigComponent
                   databaseId={database.id}
                   onClose={() => {
                     setIsEditVerificationConfig(false);
@@ -435,7 +435,7 @@ export const DatabaseConfigComponent = ({
                   }}
                 />
               ) : (
-                <ShowBackupVerificationConfigComponent databaseId={database.id} />
+                <ShowVerificationConfigComponent databaseId={database.id} />
               )}
             </div>
           </div>

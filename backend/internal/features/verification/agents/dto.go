@@ -6,24 +6,6 @@ import (
 	"github.com/google/uuid"
 )
 
-type CreateAgentRequest struct {
-	Name string `json:"name" binding:"required,min=1,max=200"`
-}
-
-type CreatedAgentResponse struct {
-	Agent *Agent `json:"agent"`
-	Token string `json:"token"`
-}
-
-type RotateTokenResponse struct {
-	Token string `json:"token"`
-}
-
-type AvailabilityResponse struct {
-	Count     int64 `json:"count"`
-	HasAgents bool  `json:"hasAgents"`
-}
-
 type HeartbeatRequest struct {
 	MaxCPU            int `json:"maxCpu"            binding:"min=0"`
 	MaxRAMGb          int `json:"maxRamGb"          binding:"min=0"`

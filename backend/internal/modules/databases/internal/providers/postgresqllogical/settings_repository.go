@@ -144,3 +144,24 @@ func (r *settingsRepository) ListByDatabaseIDs(
 
 	return settingsByDatabaseID, nil
 }
+
+func (r *settingsRepository) listVersions(ctx context.Context, ids []uuid.UUID) (map[uuid.UUID]string, error) {
+	var rows []struct {
+		DatabaseID uuid.UUID
+		Version    string
+	}
+	err := database.Conn(ctx, r.db).
+		Table("databases_postgresql_logical").
+		Select("database_id, version").
+		Where("database_id IN ? AND version <> ''", ids).
+		Scan(&rows).
+		Error
+	if err != nil {
+		return nil, fmt.Errorf("list logical PostgreSQL versions: %w", err)
+	}
+	versions := make(map[uuid.UUID]string, len(rows))
+	for _, row := range rows {
+		versions[row.DatabaseID] = row.Version
+	}
+	return versions, nil
+}

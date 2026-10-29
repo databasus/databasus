@@ -33,13 +33,20 @@ func TestPhysicalWalSamples(t *testing.T) {
 			rotateWal(t, source)
 			team.waitForWal(t, 1)
 			var first streamStatistics
-			testwait.Until(t, "the first sample is visible through statistics", func(context.Context) error {
-				first = team.statistics(t)
-				if first.Current == nil {
-					return fmt.Errorf("no current sample")
-				}
-				return nil
-			})
+			testwait.Until(
+				t,
+				"the first sample is visible and its streamer failure has cleared",
+				func(context.Context) error {
+					first = team.statistics(t)
+					if first.Current == nil {
+						return fmt.Errorf("no current sample")
+					}
+					if first.Streamer.FailingSince != nil {
+						return fmt.Errorf("the streamer's failing time has not cleared")
+					}
+					return nil
+				},
+			)
 			assert.Equal(t, "REACHABLE", first.Current.SourceState)
 			assert.Nil(t, first.Current.SourceWrittenBytes)
 			assert.NotNil(t, first.Current.SourceCurrentLSN)

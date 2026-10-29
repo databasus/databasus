@@ -28,6 +28,12 @@ func TestVerificationHelpers(t *testing.T) {
 		assert.Equal(t, verificationID, verification.ID)
 		assert.Equal(t, "PENDING", verification.Status)
 		assert.Equal(t, 1, verification.AttemptCount)
+		read, err := team.Owner.Client.GetVerificationWithResponse(t.Context(), verificationID)
+		require.NoError(t, err)
+		require.NotNil(t, read.JSON200)
+		assert.Equal(t, verification.ID, read.JSON200.Id)
+		assert.Equal(t, verification.Status, string(read.JSON200.Status))
+		assert.Empty(t, read.JSON200.TableStats)
 	})
 	t.Run("downloads damaged bytes while the backup stays completed", func(t *testing.T) {
 		team, backup := newVerificationBackup(t)

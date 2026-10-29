@@ -3,6 +3,7 @@ package upgrade
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"slices"
 	"strconv"
 	"strings"
@@ -16,14 +17,14 @@ type currentVerificationAgent struct {
 }
 
 type currentVerificationConfig struct {
-	IsScheduledVerificationEnabled bool   `json:"isScheduledVerificationEnabled"`
+	IsAutomaticVerificationEnabled bool   `json:"isAutomaticVerificationEnabled"`
 	ScheduleType                   string `json:"scheduleType"`
-	VerificationInterval           struct {
+	Schedule                       struct {
 		Type      string  `json:"type"`
 		Weekday   *int    `json:"weekday"`
 		TimeOfDay *string `json:"timeOfDay"`
-	} `json:"verificationInterval"`
-	SendNotificationsOn []string `json:"sendNotificationsOn"`
+	} `json:"schedule"`
+	NotificationTriggers []string `json:"notificationTriggers"`
 }
 
 type currentVerification struct {
@@ -45,8 +46,20 @@ func readVerificationItems(
 	references verificationReferences,
 ) ([]upgradecheck.Item, error) {
 	var agents []currentVerificationAgent
-	if err := api.get(ctx, "/verification/agents", &agents); err != nil {
-		return nil, fmt.Errorf("list verification agents after upgrade: %w", err)
+	path := "/verification-agents?limit=100"
+	for {
+		var page struct {
+			Items      []currentVerificationAgent `json:"items"`
+			NextCursor *string                    `json:"nextCursor"`
+		}
+		if err := api.get(ctx, path, &page); err != nil {
+			return nil, fmt.Errorf("list verification agents after upgrade: %w", err)
+		}
+		agents = append(agents, page.Items...)
+		if page.NextCursor == nil {
+			break
+		}
+		path = "/verification-agents?limit=100&after=" + url.QueryEscape(*page.NextCursor)
 	}
 	items := make([]upgradecheck.Item, 0, len(agents)+2)
 	for _, agent := range agents {
@@ -60,20 +73,20 @@ func readVerificationItems(
 		)
 	}
 	var config currentVerificationConfig
-	if err := api.get(ctx, "/verification-config/"+references.databaseID, &config); err != nil {
+	if err := api.get(ctx, "/verification-configs/"+references.databaseID, &config); err != nil {
 		return nil, fmt.Errorf("read verification config after upgrade: %w", err)
 	}
 	weekday := ""
-	if config.VerificationInterval.Weekday != nil {
-		weekday = strconv.Itoa(*config.VerificationInterval.Weekday)
+	if config.Schedule.Weekday != nil {
+		weekday = strconv.Itoa(*config.Schedule.Weekday)
 	}
 	items = append(
 		items,
 		upgradecheck.Item{Kind: "verification config", Name: references.databaseID, Values: map[string]string{
-			"isScheduledVerificationEnabled": strconv.FormatBool(config.IsScheduledVerificationEnabled),
-			"scheduleType":                   config.ScheduleType, "interval.type": config.VerificationInterval.Type,
-			"interval.weekday": weekday, "interval.timeOfDay": getOptionalValue(config.VerificationInterval.TimeOfDay),
-			"sendNotificationsOn": strings.Join(slices.Sorted(slices.Values(config.SendNotificationsOn)), ","),
+			"isScheduledVerificationEnabled": strconv.FormatBool(config.IsAutomaticVerificationEnabled),
+			"scheduleType":                   config.ScheduleType, "interval.type": config.Schedule.Type,
+			"interval.weekday": weekday, "interval.timeOfDay": getOptionalValue(config.Schedule.TimeOfDay),
+			"sendNotificationsOn": strings.Join(slices.Sorted(slices.Values(config.NotificationTriggers)), ","),
 		}},
 	)
 	var verification currentVerification

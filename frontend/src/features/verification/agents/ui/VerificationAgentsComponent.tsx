@@ -504,34 +504,36 @@ export const VerificationAgentsComponent = () => {
         </p>
       </Modal>
 
-      <Modal
-        title={t('verification.agents.token.title')}
-        open={revealedToken !== null}
-        onCancel={closeRevealedTokenModal}
-        width={640}
-        footer={
-          <Button type="primary" onClick={closeRevealedTokenModal}>
-            {t('verification.agents.token.confirmSaved')}
-          </Button>
-        }
-        maskClosable={false}
-      >
-        <p className="text-sm text-gray-700 dark:text-gray-300">
-          <Trans
-            i18nKey="verification.agents.token.tokenFor"
-            components={{ agentName: <strong>{revealedTokenAgentName}</strong> }}
-          />
-        </p>
-        {renderCodeBlock(revealedToken ?? '')}
+      {revealedToken !== null && (
+        <Modal
+          title={t('verification.agents.token.title')}
+          open={revealedToken !== null}
+          onCancel={closeRevealedTokenModal}
+          width={640}
+          footer={
+            <Button type="primary" onClick={closeRevealedTokenModal}>
+              {t('verification.agents.token.confirmSaved')}
+            </Button>
+          }
+          maskClosable={false}
+        >
+          <p className="text-sm text-gray-700 dark:text-gray-300">
+            <Trans
+              i18nKey="verification.agents.token.tokenFor"
+              components={{ agentName: <strong>{revealedTokenAgentName}</strong> }}
+            />
+          </p>
+          {renderCodeBlock(revealedToken ?? '')}
 
-        {renderAgentIdRow(revealedTokenAgentId)}
-        {renderArchitecturePicker()}
-        {renderInstallAndLaunchSteps(revealedTokenAgentId, revealedToken ?? '')}
+          {renderAgentIdRow(revealedTokenAgentId)}
+          {renderArchitecturePicker()}
+          {renderInstallAndLaunchSteps(revealedTokenAgentId, revealedToken ?? '')}
 
-        <p className="mt-3 text-sm text-amber-600 dark:text-amber-400">
-          {t('verification.agents.token.shownOnce')}
-        </p>
-      </Modal>
+          <p className="mt-3 text-sm text-amber-600 dark:text-amber-400">
+            {t('verification.agents.token.shownOnce')}
+          </p>
+        </Modal>
+      )}
 
       <Modal
         title={t('verification.agents.install.title')}

@@ -8,18 +8,17 @@ import (
 	"strings"
 
 	"databasus-backend/internal/features/disk"
-	verification_agents "databasus-backend/internal/features/verification/agents"
-	verification_runs "databasus-backend/internal/features/verification/runs"
 	"databasus-backend/internal/modules/backups"
+	"databasus-backend/internal/modules/verification"
 	"databasus-backend/internal/storage"
 )
 
 type HealthcheckService struct {
 	diskService *disk.DiskService
 	// getBackups is read per call: each test application installs its own module.
-	getBackups   func() backups.Module
-	agentService *verification_agents.AgentService
-	logger       *slog.Logger
+	getBackups      func() backups.Module
+	getVerification func() verification.Module
+	logger          *slog.Logger
 }
 
 func (s *HealthcheckService) IsHealthy(ctx context.Context) error {
@@ -61,7 +60,7 @@ func (s *HealthcheckService) performHealthCheck(ctx context.Context) error {
 		return errors.New("backups are not running for more than 5 minutes")
 	}
 
-	staleAgents, err := s.agentService.GetStaleAgents(verification_runs.StaleAgentThreshold)
+	staleAgents, err := s.getVerification().ListStaleAgents(ctx)
 	if err != nil {
 		s.logger.WarnContext(ctx, "healthcheck degraded: cannot query verification agents", "error", err)
 

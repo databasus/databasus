@@ -12,6 +12,7 @@ import (
 	"databasus-backend/internal/modules/databases/internal/connection"
 	databaseshttpapi "databasus-backend/internal/modules/databases/internal/httpapi"
 	"databasus-backend/internal/modules/databases/internal/providers"
+	"databasus-backend/internal/modules/databases/internal/providers/postgresqllogical"
 	"databasus-backend/internal/modules/databases/internal/providers/postgresqlphysical"
 	"databasus-backend/internal/modules/databases/internal/userdatabase"
 	"databasus-backend/internal/modules/notifiers"
@@ -23,6 +24,7 @@ type Deps struct {
 	Databases         *userdatabase.Service
 	Connections       *connection.Service
 	PhysicalDatabases *postgresqlphysical.Provider
+	LogicalDatabases  *postgresqllogical.Provider
 	Handler           *databaseshttpapi.Handler
 }
 
@@ -30,6 +32,7 @@ type Module struct {
 	databases         *userdatabase.Service
 	connections       *connection.Service
 	physicalDatabases *postgresqlphysical.Provider
+	logicalDatabases  *postgresqllogical.Provider
 	handler           *databaseshttpapi.Handler
 }
 
@@ -38,6 +41,7 @@ func New(deps Deps) *Module {
 		databases:         deps.Databases,
 		connections:       deps.Connections,
 		physicalDatabases: deps.PhysicalDatabases,
+		logicalDatabases:  deps.LogicalDatabases,
 		handler:           deps.Handler,
 	}
 }
@@ -183,4 +187,8 @@ func getConnectionSettings[S providers.ConnectionSettings](
 	}
 
 	return providers.CastConnectionSettings[S](connectionSettings)
+}
+
+func (m *Module) GetPostgresqlLogicalVersions(ctx context.Context, ids []uuid.UUID) (map[uuid.UUID]string, error) {
+	return m.logicalDatabases.GetVersions(ctx, ids)
 }

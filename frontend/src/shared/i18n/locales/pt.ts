@@ -134,6 +134,7 @@ export const pt: typeof en = {
     databaseConnectionFailed: 'Não foi possível conectar ao banco de dados: {{detail}}',
     inUse:
       'Ainda está em uso por um banco de dados ou por um backup ou restauração em andamento. Tente novamente quando nada o estiver usando.',
+    backupNotCompleted: 'Só é possível verificar um backup concluído.',
     alreadyRunning: 'Isso já está em andamento. Aguarde a conclusão e tente novamente.',
     noExtendableChain: 'Execute um backup completo antes de iniciar um incremental.',
     noRestorableBackup: 'Não há backup concluído que possa ser restaurado.',
@@ -1030,6 +1031,7 @@ export const pt: typeof en = {
   },
   verification: {
     triggers: {
+      afterBackup: 'Após o backup',
       manual: 'Manual',
       scheduled: 'Agendada',
     },

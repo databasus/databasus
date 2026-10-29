@@ -112,7 +112,7 @@ func New(tb testing.TB, options ...Option) *App {
 
 	manualClock := clock.NewManual(time.Now())
 	var appClock clock.Source = manualClock
-	if applied.isPhysicalBackupLoopsEnabled {
+	if applied.isPhysicalBackupLoopsEnabled || applied.agentBinariesDir != "" {
 		appClock = clock.NewSystem()
 		manualClock = nil
 	}

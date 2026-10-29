@@ -12,7 +12,6 @@ import (
 	system_healthcheck "databasus-backend/internal/features/system/healthcheck"
 	system_version "databasus-backend/internal/features/system/version"
 	verification_agents "databasus-backend/internal/features/verification/agents"
-	verification_config "databasus-backend/internal/features/verification/config"
 	verification_runs "databasus-backend/internal/features/verification/runs"
 	"databasus-backend/internal/lib/apierror"
 	"databasus-backend/internal/lib/httpserver"
@@ -35,6 +34,7 @@ func (a *App) registerContractRoutes(router *gin.Engine) error {
 	a.storagesModule.RegisterRoutes(contractRoutes, errorHooks)
 	a.databasesModule.RegisterRoutes(contractRoutes, errorHooks)
 	a.backupsModule.RegisterRoutes(contractRoutes, errorHooks)
+	a.verificationModule.RegisterRoutes(contractRoutes, errorHooks)
 
 	systemHandler := systemhttpapi.NewHandler(systemhttpapi.Deps{Version: system_version.GetAppVersion()})
 	systemhttpapi.RegisterHandlersWithOptions(
@@ -66,7 +66,4 @@ func (a *App) registerRoutes(router *gin.Engine) {
 	disk.GetDiskController().RegisterRoutes(protected)
 	healthcheck_config.GetHealthcheckConfigController().RegisterRoutes(protected)
 	healthcheck_attempt.GetHealthcheckAttemptController().RegisterRoutes(protected)
-	verification_agents.GetAgentController().RegisterRoutes(protected)
-	verification_config.GetVerificationConfigController().RegisterRoutes(protected)
-	verification_runs.GetVerificationController().RegisterRoutes(protected)
 }

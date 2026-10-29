@@ -1,24 +1,18 @@
-import { getApplicationServer } from '../../../../constants';
-import { apiHelper } from '../../../../shared/api/apiHelper';
-import RequestOptions from '../../../../shared/api/RequestOptions';
-import type { BackupVerificationConfig } from '../models/BackupVerificationConfig';
-
+import { getApiClient, requireData, type ApiComponents } from '../../../../shared/api';
 export const verificationConfigApi = {
   async getByDatabaseId(databaseId: string) {
-    const requestOptions: RequestOptions = new RequestOptions();
-    return apiHelper.fetchGetJson<BackupVerificationConfig>(
-      `${getApplicationServer()}/api/v1/verification-config/${databaseId}`,
-      requestOptions,
-      true,
+    return requireData(
+      await getApiClient().GET('/verification-configs/{databaseId}', {
+        params: { path: { databaseId } },
+      }),
     );
   },
-
-  async save(databaseId: string, config: BackupVerificationConfig) {
-    const requestOptions: RequestOptions = new RequestOptions();
-    requestOptions.setBody(JSON.stringify(config));
-    return apiHelper.fetchPutJson<BackupVerificationConfig>(
-      `${getApplicationServer()}/api/v1/verification-config/${databaseId}`,
-      requestOptions,
+  async save(databaseId: string, config: ApiComponents['schemas']['VerificationConfigInput']) {
+    return requireData(
+      await getApiClient().PUT('/verification-configs/{databaseId}', {
+        params: { path: { databaseId } },
+        body: config,
+      }),
     );
   },
 };

@@ -17,13 +17,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"databasus-backend/internal/features/intervals"
-	verification_agents "databasus-backend/internal/features/verification/agents"
-	verification_config "databasus-backend/internal/features/verification/config"
+	"databasus-backend/internal/lib/schedule"
 	"databasus-backend/internal/modules/backups"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/modules/storages"
+	"databasus-backend/internal/modules/verification"
 )
 
 type fakeSender struct {
@@ -125,21 +124,21 @@ func (f *fakeUserCounter) GetUserCount(context.Context) (int64, error) {
 }
 
 type fakeVerificationAgentLister struct {
-	agents []*verification_agents.Agent
+	agents []verification.Agent
 	err    error
 }
 
-func (f *fakeVerificationAgentLister) ListAgents(context.Context) ([]*verification_agents.Agent, error) {
+func (f *fakeVerificationAgentLister) ListAgents(context.Context) ([]verification.Agent, error) {
 	return f.agents, f.err
 }
 
 type fakeVerificationConfigLister struct {
-	enabled []*verification_config.BackupVerificationConfig
+	enabled []verification.VerificationConfig
 	err     error
 }
 
-func (f *fakeVerificationConfigLister) ListEnabled() (
-	[]*verification_config.BackupVerificationConfig,
+func (f *fakeVerificationConfigLister) ListEnabledConfigs(context.Context) (
+	[]verification.VerificationConfig,
 	error,
 ) {
 	return f.enabled, f.err
@@ -655,7 +654,7 @@ func Test_BuildAndSend_WhenLatestBackupLookupFails_ReturnsError(t *testing.T) {
 }
 
 func Test_BuildAndSend_WhenAgentsRegistered_IncludesCapacityRows(t *testing.T) {
-	registeredAgents := []*verification_agents.Agent{
+	registeredAgents := []verification.Agent{
 		{
 			ID:                uuid.New(),
 			Name:              "agent-1",
@@ -713,11 +712,11 @@ func Test_BuildAndSend_WhenDbHasAfterBackupConfig_VerificationBlockOmitsInterval
 	service := newServiceUnderTest(t, serviceDependencies{
 		databaseLister: &fakeDatabaseLister{databases: []databases.TelemetryEntry{db}},
 		verificationConfigLister: &fakeVerificationConfigLister{
-			enabled: []*verification_config.BackupVerificationConfig{
+			enabled: []verification.VerificationConfig{
 				{
 					DatabaseID:                     db.DatabaseID,
-					IsScheduledVerificationEnabled: true,
-					ScheduleType:                   verification_config.VerificationScheduleAfterBackup,
+					IsAutomaticVerificationEnabled: true,
+					ScheduleType:                   verification.ScheduleAfterBackup,
 				},
 			},
 		},
@@ -747,12 +746,12 @@ func Test_BuildAndSend_WhenDbHasIntervalDailyConfig_IncludesIntervalType(t *test
 	service := newServiceUnderTest(t, serviceDependencies{
 		databaseLister: &fakeDatabaseLister{databases: []databases.TelemetryEntry{db}},
 		verificationConfigLister: &fakeVerificationConfigLister{
-			enabled: []*verification_config.BackupVerificationConfig{
+			enabled: []verification.VerificationConfig{
 				{
 					DatabaseID:                     db.DatabaseID,
-					IsScheduledVerificationEnabled: true,
-					ScheduleType:                   verification_config.VerificationScheduleInterval,
-					VerificationInterval:           intervals.Interval{Type: intervals.IntervalDaily},
+					IsAutomaticVerificationEnabled: true,
+					ScheduleType:                   verification.ScheduleInterval,
+					Schedule:                       schedule.Schedule{Type: schedule.TypeDaily},
 				},
 			},
 		},
@@ -968,7 +967,7 @@ func Test_BuildAndSend_WhenPayloadSerialized_ContainsDocumentedContractKeys(t *t
 			},
 		},
 		verificationAgentLister: &fakeVerificationAgentLister{
-			agents: []*verification_agents.Agent{
+			agents: []verification.Agent{
 				{MaxCPU: 4, MaxRAMGb: 8, MaxDiskGb: 100, MaxConcurrentJobs: 2},
 			},
 		},

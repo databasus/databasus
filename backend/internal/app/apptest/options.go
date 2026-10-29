@@ -120,6 +120,7 @@ func WithWalStreamTimings(timings backups.WalStreamTimings) Option {
 	}
 }
 
+// The real agent keeps its own time, so serving its binaries also selects the system clock.
 func WithAgentBinariesDir(directory string) Option {
 	return func(applied *settings) { applied.agentBinariesDir = directory }
 }

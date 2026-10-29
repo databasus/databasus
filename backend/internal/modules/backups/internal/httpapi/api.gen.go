@@ -401,6 +401,7 @@ const (
 	ProblemCodeAdminEmailMissing        ProblemCode = "admin_email_missing"
 	ProblemCodeAlreadyMember            ProblemCode = "already_member"
 	ProblemCodeAlreadyRunning           ProblemCode = "already_running"
+	ProblemCodeBackupNotCompleted       ProblemCode = "backup_not_completed"
 	ProblemCodeCannotChangeOwnRole      ProblemCode = "cannot_change_own_role"
 	ProblemCodeDatabaseConnectionFailed ProblemCode = "database_connection_failed"
 	ProblemCodeEmailNotConfigured       ProblemCode = "email_not_configured"
@@ -441,6 +442,8 @@ func (e ProblemCode) Valid() bool {
 	case ProblemCodeAlreadyMember:
 		return true
 	case ProblemCodeAlreadyRunning:
+		return true
+	case ProblemCodeBackupNotCompleted:
 		return true
 	case ProblemCodeCannotChangeOwnRole:
 		return true
@@ -1044,7 +1047,7 @@ type LogicalBackupSettings struct {
 	// Retention Which logical backups are kept. `policy` picks the rule; the fields of the other rules keep their saved values.
 	Retention LogicalRetention `json:"retention"`
 
-	// Schedule When a recurring backup runs; times of day are in UTC
+	// Schedule When recurring work runs; times of day are in UTC
 	Schedule Schedule `json:"schedule"`
 
 	// Type Always `LOGICAL`
@@ -1287,7 +1290,7 @@ type PhysicalBackupRestoreTokenCreateType string
 
 // PhysicalBackupSettings The settings of the physical backups of a physical PostgreSQL database. They must fit the database's physical backup type.
 type PhysicalBackupSettings struct {
-	// FullBackupSchedule When a recurring backup runs; times of day are in UTC
+	// FullBackupSchedule When recurring work runs; times of day are in UTC
 	FullBackupSchedule Schedule `json:"fullBackupSchedule"`
 
 	// IncrementalBackupSchedule When incremental backups run, null for a backup type without them. It must run more often than the full backups.
@@ -1496,7 +1499,7 @@ type RestoreTarget struct {
 // RetentionPeriod How long the `TIME_PERIOD` retention keeps a backup
 type RetentionPeriod string
 
-// Schedule When a recurring backup runs; times of day are in UTC
+// Schedule When recurring work runs; times of day are in UTC
 type Schedule struct {
 	// CronExpression The five-field cron expression of a cron schedule
 	CronExpression *string `json:"cronExpression,omitempty"`

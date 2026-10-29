@@ -131,6 +131,7 @@ export const en = {
     databaseConnectionFailed: 'Could not connect to the database: {{detail}}',
     inUse:
       'It is still in use by a database or by a running backup or restore. Try again once nothing uses it.',
+    backupNotCompleted: 'Only a completed backup can be verified.',
     alreadyRunning: 'This is already running. Wait for it to finish and try again.',
     noExtendableChain: 'Run a full backup before starting an incremental backup.',
     noRestorableBackup: 'There is no completed backup that can be restored.',
@@ -1007,6 +1008,7 @@ export const en = {
   },
   verification: {
     triggers: {
+      afterBackup: 'After backup',
       manual: 'Manual',
       scheduled: 'Scheduled',
     },

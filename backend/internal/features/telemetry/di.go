@@ -14,12 +14,12 @@ import (
 	storages_bridge "databasus-backend/internal/features/storages"
 	system_version "databasus-backend/internal/features/system/version"
 	users_bridge "databasus-backend/internal/features/users"
-	verification_agents "databasus-backend/internal/features/verification/agents"
-	verification_config "databasus-backend/internal/features/verification/config"
+	verification_bridge "databasus-backend/internal/features/verification"
 	"databasus-backend/internal/modules/backups"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/modules/storages"
+	"databasus-backend/internal/modules/verification"
 	"databasus-backend/internal/util/logger"
 )
 
@@ -44,8 +44,8 @@ var (
 			installedNotifierTypes{},
 			installedLogicalBackups{},
 			installedPhysicalBackups{},
-			verification_agents.GetAgentService(),
-			verification_config.GetVerificationConfigService(),
+			installedVerifications{},
+			installedVerifications{},
 			installedUserCounter{},
 			system_version.GetAppVersion(),
 			getTelemetryLogger(),
@@ -125,4 +125,14 @@ func (installedPhysicalBackups) GetLatestCompletedPhysicalFullBackup(
 	databaseID uuid.UUID,
 ) (*backups.PhysicalBackup, error) {
 	return backups_bridge.GetModule().GetLatestCompletedPhysicalFullBackup(ctx, databaseID)
+}
+
+type installedVerifications struct{}
+
+func (installedVerifications) ListAgents(ctx context.Context) ([]verification.Agent, error) {
+	return verification_bridge.GetModule().ListAgents(ctx)
+}
+
+func (installedVerifications) ListEnabledConfigs(ctx context.Context) ([]verification.VerificationConfig, error) {
+	return verification_bridge.GetModule().ListEnabledConfigs(ctx)
 }

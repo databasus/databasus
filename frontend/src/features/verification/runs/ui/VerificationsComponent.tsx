@@ -17,7 +17,7 @@ import { Trans, useTranslation } from 'react-i18next';
 import type { Database } from '../../../../entity/databases';
 import { verificationAgentApi } from '../../../../entity/verification/agents';
 import {
-  type RestoreVerification,
+  type Verification,
   VERIFICATION_STATUS_LABEL_KEYS,
   VERIFICATION_TRIGGER_LABEL_KEYS,
   VerificationStatus,
@@ -138,20 +138,13 @@ export const VerificationsComponent = ({
   const [hasAgents, setHasAgents] = useState<boolean | undefined>();
   const [cancellingVerificationId, setCancellingVerificationId] = useState<string | undefined>();
 
-  const fetchVerificationsPage = async (offset: number | undefined) => {
-    const pageOffset = offset ?? 0;
+  const fetchVerificationsPage = async (after: string | undefined) => {
     const response = await verificationRunsApi.listByDatabase(
       database.id,
       VERIFICATIONS_PAGE_SIZE,
-      pageOffset,
+      after,
     );
-
-    const loadedCount = pageOffset + response.verifications.length;
-
-    return {
-      items: response.verifications,
-      nextCursor: loadedCount < response.total ? loadedCount : undefined,
-    };
+    return { items: response.items, nextCursor: response.nextCursor };
   };
 
   const cancelVerification = async (id: string) => {
@@ -167,7 +160,7 @@ export const VerificationsComponent = ({
     }
   };
 
-  const renderActions = (record: RestoreVerification) => {
+  const renderActions = (record: Verification) => {
     if (
       record.status === VerificationStatus.PENDING ||
       record.status === VerificationStatus.RUNNING
@@ -227,7 +220,7 @@ export const VerificationsComponent = ({
     refreshFirstPage: refreshVerifications,
   } = usePolledPagedList({
     fetchPage: fetchVerificationsPage,
-    getItemKey: (verification: RestoreVerification) => verification.id,
+    getItemKey: (verification: Verification) => verification.id,
     refreshIntervalMs: VERIFICATIONS_REFRESH_MS,
     scrollContainerRef,
     resetKey: database.id,
@@ -239,10 +232,10 @@ export const VerificationsComponent = ({
 
     const loadAvailability = () => {
       verificationAgentApi
-        .getAvailability()
+        .getAgentCount()
         .then((availability) => {
           if (isCancelled) return;
-          setHasAgents(availability.hasAgents);
+          setHasAgents(availability.agentCount > 0);
         })
         .catch(() => {
           if (isCancelled) return;
@@ -259,7 +252,7 @@ export const VerificationsComponent = ({
     };
   }, []);
 
-  const columns: ColumnsType<RestoreVerification> = [
+  const columns: ColumnsType<Verification> = [
     {
       title: t('verification.runs.fields.createdAt'),
       dataIndex: 'createdAt',
@@ -299,7 +292,7 @@ export const VerificationsComponent = ({
       ),
       key: 'duration',
       width: 130,
-      render: (_, record: RestoreVerification) => {
+      render: (_, record: Verification) => {
         const restoreMs = record.restoreDurationMs ?? 0;
         const verifyMs = record.verifyDurationMs ?? 0;
         const total = restoreMs + verifyMs;
@@ -322,7 +315,7 @@ export const VerificationsComponent = ({
       title: t('verification.runs.fields.actions'),
       key: 'actions',
       width: 120,
-      render: (_, record: RestoreVerification) => renderActions(record),
+      render: (_, record: Verification) => renderActions(record),
     },
   ];
 

@@ -38,6 +38,7 @@ const (
 	CodeNoExtendableChain        Code = "no_extendable_chain"
 	CodeNoRestorableBackup       Code = "no_restorable_backup"
 	CodeTargetTimeUnreachable    Code = "target_time_unreachable"
+	CodeBackupNotCompleted       Code = "backup_not_completed"
 	CodeNotRunning               Code = "not_running"
 	CodeInsufficientDiskSpace    Code = "insufficient_disk_space"
 	CodeInternal                 Code = "internal"
@@ -105,6 +106,8 @@ func describeCode(code Code) (int, string) {
 		return http.StatusConflict, "No restorable backup"
 	case CodeTargetTimeUnreachable:
 		return http.StatusConflict, "Target time unreachable"
+	case CodeBackupNotCompleted:
+		return http.StatusConflict, "Backup not completed"
 	case CodeNotRunning:
 		return http.StatusConflict, "Not running"
 	case CodeInsufficientDiskSpace:

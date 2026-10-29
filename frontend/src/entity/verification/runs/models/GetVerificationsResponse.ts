@@ -1,8 +1,3 @@
-import type { RestoreVerification } from './RestoreVerification';
+import type { ApiComponents } from '../../../../shared/api';
 
-export interface GetVerificationsResponse {
-  verifications: RestoreVerification[];
-  total: number;
-  limit: number;
-  offset: number;
-}
+export type GetVerificationsResponse = ApiComponents['schemas']['VerificationPage'];

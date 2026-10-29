@@ -325,3 +325,22 @@ func (r *backupRepository) updateInProgress(
 
 	return result.RowsAffected > 0, nil
 }
+
+func (r *backupRepository) listLatestCompleted(
+	ctx context.Context,
+	ids []uuid.UUID,
+) (map[uuid.UUID]LogicalBackup, error) {
+	var backups []LogicalBackup
+	err := database.Conn(ctx, r.db).
+		Raw("SELECT DISTINCT ON (database_id) "+backupColumns+" FROM backups_logical WHERE database_id IN ? AND status = 'COMPLETED' ORDER BY database_id, created_at DESC, id DESC", ids).
+		Scan(&backups).
+		Error
+	if err != nil {
+		return nil, fmt.Errorf("list latest completed logical backups: %w", err)
+	}
+	byDatabaseID := make(map[uuid.UUID]LogicalBackup, len(backups))
+	for _, backup := range backups {
+		byDatabaseID[backup.DatabaseID] = backup
+	}
+	return byDatabaseID, nil
+}

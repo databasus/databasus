@@ -33,6 +33,7 @@ const CONTRACT_ERROR_CODE_KEYS = {
   workspace_not_empty: 'errors.workspaceNotEmpty',
   in_use: 'errors.inUse',
   database_connection_failed: 'errors.databaseConnectionFailed',
+  backup_not_completed: 'errors.backupNotCompleted',
   already_running: 'errors.alreadyRunning',
   no_extendable_chain: 'errors.noExtendableChain',
   no_restorable_backup: 'errors.noRestorableBackup',

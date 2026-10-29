@@ -133,6 +133,7 @@ export const fr: typeof en = {
     databaseConnectionFailed: 'Impossible de se connecter à la base de données : {{detail}}',
     inUse:
       "Il est encore utilisé par une base de données ou par une sauvegarde ou une restauration en cours. Réessayez quand plus rien ne l'utilise.",
+    backupNotCompleted: 'Seule une sauvegarde terminée peut être vérifiée.',
     alreadyRunning: "C'est déjà en cours. Attendez la fin et réessayez.",
     noExtendableChain: 'Effectuez un backup complet avant de lancer un backup incrémental.',
     noRestorableBackup: 'Aucun backup terminé ne peut être restauré.',
@@ -1042,6 +1043,7 @@ export const fr: typeof en = {
   },
   verification: {
     triggers: {
+      afterBackup: 'Après la sauvegarde',
       manual: 'Manuelle',
       scheduled: 'Planifiée',
     },

@@ -10,8 +10,8 @@ import (
 
 	"github.com/google/uuid"
 
-	verification_config "databasus-backend/internal/features/verification/config"
 	"databasus-backend/internal/modules/databases"
+	"databasus-backend/internal/modules/verification"
 )
 
 const (
@@ -74,7 +74,7 @@ func (s *TelemetryService) BuildAndSend(ctx context.Context) error {
 		return nil
 	}
 
-	enabledConfigsByDatabaseID, err := s.loadEnabledVerificationConfigs()
+	enabledConfigsByDatabaseID, err := s.loadEnabledVerificationConfigs(ctx)
 	if err != nil {
 		return err
 	}
@@ -120,16 +120,16 @@ func (s *TelemetryService) BuildAndSend(ctx context.Context) error {
 	return s.sender.Send(ctx, req)
 }
 
-func (s *TelemetryService) loadEnabledVerificationConfigs() (
-	map[uuid.UUID]*verification_config.BackupVerificationConfig,
+func (s *TelemetryService) loadEnabledVerificationConfigs(ctx context.Context) (
+	map[uuid.UUID]verification.VerificationConfig,
 	error,
 ) {
-	enabledConfigs, err := s.verificationConfigService.ListEnabled()
+	enabledConfigs, err := s.verificationConfigService.ListEnabledConfigs(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	indexed := make(map[uuid.UUID]*verification_config.BackupVerificationConfig, len(enabledConfigs))
+	indexed := make(map[uuid.UUID]verification.VerificationConfig, len(enabledConfigs))
 	for _, config := range enabledConfigs {
 		indexed[config.DatabaseID] = config
 	}
@@ -139,7 +139,7 @@ func (s *TelemetryService) loadEnabledVerificationConfigs() (
 
 func (s *TelemetryService) collectActiveDatabases(
 	ctx context.Context,
-	enabledConfigsByDatabaseID map[uuid.UUID]*verification_config.BackupVerificationConfig,
+	enabledConfigsByDatabaseID map[uuid.UUID]verification.VerificationConfig,
 ) ([]DatabaseEntry, error) {
 	allDatabases, err := s.databaseService.GetTelemetry(ctx)
 	if err != nil {
@@ -176,15 +176,15 @@ func (s *TelemetryService) collectActiveDatabases(
 }
 
 func buildVerificationEntry(
-	config *verification_config.BackupVerificationConfig,
+	config verification.VerificationConfig,
 ) *DatabaseVerificationEntry {
 	entry := &DatabaseVerificationEntry{
 		IsEnabled:    true,
 		ScheduleType: string(config.ScheduleType),
 	}
 
-	if config.ScheduleType == verification_config.VerificationScheduleInterval {
-		entry.IntervalType = string(config.VerificationInterval.Type)
+	if config.ScheduleType == verification.ScheduleInterval {
+		entry.IntervalType = string(config.Schedule.Type)
 	}
 
 	return entry

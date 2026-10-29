@@ -343,6 +343,7 @@ const (
 	ProblemCodeAdminEmailMissing        ProblemCode = "admin_email_missing"
 	ProblemCodeAlreadyMember            ProblemCode = "already_member"
 	ProblemCodeAlreadyRunning           ProblemCode = "already_running"
+	ProblemCodeBackupNotCompleted       ProblemCode = "backup_not_completed"
 	ProblemCodeCannotChangeOwnRole      ProblemCode = "cannot_change_own_role"
 	ProblemCodeDatabaseConnectionFailed ProblemCode = "database_connection_failed"
 	ProblemCodeEmailNotConfigured       ProblemCode = "email_not_configured"
@@ -383,6 +384,8 @@ func (e ProblemCode) Valid() bool {
 	case ProblemCodeAlreadyMember:
 		return true
 	case ProblemCodeAlreadyRunning:
+		return true
+	case ProblemCodeBackupNotCompleted:
 		return true
 	case ProblemCodeCannotChangeOwnRole:
 		return true

@@ -1,2 +1,2 @@
-export { EditBackupVerificationConfigComponent } from './ui/EditBackupVerificationConfigComponent';
-export { ShowBackupVerificationConfigComponent } from './ui/ShowBackupVerificationConfigComponent';
+export { EditVerificationConfigComponent } from './ui/EditVerificationConfigComponent';
+export { ShowVerificationConfigComponent } from './ui/ShowVerificationConfigComponent';

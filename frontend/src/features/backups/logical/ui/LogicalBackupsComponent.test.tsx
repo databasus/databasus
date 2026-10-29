@@ -14,7 +14,7 @@ import {
   createDefaultDatabaseSettings,
 } from '../../../../entity/databases';
 import { API_BASE_PATH } from '../../../../shared/api';
-import { mockApi, setUpMockApi } from '../../../../shared/lib/test/mockApi';
+import { buildProblem, mockApi, setUpMockApi } from '../../../../shared/lib/test/mockApi';
 import { renderScreen } from '../../../../shared/lib/test/renderScreen';
 import { LogicalBackupsComponent } from './LogicalBackupsComponent';
 
@@ -202,4 +202,22 @@ describe('LogicalBackupsComponent', () => {
     expect(followedUrl.searchParams.get('token')).toBe('single-use-token');
     expect(followedLinks[0].download).toBe('shop-2026-10-27.dump');
   });
+  it.each([
+    ['already_running', 'This is already running. Wait for it to finish and try again.'],
+    ['backup_not_completed', 'Only a completed backup can be verified.'],
+  ] as const)(
+    'shows the translated refusal when verification start returns %s',
+    async (code, text) => {
+      mockServer.use(
+        mockApi.get('/backup-configs/{databaseId}', 200, backupConfigOfDatabase),
+        mockBackupPages([{ items: [buildBackup('completed-backup', 'COMPLETED')] }], []),
+        mockApi.post('/verifications', 409, buildProblem(code, 409)),
+      );
+      renderBackupList();
+      await screen.findAllByText('Successful');
+      fireEvent.click(screen.getAllByRole('img', { name: 'safety' })[0]);
+      fireEvent.click(await screen.findByRole('button', { name: 'Queue check' }));
+      expect(await screen.findByText(text)).toBeTruthy();
+    },
+  );
 });

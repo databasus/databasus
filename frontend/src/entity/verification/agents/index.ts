@@ -3,5 +3,4 @@ export type {
   CreatedAgentResponse,
   RotateTokenResponse,
   VerificationAgent,
-  VerificationAgentAvailability,
 } from './models/VerificationAgent';

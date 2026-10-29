@@ -8,7 +8,7 @@ import (
 	"github.com/google/uuid"
 )
 
-// The reads of this file serve the old verification runs and telemetry until they move into modules.
+// These reads serve verification and telemetry.
 // They check no access, because their callers act for the system, not for a user.
 
 func (s *Service) GetBackups(ctx context.Context, backupIDs []uuid.UUID) ([]LogicalBackup, error) {
@@ -47,4 +47,8 @@ func (s *Service) SetVerificationStatus(ctx context.Context, backupID uuid.UUID,
 	_, err := s.repository.updateVerificationStatus(ctx, backupID, status)
 
 	return err
+}
+
+func (s *Service) GetLatestCompletedBackups(ctx context.Context, ids []uuid.UUID) (map[uuid.UUID]LogicalBackup, error) {
+	return s.repository.listLatestCompleted(ctx, ids)
 }

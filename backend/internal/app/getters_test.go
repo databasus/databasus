@@ -19,7 +19,6 @@ import (
 	telemetry "databasus-backend/internal/features/telemetry"
 	users_bridge "databasus-backend/internal/features/users"
 	verification_agents "databasus-backend/internal/features/verification/agents"
-	verification_config "databasus-backend/internal/features/verification/config"
 	verification_runs "databasus-backend/internal/features/verification/runs"
 	workspaces_bridge "databasus-backend/internal/features/workspaces"
 	util_cloudflare_turnstile "databasus-backend/internal/util/cloudflare_turnstile"
@@ -76,34 +75,9 @@ func getOldCodeGetters() []oldCodeGetter {
 			func() any { return telemetry.GetTelemetryBackgroundService() },
 		},
 		{"features/users.GetModule", func() any { return users_bridge.GetModule() }},
-		{"features/verification/agents.GetAgentService", func() any { return verification_agents.GetAgentService() }},
-		{
-			"features/verification/agents.GetAgentController",
-			func() any { return verification_agents.GetAgentController() },
-		},
 		{
 			"features/verification/agents.GetAgentFacingController",
 			func() any { return verification_agents.GetAgentFacingController() },
-		},
-		{
-			"features/verification/config.GetVerificationConfigService",
-			func() any { return verification_config.GetVerificationConfigService() },
-		},
-		{
-			"features/verification/config.GetVerificationConfigController",
-			func() any { return verification_config.GetVerificationConfigController() },
-		},
-		{
-			"features/verification/runs.GetVerificationService",
-			func() any { return verification_runs.GetVerificationService() },
-		},
-		{
-			"features/verification/runs.GetVerificationScheduler",
-			func() any { return verification_runs.GetVerificationScheduler() },
-		},
-		{
-			"features/verification/runs.GetVerificationController",
-			func() any { return verification_runs.GetVerificationController() },
 		},
 		{
 			"features/verification/runs.GetVerificationAgentController",

@@ -1,24 +1,5 @@
-export interface VerificationAgent {
-  id: string;
-  name: string;
-  maxCpu: number;
-  maxRamGb: number;
-  maxDiskGb: number;
-  maxConcurrentJobs: number;
-  lastSeenAt?: string;
-  createdAt: string;
-}
+import type { ApiComponents } from '../../../../shared/api';
 
-export interface CreatedAgentResponse {
-  agent: VerificationAgent;
-  token: string;
-}
-
-export interface RotateTokenResponse {
-  token: string;
-}
-
-export interface VerificationAgentAvailability {
-  count: number;
-  hasAgents: boolean;
-}
+export type VerificationAgent = ApiComponents['schemas']['VerificationAgent'];
+export type CreatedAgentResponse = ApiComponents['schemas']['CreatedVerificationAgent'];
+export type RotateTokenResponse = ApiComponents['schemas']['VerificationAgentToken'];

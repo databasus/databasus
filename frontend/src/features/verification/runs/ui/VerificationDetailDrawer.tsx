@@ -6,8 +6,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import {
-  type RestoreVerification,
-  type RestoreVerificationTableStat,
+  type VerificationDetails,
+  type VerificationTableStat,
   VERIFICATION_STATUS_LABEL_KEYS,
   VERIFICATION_TRIGGER_LABEL_KEYS,
   VerificationStatus,
@@ -109,7 +109,7 @@ const renderSection = (title: string, children: React.ReactNode) => (
 export const VerificationDetailDrawer = ({ verificationId, onClose }: Props) => {
   const { t } = useTranslation();
   const { formatNumber, formatRelativeTime } = useLocale();
-  const [verification, setVerification] = useState<RestoreVerification | undefined>();
+  const [verification, setVerification] = useState<VerificationDetails | undefined>();
   const [isLoading, setIsLoading] = useState(true);
   const [hasLoadError, setHasLoadError] = useState(false);
 
@@ -136,7 +136,7 @@ export const VerificationDetailDrawer = ({ verificationId, onClose }: Props) => 
     [verification],
   );
 
-  const tableStatColumns: ColumnsType<RestoreVerificationTableStat> = [
+  const tableStatColumns: ColumnsType<VerificationTableStat> = [
     {
       title: t('verification.runs.details.tableStats.schema'),
       dataIndex: 'schemaName',
@@ -244,7 +244,7 @@ export const VerificationDetailDrawer = ({ verificationId, onClose }: Props) => 
               )}
               {renderInfoRow(
                 t('verification.runs.details.fields.restoredDbSize'),
-                formatSizeBytes(verification.dbSizeBytesAfterRestore, formatNumber),
+                formatSizeBytes(verification.restoredDatabaseSizeBytes, formatNumber),
               )}
               {renderInfoRow(
                 t('verification.runs.details.fields.schemas'),

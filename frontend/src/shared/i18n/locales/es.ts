@@ -133,6 +133,7 @@ export const es: typeof en = {
     databaseConnectionFailed: 'No se pudo conectar a la base de datos: {{detail}}',
     inUse:
       'Todavía lo usa una base de datos o una copia de seguridad o restauración en curso. Inténtelo de nuevo cuando nada lo use.',
+    backupNotCompleted: 'Solo se puede verificar una copia de seguridad completada.',
     alreadyRunning: 'Esto ya está en curso. Espere a que termine e inténtelo de nuevo.',
     noExtendableChain: 'Realiza un backup completo antes de iniciar uno incremental.',
     noRestorableBackup: 'No hay ningún backup completado que se pueda restaurar.',
@@ -1036,6 +1037,7 @@ export const es: typeof en = {
   },
   verification: {
     triggers: {
+      afterBackup: 'Después de la copia de seguridad',
       manual: 'Manual',
       scheduled: 'Programada',
     },

@@ -1,12 +1,13 @@
 package apptest
 
 import (
-	"encoding/json"
-	"net/http"
+	"context"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
+
+	apiclient "databasus-backend/internal/lib/apiclient"
 )
 
 type VerificationAgent struct {
@@ -40,58 +41,99 @@ type VerificationTableStat struct {
 
 func (a *App) CreateVerificationAgent(tb testing.TB, admin Session) CreatedVerificationAgent {
 	tb.Helper()
-	status, body := a.CallOldAPI(
-		tb,
-		admin,
-		OldAPICall{Method: http.MethodPost, Path: "/verification/agents", Body: map[string]string{"name": tb.Name()}},
+	response, err := admin.Client.CreateVerificationAgentWithResponse(
+		tb.Context(),
+		apiclient.VerificationAgentInput{Name: tb.Name()},
 	)
-	var createdAgent CreatedVerificationAgent
-	decodeVerificationResponse(tb, status, http.StatusCreated, body, &createdAgent)
-	return createdAgent
+	if err != nil {
+		tb.Fatal(err)
+	}
+	if response.JSON201 == nil {
+		tb.Fatalf("create verification agent: %d %s", response.StatusCode(), response.Body)
+	}
+	agent := response.JSON201.Agent
+	return CreatedVerificationAgent{
+		Agent: VerificationAgent{ID: agent.Id, MaxRAMGb: agent.MaxRamGb, LastSeenAt: agent.LastSeenAt},
+		Token: response.JSON201.Token,
+	}
 }
 
 func (a *App) ListVerificationAgents(tb testing.TB, admin Session) []VerificationAgent {
 	tb.Helper()
-	status, body := a.CallOldAPI(tb, admin, OldAPICall{Method: http.MethodGet, Path: "/verification/agents", Body: nil})
-	var agents []VerificationAgent
-	decodeVerificationResponse(tb, status, http.StatusOK, body, &agents)
+	agents := []VerificationAgent{}
+	var after *string
+	for {
+		response, err := admin.Client.ListVerificationAgentsWithResponse(
+			tb.Context(),
+			&apiclient.ListVerificationAgentsParams{Limit: nil, After: after},
+		)
+		if err != nil {
+			tb.Fatal(err)
+		}
+		if response.JSON200 == nil {
+			tb.Fatalf("list verification agents: %d %s", response.StatusCode(), response.Body)
+		}
+		for _, agent := range response.JSON200.Items {
+			agents = append(
+				agents,
+				VerificationAgent{ID: agent.Id, MaxRAMGb: agent.MaxRamGb, LastSeenAt: agent.LastSeenAt},
+			)
+		}
+		after = response.JSON200.NextCursor
+		if after == nil {
+			break
+		}
+	}
 	return agents
 }
 
 func (a *App) EnqueueVerification(tb testing.TB, member Session, backupID uuid.UUID) uuid.UUID {
 	tb.Helper()
-	status, body := a.CallOldAPI(
-		tb,
-		member,
-		OldAPICall{
-			Method: http.MethodPost,
-			Path:   "/verifications/enqueue",
-			Body:   map[string]uuid.UUID{"backupId": backupID},
-		},
+	response, err := member.Client.StartVerificationWithResponse(
+		tb.Context(),
+		apiclient.StartVerificationInput{BackupId: backupID},
 	)
-	var verification Verification
-	decodeVerificationResponse(tb, status, http.StatusOK, body, &verification)
-	return verification.ID
-}
-
-func (a *App) GetVerification(tb testing.TB, member Session, verificationID uuid.UUID) Verification {
-	tb.Helper()
-	status, body := a.CallOldAPI(
-		tb,
-		member,
-		OldAPICall{Method: http.MethodGet, Path: "/verifications/" + verificationID.String(), Body: nil},
-	)
-	var verification Verification
-	decodeVerificationResponse(tb, status, http.StatusOK, body, &verification)
-	return verification
-}
-
-func decodeVerificationResponse(tb testing.TB, status, requiredStatus int, body []byte, target any) {
-	tb.Helper()
-	if status != requiredStatus {
-		tb.Fatalf("verification request answered %d: %s", status, body)
+	if err != nil {
+		tb.Fatal(err)
 	}
-	if err := json.Unmarshal(body, target); err != nil {
-		tb.Fatalf("decode verification response: %v", err)
+	if response.JSON202 == nil {
+		tb.Fatalf("start verification: %d %s", response.StatusCode(), response.Body)
+	}
+	return response.JSON202.Id
+}
+
+func (a *App) GetVerification(tb testing.TB, member Session, id uuid.UUID) Verification {
+	tb.Helper()
+	response, err := member.Client.GetVerificationWithResponse(tb.Context(), id)
+	if err != nil {
+		tb.Fatal(err)
+	}
+	if response.JSON200 == nil {
+		tb.Fatalf("get verification: %d %s", response.StatusCode(), response.Body)
+	}
+	verification := response.JSON200
+	stats := make([]VerificationTableStat, len(verification.TableStats))
+	for index, stat := range verification.TableStats {
+		stats[index] = VerificationTableStat{SchemaName: stat.SchemaName, Name: stat.Name, RowCount: stat.RowCount}
+	}
+	return Verification{
+		ID:                      verification.Id,
+		Status:                  string(verification.Status),
+		AttemptCount:            verification.AttemptCount,
+		PgRestoreExitCode:       verification.PgRestoreExitCode,
+		DBSizeBytesAfterRestore: verification.RestoredDatabaseSizeBytes,
+		TableCount:              verification.TableCount,
+		SchemaCount:             verification.SchemaCount,
+		FailMessage:             verification.FailMessage,
+		TableStats:              stats,
+	}
+}
+
+func (a *App) WaitForBackupRuns(tb testing.TB) {
+	tb.Helper()
+	waitCtx, cancelWait := context.WithTimeout(tb.Context(), backupRunsWaitTimeout)
+	defer cancelWait()
+	if err := a.app.WaitForBackupRuns(waitCtx); err != nil {
+		tb.Fatalf("wait for backup runs: %v", err)
 	}
 }

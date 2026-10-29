@@ -127,6 +127,7 @@ export const zh: typeof en = {
     workspaceNotEmpty: '工作区中仍有数据库。请先删除这些数据库，再删除工作区。',
     databaseConnectionFailed: '无法连接到数据库：{{detail}}',
     inUse: '它仍被数据库或正在进行的备份或恢复使用。请在不再被使用后重试。',
+    backupNotCompleted: '只能验证已完成的备份。',
     alreadyRunning: '该操作已在进行中。请等待其完成后重试。',
     noExtendableChain: '请先执行全量备份，再启动增量备份。',
     noRestorableBackup: '没有可用于恢复的已完成备份。',
@@ -964,6 +965,7 @@ export const zh: typeof en = {
   },
   verification: {
     triggers: {
+      afterBackup: '备份完成后',
       manual: '手动',
       scheduled: '定时',
     },

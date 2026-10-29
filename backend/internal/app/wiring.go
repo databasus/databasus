@@ -3,19 +3,17 @@ package app
 import (
 	healthcheck_config "databasus-backend/internal/features/healthcheck/config"
 	"databasus-backend/internal/features/telemetry"
-	verification_config "databasus-backend/internal/features/verification/config"
-	verification_runs "databasus-backend/internal/features/verification/runs"
 	"databasus-backend/internal/modules/backups"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/modules/storages"
+	"databasus-backend/internal/modules/verification"
 	"databasus-backend/internal/modules/workspaces"
 )
 
 // setUpDependencies registers the listeners between the old features. The server and the console
 // commands share it, so a command writes the same audit records as the server.
 func setUpDependencies() {
-	verification_runs.SetupDependencies()
 	telemetry.SetupDependencies()
 }
 
@@ -45,18 +43,22 @@ func subscribeToStorageTransferring(storagesModule storages.Module, backupsModul
 	storagesModule.SubscribeToStorageTransferring(backupsModule.OnStorageTransferring)
 }
 
-func subscribeToDatabaseEvents(databasesModule databases.Module, backupsModule backups.Module) {
+func subscribeToDatabaseEvents(
+	databasesModule databases.Module,
+	backupsModule backups.Module,
+	verificationModule verification.Module,
+) {
 	databasesModule.SubscribeToDatabaseCreated(healthcheck_config.GetHealthcheckConfigService().OnDatabaseCreated)
 
 	databasesModule.SubscribeToDatabaseCopied(backupsModule.OnDatabaseCopied)
-	databasesModule.SubscribeToDatabaseCopied(verification_config.GetVerificationConfigService().OnDatabaseCopied)
+	databasesModule.SubscribeToDatabaseCopied(verificationModule.OnDatabaseCopied)
 
 	databasesModule.SubscribeToDatabaseBackupTypeChanged(backupsModule.OnDatabaseBackupTypeChanged)
 	databasesModule.SubscribeToDatabaseDeleting(backupsModule.OnDatabaseDeleting)
-	databasesModule.SubscribeToDatabaseDeleting(verification_config.GetVerificationConfigService().OnDatabaseDeleting)
+	databasesModule.SubscribeToDatabaseDeleting(verificationModule.OnDatabaseDeleting)
 }
 
-func subscribeToLogicalBackupEvents(backupsModule backups.Module) {
-	backupsModule.SubscribeToLogicalBackupCompleted(verification_runs.GetVerificationService().OnLogicalBackupCompleted)
-	backupsModule.SubscribeToLogicalBackupsDeleting(verification_runs.GetVerificationService().OnLogicalBackupsDeleting)
+func subscribeToLogicalBackupEvents(backupsModule backups.Module, verificationModule verification.Module) {
+	backupsModule.SubscribeToLogicalBackupCompleted(verificationModule.OnLogicalBackupCompleted)
+	backupsModule.SubscribeToLogicalBackupsDeleting(verificationModule.OnLogicalBackupsDeleting)
 }

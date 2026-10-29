@@ -24,6 +24,8 @@ tags:
     description: The databases a workspace backs up, their connection tests and limited users
   - name: backups
     description: How each database is backed up, and the move of a database to another workspace
+  - name: verification
+    description: Backup verifications, their agents and automatic verification settings
 paths:
   /users:
     get:
@@ -2592,6 +2594,352 @@ paths:
           $ref: "#/components/responses/Problem"
         default:
           $ref: "#/components/responses/Problem"
+  /verification-agent-counts:
+    get:
+      operationId: getVerificationAgentCount
+      tags: [verification]
+      summary: Read the number of verification agents
+      description: Counts agents that have not been deleted, without exposing their details.
+      responses:
+        "200":
+          description: Read the number of verification agents
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VerificationAgentCount"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /verification-agents:
+    post:
+      operationId: createVerificationAgent
+      tags: [verification]
+      summary: Create a verification agent
+      description: Issues a token returned only in this response.
+      x-access: admin
+      requestBody:
+        description: The editable fields for this operation
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VerificationAgentInput"
+      responses:
+        "201":
+          description: Create a verification agent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreatedVerificationAgent"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+    get:
+      operationId: listVerificationAgents
+      tags: [verification]
+      summary: List verification agents
+      description: The newest entries come first, ordered by createdAt and id.
+      x-access: admin
+      parameters:
+        - name: limit
+          in: query
+          description: The page size
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: after
+          in: query
+          description: The cursor from the preceding page
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List verification agents
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VerificationAgentPage"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /verification-agents/{agentId}/rotate-token:
+    post:
+      operationId: rotateVerificationAgentToken
+      tags: [verification]
+      summary: Rotate a verification agent token
+      x-access: admin
+      parameters:
+        - name: agentId
+          in: path
+          description: The ID of the agent
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Rotate a verification agent token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VerificationAgentToken"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /verification-agents/{agentId}:
+    delete:
+      operationId: deleteVerificationAgent
+      tags: [verification]
+      summary: Delete a verification agent
+      x-access: admin
+      parameters:
+        - name: agentId
+          in: path
+          description: The ID of the agent
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Delete a verification agent
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /verification-configs/{databaseId}:
+    get:
+      operationId: getVerificationConfig
+      tags: [verification]
+      summary: Read the verification config
+      parameters:
+        - name: databaseId
+          in: path
+          description: The ID of the database
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Read the verification config
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VerificationConfig"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+    put:
+      operationId: updateVerificationConfig
+      tags: [verification]
+      summary: Save the verification config
+      description: Replaces the automatic verification settings and notification outcomes.
+      parameters:
+        - name: databaseId
+          in: path
+          description: The ID of the database
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        description: The editable fields for this operation
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VerificationConfigInput"
+      responses:
+        "200":
+          description: Save the verification config
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VerificationConfig"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /verifications:
+    post:
+      operationId: startVerification
+      tags: [verification]
+      summary: Start a manual backup verification
+      requestBody:
+        description: The editable fields for this operation
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StartVerificationInput"
+      responses:
+        "202":
+          description: Start a manual backup verification
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Verification"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        "409":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+    get:
+      operationId: listVerifications
+      tags: [verification]
+      summary: List the verifications of a database
+      description: The newest entries come first, ordered by createdAt and id.
+      parameters:
+        - name: databaseId
+          in: query
+          description: The ID of the database
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: limit
+          in: query
+          description: The page size
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: after
+          in: query
+          description: The cursor from the preceding page
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List the verifications of a database
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VerificationPage"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /verifications/{verificationId}/cancel:
+    post:
+      operationId: cancelVerification
+      tags: [verification]
+      summary: Cancel a pending or running verification
+      parameters:
+        - name: verificationId
+          in: path
+          description: The ID of the verification
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Cancel a pending or running verification
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Verification"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        "409":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /verifications/{verificationId}:
+    get:
+      operationId: getVerification
+      tags: [verification]
+      summary: Read a verification with table counts
+      parameters:
+        - name: verificationId
+          in: path
+          description: The ID of the verification
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Read a verification with table counts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VerificationDetails"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
 components:
   parameters:
     UserId:
@@ -2700,6 +3048,215 @@ components:
           schema:
             $ref: "#/components/schemas/Problem"
   schemas:
+    VerificationAgentCount:
+      description: Verification Agent Count
+      type: object
+      required: [agentCount]
+      properties:
+        agentCount:
+          type: integer
+          format: int64
+          minimum: 0
+    VerificationAgentInput:
+      description: Verification Agent Input
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+    VerificationAgent:
+      description: Verification Agent
+      type: object
+      required: [id, name, maxCpu, maxRamGb, maxDiskGb, maxConcurrentJobs, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        maxCpu:
+          type: integer
+        maxRamGb:
+          type: integer
+        maxDiskGb:
+          type: integer
+        maxConcurrentJobs:
+          type: integer
+        lastSeenAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+    CreatedVerificationAgent:
+      description: Created Verification Agent
+      type: object
+      required: [agent, token]
+      properties:
+        agent:
+          $ref: "#/components/schemas/VerificationAgent"
+        token:
+          type: string
+    VerificationAgentToken:
+      description: Verification Agent Token
+      type: object
+      required: [token]
+      properties:
+        token:
+          type: string
+    VerificationScheduleType:
+      description: Verification Schedule Type
+      type: string
+      enum: [INTERVAL, AFTER_BACKUP]
+    VerificationNotificationTrigger:
+      description: Verification Notification Trigger
+      type: string
+      enum: [VERIFICATION_SUCCESS, VERIFICATION_FAILED]
+    VerificationTrigger:
+      description: Verification Trigger
+      type: string
+      enum: [MANUAL, SCHEDULED, AFTER_BACKUP]
+    VerificationStatus:
+      description: Verification Status
+      type: string
+      enum: [PENDING, RUNNING, COMPLETED, FAILED, CANCELED]
+    VerificationConfigInput:
+      description: Verification Config Input
+      type: object
+      required: [isAutomaticVerificationEnabled, scheduleType, schedule, notificationTriggers]
+      properties:
+        isAutomaticVerificationEnabled:
+          type: boolean
+        scheduleType:
+          $ref: "#/components/schemas/VerificationScheduleType"
+        schedule:
+          $ref: "#/components/schemas/Schedule"
+        notificationTriggers:
+          type: array
+          items:
+            $ref: "#/components/schemas/VerificationNotificationTrigger"
+    VerificationConfig:
+      description: Verification Config
+      type: object
+      required: [databaseId, isAutomaticVerificationEnabled, scheduleType, schedule, notificationTriggers]
+      properties:
+        databaseId:
+          type: string
+          format: uuid
+        isAutomaticVerificationEnabled:
+          type: boolean
+        scheduleType:
+          $ref: "#/components/schemas/VerificationScheduleType"
+        schedule:
+          $ref: "#/components/schemas/Schedule"
+        notificationTriggers:
+          type: array
+          items:
+            $ref: "#/components/schemas/VerificationNotificationTrigger"
+    StartVerificationInput:
+      description: Start Verification Input
+      type: object
+      required: [backupId]
+      properties:
+        backupId:
+          type: string
+          format: uuid
+    Verification:
+      description: Verification
+      type: object
+      required: [id, databaseId, backupId, trigger, status, attemptCount, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        databaseId:
+          type: string
+          format: uuid
+        backupId:
+          type: string
+          format: uuid
+        agentId:
+          type: string
+          format: uuid
+        trigger:
+          $ref: "#/components/schemas/VerificationTrigger"
+        status:
+          $ref: "#/components/schemas/VerificationStatus"
+        attemptCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        startedAt:
+          type: string
+          format: date-time
+        finishedAt:
+          type: string
+          format: date-time
+        restoreDurationMs:
+          type: integer
+          format: int64
+        verifyDurationMs:
+          type: integer
+          format: int64
+        pgRestoreExitCode:
+          type: integer
+        restoredDatabaseSizeBytes:
+          type: integer
+          format: int64
+        tableCount:
+          type: integer
+        schemaCount:
+          type: integer
+        failMessage:
+          type: string
+    VerificationTableStat:
+      description: Verification Table Stat
+      type: object
+      required: [schemaName, name, rowCount]
+      properties:
+        schemaName:
+          type: string
+        name:
+          type: string
+        rowCount:
+          type: integer
+          format: int64
+    VerificationDetails:
+      description: Verification Details
+      allOf:
+        - $ref: "#/components/schemas/Verification"
+        - type: object
+          required: [tableStats]
+          properties:
+            tableStats:
+              type: array
+              items:
+                $ref: "#/components/schemas/VerificationTableStat"
+    VerificationAgentPage:
+      description: Verification Agent Page
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/VerificationAgent"
+        nextCursor:
+          type: string
+    VerificationPage:
+      description: Verification Page
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Verification"
+        nextCursor:
+          type: string
     SignUpRequest:
       type: object
       description: The user to create
@@ -4502,6 +5059,7 @@ components:
         - workspace_not_empty
         - in_use
         - database_connection_failed
+        - backup_not_completed
         - already_running
         - not_running
         - no_extendable_chain
@@ -4646,7 +5204,7 @@ components:
           description: The backup outcomes that send a notification through the database's notifiers
     Schedule:
       type: object
-      description: When a recurring backup runs; times of day are in UTC
+      description: When recurring work runs; times of day are in UTC
       required: [type]
       properties:
         type:

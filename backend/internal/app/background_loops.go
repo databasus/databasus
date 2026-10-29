@@ -5,7 +5,6 @@ import (
 
 	healthcheck_attempt "databasus-backend/internal/features/healthcheck/attempt"
 	"databasus-backend/internal/features/telemetry"
-	verification_runs "databasus-backend/internal/features/verification/runs"
 )
 
 type backgroundLoop struct {
@@ -15,7 +14,6 @@ type backgroundLoop struct {
 
 func (a *App) startBackgroundLoops(ctx context.Context) {
 	loops := []backgroundLoop{
-		{"verification scheduler", verification_runs.GetVerificationScheduler().Run},
 		{"healthcheck attempt background service", healthcheck_attempt.GetHealthcheckAttemptBackgroundService().Run},
 		{"telemetry background service", telemetry.GetTelemetryBackgroundService().Run},
 	}

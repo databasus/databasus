@@ -99,7 +99,7 @@ run = "go generate ./..."
 # checks them at startup exits before its first test. Unsharded physical API packages can exceed
 # 15 minutes, especially when other runs share the machine. The timeout matches scripts/test.sh.
 [tasks."backend:test-package"]
-description = "Run the given backend test packages, e.g. mise run backend:test-package ./internal/features/intervals/..."
+description = "Run the given backend test packages, e.g. mise run backend:test-package ./internal/modules/verification/..."
 dir = "backend"
 usage = 'arg "<packages>" var=#true help="Package paths relative to backend/, each starting with ./"'
 shell = "bash -euo pipefail -c"

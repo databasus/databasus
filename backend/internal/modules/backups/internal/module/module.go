@@ -219,3 +219,10 @@ func (m *Module) OnDatabaseDeleting(ctx context.Context, event databases.Databas
 
 	return m.configs.OnDatabaseDeleting(ctx, event)
 }
+
+func (m *Module) GetLatestCompletedLogicalBackups(
+	ctx context.Context,
+	ids []uuid.UUID,
+) (map[uuid.UUID]logical.LogicalBackup, error) {
+	return m.logicalBackups.GetLatestCompletedBackups(ctx, ids)
+}

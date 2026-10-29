@@ -154,10 +154,11 @@ type Module interface {
 	OnDatabaseBackupTypeChanged(ctx context.Context, event databases.DatabaseBackupTypeChanged) error
 	OnDatabaseDeleting(ctx context.Context, event databases.DatabaseDeleting) error
 
-	// The logical backup reads and the verification status serve the old verification runs and
-	// telemetry until they move into modules. They check no access. GetLogicalBackups leaves out the
+	// The logical backup reads and the verification status serve the verification module and
+	// telemetry. They check no access. GetLogicalBackups leaves out the
 	// IDs that match no backup.
 	GetLogicalBackups(ctx context.Context, backupIDs []uuid.UUID) ([]LogicalBackup, error)
+	GetLatestCompletedLogicalBackups(ctx context.Context, databaseIDs []uuid.UUID) (map[uuid.UUID]LogicalBackup, error)
 	GetLatestCompletedLogicalBackup(ctx context.Context, databaseID uuid.UUID) (LogicalBackup, bool, error)
 	HasSuccessfulLogicalBackupSince(ctx context.Context, databaseID uuid.UUID, since time.Time) (bool, error)
 	// OpenLogicalBackupFile opens the decrypted file of the backup.

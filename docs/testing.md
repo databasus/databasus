@@ -42,6 +42,8 @@ Module API tests cover most behavior. A unit test without the application is use
 
 `RestartModules` stops the live jobs, cancels the module runs and waits for them before startup recovery. An interrupted physical backup records an application shutdown failure; a WAL streamer records its stop and preserves its replication slot and local queue. Startup fails backups left in progress, fails stale streamers, then sweeps orphan backup slots on reachable sources, before restarting the live jobs. Cleanup stops jobs and module runs and waits for them before closing the internal database. Work that outlives the cleanup fails the test.
 
+`apptest.WithAgentBinariesDir()` also selects the system clock and leaves `App.Clock` nil. Tests that run a real agent need heartbeat timestamps and rate limits to advance with that process.
+
 Physical backup execution has a separate injected system clock for elapsed duration, progress, stall detection and the bounded summarizer wait. These follow the real PostgreSQL process even when a test holds the schedule clock fixed.
 
 `apptest.WithWalStreamTimings` shortens forced WAL rotation, archive staleness and the queue pause size for one application. The server keeps the production values. Tests with live physical jobs seed timestamps with margins of minutes. Negative checks use explicit scheduler or cleaner passes; live-job checks wait for positive outcomes.
@@ -54,7 +56,7 @@ A test creates its data through the API, the same way a user does. The testing s
 
 ## Verification agent end-to-end tests
 
-`mise run agent:e2e` runs `internal/agent/e2e` against a real backend from `apptest`. `TestMain` builds the agent once with the server's version and once with an older version for the background update scenario. Each scenario copies its binary into its own temporary directory and runs it through `lib/process`. The backend takes the backup from a source PostgreSQL server, decrypts it on the agent's stream request and stores the agent's report. Users, workspaces, storages, databases and backups are created through the API. Until verification joins the contract, its user operations go through `apptest.CallOldAPI`.
+`mise run agent:e2e` runs `internal/agent/e2e` against a real backend from `apptest`. `TestMain` builds the agent once with the server's version and once with an older version for the background update scenario. Each scenario copies its binary into its own temporary directory and runs it through `lib/process`. The backend takes the backup from a source PostgreSQL server, decrypts it on the agent's stream request and stores the agent's report. The tests create users, workspaces, storages, databases and backups and call verification user operations through the generated API client. Only the agent protocol routes still go through `apptest.CallOldAPI` until they join `agent.yaml` in milestone 12e.
 
 The suite covers PostgreSQL 12–18, TimescaleDB on 17, a backup limited to the public schema, damaged backup bytes, the disk budget, leftovers before a retry and at startup, restore container privileges, daemon commands and background self-update. The damaged backup is unencrypted; a helper overwrites its local stored bytes without changing its completed status or file-store records. The disk-budget scenario also checks that PostgreSQL 18's data directory counts toward the limit.
 

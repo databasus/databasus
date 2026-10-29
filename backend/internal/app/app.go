@@ -23,6 +23,7 @@ import (
 	storages_bridge "databasus-backend/internal/features/storages"
 	system_healthcheck "databasus-backend/internal/features/system/healthcheck"
 	users_bridge "databasus-backend/internal/features/users"
+	verification_bridge "databasus-backend/internal/features/verification"
 	workspaces_bridge "databasus-backend/internal/features/workspaces"
 	"databasus-backend/internal/lib/audit"
 	"databasus-backend/internal/lib/background"
@@ -36,6 +37,7 @@ import (
 	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/modules/users"
+	"databasus-backend/internal/modules/verification"
 	"databasus-backend/internal/modules/workspaces"
 	"databasus-backend/internal/storage"
 	"databasus-backend/internal/util/encryption"
@@ -51,16 +53,17 @@ const olderVersionRefusal = "Returning to an older Databasus version after an up
 	"Start the image of the newer version instead"
 
 type App struct {
-	usersModule      users.Module
-	workspacesModule workspaces.Module
-	notifiersModule  notifiers.Module
-	storagesModule   storages.Module
-	databasesModule  databases.Module
-	backupsModule    backups.Module
-	environment      *Environment
-	db               *gorm.DB
-	transactor       *database.Transactor
-	logger           *slog.Logger
+	usersModule        users.Module
+	workspacesModule   workspaces.Module
+	notifiersModule    notifiers.Module
+	storagesModule     storages.Module
+	databasesModule    databases.Module
+	backupsModule      backups.Module
+	verificationModule verification.Module
+	environment        *Environment
+	db                 *gorm.DB
+	transactor         *database.Transactor
+	logger             *slog.Logger
 	// backgroundGroup exists only while Serve runs, so a console command cannot start a loop.
 	backgroundGroup *background.Group
 	// runner is started only by Serve; a console command and a test application run its passes
@@ -112,12 +115,6 @@ func New(ctx context.Context, environment *Environment) (*App, error) {
 
 	old_config.Install(environment.Config, environment.ClientToolsDir)
 	storage.Install(db)
-
-	if err := parseModelSchemas(db); err != nil {
-		closeDatabase(db)
-
-		return nil, err
-	}
 
 	transactor := database.NewTransactor(db)
 
@@ -262,6 +259,22 @@ func New(ctx context.Context, environment *Environment) (*App, error) {
 		Databases:              databasesModule,
 	})
 	backups_bridge.Install(backupsModule)
+	verificationModule := verification.New(
+		verification.Deps{
+			DB:         db,
+			Transactor: transactor,
+			Logger:     appLogger,
+			Clock:      environment.Clock,
+			AuditLog:   auditLog,
+			Users:      usersModule,
+			Workspaces: workspacesModule,
+			Databases:  databasesModule,
+			Backups:    backupsModule,
+			Notifiers:  notifiersModule,
+		},
+	)
+
+	verification_bridge.Install(verificationModule)
 
 	clientToolsChecker := newClientToolsChecker(environment.ClientToolsDir)
 	system_healthcheck.InstallClientToolsChecker(clientToolsChecker)
@@ -270,27 +283,29 @@ func New(ctx context.Context, environment *Environment) (*App, error) {
 	subscribeToWorkspaceDeleting(workspacesModule, databasesModule, notifiersModule, storagesModule)
 	subscribeToNotifierTransferring(notifiersModule, databasesModule)
 	subscribeToStorageTransferring(storagesModule, backupsModule)
-	subscribeToDatabaseEvents(databasesModule, backupsModule)
-	subscribeToLogicalBackupEvents(backupsModule)
+	subscribeToDatabaseEvents(databasesModule, backupsModule, verificationModule)
+	subscribeToLogicalBackupEvents(backupsModule, verificationModule)
 
 	jobs := append([]background.Job{newAuditEventsCleanupJob(auditLog, appLogger)}, usersModule.GetJobs()...)
 	jobs = append(jobs, storagesModule.GetJobs()...)
 	jobs = append(jobs, backupsModule.GetJobs()...)
+	jobs = append(jobs, verificationModule.GetJobs()...)
 	runner := background.NewRunner(background.RunnerDeps{Logger: appLogger, Clock: environment.Clock}, jobs...)
 
 	return &App{
-		usersModule:      usersModule,
-		workspacesModule: workspacesModule,
-		notifiersModule:  notifiersModule,
-		storagesModule:   storagesModule,
-		databasesModule:  databasesModule,
-		backupsModule:    backupsModule,
-		environment:      environment,
-		db:               db,
-		transactor:       transactor,
-		logger:           appLogger,
-		backgroundGroup:  nil,
-		jobs:             jobs, runner: runner,
+		usersModule:        usersModule,
+		workspacesModule:   workspacesModule,
+		notifiersModule:    notifiersModule,
+		storagesModule:     storagesModule,
+		databasesModule:    databasesModule,
+		backupsModule:      backupsModule,
+		verificationModule: verificationModule,
+		environment:        environment,
+		db:                 db,
+		transactor:         transactor,
+		logger:             appLogger,
+		backgroundGroup:    nil,
+		jobs:               jobs, runner: runner,
 		clientToolsChecker: clientToolsChecker,
 	}, nil
 }
@@ -393,4 +408,15 @@ func (a *App) NewJobRunner(names []string) *background.Runner {
 		}
 	}
 	return background.NewRunner(background.RunnerDeps{Logger: a.logger, Clock: a.environment.Clock}, jobs...)
+}
+
+func (a *App) GetPostgresqlLogicalVersions(ctx context.Context, databaseIDs []uuid.UUID) (map[uuid.UUID]string, error) {
+	return a.databasesModule.GetPostgresqlLogicalVersions(ctx, databaseIDs)
+}
+
+func (a *App) GetLatestCompletedLogicalBackups(
+	ctx context.Context,
+	databaseIDs []uuid.UUID,
+) (map[uuid.UUID]backups.LogicalBackup, error) {
+	return a.backupsModule.GetLatestCompletedLogicalBackups(ctx, databaseIDs)
 }

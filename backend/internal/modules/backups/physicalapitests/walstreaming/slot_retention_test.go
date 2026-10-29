@@ -33,6 +33,21 @@ func TestPhysicalWalSlotRetentionSample(t *testing.T) {
 		require.NoError(t, err)
 		_, err = source.Exec(t.Context(), "SELECT pg_reload_conf()")
 		require.NoError(t, err)
+		testwait.Until(
+			t,
+			"PostgreSQL applies the WAL reservation limit before generating WAL",
+			func(ctx context.Context) error {
+				var maxWalSizeBytes int64
+				if err := source.QueryRow(ctx, "SELECT pg_size_bytes(current_setting('max_wal_size'))").
+					Scan(&maxWalSizeBytes); err != nil {
+					return err
+				}
+				if maxWalSizeBytes != 32*1024*1024 {
+					return fmt.Errorf("max_wal_size is still %d bytes", maxWalSizeBytes)
+				}
+				return nil
+			},
+		)
 		generateWal(t, source, 2*16*1024*1024)
 		rotateWal(t, source)
 		testwait.Until(t, "the storage outage pauses the receiver", func(context.Context) error {
@@ -51,7 +66,18 @@ func TestPhysicalWalSlotRetentionSample(t *testing.T) {
 			first = team.statistics(t)
 			if first.Current == nil || first.Current.SlotExtraWalSince == nil || first.Current.SlotWalStatus == nil ||
 				*first.Current.SlotWalStatus != "extended" {
-				return fmt.Errorf("no extended retention sample")
+				var slotStatus, maxWalSize string
+				var slotLag int64
+				if err := source.QueryRow(t.Context(), "SELECT COALESCE(wal_status,''), COALESCE(pg_wal_lsn_diff(pg_current_wal_lsn(), restart_lsn),0)::bigint, current_setting('max_wal_size') FROM pg_replication_slots WHERE slot_type='physical' LIMIT 1").
+					Scan(&slotStatus, &slotLag, &maxWalSize); err != nil {
+					return err
+				}
+				return fmt.Errorf(
+					"no extended retention sample: source status=%s lag=%d max_wal_size=%s",
+					slotStatus,
+					slotLag,
+					maxWalSize,
+				)
 			}
 			return nil
 		})
