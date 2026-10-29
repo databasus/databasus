@@ -22,3 +22,6 @@ plans/
 
 .pnpm-store
 __pycache__/
+
+databasus-verification-agent
+agent/verification/e2e/artifacts/

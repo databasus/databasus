@@ -1,8 +1,8 @@
 services:
   e2e-agent-builder:
     build:
-      context: ..
-      dockerfile: e2e/Dockerfile.agent-builder
+      context: ../../../backend
+      dockerfile: ../agent/verification/e2e/Dockerfile.agent-builder
     volumes:
       - ./artifacts:/artifacts
     container_name: e2e-verification-agent-builder

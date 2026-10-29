@@ -89,6 +89,7 @@ Until the tests of old code move into modules, the filesystem tests run only thr
 | Everything | `mise run test` |
 | One backend package | `go test -race -count=1 ./internal/modules/<module>/...` in `backend/` |
 | One backend test | `go test -race -count=1 -run 'TestName/scenario text' ./internal/modules/<module>/...` in `backend/` |
+| Verification agent | `mise run agent:test` |
 | Frontend | `pnpm test` in `frontend/`, or `pnpm test -t 'scenario text'` |
 | Upgrade test | `mise run backend:test-upgrade` |
 | Filesystem tests | `mise run test-filesystem` |

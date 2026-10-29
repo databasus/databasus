@@ -237,7 +237,7 @@ PostgreSQL owns the backup format, and we do not implement block-level increment
 ## Long-running work
 
 - **Background jobs** run through `background.Runner`. Each run of a job is a pass. The runner puts `job_name` and `job_id` into the context of each pass and never overlaps two passes of one job. When a pass returns an error or panics, the runner logs it and still runs the next pass on schedule. A second `Start` panics, because it is always a bug. The runner reports each job's last result to the health endpoint.
-- **External tools** (`pg_dump`, `pg_basebackup`, `pg_receivewal`, `mysqldump` and others) run through the `lib/process` helper. The helper binds the process to the operation's context and kills the whole process group when the context ends.
+- **External tools** (`pg_dump`, `pg_basebackup`, `pg_receivewal`, `mysqldump` and others) run through the `lib/process` helper. The helper binds the process to the operation's context and kills the whole process group when the context ends. The one exception is the verification agent's daemon start. It uses `os/exec` with `Setsid` and `context.WithoutCancel` because the daemon must outlive the command that starts it. `lib/process` kills tools when their parent exits.
 - **Goroutines** are started only through `lib` helpers that tie them to a context and recover a panic into an error. In production code a bare `go` statement exists only inside `lib`; a test may start one directly to drive concurrent calls.
 - **Cancellation.** A running backup, restore or verification is registered under its ID, and a cancel request ends its context.
 - **Shutdown.** SIGTERM or SIGINT cancels the root context, and then:
@@ -278,7 +278,7 @@ The verification agent is a CLI worker that runs on a machine the user provides.
 | `*gorm.DB` and `database.Conn` only in repositories; no `time.Sleep`, `Eventually`, `fmt.Print*`, `os.Exit`, `os.Getenv` or `context.Background()` outside the places allowed | `forbidigo` |
 | Log calls: attributes only, `...Context` methods, constant messages, `snake_case` keys | `sloglint` |
 | Imports of test libraries only in test code, and no Gin or GORM in the verification agent or the engines; fixed import aliases | `depguard`, `importas` |
-| Production code starts an external process only through `lib/process` | `forbidigo` |
+| Production code starts an external process only through `lib/process`, except the verification agent's detached daemon start, which must outlive its parent | `forbidigo` |
 | No package-level dependency variables, no `init()`; every `Deps` literal lists all fields | `gochecknoglobals`, `gochecknoinits`, `exhaustruct` |
 | Exhaustive `switch` on enums | `exhaustive` |
 | The contract follows the API rules; generated code is up to date | `vacuum`; `backend:check-generated`, which `backend:lint` runs, and `check:api`, which `frontend:lint` runs |

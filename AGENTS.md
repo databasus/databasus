@@ -20,7 +20,7 @@ Per-folder rules live next to the code they govern:
 
 This root file holds the rules for every module.
 
-Before changing a file under a folder with its own `AGENTS.md`, read that file unless it is already in context. For `agent/verification/`, read both `agent/verification/AGENTS.md` and `backend/AGENTS.md`.
+Before changing a file under a folder with its own `AGENTS.md`, read that file unless it is already in context.
 
 ---
 
@@ -47,8 +47,8 @@ The repository's skills live in `.agents/skills/`, which Codex reads directly; C
 | `mise run backend:test-package <packages>` | Run the given backend test packages |
 | `mise run test-filesystem` | Run the Docker filesystem suite, mostly left to CI |
 | `mise run pull-testcontainers` | Pull the database images the backend tests use |
-| `mise run lint` | Check every module without changing files; `mise run backend:lint`, `agent:lint` and `frontend:lint` check one |
-| `mise run format` | Format every module; `backend:format`, `agent:format` and `frontend:format` format one |
+| `mise run lint` | Check every module without changing files; `mise run backend:lint` and `frontend:lint` check one |
+| `mise run format` | Format every module; `backend:format` and `frontend:format` format one |
 | `mise run doctor` | Check that the review hooks find the tools they need |
 | `mise run review [<change>]` | Manually rerun parallel AI reviews of a finished OpenSpec change when hooks did not run or another review is needed |
 | `goose -dir backend/migrations create <name> sql` | Create a migration |

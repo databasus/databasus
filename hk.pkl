@@ -15,16 +15,6 @@ steps {
         glob = "**"
         check = "mise run backend:lint"
     }
-    ["agent-format"] {
-        dir = "agent/verification"
-        glob = "**/*.go"
-        check = "golangci-lint fmt --diff {{files}} || { echo \"\(formatHint)\" >&2; exit 1; }"
-    }
-    ["agent-lint"] {
-        dir = "agent/verification"
-        glob = "**"
-        check = "mise run agent:lint"
-    }
     ["frontend-format"] {
         dir = "frontend"
         glob = List("**/*.{js,jsx,ts,tsx,mjs,cjs,json,jsonc,css,md,yaml,yml}")

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-#MISE description="Run the verification agent against the backend named in agent/verification/.env"
-#MISE dir="agent/verification"
+#MISE description="Run the verification agent with AGENT_ID, AGENT_TOKEN and optional VERIFICATION_AGENT_DATABASUS_URL"
+#MISE dir="."
 set -euo pipefail
 
 if [[ -f .env ]]; then
@@ -9,8 +9,13 @@ if [[ -f .env ]]; then
     source .env
     set +a
 fi
-exec go run ./cmd run \
-    --databasus-host "$DATABASUS_URL" \
+: "${AGENT_ID:?AGENT_ID is required}"
+: "${AGENT_TOKEN:?AGENT_TOKEN is required}"
+
+mise run agent:build
+cd backend/temp/verification-agent
+exec ./databasus-verification-agent run \
+    --databasus-host "${VERIFICATION_AGENT_DATABASUS_URL:-http://localhost:4005}" \
     --agent-id "$AGENT_ID" \
     --token "$AGENT_TOKEN" \
     --max-cpu 4 \

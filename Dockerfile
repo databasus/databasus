@@ -48,24 +48,24 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
 # ========= BUILD VERIFICATION AGENT =========
 FROM --platform=$BUILDPLATFORM golang:1.26.10 AS verification-agent-build
 
-WORKDIR /agent
+WORKDIR /app
 
-COPY agent/verification/go.mod agent/verification/go.sum ./
+COPY backend/go.mod backend/go.sum ./
 RUN go mod download
 
-COPY agent/verification/ ./
+COPY backend/ ./
 
 ARG APP_VERSION=dev
 
 RUN --mount=type=cache,target=/root/.cache/go-build \
     CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
     go build -ldflags "-X main.Version=${APP_VERSION}" \
-    -o /verification-agent-binaries/databasus-verification-agent-linux-amd64 ./cmd
+    -o /verification-agent-binaries/databasus-verification-agent-linux-amd64 ./cmd/verification-agent
 
 RUN --mount=type=cache,target=/root/.cache/go-build \
     CGO_ENABLED=0 GOOS=linux GOARCH=arm64 \
     go build -ldflags "-X main.Version=${APP_VERSION}" \
-    -o /verification-agent-binaries/databasus-verification-agent-linux-arm64 ./cmd
+    -o /verification-agent-binaries/databasus-verification-agent-linux-arm64 ./cmd/verification-agent
 
 
 # ========= RUNTIME =========

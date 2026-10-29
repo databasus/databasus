@@ -10,6 +10,7 @@ rm -rf "$WORK"
 mkdir -p "$WORK"
 cd "$WORK"
 
+reset_mock_state
 reset_mock_version
 
 cp "$ARTIFACTS/agent-v1" ./databasus-verification-agent
@@ -32,6 +33,7 @@ echo "Initial version: $INITIAL"
   --max-concurrent-jobs 2 \
   --allow-insecure-http > agent.out 2>&1 &
 AGENT_PID=$!
+trap stop_agent EXIT
 
 # 1) Capacity heartbeat is received (Run sends one immediately).
 COUNT=0
@@ -82,12 +84,12 @@ if [ "$FINAL" != "v2.0.0" ]; then
 fi
 echo "Binary upgraded to $FINAL"
 
-if ! grep -q "Agent binary updated" agent.out; then
+if ! grep -q "agent binary updated" agent.out; then
   echo "FAIL: upgrade log line missing"
   cat agent.out
   exit 1
 fi
-if ! grep -q "Re-executing after upgrade" agent.out; then
+if ! grep -q "re-executing after upgrade" agent.out; then
   echo "FAIL: re-exec log line missing"
   cat agent.out
   exit 1
@@ -118,5 +120,6 @@ if [ "$RESUMED" -ne 1 ]; then
 fi
 echo "Heartbeats resumed after re-exec ($BEFORE -> $AFTER)"
 
-kill "$AGENT_PID" 2>/dev/null || true
+stop_agent
+trap - EXIT
 echo "Verification agent e2e passed"

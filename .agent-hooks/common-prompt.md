@@ -9,7 +9,6 @@ Before judging, read completely:
    | Touched path | Module doc |
    |---|---|
    | `backend/**` | `backend/AGENTS.md` |
-   | `agent/**` | `backend/AGENTS.md` |
    | `frontend/**` | `frontend/AGENTS.md` |
    | `website/**` | `website/AGENTS.md` |
    | `assets/readme/**` | `assets/readme/AGENTS.md` |

@@ -46,11 +46,11 @@ run = "pnpm --dir frontend generate:api"
 # --continue-on-error and every failing module is reported.
 [tasks.lint]
 description = "Check every module without changing files"
-run = "mise run --continue-on-error backend:lint ::: agent:lint ::: frontend:lint ::: lint-shell"
+run = "mise run --continue-on-error backend:lint ::: frontend:lint ::: lint-shell"
 
 [tasks.format]
 description = "Format every module"
-depends = ["backend:format", "agent:format", "frontend:format"]
+depends = ["backend:format", "frontend:format"]
 
 [tasks.lint-shell]
 description = "Check the shell scripts with shellcheck"
@@ -112,27 +112,13 @@ go test -race -tags testhelpers -count=1 -timeout 30m $usage_packages
 
 [tasks."agent:build"]
 description = "Build the verification agent binary"
-dir = "agent/verification"
-run = 'CGO_ENABLED=0 go build -ldflags "-X main.Version=${VERSION:-}" -o databasus-verification-agent ./cmd'
+dir = "backend"
+run = 'CGO_ENABLED=0 go build -ldflags "-X main.Version=${VERSION:-dev}" -o temp/verification-agent/databasus-verification-agent ./cmd/verification-agent'
 
 [tasks."agent:test"]
 description = "Run the verification agent tests"
-dir = "agent/verification"
-run = "go test -race -count=1 -failfast ./internal/..."
-
-[tasks."agent:lint"]
-description = "Check the verification agent: formatting, linters and go.mod"
-dir = "agent/verification"
-run = [
-  "golangci-lint fmt --diff ./cmd/... ./internal/... ./e2e/...",
-  "golangci-lint run ./cmd/... ./internal/... ./e2e/...",
-  "go mod tidy -diff",
-]
-
-[tasks."agent:format"]
-description = "Format the verification agent"
-dir = "agent/verification"
-run = "golangci-lint fmt ./cmd/... ./internal/... ./e2e/..."
+dir = "backend"
+run = "go test -race -count=1 -failfast ./internal/agent/... ./cmd/verification-agent/..."
 
 [tasks."frontend:lint"]
 description = "Check the frontend: formatting, linter, types and the generated API types"

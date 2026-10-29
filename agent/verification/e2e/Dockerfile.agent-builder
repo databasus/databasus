@@ -1,13 +1,11 @@
-# Builds verification agent binaries with different versions so the upgrade
-# behaviour (v1 -> v2) can be tested. Built from ./cmd (not ./cmd/main.go)
-# because the package has platform-split files.
+# Builds two agent versions for the self-update scenarios.
 FROM golang:1.26.10-alpine AS build
 WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
-RUN CGO_ENABLED=0 go build -ldflags "-X main.Version=v1.0.0" -o /out/agent-v1 ./cmd
-RUN CGO_ENABLED=0 go build -ldflags "-X main.Version=v2.0.0" -o /out/agent-v2 ./cmd
+RUN CGO_ENABLED=0 go build -ldflags "-X main.Version=v1.0.0" -o /out/agent-v1 ./cmd/verification-agent
+RUN CGO_ENABLED=0 go build -ldflags "-X main.Version=v2.0.0" -o /out/agent-v2 ./cmd/verification-agent
 
 FROM alpine:3.21
 COPY --from=build /out/ /out/

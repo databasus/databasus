@@ -54,7 +54,7 @@ Code outside a family never switches on a database, storage or notifier type: on
 ## Long-running work
 
 - A periodic job is a function given to `background.Runner`. Never write your own ticker loop or `hasRun` guard.
-- Run external tools only through `lib/process`, so the process dies with its context. The linter rejects `os/exec` in production code outside that package.
+- Run external tools through `lib/process`, so the process dies with its context. The verification agent's daemon start is the one exception, explained in [Long-running work](../docs/architecture.md#long-running-work). The linter rejects other `os/exec` calls in production code.
 - Start goroutines only through the `lib` helpers that tie them to a context and turn a panic into an error.
 - Take the current time from the clock in `Deps`, and pass it into SQL as a parameter. All time is UTC.
 

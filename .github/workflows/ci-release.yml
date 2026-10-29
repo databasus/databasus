@@ -130,7 +130,7 @@ jobs:
       - name: Trivy Dockerfile misconfiguration scan
         run: |
           trivy config --severity HIGH,CRITICAL --exit-code 1 Dockerfile
-          trivy config --severity HIGH,CRITICAL --exit-code 1 agent/verification/images/postgres/Dockerfile
+          trivy config --severity HIGH,CRITICAL --exit-code 1 backend/cmd/verification-agent/images/postgres/Dockerfile
 
   test-frontend:
     if: github.ref != 'refs/heads/develop' && github.head_ref != 'develop'
@@ -166,10 +166,11 @@ jobs:
           cd frontend
           pnpm test
 
-  lint-verification-agent:
+  test-verification-agent:
     if: github.ref != 'refs/heads/develop' && github.head_ref != 'develop'
     runs-on: namespace-profile-4vcpu-8ram-ubuntu-26-x64
     timeout-minutes: 15
+    needs: [lint-backend]
     steps:
       - name: Check out code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
@@ -177,7 +178,7 @@ jobs:
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
-          install_args: "go golangci-lint"
+          install_args: "go"
 
       - name: Set up Go cache
         uses: namespacelabs/nscloud-cache-action@1124a6f3ce44e5cf84cc22111530961f4d2a15f9 # v1.7.0
@@ -186,57 +187,17 @@ jobs:
 
       - name: Download Go modules
         run: |
-          cd agent/verification
-          go mod download
-
-      - name: Verify Go module checksums
-        run: |
-          cd agent/verification
-          go mod verify
-
-      - name: Run the verification agent lint
-        run: mise run agent:lint
-
-      - name: Scan for reachable vulnerabilities
-        run: |
-          cd agent/verification
-          go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./...
-
-  test-verification-agent:
-    if: github.ref != 'refs/heads/develop' && github.head_ref != 'develop'
-    runs-on: namespace-profile-4vcpu-8ram-ubuntu-26-x64
-    timeout-minutes: 15
-    needs: [lint-verification-agent]
-    steps:
-      - name: Check out code
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-
-      - name: Set up Go
-        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
-        with:
-          go-version: "1.26.10"
-          cache: false
-
-      - name: Set up Go cache
-        uses: namespacelabs/nscloud-cache-action@1124a6f3ce44e5cf84cc22111530961f4d2a15f9 # v1.7.0
-        with:
-          cache: go
-
-      - name: Download Go modules
-        run: |
-          cd agent/verification
+          cd backend
           go mod download
 
       - name: Run Go tests
-        run: |
-          cd agent/verification
-          go test -race -count=1 -failfast ./internal/...
+        run: mise run agent:test
 
   e2e-verification-agent:
     if: github.ref != 'refs/heads/develop' && github.head_ref != 'develop'
     runs-on: namespace-profile-4vcpu-8ram-ubuntu-26-x64
     timeout-minutes: 30
-    needs: [lint-verification-agent]
+    needs: [lint-backend]
     steps:
       - name: Check out code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
@@ -262,7 +223,7 @@ jobs:
     # pivot_root, so rootful Podman cannot start containers there.
     runs-on: ubuntu-24.04
     timeout-minutes: 30
-    needs: [lint-verification-agent]
+    needs: [lint-backend]
     steps:
       - name: Check out code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
@@ -872,7 +833,7 @@ jobs:
     if: github.ref != 'refs/heads/develop' && github.head_ref != 'develop'
     runs-on: namespace-profile-4vcpu-8ram-ubuntu-26-x64
     timeout-minutes: 45
-    needs: [lint-backend, lint-frontend, lint-shell, lint-verification-agent, dockerfile-scan]
+    needs: [lint-backend, lint-frontend, lint-shell, dockerfile-scan]
     steps:
       - name: Check out code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
@@ -1001,7 +962,7 @@ jobs:
     if: github.ref != 'refs/heads/develop' && github.head_ref != 'develop'
     runs-on: namespace-profile-2vcpu-4ram-ubuntu-26-x64
     timeout-minutes: 45
-    needs: [lint-verification-agent, dockerfile-scan]
+    needs: [lint-backend, dockerfile-scan]
     permissions:
       contents: read
     steps:
@@ -1013,7 +974,7 @@ jobs:
       - name: Build verification image (amd64, no push)
         uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
         with:
-          context: agent/verification/images/postgres
+          context: backend/cmd/verification-agent/images/postgres
           push: false
           platforms: linux/amd64
           build-args: |
@@ -1309,7 +1270,7 @@ jobs:
         id: verification-image-push
         uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
         with:
-          context: agent/verification/images/postgres
+          context: backend/cmd/verification-agent/images/postgres
           platforms: ${{ matrix.platform }}
           build-args: |
             PG_MAJOR=${{ matrix.major }}

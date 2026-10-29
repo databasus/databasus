@@ -211,8 +211,12 @@ Before the agent changes a file under a folder that holds its own `AGENTS.md`, i
 - **THEN** it reads `backend/AGENTS.md` first
 
 #### Scenario: Codex changes the verification agent
-- **WHEN** Codex is about to change a file under `agent/verification/`
-- **THEN** it reads `agent/verification/AGENTS.md` and `backend/AGENTS.md` first
+- **WHEN** Codex, started at the repository root, is about to change a file under `backend/internal/agent/` or `backend/cmd/verification-agent/`
+- **THEN** it reads `backend/AGENTS.md` first, and no other module doc
+
+#### Scenario: Codex changes the old agent end-to-end suite
+- **WHEN** Codex is about to change a file under `agent/verification/e2e/`, which stays outside the backend module until it is rewritten
+- **THEN** it follows the root `AGENTS.md`, because no module doc lies on that path
 
 ### Requirement: Go commands of a Codex session see the test build tag
 A `go` command that the agent runs in a Codex session SHALL see the test helpers build tag without passing it, the same way it does in a Claude Code session, so a package whose cross-package test helpers sit behind that tag builds and its tests run.

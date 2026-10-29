@@ -991,7 +991,8 @@ class DiffGateTest(unittest.TestCase):
         repository.stop("diff")
 
         [call] = repository.reviewer_calls()
-        self.assertIn("| `agent/**` | `backend/AGENTS.md` |", call["prompt"])
+        self.assertNotIn("| `agent/**` |", call["prompt"])
+        self.assertIn("| `backend/**` | `backend/AGENTS.md` |", call["prompt"])
 
     def test_runs_claude_reviewer_on_opus_with_low_effort(self):
         repository = HookRepository(self)
@@ -1071,7 +1072,7 @@ class CodeShapeGateTest(unittest.TestCase):
     def test_runs_reviewer_when_turn_changes_agent_go_file(self):
         repository = HookRepository(self)
         repository.submit_prompt("Add a heartbeat field")
-        repository.write("agent/verification/internal/heartbeat/heartbeat.go", "package heartbeat\n")
+        repository.write("backend/internal/agent/heartbeat/heartbeat.go", "package heartbeat\n")
 
         repository.stop("code-shape")
 
@@ -1659,7 +1660,7 @@ class ManualReviewTest(unittest.TestCase):
         repository.write("backend/internal/features/widgets/service.go", "package widgets\n")
         repository.write("frontend/src/widgets.ts", "export {};\n")
         repository.write("website/app/widgets.tsx", "export {};\n")
-        repository.write("agent/verification/internal/widgets/widgets.go", "package widgets\n")
+        repository.write("backend/internal/agent/widgets/widgets.go", "package widgets\n")
         repository.write(".agent-hooks/sample_test.py", FAILING_HOOK_TEST)
         for name in ("golangci-lint", "pnpm", "npm", "mise"):
             repository.set_stub(name, {"exit_code": 1, "output": "must not run"})
