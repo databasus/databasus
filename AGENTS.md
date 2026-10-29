@@ -69,6 +69,8 @@ Run tests, linters and builds as ordinary foreground commands, so the user sees 
 
 Several agents may work on this repo at once, in different worktrees, sharing one Docker daemon and one test PostgreSQL server. Every test takes its own database and gives its containers unique names, as [`docs/testing.md`](docs/testing.md) describes, so runs from different worktrees do not disturb each other.
 
+- The main agent, the one the user talks to, works in the checkout or worktree its session starts in. It creates a new git worktree only when the user explicitly asks for one, and it uses a worktree the user created as it is.
+- A background agent, one the main agent starts, may create a worktree of its own when its work needs one or when the main agent asks it to. The main agent may ask for that.
 - Lint and format whenever you want: they touch nothing shared.
 - While working, run the packages and tests you need right now. Before handing the work over, run the tests of the packages you touched and of the packages that test the same feature, as [`docs/testing.md`](docs/testing.md#choosing-the-tests-to-run) says.
 - Run the full `mise run test` only when the user asks for it.
