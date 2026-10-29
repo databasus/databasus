@@ -1056,7 +1056,7 @@ export const zh: typeof en = {
       },
       capacity: {
         cpu: '{{count}} 个 CPU',
-        ram: '{{count}} GB 内存',
+        ram: '{{size}} 内存',
         disk: '{{count}} GB 磁盘',
         jobs: '任务数：{{count}}',
         notReported: '尚未上报',

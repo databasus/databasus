@@ -18,6 +18,7 @@ import (
 	"databasus-backend/internal/agent/restore"
 	"databasus-backend/internal/agent/verifier"
 	"databasus-backend/internal/engines/postgresql/logical/pgrestore"
+	"databasus-backend/internal/lib/agentclient"
 	"databasus-backend/internal/lib/background"
 )
 
@@ -112,7 +113,7 @@ func (r *Runner) Run(ctx context.Context) error {
 			continue
 		}
 
-		capacity := api.AgentCapacity{
+		capacity := agentclient.AgentCapacity{
 			MaxCPU:            r.capacity.MaxCPU,
 			MaxRAMMb:          r.capacity.MaxRAMMb,
 			MaxDiskGb:         r.capacity.MaxDiskGb,
@@ -167,7 +168,7 @@ func (r *Runner) Run(ctx context.Context) error {
 	}
 }
 
-func (r *Runner) executeJob(ctx context.Context, job *api.JobAssignment) {
+func (r *Runner) executeJob(ctx context.Context, job *agentclient.VerificationAssignment) {
 	runLogger := r.log.With(
 		slog.Any("job_id", uuid.New()),
 		slog.Any("job_name", jobName),
@@ -517,17 +518,17 @@ func (r *Runner) reportSuccess(
 	stats verifier.Stats,
 	logger *slog.Logger,
 ) {
-	tableStats := make([]api.ReportTableStat, 0, len(stats.TableStats))
+	tableStats := make([]agentclient.ReportTableStat, 0, len(stats.TableStats))
 	for _, ts := range stats.TableStats {
-		tableStats = append(tableStats, api.ReportTableStat{
+		tableStats = append(tableStats, agentclient.ReportTableStat{
 			SchemaName: ts.SchemaName,
 			Name:       ts.Name,
 			RowCount:   ts.RowCount,
 		})
 	}
 
-	req := api.ReportRequest{
-		Status:                  api.VerificationStatusCompleted,
+	req := agentclient.VerificationReport{
+		Status:                  agentclient.VerificationReportStatusCOMPLETED,
 		PgRestoreExitCode:       &restoreResult.PgRestoreExitCode,
 		RestoreDurationMs:       &restoreResult.DurationMs,
 		DBSizeBytesAfterRestore: &stats.DBSizeBytes,
@@ -551,8 +552,8 @@ func (r *Runner) reportFailure(
 	}
 
 	message := failMessage
-	req := api.ReportRequest{
-		Status:      api.VerificationStatusFailed,
+	req := agentclient.VerificationReport{
+		Status:      agentclient.VerificationReportStatusFAILED,
 		FailMessage: &message,
 	}
 
@@ -579,9 +580,9 @@ func (r *Runner) reportDiskLimitExceeded(
 	}
 
 	message := failMessage
-	kind := api.FailureKindDiskLimitExceeded
-	r.sendReport(ctx, verificationID, api.ReportRequest{
-		Status:      api.VerificationStatusFailed,
+	kind := "DISK_LIMIT_EXCEEDED"
+	r.sendReport(ctx, verificationID, agentclient.VerificationReport{
+		Status:      agentclient.VerificationReportStatusFAILED,
 		FailMessage: &message,
 		FailureKind: &kind,
 	}, logger)
@@ -606,7 +607,7 @@ func (r *Runner) shouldSkipFailedReport(
 func (r *Runner) sendReport(
 	ctx context.Context,
 	verificationID uuid.UUID,
-	req api.ReportRequest,
+	req agentclient.VerificationReport,
 	logger *slog.Logger,
 ) {
 	err := r.api.Report(ctx, verificationID, req)
@@ -626,7 +627,7 @@ func (r *Runner) sendReport(
 	}
 }
 
-func pgMajorFromDatabase(db api.AssignedDatabase) (string, error) {
+func pgMajorFromDatabase(db agentclient.AssignedDatabase) (string, error) {
 	if db.Type != "POSTGRES_LOGICAL" {
 		return "", fmt.Errorf("unsupported database type %q (v1 is Postgres only)", db.Type)
 	}

@@ -73,6 +73,7 @@ rules:
 
   # /system/version and /system/verification-agent never change, because installed agents update
   # themselves through them.
+  # These four agent paths stay compatible with agents of the previous release.
   databasus-path-plural-nouns:
     description: >-
       A path segment that names a resource is a plural noun; a segment after a parameter may be an
@@ -82,7 +83,7 @@ rules:
     then:
       function: pattern
       functionOptions:
-        match: ^(/system/version|/system/verification-agent|(/[a-z0-9-]*s(/\{[a-z][a-zA-Z0-9]*\}(/[a-z0-9-]+)?)?)+)$
+        match: ^(/system/version|/system/verification-agent|/agent/verification/\{agentId\}/heartbeat|/agent/verifications/\{agentId\}/claim|/agent/verifications/\{agentId\}/\{verificationId\}/backup-stream|/agent/verifications/\{agentId\}/\{verificationId\}/report|(/[a-z0-9-]*s(/\{[a-z][a-zA-Z0-9]*\}(/[a-z0-9-]+)?)?)+)$
 
   databasus-path-parameter-names-entity:
     description: A path parameter names its entity, such as storageId, never id

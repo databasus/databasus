@@ -7,7 +7,7 @@ import (
 )
 
 var (
-	ErrVerificationGone     = errors.New("verification gone")
+	ErrVerificationGone     = &apierror.Problem{Code: apierror.CodeVerificationGone, Detail: "verification gone"}
 	ErrVerificationNotFound = &apierror.Problem{
 		Code:   apierror.CodeNotFound,
 		Detail: "verification not found",

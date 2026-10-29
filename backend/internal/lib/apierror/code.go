@@ -4,7 +4,7 @@ import (
 	"net/http"
 )
 
-// Code mirrors the ProblemCode enum of the contract; a test keeps the two equal.
+// Code lists the ProblemCode values of the user and agent contracts.
 type Code string
 
 const (
@@ -41,6 +41,7 @@ const (
 	CodeBackupNotCompleted       Code = "backup_not_completed"
 	CodeNotRunning               Code = "not_running"
 	CodeInsufficientDiskSpace    Code = "insufficient_disk_space"
+	CodeVerificationGone         Code = "verification_gone"
 	CodeInternal                 Code = "internal"
 )
 
@@ -112,6 +113,8 @@ func describeCode(code Code) (int, string) {
 		return http.StatusConflict, "Not running"
 	case CodeInsufficientDiskSpace:
 		return http.StatusConflict, "Insufficient disk space"
+	case CodeVerificationGone:
+		return http.StatusGone, "Verification gone"
 	case CodeInternal:
 		return http.StatusInternalServerError, "Internal error"
 	}

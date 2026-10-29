@@ -101,7 +101,7 @@ func TestVerificationScheduler(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, http.StatusNoContent, deleted.StatusCode())
 		assert.Empty(t, team.App.ListVerificationAgents(t, team.Admin))
-		status, _ := agentCall(t, team.App, agent, http.MethodPost, heartbeatPath(agent.Agent.ID), heartbeatBody(nil))
+		status, _ := newProtocolAgent(t, team.App, agent).recordHeartbeat(agent.Agent.ID, heartbeatBody(nil))
 		assert.Equal(t, http.StatusUnauthorized, status)
 		team.runScheduler(t)
 		persisted := team.read(t, verification.Id)
@@ -121,14 +121,7 @@ func TestVerificationScheduler(t *testing.T) {
 				backup := team.backup(t)
 				verification := team.start(t, backup.Id)
 				agent := team.App.CreateVerificationAgent(t, team.Admin)
-				status, body := agentCall(
-					t,
-					team.App,
-					agent,
-					http.MethodPost,
-					heartbeatPath(agent.Agent.ID),
-					heartbeatBody(nil),
-				)
+				status, body := newProtocolAgent(t, team.App, agent).recordHeartbeat(agent.Agent.ID, heartbeatBody(nil))
 				require.Equal(t, http.StatusOK, status, string(body))
 				claim(t, team, agent)
 				team.App.ExecuteSQL(

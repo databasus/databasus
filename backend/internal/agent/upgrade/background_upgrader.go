@@ -13,7 +13,7 @@ import (
 const backgroundCheckInterval = 10 * time.Second
 
 type BackgroundUpgrader struct {
-	apiClient      *api.Client
+	upgrader       *Upgrader
 	currentVersion string
 	isDev          bool
 	cancel         context.CancelFunc
@@ -23,7 +23,7 @@ type BackgroundUpgrader struct {
 	done           chan struct{}
 }
 
-type Deps struct {
+type BackgroundDeps struct {
 	APIClient      *api.Client
 	CurrentVersion string
 	IsDev          bool
@@ -31,9 +31,9 @@ type Deps struct {
 	Logger         *slog.Logger
 }
 
-func NewBackgroundUpgrader(deps Deps) *BackgroundUpgrader {
+func NewBackgroundUpgrader(deps BackgroundDeps) *BackgroundUpgrader {
 	return &BackgroundUpgrader{
-		deps.APIClient,
+		New(Deps{APIClient: deps.APIClient, Logger: deps.Logger}),
 		deps.CurrentVersion,
 		deps.IsDev,
 		deps.Cancel,
@@ -78,7 +78,7 @@ func (u *BackgroundUpgrader) WaitForCompletion(timeout time.Duration) {
 }
 
 func (u *BackgroundUpgrader) checkAndUpgrade(ctx context.Context) bool {
-	isUpgraded, err := CheckAndUpdate(ctx, u.apiClient, u.currentVersion, u.isDev, u.log)
+	isUpgraded, err := u.upgrader.CheckAndUpdate(ctx, u.currentVersion, u.isDev)
 	if err != nil {
 		u.log.WarnContext(ctx, "background update check failed", slog.Any("error", err))
 

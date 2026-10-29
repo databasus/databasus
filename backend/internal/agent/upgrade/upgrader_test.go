@@ -55,12 +55,19 @@ func TestVerifyBinary(t *testing.T) {
 	t.Run("returns nil when the binary reports the requested version", func(t *testing.T) {
 		helper := buildVersionHelper(t, "v2.0.0")
 
-		require.NoError(t, verifyBinary(t.Context(), helper, "v2.0.0"))
+		require.NoError(
+			t,
+			New(
+				Deps{APIClient: nil, Logger: slog.New(slog.DiscardHandler)},
+			).verifyBinary(t.Context(), helper, "v2.0.0"),
+		)
 	})
 	t.Run("returns error when the binary reports a different version", func(t *testing.T) {
 		helper := buildVersionHelper(t, "v2.0.0")
 
-		err := verifyBinary(t.Context(), helper, "v9.9.9")
+		err := New(
+			Deps{APIClient: nil, Logger: slog.New(slog.DiscardHandler)},
+		).verifyBinary(t.Context(), helper, "v9.9.9")
 
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "version mismatch")
@@ -69,17 +76,21 @@ func TestVerifyBinary(t *testing.T) {
 		notBinary := filepath.Join(t.TempDir(), "not-a-binary")
 		require.NoError(t, os.WriteFile(notBinary, []byte("plain text"), 0o644))
 
-		require.Error(t, verifyBinary(t.Context(), notBinary, "v1.0.0"))
+		require.Error(
+			t,
+			New(
+				Deps{APIClient: nil, Logger: slog.New(slog.DiscardHandler)},
+			).verifyBinary(t.Context(), notBinary, "v1.0.0"),
+		)
 	})
 	t.Run("times out instead of blocking when the binary hangs", func(t *testing.T) {
-		original := verifyBinaryTimeout
-		verifyBinaryTimeout = 200 * time.Millisecond
-		t.Cleanup(func() { verifyBinaryTimeout = original })
+		upgrader := New(Deps{APIClient: nil, Logger: slog.New(slog.DiscardHandler)})
+		upgrader.verifyBinaryTimeout = 200 * time.Millisecond
 
 		hanging := buildHangingHelper(t)
 
 		start := time.Now()
-		err := verifyBinary(t.Context(), hanging, "v1.0.0")
+		err := upgrader.verifyBinary(t.Context(), hanging, "v1.0.0")
 		elapsed := time.Since(start)
 
 		require.Error(t, err)
@@ -101,7 +112,9 @@ func TestCheckAndUpdate(t *testing.T) {
 			api.Deps{Host: server.URL, Token: "", AgentID: "", Logger: slog.New(slog.DiscardHandler)},
 		)
 
-		upgraded, err := CheckAndUpdate(t.Context(), client, "v1.0.0", true, slog.New(slog.DiscardHandler))
+		upgraded, err := New(
+			Deps{APIClient: client, Logger: slog.New(slog.DiscardHandler)},
+		).CheckAndUpdate(t.Context(), "v1.0.0", true)
 
 		require.NoError(t, err)
 		assert.False(t, upgraded)
@@ -125,7 +138,9 @@ func TestCheckAndUpdate(t *testing.T) {
 			api.Deps{Host: server.URL, Token: "", AgentID: "", Logger: slog.New(slog.DiscardHandler)},
 		)
 
-		upgraded, err := CheckAndUpdate(t.Context(), client, "v1.0.0", false, slog.New(slog.DiscardHandler))
+		upgraded, err := New(
+			Deps{APIClient: client, Logger: slog.New(slog.DiscardHandler)},
+		).CheckAndUpdate(t.Context(), "v1.0.0", false)
 
 		require.NoError(t, err)
 		assert.False(t, upgraded)
@@ -143,7 +158,9 @@ func TestCheckAndUpdate(t *testing.T) {
 				api.Deps{Host: server.URL, Token: "", AgentID: "", Logger: slog.New(slog.DiscardHandler)},
 			)
 
-			upgraded, err := CheckAndUpdate(t.Context(), client, "v3.45.0", false, slog.New(slog.DiscardHandler))
+			upgraded, err := New(
+				Deps{APIClient: client, Logger: slog.New(slog.DiscardHandler)},
+			).CheckAndUpdate(t.Context(), "v3.45.0", false)
 
 			require.NoError(t, err)
 			assert.False(t, upgraded, "a stale /system/version must not make the agent re-exec into itself")
@@ -159,7 +176,9 @@ func TestCheckAndUpdate(t *testing.T) {
 			api.Deps{Host: server.URL, Token: "", AgentID: "", Logger: slog.New(slog.DiscardHandler)},
 		)
 
-		upgraded, err := CheckAndUpdate(t.Context(), client, "v3.44.0", false, slog.New(slog.DiscardHandler))
+		upgraded, err := New(
+			Deps{APIClient: client, Logger: slog.New(slog.DiscardHandler)},
+		).CheckAndUpdate(t.Context(), "v3.44.0", false)
 
 		require.Error(t, err)
 		assert.False(t, upgraded)
@@ -173,7 +192,9 @@ func TestCheckAndUpdate(t *testing.T) {
 			api.Deps{Host: server.URL, Token: "", AgentID: "", Logger: slog.New(slog.DiscardHandler)},
 		)
 
-		upgraded, err := CheckAndUpdate(t.Context(), client, "v1.0.0", false, slog.New(slog.DiscardHandler))
+		upgraded, err := New(
+			Deps{APIClient: client, Logger: slog.New(slog.DiscardHandler)},
+		).CheckAndUpdate(t.Context(), "v1.0.0", false)
 
 		require.Error(t, err)
 		assert.False(t, upgraded)
@@ -217,7 +238,7 @@ func TestBackgroundUpgrader(t *testing.T) {
 			api.Deps{Host: "http://127.0.0.1:0", Token: "", AgentID: "", Logger: slog.New(slog.DiscardHandler)},
 		)
 		upgrader := NewBackgroundUpgrader(
-			Deps{
+			BackgroundDeps{
 				APIClient:      client,
 				CurrentVersion: "v1.0.0",
 				IsDev:          true,
@@ -235,7 +256,7 @@ func TestBackgroundUpgrader(t *testing.T) {
 		)
 		ctx, cancel := context.WithCancel(t.Context())
 		upgrader := NewBackgroundUpgrader(
-			Deps{
+			BackgroundDeps{
 				APIClient:      client,
 				CurrentVersion: "v1.0.0",
 				IsDev:          true,

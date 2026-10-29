@@ -14,7 +14,7 @@ description: Design HTTP operations of Databasus in backend/api/openapi.yaml and
 
 1. Edit the contract.
 2. Run `mise run generate-api`.
-3. Implement the generated strict server interface in the module's `internal/httpapi`, and call the operation from the frontend through the generated types. The `system` tag is the one exception: it is not a module, and `internal/app/systemhttpapi` serves it.
+3. Implement the generated strict server interface in the module's `internal/httpapi`, and call the operation from the frontend through the generated types. A module serving `agent.yaml` implements its generated strict server in `internal/agentapi`. The `system` tag is the one exception: it is not a module, and `internal/app/systemhttpapi` serves it.
 4. Run `mise run backend:lint`. `vacuum` checks the contract against the rules below, and the lint fails when the generated code is out of date.
 
 Every operation has an `operationId` and exactly one tag. The tag is the name of the module that implements the operation. Generated files are never edited by hand.
@@ -46,7 +46,7 @@ Every operation has a `default` response with the `Problem` schema (RFC 9457) an
 | 429 | a rate limit was hit | `rate_limited` |
 | 500 | anything unexpected; the body has no internal details | `internal` |
 
-A new `code` is added to the contract's enum and to the frontend's dictionary in the same change.
+A new `code` is added to its contract's enum in the same change. A code of `openapi.yaml` is also added to the frontend's dictionary; the frontend does not receive codes exclusive to `agent.yaml`.
 
 ## Access
 

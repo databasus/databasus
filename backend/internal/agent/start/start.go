@@ -98,7 +98,13 @@ func RunDaemon(ctx context.Context, cfg *config.Config, agentVersion string, isD
 	var backgroundUpgrader *upgrade.BackgroundUpgrader
 	if agentVersion != "dev" && !isDev {
 		backgroundUpgrader = upgrade.NewBackgroundUpgrader(
-			upgrade.Deps{APIClient: apiClient, CurrentVersion: agentVersion, IsDev: isDev, Cancel: cancel, Logger: log},
+			upgrade.BackgroundDeps{
+				APIClient:      apiClient,
+				CurrentVersion: agentVersion,
+				IsDev:          isDev,
+				Cancel:         cancel,
+				Logger:         log,
+			},
 		)
 		group.Go(ctx, "agent_upgrader", func(ctx context.Context) error { backgroundUpgrader.Run(ctx); return nil })
 	}

@@ -7,12 +7,14 @@ import (
 
 	"github.com/google/uuid"
 
+	"databasus-backend/internal/lib/agentclient"
+	"databasus-backend/internal/lib/agentclienttest"
 	apiclient "databasus-backend/internal/lib/apiclient"
 )
 
 type VerificationAgent struct {
 	ID         uuid.UUID  `json:"id"`
-	MaxRAMGb   int        `json:"maxRamGb"`
+	MaxRAMMb   int        `json:"maxRamMb"`
 	LastSeenAt *time.Time `json:"lastSeenAt"`
 }
 
@@ -53,7 +55,7 @@ func (a *App) CreateVerificationAgent(tb testing.TB, admin Session) CreatedVerif
 	}
 	agent := response.JSON201.Agent
 	return CreatedVerificationAgent{
-		Agent: VerificationAgent{ID: agent.Id, MaxRAMGb: agent.MaxRamGb, LastSeenAt: agent.LastSeenAt},
+		Agent: VerificationAgent{ID: agent.Id, MaxRAMMb: agent.MaxRamMb, LastSeenAt: agent.LastSeenAt},
 		Token: response.JSON201.Token,
 	}
 }
@@ -76,7 +78,7 @@ func (a *App) ListVerificationAgents(tb testing.TB, admin Session) []Verificatio
 		for _, agent := range response.JSON200.Items {
 			agents = append(
 				agents,
-				VerificationAgent{ID: agent.Id, MaxRAMGb: agent.MaxRamGb, LastSeenAt: agent.LastSeenAt},
+				VerificationAgent{ID: agent.Id, MaxRAMMb: agent.MaxRamMb, LastSeenAt: agent.LastSeenAt},
 			)
 		}
 		after = response.JSON200.NextCursor
@@ -136,4 +138,9 @@ func (a *App) WaitForBackupRuns(tb testing.TB) {
 	if err := a.app.WaitForBackupRuns(waitCtx); err != nil {
 		tb.Fatalf("wait for backup runs: %v", err)
 	}
+}
+
+func (a *App) NewAgentClient(tb testing.TB, credentials CreatedVerificationAgent) *agentclient.ClientWithResponses {
+	tb.Helper()
+	return agentclienttest.New(tb, a.URL, credentials.Token)
 }

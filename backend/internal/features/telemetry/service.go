@@ -200,7 +200,7 @@ func (s *TelemetryService) collectVerificationAgents(ctx context.Context) ([]Ver
 	for _, agent := range listedAgents {
 		entries = append(entries, VerificationAgentEntry{
 			MaxCPU:            agent.MaxCPU,
-			MaxRAMGb:          agent.MaxRAMGb,
+			MaxRAMMb:          agent.MaxRAMMb,
 			MaxDiskGb:         agent.MaxDiskGb,
 			MaxConcurrentJobs: agent.MaxConcurrentJobs,
 		})

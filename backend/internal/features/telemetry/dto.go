@@ -31,7 +31,7 @@ type DatabaseVerificationEntry struct {
 
 type VerificationAgentEntry struct {
 	MaxCPU            int `json:"maxCpu"`
-	MaxRAMGb          int `json:"maxRamGb"`
+	MaxRAMMb          int `json:"maxRamMb"`
 	MaxDiskGb         int `json:"maxDiskGb"`
 	MaxConcurrentJobs int `json:"maxConcurrentJobs"`
 }

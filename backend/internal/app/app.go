@@ -22,8 +22,8 @@ import (
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	storages_bridge "databasus-backend/internal/features/storages"
 	system_healthcheck "databasus-backend/internal/features/system/healthcheck"
+	"databasus-backend/internal/features/telemetry"
 	users_bridge "databasus-backend/internal/features/users"
-	verification_bridge "databasus-backend/internal/features/verification"
 	workspaces_bridge "databasus-backend/internal/features/workspaces"
 	"databasus-backend/internal/lib/audit"
 	"databasus-backend/internal/lib/background"
@@ -261,20 +261,22 @@ func New(ctx context.Context, environment *Environment) (*App, error) {
 	backups_bridge.Install(backupsModule)
 	verificationModule := verification.New(
 		verification.Deps{
-			DB:         db,
-			Transactor: transactor,
-			Logger:     appLogger,
-			Clock:      environment.Clock,
-			AuditLog:   auditLog,
-			Users:      usersModule,
-			Workspaces: workspacesModule,
-			Databases:  databasesModule,
-			Backups:    backupsModule,
-			Notifiers:  notifiersModule,
+			DB:          db,
+			Transactor:  transactor,
+			Logger:      appLogger,
+			Clock:       environment.Clock,
+			AuditLog:    auditLog,
+			Users:       usersModule,
+			Workspaces:  workspacesModule,
+			Databases:   databasesModule,
+			Backups:     backupsModule,
+			Notifiers:   notifiersModule,
+			RateLimiter: rateLimiter,
 		},
 	)
 
-	verification_bridge.Install(verificationModule)
+	telemetry.InstallVerificationModule(verificationModule)
+	system_healthcheck.InstallVerificationModule(verificationModule)
 
 	clientToolsChecker := newClientToolsChecker(environment.ClientToolsDir)
 	system_healthcheck.InstallClientToolsChecker(clientToolsChecker)

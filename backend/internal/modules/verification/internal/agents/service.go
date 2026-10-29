@@ -5,6 +5,8 @@ import (
 	"crypto/sha256"
 	"crypto/subtle"
 	"fmt"
+	"log/slog"
+	"math"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -15,6 +17,8 @@ import (
 	"databasus-backend/internal/lib/audit"
 	"databasus-backend/internal/lib/clock"
 	"databasus-backend/internal/lib/database"
+	"databasus-backend/internal/lib/httpserver"
+	"databasus-backend/internal/lib/ratelimit"
 	"databasus-backend/internal/modules/users"
 )
 
@@ -24,22 +28,28 @@ type Deps struct {
 	Clock        clock.Source
 	AuditLog     *audit.Log
 	Users        users.Module
+	RateLimiter  ratelimit.Counter
+	Logger       *slog.Logger
 }
 type Service struct {
-	repository *agentRepository
-	transactor *database.Transactor
-	clock      clock.Source
-	auditLog   *audit.Log
-	users      users.Module
+	repository  *agentRepository
+	transactor  *database.Transactor
+	clock       clock.Source
+	auditLog    *audit.Log
+	users       users.Module
+	rateLimiter ratelimit.Counter
+	logger      *slog.Logger
 }
 
 func NewService(deps Deps) *Service {
 	return &Service{
-		repository: deps.Repositories.agents,
-		transactor: deps.Transactor,
-		clock:      deps.Clock,
-		auditLog:   deps.AuditLog,
-		users:      deps.Users,
+		repository:  deps.Repositories.agents,
+		transactor:  deps.Transactor,
+		clock:       deps.Clock,
+		auditLog:    deps.AuditLog,
+		users:       deps.Users,
+		rateLimiter: deps.RateLimiter,
+		logger:      deps.Logger,
 	}
 }
 
@@ -68,7 +78,7 @@ func (s *Service) CreateAgent(ctx context.Context, actor users.Actor, name strin
 		Name:              name,
 		TokenHash:         hashAgentToken(token),
 		MaxCPU:            0,
-		MaxRAMGb:          0,
+		MaxRAMMb:          0,
 		MaxDiskGb:         0,
 		MaxConcurrentJobs: 0,
 		LastSeenAt:        nil,
@@ -145,26 +155,66 @@ func (s *Service) DeleteAgent(ctx context.Context, actor users.Actor, id uuid.UU
 	})
 }
 
-func (s *Service) AuthenticateAgent(ctx context.Context, id uuid.UUID, token string) (Agent, error) {
+type AgentCredentials struct {
+	AgentID string
+	Token   string
+}
+
+func (s *Service) AuthenticateAgent(ctx context.Context, credentials AgentCredentials) (Agent, error) {
+	id, err := uuid.Parse(credentials.AgentID)
+	if err != nil {
+		return Agent{}, s.refuseAgent(ctx, "invalid_uuid")
+	}
+	isAllowed, err := s.rateLimiter.RecordAttemptAndCheckIsAllowed(ctx, ratelimit.Attempt{
+		Scope: "verification-agent-id", Identifier: id.String(), Limit: 10, Window: time.Second,
+	})
+	if err != nil {
+		return Agent{}, fmt.Errorf("check agent rate limit: %w", err)
+	}
+	if !isAllowed {
+		s.logger.WarnContext(
+			ctx,
+			"verification agent auth failure",
+			slog.String("reason", "rate_limited"),
+			slog.String("client_ip", httpserver.GetClientIP(ctx)),
+		)
+		return Agent{}, &apierror.Problem{Code: apierror.CodeRateLimited, Detail: "too many requests"}
+	}
+	if credentials.Token == "" {
+		return Agent{}, s.refuseAgent(ctx, "missing_token")
+	}
 	agent, isFound, err := s.repository.get(ctx, id)
 	if err != nil {
-		return Agent{}, err
+		return Agent{}, fmt.Errorf("authenticate agent: %w", err)
 	}
-	if token == "" || !isFound || agent.IsDeleted() ||
-		subtle.ConstantTimeCompare([]byte(agent.TokenHash), []byte(hashAgentToken(token))) != 1 {
-		return Agent{}, ErrInvalidAgentToken
+	if !isFound || agent.IsDeleted() ||
+		subtle.ConstantTimeCompare([]byte(agent.TokenHash), []byte(hashAgentToken(credentials.Token))) != 1 {
+		return Agent{}, s.refuseAgent(ctx, "invalid_credentials")
 	}
 	return agent, nil
 }
 
 func (s *Service) RecordHeartbeat(ctx context.Context, id uuid.UUID, capacity AgentCapacity) (time.Time, error) {
+	if capacity.MaxCPU < 0 || capacity.MaxDiskGb < 0 || capacity.MaxConcurrentJobs < 0 ||
+		(capacity.MaxRAMMb != nil && *capacity.MaxRAMMb < 0) ||
+		(capacity.LegacyMaxRAMGigabytes != nil && (*capacity.LegacyMaxRAMGigabytes < 0 || *capacity.LegacyMaxRAMGigabytes > math.MaxInt/1024)) {
+		return time.Time{}, apierror.NewInvalidFieldsProblem(
+			[]apierror.FieldError{{Field: "capacity", Detail: "must be nonnegative and fit in megabytes"}},
+		)
+	}
+	maxRAMMb := 0
+	if capacity.MaxRAMMb != nil {
+		maxRAMMb = *capacity.MaxRAMMb
+	} else if capacity.LegacyMaxRAMGigabytes != nil {
+		maxRAMMb = *capacity.LegacyMaxRAMGigabytes * 1024
+	}
 	now := s.clock.Now()
 	isUpdated, err := s.repository.update(
 		ctx,
 		id,
 		map[string]any{
 			"max_cpu":             capacity.MaxCPU,
-			"max_ram_gb":          capacity.MaxRAMGb,
+			"max_ram_mb":          maxRAMMb,
 			"max_disk_gb":         capacity.MaxDiskGb,
 			"max_concurrent_jobs": capacity.MaxConcurrentJobs,
 			"last_seen_at":        now,
@@ -174,7 +224,7 @@ func (s *Service) RecordHeartbeat(ctx context.Context, id uuid.UUID, capacity Ag
 		return time.Time{}, err
 	}
 	if !isUpdated {
-		return time.Time{}, ErrAgentNotFound
+		return time.Time{}, ErrInvalidAgentToken
 	}
 	return now, nil
 }
@@ -222,4 +272,14 @@ func newPlainToken() string { return strings.ReplaceAll(uuid.NewString(), "-", "
 func hashAgentToken(token string) string {
 	hash := sha256.Sum256([]byte(token))
 	return fmt.Sprintf("%x", hash)
+}
+
+func (s *Service) refuseAgent(ctx context.Context, reason string) error {
+	s.logger.WarnContext(
+		ctx,
+		"verification agent auth failure",
+		slog.String("reason", reason),
+		slog.String("client_ip", httpserver.GetClientIP(ctx)),
+	)
+	return ErrInvalidAgentToken
 }

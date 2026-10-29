@@ -23,21 +23,24 @@ import (
 	"databasus-backend/internal/agent/heartbeat"
 	"databasus-backend/internal/agent/restore"
 	"databasus-backend/internal/agent/verifier"
+	"databasus-backend/internal/lib/agentclient"
 	"databasus-backend/internal/lib/testwait"
 )
 
 type concurrentRestoreBackend struct {
-	claims   []*api.JobAssignment
+	claims   []*agentclient.VerificationAssignment
 	claimIdx atomic.Int32
 
 	mu      sync.Mutex
-	reports map[uuid.UUID]api.VerificationStatus
+	reports map[uuid.UUID]agentclient.VerificationReportStatus
 }
 
-func newConcurrentRestoreBackend(claims []*api.JobAssignment) (*concurrentRestoreBackend, *httptest.Server) {
+func newConcurrentRestoreBackend(
+	claims []*agentclient.VerificationAssignment,
+) (*concurrentRestoreBackend, *httptest.Server) {
 	backend := &concurrentRestoreBackend{
 		claims:  claims,
-		reports: make(map[uuid.UUID]api.VerificationStatus),
+		reports: make(map[uuid.UUID]agentclient.VerificationReportStatus),
 	}
 
 	mux := http.NewServeMux()
@@ -74,7 +77,7 @@ func newConcurrentRestoreBackend(claims []*api.JobAssignment) (*concurrentRestor
 			}
 
 			var body struct {
-				Status api.VerificationStatus `json:"status"`
+				Status agentclient.VerificationReportStatus `json:"status"`
 			}
 			_ = json.NewDecoder(req.Body).Decode(&body)
 
@@ -100,11 +103,11 @@ func newConcurrentRestoreBackend(claims []*api.JobAssignment) (*concurrentRestor
 	return backend, httptest.NewServer(mux)
 }
 
-func (b *concurrentRestoreBackend) reportsSnapshot() map[uuid.UUID]api.VerificationStatus {
+func (b *concurrentRestoreBackend) reportsSnapshot() map[uuid.UUID]agentclient.VerificationReportStatus {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
-	out := make(map[uuid.UUID]api.VerificationStatus, len(b.reports))
+	out := make(map[uuid.UUID]agentclient.VerificationReportStatus, len(b.reports))
 	maps.Copy(out, b.reports)
 
 	return out
@@ -202,15 +205,15 @@ func (r *barrierRestorer) EnsureArchiveOwnerRoles(
 func (r *barrierRestorer) RunTimescalePreRestore(context.Context, dbconn.Conn) error  { return nil }
 func (r *barrierRestorer) RunTimescalePostRestore(context.Context, dbconn.Conn) error { return nil }
 
-func makeConcurrentAssignment(id uuid.UUID) *api.JobAssignment {
-	return &api.JobAssignment{
+func makeConcurrentAssignment(id uuid.UUID) *agentclient.VerificationAssignment {
+	return &agentclient.VerificationAssignment{
 		VerificationID:     id,
 		BackupID:           uuid.New(),
 		BackupSizeMb:       1,
 		MaxContainerDiskMb: 0,
-		Database: api.AssignedDatabase{
+		Database: agentclient.AssignedDatabase{
 			Type:              "POSTGRES_LOGICAL",
-			PostgresqlLogical: &api.AssignedPostgresql{Version: "16"},
+			PostgresqlLogical: &agentclient.AssignedPostgresql{Version: "16"},
 		},
 	}
 }
@@ -218,7 +221,7 @@ func makeConcurrentAssignment(id uuid.UUID) *api.JobAssignment {
 func TestRunConcurrentRestores(t *testing.T) {
 	t.Run("each gets isolated container and both complete when two verifications are claimed", func(t *testing.T) {
 		id1, id2 := uuid.New(), uuid.New()
-		claims := []*api.JobAssignment{
+		claims := []*agentclient.VerificationAssignment{
 			makeConcurrentAssignment(id1),
 			makeConcurrentAssignment(id2),
 		}
@@ -258,7 +261,8 @@ func TestRunConcurrentRestores(t *testing.T) {
 
 		testwait.Until(t, "both verifications complete", func(context.Context) error {
 			snapshot := backend.reportsSnapshot()
-			if snapshot[id1] != api.VerificationStatusCompleted || snapshot[id2] != api.VerificationStatusCompleted {
+			if snapshot[id1] != agentclient.VerificationReportStatusCOMPLETED ||
+				snapshot[id2] != agentclient.VerificationReportStatusCOMPLETED {
 				return fmt.Errorf("verification reports: %v", snapshot)
 			}
 			return nil
@@ -283,7 +287,7 @@ func TestRunConcurrentRestores(t *testing.T) {
 		}
 
 		reports := backend.reportsSnapshot()
-		assert.Equal(t, api.VerificationStatusCompleted, reports[id1])
-		assert.Equal(t, api.VerificationStatusCompleted, reports[id2])
+		assert.Equal(t, agentclient.VerificationReportStatusCOMPLETED, reports[id1])
+		assert.Equal(t, agentclient.VerificationReportStatusCOMPLETED, reports[id2])
 	})
 }

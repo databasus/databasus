@@ -659,7 +659,7 @@ func Test_BuildAndSend_WhenAgentsRegistered_IncludesCapacityRows(t *testing.T) {
 			ID:                uuid.New(),
 			Name:              "agent-1",
 			MaxCPU:            4,
-			MaxRAMGb:          16,
+			MaxRAMMb:          16,
 			MaxDiskGb:         100,
 			MaxConcurrentJobs: 2,
 		},
@@ -667,7 +667,7 @@ func Test_BuildAndSend_WhenAgentsRegistered_IncludesCapacityRows(t *testing.T) {
 			ID:                uuid.New(),
 			Name:              "agent-2",
 			MaxCPU:            8,
-			MaxRAMGb:          32,
+			MaxRAMMb:          32,
 			MaxDiskGb:         200,
 			MaxConcurrentJobs: 4,
 		},
@@ -683,8 +683,8 @@ func Test_BuildAndSend_WhenAgentsRegistered_IncludesCapacityRows(t *testing.T) {
 	require.Len(t, sender.calls, 1)
 
 	assert.Equal(t, []VerificationAgentEntry{
-		{MaxCPU: 4, MaxRAMGb: 16, MaxDiskGb: 100, MaxConcurrentJobs: 2},
-		{MaxCPU: 8, MaxRAMGb: 32, MaxDiskGb: 200, MaxConcurrentJobs: 4},
+		{MaxCPU: 4, MaxRAMMb: 16, MaxDiskGb: 100, MaxConcurrentJobs: 2},
+		{MaxCPU: 8, MaxRAMMb: 32, MaxDiskGb: 200, MaxConcurrentJobs: 4},
 	}, sender.calls[0].VerificationAgents)
 }
 
@@ -968,7 +968,7 @@ func Test_BuildAndSend_WhenPayloadSerialized_ContainsDocumentedContractKeys(t *t
 		},
 		verificationAgentLister: &fakeVerificationAgentLister{
 			agents: []verification.Agent{
-				{MaxCPU: 4, MaxRAMGb: 8, MaxDiskGb: 100, MaxConcurrentJobs: 2},
+				{MaxCPU: 4, MaxRAMMb: 8, MaxDiskGb: 100, MaxConcurrentJobs: 2},
 			},
 		},
 		userCounter: &fakeUserCounter{count: 3},

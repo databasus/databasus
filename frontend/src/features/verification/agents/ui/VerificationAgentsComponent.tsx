@@ -23,6 +23,7 @@ import {
   useLocale,
 } from '../../../../shared/i18n';
 import { ClipboardHelper } from '../../../../shared/lib/ClipboardHelper';
+import { formatBytes } from '../../../../shared/lib/formatBytes';
 import { InlineCodeComponent } from '../../../../shared/ui';
 import {
   type AgentArchitecture,
@@ -36,14 +37,20 @@ const LIST_REFRESH_MS = 15_000;
 // eslint-disable-next-line i18next/no-literal-string -- Tailwind classes
 const MUTED_TEXT_CLASS = 'text-gray-400 dark:text-gray-500';
 
-const getCapacityParts = (agent: VerificationAgent): LocalizedText[] => {
+const getCapacityParts = (
+  agent: VerificationAgent,
+  formatNumber: ReturnType<typeof useLocale>['formatNumber'],
+): LocalizedText[] => {
   const parts: LocalizedText[] = [];
 
   if (agent.maxCpu > 0) {
     parts.push({ key: 'verification.agents.capacity.cpu', params: { count: agent.maxCpu } });
   }
-  if (agent.maxRamGb > 0) {
-    parts.push({ key: 'verification.agents.capacity.ram', params: { count: agent.maxRamGb } });
+  if (agent.maxRamMb > 0) {
+    parts.push({
+      key: 'verification.agents.capacity.ram',
+      params: { size: formatBytes(agent.maxRamMb * 1024 * 1024, formatNumber) },
+    });
   }
   if (agent.maxDiskGb > 0) {
     parts.push({ key: 'verification.agents.capacity.disk', params: { count: agent.maxDiskGb } });
@@ -60,7 +67,7 @@ const getCapacityParts = (agent: VerificationAgent): LocalizedText[] => {
 
 export const VerificationAgentsComponent = () => {
   const { t } = useTranslation();
-  const { locale, formatRelativeTime } = useLocale();
+  const { locale, formatRelativeTime, formatNumber } = useLocale();
   const { message } = App.useApp();
 
   const [agents, setAgents] = useState<VerificationAgent[]>([]);
@@ -329,7 +336,7 @@ export const VerificationAgentsComponent = () => {
       title: t('verification.agents.columns.capacity'),
       key: 'capacity',
       render: (_, record) => {
-        const capacityParts = getCapacityParts(record);
+        const capacityParts = getCapacityParts(record, formatNumber);
         return capacityParts.length > 0 ? (
           <span className="text-xs text-gray-700 dark:text-gray-300">
             {capacityParts.map((part) => translateLocalizedText(part, t)).join(' · ')}

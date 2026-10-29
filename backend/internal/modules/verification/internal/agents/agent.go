@@ -12,7 +12,7 @@ type Agent struct {
 	TokenHash string    `gorm:"column:token_hash"`
 
 	MaxCPU            int `gorm:"column:max_cpu"`
-	MaxRAMGb          int `gorm:"column:max_ram_gb"`
+	MaxRAMMb          int `gorm:"column:max_ram_mb"`
 	MaxDiskGb         int `gorm:"column:max_disk_gb"`
 	MaxConcurrentJobs int `gorm:"column:max_concurrent_jobs"`
 
@@ -30,8 +30,9 @@ func (a *Agent) IsDeleted() bool {
 }
 
 type AgentCapacity struct {
-	MaxCPU            int
-	MaxRAMGb          int
-	MaxDiskGb         int
-	MaxConcurrentJobs int
+	MaxCPU                int
+	MaxRAMMb              *int
+	LegacyMaxRAMGigabytes *int
+	MaxDiskGb             int
+	MaxConcurrentJobs     int
 }

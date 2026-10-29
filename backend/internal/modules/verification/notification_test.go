@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"databasus-backend/internal/app/apptest"
+	"databasus-backend/internal/lib/agentclient"
 	apiclient "databasus-backend/internal/lib/apiclient"
 )
 
@@ -59,17 +60,17 @@ func recordNotifications(t *testing.T, team verificationTeam) <-chan string {
 func TestVerificationNotifications(t *testing.T) {
 	for _, scenario := range []struct {
 		name      string
-		report    map[string]any
+		report    agentclient.VerificationReport
 		isSuccess bool
 		isEnabled bool
 		attempts  int
 	}{
-		{name: "sends success after a completed report commits", report: map[string]any{"status": "COMPLETED"}, isSuccess: true, isEnabled: true, attempts: 1},
-		{name: "sends failure when the restored database is too small", report: map[string]any{"status": "COMPLETED", "dbSizeBytesAfterRestore": 1}, isSuccess: false, isEnabled: true, attempts: 1},
-		{name: "sends failure after the backup is rejected", report: map[string]any{"status": "FAILED", "pgRestoreExitCode": 1, "failMessage": "archive corrupt"}, isSuccess: false, isEnabled: true, attempts: 1},
-		{name: "sends failure at the last agent attempt", report: map[string]any{"status": "FAILED", "failMessage": "container unavailable"}, isSuccess: false, isEnabled: true, attempts: 3},
-		{name: "sends no failure before the last agent attempt", report: map[string]any{"status": "FAILED"}, isSuccess: false, isEnabled: true, attempts: 1},
-		{name: "sends no failure when notifications are disabled", report: map[string]any{"status": "FAILED", "pgRestoreExitCode": 1}, isSuccess: false, isEnabled: false, attempts: 1},
+		{name: "sends success after a completed report commits", report: agentclient.VerificationReport{Status: "COMPLETED"}, isSuccess: true, isEnabled: true, attempts: 1},
+		{name: "sends failure when the restored database is too small", report: agentclient.VerificationReport{Status: "COMPLETED", DBSizeBytesAfterRestore: new(int64(1))}, isSuccess: false, isEnabled: true, attempts: 1},
+		{name: "sends failure after the backup is rejected", report: agentclient.VerificationReport{Status: "FAILED", PgRestoreExitCode: new(1), FailMessage: new("archive corrupt")}, isSuccess: false, isEnabled: true, attempts: 1},
+		{name: "sends failure at the last agent attempt", report: agentclient.VerificationReport{Status: "FAILED", FailMessage: new("container unavailable")}, isSuccess: false, isEnabled: true, attempts: 3},
+		{name: "sends no failure before the last agent attempt", report: agentclient.VerificationReport{Status: "FAILED"}, isSuccess: false, isEnabled: true, attempts: 1},
+		{name: "sends no failure when notifications are disabled", report: agentclient.VerificationReport{Status: "FAILED", PgRestoreExitCode: new(1)}, isSuccess: false, isEnabled: false, attempts: 1},
 	} {
 		t.Run(scenario.name, func(t *testing.T) {
 			team := newVerificationTeam(t)
@@ -96,14 +97,7 @@ func TestVerificationNotifications(t *testing.T) {
 				scenario.attempts,
 				verification.Id,
 			)
-			status, body := agentCall(
-				t,
-				team.App,
-				agent,
-				http.MethodPost,
-				reportPath(agent.Agent.ID, verification.Id),
-				scenario.report,
-			)
+			status, body := newProtocolAgent(t, team.App, agent).reportVerification(verification.Id, scenario.report)
 			require.Equal(t, http.StatusNoContent, status, string(body))
 			team.App.WaitForNotificationDeliveries(t)
 			persisted := team.read(t, verification.Id)
@@ -134,14 +128,7 @@ func TestVerificationSilentAgentNotification(t *testing.T) {
 		verification := team.start(t, backup.Id)
 		agent := team.App.CreateVerificationAgent(t, team.Admin)
 		for attempt := 1; attempt <= 3; attempt++ {
-			status, body := agentCall(
-				t,
-				team.App,
-				agent,
-				http.MethodPost,
-				heartbeatPath(agent.Agent.ID),
-				heartbeatBody(nil),
-			)
+			status, body := newProtocolAgent(t, team.App, agent).recordHeartbeat(agent.Agent.ID, heartbeatBody(nil))
 			require.Equal(t, http.StatusOK, status, string(body))
 			claim(t, team, agent)
 			team.App.Clock.Advance(6 * time.Minute)

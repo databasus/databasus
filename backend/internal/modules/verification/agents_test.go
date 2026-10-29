@@ -112,7 +112,7 @@ func TestVerificationAgents(t *testing.T) {
 			apiclient.ProblemCodePermissionDenied,
 		)
 		assert.Len(t, app.ListVerificationAgents(t, admin), 1)
-		status, body := agentCall(t, app, agent, http.MethodPost, heartbeatPath(agent.Agent.ID), heartbeatBody(nil))
+		status, body := newProtocolAgent(t, app, agent).recordHeartbeat(agent.Agent.ID, heartbeatBody(nil))
 		require.Equal(t, http.StatusOK, status, string(body))
 	})
 	t.Run("returns unauthenticated when creating or listing without a session", func(t *testing.T) {

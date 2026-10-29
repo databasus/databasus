@@ -14,10 +14,20 @@ import (
 	"databasus-backend/internal/lib/process"
 )
 
-// verifyBinaryTimeout bounds the freshly-downloaded binary's `version` probe so
-// a corrupt or wrong-arch binary that hangs cannot wedge startup or the
-// background-upgrade goroutine. A var so tests can shrink it.
-var verifyBinaryTimeout = 30 * time.Second
+type Upgrader struct {
+	apiClient           *api.Client
+	log                 *slog.Logger
+	verifyBinaryTimeout time.Duration
+}
+
+type Deps struct {
+	APIClient *api.Client
+	Logger    *slog.Logger
+}
+
+func New(deps Deps) *Upgrader {
+	return &Upgrader{apiClient: deps.APIClient, log: deps.Logger, verifyBinaryTimeout: 30 * time.Second}
+}
 
 // binaryDownloadTimeout bounds the agent self-download. The streaming HTTP
 // client has no client-level timeout (it is shared with the long-lived backup
@@ -27,22 +37,16 @@ const binaryDownloadTimeout = 10 * time.Minute
 // CheckAndUpdate checks if a new version is available and upgrades the binary on disk.
 // Returns (true, nil) if the binary was upgraded, (false, nil) if already up to date,
 // or (false, err) on failure. Callers are responsible for re-exec or restart signaling.
-func CheckAndUpdate(
-	ctx context.Context,
-	apiClient *api.Client,
-	currentVersion string,
-	isDev bool,
-	log *slog.Logger,
-) (bool, error) {
+func (u *Upgrader) CheckAndUpdate(ctx context.Context, currentVersion string, isDev bool) (bool, error) {
 	if isDev {
-		log.InfoContext(ctx, "skipping update check (development mode)")
+		u.log.InfoContext(ctx, "skipping update check (development mode)")
 
 		return false, nil
 	}
 
-	serverVersion, err := apiClient.FetchServerVersion(ctx)
+	serverVersion, err := u.apiClient.FetchServerVersion(ctx)
 	if err != nil {
-		log.WarnContext(ctx, "could not reach server for update check", slog.Any("error", err))
+		u.log.WarnContext(ctx, "could not reach server for update check", slog.Any("error", err))
 
 		return false, fmt.Errorf(
 			"unable to check version, please verify Databasus server is available: %w",
@@ -51,12 +55,12 @@ func CheckAndUpdate(
 	}
 
 	if serverVersion == currentVersion {
-		log.InfoContext(ctx, "agent version is up to date", slog.Any("version", currentVersion))
+		u.log.InfoContext(ctx, "agent version is up to date", slog.Any("version", currentVersion))
 
 		return false, nil
 	}
 
-	log.InfoContext(ctx, "updating agent...", slog.Any("current", currentVersion), slog.Any("target", serverVersion))
+	u.log.InfoContext(ctx, "updating agent...", slog.Any("current", currentVersion), slog.Any("target", serverVersion))
 
 	selfPath, err := os.Executable()
 	if err != nil {
@@ -72,7 +76,7 @@ func CheckAndUpdate(
 	downloadCtx, cancelDownload := context.WithTimeout(ctx, binaryDownloadTimeout)
 	defer cancelDownload()
 
-	downloadedVersion, err := apiClient.DownloadVerificationAgentBinary(
+	downloadedVersion, err := u.apiClient.DownloadVerificationAgentBinary(
 		downloadCtx, runtime.GOARCH, tempPath, serverVersion,
 	)
 	if err != nil {
@@ -83,12 +87,12 @@ func CheckAndUpdate(
 		return false, fmt.Errorf("failed to set permissions on update: %w", err)
 	}
 
-	if err := verifyBinary(ctx, tempPath, downloadedVersion); err != nil {
+	if err := u.verifyBinary(ctx, tempPath, downloadedVersion); err != nil {
 		return false, fmt.Errorf("update verification failed: %w", err)
 	}
 
 	if downloadedVersion == currentVersion {
-		log.InfoContext(ctx, "agent version is up to date", slog.Any("version", currentVersion))
+		u.log.InfoContext(ctx, "agent version is up to date", slog.Any("version", currentVersion))
 		return false, nil
 	}
 
@@ -96,13 +100,13 @@ func CheckAndUpdate(
 		return false, fmt.Errorf("failed to replace binary (try --skip-update if this persists): %w", err)
 	}
 
-	log.InfoContext(ctx, "agent binary updated", slog.Any("version", downloadedVersion))
+	u.log.InfoContext(ctx, "agent binary updated", slog.Any("version", downloadedVersion))
 
 	return true, nil
 }
 
-func verifyBinary(ctx context.Context, binaryPath, expectedVersion string) error {
-	ctx, cancel := context.WithTimeout(ctx, verifyBinaryTimeout)
+func (u *Upgrader) verifyBinary(ctx context.Context, binaryPath, expectedVersion string) error {
+	ctx, cancel := context.WithTimeout(ctx, u.verifyBinaryTimeout)
 	defer cancel()
 
 	var output bytes.Buffer

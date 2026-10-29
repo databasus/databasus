@@ -12,6 +12,7 @@ import (
 
 	"databasus-backend/internal/agent/api"
 	"databasus-backend/internal/agent/config"
+	"databasus-backend/internal/lib/agentclient"
 )
 
 const (
@@ -113,9 +114,9 @@ func (h *Heartbeater) IsAborted(id uuid.UUID) bool {
 }
 
 func (h *Heartbeater) sendHeartbeat(ctx context.Context, logger *slog.Logger) {
-	request := api.HeartbeatRequest{
+	request := agentclient.HeartbeatRequest{
 		MaxCPU:                 h.capacity.MaxCPU,
-		MaxRAMGb:               h.capacity.MaxRAMMb / 1024,
+		MaxRAMMb:               &h.capacity.MaxRAMMb,
 		MaxDiskGb:              h.capacity.MaxDiskGb,
 		MaxConcurrentJobs:      h.capacity.MaxConcurrentJobs,
 		CurrentVerificationIDs: h.GetRunningVerificationIDs(),

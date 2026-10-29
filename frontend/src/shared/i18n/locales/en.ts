@@ -1101,7 +1101,7 @@ export const en = {
       },
       capacity: {
         cpu: '{{count}} CPU',
-        ram: '{{count}} GB RAM',
+        ram: '{{size}} RAM',
         disk: '{{count}} GB disk',
         jobs: 'jobs: {{count}}',
         notReported: 'not yet reported',

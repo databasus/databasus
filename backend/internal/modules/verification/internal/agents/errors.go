@@ -10,7 +10,7 @@ var (
 	}
 	ErrInvalidAgentToken = &apierror.Problem{
 		Code:   apierror.CodeUnauthenticated,
-		Detail: "invalid agent token",
+		Detail: "invalid agent credentials",
 		Errors: nil,
 	}
 )

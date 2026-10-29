@@ -1107,7 +1107,7 @@ export const ru: typeof en = {
       },
       capacity: {
         cpu: '{{count}} CPU',
-        ram: '{{count}} GB RAM',
+        ram: '{{size}} RAM',
         disk: 'диск {{count}} GB',
         jobs: 'задач: {{count}}',
         notReported: 'данных пока нет',

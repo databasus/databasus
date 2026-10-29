@@ -3,6 +3,7 @@ package verifications
 import (
 	"context"
 	"log/slog"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -71,4 +72,27 @@ func (s *Service) reclaimDroppedRunningJobs(
 			logger.ErrorContext(ctx, "failed to reclaim dropped verification", slog.Any("error", err))
 		}
 	}
+}
+
+type Heartbeat struct {
+	Capacity               agents.AgentCapacity
+	CurrentVerificationIDs []uuid.UUID
+}
+
+type RecordedHeartbeat struct {
+	LastSeenAt           time.Time
+	AbortVerificationIDs []uuid.UUID
+}
+
+func (s *Service) RecordHeartbeat(
+	ctx context.Context,
+	agent *agents.Agent,
+	heartbeat Heartbeat,
+) (RecordedHeartbeat, error) {
+	seenAt, err := s.agents.RecordHeartbeat(ctx, agent.ID, heartbeat.Capacity)
+	if err != nil {
+		return RecordedHeartbeat{}, err
+	}
+	abortIDs, err := s.OnAgentHeartbeated(ctx, agent, heartbeat.CurrentVerificationIDs)
+	return RecordedHeartbeat{LastSeenAt: seenAt, AbortVerificationIDs: abortIDs}, err
 }

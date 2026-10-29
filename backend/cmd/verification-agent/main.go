@@ -182,7 +182,8 @@ func runUpdateCheck(host string, isSkipUpdate, isDev bool, log *slog.Logger) err
 
 	apiClient := api.NewClient(api.Deps{Host: host, Token: "", AgentID: "", Logger: log})
 
-	isUpgraded, err := upgrade.CheckAndUpdate(context.Background(), apiClient, Version, isDev, log)
+	isUpgraded, err := upgrade.New(upgrade.Deps{APIClient: apiClient, Logger: log}).
+		CheckAndUpdate(context.Background(), Version, isDev)
 	if err != nil {
 		log.ErrorContext(context.Background(), "auto-update failed", slog.Any("error", err))
 		return err

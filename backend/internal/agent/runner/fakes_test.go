@@ -9,16 +9,16 @@ import (
 
 	"github.com/google/uuid"
 
-	"databasus-backend/internal/agent/api"
 	"databasus-backend/internal/agent/dbconn"
 	"databasus-backend/internal/agent/restore"
 	"databasus-backend/internal/agent/verifier"
+	"databasus-backend/internal/lib/agentclient"
 )
 
 type fakeAPI struct {
 	mu sync.Mutex
 
-	claims    []*api.JobAssignment
+	claims    []*agentclient.VerificationAssignment
 	claimErrs []error
 	claimIdx  int
 
@@ -26,14 +26,14 @@ type fakeAPI struct {
 	downloadErr  error
 
 	reportErr    error
-	reportedReqs []api.ReportRequest
+	reportedReqs []agentclient.VerificationReport
 	reportedIDs  []uuid.UUID
 	reportCalled int
 }
 
 func (f *fakeAPI) ClaimVerification(
-	_ context.Context, _ api.AgentCapacity,
-) (*api.JobAssignment, error) {
+	_ context.Context, _ agentclient.AgentCapacity,
+) (*agentclient.VerificationAssignment, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
@@ -62,7 +62,7 @@ func (f *fakeAPI) DownloadBackup(
 }
 
 func (f *fakeAPI) Report(
-	_ context.Context, verificationID uuid.UUID, req api.ReportRequest,
+	_ context.Context, verificationID uuid.UUID, req agentclient.VerificationReport,
 ) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
@@ -74,12 +74,12 @@ func (f *fakeAPI) Report(
 	return f.reportErr
 }
 
-func (f *fakeAPI) lastReport() (api.ReportRequest, bool) {
+func (f *fakeAPI) lastReport() (agentclient.VerificationReport, bool) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
 	if len(f.reportedReqs) == 0 {
-		return api.ReportRequest{}, false
+		return agentclient.VerificationReport{}, false
 	}
 
 	return f.reportedReqs[len(f.reportedReqs)-1], true

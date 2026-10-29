@@ -1,6 +1,7 @@
 package verification_test
 
 import (
+	"io"
 	"net/http"
 	"testing"
 	"time"
@@ -34,14 +35,7 @@ func TestVerificationAgentHealth(t *testing.T) {
 				app.Clock.Advance(6 * time.Minute)
 			}
 			if scenario.hasHeartbeat {
-				status, body := agentCall(
-					t,
-					app,
-					agent,
-					http.MethodPost,
-					heartbeatPath(agent.Agent.ID),
-					heartbeatBody(nil),
-				)
+				status, body := newProtocolAgent(t, app, agent).recordHeartbeat(agent.Agent.ID, heartbeatBody(nil))
 				require.Equal(t, http.StatusOK, status, string(body))
 			}
 			if scenario.isHeartbeatStale {
@@ -53,11 +47,19 @@ func TestVerificationAgentHealth(t *testing.T) {
 				require.Equal(t, http.StatusNoContent, deleted.StatusCode())
 			}
 			app.RunJobPass(t, "backups_logical_scheduler")
-			status, body := app.CallOldAPI(
-				t,
-				apptest.Session{Client: nil, UserID: admin.UserID, Email: "", Token: ""},
-				apptest.OldAPICall{Method: http.MethodGet, Path: "/system/health", Body: nil},
+			request, err := http.NewRequestWithContext(
+				t.Context(),
+				http.MethodGet,
+				app.URL+"/api/v1/system/health",
+				nil,
 			)
+			require.NoError(t, err)
+			response, err := http.DefaultClient.Do(request)
+			require.NoError(t, err)
+			body, err := io.ReadAll(response.Body)
+			require.NoError(t, err)
+			require.NoError(t, response.Body.Close())
+			status := response.StatusCode
 			if scenario.isHealthy {
 				assert.Equal(t, http.StatusOK, status, string(body))
 			} else {

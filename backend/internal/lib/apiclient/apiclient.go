@@ -9,6 +9,7 @@ import (
 	"github.com/getkin/kin-openapi/routers"
 
 	contract "databasus-backend/api"
+	"databasus-backend/internal/lib/contracttest"
 	"databasus-backend/internal/lib/httpserver"
 )
 
@@ -30,7 +31,9 @@ func New(tb testing.TB, baseURL string, options ...ClientOption) *ClientWithResp
 		tb.Fatalf("load the API contract: %v", err)
 	}
 
-	checkingDoer := &contractCheckingDoer{tb: tb, contractRouter: contractRouter, httpClient: &http.Client{}}
+	checkingDoer := contracttest.New(
+		contracttest.Deps{TB: tb, ContractRouter: contractRouter, HTTPClient: &http.Client{}},
+	)
 
 	client, err := NewClientWithResponses(baseURL+apiBasePath, append([]ClientOption{WithHTTPClient(checkingDoer)},
 		options...)...)

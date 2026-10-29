@@ -6,10 +6,10 @@ import (
 
 	"github.com/google/uuid"
 
-	"databasus-backend/internal/agent/api"
 	"databasus-backend/internal/agent/dbconn"
 	"databasus-backend/internal/agent/restore"
 	"databasus-backend/internal/agent/verifier"
+	"databasus-backend/internal/lib/agentclient"
 )
 
 type JobContainer interface {
@@ -25,9 +25,12 @@ type Spawner interface {
 }
 
 type APIClient interface {
-	ClaimVerification(ctx context.Context, capacity api.AgentCapacity) (*api.JobAssignment, error)
+	ClaimVerification(
+		ctx context.Context,
+		capacity agentclient.AgentCapacity,
+	) (*agentclient.VerificationAssignment, error)
 	DownloadBackup(ctx context.Context, verificationID uuid.UUID) (io.ReadCloser, error)
-	Report(ctx context.Context, verificationID uuid.UUID, req api.ReportRequest) error
+	Report(ctx context.Context, verificationID uuid.UUID, req agentclient.VerificationReport) error
 }
 
 type Restorer interface {

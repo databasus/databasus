@@ -1,0 +1,88 @@
+package verification_test
+
+import (
+	"encoding/json"
+	"io"
+	"net/http"
+	"strings"
+	"testing"
+
+	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"databasus-backend/internal/app/apptest"
+	"databasus-backend/internal/lib/agentclient"
+)
+
+type protocolAgent struct {
+	test        *testing.T
+	app         *apptest.App
+	credentials apptest.CreatedVerificationAgent
+}
+
+func newProtocolAgent(t *testing.T, app *apptest.App, credentials apptest.CreatedVerificationAgent) protocolAgent {
+	t.Helper()
+	return protocolAgent{test: t, app: app, credentials: credentials}
+}
+
+func (a protocolAgent) recordHeartbeat(id uuid.UUID, body agentclient.HeartbeatRequest) (int, []byte) {
+	a.test.Helper()
+	response, err := a.app.NewAgentClient(a.test, a.credentials).RecordHeartbeatWithResponse(a.test.Context(), id, body)
+	require.NoError(a.test, err)
+	return response.StatusCode(), response.Body
+}
+
+func (a protocolAgent) claimVerification(body agentclient.ClaimRequest) (int, []byte) {
+	a.test.Helper()
+	response, err := a.app.NewAgentClient(a.test, a.credentials).
+		ClaimVerificationWithResponse(a.test.Context(), a.credentials.Agent.ID, body)
+	require.NoError(a.test, err)
+	return response.StatusCode(), response.Body
+}
+
+func (a protocolAgent) reportVerification(id uuid.UUID, body agentclient.VerificationReport) (int, []byte) {
+	a.test.Helper()
+	response, err := a.app.NewAgentClient(a.test, a.credentials).
+		ReportVerificationWithResponse(a.test.Context(), a.credentials.Agent.ID, id, body)
+	require.NoError(a.test, err)
+	return response.StatusCode(), response.Body
+}
+
+func (a protocolAgent) sendInvalidHeartbeat(id string) (int, []byte) {
+	a.test.Helper()
+	request, err := http.NewRequestWithContext(
+		a.test.Context(),
+		http.MethodPost,
+		a.app.URL+"/api/v1/agent/verification/"+id+"/heartbeat",
+		strings.NewReader(`{}`),
+	)
+	require.NoError(a.test, err)
+	request.Header.Set("Authorization", "Bearer "+a.credentials.Token)
+	request.Header.Set("Content-Type", "application/json")
+	response, err := http.DefaultClient.Do(request)
+	require.NoError(a.test, err)
+	defer func() { require.NoError(a.test, response.Body.Close()) }()
+	body, err := io.ReadAll(response.Body)
+	require.NoError(a.test, err)
+	return response.StatusCode, body
+}
+
+type agentResponse struct {
+	Status int
+	Body   []byte
+}
+
+func requireAgentProblem(
+	t *testing.T,
+	response agentResponse,
+	expectedProblem agentclient.Problem,
+) agentclient.Problem {
+	t.Helper()
+	require.Equal(t, expectedProblem.Status, response.Status, string(response.Body))
+	var problem agentclient.Problem
+	require.NoError(t, json.Unmarshal(response.Body, &problem))
+	assert.Equal(t, expectedProblem.Status, problem.Status)
+	assert.Equal(t, expectedProblem.Code, problem.Code)
+	return problem
+}

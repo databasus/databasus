@@ -1,4 +1,4 @@
-package apiclient
+package contracttest
 
 import (
 	"bytes"
@@ -17,13 +17,23 @@ import (
 // versions 1 to 5, so a UUIDv7 ID would fail. Any canonical UUID passes.
 const uuidPattern = `^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`
 
-type contractCheckingDoer struct {
+type Doer struct {
 	tb             testing.TB
 	contractRouter routers.Router
 	httpClient     *http.Client
 }
 
-func (d *contractCheckingDoer) Do(request *http.Request) (*http.Response, error) {
+type Deps struct {
+	TB             testing.TB
+	ContractRouter routers.Router
+	HTTPClient     *http.Client
+}
+
+func New(deps Deps) *Doer {
+	return &Doer{tb: deps.TB, contractRouter: deps.ContractRouter, httpClient: deps.HTTPClient}
+}
+
+func (d *Doer) Do(request *http.Request) (*http.Response, error) {
 	response, err := d.httpClient.Do(request)
 	if err != nil {
 		return nil, err
@@ -53,7 +63,7 @@ func (d *contractCheckingDoer) Do(request *http.Request) (*http.Response, error)
 	return response, nil
 }
 
-func (d *contractCheckingDoer) checkResponse(
+func (d *Doer) checkResponse(
 	ctx context.Context,
 	request *http.Request,
 	response *http.Response,
@@ -90,7 +100,7 @@ func (d *contractCheckingDoer) checkResponse(
 	return nil
 }
 
-func (d *contractCheckingDoer) isBinaryResponse(request *http.Request, response *http.Response) bool {
+func (d *Doer) isBinaryResponse(request *http.Request, response *http.Response) bool {
 	route, _, err := d.contractRouter.FindRoute(request)
 	if err != nil {
 		return false

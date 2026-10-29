@@ -3,6 +3,7 @@ package api
 import (
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 )
 
@@ -28,3 +29,9 @@ func (e *ResponseError) Error() string {
 func (e *ResponseError) IsRetryable() bool { return e.StatusCode >= 500 }
 
 func (e *ResponseError) IsGone() bool { return e.StatusCode == http.StatusGone }
+
+func responseError(response *http.Response, operation string) error {
+	body, _ := io.ReadAll(io.LimitReader(response.Body, 4096))
+	_ = response.Body.Close()
+	return &ResponseError{Op: operation, StatusCode: response.StatusCode, Body: string(body)}
+}

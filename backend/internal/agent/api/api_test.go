@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"log/slog"
@@ -15,6 +16,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"databasus-backend/internal/lib/agentclient"
 )
 
 func TestClaimVerification(t *testing.T) {
@@ -48,24 +51,27 @@ func TestClaimVerification(t *testing.T) {
 		t.Cleanup(server.Close)
 
 		client := NewClient(
-			Deps{Host: server.URL, Token: "tok123", AgentID: "agent-9", Logger: slog.New(slog.DiscardHandler)},
+			Deps{
+				Host:    server.URL,
+				Token:   "tok123",
+				AgentID: "11111111-1111-1111-1111-111111111111",
+				Logger:  slog.New(slog.DiscardHandler),
+			},
 		)
 
-		assignment, err := client.ClaimVerification(t.Context(), AgentCapacity{
+		assignment, err := client.ClaimVerification(t.Context(), agentclient.AgentCapacity{
 			MaxCPU: 8, MaxRAMMb: 4096, MaxDiskGb: 100, MaxConcurrentJobs: 4,
 		})
 
 		require.NoError(t, err)
 		require.NotNil(t, assignment)
 
-		assert.Equal(t, "/api/v1/agent/verifications/agent-9/claim", capturedPath)
+		assert.Equal(t, "/api/v1/agent/verifications/11111111-1111-1111-1111-111111111111/claim", capturedPath)
 		assert.Equal(t, "Bearer tok123", capturedAuth)
 
 		capacity, ok := capturedBody["capacity"].(map[string]any)
 		require.True(t, ok, "claim body must nest capacity under \"capacity\"")
 		assert.InDelta(t, float64(4096), capacity["maxRamMb"], 0.001)
-		_, hasRAMGb := capacity["maxRamGb"]
-		assert.False(t, hasRAMGb, "claim envelope must use maxRamMb, never maxRamGb")
 
 		assert.Equal(t, verificationID, assignment.VerificationID)
 		assert.Equal(t, backupID, assignment.BackupID)
@@ -81,9 +87,16 @@ func TestClaimVerification(t *testing.T) {
 		}))
 		t.Cleanup(server.Close)
 
-		client := NewClient(Deps{Host: server.URL, Token: "t", AgentID: "a", Logger: slog.New(slog.DiscardHandler)})
+		client := NewClient(
+			Deps{
+				Host:    server.URL,
+				Token:   "t",
+				AgentID: "11111111-1111-1111-1111-111111111111",
+				Logger:  slog.New(slog.DiscardHandler),
+			},
+		)
 
-		assignment, err := client.ClaimVerification(t.Context(), AgentCapacity{})
+		assignment, err := client.ClaimVerification(t.Context(), agentclient.AgentCapacity{})
 
 		require.NoError(t, err)
 		assert.Nil(t, assignment)
@@ -97,9 +110,16 @@ func TestClaimVerification(t *testing.T) {
 		}))
 		t.Cleanup(server.Close)
 
-		client := NewClient(Deps{Host: server.URL, Token: "t", AgentID: "a", Logger: slog.New(slog.DiscardHandler)})
+		client := NewClient(
+			Deps{
+				Host:    server.URL,
+				Token:   "t",
+				AgentID: "11111111-1111-1111-1111-111111111111",
+				Logger:  slog.New(slog.DiscardHandler),
+			},
+		)
 
-		_, err := client.ClaimVerification(t.Context(), AgentCapacity{})
+		_, err := client.ClaimVerification(t.Context(), agentclient.AgentCapacity{})
 
 		require.Error(t, err)
 		assert.Equal(t, int32(1), calls.Load(), "claim must not retry internally — the loop owns retry")
@@ -116,7 +136,7 @@ func TestDownloadBackup(t *testing.T) {
 
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			assert.Equal(t,
-				"/api/v1/agent/verifications/agent-x/"+
+				"/api/v1/agent/verifications/11111111-1111-1111-1111-111111111111/"+
 					"22222222-2222-2222-2222-222222222222/backup-stream",
 				r.URL.Path)
 			_, _ = w.Write(payload)
@@ -124,7 +144,12 @@ func TestDownloadBackup(t *testing.T) {
 		t.Cleanup(server.Close)
 
 		client := NewClient(
-			Deps{Host: server.URL, Token: "", AgentID: "agent-x", Logger: slog.New(slog.DiscardHandler)},
+			Deps{
+				Host:    server.URL,
+				Token:   "",
+				AgentID: "11111111-1111-1111-1111-111111111111",
+				Logger:  slog.New(slog.DiscardHandler),
+			},
 		)
 
 		body, err := client.DownloadBackup(
@@ -143,7 +168,14 @@ func TestDownloadBackup(t *testing.T) {
 		}))
 		t.Cleanup(server.Close)
 
-		client := NewClient(Deps{Host: server.URL, Token: "", AgentID: "a", Logger: slog.New(slog.DiscardHandler)})
+		client := NewClient(
+			Deps{
+				Host:    server.URL,
+				Token:   "",
+				AgentID: "11111111-1111-1111-1111-111111111111",
+				Logger:  slog.New(slog.DiscardHandler),
+			},
+		)
 
 		_, err := client.DownloadBackup(t.Context(), uuid.New())
 
@@ -158,17 +190,27 @@ func TestDownloadBackup(t *testing.T) {
 func TestReport(t *testing.T) {
 	t.Run("succeeds when the server returns 204", func(t *testing.T) {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			assert.Equal(t, "/api/v1/agent/verifications/a/33333333-3333-3333-3333-333333333333/report",
-				r.URL.Path)
+			assert.Equal(
+				t,
+				"/api/v1/agent/verifications/11111111-1111-1111-1111-111111111111/33333333-3333-3333-3333-333333333333/report",
+				r.URL.Path,
+			)
 			w.WriteHeader(http.StatusNoContent)
 		}))
 		t.Cleanup(server.Close)
 
-		client := NewClient(Deps{Host: server.URL, Token: "", AgentID: "a", Logger: slog.New(slog.DiscardHandler)})
+		client := NewClient(
+			Deps{
+				Host:    server.URL,
+				Token:   "",
+				AgentID: "11111111-1111-1111-1111-111111111111",
+				Logger:  slog.New(slog.DiscardHandler),
+			},
+		)
 
 		err := client.Report(t.Context(),
 			uuid.MustParse("33333333-3333-3333-3333-333333333333"),
-			ReportRequest{Status: VerificationStatusCompleted})
+			agentclient.VerificationReport{Status: agentclient.VerificationReportStatusCOMPLETED})
 
 		require.NoError(t, err)
 	})
@@ -181,9 +223,20 @@ func TestReport(t *testing.T) {
 		}))
 		t.Cleanup(server.Close)
 
-		client := NewClient(Deps{Host: server.URL, Token: "", AgentID: "a", Logger: slog.New(slog.DiscardHandler)})
+		client := NewClient(
+			Deps{
+				Host:    server.URL,
+				Token:   "",
+				AgentID: "11111111-1111-1111-1111-111111111111",
+				Logger:  slog.New(slog.DiscardHandler),
+			},
+		)
 
-		err := client.Report(t.Context(), uuid.New(), ReportRequest{Status: VerificationStatusFailed})
+		err := client.Report(
+			t.Context(),
+			uuid.New(),
+			agentclient.VerificationReport{Status: agentclient.VerificationReportStatusFAILED},
+		)
 
 		require.ErrorIs(t, err, ErrReportGone)
 		assert.Equal(t, int32(1), calls.Load(), "410 must not be retried")
@@ -201,31 +254,51 @@ func TestReport(t *testing.T) {
 		}))
 		t.Cleanup(server.Close)
 
-		client := NewClient(Deps{Host: server.URL, Token: "", AgentID: "a", Logger: slog.New(slog.DiscardHandler)})
+		client := NewClient(
+			Deps{
+				Host:    server.URL,
+				Token:   "",
+				AgentID: "11111111-1111-1111-1111-111111111111",
+				Logger:  slog.New(slog.DiscardHandler),
+			},
+		)
 		client.timeAfterFn = func(time.Duration) <-chan time.Time {
 			ready := make(chan time.Time, 1)
 			ready <- time.Now()
 			return ready
 		}
 
-		err := client.Report(t.Context(), uuid.New(), ReportRequest{Status: VerificationStatusCompleted})
+		err := client.Report(
+			t.Context(),
+			uuid.New(),
+			agentclient.VerificationReport{Status: agentclient.VerificationReportStatusCOMPLETED},
+		)
 
 		require.NoError(t, err)
 		assert.Equal(t, int32(3), calls.Load())
 	})
 	t.Run("returns budget error when 5xx errors exhaust the retry budget", func(t *testing.T) {
-		originalBudget := reportRetryBudget
-		reportRetryBudget = 25 * time.Millisecond
-		t.Cleanup(func() { reportRetryBudget = originalBudget })
-
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			w.WriteHeader(http.StatusBadGateway)
 		}))
 		t.Cleanup(server.Close)
 
-		client := NewClient(Deps{Host: server.URL, Token: "", AgentID: "a", Logger: slog.New(slog.DiscardHandler)})
+		client := NewClient(
+			Deps{
+				Host:    server.URL,
+				Token:   "",
+				AgentID: "11111111-1111-1111-1111-111111111111",
+				Logger:  slog.New(slog.DiscardHandler),
+			},
+		)
 
-		err := client.Report(t.Context(), uuid.New(), ReportRequest{Status: VerificationStatusFailed})
+		client.reportRetryBudget = 25 * time.Millisecond
+
+		err := client.Report(
+			t.Context(),
+			uuid.New(),
+			agentclient.VerificationReport{Status: agentclient.VerificationReportStatusFAILED},
+		)
 
 		require.ErrorIs(t, err, ErrReportBudgetExhausted)
 	})
@@ -236,7 +309,8 @@ func TestConstants(t *testing.T) {
 		// reportRetryBudget must stay a short, bounded window: once it is exhausted
 		// the backend reclaims the run on the agent's next heartbeat, so retrying
 		// for minutes would be pointless. 5m is a generous sanity ceiling.
-		assert.Less(t, reportRetryBudget, 5*time.Minute)
+		client := NewClient(Deps{Host: "", Token: "", AgentID: "", Logger: slog.New(slog.DiscardHandler)})
+		assert.Less(t, client.reportRetryBudget, 5*time.Minute)
 
 		assert.Equal(t, maxBackoff, reportRetryDelay(99), "report backoff must cap at maxBackoff")
 		assert.Equal(t, 1*time.Second, reportRetryDelay(1))
@@ -276,9 +350,9 @@ func TestHeartbeat(t *testing.T) {
 			},
 		)
 
-		response, err := client.Heartbeat(t.Context(), HeartbeatRequest{
+		response, err := client.Heartbeat(t.Context(), agentclient.HeartbeatRequest{
 			MaxCPU:                 8,
-			MaxRAMGb:               4,
+			MaxRAMMb:               new(512),
 			MaxDiskGb:              100,
 			MaxConcurrentJobs:      4,
 			CurrentVerificationIDs: []uuid.UUID{},
@@ -294,12 +368,9 @@ func TestHeartbeat(t *testing.T) {
 		assert.Equal(t, "Bearer tok123", capturedAuth)
 
 		assert.InDelta(t, float64(8), capturedBody["maxCpu"], 0.001)
-		assert.InDelta(t, float64(4), capturedBody["maxRamGb"], 0.001)
+		assert.InDelta(t, float64(512), capturedBody["maxRamMb"], 0.001)
 		assert.InDelta(t, float64(100), capturedBody["maxDiskGb"], 0.001)
 		assert.InDelta(t, float64(4), capturedBody["maxConcurrentJobs"], 0.001)
-
-		_, hasRAMMb := capturedBody["maxRamMb"]
-		assert.False(t, hasRAMMb, "heartbeat envelope must use maxRamGb, never maxRamMb")
 
 		require.Contains(t, capturedBody, "currentVerificationIds")
 		assert.Equal(t, []any{}, capturedBody["currentVerificationIds"],
@@ -316,10 +387,15 @@ func TestHeartbeat(t *testing.T) {
 		t.Cleanup(server.Close)
 
 		client := NewClient(
-			Deps{Host: server.URL, Token: "bad", AgentID: "agent-1", Logger: slog.New(slog.DiscardHandler)},
+			Deps{
+				Host:    server.URL,
+				Token:   "bad",
+				AgentID: "11111111-1111-1111-1111-111111111111",
+				Logger:  slog.New(slog.DiscardHandler),
+			},
 		)
 
-		_, err := client.Heartbeat(t.Context(), HeartbeatRequest{CurrentVerificationIDs: []uuid.UUID{}})
+		_, err := client.Heartbeat(t.Context(), agentclient.HeartbeatRequest{CurrentVerificationIDs: []uuid.UUID{}})
 
 		require.Error(t, err)
 		assert.Equal(t, 1, calls, "4xx must not be retried")
@@ -434,5 +510,79 @@ func TestDownloadVerificationAgentBinary(t *testing.T) {
 		)
 
 		require.Error(t, err)
+	})
+}
+
+func TestHeartbeatRetries(t *testing.T) {
+	t.Run("replays the capacity and authentication when the server recovers after two failures", func(t *testing.T) {
+		var calls atomic.Int32
+		server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+			assert.Equal(t, "Bearer agent-token", request.Header.Get("Authorization"))
+			assert.Equal(t, "no-cache", request.Header.Get("Cache-Control"))
+			assert.Equal(t, "no-cache", request.Header.Get("Pragma"))
+			var heartbeat agentclient.HeartbeatRequest
+			if !assert.NoError(t, json.NewDecoder(request.Body).Decode(&heartbeat)) {
+				return
+			}
+			if !assert.NotNil(t, heartbeat.MaxRAMMb) {
+				return
+			}
+			assert.Equal(t, 512, *heartbeat.MaxRAMMb)
+			if calls.Add(1) < 3 {
+				writer.WriteHeader(http.StatusServiceUnavailable)
+				return
+			}
+			writer.Header().Set("Content-Type", "application/json")
+			assert.NoError(
+				t,
+				json.NewEncoder(writer).
+					Encode(agentclient.HeartbeatResponse{LastSeenAt: time.Now().UTC(), AbortVerificationIDs: []uuid.UUID{}}),
+			)
+		}))
+		t.Cleanup(server.Close)
+		client := NewClient(
+			Deps{
+				Host:    server.URL,
+				Token:   "agent-token",
+				AgentID: uuid.NewString(),
+				Logger:  slog.New(slog.DiscardHandler),
+			},
+		)
+		response, err := client.Heartbeat(
+			t.Context(),
+			agentclient.HeartbeatRequest{MaxRAMMb: new(512), CurrentVerificationIDs: []uuid.UUID{}},
+		)
+		require.NoError(t, err)
+		require.NotNil(t, response)
+		assert.Equal(t, int32(3), calls.Load())
+	})
+}
+
+func TestDownloadBackupStreaming(t *testing.T) {
+	t.Run("returns the first bytes before the server finishes the backup", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+			writer.Header().Set("Content-Type", "application/octet-stream")
+			_, _ = writer.Write([]byte("PGDMP"))
+			assert.NoError(t, http.NewResponseController(writer).Flush())
+			<-request.Context().Done()
+		}))
+		t.Cleanup(server.Close)
+		client := NewClient(
+			Deps{
+				Host:    server.URL,
+				Token:   "agent-token",
+				AgentID: uuid.NewString(),
+				Logger:  slog.New(slog.DiscardHandler),
+			},
+		)
+		ctx, cancel := context.WithTimeout(t.Context(), 2*time.Second)
+		defer cancel()
+		stream, err := client.DownloadBackup(ctx, uuid.New())
+		require.NoError(t, err)
+		defer func() { require.NoError(t, stream.Close()) }()
+		signature := make([]byte, 5)
+		_, err = io.ReadFull(stream, signature)
+		require.NoError(t, err)
+		assert.Equal(t, "PGDMP", string(signature))
 	})
 }

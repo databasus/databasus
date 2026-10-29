@@ -3695,7 +3695,7 @@ type VerificationAgent struct {
 	MaxConcurrentJobs int                `json:"maxConcurrentJobs"`
 	MaxCpu            int                `json:"maxCpu"`
 	MaxDiskGb         int                `json:"maxDiskGb"`
-	MaxRamGb          int                `json:"maxRamGb"`
+	MaxRamMb          int                `json:"maxRamMb"`
 	Name              string             `json:"name"`
 }
 

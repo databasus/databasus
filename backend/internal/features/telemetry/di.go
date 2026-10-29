@@ -14,7 +14,6 @@ import (
 	storages_bridge "databasus-backend/internal/features/storages"
 	system_version "databasus-backend/internal/features/system/version"
 	users_bridge "databasus-backend/internal/features/users"
-	verification_bridge "databasus-backend/internal/features/verification"
 	"databasus-backend/internal/modules/backups"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/notifiers"
@@ -44,8 +43,8 @@ var (
 			installedNotifierTypes{},
 			installedLogicalBackups{},
 			installedPhysicalBackups{},
-			installedVerifications{},
-			installedVerifications{},
+			nil,
+			nil,
 			installedUserCounter{},
 			system_version.GetAppVersion(),
 			getTelemetryLogger(),
@@ -127,12 +126,8 @@ func (installedPhysicalBackups) GetLatestCompletedPhysicalFullBackup(
 	return backups_bridge.GetModule().GetLatestCompletedPhysicalFullBackup(ctx, databaseID)
 }
 
-type installedVerifications struct{}
-
-func (installedVerifications) ListAgents(ctx context.Context) ([]verification.Agent, error) {
-	return verification_bridge.GetModule().ListAgents(ctx)
-}
-
-func (installedVerifications) ListEnabledConfigs(ctx context.Context) ([]verification.VerificationConfig, error) {
-	return verification_bridge.GetModule().ListEnabledConfigs(ctx)
+func InstallVerificationModule(module verification.Module) {
+	service := GetTelemetryService()
+	service.verificationAgentService = module
+	service.verificationConfigService = module
 }

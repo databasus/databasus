@@ -3069,7 +3069,7 @@ components:
     VerificationAgent:
       description: Verification Agent
       type: object
-      required: [id, name, maxCpu, maxRamGb, maxDiskGb, maxConcurrentJobs, createdAt]
+      required: [id, name, maxCpu, maxRamMb, maxDiskGb, maxConcurrentJobs, createdAt]
       properties:
         id:
           type: string
@@ -3078,7 +3078,7 @@ components:
           type: string
         maxCpu:
           type: integer
-        maxRamGb:
+        maxRamMb:
           type: integer
         maxDiskGb:
           type: integer

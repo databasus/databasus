@@ -30,7 +30,7 @@ func TestAgentUpdate(t *testing.T) {
 		agent.start(t, gate.url, credentials)
 		pid := agent.getPID(t)
 		beforeUpdate := waitForHeartbeat(t, app, admin, credentials.Agent.ID, time.Time{})
-		assert.Equal(t, 2, beforeUpdate.MaxRAMGb)
+		assert.Equal(t, 2048, beforeUpdate.MaxRAMMb)
 		testwait.Until(
 			t,
 			"the binary on disk prints the server version and the agent re-executes",
@@ -57,7 +57,7 @@ func TestAgentUpdate(t *testing.T) {
 		require.NoError(t, syscall.Kill(pid, 0))
 		assert.Equal(t, pid, agent.getPID(t))
 		afterUpdate := waitForHeartbeat(t, app, admin, credentials.Agent.ID, time.Now().UTC())
-		assert.Equal(t, 2, afterUpdate.MaxRAMGb)
+		assert.Equal(t, 2048, afterUpdate.MaxRAMMb)
 		assert.True(t, afterUpdate.LastSeenAt.After(*beforeUpdate.LastSeenAt))
 		requireNoLeftovers(t, engine, credentials.Agent.ID)
 	})

@@ -1535,7 +1535,7 @@ export interface components {
             id: string;
             name: string;
             maxCpu: number;
-            maxRamGb: number;
+            maxRamMb: number;
             maxDiskGb: number;
             maxConcurrentJobs: number;
             /** Format: date-time */

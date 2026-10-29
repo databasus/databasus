@@ -104,6 +104,7 @@ linters:
             - "!**/internal/lib/ratelimit/ratelimittest/**"
             - "!**/internal/lib/testcontainers/**"
             - "!**/internal/lib/apiclient/**"
+            - "!**/internal/lib/contracttest/**"
             - "!**/internal/lib/agentclienttest/**"
             - "!**/internal/app/apptest/**"
           deny:

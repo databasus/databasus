@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"databasus-backend/internal/lib/agentclient"
 	apiclient "databasus-backend/internal/lib/apiclient"
 )
 
@@ -20,14 +21,11 @@ func TestVerificationReportRetries(t *testing.T) {
 		agent := team.App.CreateVerificationAgent(t, team.Admin)
 		for attempt := 1; attempt <= 3; attempt++ {
 			claim(t, team, agent)
-			status, body := agentCall(
+			status, body := newProtocolAgent(
 				t,
 				team.App,
 				agent,
-				http.MethodPost,
-				reportPath(agent.Agent.ID, verification.Id),
-				map[string]any{"status": "FAILED", "failMessage": "container could not start"},
-			)
+			).reportVerification(verification.Id, agentclient.VerificationReport{Status: "FAILED", FailMessage: new("container could not start")})
 			require.Equal(t, http.StatusNoContent, status, string(body))
 			persisted := team.read(t, verification.Id)
 			if attempt < 3 {
@@ -43,11 +41,11 @@ func TestVerificationReportRetries(t *testing.T) {
 	})
 	for _, failure := range []struct {
 		name   string
-		report map[string]any
+		report agentclient.VerificationReport
 	}{
-		{name: "a rejected backup", report: map[string]any{"status": "FAILED", "pgRestoreExitCode": 1, "failMessage": "archive rejected"}},
-		{name: "a disk limit", report: map[string]any{"status": "FAILED", "failureKind": "DISK_LIMIT_EXCEEDED", "failMessage": "disk budget exceeded"}},
-		{name: "a restored database below the size guard", report: map[string]any{"status": "COMPLETED", "dbSizeBytesAfterRestore": 1}},
+		{name: "a rejected backup", report: agentclient.VerificationReport{Status: "FAILED", PgRestoreExitCode: new(1), FailMessage: new("archive rejected")}},
+		{name: "a disk limit", report: agentclient.VerificationReport{Status: "FAILED", FailureKind: new("DISK_LIMIT_EXCEEDED"), FailMessage: new("disk budget exceeded")}},
+		{name: "a restored database below the size guard", report: agentclient.VerificationReport{Status: "COMPLETED", DBSizeBytesAfterRestore: new(int64(1))}},
 	} {
 		t.Run("fails without retry when the agent reports "+failure.name, func(t *testing.T) {
 			team := newVerificationTeam(t)
@@ -56,21 +54,14 @@ func TestVerificationReportRetries(t *testing.T) {
 			verification := team.start(t, backup.Id)
 			agent := team.App.CreateVerificationAgent(t, team.Admin)
 			claim(t, team, agent)
-			status, body := agentCall(
-				t,
-				team.App,
-				agent,
-				http.MethodPost,
-				reportPath(agent.Agent.ID, verification.Id),
-				failure.report,
-			)
+			status, body := newProtocolAgent(t, team.App, agent).reportVerification(verification.Id, failure.report)
 			require.Equal(t, http.StatusNoContent, status, string(body))
 			persisted := team.read(t, verification.Id)
 			assert.Equal(t, apiclient.VerificationStatusFAILED, persisted.Status)
 			assert.Equal(t, 1, persisted.AttemptCount)
 			assert.NotNil(t, persisted.FinishedAt)
-			if message, isFound := failure.report["failMessage"]; isFound {
-				assert.Equal(t, message, *persisted.FailMessage)
+			if failure.report.FailMessage != nil {
+				assert.Equal(t, *failure.report.FailMessage, *persisted.FailMessage)
 			}
 		})
 	}
@@ -106,14 +97,7 @@ func TestVerificationHeartbeatReconciliation(t *testing.T) {
 			if scenario.isReported {
 				ids = []uuid.UUID{verification.Id}
 			}
-			status, body := agentCall(
-				t,
-				team.App,
-				agent,
-				http.MethodPost,
-				heartbeatPath(agent.Agent.ID),
-				heartbeatBody(ids),
-			)
+			status, body := newProtocolAgent(t, team.App, agent).recordHeartbeat(agent.Agent.ID, heartbeatBody(ids))
 			require.Equal(t, http.StatusOK, status, string(body))
 			assert.Equal(t, scenario.status, team.read(t, verification.Id).Status)
 		})
@@ -125,14 +109,11 @@ func TestVerificationHeartbeatReconciliation(t *testing.T) {
 		agent := team.App.CreateVerificationAgent(t, team.Admin)
 		other := team.App.CreateVerificationAgent(t, team.Admin)
 		claim(t, team, agent)
-		status, body := agentCall(
+		status, body := newProtocolAgent(
 			t,
 			team.App,
 			other,
-			http.MethodPost,
-			heartbeatPath(other.Agent.ID),
-			heartbeatBody([]uuid.UUID{verification.Id, uuid.New()}),
-		)
+		).recordHeartbeat(other.Agent.ID, heartbeatBody([]uuid.UUID{verification.Id, uuid.New()}))
 		require.Equal(t, http.StatusOK, status, string(body))
 		assert.Contains(t, string(body), verification.Id.String())
 		assert.Equal(t, apiclient.VerificationStatusRUNNING, team.read(t, verification.Id).Status)
@@ -143,14 +124,11 @@ func TestVerificationHeartbeatReconciliation(t *testing.T) {
 			verification.Id,
 		)
 		team.App.Clock.Advance(2 * time.Minute)
-		status, body = agentCall(
+		status, body = newProtocolAgent(
 			t,
 			team.App,
 			agent,
-			http.MethodPost,
-			heartbeatPath(agent.Agent.ID),
-			heartbeatBody([]uuid.UUID{verification.Id}),
-		)
+		).recordHeartbeat(agent.Agent.ID, heartbeatBody([]uuid.UUID{verification.Id}))
 		require.Equal(t, http.StatusOK, status, string(body))
 		assert.Contains(t, string(body), verification.Id.String())
 		assert.Equal(t, apiclient.VerificationStatusCOMPLETED, team.read(t, verification.Id).Status)
@@ -168,14 +146,11 @@ func TestVerificationMixedHeartbeat(t *testing.T) {
 		claim(t, team, agent)
 		claim(t, team, agent)
 		team.App.Clock.Advance(91 * time.Second)
-		status, body := agentCall(
+		status, body := newProtocolAgent(
 			t,
 			team.App,
 			agent,
-			http.MethodPost,
-			heartbeatPath(agent.Agent.ID),
-			heartbeatBody([]uuid.UUID{second.Id}),
-		)
+		).recordHeartbeat(agent.Agent.ID, heartbeatBody([]uuid.UUID{second.Id}))
 		require.Equal(t, http.StatusOK, status, string(body))
 		assert.Equal(t, apiclient.VerificationStatusPENDING, team.read(t, first.Id).Status)
 		assert.Equal(t, apiclient.VerificationStatusRUNNING, team.read(t, second.Id).Status)

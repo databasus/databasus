@@ -79,6 +79,7 @@ dir = "backend"
 depends = ["backend:check-generated"]
 run = [
   "vacuum lint --no-banner --no-style --no-update-check --fail-severity warn --details --all-results --no-clip --ruleset api/vacuum.yaml api/openapi.yaml",
+  "vacuum lint --no-banner --no-style --no-update-check --fail-severity warn --details --all-results --no-clip --ruleset api/vacuum.yaml api/agent.yaml",
   "golangci-lint fmt --diff ./api/... ./cmd/... ./e2e/... ./internal/... ./migrations/... ./tools/...",
   "golangci-lint run ./api/... ./cmd/... ./e2e/... ./internal/... ./migrations/... ./tools/...",
   "go run ./tools/archlint",

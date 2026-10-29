@@ -2,11 +2,13 @@ package verifications
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 
 	"github.com/google/uuid"
 
+	"databasus-backend/internal/lib/apierror"
 	"databasus-backend/internal/lib/database"
 	"databasus-backend/internal/modules/verification/internal/agents"
 )
@@ -21,26 +23,45 @@ func (s *Service) GetBackupFile(
 		return nil, err
 	}
 
-	if !isFound {
+	if !isFound || verification.Status != VerificationStatusRunning || verification.AgentID == nil ||
+		*verification.AgentID != agent.ID {
 		return nil, ErrVerificationGone
 	}
 
-	if verification.Status != VerificationStatusRunning {
-		return nil, ErrVerificationGone
+	stream, err := s.backups.OpenLogicalBackupFile(ctx, verification.BackupID)
+	if err != nil {
+		var problem *apierror.Problem
+		if errors.As(err, &problem) && problem.Code == apierror.CodeNotFound {
+			return nil, ErrVerificationGone
+		}
+		//nolint:errorlint // The agent contract must not expose another module's Problem code.
+		return nil, fmt.Errorf("open verification backup: %v", err)
 	}
-
-	if verification.AgentID == nil || *verification.AgentID != agent.ID {
-		return nil, ErrVerificationGone
-	}
-
-	return s.backups.OpenLogicalBackupFile(ctx, verification.BackupID)
+	return stream, nil
 }
 
 func (s *Service) SubmitReport(ctx context.Context, agent *agents.Agent, id uuid.UUID, report *ReportRequest) error {
-	return s.transactor.Transaction(
+	if report.Status != VerificationStatusCompleted && report.Status != VerificationStatusFailed {
+		return apierror.NewInvalidFieldsProblem(
+			[]apierror.FieldError{{Field: "status", Detail: "must be COMPLETED or FAILED"}},
+		)
+	}
+	for _, table := range report.TableStats {
+		if table.SchemaName == "" || table.Name == "" {
+			return apierror.NewInvalidFieldsProblem(
+				[]apierror.FieldError{{Field: "tableStats", Detail: "schemaName and name are required"}},
+			)
+		}
+	}
+	err := s.transactor.Transaction(
 		ctx,
 		func(ctx context.Context) error { return s.submitReport(ctx, agent, id, report) },
 	)
+	if err != nil && !errors.Is(err, ErrVerificationGone) {
+		//nolint:errorlint // The agent contract must not expose another module's Problem code.
+		return fmt.Errorf("submit verification report: %v", err)
+	}
+	return err
 }
 
 func (s *Service) submitReport(
@@ -54,7 +75,8 @@ func (s *Service) submitReport(
 		return err
 	}
 
-	if !isFound {
+	if !isFound || verification.Status != VerificationStatusRunning || verification.AgentID == nil ||
+		*verification.AgentID != agent.ID {
 		return ErrVerificationGone
 	}
 

@@ -153,7 +153,7 @@ Settings stay in columns rather than in a JSON document for two reasons. The dat
 | `iox` | stream helpers |
 | `namelist` | the lists of object names a user enters, such as excluded tables |
 
-Test support lives in `lib` too: `testdb`, `testwait`, the contract-checking test clients `apiclient` and `agentclienttest`, `toolstub`, which stands in for a client tool and records how it was started, and `testcontainers` with the containers of every engine and storage.
+Test support lives in `lib` too: `testdb`, `testwait`, the contract-checking test clients `apiclient` and `agentclienttest` with their shared response check `contracttest`, `toolstub`, which stands in for a client tool and records how it was started, and `testcontainers` with the containers of every engine and storage.
 
 Audit events are written through `lib/audit` in the transaction of the operation they describe. Each event stores a snapshot of its audit author's user ID, email and name as they were at the time of the action. The event reads the same after the user changes or is deleted, and reading it needs no join with `users`. `workspaces` serves every audit log view, the global one included: each view shows the name of the workspace an event belongs to, which only `workspaces` can read, and `workspaces` can apply each view's access rule.
 
@@ -226,9 +226,10 @@ PostgreSQL owns the backup format, and we do not implement block-level increment
 ## HTTP API
 
 - The contract comes before the code. `backend/api/openapi.yaml` describes the API that the SPA and users' scripts call, with paths relative to `/api/v1`. `backend/api/agent.yaml` describes what the verification agent calls. A new or changed operation starts in the contract. Then `mise run generate-api` regenerates the servers, the test clients and the frontend types. Generated files (`*.gen.go`, `*.gen.ts`) are never edited by hand. The rules for designing an operation are in the `api-design` skill.
-- Each module implements, in `internal/modules/<name>/internal/httpapi`, the strict server generated for its own operations. Operations are assigned to modules by tag. The `system` tag is the one exception: its operations describe the running instance rather than a module's domain, so `internal/app/systemhttpapi` serves it. A route registered in the router without an operation in the contract answers 500, so a mounting mistake cannot expose an operation without its access checks.
+- Each module implements, in `internal/modules/<name>/internal/httpapi`, the strict server generated for its own operations. A module serving `agent.yaml` implements its generated strict server in `internal/agentapi`. Operations are assigned to modules by tag. The `system` tag is the one exception: its operations describe the running instance rather than a module's domain, so `internal/app/systemhttpapi` serves it. A route registered in the router without an operation in the contract answers 500, so a mounting mistake cannot expose an operation without its access checks.
 - Errors use the `Problem` format (RFC 9457) with a machine-readable `code`. Every operation declares a `default` response with it. The text of an internal error never reaches the client. The frontend shows a translation chosen by `code`.
-- A request is authenticated by the `users` middleware, which puts the `Actor` into the request context. Operations of the instance admin area are marked in the contract, and the middleware enforces the mark. Workspace access is checked by `Authorize`, as described in [Modules](#modules).
+- The operations of `agent.yaml` run on a separate route group behind their own contract guard. The verification module authenticates each request with the agent token.
+- A request to `openapi.yaml` is authenticated by the `users` middleware, which puts the `Actor` into the request context. Operations of the instance admin area are marked in `openapi.yaml`, and the middleware enforces the mark. Workspace access is checked by `Authorize`, as described in [Modules](#modules).
 - Lists are paged with a cursor through `limit` and `after`. `OFFSET` is not used.
 - A long operation, such as a backup, a restore or a verification, answers 202 with the resource in its in-progress state.
 - A path under `/api` that matches no route answers 404. Every other path serves the SPA.

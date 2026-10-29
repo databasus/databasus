@@ -56,6 +56,7 @@ func TestCode(t *testing.T) {
 		{apierror.CodeTargetTimeUnreachable, http.StatusConflict},
 		{apierror.CodeInsufficientDiskSpace, http.StatusConflict},
 		{apierror.CodeInternal, http.StatusInternalServerError},
+		{apierror.CodeVerificationGone, http.StatusGone},
 	}
 
 	for _, codeStatus := range codeStatuses {
@@ -74,7 +75,7 @@ func TestCode(t *testing.T) {
 			})
 	}
 
-	t.Run("equals the ProblemCode enum of the contract", func(t *testing.T) {
+	t.Run("covers both contracts and appears in at least one contract", func(t *testing.T) {
 		t.Parallel()
 		goCodes := []apierror.Code{
 			apierror.CodeInvalidRequest,
@@ -111,17 +112,20 @@ func TestCode(t *testing.T) {
 			apierror.CodeTargetTimeUnreachable,
 			apierror.CodeInsufficientDiskSpace,
 			apierror.CodeInternal,
+			apierror.CodeVerificationGone,
 		}
 
-		loadedContract, err := openapi3.NewLoader().LoadFromData(contract.OpenAPI)
-		require.NoError(t, err)
-
-		problemCodeSchema := loadedContract.Components.Schemas["ProblemCode"]
-		require.NotNil(t, problemCodeSchema)
-
-		contractCodes := make([]string, 0, len(problemCodeSchema.Value.Enum))
-		for _, contractCode := range problemCodeSchema.Value.Enum {
-			contractCodes = append(contractCodes, fmt.Sprint(contractCode))
+		contractCodes := []string{}
+		for _, document := range [][]byte{contract.OpenAPI, contract.Agent} {
+			loadedContract, err := openapi3.NewLoader().LoadFromData(document)
+			require.NoError(t, err)
+			problemCodeSchema := loadedContract.Components.Schemas["ProblemCode"]
+			require.NotNil(t, problemCodeSchema)
+			for _, contractCode := range problemCodeSchema.Value.Enum {
+				code := fmt.Sprint(contractCode)
+				assert.Contains(t, goCodes, apierror.Code(code))
+				contractCodes = append(contractCodes, code)
+			}
 		}
 
 		declaredCodes := make([]string, 0, len(goCodes))
@@ -129,6 +133,8 @@ func TestCode(t *testing.T) {
 			declaredCodes = append(declaredCodes, string(goCode))
 		}
 
-		assert.ElementsMatch(t, contractCodes, declaredCodes)
+		for _, code := range declaredCodes {
+			assert.Contains(t, contractCodes, code)
+		}
 	})
 }

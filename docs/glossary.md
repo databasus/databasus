@@ -88,10 +88,11 @@ This is the project's common language. Each concept has one term in the document
 | Engine source | `Source` of an engine package | An engine's handle on one user database, built from plain connection settings with the secrets in clear text. |
 | Ignorable error | `pgrestore.IgnorableErrorRule`, `HasOnlyIgnorableErrors` | A `pg_restore` error that a restore or verification still counts as success, under a rule the caller chooses. |
 | Client tool bundle | `clienttools.Bundle` | The vendored client tools of one engine version: their directory and the commands they must hold. |
-| API contract | contract | `backend/api/openapi.yaml` and `backend/api/agent.yaml`, from which the servers, the test clients and the frontend types are generated. |
+| API contract | contract | The user API contract (`backend/api/openapi.yaml`) describes the SPA and script operations. The agent API contract (`backend/api/agent.yaml`) describes the verification agent operations. Each generates its servers and clients; the user contract also generates frontend types. |
 | Problem | Problem | The RFC 9457 error body that every operation of the contract answers with. |
 | Error code | `code` | The machine-readable cause in a `Problem`, such as `not_found`. The frontend chooses the text it shows by it. |
-| Contract-checking test client | `apiclient` | The client backend tests call the API through. It fails the test on any response that differs from the contract. |
+| Contract-checking test client | `apiclient`, `agentclienttest` | The clients backend tests use for the user and agent APIs. Each fails the test on any response that differs from its contract. |
+| Contract check | `contracttest` | The response check both contract-checking test clients share. |
 | Access mark | `x-access` | The mark of a contract operation that says who may call it: `public`, `admin`, or a signed-in user when the mark is absent. The contract guard reads it, and the users module enforces it. |
 | Handler | handler | Code that decodes a request, calls a service and encodes the response. |
 | Service | service | Code that holds the rules of a module's operations. |

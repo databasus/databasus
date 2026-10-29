@@ -12,8 +12,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-resty/resty/v2"
 	"github.com/google/uuid"
+	"github.com/hashicorp/go-retryablehttp"
+
+	"databasus-backend/internal/lib/agentclient"
 )
 
 // reportRetryDelay returns the exponential backoff for report attempt n
@@ -43,14 +45,17 @@ func expBackoff(shift int) time.Duration {
 }
 
 type Client struct {
-	timeAfterFn func(time.Duration) <-chan time.Time
-	json        *resty.Client
-	noRetry     *resty.Client
-	streamHTTP  *http.Client
-	host        string
-	token       string
-	agentID     string
-	log         *slog.Logger
+	timeAfterFn       func(time.Duration) <-chan time.Time
+	json              *agentclient.ClientWithResponses
+	noRetry           *agentclient.ClientWithResponses
+	stream            *agentclient.Client
+	retryHTTP         *http.Client
+	streamHTTP        *http.Client
+	host              string
+	token             string
+	agentID           string
+	log               *slog.Logger
+	reportRetryBudget time.Duration
 }
 
 type Deps struct {
@@ -61,61 +66,57 @@ type Deps struct {
 }
 
 func NewClient(deps Deps) *Client {
-	setAuth := func(_ *resty.Client, req *resty.Request) error {
-		if h := bearerHeader(deps.Token); h != "" {
-			req.SetHeader("Authorization", h)
+	retryClient := retryablehttp.NewClient()
+	retryClient.RetryMax = maxRetryAttempts - 1
+	retryClient.RetryWaitMin = retryBaseDelay
+	retryClient.RetryWaitMax = 4 * retryBaseDelay
+	retryClient.Logger = deps.Logger
+	retryClient.HTTPClient.Timeout = apiCallTimeout
+	retryClient.CheckRetry = func(ctx context.Context, response *http.Response, err error) (bool, error) {
+		if ctx.Err() != nil {
+			return false, ctx.Err()
 		}
-
-		return nil
+		return err != nil || response.StatusCode >= 500 || response.StatusCode == http.StatusTooManyRequests, nil
 	}
-
-	jsonClient := resty.New().
-		SetTimeout(apiCallTimeout).
-		SetRetryCount(maxRetryAttempts - 1).
-		SetRetryWaitTime(retryBaseDelay).
-		SetRetryMaxWaitTime(4 * retryBaseDelay).
-		AddRetryCondition(func(resp *resty.Response, err error) bool {
-			return err != nil || resp.StatusCode() >= 500
-		}).
-		SetHeaders(noCacheHeaders).
-		OnBeforeRequest(setAuth)
-
-	// Claim and report own their retry policy explicitly (claim: loop retries
-	// forever; report: bounded retry-with-deadline). A retrying client here
-	// would make "exactly N retries / give up at the budget" untestable.
-	noRetryClient := resty.New().
-		SetTimeout(apiCallTimeout).
-		SetHeaders(noCacheHeaders).
-		OnBeforeRequest(setAuth)
-
-	return &Client{
-		timeAfterFn: time.After,
-		json:        jsonClient,
-		noRetry:     noRetryClient,
-		streamHTTP:  &http.Client{},
-		host:        deps.Host,
-		token:       deps.Token,
-		agentID:     deps.AgentID,
-		log:         deps.Logger,
+	client := &Client{
+		timeAfterFn:       time.After,
+		host:              strings.TrimRight(deps.Host, "/"),
+		token:             deps.Token,
+		agentID:           deps.AgentID,
+		log:               deps.Logger,
+		retryHTTP:         retryClient.StandardClient(),
+		streamHTTP:        &http.Client{},
+		reportRetryBudget: time.Minute,
 	}
+	client.json = &agentclient.ClientWithResponses{ClientInterface: client.newProtocolClient(client.retryHTTP)}
+	client.noRetry = &agentclient.ClientWithResponses{
+		ClientInterface: client.newProtocolClient(&http.Client{Timeout: apiCallTimeout}),
+	}
+	client.stream = client.newProtocolClient(client.streamHTTP)
+	return client
 }
 
 func (c *Client) FetchServerVersion(ctx context.Context) (string, error) {
-	var ver versionResponse
-
-	httpResp, err := c.json.R().
-		SetContext(ctx).
-		SetResult(&ver).
-		Get(c.buildURL(versionPath))
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, c.buildURL(versionPath), nil)
+	if err != nil {
+		return "", fmt.Errorf("create version request: %w", err)
+	}
+	c.setStreamHeaders(request)
+	response, err := c.retryHTTP.Do(request)
 	if err != nil {
 		return "", err
 	}
-
-	if err := c.checkResponse(httpResp, "fetch server version"); err != nil {
-		return "", err
+	if response.StatusCode >= 400 {
+		return "", responseError(response, "fetch server version")
 	}
-
-	return ver.Version, nil
+	defer func() { _ = response.Body.Close() }()
+	var version struct {
+		Version string `json:"version"`
+	}
+	if err := json.NewDecoder(response.Body).Decode(&version); err != nil {
+		return "", fmt.Errorf("decode server version: %w", err)
+	}
+	return version.Version, nil
 }
 
 func (c *Client) DownloadVerificationAgentBinary(
@@ -161,55 +162,47 @@ func (c *Client) DownloadVerificationAgentBinary(
 
 func (c *Client) Heartbeat(
 	ctx context.Context,
-	request HeartbeatRequest,
-) (*HeartbeatResponse, error) {
-	var response HeartbeatResponse
-
-	httpResp, err := c.json.R().
-		SetContext(ctx).
-		SetBody(request).
-		SetResult(&response).
-		Post(c.buildURL(fmt.Sprintf(heartbeatPathFmt, c.agentID)))
+	request agentclient.HeartbeatRequest,
+) (*agentclient.HeartbeatResponse, error) {
+	agentID, err := uuid.Parse(c.agentID)
+	if err != nil {
+		return nil, fmt.Errorf("parse agent ID: %w", err)
+	}
+	response, err := c.json.RecordHeartbeatWithResponse(ctx, agentID, request)
 	if err != nil {
 		return nil, err
 	}
-
-	if err := c.checkResponse(httpResp, "heartbeat"); err != nil {
-		return nil, err
+	if response.StatusCode() != http.StatusOK {
+		return nil, &ResponseError{Op: "heartbeat", StatusCode: response.StatusCode(), Body: string(response.Body)}
 	}
-
-	return &response, nil
+	if response.JSON200 == nil {
+		return nil, fmt.Errorf("heartbeat response has no JSON body")
+	}
+	return response.JSON200, nil
 }
 
-// ClaimVerification performs a single claim attempt. 200 returns the assignment;
-// 204 returns (nil, nil) meaning nothing fits; any other status is an error.
-// The runner loop owns retry/backoff — this never loops.
 func (c *Client) ClaimVerification(
 	ctx context.Context,
-	capacity AgentCapacity,
-) (*JobAssignment, error) {
-	resp, err := c.noRetry.R().
-		SetContext(ctx).
-		SetBody(ClaimRequest{Capacity: capacity}).
-		Post(c.buildURL(fmt.Sprintf(claimPathFmt, c.agentID)))
+	capacity agentclient.AgentCapacity,
+) (*agentclient.VerificationAssignment, error) {
+	agentID, err := uuid.Parse(c.agentID)
+	if err != nil {
+		return nil, fmt.Errorf("parse agent ID: %w", err)
+	}
+	response, err := c.noRetry.ClaimVerificationWithResponse(ctx, agentID, agentclient.ClaimRequest{Capacity: capacity})
 	if err != nil {
 		return nil, err
 	}
-
-	if resp.StatusCode() == http.StatusNoContent {
+	if response.StatusCode() == http.StatusNoContent {
 		return nil, nil
 	}
-
-	if resp.StatusCode() != http.StatusOK {
-		return nil, &ResponseError{Op: "claim", StatusCode: resp.StatusCode(), Body: resp.String()}
+	if response.StatusCode() != http.StatusOK {
+		return nil, &ResponseError{Op: "claim", StatusCode: response.StatusCode(), Body: string(response.Body)}
 	}
-
-	var assignment JobAssignment
-	if err := json.Unmarshal(resp.Body(), &assignment); err != nil {
-		return nil, fmt.Errorf("decode job assignment: %w", err)
+	if response.JSON200 == nil {
+		return nil, fmt.Errorf("claim response has no JSON body")
 	}
-
-	return &assignment, nil
+	return response.JSON200, nil
 }
 
 // DownloadBackup opens the plaintext backup stream. On 200 it returns the
@@ -221,16 +214,11 @@ func (c *Client) DownloadBackup(
 	ctx context.Context,
 	verificationID uuid.UUID,
 ) (io.ReadCloser, error) {
-	requestURL := c.buildURL(fmt.Sprintf(backupStreamPathFmt, c.agentID, verificationID))
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, requestURL, nil)
+	agentID, err := uuid.Parse(c.agentID)
 	if err != nil {
-		return nil, fmt.Errorf("create backup stream request: %w", err)
+		return nil, fmt.Errorf("parse agent ID: %w", err)
 	}
-
-	c.setStreamHeaders(req)
-
-	resp, err := c.streamHTTP.Do(req)
+	resp, err := c.stream.StreamVerificationBackup(ctx, agentID, verificationID)
 	if err != nil {
 		return nil, err
 	}
@@ -257,31 +245,30 @@ func (c *Client) DownloadBackup(
 func (c *Client) Report(
 	ctx context.Context,
 	verificationID uuid.UUID,
-	req ReportRequest,
+	req agentclient.VerificationReport,
 ) error {
-	ctx, cancel := context.WithTimeoutCause(ctx, reportRetryBudget, ErrReportBudgetExhausted)
+	ctx, cancel := context.WithTimeoutCause(ctx, c.reportRetryBudget, ErrReportBudgetExhausted)
 	defer cancel()
 
-	requestURL := c.buildURL(fmt.Sprintf(reportPathFmt, c.agentID, verificationID))
-
+	agentID, err := uuid.Parse(c.agentID)
+	if err != nil {
+		return fmt.Errorf("parse agent ID: %w", err)
+	}
 	for attempt := 1; ; attempt++ {
-		resp, err := c.noRetry.R().
-			SetContext(ctx).
-			SetBody(req).
-			Post(requestURL)
+		resp, err := c.noRetry.ReportVerification(ctx, agentID, verificationID, req)
 
 		if err == nil {
 			switch {
-			case resp.StatusCode() == http.StatusNoContent:
+			case resp.StatusCode == http.StatusNoContent:
+				_ = resp.Body.Close()
 				return nil
-			case resp.StatusCode() == http.StatusGone:
+			case resp.StatusCode == http.StatusGone:
+				_ = resp.Body.Close()
 				return ErrReportGone
-			case resp.StatusCode() < 500:
-				return &ResponseError{
-					Op:         "report",
-					StatusCode: resp.StatusCode(),
-					Body:       resp.String(),
-				}
+			case resp.StatusCode < 500:
+				return responseError(resp, "report")
+			default:
+				_ = resp.Body.Close()
 			}
 		}
 
@@ -297,12 +284,10 @@ func (c *Client) buildURL(path string) string {
 	return c.host + path
 }
 
-func (c *Client) checkResponse(resp *resty.Response, method string) error {
-	if resp.StatusCode() >= 400 {
-		return fmt.Errorf("%s: server returned status %d: %s", method, resp.StatusCode(), resp.String())
-	}
-
-	return nil
+func (c *Client) newProtocolClient(doer agentclient.HttpRequestDoer) *agentclient.Client {
+	return &agentclient.Client{Server: c.host + "/api/v1/", Client: doer, RequestEditors: []agentclient.RequestEditorFn{
+		func(_ context.Context, request *http.Request) error { c.setStreamHeaders(request); return nil },
+	}}
 }
 
 func (c *Client) setStreamHeaders(req *http.Request) {
@@ -310,9 +295,8 @@ func (c *Client) setStreamHeaders(req *http.Request) {
 		req.Header.Set("Authorization", h)
 	}
 
-	for name, value := range noCacheHeaders {
-		req.Header.Set(name, value)
-	}
+	req.Header.Set("Cache-Control", "no-cache")
+	req.Header.Set("Pragma", "no-cache")
 }
 
 func bearerHeader(token string) string {

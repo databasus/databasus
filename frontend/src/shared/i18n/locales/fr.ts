@@ -1136,7 +1136,7 @@ export const fr: typeof en = {
       },
       capacity: {
         cpu: '{{count}} CPU',
-        ram: '{{count}} GB de RAM',
+        ram: '{{size}} de RAM',
         disk: '{{count}} GB de disque',
         jobs: 'tâches : {{count}}',
         notReported: 'pas encore communiquées',

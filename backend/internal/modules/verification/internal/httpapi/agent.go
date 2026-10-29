@@ -9,7 +9,7 @@ func fromAgent(agent agents.Agent) VerificationAgent {
 		CreatedAt:         agent.CreatedAt,
 		LastSeenAt:        agent.LastSeenAt,
 		MaxCpu:            agent.MaxCPU,
-		MaxRamGb:          agent.MaxRAMGb,
+		MaxRamMb:          agent.MaxRAMMb,
 		MaxDiskGb:         agent.MaxDiskGb,
 		MaxConcurrentJobs: agent.MaxConcurrentJobs,
 	}

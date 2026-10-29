@@ -2,10 +2,12 @@ package verifications
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/google/uuid"
 
 	pgshared "databasus-backend/internal/engines/postgresql/shared"
+	"databasus-backend/internal/lib/apierror"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/verification/internal/agents"
 )
@@ -14,7 +16,25 @@ func (s *Service) ClaimVerification(
 	ctx context.Context,
 	agent *agents.Agent,
 	capacity AgentCapacity,
-) (*JobAssignment, error) {
+) (*VerificationAssignment, error) {
+	if capacity.MaxCPU < 0 || capacity.MaxRAMMb < 0 || capacity.MaxDiskGb < 0 || capacity.MaxConcurrentJobs < 0 {
+		return nil, apierror.NewInvalidFieldsProblem(
+			[]apierror.FieldError{{Field: "capacity", Detail: "must be nonnegative"}},
+		)
+	}
+	assignment, err := s.claimVerification(ctx, agent, capacity)
+	if err != nil {
+		//nolint:errorlint // The agent contract must not expose another module's Problem code.
+		return nil, fmt.Errorf("claim verification: %v", err)
+	}
+	return assignment, nil
+}
+
+func (s *Service) claimVerification(
+	ctx context.Context,
+	agent *agents.Agent,
+	capacity AgentCapacity,
+) (*VerificationAssignment, error) {
 	runningBackupIDs, err := s.verificationRepository.ListRunningBackupIDsByAgentID(ctx, agent.ID)
 	if err != nil {
 		return nil, err
@@ -23,7 +43,7 @@ func (s *Service) ClaimVerification(
 	if err != nil {
 		return nil, err
 	}
-	var assignment *JobAssignment
+	var assignment *VerificationAssignment
 	err = s.transactor.Transaction(ctx, func(ctx context.Context) error {
 		pending, err := s.verificationRepository.LockOldestPendingTop100(ctx)
 		if err != nil {
@@ -64,7 +84,7 @@ func (s *Service) ClaimVerification(
 			); err != nil {
 				return err
 			}
-			assignment = &JobAssignment{
+			assignment = &VerificationAssignment{
 				VerificationID:     candidate.Verification.ID,
 				BackupID:           candidate.Backup.ID,
 				BackupSizeMb:       candidate.Backup.BackupSizeMb,

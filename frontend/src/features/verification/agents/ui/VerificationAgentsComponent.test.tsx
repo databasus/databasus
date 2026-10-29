@@ -16,7 +16,7 @@ describe('VerificationAgentsComponent', () => {
           id: 'agent-id',
           name: 'My agent',
           maxCpu: 0,
-          maxRamGb: 0,
+          maxRamMb: 0,
           maxDiskGb: 0,
           maxConcurrentJobs: 0,
           createdAt: '2026-10-27T10:00:00Z',
@@ -35,5 +35,27 @@ describe('VerificationAgentsComponent', () => {
     fireEvent.click(screen.getByRole('button', { name: "I've saved the token" }));
     await waitFor(() => expect(screen.queryByText('issued-once-token')).toBeNull());
     expect(screen.getByText('My agent')).toBeTruthy();
+  });
+  it.each([
+    { memory: 512, label: '512 MB RAM' },
+    { memory: 4096, label: '4 GB RAM' },
+  ])('shows $label when the agent reports $memory megabytes', async ({ memory, label }) => {
+    mockServer.use(
+      mockApi.get('/verification-agents', 200, {
+        items: [
+          {
+            id: 'agent-id',
+            name: 'My agent',
+            maxCpu: 0,
+            maxRamMb: memory,
+            maxDiskGb: 0,
+            maxConcurrentJobs: 0,
+            createdAt: '2026-10-27T10:00:00Z',
+          },
+        ],
+      }),
+    );
+    renderScreen(<VerificationAgentsComponent />);
+    expect(await screen.findByText(label)).toBeTruthy();
   });
 });

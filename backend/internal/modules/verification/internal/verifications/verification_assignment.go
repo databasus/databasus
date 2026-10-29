@@ -2,7 +2,7 @@ package verifications
 
 import "github.com/google/uuid"
 
-type JobAssignment struct {
+type VerificationAssignment struct {
 	VerificationID     uuid.UUID
 	BackupID           uuid.UUID
 	BackupSizeMb       float64

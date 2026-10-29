@@ -19,6 +19,7 @@ import (
 	"databasus-backend/internal/agent/dbconn"
 	"databasus-backend/internal/agent/restore"
 	"databasus-backend/internal/agent/verifier"
+	"databasus-backend/internal/lib/agentclient"
 	"databasus-backend/internal/lib/background"
 )
 
@@ -29,15 +30,15 @@ func testCapacity() config.Capacity {
 	}
 }
 
-func postgresJob() *api.JobAssignment {
-	return &api.JobAssignment{
+func postgresJob() *agentclient.VerificationAssignment {
+	return &agentclient.VerificationAssignment{
 		VerificationID:     uuid.New(),
 		BackupID:           uuid.New(),
 		BackupSizeMb:       50,
 		MaxContainerDiskMb: 200,
-		Database: api.AssignedDatabase{
+		Database: agentclient.AssignedDatabase{
 			Type:              "POSTGRES_LOGICAL",
-			PostgresqlLogical: &api.AssignedPostgresql{Version: "16"},
+			PostgresqlLogical: &agentclient.AssignedPostgresql{Version: "16"},
 		},
 	}
 }
@@ -91,7 +92,7 @@ func TestExecuteJob(t *testing.T) {
 
 		report, ok := apiClient.lastReport()
 		require.True(t, ok)
-		assert.Equal(t, api.VerificationStatusFailed, report.Status)
+		assert.Equal(t, agentclient.VerificationReportStatusFAILED, report.Status)
 		assert.Nil(t, report.PgRestoreExitCode)
 	})
 	t.Run("reports failed without exit code when container creation fails", func(t *testing.T) {
@@ -103,7 +104,7 @@ func TestExecuteJob(t *testing.T) {
 
 		report, ok := apiClient.lastReport()
 		require.True(t, ok)
-		assert.Equal(t, api.VerificationStatusFailed, report.Status)
+		assert.Equal(t, agentclient.VerificationReportStatusFAILED, report.Status)
 		assert.Nil(t, report.PgRestoreExitCode)
 	})
 	t.Run("sends no report when the backup stream returns 410", func(t *testing.T) {
@@ -122,7 +123,7 @@ func TestExecuteJob(t *testing.T) {
 
 		report, ok := apiClient.lastReport()
 		require.True(t, ok)
-		assert.Equal(t, api.VerificationStatusFailed, report.Status)
+		assert.Equal(t, agentclient.VerificationReportStatusFAILED, report.Status)
 		assert.Nil(t, report.PgRestoreExitCode)
 	})
 	t.Run("reports failed without exit code when the restore exhausts disk space", func(t *testing.T) {
@@ -137,7 +138,7 @@ func TestExecuteJob(t *testing.T) {
 
 		report, ok := apiClient.lastReport()
 		require.True(t, ok)
-		assert.Equal(t, api.VerificationStatusFailed, report.Status)
+		assert.Equal(t, agentclient.VerificationReportStatusFAILED, report.Status)
 		assert.Nil(t, report.PgRestoreExitCode,
 			"hitting the estimate-derived disk ceiling is agent infra, not BackupRejected")
 	})
@@ -155,9 +156,9 @@ func TestExecuteJob(t *testing.T) {
 
 		report, ok := apiClient.lastReport()
 		require.True(t, ok)
-		assert.Equal(t, api.VerificationStatusFailed, report.Status)
+		assert.Equal(t, agentclient.VerificationReportStatusFAILED, report.Status)
 		require.NotNil(t, report.FailureKind)
-		assert.Equal(t, api.FailureKindDiskLimitExceeded, *report.FailureKind)
+		assert.Equal(t, "DISK_LIMIT_EXCEEDED", *report.FailureKind)
 		assert.Nil(t, report.PgRestoreExitCode, "a disk-limit verdict carries no pg_restore exit code")
 		assert.True(t, jobContainer.terminated, "the container must be torn down on disk-limit abort")
 	})
@@ -181,9 +182,9 @@ func TestExecuteJob(t *testing.T) {
 			report, ok := apiClient.lastReport()
 			require.Contains(t, restorer.calls, "roles", "the watcher must trip inside the owner-roles stage")
 			require.True(t, ok, "a stage cancelled by the watcher must still post the disk verdict")
-			assert.Equal(t, api.VerificationStatusFailed, report.Status)
+			assert.Equal(t, agentclient.VerificationReportStatusFAILED, report.Status)
 			require.NotNil(t, report.FailureKind)
-			assert.Equal(t, api.FailureKindDiskLimitExceeded, *report.FailureKind)
+			assert.Equal(t, "DISK_LIMIT_EXCEEDED", *report.FailureKind)
 		},
 	)
 	t.Run("does not falsely trip when the server sends no disk budget", func(t *testing.T) {
@@ -201,7 +202,7 @@ func TestExecuteJob(t *testing.T) {
 
 		report, ok := apiClient.lastReport()
 		require.True(t, ok)
-		assert.Equal(t, api.VerificationStatusCompleted, report.Status,
+		assert.Equal(t, agentclient.VerificationReportStatusCOMPLETED, report.Status,
 			"a zero budget disables the watcher; the job must not be falsely failed")
 		assert.Nil(t, report.FailureKind)
 	})
@@ -217,7 +218,7 @@ func TestExecuteJob(t *testing.T) {
 
 		report, ok := apiClient.lastReport()
 		require.True(t, ok)
-		assert.Equal(t, api.VerificationStatusFailed, report.Status)
+		assert.Equal(t, agentclient.VerificationReportStatusFAILED, report.Status)
 		require.NotNil(t, report.PgRestoreExitCode)
 		assert.Equal(t, 1, *report.PgRestoreExitCode)
 	})
@@ -240,7 +241,7 @@ func TestExecuteJob(t *testing.T) {
 
 		report, ok := apiClient.lastReport()
 		require.True(t, ok)
-		assert.Equal(t, api.VerificationStatusCompleted, report.Status,
+		assert.Equal(t, agentclient.VerificationReportStatusCOMPLETED, report.Status,
 			"a restore whose only failures are missing extensions is restorable")
 		require.NotNil(t, report.PgRestoreExitCode)
 		assert.Equal(t, 1, *report.PgRestoreExitCode,
@@ -262,7 +263,7 @@ func TestExecuteJob(t *testing.T) {
 
 		report, ok := apiClient.lastReport()
 		require.True(t, ok)
-		assert.Equal(t, api.VerificationStatusCompleted, report.Status,
+		assert.Equal(t, agentclient.VerificationReportStatusCOMPLETED, report.Status,
 			"an archive dumped with -n public collides with the target's own public schema; the data restored")
 	})
 	t.Run("reports failed without exit code when the restore command cannot execute", func(t *testing.T) {
@@ -274,7 +275,7 @@ func TestExecuteJob(t *testing.T) {
 
 		report, ok := apiClient.lastReport()
 		require.True(t, ok)
-		assert.Equal(t, api.VerificationStatusFailed, report.Status)
+		assert.Equal(t, agentclient.VerificationReportStatusFAILED, report.Status)
 		assert.Nil(t, report.PgRestoreExitCode)
 	})
 	t.Run("reports failed without exit code when verification fails and its connection is dead", func(t *testing.T) {
@@ -288,7 +289,7 @@ func TestExecuteJob(t *testing.T) {
 
 		report, ok := apiClient.lastReport()
 		require.True(t, ok)
-		assert.Equal(t, api.VerificationStatusFailed, report.Status)
+		assert.Equal(t, agentclient.VerificationReportStatusFAILED, report.Status)
 		assert.Nil(t, report.PgRestoreExitCode, "a dead connection is agent infra (retryable)")
 	})
 	t.Run("reports failed with exit code zero when verification fails and its connection is alive", func(t *testing.T) {
@@ -302,7 +303,7 @@ func TestExecuteJob(t *testing.T) {
 
 		report, ok := apiClient.lastReport()
 		require.True(t, ok)
-		assert.Equal(t, api.VerificationStatusFailed, report.Status)
+		assert.Equal(t, agentclient.VerificationReportStatusFAILED, report.Status)
 		require.NotNil(t, report.PgRestoreExitCode)
 		assert.Equal(t, 0, *report.PgRestoreExitCode,
 			"a live conn with a broken tier-1 result is BackupRejected with exit 0")
@@ -323,7 +324,7 @@ func TestExecuteJob(t *testing.T) {
 
 		report, ok := apiClient.lastReport()
 		require.True(t, ok)
-		assert.Equal(t, api.VerificationStatusCompleted, report.Status)
+		assert.Equal(t, agentclient.VerificationReportStatusCOMPLETED, report.Status)
 		require.NotNil(t, report.DBSizeBytesAfterRestore)
 		assert.Equal(t, int64(9_000_000), *report.DBSizeBytesAfterRestore)
 		require.NotNil(t, report.TableCount)
@@ -342,7 +343,7 @@ func TestExecuteJob(t *testing.T) {
 
 		report, ok := apiClient.lastReport()
 		require.True(t, ok)
-		assert.Equal(t, api.VerificationStatusCompleted, report.Status)
+		assert.Equal(t, agentclient.VerificationReportStatusCOMPLETED, report.Status)
 		assert.Equal(t, []string{"roles", "pre", "restore", "post"}, restorer.calls,
 			"timescaledb restore must enter restoring mode, restore, then leave it")
 		assert.Equal(t, 1, restorer.runParallelJobs,
@@ -375,7 +376,7 @@ func TestExecuteJob(t *testing.T) {
 
 		report, ok := apiClient.lastReport()
 		require.True(t, ok)
-		assert.Equal(t, api.VerificationStatusFailed, report.Status)
+		assert.Equal(t, agentclient.VerificationReportStatusFAILED, report.Status)
 		assert.Nil(t, report.PgRestoreExitCode,
 			"role setup is agent infrastructure, so the backup must not be blamed")
 		assert.Equal(t, []string{"roles"}, restorer.calls)
@@ -394,7 +395,7 @@ func TestExecuteJob(t *testing.T) {
 	})
 }
 
-func timescaleJob() *api.JobAssignment {
+func timescaleJob() *agentclient.VerificationAssignment {
 	job := postgresJob()
 	job.TimescaledbVersion = "2.17.0"
 
@@ -404,7 +405,7 @@ func timescaleJob() *api.JobAssignment {
 func TestRun(t *testing.T) {
 	t.Run("returns the panic after draining jobs when a restore panics", func(t *testing.T) {
 		t.Parallel()
-		apiClient := &fakeAPI{claims: []*api.JobAssignment{postgresJob()}}
+		apiClient := &fakeAPI{claims: []*agentclient.VerificationAssignment{postgresJob()}}
 		spawner := okSpawner()
 		registrar := newFakeRegistrar()
 		restorer := &fakeRestorer{onEnsureRolesEntered: func() { panic("restore panic") }}
@@ -434,7 +435,7 @@ func TestRun(t *testing.T) {
 	t.Run("cancels and drains sibling jobs when a restore panics", func(t *testing.T) {
 		t.Parallel()
 		synctest.Test(t, func(t *testing.T) {
-			apiClient := &fakeAPI{claims: []*api.JobAssignment{postgresJob(), postgresJob()}}
+			apiClient := &fakeAPI{claims: []*agentclient.VerificationAssignment{postgresJob(), postgresJob()}}
 			spawner := &recordingSpawner{}
 			registrar := newFakeRegistrar()
 			restorer := &panickingRestorer{
@@ -472,7 +473,7 @@ func TestRun(t *testing.T) {
 		t.Parallel()
 		ctx, cancel := context.WithCancel(t.Context())
 		defer cancel()
-		apiClient := &fakeAPI{claims: []*api.JobAssignment{postgresJob()}}
+		apiClient := &fakeAPI{claims: []*agentclient.VerificationAssignment{postgresJob()}}
 		restorer := &fakeRestorer{onEnsureRolesEntered: func() {
 			cancel()
 			panic("restore panic during shutdown")

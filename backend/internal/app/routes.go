@@ -11,8 +11,6 @@ import (
 	system_agent "databasus-backend/internal/features/system/agent"
 	system_healthcheck "databasus-backend/internal/features/system/healthcheck"
 	system_version "databasus-backend/internal/features/system/version"
-	verification_agents "databasus-backend/internal/features/verification/agents"
-	verification_runs "databasus-backend/internal/features/verification/runs"
 	"databasus-backend/internal/lib/apierror"
 	"databasus-backend/internal/lib/httpserver"
 )
@@ -47,6 +45,11 @@ func (a *App) registerContractRoutes(router *gin.Engine) error {
 		systemhttpapi.GinServerOptions{BaseURL: "", Middlewares: nil, ErrorHandler: errorHooks.HandleParameterError},
 	)
 
+	agentGuard, err := httpserver.RequireContractOperation(contract.Agent, a.logger)
+	if err != nil {
+		return err
+	}
+	a.verificationModule.RegisterAgentRoutes(router.Group("/api/v1", agentGuard), errorHooks)
 	return nil
 }
 
@@ -57,8 +60,6 @@ func (a *App) registerRoutes(router *gin.Engine) {
 	system_healthcheck.GetHealthcheckController().RegisterRoutes(v1)
 	agentController := system_agent.AgentController{BinariesDir: a.environment.AgentBinariesDir}
 	agentController.RegisterRoutes(v1)
-	verification_agents.GetAgentFacingController().RegisterRoutes(v1)
-	verification_runs.GetVerificationAgentController().RegisterRoutes(v1)
 
 	protected := v1.Group("")
 	protected.Use(a.usersModule.GetSessionMiddleware())

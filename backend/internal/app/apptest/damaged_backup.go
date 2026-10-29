@@ -27,3 +27,17 @@ func (a *App) DamageLocalBackup(tb testing.TB, backupID uuid.UUID, damagedBytes 
 		tb.Fatalf("damage the stored backup: %v", err)
 	}
 }
+
+func (a *App) RemoveLocalBackupFile(tb testing.TB, backupID uuid.UUID) {
+	tb.Helper()
+	backups, err := a.app.GetLogicalBackups(tb.Context(), []uuid.UUID{backupID})
+	if err != nil {
+		tb.Fatalf("read the backup file name: %v", err)
+	}
+	if len(backups) != 1 || backups[0].FileName == "" {
+		tb.Fatal("the backup has no stored file")
+	}
+	if err := os.Remove(filepath.Join(old_config.GetEnv().DataFolder, backups[0].FileName)); err != nil {
+		tb.Fatalf("remove the stored backup: %v", err)
+	}
+}

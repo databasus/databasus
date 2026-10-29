@@ -11,48 +11,29 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"databasus-backend/internal/app/apptest"
+	"databasus-backend/internal/lib/agentclient"
 	apiclient "databasus-backend/internal/lib/apiclient"
 )
 
-func agentCall(
-	t *testing.T,
-	app *apptest.App,
-	agent apptest.CreatedVerificationAgent,
-	method, path string,
-	body any,
-) (int, []byte) {
-	t.Helper()
-	return app.CallOldAPI(
-		t,
-		apptest.Session{Client: nil, UserID: uuid.Nil, Email: "", Token: agent.Token},
-		apptest.OldAPICall{Method: method, Path: path, Body: body},
-	)
-}
-func heartbeatPath(id uuid.UUID) string { return "/agent/verification/" + id.String() + "/heartbeat" }
-func claimPath(id uuid.UUID) string     { return "/agent/verifications/" + id.String() + "/claim" }
-func reportPath(agentID, id uuid.UUID) string {
-	return "/agent/verifications/" + agentID.String() + "/" + id.String() + "/report"
-}
-
-func heartbeatBody(ids []uuid.UUID) map[string]any {
-	return map[string]any{
-		"maxCpu":                 4,
-		"maxRamGb":               8,
-		"maxDiskGb":              10,
-		"maxConcurrentJobs":      2,
-		"currentVerificationIds": ids,
+func heartbeatBody(ids []uuid.UUID) agentclient.HeartbeatRequest {
+	return agentclient.HeartbeatRequest{
+		MaxCPU:                 4,
+		MaxRAMMb:               new(8192),
+		MaxDiskGb:              10,
+		MaxConcurrentJobs:      2,
+		CurrentVerificationIDs: ids,
 	}
 }
 
-func claimBody(diskGb int) map[string]any {
-	return map[string]any{
-		"capacity": map[string]int{"maxCpu": 4, "maxRamMb": 8192, "maxDiskGb": diskGb, "maxConcurrentJobs": 2},
+func claimBody(diskGb int) agentclient.ClaimRequest {
+	return agentclient.ClaimRequest{
+		Capacity: agentclient.AgentCapacity{MaxCPU: 4, MaxRAMMb: 8192, MaxDiskGb: diskGb, MaxConcurrentJobs: 2},
 	}
 }
 
 func claim(t *testing.T, team verificationTeam, agent apptest.CreatedVerificationAgent) uuid.UUID {
 	t.Helper()
-	status, body := agentCall(t, team.App, agent, http.MethodPost, claimPath(agent.Agent.ID), claimBody(25))
+	status, body := newProtocolAgent(t, team.App, agent).claimVerification(claimBody(25))
 	require.Equal(t, http.StatusOK, status, string(body))
 	var assignment struct {
 		VerificationID uuid.UUID `json:"verificationId"`
@@ -67,7 +48,7 @@ func TestVerificationProtocol(t *testing.T) {
 		admin := app.CreateAdmin(t)
 		agent := app.CreateVerificationAgent(t, admin)
 		for range 2 {
-			status, body := agentCall(t, app, agent, http.MethodPost, heartbeatPath(agent.Agent.ID), heartbeatBody(nil))
+			status, body := newProtocolAgent(t, app, agent).recordHeartbeat(agent.Agent.ID, heartbeatBody(nil))
 			require.Equal(t, http.StatusOK, status, string(body))
 			app.Clock.Advance(time.Second)
 		}
@@ -77,7 +58,7 @@ func TestVerificationProtocol(t *testing.T) {
 		require.Len(t, listed.JSON200.Items, 1)
 		persisted := listed.JSON200.Items[0]
 		assert.Equal(t, 4, persisted.MaxCpu)
-		assert.Equal(t, 8, persisted.MaxRamGb)
+		assert.Equal(t, 8192, persisted.MaxRamMb)
 		assert.Equal(t, 10, persisted.MaxDiskGb)
 		assert.Equal(t, 2, persisted.MaxConcurrentJobs)
 		require.NotNil(t, persisted.LastSeenAt)
@@ -89,36 +70,41 @@ func TestVerificationProtocol(t *testing.T) {
 		rotated, err := admin.Client.RotateVerificationAgentTokenWithResponse(t.Context(), agent.Agent.ID)
 		require.NoError(t, err)
 		require.NotNil(t, rotated.JSON200)
-		status, _ := agentCall(t, app, agent, http.MethodPost, heartbeatPath(agent.Agent.ID), heartbeatBody(nil))
+		status, _ := newProtocolAgent(t, app, agent).recordHeartbeat(agent.Agent.ID, heartbeatBody(nil))
 		assert.Equal(t, http.StatusUnauthorized, status)
 		agent.Token = rotated.JSON200.Token
-		status, body := agentCall(t, app, agent, http.MethodPost, heartbeatPath(agent.Agent.ID), heartbeatBody(nil))
+		status, body := newProtocolAgent(t, app, agent).recordHeartbeat(agent.Agent.ID, heartbeatBody(nil))
 		assert.Equal(t, http.StatusOK, status, string(body))
 	})
 	t.Run("refuses credentials and capacity that are invalid without changing the agent", func(t *testing.T) {
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
 		agent := app.CreateVerificationAgent(t, admin)
-		for _, token := range []string{"", "invalid", admin.Token} {
+		var refusedDetail string
+		for index, token := range []string{"", "invalid", admin.Token} {
 			invalid := agent
 			invalid.Token = token
-			status, _ := agentCall(t, app, invalid, http.MethodPost, heartbeatPath(agent.Agent.ID), heartbeatBody(nil))
-			assert.Equal(t, http.StatusUnauthorized, status)
-		}
-		for _, id := range []string{"invalid", uuid.NewString()} {
-			status, _ := agentCall(
+			status, body := newProtocolAgent(t, app, invalid).recordHeartbeat(agent.Agent.ID, heartbeatBody(nil))
+			problem := requireAgentProblem(
 				t,
-				app,
-				agent,
-				http.MethodPost,
-				"/agent/verification/"+id+"/heartbeat",
-				heartbeatBody(nil),
+				agentResponse{Status: status, Body: body},
+				agentclient.Problem{Status: http.StatusUnauthorized, Code: agentclient.ProblemCodeUnauthenticated},
 			)
-			assert.Equal(t, http.StatusUnauthorized, status)
+			if index == 0 {
+				refusedDetail = problem.Detail
+			}
+			assert.Equal(t, refusedDetail, problem.Detail)
 		}
+		status, body := newProtocolAgent(t, app, agent).sendInvalidHeartbeat("invalid")
+		malformedIDProblem := requireAgentProblem(
+			t,
+			agentResponse{Status: status, Body: body},
+			agentclient.Problem{Status: http.StatusUnauthorized, Code: agentclient.ProblemCodeUnauthenticated},
+		)
+		assert.Equal(t, refusedDetail, malformedIDProblem.Detail)
 		negative := heartbeatBody(nil)
-		negative["maxRamGb"] = -1
-		status, _ := agentCall(t, app, agent, http.MethodPost, heartbeatPath(agent.Agent.ID), negative)
+		negative.MaxRAMMb = new(-1)
+		status, _ = newProtocolAgent(t, app, agent).recordHeartbeat(agent.Agent.ID, negative)
 		assert.Equal(t, http.StatusBadRequest, status)
 		agentClient := app.NewSessionClient(t, agent.Token)
 		listed, err := agentClient.ListVerificationAgentsWithResponse(t.Context(), nil)
@@ -131,7 +117,7 @@ func TestVerificationProtocol(t *testing.T) {
 			apiclient.ProblemCodeUnauthenticated,
 		)
 		otherAgent := app.CreateVerificationAgent(t, admin)
-		status, _ = agentCall(t, app, agent, http.MethodPost, heartbeatPath(otherAgent.Agent.ID), heartbeatBody(nil))
+		status, _ = newProtocolAgent(t, app, agent).recordHeartbeat(otherAgent.Agent.ID, heartbeatBody(nil))
 		assert.Equal(t, http.StatusUnauthorized, status)
 	})
 	t.Run("limits requests per agent without charging invalid UUIDs", func(t *testing.T) {
@@ -139,22 +125,23 @@ func TestVerificationProtocol(t *testing.T) {
 		admin := app.CreateAdmin(t)
 		agent := app.CreateVerificationAgent(t, admin)
 		for range 12 {
-			status, _ := agentCall(
+			status, body := newProtocolAgent(t, app, agent).sendInvalidHeartbeat("not-an-id")
+			requireAgentProblem(
 				t,
-				app,
-				agent,
-				http.MethodPost,
-				"/agent/verification/not-an-id/heartbeat",
-				heartbeatBody(nil),
+				agentResponse{Status: status, Body: body},
+				agentclient.Problem{Status: http.StatusUnauthorized, Code: agentclient.ProblemCodeUnauthenticated},
 			)
-			require.Equal(t, http.StatusUnauthorized, status)
 		}
 		for range 10 {
-			status, body := agentCall(t, app, agent, http.MethodPost, heartbeatPath(agent.Agent.ID), heartbeatBody(nil))
+			status, body := newProtocolAgent(t, app, agent).recordHeartbeat(agent.Agent.ID, heartbeatBody(nil))
 			require.Equal(t, http.StatusOK, status, string(body))
 		}
-		status, _ := agentCall(t, app, agent, http.MethodPost, heartbeatPath(agent.Agent.ID), heartbeatBody(nil))
-		assert.Equal(t, http.StatusTooManyRequests, status)
+		status, body := newProtocolAgent(t, app, agent).recordHeartbeat(agent.Agent.ID, heartbeatBody(nil))
+		requireAgentProblem(
+			t,
+			agentResponse{Status: status, Body: body},
+			agentclient.Problem{Status: http.StatusTooManyRequests, Code: agentclient.ProblemCodeRateLimited},
+		)
 	})
 	t.Run("returns only engine facts and the disk budget when a pending job fits", func(t *testing.T) {
 		team := newVerificationTeam(t)
@@ -162,7 +149,7 @@ func TestVerificationProtocol(t *testing.T) {
 		team.App.ExecuteSQL(t, "UPDATE backups_logical SET backup_raw_db_size_mb=0.01 WHERE id=?", backup.Id)
 		verification := team.start(t, backup.Id)
 		agent := team.App.CreateVerificationAgent(t, team.Admin)
-		status, body := agentCall(t, team.App, agent, http.MethodPost, claimPath(agent.Agent.ID), claimBody(5))
+		status, body := newProtocolAgent(t, team.App, agent).claimVerification(claimBody(5))
 		require.Equal(t, http.StatusOK, status, string(body))
 		var assignment map[string]json.RawMessage
 		require.NoError(t, json.Unmarshal(body, &assignment))
@@ -180,7 +167,7 @@ func TestVerificationProtocol(t *testing.T) {
 		backup := team.backup(t)
 		verification := team.start(t, backup.Id)
 		agent := team.App.CreateVerificationAgent(t, team.Admin)
-		status, body := agentCall(t, team.App, agent, http.MethodPost, claimPath(agent.Agent.ID), claimBody(1))
+		status, body := newProtocolAgent(t, team.App, agent).claimVerification(claimBody(1))
 		assert.Equal(t, http.StatusNoContent, status, string(body))
 		assert.Equal(t, apiclient.VerificationStatusPENDING, team.read(t, verification.Id).Status)
 	})
@@ -190,27 +177,20 @@ func TestVerificationProtocol(t *testing.T) {
 		verification := team.start(t, backup.Id)
 		agent := team.App.CreateVerificationAgent(t, team.Admin)
 		assert.Equal(t, verification.Id, claim(t, team, agent))
-		report := map[string]any{
-			"status":                  "COMPLETED",
-			"pgRestoreExitCode":       1,
-			"restoreDurationMs":       123,
-			"verifyDurationMs":        45,
-			"dbSizeBytesAfterRestore": int64(1024 * 1024 * 1024),
-			"tableCount":              2,
-			"schemaCount":             1,
-			"tableStats": []map[string]any{
-				{"schemaName": "public", "name": "first", "rowCount": 7},
-				{"schemaName": "public", "name": "second", "rowCount": 9},
+		report := agentclient.VerificationReport{
+			Status:                  "COMPLETED",
+			PgRestoreExitCode:       new(1),
+			RestoreDurationMs:       new(int64(123)),
+			VerifyDurationMs:        new(int64(45)),
+			DBSizeBytesAfterRestore: new(int64(1024 * 1024 * 1024)),
+			TableCount:              new(2),
+			SchemaCount:             new(1),
+			TableStats: []agentclient.ReportTableStat{
+				{SchemaName: "public", Name: "first", RowCount: 7},
+				{SchemaName: "public", Name: "second", RowCount: 9},
 			},
 		}
-		status, body := agentCall(
-			t,
-			team.App,
-			agent,
-			http.MethodPost,
-			reportPath(agent.Agent.ID, verification.Id),
-			report,
-		)
+		status, body := newProtocolAgent(t, team.App, agent).reportVerification(verification.Id, report)
 		require.Equal(t, http.StatusNoContent, status, string(body))
 		completed := team.read(t, verification.Id)
 		assert.Equal(t, apiclient.VerificationStatusCOMPLETED, completed.Status)
@@ -236,24 +216,22 @@ func TestVerificationProtocol(t *testing.T) {
 		canceled, err := team.Owner.Client.CancelVerificationWithResponse(t.Context(), verification.Id)
 		require.NoError(t, err)
 		require.NotNil(t, canceled.JSON200)
-		status, body := agentCall(
+		status, body := newProtocolAgent(
 			t,
 			team.App,
 			agent,
-			http.MethodPost,
-			reportPath(agent.Agent.ID, verification.Id),
-			map[string]any{"status": "COMPLETED"},
-		)
+		).reportVerification(verification.Id, agentclient.VerificationReport{Status: "COMPLETED"})
 		assert.Equal(t, http.StatusGone, status, string(body))
-		assert.JSONEq(t, `{"reason":"gone"}`, string(body))
-		status, _ = agentCall(
+		requireAgentProblem(
+			t,
+			agentResponse{Status: status, Body: body},
+			agentclient.Problem{Status: http.StatusGone, Code: agentclient.ProblemCodeVerificationGone},
+		)
+		status, _ = newProtocolAgent(
 			t,
 			team.App,
 			agent,
-			http.MethodPost,
-			reportPath(agent.Agent.ID, uuid.New()),
-			map[string]any{"status": "COMPLETED"},
-		)
+		).reportVerification(uuid.New(), agentclient.VerificationReport{Status: "COMPLETED"})
 		assert.Equal(t, http.StatusGone, status)
 	})
 	t.Run("tells the agent to abort when a running verification is cancelled", func(t *testing.T) {
@@ -266,14 +244,11 @@ func TestVerificationProtocol(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, canceled.JSON200)
 		assert.Equal(t, apiclient.VerificationStatusCANCELED, canceled.JSON200.Status)
-		status, body := agentCall(
+		status, body := newProtocolAgent(
 			t,
 			team.App,
 			agent,
-			http.MethodPost,
-			heartbeatPath(agent.Agent.ID),
-			heartbeatBody([]uuid.UUID{verification.Id}),
-		)
+		).recordHeartbeat(agent.Agent.ID, heartbeatBody([]uuid.UUID{verification.Id}))
 		require.Equal(t, http.StatusOK, status, string(body))
 		var heartbeat struct {
 			AbortIDs []uuid.UUID `json:"abortVerificationIds"`

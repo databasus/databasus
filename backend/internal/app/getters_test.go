@@ -18,8 +18,6 @@ import (
 	system_healthcheck "databasus-backend/internal/features/system/healthcheck"
 	telemetry "databasus-backend/internal/features/telemetry"
 	users_bridge "databasus-backend/internal/features/users"
-	verification_agents "databasus-backend/internal/features/verification/agents"
-	verification_runs "databasus-backend/internal/features/verification/runs"
 	workspaces_bridge "databasus-backend/internal/features/workspaces"
 	util_cloudflare_turnstile "databasus-backend/internal/util/cloudflare_turnstile"
 	util_encryption "databasus-backend/internal/util/encryption"
@@ -75,14 +73,6 @@ func getOldCodeGetters() []oldCodeGetter {
 			func() any { return telemetry.GetTelemetryBackgroundService() },
 		},
 		{"features/users.GetModule", func() any { return users_bridge.GetModule() }},
-		{
-			"features/verification/agents.GetAgentFacingController",
-			func() any { return verification_agents.GetAgentFacingController() },
-		},
-		{
-			"features/verification/runs.GetVerificationAgentController",
-			func() any { return verification_runs.GetVerificationAgentController() },
-		},
 		{"features/workspaces.GetModule", func() any { return workspaces_bridge.GetModule() }},
 		{"features/workspaces.GetAccess", func() any { return workspaces_bridge.GetAccess() }},
 		{

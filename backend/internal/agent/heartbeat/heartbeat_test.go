@@ -19,7 +19,7 @@ import (
 
 func TestBeat(t *testing.T) {
 	t.Run(
-		"reports capacity with ram converted to gb and no verification i ds when no jobs are registered",
+		"reports capacity in megabytes when no verifications are registered",
 		func(t *testing.T) {
 			var body map[string]any
 
@@ -36,11 +36,16 @@ func TestBeat(t *testing.T) {
 			t.Cleanup(server.Close)
 
 			client := api.NewClient(
-				api.Deps{Host: server.URL, Token: "tok", AgentID: "agent-1", Logger: slog.New(slog.DiscardHandler)},
+				api.Deps{
+					Host:    server.URL,
+					Token:   "tok",
+					AgentID: "11111111-1111-1111-1111-111111111111",
+					Logger:  slog.New(slog.DiscardHandler),
+				},
 			)
 			capacity := config.Capacity{
 				MaxCPU:            8,
-				MaxRAMMb:          4096,
+				MaxRAMMb:          512,
 				MaxDiskGb:         100,
 				MaxConcurrentJobs: 4,
 			}
@@ -52,7 +57,7 @@ func TestBeat(t *testing.T) {
 			).sendHeartbeat(t.Context(), slog.New(slog.DiscardHandler))
 
 			assert.InDelta(t, float64(8), body["maxCpu"], 0.001)
-			assert.InDelta(t, float64(4), body["maxRamGb"], 0.001, "4096 MB must be reported as 4 GB")
+			assert.InDelta(t, float64(512), body["maxRamMb"], 0.001, "configured memory must be reported unchanged")
 			assert.InDelta(t, float64(100), body["maxDiskGb"], 0.001)
 			assert.InDelta(t, float64(4), body["maxConcurrentJobs"], 0.001)
 			assert.Equal(t, []any{}, body["currentVerificationIds"])
@@ -75,7 +80,12 @@ func TestBeat(t *testing.T) {
 		t.Cleanup(server.Close)
 
 		client := api.NewClient(
-			api.Deps{Host: server.URL, Token: "tok", AgentID: "agent-1", Logger: slog.New(slog.DiscardHandler)},
+			api.Deps{
+				Host:    server.URL,
+				Token:   "tok",
+				AgentID: "11111111-1111-1111-1111-111111111111",
+				Logger:  slog.New(slog.DiscardHandler),
+			},
 		)
 		hb := NewHeartbeater(client, config.Capacity{}, slog.New(slog.DiscardHandler))
 
@@ -102,7 +112,12 @@ func TestBeat(t *testing.T) {
 		t.Cleanup(server.Close)
 
 		client := api.NewClient(
-			api.Deps{Host: server.URL, Token: "tok", AgentID: "agent-1", Logger: slog.New(slog.DiscardHandler)},
+			api.Deps{
+				Host:    server.URL,
+				Token:   "tok",
+				AgentID: "11111111-1111-1111-1111-111111111111",
+				Logger:  slog.New(slog.DiscardHandler),
+			},
 		)
 		hb := NewHeartbeater(client, config.Capacity{}, slog.New(slog.DiscardHandler))
 
@@ -128,7 +143,7 @@ func TestHeartbeaterRun(t *testing.T) {
 			api.Deps{
 				Host:    "http://127.0.0.1:0",
 				Token:   "tok",
-				AgentID: "agent-1",
+				AgentID: "11111111-1111-1111-1111-111111111111",
 				Logger:  slog.New(slog.DiscardHandler),
 			},
 		)
@@ -150,7 +165,12 @@ func TestHeartbeaterRun(t *testing.T) {
 		t.Cleanup(server.Close)
 
 		client := api.NewClient(
-			api.Deps{Host: server.URL, Token: "tok", AgentID: "agent-1", Logger: slog.New(slog.DiscardHandler)},
+			api.Deps{
+				Host:    server.URL,
+				Token:   "tok",
+				AgentID: "11111111-1111-1111-1111-111111111111",
+				Logger:  slog.New(slog.DiscardHandler),
+			},
 		)
 		heartbeater := NewHeartbeater(client, config.Capacity{MaxConcurrentJobs: 1}, slog.New(slog.DiscardHandler))
 
