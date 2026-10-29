@@ -85,6 +85,7 @@ func New(tb testing.TB, options ...Option) *App {
 		isGitHubEnabled:              false,
 		isGoogleEnabled:              false,
 		publicURL:                    "",
+		clientToolsDir:               "",
 		walStreamTimings:             nil,
 		fileTimings:                  nil,
 		notificationDeliveryTimeout:  0,
@@ -156,6 +157,10 @@ func New(tb testing.TB, options ...Option) *App {
 		environment.ExternalEndpoints.GoogleAuthURL = fakeGoogle.URL + "/auth"
 		environment.ExternalEndpoints.GoogleTokenURL = fakeGoogle.URL + "/token"
 		environment.ExternalEndpoints.GoogleUserInfoURL = fakeGoogle.URL + "/userinfo"
+	}
+
+	if applied.clientToolsDir != "" {
+		environment.ClientToolsDir = applied.clientToolsDir
 	}
 
 	environment.ExternalEndpoints.SlackPostMessageURL = applied.notifierEndpoints.SlackPostMessageURL
@@ -324,7 +329,7 @@ func (a *App) WaitForPhysicalBackups(tb testing.TB) {
 	testwait.Until(tb, "physical backups record their outcome", func(ctx context.Context) error {
 		var runningCount int64
 		err := db.WithContext(ctx).
-			Raw("SELECT (SELECT count(*) FROM backups_physical_full WHERE status = 'IN_PROGRESS') + (SELECT count(*) FROM backups_physical_incremental WHERE status = 'IN_PROGRESS')").
+			Raw("SELECT count(*) FROM backups_physical WHERE status = 'IN_PROGRESS'").
 			Scan(&runningCount).
 			Error
 		if err != nil {

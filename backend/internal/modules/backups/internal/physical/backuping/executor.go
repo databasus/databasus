@@ -227,7 +227,7 @@ func verifyFullTimelineCompatibility(
 		ctx,
 		conn,
 		common.SourceDB,
-		common.FullRepo,
+		common.BackupRepo,
 		common.HistoryRepo,
 	)
 	if err != nil {

@@ -29,20 +29,17 @@ func (s *Service) CancelBackup(ctx context.Context, actor users.Actor, backupID 
 		return ErrBackupNotInProgress
 	}
 
-	cancelled, err := s.canceller.CancelInFlightBackup(ctx, backuping.CancelInFlightBackupSpec{
-		DatabaseID: databaseID,
-		BackupID:   backupID,
+	return s.transactor.Transaction(ctx, func(ctx context.Context) error {
+		isCanceled, err := s.canceller.CancelRunningBackup(ctx, backuping.CancelRunningBackupSpec{
+			DatabaseID: databaseID, BackupID: backupID,
+		})
+		if err != nil {
+			return err
+		}
+		if !isCanceled {
+			return ErrBackupNotInProgress
+		}
+		return s.auditing.Record(ctx, actor, database.WorkspaceID,
+			fmt.Sprintf("Physical backup cancelled for database: %s", database.Name))
 	})
-	if err != nil {
-		return err
-	}
-
-	if !cancelled {
-		return ErrBackupNotInProgress
-	}
-
-	s.recordAuditAfterAction(ctx, actor, database,
-		fmt.Sprintf("Physical backup cancelled for database: %s", database.Name))
-
-	return nil
 }

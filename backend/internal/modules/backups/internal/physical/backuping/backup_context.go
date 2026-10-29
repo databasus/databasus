@@ -26,7 +26,7 @@ func (c *backupContext) Close() {
 	c.tunnel.Close()
 }
 
-type CancelInFlightBackupSpec struct {
+type CancelRunningBackupSpec struct {
 	DatabaseID uuid.UUID
 	BackupID   uuid.UUID
 }

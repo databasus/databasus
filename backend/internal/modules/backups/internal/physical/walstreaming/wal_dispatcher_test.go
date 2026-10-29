@@ -39,7 +39,7 @@ func TestSegmentUploadDispatcher(t *testing.T) {
 		slices.Sort(firstStarted)
 		assert.Equal(t, []string{walName(1, 100), walName(1, 101), walName(1, 102), walName(1, 103)}, firstStarted)
 		require.Len(t, pending, 4)
-		assert.Equal(t, 4, dispatcher.getInFlightCount())
+		assert.Equal(t, 4, dispatcher.getRunningBackupCount())
 		release <- struct{}{}
 		dispatcher.markFinished(<-dispatcher.finishedUploads)
 		pending = dispatcher.startUploads(ctx, slog.New(slog.DiscardHandler), pending)
@@ -102,7 +102,7 @@ func TestSegmentUploadDispatcher(t *testing.T) {
 		for range 3 {
 			assert.Empty(t, dispatcher.startUploads(ctx, logger, []queuedWalSegment{segment}))
 		}
-		assert.Equal(t, 1, dispatcher.getInFlightCount())
+		assert.Equal(t, 1, dispatcher.getRunningBackupCount())
 		assert.Empty(t, started)
 		assert.Empty(t, captured.String())
 	})

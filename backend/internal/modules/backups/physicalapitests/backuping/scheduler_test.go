@@ -4,10 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
-
-	"databasus-backend/internal/app/apptest"
 )
 
 func TestSchedulePhysicalBackup(t *testing.T) {
@@ -120,12 +117,10 @@ func TestSchedulePhysicalBackup(t *testing.T) {
 		team.seedFull(t, schedulerFullSpec{Age: 2 * time.Hour})
 		team.assertNoScheduledBackup(t)
 	})
-	t.Run("keeps the existing claim without inserting a backup when one is in flight", func(t *testing.T) {
+	t.Run("keeps the running backup without inserting another when a backup is running", func(t *testing.T) {
 		team := newBackupState(t)
-		team.App.InsertPhysicalInFlightBackup(
-			t,
-			apptest.PhysicalInFlightBackupSeed{DatabaseID: team.Database.Id, BackupID: uuid.New(), BackupType: "FULL"},
-		)
+		team.seedFull(t, schedulerFullSpec{Status: "IN_PROGRESS"})
+
 		team.assertNoScheduledBackup(t)
 	})
 	t.Run("chooses a requested full before its cadence", func(t *testing.T) {

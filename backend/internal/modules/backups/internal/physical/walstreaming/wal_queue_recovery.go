@@ -20,7 +20,7 @@ func recoverQueuedWalSegments(ctx context.Context, logger *slog.Logger, spec que
 	for ctx.Err() == nil {
 		notStartedSegments = dispatcher.startUploads(ctx, logger, notStartedSegments)
 
-		if dispatcher.getInFlightCount() == 0 {
+		if dispatcher.getRunningBackupCount() == 0 {
 			return
 		}
 

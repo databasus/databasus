@@ -87,7 +87,7 @@ func (d *segmentUploadDispatcher) markFinished(walFilename string) {
 	delete(d.inFlightFilenames, walFilename)
 }
 
-func (d *segmentUploadDispatcher) getInFlightCount() int {
+func (d *segmentUploadDispatcher) getRunningBackupCount() int {
 	return len(d.inFlightFilenames)
 }
 

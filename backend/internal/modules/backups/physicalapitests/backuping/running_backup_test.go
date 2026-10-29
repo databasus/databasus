@@ -52,14 +52,14 @@ func TestCancelRunningPhysicalBackup(t *testing.T) {
 			backup = rows[0]
 			return nil
 		})
-		var claimedBackupID string
+		var runningBackupID string
 		team.App.QuerySQL(
 			t,
-			&claimedBackupID,
-			"SELECT backup_id FROM backups_physical_in_flight WHERE database_id=?",
+			&runningBackupID,
+			"SELECT id FROM backups_physical WHERE status = 'IN_PROGRESS' AND database_id=?",
 			team.Database.Id,
 		)
-		assert.Equal(t, backup.ID.String(), claimedBackupID)
+		assert.Equal(t, backup.ID.String(), runningBackupID)
 		status, body := team.App.CallPhysicalAPI(
 			t,
 			team.Owner,
@@ -71,7 +71,7 @@ func TestCancelRunningPhysicalBackup(t *testing.T) {
 		rows := team.listBackups(t)
 		require.Len(t, rows, 1)
 		assert.Equal(t, "CANCELED", rows[0].Status)
-		team.assertClaimReleased(t)
+		team.assertNoRunningBackup(t)
 		var count int
 		require.NoError(
 			t,
@@ -81,7 +81,7 @@ func TestCancelRunningPhysicalBackup(t *testing.T) {
 		assert.Zero(t, count)
 		team.App.RunJobPass(t, "storage_file_deletion")
 		var files []struct{ FileName *string }
-		team.App.QuerySQL(t, &files, "SELECT file_name FROM backups_physical_full WHERE id=?", backup.ID)
+		team.App.QuerySQL(t, &files, "SELECT file_name FROM backups_physical WHERE id=?", backup.ID)
 		if files[0].FileName != nil {
 			assert.False(t, team.App.IsLocalStorageFilePresent(t, *files[0].FileName))
 		}

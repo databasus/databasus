@@ -31,7 +31,7 @@ type CommonBackupSpec struct {
 	FileStore      storages.Module
 	Encryption     catalog.BackupEncryption
 	MasterKey      *crypto.MasterKey
-	FullRepo       *catalog.FullBackupRepository
+	BackupRepo     *catalog.BackupRepository
 	HistoryRepo    *catalog.WalHistoryRepository
 	Logger         *slog.Logger
 	timelineProbe  timelineIdentityProbe
@@ -44,17 +44,16 @@ type CommonBackupSpec struct {
 
 type FullBackupSpec struct {
 	CommonBackupSpec
-	Backup *catalog.FullBackup
+	Backup *catalog.Backup
 }
 
 type IncrementalBackupSpec struct {
 	CommonBackupSpec
 
-	Backup         *catalog.IncrementalBackup
+	Backup         *catalog.Backup
 	ParentManifest ParentManifestRef
 	// StorageReader reads the parent manifest, which sits in the same storage the increment goes to.
 	StorageReader storages.StorageReader
-	IncrRepo      *catalog.IncrementalBackupRepository
 
 	// IncrementalCadence is the configured INCR interval, used only to size the
 	// bounded summarizer wait window (min(cadence/4, cap)). Zero is acceptable —

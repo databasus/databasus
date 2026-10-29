@@ -77,7 +77,7 @@ func TestPhysicalBackupSlots(t *testing.T) {
 							Scan(&count),
 					)
 					assert.Zero(t, count)
-					team.assertClaimReleased(t)
+					team.assertNoRunningBackup(t)
 				},
 			)
 		}
@@ -115,7 +115,7 @@ func TestPhysicalBackupSlots(t *testing.T) {
 			team.Database.Id,
 		)
 		require.Equal(t, "COMPLETED", team.runBackup(t, "full").Status)
-		team.assertClaimReleased(t)
+		team.assertNoRunningBackup(t)
 	})
 }
 

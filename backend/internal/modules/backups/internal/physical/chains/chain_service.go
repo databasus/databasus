@@ -8,23 +8,19 @@ import (
 
 type (
 	Deps struct {
-		Repository         *catalog.Repository
-		FullBackups        *catalog.FullBackupRepository
-		IncrementalBackups *catalog.IncrementalBackupRepository
-		InFlightBackups    *catalog.InFlightBackupRepository
-		WalSegments        *catalog.WalSegmentRepository
-		WalHistory         *catalog.WalHistoryRepository
+		Repository  *catalog.Repository
+		Backups     *catalog.BackupRepository
+		WalSegments *catalog.WalSegmentRepository
+		WalHistory  *catalog.WalHistoryRepository
 
 		Storages   storages.Module
 		Transactor *database.Transactor
 	}
 	Service struct {
-		repository                  *catalog.Repository
-		fullBackupRepository        *catalog.FullBackupRepository
-		incrementalBackupRepository *catalog.IncrementalBackupRepository
-		inFlightBackupRepository    *catalog.InFlightBackupRepository
-		walSegmentRepository        *catalog.WalSegmentRepository
-		walHistoryRepository        *catalog.WalHistoryRepository
+		repository           *catalog.Repository
+		backupRepository     *catalog.BackupRepository
+		walSegmentRepository *catalog.WalSegmentRepository
+		walHistoryRepository *catalog.WalHistoryRepository
 
 		storages   storages.Module
 		transactor *database.Transactor
@@ -33,12 +29,10 @@ type (
 
 func New(deps Deps) *Service {
 	return &Service{
-		repository:                  deps.Repository,
-		fullBackupRepository:        deps.FullBackups,
-		incrementalBackupRepository: deps.IncrementalBackups,
-		inFlightBackupRepository:    deps.InFlightBackups,
-		walSegmentRepository:        deps.WalSegments,
-		walHistoryRepository:        deps.WalHistory,
+		repository:           deps.Repository,
+		backupRepository:     deps.Backups,
+		walSegmentRepository: deps.WalSegments,
+		walHistoryRepository: deps.WalHistory,
 
 		storages:   deps.Storages,
 		transactor: deps.Transactor,

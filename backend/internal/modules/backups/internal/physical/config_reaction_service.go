@@ -18,7 +18,9 @@ func (s *Service) ReactToSavedConfig(
 ) error {
 	if previous != nil {
 		if previous.IsBackupsEnabled && !saved.IsBackupsEnabled {
-			s.canceller.CancelInFlightForDatabase(ctx, saved.DatabaseID)
+			if err := s.canceller.CancelRunningForDatabase(ctx, saved.DatabaseID); err != nil {
+				return err
+			}
 			s.cancelStreaming(ctx, saved.DatabaseID)
 		}
 		if saved.StorageID != nil && !isSameStorage(previous.StorageID, saved.StorageID) {
@@ -50,7 +52,7 @@ func (s *Service) removeBackupsOutsideStorage(
 	databaseID uuid.UUID,
 	storageID uuid.UUID,
 ) error {
-	fullsInOtherStorages, err := s.fullBackupRepository.FindAllByDatabaseOutsideStorage(ctx, databaseID, storageID)
+	fullsInOtherStorages, err := s.backupRepository.FindAllFullByDatabaseOutsideStorage(ctx, databaseID, storageID)
 	if err != nil {
 		return err
 	}

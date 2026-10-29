@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -99,19 +98,18 @@ func TestCascadePhysicalBackup(t *testing.T) {
 		)
 		assert.NotEmpty(t, token.Token)
 	})
-	t.Run("keeps WAL and history when another full has an active claim", func(t *testing.T) {
+	t.Run("keeps WAL and history when another full is running", func(t *testing.T) {
 		catalog := newCatalog(t)
 		full := catalog.seedCascadeFull(t, cascadeFullSpec{})
 		wal := catalog.seedCascadeWal(t, cascadeWalSpec{Segment: 1})
 		history := catalog.seedHistory(t, 1)
-		catalog.App.InsertPhysicalInFlightBackup(
+		catalog.insertFull(
 			t,
-			apptest.PhysicalInFlightBackupSeed{
-				DatabaseID: catalog.DatabaseID,
-				BackupID:   uuid.New(),
-				BackupType: "FULL",
-			},
+			newInProgressFull(
+				inProgressFullSpec{DatabaseID: catalog.DatabaseID, StorageID: catalog.StorageID, TimelineID: 1},
+			),
 		)
+
 		catalog.deleteFull(t, full.ID)
 		catalog.assertWalPresent(t, wal.ID)
 		catalog.assertHistoryPresent(t, history.ID, true)
@@ -143,7 +141,7 @@ func TestCascadePhysicalBackup(t *testing.T) {
 		full := cleaner.seedChainFull(t, chainFullSpec{StartSegment: 0, AgeHours: 20})
 		cleaner.seedChainFull(t, chainFullSpec{StartSegment: 100, AgeHours: 10})
 		active := cleaner.seedChainFull(t, chainFullSpec{StartSegment: 200, AgeHours: 0})
-		catalog.App.ExecuteSQL(t, "UPDATE backups_physical_full SET backup_size_mb=1 WHERE id=?", active.ID)
+		catalog.App.ExecuteSQL(t, "UPDATE backups_physical SET backup_size_mb=1 WHERE id=?", active.ID)
 		segments := []*apptest.PhysicalWalSegmentSeed{}
 		for index := 1; index <= 5; index++ {
 			wal := newWalSeed(
@@ -179,7 +177,7 @@ func TestCascadePhysicalBackup(t *testing.T) {
 		wal := catalog.seedCascadeWal(t, cascadeWalSpec{Segment: 1, Age: 70 * time.Hour})
 		catalog.App.ExecuteSQL(
 			t,
-			"UPDATE backups_physical_incremental SET created_at=?,completed_at=? WHERE id=?",
+			"UPDATE backups_physical SET created_at=?,completed_at=? WHERE id=?",
 			time.Now().UTC().Add(-75*time.Hour),
 			time.Now().UTC().Add(-74*time.Hour),
 			incremental.ID,

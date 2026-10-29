@@ -119,9 +119,9 @@ func TestMovePhysicalBackupConfigToAnotherStorage(t *testing.T) {
 		require.NotNil(t, savedConfig.StorageId)
 		assert.Equal(t, nextStorageID, *savedConfig.StorageId)
 		assert.Zero(t, countRows(t, tm,
-			"SELECT COUNT(*) FROM backups_physical_full WHERE database_id = ? AND storage_id = ?",
+			"SELECT COUNT(*) FROM backups_physical WHERE database_id = ? AND storage_id = ?",
 			physicalDatabase.Id, previousStorageID))
-		assert.Equal(t, 1, countRows(t, tm, "SELECT COUNT(*) FROM backups_physical_full WHERE id = ?",
+		assert.Equal(t, 1, countRows(t, tm, "SELECT COUNT(*) FROM backups_physical WHERE id = ?",
 			keptBackupID))
 	})
 
@@ -134,7 +134,7 @@ func TestMovePhysicalBackupConfigToAnotherStorage(t *testing.T) {
 
 		savePhysicalBackupConfigWithStorage(t, tm, physicalDatabase.Id, storageID)
 
-		assert.Equal(t, 1, countRows(t, tm, "SELECT COUNT(*) FROM backups_physical_full WHERE id = ?",
+		assert.Equal(t, 1, countRows(t, tm, "SELECT COUNT(*) FROM backups_physical WHERE id = ?",
 			keptBackupID))
 	})
 }
@@ -172,9 +172,9 @@ func insertCompletedPhysicalFullBackup(t *testing.T, tm team, databaseID, storag
 	t.Helper()
 
 	backupID := uuid.New()
-	tm.app.ExecuteSQL(t, `INSERT INTO backups_physical_full
-		(id, database_id, storage_id, timeline_id, status, file_name, start_lsn, stop_lsn, completed_at)
-		VALUES (?, ?, ?, 1, 'COMPLETED', ?, '0/2000028', '0/2000138', NOW())`,
+	tm.app.ExecuteSQL(t, `INSERT INTO backups_physical
+		(id, database_id, storage_id, timeline_id, status, file_name, start_lsn, stop_lsn, completed_at, kind)
+		VALUES (?, ?, ?, 1, 'COMPLETED', ?, '0/2000028', '0/2000138', NOW(), 'FULL')`,
 		backupID, databaseID, storageID, "full-"+backupID.String())
 
 	return backupID

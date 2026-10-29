@@ -23,15 +23,17 @@ type previousPhysicalBackupPage struct {
 }
 
 type previousPhysicalBackup struct {
-	ID              string  `json:"id"`
-	Type            string  `json:"type"`
-	Status          string  `json:"status"`
-	TimelineID      int     `json:"timelineId"`
-	StartLSN        string  `json:"startLsn"`
-	StopLSN         string  `json:"stopLsn"`
-	FromWalFilename string  `json:"fromWalFilename"`
-	ToWalFilename   string  `json:"toWalFilename"`
-	FailMessage     *string `json:"failMessage"`
+	RootFullBackupID          string  `json:"rootFullBackupId"`
+	ParentIncrementalBackupID string  `json:"parentIncrementalBackupId"`
+	ID                        string  `json:"id"`
+	Type                      string  `json:"type"`
+	Status                    string  `json:"status"`
+	TimelineID                int     `json:"timelineId"`
+	StartLSN                  string  `json:"startLsn"`
+	StopLSN                   string  `json:"stopLsn"`
+	FromWalFilename           string  `json:"fromWalFilename"`
+	ToWalFilename             string  `json:"toWalFilename"`
+	FailMessage               *string `json:"failMessage"`
 }
 
 func writePhysicalBackup(t *testing.T, api *apiClient, source physicalSourceSpec) (string, []upgradecheck.Item, error) {
@@ -97,7 +99,55 @@ func writePhysicalBackup(t *testing.T, api *apiClient, source physicalSourceSpec
 			getOptionalValue(fullBackup.FailMessage),
 		)
 	}
-	items := []upgradecheck.Item{physicalFullBackupItem(fullBackup.GetSnapshot())}
+	err = api.post(
+		t.Context(),
+		"/backups/physical/database/"+databaseID+"/trigger",
+		map[string]string{"type": "incremental"},
+		nil,
+	)
+	if err != nil {
+		return "", nil, err
+	}
+	var incrementalBackup previousPhysicalBackup
+	err = testwait.Poll(t, "the previous release's incremental backup to finish", func(ctx context.Context) error {
+		var page previousPhysicalBackupPage
+		if err := api.get(
+			ctx,
+			"/backups/physical/database/"+databaseID+"/backups?type=INCREMENTAL&limit=100",
+			&page,
+		); err != nil {
+			return err
+		}
+		for _, backup := range page.Backups {
+			if backup.Type == "INCREMENTAL" && backup.Status != "IN_PROGRESS" {
+				incrementalBackup = backup
+				return nil
+			}
+		}
+		return errors.New("no finished physical incremental backup is listed")
+	})
+	if err != nil {
+		return "", nil, err
+	}
+	if incrementalBackup.Status != "COMPLETED" {
+		return "", nil, fmt.Errorf(
+			"physical incremental backup %s ended with %s: %s",
+			incrementalBackup.ID,
+			incrementalBackup.Status,
+			getOptionalValue(incrementalBackup.FailMessage),
+		)
+	}
+	if incrementalBackup.RootFullBackupID != fullBackup.ID || incrementalBackup.ParentIncrementalBackupID != "" {
+		return "", nil, fmt.Errorf(
+			"physical incremental backup %s does not directly extend full backup %s",
+			incrementalBackup.ID,
+			fullBackup.ID,
+		)
+	}
+	items := []upgradecheck.Item{
+		physicalFullBackupItem(fullBackup.GetSnapshot()),
+		physicalIncrementalBackupItem(incrementalBackup.GetSnapshot()),
+	}
 	var forcedWalFilename string
 	err = executeOnSourceDatabase(t.Context(), source.hostPort, sourceDatabaseName, func(connection *pgx.Conn) error {
 		_, writeErr := connection.Exec(
@@ -119,7 +169,7 @@ func writePhysicalBackup(t *testing.T, api *apiClient, source physicalSourceSpec
 	}
 	err = testwait.Poll(
 		t,
-		"the previous release to archive WAL after its full backup",
+		"the previous release to archive WAL after its incremental backup",
 		func(ctx context.Context) error {
 			var page previousPhysicalBackupPage
 			if readErr := api.get(
@@ -149,6 +199,7 @@ func writePhysicalBackup(t *testing.T, api *apiClient, source physicalSourceSpec
 
 func (backup previousPhysicalBackup) GetSnapshot() physicalBackupSnapshot {
 	return physicalBackupSnapshot{
+		RootFullBackupID: backup.RootFullBackupID, ParentIncrementalBackupID: backup.ParentIncrementalBackupID,
 		ID: backup.ID, Type: backup.Type, Status: backup.Status, TimelineID: backup.TimelineID,
 		StartLSN: backup.StartLSN, StopLSN: backup.StopLSN,
 		FromWalFilename: backup.FromWalFilename, ToWalFilename: backup.ToWalFilename,

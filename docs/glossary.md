@@ -49,7 +49,7 @@ This is the project's common language. Each concept has one term in the document
 | WAL segment | WAL segment | One file of PostgreSQL's write-ahead log, archived to the storage after it is completed. |
 | WAL range | `WAL` row | Consecutive archived WAL segments shown as one row in the physical backup list. |
 | Timeline history file | timeline history file | The `.history` file PostgreSQL writes when a timeline starts, archived beside the WAL segments. |
-| In-flight claim | `backups_physical_in_flight` | The record that a full or incremental backup of a database is running, at most one per database. |
+| Running backup | `IN_PROGRESS`, `uq_backups_physical_database_in_progress` | The one full or incremental backup row that a database may have in progress. |
 | WAL stream sample | `backups_physical_wal_stream_samples` | The state of a WAL stream recorded every 30 seconds, from which its health is computed. |
 | WAL stream | WAL stream | Continuous archiving of a database's WAL segments by `pg_receivewal`. |
 | WAL stream manager | `walstreaming.Manager` | The process that starts, stops and monitors the WAL streamers of all databases. |

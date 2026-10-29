@@ -680,25 +680,21 @@ func TestGetWalStreamStatistics(t *testing.T) {
 
 		assert.False(t, getWalStreamStatistics(t, catalog, "HOUR").Health.IsFullBackupPending)
 
-		inFlightFull := catalog.insertFull(
+		catalog.insertFull(
 			t,
 			newInProgressFull(
 				inProgressFullSpec{DatabaseID: catalog.DatabaseID, StorageID: catalog.StorageID, TimelineID: 1},
 			),
 		)
-		catalog.App.InsertPhysicalInFlightBackup(
-			t,
-			apptest.PhysicalInFlightBackupSeed{
-				DatabaseID: catalog.DatabaseID,
-				BackupID:   inFlightFull.ID,
-				BackupType: "FULL",
-			},
-		)
 
 		assert.True(t, getWalStreamStatistics(t, catalog, "HOUR").Health.IsFullBackupPending,
 			"a running full backup is pending")
 
-		catalog.App.ExecuteSQL(t, "DELETE FROM backups_physical_in_flight WHERE database_id = ?", catalog.DatabaseID)
+		catalog.App.ExecuteSQL(
+			t,
+			"DELETE FROM backups_physical WHERE status = 'IN_PROGRESS' AND database_id = ?",
+			catalog.DatabaseID,
+		)
 		assert.False(t, getWalStreamStatistics(t, catalog, "HOUR").Health.IsFullBackupPending)
 
 		catalog.call(

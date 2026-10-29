@@ -68,7 +68,7 @@ type backupChecker interface {
 }
 
 type latestPhysicalBackupReader interface {
-	GetLatestCompletedPhysicalFullBackup(ctx context.Context, databaseID uuid.UUID) (*backups.PhysicalFullBackup, error)
+	GetLatestCompletedPhysicalFullBackup(ctx context.Context, databaseID uuid.UUID) (*backups.PhysicalBackup, error)
 }
 
 type userCounter interface {

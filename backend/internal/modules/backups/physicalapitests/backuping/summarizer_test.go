@@ -48,7 +48,7 @@ func TestIncrementalBackupWithPendingWalSummaries(t *testing.T) {
 				incremental := team.runBackup(t, "incremental")
 				require.Equal(t, "COMPLETED", incremental.Status)
 				team.assertArtifacts(t, incremental)
-				team.assertClaimReleased(t)
+				team.assertNoRunningBackup(t)
 			})
 		}
 	}
@@ -68,10 +68,10 @@ func TestIncrementalBackupWithPendingWalSummaries(t *testing.T) {
 			}
 			return nil
 		})
-		team.App.ExecuteSQL(t, "UPDATE backups_physical_full SET stop_lsn='0/1' WHERE id=?", full.ID)
+		team.App.ExecuteSQL(t, "UPDATE backups_physical SET stop_lsn='0/1' WHERE id=?", full.ID)
 		incremental := team.runBackup(t, "incremental")
 		assert.Equal(t, "CHAIN_BROKEN", incremental.Status)
 		team.assertTerminalDetails(t, incremental, "SUMMARIES_EXPIRED")
-		team.assertClaimReleased(t)
+		team.assertNoRunningBackup(t)
 	})
 }

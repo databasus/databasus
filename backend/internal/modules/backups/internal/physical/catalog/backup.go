@@ -8,10 +8,20 @@ import (
 	"databasus-backend/internal/engines/postgresql/physical/walmath"
 )
 
-type FullBackup struct {
-	ID         uuid.UUID `gorm:"column:id;type:uuid;primaryKey;default:gen_random_uuid()"`
-	DatabaseID uuid.UUID `gorm:"column:database_id;type:uuid;not null"`
-	StorageID  uuid.UUID `gorm:"column:storage_id;type:uuid;not null"`
+type BackupKind string
+
+const (
+	BackupKindFull        BackupKind = "FULL"
+	BackupKindIncremental BackupKind = "INCREMENTAL"
+)
+
+type Backup struct {
+	Kind             BackupKind `gorm:"column:kind;type:text;not null"`
+	ParentBackupID   *uuid.UUID `gorm:"column:parent_backup_id;type:uuid"`
+	RootFullBackupID *uuid.UUID `gorm:"column:root_full_backup_id;type:uuid"`
+	ID               uuid.UUID  `gorm:"column:id;type:uuid;primaryKey;default:gen_random_uuid()"`
+	DatabaseID       uuid.UUID  `gorm:"column:database_id;type:uuid;not null"`
+	StorageID        uuid.UUID  `gorm:"column:storage_id;type:uuid;not null"`
 
 	TimelineID int `gorm:"column:timeline_id;type:int;not null"`
 
@@ -42,6 +52,6 @@ type FullBackup struct {
 	CompletedAt *time.Time `gorm:"column:completed_at"`
 }
 
-func (FullBackup) TableName() string {
-	return "backups_physical_full"
+func (Backup) TableName() string {
+	return "backups_physical"
 }

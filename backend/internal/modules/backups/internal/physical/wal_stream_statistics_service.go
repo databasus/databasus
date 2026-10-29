@@ -79,12 +79,12 @@ func (s *Service) isFullBackupPending(ctx context.Context,
 		return true, nil
 	}
 
-	inFlightBackup, _, err := s.inFlightBackupRepository.FindByDatabaseID(ctx, databaseID)
+	runningBackup, _, err := s.backupRepository.FindRunningByDatabaseID(ctx, databaseID)
 	if err != nil {
 		return false, err
 	}
 
-	return inFlightBackup != nil && inFlightBackup.BackupType == catalog.BackupTypeFull, nil
+	return runningBackup != nil && runningBackup.Kind == catalog.BackupKindFull, nil
 }
 
 func toWalStreamStatisticsResponse(

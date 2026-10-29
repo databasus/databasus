@@ -35,7 +35,7 @@ func uploadFullMetadata(
 	fileStore storages.Module,
 	storageID uuid.UUID,
 	sourceDB databases.PostgresqlPhysicalConnectionSettings,
-	fullBackup *catalog.FullBackup,
+	fullBackup *catalog.Backup,
 	result Result,
 ) (storages.WriteReceipt, error) {
 	if result.FileName == "" {
@@ -73,7 +73,7 @@ func uploadIncrMetadata(
 	fileStore storages.Module,
 	storageID uuid.UUID,
 	sourceDB databases.PostgresqlPhysicalConnectionSettings,
-	incrBackup *catalog.IncrementalBackup,
+	incrBackup *catalog.Backup,
 	result Result,
 ) (storages.WriteReceipt, error) {
 	if result.FileName == "" {
@@ -81,6 +81,10 @@ func uploadIncrMetadata(
 	}
 
 	rootID := incrBackup.RootFullBackupID
+	parentID := incrBackup.ParentBackupID
+	if parentID != nil && rootID != nil && *parentID == *rootID {
+		parentID = nil
+	}
 
 	metadata := catalog.BackupMetadata{
 		BackupID:                  incrBackup.ID,
@@ -93,8 +97,8 @@ func uploadIncrMetadata(
 		StopLSN:                   result.StopLSN.String(),
 		UncompressedSizeBytes:     0,
 		CompressedSizeBytes:       int64(result.BackupSizeMb * 1024 * 1024),
-		RootFullBackupID:          &rootID,
-		ParentIncrementalBackupID: incrBackup.ParentIncrementalBackupID,
+		RootFullBackupID:          rootID,
+		ParentIncrementalBackupID: parentID,
 		Encryption:                result.EncryptionAlgo,
 		EncryptionSalt:            result.EncryptionSalt,
 		EncryptionIV:              result.EncryptionIV,

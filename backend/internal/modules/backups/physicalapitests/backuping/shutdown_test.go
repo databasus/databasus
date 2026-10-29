@@ -37,7 +37,7 @@ func TestPhysicalBackupShutdown(t *testing.T) {
 				require.NotNil(t, listed.FailMessage)
 				assert.Equal(t, shutdownFailMessage, *listed.FailMessage)
 				team.assertTerminalDetails(t, listed, "APPLICATION_RESTART")
-				team.assertClaimReleased(t)
+				team.assertNoRunningBackup(t)
 				team.App.WaitForNotificationDeliveries(t)
 				require.Len(t, failures.getMessages(), 1)
 				assert.Contains(t, failures.getMessages()[0], shutdownFailMessage)
@@ -47,10 +47,7 @@ func TestPhysicalBackupShutdown(t *testing.T) {
 					FileName         *string
 					ManifestFileName *string
 				}
-				table := "backups_physical_full"
-				if kind == "incremental" {
-					table = "backups_physical_incremental"
-				}
+				table := "backups_physical"
 				team.App.QuerySQL(
 					t,
 					&artifacts,
@@ -79,7 +76,7 @@ func TestPhysicalBackupShutdown(t *testing.T) {
 			assert.Equal(t, "CANCELED", listed.Status)
 			require.NotNil(t, listed.FailMessage)
 			assert.Equal(t, "context canceled", *listed.FailMessage)
-			team.assertClaimReleased(t)
+			team.assertNoRunningBackup(t)
 		})
 	}
 }
@@ -95,7 +92,7 @@ func TestCancelDispatchedPhysicalBackup(t *testing.T) {
 		team.App.WaitForPhysicalBackups(t)
 		listed := findPhysicalBackup(t, team, backups[0])
 		assert.Contains(t, []string{"ERROR", "CANCELED"}, listed.Status)
-		team.assertClaimReleased(t)
+		team.assertNoRunningBackup(t)
 	})
 }
 

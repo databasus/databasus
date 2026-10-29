@@ -24,7 +24,7 @@ func TestRetentionConfiguration(t *testing.T) {
 	})
 	t.Run("returns no retention selection when a last N policy has a zero count", func(t *testing.T) {
 		cleaner := &Cleaner{}
-		fullBackups := []*catalog.FullBackup{{ID: uuid.New()}, {ID: uuid.New()}}
+		fullBackups := []*catalog.Backup{{ID: uuid.New()}, {ID: uuid.New()}}
 		retained := cleaner.getRetainedTiersByFullBackupID(
 			config.PhysicalBackupConfig{
 				Retention: config.PhysicalRetention{

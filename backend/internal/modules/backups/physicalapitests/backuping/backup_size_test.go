@@ -19,7 +19,7 @@ func TestPhysicalBackupWithoutClusterSize(t *testing.T) {
 		full := team.runBackup(t, "full")
 		require.Equal(t, "COMPLETED", full.Status)
 		var stored apptest.PhysicalFullBackupSeed
-		team.App.QuerySQL(t, &stored, "SELECT * FROM backups_physical_full WHERE id=?", full.ID)
+		team.App.QuerySQL(t, &stored, "SELECT * FROM backups_physical WHERE id=?", full.ID)
 		assert.Nil(t, stored.RawSizeMb)
 		team.assertArtifacts(t, full)
 	})

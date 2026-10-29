@@ -31,9 +31,7 @@ func TestPhysicalCatalogSeeds(t *testing.T) {
 			DatabaseID: databaseID, StorageID: storageID, TimelineID: 2,
 			FileName: "seed-history", HistoryFilename: "00000002.history",
 		})
-		testApp.InsertPhysicalInFlightBackup(t, PhysicalInFlightBackupSeed{
-			DatabaseID: databaseID, BackupID: uuid.New(), BackupType: "FULL",
-		})
+
 		testApp.InsertPhysicalWalStreamer(t, PhysicalWalStreamerSeed{DatabaseID: databaseID})
 		testApp.InsertPhysicalWalStreamSample(t, PhysicalWalStreamSampleSeed{
 			DatabaseID: databaseID, WalSegmentSizeBytes: 16 * 1024 * 1024,

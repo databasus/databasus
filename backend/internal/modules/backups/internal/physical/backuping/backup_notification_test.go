@@ -36,23 +36,15 @@ func TestClassifyBackupNotification(t *testing.T) {
 							BackupDurationMs: 999,
 							ErrorMessage:     "source unavailable",
 						},
-						FullBackup: &catalog.FullBackup{
-							ID:          backupID,
-							Status:      testCase.status,
-							ErrorReason: new(catalog.BackupErrorPgBasebackupFailed),
-						},
-						IncrementalBackup: &catalog.IncrementalBackup{
-							ID:          backupID,
-							Status:      testCase.status,
+						Backup: &catalog.Backup{
+							Kind: catalog.BackupKindFull, ID: backupID, Status: testCase.status,
 							ErrorReason: new(catalog.BackupErrorPgBasebackupFailed),
 						},
 					}
-					classify := classifyFullNotification
 					if backupKind == "incremental" {
-						classify = classifyIncrNotification
+						spec.Backup.Kind = catalog.BackupKindIncremental
 					}
-
-					trigger, heading, message := classify(spec)
+					trigger, heading, message := classifyBackupNotificationSpec(spec)
 
 					assert.Equal(t, testCase.expectedTrigger, trigger)
 					if testCase.expectedTrigger == "" {

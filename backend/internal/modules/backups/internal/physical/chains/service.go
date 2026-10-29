@@ -2,7 +2,6 @@ package chains
 
 import (
 	"context"
-	"errors"
 
 	"github.com/google/uuid"
 
@@ -34,8 +33,8 @@ const (
 // a database, or nil when the database has none. Telemetry uses its raw/compressed
 // sizes as the physical database's size of record.
 func (s *Service) GetLatestCompletedFullBackup(ctx context.Context, databaseID uuid.UUID,
-) (*catalog.FullBackup, error) {
-	completedBackups, err := s.fullBackupRepository.FindCompletedNewestFirstByDatabase(ctx, databaseID)
+) (*catalog.Backup, error) {
+	completedBackups, err := s.backupRepository.FindCompletedFullNewestFirstByDatabase(ctx, databaseID)
 	if err != nil {
 		return nil, err
 	}
@@ -105,33 +104,6 @@ func (s *Service) DeleteChainDependentsKeepFull(
 	return s.cascadeDelete(ctx, rootFullBackupID, walByteBudgetMB, true)
 }
 
-// DeleteWalSegmentsInSpan deletes orphan WAL — segments with no anchoring FULL —
-// for one (database, timeline) over an LSN span, budget-bounded. There is no
-// FULL to lock, so each batch is SELECT ... FOR UPDATE on the WAL rows directly.
-func (s *Service) DeleteWalSegmentsInSpan(
-	ctx context.Context,
-	databaseID uuid.UUID,
-	timelineID int,
-	span catalog.LSNRange,
-	walByteBudgetMB float64,
-) (int, float64, error) {
-	var deletedRows int
-	var deletedMB float64
-
-	txErr := s.transactor.Transaction(ctx, func(ctx context.Context) error {
-		rows, mb, _, err := s.deleteWalInSpanBudgeted(ctx, databaseID, timelineID, span, walByteBudgetMB, true)
-		deletedRows = rows
-		deletedMB = mb
-
-		return err
-	})
-	if txErr != nil {
-		return 0, 0, txErr
-	}
-
-	return deletedRows, deletedMB, nil
-}
-
 func (s *Service) DeleteOrphanWalSegmentsInSpan(
 	ctx context.Context,
 	spec DeleteOrphanWalSegmentsSpec,
@@ -140,19 +112,19 @@ func (s *Service) DeleteOrphanWalSegmentsInSpan(
 	var deletedMB float64
 
 	txErr := s.transactor.Transaction(ctx, func(ctx context.Context) error {
-		if err := s.inFlightBackupRepository.AcquireBackupAndOrphanCleanupLock(ctx, spec.DatabaseID); err != nil {
+		if err := s.backupRepository.AcquireBackupAndOrphanCleanupLock(ctx, spec.DatabaseID); err != nil {
 			return err
 		}
 
-		hasInFlightFull, err := s.inFlightBackupRepository.HasInFlightFullBackup(ctx, spec.DatabaseID)
+		hasRunningFull, err := s.backupRepository.HasRunningFullBackup(ctx, spec.DatabaseID)
 		if err != nil {
 			return err
 		}
-		if hasInFlightFull {
+		if hasRunningFull {
 			return nil
 		}
 
-		hasAnchoringFull, err := s.inFlightBackupRepository.HasCompletedFullBackupCoveringWal(ctx,
+		hasAnchoringFull, err := s.backupRepository.HasCompletedFullBackupCoveringWal(ctx,
 			spec.DatabaseID,
 			spec.TimelineID,
 			spec.Span.End,
@@ -186,7 +158,7 @@ func (s *Service) DeleteOrphanWalSegmentsInSpan(
 
 // DeleteIncrementalCascade removes one incremental and every incremental that
 // descends from it (its children, their children, …), leaves first so the
-// RESTRICT FK on parent_incremental_backup_id is never violated. The chain's
+// RESTRICT FK on parent_backup_id is never violated. The chain's
 // FULL and WAL are deliberately left intact — an incremental delete only sheds
 // the sub-tree rooted at the target. Idempotent: a missing incremental is a
 // no-op (a peer already deleted it).
@@ -197,17 +169,17 @@ func (s *Service) DeleteIncrementalCascade(
 	summary := DeletedSummary{}
 
 	txErr := s.transactor.Transaction(ctx, func(ctx context.Context) error {
-		target, isFound, err := s.incrementalBackupRepository.FindByID(ctx, incrementalID)
+		target, isFound, err := s.backupRepository.FindByID(ctx, incrementalID)
 		if err != nil {
 			return err
 		}
 		if !isFound {
 			return nil
 		}
-		if _, _, err := s.fullBackupRepository.FindByIDForUpdate(ctx, target.RootFullBackupID); err != nil {
+		if _, _, err := s.backupRepository.FindByIDForUpdate(ctx, *target.RootFullBackupID); err != nil {
 			return err
 		}
-		chain, err := s.incrementalBackupRepository.FindAllByRootFull(ctx, target.RootFullBackupID)
+		chain, err := s.backupRepository.FindAllByRootFull(ctx, *target.RootFullBackupID)
 		if err != nil {
 			return err
 		}
@@ -246,7 +218,7 @@ func (s *Service) cascadeDelete(
 ) (DeletedSummary, error) {
 	summary := DeletedSummary{RootFullBackupID: rootFullBackupID}
 
-	targetFull, _, err := s.fullBackupRepository.FindByID(ctx, rootFullBackupID)
+	targetFull, _, err := s.backupRepository.FindByID(ctx, rootFullBackupID)
 	if err != nil {
 		return DeletedSummary{}, err
 	}
@@ -255,13 +227,13 @@ func (s *Service) cascadeDelete(
 	}
 
 	txErr := s.transactor.Transaction(ctx, func(ctx context.Context) error {
-		if err := s.inFlightBackupRepository.AcquireBackupAndOrphanCleanupLock(ctx,
+		if err := s.backupRepository.AcquireBackupAndOrphanCleanupLock(ctx,
 			targetFull.DatabaseID,
 		); err != nil {
 			return err
 		}
 
-		lockedFull, isFound, err := s.fullBackupRepository.FindByIDForUpdate(ctx, rootFullBackupID)
+		lockedFull, isFound, err := s.backupRepository.FindByIDForUpdate(ctx, rootFullBackupID)
 		if err != nil {
 			return err
 		}
@@ -272,14 +244,14 @@ func (s *Service) cascadeDelete(
 		var span catalog.LSNRange
 		var hasDeletableWal bool
 
-		var hasInFlightFull bool
+		var hasRunningFull bool
 		if keepFull {
-			hasInFlightFull, err = s.inFlightBackupRepository.HasInFlightFullBackup(ctx, lockedFull.DatabaseID)
+			hasRunningFull, err = s.backupRepository.HasRunningFullBackup(ctx, lockedFull.DatabaseID)
 			if err != nil {
 				return err
 			}
-			if !hasInFlightFull {
-				span, err = s.fullBackupRepository.GetOwnershipSpan(ctx, lockedFull)
+			if !hasRunningFull {
+				span, err = s.backupRepository.GetOwnershipSpan(ctx, lockedFull)
 				hasDeletableWal = true
 			}
 		} else {
@@ -289,7 +261,7 @@ func (s *Service) cascadeDelete(
 			}
 			span = walPlan.span
 			hasDeletableWal = walPlan.hasDeletableWal
-			hasInFlightFull = walPlan.hasInFlightFull
+			hasRunningFull = walPlan.hasRunningFull
 		}
 		if err != nil {
 			return err
@@ -327,7 +299,7 @@ func (s *Service) cascadeDelete(
 			return nil
 		}
 
-		if !hasInFlightFull {
+		if !hasRunningFull {
 			historyCount, err := s.deleteOrphanedHistoryFiles(ctx, lockedFull)
 			summary.HistoryFiles = historyCount
 			if err != nil {
@@ -353,26 +325,26 @@ func (s *Service) cascadeDelete(
 type fullRemovalWalPlan struct {
 	span            catalog.LSNRange
 	hasDeletableWal bool
-	hasInFlightFull bool
+	hasRunningFull  bool
 }
 
 func (s *Service) getFullRemovalWalPlan(
 	ctx context.Context,
-	full *catalog.FullBackup,
+	full *catalog.Backup,
 ) (fullRemovalWalPlan, error) {
-	hasInFlightFull, err := s.inFlightBackupRepository.HasInFlightFullBackup(ctx, full.DatabaseID)
+	hasRunningFull, err := s.backupRepository.HasRunningFullBackup(ctx, full.DatabaseID)
 	if err != nil {
 		return fullRemovalWalPlan{}, err
 	}
-	if hasInFlightFull {
-		return fullRemovalWalPlan{hasInFlightFull: true}, nil
+	if hasRunningFull {
+		return fullRemovalWalPlan{hasRunningFull: true}, nil
 	}
 
 	if full.StartLSN == nil {
-		return fullRemovalWalPlan{}, errors.New("cannot determine deletable WAL without FULL start_lsn")
+		return fullRemovalWalPlan{}, nil
 	}
 
-	hasPredecessor, err := s.fullBackupRepository.HasCompletedBefore(ctx, full)
+	hasPredecessor, err := s.backupRepository.HasCompletedFullBefore(ctx, full)
 	if err != nil {
 		return fullRemovalWalPlan{}, err
 	}
@@ -380,7 +352,7 @@ func (s *Service) getFullRemovalWalPlan(
 		return fullRemovalWalPlan{}, nil
 	}
 
-	span, err := s.fullBackupRepository.GetOwnershipSpan(ctx, full)
+	span, err := s.backupRepository.GetOwnershipSpan(ctx, full)
 	if err != nil {
 		return fullRemovalWalPlan{}, err
 	}
@@ -459,7 +431,7 @@ func (s *Service) deleteIncrementals(
 	ctx context.Context,
 	rootFullBackupID uuid.UUID,
 ) (int, error) {
-	incrementals, err := s.incrementalBackupRepository.FindAllByRootFull(ctx, rootFullBackupID)
+	incrementals, err := s.backupRepository.FindAllByRootFull(ctx, rootFullBackupID)
 	if err != nil {
 		return 0, err
 	}
@@ -474,7 +446,7 @@ func (s *Service) deleteIncrementals(
 // number of rows removed and the MB freed.
 func (s *Service) deleteIncrementalSet(
 	ctx context.Context,
-	ordered []*catalog.IncrementalBackup,
+	ordered []*catalog.Backup,
 ) (int, float64, error) {
 	deleted := 0
 	var deletedMB float64
@@ -490,7 +462,7 @@ func (s *Service) deleteIncrementalSet(
 			}
 		}
 
-		if err := s.incrementalBackupRepository.DeleteByID(ctx, incremental.ID); err != nil {
+		if err := s.backupRepository.DeleteByID(ctx, incremental.ID); err != nil {
 			return deleted, deletedMB, err
 		}
 
@@ -506,20 +478,20 @@ func (s *Service) deleteIncrementalSet(
 
 // collectIncrementalSubtree returns the target incremental plus every descendant
 // (children, their children, …) found within chain, walking the
-// parent_incremental_backup_id links breadth-first. Returns nil when the target
+// parent_backup_id links breadth-first. Returns nil when the target
 // is not in the chain. Order is not significant — callers re-order leaves-first.
 func collectIncrementalSubtree(
-	chain []*catalog.IncrementalBackup,
+	chain []*catalog.Backup,
 	targetID uuid.UUID,
-) []*catalog.IncrementalBackup {
-	childrenByParent := make(map[uuid.UUID][]*catalog.IncrementalBackup)
-	byID := make(map[uuid.UUID]*catalog.IncrementalBackup, len(chain))
+) []*catalog.Backup {
+	childrenByParent := make(map[uuid.UUID][]*catalog.Backup)
+	byID := make(map[uuid.UUID]*catalog.Backup, len(chain))
 
 	for _, incremental := range chain {
 		byID[incremental.ID] = incremental
 
-		if incremental.ParentIncrementalBackupID != nil {
-			parent := *incremental.ParentIncrementalBackupID
+		if incremental.ParentBackupID != nil {
+			parent := *incremental.ParentBackupID
 			childrenByParent[parent] = append(childrenByParent[parent], incremental)
 		}
 	}
@@ -529,7 +501,7 @@ func collectIncrementalSubtree(
 		return nil
 	}
 
-	subtree := []*catalog.IncrementalBackup{target}
+	subtree := []*catalog.Backup{target}
 	queue := []uuid.UUID{targetID}
 
 	for len(queue) > 0 {
@@ -550,9 +522,9 @@ func collectIncrementalSubtree(
 // still anchors a living chain.
 func (s *Service) deleteOrphanedHistoryFiles(
 	ctx context.Context,
-	full *catalog.FullBackup,
+	full *catalog.Backup,
 ) (int, error) {
-	hasSurvivingFull, err := s.fullBackupRepository.HasSurvivingCompletedOnTimeline(ctx, full)
+	hasSurvivingFull, err := s.backupRepository.HasSurvivingCompletedFullOnTimeline(ctx, full)
 	if err != nil {
 		return 0, err
 	}
@@ -587,7 +559,7 @@ func (s *Service) deleteOrphanedHistoryFiles(
 
 func (s *Service) deleteFullArtifactAndRow(
 	ctx context.Context,
-	full *catalog.FullBackup,
+	full *catalog.Backup,
 ) error {
 	if full.FileName != nil {
 		if err := s.requestFileDeletions(ctx, full.StorageID,
@@ -599,7 +571,7 @@ func (s *Service) deleteFullArtifactAndRow(
 		}
 	}
 
-	return s.fullBackupRepository.DeleteByID(ctx, full.ID)
+	return s.backupRepository.DeleteByID(ctx, full.ID)
 }
 
 // requestFileDeletions records the obligation to remove these files in the transaction
@@ -623,12 +595,12 @@ func (s *Service) requestFileDeletions(
 
 // reverseTopoOrderIncrementals orders incrementals leaves-first: an INCR is
 // emitted before any INCR it names as parent, so deleting in this order respects
-// the RESTRICT FK on parent_incremental_backup_id. Linear chains collapse to
+// the RESTRICT FK on parent_backup_id. Linear chains collapse to
 // newest-first; the explicit walk also covers the rare branched case where two
 // INCRs share one parent.
 func reverseTopoOrderIncrementals(
-	incrementals []*catalog.IncrementalBackup,
-) []*catalog.IncrementalBackup {
+	incrementals []*catalog.Backup,
+) []*catalog.Backup {
 	present := make(map[uuid.UUID]bool, len(incrementals))
 	childCount := make(map[uuid.UUID]int, len(incrementals))
 
@@ -637,16 +609,16 @@ func reverseTopoOrderIncrementals(
 	}
 
 	for _, incremental := range incrementals {
-		if incremental.ParentIncrementalBackupID != nil && present[*incremental.ParentIncrementalBackupID] {
-			childCount[*incremental.ParentIncrementalBackupID]++
+		if incremental.ParentBackupID != nil && present[*incremental.ParentBackupID] {
+			childCount[*incremental.ParentBackupID]++
 		}
 	}
 
-	ordered := make([]*catalog.IncrementalBackup, 0, len(incrementals))
+	ordered := make([]*catalog.Backup, 0, len(incrementals))
 	remaining := incrementals
 
 	for len(remaining) > 0 {
-		var stillBlocked []*catalog.IncrementalBackup
+		var stillBlocked []*catalog.Backup
 		progressed := false
 
 		for _, incremental := range remaining {
@@ -659,8 +631,8 @@ func reverseTopoOrderIncrementals(
 			ordered = append(ordered, incremental)
 			progressed = true
 
-			if incremental.ParentIncrementalBackupID != nil && present[*incremental.ParentIncrementalBackupID] {
-				childCount[*incremental.ParentIncrementalBackupID]--
+			if incremental.ParentBackupID != nil && present[*incremental.ParentBackupID] {
+				childCount[*incremental.ParentBackupID]--
 			}
 		}
 

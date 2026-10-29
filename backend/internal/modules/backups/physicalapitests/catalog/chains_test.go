@@ -25,7 +25,7 @@ func TestPhysicalBackupChains(t *testing.T) {
 		incremental := catalog.seedCascadeIncremental(t, full.ID, 1)
 		catalog.App.ExecuteSQL(
 			t,
-			"UPDATE backups_physical_incremental SET status='CHAIN_BROKEN',error_reason='SUMMARIES_EXPIRED' WHERE id=?",
+			"UPDATE backups_physical SET status='CHAIN_BROKEN',error_reason='SUMMARIES_EXPIRED' WHERE id=?",
 			incremental.ID,
 		)
 		catalog.triggerIncremental(t, http.StatusConflict)
@@ -79,7 +79,7 @@ func TestPhysicalBackupChains(t *testing.T) {
 		incremental := catalog.seedCascadeIncremental(t, older.ID, 1)
 		catalog.App.ExecuteSQL(
 			t,
-			"UPDATE backups_physical_incremental SET completed_at=? WHERE id=?",
+			"UPDATE backups_physical SET completed_at=? WHERE id=?",
 			time.Now().UTC().Add(-70*time.Hour),
 			incremental.ID,
 		)
@@ -129,7 +129,7 @@ func TestPhysicalBackupChains(t *testing.T) {
 		incremental := catalog.seedCascadeIncremental(t, older.ID, 1)
 		catalog.App.ExecuteSQL(
 			t,
-			"UPDATE backups_physical_incremental SET completed_at=? WHERE id=?",
+			"UPDATE backups_physical SET completed_at=? WHERE id=?",
 			time.Now().UTC().Add(-60*time.Hour),
 			incremental.ID,
 		)
@@ -144,7 +144,7 @@ func TestPhysicalBackupChains(t *testing.T) {
 		incremental := catalog.seedCascadeIncremental(t, newer.ID, 5)
 		catalog.App.ExecuteSQL(
 			t,
-			"UPDATE backups_physical_incremental SET status='CHAIN_BROKEN',error_reason='SUMMARIES_EXPIRED' WHERE id=?",
+			"UPDATE backups_physical SET status='CHAIN_BROKEN',error_reason='SUMMARIES_EXPIRED' WHERE id=?",
 			incremental.ID,
 		)
 		catalog.triggerIncremental(t, http.StatusConflict)

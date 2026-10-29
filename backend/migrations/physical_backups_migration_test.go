@@ -150,7 +150,7 @@ func TestPhysicalBackupsMigration(t *testing.T) {
 		insertOldPhysicalSample(t, db, databaseID, "UNKNOWN")
 		insertOldPhysicalSample(t, db, databaseID, "REACHABLE")
 
-		applyAllMigrations(t, db, physicalBackupsMigrationName)
+		applyMigrationsBefore(t, db, mergePhysicalBackupsMigrationName)
 
 		for oldTable, table := range map[string]string{"physical_full_backups": "backups_physical_full", "physical_incremental_backups": "backups_physical_incremental"} {
 			for index, repair := range repairs {

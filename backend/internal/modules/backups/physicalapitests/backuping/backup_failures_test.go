@@ -23,11 +23,11 @@ func TestPhysicalBackupFailures(t *testing.T) {
 			assert.Contains(t, *backup.FailMessage, "exit status 1")
 			assert.Contains(t, *backup.FailMessage, "FATAL")
 			assert.NotContains(t, *backup.FailMessage, "assets/tools")
-			team.assertClaimReleased(t)
+			team.assertNoRunningBackup(t)
 			team.assertTerminalDetails(t, backup, "PG_BASEBACKUP_FAILED")
 		},
 	)
-	t.Run("records a failed full and releases its claim when the source becomes unreachable", func(t *testing.T) {
+	t.Run("records a failed full when the source becomes unreachable", func(t *testing.T) {
 		team := newBackupTeam(t, backupTeamSpec{})
 		team.App.ExecuteSQL(
 			t,
@@ -38,11 +38,11 @@ func TestPhysicalBackupFailures(t *testing.T) {
 		require.Equal(t, "ERROR", backup.Status)
 		require.NotNil(t, backup.FailMessage)
 		assert.NotEmpty(t, *backup.FailMessage)
-		team.assertClaimReleased(t)
+		team.assertNoRunningBackup(t)
 		team.assertTerminalDetails(t, backup, "")
 	})
 	t.Run(
-		"records a failed incremental and releases its claim when the source becomes unreachable",
+		"records a failed incremental when the source becomes unreachable",
 		func(t *testing.T) {
 			team := newBackupTeam(t, backupTeamSpec{})
 			full := team.runBackup(t, "full")
@@ -54,7 +54,7 @@ func TestPhysicalBackupFailures(t *testing.T) {
 			)
 			backup := team.runBackup(t, "incremental")
 			require.Equal(t, "ERROR", backup.Status)
-			team.assertClaimReleased(t)
+			team.assertNoRunningBackup(t)
 			team.assertTerminalDetails(t, backup, "")
 		},
 	)
@@ -70,9 +70,9 @@ func TestPhysicalBackupFailures(t *testing.T) {
 		backup := team.runBackup(t, "incremental")
 		require.Equal(t, "CHAIN_BROKEN", backup.Status)
 		team.assertTerminalDetails(t, backup, "SUMMARIZER_OFF")
-		team.assertClaimReleased(t)
+		team.assertNoRunningBackup(t)
 		var incremental apptest.PhysicalIncrementalBackupSeed
-		team.App.QuerySQL(t, &incremental, "SELECT * FROM backups_physical_incremental WHERE id=?", backup.ID)
+		team.App.QuerySQL(t, &incremental, "SELECT * FROM backups_physical WHERE id=?", backup.ID)
 		assert.Nil(t, incremental.FileName)
 	})
 	t.Run("breaks the full chain when the saved system identifier belongs to another cluster", func(t *testing.T) {
@@ -85,24 +85,24 @@ func TestPhysicalBackupFailures(t *testing.T) {
 		backup := team.runBackup(t, "full")
 		require.Equal(t, "CHAIN_BROKEN", backup.Status)
 		team.assertTerminalDetails(t, backup, "SYSTEM_IDENTIFIER_MISMATCH")
-		team.assertClaimReleased(t)
+		team.assertNoRunningBackup(t)
 	})
 	t.Run("breaks an incremental before running the tool when its parent manifest is missing", func(t *testing.T) {
 		team := newBackupTeam(t, backupTeamSpec{})
 		full := team.runBackup(t, "full")
 		require.Equal(t, "COMPLETED", full.Status)
-		team.App.ExecuteSQL(t, "UPDATE backups_physical_full SET manifest_file_name=NULL WHERE id=?", full.ID)
+		team.App.ExecuteSQL(t, "UPDATE backups_physical SET manifest_file_name=NULL WHERE id=?", full.ID)
 		backup := team.runBackup(t, "incremental")
 		require.Equal(t, "CHAIN_BROKEN", backup.Status)
 		team.assertTerminalDetails(t, backup, "PARENT_MANIFEST_MISSING")
-		team.assertClaimReleased(t)
+		team.assertNoRunningBackup(t)
 	})
 	t.Run("breaks the incremental chain when its stored parent manifest is corrupted", func(t *testing.T) {
 		team := newBackupTeam(t, backupTeamSpec{})
 		full := team.runBackup(t, "full")
 		require.Equal(t, "COMPLETED", full.Status)
 		var manifest string
-		team.App.QuerySQL(t, &manifest, "SELECT manifest_file_name FROM backups_physical_full WHERE id=?", full.ID)
+		team.App.QuerySQL(t, &manifest, "SELECT manifest_file_name FROM backups_physical WHERE id=?", full.ID)
 		team.App.PublishStorageFile(
 			t,
 			storages.StoredFileReference{StorageID: team.StorageID, FileName: manifest},
@@ -111,16 +111,13 @@ func TestPhysicalBackupFailures(t *testing.T) {
 		incremental := team.runBackup(t, "incremental")
 		require.Equal(t, "CHAIN_BROKEN", incremental.Status)
 		team.assertTerminalDetails(t, incremental, "MANIFEST_CORRUPTED")
-		team.assertClaimReleased(t)
+		team.assertNoRunningBackup(t)
 	})
 }
 
 func (team *backupTeam) assertTerminalDetails(t *testing.T, backup backupRow, reason string) {
 	t.Helper()
-	table := "backups_physical_full"
-	if backup.Type == "INCREMENTAL" {
-		table = "backups_physical_incremental"
-	}
+	table := "backups_physical"
 	var details []struct {
 		ErrorReason *string
 		CompletedAt *time.Time

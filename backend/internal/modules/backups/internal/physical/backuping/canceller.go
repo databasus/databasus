@@ -2,71 +2,56 @@ package backuping
 
 import (
 	"context"
-	"log/slog"
 
 	"github.com/google/uuid"
 
 	"databasus-backend/internal/lib/background"
+	"databasus-backend/internal/lib/database"
 	"databasus-backend/internal/modules/backups/internal/physical/catalog"
 )
 
 type Canceller struct {
-	inFlightRepo             *catalog.InFlightBackupRepository
+	backupRepo               *catalog.BackupRepository
+	lifecycle                *catalog.BackupLifecycle
+	transactor               *database.Transactor
 	taskCancellationRegistry *background.CancellationRegistry
-	logger                   *slog.Logger
 }
 
-func (c *Canceller) CancelInFlightForDatabase(ctx context.Context, databaseID uuid.UUID) {
-	logger := c.logger.With(slog.Any("database_id", databaseID))
-
-	claim, _, err := c.inFlightRepo.FindByDatabaseID(ctx, databaseID)
+func (c *Canceller) CancelRunningForDatabase(ctx context.Context, databaseID uuid.UUID) error {
+	backup, _, err := c.backupRepo.FindRunningByDatabaseID(ctx, databaseID)
 	if err != nil {
-		logger.ErrorContext(ctx, "failed to look up in-flight backup for cancellation", slog.Any("error", err))
-
-		return
+		return err
 	}
-
-	if claim == nil {
-		return
+	if backup == nil {
+		return nil
 	}
-
-	c.cancelClaim(ctx, logger, CancelInFlightBackupSpec{
-		DatabaseID: databaseID,
-		BackupID:   claim.BackupID,
-	})
+	_, err = c.cancel(ctx, backup)
+	return err
 }
 
-func (c *Canceller) CancelInFlightBackup(
-	ctx context.Context,
-	spec CancelInFlightBackupSpec,
-) (bool, error) {
-	claim, _, err := c.inFlightRepo.FindByDatabaseID(ctx, spec.DatabaseID)
+func (c *Canceller) CancelRunningBackup(ctx context.Context, spec CancelRunningBackupSpec) (bool, error) {
+	backup, _, err := c.backupRepo.FindByID(ctx, spec.BackupID)
 	if err != nil {
 		return false, err
 	}
-
-	if claim == nil || claim.BackupID != spec.BackupID {
+	if backup == nil || backup.DatabaseID != spec.DatabaseID {
 		return false, nil
 	}
-
-	c.cancelClaim(ctx, c.logger.With(slog.Any("database_id", spec.DatabaseID)), spec)
-
-	return true, nil
+	return c.cancel(ctx, backup)
 }
 
-func (c *Canceller) cancelClaim(
-	ctx context.Context,
-	logger *slog.Logger,
-	spec CancelInFlightBackupSpec,
-) {
-	c.taskCancellationRegistry.Cancel(spec.BackupID)
-
-	if err := c.inFlightRepo.ReleaseOwned(ctx, spec.DatabaseID, spec.BackupID); err != nil {
-		logger.ErrorContext(
-			ctx,
-			"failed to release in-flight claim",
-			slog.Any("backup_id", spec.BackupID),
-			slog.Any("error", err),
-		)
-	}
+func (c *Canceller) cancel(ctx context.Context, backup *catalog.Backup) (bool, error) {
+	var isCanceled bool
+	err := c.transactor.Transaction(ctx, func(ctx context.Context) error {
+		currentBackup, isFound, err := c.backupRepo.FindByIDForUpdate(ctx, backup.ID)
+		if err != nil || !isFound || currentBackup.Status != catalog.BackupStatusInProgress {
+			return err
+		}
+		isCanceled, err = c.lifecycle.Cancel(ctx, currentBackup)
+		if err != nil || !isCanceled {
+			return err
+		}
+		return database.AfterCommit(ctx, func(context.Context) { c.taskCancellationRegistry.Cancel(backup.ID) })
+	})
+	return isCanceled, err
 }

@@ -23,8 +23,8 @@ func TestPhysicalBackupTimeAfterWal(t *testing.T) {
 		rotateWal(t, source)
 		team.waitForWal(t, 1)
 		team.App.WaitForPhysicalBackups(t)
-		claimLock := team.App.BeginSQLTransaction(t)
-		claimLock.ExecuteSQL(
+		backupLock := team.App.BeginSQLTransaction(t)
+		backupLock.ExecuteSQL(
 			t,
 			"SELECT pg_advisory_xact_lock(hashtextextended('physical-backup:' || ?::text,0))",
 			team.Database.Id,
@@ -39,9 +39,11 @@ func TestPhysicalBackupTimeAfterWal(t *testing.T) {
 		go func() { team.App.RunJobPass(t, "backups_physical_scheduler"); scheduled <- struct{}{} }()
 		testwait.Until(t, "the next full waits after choosing its start time", func(context.Context) error {
 			var waiting int
-			team.App.QuerySQL(t, &waiting, "SELECT count(*) FROM pg_locks WHERE NOT granted AND locktype='advisory'")
+			team.App.QuerySQL(t, &waiting, `SELECT count(*) FROM pg_locks
+				WHERE NOT granted AND locktype='advisory'
+				AND database=(SELECT oid FROM pg_database WHERE datname=current_database())`)
 			if waiting == 0 {
-				return fmt.Errorf("the full has not reached the claim lock")
+				return fmt.Errorf("the full has not reached the backup lock")
 			}
 			return nil
 		})
@@ -90,11 +92,11 @@ func TestPhysicalBackupTimeAfterWal(t *testing.T) {
 		require.NotNil(t, database.JSON200)
 		require.NotNil(t, database.JSON200.LastBackupTime)
 		walTime := *database.JSON200.LastBackupTime
-		claimLock.Commit(t)
+		backupLock.Commit(t)
 		select {
 		case <-scheduled:
 		case <-t.Context().Done():
-			t.Fatal("scheduler did not finish after the claim lock was released")
+			t.Fatal("scheduler did not finish after the backup lock was released")
 		}
 		team.App.WaitForPhysicalBackups(t)
 		database, err = team.Owner.Client.GetDatabaseWithResponse(t.Context(), team.Database.Id)

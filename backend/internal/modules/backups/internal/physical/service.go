@@ -27,30 +27,28 @@ import (
 )
 
 type Service struct {
-	backuping                   *backuping.Service
-	cleaner                     *retention.Cleaner
-	databases                   databases.Module
-	workspaces                  workspaces.Module
-	configs                     *config.Service
-	chains                      *chains.Service
-	fullBackupRepository        *catalog.FullBackupRepository
-	incrementalBackupRepository *catalog.IncrementalBackupRepository
-	walSegmentRepository        *catalog.WalSegmentRepository
-	inFlightBackupRepository    *catalog.InFlightBackupRepository
-	canceller                   *backuping.Canceller
-	restoreStreamWriter         *restorestream.Writer
-	restoreTokenService         *restorestream.Service
-	masterKey                   *crypto.MasterKey
-	auditing                    auditing.Recorder
-	transactor                  *database.Transactor
-	clock                       clock.Source
-	runs                        *background.Group
-	streams                     *walstreaming.Manager
-	health                      *streamhealth.Service
-	cancellations               *background.CancellationRegistry
-	walStreamers                *catalog.WalStreamerRepository
-	logger                      *slog.Logger
-	appCtx                      context.Context
+	backuping            *backuping.Service
+	cleaner              *retention.Cleaner
+	databases            databases.Module
+	workspaces           workspaces.Module
+	configs              *config.Service
+	chains               *chains.Service
+	backupRepository     *catalog.BackupRepository
+	walSegmentRepository *catalog.WalSegmentRepository
+	canceller            *backuping.Canceller
+	restoreStreamWriter  *restorestream.Writer
+	restoreTokenService  *restorestream.Service
+	masterKey            *crypto.MasterKey
+	auditing             auditing.Recorder
+	transactor           *database.Transactor
+	clock                clock.Source
+	runs                 *background.Group
+	streams              *walstreaming.Manager
+	health               *streamhealth.Service
+	cancellations        *background.CancellationRegistry
+	walStreamers         *catalog.WalStreamerRepository
+	logger               *slog.Logger
+	appCtx               context.Context
 }
 
 func (s *Service) authorizeManage(
@@ -88,39 +86,14 @@ func (s *Service) authorizeDatabase(
 	return backupDatabase, nil
 }
 
-func (s *Service) recordAuditAfterAction(
-	ctx context.Context,
-	actor users.Actor,
-	backupDatabase databases.Database,
-	message string,
-) {
-	if err := s.transactor.Transaction(ctx, func(ctx context.Context) error {
-		return s.auditing.Record(ctx, actor, backupDatabase.WorkspaceID, message)
-	}); err != nil {
-		s.logger.ErrorContext(ctx, "failed to record physical backup audit event", slog.Any("error", err))
-	}
-}
-
 func (s *Service) resolveBackupDatabaseAndStatus(ctx context.Context,
 	backupID uuid.UUID,
 ) (uuid.UUID, catalog.BackupStatus, bool, error) {
-	full, _, err := s.fullBackupRepository.FindByID(ctx, backupID)
-	if err != nil {
+	backup, isFound, err := s.backupRepository.FindByID(ctx, backupID)
+	if err != nil || !isFound {
 		return uuid.Nil, "", false, err
 	}
-	if full != nil {
-		return full.DatabaseID, full.Status, true, nil
-	}
-
-	incremental, _, err := s.incrementalBackupRepository.FindByID(ctx, backupID)
-	if err != nil {
-		return uuid.Nil, "", false, err
-	}
-	if incremental != nil {
-		return incremental.DatabaseID, incremental.Status, true, nil
-	}
-
-	return uuid.Nil, "", false, nil
+	return backup.DatabaseID, backup.Status, true, nil
 }
 
 func toBackupAccessProblem(err error) error {

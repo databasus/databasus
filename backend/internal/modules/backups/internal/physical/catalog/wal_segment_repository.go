@@ -126,7 +126,7 @@ func whereInChainSpan(
 }
 
 // Anti-join not covered by idx_backups_physical_wal_segments_database_received_at;
-// expect a seq scan on backups_physical_full when invoked in bulk.
+// expect a seq scan on backups_physical when invoked in bulk.
 //
 // The comparison anchors on the segment's end_lsn because a FULL's start_lsn is
 // a real recovery position a short way inside the segment that holds it, while a
@@ -144,8 +144,8 @@ func (r *WalSegmentRepository) FindOrphans(ctx context.Context, databaseID uuid.
 			WHERE w.database_id = ?
 			  AND NOT EXISTS (
 			    SELECT 1
-			    FROM backups_physical_full f
-			    WHERE f.database_id = w.database_id
+			    FROM backups_physical f
+			    WHERE f.kind = 'FULL' AND f.database_id = w.database_id
 			      AND f.timeline_id = w.timeline_id
 			      AND f.start_lsn IS NOT NULL
 			      AND f.start_lsn < w.end_lsn
@@ -218,7 +218,7 @@ func (r *WalSegmentRepository) ClaimInsert(
 // FindByChainKey returns the row for a specific (database_id, timeline_id,
 // start_lsn) — the uploader's conflict probe after ClaimInsert lost the race,
 // to distinguish a durably-completed segment (file_name NOT NULL) from an
-// in-flight claim (file_name NULL). Returns nil when absent.
+// active WAL upload (file_name NULL). Returns nil when absent.
 func (r *WalSegmentRepository) FindByChainKey(ctx context.Context, databaseID uuid.UUID,
 	timelineID int,
 	startLSN walmath.LSN,
@@ -283,7 +283,7 @@ func (r *WalSegmentRepository) DeleteClaim(ctx context.Context, id uuid.UUID) er
 // (file_name NOT NULL) segments on (database_id, timeline_id) whose start_lsn is
 // strictly before startLSN — the predecessor the post-upload gap probe compares
 // against. Returns nil when there is no committed predecessor (the just-uploaded
-// segment is the first on its timeline). In-flight claims are excluded because
+// segment is the first on its timeline). Active WAL uploads are excluded because
 // their end_lsn is predicted, not durable.
 func (r *WalSegmentRepository) FindLatestCommittedBefore(ctx context.Context, databaseID uuid.UUID,
 	timelineID int,
@@ -310,7 +310,7 @@ func (r *WalSegmentRepository) FindLatestCommittedBefore(ctx context.Context, da
 }
 
 // The newest segment that is durable in storage — the database's actual recovery
-// point. In-flight claims are excluded: a claim row means an upload was started,
+// point. Active WAL uploads are excluded: a claim row means an upload was started,
 // not that the WAL can be restored from.
 func (r *WalSegmentRepository) FindLatestCommittedSegment(ctx context.Context, databaseID uuid.UUID,
 ) (*WalSegment, bool, error) {

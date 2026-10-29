@@ -34,7 +34,7 @@ func TestPhysicalBackupOverMtls(t *testing.T) {
 			full := team.runBackup(t, "full")
 			require.Equal(t, "COMPLETED", full.Status)
 			team.assertArtifacts(t, full)
-			team.assertClaimReleased(t)
+			team.assertNoRunningBackup(t)
 		},
 	)
 	t.Run("rejects a source update when its required client certificate is removed", func(t *testing.T) {

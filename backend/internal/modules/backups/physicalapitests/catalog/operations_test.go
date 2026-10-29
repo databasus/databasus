@@ -13,7 +13,7 @@ import (
 )
 
 func TestChangePhysicalBackup(t *testing.T) {
-	t.Run("cancels and releases the claim when a backup is in progress", func(t *testing.T) {
+	t.Run("records cancellation before answering when a running backup has no live process", func(t *testing.T) {
 		catalog := newCatalog(t)
 
 		full := catalog.insertFull(
@@ -21,10 +21,6 @@ func TestChangePhysicalBackup(t *testing.T) {
 			newInProgressFull(
 				inProgressFullSpec{DatabaseID: catalog.DatabaseID, StorageID: catalog.StorageID, TimelineID: 1},
 			),
-		)
-		catalog.App.InsertPhysicalInFlightBackup(
-			t,
-			apptest.PhysicalInFlightBackupSeed{DatabaseID: catalog.DatabaseID, BackupID: full.ID, BackupType: "FULL"},
 		)
 
 		catalog.call(
@@ -36,8 +32,11 @@ func TestChangePhysicalBackup(t *testing.T) {
 			},
 		)
 
-		claim := catalog.getInFlightClaim(t)
-		assert.Nil(t, claim, "cancel must release the in-flight claim")
+		runningBackupID := catalog.getRunningBackupID(t)
+		assert.Nil(t, runningBackupID, "cancel must leave no running backup")
+		page := getBackups(t, catalog, "")
+		require.Len(t, page.Backups, 1)
+		assert.Equal(t, "CANCELED", page.Backups[0].Status)
 	})
 	t.Run("returns 409 when a completed backup is cancelled", func(t *testing.T) {
 		catalog := newCatalog(t)
@@ -230,7 +229,7 @@ func TestChangePhysicalBackup(t *testing.T) {
 
 		catalog.assertFullPresent(t, full.ID)
 	})
-	t.Run("keeps the claim and returns 403 when a viewer requests cancellation", func(t *testing.T) {
+	t.Run("keeps the backup running and returns 403 when a viewer requests cancellation", func(t *testing.T) {
 		catalog := newCatalog(t)
 
 		full := catalog.insertFull(
@@ -238,10 +237,6 @@ func TestChangePhysicalBackup(t *testing.T) {
 			newInProgressFull(
 				inProgressFullSpec{DatabaseID: catalog.DatabaseID, StorageID: catalog.StorageID, TimelineID: 1},
 			),
-		)
-		catalog.App.InsertPhysicalInFlightBackup(
-			t,
-			apptest.PhysicalInFlightBackupSeed{DatabaseID: catalog.DatabaseID, BackupID: full.ID, BackupType: "FULL"},
 		)
 
 		viewer := catalog.addViewer(t)
@@ -258,8 +253,8 @@ func TestChangePhysicalBackup(t *testing.T) {
 		)
 		assert.Equal(t, apiclient.ProblemCodePermissionDenied, problem.Code)
 
-		claim := catalog.getInFlightClaim(t)
-		assert.NotNil(t, claim, "a viewer's rejected cancel must not release the claim")
+		runningBackupID := catalog.getRunningBackupID(t)
+		assert.NotNil(t, runningBackupID, "a viewer's rejected cancel must leave the backup running")
 	})
 	t.Run("records the database name in the audit log when a full backup is deleted", func(t *testing.T) {
 		catalog := newCatalog(t)
@@ -296,10 +291,6 @@ func TestChangePhysicalBackup(t *testing.T) {
 			newInProgressFull(
 				inProgressFullSpec{DatabaseID: catalog.DatabaseID, StorageID: catalog.StorageID, TimelineID: 1},
 			),
-		)
-		catalog.App.InsertPhysicalInFlightBackup(
-			t,
-			apptest.PhysicalInFlightBackupSeed{DatabaseID: catalog.DatabaseID, BackupID: full.ID, BackupType: "FULL"},
 		)
 
 		catalog.call(
@@ -363,7 +354,7 @@ func TestChangePhysicalBackup(t *testing.T) {
 			},
 		)
 	})
-	t.Run("cancels and releases the claim when an in progress backup is deleted", func(t *testing.T) {
+	t.Run("removes the running backup before answering when it is deleted", func(t *testing.T) {
 		catalog := newCatalog(t)
 
 		full := catalog.insertFull(
@@ -371,10 +362,6 @@ func TestChangePhysicalBackup(t *testing.T) {
 			newInProgressFull(
 				inProgressFullSpec{DatabaseID: catalog.DatabaseID, StorageID: catalog.StorageID, TimelineID: 1},
 			),
-		)
-		catalog.App.InsertPhysicalInFlightBackup(
-			t,
-			apptest.PhysicalInFlightBackupSeed{DatabaseID: catalog.DatabaseID, BackupID: full.ID, BackupType: "FULL"},
 		)
 
 		catalog.call(
@@ -388,8 +375,8 @@ func TestChangePhysicalBackup(t *testing.T) {
 
 		catalog.assertFullGone(t, full.ID)
 
-		claim := catalog.getInFlightClaim(t)
-		assert.Nil(t, claim, "deleting an in-progress backup must release its claim")
+		runningBackupID := catalog.getRunningBackupID(t)
+		assert.Nil(t, runningBackupID, "deleting a running backup must remove its row")
 	})
 }
 
@@ -398,7 +385,7 @@ func TestPhysicalBackupMemberChanges(t *testing.T) {
 		name     string
 		isCancel bool
 	}{
-		{"accepts cancellation and releases the claim when the user is a workspace member", true},
+		{"cancels the running backup when the user is a workspace member", true},
 		{"deletes a completed backup when the user is a workspace member", false},
 	} {
 		t.Run(scenario.name, func(t *testing.T) {
@@ -410,17 +397,16 @@ func TestPhysicalBackupMemberChanges(t *testing.T) {
 				running := catalog.insertFull(t, newInProgressFull(inProgressFullSpec{
 					DatabaseID: catalog.DatabaseID, StorageID: catalog.StorageID, TimelineID: 1,
 				}))
-				catalog.App.InsertPhysicalInFlightBackup(t, apptest.PhysicalInFlightBackupSeed{
-					DatabaseID: catalog.DatabaseID, BackupID: running.ID, BackupType: "FULL",
-				})
+
 				catalog.call(t, catalogCall{
 					Request:       apptest.PhysicalCancelRequest(running.ID),
 					Authorization: "Bearer " + member.Token, StatusCode: http.StatusAccepted,
 				})
-				assert.Nil(t, catalog.getInFlightClaim(t))
+				assert.Nil(t, catalog.getRunningBackupID(t))
 				page := getBackups(t, catalog, "")
 				require.Len(t, page.Backups, 1)
 				assert.Equal(t, running.ID, page.Backups[0].ID)
+				assert.Equal(t, "CANCELED", page.Backups[0].Status)
 			} else {
 				full := catalog.insertFull(t, newFullSeed(fullSeedSpec{
 					DatabaseID: catalog.DatabaseID, StorageID: catalog.StorageID, TimelineID: 1,

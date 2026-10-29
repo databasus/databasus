@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"slices"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -27,14 +28,13 @@ import (
 	"databasus-backend/internal/modules/workspaces"
 )
 
-const metadataSuffix = ".metadata"
-
 type Backuper struct {
+	liveRunsMutex            sync.Mutex
+	liveDatabaseIDs          map[uuid.UUID]struct{}
+	lifecycle                *catalog.BackupLifecycle
 	databases                databases.Module
 	workspaceService         workspaces.Module
-	fullRepo                 *catalog.FullBackupRepository
-	incrRepo                 *catalog.IncrementalBackupRepository
-	inFlightRepo             *catalog.InFlightBackupRepository
+	backupRepo               *catalog.BackupRepository
 	historyRepo              *catalog.WalHistoryRepository
 	configs                  *config.Service
 	storages                 storages.Module
@@ -61,54 +61,52 @@ type registeredBackupRun struct {
 }
 
 func (b *Backuper) MakeBackup(ctx context.Context, backupID uuid.UUID, isCallNotifier bool) {
-	logger := b.logger
-
-	fullBackup, _, err := b.fullRepo.FindByID(context.WithoutCancel(ctx), backupID)
+	backup, isFound, err := b.backupRepo.FindByID(context.WithoutCancel(ctx), backupID)
 	if err != nil {
-		logger.ErrorContext(ctx, "failed to look up full backup row", slog.Any("error", err))
+		b.logger.ErrorContext(ctx, "failed to look up physical backup", slog.Any("error", err))
 		return
 	}
-
-	if fullBackup != nil {
-		ctx = logging.With(ctx, slog.Any("database_id", fullBackup.DatabaseID))
-		if err := background.RunRecovering(
-			ctx,
-			func(ctx context.Context) error { b.runFullBackup(ctx, logger, fullBackup, isCallNotifier); return nil },
-		); err != nil {
-			b.finalizeFullAsError(ctx, fullBackup, catalog.BackupErrorPgBasebackupFailed, err.Error())
+	if !isFound || backup.Status != catalog.BackupStatusInProgress {
+		return
+	}
+	ctx = logging.With(ctx, slog.Any("database_id", backup.DatabaseID))
+	if err := background.RunRecovering(ctx, func(ctx context.Context) error {
+		if backup.Kind == catalog.BackupKindFull {
+			b.runFullBackup(ctx, b.logger, backup, isCallNotifier)
+		} else {
+			b.runIncrementalBackup(ctx, b.logger, backup, isCallNotifier)
 		}
-		return
+		return nil
+	}); err != nil {
+		b.finalizeAsError(ctx, backup, catalog.BackupErrorPgBasebackupFailed, err.Error())
 	}
-
-	incrBackup, _, err := b.incrRepo.FindByID(context.WithoutCancel(ctx), backupID)
-	if err != nil {
-		logger.ErrorContext(ctx, "failed to look up incremental backup row", slog.Any("error", err))
-
-		return
-	}
-
-	if incrBackup != nil {
-		ctx = logging.With(ctx, slog.Any("database_id", incrBackup.DatabaseID))
-		if err := background.RunRecovering(ctx, func(ctx context.Context) error {
-			b.runIncrementalBackup(ctx, logger, incrBackup, isCallNotifier)
-			return nil
-		}); err != nil {
-			b.finalizeIncrAsError(ctx, incrBackup, catalog.BackupErrorPgBasebackupFailed, err.Error())
-		}
-		return
-	}
-
-	logger.WarnContext(ctx, "backup not found in either typed table; ignoring assignment")
 }
 
-func (b *Backuper) registerRun(backupID uuid.UUID) registeredBackupRun {
+type backupRunSpec struct {
+	BackupID   uuid.UUID
+	DatabaseID uuid.UUID
+}
+
+func (b *Backuper) registerRun(spec backupRunSpec) (registeredBackupRun, bool) {
+	b.liveRunsMutex.Lock()
+	defer b.liveRunsMutex.Unlock()
+	if _, isRunning := b.liveDatabaseIDs[spec.DatabaseID]; isRunning {
+		return registeredBackupRun{}, false
+	}
+	b.liveDatabaseIDs[spec.DatabaseID] = struct{}{}
 	runCtx, cancel, finish := runcontext.New(b.appCtx, runcontext.Limits{Shutdown: runcontext.ErrBackupShutdown})
-	runCtx = logging.With(runCtx, slog.Any("backup_id", backupID))
-	b.taskCancellationRegistry.Register(backupID, cancel)
-	return registeredBackupRun{Context: runCtx, BackupID: backupID, Finish: func() {
-		finish()
-		b.taskCancellationRegistry.Unregister(backupID)
-	}}
+	runCtx = logging.With(runCtx, slog.Any("backup_id", spec.BackupID))
+	b.taskCancellationRegistry.Register(spec.BackupID, cancel)
+	var finishOnce sync.Once
+	return registeredBackupRun{Context: runCtx, BackupID: spec.BackupID, Finish: func() {
+		finishOnce.Do(func() {
+			finish()
+			b.taskCancellationRegistry.Unregister(spec.BackupID)
+			b.liveRunsMutex.Lock()
+			defer b.liveRunsMutex.Unlock()
+			delete(b.liveDatabaseIDs, spec.DatabaseID)
+		})
+	}}, true
 }
 
 func (b *Backuper) dispatch(run registeredBackupRun, isCallNotifier bool) {
@@ -133,12 +131,12 @@ func (b *Backuper) getDatabase(ctx context.Context, databaseID uuid.UUID) (datab
 func (b *Backuper) runFullBackup(
 	ctx context.Context,
 	logger *slog.Logger,
-	fullBackup *catalog.FullBackup,
+	fullBackup *catalog.Backup,
 	isCallNotifier bool,
 ) {
 	backupCtx, ok := b.openBackupContext(ctx, logger, fullBackup.DatabaseID)
 	if !ok {
-		b.finalizeFullAsError(ctx, fullBackup, catalog.BackupErrorPgBasebackupFailed,
+		b.finalizeAsError(ctx, fullBackup, catalog.BackupErrorPgBasebackupFailed,
 			"failed to open backup context")
 
 		return
@@ -161,11 +159,11 @@ func (b *Backuper) runFullBackup(
 			FileStore:    b.storages,
 			Encryption:   catalog.BackupEncryption(backupCtx.Config.Encryption),
 			MasterKey:    backupCtx.MasterKey,
-			FullRepo:     b.fullRepo,
+			BackupRepo:   b.backupRepo,
 			HistoryRepo:  b.historyRepo,
 			Logger:       logger,
 			ProgressListener: func(completedMb float64, elapsedMs int64) {
-				if err := b.fullRepo.UpdateProgress(ctx, fullBackup.ID, completedMb, elapsedMs); err != nil {
+				if err := b.backupRepo.UpdateProgress(ctx, fullBackup.ID, completedMb, elapsedMs); err != nil {
 					logger.ErrorContext(ctx, "failed to update full backup progress", slog.Any("error", err))
 				}
 			},
@@ -191,7 +189,7 @@ func (b *Backuper) runFullBackup(
 	if err != nil {
 		logger.ErrorContext(ctx, "full executor returned error", slog.Any("error", err))
 
-		b.finalizeFullAsError(ctx, fullBackup, catalog.BackupErrorPgBasebackupFailed, err.Error())
+		b.finalizeAsError(ctx, fullBackup, catalog.BackupErrorPgBasebackupFailed, err.Error())
 
 		return
 	}
@@ -209,7 +207,7 @@ func (b *Backuper) runFullBackup(
 		)
 	}
 
-	if err := b.persistFullResult(ctx, fullBackup, backupResult, rawSizeMb); err != nil {
+	if err := b.persistResult(ctx, fullBackup, backupResult, rawSizeMb); err != nil {
 		logger.ErrorContext(ctx, "failed to persist full result", slog.Any("error", err))
 
 		return
@@ -227,19 +225,19 @@ func (b *Backuper) runFullBackup(
 	)
 
 	if isCallNotifier {
-		b.sendFullBackupNotification(ctx, backupCtx.Config, backupCtx.Database, fullBackup, backupResult)
+		b.sendBackupNotification(ctx, backupCtx.Config, backupCtx.Database, fullBackup, backupResult)
 	}
 }
 
 func (b *Backuper) runIncrementalBackup(
 	ctx context.Context,
 	logger *slog.Logger,
-	incrBackup *catalog.IncrementalBackup,
+	incrBackup *catalog.Backup,
 	isCallNotifier bool,
 ) {
 	backupCtx, ok := b.openBackupContext(ctx, logger, incrBackup.DatabaseID)
 	if !ok {
-		b.finalizeIncrAsError(ctx, incrBackup, catalog.BackupErrorPgBasebackupFailed,
+		b.finalizeAsError(ctx, incrBackup, catalog.BackupErrorPgBasebackupFailed,
 			"failed to open backup context")
 
 		return
@@ -251,7 +249,7 @@ func (b *Backuper) runIncrementalBackup(
 	if err != nil {
 		logger.ErrorContext(ctx, "failed to resolve parent manifest", slog.Any("error", err))
 
-		b.finalizeIncrAsChainBroken(ctx, incrBackup,
+		b.finalizeAsChainBroken(ctx, incrBackup,
 			catalog.BackupErrorParentManifestMissing, err.Error())
 
 		return
@@ -261,7 +259,7 @@ func (b *Backuper) runIncrementalBackup(
 	if err != nil {
 		logger.ErrorContext(ctx, "failed to open the storage of the parent manifest", slog.Any("error", err))
 
-		b.finalizeIncrAsError(ctx, incrBackup, catalog.BackupErrorPgBasebackupFailed,
+		b.finalizeAsError(ctx, incrBackup, catalog.BackupErrorPgBasebackupFailed,
 			"failed to open the storage of the parent manifest")
 
 		return
@@ -285,11 +283,11 @@ func (b *Backuper) runIncrementalBackup(
 			FileStore:    b.storages,
 			Encryption:   catalog.BackupEncryption(backupCtx.Config.Encryption),
 			MasterKey:    backupCtx.MasterKey,
-			FullRepo:     b.fullRepo,
+			BackupRepo:   b.backupRepo,
 			HistoryRepo:  b.historyRepo,
 			Logger:       logger,
 			ProgressListener: func(completedMb float64, elapsedMs int64) {
-				if err := b.incrRepo.UpdateProgress(ctx, incrBackup.ID, completedMb, elapsedMs); err != nil {
+				if err := b.backupRepo.UpdateProgress(ctx, incrBackup.ID, completedMb, elapsedMs); err != nil {
 					logger.ErrorContext(ctx, "failed to update incremental backup progress", slog.Any("error", err))
 				}
 			},
@@ -297,7 +295,6 @@ func (b *Backuper) runIncrementalBackup(
 		Backup:             incrBackup,
 		ParentManifest:     parentRef,
 		StorageReader:      storageReader,
-		IncrRepo:           b.incrRepo,
 		IncrementalCadence: incrementalCadence,
 	}
 
@@ -314,7 +311,7 @@ func (b *Backuper) runIncrementalBackup(
 	if err != nil {
 		logger.ErrorContext(ctx, "incremental executor returned error", slog.Any("error", err))
 
-		b.finalizeIncrAsError(ctx, incrBackup, catalog.BackupErrorPgBasebackupFailed, err.Error())
+		b.finalizeAsError(ctx, incrBackup, catalog.BackupErrorPgBasebackupFailed, err.Error())
 
 		return
 	}
@@ -338,7 +335,7 @@ func (b *Backuper) runIncrementalBackup(
 		)
 	}
 
-	if err := b.persistIncrResult(ctx, incrBackup, backupResult); err != nil {
+	if err := b.persistResult(ctx, incrBackup, backupResult, nil); err != nil {
 		logger.ErrorContext(ctx, "failed to persist incremental result", slog.Any("error", err))
 
 		return
@@ -356,7 +353,7 @@ func (b *Backuper) runIncrementalBackup(
 	)
 
 	if isCallNotifier {
-		b.sendIncrBackupNotification(ctx, backupCtx.Config, backupCtx.Database, incrBackup, backupResult)
+		b.sendBackupNotification(ctx, backupCtx.Config, backupCtx.Database, incrBackup, backupResult)
 	}
 }
 
@@ -433,49 +430,18 @@ func (b *Backuper) openBackupContext(
 	}, true
 }
 
-func (b *Backuper) resolveParentManifest(
-	ctx context.Context,
-	incrBackup *catalog.IncrementalBackup,
-) (ParentManifestRef, error) {
-	if incrBackup.ParentIncrementalBackupID != nil {
-		parent, _, lookupErr := b.incrRepo.FindByID(ctx, *incrBackup.ParentIncrementalBackupID)
-		if lookupErr != nil {
-			return ParentManifestRef{}, fmt.Errorf("look up parent incr: %w", lookupErr)
-		}
-
-		if parent == nil || parent.ManifestFileName == nil || parent.StopLSN == nil {
-			return ParentManifestRef{}, errors.New(
-				"parent incremental row missing or has no manifest_file_name / stop_lsn",
-			)
-		}
-
-		return ParentManifestRef{
-			BackupID:   parent.ID,
-			FileName:   *parent.ManifestFileName,
-			Encryption: parent.Encryption,
-			Salt:       derefString(parent.ManifestEncryptionSalt),
-			IV:         derefString(parent.ManifestEncryptionIV),
-			StopLSN:    *parent.StopLSN,
-		}, nil
+func (b *Backuper) resolveParentManifest(ctx context.Context, backup *catalog.Backup) (ParentManifestRef, error) {
+	parent, _, err := b.backupRepo.FindByID(ctx, *backup.ParentBackupID)
+	if err != nil {
+		return ParentManifestRef{}, fmt.Errorf("look up parent backup: %w", err)
 	}
-
-	parent, _, lookupErr := b.fullRepo.FindByID(ctx, incrBackup.RootFullBackupID)
-	if lookupErr != nil {
-		return ParentManifestRef{}, fmt.Errorf("look up root full: %w", lookupErr)
-	}
-
 	if parent == nil || parent.ManifestFileName == nil || parent.StopLSN == nil {
-		return ParentManifestRef{}, errors.New(
-			"root full row missing or has no manifest_file_name / stop_lsn")
+		return ParentManifestRef{}, errors.New("parent backup missing or has no manifest_file_name / stop_lsn")
 	}
-
 	return ParentManifestRef{
-		BackupID:   parent.ID,
-		FileName:   *parent.ManifestFileName,
-		Encryption: parent.Encryption,
-		Salt:       derefString(parent.ManifestEncryptionSalt),
-		IV:         derefString(parent.ManifestEncryptionIV),
-		StopLSN:    *parent.StopLSN,
+		BackupID: parent.ID, FileName: *parent.ManifestFileName,
+		Encryption: parent.Encryption, Salt: derefString(parent.ManifestEncryptionSalt),
+		IV: derefString(parent.ManifestEncryptionIV), StopLSN: *parent.StopLSN,
 	}, nil
 }
 
@@ -497,111 +463,73 @@ func (b *Backuper) getSourceClusterSizeMb(
 	return &clusterSizeMb
 }
 
-func (b *Backuper) persistFullResult(
+func (b *Backuper) persistResult(
 	ctx context.Context,
-	fullBackup *catalog.FullBackup,
+	backup *catalog.Backup,
 	backupResult Result,
 	rawSizeMb *float64,
 ) error {
 	if backupResult.FileName == "" {
-		backupResult.FileName = derefString(fullBackup.FileName)
+		backupResult.FileName = derefString(backup.FileName)
 	}
-	fullBackup.Status = backupResult.Status
-	fullBackup.ErrorReason = backupResult.ErrorReason
-	fullBackup.FailMessage = nilOrPtr(backupResult.ErrorMessage)
+	backup.Status = backupResult.Status
+	backup.ErrorReason = backupResult.ErrorReason
+	backup.FailMessage = nilOrPtr(backupResult.ErrorMessage)
 
 	if backupResult.Status == catalog.BackupStatusCompleted {
-		fullBackup.TimelineID = backupResult.TimelineID
-		fullBackup.StartLSN = lsnPtr(backupResult.StartLSN)
-		fullBackup.StopLSN = lsnPtr(backupResult.StopLSN)
-		fullBackup.BackupSizeMb = &backupResult.BackupSizeMb
-		fullBackup.RawSizeMb = rawSizeMb
-		fullBackup.BackupDurationMs = &backupResult.BackupDurationMs
-		fullBackup.Encryption = backupResult.EncryptionAlgo
-		fullBackup.EncryptionSalt = nilOrPtr(backupResult.EncryptionSalt)
-		fullBackup.EncryptionIV = nilOrPtr(backupResult.EncryptionIV)
+		backup.TimelineID = backupResult.TimelineID
+		backup.StartLSN = lsnPtr(backupResult.StartLSN)
+		backup.StopLSN = lsnPtr(backupResult.StopLSN)
+		backup.BackupSizeMb = &backupResult.BackupSizeMb
+		backup.RawSizeMb = rawSizeMb
+		backup.BackupDurationMs = &backupResult.BackupDurationMs
+		backup.Encryption = backupResult.EncryptionAlgo
+		backup.EncryptionSalt = nilOrPtr(backupResult.EncryptionSalt)
+		backup.EncryptionIV = nilOrPtr(backupResult.EncryptionIV)
 
-		fullBackup.Compression = backupResult.Compression
-		fullBackup.ManifestFileName = nilOrPtr(backupResult.ManifestFileName)
-		fullBackup.ManifestEncryptionSalt = nilOrPtr(backupResult.ManifestEncryptionSalt)
-		fullBackup.ManifestEncryptionIV = nilOrPtr(backupResult.ManifestEncryptionIV)
-
+		backup.Compression = backupResult.Compression
+		backup.ManifestFileName = nilOrPtr(backupResult.ManifestFileName)
+		backup.ManifestEncryptionSalt = nilOrPtr(backupResult.ManifestEncryptionSalt)
+		backup.ManifestEncryptionIV = nilOrPtr(backupResult.ManifestEncryptionIV)
 	}
 
 	completedAt := backupResult.CompletedAt
 	if completedAt.IsZero() {
 		completedAt = b.clock.Now()
 	}
-	fullBackup.CompletedAt = &completedAt
+	backup.CompletedAt = &completedAt
 
-	return b.saveTerminalResultIfInProgress(ctx, terminalPersistSpec{
-		DatabaseID:      fullBackup.DatabaseID,
-		BackupID:        fullBackup.ID,
-		BackupCreatedAt: fullBackup.CreatedAt,
-		StorageID:       fullBackup.StorageID,
-		Result:          backupResult,
-		LoadStatus: func(ctx context.Context) (catalog.BackupStatus, bool, error) {
-			return b.fullRepo.GetStatusForUpdate(ctx, fullBackup.ID)
-		},
-		Save: func(ctx context.Context) error { return b.fullRepo.UpdateTerminalResult(ctx, fullBackup) },
-	})
-}
-
-func (b *Backuper) persistIncrResult(
-	ctx context.Context,
-	incrBackup *catalog.IncrementalBackup,
-	backupResult Result,
-) error {
-	if backupResult.FileName == "" {
-		backupResult.FileName = derefString(incrBackup.FileName)
+	backup.FileName = nilOrPtr(backupResult.FileName)
+	if backup.ManifestFileName == nil {
+		backup.ManifestFileName = nilOrPtr(backupResult.ManifestFileName)
 	}
-	incrBackup.Status = backupResult.Status
-	incrBackup.ErrorReason = backupResult.ErrorReason
-	incrBackup.FailMessage = nilOrPtr(backupResult.ErrorMessage)
-
-	if backupResult.Status == catalog.BackupStatusCompleted {
-		incrBackup.TimelineID = backupResult.TimelineID
-		incrBackup.StartLSN = lsnPtr(backupResult.StartLSN)
-		incrBackup.StopLSN = lsnPtr(backupResult.StopLSN)
-		incrBackup.BackupSizeMb = &backupResult.BackupSizeMb
-		incrBackup.BackupDurationMs = &backupResult.BackupDurationMs
-		incrBackup.Encryption = backupResult.EncryptionAlgo
-		incrBackup.EncryptionSalt = nilOrPtr(backupResult.EncryptionSalt)
-		incrBackup.EncryptionIV = nilOrPtr(backupResult.EncryptionIV)
-
-		incrBackup.Compression = backupResult.Compression
-		incrBackup.ManifestFileName = nilOrPtr(backupResult.ManifestFileName)
-		incrBackup.ManifestEncryptionSalt = nilOrPtr(backupResult.ManifestEncryptionSalt)
-		incrBackup.ManifestEncryptionIV = nilOrPtr(backupResult.ManifestEncryptionIV)
-
+	var err error
+	var isChanged bool
+	switch backupResult.Status {
+	case catalog.BackupStatusCompleted:
+		isChanged, err = b.lifecycle.Complete(ctx, backup, backupResult.Receipts)
+	case catalog.BackupStatusChainBroken:
+		isChanged, err = b.lifecycle.MarkChainBroken(ctx, backup)
+	case catalog.BackupStatusCanceled:
+		isChanged, err = b.lifecycle.Cancel(ctx, backup)
+	case catalog.BackupStatusError:
+		isChanged, err = b.lifecycle.Fail(ctx, backup)
+	case catalog.BackupStatusInProgress:
+		panic("cannot persist a running backup as terminal")
 	}
-
-	completedAt := backupResult.CompletedAt
-	if completedAt.IsZero() {
-		completedAt = b.clock.Now()
+	if err == nil && !isChanged {
+		return errBackupRowSuperseded
 	}
-	incrBackup.CompletedAt = &completedAt
-
-	return b.saveTerminalResultIfInProgress(ctx, terminalPersistSpec{
-		DatabaseID:      incrBackup.DatabaseID,
-		BackupID:        incrBackup.ID,
-		BackupCreatedAt: incrBackup.CreatedAt,
-		StorageID:       incrBackup.StorageID,
-		Result:          backupResult,
-		LoadStatus: func(ctx context.Context) (catalog.BackupStatus, bool, error) {
-			return b.incrRepo.GetStatusForUpdate(ctx, incrBackup.ID)
-		},
-		Save: func(ctx context.Context) error { return b.incrRepo.UpdateTerminalResult(ctx, incrBackup) },
-	})
+	return err
 }
 
 func (b *Backuper) isIncrRetryBudgetExhausted(
 	ctx context.Context,
 	logger *slog.Logger,
-	incrBackup *catalog.IncrementalBackup,
+	incrBackup *catalog.Backup,
 ) bool {
-	recentBackups, err := b.incrRepo.FindNewestAnyStatusByRootFull(ctx,
-		incrBackup.RootFullBackupID, maxConsecutiveFailedIncrTries)
+	recentBackups, err := b.backupRepo.FindNewestAnyStatusByRootFull(ctx,
+		*incrBackup.RootFullBackupID, maxConsecutiveFailedIncrTries)
 	if err != nil {
 		logger.ErrorContext(ctx, "failed to read the chain's recent incrementals", slog.Any("error", err))
 
@@ -609,7 +537,7 @@ func (b *Backuper) isIncrRetryBudgetExhausted(
 	}
 
 	priorBackups := slices.DeleteFunc(recentBackups,
-		func(backup *catalog.IncrementalBackup) bool {
+		func(backup *catalog.Backup) bool {
 			return backup.ID == incrBackup.ID
 		})
 
@@ -618,149 +546,32 @@ func (b *Backuper) isIncrRetryBudgetExhausted(
 	}
 
 	return !slices.ContainsFunc(priorBackups,
-		func(backup *catalog.IncrementalBackup) bool {
+		func(backup *catalog.Backup) bool {
 			return backup.Status != catalog.BackupStatusError
 		})
 }
 
-type terminalPersistSpec struct {
-	DatabaseID uuid.UUID
-	BackupID   uuid.UUID
-
-	BackupCreatedAt time.Time
-	StorageID       uuid.UUID
-	Result          Result
-	LoadStatus      func(ctx context.Context) (catalog.BackupStatus, bool, error)
-	Save            func(ctx context.Context) error
-}
-
-func (b *Backuper) saveTerminalResultIfInProgress(ctx context.Context, spec terminalPersistSpec) error {
-	err := b.transactor.Transaction(ctx, func(ctx context.Context) error {
-		isCompleted := spec.Result.Status == catalog.BackupStatusCompleted
-		if isCompleted {
-			err := b.databases.RecordBackupSuccess(ctx, spec.DatabaseID, spec.BackupCreatedAt)
-			if err != nil {
-				return err
-			}
-		}
-
-		status, isFound, err := spec.LoadStatus(ctx)
-		if err != nil {
-			return err
-		}
-
-		if !isFound || status != catalog.BackupStatusInProgress {
-			return errBackupRowSuperseded
-		}
-
-		if isCompleted {
-			err = b.storages.ConfirmFileWrites(ctx, spec.Result.Receipts)
-		} else {
-			err = b.storages.RequestFileDeletions(ctx, b.attemptFileReferences(spec))
-		}
-
-		if err != nil {
-			return err
-		}
-
-		if err := spec.Save(ctx); err != nil {
-			return err
-		}
-
-		return b.inFlightRepo.ReleaseOwned(ctx, spec.DatabaseID, spec.BackupID)
-	})
-	if !errors.Is(err, errBackupRowSuperseded) {
-		return err
-	}
-
-	b.logger.WarnContext(
-		ctx,
-		"backup row no longer in progress; skipping terminal persist",
-		slog.Any("backup_id", spec.BackupID),
-	)
-
-	return b.transactor.Transaction(ctx, func(ctx context.Context) error {
-		return b.storages.RequestFileDeletions(ctx, b.attemptFileReferences(spec))
-	})
-}
-
-func (b *Backuper) attemptFileReferences(
-	spec terminalPersistSpec,
-) []storages.StoredFileReference {
-	if spec.Result.FileName == "" {
-		return nil
-	}
-
-	references := []storages.StoredFileReference{
-		{StorageID: spec.StorageID, FileName: spec.Result.FileName},
-		{StorageID: spec.StorageID, FileName: spec.Result.FileName + metadataSuffix},
-	}
-
-	manifestFileName := spec.Result.ManifestFileName
-	if manifestFileName == "" {
-		manifestFileName = spec.Result.FileName + catalog.ManifestSuffix
-	}
-	references = append(references, storages.StoredFileReference{StorageID: spec.StorageID, FileName: manifestFileName})
-
-	return references
-}
-
-func (b *Backuper) finalizeFullAsError(
+func (b *Backuper) finalizeAsError(
 	ctx context.Context,
-	fullBackup *catalog.FullBackup,
+	backup *catalog.Backup,
 	reason catalog.BackupErrorReason,
 	message string,
 ) {
-	backupResult := classifyShutdown(
-		ctx,
-		Result{
-			Status:           catalog.BackupStatusError,
-			ErrorReason:      &reason,
-			ErrorMessage:     message,
-			FileName:         derefString(fullBackup.FileName),
-			ManifestFileName: derefString(fullBackup.ManifestFileName),
-		},
-	)
-	cleanupCtx := context.WithoutCancel(ctx)
-	if err := b.persistFullResult(cleanupCtx, fullBackup, backupResult, nil); err != nil {
-		b.logger.ErrorContext(cleanupCtx, "failed to record full backup failure", slog.Any("error", err))
-		return
-	}
-	if errors.Is(context.Cause(ctx), runcontext.ErrBackupShutdown) {
-		backupConfig, err := b.configs.GetPhysicalBackupConfig(cleanupCtx, fullBackup.DatabaseID)
-		if err != nil {
-			b.logger.ErrorContext(cleanupCtx, "failed to load shutdown notification config", slog.Any("error", err))
-			return
-		}
-		backupDatabase, err := b.getDatabase(cleanupCtx, fullBackup.DatabaseID)
-		if err != nil {
-			return
-		}
-		b.sendFullBackupNotification(cleanupCtx, backupConfig, backupDatabase, fullBackup, backupResult)
-	}
+	b.finalizeWithStatus(ctx, backup, catalog.BackupStatusError, reason, message)
 }
 
-func (b *Backuper) finalizeIncrAsError(
+func (b *Backuper) finalizeAsChainBroken(
 	ctx context.Context,
-	incrBackup *catalog.IncrementalBackup,
+	backup *catalog.Backup,
 	reason catalog.BackupErrorReason,
 	message string,
 ) {
-	b.finalizeIncrWithStatus(ctx, incrBackup, catalog.BackupStatusError, reason, message)
+	b.finalizeWithStatus(ctx, backup, catalog.BackupStatusChainBroken, reason, message)
 }
 
-func (b *Backuper) finalizeIncrAsChainBroken(
+func (b *Backuper) finalizeWithStatus(
 	ctx context.Context,
-	incrBackup *catalog.IncrementalBackup,
-	reason catalog.BackupErrorReason,
-	message string,
-) {
-	b.finalizeIncrWithStatus(ctx, incrBackup, catalog.BackupStatusChainBroken, reason, message)
-}
-
-func (b *Backuper) finalizeIncrWithStatus(
-	ctx context.Context,
-	incrBackup *catalog.IncrementalBackup,
+	backup *catalog.Backup,
 	status catalog.BackupStatus,
 	reason catalog.BackupErrorReason,
 	message string,
@@ -771,70 +582,39 @@ func (b *Backuper) finalizeIncrWithStatus(
 			Status:           status,
 			ErrorReason:      &reason,
 			ErrorMessage:     message,
-			FileName:         derefString(incrBackup.FileName),
-			ManifestFileName: derefString(incrBackup.ManifestFileName),
+			FileName:         derefString(backup.FileName),
+			ManifestFileName: derefString(backup.ManifestFileName),
 		},
 	)
 	cleanupCtx := context.WithoutCancel(ctx)
-	if err := b.persistIncrResult(cleanupCtx, incrBackup, backupResult); err != nil {
-		b.logger.ErrorContext(cleanupCtx, "failed to record incremental backup failure", slog.Any("error", err))
+	if err := b.persistResult(cleanupCtx, backup, backupResult, nil); err != nil {
+		b.logger.ErrorContext(cleanupCtx, "failed to record physical backup failure", slog.Any("error", err))
 		return
 	}
 	if errors.Is(context.Cause(ctx), runcontext.ErrBackupShutdown) {
-		backupConfig, err := b.configs.GetPhysicalBackupConfig(cleanupCtx, incrBackup.DatabaseID)
+		backupConfig, err := b.configs.GetPhysicalBackupConfig(cleanupCtx, backup.DatabaseID)
 		if err != nil {
 			return
 		}
-		backupDatabase, err := b.getDatabase(cleanupCtx, incrBackup.DatabaseID)
+		backupDatabase, err := b.getDatabase(cleanupCtx, backup.DatabaseID)
 		if err != nil {
 			return
 		}
-		b.sendIncrBackupNotification(cleanupCtx, backupConfig, backupDatabase, incrBackup, backupResult)
+		b.sendBackupNotification(cleanupCtx, backupConfig, backupDatabase, backup, backupResult)
 	}
 }
 
-func (b *Backuper) sendFullBackupNotification(
+func (b *Backuper) sendBackupNotification(
 	ctx context.Context,
 	cfg config.PhysicalBackupConfig,
 	db databases.Database,
-	fullBackup *catalog.FullBackup,
+	backup *catalog.Backup,
 	backupResult Result,
 ) {
-	notificationType, title, message := classifyFullBackupNotification(
+	notificationType, title, message := classifyBackupNotification(
 		ctx,
 		db,
-		fullBackup,
-		backupResult,
-		b.workspaceService,
-	)
-	if notificationType == "" {
-		return
-	}
-
-	if !slices.Contains(cfg.NotificationTriggers, notificationType) {
-		return
-	}
-
-	notification := notifiers.Notification{
-		Category: toNotificationType(notificationType),
-		Heading:  title,
-		Message:  message,
-	}
-
-	b.notificationSender.Notify(ctx, db.NotifierIDs, notification)
-}
-
-func (b *Backuper) sendIncrBackupNotification(
-	ctx context.Context,
-	cfg config.PhysicalBackupConfig,
-	db databases.Database,
-	incrBackup *catalog.IncrementalBackup,
-	backupResult Result,
-) {
-	notificationType, title, message := classifyIncrBackupNotification(
-		ctx,
-		db,
-		incrBackup,
+		backup,
 		backupResult,
 		b.workspaceService,
 	)
@@ -865,10 +645,10 @@ func toNotificationType(
 	return notifiers.CategoryBackupFailed
 }
 
-func classifyFullBackupNotification(
+func classifyBackupNotification(
 	ctx context.Context,
 	db databases.Database,
-	fullBackup *catalog.FullBackup,
+	backup *catalog.Backup,
 	backupResult Result,
 	workspaceService workspaces.Module,
 ) (config.NotificationTrigger, string, string) {
@@ -881,38 +661,12 @@ func classifyFullBackupNotification(
 		workspaceName = listedWorkspaces[0].Name
 	}
 
-	return classifyFullNotification(
+	return classifyBackupNotificationSpec(
 		backupNotificationSpec{
 			Database:      db,
 			WorkspaceName: workspaceName,
 			BackupResult:  backupResult,
-			FullBackup:    fullBackup,
-		},
-	)
-}
-
-func classifyIncrBackupNotification(
-	ctx context.Context,
-	db databases.Database,
-	incrBackup *catalog.IncrementalBackup,
-	backupResult Result,
-	workspaceService workspaces.Module,
-) (config.NotificationTrigger, string, string) {
-	workspaceName := "unknown"
-	if listedWorkspaces, err := workspaceService.GetWorkspaces(
-		ctx,
-		[]uuid.UUID{db.WorkspaceID},
-	); err == nil &&
-		len(listedWorkspaces) > 0 {
-		workspaceName = listedWorkspaces[0].Name
-	}
-
-	return classifyIncrNotification(
-		backupNotificationSpec{
-			Database:          db,
-			WorkspaceName:     workspaceName,
-			BackupResult:      backupResult,
-			IncrementalBackup: incrBackup,
+			Backup:        backup,
 		},
 	)
 }

@@ -63,7 +63,7 @@ func TestIndependentPhysicalBackupSlots(t *testing.T) {
 			rows := team.listBackups(t)
 			require.Len(t, rows, 1)
 			assert.Equal(t, "COMPLETED", rows[0].Status)
-			team.assertClaimReleased(t)
+			team.assertNoRunningBackup(t)
 		}
 		var count int
 		require.NoError(

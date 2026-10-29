@@ -3,6 +3,7 @@ package backuping_test
 import (
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -32,12 +33,15 @@ func TestPhysicalBackupArtifacts(t *testing.T) {
 				second := team.runBackup(t, "incremental")
 				require.Equal(t, "COMPLETED", second.Status)
 				team.assertArtifacts(t, second)
-				team.assertClaimReleased(t)
-				var incremental apptest.PhysicalIncrementalBackupSeed
-				team.App.QuerySQL(t, &incremental, "SELECT * FROM backups_physical_incremental WHERE id=?", second.ID)
+				team.assertNoRunningBackup(t)
+				var incremental struct {
+					RootFullBackupID uuid.UUID
+					ParentBackupID   *uuid.UUID
+				}
+				team.App.QuerySQL(t, &incremental, "SELECT * FROM backups_physical WHERE id=?", second.ID)
 				assert.Equal(t, full.ID, incremental.RootFullBackupID)
-				require.NotNil(t, incremental.ParentIncrementalBackupID)
-				assert.Equal(t, first.ID, *incremental.ParentIncrementalBackupID)
+				require.NotNil(t, incremental.ParentBackupID)
+				assert.Equal(t, first.ID, *incremental.ParentBackupID)
 			},
 		)
 	}
@@ -47,10 +51,10 @@ func TestPhysicalBackupArtifacts(t *testing.T) {
 		require.Equal(t, "COMPLETED", full.Status)
 		team.assertArtifacts(t, full)
 		var stored apptest.PhysicalFullBackupSeed
-		team.App.QuerySQL(t, &stored, "SELECT * FROM backups_physical_full WHERE id=?", full.ID)
+		team.App.QuerySQL(t, &stored, "SELECT * FROM backups_physical WHERE id=?", full.ID)
 		require.NotNil(t, stored.RawSizeMb)
 		assert.Positive(t, *stored.RawSizeMb)
-		team.assertClaimReleased(t)
+		team.assertNoRunningBackup(t)
 	})
 }
 
@@ -68,10 +72,7 @@ func (team *backupTeam) assertArtifacts(t *testing.T, backup backupRow) {
 		BackupSizeMb           *float64
 		BackupDurationMs       *int64
 	}
-	table := "backups_physical_full"
-	if backup.Type == "INCREMENTAL" {
-		table = "backups_physical_incremental"
-	}
+	table := "backups_physical"
 	team.App.QuerySQL(t, &artifacts, "SELECT * FROM "+table+" WHERE id=?", backup.ID)
 	require.Len(t, artifacts, 1)
 	artifact := artifacts[0]

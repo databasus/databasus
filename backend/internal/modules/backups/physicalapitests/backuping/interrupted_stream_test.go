@@ -73,7 +73,7 @@ func terminateFullBackupStream(t *testing.T, isHoldingConnectionTerminated bool)
 	team.App.QuerySQL(
 		t,
 		&fileNames,
-		"SELECT file_name FROM backups_physical_full WHERE database_id=? AND file_name IS NOT NULL",
+		"SELECT file_name FROM backups_physical WHERE database_id=? AND file_name IS NOT NULL",
 		team.Database.Id,
 	)
 	require.Len(t, fileNames, 1)
@@ -94,7 +94,7 @@ func terminateFullBackupStream(t *testing.T, isHoldingConnectionTerminated bool)
 	require.Len(t, backups, 1)
 	assert.Equal(t, "ERROR", backups[0].Status)
 	team.assertTerminalDetails(t, backups[0], "PG_BASEBACKUP_FAILED")
-	team.assertClaimReleased(t)
+	team.assertNoRunningBackup(t)
 	team.App.RunJobPass(t, "storage_file_deletion")
 	for _, fileName := range fileNames {
 		assert.False(t, team.App.IsLocalStorageFilePresent(t, fileName))

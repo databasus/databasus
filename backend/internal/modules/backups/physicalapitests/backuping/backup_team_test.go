@@ -31,6 +31,7 @@ type (
 	}
 	backupTeamSpec struct {
 		Image                       string
+		ClientToolsDir              string
 		BackupType                  apiclient.PhysicalBackupType
 		IsSummarizerDisabled        bool
 		IsEncrypted                 bool
@@ -60,7 +61,7 @@ func newBackupTeam(t *testing.T, spec backupTeamSpec) *backupTeam {
 		connectionEndpoint = enginetest.OpenForwardedEndpoint(t, topology)
 		tunnel = enginetest.NewBastionSSHTunnelSettings(topology)
 	}
-	testApp := apptest.New(t)
+	testApp := apptest.New(t, apptest.WithClientToolsDir(spec.ClientToolsDir))
 	owner := testApp.CreateAdmin(t)
 	workspace := apptest.CreateWorkspace(t, owner, "Physical backup API")
 	storageID := testApp.CreateLocalStorage(t, owner, workspace.Id)
@@ -215,13 +216,13 @@ func (team *backupTeam) runBackup(t *testing.T, backupType string) backupRow {
 	return terminal
 }
 
-func (team *backupTeam) assertClaimReleased(t *testing.T) {
+func (team *backupTeam) assertNoRunningBackup(t *testing.T) {
 	t.Helper()
 	var count int64
 	team.App.QuerySQL(
 		t,
 		&count,
-		"SELECT count(*) FROM backups_physical_in_flight WHERE database_id=?",
+		"SELECT count(*) FROM backups_physical WHERE status = 'IN_PROGRESS' AND database_id=?",
 		team.Database.Id,
 	)
 	require.Zero(t, count)

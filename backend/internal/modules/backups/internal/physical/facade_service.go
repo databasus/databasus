@@ -28,68 +28,67 @@ import (
 )
 
 type Deps struct {
-	ExecutionClock     clock.Source
-	Repository         *catalog.Repository
-	FullBackups        *catalog.FullBackupRepository
-	IncrementalBackups *catalog.IncrementalBackupRepository
-	InFlightBackups    *catalog.InFlightBackupRepository
-	WalSegments        *catalog.WalSegmentRepository
-	WalHistory         *catalog.WalHistoryRepository
-	WalStreamers       *catalog.WalStreamerRepository
-	WalStreamSamples   *catalog.WalStreamSampleRepository
-	Configs            *config.Service
-	Cancellations      *background.CancellationRegistry
-	Runs               *background.Group
-	UserStreams        *download.UserStreams
-	Cache              cache.Store
-	Databases          databases.Module
-	Storages           storages.Module
-	Workspaces         workspaces.Module
-	Notifiers          notifiers.Module
-	Auditing           auditing.Recorder
-	Transactor         *database.Transactor
-	Clock              clock.Source
-	MasterKey          *crypto.MasterKey
-	Logger             *slog.Logger
-	ClientToolsDir     string
-	WalQueueDir        string
-	WalStreamTimings   walstreaming.Timings
+	ExecutionClock   clock.Source
+	Repository       *catalog.Repository
+	Backups          *catalog.BackupRepository
+	WalSegments      *catalog.WalSegmentRepository
+	WalHistory       *catalog.WalHistoryRepository
+	WalStreamers     *catalog.WalStreamerRepository
+	WalStreamSamples *catalog.WalStreamSampleRepository
+	Configs          *config.Service
+	Cancellations    *background.CancellationRegistry
+	Runs             *background.Group
+	UserStreams      *download.UserStreams
+	Cache            cache.Store
+	Databases        databases.Module
+	Storages         storages.Module
+	Workspaces       workspaces.Module
+	Notifiers        notifiers.Module
+	Auditing         auditing.Recorder
+	Transactor       *database.Transactor
+	Clock            clock.Source
+	MasterKey        *crypto.MasterKey
+	Logger           *slog.Logger
+	ClientToolsDir   string
+	WalQueueDir      string
+	WalStreamTimings walstreaming.Timings
 }
 
 func New(deps Deps) *Service {
+	lifecycle := catalog.NewBackupLifecycle(catalog.BackupLifecycleDeps{
+		Backups: deps.Backups, Databases: deps.Databases, Storages: deps.Storages,
+		Transactor: deps.Transactor, Clock: deps.Clock,
+	})
 	chainsService := chains.New(
 		chains.Deps{
-			Repository:         deps.Repository,
-			FullBackups:        deps.FullBackups,
-			IncrementalBackups: deps.IncrementalBackups,
-			InFlightBackups:    deps.InFlightBackups,
-			WalSegments:        deps.WalSegments,
-			WalHistory:         deps.WalHistory,
-			Storages:           deps.Storages,
-			Transactor:         deps.Transactor,
+			Repository:  deps.Repository,
+			Backups:     deps.Backups,
+			WalSegments: deps.WalSegments,
+			WalHistory:  deps.WalHistory,
+			Storages:    deps.Storages,
+			Transactor:  deps.Transactor,
 		},
 	)
 	backupsService := backuping.New(
 		backuping.Deps{
-			ExecutionClock:     deps.ExecutionClock,
-			FullBackups:        deps.FullBackups,
-			IncrementalBackups: deps.IncrementalBackups,
-			InFlightBackups:    deps.InFlightBackups,
-			HistoryFiles:       deps.WalHistory,
-			Repository:         deps.Repository,
-			Configs:            deps.Configs,
-			Chains:             chainsService,
-			Cancellations:      deps.Cancellations,
-			Runs:               deps.Runs,
-			Storages:           deps.Storages,
-			Databases:          deps.Databases,
-			Workspaces:         deps.Workspaces,
-			Notifiers:          deps.Notifiers,
-			Logger:             deps.Logger,
-			Clock:              deps.Clock,
-			Transactor:         deps.Transactor,
-			MasterKey:          deps.MasterKey,
-			ClientToolsDir:     deps.ClientToolsDir,
+			Lifecycle:      lifecycle,
+			ExecutionClock: deps.ExecutionClock,
+			Backups:        deps.Backups,
+			HistoryFiles:   deps.WalHistory,
+			Repository:     deps.Repository,
+			Configs:        deps.Configs,
+			Chains:         chainsService,
+			Cancellations:  deps.Cancellations,
+			Runs:           deps.Runs,
+			Storages:       deps.Storages,
+			Databases:      deps.Databases,
+			Workspaces:     deps.Workspaces,
+			Notifiers:      deps.Notifiers,
+			Logger:         deps.Logger,
+			Clock:          deps.Clock,
+			Transactor:     deps.Transactor,
+			MasterKey:      deps.MasterKey,
+			ClientToolsDir: deps.ClientToolsDir,
 		},
 	)
 	streamManager := walstreaming.New(
@@ -126,7 +125,7 @@ func New(deps Deps) *Service {
 		retention.Deps{
 			Chains:           chainsService,
 			Configs:          deps.Configs,
-			FullBackups:      deps.FullBackups,
+			Backups:          deps.Backups,
 			WalSegments:      deps.WalSegments,
 			WalStreamSamples: deps.WalStreamSamples,
 			Logger:           deps.Logger,
@@ -134,23 +133,21 @@ func New(deps Deps) *Service {
 		},
 	)
 	return &Service{
-		databases:                   deps.Databases,
-		workspaces:                  deps.Workspaces,
-		configs:                     deps.Configs,
-		chains:                      chainsService,
-		fullBackupRepository:        deps.FullBackups,
-		incrementalBackupRepository: deps.IncrementalBackups,
-		walSegmentRepository:        deps.WalSegments,
-		inFlightBackupRepository:    deps.InFlightBackups,
-		canceller:                   backupsService.Canceller,
-		restoreStreamWriter:         restoreService.Writer,
-		restoreTokenService:         restoreService,
-		masterKey:                   deps.MasterKey,
-		auditing:                    deps.Auditing,
-		transactor:                  deps.Transactor,
-		clock:                       deps.Clock,
-		runs:                        deps.Runs,
-		streams:                     streamManager,
+		databases:            deps.Databases,
+		workspaces:           deps.Workspaces,
+		configs:              deps.Configs,
+		chains:               chainsService,
+		backupRepository:     deps.Backups,
+		walSegmentRepository: deps.WalSegments,
+		canceller:            backupsService.Canceller,
+		restoreStreamWriter:  restoreService.Writer,
+		restoreTokenService:  restoreService,
+		masterKey:            deps.MasterKey,
+		auditing:             deps.Auditing,
+		transactor:           deps.Transactor,
+		clock:                deps.Clock,
+		runs:                 deps.Runs,
+		streams:              streamManager,
 		health: streamhealth.New(
 			streamhealth.Deps{
 				WalSegments:      deps.WalSegments,
@@ -183,6 +180,6 @@ func (s *Service) GetJobs() []background.Job {
 	return []background.Job{s.backuping.Scheduler.GetJob(), s.cleaner.GetJob(), s.streams.GetJob()}
 }
 
-func (s *Service) GetLatestCompletedFullBackup(ctx context.Context, databaseID uuid.UUID) (*catalog.FullBackup, error) {
+func (s *Service) GetLatestCompletedFullBackup(ctx context.Context, databaseID uuid.UUID) (*catalog.Backup, error) {
 	return s.chains.GetLatestCompletedFullBackup(ctx, databaseID)
 }

@@ -123,6 +123,6 @@ type installedPhysicalBackups struct{}
 func (installedPhysicalBackups) GetLatestCompletedPhysicalFullBackup(
 	ctx context.Context,
 	databaseID uuid.UUID,
-) (*backups.PhysicalFullBackup, error) {
+) (*backups.PhysicalBackup, error) {
 	return backups_bridge.GetModule().GetLatestCompletedPhysicalFullBackup(ctx, databaseID)
 }

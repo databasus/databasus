@@ -31,22 +31,26 @@ func TestDeleteDatabaseWithPhysicalBackups(t *testing.T) {
 			artifactFileNames := []string{fullFileName, "wal-first", "wal-second", "timeline-history"}
 			tm.app.ExecuteSQL(
 				t,
-				"UPDATE backups_physical_full SET manifest_file_name = ? WHERE id = ?",
+				"UPDATE backups_physical SET manifest_file_name = ? WHERE id = ?",
 				"full-manifest",
 				fullID,
 			)
-			var parentIncrementalID *uuid.UUID
+			parentIncrementalID := &fullID
 			for range 2 {
 				incrementalID := uuid.New()
 				fileName := "incremental-" + incrementalID.String()
 				manifestName := fileName + "-manifest"
-				tm.app.ExecuteSQL(t, `INSERT INTO backups_physical_incremental
-    (id, database_id, storage_id, timeline_id, status, root_full_backup_id, parent_incremental_backup_id, file_name, manifest_file_name)
-    VALUES (?, ?, ?, 1, 'COMPLETED', ?, ?, ?, ?)`, incrementalID, physicalDatabase.Id, storageID, fullID, parentIncrementalID, fileName, manifestName)
+				tm.app.ExecuteSQL(t, `INSERT INTO backups_physical
+    (id, database_id, storage_id, timeline_id, status, root_full_backup_id, parent_backup_id, file_name, manifest_file_name, kind, start_lsn, stop_lsn, completed_at)
+    VALUES (?, ?, ?, 1, 'COMPLETED', ?, ?, ?, ?, 'INCREMENTAL', '0/2000138', '0/3000028', NOW())`, incrementalID, physicalDatabase.Id, storageID, fullID, parentIncrementalID, fileName, manifestName)
 				fileNames = append(fileNames, fileName, manifestName)
 				artifactFileNames = append(artifactFileNames, fileName)
 				parentIncrementalID = &incrementalID
 			}
+			tm.app.ExecuteSQL(t, `INSERT INTO backups_physical
+				(id,database_id,storage_id,timeline_id,kind,status,root_full_backup_id,parent_backup_id)
+				VALUES (?,?,?,1,'INCREMENTAL','IN_PROGRESS',?,?)`,
+				uuid.New(), physicalDatabase.Id, storageID, fullID, parentIncrementalID)
 			for _, segment := range []struct {
 				fileName string
 				startLSN string
@@ -63,8 +67,6 @@ func TestDeleteDatabaseWithPhysicalBackups(t *testing.T) {
    (database_id, storage_id, timeline_id, file_name, history_filename)
    VALUES (?, ?, 2, 'timeline-history', '00000002.history')`, physicalDatabase.Id, storageID)
 			fileNames = append(fileNames, "timeline-history")
-			tm.app.ExecuteSQL(t, `INSERT INTO backups_physical_in_flight (database_id, backup_type, backup_id)
-   VALUES (?, 'INCREMENTAL', ?)`, physicalDatabase.Id, uuid.New())
 			tm.app.ExecuteSQL(
 				t,
 				`INSERT INTO backups_physical_wal_streamers (database_id, status) VALUES (?, 'RUNNING')`,
@@ -80,7 +82,7 @@ func TestDeleteDatabaseWithPhysicalBackups(t *testing.T) {
 
 			require.NoError(t, err)
 			require.Equal(t, http.StatusNoContent, response.StatusCode(), string(response.Body))
-			for _, table := range []string{"backups_physical_full", "backups_physical_incremental", "backups_physical_wal_segments", "backups_physical_wal_history_files", "backups_physical_in_flight", "backups_physical_wal_streamers", "backups_physical_wal_stream_samples"} {
+			for _, table := range []string{"backups_physical", "backups_physical_wal_segments", "backups_physical_wal_history_files", "backups_physical_wal_streamers", "backups_physical_wal_stream_samples"} {
 				assert.Zero(
 					t,
 					countRows(t, tm, "SELECT COUNT(*) FROM "+table+" WHERE database_id = ?", physicalDatabase.Id),

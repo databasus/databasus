@@ -52,7 +52,7 @@ func CheckFullTimelineCompatibility(
 	ctx context.Context,
 	conn *pgphysical.Inspection,
 	db databases.PostgresqlPhysicalConnectionSettings,
-	fullRepo *catalog.FullBackupRepository,
+	backupRepo *catalog.BackupRepository,
 	historyRepo *catalog.WalHistoryRepository,
 ) (*TimelineDecision, error) {
 	liveTimelineID, liveSystemIdentifier, err := conn.ReadLiveTimeline(ctx)
@@ -69,7 +69,7 @@ func CheckFullTimelineCompatibility(
 		return decision, nil
 	}
 
-	knownTimelineID, err := newestKnownTimeline(ctx, db.DatabaseID, fullRepo, historyRepo)
+	knownTimelineID, err := newestKnownTimeline(ctx, db.DatabaseID, backupRepo, historyRepo)
 	if err != nil {
 		return nil, err
 	}
@@ -338,10 +338,10 @@ func UploadHistoryFile(
 func newestKnownTimeline(
 	ctx context.Context,
 	dbID uuid.UUID,
-	fullRepo *catalog.FullBackupRepository,
+	backupRepo *catalog.BackupRepository,
 	historyRepo *catalog.WalHistoryRepository,
 ) (int, error) {
-	fulls, err := fullRepo.FindCompletedNewestFirstByDatabase(ctx, dbID)
+	fulls, err := backupRepo.FindCompletedFullNewestFirstByDatabase(ctx, dbID)
 	if err != nil {
 		return 0, fmt.Errorf("load full backups: %w", err)
 	}

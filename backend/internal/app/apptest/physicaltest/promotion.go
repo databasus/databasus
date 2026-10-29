@@ -107,7 +107,7 @@ func (team Team) waitForReanchoredFull(t *testing.T, staleFullID uuid.UUID, time
 		team.App.QuerySQL(
 			t,
 			&incrementals,
-			`SELECT status, COALESCE(error_reason, '') AS error_reason FROM backups_physical_incremental WHERE root_full_backup_id = ?`,
+			`SELECT status, COALESCE(error_reason, '') AS error_reason FROM backups_physical WHERE root_full_backup_id = ?`,
 			staleFullID,
 		)
 		hasTimelineRefusal := false

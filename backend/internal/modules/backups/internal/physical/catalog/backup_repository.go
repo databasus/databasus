@@ -1,0 +1,372 @@
+package catalog
+
+import (
+	"context"
+	"errors"
+	"fmt"
+
+	"github.com/google/uuid"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
+
+	"databasus-backend/internal/engines/postgresql/physical/walmath"
+	"databasus-backend/internal/lib/database"
+)
+
+type BackupRepository struct{ db *gorm.DB }
+
+func NewBackupRepository(db *gorm.DB) *BackupRepository { return &BackupRepository{db: db} }
+
+func (r *BackupRepository) FindByID(ctx context.Context, id uuid.UUID) (*Backup, bool, error) {
+	var backup Backup
+
+	if err := database.Conn(ctx, r.db).Where("id = ?", id).First(&backup).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, false, nil
+		}
+
+		return nil, false, err
+	}
+
+	return &backup, true, nil
+}
+
+func (r *BackupRepository) FindCompletedFullNewestFirstByDatabase(ctx context.Context, databaseID uuid.UUID,
+) ([]*Backup, error) {
+	var backups []*Backup
+
+	if err := database.Conn(ctx, r.db).
+		Where("kind = 'FULL' AND database_id = ? AND status = ?", databaseID, BackupStatusCompleted).
+		Order("created_at DESC").
+		Find(&backups).Error; err != nil {
+		return nil, err
+	}
+
+	return backups, nil
+}
+
+func (r *BackupRepository) UpdateProgress(
+	ctx context.Context,
+	id uuid.UUID,
+	sizeMb float64,
+	durationMs int64,
+) error {
+	return database.Conn(ctx, r.db).
+		Model(&Backup{}).
+		Where("id = ? AND status = ?", id, BackupStatusInProgress).
+		Updates(map[string]any{"backup_size_mb": sizeMb, "backup_duration_ms": durationMs}).Error
+}
+
+func (r *BackupRepository) DeleteByID(ctx context.Context, id uuid.UUID) error {
+	return database.Conn(ctx, r.db).Delete(&Backup{}, "id = ?", id).Error
+}
+
+func (r *BackupRepository) FindNewestFullAnyStatusByDatabase(ctx context.Context, databaseID uuid.UUID,
+	limit int,
+) ([]*Backup, error) {
+	var backups []*Backup
+
+	if err := database.Conn(ctx, r.db).
+		Where("kind = 'FULL' AND database_id = ?", databaseID).
+		Order("created_at DESC").
+		Limit(limit).
+		Find(&backups).Error; err != nil {
+		return nil, err
+	}
+
+	return backups, nil
+}
+
+func (r *BackupRepository) FindLastFullAnyStatusByDatabase(ctx context.Context, databaseID uuid.UUID,
+) (*Backup, bool, error) {
+	backups, err := r.FindNewestFullAnyStatusByDatabase(ctx, databaseID, 1)
+	if err != nil {
+		return nil, false, err
+	}
+
+	if len(backups) == 0 {
+		return nil, false, nil
+	}
+
+	return backups[0], true, nil
+}
+
+func (r *BackupRepository) FindAllFullByDatabaseOutsideStorage(ctx context.Context, databaseID uuid.UUID,
+	storageID uuid.UUID,
+) ([]*Backup, error) {
+	var backups []*Backup
+
+	if err := database.Conn(ctx, r.db).
+		Where("kind = 'FULL' AND database_id = ? AND storage_id <> ?", databaseID, storageID).
+		Order("created_at ASC").
+		Find(&backups).Error; err != nil {
+		return nil, err
+	}
+
+	return backups, nil
+}
+
+func (r *BackupRepository) FindByIDForUpdate(ctx context.Context, id uuid.UUID) (*Backup, bool, error) {
+	var backup Backup
+	err := database.Conn(ctx, r.db).Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ?", id).First(&backup).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, false, nil
+	}
+	if err != nil {
+		return nil, false, err
+	}
+	return &backup, true, nil
+}
+
+func (r *BackupRepository) FindNextCompletedFull(ctx context.Context, full *Backup) (*Backup, bool, error) {
+	var successor Backup
+	err := database.Conn(ctx, r.db).
+		Where("kind = 'FULL' AND database_id = ? AND timeline_id = ? AND status = ? AND start_lsn > ?::pg_lsn", full.DatabaseID, full.TimelineID, BackupStatusCompleted, full.StartLSN.String()).
+		Order("start_lsn ASC").
+		First(&successor).
+		Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, false, nil
+	}
+	if err != nil {
+		return nil, false, err
+	}
+	return &successor, true, nil
+}
+
+func (r *BackupRepository) HasCompletedFullBefore(ctx context.Context, full *Backup) (bool, error) {
+	var count int64
+	err := database.Conn(ctx, r.db).
+		Model(&Backup{}).
+		Where("kind = 'FULL' AND database_id = ? AND timeline_id = ? AND status = ? AND start_lsn IS NOT NULL AND start_lsn < ?::pg_lsn", full.DatabaseID, full.TimelineID, BackupStatusCompleted, full.StartLSN.String()).
+		Count(&count).
+		Error
+	return count > 0, err
+}
+
+func (r *BackupRepository) HasSurvivingCompletedFullOnTimeline(ctx context.Context, full *Backup) (bool, error) {
+	var count int64
+	err := database.Conn(ctx, r.db).
+		Model(&Backup{}).
+		Where("kind = 'FULL' AND database_id = ? AND timeline_id = ? AND status = ? AND id != ?", full.DatabaseID, full.TimelineID, BackupStatusCompleted, full.ID).
+		Count(&count).
+		Error
+	return count > 0, err
+}
+
+func (r *BackupRepository) GetOwnershipSpan(ctx context.Context, full *Backup) (LSNRange, error) {
+	if full.StartLSN == nil {
+		return LSNRange{}, errors.New("cannot determine WAL ownership without FULL start_lsn")
+	}
+	successor, isFound, err := r.FindNextCompletedFull(ctx, full)
+	if err != nil {
+		return LSNRange{}, err
+	}
+	end := LSNMax
+	if isFound && successor.StartLSN != nil {
+		end = *successor.StartLSN
+	}
+	return LSNRange{Start: *full.StartLSN, End: end}, nil
+}
+
+func (r *BackupRepository) UpdateAttemptFileName(ctx context.Context, backup *Backup) error {
+	return database.Conn(ctx, r.db).
+		Model(&Backup{}).
+		Where("id = ?", backup.ID).
+		Update("file_name", backup.FileName).
+		Error
+}
+
+func (r *BackupRepository) FindLatestCompletedByRootFull(ctx context.Context, rootFullBackupID uuid.UUID,
+) (*Backup, bool, error) {
+	var backup Backup
+
+	err := database.Conn(ctx, r.db).
+		Where("root_full_backup_id = ? AND status = ?",
+			rootFullBackupID, BackupStatusCompleted).
+		Order("start_lsn DESC").
+		First(&backup).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, false, nil
+		}
+
+		return nil, false, err
+	}
+
+	return &backup, true, nil
+}
+
+// FindNewestAnyStatusByRootFull orders by created_at rather than start_lsn
+// because failed attempts have no start LSN.
+func (r *BackupRepository) FindNewestAnyStatusByRootFull(ctx context.Context, rootFullBackupID uuid.UUID,
+	limit int,
+) ([]*Backup, error) {
+	var backups []*Backup
+
+	if err := database.Conn(ctx, r.db).
+		Where("root_full_backup_id = ?", rootFullBackupID).
+		Order("created_at DESC").
+		Limit(limit).
+		Find(&backups).Error; err != nil {
+		return nil, err
+	}
+
+	return backups, nil
+}
+
+func (r *BackupRepository) FindAllByRootFull(ctx context.Context, rootFullBackupID uuid.UUID,
+) ([]*Backup, error) {
+	var backups []*Backup
+
+	if err := database.Conn(ctx, r.db).
+		Where("root_full_backup_id = ?", rootFullBackupID).
+		Order("start_lsn ASC").
+		Find(&backups).Error; err != nil {
+		return nil, err
+	}
+
+	return backups, nil
+}
+
+func (r *BackupRepository) FindLastIncrementalByDatabase(ctx context.Context, databaseID uuid.UUID,
+) (*Backup, bool, error) {
+	var backup Backup
+
+	err := database.Conn(ctx, r.db).
+		Where("kind = 'INCREMENTAL' AND database_id = ?", databaseID).
+		Order("created_at DESC").
+		First(&backup).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, false, nil
+		}
+
+		return nil, false, err
+	}
+
+	return &backup, true, nil
+}
+
+func (r *BackupRepository) AcquireBackupAndOrphanCleanupLock(ctx context.Context, databaseID uuid.UUID) error {
+	return database.Conn(ctx, r.db).Exec(
+		`SELECT pg_advisory_xact_lock(hashtextextended('physical-backup:' || ?::text, 0))`,
+		databaseID,
+	).Error
+}
+
+func (r *BackupRepository) HasCompletedFullBackupCoveringWal(
+	ctx context.Context,
+	databaseID uuid.UUID,
+	timelineID int,
+	walEndLSN walmath.LSN,
+) (bool, error) {
+	var fullCount int64
+
+	err := database.Conn(ctx, r.db).Model(&Backup{}).
+		Where(
+			"kind = 'FULL' AND database_id = ? AND timeline_id = ? AND status = ? AND start_lsn IS NOT NULL AND start_lsn < ?::pg_lsn",
+			databaseID,
+			timelineID,
+			BackupStatusCompleted,
+			walEndLSN.String(),
+		).
+		Count(&fullCount).Error
+	if err != nil {
+		return false, err
+	}
+
+	return fullCount > 0, nil
+}
+
+func (r *BackupRepository) InsertRunning(ctx context.Context, backup *Backup) (bool, error) {
+	insertion := database.Conn(ctx, r.db).Clauses(clause.OnConflict{
+		Columns:     []clause.Column{{Name: "database_id"}},
+		TargetWhere: clause.Where{Exprs: []clause.Expression{clause.Expr{SQL: "status = 'IN_PROGRESS'"}}},
+		DoNothing:   true,
+	}).Create(backup)
+	if insertion.Error != nil {
+		return false, fmt.Errorf("insert running physical backup: %w", insertion.Error)
+	}
+	return insertion.RowsAffected == 1, nil
+}
+
+func (r *BackupRepository) MarkCompleted(ctx context.Context, backup *Backup) (bool, error) {
+	return r.markTerminal(ctx, backup, BackupStatusCompleted, map[string]any{
+		"file_name":                backup.FileName,
+		"timeline_id":              backup.TimelineID,
+		"start_lsn":                backup.StartLSN,
+		"stop_lsn":                 backup.StopLSN,
+		"backup_size_mb":           backup.BackupSizeMb,
+		"raw_size_mb":              backup.RawSizeMb,
+		"backup_duration_ms":       backup.BackupDurationMs,
+		"encryption":               backup.Encryption,
+		"encryption_salt":          backup.EncryptionSalt,
+		"encryption_iv":            backup.EncryptionIV,
+		"compression":              backup.Compression,
+		"manifest_file_name":       backup.ManifestFileName,
+		"manifest_encryption_salt": backup.ManifestEncryptionSalt,
+		"manifest_encryption_iv":   backup.ManifestEncryptionIV,
+	})
+}
+
+func (r *BackupRepository) MarkFailed(ctx context.Context, backup *Backup) (bool, error) {
+	return r.markTerminal(ctx, backup, BackupStatusError, map[string]any{})
+}
+
+func (r *BackupRepository) MarkChainBroken(ctx context.Context, backup *Backup) (bool, error) {
+	return r.markTerminal(ctx, backup, BackupStatusChainBroken, map[string]any{})
+}
+
+func (r *BackupRepository) MarkCanceled(ctx context.Context, backup *Backup) (bool, error) {
+	return r.markTerminal(ctx, backup, BackupStatusCanceled, map[string]any{})
+}
+
+func (r *BackupRepository) FindAllRunning(ctx context.Context) ([]*Backup, error) {
+	var backups []*Backup
+	if err := database.Conn(ctx, r.db).Where("status = ?", BackupStatusInProgress).Find(&backups).Error; err != nil {
+		return nil, fmt.Errorf("list running physical backups: %w", err)
+	}
+	return backups, nil
+}
+
+func (r *BackupRepository) FindRunningByDatabaseID(ctx context.Context, databaseID uuid.UUID) (*Backup, bool, error) {
+	var backup Backup
+	err := database.Conn(ctx, r.db).
+		Where("database_id = ? AND status = ?", databaseID, BackupStatusInProgress).
+		First(&backup).
+		Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, false, nil
+	}
+	if err != nil {
+		return nil, false, fmt.Errorf("find running physical backup: %w", err)
+	}
+	return &backup, true, nil
+}
+
+func (r *BackupRepository) HasRunningFullBackup(ctx context.Context, databaseID uuid.UUID) (bool, error) {
+	var count int64
+	err := database.Conn(ctx, r.db).Model(&Backup{}).
+		Where("database_id = ? AND kind = ? AND status = ?", databaseID, BackupKindFull, BackupStatusInProgress).
+		Count(&count).Error
+	return count > 0, err
+}
+
+func (r *BackupRepository) markTerminal(
+	ctx context.Context,
+	backup *Backup,
+	status BackupStatus,
+	columns map[string]any,
+) (bool, error) {
+	columns["status"] = status
+	columns["error_reason"] = backup.ErrorReason
+	columns["fail_message"] = backup.FailMessage
+	columns["completed_at"] = backup.CompletedAt
+	transition := database.Conn(ctx, r.db).Model(&Backup{}).
+		Where("id = ? AND status = ?", backup.ID, BackupStatusInProgress).Updates(columns)
+	if transition.Error != nil {
+		return false, fmt.Errorf("mark physical backup %s: %w", status, transition.Error)
+	}
+	return transition.RowsAffected == 1, nil
+}

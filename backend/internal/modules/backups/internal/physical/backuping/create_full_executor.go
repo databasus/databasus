@@ -48,7 +48,7 @@ func (uc *FullExecutor) Execute(ctx context.Context, spec FullBackupSpec) (execu
 		attemptName := buildObjectName(label, uuid.New())
 
 		spec.Backup.FileName = &attemptName
-		if err := spec.FullRepo.UpdateAttemptFileName(context.WithoutCancel(ctx), spec.Backup); err != nil {
+		if err := spec.BackupRepo.UpdateAttemptFileName(context.WithoutCancel(ctx), spec.Backup); err != nil {
 			return "", fmt.Errorf("persist file_name at upload-start: %w", err)
 		}
 

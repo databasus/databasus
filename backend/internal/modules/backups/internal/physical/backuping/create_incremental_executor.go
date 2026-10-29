@@ -81,7 +81,7 @@ func (uc *IncrementalExecutor) Execute(
 		attemptName := buildObjectName(label, uuid.New())
 
 		spec.Backup.FileName = &attemptName
-		if err := spec.IncrRepo.UpdateAttemptFileName(context.WithoutCancel(ctx), spec.Backup); err != nil {
+		if err := spec.BackupRepo.UpdateAttemptFileName(context.WithoutCancel(ctx), spec.Backup); err != nil {
 			return "", fmt.Errorf("persist file_name at upload-start: %w", err)
 		}
 
@@ -152,7 +152,7 @@ func verifyIncrTimelineCompatibility(
 	ctx context.Context,
 	spec IncrementalBackupSpec,
 ) (Result, int, bool) {
-	rootFull, _, err := spec.FullRepo.FindByID(ctx, spec.Backup.RootFullBackupID)
+	rootFull, _, err := spec.BackupRepo.FindByID(ctx, *spec.Backup.RootFullBackupID)
 	if err != nil {
 		return errorResult(catalog.BackupErrorNetworkFailure, "load root FULL", err), 0, false
 	}

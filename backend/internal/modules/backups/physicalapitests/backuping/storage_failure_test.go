@@ -48,7 +48,7 @@ func TestPhysicalBackupStorageFailure(t *testing.T) {
 		backup := team.runBackup(t, "full")
 		require.Equal(t, "ERROR", backup.Status)
 		team.assertTerminalDetails(t, backup, "STORAGE_UPLOAD_FAILED")
-		team.assertClaimReleased(t)
+		team.assertNoRunningBackup(t)
 		assert.NotNil(t, backup.FailMessage)
 	})
 }

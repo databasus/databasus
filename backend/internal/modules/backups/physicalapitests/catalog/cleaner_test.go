@@ -197,22 +197,14 @@ func TestCleanPhysicalBackups(t *testing.T) {
 
 		assert.True(t, catalog.walExists(t, covered.ID), "chain-covered WAL must never be caught by the orphan pass")
 	})
-	t.Run("keeps archived WAL when the first full is running with a claim", func(t *testing.T) {
+	t.Run("keeps archived WAL when the first full is running", func(t *testing.T) {
 		catalog := newCleanerCatalog(t)
 
-		inProgressFull := catalog.insertFull(
+		catalog.insertFull(
 			t,
 			newInProgressFull(
 				inProgressFullSpec{DatabaseID: catalog.DatabaseID, StorageID: catalog.StorageID, TimelineID: 1},
 			),
-		)
-		catalog.App.InsertPhysicalInFlightBackup(
-			t,
-			apptest.PhysicalInFlightBackupSeed{
-				DatabaseID: catalog.DatabaseID,
-				BackupID:   inProgressFull.ID,
-				BackupType: "FULL",
-			},
 		)
 
 		walArchivedDuringBackup := catalog.insertWal(
@@ -234,33 +226,7 @@ func TestCleanPhysicalBackups(t *testing.T) {
 		assert.True(t, catalog.walExists(t, walArchivedDuringBackup.ID),
 			"WAL archived while the first full is running must remain available when the full completes")
 	})
-	t.Run("removes orphan WAL when an in progress full has no claim", func(t *testing.T) {
-		catalog := newCleanerCatalog(t)
 
-		catalog.insertFull(
-			t,
-			newInProgressFull(
-				inProgressFullSpec{DatabaseID: catalog.DatabaseID, StorageID: catalog.StorageID, TimelineID: 1},
-			),
-		)
-		orphanWal := catalog.insertWal(
-			t,
-			newWalSeed(
-				walSeedSpec{
-					DatabaseID:  catalog.DatabaseID,
-					StorageID:   catalog.StorageID,
-					TimelineID:  1,
-					WalFilename: "000000010000000000000001",
-					StartLSN:    cleanerLSN(1),
-					EndLSN:      cleanerLSN(2),
-				},
-			),
-		)
-
-		catalog.clean(t, "CHAINS")
-
-		assert.False(t, catalog.walExists(t, orphanWal.ID))
-	})
 	t.Run("keeps the boundary segment when a full starts inside it", func(t *testing.T) {
 		catalog := newCleanerCatalog(t)
 
@@ -377,7 +343,7 @@ func TestCleanPhysicalBackups(t *testing.T) {
 
 		catalog.clean(t, "CHAINS")
 
-		assert.True(t, catalog.walExists(t, freshClaim.ID), "a live in-flight claim within grace must survive")
+		assert.True(t, catalog.walExists(t, freshClaim.ID), "an active WAL upload within grace must survive")
 	})
 	t.Run("keeps the running full while evicting expired completed chains", func(t *testing.T) {
 		catalog := newCleanerCatalog(t)

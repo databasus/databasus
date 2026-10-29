@@ -18,6 +18,7 @@ type settings struct {
 	isGitHubEnabled              bool
 	isGoogleEnabled              bool
 	publicURL                    string
+	clientToolsDir               string
 	// notificationDeliveryTimeout is zero for the timeout the server uses.
 	notificationDeliveryTimeout time.Duration
 	notifierEndpoints           NotifierEndpoints
@@ -30,6 +31,12 @@ type settings struct {
 type NotifierEndpoints struct {
 	SlackPostMessageURL string
 	TelegramBotAPIURL   string
+}
+
+func WithClientToolsDir(directory string) Option {
+	return func(applied *settings) {
+		applied.clientToolsDir = directory
+	}
 }
 
 // WithNotificationDeliveryTimeout builds an instance that gives up on a send after timeout, so a

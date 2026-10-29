@@ -43,8 +43,8 @@ const (
 	BackupErrorManifestCorrupted        BackupErrorReason = "MANIFEST_CORRUPTED"
 	BackupErrorStartLsnOutsideTimeline  BackupErrorReason = "START_LSN_OUTSIDE_TIMELINE_RANGE"
 
-	// Covers both an explicit user cancel on an in-flight backup AND
-	// in-flight backups cancelled when the user disables backups.
+	// Covers both an explicit user cancel on a running backup AND
+	// running backups cancelled when the user disables backups.
 	BackupErrorCanceledByUser BackupErrorReason = "CANCELED_BY_USER"
 
 	// Database deletion removes the backup row in its transaction, so this reason is rarely

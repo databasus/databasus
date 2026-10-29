@@ -48,7 +48,7 @@ func TestDecidePhysicalBackup(t *testing.T) {
 		{
 			name: "retries an incremental when the failed attempt leaves its chain extendable",
 			change: func(state *schedulingState, _ *config.PhysicalBackupConfig, now time.Time) {
-				state.lastIncremental = &catalog.IncrementalBackup{
+				state.lastIncremental = &catalog.Backup{
 					Status:    catalog.BackupStatusError,
 					CreatedAt: now.Add(-2 * time.Hour),
 				}
@@ -73,7 +73,7 @@ func TestDecidePhysicalBackup(t *testing.T) {
 			name: "schedules nothing when recent full attempts all failed",
 			change: func(state *schedulingState, _ *config.PhysicalBackupConfig, _ time.Time) {
 				state.extendableRootID = nil
-				state.recentFullBackups = []*catalog.FullBackup{
+				state.recentFullBackups = []*catalog.Backup{
 					{Status: catalog.BackupStatusError},
 					{Status: catalog.BackupStatusError},
 					{Status: catalog.BackupStatusError},
@@ -84,7 +84,7 @@ func TestDecidePhysicalBackup(t *testing.T) {
 			name: "schedules nothing when recent full attempts were canceled",
 			change: func(state *schedulingState, _ *config.PhysicalBackupConfig, _ time.Time) {
 				state.extendableRootID = nil
-				state.recentFullBackups = []*catalog.FullBackup{
+				state.recentFullBackups = []*catalog.Backup{
 					{Status: catalog.BackupStatusCanceled},
 					{Status: catalog.BackupStatusCanceled},
 					{Status: catalog.BackupStatusCanceled},
@@ -96,7 +96,7 @@ func TestDecidePhysicalBackup(t *testing.T) {
 			change: func(state *schedulingState, _ *config.PhysicalBackupConfig, _ time.Time) {
 				state.extendableRootID = nil
 				state.recentFullBackups = append(
-					[]*catalog.FullBackup{{Status: catalog.BackupStatusError}},
+					[]*catalog.Backup{{Status: catalog.BackupStatusError}},
 					state.recentFullBackups...)
 			},
 			expectedKind: catalog.BackupTypeFull,
@@ -105,7 +105,7 @@ func TestDecidePhysicalBackup(t *testing.T) {
 			name: "waits for the full cadence when summaries are disabled",
 			change: func(state *schedulingState, _ *config.PhysicalBackupConfig, now time.Time) {
 				state.extendableRootID = nil
-				state.lastIncremental = &catalog.IncrementalBackup{
+				state.lastIncremental = &catalog.Backup{
 					Status:      catalog.BackupStatusChainBroken,
 					ErrorReason: new(catalog.BackupErrorSummarizerOff),
 					CreatedAt:   now.Add(-2 * time.Hour),
@@ -115,7 +115,7 @@ func TestDecidePhysicalBackup(t *testing.T) {
 		{
 			name: "schedules nothing after a recent incremental cancellation",
 			change: func(state *schedulingState, _ *config.PhysicalBackupConfig, now time.Time) {
-				state.lastIncremental = &catalog.IncrementalBackup{
+				state.lastIncremental = &catalog.Backup{
 					Status:    catalog.BackupStatusCanceled,
 					CreatedAt: now,
 				}
@@ -158,7 +158,7 @@ func TestDecidePhysicalBackup(t *testing.T) {
 		{
 			name: "replaces a chain immediately when an incremental detects a timeline switch",
 			change: func(state *schedulingState, _ *config.PhysicalBackupConfig, now time.Time) {
-				state.lastIncremental = &catalog.IncrementalBackup{
+				state.lastIncremental = &catalog.Backup{
 					ID:          uuid.New(),
 					Status:      catalog.BackupStatusChainBroken,
 					ErrorReason: new(catalog.BackupErrorTimelineSwitchDetected),
@@ -196,7 +196,7 @@ func TestDecidePhysicalBackup(t *testing.T) {
 	for _, testCase := range cases {
 		t.Run(testCase.name, func(t *testing.T) {
 			now := time.Date(2026, 1, 14, 12, 0, 0, 0, time.UTC)
-			full := &catalog.FullBackup{
+			full := &catalog.Backup{
 				ID:        uuid.New(),
 				Status:    catalog.BackupStatusCompleted,
 				CreatedAt: now.Add(-3 * time.Hour),
@@ -204,7 +204,7 @@ func TestDecidePhysicalBackup(t *testing.T) {
 			state := schedulingState{
 				lastFull:          full,
 				extendableRootID:  &full.ID,
-				recentFullBackups: []*catalog.FullBackup{full},
+				recentFullBackups: []*catalog.Backup{full},
 			}
 			config := config.PhysicalBackupConfig{
 				BackupType:                databases.PhysicalBackupTypeFullAndIncremental,
@@ -218,14 +218,20 @@ func TestDecidePhysicalBackup(t *testing.T) {
 			assert.Equal(t, testCase.expectedKind != "", choice.canSchedule)
 			assert.Equal(t, testCase.expectedKind, choice.decision.kind)
 			assert.Equal(t, testCase.shouldClearRequest, choice.shouldClearIncrementalRequest)
-			assert.Equal(t, testCase.shouldReplaceImmediately, choice.decision.immediateTrigger != nil)
 			if testCase.shouldReplaceImmediately {
-				if state.lastIncremental != nil {
-					assert.Equal(t, state.lastIncremental.ID, choice.decision.immediateTrigger.backupID)
-				} else {
-					assert.Equal(t, full.ID, choice.decision.immediateTrigger.backupID)
-				}
+				assert.Contains(
+					t,
+					[]string{"replacing FULL interrupted by failover", "re-anchoring after timeline switch"},
+					choice.decision.reason,
+				)
 			}
+			newestChoice := decidePhysicalBackupFromNewest(state, config, now)
+			if newestChoice.needsChain {
+				assert.Equal(t, choice, decidePhysicalBackupWithChain(state, config, now))
+			} else {
+				assert.Equal(t, choice, newestChoice)
+			}
+
 			if testCase.shouldHaveParent {
 				require.NotNil(t, choice.decision.incrParentIncrID)
 				assert.Equal(t, state.incrementalParentID, choice.decision.incrParentIncrID)
@@ -233,6 +239,40 @@ func TestDecidePhysicalBackup(t *testing.T) {
 			if choice.decision.kind == catalog.BackupTypeIncremental {
 				assert.Equal(t, full.ID, choice.decision.incrRootFullBackupID)
 			}
+		})
+	}
+}
+
+func TestDecidePhysicalBackupAfterReload(t *testing.T) {
+	t.Parallel()
+	for _, scenario := range []struct {
+		name        string
+		hasNewFull  bool
+		hasMismatch bool
+	}{
+		{name: "schedules nothing when a full completes before the lock is acquired", hasNewFull: true},
+		{name: "schedules nothing when a cluster mismatch is recorded before the lock is acquired", hasMismatch: true},
+	} {
+		t.Run(scenario.name, func(t *testing.T) {
+			t.Parallel()
+			now := time.Date(2026, 10, 29, 12, 0, 0, 0, time.UTC)
+			backupConfig := config.PhysicalBackupConfig{
+				BackupType:         databases.PhysicalBackupTypeFull,
+				FullBackupSchedule: schedule.Schedule{Type: schedule.TypeHourly},
+			}
+			state := schedulingState{
+				lastFull: &catalog.Backup{CreatedAt: now.Add(-2 * time.Hour), Status: catalog.BackupStatusCompleted},
+			}
+			beforeLock := decidePhysicalBackupFromNewest(state, backupConfig, now)
+			require.True(t, beforeLock.canSchedule)
+			require.Equal(t, catalog.BackupTypeFull, beforeLock.decision.kind)
+			if scenario.hasNewFull {
+				state.lastFull = &catalog.Backup{CreatedAt: now, Status: catalog.BackupStatusCompleted}
+			}
+			state.hasUnresolvedMismatch = scenario.hasMismatch
+			underLock := decidePhysicalBackupFromNewest(state, backupConfig, now)
+			assert.False(t, underLock.canSchedule)
+			assert.False(t, underLock.needsChain)
 		})
 	}
 }

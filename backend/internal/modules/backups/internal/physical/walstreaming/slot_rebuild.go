@@ -5,19 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"slices"
 	"strings"
 	"time"
 
 	pgphysical "databasus-backend/internal/engines/postgresql/physical"
 )
-
-func (s *Streamer) GetSlotRebuildTimestamps() []time.Time {
-	s.rebuildMu.Lock()
-	defer s.rebuildMu.Unlock()
-
-	return slices.Clone(s.rebuildTimestamps)
-}
 
 func isOwnedReceiverBackend(state *pgphysical.Slot) bool {
 	return state.ActivePID != nil &&

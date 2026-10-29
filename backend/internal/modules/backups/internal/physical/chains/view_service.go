@@ -13,7 +13,7 @@ import (
 )
 
 func (s *Service) FindLastExtendableChainByDatabase(ctx context.Context, databaseID uuid.UUID) (*ChainView, error) {
-	fulls, err := s.fullBackupRepository.FindCompletedNewestFirstByDatabase(ctx, databaseID)
+	fulls, err := s.backupRepository.FindCompletedFullNewestFirstByDatabase(ctx, databaseID)
 	if err != nil {
 		return nil, err
 	}
@@ -35,7 +35,7 @@ func (s *Service) FindLastExtendableChainByDatabase(ctx context.Context, databas
 }
 
 func (s *Service) FindNonExtendableChainsByDatabase(ctx context.Context, databaseID uuid.UUID) ([]*ChainView, error) {
-	fulls, err := s.fullBackupRepository.FindCompletedNewestFirstByDatabase(ctx, databaseID)
+	fulls, err := s.backupRepository.FindCompletedFullNewestFirstByDatabase(ctx, databaseID)
 	if err != nil {
 		return nil, err
 	}
@@ -59,7 +59,7 @@ func (s *Service) FindNonExtendableChainsByDatabase(ctx context.Context, databas
 }
 
 func (s *Service) GetChainSpan(ctx context.Context, rootFullBackupID uuid.UUID) (catalog.LSNRange, error) {
-	full, _, err := s.fullBackupRepository.FindByID(ctx, rootFullBackupID)
+	full, _, err := s.backupRepository.FindByID(ctx, rootFullBackupID)
 	if err != nil {
 		return catalog.LSNRange{}, err
 	}
@@ -68,52 +68,6 @@ func (s *Service) GetChainSpan(ctx context.Context, rootFullBackupID uuid.UUID) 
 	}
 
 	return s.getChainSpanForFull(ctx, full)
-}
-
-func (s *Service) FindWalGapsInChain(ctx context.Context, rootFullBackupID uuid.UUID) ([]catalog.LSNRange, error) {
-	full, _, err := s.fullBackupRepository.FindByID(ctx, rootFullBackupID)
-	if err != nil {
-		return nil, err
-	}
-	if full == nil {
-		return nil, fmt.Errorf("chain_view: full backup not found: %s", rootFullBackupID)
-	}
-
-	span, err := s.GetChainSpan(ctx, rootFullBackupID)
-	if err != nil {
-		return nil, err
-	}
-
-	segments, err := s.walSegmentRepository.FindByChainSpan(ctx, full.DatabaseID, full.TimelineID, span.Start, span.End)
-	if err != nil {
-		return nil, err
-	}
-
-	return findGapsBetweenSegments(segments), nil
-}
-
-// findGapsBetweenSegments lists the holes between consecutive segments ordered
-// by start_lsn; nil for fewer than two segments.
-func findGapsBetweenSegments(segments []*catalog.WalSegment) []catalog.LSNRange {
-	if len(segments) < 2 {
-		return nil
-	}
-
-	gaps := make([]catalog.LSNRange, 0)
-
-	for i := 1; i < len(segments); i++ {
-		prev := segments[i-1]
-		curr := segments[i]
-
-		if curr.StartLSN > prev.EndLSN {
-			gaps = append(gaps, catalog.LSNRange{
-				Start: prev.EndLSN,
-				End:   curr.StartLSN,
-			})
-		}
-	}
-
-	return gaps
 }
 
 func (s *Service) GetChainEndTimestamp(ctx context.Context, view *ChainView) (time.Time, error) {
@@ -160,14 +114,14 @@ func (s *Service) FindWalOrphansByDatabase(ctx context.Context, databaseID uuid.
 	return refs, nil
 }
 
-func (s *Service) getChainSpanForFull(ctx context.Context, full *catalog.FullBackup) (catalog.LSNRange, error) {
+func (s *Service) getChainSpanForFull(ctx context.Context, full *catalog.Backup) (catalog.LSNRange, error) {
 	if full.StartLSN == nil {
 		return catalog.LSNRange{}, errors.New("chain_view: cannot compute span — root FULL has no start_lsn")
 	}
 
 	start := *full.StartLSN
 
-	successor, isFound, err := s.fullBackupRepository.FindNextCompleted(ctx, full)
+	successor, isFound, err := s.backupRepository.FindNextCompletedFull(ctx, full)
 	if err != nil {
 		return catalog.LSNRange{}, err
 	}
@@ -185,25 +139,24 @@ func (s *Service) getChainSpanForFull(ctx context.Context, full *catalog.FullBac
 
 // Any newer COMPLETED FULL closes a chain, so only the newest one can still be
 // extended, and only until one of its INCRs breaks the chain. WAL gaps never
-// change this: a lossy chain stays extendable, and FindWalGapsInChain surfaces
-// the unreachable PITR windows.
+// change this: a lossy chain stays extendable.
 func isExtendable(newestView *ChainView) bool {
 	return !slices.ContainsFunc(
 		newestView.Incrementals,
-		func(incrementalBackup *catalog.IncrementalBackup) bool {
+		func(incrementalBackup *catalog.Backup) bool {
 			return incrementalBackup.Status == catalog.BackupStatusChainBroken
 		},
 	)
 }
 
-func (s *Service) buildChainView(ctx context.Context, full *catalog.FullBackup,
+func (s *Service) buildChainView(ctx context.Context, full *catalog.Backup,
 ) (*ChainView, error) {
 	span, err := s.getChainSpanForFull(ctx, full)
 	if err != nil {
 		return nil, err
 	}
 
-	incrementalBackups, err := s.incrementalBackupRepository.FindAllByRootFull(ctx, full.ID)
+	incrementalBackups, err := s.backupRepository.FindAllByRootFull(ctx, full.ID)
 	if err != nil {
 		return nil, err
 	}

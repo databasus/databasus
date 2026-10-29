@@ -28,7 +28,7 @@ import (
 type Cleaner struct {
 	chains              *chains.Service
 	configs             *config.Service
-	fullRepo            *catalog.FullBackupRepository
+	backupRepo          *catalog.BackupRepository
 	walSegmentRepo      *catalog.WalSegmentRepository
 	walStreamSampleRepo *catalog.WalStreamSampleRepository
 	logger              *slog.Logger
@@ -208,7 +208,7 @@ func (c *Cleaner) deleteChainDependentsThroughService(
 // walDeleteBudgetMB anchors the per-tick WAL byte budget to the latest COMPLETED
 // FULL's size, floored at minWalDeleteBudgetMB.
 func (c *Cleaner) walDeleteBudgetMB(ctx context.Context, databaseID uuid.UUID) float64 {
-	fulls, err := c.fullRepo.FindCompletedNewestFirstByDatabase(ctx, databaseID)
+	fulls, err := c.backupRepo.FindCompletedFullNewestFirstByDatabase(ctx, databaseID)
 	if err != nil {
 		// Falling back to the floor silently would look like retention crawling for no reason.
 		c.logger.WarnContext(
@@ -325,7 +325,7 @@ func (c *Cleaner) cleanByFulls(
 	logger *slog.Logger,
 	backupConfig config.PhysicalBackupConfig,
 ) error {
-	completedFulls, err := c.fullRepo.FindCompletedNewestFirstByDatabase(ctx, backupConfig.DatabaseID)
+	completedFulls, err := c.backupRepo.FindCompletedFullNewestFirstByDatabase(ctx, backupConfig.DatabaseID)
 	if err != nil {
 		return err
 	}
@@ -397,7 +397,7 @@ func (c *Cleaner) cleanByFulls(
 // treating an empty result as "delete everything".
 func (c *Cleaner) getRetainedTiersByFullBackupID(
 	backupConfig config.PhysicalBackupConfig,
-	completedFullsNewestFirst []*catalog.FullBackup,
+	completedFullsNewestFirst []*catalog.Backup,
 ) map[uuid.UUID][]gfs.Tier {
 	retention := backupConfig.Retention.FullBackups
 
@@ -458,7 +458,7 @@ func (c *Cleaner) cleanByCombined(
 		}
 	}
 
-	completedFulls, err := c.fullRepo.FindCompletedNewestFirstByDatabase(ctx, backupConfig.DatabaseID)
+	completedFulls, err := c.backupRepo.FindCompletedFullNewestFirstByDatabase(ctx, backupConfig.DatabaseID)
 	if err != nil {
 		return err
 	}
@@ -624,7 +624,7 @@ func approxScheduleDuration(cadence *schedule.Schedule) time.Duration {
 type Deps struct {
 	Chains           *chains.Service
 	Configs          *config.Service
-	FullBackups      *catalog.FullBackupRepository
+	Backups          *catalog.BackupRepository
 	WalSegments      *catalog.WalSegmentRepository
 	WalStreamSamples *catalog.WalStreamSampleRepository
 	Logger           *slog.Logger
@@ -635,7 +635,7 @@ func New(deps Deps) *Cleaner {
 	return &Cleaner{
 		chains:              deps.Chains,
 		configs:             deps.Configs,
-		fullRepo:            deps.FullBackups,
+		backupRepo:          deps.Backups,
 		walSegmentRepo:      deps.WalSegments,
 		walStreamSampleRepo: deps.WalStreamSamples,
 		logger:              deps.Logger,

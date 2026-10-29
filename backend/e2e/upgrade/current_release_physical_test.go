@@ -18,14 +18,16 @@ type currentPhysicalBackupPage struct {
 }
 
 type currentPhysicalBackup struct {
-	ID              string `json:"id"`
-	Type            string `json:"type"`
-	Status          string `json:"status"`
-	TimelineID      int    `json:"timelineId"`
-	StartLSN        string `json:"startLsn"`
-	StopLSN         string `json:"stopLsn"`
-	FromWalFilename string `json:"fromWalFilename"`
-	ToWalFilename   string `json:"toWalFilename"`
+	RootFullBackupID          string `json:"rootFullBackupId"`
+	ParentIncrementalBackupID string `json:"parentIncrementalBackupId"`
+	ID                        string `json:"id"`
+	Type                      string `json:"type"`
+	Status                    string `json:"status"`
+	TimelineID                int    `json:"timelineId"`
+	StartLSN                  string `json:"startLsn"`
+	StopLSN                   string `json:"stopLsn"`
+	FromWalFilename           string `json:"fromWalFilename"`
+	ToWalFilename             string `json:"toWalFilename"`
 }
 
 type currentPhysicalRestoreToken struct {
@@ -44,6 +46,8 @@ func checkPhysicalBackup(ctx context.Context, api *apiClient, written writtenUpg
 		switch backup.Type {
 		case "FULL":
 			listedItems = append(listedItems, physicalFullBackupItem(snapshot))
+		case "INCREMENTAL":
+			listedItems = append(listedItems, physicalIncrementalBackupItem(snapshot))
 		case "WAL":
 			segments, segmentErr := physicalWALSegmentItems(snapshot)
 			if segmentErr != nil {
@@ -83,7 +87,7 @@ func checkPhysicalBackup(ctx context.Context, api *apiClient, written writtenUpg
 		return fmt.Errorf("physical restore stream answered %d", response.StatusCode)
 	}
 	archive := tar.NewReader(response.Body)
-	hasFullBackup, hasPreUpgradeWAL := false, false
+	hasFullBackup, hasIncrementalBackup, hasPreUpgradeWAL := false, false, false
 	for {
 		entry, readErr := archive.Next()
 		if errors.Is(readErr, io.EOF) {
@@ -94,6 +98,9 @@ func checkPhysicalBackup(ctx context.Context, api *apiClient, written writtenUpg
 		}
 		if strings.HasPrefix(entry.Name, "full/") && entry.Size > 0 {
 			hasFullBackup = true
+		}
+		if strings.HasPrefix(entry.Name, "incr-1/") && entry.Size > 0 {
+			hasIncrementalBackup = true
 		}
 		for _, item := range written.physicalItems {
 			if item.Kind == "physical WAL segment" && entry.Name == "wal/"+item.Name+".zst" && entry.Size > 0 {
@@ -107,10 +114,11 @@ func checkPhysicalBackup(ctx context.Context, api *apiClient, written writtenUpg
 	if _, err = io.Copy(io.Discard, response.Body); err != nil {
 		return fmt.Errorf("finish the physical restore stream: %w", err)
 	}
-	if !hasFullBackup || !hasPreUpgradeWAL {
+	if !hasFullBackup || !hasIncrementalBackup || !hasPreUpgradeWAL {
 		return fmt.Errorf(
-			"physical restore stream: full backup present = %t, pre-upgrade WAL present = %t",
+			"physical restore stream: full backup present = %t, incremental backup present = %t, pre-upgrade WAL present = %t",
 			hasFullBackup,
+			hasIncrementalBackup,
 			hasPreUpgradeWAL,
 		)
 	}

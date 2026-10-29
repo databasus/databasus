@@ -11,9 +11,9 @@ import (
 )
 
 func TestRestartPhysicalCleanup(t *testing.T) {
-	t.Run("drops the orphan backup slot after recovering a claim left by a crashed backup", func(t *testing.T) {
+	t.Run("drops the orphan backup slot after failing a backup left running by a crash", func(t *testing.T) {
 		catalog := newConnectedCatalog(t)
-		catalog.seedClaimAndStreamer(t)
+		catalog.seedRunningBackupAndStreamer(t)
 		database, err := catalog.Owner.Client.GetDatabaseWithResponse(t.Context(), catalog.DatabaseID)
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, database.StatusCode())
@@ -46,6 +46,6 @@ func TestRestartPhysicalCleanup(t *testing.T) {
 				Scan(&slots),
 		)
 		assert.Zero(t, slots)
-		assert.Nil(t, catalog.getInFlightClaim(t))
+		assert.Nil(t, catalog.getRunningBackupID(t))
 	})
 }

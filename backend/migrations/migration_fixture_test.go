@@ -28,6 +28,14 @@ func openDatabaseMigratedBefore(t *testing.T, migrationName string) *gorm.DB {
 		}
 	})
 
+	applyMigrationsBefore(t, db, migrationName)
+
+	return db
+}
+
+func applyMigrationsBefore(t *testing.T, db *gorm.DB, migrationName string) {
+	t.Helper()
+
 	migrationFiles, err := fs.ReadDir(migrations.Files, ".")
 	require.NoError(t, err)
 
@@ -45,8 +53,6 @@ func openDatabaseMigratedBefore(t *testing.T, migrationName string) *gorm.DB {
 
 	_, err = database.Migrate(t.Context(), db, earlierMigrations)
 	require.NoError(t, err)
-
-	return db
 }
 
 func applyAllMigrations(t *testing.T, db *gorm.DB, migrationName string) {

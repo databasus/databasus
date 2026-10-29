@@ -120,9 +120,7 @@ func TestPhysicalBackupWorkspacePrivacy(t *testing.T) {
 			running := catalog.insertFull(t, newInProgressFull(inProgressFullSpec{
 				DatabaseID: catalog.DatabaseID, StorageID: catalog.StorageID, TimelineID: 1,
 			}))
-			catalog.App.InsertPhysicalInFlightBackup(t, apptest.PhysicalInFlightBackupSeed{
-				DatabaseID: catalog.DatabaseID, BackupID: running.ID, BackupType: "FULL",
-			})
+
 			outsider := catalog.App.CreateNonAdminUser(t, catalog.Admin)
 			for _, requests := range [][2]apptest.PhysicalRequest{
 				{apptest.PhysicalListRequest(catalog.DatabaseID, ""), apptest.PhysicalListRequest(uuid.New(), "")},
@@ -141,9 +139,9 @@ func TestPhysicalBackupWorkspacePrivacy(t *testing.T) {
 				assert.JSONEq(t, string(missingBody), string(body))
 			}
 			assert.Equal(t, backupRequests{}, catalog.getBackupRequests(t))
-			claim := catalog.getInFlightClaim(t)
-			require.NotNil(t, claim)
-			assert.Equal(t, running.ID, claim.BackupID)
+			runningBackupID := catalog.getRunningBackupID(t)
+			require.NotNil(t, runningBackupID)
+			assert.Equal(t, running.ID, *runningBackupID)
 			page := getBackups(t, catalog, "")
 			require.Len(t, page.Backups, 4)
 			assert.Contains(t, collectBackupIDs(page), full.ID)
@@ -184,7 +182,7 @@ func TestPhysicalFilteredPaging(t *testing.T) {
 			base := catalog.App.Clock.Now().Add(-time.Hour)
 			catalog.App.ExecuteSQL(
 				t,
-				"UPDATE backups_physical_full SET created_at=? WHERE id=?",
+				"UPDATE backups_physical SET created_at=? WHERE id=?",
 				base.Add(2*time.Minute),
 				full.ID,
 			)

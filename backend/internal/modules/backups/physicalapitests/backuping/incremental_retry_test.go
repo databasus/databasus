@@ -22,7 +22,7 @@ func TestPhysicalIncrementalRetryBudget(t *testing.T) {
 		team.setSchedules(t, false)
 		team.App.ExecuteSQL(
 			t,
-			"UPDATE backups_physical_full SET created_at=?,completed_at=? WHERE id=?",
+			"UPDATE backups_physical SET created_at=?,completed_at=? WHERE id=?",
 			time.Now().UTC().Add(-5*time.Hour),
 			time.Now().UTC().Add(-5*time.Hour),
 			full.ID,
@@ -37,7 +37,7 @@ func TestPhysicalIncrementalRetryBudget(t *testing.T) {
 		team.assertTerminalDetails(t, first, "NETWORK_FAILURE")
 		team.App.ExecuteSQL(
 			t,
-			"UPDATE backups_physical_incremental SET created_at=?,completed_at=? WHERE id=?",
+			"UPDATE backups_physical SET created_at=?,completed_at=? WHERE id=?",
 			time.Now().UTC().Add(-3*time.Hour),
 			time.Now().UTC().Add(-3*time.Hour),
 			first.ID,
@@ -47,7 +47,7 @@ func TestPhysicalIncrementalRetryBudget(t *testing.T) {
 		team.assertTerminalDetails(t, second, "NETWORK_FAILURE")
 		team.App.ExecuteSQL(
 			t,
-			"UPDATE backups_physical_incremental SET created_at=?,completed_at=? WHERE id=?",
+			"UPDATE backups_physical SET created_at=?,completed_at=? WHERE id=?",
 			time.Now().UTC().Add(-2*time.Hour),
 			time.Now().UTC().Add(-2*time.Hour),
 			second.ID,
@@ -56,7 +56,7 @@ func TestPhysicalIncrementalRetryBudget(t *testing.T) {
 		team.App.WaitForPhysicalBackups(t)
 		require.Equal(t, "CHAIN_BROKEN", third.Status)
 		team.assertTerminalDetails(t, third, "NETWORK_FAILURE")
-		team.assertClaimReleased(t)
+		team.assertNoRunningBackup(t)
 		team.App.WaitForNotificationDeliveries(t)
 		require.Len(t, inbox.getMessages(), 1)
 		assert.Contains(t, inbox.getMessages()[0], "chain-broken")
@@ -70,14 +70,14 @@ func TestPhysicalIncrementalRetryBudget(t *testing.T) {
 		team.setSchedules(t, false)
 		team.App.ExecuteSQL(
 			t,
-			"UPDATE backups_physical_full SET created_at=?,completed_at=? WHERE id=?",
+			"UPDATE backups_physical SET created_at=?,completed_at=? WHERE id=?",
 			time.Now().UTC().Add(-7*time.Hour),
 			time.Now().UTC().Add(-7*time.Hour),
 			full.ID,
 		)
 		team.App.ExecuteSQL(
 			t,
-			"UPDATE backups_physical_incremental SET created_at=?,completed_at=? WHERE id=?",
+			"UPDATE backups_physical SET created_at=?,completed_at=? WHERE id=?",
 			time.Now().UTC().Add(-4*time.Hour),
 			time.Now().UTC().Add(-4*time.Hour),
 			first.ID,
@@ -103,6 +103,6 @@ func TestPhysicalIncrementalRetryBudget(t *testing.T) {
 		)
 		backup := team.runAutomaticBackup(t)
 		assert.Equal(t, "ERROR", backup.Status)
-		team.assertClaimReleased(t)
+		team.assertNoRunningBackup(t)
 	})
 }

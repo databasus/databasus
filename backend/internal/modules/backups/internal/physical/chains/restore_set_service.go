@@ -16,8 +16,8 @@ import (
 // timeline .history files. It is the input to the restore stream writer; both
 // the user download and (later) restore verification consume the same shape.
 type RestoreSet struct {
-	RootFull     *catalog.FullBackup
-	Incrementals []*catalog.IncrementalBackup
+	RootFull     *catalog.Backup
+	Incrementals []*catalog.Backup
 	WalSegments  []*catalog.WalSegment
 	HistoryFiles []*catalog.WalHistoryFile
 
@@ -70,7 +70,7 @@ func (s *Service) ResolveRestoreSet(ctx context.Context, databaseID uuid.UUID,
 
 type restoreReach struct {
 	chain         *ChainView
-	incrementals  []*catalog.IncrementalBackup
+	incrementals  []*catalog.Backup
 	lastStopLSN   walmath.LSN
 	walSegments   []*catalog.WalSegment
 	walRun        []*catalog.WalSegment
@@ -130,36 +130,20 @@ func (s *Service) resolveRestoreReach(ctx context.Context, databaseID uuid.UUID,
 // that is missing or not COMPLETED is reported as ErrNoChainForRestore.
 func (s *Service) ResolveRestoreSetForBackup(ctx context.Context, databaseID, backupID uuid.UUID,
 ) (*RestoreSet, error) {
-	full, _, err := s.fullBackupRepository.FindByID(ctx, backupID)
+	backup, isFound, err := s.backupRepository.FindByID(ctx, backupID)
 	if err != nil {
 		return nil, err
 	}
-
-	if full != nil {
-		if full.DatabaseID != databaseID {
-			return nil, ErrNoChainForRestore
-		}
-
-		return restoreSetForFull(full)
+	if !isFound || backup.DatabaseID != databaseID {
+		return nil, ErrNoChainForRestore
 	}
-
-	incremental, _, err := s.incrementalBackupRepository.FindByID(ctx, backupID)
-	if err != nil {
-		return nil, err
+	if backup.Kind == catalog.BackupKindFull {
+		return restoreSetForFull(backup)
 	}
-
-	if incremental != nil {
-		if incremental.DatabaseID != databaseID {
-			return nil, ErrNoChainForRestore
-		}
-
-		return s.restoreSetForIncremental(ctx, incremental)
-	}
-
-	return nil, ErrNoChainForRestore
+	return s.restoreSetForIncremental(ctx, backup)
 }
 
-func restoreSetForFull(full *catalog.FullBackup) (*RestoreSet, error) {
+func restoreSetForFull(full *catalog.Backup) (*RestoreSet, error) {
 	if full.Status != catalog.BackupStatusCompleted || full.StopLSN == nil {
 		return nil, ErrNoChainForRestore
 	}
@@ -171,14 +155,14 @@ func restoreSetForFull(full *catalog.FullBackup) (*RestoreSet, error) {
 	}, nil
 }
 
-func (s *Service) restoreSetForIncremental(ctx context.Context, target *catalog.IncrementalBackup,
+func (s *Service) restoreSetForIncremental(ctx context.Context, target *catalog.Backup,
 ) (*RestoreSet, error) {
 	if target.Status != catalog.BackupStatusCompleted ||
 		target.StartLSN == nil || target.StopLSN == nil {
 		return nil, ErrNoChainForRestore
 	}
 
-	full, _, err := s.fullBackupRepository.FindByID(ctx, target.RootFullBackupID)
+	full, _, err := s.backupRepository.FindByID(ctx, *target.RootFullBackupID)
 	if err != nil {
 		return nil, err
 	}
@@ -186,7 +170,7 @@ func (s *Service) restoreSetForIncremental(ctx context.Context, target *catalog.
 		return nil, ErrNoChainForRestore
 	}
 
-	chain, err := s.incrementalBackupRepository.FindAllByRootFull(ctx, target.RootFullBackupID)
+	chain, err := s.backupRepository.FindAllByRootFull(ctx, *target.RootFullBackupID)
 	if err != nil {
 		return nil, err
 	}
@@ -194,7 +178,7 @@ func (s *Service) restoreSetForIncremental(ctx context.Context, target *catalog.
 	// Ancestors are the COMPLETED incrementals at or before the target's
 	// start_lsn (the chain arrives ordered by start_lsn ASC), the target itself
 	// included.
-	included := make([]*catalog.IncrementalBackup, 0, len(chain))
+	included := make([]*catalog.Backup, 0, len(chain))
 	lastStopLSN := *full.StopLSN
 
 	for _, candidate := range chain {
@@ -270,8 +254,8 @@ func selectRestoreChain(candidates []*ChainView, targetTime *time.Time) (*ChainV
 func includedIncrementals(
 	chain *ChainView,
 	targetTime *time.Time,
-) ([]*catalog.IncrementalBackup, walmath.LSN, time.Time) {
-	included := make([]*catalog.IncrementalBackup, 0, len(chain.Incrementals))
+) ([]*catalog.Backup, walmath.LSN, time.Time) {
+	included := make([]*catalog.Backup, 0, len(chain.Incrementals))
 
 	lastStopLSN := *chain.RootFull.StopLSN
 	lastBackupTime := derefTime(chain.RootFull.CompletedAt)

@@ -186,7 +186,7 @@ func (u *WalUploader) handleClaimConflict(ctx context.Context, localPath string,
 		return nil
 	}
 
-	logger.WarnContext(ctx, "wal segment is held by another in-flight claim, leaving it queued locally")
+	logger.WarnContext(ctx, "wal segment is held by another active WAL upload, leaving it queued locally")
 
 	return nil
 }

@@ -8,13 +8,13 @@ import (
 )
 
 func (s *Service) OnDatabaseDeleting(ctx context.Context, event databases.DatabaseDeleting) error {
-	claim, _, err := s.inFlightBackupRepository.FindByDatabaseID(ctx, event.DatabaseID)
+	runningBackup, _, err := s.backupRepository.FindRunningByDatabaseID(ctx, event.DatabaseID)
 	if err != nil {
 		return err
 	}
 	if err := database.AfterCommit(ctx, func(_ context.Context) {
-		if claim != nil {
-			s.cancellations.Cancel(claim.BackupID)
+		if runningBackup != nil {
+			s.cancellations.Cancel(runningBackup.ID)
 		}
 		s.cancellations.Cancel(event.DatabaseID)
 	}); err != nil {

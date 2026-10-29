@@ -27,20 +27,20 @@ func (catalog *catalogFixture) addViewer(t *testing.T) apptest.Session {
 	return viewer
 }
 
-func (catalog *catalogFixture) getInFlightClaim(t *testing.T) *struct{ BackupID uuid.UUID } {
+func (catalog *catalogFixture) getRunningBackupID(t *testing.T) *uuid.UUID {
 	t.Helper()
-	var claims []struct{ BackupID uuid.UUID }
+	var backupIDs []uuid.UUID
 	catalog.App.QuerySQL(
 		t,
-		&claims,
-		"SELECT backup_id FROM backups_physical_in_flight WHERE database_id = ?",
+		&backupIDs,
+		"SELECT id FROM backups_physical WHERE status = 'IN_PROGRESS' AND database_id = ?",
 		catalog.DatabaseID,
 	)
-	if len(claims) == 0 {
+	if len(backupIDs) == 0 {
 		return nil
 	}
-	require.Len(t, claims, 1)
-	return &claims[0]
+	require.Len(t, backupIDs, 1)
+	return &backupIDs[0]
 }
 
 func (catalog *catalogFixture) assertFullGone(t *testing.T, backupID uuid.UUID) {

@@ -14,14 +14,16 @@ import (
 const physicalWALSegmentsPerLogID = (1 << 32) / (16 * 1024 * 1024)
 
 type physicalBackupSnapshot struct {
-	ID              string
-	Type            string
-	Status          string
-	TimelineID      int
-	StartLSN        string
-	StopLSN         string
-	FromWalFilename string
-	ToWalFilename   string
+	RootFullBackupID          string
+	ParentIncrementalBackupID string
+	ID                        string
+	Type                      string
+	Status                    string
+	TimelineID                int
+	StartLSN                  string
+	StopLSN                   string
+	FromWalFilename           string
+	ToWalFilename             string
 }
 
 func physicalFullBackupItem(backup physicalBackupSnapshot) upgradecheck.Item {
@@ -30,6 +32,14 @@ func physicalFullBackupItem(backup physicalBackupSnapshot) upgradecheck.Item {
 		"timelineId": strconv.Itoa(backup.TimelineID),
 		"startLsn":   backup.StartLSN,
 		"stopLsn":    backup.StopLSN,
+	}}
+}
+
+func physicalIncrementalBackupItem(backup physicalBackupSnapshot) upgradecheck.Item {
+	return upgradecheck.Item{Kind: "physical incremental backup", Name: backup.ID, Values: map[string]string{
+		"status": backup.Status, "timelineId": strconv.Itoa(backup.TimelineID),
+		"startLsn": backup.StartLSN, "stopLsn": backup.StopLSN,
+		"rootFullBackupId": backup.RootFullBackupID, "parentIncrementalBackupId": backup.ParentIncrementalBackupID,
 	}}
 }
 

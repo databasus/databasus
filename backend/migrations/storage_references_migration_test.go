@@ -29,8 +29,7 @@ func TestStorageReferencesMigration(t *testing.T) {
 			[]string{
 				"fk_backups_configs_storage",
 				"fk_backups_logical_storage",
-				"fk_backups_physical_full_storage",
-				"fk_backups_physical_incremental_storage",
+				"fk_backups_physical_storage",
 				"fk_backups_physical_wal_segments_storage",
 				"fk_backups_physical_wal_history_files_storage",
 				"fk_storages_pending_deletions_storage_id",
@@ -45,8 +44,7 @@ func TestStorageReferencesMigration(t *testing.T) {
 		assert.Equal(t, map[string]string{
 			"fk_backups_configs_storage":                    "r",
 			"fk_backups_logical_storage":                    "r",
-			"fk_backups_physical_full_storage":              "r",
-			"fk_backups_physical_incremental_storage":       "r",
+			"fk_backups_physical_storage":                   "r",
 			"fk_backups_physical_wal_segments_storage":      "r",
 			"fk_backups_physical_wal_history_files_storage": "r",
 			"fk_storages_pending_deletions_storage_id":      "c",
@@ -70,8 +68,8 @@ func TestStorageReferencesMigration(t *testing.T) {
 
 		physicalBackupStorageID := insertStorage(t, db, workspaceID)
 		physicalBackupID := uuid.New()
-		execute(t, db, `INSERT INTO backups_physical_full (id, database_id, storage_id, timeline_id, status)
-			VALUES (?, ?, ?, 1, 'COMPLETED')`, physicalBackupID, databaseID, physicalBackupStorageID)
+		execute(t, db, `INSERT INTO backups_physical (id, database_id, storage_id, timeline_id, status, kind)
+			VALUES (?, ?, ?, 1, 'ERROR', 'FULL')`, physicalBackupID, databaseID, physicalBackupStorageID)
 
 		for _, storageID := range []uuid.UUID{configStorageID, logicalBackupStorageID, physicalBackupStorageID} {
 			deletion := db.WithContext(t.Context()).Exec("DELETE FROM storages WHERE id = ?", storageID)
@@ -82,7 +80,7 @@ func TestStorageReferencesMigration(t *testing.T) {
 		assert.ElementsMatch(t, []uuid.UUID{configStorageID},
 			listIDs(t, db, "SELECT storage_id FROM backups_configs"))
 		assert.ElementsMatch(t, []uuid.UUID{logicalBackupID}, listIDs(t, db, "SELECT id FROM backups_logical"))
-		assert.ElementsMatch(t, []uuid.UUID{physicalBackupID}, listIDs(t, db, "SELECT id FROM backups_physical_full"))
+		assert.ElementsMatch(t, []uuid.UUID{physicalBackupID}, listIDs(t, db, "SELECT id FROM backups_physical"))
 		assert.ElementsMatch(t,
 			[]uuid.UUID{configStorageID, logicalBackupStorageID, physicalBackupStorageID},
 			listIDs(t, db, "SELECT id FROM storages"))

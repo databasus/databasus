@@ -173,9 +173,9 @@ func (catalog *catalogFixture) insertContiguousWal(
 
 func createCompletedFullBackupsInBulk(t *testing.T, catalog *catalogFixture, count int) {
 	t.Helper()
-	catalog.App.ExecuteSQL(t, `INSERT INTO backups_physical_full
- (database_id,storage_id,timeline_id,status,start_lsn,stop_lsn,created_at,completed_at)
+	catalog.App.ExecuteSQL(t, `INSERT INTO backups_physical
+ (database_id,storage_id,timeline_id,status,start_lsn,stop_lsn,created_at,completed_at,kind,file_name)
  SELECT ?,?,1,'COMPLETED','0/0'::pg_lsn,'0/100'::pg_lsn,
- NOW()-make_interval(secs=>series_index),NOW()-make_interval(secs=>series_index)
+ NOW()-make_interval(secs=>series_index),NOW()-make_interval(secs=>series_index),'FULL','bulk-'||series_index
  FROM generate_series(1,?) AS series_index`, catalog.DatabaseID, catalog.StorageID, count)
 }

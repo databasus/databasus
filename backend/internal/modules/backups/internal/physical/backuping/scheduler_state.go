@@ -12,12 +12,12 @@ import (
 )
 
 type schedulingState struct {
-	lastFull              *catalog.FullBackup
-	lastIncremental       *catalog.IncrementalBackup
+	lastFull              *catalog.Backup
+	lastIncremental       *catalog.Backup
 	hasUnresolvedMismatch bool
 	extendableRootID      *uuid.UUID
 	incrementalParentID   *uuid.UUID
-	recentFullBackups     []*catalog.FullBackup
+	recentFullBackups     []*catalog.Backup
 	chainError            error
 	parentError           error
 	recentFullsError      error
@@ -31,7 +31,7 @@ func (s *Scheduler) loadSchedulingState(
 ) (schedulingState, error) {
 	state := schedulingState{}
 	var err error
-	state.lastFull, _, err = s.fullRepo.FindLastFullAnyStatusByDatabase(ctx, config.DatabaseID)
+	state.lastFull, _, err = s.backupRepo.FindLastFullAnyStatusByDatabase(ctx, config.DatabaseID)
 	if err != nil || config.ForceFullRequestedAt != nil {
 		return state, err
 	}
@@ -39,16 +39,11 @@ func (s *Scheduler) loadSchedulingState(
 	if err != nil || state.hasUnresolvedMismatch {
 		return state, err
 	}
-	state.lastIncremental, _, err = s.incrRepo.FindLastByDatabase(ctx, config.DatabaseID)
+	state.lastIncremental, _, err = s.backupRepo.FindLastIncrementalByDatabase(ctx, config.DatabaseID)
 	if err != nil {
 		return state, err
 	}
-	if _, canReplace := decideImmediateReplacementFull(state.lastFull, state.lastIncremental); canReplace {
-		return state, nil
-	}
-	isFullDue := config.FullBackupSchedule.IsDue(now, createdAtOrNil(state.lastFull))
-	if !isIncrementalEnabled(config) || (config.ForceIncrementalRequestedAt == nil &&
-		(isFullDue || !config.IncrementalBackupSchedule.IsDue(now, newestCreatedAt(state.lastFull, state.lastIncremental)))) {
+	if !decidePhysicalBackupFromNewest(state, config, now).needsChain {
 		return state, nil
 	}
 	chain, err := s.chainViewService.FindLastExtendableChainByDatabase(ctx, config.DatabaseID)
@@ -65,16 +60,14 @@ func (s *Scheduler) loadSchedulingState(
 		}
 		return state, nil
 	}
-	if !isFullDue &&
-		config.IncrementalBackupSchedule.IsDue(now, newestCreatedAt(state.lastFull, state.lastIncremental)) &&
-		!isChainBrokenBySummarizerOff(state.lastIncremental) {
-		state.recentFullBackups, state.recentFullsError = s.fullRepo.FindNewestAnyStatusByDatabase(ctx,
-			config.DatabaseID,
-			recentFullAttemptsWindow,
-		)
-		if state.recentFullsError != nil {
-			logger.ErrorContext(ctx, "failed to find recent full backups", slog.Any("error", state.recentFullsError))
-		}
+	state.recentFullBackups, state.recentFullsError = s.backupRepo.FindNewestFullAnyStatusByDatabase(
+		ctx,
+		config.DatabaseID,
+		recentFullAttemptsWindow,
+	)
+	if state.recentFullsError != nil {
+		logger.ErrorContext(ctx, "failed to find recent full backups", slog.Any("error", state.recentFullsError))
 	}
+
 	return state, nil
 }

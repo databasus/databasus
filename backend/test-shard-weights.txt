@@ -42,11 +42,13 @@
 24 TestGetWalStreamLive
 24 TestIndependentPhysicalWalStreams
 22 TestPhysicalBackupTimeAfterWal
+22 TestPhysicalBackupRunOverlap
 12 TestPhysicalIncrementalRetryBudget
 21 TestChangePhysicalBackupStorage
 21 TestDeleteStreamingPhysicalDatabase
 21 TestIncrementalPhysicalBackupAfterWalGap
 20 TestFailedPhysicalBackupStream
+18 TestPhysicalBackupCompression
 16 TestGetPhysicalBackupWalRanges
 16 TestPhysicalBackupSlotStartupCleanup
 13 TestDeletePhysicalReplicationSlots

@@ -35,12 +35,9 @@ func TestChangePhysicalBackupStorage(t *testing.T) {
 				inProgressFullSpec{DatabaseID: catalog.DatabaseID, StorageID: catalog.StorageID, TimelineID: 1},
 			),
 		)
-		catalog.App.InsertPhysicalInFlightBackup(
-			t,
-			apptest.PhysicalInFlightBackupSeed{DatabaseID: catalog.DatabaseID, BackupID: full.ID, BackupType: "FULL"},
-		)
+
 		catalog.saveStorageConfig(t, newStorageID)
-		assert.Nil(t, catalog.getInFlightClaim(t))
+		assert.Nil(t, catalog.getRunningBackupID(t))
 		catalog.assertFullGone(t, full.ID)
 		assert.Empty(t, getBackups(t, catalog, "").Backups)
 	})

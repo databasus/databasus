@@ -13,7 +13,7 @@ type PhysicalIncrementalBackupSeed struct {
 	StorageID  uuid.UUID `json:"storageId"  gorm:"column:storage_id;type:uuid;not null"`
 
 	RootFullBackupID          uuid.UUID  `json:"rootFullBackupId"          gorm:"column:root_full_backup_id;type:uuid;not null"`
-	ParentIncrementalBackupID *uuid.UUID `json:"parentIncrementalBackupId" gorm:"column:parent_incremental_backup_id;type:uuid"`
+	ParentIncrementalBackupID *uuid.UUID `json:"parentIncrementalBackupId" gorm:"-"`
 
 	TimelineID int `json:"timelineId" gorm:"column:timeline_id;type:int;not null"`
 
@@ -61,9 +61,22 @@ func (a *App) InsertPhysicalIncrementalBackup(
 	if seed.Status == "" {
 		seed.Status = "COMPLETED"
 	}
+	if seed.Status == "COMPLETED" && seed.FileName == nil {
+		seed.FileName = new("seed-" + seed.ID.String())
+	}
 	if seed.Status == "COMPLETED" && seed.CompletedAt == nil {
 		seed.CompletedAt = new(seed.CreatedAt)
 	}
-	a.insertPhysicalCatalogRow(tb, "backups_physical_incremental", &seed)
+	parentID := seed.ParentIncrementalBackupID
+	if parentID == nil {
+		parentID = &seed.RootFullBackupID
+	}
+	row := struct {
+		PhysicalIncrementalBackupSeed `gorm:"embedded"`
+		Kind                          string     `gorm:"column:kind"`
+		ParentBackupID                *uuid.UUID `gorm:"column:parent_backup_id"`
+	}{PhysicalIncrementalBackupSeed: seed, Kind: "INCREMENTAL", ParentBackupID: parentID}
+	a.insertPhysicalCatalogRow(tb, "backups_physical", &row)
+	seed = row.PhysicalIncrementalBackupSeed
 	return seed
 }

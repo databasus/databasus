@@ -74,7 +74,10 @@ func TestDeleteStreamingPhysicalDatabase(t *testing.T) {
 				team.App.QuerySQL(
 					t,
 					&waiting,
-					"SELECT count(*) FROM pg_locks WHERE NOT granted AND locktype='transactionid'",
+					`SELECT count(*) FROM pg_locks waiting
+					JOIN pg_stat_activity activity ON activity.pid=waiting.pid
+					WHERE NOT waiting.granted AND waiting.locktype='transactionid'
+					AND activity.datname=current_database()`,
 				)
 				if waiting == 0 {
 					return fmt.Errorf("deletion has not reached the held transaction")
@@ -119,14 +122,14 @@ func TestDeleteStreamingPhysicalDatabase(t *testing.T) {
 				}
 				return nil
 			})
-			var claims int
+			var runningBackups int
 			team.App.QuerySQL(
 				t,
-				&claims,
-				"SELECT count(*) FROM backups_physical_in_flight WHERE database_id=?",
+				&runningBackups,
+				"SELECT count(*) FROM backups_physical WHERE status = 'IN_PROGRESS' AND database_id=?",
 				team.Database.Id,
 			)
-			assert.Zero(t, claims)
+			assert.Zero(t, runningBackups)
 		},
 	)
 }

@@ -29,7 +29,7 @@ func TestPhysicalRestoreIntegrity(t *testing.T) {
 			catalog.publish(t, *full.ManifestFileName, manifestBody)
 			catalog.App.ExecuteSQL(
 				t,
-				"UPDATE backups_physical_full SET backup_size_mb=? WHERE id=?",
+				"UPDATE backups_physical SET backup_size_mb=? WHERE id=?",
 				float64(len(fullArtifact))/(1024*1024),
 				full.ID,
 			)

@@ -17,11 +17,11 @@ func TestRecoverPhysicalBackupAfterRestart(t *testing.T) {
 		name        string
 		hasArtifact bool
 	}{
-		{name: "fails the interrupted full and releases its claim when modules restart", hasArtifact: false},
+		{name: "fails the interrupted full when modules restart", hasArtifact: false},
 		{name: "removes its named artifact after restart recovery fails an interrupted full", hasArtifact: true},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
-			team := newBackupState(t)
+			team := newBackupTeam(t, backupTeamSpec{})
 			full := team.App.InsertPhysicalFullBackup(
 				t,
 				apptest.PhysicalFullBackupSeed{
@@ -32,13 +32,10 @@ func TestRecoverPhysicalBackupAfterRestart(t *testing.T) {
 					CreatedAt:  time.Now().UTC().Add(-time.Hour),
 				},
 			)
-			team.App.InsertPhysicalInFlightBackup(
-				t,
-				apptest.PhysicalInFlightBackupSeed{DatabaseID: team.Database.Id, BackupID: full.ID, BackupType: "FULL"},
-			)
+
 			fileName := "interrupted-" + full.ID.String()
 			if testCase.hasArtifact {
-				team.App.ExecuteSQL(t, "UPDATE backups_physical_full SET file_name=? WHERE id=?", fileName, full.ID)
+				team.App.ExecuteSQL(t, "UPDATE backups_physical SET file_name=? WHERE id=?", fileName, full.ID)
 				team.App.PublishStorageFile(
 					t,
 					storages.StoredFileReference{StorageID: team.StorageID, FileName: fileName},
@@ -50,9 +47,9 @@ func TestRecoverPhysicalBackupAfterRestart(t *testing.T) {
 			require.Len(t, backups, 1)
 			assert.Equal(t, "ERROR", backups[0].Status)
 			team.assertTerminalDetails(t, backups[0], "APPLICATION_RESTART")
-			team.assertClaimReleased(t)
+			team.assertNoRunningBackup(t)
 			var stored apptest.PhysicalFullBackupSeed
-			team.App.QuerySQL(t, &stored, "SELECT * FROM backups_physical_full WHERE id=?", full.ID)
+			team.App.QuerySQL(t, &stored, "SELECT * FROM backups_physical WHERE id=?", full.ID)
 			require.NotNil(t, stored.FailMessage)
 			if testCase.hasArtifact {
 				require.NotNil(t, stored.FileName)
@@ -62,6 +59,11 @@ func TestRecoverPhysicalBackupAfterRestart(t *testing.T) {
 			} else {
 				assert.Nil(t, stored.FileName)
 			}
+			nextFull := team.runBackup(t, "full")
+			require.Equal(t, "COMPLETED", nextFull.Status)
+			assert.Equal(t, "FULL", nextFull.Type)
+			assert.NotEqual(t, full.ID, nextFull.ID)
+			assert.Equal(t, "ERROR", findPhysicalBackup(t, team, backupRow{ID: full.ID}).Status)
 		})
 	}
 }

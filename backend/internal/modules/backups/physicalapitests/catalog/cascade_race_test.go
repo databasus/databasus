@@ -21,8 +21,8 @@ func TestCascadePhysicalBackupDuringClaim(t *testing.T) {
 		name           string
 		shouldKeepFull bool
 	}{
-		{name: "keeps WAL after a concurrent full claim commits while deletion waits", shouldKeepFull: false},
-		{name: "keeps WAL after a concurrent full claim commits while retained full cleanup waits", shouldKeepFull: true},
+		{name: "keeps WAL after a concurrent running full commits while deletion waits", shouldKeepFull: false},
+		{name: "keeps WAL after a concurrent running full commits while retained full cleanup waits", shouldKeepFull: true},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
 			catalog := newCatalog(t)
@@ -59,7 +59,7 @@ func TestCascadePhysicalBackupDuringClaim(t *testing.T) {
 				outcomes <- cascadeOutcome{status: response.StatusCode}
 			}()
 
-			testwait.Until(t, "the cascade waits on the held claim lock", func(context.Context) error {
+			testwait.Until(t, "the cascade waits on the held backup lock", func(context.Context) error {
 				var waiting int64
 				catalog.App.QuerySQL(
 					t,
@@ -73,23 +73,16 @@ func TestCascadePhysicalBackupDuringClaim(t *testing.T) {
 			})
 			select {
 			case <-outcomes:
-				t.Fatal("the cascade finished before the full claim committed")
+				t.Fatal("the cascade finished before the running full committed")
 			default:
 			}
 			activeFullID := uuid.New()
 			transaction.ExecuteSQL(
 				t,
-				"INSERT INTO backups_physical_full(id,database_id,storage_id,timeline_id,status,created_at) VALUES(?,?,?,1,'IN_PROGRESS',?)",
+				"INSERT INTO backups_physical(id,database_id,storage_id,timeline_id,status,created_at,kind) VALUES(?,?,?,1,'IN_PROGRESS',?,'FULL')",
 				activeFullID,
 				catalog.DatabaseID,
 				catalog.StorageID,
-				time.Now().UTC(),
-			)
-			transaction.ExecuteSQL(
-				t,
-				"INSERT INTO backups_physical_in_flight(database_id,backup_id,backup_type,claimed_at) VALUES(?,?,'FULL',?)",
-				catalog.DatabaseID,
-				activeFullID,
 				time.Now().UTC(),
 			)
 			transaction.Commit(t)
@@ -100,7 +93,7 @@ func TestCascadePhysicalBackupDuringClaim(t *testing.T) {
 					require.Equal(t, http.StatusNoContent, outcome.status)
 				}
 			case <-t.Context().Done():
-				t.Fatal("the cascade did not finish after the full claim committed")
+				t.Fatal("the cascade did not finish after the running full committed")
 			}
 			catalog.assertWalPresent(t, wal.ID)
 			assert.True(t, catalog.App.IsLocalStorageFilePresent(t, *wal.FileName))

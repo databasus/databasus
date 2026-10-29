@@ -11,7 +11,7 @@ import (
 )
 
 func (r *Repository) DeleteDatabaseRows(ctx context.Context, databaseID uuid.UUID) error {
-	for _, table := range []string{"backups_physical_wal_stream_samples", "backups_physical_wal_streamers", "backups_physical_in_flight", "backups_physical_wal_segments", "backups_physical_wal_history_files", "backups_physical_incremental", "backups_physical_full"} {
+	for _, table := range []string{"backups_physical_wal_stream_samples", "backups_physical_wal_streamers", "backups_physical_wal_segments", "backups_physical_wal_history_files", "backups_physical"} {
 		if err := database.Conn(ctx, r.db).
 			Exec("DELETE FROM "+table+" WHERE database_id = ?", databaseID).
 			Error; err != nil {
@@ -27,27 +27,12 @@ func (r *Repository) GetDatabaseFileReferences(
 ) ([]storages.StoredFileReference, error) {
 	references := make([]storages.StoredFileReference, 0)
 
-	var fulls []FullBackup
-	if err := database.Conn(ctx, r.db).Where("database_id = ?", databaseID).Find(&fulls).Error; err != nil {
-		return nil, fmt.Errorf("list full backups of a database: %w", err)
+	var backups []Backup
+	if err := database.Conn(ctx, r.db).Where("database_id = ?", databaseID).Find(&backups).Error; err != nil {
+		return nil, fmt.Errorf("list physical backups of a database: %w", err)
 	}
-
-	for _, full := range fulls {
-		references = append(references, artifactReferences(
-			full.StorageID, getFileName(full.FileName), getFileName(full.ManifestFileName))...)
-	}
-
-	var incrementals []IncrementalBackup
-	if err := database.Conn(ctx, r.db).Where("database_id = ?", databaseID).Find(&incrementals).Error; err != nil {
-		return nil, fmt.Errorf("list incremental backups of a database: %w", err)
-	}
-
-	for _, incremental := range incrementals {
-		references = append(references, artifactReferences(
-			incremental.StorageID,
-			getFileName(incremental.FileName),
-			getFileName(incremental.ManifestFileName),
-		)...)
+	for _, backup := range backups {
+		references = append(references, backupFileReferences(&backup)...)
 	}
 
 	var segments []WalSegment

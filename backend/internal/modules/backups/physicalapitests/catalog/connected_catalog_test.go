@@ -49,10 +49,10 @@ func newConnectedCatalog(t *testing.T) *catalogFixture {
 }
 
 func TestStopWalStreamingAfterBackupTypeChange(t *testing.T) {
-	t.Run("deletes the streamer and keeps the full claim when the database stops streaming WAL", func(t *testing.T) {
+	t.Run("deletes the streamer and keeps the running full when the database stops streaming WAL", func(t *testing.T) {
 		catalog := newConnectedCatalog(t)
 		catalog.saveStorageConfig(t, catalog.StorageID)
-		catalog.seedClaimAndStreamer(t)
+		catalog.seedRunningBackupAndStreamer(t)
 		response, err := catalog.Owner.Client.GetDatabaseWithResponse(t.Context(), catalog.DatabaseID)
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, response.StatusCode())
@@ -70,6 +70,6 @@ func TestStopWalStreamingAfterBackupTypeChange(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, updated.StatusCode(), "%s", updated.Body)
 		catalog.assertStreamerAbsent(t)
-		assert.NotNil(t, catalog.getInFlightClaim(t))
+		assert.NotNil(t, catalog.getRunningBackupID(t))
 	})
 }

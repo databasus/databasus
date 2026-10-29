@@ -121,7 +121,7 @@ const (
 
 type Module interface {
 	// Telemetry reads the latest full backup until it moves into a module.
-	GetLatestCompletedPhysicalFullBackup(ctx context.Context, databaseID uuid.UUID) (*PhysicalFullBackup, error)
+	GetLatestCompletedPhysicalFullBackup(ctx context.Context, databaseID uuid.UUID) (*PhysicalBackup, error)
 
 	RegisterRoutes(routes gin.IRouter, hooks *apierror.Hooks)
 	// Start fails the backups the previous run left in progress and keeps ctx, the application's
@@ -281,13 +281,9 @@ func New(deps Deps) Module {
 	physicalService = physical.New(physical.Deps{
 		ExecutionClock: deps.PhysicalExecutionClock,
 		Repository:     catalog.NewRepository(deps.DB),
-		FullBackups:    catalog.NewFullBackupRepository(deps.DB),
-		IncrementalBackups: catalog.NewIncrementalBackupRepository(
-			deps.DB,
-		),
-		InFlightBackups: catalog.NewInFlightBackupRepository(deps.DB),
-		WalSegments:     catalog.NewWalSegmentRepository(deps.DB),
-		WalHistory:      catalog.NewWalHistoryRepository(deps.DB),
+		Backups:        catalog.NewBackupRepository(deps.DB),
+		WalSegments:    catalog.NewWalSegmentRepository(deps.DB),
+		WalHistory:     catalog.NewWalHistoryRepository(deps.DB),
 		WalStreamers: catalog.NewWalStreamerRepository(
 			deps.DB,
 		),
@@ -347,4 +343,4 @@ func ProductionWalStreamTimings() WalStreamTimings {
 	}
 }
 
-type PhysicalFullBackup = catalog.FullBackup
+type PhysicalBackup = catalog.Backup

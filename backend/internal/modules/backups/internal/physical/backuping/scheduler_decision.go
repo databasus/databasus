@@ -10,10 +10,15 @@ import (
 type schedulingChoice struct {
 	decision                      backupDecision
 	canSchedule                   bool
+	needsChain                    bool
 	shouldClearIncrementalRequest bool
 }
 
-func decidePhysicalBackup(state schedulingState, config config.PhysicalBackupConfig, now time.Time) schedulingChoice {
+func decidePhysicalBackupFromNewest(
+	state schedulingState,
+	config config.PhysicalBackupConfig,
+	now time.Time,
+) schedulingChoice {
 	choice := schedulingChoice{}
 	if config.ForceFullRequestedAt != nil {
 		choice.decision = backupDecision{
@@ -31,6 +36,28 @@ func decidePhysicalBackup(state schedulingState, config config.PhysicalBackupCon
 		choice.decision, choice.canSchedule = decision, true
 		return choice
 	}
+	isFullDue := config.FullBackupSchedule.IsDue(now, createdAtOrNil(state.lastFull))
+	if config.ForceIncrementalRequestedAt != nil && isIncrementalEnabled(config) {
+		choice.needsChain = true
+		return choice
+	}
+	choice.shouldClearIncrementalRequest = config.ForceIncrementalRequestedAt != nil
+	if isFullDue {
+		choice.decision = backupDecision{kind: catalog.BackupTypeFull, reason: "full cadence is due"}
+		choice.canSchedule = true
+		return choice
+	}
+	choice.needsChain = isIncrementalEnabled(config) &&
+		config.IncrementalBackupSchedule.IsDue(now, newestCreatedAt(state.lastFull, state.lastIncremental))
+	return choice
+}
+
+func decidePhysicalBackupWithChain(
+	state schedulingState,
+	config config.PhysicalBackupConfig,
+	now time.Time,
+) schedulingChoice {
+	choice := schedulingChoice{}
 	if config.ForceIncrementalRequestedAt != nil {
 		choice.shouldClearIncrementalRequest = !isIncrementalEnabled(config) ||
 			(state.chainError == nil && state.extendableRootID == nil)
@@ -79,5 +106,13 @@ func decidePhysicalBackup(state schedulingState, config config.PhysicalBackupCon
 		}
 	}
 	choice.canSchedule = true
+	return choice
+}
+
+func decidePhysicalBackup(state schedulingState, config config.PhysicalBackupConfig, now time.Time) schedulingChoice {
+	choice := decidePhysicalBackupFromNewest(state, config, now)
+	if choice.needsChain {
+		return decidePhysicalBackupWithChain(state, config, now)
+	}
 	return choice
 }

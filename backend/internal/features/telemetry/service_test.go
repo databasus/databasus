@@ -96,14 +96,14 @@ func (f *fakeBackupChecker) GetLatestCompletedLogicalBackup(
 }
 
 type fakeLatestPhysicalBackupReader struct {
-	fullBackups         map[uuid.UUID]*backups.PhysicalFullBackup
+	fullBackups         map[uuid.UUID]*backups.PhysicalBackup
 	latestFullBackupErr error
 }
 
 func (f *fakeLatestPhysicalBackupReader) GetLatestCompletedPhysicalFullBackup(
 	_ context.Context,
 	databaseID uuid.UUID,
-) (*backups.PhysicalFullBackup, error) {
+) (*backups.PhysicalBackup, error) {
 	if f.latestFullBackupErr != nil {
 		return nil, f.latestFullBackupErr
 	}
@@ -832,7 +832,7 @@ func Test_BuildAndSend_WhenPhysicalDatabase_EmitsTypeBackupTypeAndFullBackupSize
 	service := newServiceUnderTest(t, serviceDependencies{
 		databaseLister: &fakeDatabaseLister{databases: []databases.TelemetryEntry{db}},
 		physicalBackupReader: &fakeLatestPhysicalBackupReader{
-			fullBackups: map[uuid.UUID]*backups.PhysicalFullBackup{
+			fullBackups: map[uuid.UUID]*backups.PhysicalBackup{
 				db.DatabaseID: {BackupSizeMb: new(38400.2), RawSizeMb: new(192000.7)},
 			},
 		},
@@ -963,7 +963,7 @@ func Test_BuildAndSend_WhenPayloadSerialized_ContainsDocumentedContractKeys(t *t
 			notifierTypes: []notifiers.Type{notifiers.TypeEmail},
 		},
 		physicalBackupReader: &fakeLatestPhysicalBackupReader{
-			fullBackups: map[uuid.UUID]*backups.PhysicalFullBackup{
+			fullBackups: map[uuid.UUID]*backups.PhysicalBackup{
 				physicalDB.DatabaseID: {BackupSizeMb: new(870.0), RawSizeMb: new(4321.0)},
 			},
 		},

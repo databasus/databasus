@@ -164,11 +164,9 @@ func removeWorkspace(ctx context.Context, workspaceID uuid.UUID) error {
 		for _, statement := range []string{
 			"DELETE FROM backups_physical_wal_stream_samples WHERE database_id IN (SELECT id FROM databases WHERE workspace_id = ?)",
 			"DELETE FROM backups_physical_wal_streamers WHERE database_id IN (SELECT id FROM databases WHERE workspace_id = ?)",
-			"DELETE FROM backups_physical_in_flight WHERE database_id IN (SELECT id FROM databases WHERE workspace_id = ?)",
 			"DELETE FROM backups_physical_wal_segments WHERE database_id IN (SELECT id FROM databases WHERE workspace_id = ?)",
 			"DELETE FROM backups_physical_wal_history_files WHERE database_id IN (SELECT id FROM databases WHERE workspace_id = ?)",
-			"DELETE FROM backups_physical_incremental WHERE database_id IN (SELECT id FROM databases WHERE workspace_id = ?)",
-			"DELETE FROM backups_physical_full WHERE database_id IN (SELECT id FROM databases WHERE workspace_id = ?)",
+			"DELETE FROM backups_physical WHERE database_id IN (SELECT id FROM databases WHERE workspace_id = ?)",
 			"DELETE FROM databases WHERE workspace_id = ?",
 			"DELETE FROM notifiers WHERE workspace_id = ?",
 			"DELETE FROM storages WHERE workspace_id = ?",

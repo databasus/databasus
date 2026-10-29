@@ -15,7 +15,3 @@ type LSNRange struct {
 func (r LSNRange) Contains(lsn walmath.LSN) bool {
 	return lsn >= r.Start && lsn < r.End
 }
-
-func (r LSNRange) IsUnbounded() bool {
-	return r.End == LSNMax
-}

@@ -2,13 +2,11 @@ package catalog
 
 import (
 	"context"
-	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"databasus-backend/internal/engines/postgresql/physical/walmath"
 	"databasus-backend/internal/lib/database"
 )
 
@@ -20,14 +18,11 @@ func (r *Repository) GetTotalUsageMBByDatabase(ctx context.Context, databaseID u
 
 	err := database.Conn(ctx, r.db).Raw(`
 		SELECT
-		    COALESCE((SELECT SUM(backup_size_mb) FROM backups_physical_full
-		              WHERE database_id = ? AND status = ?), 0)
-		  + COALESCE((SELECT SUM(backup_size_mb) FROM backups_physical_incremental
+		    COALESCE((SELECT SUM(backup_size_mb) FROM backups_physical
 		              WHERE database_id = ? AND status = ?), 0)
 		  + COALESCE((SELECT SUM(compressed_size_mb) FROM backups_physical_wal_segments
 		              WHERE database_id = ?), 0)
 	`,
-		databaseID, BackupStatusCompleted,
 		databaseID, BackupStatusCompleted,
 		databaseID,
 	).Scan(&totalMB).Error
@@ -51,24 +46,16 @@ func backupListItemsQuery(filterClause string) string {
 			WHERE database_id = ? AND file_name IS NOT NULL
 		),
 		merged AS (
-			SELECT id, 'FULL' AS type, status, timeline_id, start_lsn, stop_lsn,
-			       NULL::uuid AS root_full_backup_id,
-			       NULL::uuid AS parent_incremental_backup_id,
-			       NULL::text AS wal_filename,
-			       COALESCE(backup_size_mb, 0) AS size_mb,
-			       fail_message, created_at, completed_at,
-			       FALSE AS is_gap_start
-			FROM backups_physical_full
-			WHERE database_id = ?
-			UNION ALL
-			SELECT id, 'INCREMENTAL', status, timeline_id, start_lsn, stop_lsn,
-			       root_full_backup_id, parent_incremental_backup_id, NULL::text,
-			       COALESCE(backup_size_mb, 0),
-			       fail_message, created_at, completed_at,
-			       FALSE
-			FROM backups_physical_incremental
-			WHERE database_id = ?
-			UNION ALL
+			SELECT id, kind AS type, status, timeline_id, start_lsn, stop_lsn,
+                   root_full_backup_id,
+                   NULLIF(parent_backup_id, root_full_backup_id) AS parent_incremental_backup_id,
+                   NULL::text AS wal_filename,
+                   COALESCE(backup_size_mb, 0) AS size_mb,
+                   fail_message, created_at, completed_at,
+                   FALSE AS is_gap_start
+            FROM backups_physical
+            WHERE database_id = ?
+            UNION ALL
 			SELECT id, 'WAL', 'COMPLETED', timeline_id, start_lsn, end_lsn,
 			       NULL::uuid, NULL::uuid, wal_filename,
 			       compressed_size_mb,
@@ -159,7 +146,7 @@ func (r *Repository) ListBackups(ctx context.Context, querySpec BackupListQuery)
 
 	filterClause, filterArgs := filter.buildClause()
 
-	args := []any{databaseID, databaseID, databaseID}
+	args := []any{databaseID, databaseID}
 	args = append(args, filterArgs...)
 
 	query := backupListItemsQuery(filterClause)
@@ -180,42 +167,6 @@ func (r *Repository) ListBackups(ctx context.Context, querySpec BackupListQuery)
 	return rows, err
 }
 
-// GetNextAnchorLSNAfter returns the smallest start_lsn among the database's
-// FULL and INCR backups on the timeline that sits strictly after afterLSN — the
-// boundary a WAL delete stops at. LSNMax when no later anchor exists (the tail
-// of the timeline).
-func (r *Repository) GetNextAnchorLSNAfter(
-	ctx context.Context,
-	databaseID uuid.UUID,
-	timelineID int,
-	afterLSN walmath.LSN,
-) (walmath.LSN, error) {
-	row := database.Conn(ctx, r.db).Raw(`
-		SELECT MIN(start_lsn)::text FROM (
-			SELECT start_lsn FROM backups_physical_full
-			WHERE database_id = ? AND timeline_id = ? AND start_lsn IS NOT NULL AND start_lsn > ?::pg_lsn
-			UNION ALL
-			SELECT start_lsn FROM backups_physical_incremental
-			WHERE database_id = ? AND timeline_id = ? AND start_lsn IS NOT NULL AND start_lsn > ?::pg_lsn
-		) anchors
-	`,
-		databaseID, timelineID, afterLSN.String(),
-		databaseID, timelineID, afterLSN.String(),
-	).Row()
-
-	var anchorText sql.NullString
-
-	if err := row.Scan(&anchorText); err != nil {
-		return 0, err
-	}
-
-	if !anchorText.Valid {
-		return LSNMax, nil
-	}
-
-	return walmath.ParseLSN(anchorText.String)
-}
-
 func (r *Repository) HasUnresolvedSystemIdentifierMismatch(ctx context.Context, databaseID uuid.UUID) (bool, error) {
 	var state struct {
 		LatestMismatchAt      *time.Time
@@ -225,21 +176,14 @@ func (r *Repository) HasUnresolvedSystemIdentifierMismatch(ctx context.Context, 
 	err := database.Conn(ctx, r.db).Raw(`
 		SELECT
 			(
-				SELECT MAX(terminal_at)
-				FROM (
-					SELECT COALESCE(completed_at, created_at) AS terminal_at FROM backups_physical_full
-					WHERE database_id = ? AND error_reason = ?
-					UNION ALL
-					SELECT COALESCE(completed_at, created_at) AS terminal_at FROM backups_physical_incremental
-					WHERE database_id = ? AND error_reason = ?
-				) mismatches
+                SELECT MAX(COALESCE(completed_at, created_at)) FROM backups_physical
+                WHERE database_id = ? AND error_reason = ?
 			) AS latest_mismatch_at,
 			(
-				SELECT MAX(completed_at) FROM backups_physical_full
-				WHERE database_id = ? AND status = ?
+				SELECT MAX(completed_at) FROM backups_physical
+				WHERE database_id = ? AND status = ? AND kind = 'FULL'
 			) AS latest_completed_full_at
 	`,
-		databaseID, BackupErrorSystemIdentifierMismatch,
 		databaseID, BackupErrorSystemIdentifierMismatch,
 		databaseID, BackupStatusCompleted,
 	).Scan(&state).Error
@@ -249,24 +193,4 @@ func (r *Repository) HasUnresolvedSystemIdentifierMismatch(ctx context.Context, 
 
 	return state.LatestMismatchAt != nil &&
 		(state.LatestCompletedFullAt == nil || !state.LatestCompletedFullAt.After(*state.LatestMismatchAt)), nil
-}
-
-type BackupFailure struct {
-	Kind     BackupType
-	BackupID uuid.UUID
-	Reason   BackupErrorReason
-	Message  string
-	Now      time.Time
-}
-
-func (r *Repository) FailInProgressBackup(ctx context.Context, failure BackupFailure) (bool, error) {
-	var model any = &FullBackup{}
-	if failure.Kind == BackupTypeIncremental {
-		model = &IncrementalBackup{}
-	}
-	transition := database.Conn(ctx, r.db).
-		Model(model).
-		Where("id = ? AND status = ?", failure.BackupID, BackupStatusInProgress).
-		Updates(map[string]any{"status": BackupStatusError, "completed_at": failure.Now, "error_reason": failure.Reason, "fail_message": failure.Message})
-	return transition.RowsAffected == 1, transition.Error
 }

@@ -11,6 +11,6 @@ import (
 func (m *Module) GetLatestCompletedPhysicalFullBackup(
 	ctx context.Context,
 	databaseID uuid.UUID,
-) (*catalog.FullBackup, error) {
+) (*catalog.Backup, error) {
 	return m.physical.GetLatestCompletedFullBackup(ctx, databaseID)
 }

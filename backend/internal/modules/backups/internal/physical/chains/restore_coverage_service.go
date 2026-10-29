@@ -163,3 +163,25 @@ func mergeTimeRanges(ranges []TimeRange) []TimeRange {
 
 	return merged
 }
+
+func findGapsBetweenSegments(segments []*catalog.WalSegment) []catalog.LSNRange {
+	if len(segments) < 2 {
+		return nil
+	}
+
+	gaps := make([]catalog.LSNRange, 0)
+
+	for i := 1; i < len(segments); i++ {
+		prev := segments[i-1]
+		curr := segments[i]
+
+		if curr.StartLSN > prev.EndLSN {
+			gaps = append(gaps, catalog.LSNRange{
+				Start: prev.EndLSN,
+				End:   curr.StartLSN,
+			})
+		}
+	}
+
+	return gaps
+}
