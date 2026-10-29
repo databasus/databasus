@@ -84,6 +84,15 @@ func Conn(ctx context.Context, db *gorm.DB) *gorm.DB {
 	return db.WithContext(ctx)
 }
 
+func RequireTransaction(ctx context.Context) error {
+	transaction, isInTransaction := ctx.Value(transactionKey{}).(*gorm.DB)
+	if !isInTransaction || transaction == nil {
+		return ErrNoTransaction
+	}
+
+	return nil
+}
+
 // WithoutTransaction returns ctx without the transaction it carries, keeping its other values, so
 // work that outlives the transaction, such as a delivery started inside it, queries the pool.
 func WithoutTransaction(ctx context.Context) context.Context {

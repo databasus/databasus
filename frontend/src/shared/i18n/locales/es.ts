@@ -798,7 +798,7 @@ export const es: typeof en = {
       notifyWhenUnavailable: 'Notificar si no está disponible',
       checkIntervalMinutes: 'Intervalo de comprobación (minutos)',
       attemptsBeforeDown: 'Intentos antes de marcar caída',
-      storeAttemptsDays: 'Guardar historial (días)',
+      attemptRetentionDays: 'Guardar historial (días)',
       tooltips: {
         enable: 'Activa o desactiva la comprobación de disponibilidad de esta base de datos',
         notifyWhenUnavailable:
@@ -807,7 +807,7 @@ export const es: typeof en = {
           'Con qué frecuencia se comprueba la disponibilidad de la base de datos (en minutos)',
         attemptsBeforeDown:
           'Número de intentos fallidos antes de marcar la base de datos como no disponible',
-        storeAttemptsDays:
+        attemptRetentionDays:
           'Cuántos días se guarda el historial de comprobaciones de disponibilidad',
       },
     },

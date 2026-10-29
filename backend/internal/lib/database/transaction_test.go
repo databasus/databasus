@@ -79,6 +79,25 @@ func TestConn(t *testing.T) {
 	})
 }
 
+func TestRequireTransaction(t *testing.T) {
+	t.Parallel()
+
+	t.Run("refuses calls without a transaction and after detaching one", func(t *testing.T) {
+		t.Parallel()
+		require.ErrorIs(t, database.RequireTransaction(t.Context()), database.ErrNoTransaction)
+		db := openDatabaseWithNotesTable(t)
+
+		err := database.NewTransactor(db).Transaction(t.Context(), func(ctx context.Context) error {
+			require.NoError(t, database.RequireTransaction(ctx))
+			require.ErrorIs(t, database.RequireTransaction(database.WithoutTransaction(ctx)), database.ErrNoTransaction)
+
+			return nil
+		})
+
+		require.NoError(t, err)
+	})
+}
+
 func TestAfterCommit(t *testing.T) {
 	t.Parallel()
 

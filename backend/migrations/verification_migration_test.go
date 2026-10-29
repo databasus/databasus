@@ -255,6 +255,8 @@ func TestVerificationMigration(t *testing.T) {
 			goose.WithDisableGlobalRegistry(true),
 		)
 		require.NoError(t, err)
+		_, err = provider.ApplyVersion(t.Context(), 20261029175054, false)
+		require.NoError(t, err)
 		_, err = provider.ApplyVersion(t.Context(), 20261029122104, false)
 		require.NoError(t, err)
 		assert.Equal(t, []string{"VERIFICATION_SUCCESS"}, listStrings(t, db,

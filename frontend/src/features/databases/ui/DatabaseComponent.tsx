@@ -9,9 +9,9 @@ import {
   WalStreamMonitoringComponent,
   isMonitoringTabShown,
 } from '../../backups/physical';
-import { HealthckeckAttemptsComponent } from '../../healthcheck';
 import { VerificationsComponent } from '../../verification/runs';
 import { DatabaseConfigComponent } from './DatabaseConfigComponent';
+import { HealthcheckAttemptsComponent } from './healthcheck';
 
 interface Props {
   contentHeight: number;
@@ -116,7 +116,7 @@ export const DatabaseComponent = ({
 
       {currentTab === 'backups' && (
         <>
-          <HealthckeckAttemptsComponent
+          <HealthcheckAttemptsComponent
             database={database}
             onVisibilityChange={handleHealthcheckVisibilityChange}
           />

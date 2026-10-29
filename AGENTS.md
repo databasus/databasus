@@ -49,7 +49,7 @@ The repository's skills live in `.agents/skills/`, which Codex reads directly; C
 | `mise run pull-testcontainers` | Pull the database images the backend tests use |
 | `mise run lint` | Check every module without changing files; `mise run backend:lint` and `frontend:lint` check one |
 | `mise run format` | Format every module; `backend:format` and `frontend:format` format one |
-| `mise run doctor` | Check that the review hooks find the tools they need |
+| `mise run doctor` | Check review tools and whether Codex project hooks are enabled and trusted |
 | `mise run review [<change>]` | Manually rerun parallel AI reviews of a finished OpenSpec change when hooks did not run or another review is needed |
 | `goose -dir backend/migrations create <name> sql` | Create a migration |
 | `goose -dir backend/migrations up` (or `down`), with `.env` exported | Apply or roll back migrations on the dev database; goose reads `GOOSE_DRIVER` and `GOOSE_DBSTRING` from the environment. The server also applies migrations itself at startup |

@@ -2183,6 +2183,65 @@ type GoogleDriveStorageSettings struct {
 // GoogleDriveStorageSettingsType Always `GOOGLE_DRIVE`
 type GoogleDriveStorageSettingsType string
 
+// HealthcheckAttempt One recorded availability check
+type HealthcheckAttempt struct {
+	// CreatedAt The time of this check in UTC
+	CreatedAt time.Time `json:"createdAt"`
+
+	// Id The ID of the recorded check
+	Id openapi_types.UUID `json:"id"`
+
+	// Status The outcome of the last scheduled health check, absent while health checks are off
+	Status *DatabaseHealthStatus `json:"status,omitempty"`
+}
+
+// HealthcheckAttemptPage A bounded page of attempts ordered newest first
+type HealthcheckAttemptPage struct {
+	Items []HealthcheckAttempt `json:"items"`
+
+	// NextCursor Continue after this cursor; absent on the last page
+	NextCursor *string `json:"nextCursor,omitempty"`
+}
+
+// HealthcheckConfig The saved availability check settings of a database
+type HealthcheckConfig struct {
+	// AttemptRetentionDays How many days of attempts to keep
+	AttemptRetentionDays int `json:"attemptRetentionDays"`
+
+	// DatabaseId The database these settings belong to
+	DatabaseId openapi_types.UUID `json:"databaseId"`
+
+	// FailedAttemptsBeforeUnavailable Consecutive failed attempts needed to mark the database unavailable
+	FailedAttemptsBeforeUnavailable int `json:"failedAttemptsBeforeUnavailable"`
+
+	// IntervalMinutes The interval between availability checks in minutes
+	IntervalMinutes int `json:"intervalMinutes"`
+
+	// IsHealthcheckEnabled Whether scheduled availability checks are enabled
+	IsHealthcheckEnabled bool `json:"isHealthcheckEnabled"`
+
+	// IsNotificationEnabled Whether status changes send notifications
+	IsNotificationEnabled bool `json:"isNotificationEnabled"`
+}
+
+// HealthcheckConfigInput All editable settings for scheduled availability checks
+type HealthcheckConfigInput struct {
+	// AttemptRetentionDays How many days of attempts to keep
+	AttemptRetentionDays int `json:"attemptRetentionDays"`
+
+	// FailedAttemptsBeforeUnavailable Consecutive failed attempts needed to mark the database unavailable
+	FailedAttemptsBeforeUnavailable int `json:"failedAttemptsBeforeUnavailable"`
+
+	// IntervalMinutes The interval between availability checks in minutes
+	IntervalMinutes int `json:"intervalMinutes"`
+
+	// IsHealthcheckEnabled Whether scheduled availability checks are enabled
+	IsHealthcheckEnabled bool `json:"isHealthcheckEnabled"`
+
+	// IsNotificationEnabled Whether status changes send notifications
+	IsNotificationEnabled bool `json:"isNotificationEnabled"`
+}
+
 // InstanceSettings The settings of the instance
 type InstanceSettings struct {
 	// IsAllowExternalRegistrations Anyone may sign up without an invitation
@@ -4375,6 +4434,21 @@ type ListDatabasesParams struct {
 	After *string `form:"after,omitempty" json:"after,omitempty"`
 }
 
+// ListHealthcheckAttemptsParams defines parameters for ListHealthcheckAttempts.
+type ListHealthcheckAttemptsParams struct {
+	// DatabaseId The database whose attempts are listed
+	DatabaseId openapi_types.UUID `form:"databaseId" json:"databaseId"`
+
+	// Since The inclusive start of the requested history in UTC
+	Since time.Time `form:"since" json:"since"`
+
+	// Limit The maximum number of attempts on the page
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// After The opaque cursor returned by the preceding attempts page
+	After *string `form:"after,omitempty" json:"after,omitempty"`
+}
+
 // ListLogicalBackupsParams defines parameters for ListLogicalBackups.
 type ListLogicalBackupsParams struct {
 	// DatabaseId The database whose backups to list
@@ -4545,6 +4619,9 @@ type SignInWithGitHubJSONRequestBody = OAuthSignInRequest
 
 // SignInWithGoogleJSONRequestBody defines body for SignInWithGoogle for application/json ContentType.
 type SignInWithGoogleJSONRequestBody = OAuthSignInRequest
+
+// UpdateHealthcheckConfigJSONRequestBody defines body for UpdateHealthcheckConfig for application/json ContentType.
+type UpdateHealthcheckConfigJSONRequestBody = HealthcheckConfigInput
 
 // UpdateInstanceSettingsJSONRequestBody defines body for UpdateInstanceSettings for application/json ContentType.
 type UpdateInstanceSettingsJSONRequestBody = InstanceSettingsUpdate
@@ -6300,6 +6377,32 @@ type ClientInterface interface {
 	// Corresponds with POST /google-sessions (the `SignInWithGoogle` operationId).
 	SignInWithGoogle(ctx context.Context, body SignInWithGoogleJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// ListHealthcheckAttempts List the availability checks of a database
+	//
+	// Returns attempts at or after since, newest first by (createdAt, id). The chart needs every attempt in its period. The default and maximum page size of 1440 cover one day at the default interval, so a week takes seven pages.
+	//
+	// Corresponds with GET /healthcheck-attempts (the `ListHealthcheckAttempts` operationId).
+	ListHealthcheckAttempts(ctx context.Context, params *ListHealthcheckAttemptsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetHealthcheckConfig Read the healthcheck settings of a database
+	//
+	// Corresponds with GET /healthcheck-configs/{databaseId} (the `GetHealthcheckConfig` operationId).
+	GetHealthcheckConfig(ctx context.Context, databaseId openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpdateHealthcheckConfigWithBody Replace the healthcheck settings of a database
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with PUT /healthcheck-configs/{databaseId} (the `UpdateHealthcheckConfig` operationId).
+	UpdateHealthcheckConfigWithBody(ctx context.Context, databaseId openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpdateHealthcheckConfig Replace the healthcheck settings of a database
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with PUT /healthcheck-configs/{databaseId} (the `UpdateHealthcheckConfig` operationId).
+	UpdateHealthcheckConfig(ctx context.Context, databaseId openapi_types.UUID, body UpdateHealthcheckConfigJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// GetInstanceSettings Get the instance settings
 	//
 	// Every signed-in user reads them, because the interface offers registration, invitations and new workspaces by them. `isEmailConfigured` is the instance's own judgement about its mail server.
@@ -7601,6 +7704,72 @@ func (c *Client) SignInWithGoogleWithBody(ctx context.Context, contentType strin
 // Corresponds with POST /google-sessions (the `SignInWithGoogle` operationId).
 func (c *Client) SignInWithGoogle(ctx context.Context, body SignInWithGoogleJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewSignInWithGoogleRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ListHealthcheckAttempts List the availability checks of a database
+//
+// Returns attempts at or after since, newest first by (createdAt, id). The chart needs every attempt in its period. The default and maximum page size of 1440 cover one day at the default interval, so a week takes seven pages.
+//
+// Corresponds with GET /healthcheck-attempts (the `ListHealthcheckAttempts` operationId).
+func (c *Client) ListHealthcheckAttempts(ctx context.Context, params *ListHealthcheckAttemptsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListHealthcheckAttemptsRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetHealthcheckConfig Read the healthcheck settings of a database
+//
+// Corresponds with GET /healthcheck-configs/{databaseId} (the `GetHealthcheckConfig` operationId).
+func (c *Client) GetHealthcheckConfig(ctx context.Context, databaseId openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetHealthcheckConfigRequest(c.Server, databaseId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// UpdateHealthcheckConfigWithBody Replace the healthcheck settings of a database
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with PUT /healthcheck-configs/{databaseId} (the `UpdateHealthcheckConfig` operationId).
+func (c *Client) UpdateHealthcheckConfigWithBody(ctx context.Context, databaseId openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateHealthcheckConfigRequestWithBody(c.Server, databaseId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// UpdateHealthcheckConfig Replace the healthcheck settings of a database
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with PUT /healthcheck-configs/{databaseId} (the `UpdateHealthcheckConfig` operationId).
+func (c *Client) UpdateHealthcheckConfig(ctx context.Context, databaseId openapi_types.UUID, body UpdateHealthcheckConfigJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateHealthcheckConfigRequest(c.Server, databaseId, body)
 	if err != nil {
 		return nil, err
 	}
@@ -10329,6 +10498,169 @@ func NewSignInWithGoogleRequestWithBody(server string, contentType string, body 
 	}
 
 	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewListHealthcheckAttemptsRequest constructs an http.Request for the ListHealthcheckAttempts method
+func NewListHealthcheckAttemptsRequest(server string, params *ListHealthcheckAttemptsParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/healthcheck-attempts")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "databaseId", params.DatabaseId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: "uuid"}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "since", params.Since, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: "date-time"}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "limit", *params.Limit, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.After != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "after", *params.After, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetHealthcheckConfigRequest constructs an http.Request for the GetHealthcheckConfig method
+func NewGetHealthcheckConfigRequest(server string, databaseId openapi_types.UUID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "databaseId", databaseId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/healthcheck-configs/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewUpdateHealthcheckConfigRequest calls the generic UpdateHealthcheckConfig builder with application/json body
+func NewUpdateHealthcheckConfigRequest(server string, databaseId openapi_types.UUID, body UpdateHealthcheckConfigJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewUpdateHealthcheckConfigRequestWithBody(server, databaseId, "application/json", bodyReader)
+}
+
+// NewUpdateHealthcheckConfigRequestWithBody constructs an http.Request for the UpdateHealthcheckConfig method, with any body, and a specified content type
+func NewUpdateHealthcheckConfigRequestWithBody(server string, databaseId openapi_types.UUID, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "databaseId", databaseId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/healthcheck-configs/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPut, queryURL.String(), body)
 	if err != nil {
 		return nil, err
 	}
@@ -13933,6 +14265,36 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with POST /google-sessions (the `SignInWithGoogle` operationId).
 	SignInWithGoogleWithResponse(ctx context.Context, body SignInWithGoogleJSONRequestBody, reqEditors ...RequestEditorFn) (*SignInWithGoogleResponse, error)
 
+	// ListHealthcheckAttemptsWithResponse List the availability checks of a database
+	//
+	// Returns attempts at or after since, newest first by (createdAt, id). The chart needs every attempt in its period. The default and maximum page size of 1440 cover one day at the default interval, so a week takes seven pages.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /healthcheck-attempts (the `ListHealthcheckAttempts` operationId).
+	ListHealthcheckAttemptsWithResponse(ctx context.Context, params *ListHealthcheckAttemptsParams, reqEditors ...RequestEditorFn) (*ListHealthcheckAttemptsResponse, error)
+
+	// GetHealthcheckConfigWithResponse Read the healthcheck settings of a database
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /healthcheck-configs/{databaseId} (the `GetHealthcheckConfig` operationId).
+	GetHealthcheckConfigWithResponse(ctx context.Context, databaseId openapi_types.UUID, reqEditors ...RequestEditorFn) (*GetHealthcheckConfigResponse, error)
+
+	// UpdateHealthcheckConfigWithBodyWithResponse Replace the healthcheck settings of a database
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /healthcheck-configs/{databaseId} (the `UpdateHealthcheckConfig` operationId).
+	UpdateHealthcheckConfigWithBodyWithResponse(ctx context.Context, databaseId openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateHealthcheckConfigResponse, error)
+
+	// UpdateHealthcheckConfigWithResponse Replace the healthcheck settings of a database
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /healthcheck-configs/{databaseId} (the `UpdateHealthcheckConfig` operationId).
+	UpdateHealthcheckConfigWithResponse(ctx context.Context, databaseId openapi_types.UUID, body UpdateHealthcheckConfigJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateHealthcheckConfigResponse, error)
+
 	// GetInstanceSettingsWithResponse Get the instance settings
 	//
 	// Every signed-in user reads them, because the interface offers registration, invitations and new workspaces by them. `isEmailConfigured` is the instance's own judgement about its mail server.
@@ -16060,6 +16422,234 @@ func (r SignInWithGoogleResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r SignInWithGoogleResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type ListHealthcheckAttemptsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *HealthcheckAttemptPage
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ListHealthcheckAttemptsResponse) GetJSON200() *HealthcheckAttemptPage {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r ListHealthcheckAttemptsResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r ListHealthcheckAttemptsResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r ListHealthcheckAttemptsResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r ListHealthcheckAttemptsResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r ListHealthcheckAttemptsResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r ListHealthcheckAttemptsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ListHealthcheckAttemptsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListHealthcheckAttemptsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ListHealthcheckAttemptsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetHealthcheckConfigResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *HealthcheckConfig
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetHealthcheckConfigResponse) GetJSON200() *HealthcheckConfig {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r GetHealthcheckConfigResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r GetHealthcheckConfigResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r GetHealthcheckConfigResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r GetHealthcheckConfigResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r GetHealthcheckConfigResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r GetHealthcheckConfigResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetHealthcheckConfigResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetHealthcheckConfigResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetHealthcheckConfigResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type UpdateHealthcheckConfigResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *HealthcheckConfig
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r UpdateHealthcheckConfigResponse) GetJSON200() *HealthcheckConfig {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r UpdateHealthcheckConfigResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r UpdateHealthcheckConfigResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r UpdateHealthcheckConfigResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r UpdateHealthcheckConfigResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r UpdateHealthcheckConfigResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r UpdateHealthcheckConfigResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r UpdateHealthcheckConfigResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r UpdateHealthcheckConfigResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r UpdateHealthcheckConfigResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -21866,6 +22456,60 @@ func (c *ClientWithResponses) SignInWithGoogleWithResponse(ctx context.Context, 
 	return ParseSignInWithGoogleResponse(rsp)
 }
 
+// ListHealthcheckAttemptsWithResponse List the availability checks of a database
+//
+// Returns attempts at or after since, newest first by (createdAt, id). The chart needs every attempt in its period. The default and maximum page size of 1440 cover one day at the default interval, so a week takes seven pages.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /healthcheck-attempts (the `ListHealthcheckAttempts` operationId).
+func (c *ClientWithResponses) ListHealthcheckAttemptsWithResponse(ctx context.Context, params *ListHealthcheckAttemptsParams, reqEditors ...RequestEditorFn) (*ListHealthcheckAttemptsResponse, error) {
+	rsp, err := c.ListHealthcheckAttempts(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListHealthcheckAttemptsResponse(rsp)
+}
+
+// GetHealthcheckConfigWithResponse Read the healthcheck settings of a database
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /healthcheck-configs/{databaseId} (the `GetHealthcheckConfig` operationId).
+func (c *ClientWithResponses) GetHealthcheckConfigWithResponse(ctx context.Context, databaseId openapi_types.UUID, reqEditors ...RequestEditorFn) (*GetHealthcheckConfigResponse, error) {
+	rsp, err := c.GetHealthcheckConfig(ctx, databaseId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetHealthcheckConfigResponse(rsp)
+}
+
+// UpdateHealthcheckConfigWithBodyWithResponse Replace the healthcheck settings of a database
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /healthcheck-configs/{databaseId} (the `UpdateHealthcheckConfig` operationId).
+func (c *ClientWithResponses) UpdateHealthcheckConfigWithBodyWithResponse(ctx context.Context, databaseId openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateHealthcheckConfigResponse, error) {
+	rsp, err := c.UpdateHealthcheckConfigWithBody(ctx, databaseId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateHealthcheckConfigResponse(rsp)
+}
+
+// UpdateHealthcheckConfigWithResponse Replace the healthcheck settings of a database
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /healthcheck-configs/{databaseId} (the `UpdateHealthcheckConfig` operationId).
+func (c *ClientWithResponses) UpdateHealthcheckConfigWithResponse(ctx context.Context, databaseId openapi_types.UUID, body UpdateHealthcheckConfigJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateHealthcheckConfigResponse, error) {
+	rsp, err := c.UpdateHealthcheckConfig(ctx, databaseId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateHealthcheckConfigResponse(rsp)
+}
+
 // GetInstanceSettingsWithResponse Get the instance settings
 //
 // Every signed-in user reads them, because the interface offers registration, invitations and new workspaces by them. `isEmailConfigured` is the instance's own judgement about its mail server.
@@ -24399,6 +25043,189 @@ func ParseSignInWithGoogleResponse(rsp *http.Response) (*SignInWithGoogleRespons
 			return nil, err
 		}
 		response.ApplicationproblemJSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListHealthcheckAttemptsResponse parses an HTTP response from a ListHealthcheckAttemptsWithResponse call
+func ParseListHealthcheckAttemptsResponse(rsp *http.Response) (*ListHealthcheckAttemptsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListHealthcheckAttemptsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest HealthcheckAttemptPage
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetHealthcheckConfigResponse parses an HTTP response from a GetHealthcheckConfigWithResponse call
+func ParseGetHealthcheckConfigResponse(rsp *http.Response) (*GetHealthcheckConfigResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetHealthcheckConfigResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest HealthcheckConfig
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseUpdateHealthcheckConfigResponse parses an HTTP response from a UpdateHealthcheckConfigWithResponse call
+func ParseUpdateHealthcheckConfigResponse(rsp *http.Response) (*UpdateHealthcheckConfigResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &UpdateHealthcheckConfigResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest HealthcheckConfig
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest Problem

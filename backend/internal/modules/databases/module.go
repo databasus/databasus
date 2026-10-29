@@ -95,6 +95,9 @@ type Module interface {
 
 	// GetDatabases leaves out the IDs that match no database.
 	GetDatabases(ctx context.Context, databaseIDs []uuid.UUID) ([]Database, error)
+	// GetDatabaseForUpdate holds the row until the caller's transaction ends, so a healthcheck result,
+	// its config update and database deletion all lock the database before the healthcheck rows.
+	GetDatabaseForUpdate(ctx context.Context, databaseID uuid.UUID) (Database, bool, error)
 	// GetPhysicalBackupTypes reads the types without the settings, so it decrypts nothing. It leaves out
 	// the IDs that match no physical PostgreSQL database.
 	GetPhysicalBackupTypes(ctx context.Context, databaseIDs []uuid.UUID) (map[uuid.UUID]PhysicalBackupType, error)

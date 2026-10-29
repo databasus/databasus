@@ -26,6 +26,8 @@ tags:
     description: How each database is backed up, and the move of a database to another workspace
   - name: verification
     description: Backup verifications, their agents and automatic verification settings
+  - name: healthcheck
+    description: Scheduled database availability checks, settings and attempt history
 paths:
   /users:
     get:
@@ -2940,6 +2942,126 @@ paths:
           $ref: "#/components/responses/Problem"
         default:
           $ref: "#/components/responses/Problem"
+  /healthcheck-configs/{databaseId}:
+    get:
+      operationId: getHealthcheckConfig
+      tags: [healthcheck]
+      summary: Read the healthcheck settings of a database
+      parameters:
+        - name: databaseId
+          in: path
+          description: The database whose healthcheck config is read or saved
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: The healthcheck config of the database
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthcheckConfig"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+    put:
+      operationId: updateHealthcheckConfig
+      tags: [healthcheck]
+      summary: Replace the healthcheck settings of a database
+      parameters:
+        - name: databaseId
+          in: path
+          description: The database whose healthcheck config is read or saved
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        description: All editable healthcheck settings
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/HealthcheckConfigInput"
+      responses:
+        "200":
+          description: The healthcheck config of the database
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthcheckConfig"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /healthcheck-attempts:
+    get:
+      operationId: listHealthcheckAttempts
+      tags: [healthcheck]
+      summary: List the availability checks of a database
+      description: >-
+        Returns attempts at or after since, newest first by (createdAt, id).
+        The chart needs every attempt in its period. The default and maximum page size of
+        1440 cover one day at the default interval, so a week takes seven pages.
+      parameters:
+        - name: databaseId
+          in: query
+          required: true
+          description: The database whose attempts are listed
+          schema:
+            type: string
+            format: uuid
+        - name: since
+          in: query
+          required: true
+          description: The inclusive start of the requested history in UTC
+          schema:
+            type: string
+            format: date-time
+        - name: limit
+          in: query
+          description: The maximum number of attempts on the page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1440
+            default: 1440
+        - name: after
+          in: query
+          description: The opaque cursor returned by the preceding attempts page
+          schema:
+            type: string
+      responses:
+        "200":
+          description: A page of recorded healthcheck attempts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthcheckAttemptPage"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
 components:
   parameters:
     UserId:
@@ -3048,6 +3170,83 @@ components:
           schema:
             $ref: "#/components/schemas/Problem"
   schemas:
+    HealthcheckConfigInput:
+      description: All editable settings for scheduled availability checks
+      type: object
+      required: [isHealthcheckEnabled, isNotificationEnabled, intervalMinutes, failedAttemptsBeforeUnavailable, attemptRetentionDays]
+      properties:
+        isHealthcheckEnabled:
+          type: boolean
+          description: Whether scheduled availability checks are enabled
+        isNotificationEnabled:
+          type: boolean
+          description: Whether status changes send notifications
+        intervalMinutes:
+          type: integer
+          description: The interval between availability checks in minutes
+          minimum: 1
+        failedAttemptsBeforeUnavailable:
+          type: integer
+          description: Consecutive failed attempts needed to mark the database unavailable
+          minimum: 1
+        attemptRetentionDays:
+          type: integer
+          description: How many days of attempts to keep
+          minimum: 1
+    HealthcheckConfig:
+      description: The saved availability check settings of a database
+      type: object
+      required: [databaseId, isHealthcheckEnabled, isNotificationEnabled, intervalMinutes, failedAttemptsBeforeUnavailable, attemptRetentionDays]
+      properties:
+        databaseId:
+          type: string
+          format: uuid
+          description: The database these settings belong to
+        isHealthcheckEnabled:
+          type: boolean
+          description: Whether scheduled availability checks are enabled
+        isNotificationEnabled:
+          type: boolean
+          description: Whether status changes send notifications
+        intervalMinutes:
+          type: integer
+          description: The interval between availability checks in minutes
+          minimum: 1
+        failedAttemptsBeforeUnavailable:
+          type: integer
+          description: Consecutive failed attempts needed to mark the database unavailable
+          minimum: 1
+        attemptRetentionDays:
+          type: integer
+          description: How many days of attempts to keep
+          minimum: 1
+    HealthcheckAttempt:
+      description: One recorded availability check
+      type: object
+      required: [id, status, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: The ID of the recorded check
+        status:
+          $ref: "#/components/schemas/DatabaseHealthStatus"
+        createdAt:
+          type: string
+          format: date-time
+          description: The time of this check in UTC
+    HealthcheckAttemptPage:
+      description: A bounded page of attempts ordered newest first
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/HealthcheckAttempt"
+        nextCursor:
+          type: string
+          description: Continue after this cursor; absent on the last page
     VerificationAgentCount:
       description: Verification Agent Count
       type: object

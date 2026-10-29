@@ -14,7 +14,6 @@ import (
 
 	old_config "databasus-backend/internal/config"
 	"databasus-backend/internal/engines/clienttools"
-	"databasus-backend/internal/features/audit_logs"
 	backups_bridge "databasus-backend/internal/features/backups/config"
 	"databasus-backend/internal/features/caching"
 	databases_bridge "databasus-backend/internal/features/databases"
@@ -34,6 +33,7 @@ import (
 	"databasus-backend/internal/lib/ratelimit"
 	"databasus-backend/internal/modules/backups"
 	"databasus-backend/internal/modules/databases"
+	"databasus-backend/internal/modules/healthcheck"
 	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/modules/users"
@@ -60,6 +60,7 @@ type App struct {
 	databasesModule    databases.Module
 	backupsModule      backups.Module
 	verificationModule verification.Module
+	healthcheckModule  healthcheck.Module
 	environment        *Environment
 	db                 *gorm.DB
 	transactor         *database.Transactor
@@ -147,7 +148,6 @@ func New(ctx context.Context, environment *Environment) (*App, error) {
 		Clock:       environment.Clock,
 		AuditLogger: environment.Logging.GetAuditLogger(),
 	})
-	audit_logs.InstallAuditLog(auditLog)
 
 	usersModule := users.New(users.Deps{
 		DB:          db,
@@ -275,6 +275,18 @@ func New(ctx context.Context, environment *Environment) (*App, error) {
 		},
 	)
 
+	healthcheckModule := healthcheck.New(healthcheck.Deps{
+		DB:         db,
+		Transactor: transactor,
+		Logger:     appLogger,
+		Clock:      environment.Clock,
+		AuditLog:   auditLog,
+		Users:      usersModule,
+		Workspaces: workspacesModule,
+		Databases:  databasesModule,
+		Notifiers:  notifiersModule,
+	})
+
 	telemetry.InstallVerificationModule(verificationModule)
 	system_healthcheck.InstallVerificationModule(verificationModule)
 
@@ -285,13 +297,19 @@ func New(ctx context.Context, environment *Environment) (*App, error) {
 	subscribeToWorkspaceDeleting(workspacesModule, databasesModule, notifiersModule, storagesModule)
 	subscribeToNotifierTransferring(notifiersModule, databasesModule)
 	subscribeToStorageTransferring(storagesModule, backupsModule)
-	subscribeToDatabaseEvents(databasesModule, backupsModule, verificationModule)
+	subscribeToDatabaseEvents(databaseSubscriptions{
+		Databases:    databasesModule,
+		Backups:      backupsModule,
+		Verification: verificationModule,
+		Healthcheck:  healthcheckModule,
+	})
 	subscribeToLogicalBackupEvents(backupsModule, verificationModule)
 
 	jobs := append([]background.Job{newAuditEventsCleanupJob(auditLog, appLogger)}, usersModule.GetJobs()...)
 	jobs = append(jobs, storagesModule.GetJobs()...)
 	jobs = append(jobs, backupsModule.GetJobs()...)
 	jobs = append(jobs, verificationModule.GetJobs()...)
+	jobs = append(jobs, healthcheckModule.GetJobs()...)
 	runner := background.NewRunner(background.RunnerDeps{Logger: appLogger, Clock: environment.Clock}, jobs...)
 
 	return &App{
@@ -302,6 +320,7 @@ func New(ctx context.Context, environment *Environment) (*App, error) {
 		databasesModule:    databasesModule,
 		backupsModule:      backupsModule,
 		verificationModule: verificationModule,
+		healthcheckModule:  healthcheckModule,
 		environment:        environment,
 		db:                 db,
 		transactor:         transactor,

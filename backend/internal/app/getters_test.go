@@ -8,13 +8,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	audit_logs "databasus-backend/internal/features/audit_logs"
 	caching "databasus-backend/internal/features/caching"
-	databases_bridge "databasus-backend/internal/features/databases"
 	disk "databasus-backend/internal/features/disk"
 	email "databasus-backend/internal/features/email"
-	healthcheck_attempt "databasus-backend/internal/features/healthcheck/attempt"
-	healthcheck_config "databasus-backend/internal/features/healthcheck/config"
 	system_healthcheck "databasus-backend/internal/features/system/healthcheck"
 	telemetry "databasus-backend/internal/features/telemetry"
 	users_bridge "databasus-backend/internal/features/users"
@@ -32,37 +28,11 @@ type oldCodeGetter struct {
 // not feed, or a cycle between lazy values, shows up right after New.
 func getOldCodeGetters() []oldCodeGetter {
 	return []oldCodeGetter{
-		{"features/audit_logs.GetAuditLogService", func() any { return audit_logs.GetAuditLogService() }},
-		{"features/databases.GetAccess", func() any { return databases_bridge.GetAccess() }},
 		{"features/disk.GetDiskService", func() any { return disk.GetDiskService() }},
 		{"features/disk.GetDiskController", func() any { return disk.GetDiskController() }},
 		{"features/caching.GetStore", func() any { return caching.GetStore() }},
 		{"features/caching.GetRateLimiter", func() any { return caching.GetRateLimiter() }},
 		{"features/email.GetInstanceSender", func() any { return email.GetInstanceSender() }},
-		{
-			"features/healthcheck/attempt.GetHealthcheckAttemptRepository",
-			func() any { return healthcheck_attempt.GetHealthcheckAttemptRepository() },
-		},
-		{
-			"features/healthcheck/attempt.GetHealthcheckAttemptService",
-			func() any { return healthcheck_attempt.GetHealthcheckAttemptService() },
-		},
-		{
-			"features/healthcheck/attempt.GetHealthcheckAttemptBackgroundService",
-			func() any { return healthcheck_attempt.GetHealthcheckAttemptBackgroundService() },
-		},
-		{
-			"features/healthcheck/attempt.GetHealthcheckAttemptController",
-			func() any { return healthcheck_attempt.GetHealthcheckAttemptController() },
-		},
-		{
-			"features/healthcheck/config.GetHealthcheckConfigService",
-			func() any { return healthcheck_config.GetHealthcheckConfigService() },
-		},
-		{
-			"features/healthcheck/config.GetHealthcheckConfigController",
-			func() any { return healthcheck_config.GetHealthcheckConfigController() },
-		},
 		{
 			"features/system/healthcheck.GetHealthcheckController",
 			func() any { return system_healthcheck.GetHealthcheckController() },
@@ -74,7 +44,6 @@ func getOldCodeGetters() []oldCodeGetter {
 		},
 		{"features/users.GetModule", func() any { return users_bridge.GetModule() }},
 		{"features/workspaces.GetModule", func() any { return workspaces_bridge.GetModule() }},
-		{"features/workspaces.GetAccess", func() any { return workspaces_bridge.GetAccess() }},
 		{
 			"util/cloudflare_turnstile.GetCloudflareTurnstileService",
 			func() any { return util_cloudflare_turnstile.GetCloudflareTurnstileService() },

@@ -191,6 +191,11 @@ func writeUpgradeData(t *testing.T, api *apiClient, sourceHostPort int) (written
 		return writtenUpgradeData{}, err
 	}
 
+	healthcheckItems, err := writeHealthcheckData(ctx, api, sourceDatabaseID)
+	if err != nil {
+		return writtenUpgradeData{}, err
+	}
+
 	auditEventItems, err := readAuditEventItems(ctx, api)
 	if err != nil {
 		return writtenUpgradeData{}, err
@@ -226,7 +231,7 @@ func writeUpgradeData(t *testing.T, api *apiClient, sourceHostPort int) (written
 				"encryption": backupEncryption,
 			}},
 			newDatabaseNotifiersItem(notifierItems),
-		}, databases.items, storageItems, notifierItems, auditEventItems, verificationItems),
+		}, databases.items, storageItems, notifierItems, auditEventItems, verificationItems, healthcheckItems),
 		databaseIDs:        databases.ids,
 		backupID:           backup.ID,
 		verificationID:     verificationID,

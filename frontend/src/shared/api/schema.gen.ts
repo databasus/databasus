@@ -1516,10 +1516,99 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/healthcheck-configs/{databaseId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read the healthcheck settings of a database */
+        get: operations["getHealthcheckConfig"];
+        /** Replace the healthcheck settings of a database */
+        put: operations["updateHealthcheckConfig"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/healthcheck-attempts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the availability checks of a database
+         * @description Returns attempts at or after since, newest first by (createdAt, id). The chart needs every attempt in its period. The default and maximum page size of 1440 cover one day at the default interval, so a week takes seven pages.
+         */
+        get: operations["listHealthcheckAttempts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @description All editable settings for scheduled availability checks */
+        HealthcheckConfigInput: {
+            /** @description Whether scheduled availability checks are enabled */
+            isHealthcheckEnabled: boolean;
+            /** @description Whether status changes send notifications */
+            isNotificationEnabled: boolean;
+            /** @description The interval between availability checks in minutes */
+            intervalMinutes: number;
+            /** @description Consecutive failed attempts needed to mark the database unavailable */
+            failedAttemptsBeforeUnavailable: number;
+            /** @description How many days of attempts to keep */
+            attemptRetentionDays: number;
+        };
+        /** @description The saved availability check settings of a database */
+        HealthcheckConfig: {
+            /**
+             * Format: uuid
+             * @description The database these settings belong to
+             */
+            databaseId: string;
+            /** @description Whether scheduled availability checks are enabled */
+            isHealthcheckEnabled: boolean;
+            /** @description Whether status changes send notifications */
+            isNotificationEnabled: boolean;
+            /** @description The interval between availability checks in minutes */
+            intervalMinutes: number;
+            /** @description Consecutive failed attempts needed to mark the database unavailable */
+            failedAttemptsBeforeUnavailable: number;
+            /** @description How many days of attempts to keep */
+            attemptRetentionDays: number;
+        };
+        /** @description One recorded availability check */
+        HealthcheckAttempt: {
+            /**
+             * Format: uuid
+             * @description The ID of the recorded check
+             */
+            id: string;
+            status: components["schemas"]["DatabaseHealthStatus"];
+            /**
+             * Format: date-time
+             * @description The time of this check in UTC
+             */
+            createdAt: string;
+        };
+        /** @description A bounded page of attempts ordered newest first */
+        HealthcheckAttemptPage: {
+            items: components["schemas"]["HealthcheckAttempt"][];
+            /** @description Continue after this cursor; absent on the last page */
+            nextCursor?: string;
+        };
         /** @description Verification Agent Count */
         VerificationAgentCount: {
             /** Format: int64 */
@@ -6541,6 +6630,101 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["VerificationDetails"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    getHealthcheckConfig: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The database whose healthcheck config is read or saved */
+                databaseId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The healthcheck config of the database */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HealthcheckConfig"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    updateHealthcheckConfig: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The database whose healthcheck config is read or saved */
+                databaseId: string;
+            };
+            cookie?: never;
+        };
+        /** @description All editable healthcheck settings */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HealthcheckConfigInput"];
+            };
+        };
+        responses: {
+            /** @description The healthcheck config of the database */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HealthcheckConfig"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    listHealthcheckAttempts: {
+        parameters: {
+            query: {
+                /** @description The database whose attempts are listed */
+                databaseId: string;
+                /** @description The inclusive start of the requested history in UTC */
+                since: string;
+                /** @description The maximum number of attempts on the page */
+                limit?: number;
+                /** @description The opaque cursor returned by the preceding attempts page */
+                after?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of recorded healthcheck attempts */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HealthcheckAttemptPage"];
                 };
             };
             400: components["responses"]["Problem"];

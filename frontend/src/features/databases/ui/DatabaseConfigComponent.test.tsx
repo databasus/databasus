@@ -34,8 +34,6 @@ const renderDatabaseConfig = (isCanManageDBs: boolean, handlers: RequestHandler[
   mockServer.use(
     ...handlers,
     mockApi.get('/notifiers', 200, { items: [] }),
-    // The backup, healthcheck and verification sections load through the old API, which this test
-    // does not cover.
     http.all(`*${API_BASE_PATH}/*`, () => new Promise<never>(() => {})),
   );
 

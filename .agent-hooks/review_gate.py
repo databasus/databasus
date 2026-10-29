@@ -10,6 +10,10 @@ in mise.toml and stops the agent with the reason when the hook cannot start or c
 
 Codex loads the project configuration only for a trusted project and runs its hooks only after
 the user trusts their current definitions. Trust the project and its hooks when Codex asks.
+Changing a hook command invalidates its previous approval. Run `mise run doctor --client codex`
+to inspect native loading and trust; approve modified definitions with `/hooks` in Codex CLI
+at the repository root. If an editor does not expose that approval, use the CLI and restart
+the editor's agent session. The doctor never changes trust or starts a paid model call.
 Hooks pass --client explicitly. Terminal actions use --client first, then AGENT_REVIEW_CLIENT,
 and reject absent or invalid selection. Agent shell environments declare their own client.
 Only the selected CLI must be installed and signed in; failure never switches clients.
@@ -41,8 +45,11 @@ Actions:
                  openspec validate --strict, then parallel reviewers: one per delta spec, and one each
                  for necessity, architecture, names, proposal and design, and tasks. While it runs,
                  necessity, diff, architecture and code-shape skip a turn that only wrote the artifacts.
-  doctor         Reports whether Python, git, openspec and a reviewer CLI are found, one line per tool,
-                 and exits with a non-zero code when one is missing. `mise run doctor` runs it.
+  doctor         Reports whether Python, git, openspec and the selected reviewer CLI are found.
+                 For Codex, also inspects the native hooks/list and config/read APIs without starting
+                 a model: project hooks must be loaded, enabled and trusted, and features.hooks enabled.
+                 Exits non-zero when a tool is missing or automatic hooks cannot run. A successful
+                 manual review does not establish hook trust or prove automatic event dispatch.
   review [change]
                  Manual fallback or repeat, `mise run review [change]`: quick reviewers for diff, architecture
                  and code-shape over the whole working tree run in the same parallel pool as the full
@@ -137,6 +144,7 @@ import time
 from review_client import ReviewExecution, get_review_profile
 from codex_reviewer import run_codex_reviewer
 from review_profile import get_review_profile_identity
+from codex_hooks import check_project_hooks
 
 
 AUTOMATIC_REVIEW_PREFIX = "AUTOMATIC REVIEW:"
@@ -1441,7 +1449,13 @@ def check_environment():
     for tool, path in tool_paths.items():
         print(f"{tool}: {path or 'not found'}")
 
-    return 0 if all(tool_paths.values()) else 1
+    if not all(tool_paths.values()):
+        return 1
+    if REVIEW_PROFILE.client == "codex":
+        root = find_root({})
+        if not check_project_hooks(tool_paths["codex"], root):
+            return 1
+    return 0
 
 
 def stop_for_missing_tool(error):

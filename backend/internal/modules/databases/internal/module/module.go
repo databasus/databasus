@@ -62,6 +62,10 @@ func (m *Module) GetDatabases(ctx context.Context, databaseIDs []uuid.UUID) ([]u
 	return m.databases.GetDatabases(ctx, databaseIDs)
 }
 
+func (m *Module) GetDatabaseForUpdate(ctx context.Context, databaseID uuid.UUID) (userdatabase.Database, bool, error) {
+	return m.databases.GetDatabaseForUpdate(ctx, databaseID)
+}
+
 func (m *Module) GetPhysicalBackupTypes(
 	ctx context.Context,
 	databaseIDs []uuid.UUID,

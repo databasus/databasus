@@ -794,7 +794,7 @@ export const pt: typeof en = {
       notifyWhenUnavailable: 'Notificar quando indisponível',
       checkIntervalMinutes: 'Intervalo de verificação (minutos)',
       attemptsBeforeDown: 'Falhas até marcar indisponível',
-      storeAttemptsDays: 'Guardar histórico (dias)',
+      attemptRetentionDays: 'Guardar histórico (dias)',
       tooltips: {
         enable: 'Ativa ou desativa a verificação de disponibilidade deste banco de dados',
         notifyWhenUnavailable: 'Envia notificações quando o banco de dados fica indisponível',
@@ -802,7 +802,7 @@ export const pt: typeof en = {
           'Com que frequência verificar a disponibilidade do banco de dados (em minutos)',
         attemptsBeforeDown:
           'Quantas tentativas com falha são necessárias para o banco de dados ser considerado indisponível',
-        storeAttemptsDays:
+        attemptRetentionDays:
           'Por quantos dias guardar o histórico de verificações de disponibilidade',
       },
     },

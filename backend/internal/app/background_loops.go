@@ -3,7 +3,6 @@ package app
 import (
 	"context"
 
-	healthcheck_attempt "databasus-backend/internal/features/healthcheck/attempt"
 	"databasus-backend/internal/features/telemetry"
 )
 
@@ -14,7 +13,6 @@ type backgroundLoop struct {
 
 func (a *App) startBackgroundLoops(ctx context.Context) {
 	loops := []backgroundLoop{
-		{"healthcheck attempt background service", healthcheck_attempt.GetHealthcheckAttemptBackgroundService().Run},
 		{"telemetry background service", telemetry.GetTelemetryBackgroundService().Run},
 	}
 

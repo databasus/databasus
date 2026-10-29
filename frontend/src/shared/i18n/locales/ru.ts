@@ -779,14 +779,14 @@ export const ru: typeof en = {
       notifyWhenUnavailable: 'Уведомлять о недоступности',
       checkIntervalMinutes: 'Интервал проверки (мин)',
       attemptsBeforeDown: 'Попыток до недоступности',
-      storeAttemptsDays: 'Хранить историю (дней)',
+      attemptRetentionDays: 'Хранить историю (дней)',
       tooltips: {
         enable: 'Включает или выключает проверку доступности этой базы данных',
         notifyWhenUnavailable: 'Отправлять уведомления, когда база данных становится недоступной',
         checkIntervalMinutes: 'Как часто проверять доступность базы данных (в минутах)',
         attemptsBeforeDown:
           'Сколько неудачных попыток нужно, чтобы база данных считалась недоступной',
-        storeAttemptsDays: 'Сколько дней хранить историю проверок доступности',
+        attemptRetentionDays: 'Сколько дней хранить историю проверок доступности',
       },
     },
   },

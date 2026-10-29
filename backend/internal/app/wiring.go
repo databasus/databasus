@@ -1,10 +1,10 @@
 package app
 
 import (
-	healthcheck_config "databasus-backend/internal/features/healthcheck/config"
 	"databasus-backend/internal/features/telemetry"
 	"databasus-backend/internal/modules/backups"
 	"databasus-backend/internal/modules/databases"
+	"databasus-backend/internal/modules/healthcheck"
 	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/modules/verification"
@@ -43,19 +43,23 @@ func subscribeToStorageTransferring(storagesModule storages.Module, backupsModul
 	storagesModule.SubscribeToStorageTransferring(backupsModule.OnStorageTransferring)
 }
 
-func subscribeToDatabaseEvents(
-	databasesModule databases.Module,
-	backupsModule backups.Module,
-	verificationModule verification.Module,
-) {
-	databasesModule.SubscribeToDatabaseCreated(healthcheck_config.GetHealthcheckConfigService().OnDatabaseCreated)
+type databaseSubscriptions struct {
+	Databases    databases.Module
+	Backups      backups.Module
+	Verification verification.Module
+	Healthcheck  healthcheck.Module
+}
 
-	databasesModule.SubscribeToDatabaseCopied(backupsModule.OnDatabaseCopied)
-	databasesModule.SubscribeToDatabaseCopied(verificationModule.OnDatabaseCopied)
+func subscribeToDatabaseEvents(subscriptions databaseSubscriptions) {
+	subscriptions.Databases.SubscribeToDatabaseCopied(subscriptions.Backups.OnDatabaseCopied)
+	subscriptions.Databases.SubscribeToDatabaseCopied(subscriptions.Verification.OnDatabaseCopied)
 
-	databasesModule.SubscribeToDatabaseBackupTypeChanged(backupsModule.OnDatabaseBackupTypeChanged)
-	databasesModule.SubscribeToDatabaseDeleting(backupsModule.OnDatabaseDeleting)
-	databasesModule.SubscribeToDatabaseDeleting(verificationModule.OnDatabaseDeleting)
+	subscriptions.Databases.SubscribeToDatabaseBackupTypeChanged(subscriptions.Backups.OnDatabaseBackupTypeChanged)
+	subscriptions.Databases.SubscribeToDatabaseDeleting(subscriptions.Backups.OnDatabaseDeleting)
+	subscriptions.Databases.SubscribeToDatabaseDeleting(subscriptions.Verification.OnDatabaseDeleting)
+	subscriptions.Databases.SubscribeToDatabaseCreated(subscriptions.Healthcheck.OnDatabaseCreated)
+	subscriptions.Databases.SubscribeToDatabaseCopied(subscriptions.Healthcheck.OnDatabaseCopied)
+	subscriptions.Databases.SubscribeToDatabaseDeleting(subscriptions.Healthcheck.OnDatabaseDeleting)
 }
 
 func subscribeToLogicalBackupEvents(backupsModule backups.Module, verificationModule verification.Module) {

@@ -65,7 +65,7 @@ git ls-files -z --cached --others --exclude-standard '*.sh' tools/lsp mise-tasks
 """
 
 [tasks.doctor]
-description = "Check that the review hooks find the tools they need"
+description = "Check review tools and whether Codex project hooks are enabled and trusted"
 usage = 'flag "--client <client>" help="Review client: codex or claude; defaults to AGENT_REVIEW_CLIENT"'
 run = '.agent-hooks/run.sh doctor ${usage_client:+--client "$usage_client"}'
 

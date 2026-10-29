@@ -801,7 +801,7 @@ export const fr: typeof en = {
       notifyWhenUnavailable: "Notifier en cas d'indisponibilité",
       checkIntervalMinutes: 'Intervalle de vérification (min)',
       attemptsBeforeDown: 'Tentatives avant indisponibilité',
-      storeAttemptsDays: "Conserver l'historique (jours)",
+      attemptRetentionDays: "Conserver l'historique (jours)",
       tooltips: {
         enable: 'Active ou désactive la vérification de disponibilité de cette base de données',
         notifyWhenUnavailable:
@@ -810,7 +810,7 @@ export const fr: typeof en = {
           'Fréquence de vérification de la disponibilité de la base de données (en minutes)',
         attemptsBeforeDown:
           'Nombre de tentatives échouées avant de considérer la base de données comme indisponible',
-        storeAttemptsDays:
+        attemptRetentionDays:
           "Nombre de jours pendant lesquels l'historique des vérifications de disponibilité est conservé",
       },
     },

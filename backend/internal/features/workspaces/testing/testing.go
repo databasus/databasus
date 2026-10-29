@@ -169,6 +169,8 @@ func removeWorkspace(ctx context.Context, workspaceID uuid.UUID) error {
 			"DELETE FROM backups_physical_wal_segments WHERE database_id IN (SELECT id FROM databases WHERE workspace_id = ?)",
 			"DELETE FROM backups_physical_wal_history_files WHERE database_id IN (SELECT id FROM databases WHERE workspace_id = ?)",
 			"DELETE FROM backups_physical WHERE database_id IN (SELECT id FROM databases WHERE workspace_id = ?)",
+			"DELETE FROM healthcheck_attempts WHERE database_id IN (SELECT id FROM databases WHERE workspace_id = ?)",
+			"DELETE FROM healthcheck_configs WHERE database_id IN (SELECT id FROM databases WHERE workspace_id = ?)",
 			"DELETE FROM databases WHERE workspace_id = ?",
 			"DELETE FROM notifiers WHERE workspace_id = ?",
 			"DELETE FROM storages WHERE workspace_id = ?",

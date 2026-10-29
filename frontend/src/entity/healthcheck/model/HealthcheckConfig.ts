@@ -1,10 +1,2 @@
-export interface HealthcheckConfig {
-  databaseId: string;
-
-  isHealthcheckEnabled: boolean;
-  isSentNotificationWhenUnavailable: boolean;
-
-  intervalMinutes: number;
-  attemptsBeforeConcideredAsDown: number;
-  storeAttemptsDays: number;
-}
+import type { ApiComponents } from '../../../shared/api';
+export type HealthcheckConfig = ApiComponents['schemas']['HealthcheckConfig'];

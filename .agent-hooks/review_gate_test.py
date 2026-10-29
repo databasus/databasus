@@ -67,6 +67,16 @@ STUB_SOURCE = textwrap.dedent(
 
     config_path = stubs_dir / f"{name}.json"
     config = json.loads(config_path.read_text()) if config_path.exists() else {}
+    if name == "codex" and "app-server" in arguments:
+        for line in sys.stdin:
+            request = json.loads(line)
+            if request.get("method") == "initialize":
+                print(json.dumps({"id": request["id"], "result": {}}), flush=True)
+            elif request.get("method") == "hooks/list":
+                print(json.dumps({"id": request["id"], "result": config.get("hooks_response", {"data": []})}), flush=True)
+            elif request.get("method") == "config/read":
+                print(json.dumps({"id": request["id"], "result": {"config": {"features": config.get("features", {})}}}), flush=True)
+        sys.exit(0)
     if name == "openspec":
         config = config.get(arguments[0], {})
     elif name == "npm":

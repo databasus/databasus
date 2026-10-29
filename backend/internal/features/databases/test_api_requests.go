@@ -66,8 +66,9 @@ func CreateTestDatabaseViaAPI(
 	var createdDatabase apiclient.Database
 	require.NoError(t, json.Unmarshal(response.Body.Bytes(), &createdDatabase))
 
-	database, err := GetAccess().GetDatabaseByID(t.Context(), createdDatabase.Id)
+	createdDatabases, err := GetModule().GetDatabases(t.Context(), []uuid.UUID{createdDatabase.Id})
 	require.NoError(t, err)
 
-	return database
+	require.Len(t, createdDatabases, 1)
+	return createdDatabases[0]
 }

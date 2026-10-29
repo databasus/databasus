@@ -22,7 +22,6 @@ import {
   EditPhysicalBackupConfigComponent,
   ShowPhysicalBackupConfigComponent,
 } from '../../backups/physical';
-import { EditHealthcheckConfigComponent, ShowHealthcheckConfigComponent } from '../../healthcheck';
 import {
   EditVerificationConfigComponent,
   ShowVerificationConfigComponent,
@@ -30,6 +29,7 @@ import {
 import { DatabaseTransferDialogComponent } from './DatabaseTransferDialogComponent';
 import { EditDatabaseNotifiersComponent } from './edit/EditDatabaseNotifiersComponent';
 import { EditDatabaseSpecificDataComponent } from './edit/EditDatabaseSpecificDataComponent';
+import { EditHealthcheckConfigComponent, ShowHealthcheckConfigComponent } from './healthcheck';
 import { ShowDatabaseNotifiersComponent } from './show/ShowDatabaseNotifiersComponent';
 import { ShowDatabaseSpecificDataComponent } from './show/ShowDatabaseSpecificDataComponent';
 

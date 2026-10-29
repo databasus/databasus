@@ -69,6 +69,8 @@ This is the project's common language. Each concept has one term in the document
 | Verification trigger | verification trigger, `VerificationTrigger` | What started a verification: a user, the interval schedule or a completed backup. |
 | Verification agent | verification agent, `VerificationAgent` in the API | The program on the user's machine that runs verifications. |
 | Healthcheck | healthcheck | A scheduled check that a user's database answers. |
+| Healthcheck config | `HealthcheckConfig` | The settings of a database that decide whether and how often it is checked, how many failed checks make it unavailable, whether status changes notify and how long attempts are kept. |
+| Healthcheck attempt | `HealthcheckAttempt`, `healthcheck_attempts` | The recorded result of one availability check of a database. |
 | Master key | master key | The secret in the data volume that encrypts stored secrets and backup files. |
 | Download token | download token, `createDownloadToken` | A single-use token that lets the browser download one logical backup. |
 | Restore target | restore target, `RestoreTarget` | The database a restore writes into, given with its connection settings and restore options. |
