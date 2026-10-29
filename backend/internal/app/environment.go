@@ -23,7 +23,8 @@ import (
 )
 
 type Environment struct {
-	Config config.Config
+	Config           config.Config
+	AgentBinariesDir string
 	// ClientToolsDir is the client tool bundle root of this architecture. It is empty when
 	// clientToolsDirErr says why the root was not found: the console commands run no client tool,
 	// so only Serve refuses to start without it.
@@ -124,6 +125,7 @@ func NewEnvironment(ctx context.Context, loadedConfig config.Config, clockSource
 
 	return &Environment{
 		Config:            loadedConfig,
+		AgentBinariesDir:  "agent-binaries",
 		ClientToolsDir:    clientToolsDir,
 		clientToolsDirErr: clientToolsDirErr,
 		Logging:           loadedLogging,

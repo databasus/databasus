@@ -30,7 +30,7 @@ Read `docs/architecture.md` completely and the architecture sections of the modu
 - Check all code that belongs to the change against these documents, including parts committed or written in earlier requests: layer direction, module boundaries, roles of files inside a module, data ownership and migrations.
 - Read the edits of the change together. A violation that appears only across several edits, such as an import added in one request and used across a module boundary in another, is an `architecture` finding that names every path involved and the rule in `docs/architecture.md`.
 - When the change edits an HTTP contract file under `backend/api/`, read `.agents/skills/api-design/SKILL.md` and check the edit against it. Each broken rule is an `architecture` finding that names the rule of the `api-design` skill.
-- Go code under `backend/` and `agent/` outside the layout block in "Backend layout" of `docs/architecture.md` predates that document and keeps its existing structure. Do not report it for not following the new layout, unless the change moves that code. The exemption does not cover the frontend.
+- Go code under `backend/` outside the layout block in "Backend layout" of `docs/architecture.md` predates that document and keeps its existing structure. Do not report it for not following the new layout, unless the change moves that code. The exemption does not cover the frontend.
 - Do not check names, style, prose or general correctness. Other reviewers do that.
 
 ### Role: documentation and tasks

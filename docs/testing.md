@@ -52,6 +52,20 @@ The test talks to the instance over real HTTP through `apiclient.New(t, url)`. T
 
 A test creates its data through the API, the same way a user does. The testing skill lists the few cases where direct SQL is allowed.
 
+## Verification agent end-to-end tests
+
+`mise run agent:e2e` runs `internal/agent/e2e` against a real backend from `apptest`. `TestMain` builds the agent once with the server's version and once with an older version for the background update scenario. Each scenario copies its binary into its own temporary directory and runs it through `lib/process`. The backend takes the backup from a source PostgreSQL server, decrypts it on the agent's stream request and stores the agent's report. Users, workspaces, storages, databases and backups are created through the API. Until verification joins the contract, its user operations go through `apptest.CallOldAPI`.
+
+The suite covers PostgreSQL 12–18, TimescaleDB on 17, a backup limited to the public schema, damaged backup bytes, the disk budget, leftovers before a retry and at startup, restore container privileges, daemon commands and background self-update. The damaged backup is unencrypted; a helper overwrites its local stored bytes without changing its completed status or file-store records. The disk-budget scenario also checks that PostgreSQL 18's data directory counts toward the limit.
+
+A gateway on the agent's link is the one allowed stand-in in this suite. It forwards requests and responses to the backend, with three opt-in behaviors: hold claims, hold the backup stream, or lower `maxContainerDiskMb` in a successful claim response. These let a scenario arrange leftovers, inspect a running container or exercise a budget below the backend's minimum. It never creates a job or accepts a report in the backend's place. Held requests end when their request or test context ends.
+
+`DATABASUS_AGENT_E2E_ENGINE_HOST` selects the engine for the agent and the test's engine checks; an empty value uses Docker. Only the agent process receives it as `DOCKER_HOST`, so source servers stay on Docker. `mise run agent:e2e-podman` checks access to the rootful socket at `/run/podman/podman.sock` (overridden by `E2E_ENGINE_SOCKET`) and runs three scenarios: an encrypted backup on PostgreSQL 18, a broken backup and restore container privileges. It fails before testing when the socket cannot be opened and prints the command that grants access.
+
+A measured Docker run with race checks took 4 minutes 50 seconds (289.770 seconds), including both binary builds, with the required images already cached. Cold pulls and host contention change that duration; the package keeps the 30-minute timeout of `backend:test-package`.
+
+Scenarios run sequentially because of the `apptest` limit. Separate runs can overlap: agents have unique IDs, directories, ports and engine labels. Every scenario waits for its containers and networks to disappear after the outcome; cleanup also stops its process and removes labeled resources on failure. A detached daemon has an explicit PID cleanup. Failed scenarios print the agent output and logs. `mise run agent:test` excludes the e2e package and requires neither an engine nor the test database. CI runs the Docker suite in the `agent-e2e` backend group and the Podman subset as its own check.
+
 ## Isolation
 
 - **Internal database.** Databases for tests live on one test PostgreSQL server, shared by every worktree on the machine and never stopped by a test run. `testdb.Open(t)` creates a fresh database with a unique name from a template that has every migration applied. The template is built once per set of migrations, under an advisory lock, and it is keyed by a hash of the migrations. A passing test drops its database. A failing test keeps it and prints its address. Each test process removes databases that are older than an hour and have no connections.
@@ -89,7 +103,9 @@ Until the tests of old code move into modules, the filesystem tests run only thr
 | Everything | `mise run test` |
 | One backend package | `go test -race -count=1 ./internal/modules/<module>/...` in `backend/` |
 | One backend test | `go test -race -count=1 -run 'TestName/scenario text' ./internal/modules/<module>/...` in `backend/` |
-| Verification agent | `mise run agent:test` |
+| Verification agent unit tests | `mise run agent:test` |
+| Verification agent end-to-end tests on Docker | `mise run agent:e2e` |
+| Verification agent subset on rootful Podman | `mise run agent:e2e-podman` |
 | Frontend | `pnpm test` in `frontend/`, or `pnpm test -t 'scenario text'` |
 | Upgrade test | `mise run backend:test-upgrade` |
 | Filesystem tests | `mise run test-filesystem` |

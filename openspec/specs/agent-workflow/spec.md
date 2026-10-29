@@ -203,7 +203,7 @@ When a finished turn changes a Go or TypeScript source file of the backend, the 
 - **WHEN** a turn adds a comment above a function that only says what the function does
 - **THEN** the quick code-shape check rejects the turn and suggests a name for the function that makes the comment redundant
 
-### Requirement: The module rules reach every agent
+### Requirement: Every agent reads the module rules of the code it changes
 Before the agent changes a file under a folder that holds its own `AGENTS.md`, it SHALL read that `AGENTS.md`, unless the file is already in its context. A folder whose rules extend another module's rules SHALL name that module's `AGENTS.md`, and the agent SHALL read both. The rule SHALL hold for every client, including one that loads only the `AGENTS.md` files on the path from the repository root to the directory it was started in.
 
 #### Scenario: Codex changes backend code
@@ -211,12 +211,8 @@ Before the agent changes a file under a folder that holds its own `AGENTS.md`, i
 - **THEN** it reads `backend/AGENTS.md` first
 
 #### Scenario: Codex changes the verification agent
-- **WHEN** Codex, started at the repository root, is about to change a file under `backend/internal/agent/` or `backend/cmd/verification-agent/`
+- **WHEN** Codex, started at the repository root, is about to change a file under `backend/internal/agent/` or `backend/cmd/verification-agent/`, the agent's end-to-end scenarios included
 - **THEN** it reads `backend/AGENTS.md` first, and no other module doc
-
-#### Scenario: Codex changes the old agent end-to-end suite
-- **WHEN** Codex is about to change a file under `agent/verification/e2e/`, which stays outside the backend module until it is rewritten
-- **THEN** it follows the root `AGENTS.md`, because no module doc lies on that path
 
 ### Requirement: Go commands of a Codex session see the test build tag
 A `go` command that the agent runs in a Codex session SHALL see the test helpers build tag without passing it, the same way it does in a Claude Code session, so a package whose cross-package test helpers sit behind that tag builds and its tests run.

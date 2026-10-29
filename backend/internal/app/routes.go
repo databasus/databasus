@@ -55,7 +55,8 @@ func (a *App) registerRoutes(router *gin.Engine) {
 
 	// Public routes: only the user sign-in routes, the health check and the agent-facing routes.
 	system_healthcheck.GetHealthcheckController().RegisterRoutes(v1)
-	system_agent.GetAgentController().RegisterRoutes(v1)
+	agentController := system_agent.AgentController{BinariesDir: a.environment.AgentBinariesDir}
+	agentController.RegisterRoutes(v1)
 	verification_agents.GetAgentFacingController().RegisterRoutes(v1)
 	verification_runs.GetVerificationAgentController().RegisterRoutes(v1)
 

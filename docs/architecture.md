@@ -2,7 +2,7 @@
 
 This document states how Databasus is built and why. The architecture review hook checks every plan and every diff against it. Terms follow the [glossary](glossary.md), and [testing.md](testing.md) describes the test setup. Product behavior lives in the OpenSpec specs under `openspec/specs`. Rules that a linter or `archlint` enforces are listed in [Automatic checks](#automatic-checks).
 
-Go code under `backend/` and `agent/` outside the layout block in [Backend layout](#backend-layout) predates this document and is being moved into that layout. New code follows this document. A change to the old code keeps that code's existing structure, unless the change is the one that moves it.
+Go code under `backend/` outside the layout block in [Backend layout](#backend-layout) predates this document and is being moved into that layout. New code follows this document. A change to the old code keeps that code's existing structure, unless the change is the one that moves it.
 
 ## System
 

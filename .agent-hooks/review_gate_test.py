@@ -1420,7 +1420,7 @@ class ImplementationGateReviewTest(ShortReplyAssertions, SummaryAssertions, unit
             architecture_role,
         )
         self.assertIn(
-            'Go code under `backend/` and `agent/` outside the layout block in "Backend layout" of `docs/architecture.md`',
+            'Go code under `backend/` outside the layout block in "Backend layout" of `docs/architecture.md`',
             architecture_role,
         )
         self.assertIn("The exemption does not cover the frontend.", architecture_role)
@@ -2037,7 +2037,7 @@ class ProposalGateReviewTest(ShortReplyAssertions, SummaryAssertions, unittest.T
             architecture_role,
         )
         self.assertIn(
-            'Go code under `backend/` and `agent/` outside the layout block in "Backend layout" of `docs/architecture.md`',
+            'Go code under `backend/` outside the layout block in "Backend layout" of `docs/architecture.md`',
             architecture_role,
         )
         self.assertIn("The exemption does not cover the frontend.", architecture_role)

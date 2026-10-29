@@ -86,6 +86,7 @@ func New(tb testing.TB, options ...Option) *App {
 		isGoogleEnabled:              false,
 		publicURL:                    "",
 		clientToolsDir:               "",
+		agentBinariesDir:             "",
 		walStreamTimings:             nil,
 		fileTimings:                  nil,
 		notificationDeliveryTimeout:  0,
@@ -161,6 +162,10 @@ func New(tb testing.TB, options ...Option) *App {
 
 	if applied.clientToolsDir != "" {
 		environment.ClientToolsDir = applied.clientToolsDir
+	}
+
+	if applied.agentBinariesDir != "" {
+		environment.AgentBinariesDir = applied.agentBinariesDir
 	}
 
 	environment.ExternalEndpoints.SlackPostMessageURL = applied.notifierEndpoints.SlackPostMessageURL

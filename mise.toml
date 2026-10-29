@@ -116,9 +116,14 @@ dir = "backend"
 run = 'CGO_ENABLED=0 go build -ldflags "-X main.Version=${VERSION:-dev}" -o temp/verification-agent/databasus-verification-agent ./cmd/verification-agent'
 
 [tasks."agent:test"]
-description = "Run the verification agent tests"
+description = "Run the verification agent unit tests, excluding the end-to-end suite"
 dir = "backend"
-run = "go test -race -count=1 -failfast ./internal/agent/... ./cmd/verification-agent/..."
+shell = "bash -euo pipefail -c"
+run = """
+packages=$(go list ./internal/agent/... ./cmd/verification-agent/... | rg -v '/internal/agent/e2e(/|$)')
+# shellcheck disable=SC2086 # go list emits one package path per word
+go test -race -count=1 -failfast $packages
+"""
 
 [tasks."frontend:lint"]
 description = "Check the frontend: formatting, linter, types and the generated API types"

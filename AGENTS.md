@@ -81,7 +81,7 @@ Several agents may work on this repo at once, in different worktrees, sharing on
 The layout and the tooling described in `docs/` arrive milestone by milestone. Until they do, these substitutes apply:
 
 - The old code gets the configuration, the database and the logger through `config.GetEnv()`, `storage.GetDb()` and `logger.GetLogger()`, which `internal/app` fills; in a test build with the `testhelpers` tag they load themselves.
-- Go code under `backend/` and `agent/` outside the layout block in "Backend layout" of [`docs/architecture.md`](docs/architecture.md#backend-layout) keeps its existing structure until the milestone that moves it, as the first section of that document says.
+- Go code under `backend/` outside the layout block in "Backend layout" of [`docs/architecture.md`](docs/architecture.md#backend-layout) keeps its existing structure until the milestone that moves it, as the first section of that document says.
 - Packages outside that layout keep their cross-package test helpers in files behind the `testhelpers` build tag, so the production binary does not link them. `mise run backend:test-package` passes the tag itself; a `go test` that runs such a package directly passes it too: `go test -race -tags testhelpers -count=1 ./internal/features/databases/...` in `backend/`. Every `go` command in a Claude Code or Codex session sees the tag, and the repository's Zed and VS Code settings pass it to gopls, so the production graph is checked with `go run ./tools/archlint` or with `GOFLAGS=` in front of `go list`.
 
 Temporary docs and plan for migration is here - @temp/refactor
@@ -106,7 +106,7 @@ When you start the app or look at its pages, load the [run-app skill](.agents/sk
 
 ## Language in code
 
-**English only in code, comments, identifiers, log messages, API strings, test assertions, and commit messages.** No other language inside `backend/` or `agent/` at all, and none inside `frontend/src/` outside the interface dictionaries named below — not even for user-facing fallback copy or error messages.
+**English only in code, comments, identifiers, log messages, API strings, test assertions, and commit messages.** No other language inside `backend/` at all, and none inside `frontend/src/` outside the interface dictionaries named below — not even for user-facing fallback copy or error messages.
 
 Translated end-user content is allowed in five places and nowhere else: the website page copies (`website/app/[lang]/*/content/<locale>.tsx`), the README translations (`assets/readme/README.<locale>.md`), the six language-switcher labels in the root `README.md`, the frontend interface dictionaries (`frontend/src/shared/i18n/locales/<locale>.ts`), and the quoted example pairs in the [how-to-communicate skill](.agents/skills/humanizer/SKILL.md), which model conversation output rather than documentation prose. Even there, file names (locale codes aside), identifiers, dictionary keys and commit messages stay English.
 

@@ -37,7 +37,7 @@ Read `docs/architecture.md` completely and the architecture sections of the modu
 
 - Check the decisions in `design.md` and the structure the proposal implies against these documents: layer direction, module boundaries, roles of files inside a module, data ownership and migrations. A contradiction that the change does not resolve by editing `docs/architecture.md` itself is a `mismatch` finding that names the rule.
 - When the change adds or changes an HTTP operation, read `.agents/skills/api-design/SKILL.md` and check the operation against it. Each broken rule is a `mismatch` finding that names the rule of the `api-design` skill.
-- Go code under `backend/` and `agent/` outside the layout block in "Backend layout" of `docs/architecture.md` predates that document and keeps its existing structure. Do not report a design that keeps that structure, unless the change moves that code. The exemption does not cover the frontend.
+- Go code under `backend/` outside the layout block in "Backend layout" of `docs/architecture.md` predates that document and keeps its existing structure. Do not report a design that keeps that structure, unless the change moves that code. The exemption does not cover the frontend.
 - Do not check names, simplicity or prose. Other reviewers do that.
 
 ### Role: names

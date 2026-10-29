@@ -193,37 +193,12 @@ jobs:
       - name: Run Go tests
         run: mise run agent:test
 
-  e2e-verification-agent:
-    if: github.ref != 'refs/heads/develop' && github.head_ref != 'develop'
-    runs-on: namespace-profile-4vcpu-8ram-ubuntu-26-x64
-    timeout-minutes: 30
-    needs: [lint-backend]
-    steps:
-      - name: Check out code
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-
-      - name: Install tools from mise.toml
-        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
-        with:
-          install: false
-
-      - name: Run e2e tests
-        run: mise run agent:e2e
-
-      - name: Cleanup
-        if: always()
-        run: |
-          cd agent/verification/e2e
-          docker compose down -v --rmi local || true
-          rm -rf artifacts || true
-
   e2e-verification-agent-podman:
     if: github.ref != 'refs/heads/develop' && github.head_ref != 'develop'
     # Namespace runners are containers without systemd whose seccomp profile denies
     # pivot_root, so rootful Podman cannot start containers there.
     runs-on: ubuntu-24.04
     timeout-minutes: 30
-    needs: [lint-backend]
     steps:
       - name: Check out code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
@@ -231,11 +206,64 @@ jobs:
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
-          install: false
+          install_args: "go"
+
+      - name: Install database client dependencies
+        run: |
+          # The bundled assets/tools clients are Debian-built; Ubuntu ships no libncurses5/libtinfo5
+          # package at all, and the ABI-identical .so.6 satisfies them via these symlinks.
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libedit2 libncurses6 libtinfo6 libpq5 libmariadb3 libgnutls30 zstd netcat-openbsd
+          sudo ln -sf /usr/lib/x86_64-linux-gnu/libncurses.so.6 /usr/lib/x86_64-linux-gnu/libncurses.so.5
+          sudo ln -sf /usr/lib/x86_64-linux-gnu/libtinfo.so.6 /usr/lib/x86_64-linux-gnu/libtinfo.so.5
+
+      - name: Download Go modules
+        run: |
+          cd backend
+          go mod download
+
+      - name: Create .env file for testing
+        run: cp .env.example .env
+
+      - name: Start test containers
+        run: |
+          docker compose -f docker-compose.yml up -d
+
+      - name: Wait for containers to be ready
+        run: |
+          # Wait for main dev database (postgres listens on 5432 inside the container)
+          timeout 60 bash -c 'until docker exec backend-db pg_isready -U postgres; do sleep 2; done'
+
+          # Wait for test database (postgres listens on 5432 inside the container)
+          timeout 60 bash -c 'until docker exec backend-db-test pg_isready -U postgres; do sleep 2; done'
+
+          # 5004 = shared logical-postgres-16 fixture; 5007-5008 = shared physical-postgres 17/18
+          # primary sources. The per-version, no-summary, tablespace, mTLS and restore-target
+          # physical containers — like the per-version logical PG tests — run on testcontainers and
+          # need no fixed port.
+          timeout 60 bash -c 'until nc -z 127.0.0.1 5004; do sleep 2; done'
+          timeout 60 bash -c 'until nc -z 127.0.0.1 5007; do sleep 2; done'
+          timeout 60 bash -c 'until nc -z 127.0.0.1 5008; do sleep 2; done'
+
+      - name: Create data and temp directories
+        run: |
+          # Create directories that are used for backups and restore
+          # These paths match what's configured in config.go
+          mkdir -p databasus-data/backups
+          mkdir -p databasus-data/temp
+
+      - name: Reset the shared test PostgreSQL servers
+        run: |
+          cd backend
+          set -a && . ../.env && set +a
+          # A CI runner runs one test group and nothing else, so the reset takes no fixtures lock.
+          go run -tags testhelpers ./cmd/cleanup_test_db
 
       - name: Start rootful Podman socket
         run: |
+          sudo apt-get install -y acl
           sudo systemctl start podman.socket
+          sudo setfacl -m u:"$USER":rw /run/podman/podman.sock
           sudo podman version
           sudo podman info --format '{{.Host.OCIRuntime.Name}}'
 
@@ -245,9 +273,6 @@ jobs:
       - name: Cleanup
         if: always()
         run: |
-          cd agent/verification/e2e
-          docker compose down -v --rmi local || true
-          rm -rf artifacts || true
           sudo podman ps -aq --filter label=databasus.verification.agent_id | xargs -r sudo podman rm -f || true
           sudo podman network ls -q --filter label=databasus.verification.agent_id | xargs -r sudo podman network rm || true
 
@@ -266,6 +291,8 @@ jobs:
         include:
           - group: other
             runner: namespace-profile-8vcpu-16ram-ubuntu-22-x64
+          - group: agent-e2e
+            runner: namespace-profile-4vcpu-8ram-ubuntu-22-x64
           - group: logical
             runner: namespace-profile-4vcpu-8ram-ubuntu-22-x64
           - group: physical-1-of-3
@@ -983,7 +1010,7 @@ jobs:
   determine-version:
     runs-on: namespace-profile-2vcpu-4ram-ubuntu-26-x64
     timeout-minutes: 10
-    needs: [lint-backend, test-backend, test-frontend, test-verification-agent, e2e-verification-agent, e2e-verification-agent-podman, test-filesystems, test-upgrade]
+    needs: [lint-backend, test-backend, test-frontend, test-verification-agent, e2e-verification-agent-podman, test-filesystems, test-upgrade]
     if: ${{ github.ref == 'refs/heads/main' && !contains(github.event.head_commit.message, '[skip-release]') }}
     outputs:
       should_release: ${{ steps.version_bump.outputs.should_release }}

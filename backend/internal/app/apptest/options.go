@@ -19,6 +19,7 @@ type settings struct {
 	isGoogleEnabled              bool
 	publicURL                    string
 	clientToolsDir               string
+	agentBinariesDir             string
 	// notificationDeliveryTimeout is zero for the timeout the server uses.
 	notificationDeliveryTimeout time.Duration
 	notifierEndpoints           NotifierEndpoints
@@ -117,4 +118,8 @@ func WithWalStreamTimings(timings backups.WalStreamTimings) Option {
 	return func(applied *settings) {
 		applied.walStreamTimings = &timings
 	}
+}
+
+func WithAgentBinariesDir(directory string) Option {
+	return func(applied *settings) { applied.agentBinariesDir = directory }
 }

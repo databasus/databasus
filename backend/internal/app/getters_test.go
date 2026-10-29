@@ -15,7 +15,6 @@ import (
 	email "databasus-backend/internal/features/email"
 	healthcheck_attempt "databasus-backend/internal/features/healthcheck/attempt"
 	healthcheck_config "databasus-backend/internal/features/healthcheck/config"
-	system_agent "databasus-backend/internal/features/system/agent"
 	system_healthcheck "databasus-backend/internal/features/system/healthcheck"
 	telemetry "databasus-backend/internal/features/telemetry"
 	users_bridge "databasus-backend/internal/features/users"
@@ -67,7 +66,6 @@ func getOldCodeGetters() []oldCodeGetter {
 			"features/healthcheck/config.GetHealthcheckConfigController",
 			func() any { return healthcheck_config.GetHealthcheckConfigController() },
 		},
-		{"features/system/agent.GetAgentController", func() any { return system_agent.GetAgentController() }},
 		{
 			"features/system/healthcheck.GetHealthcheckController",
 			func() any { return system_healthcheck.GetHealthcheckController() },

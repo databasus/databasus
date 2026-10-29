@@ -61,7 +61,7 @@ func (c *PostgresContainer) GetVerifierConn() dbconn.Conn {
 // alone misses PGDATA entirely; an in-container `du -sb` does not.
 func (c *PostgresContainer) GetDiskUsageBytes(ctx context.Context) (int64, error) {
 	res, err := c.engine.Exec(ctx, c.id,
-		[]string{"du", "-sb", "/var/lib/postgresql/data", "/tmp"}, nil, nil)
+		[]string{"du", "-sb", "/var/lib/postgresql", "/tmp"}, nil, nil)
 	if err != nil {
 		return 0, fmt.Errorf("exec du: %w", err)
 	}

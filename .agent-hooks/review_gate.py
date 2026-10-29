@@ -26,7 +26,7 @@ Actions:
   architecture   Checks a plan or a change against docs/architecture.md and the architecture rules of the module docs.
   code-shape     Checks how code the request changed is split into files and functions, and its names
                  and comments, against AGENTS.md and the module docs. Runs when a .go, .ts or .tsx
-                 file under backend/, agent/, frontend/src/ or website/ changed.
+                 file under backend/, frontend/src/ or website/ changed.
   implementation Full review of an OpenSpec change whose tasks are all checked: parallel reviewers,
                  one per delta spec, and one each for architecture, documentation and tasks, and tests;
                  after a block a repeat over the previous findings only. The implementing agent runs
@@ -93,7 +93,7 @@ REVIEWER_ACTIVE_ENV = "AGENT_REVIEW_HOOK_ACTIVE"
 HOOKS_DIR = Path(__file__).resolve().parent
 GATES = ("plan", "necessity", "diff", "architecture", "code-shape", "implementation", "proposal")
 GATES_YIELDING_TO_PROPOSAL_REVIEW = ("necessity", "diff", "architecture", "code-shape")
-CODE_DIRS = ("backend/", "agent/", "frontend/src/", "website/")
+CODE_DIRS = ("backend/", "frontend/src/", "website/")
 CODE_SUFFIXES = (".go", ".ts", ".tsx")
 TASK_PATTERN = re.compile(r"^\s*[-*] \[([ xX])\]", re.MULTILINE)
 

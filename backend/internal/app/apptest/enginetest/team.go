@@ -28,6 +28,7 @@ const (
 // storage of that workspace the tests back up into.
 type Team struct {
 	App       *apptest.App
+	Admin     apptest.Session
 	Owner     apptest.Session
 	Workspace apiclient.Workspace
 	StorageID uuid.UUID
@@ -37,11 +38,13 @@ func NewTeam(t *testing.T, options ...apptest.Option) Team {
 	t.Helper()
 
 	app := apptest.New(t, options...)
-	owner := app.CreateNonAdminUser(t, app.CreateAdmin(t))
+	admin := app.CreateAdmin(t)
+	owner := app.CreateNonAdminUser(t, admin)
 	workspace := apptest.CreateWorkspace(t, owner, "Team "+NewUniqueSuffix())
 
 	return Team{
 		App:       app,
+		Admin:     admin,
 		Owner:     owner,
 		Workspace: workspace,
 		StorageID: app.CreateLocalStorage(t, owner, workspace.Id),
