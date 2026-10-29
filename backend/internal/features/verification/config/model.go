@@ -3,11 +3,10 @@ package verification_config
 import (
 	"fmt"
 	"slices"
-	"strings"
 	"time"
 
 	"github.com/google/uuid"
-	"gorm.io/gorm"
+	"github.com/lib/pq"
 
 	"databasus-backend/internal/features/intervals"
 )
@@ -20,46 +19,14 @@ type BackupVerificationConfig struct {
 	ScheduleType         VerificationScheduleType `json:"scheduleType"         gorm:"column:schedule_type;type:text;not null;default:'AFTER_BACKUP'"`
 	VerificationInterval intervals.Interval       `json:"verificationInterval" gorm:"embedded"`
 
-	SendNotificationsOn       []VerificationNotificationType `json:"sendNotificationsOn" gorm:"-"`
-	SendNotificationsOnString string                         `json:"-"                   gorm:"column:send_notifications_on;type:text;not null;default:''"`
+	SendNotificationsOn pq.StringArray `json:"sendNotificationsOn" gorm:"column:send_notifications_on;type:text[];not null;default:'{}'"`
 
 	CreatedAt time.Time `json:"createdAt" gorm:"column:created_at"`
 	UpdatedAt time.Time `json:"updatedAt" gorm:"column:updated_at"`
 }
 
 func (BackupVerificationConfig) TableName() string {
-	return "backup_verification_configs"
-}
-
-func (c *BackupVerificationConfig) BeforeSave(tx *gorm.DB) error {
-	if len(c.SendNotificationsOn) > 0 {
-		notificationTypes := make([]string, len(c.SendNotificationsOn))
-
-		for i, notificationType := range c.SendNotificationsOn {
-			notificationTypes[i] = string(notificationType)
-		}
-
-		c.SendNotificationsOnString = strings.Join(notificationTypes, ",")
-	} else {
-		c.SendNotificationsOnString = ""
-	}
-
-	return nil
-}
-
-func (c *BackupVerificationConfig) AfterFind(tx *gorm.DB) error {
-	if c.SendNotificationsOnString != "" {
-		notificationTypes := strings.Split(c.SendNotificationsOnString, ",")
-		c.SendNotificationsOn = make([]VerificationNotificationType, len(notificationTypes))
-
-		for i, notificationType := range notificationTypes {
-			c.SendNotificationsOn[i] = VerificationNotificationType(notificationType)
-		}
-	} else {
-		c.SendNotificationsOn = []VerificationNotificationType{}
-	}
-
-	return nil
+	return "verification_configs"
 }
 
 func (c *BackupVerificationConfig) Validate() error {
@@ -73,12 +40,12 @@ func (c *BackupVerificationConfig) Validate() error {
 		}
 	}
 
-	for _, n := range c.SendNotificationsOn {
-		switch n {
+	for _, notification := range c.SendNotificationsOn {
+		switch VerificationNotificationType(notification) {
 		case NotificationVerificationSuccess,
 			NotificationVerificationFailed:
 		default:
-			return fmt.Errorf("invalid verification notification type: %q", n)
+			return fmt.Errorf("invalid verification notification type: %q", notification)
 		}
 	}
 

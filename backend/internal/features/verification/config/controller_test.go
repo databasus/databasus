@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
+	"github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -19,6 +20,7 @@ import (
 )
 
 func createTestRouter() *gin.Engine {
+	SetupDependencies()
 	return workspaces_testing.CreateTestRouter(
 		databases_bridge.GetTestRoutes(),
 		GetVerificationConfigController(),
@@ -66,7 +68,7 @@ func Test_GetByDatabaseID_WhenNoRowExists_LazyCreatesDisabledDefault(t *testing.
 	assert.Equal(t, 0, *response.VerificationInterval.Weekday)
 	assert.Equal(
 		t,
-		[]VerificationNotificationType{NotificationVerificationFailed},
+		pq.StringArray{string(NotificationVerificationFailed)},
 		response.SendNotificationsOn,
 	)
 
@@ -122,9 +124,9 @@ func Test_Save_AsOwner_PersistsAndReturns(t *testing.T) {
 	assert.True(t, response.IsScheduledVerificationEnabled)
 	assert.Equal(t, intervals.IntervalWeekly, response.VerificationInterval.Type)
 	assert.ElementsMatch(t,
-		[]VerificationNotificationType{
-			NotificationVerificationSuccess,
-			NotificationVerificationFailed,
+		pq.StringArray{
+			string(NotificationVerificationSuccess),
+			string(NotificationVerificationFailed),
 		},
 		response.SendNotificationsOn,
 	)
@@ -140,9 +142,9 @@ func Test_Save_AsOwner_PersistsAndReturns(t *testing.T) {
 	)
 	assert.True(t, fetched.IsScheduledVerificationEnabled)
 	assert.ElementsMatch(t,
-		[]VerificationNotificationType{
-			NotificationVerificationSuccess,
-			NotificationVerificationFailed,
+		pq.StringArray{
+			string(NotificationVerificationSuccess),
+			string(NotificationVerificationFailed),
 		},
 		fetched.SendNotificationsOn,
 	)
@@ -329,9 +331,9 @@ func Test_OnDatabaseCopied_CopiesConfigOntoNewDatabase(t *testing.T) {
 	assert.True(t, copied.IsScheduledVerificationEnabled)
 	assert.Equal(t, intervals.IntervalWeekly, copied.VerificationInterval.Type)
 	assert.ElementsMatch(t,
-		[]VerificationNotificationType{
-			NotificationVerificationSuccess,
-			NotificationVerificationFailed,
+		pq.StringArray{
+			string(NotificationVerificationSuccess),
+			string(NotificationVerificationFailed),
 		},
 		copied.SendNotificationsOn,
 	)
@@ -339,4 +341,45 @@ func Test_OnDatabaseCopied_CopiesConfigOntoNewDatabase(t *testing.T) {
 	databases_bridge.RemoveTestDatabase(t.Context(), source)
 	databases_bridge.RemoveTestDatabase(t.Context(), target)
 	workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
+}
+
+func TestSaveVerificationConfig(t *testing.T) {
+	for _, scenario := range []struct {
+		name                           string
+		isScheduledVerificationEnabled bool
+	}{
+		{name: "returns empty notifications when saving a disabled config without an interval"},
+		{name: "returns empty notifications when saving an after-backup config without an interval", isScheduledVerificationEnabled: true},
+	} {
+		t.Run(scenario.name, func(t *testing.T) {
+			router := createTestRouter()
+			owner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
+			workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "Test Workspace", owner)
+			defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
+			database := databases_bridge.CreateTestDatabaseViaAPI(t, router, owner.Token, workspace.ID, "Test Database")
+			defer databases_bridge.RemoveTestDatabase(t.Context(), database)
+
+			var savedConfig BackupVerificationConfig
+			test_utils.MakePutRequestAndUnmarshal(
+				t,
+				router,
+				"/api/v1/verification-config/"+database.ID.String(),
+				"Bearer "+owner.Token,
+				SaveBackupVerificationConfigDTO{
+					IsScheduledVerificationEnabled: scenario.isScheduledVerificationEnabled,
+					ScheduleType:                   VerificationScheduleAfterBackup,
+				},
+				http.StatusOK,
+				&savedConfig,
+			)
+
+			assert.Equal(t, intervals.IntervalWeekly, savedConfig.VerificationInterval.Type)
+			assert.Equal(t, pq.StringArray{}, savedConfig.SendNotificationsOn)
+			var fetchedConfig BackupVerificationConfig
+			test_utils.MakeGetRequestAndUnmarshal(t, router, "/api/v1/verification-config/"+database.ID.String(),
+				"Bearer "+owner.Token, http.StatusOK, &fetchedConfig)
+			assert.Equal(t, pq.StringArray{}, fetchedConfig.SendNotificationsOn)
+			assert.Equal(t, intervals.IntervalWeekly, fetchedConfig.VerificationInterval.Type)
+		})
+	}
 }

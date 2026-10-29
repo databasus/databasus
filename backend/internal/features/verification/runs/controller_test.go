@@ -43,6 +43,7 @@ func createTestRouter() *gin.Engine {
 
 	verification_config.SetupDependencies()
 	SetupDependencies()
+	SetupTestDependencies()
 
 	// Building the module subscribes it to the database deletion, which removes the seeded logical
 	// backups that would otherwise block the test's cleanup.
@@ -492,64 +493,4 @@ func Test_CancelVerification_WithAgentToken_Returns401(t *testing.T) {
 
 	stillPending := GetVerificationByIDViaAPI(t, router, owner.Token, enqueued.ID)
 	assert.Equal(t, VerificationStatusPending, stillPending.Status)
-}
-
-func Test_DeleteDatabase_RemovesVerifications_ViaCascade(t *testing.T) {
-	router := createTestRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner)
-	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
-
-	testStorage := storages_bridge.CreateTestStorage(workspace.ID)
-	defer storages_bridge.RemoveTestStorage(t.Context(), testStorage.ID)
-
-	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
-	defer notifiers_bridge.RemoveTestNotifier(notifier)
-
-	database := databases_bridge.CreateTestDatabase(workspace.ID, notifier)
-
-	backup := backups_bridge.SeedTestLogicalBackup(t, database.ID, testStorage.ID, 100)
-	enqueued := EnqueueManualVerificationViaAPI(t, router, owner.Token, backup.ID)
-
-	test_utils.MakeDeleteRequest(
-		t, router,
-		"/api/v1/databases/"+database.ID.String(),
-		"Bearer "+owner.Token,
-		http.StatusNoContent,
-	)
-
-	var remainingVerifications int64
-	require.NoError(t, storage.GetDb().
-		Model(&RestoreVerification{}).
-		Where("id = ?", enqueued.ID).
-		Count(&remainingVerifications).Error)
-	assert.Zero(t, remainingVerifications, "verification row must be cascade-deleted with its database")
-}
-
-func Test_DeleteBackup_RemovesVerifications_ViaCascade(t *testing.T) {
-	router := createTestRouter()
-	owner := users_testing.CreateTestUser(t.Context(), users.RoleAdmin)
-	workspace := workspaces_testing.CreateTestWorkspace(t.Context(), "ws "+uuid.New().String(), owner)
-	defer workspaces_testing.RemoveTestWorkspace(t.Context(), workspace)
-
-	testStorage := storages_bridge.CreateTestStorage(workspace.ID)
-	defer storages_bridge.RemoveTestStorage(t.Context(), testStorage.ID)
-
-	notifier := notifiers_bridge.CreateTestNotifier(workspace.ID)
-	defer notifiers_bridge.RemoveTestNotifier(notifier)
-
-	database := databases_bridge.CreateTestDatabase(workspace.ID, notifier)
-	defer databases_bridge.RemoveTestDatabase(t.Context(), database)
-
-	backup := backups_bridge.SeedTestLogicalBackup(t, database.ID, testStorage.ID, 100)
-	enqueued := EnqueueManualVerificationViaAPI(t, router, owner.Token, backup.ID)
-
-	require.NoError(t, storage.GetDb().Exec("DELETE FROM backups_logical WHERE id = ?", backup.ID).Error)
-
-	var remainingVerifications int64
-	require.NoError(t, storage.GetDb().
-		Model(&RestoreVerification{}).
-		Where("id = ?", enqueued.ID).
-		Count(&remainingVerifications).Error)
-	assert.Zero(t, remainingVerifications, "verification row must be cascade-deleted with its backup")
 }

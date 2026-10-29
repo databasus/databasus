@@ -96,6 +96,10 @@ func (m *Module) SubscribeToLogicalBackupCompleted(handler logical.BackupComplet
 	m.logicalBackups.SubscribeToBackupCompleted(handler)
 }
 
+func (m *Module) SubscribeToLogicalBackupsDeleting(handler logical.BackupsDeletingHandler) {
+	m.logicalBackups.SubscribeToBackupsDeleting(handler)
+}
+
 // Start fails the restores and the backups the previous run left in progress.
 func (m *Module) Start(ctx context.Context) error {
 	err := m.restores.Start(ctx)

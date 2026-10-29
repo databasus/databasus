@@ -53,10 +53,10 @@ func subscribeToDatabaseEvents(databasesModule databases.Module, backupsModule b
 
 	databasesModule.SubscribeToDatabaseBackupTypeChanged(backupsModule.OnDatabaseBackupTypeChanged)
 	databasesModule.SubscribeToDatabaseDeleting(backupsModule.OnDatabaseDeleting)
+	databasesModule.SubscribeToDatabaseDeleting(verification_config.GetVerificationConfigService().OnDatabaseDeleting)
 }
 
-// subscribeToLogicalBackupEvents lets the old verification runs enqueue the after-backup verification
-// of a completed logical backup until they move into a module.
 func subscribeToLogicalBackupEvents(backupsModule backups.Module) {
 	backupsModule.SubscribeToLogicalBackupCompleted(verification_runs.GetVerificationService().OnLogicalBackupCompleted)
+	backupsModule.SubscribeToLogicalBackupsDeleting(verification_runs.GetVerificationService().OnLogicalBackupsDeleting)
 }

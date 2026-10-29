@@ -67,6 +67,8 @@ type (
 	// LogicalBackupCompleted is published after the publication of a logical backup commits.
 	LogicalBackupCompleted        = logical.BackupCompleted
 	LogicalBackupCompletedHandler = logical.BackupCompletedHandler
+	LogicalBackupsDeleting        = logical.BackupsDeleting
+	LogicalBackupsDeletingHandler = logical.BackupsDeletingHandler
 )
 
 const (
@@ -172,6 +174,8 @@ type Module interface {
 	// The handlers of LogicalBackupCompleted run after the publication's commit, in the run of the
 	// backup; an error is logged.
 	SubscribeToLogicalBackupCompleted(handler LogicalBackupCompletedHandler)
+	// Deleting handlers run in the caller's transaction; an error rolls the deletion back.
+	SubscribeToLogicalBackupsDeleting(handler LogicalBackupsDeletingHandler)
 }
 
 type Deps struct {

@@ -158,10 +158,12 @@ func insertWorkspace(ctx context.Context, name string, ownerID uuid.UUID) (*Test
 	return workspace, nil
 }
 
-// A workspace's physical records must be removed before its databases and storages.
+// A workspace's verification and physical records must be removed before its databases and storages.
 func removeWorkspace(ctx context.Context, workspaceID uuid.UUID) error {
 	return storage.GetDb().WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		for _, statement := range []string{
+			"DELETE FROM verification_runs WHERE database_id IN (SELECT id FROM databases WHERE workspace_id = ?)",
+			"DELETE FROM verification_configs WHERE database_id IN (SELECT id FROM databases WHERE workspace_id = ?)",
 			"DELETE FROM backups_physical_wal_stream_samples WHERE database_id IN (SELECT id FROM databases WHERE workspace_id = ?)",
 			"DELETE FROM backups_physical_wal_streamers WHERE database_id IN (SELECT id FROM databases WHERE workspace_id = ?)",
 			"DELETE FROM backups_physical_wal_segments WHERE database_id IN (SELECT id FROM databases WHERE workspace_id = ?)",

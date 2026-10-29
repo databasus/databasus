@@ -8,8 +8,8 @@ import (
 	databases_bridge "databasus-backend/internal/features/databases"
 )
 
-// SetupDependencies subscribes the verification configs to the database copies of the module the
-// bridge builds without the application, as internal/app does for the module it builds.
+// Test bridges build their own modules, so their subscriptions live separately from app wiring.
 var SetupDependencies = sync.OnceFunc(func() {
 	databases_bridge.GetModule().SubscribeToDatabaseCopied(getVerificationConfigService().OnDatabaseCopied)
+	databases_bridge.GetModule().SubscribeToDatabaseDeleting(getVerificationConfigService().OnDatabaseDeleting)
 })

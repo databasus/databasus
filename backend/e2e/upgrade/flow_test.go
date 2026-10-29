@@ -204,6 +204,14 @@ func checkThroughCurrentCode(
 		return docker.withLogTail(ctx, resources.currentContainerName, err)
 	}
 
+	verificationItems, err := readVerificationItems(ctx, currentAPI, verificationReferences{
+		databaseID: writtenData.databaseIDs[databaseName], verificationID: writtenData.verificationID,
+	})
+	if err != nil {
+		return docker.withLogTail(ctx, resources.currentContainerName, err)
+	}
+	listedItems = append(listedItems, verificationItems...)
+
 	err = upgradecheck.Compare(writtenData.items, listedItems)
 	if err != nil {
 		return err

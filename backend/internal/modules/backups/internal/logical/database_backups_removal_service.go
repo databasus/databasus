@@ -42,7 +42,7 @@ func (s *Service) removeDatabaseBackups(
 	// A restore start holds a key share lock on its backup's row until it commits, so this lock waits
 	// for a restore that is being inserted and the check below sees it; a later insert waits for the
 	// deletion and fails its reference to the deleted backup.
-	err := s.repository.lockByDatabase(ctx, databaseID)
+	backupIDs, err := s.repository.lockAndListBackupIDsOfDatabase(ctx, databaseID)
 	if err != nil {
 		return err
 	}
@@ -65,10 +65,5 @@ func (s *Service) removeDatabaseBackups(
 		return refusals.restoreRunning
 	}
 
-	deletedBackups, err := s.repository.deleteByDatabase(ctx, databaseID)
-	if err != nil {
-		return err
-	}
-
-	return s.requestFileDeletions(ctx, deletedBackups)
+	return s.deleteBackupsWithFiles(ctx, backupIDs)
 }

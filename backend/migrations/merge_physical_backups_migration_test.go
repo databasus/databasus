@@ -221,7 +221,7 @@ func TestMergePhysicalBackupsMigration(t *testing.T) {
 			goose.WithDisableGlobalRegistry(true),
 		)
 		require.NoError(t, err)
-		_, err = provider.Down(t.Context())
+		_, err = provider.ApplyVersion(t.Context(), 20261028225903, false)
 		require.ErrorContains(t, err, "one-way")
 		require.ErrorContains(t, err, "restore a dump taken before the upgrade")
 		assert.Len(t, listIDs(t, db, "SELECT id FROM backups_physical"), 10)

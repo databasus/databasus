@@ -34,17 +34,17 @@ type RestoreVerification struct {
 }
 
 func (RestoreVerification) TableName() string {
-	return "restore_verifications"
+	return "verification_runs"
 }
 
 type RestoreVerificationTableStat struct {
 	ID                    uuid.UUID `json:"id"         gorm:"column:id;type:uuid;primaryKey"`
-	RestoreVerificationID uuid.UUID `json:"-"          gorm:"column:restore_verification_id;type:uuid;not null"`
+	RestoreVerificationID uuid.UUID `json:"-"          gorm:"column:run_id;type:uuid;not null"`
 	SchemaName            string    `json:"schemaName" gorm:"column:schema_name;type:text;not null"`
 	Name                  string    `json:"name"       gorm:"column:name;type:text;not null"`
 	RowCount              int64     `json:"rowCount"   gorm:"column:row_count;type:bigint;not null"`
 }
 
 func (RestoreVerificationTableStat) TableName() string {
-	return "restore_verification_table_stats"
+	return "verification_run_table_stats"
 }

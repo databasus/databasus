@@ -278,30 +278,20 @@ func (r *backupRepository) deleteByIDs(ctx context.Context, backupIDs []uuid.UUI
 	return deletedBackups, nil
 }
 
-func (r *backupRepository) lockByDatabase(ctx context.Context, databaseID uuid.UUID) error {
+func (r *backupRepository) lockAndListBackupIDsOfDatabase(
+	ctx context.Context,
+	databaseID uuid.UUID,
+) ([]uuid.UUID, error) {
 	var lockedIDs []uuid.UUID
 
 	err := database.Conn(ctx, r.db).
 		Raw("SELECT id FROM backups_logical WHERE database_id = ? FOR UPDATE", databaseID).
 		Scan(&lockedIDs).Error
 	if err != nil {
-		return fmt.Errorf("lock the logical backups of the database: %w", err)
+		return nil, fmt.Errorf("lock the logical backups of the database: %w", err)
 	}
 
-	return nil
-}
-
-func (r *backupRepository) deleteByDatabase(ctx context.Context, databaseID uuid.UUID) ([]LogicalBackup, error) {
-	var deletedBackups []LogicalBackup
-
-	err := database.Conn(ctx, r.db).
-		Raw("DELETE FROM backups_logical WHERE database_id = ? RETURNING "+backupColumns, databaseID).
-		Scan(&deletedBackups).Error
-	if err != nil {
-		return nil, fmt.Errorf("delete the logical backups of the database: %w", err)
-	}
-
-	return deletedBackups, nil
+	return lockedIDs, nil
 }
 
 func (r *backupRepository) getOne(ctx context.Context, query string, values ...any) (LogicalBackup, bool, error) {

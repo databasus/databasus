@@ -68,6 +68,7 @@ type Service struct {
 	appCtx                  atomic.Pointer[context.Context]
 	lastSchedulerPassTime   atomic.Pointer[time.Time]
 	completedBackupHandlers []BackupCompletedHandler
+	deletingBackupHandlers  []BackupsDeletingHandler
 }
 
 // runningRestores tells whether a restore reads a backup. Deleting a backup, retention and the
@@ -105,6 +106,7 @@ func NewService(deps Deps) *Service {
 		appCtx:                  atomic.Pointer[context.Context]{},
 		lastSchedulerPassTime:   atomic.Pointer[time.Time]{},
 		completedBackupHandlers: nil,
+		deletingBackupHandlers:  nil,
 	}
 }
 
@@ -112,6 +114,10 @@ func NewService(deps Deps) *Service {
 // subscribes while it builds the application.
 func (s *Service) SubscribeToBackupCompleted(handler BackupCompletedHandler) {
 	s.completedBackupHandlers = append(s.completedBackupHandlers, handler)
+}
+
+func (s *Service) SubscribeToBackupsDeleting(handler BackupsDeletingHandler) {
+	s.deletingBackupHandlers = append(s.deletingBackupHandlers, handler)
 }
 
 // StartBackup starts a manual backup. The view right is enough, as it always was: a viewer may take
@@ -449,6 +455,16 @@ func (s *Service) getDatabase(ctx context.Context, databaseID uuid.UUID) (databa
 // deleteBackupsWithFiles removes the rows and requests the deletion of their files in the caller's
 // transaction, so the files go only if the rows do.
 func (s *Service) deleteBackupsWithFiles(ctx context.Context, backupIDs []uuid.UUID) error {
+	if len(backupIDs) == 0 {
+		return nil
+	}
+
+	for _, handler := range s.deletingBackupHandlers {
+		if err := handler(ctx, BackupsDeleting{BackupIDs: backupIDs}); err != nil {
+			return fmt.Errorf("handle logical backups deleting: %w", err)
+		}
+	}
+
 	deletedBackups, err := s.repository.deleteByIDs(ctx, backupIDs)
 	if err != nil {
 		return err

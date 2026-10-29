@@ -10,6 +10,7 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
+	"databasus-backend/internal/lib/database"
 	"databasus-backend/internal/storage"
 )
 
@@ -230,9 +231,9 @@ func (r *VerificationRepository) GetNonTerminalAutomaticVerificationsForDisabled
 	verifications := make([]*RestoreVerification, 0)
 
 	err := storage.GetDb().
-		Table("restore_verifications v").
+		Table("verification_runs v").
 		Select("v.*").
-		Joins("JOIN backup_verification_configs c ON c.database_id = v.database_id").
+		Joins("JOIN verification_configs c ON c.database_id = v.database_id").
 		Where(
 			"c.is_scheduled_verification_enabled = ? AND v.trigger IN ? AND v.status IN ?",
 			false,
@@ -333,6 +334,10 @@ func (r *VerificationRepository) MarkTerminal(
 	}
 
 	return nil
+}
+
+func (r *VerificationRepository) DeleteByBackupIDs(ctx context.Context, backupIDs []uuid.UUID) error {
+	return database.Conn(ctx, storage.GetDb()).Where("backup_id IN ?", backupIDs).Delete(&RestoreVerification{}).Error
 }
 
 func (r *VerificationRepository) insertTableStats(

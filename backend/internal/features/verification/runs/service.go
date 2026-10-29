@@ -362,7 +362,7 @@ func (s *VerificationService) OnAgentHeartbeated(
 	}
 
 	// An ID the agent reports that the backend no longer owns as RUNNING was
-	// hard-deleted (config cascade) or flipped terminal/CANCELED by the reaper:
+	// deleted with its backup or database or flipped terminal/CANCELED by the reaper:
 	// tell the agent to abort it.
 	verificationsToAbort := make([]uuid.UUID, 0)
 	for _, id := range currentVerificationIDs {
@@ -699,7 +699,7 @@ func (s *VerificationService) notifyTerminal(
 		wantedType = verification_config.NotificationVerificationFailed
 	}
 
-	if !slices.Contains(config.SendNotificationsOn, wantedType) {
+	if !slices.Contains(config.SendNotificationsOn, string(wantedType)) {
 		return
 	}
 

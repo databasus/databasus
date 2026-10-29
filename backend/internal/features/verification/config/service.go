@@ -101,10 +101,17 @@ func (s *VerificationConfigService) Save(
 	config.IsScheduledVerificationEnabled = req.IsScheduledVerificationEnabled
 	config.ScheduleType = req.ScheduleType
 	config.VerificationInterval = req.VerificationInterval
-	config.SendNotificationsOn = req.SendNotificationsOn
+	config.SendNotificationsOn = make([]string, len(req.SendNotificationsOn))
+	for index, notification := range req.SendNotificationsOn {
+		config.SendNotificationsOn[index] = string(notification)
+	}
 
 	if err := config.Validate(); err != nil {
 		return nil, err
+	}
+
+	if config.VerificationInterval.Type == "" {
+		config.VerificationInterval.Type = intervals.IntervalWeekly
 	}
 
 	if err := s.verificationConfigRepository.Save(ctx, config); err != nil {
@@ -155,8 +162,8 @@ func (s *VerificationConfigService) initializeDefaultConfig(ctx context.Context,
 			TimeOfDay: new("04:00"),
 			Weekday:   new(0),
 		},
-		SendNotificationsOn: []VerificationNotificationType{
-			NotificationVerificationFailed,
+		SendNotificationsOn: []string{
+			string(NotificationVerificationFailed),
 		},
 	})
 }

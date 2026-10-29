@@ -45,3 +45,10 @@ func (r *VerificationConfigRepository) FindAllEnabled() ([]*BackupVerificationCo
 
 	return configs, err
 }
+
+func (r *VerificationConfigRepository) DeleteByDatabaseID(ctx context.Context, databaseID uuid.UUID) error {
+	return database.Conn(ctx, storage.GetDb()).
+		Where("database_id = ?", databaseID).
+		Delete(&BackupVerificationConfig{}).
+		Error
+}
