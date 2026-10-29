@@ -43,8 +43,10 @@ func (p *fakeDiskProbe) GetDiskUsageBytes(context.Context) (int64, error) {
 }
 
 func newTestDiskWatcher(probe diskUsageProber, ceilingBytes int64, onLimitExceeded func()) *diskWatcher {
-	w := newDiskWatcher(probe, ceilingBytes, onLimitExceeded, slog.New(slog.DiscardHandler))
-	w.interval = time.Millisecond
+	w := newDiskWatcher(diskWatchSpec{
+		probe: probe, ceilingBytes: ceilingBytes, interval: time.Millisecond,
+		onLimitExceeded: onLimitExceeded, log: slog.New(slog.DiscardHandler),
+	})
 
 	return w
 }

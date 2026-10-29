@@ -12,7 +12,7 @@ import (
 
 const fixtureCascadeCutoff = 20261024122431
 
-var fixtureSpec = checkSpec{entryPoints: []string{"./cmd/databasus"}, cascadeCutoff: fixtureCascadeCutoff}
+var fixtureSpec = checkSpec{entryPoints: backendSpec.entryPoints, cascadeCutoff: fixtureCascadeCutoff}
 
 // fakeTestifyFiles stand in for testify through a replace directive, so a fixture module builds offline.
 var fakeTestifyFiles = map[string]string{

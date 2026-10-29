@@ -17,6 +17,7 @@ import (
 	"databasus-backend/internal/agent/dbconn"
 	"databasus-backend/internal/agent/restore"
 	"databasus-backend/internal/agent/verifier"
+	"databasus-backend/internal/engines/postgresql/logical/pgrestore"
 	"databasus-backend/internal/lib/background"
 )
 
@@ -31,8 +32,6 @@ const (
 
 	// archive layout inside the per-job container's writable volume.
 	inContainerArchiveDir = "/tmp"
-
-	maxParallelRestoreJobs = 8
 )
 
 var supportedMajors = []string{"12", "13", "14", "15", "16", "17", "18"}
@@ -47,6 +46,7 @@ type SpawnRequest struct {
 
 type Runner struct {
 	group                   *background.Group
+	diskWatchInterval       time.Duration
 	backupDownloadBackoffFn func(int) time.Duration
 	api                     APIClient
 	capacity                config.Capacity
@@ -75,6 +75,7 @@ type Deps struct {
 func NewRunner(deps Deps) *Runner {
 	return &Runner{
 		group:                   deps.Group,
+		diskWatchInterval:       3 * time.Second,
 		backupDownloadBackoffFn: backupDownloadBackoff,
 		api:                     deps.APIClient,
 		capacity:                deps.Capacity,
@@ -241,11 +242,13 @@ func (r *Runner) executeJob(ctx context.Context, job *api.JobAssignment) {
 		watchCtx, watchStop := context.WithCancel(jobCtx)
 		defer watchStop()
 
-		watcher := newDiskWatcher(
-			jobContainer, diskBudgetMb*1024*1024,
-			func() { isDiskLimitHit.Store(true); cancel() },
-			runLogger,
-		)
+		watcher := newDiskWatcher(diskWatchSpec{
+			probe:           jobContainer,
+			ceilingBytes:    diskBudgetMb * 1024 * 1024,
+			interval:        r.diskWatchInterval,
+			onLimitExceeded: func() { isDiskLimitHit.Store(true); cancel() },
+			log:             runLogger,
+		})
 		r.group.Go(
 			watchCtx,
 			"verification_disk_watcher",
@@ -302,17 +305,11 @@ func (r *Runner) executeJob(ctx context.Context, job *api.JobAssignment) {
 		)
 	}
 
-	parallelJobs := min(maxParallelRestoreJobs, r.capacity.CPUPerJob)
+	isTimescaleDB := job.TimescaledbVersion != ""
+	parallelJobs := pgrestore.GetParallelJobs(r.capacity.CPUPerJob, isTimescaleDB)
 
-	// TimescaleDB restores single-threaded and in restoring mode. Single-threaded because parallel
-	// pg_restore loads dependent _timescaledb_catalog rows before the rows they reference, tripping
-	// the catalog's own foreign keys. post_restore runs on the success path below, before stats; on
-	// failure the throwaway container is discarded, so nothing is left in restoring mode to repair
-	// (no defer, unlike the backend's user-facing restore). The hooks use the verifier (host) conn
-	// while pg_restore uses the in-container conn, but the database-level restoring GUC carries across.
-	if job.TimescaledbVersion != "" {
-		parallelJobs = 1
-
+	// On failure the container is discarded. The post step is needed only before collecting stats.
+	if isTimescaleDB {
 		if err := r.restorer.RunTimescalePreRestore(jobCtx, jobContainer.GetVerifierConn()); err != nil {
 			if reportIfDiskLimitHit() {
 				return
@@ -335,7 +332,7 @@ func (r *Runner) executeJob(ctx context.Context, job *api.JobAssignment) {
 		ArchivePath:   archivePath,
 		Conn:          jobContainer.GetInContainerConn(),
 		ParallelJobs:  parallelJobs,
-		IsTimescaledb: job.TimescaledbVersion != "",
+		IsTimescaledb: isTimescaleDB,
 	})
 	if err != nil {
 		if reportIfDiskLimitHit() {
@@ -364,7 +361,7 @@ func (r *Runner) executeJob(ctx context.Context, job *api.JobAssignment) {
 			return
 		}
 
-		if !restore.IsToleratedErrorsOnly(restoreResult.StderrTail) {
+		if !restoreResult.HasOnlyIgnorableErrors {
 			runLogger.ErrorContext(
 				ctx,
 				"pg_restore failed",
@@ -384,11 +381,11 @@ func (r *Runner) executeJob(ctx context.Context, job *api.JobAssignment) {
 		// to stats; the backend's restored-size check is the remaining safety net.
 		runLogger.WarnContext(
 			ctx,
-			"pg_restore completed with only tolerated errors; treating backup as restorable",
+			"pg_restore completed with only ignorable errors; treating backup as restorable",
 			slog.Any("exit_code", restoreResult.PgRestoreExitCode),
 			slog.Any(
 				"skipped_extensions",
-				strings.Join(restore.ExtractUnavailableExtensions(restoreResult.StderrTail), ","),
+				strings.Join(restoreResult.UnavailableExtensions, ","),
 			),
 			slog.Any("stderr_tail", restoreResult.StderrTail),
 		)

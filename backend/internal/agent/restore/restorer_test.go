@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"databasus-backend/internal/agent/dbconn"
+	"databasus-backend/internal/engines/postgresql/logical/pgrestore"
 )
 
 type recordedExec struct {
@@ -89,6 +90,39 @@ func TestStageBackupViaExec(t *testing.T) {
 }
 
 func TestRunPgRestore(t *testing.T) {
+	t.Run("accepts the existing public schema when pg_restore exits with an error", func(t *testing.T) {
+		t.Parallel()
+		stderr := `pg_restore: error: could not execute query: ERROR: schema "public" already exists
+Command was: CREATE SCHEMA public;
+pg_restore: warning: errors ignored on restore: 1
+`
+		exec := &fakeExecRunner{result: ExecResult{ExitCode: 1, Stderr: stderr}}
+		restorer := NewRestorer(slog.New(slog.DiscardHandler))
+
+		restoreResult, err := restorer.RunPgRestore(t.Context(), exec, testSpec(1))
+
+		require.ErrorIs(t, err, ErrRestoreFailed)
+		assert.True(t, restoreResult.HasOnlyIgnorableErrors)
+		assert.Equal(t, 1, restoreResult.PgRestoreExitCode)
+		assert.Empty(t, restoreResult.UnavailableExtensions)
+	})
+
+	t.Run("accepts ignorable errors when the complete output exceeds the log tail", func(t *testing.T) {
+		stderr := strings.Repeat(
+			"pg_restore: error: could not execute query: ERROR:  extension \"set_user\" is not available\n",
+			100,
+		) +
+			"pg_restore: warning: errors ignored on restore: 100\n"
+		exec := &fakeExecRunner{result: ExecResult{ExitCode: 1, Stderr: stderr}}
+		restorer := NewRestorer(slog.New(slog.DiscardHandler))
+
+		restoreResult, err := restorer.RunPgRestore(t.Context(), exec, testSpec(1))
+
+		require.ErrorIs(t, err, ErrRestoreFailed)
+		assert.True(t, restoreResult.HasOnlyIgnorableErrors)
+		assert.Equal(t, []string{"set_user"}, restoreResult.UnavailableExtensions)
+		assert.Len(t, restoreResult.StderrTail, 8192)
+	})
 	t.Run("returns result without error when pg_restore succeeds", func(t *testing.T) {
 		exec := &fakeExecRunner{result: ExecResult{ExitCode: 0}}
 		r := NewRestorer(slog.New(slog.DiscardHandler))
@@ -99,16 +133,11 @@ func TestRunPgRestore(t *testing.T) {
 		assert.Equal(t, 0, result.PgRestoreExitCode)
 
 		require.Len(t, exec.recorded, 1)
-		cmd := exec.recorded[0].cmd
-		assert.Equal(t, "pg_restore", cmd[0])
-		assert.Contains(t, cmd, "-Fc")
-		assert.Contains(t, cmd, "--no-password")
-		assert.Contains(t, cmd, "--no-owner")
-		assert.Contains(t, cmd, "--no-acl")
-		assert.Contains(t, cmd, "-j")
-		assert.Contains(t, cmd, "4")
-		assert.Contains(t, cmd, "verifydb")
-		assert.Equal(t, "/restore/x.dump", cmd[len(cmd)-1])
+		assert.Equal(t, append([]string{"pg_restore"}, pgrestore.BuildArgs(pgrestore.ArgsSpec{
+			Host: "127.0.0.1", Port: 5432, User: "postgres", Database: "verifydb",
+			ParallelJobs: 4, IsTimescaleDB: false, IsRestoreOwnership: false,
+			IsRestorePrivileges: false, IsVerbose: false, TocListPath: "", ArchivePath: "/restore/x.dump",
+		})...), exec.recorded[0].cmd)
 		assert.Equal(t, []string{"PGPASSWORD=deadbeef"}, exec.recorded[0].env)
 	})
 	t.Run("passes clean and if exists when the job uses plain PostgreSQL", func(t *testing.T) {

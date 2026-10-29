@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
-	"strconv"
 	"time"
+
+	"databasus-backend/internal/engines/postgresql/logical/pgrestore"
 )
 
 type Restorer struct {
@@ -46,23 +47,20 @@ func (r *Restorer) RunPgRestore(
 
 	conn := spec.Conn
 
-	cmd := []string{
-		"pg_restore", "-Fc", "--no-password",
-		"--no-owner", "--no-acl",
-		"-h", conn.Host, "-p", strconv.Itoa(conn.Port),
-		"-U", conn.User, "-d", conn.Database,
-		"-j", strconv.Itoa(spec.ParallelJobs),
-	}
-
-	// The target is a throwaway freshly-initdb'd database, so every DROP is a no-op except the one
-	// that matters: an archive dumped with -n public carries CREATE SCHEMA public, which would
-	// otherwise collide with the schema initdb already made (issue #726). TimescaleDB is excluded
-	// because --clean would DROP EXTENSION timescaledb, taking the catalog pre_restore needs.
-	if !spec.IsTimescaledb {
-		cmd = append(cmd, "--clean", "--if-exists")
-	}
-
-	cmd = append(cmd, spec.ArchivePath)
+	args := pgrestore.BuildArgs(pgrestore.ArgsSpec{
+		Host:                conn.Host,
+		Port:                conn.Port,
+		User:                conn.User,
+		Database:            conn.Database,
+		ParallelJobs:        spec.ParallelJobs,
+		IsTimescaleDB:       spec.IsTimescaledb,
+		IsRestoreOwnership:  false,
+		IsRestorePrivileges: false,
+		IsVerbose:           false,
+		TocListPath:         "",
+		ArchivePath:         spec.ArchivePath,
+	})
+	cmd := append([]string{"pg_restore"}, args...)
 
 	env := []string{"PGPASSWORD=" + conn.Password}
 
@@ -72,6 +70,10 @@ func (r *Restorer) RunPgRestore(
 		PgRestoreExitCode: execResult.ExitCode,
 		DurationMs:        time.Since(started).Milliseconds(),
 		StderrTail:        tailString(execResult.Stderr, 8192),
+		// The verification container may lack source extensions; dependent data errors still fail.
+		HasOnlyIgnorableErrors: pgrestore.HasOnlyIgnorableErrors(execResult.Stderr,
+			pgrestore.PreexistingPublicSchema, pgrestore.UnavailableExtension),
+		UnavailableExtensions: pgrestore.GetUnavailableExtensions(execResult.Stderr),
 	}
 
 	if err != nil {

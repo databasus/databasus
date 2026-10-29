@@ -8,15 +8,10 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
-	"strconv"
 
+	"databasus-backend/internal/engines/postgresql/logical/pgrestore"
 	pgshared "databasus-backend/internal/engines/postgresql/shared"
 )
-
-// TimescaleDB restores single-threaded: with -j the parallel loop loads dependent
-// _timescaledb_catalog rows (chunk_constraint, chunk_index) before the chunk rows they reference,
-// tripping the catalog's own foreign keys. Other restores take between 1 and 8 jobs.
-const maxRestoreParallelJobs = 8
 
 type RestoreSpec struct {
 	ClientTools        pgshared.ClientTools
@@ -40,14 +35,6 @@ func (spec RestoreSpec) NeedsArchiveFile() bool {
 	return spec.IsExcludeExtensions || spec.IsSkipUserMappings || spec.ParallelJobs > 1
 }
 
-func (spec RestoreSpec) getParallelJobs() int {
-	if spec.IsTimescaleDB {
-		return 1
-	}
-
-	return max(1, min(spec.ParallelJobs, maxRestoreParallelJobs))
-}
-
 // Restore restores the pg_dump custom-format archive read from input into the source's database.
 // It streams input into pg_restore, or first writes it into a file in spec.TempDir when the restore
 // needs the archive as a file. A failure whose only error is the existing public schema counts as
@@ -64,11 +51,9 @@ func (s *Source) Restore(ctx context.Context, spec RestoreSpec, input io.Reader)
 	return s.restoreArchive(ctx, spec, input)
 }
 
-// restoreWithTimescaleDBHooks enters restoring mode before pg_restore and leaves it afterwards even
-// when the restore fails, so the target is never left stuck in restoring mode. See timescaledb.go
-// for why the separate pg_restore process inherits the mode.
+// The target survives a failed restore, so it must leave TimescaleDB restoring mode on every path.
 func (s *Source) restoreWithTimescaleDBHooks(ctx context.Context, spec RestoreSpec, input io.Reader) (err error) {
-	err = s.RunTimescaleDBPreRestore(ctx, spec.Logger)
+	err = s.runTimescaleDBPreRestore(ctx, spec.Logger)
 	if err != nil {
 		return fmt.Errorf("timescaledb_pre_restore failed: %w", err)
 	}
@@ -76,7 +61,7 @@ func (s *Source) restoreWithTimescaleDBHooks(ctx context.Context, spec RestoreSp
 	spec.Logger.InfoContext(ctx, "entered timescaledb restoring mode")
 
 	defer func() {
-		postErr := s.RunTimescaleDBPostRestore(ctx, spec.Logger)
+		postErr := s.runTimescaleDBPostRestore(ctx, spec.Logger)
 		if postErr == nil {
 			return
 		}
@@ -109,7 +94,7 @@ func (s *Source) restoreArchive(ctx context.Context, spec RestoreSpec, input io.
 
 		return s.runPgRestore(ctx, spec, clientToolRun{
 			path:        pgRestore,
-			args:        s.buildRestoreArgs(spec, nil),
+			args:        s.buildRestoreArgs(spec, restoreArchivePaths{}),
 			credentials: credentials,
 			stdin:       input,
 			stdout:      nil,
@@ -118,7 +103,7 @@ func (s *Source) restoreArchive(ctx context.Context, spec RestoreSpec, input io.
 	}
 
 	spec.Logger.InfoContext(ctx, "restoring via file with parallel jobs",
-		slog.Int("parallel_jobs", spec.getParallelJobs()),
+		slog.Int("parallel_jobs", pgrestore.GetParallelJobs(spec.ParallelJobs, spec.IsTimescaleDB)),
 		slog.Bool("is_exclude_extensions", spec.IsExcludeExtensions),
 		slog.Bool("is_skip_user_mappings", spec.IsSkipUserMappings),
 	)
@@ -138,7 +123,7 @@ func (s *Source) restoreArchive(ctx context.Context, spec RestoreSpec, input io.
 
 	spec.Logger.InfoContext(ctx, "backup file written to temporary location", slog.String("temp_file", archivePath))
 
-	var fileArgs []string
+	paths := restoreArchivePaths{archive: archivePath}
 
 	if spec.IsExcludeExtensions || spec.IsSkipUserMappings {
 		tocListPath, err := s.writeFilteredTocList(ctx, spec, tocListRun{
@@ -151,12 +136,12 @@ func (s *Source) restoreArchive(ctx context.Context, spec RestoreSpec, input io.
 			return fmt.Errorf("failed to generate filtered TOC list: %w", err)
 		}
 
-		fileArgs = append(fileArgs, "-L", tocListPath)
+		paths.tocList = tocListPath
 	}
 
 	return s.runPgRestore(ctx, spec, clientToolRun{
 		path:        pgRestore,
-		args:        s.buildRestoreArgs(spec, append(fileArgs, archivePath)),
+		args:        s.buildRestoreArgs(spec, paths),
 		credentials: credentials,
 		stdin:       nil,
 		stdout:      nil,
@@ -180,7 +165,8 @@ func (s *Source) runPgRestore(ctx context.Context, spec RestoreSpec, run clientT
 		return nil
 	}
 
-	if isPreexistingPublicSchemaOnly(stderr.String()) {
+	// A missing extension in a real restore means missing data, so only the existing public schema is ignorable.
+	if pgrestore.HasOnlyIgnorableErrors(stderr.String(), pgrestore.PreexistingPublicSchema) {
 		spec.Logger.WarnContext(ctx,
 			"pg_restore ignored a pre-existing public schema; treating the restore as successful",
 		)
@@ -197,38 +183,25 @@ func (s *Source) runPgRestore(ctx context.Context, spec RestoreSpec, run clientT
 	}, restoreDatabaseNames{source: spec.SourceDatabaseName, target: s.settings.Database})
 }
 
-// buildRestoreArgs puts fileArgs, the TOC list and the archive path, after every option.
-func (s *Source) buildRestoreArgs(spec RestoreSpec, fileArgs []string) []string {
-	args := []string{"-Fc"}
+type restoreArchivePaths struct {
+	archive string
+	tocList string
+}
 
-	if spec.NeedsArchiveFile() {
-		args = append(args, "-j", strconv.Itoa(spec.getParallelJobs()))
-	}
-
-	args = append(args,
-		"--no-password",
-		"-h", s.settings.Host,
-		"-p", strconv.Itoa(s.settings.Port),
-		"-U", s.settings.Username,
-		"-d", s.settings.Database,
-		"--verbose",
-	)
-
-	// --clean would DROP EXTENSION timescaledb, taking the catalog tables that pre_restore needs
-	// with it; TimescaleDB restores into a clean target without it.
-	if !spec.IsTimescaleDB {
-		args = append(args, "--clean", "--if-exists")
-	}
-
-	if !spec.IsRestoreOwnership {
-		args = append(args, "--no-owner")
-	}
-
-	if !spec.IsRestorePrivileges {
-		args = append(args, "--no-acl")
-	}
-
-	return append(args, fileArgs...)
+func (s *Source) buildRestoreArgs(spec RestoreSpec, paths restoreArchivePaths) []string {
+	return pgrestore.BuildArgs(pgrestore.ArgsSpec{
+		Host:                s.settings.Host,
+		Port:                s.settings.Port,
+		User:                s.settings.Username,
+		Database:            s.settings.Database,
+		ParallelJobs:        pgrestore.GetParallelJobs(spec.ParallelJobs, spec.IsTimescaleDB),
+		IsTimescaleDB:       spec.IsTimescaleDB,
+		IsRestoreOwnership:  spec.IsRestoreOwnership,
+		IsRestorePrivileges: spec.IsRestorePrivileges,
+		IsVerbose:           true,
+		TocListPath:         paths.tocList,
+		ArchivePath:         paths.archive,
+	})
 }
 
 func writeArchiveFile(ctx context.Context, archivePath string, input io.Reader) error {

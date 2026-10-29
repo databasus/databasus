@@ -30,13 +30,23 @@ func isTestLibrary(importPath string) bool {
 	})
 }
 
-// checkProductionDependencies fails when a production entry point links a test library. Packages are
-// loaded without build tags, exactly as the image builds them.
-func checkProductionDependencies(root string, entryPoints []string) ([]violation, error) {
+type entryPointSpec struct {
+	path           string
+	forbiddenPaths []string
+}
+
+func (spec entryPointSpec) isForbiddenDependency(importPath string) bool {
+	return slices.ContainsFunc(spec.forbiddenPaths, func(forbiddenPath string) bool {
+		return hasPathPrefix(importPath, forbiddenPath)
+	})
+}
+
+// Packages are loaded without build tags, exactly as the image builds them.
+func checkProductionDependencies(root string, entryPoints []entryPointSpec) ([]violation, error) {
 	var violations []violation
 
 	for _, entryPoint := range entryPoints {
-		if _, err := os.Stat(filepath.Join(root, entryPoint)); os.IsNotExist(err) {
+		if _, err := os.Stat(filepath.Join(root, entryPoint.path)); os.IsNotExist(err) {
 			continue
 		}
 
@@ -51,31 +61,35 @@ func checkProductionDependencies(root string, entryPoints []string) ([]violation
 	return violations, nil
 }
 
-func checkEntryPointDependencies(root, entryPoint string) ([]violation, error) {
+func checkEntryPointDependencies(root string, entryPoint entryPointSpec) ([]violation, error) {
 	config := &packages.Config{
 		Mode:       packages.NeedName | packages.NeedImports | packages.NeedDeps | packages.NeedFiles,
 		Dir:        root,
 		BuildFlags: []string{"-tags="},
 	}
 
-	loadedPackages, err := packages.Load(config, entryPoint)
+	loadedPackages, err := packages.Load(config, entryPoint.path)
 	if err != nil {
-		return nil, fmt.Errorf("load %s: %w", entryPoint, err)
+		return nil, fmt.Errorf("load %s: %w", entryPoint.path, err)
 	}
 
 	if packages.PrintErrors(loadedPackages) > 0 {
-		return nil, fmt.Errorf("load %s: %w", entryPoint, errPackagesHaveErrors)
+		return nil, fmt.Errorf("load %s: %w", entryPoint.path, errPackagesHaveErrors)
 	}
 
 	var violations []violation
 
 	packages.Visit(loadedPackages, nil, func(loadedPackage *packages.Package) {
-		if isTestLibrary(loadedPackage.PkgPath) || acceptedThirdPartyTestImporters[loadedPackage.PkgPath] != "" {
+		if entryPoint.isForbiddenDependency(loadedPackage.PkgPath) {
 			return
 		}
 
 		for importPath := range loadedPackage.Imports {
-			if !isTestLibrary(importPath) {
+			if !entryPoint.isForbiddenDependency(importPath) {
+				continue
+			}
+
+			if isTestLibrary(importPath) && acceptedThirdPartyTestImporters[loadedPackage.PkgPath] != "" {
 				continue
 			}
 
@@ -83,9 +97,8 @@ func checkEntryPointDependencies(root, entryPoint string) ([]violation, error) {
 				position: getImportPosition(root, loadedPackage.GoFiles, importPath),
 				rule:     "production-dependencies",
 				message: fmt.Sprintf(
-					"%s imports %s, so the production binary of %s links a test library; "+
-						"move the code into a test file or a package only tests import",
-					loadedPackage.PkgPath, importPath, entryPoint,
+					"%s imports %s, which is forbidden in the production binary of %s",
+					loadedPackage.PkgPath, importPath, entryPoint.path,
 				),
 			})
 		}

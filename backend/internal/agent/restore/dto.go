@@ -19,7 +19,9 @@ type PgRestoreSpec struct {
 
 // Result is populated even on the error path (see ErrRestoreFailed).
 type Result struct {
-	PgRestoreExitCode int
-	DurationMs        int64
-	StderrTail        string
+	PgRestoreExitCode      int
+	DurationMs             int64
+	StderrTail             string
+	HasOnlyIgnorableErrors bool
+	UnavailableExtensions  []string
 }

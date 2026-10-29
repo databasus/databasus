@@ -6,8 +6,6 @@ import (
 	"time"
 )
 
-var diskWatchInterval = 3 * time.Second
-
 // diskWatcher polls the job's written bytes and fires onLimitExceeded once when
 // the footprint reaches the server-computed ceiling. It never trips on a probe
 // error (a transient daemon hiccup must not fail a healthy restore). The caller
@@ -20,15 +18,21 @@ type diskWatcher struct {
 	log             *slog.Logger
 }
 
-func newDiskWatcher(
-	probe diskUsageProber, ceilingBytes int64, onLimitExceeded func(), log *slog.Logger,
-) *diskWatcher {
+type diskWatchSpec struct {
+	probe           diskUsageProber
+	ceilingBytes    int64
+	interval        time.Duration
+	onLimitExceeded func()
+	log             *slog.Logger
+}
+
+func newDiskWatcher(spec diskWatchSpec) *diskWatcher {
 	return &diskWatcher{
-		probe:           probe,
-		ceilingBytes:    ceilingBytes,
-		interval:        diskWatchInterval,
-		onLimitExceeded: onLimitExceeded,
-		log:             log,
+		probe:           spec.probe,
+		ceilingBytes:    spec.ceilingBytes,
+		interval:        spec.interval,
+		onLimitExceeded: spec.onLimitExceeded,
+		log:             spec.log,
 	}
 }
 

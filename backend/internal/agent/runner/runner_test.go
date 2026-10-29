@@ -142,10 +142,6 @@ func TestExecuteJob(t *testing.T) {
 			"hitting the estimate-derived disk ceiling is agent infra, not BackupRejected")
 	})
 	t.Run("reports terminal disk limit exceeded when disk usage reaches its ceiling", func(t *testing.T) {
-		originalInterval := diskWatchInterval
-		diskWatchInterval = time.Millisecond
-		t.Cleanup(func() { diskWatchInterval = originalInterval })
-
 		apiClient := &fakeAPI{downloadBody: []byte("ARCHIVE")}
 		jobContainer := fakeContainerWith(testConn())
 		jobContainer.diskUsageBytes.Store(1 << 40)
@@ -153,6 +149,7 @@ func TestExecuteJob(t *testing.T) {
 
 		r := newTestRunner(t,
 			apiClient, &fakeSpawner{container: jobContainer}, restorer, &fakeStats{}, newFakeRegistrar())
+		r.diskWatchInterval = time.Millisecond
 
 		r.executeJob(t.Context(), postgresJob())
 
@@ -167,10 +164,6 @@ func TestExecuteJob(t *testing.T) {
 	t.Run(
 		"reports terminal disk limit exceeded when disk usage reaches its ceiling during owner role creation",
 		func(t *testing.T) {
-			originalInterval := diskWatchInterval
-			diskWatchInterval = time.Millisecond
-			t.Cleanup(func() { diskWatchInterval = originalInterval })
-
 			apiClient := &fakeAPI{downloadBody: []byte("ARCHIVE")}
 			jobContainer := fakeContainerWith(testConn())
 			restorer := &fakeRestorer{
@@ -180,6 +173,8 @@ func TestExecuteJob(t *testing.T) {
 
 			r := newTestRunner(t,
 				apiClient, &fakeSpawner{container: jobContainer}, restorer, &fakeStats{}, newFakeRegistrar())
+
+			r.diskWatchInterval = time.Millisecond
 
 			r.executeJob(t.Context(), postgresJob())
 
@@ -228,14 +223,14 @@ func TestExecuteJob(t *testing.T) {
 	})
 	t.Run("reports completed when the only restore errors concern missing extensions", func(t *testing.T) {
 		apiClient := &fakeAPI{downloadBody: []byte("ARCHIVE")}
-		stderr := "pg_restore: error: could not execute query: ERROR:  extension \"set_user\" is not available\n" +
-			"Command was: CREATE EXTENSION IF NOT EXISTS set_user WITH SCHEMA public;\n" +
-			"pg_restore: error: could not execute query: ERROR:  extension \"set_user\" does not exist\n" +
-			"Command was: COMMENT ON EXTENSION set_user IS 'x';\n" +
-			"pg_restore: warning: errors ignored on restore: 2\n"
 		restorer := &fakeRestorer{
-			runErr:    fmt.Errorf("restore: %w", restore.ErrRestoreFailed),
-			runResult: restore.Result{PgRestoreExitCode: 1, DurationMs: 10, StderrTail: stderr},
+			runErr: fmt.Errorf("restore: %w", restore.ErrRestoreFailed),
+			runResult: restore.Result{
+				PgRestoreExitCode:      1,
+				DurationMs:             10,
+				HasOnlyIgnorableErrors: true,
+				UnavailableExtensions:  []string{"set_user"},
+			},
 		}
 		stats := &fakeStats{stats: verifier.Stats{DBSizeBytes: 9_000_000, TableCount: 3}}
 		r := newTestRunner(t, apiClient, okSpawner(), restorer, stats, newFakeRegistrar())
@@ -255,12 +250,9 @@ func TestExecuteJob(t *testing.T) {
 	})
 	t.Run("reports completed when the only restore error concerns the existing public schema", func(t *testing.T) {
 		apiClient := &fakeAPI{downloadBody: []byte("ARCHIVE")}
-		stderr := "pg_restore: error: could not execute query: ERROR:  schema \"public\" already exists\n" +
-			"Command was: CREATE SCHEMA public;\n" +
-			"pg_restore: warning: errors ignored on restore: 1\n"
 		restorer := &fakeRestorer{
 			runErr:    fmt.Errorf("restore: %w", restore.ErrRestoreFailed),
-			runResult: restore.Result{PgRestoreExitCode: 1, DurationMs: 10, StderrTail: stderr},
+			runResult: restore.Result{PgRestoreExitCode: 1, DurationMs: 10, HasOnlyIgnorableErrors: true},
 		}
 		stats := &fakeStats{stats: verifier.Stats{DBSizeBytes: 9_000_000, TableCount: 3}}
 		r := newTestRunner(t, apiClient, okSpawner(), restorer, stats, newFakeRegistrar())

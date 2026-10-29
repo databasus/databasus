@@ -98,4 +98,4 @@ ALTER TABLE storages_s3
 
 ## Verification agent
 
-The verification agent's code lives in `cmd/verification-agent` and `internal/agent`. It runs on the user's machine, so it imports only `lib`, `engines` and the generated agent client. `depguard` keeps GORM, Gin and the modules out of it. The agent reads its settings from its own configuration file and flags, and stores the agent token with permissions `0600`. It talks to containers only through the Docker Engine API, which Podman also serves. Its end-to-end tests run it against a backend from the test harness.
+The verification agent's code lives in `cmd/verification-agent` and `internal/agent`. It runs on the user's machine, so it imports only `lib`, `engines` and the generated agent client. `depguard` enforces its direct import boundaries; `archlint` also keeps GORM, Gin and goose out of its whole production dependency graph. The agent reads its settings from its own configuration file and flags, and stores the agent token with permissions `0600`. It talks to containers only through the Docker Engine API, which Podman also serves. Its end-to-end tests run it against a backend from the test harness.

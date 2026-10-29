@@ -14,6 +14,13 @@ import (
 	"databasus-backend/internal/lib/toolstub"
 )
 
+const publicSchemaClashStderr = `pg_restore: error: could not execute query: ERROR:  schema "public" already exists
+Command was: CREATE SCHEMA public;
+
+
+pg_restore: warning: errors ignored on restore: 1
+`
+
 const pgRestoreStubError = `pg_restore: error: could not execute query: ERROR:  relation "orders" already exists`
 
 // copyLastArgumentScript copies the file named by the stub's last argument, the archive, to the
@@ -122,6 +129,29 @@ done`,
 		)
 
 		require.NoError(t, err)
+	})
+
+	t.Run("fails when the target cannot create an extension", func(t *testing.T) {
+		t.Parallel()
+		// Verification may lack source extensions, but a real restore must not lose their data.
+		stderr := `pg_restore: error: could not execute query: ERROR: extension "postgis" is not available
+Command was: CREATE EXTENSION IF NOT EXISTS postgis WITH SCHEMA public;
+pg_restore: error: could not execute query: ERROR: extension "postgis" does not exist
+Command was: COMMENT ON EXTENSION postgis IS NULL;
+pg_restore: warning: errors ignored on restore: 2
+`
+		clientTools := pgshared.ClientTools{Root: t.TempDir()}
+		writeStubTool(t, clientTools, pgshared.Version16, pgshared.ExecutablePgRestore, toolstub.Spec{
+			IsReadingStdin: true,
+			Script:         "printf '%s' '" + stderr + "' >&2; exit 1",
+		})
+
+		err := newStubSource("orders_restored").Restore(
+			t.Context(), newStubRestoreSpec(t, clientTools), bytes.NewReader([]byte("PGDMP")),
+		)
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), `extension "postgis" is not available`)
 	})
 
 	t.Run("reports the pg_restore error written after pg_restore exited", func(t *testing.T) {

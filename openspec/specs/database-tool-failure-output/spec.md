@@ -8,7 +8,7 @@ Defines what a restore and the WAL receiver of a physical backup do with the err
 
 ### Requirement: A failed restore reports the restore tool's error output
 
-When the database tool that loads a backup into a PostgreSQL, MySQL, MariaDB or MongoDB database exits with an error, the restore SHALL be recorded as failed, and its failure message SHALL contain the error output the tool wrote before it exited. This SHALL hold however quickly the tool exits after writing that output, and whether or not the tool read the whole backup before it exited. One exception applies: a PostgreSQL restore whose only error is that the `public` schema already exists SHALL count as successful. When the backup stream from storage failed first, the failure message SHALL report that stream failure instead of the tool's output, because the tool's error is then only a consequence of the incomplete input.
+When the database tool that loads a backup into a PostgreSQL, MySQL, MariaDB or MongoDB database exits with an error, the restore SHALL be recorded as failed, and its failure message SHALL contain the error output the tool wrote before it exited. This SHALL hold however quickly the tool exits after writing that output, and whether or not the tool read the whole backup before it exited. One exception applies: a PostgreSQL restore whose only error is that the `public` schema already exists SHALL count as successful. A PostgreSQL restore that could not create an extension SHALL fail, because for the user's database a missing extension means missing data; only a verification treats it as an ignorable error, as the `backup-verification` spec states. When the backup stream from storage failed first, the failure message SHALL report that stream failure instead of the tool's output, because the tool's error is then only a consequence of the incomplete input.
 
 #### Scenario: Tool rejects the backup and exits immediately
 
@@ -29,6 +29,11 @@ When the database tool that loads a backup into a PostgreSQL, MySQL, MariaDB or 
 
 - **WHEN** a PostgreSQL restore tool exits with an error whose only complaint is that the `public` schema already exists
 - **THEN** the restore is recorded as successful
+
+#### Scenario: An extension the target cannot create
+
+- **WHEN** a PostgreSQL restore tool exits with an error whose only complaints are that an extension is not available and that the comment on it failed
+- **THEN** the restore is recorded as failed, and its failure message contains the tool's complaint about the extension
 
 #### Scenario: Backup stream fails before the tool does
 

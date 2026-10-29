@@ -69,3 +69,50 @@ func TestProductionDependencies(t *testing.T) {
 		assert.Empty(t, violations)
 	})
 }
+
+func TestAgentProductionDependencies(t *testing.T) {
+	t.Parallel()
+	t.Run("fails with the importer when an agent dependency imports GORM", func(t *testing.T) {
+		t.Parallel()
+		violations := checkFixture(t, withFakeServerFrameworks(map[string]string{
+			"cmd/verification-agent/main.go":                "package main\n\nimport _ \"fixture/internal/agent/restore\"\n\nfunc main() {}\n",
+			"internal/agent/restore/restorer.go":            "package restore\n\nimport _ \"fixture/internal/engines/postgresql/logical\"\n",
+			"internal/engines/postgresql/logical/source.go": "package logical\n\nimport _ \"fixture/internal/lib/database\"\n",
+			"internal/lib/database/database.go":             "package database\n\nimport _ \"gorm.io/gorm\"\n",
+		}))
+		requireSingleViolation(t, violations, violationSpec{
+			position:     "internal/lib/database/database.go:3",
+			rule:         "production-dependencies",
+			messageParts: []string{"fixture/internal/lib/database imports gorm.io/gorm", "./cmd/verification-agent"},
+		})
+	})
+	t.Run("passes when an agent dependency imports only the standard library", func(t *testing.T) {
+		t.Parallel()
+		violations := checkFixture(t, map[string]string{
+			"cmd/verification-agent/main.go":                        "package main\n\nimport _ \"fixture/internal/agent/restore\"\n\nfunc main() {}\n",
+			"internal/agent/restore/restorer.go":                    "package restore\n\nimport _ \"fixture/internal/engines/postgresql/logical/pgrestore\"\n",
+			"internal/engines/postgresql/logical/pgrestore/args.go": "package pgrestore\n\nimport _ \"strconv\"\n",
+		})
+		assert.Empty(t, violations)
+	})
+	t.Run("passes when the server imports GORM Gin and goose", func(t *testing.T) {
+		t.Parallel()
+		violations := checkFixture(t, withFakeServerFrameworks(map[string]string{
+			"cmd/databasus/main.go": "package main\n\nimport (\n_ \"gorm.io/gorm\"\n_ \"github.com/gin-gonic/gin\"\n_ \"github.com/pressly/goose\"\n)\n\nfunc main() {}\n",
+		}))
+		assert.Empty(t, violations)
+	})
+}
+
+func withFakeServerFrameworks(files map[string]string) map[string]string {
+	files["go.mod"] = "module fixture\n\ngo 1.26\n"
+	for _, modulePath := range []string{"gorm.io/gorm", "github.com/gin-gonic/gin", "github.com/pressly/goose"} {
+		files["go.mod"] += "\nrequire " + modulePath + " v1.0.0\nreplace " + modulePath + " => ./" + modulePath + "\n"
+		files[modulePath+"/go.mod"] = "module " + modulePath + "\n\ngo 1.26\n"
+		files[modulePath+"/framework.go"] = "package framework\n"
+	}
+	files["gorm.io/gorm/framework.go"] = "package framework\n\nimport _ \"gorm.io/gorm/clause\"\n"
+	files["gorm.io/gorm/clause/clause.go"] = "package clause\n"
+
+	return files
+}

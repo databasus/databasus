@@ -228,12 +228,16 @@ func (team *backupTeam) assertNoRunningBackup(t *testing.T) {
 	require.Zero(t, count)
 	if team.Source.Port != 0 {
 		source := team.openSource(t)
-		var slots int
-		require.NoError(
-			t,
-			source.QueryRow(t.Context(), "SELECT count(*) FROM pg_replication_slots WHERE starts_with(slot_name,'databasus_basebackup_')").
-				Scan(&slots),
-		)
-		require.Zero(t, slots)
+		testwait.Until(t, "the source drops the backup replication slots", func(ctx context.Context) error {
+			var slots int
+			if err := source.QueryRow(ctx, "SELECT count(*) FROM pg_replication_slots WHERE starts_with(slot_name,'databasus_basebackup_')").
+				Scan(&slots); err != nil {
+				return err
+			}
+			if slots != 0 {
+				return fmt.Errorf("%d backup replication slots are still present", slots)
+			}
+			return nil
+		})
 	}
 }

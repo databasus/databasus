@@ -82,6 +82,23 @@ func TestPhysicalBackupShutdown(t *testing.T) {
 }
 
 func TestCancelDispatchedPhysicalBackup(t *testing.T) {
+	t.Run(
+		"waits for process cleanup when cancellation records a terminal status before the process stops",
+		func(t *testing.T) {
+			team := newBackupTeam(t, backupTeamSpec{})
+			backup, releaseStorage := startHeldPhysicalStream(t, team, "full")
+			resume := suspendBackupProcess(t, backup.ID)
+			releaseStorage()
+			cancelPhysicalBackup(t, team, backup)
+			require.Equal(t, "CANCELED", findPhysicalBackup(t, team, backup).Status)
+
+			team.App.WaitForPhysicalBackups(t)
+
+			team.assertNoRunningBackup(t)
+			resume()
+		},
+	)
+
 	t.Run("ends the backup when cancellation immediately follows a scheduler pass", func(t *testing.T) {
 		team := newBackupTeam(t, backupTeamSpec{})
 		team.trigger(t, "full")

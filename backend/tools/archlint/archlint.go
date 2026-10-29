@@ -9,13 +9,17 @@ import (
 )
 
 type checkSpec struct {
-	entryPoints []string
+	entryPoints []entryPointSpec
 	// Migrations up to this version predate the module table prefixes, so the cascade rule skips them.
 	cascadeCutoff int64
 }
 
 var backendSpec = checkSpec{
-	entryPoints:   []string{"./cmd/databasus", "./cmd/verification-agent"},
+	entryPoints: []entryPointSpec{
+		{path: "./cmd/databasus", forbiddenPaths: testLibraryPaths},
+		{path: "./cmd/verification-agent", forbiddenPaths: slices.Concat(testLibraryPaths,
+			[]string{"gorm.io", "github.com/gin-gonic/gin", "github.com/pressly/goose"})},
+	},
 	cascadeCutoff: 20261024122431,
 }
 

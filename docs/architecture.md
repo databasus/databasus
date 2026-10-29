@@ -117,7 +117,7 @@ Databasus has three families of interchangeable implementations. Each family has
   - receive WAL into a directory;
   - find its client tool for a server version.
 
-  An engine's sources offer small sets of methods, because a physical PostgreSQL source and a logical one support different sets. A consumer that serves several engines through one shape declares the interface it needs, as `ConnectedDatabase` in the `databases` module does, and maps each database type to its implementation in one registry of its own, and only there, as the logical backup pipeline of `backups` does. The provider registry of `databases` cannot hold those entries, because they open work that `databases` knows nothing about, and a restore target has settings but no database row. The backend's restore and the verification agent call the same engine code, so a verification restores exactly the way a restore does.
+  An engine's sources offer small sets of methods, because a physical PostgreSQL source and a logical one support different sets. A consumer that serves several engines through one shape declares the interface it needs, as `ConnectedDatabase` in the `databases` module does, and maps each database type to its implementation in one registry of its own, and only there, as the logical backup pipeline of `backups` does. The provider registry of `databases` cannot hold those entries, because they open work that `databases` knows nothing about, and a restore target has settings but no database row. The engine package `postgresql/logical/pgrestore` builds the restore command and judges its outcome; each caller runs the command its own way. Verification deliberately differs from a restore in ownership, privileges and ignorable errors. The agent imports only `pgrestore`, which depends on the standard library, because the parent `logical` package links the server's frameworks.
 - **Storage providers** (`storages/internal/providers/<name>`) save, read and delete files and test a connection.
 - **Notifier providers** (`notifiers/internal/providers/<name>`) send a notification and test a channel.
 
@@ -272,7 +272,7 @@ The verification agent is a CLI worker that runs on a machine the user provides.
 |---|---|
 | Layer direction, the module boundary through the root package, `module.go` as the only root file, the agent's allowed imports | `archlint` |
 | File roles, errors in `errors.go`, a bare `go` statement only in `lib` | `archlint` |
-| No `testing`, testify or testcontainers in the production binary | `archlint` (dependency graph of `cmd/databasus`) |
+| No `testing`, testify or testcontainers in either production binary; no GORM, Gin or goose in the agent binary | `archlint` (dependency graphs of `cmd/databasus` and `cmd/verification-agent`) |
 | A migration adds no `CASCADE` foreign key to another module's table | `archlint` (table prefixes) |
 | A migration runs in its transaction: no `-- +goose NO TRANSACTION` | `archlint` |
 | `*gorm.DB` and `database.Conn` only in repositories; no `time.Sleep`, `Eventually`, `fmt.Print*`, `os.Exit`, `os.Getenv` or `context.Background()` outside the places allowed | `forbidigo` |
