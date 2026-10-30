@@ -262,10 +262,15 @@ PostgreSQL owns the backup format, and we do not implement block-level increment
 - **External tools** (`pg_dump`, `pg_basebackup`, `pg_receivewal`, `mysqldump` and others) run through the `lib/process` helper. The helper binds the process to the operation's context and kills the whole process group when the context ends. The one exception is the verification agent's daemon start. It uses `os/exec` with `Setsid` and `context.WithoutCancel` because the daemon must outlive the command that starts it. `lib/process` kills tools when their parent exits.
 - **Goroutines** are started only through `lib` helpers that tie them to a context and recover a panic into an error. In production code a bare `go` statement exists only inside `lib`; a test may start one directly to drive concurrent calls.
 - **Cancellation.** A running backup, restore or verification is registered under its ID, and a cancel request ends its context.
+- **TimescaleDB restore cleanup.** After successful pre-restore, post-restore runs synchronously before the restore outcome is recorded and its target tunnel closes. Cleanup keeps context values but has its own 30-second limit, independent of user cancellation, the restore timeout and archive errors.
+
+  The application owns a shared shutdown budget in `lib/shutdown` and publishes its absolute six-second drain deadline before canceling module work. Shutdown shortens both new and active cleanup attempts to one second before that deadline; an exhausted cutoff starts no new cleanup SQL. The remaining second is reserved for recording the outcome, whose context is bounded by the drain deadline. A restore stopped first by user cancellation stays canceled when shutdown shortens its cleanup.
+
+  An archive failure is established before detached cleanup starts. The PostgreSQL adapter carries that classification into the restore pipeline so later cancellation, timeout or shutdown cannot replace it; errors reading the archive from storage retain their precedence over a tool error. Cleanup failure preserves an existing restore error and is logged with a warning that the target may remain in restoring mode; when the archive succeeded, cleanup failure fails the restore. If work does not stop by the drain deadline, the shutdown report identifies unfinished steps and startup recovery fails any restore without a recorded outcome. Startup recovery cannot repair the target because its credentials are never persisted. Draining still has at most six seconds, followed by at most two seconds for log flushing.
 - **Shutdown.** SIGTERM or SIGINT cancels the root context, and then:
   - the HTTP server stops accepting connections and waits for started requests;
   - the runner starts no new passes;
-  - running backups and restores end with the status `FAILED` and the reason that Databasus was stopping, and their files are handed to the deletion worker;
+  - backups and restores interrupted by shutdown end with the status `FAILED` and the reason that Databasus was stopping, and their files are handed to the deletion worker;
   - WAL streamers stop and keep their replication slots, so the next start resumes them;
   - the process flushes the logs and exits before the embedded PostgreSQL stops (spec `container-shutdown`).
 

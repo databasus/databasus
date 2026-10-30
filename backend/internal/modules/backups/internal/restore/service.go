@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"sync/atomic"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -15,6 +16,7 @@ import (
 	"databasus-backend/internal/lib/database"
 	"databasus-backend/internal/lib/diskusage"
 	"databasus-backend/internal/lib/logging"
+	"databasus-backend/internal/lib/shutdown"
 	"databasus-backend/internal/modules/backups/internal/auditing"
 	"databasus-backend/internal/modules/backups/internal/logical"
 	"databasus-backend/internal/modules/backups/internal/pipeline"
@@ -38,6 +40,7 @@ const (
 )
 
 type Deps struct {
+	ShutdownBudget *shutdown.Budget
 	Repositories   Repositories
 	Transactor     *database.Transactor
 	Logger         *slog.Logger
@@ -54,6 +57,7 @@ type Deps struct {
 
 // Service starts, follows and cancels the restores of logical backups.
 type Service struct {
+	shutdownBudget *shutdown.Budget
 	repository     *restoreRepository
 	transactor     *database.Transactor
 	logger         *slog.Logger
@@ -71,6 +75,7 @@ type Service struct {
 
 func NewService(deps Deps) *Service {
 	return &Service{
+		shutdownBudget: deps.ShutdownBudget,
 		repository:     deps.Repositories.restores,
 		transactor:     deps.Transactor,
 		logger:         deps.Logger,
@@ -367,7 +372,6 @@ func (s *Service) launchRun(
 	})
 }
 
-// runRestore writes the restore's terminal state on every exit, with a context that outlives the run's.
 func (s *Service) runRestore(
 	runCtx context.Context,
 	startedRestore Restore,
@@ -378,7 +382,11 @@ func (s *Service) runRestore(
 
 	restoreErr := openedTarget.Restore(runCtx, storedBackup)
 
-	ctx := context.WithoutCancel(runCtx)
+	ctx, cancelOutcome := s.shutdownBudget.NewContext(
+		runCtx,
+		shutdown.ContextSpec{Timeout: 30 * time.Second, Reserve: 0},
+	)
+	defer cancelOutcome()
 	durationMs := s.clock.Now().Sub(startedAt).Milliseconds()
 
 	var err error

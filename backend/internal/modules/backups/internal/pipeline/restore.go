@@ -3,6 +3,7 @@ package pipeline
 import (
 	"context"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -14,6 +15,7 @@ import (
 	"databasus-backend/internal/lib/background"
 	"databasus-backend/internal/lib/crypto"
 	io_utils "databasus-backend/internal/lib/iox"
+	"databasus-backend/internal/lib/shutdown"
 	"databasus-backend/internal/modules/backups/internal/runcontext"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/storages"
@@ -57,6 +59,12 @@ func (p *Pipeline) OpenRestoreTarget(ctx context.Context, spec OpenRestoreTarget
 	}
 
 	sink, err := engine.OpenRestoreTarget(ctx, restoreTargetSpec{
+		newCleanupContext: func(ctx context.Context) (context.Context, context.CancelFunc) {
+			return p.shutdownBudget.NewContext(
+				ctx,
+				shutdown.ContextSpec{Timeout: 30 * time.Second, Reserve: time.Second},
+			)
+		},
 		target:           spec.Target,
 		sourceDatabaseID: spec.SourceDatabaseID,
 		isTimescaleDB:    spec.IsTimescaleDB,
@@ -163,7 +171,8 @@ func (p *Pipeline) restoreFromStorage(runCtx context.Context, run restoreRun) er
 
 	restoreErr := run.sink.Restore(runCtx, decodedStreamRead)
 
-	if runCtx.Err() != nil {
+	_, hasArchiveFailure := errors.AsType[*archiveRestoreError](restoreErr)
+	if runCtx.Err() != nil && !hasArchiveFailure {
 		return runcontext.DescribeRestoreInterruption(runCtx)
 	}
 

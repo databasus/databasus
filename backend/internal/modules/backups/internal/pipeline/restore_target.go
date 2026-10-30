@@ -1,6 +1,7 @@
 package pipeline
 
 import (
+	"context"
 	"log/slog"
 
 	"github.com/google/uuid"
@@ -48,8 +49,9 @@ func (MongodbRestoreTarget) isRestoreTarget()    {}
 // restoreTargetSpec is what an engine needs to open a target: the target, the database the backup
 // was taken from, whose settings name the dumped database and its version, and the backup's traits.
 type restoreTargetSpec struct {
-	target           RestoreTarget
-	sourceDatabaseID uuid.UUID
-	isTimescaleDB    bool
-	logger           *slog.Logger
+	newCleanupContext func(context.Context) (context.Context, context.CancelFunc)
+	target            RestoreTarget
+	sourceDatabaseID  uuid.UUID
+	isTimescaleDB     bool
+	logger            *slog.Logger
 }

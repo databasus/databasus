@@ -2,6 +2,7 @@ package pipeline
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -86,6 +87,7 @@ func (e *postgresqlEngine) OpenRestoreTarget(
 	return &postgresqlRestoreSink{
 		tunnel: tunnel,
 		spec: pglogical.RestoreSpec{
+			NewCleanupContext:   spec.newCleanupContext,
 			ClientTools:         pgshared.ClientTools{Root: e.clientToolsDir},
 			Version:             targetVersion,
 			SourceDatabaseName:  sourceSettings.Engine.Database,
@@ -174,7 +176,13 @@ func (s *postgresqlRestoreSink) IsArchiveFileNeeded() bool {
 }
 
 func (s *postgresqlRestoreSink) Restore(ctx context.Context, input io.Reader) error {
-	return s.tunnel.GetSource().Restore(ctx, s.spec, input)
+	restoreErr := s.tunnel.GetSource().Restore(ctx, s.spec, input)
+	archiveFailure, hasArchiveFailure := errors.AsType[*pglogical.ArchiveRestoreError](restoreErr)
+	if hasArchiveFailure {
+		return &archiveRestoreError{Err: archiveFailure.Err}
+	}
+
+	return restoreErr
 }
 
 func (s *postgresqlRestoreSink) Close() {

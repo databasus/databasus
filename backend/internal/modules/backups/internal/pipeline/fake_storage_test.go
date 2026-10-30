@@ -29,7 +29,7 @@ func newTestPipeline(t *testing.T, storage fileStorage) *Pipeline {
 	masterKey, err := crypto.OpenOrCreateMasterKey(filepath.Join(t.TempDir(), "secret.key"))
 	require.NoError(t, err)
 
-	return &Pipeline{engines: nil, storages: storage, masterKey: masterKey}
+	return &Pipeline{engines: nil, storages: storage, masterKey: masterKey, shutdownBudget: nil}
 }
 
 func newTestBackupSpec() BackupSpec {

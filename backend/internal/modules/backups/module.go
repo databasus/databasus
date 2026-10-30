@@ -20,6 +20,7 @@ import (
 	"databasus-backend/internal/lib/clock"
 	"databasus-backend/internal/lib/crypto"
 	"databasus-backend/internal/lib/database"
+	"databasus-backend/internal/lib/shutdown"
 	"databasus-backend/internal/modules/backups/internal/auditing"
 	"databasus-backend/internal/modules/backups/internal/config"
 	"databasus-backend/internal/modules/backups/internal/download"
@@ -179,6 +180,7 @@ type Module interface {
 }
 
 type Deps struct {
+	ShutdownBudget         *shutdown.Budget
 	DB                     *gorm.DB
 	Transactor             *database.Transactor
 	Logger                 *slog.Logger
@@ -242,6 +244,7 @@ func New(deps Deps) Module {
 	runs := background.New(background.Deps{Logger: deps.Logger})
 
 	backupPipeline := pipeline.New(pipeline.Deps{
+		ShutdownBudget: deps.ShutdownBudget,
 		Databases:      deps.Databases,
 		Storages:       deps.Storages,
 		MasterKey:      deps.MasterKey,
@@ -282,6 +285,7 @@ func New(deps Deps) Module {
 	})
 
 	restoreService := restore.NewService(restore.Deps{
+		ShutdownBudget: deps.ShutdownBudget,
 		Repositories:   restoreRepositories,
 		Transactor:     deps.Transactor,
 		Logger:         deps.Logger,

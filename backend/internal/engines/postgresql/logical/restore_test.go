@@ -220,6 +220,7 @@ func newStubRestoreSpec(t *testing.T, clientTools pgshared.ClientTools) RestoreS
 	t.Helper()
 
 	return RestoreSpec{
+		NewCleanupContext:   nil,
 		ClientTools:         clientTools,
 		Version:             pgshared.Version16,
 		SourceDatabaseName:  "",

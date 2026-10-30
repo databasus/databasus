@@ -979,6 +979,10 @@ FROM generate_series('2024-01-01'::timestamptz, '2024-03-01'::timestamptz, inter
 	require.NoError(t, restored.restoredDB.GetContext(t.Context(), &chunkCount,
 		"SELECT count(*) FROM timescaledb_information.chunks WHERE hypertable_name = $1", tableName))
 	assert.Greater(t, chunkCount, 1, "the restored hypertable keeps its chunks")
+
+	var targetDatabaseName string
+	require.NoError(t, restored.restoredDB.GetContext(t.Context(), &targetDatabaseName, "SELECT current_database()"))
+	assert.False(t, isTimescaleTargetRestoring(t, server, targetDatabaseName))
 }
 
 const postgresqlPlainConnection = "sslmode=disable"

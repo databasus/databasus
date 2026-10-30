@@ -7,8 +7,6 @@ import (
 	"log/slog"
 
 	"github.com/jackc/pgx/v5"
-
-	"databasus-backend/internal/engines/postgresql/logical/pgrestore"
 )
 
 // GetTimescaleDBVersion returns the installed timescaledb extension version, or "" when the
@@ -33,28 +31,4 @@ func (s *Source) GetTimescaleDBVersion(ctx context.Context, logger *slog.Logger)
 	}
 
 	return version, nil
-}
-
-func (s *Source) runTimescaleDBPreRestore(ctx context.Context, logger *slog.Logger) error {
-	return s.execStatements(ctx, logger, pgrestore.GetTimescaleDBPreRestoreStatements()...)
-}
-
-func (s *Source) runTimescaleDBPostRestore(ctx context.Context, logger *slog.Logger) error {
-	return s.execStatements(ctx, logger, pgrestore.GetTimescaleDBPostRestoreStatements()...)
-}
-
-func (s *Source) execStatements(ctx context.Context, logger *slog.Logger, statements ...string) error {
-	conn, err := s.connect(ctx, s.settings.Database)
-	if err != nil {
-		return fmt.Errorf("failed to connect to database '%s': %w", s.settings.Database, err)
-	}
-	defer closeConn(ctx, conn, logger)
-
-	for _, statement := range statements {
-		if _, err := conn.Exec(ctx, statement); err != nil {
-			return fmt.Errorf("failed to run %q: %w", statement, err)
-		}
-	}
-
-	return nil
 }

@@ -9,14 +9,16 @@ import (
 	"github.com/google/uuid"
 
 	"databasus-backend/internal/lib/crypto"
+	"databasus-backend/internal/lib/shutdown"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/storages"
 )
 
 type Deps struct {
-	Databases connectionSettingsReader
-	Storages  fileStorage
-	MasterKey *crypto.MasterKey
+	ShutdownBudget *shutdown.Budget
+	Databases      connectionSettingsReader
+	Storages       fileStorage
+	MasterKey      *crypto.MasterKey
 	// ClientToolsDir holds the client tool bundles of every engine.
 	ClientToolsDir string
 	// TempDir holds the archive of a PostgreSQL restore that needs it as a file.
@@ -24,16 +26,18 @@ type Deps struct {
 }
 
 type Pipeline struct {
-	engines   map[databases.Type]logicalEngine
-	storages  fileStorage
-	masterKey *crypto.MasterKey
+	shutdownBudget *shutdown.Budget
+	engines        map[databases.Type]logicalEngine
+	storages       fileStorage
+	masterKey      *crypto.MasterKey
 }
 
 func New(deps Deps) *Pipeline {
 	return &Pipeline{
-		engines:   newEngineRegistry(deps),
-		storages:  deps.Storages,
-		masterKey: deps.MasterKey,
+		shutdownBudget: deps.ShutdownBudget,
+		engines:        newEngineRegistry(deps),
+		storages:       deps.Storages,
+		masterKey:      deps.MasterKey,
 	}
 }
 

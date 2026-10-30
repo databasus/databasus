@@ -18,6 +18,18 @@ var (
 	ErrRestoreDatabaseNameRequired = errors.New("target database name is required for pg_restore")
 )
 
+type ArchiveRestoreError struct {
+	Err error
+}
+
+func (e *ArchiveRestoreError) Error() string {
+	return e.Err.Error()
+}
+
+func (e *ArchiveRestoreError) Unwrap() error {
+	return e.Err
+}
+
 type serverErrorKind int
 
 const (

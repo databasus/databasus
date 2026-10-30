@@ -385,6 +385,7 @@ func openStubPostgresqlRestoreSink(t *testing.T, spec toolstub.Spec) (logicalRes
 	return &postgresqlRestoreSink{
 		tunnel: tunnel,
 		spec: pglogical.RestoreSpec{
+			NewCleanupContext:   nil,
 			ClientTools:         clientTools,
 			Version:             pgshared.Version16,
 			SourceDatabaseName:  "orders",

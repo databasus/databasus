@@ -71,6 +71,7 @@ func (a *App) Serve(ctx context.Context, address string) error {
 
 	<-ctx.Done()
 
+	drainDeadline := a.shutdownBudget.Begin(ShutdownDrainTimeout)
 	a.logger.InfoContext(ctx, "shutdown signal received")
 
 	cancelLoops()
@@ -83,7 +84,7 @@ func (a *App) Serve(ctx context.Context, address string) error {
 			{Name: "notification deliveries", Run: a.notifiersModule.WaitForDeliveries},
 			{Name: "background loops", Run: a.backgroundGroup.Wait},
 		},
-		DrainTimeout: ShutdownDrainTimeout,
+		Deadline:     drainDeadline,
 		FlushLogs:    a.environment.Logging.Shutdown,
 		FlushTimeout: shutdownLogFlushTimeout,
 		Logger:       a.logger,

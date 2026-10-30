@@ -46,3 +46,15 @@ func (e *InvalidTargetTLSError) Error() string {
 func (e *InvalidTargetTLSError) Unwrap() error {
 	return e.Err
 }
+
+type archiveRestoreError struct {
+	Err error
+}
+
+func (e *archiveRestoreError) Error() string {
+	return e.Err.Error()
+}
+
+func (e *archiveRestoreError) Unwrap() error {
+	return e.Err
+}

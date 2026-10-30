@@ -67,8 +67,8 @@ func TestDrain(t *testing.T) {
 
 func newTestDrainSpec(flushCount *atomic.Int32, drainTimeout time.Duration, run func(context.Context) error) DrainSpec {
 	return DrainSpec{
-		Steps:        []Step{{Name: "http server", Run: run}},
-		DrainTimeout: drainTimeout,
+		Steps:    []Step{{Name: "http server", Run: run}},
+		Deadline: time.Now().Add(drainTimeout),
 		FlushLogs: func(context.Context) error {
 			flushCount.Add(1)
 

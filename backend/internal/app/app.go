@@ -20,6 +20,7 @@ import (
 	"databasus-backend/internal/lib/database"
 	"databasus-backend/internal/lib/diskusage"
 	"databasus-backend/internal/lib/ratelimit"
+	"databasus-backend/internal/lib/shutdown"
 	"databasus-backend/internal/modules/backups"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/healthcheck"
@@ -57,6 +58,7 @@ type App struct {
 	runner             *background.Runner
 	inspectDisk        func(string) (diskusage.Usage, error)
 	clientToolsChecker *clienttools.Checker
+	shutdownBudget     *shutdown.Budget
 }
 
 // New prepares everything the server and the console commands share: the schema of the current
@@ -213,7 +215,9 @@ func New(ctx context.Context, environment *Environment) (*App, error) {
 		Notifiers:      notifiersModule,
 	})
 
+	shutdownBudget := shutdown.New(shutdown.Deps{Clock: clock.NewSystem()})
 	backupsModule := backups.New(backups.Deps{
+		ShutdownBudget:         shutdownBudget,
 		PhysicalExecutionClock: clock.NewSystem(),
 		DB:                     db,
 		Transactor:             transactor,
@@ -314,6 +318,7 @@ func New(ctx context.Context, environment *Environment) (*App, error) {
 		jobs:               jobs, runner: runner,
 		inspectDisk:        diskusage.Get,
 		clientToolsChecker: clientToolsChecker,
+		shutdownBudget:     shutdownBudget,
 	}, nil
 }
 

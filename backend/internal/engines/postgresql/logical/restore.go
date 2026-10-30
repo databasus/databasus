@@ -14,6 +14,7 @@ import (
 )
 
 type RestoreSpec struct {
+	NewCleanupContext  func(context.Context) (context.Context, context.CancelFunc)
 	ClientTools        pgshared.ClientTools
 	Version            pgshared.Version
 	SourceDatabaseName string
@@ -47,35 +48,6 @@ func (s *Source) Restore(ctx context.Context, spec RestoreSpec, input io.Reader)
 	if spec.IsTimescaleDB {
 		return s.restoreWithTimescaleDBHooks(ctx, spec, input)
 	}
-
-	return s.restoreArchive(ctx, spec, input)
-}
-
-// The target survives a failed restore, so it must leave TimescaleDB restoring mode on every path.
-func (s *Source) restoreWithTimescaleDBHooks(ctx context.Context, spec RestoreSpec, input io.Reader) (err error) {
-	err = s.runTimescaleDBPreRestore(ctx, spec.Logger)
-	if err != nil {
-		return fmt.Errorf("timescaledb_pre_restore failed: %w", err)
-	}
-
-	spec.Logger.InfoContext(ctx, "entered timescaledb restoring mode")
-
-	defer func() {
-		postErr := s.runTimescaleDBPostRestore(ctx, spec.Logger)
-		if postErr == nil {
-			return
-		}
-
-		spec.Logger.ErrorContext(
-			ctx,
-			"timescaledb_post_restore failed; target database may be left in restoring mode",
-			slog.Any("error", postErr),
-		)
-
-		if err == nil {
-			err = fmt.Errorf("timescaledb_post_restore failed: %w", postErr)
-		}
-	}()
 
 	return s.restoreArchive(ctx, spec, input)
 }
