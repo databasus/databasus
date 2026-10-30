@@ -1003,7 +1003,7 @@ export const pt: typeof en = {
         passwordsDoNotMatch: 'As novas senhas não coincidem',
         changing: 'Alterando a senha...',
         submit: 'Alterar senha',
-        signedInWithNewPassword: 'Você entrou com a nova senha',
+        signInRequired: 'Senha alterada. Entre novamente com sua nova senha.',
       },
     },
     list: {

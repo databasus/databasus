@@ -3,13 +3,10 @@ package signin
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"databasus-backend/internal/modules/users/internal/identity"
 )
 
-// Authenticate returns the actor of a session token. A token whose signature, expiry, user, user
-// status or password time does not hold answers ErrInvalidSession.
 func (s *Service) Authenticate(ctx context.Context, token string) (identity.Actor, error) {
 	claims, err := s.sessions.read(token)
 	if err != nil {
@@ -29,7 +26,7 @@ func (s *Service) Authenticate(ctx context.Context, token string) (identity.Acto
 		return identity.Actor{}, fmt.Errorf("%w: the user is not active", ErrInvalidSession)
 	}
 
-	if !user.PasswordCreationTime.Truncate(time.Second).Equal(claims.passwordCreationTime.Truncate(time.Second)) {
+	if user.PasswordVersion != claims.passwordVersion {
 		return identity.Actor{}, fmt.Errorf("%w: the password changed after the token was issued", ErrInvalidSession)
 	}
 

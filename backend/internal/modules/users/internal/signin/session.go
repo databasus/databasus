@@ -16,38 +16,33 @@ import (
 
 const sessionLifetime = 10 * 365 * 24 * time.Hour
 
-// The claim names are also written by the test helpers of the old code, which sign tokens for the
-// users they insert. A drift makes every old test that signs in fail with 401.
 const (
-	claimSubject              = "sub"
-	claimExpiresAt            = "exp"
-	claimIssuedAt             = "iat"
-	claimRole                 = "role"
-	claimPasswordCreationTime = "passwordCreationTime"
+	claimSubject         = "sub"
+	claimExpiresAt       = "exp"
+	claimIssuedAt        = "iat"
+	claimRole            = "role"
+	claimPasswordVersion = "passwordVersion"
 )
 
-// sessionTokens issues and reads the session tokens: HS256 JWTs signed with the master key. A
-// token names its user and the moment that user's password was set, so a password change ends
-// every earlier session.
 type sessionTokens struct {
 	masterKey *crypto.MasterKey
 	clock     clock.Source
 }
 
 type sessionClaims struct {
-	userID               uuid.UUID
-	passwordCreationTime time.Time
+	userID          uuid.UUID
+	passwordVersion uuid.UUID
 }
 
 func (t sessionTokens) issue(record accounts.UserRecord) (string, error) {
 	now := t.clock.Now()
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		claimSubject:              record.ID.String(),
-		claimExpiresAt:            now.Add(sessionLifetime).Unix(),
-		claimIssuedAt:             now.Unix(),
-		claimRole:                 string(record.Role),
-		claimPasswordCreationTime: record.PasswordCreationTime.Unix(),
+		claimSubject:         record.ID.String(),
+		claimExpiresAt:       now.Add(sessionLifetime).Unix(),
+		claimIssuedAt:        now.Unix(),
+		claimRole:            string(record.Role),
+		claimPasswordVersion: record.PasswordVersion.String(),
 	})
 
 	signedToken, err := token.SignedString([]byte(t.masterKey.GetSecret()))
@@ -58,8 +53,6 @@ func (t sessionTokens) issue(record accounts.UserRecord) (string, error) {
 	return signedToken, nil
 }
 
-// read checks the signature and the expiry against the clock, and returns the claims the session
-// check compares with the user.
 func (t sessionTokens) read(token string) (sessionClaims, error) {
 	parser := jwt.NewParser(jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}), jwt.WithoutClaimsValidation())
 
@@ -90,10 +83,15 @@ func (t sessionTokens) read(token string) (sessionClaims, error) {
 		return sessionClaims{}, fmt.Errorf("%w: the token names no user", ErrInvalidSession)
 	}
 
-	passwordCreationTime, isPasswordTimeNumber := claims[claimPasswordCreationTime].(float64)
-	if !isPasswordTimeNumber {
-		return sessionClaims{}, fmt.Errorf("%w: the token has no password creation time", ErrInvalidSession)
+	passwordVersionText, isPasswordVersionText := claims[claimPasswordVersion].(string)
+	if !isPasswordVersionText {
+		return sessionClaims{}, fmt.Errorf("%w: the token has no password version", ErrInvalidSession)
 	}
 
-	return sessionClaims{userID: userID, passwordCreationTime: time.Unix(int64(passwordCreationTime), 0)}, nil
+	passwordVersion, err := uuid.Parse(passwordVersionText)
+	if err != nil || passwordVersion == uuid.Nil {
+		return sessionClaims{}, fmt.Errorf("%w: the token has an invalid password version", ErrInvalidSession)
+	}
+
+	return sessionClaims{userID: userID, passwordVersion: passwordVersion}, nil
 }

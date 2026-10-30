@@ -173,6 +173,7 @@ Audit events are written through `lib/audit` in the transaction of the operation
 - **Repository methods** are named after what their SQL does. When a lookup finds no row, or a conditional `UPDATE` touches none, the method returns `false` as its second value, as in `(Backup, bool, error)`. The service decides which error the client sees. A repository wraps a database error with the operation's name and never returns `gorm.ErrRecordNotFound`.
 - **One column changes with one `UPDATE`.** A status, a timestamp or a counter is never written by re-saving the whole row.
 - **Secrets** of providers and databases are encrypted per field with the master key before they are saved, and decrypted only where they are used. The cipher is AES-GCM, and an encrypted value starts with `enc:`. Account passwords and agent tokens are hashed, not encrypted.
+- **Password invalidation.** The users module assigns each user a random UUID password version and rotates it in the transaction that replaces the password and records the audit event. Sessions and pending sign-ins carry that version and must match the user's current version exactly. Password creation time remains historical data; invalidation does not depend on clock precision or clock advancement.
 
 ### Migrations
 

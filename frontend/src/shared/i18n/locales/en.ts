@@ -980,7 +980,7 @@ export const en = {
         passwordsDoNotMatch: 'New passwords do not match',
         changing: 'Changing password...',
         submit: 'Change password',
-        signedInWithNewPassword: 'Successfully signed in with new password',
+        signInRequired: 'Password changed. Sign in again with your new password.',
       },
     },
     list: {

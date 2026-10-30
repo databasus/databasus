@@ -137,7 +137,7 @@ export const userApi = {
   isAuthorized: (): boolean => !!accessTokenHelper.getAccessToken(),
 
   logout: () => {
-    accessTokenHelper.cleanAccessToken();
+    accessTokenHelper.clearStoredSession();
   },
 
   addAuthListener: (listener: () => void) => {

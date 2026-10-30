@@ -86,7 +86,14 @@ func TestInviteUser(t *testing.T) {
 		require.Equal(t, http.StatusOK, updatedSettings.StatusCode(), string(updatedSettings.Body))
 		invitedEmail := inviteThroughWorkspace(t, admin)
 
+		var invitedVersion string
+		app.QuerySQL(t, &invitedVersion, "SELECT password_version FROM users WHERE email = ?", invitedEmail)
+		require.NotEqual(t, uuid.Nil.String(), invitedVersion)
 		invitedUser := app.SignUp(t, invitedEmail)
+		var activeVersion string
+		app.QuerySQL(t, &activeVersion, "SELECT password_version FROM users WHERE email = ?", invitedEmail)
+		require.NotEqual(t, invitedVersion, activeVersion)
+		require.NotEqual(t, uuid.Nil.String(), activeVersion)
 
 		readUser := getUser(t, invitedUser.Client, invitedUser.UserID)
 		require.Equal(t, http.StatusOK, readUser.StatusCode(), string(readUser.Body))

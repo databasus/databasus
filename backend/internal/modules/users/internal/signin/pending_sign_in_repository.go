@@ -39,19 +39,22 @@ func (r *pendingSignInRepository) lockUser(ctx context.Context, userID uuid.UUID
 	return nil
 }
 
-// getLive finds the usable pending sign-in that the given password started.
+type livePendingSignInFilter struct {
+	userID          uuid.UUID
+	passwordVersion uuid.UUID
+	now             time.Time
+}
+
 func (r *pendingSignInRepository) getLive(
 	ctx context.Context,
-	userID uuid.UUID,
-	passwordCreationTime time.Time,
-	now time.Time,
+	filter livePendingSignInFilter,
 ) (PendingSignIn, bool, error) {
 	var pendingSignIn PendingSignIn
 
 	err := database.Conn(ctx, r.db).
 		Where(
-			"user_id = ? AND password_creation_time = ? AND is_used = ? AND failed_attempt_count < ? AND expires_at > ?",
-			userID, passwordCreationTime, false, maxCodeAttempts, now,
+			"user_id = ? AND password_version = ? AND is_used = ? AND failed_attempt_count < ? AND expires_at > ?",
+			filter.userID, filter.passwordVersion, false, maxCodeAttempts, filter.now,
 		).
 		Order("created_at DESC").
 		First(&pendingSignIn).Error

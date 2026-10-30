@@ -18,26 +18,19 @@ export function ProfileComponent({ contentHeight }: Props) {
   const [user, setUser] = useState<User | undefined>(undefined);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
 
-  // Profile edit state
   const [editName, setEditName] = useState('');
   const [editEmail, setEditEmail] = useState('');
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
-  const [editNameError, setEditNameError] = useState(false);
-  const [editEmailError, setEditEmailError] = useState(false);
+  const [isEditNameError, setIsEditNameError] = useState(false);
+  const [isEditEmailError, setIsEditEmailError] = useState(false);
 
-  // Password change form state
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [newPasswordVisible, setNewPasswordVisible] = useState(false);
-  const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
+  const [isNewPasswordVisible, setIsNewPasswordVisible] = useState(false);
+  const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] = useState(false);
 
-  // Error states
-  const [newPasswordError, setNewPasswordError] = useState(false);
-  const [confirmPasswordError, setConfirmPasswordError] = useState(false);
-
-  useEffect(() => {
-    loadUserProfile();
-  }, []);
+  const [isNewPasswordError, setIsNewPasswordError] = useState(false);
+  const [isConfirmPasswordError, setIsConfirmPasswordError] = useState(false);
 
   const loadUserProfile = () => {
     userApi
@@ -56,25 +49,25 @@ export function ProfileComponent({ contentHeight }: Props) {
     let isValid = true;
 
     if (!newPassword) {
-      setNewPasswordError(true);
+      setIsNewPasswordError(true);
       isValid = false;
     } else if (newPassword.length < MIN_PASSWORD_LENGTH) {
-      setNewPasswordError(true);
+      setIsNewPasswordError(true);
       message.error(t('users.validation.passwordTooShort', { minLength: MIN_PASSWORD_LENGTH }));
       isValid = false;
     } else {
-      setNewPasswordError(false);
+      setIsNewPasswordError(false);
     }
 
     if (!confirmPassword) {
-      setConfirmPasswordError(true);
+      setIsConfirmPasswordError(true);
       isValid = false;
     } else if (newPassword !== confirmPassword) {
-      setConfirmPasswordError(true);
+      setIsConfirmPasswordError(true);
       message.error(t('users.profile.changePassword.passwordsDoNotMatch'));
       isValid = false;
     } else {
-      setConfirmPasswordError(false);
+      setIsConfirmPasswordError(false);
     }
 
     return isValid;
@@ -90,23 +83,11 @@ export function ProfileComponent({ contentHeight }: Props) {
     try {
       await userApi.changePassword({ newPassword });
 
-      // Reset form fields
       setNewPassword('');
       setConfirmPassword('');
-
-      // Sign in again with new password
-      if (user?.email) {
-        try {
-          await userApi.signIn({ email: user.email, password: newPassword });
-          message.success(t('users.profile.changePassword.signedInWithNewPassword'));
-        } catch (signInError: unknown) {
-          message.error(translateApiError(signInError, t));
-          // If sign in fails, logout and redirect to login page
-          userApi.logout();
-          userApi.notifyAuthListeners();
-          window.location.reload();
-        }
-      }
+      userApi.logout();
+      message.success(t('users.profile.changePassword.signInRequired'));
+      userApi.notifyAuthListeners();
     } catch (error: unknown) {
       message.error(translateApiError(error, t));
     } finally {
@@ -115,20 +96,19 @@ export function ProfileComponent({ contentHeight }: Props) {
   };
 
   const handleProfileUpdate = async () => {
-    // Validate name
     if (!editName || editName.trim() === '') {
-      setEditNameError(true);
+      setIsEditNameError(true);
       message.error(t('users.validation.nameRequired'));
       return;
     }
-    setEditNameError(false);
+    setIsEditNameError(false);
 
     if (!editEmail || editEmail.trim() === '') {
-      setEditEmailError(true);
+      setIsEditEmailError(true);
       message.error(t('users.validation.emailRequired'));
       return;
     }
-    setEditEmailError(false);
+    setIsEditEmailError(false);
 
     setIsUpdatingProfile(true);
 
@@ -142,7 +122,6 @@ export function ProfileComponent({ contentHeight }: Props) {
       await userApi.updateUserInfo({ name: editName, email: editEmail });
       message.success(t('users.profile.updated'));
 
-      // Reload user profile
       loadUserProfile();
     } catch (error: unknown) {
       message.error(translateApiError(error, t));
@@ -155,6 +134,10 @@ export function ProfileComponent({ contentHeight }: Props) {
     userApi.logout();
     window.location.reload();
   };
+
+  useEffect(() => {
+    loadUserProfile();
+  }, []);
 
   return (
     <div className="flex grow">
@@ -184,10 +167,10 @@ export function ProfileComponent({ contentHeight }: Props) {
                     <Input
                       value={editName}
                       onChange={(e) => {
-                        setEditNameError(false);
+                        setIsEditNameError(false);
                         setEditName(e.currentTarget.value);
                       }}
-                      status={editNameError ? 'error' : undefined}
+                      status={isEditNameError ? 'error' : undefined}
                       placeholder={t('users.profile.namePlaceholder')}
                       className="mb-4"
                     />
@@ -198,10 +181,10 @@ export function ProfileComponent({ contentHeight }: Props) {
                     <Input
                       value={editEmail}
                       onChange={(e) => {
-                        setEditEmailError(false);
+                        setIsEditEmailError(false);
                         setEditEmail(e.currentTarget.value.trim().toLowerCase());
                       }}
-                      status={editEmailError ? 'error' : undefined}
+                      status={isEditEmailError ? 'error' : undefined}
                       placeholder={t('users.profile.emailPlaceholder')}
                       type="email"
                       className="mb-4"
@@ -249,16 +232,16 @@ export function ProfileComponent({ contentHeight }: Props) {
                       placeholder={t('users.profile.changePassword.newPasswordPlaceholder')}
                       value={newPassword}
                       onChange={(e) => {
-                        setNewPasswordError(false);
+                        setIsNewPasswordError(false);
                         setNewPassword(e.currentTarget.value);
                       }}
-                      status={newPasswordError ? 'error' : undefined}
+                      status={isNewPasswordError ? 'error' : undefined}
                       iconRender={(visible) =>
                         visible ? <EyeTwoTone /> : <EyeInvisibleOutlined />
                       }
                       visibilityToggle={{
-                        visible: newPasswordVisible,
-                        onVisibleChange: setNewPasswordVisible,
+                        visible: isNewPasswordVisible,
+                        onVisibleChange: setIsNewPasswordVisible,
                       }}
                       autoComplete="new-password"
                     />
@@ -270,17 +253,17 @@ export function ProfileComponent({ contentHeight }: Props) {
                       placeholder={t('users.profile.changePassword.confirmPasswordPlaceholder')}
                       value={confirmPassword}
                       onChange={(e) => {
-                        setConfirmPasswordError(false);
+                        setIsConfirmPasswordError(false);
                         setConfirmPassword(e.currentTarget.value);
                       }}
-                      status={confirmPasswordError ? 'error' : undefined}
+                      status={isConfirmPasswordError ? 'error' : undefined}
                       iconRender={(visible) =>
                         visible ? <EyeTwoTone /> : <EyeInvisibleOutlined />
                       }
                       autoComplete="new-password"
                       visibilityToggle={{
-                        visible: confirmPasswordVisible,
-                        onVisibleChange: setConfirmPasswordVisible,
+                        visible: isConfirmPasswordVisible,
+                        onVisibleChange: setIsConfirmPasswordVisible,
                       }}
                     />
 

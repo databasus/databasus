@@ -1009,7 +1009,7 @@ export const es: typeof en = {
         passwordsDoNotMatch: 'Las contraseñas nuevas no coinciden',
         changing: 'Cambiando la contraseña...',
         submit: 'Cambiar contraseña',
-        signedInWithNewPassword: 'Sesión iniciada con la nueva contraseña',
+        signInRequired: 'Contraseña cambiada. Vuelve a iniciar sesión con tu nueva contraseña.',
       },
     },
     list: {

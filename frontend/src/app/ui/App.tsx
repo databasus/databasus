@@ -23,9 +23,10 @@ function AppContent() {
     const isAuthorized = userApi.isAuthorized();
     setIsAuthorized(isAuthorized);
 
-    userApi.addAuthListener(() => {
-      setIsAuthorized(userApi.isAuthorized());
-    });
+    const onAuthChanged = () => setIsAuthorized(userApi.isAuthorized());
+    userApi.addAuthListener(onAuthChanged);
+
+    return () => userApi.removeAuthListener(onAuthChanged);
   }, []);
 
   return (

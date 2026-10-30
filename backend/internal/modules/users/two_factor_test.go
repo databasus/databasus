@@ -87,8 +87,8 @@ func TestTwoFactorSignIn(t *testing.T) {
 	t.Run("sends a fresh code after the password changed during a pending sign-in", func(t *testing.T) {
 		app, admin := newTwoFactorApp(t)
 		firstPendingSignIn := startTwoFactorSignIn(t, app, admin.Email)
-		app.ExecuteSQL(t, "UPDATE users SET password_creation_time = password_creation_time + interval '1 second' "+
-			"WHERE id = ?", admin.UserID)
+		changed := changeUserPassword(t, admin.Client, admin.UserID, apptest.TestPassword)
+		require.Equal(t, http.StatusNoContent, changed.StatusCode(), string(changed.Body))
 
 		secondPendingSignIn := startTwoFactorSignIn(t, app, admin.Email)
 
@@ -106,6 +106,22 @@ func TestTwoFactorSignIn(t *testing.T) {
 
 		response := signIn(t, app, admin.Email, apptest.TestPassword)
 
+		requireProblem(t, response.StatusCode(), response.Body, http.StatusTooManyRequests,
+			apiclient.ProblemCodeTooManySignInCodes)
+		assert.Len(t, app.Mail.GetMessagesTo(admin.Email), 5)
+	})
+
+	t.Run("counts earlier codes toward the hourly cap after fixed-clock password replacements", func(t *testing.T) {
+		app, admin := newTwoFactorApp(t)
+		for range 5 {
+			pending := startTwoFactorSignIn(t, app, admin.Email)
+			verified := verifySignInCode(t, app, pending.PendingSignInId, readLatestMailedCode(t, app, admin.Email))
+			require.Equal(t, http.StatusOK, verified.StatusCode(), string(verified.Body))
+			currentClient := app.NewSessionClient(t, verified.JSON200.Token)
+			changed := changeUserPassword(t, currentClient, admin.UserID, apptest.TestPassword)
+			require.Equal(t, http.StatusNoContent, changed.StatusCode(), string(changed.Body))
+		}
+		response := signIn(t, app, admin.Email, apptest.TestPassword)
 		requireProblem(t, response.StatusCode(), response.Body, http.StatusTooManyRequests,
 			apiclient.ProblemCodeTooManySignInCodes)
 		assert.Len(t, app.Mail.GetMessagesTo(admin.Email), 5)
@@ -320,8 +336,8 @@ func TestVerifySignInCode(t *testing.T) {
 	t.Run("returns 410 when the password changed while the code was in flight", func(t *testing.T) {
 		app, admin := newTwoFactorApp(t)
 		pendingSignIn := startTwoFactorSignIn(t, app, admin.Email)
-		app.ExecuteSQL(t, "UPDATE users SET password_creation_time = password_creation_time + interval '1 second' "+
-			"WHERE id = ?", admin.UserID)
+		changed := changeUserPassword(t, admin.Client, admin.UserID, apptest.TestPassword)
+		require.Equal(t, http.StatusNoContent, changed.StatusCode(), string(changed.Body))
 
 		response := verifySignInCode(t, app, pendingSignIn.PendingSignInId, readLatestMailedCode(t, app, admin.Email))
 
@@ -393,6 +409,44 @@ func TestResendSignInCode(t *testing.T) {
 		newCodeResponse := verifySignInCode(t, app, response.JSON200.PendingSignInId,
 			readLatestMailedCode(t, app, admin.Email))
 		require.Equal(t, http.StatusOK, newCodeResponse.StatusCode(), string(newCodeResponse.Body))
+	})
+
+	t.Run("refuses resend and verification after a fixed-clock password replacement", func(t *testing.T) {
+		app, admin := newTwoFactorApp(t)
+		pending := startTwoFactorSignIn(t, app, admin.Email)
+		code := readLatestMailedCode(t, app, admin.Email)
+		changed := changeUserPassword(t, admin.Client, admin.UserID, "replacement-password")
+		require.Equal(t, http.StatusNoContent, changed.StatusCode(), string(changed.Body))
+		resent := resendSignInCode(t, app, pending.PendingSignInId)
+		requireProblem(
+			t,
+			resent.StatusCode(),
+			resent.Body,
+			http.StatusGone,
+			apiclient.ProblemCodePendingSignInNotUsable,
+		)
+		verified := verifySignInCode(t, app, pending.PendingSignInId, code)
+		requireProblem(
+			t,
+			verified.StatusCode(),
+			verified.Body,
+			http.StatusGone,
+			apiclient.ProblemCodePendingSignInNotUsable,
+		)
+		freshPending := requireCodeRequired(t, signIn(t, app, admin.Email, "replacement-password"))
+		require.NotEqual(t, pending.PendingSignInId, freshPending.PendingSignInId)
+		freshVerified := verifySignInCode(
+			t,
+			app,
+			freshPending.PendingSignInId,
+			readLatestMailedCode(t, app, admin.Email),
+		)
+		require.Equal(t, http.StatusOK, freshVerified.StatusCode(), string(freshVerified.Body))
+		require.Equal(
+			t,
+			http.StatusOK,
+			getUser(t, app.NewSessionClient(t, freshVerified.JSON200.Token), admin.UserID).StatusCode(),
+		)
 	})
 
 	t.Run("returns 429 sign_in_code_resent_too_soon without mail when a second resend comes within the minute",

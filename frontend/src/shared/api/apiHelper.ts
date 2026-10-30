@@ -9,7 +9,7 @@ const rateLimiter = new RateLimiter(30, 1_000);
 
 const clearTokenAndReloadIfUnauthorized = (response: Response) => {
   if (response.status === 401) {
-    accessTokenHelper?.cleanAccessToken();
+    accessTokenHelper?.clearStoredSession();
     window.location.reload();
   }
 };

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -16,6 +17,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"databasus-backend/internal/app"
+	apiclient "databasus-backend/internal/lib/apiclient"
 	"databasus-backend/internal/lib/config"
 	"databasus-backend/internal/lib/database"
 	"databasus-backend/internal/lib/testdb"
@@ -180,10 +182,37 @@ func TestBinary(t *testing.T) {
 		require.Equal(t, 0, createRun.exitCode, createRun.output)
 
 		requireVersionAnswers(t, serverAddress)
+		client := apiclient.New(t, "http://"+serverAddress)
+		password := operatorPassword
+		signedIn, err := client.SignInWithResponse(
+			t.Context(),
+			apiclient.SignInRequest{Email: email, Password: &password, CloudflareTurnstileToken: nil},
+		)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, signedIn.StatusCode(), string(signedIn.Body))
+		session, err := signedIn.JSON200.AsSignInCompleted()
+		require.NoError(t, err)
+		previousClient := apiclient.New(t, "http://"+serverAddress, apiclient.WithSessionToken(session.Token))
 
 		resetRun := runBinary(t, host, environment, "--new-password=rotated-password-456", "--email="+email)
 
 		require.Equal(t, 0, resetRun.exitCode, resetRun.output)
+		refused, err := previousClient.GetUserWithResponse(t.Context(), session.UserId)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusUnauthorized, refused.StatusCode(), string(refused.Body))
+		password = "rotated-password-456"
+		freshSignIn, err := client.SignInWithResponse(
+			t.Context(),
+			apiclient.SignInRequest{Email: email, Password: &password, CloudflareTurnstileToken: nil},
+		)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, freshSignIn.StatusCode(), string(freshSignIn.Body))
+		freshSession, err := freshSignIn.JSON200.AsSignInCompleted()
+		require.NoError(t, err)
+		freshClient := apiclient.New(t, "http://"+serverAddress, apiclient.WithSessionToken(freshSession.Token))
+		readUser, err := freshClient.GetUserWithResponse(t.Context(), freshSession.UserId)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, readUser.StatusCode(), string(readUser.Body))
 		requireVersionAnswers(t, serverAddress)
 	})
 

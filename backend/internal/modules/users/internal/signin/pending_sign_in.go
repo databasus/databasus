@@ -13,16 +13,14 @@ const maxCodeAttempts = 5
 // PendingSignIn is a password sign-in that waits for the code emailed to the user. The row stays
 // after it is spent or destroyed, because the hourly cap on codes counts it.
 type PendingSignIn struct {
-	ID         uuid.UUID `gorm:"column:id"`
-	UserID     uuid.UUID `gorm:"column:user_id"`
-	HashedCode string    `gorm:"column:hashed_code"`
-	// PasswordCreationTime is the password the password step accepted, so the code step refuses a
-	// pending sign-in whose user changed the password since.
-	PasswordCreationTime time.Time `gorm:"column:password_creation_time"`
-	ExpiresAt            time.Time `gorm:"column:expires_at"`
-	IsUsed               bool      `gorm:"column:is_used"`
-	FailedAttemptCount   int       `gorm:"column:failed_attempt_count"`
-	CreatedAt            time.Time `gorm:"column:created_at"`
+	ID                 uuid.UUID `gorm:"column:id"`
+	UserID             uuid.UUID `gorm:"column:user_id"`
+	HashedCode         string    `gorm:"column:hashed_code"`
+	PasswordVersion    uuid.UUID `gorm:"column:password_version"`
+	ExpiresAt          time.Time `gorm:"column:expires_at"`
+	IsUsed             bool      `gorm:"column:is_used"`
+	FailedAttemptCount int       `gorm:"column:failed_attempt_count"`
+	CreatedAt          time.Time `gorm:"column:created_at"`
 }
 
 func (PendingSignIn) TableName() string {

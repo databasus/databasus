@@ -1,5 +1,5 @@
-const AUTHORIED_USER_TOKEN_KEY = 'databasus_user_token';
-const AUTHORIED_USER_ID_KEY = 'databasus_user_id';
+const AUTHORIZED_USER_TOKEN_KEY = 'databasus_user_token';
+const AUTHORIZED_USER_ID_KEY = 'databasus_user_id';
 
 export const accessTokenHelper = {
   saveAccessToken: (token: string) => {
@@ -7,7 +7,7 @@ export const accessTokenHelper = {
       return;
     }
 
-    localStorage.setItem(AUTHORIED_USER_TOKEN_KEY, token);
+    localStorage.setItem(AUTHORIZED_USER_TOKEN_KEY, token);
   },
 
   getAccessToken: (): string | undefined => {
@@ -15,15 +15,16 @@ export const accessTokenHelper = {
       return;
     }
 
-    return localStorage.getItem(AUTHORIED_USER_TOKEN_KEY) || undefined;
+    return localStorage.getItem(AUTHORIZED_USER_TOKEN_KEY) || undefined;
   },
 
-  cleanAccessToken: () => {
+  clearStoredSession: () => {
     if (typeof localStorage === 'undefined') {
       return;
     }
 
-    localStorage.removeItem(AUTHORIED_USER_TOKEN_KEY);
+    localStorage.removeItem(AUTHORIZED_USER_TOKEN_KEY);
+    localStorage.removeItem(AUTHORIZED_USER_ID_KEY);
   },
 
   saveUserId: (id: string) => {
@@ -31,7 +32,7 @@ export const accessTokenHelper = {
       return;
     }
 
-    localStorage.setItem(AUTHORIED_USER_ID_KEY, id);
+    localStorage.setItem(AUTHORIZED_USER_ID_KEY, id);
   },
 
   getUserId: (): string | undefined => {
@@ -39,6 +40,6 @@ export const accessTokenHelper = {
       return;
     }
 
-    return localStorage.getItem(AUTHORIED_USER_ID_KEY) || undefined;
+    return localStorage.getItem(AUTHORIZED_USER_ID_KEY) || undefined;
   },
 };

@@ -1015,7 +1015,8 @@ export const fr: typeof en = {
         passwordsDoNotMatch: 'Les nouveaux mots de passe ne correspondent pas',
         changing: 'Changement du mot de passe...',
         submit: 'Changer le mot de passe',
-        signedInWithNewPassword: 'Vous êtes connecté avec votre nouveau mot de passe',
+        signInRequired:
+          'Mot de passe modifié. Connectez-vous à nouveau avec votre nouveau mot de passe.',
       },
     },
     list: {

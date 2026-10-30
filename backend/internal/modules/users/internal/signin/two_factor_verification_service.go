@@ -159,8 +159,7 @@ func (s *Service) loadUsablePendingSignIn(
 		return PendingSignIn{}, accounts.UserRecord{}, err
 	}
 
-	isPasswordUnchanged := user.PasswordCreationTime.Truncate(time.Microsecond).
-		Equal(pendingSignIn.PasswordCreationTime.Truncate(time.Microsecond))
+	isPasswordUnchanged := user.PasswordVersion == pendingSignIn.PasswordVersion
 
 	if !isFound || !user.IsActive() || !isPasswordUnchanged {
 		return PendingSignIn{}, accounts.UserRecord{}, ErrPendingSignInNotUsable

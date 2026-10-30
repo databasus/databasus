@@ -28,7 +28,8 @@ This is the project's common language. Each concept has one term in the document
 | Instance admin | admin | A user with the global admin role, who manages users and instance settings. |
 | Global role | global role, `ADMIN`, `MEMBER` | A user's role on the whole instance: `ADMIN` makes the user an instance admin, and `MEMBER` grants nothing beyond the user's workspace roles. The word "member" alone means a member of a workspace. |
 | User | user | A person with an account on the instance: email, name, global role and status (`INVITED`, `ACTIVE` or `INACTIVE`). |
-| Session | session | A signed-in user's right to call the API, carried as a token the sign-in returns once. A password change ends the sessions issued before it. |
+| Session | session | A signed-in user's right to call the API, carried as a token the sign-in returns once. A session carries the user's password version; every successful password replacement ends all earlier sessions, independently of time. |
+| Password version | `PasswordVersion`, password version | A random UUID assigned to each user and rotated atomically with every password replacement. Sessions and pending sign-ins are usable only with the current version. |
 | Pending sign-in | pending sign-in, `pendingSignInId` | A password sign-in that waits for the code emailed to the user, when the instance requires two-factor sign-in. |
 | Instance settings | instance settings | The settings an instance admin sets for the whole instance: open registration, member invitations, workspace creation by members and two-factor sign-in. |
 | Sign-in options | sign-in options | What the sign-in page offers, such as the first registration on an instance without users. |

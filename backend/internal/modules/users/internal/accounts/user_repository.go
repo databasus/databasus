@@ -109,17 +109,16 @@ func (r *userRepository) updateProfile(ctx context.Context, userID uuid.UUID, na
 	return nil
 }
 
-func (r *userRepository) updatePassword(
-	ctx context.Context,
-	userID uuid.UUID,
-	hashedPassword string,
-	passwordCreationTime time.Time,
-) error {
+type passwordReplacement struct {
+	userID         uuid.UUID
+	hashedPassword string
+	createdAt      time.Time
+}
+
+func (r *userRepository) updatePassword(ctx context.Context, replacement passwordReplacement) error {
 	err := database.Conn(ctx, r.db).Exec(
-		"UPDATE users SET hashed_password = ?, password_creation_time = ? WHERE id = ?",
-		hashedPassword,
-		passwordCreationTime,
-		userID,
+		"UPDATE users SET hashed_password = ?, password_creation_time = ?, password_version = ? WHERE id = ?",
+		replacement.hashedPassword, replacement.createdAt, uuid.New(), replacement.userID,
 	).Error
 	if err != nil {
 		return fmt.Errorf("update the password of the user: %w", err)
@@ -188,12 +187,13 @@ func (r *userRepository) listAdmins(ctx context.Context) ([]UserRecord, error) {
 func (r *userRepository) activateInvited(ctx context.Context, activation invitedUserActivation) error {
 	err := database.Conn(ctx, r.db).Exec(
 		`UPDATE users
-		SET status = ?, name = ?, hashed_password = ?, password_creation_time = ?
+		SET status = ?, name = ?, hashed_password = ?, password_creation_time = ?, password_version = ?
 		WHERE id = ? AND status = ?`,
 		identity.StatusActive,
 		activation.name,
 		activation.hashedPassword,
 		activation.passwordCreationTime,
+		activation.passwordVersion,
 		activation.userID,
 		identity.StatusInvited,
 	).Error
@@ -251,4 +251,5 @@ type invitedUserActivation struct {
 	name                 string
 	hashedPassword       *string
 	passwordCreationTime time.Time
+	passwordVersion      uuid.UUID
 }

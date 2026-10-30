@@ -54,14 +54,14 @@ func (s *Service) issueSignInCode(
 
 	now := s.clock.Now()
 	newPendingSignIn := PendingSignIn{
-		ID:                   uuid.New(),
-		UserID:               user.ID,
-		HashedCode:           string(hashedCode),
-		PasswordCreationTime: user.PasswordCreationTime,
-		ExpiresAt:            now.Add(signInCodeLifetime),
-		IsUsed:               false,
-		FailedAttemptCount:   0,
-		CreatedAt:            now,
+		ID:                 uuid.New(),
+		UserID:             user.ID,
+		HashedCode:         string(hashedCode),
+		PasswordVersion:    user.PasswordVersion,
+		ExpiresAt:          now.Add(signInCodeLifetime),
+		IsUsed:             false,
+		FailedAttemptCount: 0,
+		CreatedAt:          now,
 	}
 
 	livePendingSignIn, isLive, err := s.createPendingSignIn(ctx, newPendingSignIn, shouldReuseLiveCode)
@@ -109,9 +109,11 @@ func (s *Service) createPendingSignIn(
 		}
 
 		if shouldReuseLiveCode {
-			livePendingSignIn, isLive, err = s.pendingSignIns.getLive(
-				ctx, newPendingSignIn.UserID, newPendingSignIn.PasswordCreationTime, newPendingSignIn.CreatedAt,
-			)
+			livePendingSignIn, isLive, err = s.pendingSignIns.getLive(ctx, livePendingSignInFilter{
+				userID:          newPendingSignIn.UserID,
+				passwordVersion: newPendingSignIn.PasswordVersion,
+				now:             newPendingSignIn.CreatedAt,
+			})
 			if err != nil || isLive {
 				return err
 			}

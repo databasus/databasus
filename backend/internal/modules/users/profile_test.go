@@ -3,7 +3,6 @@ package users_test
 import (
 	"net/http"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -120,7 +119,6 @@ func TestChangeUserPassword(t *testing.T) {
 	t.Run("returns 401 unauthenticated for a token issued before the change", func(t *testing.T) {
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
-		app.Clock.Advance(2 * time.Second)
 
 		changed := changeUserPassword(t, admin.Client, admin.UserID, "new-password-456")
 		require.Equal(t, http.StatusNoContent, changed.StatusCode(), string(changed.Body))
@@ -128,6 +126,41 @@ func TestChangeUserPassword(t *testing.T) {
 		response := getUser(t, admin.Client, admin.UserID)
 		requireProblem(t, response.StatusCode(), response.Body, http.StatusUnauthorized,
 			apiclient.ProblemCodeUnauthenticated)
+	})
+
+	t.Run("invalidates each earlier session after multiple replacements at one clock instant", func(t *testing.T) {
+		app := apptest.New(t)
+		admin := app.CreateAdmin(t)
+		sessionClients := []*apiclient.ClientWithResponses{admin.Client}
+		for _, password := range []string{"replacement-one", "replacement-two", "replacement-three"} {
+			changed := changeUserPassword(t, sessionClients[len(sessionClients)-1], admin.UserID, password)
+			require.Equal(t, http.StatusNoContent, changed.StatusCode(), string(changed.Body))
+			session := requireCompletedSignIn(t, signIn(t, app, admin.Email, password))
+			currentClient := app.NewSessionClient(t, session.Token)
+			require.Equal(t, http.StatusOK, getUser(t, currentClient, admin.UserID).StatusCode())
+			for _, previousClient := range sessionClients {
+				response := getUser(t, previousClient, admin.UserID)
+				requireProblem(t, response.StatusCode(), response.Body, http.StatusUnauthorized,
+					apiclient.ProblemCodeUnauthenticated)
+			}
+			sessionClients = append(sessionClients, currentClient)
+		}
+	})
+
+	t.Run("keeps sessions and pending codes when the password transaction rolls back", func(t *testing.T) {
+		app, admin := newTwoFactorApp(t)
+		pendingSignIn := startTwoFactorSignIn(t, app, admin.Email)
+		code := readLatestMailedCode(t, app, admin.Email)
+		app.ExecuteSQL(t, `ALTER TABLE lib_audit_events ADD CONSTRAINT refuse_password_audit
+			CHECK (message <> 'Password changed')`)
+
+		changed := changeUserPassword(t, admin.Client, admin.UserID, "replacement-password")
+		require.Equal(t, http.StatusInternalServerError, changed.StatusCode(), string(changed.Body))
+		require.Equal(t, http.StatusOK, getUser(t, admin.Client, admin.UserID).StatusCode())
+		reusedPending := startTwoFactorSignIn(t, app, admin.Email)
+		require.Equal(t, pendingSignIn.PendingSignInId, reusedPending.PendingSignInId)
+		verified := verifySignInCode(t, app, pendingSignIn.PendingSignInId, code)
+		require.Equal(t, http.StatusOK, verified.StatusCode(), string(verified.Body))
 	})
 
 	t.Run("returns 400 naming the password when it is shorter than 8 characters", func(t *testing.T) {

@@ -21,7 +21,7 @@ const sessionMiddleware: Middleware = {
 
   onResponse({ request, response }) {
     if (response.status === 401 && request.headers.has('Authorization')) {
-      accessTokenHelper.cleanAccessToken();
+      accessTokenHelper.clearStoredSession();
       window.location.reload();
     }
 

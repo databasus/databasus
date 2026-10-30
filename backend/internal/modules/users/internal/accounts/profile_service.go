@@ -74,8 +74,6 @@ func (s *Service) UpdateProfile(
 	return updatedUser.ToUser(), nil
 }
 
-// ChangePassword replaces the password of the actor's own user. Moving the password creation time
-// ends every session issued before, because a session carries the time it was issued under.
 func (s *Service) ChangePassword(
 	ctx context.Context,
 	actor identity.Actor,
@@ -112,11 +110,11 @@ func (s *Service) ChangePassword(
 	})
 }
 
-// ReplacePassword stores the hashed password and records the audit event with the message. Moving
-// the password creation time ends every session issued before. Run it inside the caller's
-// transaction.
+// Run inside the caller's transaction so an audit failure also rolls back the password version.
 func (s *Service) ReplacePassword(ctx context.Context, user UserRecord, hashedPassword, auditMessage string) error {
-	err := s.repository.updatePassword(ctx, user.ID, hashedPassword, s.clock.Now())
+	err := s.repository.updatePassword(ctx, passwordReplacement{
+		userID: user.ID, hashedPassword: hashedPassword, createdAt: s.clock.Now(),
+	})
 	if err != nil {
 		return err
 	}

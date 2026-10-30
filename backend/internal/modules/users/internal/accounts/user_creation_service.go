@@ -96,12 +96,14 @@ func (s *Service) ActivateInvitedUser(
 	hashedPassword *string,
 ) (UserRecord, error) {
 	now := s.clock.Now()
+	passwordVersion := uuid.New()
 
 	err := s.repository.activateInvited(ctx, invitedUserActivation{
 		userID:               invitedUser.ID,
 		name:                 name,
 		hashedPassword:       hashedPassword,
 		passwordCreationTime: now,
+		passwordVersion:      passwordVersion,
 	})
 	if err != nil {
 		return UserRecord{}, err
@@ -111,6 +113,7 @@ func (s *Service) ActivateInvitedUser(
 	invitedUser.Name = name
 	invitedUser.HashedPassword = hashedPassword
 	invitedUser.PasswordCreationTime = now
+	invitedUser.PasswordVersion = passwordVersion
 
 	return invitedUser, nil
 }
@@ -135,6 +138,7 @@ func (s *Service) buildUserRecord(newUser NewUser, isClaimingInstance bool) User
 		Name:                 newUser.Name,
 		HashedPassword:       newUser.HashedPassword,
 		PasswordCreationTime: now,
+		PasswordVersion:      uuid.New(),
 		Role:                 role,
 		Status:               identity.StatusActive,
 		GitHubOAuthID:        newUser.GitHubOAuthID,

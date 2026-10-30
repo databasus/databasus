@@ -65,6 +65,7 @@ func (s *Service) InviteUser(ctx context.Context, actor identity.Actor, invitati
 			Name:                 invitedUserName,
 			HashedPassword:       nil,
 			PasswordCreationTime: now,
+			PasswordVersion:      uuid.New(),
 			Role:                 identity.RoleMember,
 			Status:               identity.StatusInvited,
 			GitHubOAuthID:        nil,

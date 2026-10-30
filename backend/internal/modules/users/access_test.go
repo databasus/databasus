@@ -3,11 +3,15 @@ package users_test
 import (
 	"net/http"
 	"testing"
+	"time"
 
+	"github.com/golang-jwt/jwt/v4"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 
 	"databasus-backend/internal/app/apptest"
 	apiclient "databasus-backend/internal/lib/apiclient"
+	"databasus-backend/internal/lib/crypto"
 )
 
 func TestAccessMark(t *testing.T) {
@@ -74,4 +78,43 @@ func TestPasswordPathsWithoutSession(t *testing.T) {
 		require.Equal(t, http.StatusNotFound, readStatus)
 		require.Equal(t, http.StatusNotFound, setStatus)
 	})
+}
+
+func TestSessionPasswordVersion(t *testing.T) {
+	t.Parallel()
+	for _, scenario := range []struct {
+		name    string
+		version any
+	}{
+		{name: "refuses a timestamp-only session after upgrade", version: nil},
+		{name: "refuses a session with a zero password version", version: uuid.Nil.String()},
+		{name: "refuses a session with a malformed password version", version: "invalid"},
+		{name: "refuses a session with a numeric password version", version: 123},
+		{name: "refuses a session with another password version", version: uuid.NewString()},
+	} {
+		t.Run(scenario.name, func(t *testing.T) {
+			t.Parallel()
+			app := apptest.New(t)
+			admin := app.CreateAdmin(t)
+			masterKey, err := crypto.OpenOrCreateMasterKey(app.GetServerConfig().SecretKeyPath)
+			require.NoError(t, err)
+			claims := jwt.MapClaims{
+				"sub": admin.UserID.String(), "exp": app.Clock.Now().Add(time.Hour).Unix(),
+				"passwordCreationTime": app.Clock.Now().Unix(),
+			}
+			if scenario.version != nil {
+				claims["passwordVersion"] = scenario.version
+			}
+			token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(masterKey.GetSecret()))
+			require.NoError(t, err)
+			response := getUser(t, app.NewSessionClient(t, token), admin.UserID)
+			requireProblem(
+				t,
+				response.StatusCode(),
+				response.Body,
+				http.StatusUnauthorized,
+				apiclient.ProblemCodeUnauthenticated,
+			)
+		})
+	}
 }

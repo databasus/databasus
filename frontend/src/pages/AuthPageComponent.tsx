@@ -20,7 +20,7 @@ export function AuthPageComponent() {
   const [hasAnyUser, setHasAnyUser] = useState(true);
   const [authMode, setAuthMode] = useState<
     'signIn' | 'signUp' | 'requestReset' | 'resetPassword' | 'signInCode'
-  >('signUp');
+  >('signIn');
   const [resetEmail, setResetEmail] = useState('');
   const [pendingSignIn, setPendingSignIn] = useState<PendingSignIn | undefined>(undefined);
   const [isLoading, setLoading] = useState(true);
@@ -38,6 +38,7 @@ export function AuthPageComponent() {
       .isAnyUserExists()
       .then((isAnyUserFound) => {
         setHasAnyUser(isAnyUserFound);
+        setAuthMode(isAnyUserFound ? 'signIn' : 'signUp');
         setLoading(false);
       })
       .catch((e) => {

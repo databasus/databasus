@@ -937,7 +937,7 @@ export const zh: typeof en = {
         passwordsDoNotMatch: '两次输入的新密码不一致',
         changing: '正在修改密码…',
         submit: '修改密码',
-        signedInWithNewPassword: '已使用新密码登录',
+        signInRequired: '密码已更改。请使用新密码重新登录。',
       },
     },
     list: {

@@ -122,7 +122,6 @@ func TestCompletePasswordReset(t *testing.T) {
 	t.Run("ends the sessions issued before the reset", func(t *testing.T) {
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
-		app.Clock.Advance(2 * time.Second)
 		code := requestResetCode(t, app, admin.Email)
 
 		completed := completePasswordReset(t, app, admin.Email, code, resetPassword)
@@ -131,6 +130,31 @@ func TestCompletePasswordReset(t *testing.T) {
 		response := getUser(t, admin.Client, admin.UserID)
 		requireProblem(t, response.StatusCode(), response.Body, http.StatusUnauthorized,
 			apiclient.ProblemCodeUnauthenticated)
+	})
+
+	t.Run("invalidates a pending code after a password reset at the same clock instant", func(t *testing.T) {
+		app, admin := newTwoFactorApp(t)
+		pending := startTwoFactorSignIn(t, app, admin.Email)
+		pendingCode := readLatestMailedCode(t, app, admin.Email)
+		resetCode := requestResetCode(t, app, admin.Email)
+		completed := completePasswordReset(t, app, admin.Email, resetCode, resetPassword)
+		require.Equal(t, http.StatusNoContent, completed.StatusCode(), string(completed.Body))
+		verified := verifySignInCode(t, app, pending.PendingSignInId, pendingCode)
+		requireProblem(
+			t,
+			verified.StatusCode(),
+			verified.Body,
+			http.StatusGone,
+			apiclient.ProblemCodePendingSignInNotUsable,
+		)
+		freshPending := requireCodeRequired(t, signIn(t, app, admin.Email, resetPassword))
+		freshVerified := verifySignInCode(
+			t,
+			app,
+			freshPending.PendingSignInId,
+			readLatestMailedCode(t, app, admin.Email),
+		)
+		require.Equal(t, http.StatusOK, freshVerified.StatusCode(), string(freshVerified.Body))
 	})
 
 	t.Run("returns 400 invalid_reset_code for a wrong code and keeps the right one usable", func(t *testing.T) {

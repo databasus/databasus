@@ -986,7 +986,7 @@ export const ru: typeof en = {
         passwordsDoNotMatch: 'Новые пароли не совпадают',
         changing: 'Меняем пароль...',
         submit: 'Сменить пароль',
-        signedInWithNewPassword: 'Вы вошли с новым паролем',
+        signInRequired: 'Пароль изменён. Войдите снова с новым паролем.',
       },
     },
     list: {

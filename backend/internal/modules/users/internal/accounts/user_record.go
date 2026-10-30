@@ -18,6 +18,7 @@ type UserRecord struct {
 	Email                string          `gorm:"column:email"`
 	Name                 string          `gorm:"column:name"`
 	HashedPassword       *string         `gorm:"column:hashed_password"`
+	PasswordVersion      uuid.UUID       `gorm:"column:password_version"`
 	PasswordCreationTime time.Time       `gorm:"column:password_creation_time"`
 	Role                 identity.Role   `gorm:"column:role"`
 	Status               identity.Status `gorm:"column:status"`
