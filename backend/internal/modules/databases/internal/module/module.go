@@ -196,3 +196,11 @@ func getConnectionSettings[S providers.ConnectionSettings](
 func (m *Module) GetPostgresqlLogicalVersions(ctx context.Context, ids []uuid.UUID) (map[uuid.UUID]string, error) {
 	return m.logicalDatabases.GetVersions(ctx, ids)
 }
+
+func (m *Module) LockDatabaseForBackup(ctx context.Context, databaseID uuid.UUID) error {
+	return m.databases.LockDatabaseForBackup(ctx, databaseID)
+}
+
+func (m *Module) ResetBackupHistory(ctx context.Context, databaseID uuid.UUID) error {
+	return m.databases.ResetBackupHistory(ctx, databaseID)
+}

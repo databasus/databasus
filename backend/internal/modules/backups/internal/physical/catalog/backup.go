@@ -16,12 +16,13 @@ const (
 )
 
 type Backup struct {
-	Kind             BackupKind `gorm:"column:kind;type:text;not null"`
-	ParentBackupID   *uuid.UUID `gorm:"column:parent_backup_id;type:uuid"`
-	RootFullBackupID *uuid.UUID `gorm:"column:root_full_backup_id;type:uuid"`
-	ID               uuid.UUID  `gorm:"column:id;type:uuid;primaryKey;default:gen_random_uuid()"`
-	DatabaseID       uuid.UUID  `gorm:"column:database_id;type:uuid;not null"`
-	StorageID        uuid.UUID  `gorm:"column:storage_id;type:uuid;not null"`
+	StorageGeneration int64      `gorm:"column:storage_generation"`
+	Kind              BackupKind `gorm:"column:kind;type:text;not null"`
+	ParentBackupID    *uuid.UUID `gorm:"column:parent_backup_id;type:uuid"`
+	RootFullBackupID  *uuid.UUID `gorm:"column:root_full_backup_id;type:uuid"`
+	ID                uuid.UUID  `gorm:"column:id;type:uuid;primaryKey;default:gen_random_uuid()"`
+	DatabaseID        uuid.UUID  `gorm:"column:database_id;type:uuid;not null"`
+	StorageID         uuid.UUID  `gorm:"column:storage_id;type:uuid;not null"`
 
 	TimelineID int `gorm:"column:timeline_id;type:int;not null"`
 
@@ -54,4 +55,14 @@ type Backup struct {
 
 func (Backup) TableName() string {
 	return "backups_physical"
+}
+
+func (b *Backup) GetManifestFileName() string {
+	if b.ManifestFileName != nil && *b.ManifestFileName != "" {
+		return *b.ManifestFileName
+	}
+	if b.FileName != nil && *b.FileName != "" {
+		return *b.FileName + ManifestSuffix
+	}
+	return ""
 }

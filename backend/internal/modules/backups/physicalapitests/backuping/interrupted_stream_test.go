@@ -37,6 +37,7 @@ func terminateFullBackupStream(t *testing.T, isHoldingConnectionTerminated bool)
 		"CREATE TABLE interrupted_backup_payload AS SELECT string_agg(md5(random()::text),'') AS payload FROM generate_series(1,1000000) entry GROUP BY entry/32",
 	)
 	require.NoError(t, seedErr)
+	installStorageWriteBarrier(t, team.App)
 	storageLock := team.App.BeginSQLTransaction(t)
 	var storageIDs []string
 	storageLock.QuerySQL(t, &storageIDs, "SELECT id FROM storages WHERE id=? FOR NO KEY UPDATE", team.StorageID)

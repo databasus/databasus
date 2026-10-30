@@ -23,6 +23,7 @@ import (
 	"databasus-backend/internal/lib/clock"
 	"databasus-backend/internal/lib/crypto"
 	"databasus-backend/internal/lib/database"
+	"databasus-backend/internal/modules/backups/internal/config"
 	"databasus-backend/internal/modules/backups/internal/physical/catalog"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/storages"
@@ -31,6 +32,7 @@ import (
 const walSegmentUploadTimeout = 2 * time.Minute
 
 type WalUploadDeps struct {
+	Publication         config.PublicationFence
 	Clock               clock.Source
 	Transactor          *database.Transactor
 	DatabaseID          uuid.UUID
@@ -91,7 +93,7 @@ func (u *WalUploader) ProcessSegment(ctx context.Context, localPath, walFilename
 
 	claimStartedAt := u.deps.Clock.Now()
 
-	inserted, err := u.deps.WalSegmentRepo.ClaimInsert(ctx, claim, u.deps.Clock.Now())
+	inserted, err := u.claimSegment(ctx, claim)
 	if err != nil {
 		return fmt.Errorf("claim wal segment: %w", err)
 	}
@@ -132,7 +134,7 @@ func (u *WalUploader) RecoverSegment(ctx context.Context, localPath, walFilename
 
 	claimStartedAt := u.deps.Clock.Now()
 
-	inserted, err := u.deps.WalSegmentRepo.ClaimInsert(ctx, claim, u.deps.Clock.Now())
+	inserted, err := u.claimSegment(ctx, claim)
 	if err != nil {
 		return fmt.Errorf("claim wal segment: %w", err)
 	}
@@ -470,6 +472,9 @@ type commitSegmentSpec struct {
 
 func (u *WalUploader) commitSegment(ctx context.Context, spec commitSegmentSpec) (bool, error) {
 	err := u.deps.Transactor.Transaction(ctx, func(ctx context.Context) error {
+		if err := u.deps.Publication.Validate(ctx); err != nil {
+			return err
+		}
 		err := u.deps.BackupStatus.RecordBackupSuccess(ctx, u.deps.DatabaseID, spec.Claim.ReceivedAt)
 		if err != nil {
 			return err
@@ -492,7 +497,8 @@ func (u *WalUploader) commitSegment(ctx context.Context, spec commitSegmentSpec)
 
 		return u.deps.FileStore.ConfirmFileWrites(ctx, spec.Receipts)
 	})
-	if errors.Is(err, errSegmentClaimLost) || errors.Is(err, databases.ErrDatabaseNotFound) {
+	if errors.Is(err, config.ErrStaleStoragePublication) || errors.Is(err, errSegmentClaimLost) ||
+		errors.Is(err, databases.ErrDatabaseNotFound) {
 		return false, nil
 	}
 
@@ -684,4 +690,17 @@ func nilIfEmpty(s string) *string {
 	}
 
 	return &s
+}
+
+func (u *WalUploader) claimSegment(ctx context.Context, claim *catalog.WalSegment) (bool, error) {
+	var isInserted bool
+	err := u.deps.Transactor.Transaction(ctx, func(ctx context.Context) error {
+		if err := u.deps.Publication.Validate(ctx); err != nil {
+			return err
+		}
+		var err error
+		isInserted, err = u.deps.WalSegmentRepo.ClaimInsert(ctx, claim, u.deps.Clock.Now())
+		return err
+	})
+	return isInserted, err
 }

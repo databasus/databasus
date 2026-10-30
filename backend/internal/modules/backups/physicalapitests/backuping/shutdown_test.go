@@ -91,7 +91,7 @@ func TestCancelDispatchedPhysicalBackup(t *testing.T) {
 		func(t *testing.T) {
 			team := newBackupTeam(t, backupTeamSpec{})
 			backup, releaseStorage := startHeldPhysicalStream(t, team, "full")
-			resume := suspendBackupProcess(t, backup.ID)
+			resume := apptest.SuspendPhysicalBackupProcess(t, backup.ID)
 			releaseStorage()
 			cancelPhysicalBackup(t, team, backup)
 			require.Equal(t, "CANCELED", findPhysicalBackup(t, team, backup).Status)
@@ -105,11 +105,13 @@ func TestCancelDispatchedPhysicalBackup(t *testing.T) {
 
 	t.Run("ends the backup when cancellation immediately follows a scheduler pass", func(t *testing.T) {
 		team := newBackupTeam(t, backupTeamSpec{})
+		releaseStorage := holdStorageWrites(t, team)
 		team.trigger(t, "full")
 		team.App.RunJobPass(t, "backups_physical_scheduler")
 		backups := team.listBackups(t)
 		require.Len(t, backups, 1)
 		cancelPhysicalBackup(t, team, backups[0])
+		releaseStorage()
 		team.App.WaitForPhysicalBackups(t)
 		listed := findPhysicalBackup(t, team, backups[0])
 		assert.Contains(t, []string{"ERROR", "CANCELED"}, listed.Status)
@@ -125,10 +127,7 @@ func startHeldPhysicalStream(t *testing.T, team *backupTeam, kind string) (backu
 		"CREATE TABLE shutdown_backup_payload AS SELECT string_agg(md5(random()::text),'') AS payload FROM generate_series(1,1000000) entry GROUP BY entry/32",
 	)
 	require.NoError(t, err)
-	storageLock := team.App.BeginSQLTransaction(t)
-	var storageIDs []string
-	storageLock.QuerySQL(t, &storageIDs, "SELECT id FROM storages WHERE id=? FOR NO KEY UPDATE", team.StorageID)
-	require.Len(t, storageIDs, 1)
+	releaseStorage := holdStorageWrites(t, team)
 	team.trigger(t, kind)
 	team.App.RunJobPass(t, "backups_physical_scheduler")
 	var backup backupRow
@@ -149,7 +148,7 @@ func startHeldPhysicalStream(t *testing.T, team *backupTeam, kind string) (backu
 		}
 		return fmt.Errorf("no in-progress physical backup")
 	})
-	return backup, func() { storageLock.Rollback(t) }
+	return backup, releaseStorage
 }
 
 func cancelPhysicalBackup(t *testing.T, team *backupTeam, backup backupRow) {

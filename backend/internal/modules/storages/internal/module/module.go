@@ -106,3 +106,18 @@ func (m *Module) SubscribeToStorageTransferring(handler storage.TransferringHand
 func (m *Module) GetJobs() []background.Job {
 	return []background.Job{m.deletionJob.GetJob()}
 }
+
+func (m *Module) RequestDeletionBatch(
+	ctx context.Context,
+	request files.DeletionBatchRequest,
+) (files.DeletionBatch, error) {
+	return m.files.RequestDeletionBatch(ctx, request)
+}
+
+func (m *Module) GetDeletionBatches(ctx context.Context, ids []uuid.UUID) ([]files.DeletionBatch, error) {
+	return m.files.GetDeletionBatches(ctx, ids)
+}
+
+func (m *Module) GetPendingFileReferences(ctx context.Context, prefix string) ([]files.StoredFileReference, error) {
+	return m.files.GetPendingFileReferences(ctx, prefix)
+}

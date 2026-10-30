@@ -1,4 +1,5 @@
 import { getApiClient, requireData, requireSuccess } from '../../../../shared/api';
+import type { components } from '../../../../shared/api/schema.gen';
 import type { BackupConfig } from '../model/BackupConfig';
 import type { BackupConfigInput } from '../model/BackupConfigInput';
 import type { DatabaseTransfer } from '../model/DatabaseTransfer';
@@ -49,7 +50,10 @@ export const backupConfigApi = {
     );
   },
 
-  async updateBackupConfig(databaseId: string, input: BackupConfigInput): Promise<BackupConfig> {
+  async updateBackupConfig(
+    databaseId: string,
+    input: BackupConfigInput,
+  ): Promise<BackupConfig | components['schemas']['StorageSwitch']> {
     return requireData(
       await getApiClient().PUT('/backup-configs/{databaseId}', {
         params: { path: { databaseId } },
@@ -58,12 +62,30 @@ export const backupConfigApi = {
     );
   },
 
-  async transferDatabase(databaseId: string, transfer: DatabaseTransfer): Promise<void> {
-    requireSuccess(
-      await getApiClient().POST('/databases/{databaseId}/transfer', {
-        params: { path: { databaseId } },
-        body: transfer,
-      }),
+  async transferDatabase(
+    databaseId: string,
+    transfer: DatabaseTransfer,
+  ): Promise<components['schemas']['StorageSwitch'] | undefined> {
+    const response = await getApiClient().POST('/databases/{databaseId}/transfer', {
+      params: { path: { databaseId } },
+      body: transfer,
+    });
+    requireSuccess(response);
+    return response.data;
+  },
+
+  async hasBackupHistory(databaseId: string, isPhysical: boolean): Promise<boolean> {
+    if (isPhysical) {
+      const page = requireData(
+        await getApiClient().GET('/physical-backups', {
+          params: { query: { databaseId, limit: 1 } },
+        }),
+      );
+      return page.items.length > 0;
+    }
+    const page = requireData(
+      await getApiClient().GET('/logical-backups', { params: { query: { databaseId, limit: 1 } } }),
     );
+    return page.items.length > 0;
   },
 };

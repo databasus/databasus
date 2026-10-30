@@ -347,6 +347,15 @@ func waitForRestorableBackupStatus(
 
 		readBackup = *response.JSON200
 		if readBackup.Status != status {
+			if readBackup.Status != apiclient.LogicalBackupStatusINPROGRESS {
+				require.Equal(
+					t,
+					status,
+					readBackup.Status,
+					"the logical backup reached a terminal status: %v",
+					readBackup.FailMessage,
+				)
+			}
 			return fmt.Errorf("%w: %s, fail message %v", errLogicalBackupNotFinal, readBackup.Status,
 				readBackup.FailMessage)
 		}

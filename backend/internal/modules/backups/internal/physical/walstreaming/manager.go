@@ -55,6 +55,8 @@ type Manager struct {
 	lastChainAlertAt         chainAlertThrottle
 }
 type runningStreamer struct {
+	claimID              uuid.UUID
+	storageGeneration    int64
 	cancel               context.CancelFunc
 	done                 chan struct{}
 	watchDir             string
@@ -82,6 +84,16 @@ func (s *Manager) GetLiveState(ctx context.Context,
 	liveState := streamer.walStreamer.GetLiveState(ctx, now)
 
 	return &liveState, true
+}
+
+func (s *Manager) GetStreamerCancellation(databaseID uuid.UUID) context.CancelFunc {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	streamer := s.running[databaseID]
+	if streamer == nil {
+		return nil
+	}
+	return streamer.cancel
 }
 
 func (s *Manager) Start(ctx context.Context) {
@@ -151,16 +163,42 @@ func (s *Manager) ensureStreamerRunning(
 	backupConfig config.PhysicalBackupConfig,
 ) {
 	s.mu.Lock()
-	_, alreadyRunning := s.running[backupConfig.DatabaseID]
+	running, alreadyRunning := s.running[backupConfig.DatabaseID]
 	s.mu.Unlock()
 
 	if alreadyRunning {
+		if running.storageGeneration != backupConfig.StorageGeneration || running.storageID != *backupConfig.StorageID {
+			running.shouldRemoveWatchDir.Store(true)
+			running.cancel()
+		}
 		return
 	}
 
-	claimed, err := s.walStreamerRepo.ClaimIfClaimable(
-		ctx, backupConfig.DatabaseID, int(streamhealth.StreamerHeartbeatStaleness.Seconds()), s.clock.Now(),
-	)
+	claimID := uuid.New()
+	var claimed bool
+	err := s.transactor.Transaction(ctx, func(ctx context.Context) error {
+		if err := s.configs.CheckStoragePublication(
+			ctx,
+			config.StoragePublication{
+				DatabaseID: backupConfig.DatabaseID,
+				StorageID:  *backupConfig.StorageID,
+				Generation: backupConfig.StorageGeneration,
+			},
+		); err != nil {
+			return err
+		}
+		var err error
+		claimed, err = s.walStreamerRepo.ClaimIfClaimable(
+			ctx,
+			catalog.StreamerClaim{
+				DatabaseID:       backupConfig.DatabaseID,
+				ClaimID:          claimID,
+				StalenessSeconds: int(streamhealth.StreamerHeartbeatStaleness.Seconds()),
+				Now:              s.clock.Now(),
+			},
+		)
+		return err
+	})
 	if err != nil {
 		logger.ErrorContext(ctx, "claim failed", slog.Any("error", err))
 
@@ -171,18 +209,25 @@ func (s *Manager) ensureStreamerRunning(
 		return
 	}
 
-	s.startStreamer(ctx, logger, backupConfig)
+	s.startStreamer(ctx, logger, streamerStart{Config: backupConfig, ClaimID: claimID})
+}
+
+type streamerStart struct {
+	Config  config.PhysicalBackupConfig
+	ClaimID uuid.UUID
 }
 
 func (s *Manager) startStreamer(
 	ctx context.Context,
 	logger *slog.Logger,
-	backupConfig config.PhysicalBackupConfig,
+	start streamerStart,
 ) {
+	backupConfig := start.Config
+	claimID := start.ClaimID
 	db, err := s.getDatabase(ctx, backupConfig.DatabaseID)
 	if err != nil {
 		logger.ErrorContext(ctx, "failed to load database for streamer", slog.Any("error", err))
-		s.releaseClaim(ctx, logger, backupConfig.DatabaseID)
+		s.releaseClaim(ctx, logger, claimID)
 
 		return
 	}
@@ -194,7 +239,7 @@ func (s *Manager) startStreamer(
 			"failed to read the connection settings of the physical database",
 			slog.Any("error", err),
 		)
-		s.releaseClaim(ctx, logger, backupConfig.DatabaseID)
+		s.releaseClaim(ctx, logger, claimID)
 
 		return
 	}
@@ -202,14 +247,14 @@ func (s *Manager) startStreamer(
 	storage, err := getStorage(ctx, s.storages, *backupConfig.StorageID)
 	if err != nil {
 		logger.ErrorContext(ctx, "failed to load storage for streamer", slog.Any("error", err))
-		s.releaseClaim(ctx, logger, backupConfig.DatabaseID)
+		s.releaseClaim(ctx, logger, claimID)
 
 		return
 	}
 
 	masterKey, ok := s.resolveMasterKey(logger, backupConfig)
 	if !ok {
-		s.releaseClaim(ctx, logger, backupConfig.DatabaseID)
+		s.releaseClaim(ctx, logger, claimID)
 
 		return
 	}
@@ -220,7 +265,7 @@ func (s *Manager) startStreamer(
 	tunnel, err := pgphysical.NewSource(connectionSettings.Engine).OpenTunnel(tunnelCtx, logger)
 	if err != nil {
 		logger.ErrorContext(ctx, "failed to open ssh tunnel to the source cluster", slog.Any("error", err))
-		s.releaseClaim(ctx, logger, backupConfig.DatabaseID)
+		s.releaseClaim(ctx, logger, claimID)
 
 		return
 	}
@@ -232,6 +277,7 @@ func (s *Manager) startStreamer(
 	streamerCtx = logging.With(streamerCtx, slog.Any("database_id", db.ID))
 	done := make(chan struct{})
 	streamer := &runningStreamer{
+		claimID: claimID, storageGeneration: backupConfig.StorageGeneration,
 		cancel:    cancel,
 		done:      done,
 		watchDir:  filepath.Join(s.walQueueDir, db.ID.String()),
@@ -244,7 +290,17 @@ func (s *Manager) startStreamer(
 	})
 
 	supervisor := NewStreamer(WalStreamSpec{
-		Clock: s.clock, Transactor: s.transactor,
+		ClaimID: claimID,
+		Publication: config.PublicationFence{
+			Configs: s.configs,
+			Publication: config.StoragePublication{
+				DatabaseID: backupConfig.DatabaseID,
+				StorageID:  *backupConfig.StorageID,
+				Generation: backupConfig.StorageGeneration,
+			},
+		},
+		Clock:                     s.clock,
+		Transactor:                s.transactor,
 		ClientTools:               pgshared.ClientTools{Root: s.clientToolsDir},
 		DatabaseID:                db.ID,
 		SourceDB:                  sourceThroughTunnel,
@@ -281,9 +337,11 @@ func (s *Manager) startStreamer(
 	s.runs.Go(streamerCtx, "physical_wal_streamer", func(ctx context.Context) error {
 		defer finish()
 		defer func() {
-			s.taskCancellationRegistry.Unregister(db.ID)
 			s.mu.Lock()
-			delete(s.running, db.ID)
+			if s.running[db.ID] == streamer {
+				s.taskCancellationRegistry.Unregister(db.ID)
+				delete(s.running, db.ID)
+			}
 			s.mu.Unlock()
 			close(done)
 		}()
@@ -302,7 +360,7 @@ func (s *Manager) startStreamer(
 
 			if markErr := s.walStreamerRepo.MarkFailed(
 				context.WithoutCancel(ctx),
-				db.ID,
+				claimID,
 				s.clock.Now(),
 			); markErr != nil {
 				logger.ErrorContext(ctx, "failed to mark streamer failed", slog.Any("error", markErr))
@@ -310,7 +368,7 @@ func (s *Manager) startStreamer(
 		}
 
 		if runErr == nil || ctx.Err() != nil {
-			if err := s.walStreamerRepo.MarkStopped(context.WithoutCancel(ctx), db.ID); err != nil {
+			if err := s.walStreamerRepo.MarkStopped(context.WithoutCancel(ctx), claimID); err != nil {
 				logger.ErrorContext(ctx, "failed to record stopped wal streamer", slog.Any("error", err))
 			}
 		}
@@ -356,7 +414,19 @@ func (s *Manager) slotRebuildFullRequester(
 	backupConfig config.PhysicalBackupConfig,
 ) func(context.Context, string) error {
 	return func(_ context.Context, reason string) error {
-		if err := s.configs.RequestFullBackup(ctx, backupConfig.DatabaseID); err != nil {
+		if err := s.transactor.Transaction(ctx, func(ctx context.Context) error {
+			if err := s.configs.CheckStoragePublication(
+				ctx,
+				config.StoragePublication{
+					DatabaseID: backupConfig.DatabaseID,
+					StorageID:  *backupConfig.StorageID,
+					Generation: backupConfig.StorageGeneration,
+				},
+			); err != nil {
+				return err
+			}
+			return s.configs.RequestFullBackup(ctx, backupConfig.DatabaseID)
+		}); err != nil {
 			return err
 		}
 
@@ -506,14 +576,14 @@ func (s *Manager) stopStreamer(ctx context.Context, databaseID uuid.UUID, should
 func (s *Manager) heartbeatOwnedStreamers(ctx context.Context) {
 	s.mu.Lock()
 	owned := make([]uuid.UUID, 0, len(s.running))
-	for databaseID := range s.running {
-		owned = append(owned, databaseID)
+	for _, streamer := range s.running {
+		owned = append(owned, streamer.claimID)
 	}
 	s.mu.Unlock()
 
-	for _, databaseID := range owned {
-		if err := s.walStreamerRepo.Heartbeat(ctx, databaseID, s.clock.Now()); err != nil {
-			s.logger.ErrorContext(ctx, "heartbeat failed", slog.Any("database_id", databaseID), slog.Any("error", err))
+	for _, claimID := range owned {
+		if err := s.walStreamerRepo.Heartbeat(ctx, claimID, s.clock.Now()); err != nil {
+			s.logger.ErrorContext(ctx, "heartbeat failed", slog.Any("claim_id", claimID), slog.Any("error", err))
 		}
 	}
 }
@@ -533,8 +603,8 @@ func (s *Manager) removeWatchDirIfRequested(ctx context.Context, logger *slog.Lo
 	}
 }
 
-func (s *Manager) releaseClaim(ctx context.Context, logger *slog.Logger, databaseID uuid.UUID) {
-	if err := s.walStreamerRepo.MarkFailed(ctx, databaseID, s.clock.Now()); err != nil {
+func (s *Manager) releaseClaim(ctx context.Context, logger *slog.Logger, claimID uuid.UUID) {
+	if err := s.walStreamerRepo.MarkFailed(ctx, claimID, s.clock.Now()); err != nil {
 		logger.ErrorContext(ctx, "failed to release streamer claim", slog.Any("error", err))
 	}
 }

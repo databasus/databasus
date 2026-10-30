@@ -1,9 +1,14 @@
 import { CheckCircleOutlined, ExclamationCircleOutlined, SwapOutlined } from '@ant-design/icons';
-import { Button, Modal, Radio, Select, Spin } from 'antd';
+import { Alert, Button, Modal, Radio, Select, Spin } from 'antd';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { type DatabaseTransfer, backupConfigApi } from '../../../entity/backups/config';
+import {
+  type DatabaseTransfer,
+  backupConfigApi,
+  StorageSwitchHistoryComponent,
+  type StorageSwitch,
+} from '../../../entity/backups/config';
 import { type Database, databaseApi } from '../../../entity/databases';
 import type { Notifier } from '../../../entity/notifiers';
 import { notifierApi } from '../../../entity/notifiers';
@@ -69,6 +74,7 @@ export const DatabaseTransferDialogComponent = ({
   const [notifierSelectKey, setNotifierSelectKey] = useState(0);
 
   const [isTransferring, setIsTransferring] = useState(false);
+  const [acceptedSwitch, setAcceptedSwitch] = useState<StorageSwitch>();
 
   const hasCurrentStorage = !!currentStorageId;
   const hasCurrentNotifiers = database.notifierIds.length > 0;
@@ -168,14 +174,15 @@ export const DatabaseTransferDialogComponent = ({
     setIsTransferring(true);
 
     try {
-      await backupConfigApi.transferDatabase(database.id, transfer);
+      const operation = await backupConfigApi.transferDatabase(database.id, transfer);
       ToastHelper.showToast({
         title: t('databases.transfer.transferred.title'),
         description: t('databases.transfer.transferred.description', {
           name: database.name,
         }),
       });
-      onTransferred();
+      if (operation) setAcceptedSwitch(operation);
+      else onTransferred();
     } catch (e) {
       alert(translateApiError(e, t));
     }
@@ -220,11 +227,23 @@ export const DatabaseTransferDialogComponent = ({
       }
       footer={null}
       open={true}
-      onCancel={onClose}
+      onCancel={acceptedSwitch ? onTransferred : onClose}
       maskClosable={false}
       width={550}
     >
-      {isLoading ? (
+      {acceptedSwitch ? (
+        <>
+          <div>
+            {targetStorages.find((storage) => storage.id === acceptedSwitch.targetStorageId)?.name}
+          </div>
+          <StorageSwitchHistoryComponent
+            workspaceId={acceptedSwitch.workspaceId}
+            databaseId={database.id}
+            initialOperation={acceptedSwitch}
+          />
+          <Button onClick={onTransferred}>{t('common.actions.close')}</Button>
+        </>
+      ) : isLoading ? (
         <div className="flex justify-center py-5">
           <Spin />
         </div>
@@ -429,6 +448,9 @@ export const DatabaseTransferDialogComponent = ({
             </>
           )}
 
+          {storageOption === 'select' && selectedStorageId && (
+            <Alert type="warning" showIcon message={t('backups.storageSwitch.warning')} />
+          )}
           {/* Action Buttons */}
           <div className="mt-5 flex gap-2">
             <Button type="default" onClick={onClose}>

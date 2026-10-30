@@ -292,3 +292,25 @@ func toDatabases(rows []databaseRow) []Database {
 
 	return databases
 }
+
+func (r *databaseRepository) lockDatabaseForBackup(ctx context.Context, databaseID uuid.UUID) (bool, error) {
+	var ids []uuid.UUID
+	if err := database.Conn(ctx, r.db).
+		Raw("SELECT id FROM databases WHERE id=? FOR UPDATE", databaseID).
+		Scan(&ids).
+		Error; err != nil {
+		return false, fmt.Errorf("lock database for backup: %w", err)
+	}
+	return len(ids) > 0, nil
+}
+
+func (r *databaseRepository) resetBackupHistory(ctx context.Context, databaseID uuid.UUID) error {
+	for _, column := range []string{"last_backup_time", "last_backup_error_message"} {
+		if err := database.Conn(ctx, r.db).
+			Exec("UPDATE databases SET "+column+"=NULL WHERE id=?", databaseID).
+			Error; err != nil {
+			return fmt.Errorf("reset backup history indicators: %w", err)
+		}
+	}
+	return nil
+}

@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -23,6 +24,7 @@ func TestTransferDatabase(t *testing.T) {
 		databaseID := tm.insertLogicalDatabase(t)
 		storageID := tm.createLocalStorage(t)
 		saveLogicalBackupConfig(t, tm.owner, databaseID, storageID)
+		backup := insertLogicalBackupInStorage(t, tm, databaseID, storageID, "COMPLETED")
 
 		response := requestDatabaseTransfer(t, tm.owner, databaseID,
 			newDatabaseTransfer(t, targetWorkspace.Id, newStorageMovedWithDatabase(t)))
@@ -33,9 +35,15 @@ func TestTransferDatabase(t *testing.T) {
 		assert.Empty(t, listWorkspaceDatabaseIDs(t, tm.owner, tm.workspace.Id))
 		assert.Empty(t, listWorkspaceStorageIDs(t, tm.owner, tm.workspace.Id))
 		assert.Equal(t, &storageID, apptest.GetBackupConfig(t, tm.owner, databaseID).StorageId)
+		assert.Contains(t, listLogicalBackupIDs(t, tm.owner, databaseID), backup.id)
+		assert.True(t, tm.app.IsLocalStorageFilePresent(t, backup.fileName))
+		tm.app.Clock.Advance(time.Hour)
+		tm.app.RunJobPass(t, storageFileDeletionJobName)
+		assert.Contains(t, listLogicalBackupIDs(t, tm.owner, databaseID), backup.id)
+		assert.True(t, tm.app.IsLocalStorageFilePresent(t, backup.fileName))
 	})
 
-	t.Run("switches the config to the target storage and keeps the backups in the previous storage",
+	t.Run("removes the old catalog and files when switching to the target storage",
 		func(t *testing.T) {
 			tm := newTeam(t)
 			targetWorkspace := tm.createWorkspace(t)
@@ -43,19 +51,24 @@ func TestTransferDatabase(t *testing.T) {
 			sourceStorageID := tm.createLocalStorage(t)
 			targetStorageID := tm.app.CreateLocalStorage(t, tm.owner, targetWorkspace.Id)
 			saveLogicalBackupConfig(t, tm.owner, databaseID, sourceStorageID)
-			keptBackup := insertLogicalBackupInStorage(t, tm, databaseID, sourceStorageID, "COMPLETED")
+			removedBackup := insertLogicalBackupInStorage(t, tm, databaseID, sourceStorageID, "COMPLETED")
 
 			response := requestDatabaseTransfer(t, tm.owner, databaseID,
 				newDatabaseTransfer(t, targetWorkspace.Id, newStorageSwitchedOnTransfer(t, targetStorageID)))
 
-			require.Equal(t, http.StatusNoContent, response.StatusCode(), string(response.Body))
+			require.Equal(t, http.StatusAccepted, response.StatusCode(), string(response.Body))
 			assert.Equal(t, []uuid.UUID{databaseID}, listWorkspaceDatabaseIDs(t, tm.owner, targetWorkspace.Id))
 			assert.Equal(t, []uuid.UUID{sourceStorageID}, listWorkspaceStorageIDs(t, tm.owner, tm.workspace.Id))
 			assert.Equal(t, &targetStorageID, apptest.GetBackupConfig(t, tm.owner, databaseID).StorageId)
-			assert.Equal(t, 1, countRows(t, tm,
-				"SELECT COUNT(*) FROM backups_logical WHERE id = ? AND storage_id = ?", keptBackup.id, sourceStorageID))
+			assert.Zero(t, countRows(
+				t,
+				tm,
+				"SELECT COUNT(*) FROM backups_logical WHERE id = ? AND storage_id = ?",
+				removedBackup.id,
+				sourceStorageID,
+			))
 			tm.app.RunJobPass(t, storageFileDeletionJobName)
-			assert.True(t, tm.app.IsLocalStorageFilePresent(t, keptBackup.fileName))
+			assert.False(t, tm.app.IsLocalStorageFilePresent(t, removedBackup.fileName))
 		})
 
 	t.Run("saves the default config with the target storage when the config was never saved", func(t *testing.T) {
@@ -68,7 +81,7 @@ func TestTransferDatabase(t *testing.T) {
 		response := requestDatabaseTransfer(t, tm.owner, databaseID,
 			newDatabaseTransfer(t, targetWorkspace.Id, newStorageSwitchedOnTransfer(t, targetStorageID)))
 
-		require.Equal(t, http.StatusNoContent, response.StatusCode(), string(response.Body))
+		require.Equal(t, http.StatusAccepted, response.StatusCode(), string(response.Body))
 		assert.Equal(t, []uuid.UUID{databaseID}, listWorkspaceDatabaseIDs(t, tm.owner, targetWorkspace.Id))
 
 		switchedConfig := apptest.GetBackupConfig(t, tm.owner, databaseID)
@@ -103,7 +116,7 @@ func TestTransferDatabase(t *testing.T) {
 		transfer.IsMovingNotifiers = true
 		response := requestDatabaseTransfer(t, tm.owner, databaseID, transfer)
 
-		require.Equal(t, http.StatusNoContent, response.StatusCode(), string(response.Body))
+		require.Equal(t, http.StatusAccepted, response.StatusCode(), string(response.Body))
 		assert.Equal(t, []uuid.UUID{ownNotifier.Id}, listWorkspaceNotifierIDs(t, tm.owner, targetWorkspace.Id))
 		assert.Equal(t, []uuid.UUID{sharedNotifier.Id}, listWorkspaceNotifierIDs(t, tm.owner, tm.workspace.Id))
 		assert.Equal(t, []uuid.UUID{neighbourDatabaseID}, listWorkspaceDatabaseIDs(t, tm.owner, tm.workspace.Id))
@@ -125,7 +138,7 @@ func TestTransferDatabase(t *testing.T) {
 		transfer.TargetNotifierIds = &[]uuid.UUID{targetNotifier.Id}
 		response := requestDatabaseTransfer(t, tm.owner, databaseID, transfer)
 
-		require.Equal(t, http.StatusNoContent, response.StatusCode(), string(response.Body))
+		require.Equal(t, http.StatusAccepted, response.StatusCode(), string(response.Body))
 		assert.Equal(t, []uuid.UUID{targetNotifier.Id}, listAttachedNotifierIDsOfDatabase(t, tm, databaseID))
 		assert.Equal(t, []uuid.UUID{sourceNotifier.Id}, listWorkspaceNotifierIDs(t, tm.owner, tm.workspace.Id))
 	})

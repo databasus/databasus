@@ -2,7 +2,11 @@ import { Button, Modal, Spin } from 'antd';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { type BackupConfig, backupConfigApi } from '../../../entity/backups/config';
+import {
+  type BackupConfig,
+  backupConfigApi,
+  StorageSwitchHistoryComponent,
+} from '../../../entity/backups/config';
 import { databaseApi, sortUnavailableDatabasesFirst } from '../../../entity/databases';
 import type { Database } from '../../../entity/databases';
 import { type Storage, storageApi } from '../../../entity/storages';
@@ -152,6 +156,7 @@ export const DatabasesComponent = ({ contentHeight, workspace, isCanManageDBs }:
 
   return (
     <>
+      <StorageSwitchHistoryComponent workspaceId={workspace.id} />
       <div className="flex grow">
         {showDatabaseList && (
           <div

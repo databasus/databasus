@@ -122,6 +122,8 @@ type Module interface {
 
 	// The status writes change one column each, and refuse to run on a missing database. A success
 	// never moves the last backup time backwards and clears the last backup error.
+	LockDatabaseForBackup(ctx context.Context, databaseID uuid.UUID) error
+	ResetBackupHistory(ctx context.Context, databaseID uuid.UUID) error
 	RecordBackupSuccess(ctx context.Context, databaseID uuid.UUID, backupTime time.Time) error
 	RecordBackupFailure(ctx context.Context, databaseID uuid.UUID, message string) error
 	SetHealthStatus(ctx context.Context, databaseID uuid.UUID, status *HealthStatus) error

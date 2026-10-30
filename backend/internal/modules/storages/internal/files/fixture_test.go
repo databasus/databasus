@@ -78,12 +78,15 @@ func newTestFilesWithTimings(t *testing.T, timings Timings) *testFiles {
 	uploads := background.New(background.Deps{Logger: logger})
 
 	deps := Deps{
-		Repository: repository,
-		Locator:    locator,
-		Logger:     logger,
-		Clock:      manualClock,
-		Timings:    timings,
-		Uploads:    uploads,
+		Repository:      repository,
+		Batches:         NewDeletionBatchRepository(db),
+		WriteProtection: NewWriteProtectionRepository(db),
+		Transactor:      database.NewTransactor(db),
+		Locator:         locator,
+		Logger:          logger,
+		Clock:           manualClock,
+		Timings:         timings,
+		Uploads:         uploads,
 	}
 	store := NewStore(deps)
 	job := NewDeletionJob(store, deps)
@@ -181,15 +184,16 @@ func referencesOf(rows []PendingDeletion) []StoredFileReference {
 }
 
 type fakeProvider struct {
-	mutex      sync.Mutex
-	saveErr    error
-	deleteErr  error
-	saved      []string
-	contents   map[string][]byte
-	deleted    []string
-	onSave     func()
-	onDelete   func()
-	savePanics bool
+	mutex           sync.Mutex
+	saveErr         error
+	deleteErr       error
+	saved           []string
+	contents        map[string][]byte
+	deleted         []string
+	onSave          func()
+	onDelete        func()
+	onDeleteContext func(context.Context)
+	savePanics      bool
 }
 
 func (p *fakeProvider) SaveFile(_ context.Context, file providers.FileAccess, content io.Reader) error {
@@ -233,7 +237,10 @@ func (p *fakeProvider) OpenFile(_ context.Context, file providers.FileAccess) (i
 	return io.NopCloser(bytes.NewReader(content)), nil
 }
 
-func (p *fakeProvider) DeleteFile(_ context.Context, file providers.FileAccess) error {
+func (p *fakeProvider) DeleteFile(ctx context.Context, file providers.FileAccess) error {
+	if p.onDeleteContext != nil {
+		p.onDeleteContext(ctx)
+	}
 	if p.onDelete != nil {
 		p.onDelete()
 	}

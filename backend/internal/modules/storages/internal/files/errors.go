@@ -3,6 +3,7 @@ package files
 import "errors"
 
 var (
+	ErrWriteProtectionLost = errors.New("storage file write protection was lost")
 	// ErrFileNameAlreadyRegistered means that either a cascading removal reached the file before its
 	// write started, or a second writer picked the same name, which per-attempt naming makes a defect.
 	ErrFileNameAlreadyRegistered = errors.New("file name is already registered for cleanup")

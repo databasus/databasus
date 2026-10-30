@@ -1424,6 +1424,24 @@ export const fr: typeof en = {
     },
   },
   backups: {
+    storageSwitch: {
+      history: 'Historique des changements de stockage',
+      pending:
+        'Le stockage a été changé. Les anciens fichiers sont en cours de suppression en arrière-plan.',
+      completed: 'Nettoyage terminé',
+      remainders:
+        'Le stockage a été changé, mais la suppression de certains anciens fichiers n’a pas pu être confirmée. Supprimez-les manuellement de l’ancien stockage.',
+      target: 'Stockage après le changement : {{storageId}}',
+      database: 'Base de données : {{databaseId}}',
+      counts:
+        'Fichiers : {{total}}. En attente : {{pending}}. Supprimés : {{deleted}}. Restants : {{remaining}}.',
+      retry: 'Actualiser le statut',
+      empty: 'Aucun changement de stockage.',
+      more: 'Afficher plus',
+      warning:
+        'Changer de stockage supprime immédiatement l’ancien historique des sauvegardes et le nouveau stockage est utilisé aussitôt. Les fichiers sont supprimés en arrière-plan, dans la limite de cinq tentatives échouées et de 24 heures. Si l’ancien stockage est inaccessible, des fichiers peuvent y rester. Les fichiers restants doivent être supprimés manuellement. Les nouvelles sauvegardes physiques commencent par une FULL.',
+      confirm: 'Changer de stockage et supprimer l’historique',
+    },
     encryption: {
       none: 'Aucun',
       encrypted: 'Activé',
@@ -1466,9 +1484,6 @@ export const fr: typeof en = {
       addStorageTitle: 'Ajouter un stockage',
       storageDescription:
         "Un stockage est l'endroit où les sauvegardes sont conservées (disque local, S3, Google Drive, etc.)",
-      storageChangeWarning:
-        'Si vous changez de stockage, toutes les sauvegardes de ce stockage seront supprimées.',
-      storageChangeAcknowledge: "J'ai compris",
       encryption: 'Chiffrement',
       notifications: 'Notifications',
       noNotifications: 'Aucune',

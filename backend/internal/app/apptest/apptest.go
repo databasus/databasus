@@ -41,6 +41,7 @@ type App struct {
 	databaseDsn               string
 	secretKeyPath             string
 	app                       *app.App
+	environment               *app.Environment
 	stopModules               context.CancelFunc
 	cancelPhysicalLoops       context.CancelFunc
 	physicalRunner            *background.Runner
@@ -202,6 +203,7 @@ func New(tb testing.TB, options ...Option) *App {
 		databaseDsn:               databaseDsn,
 		secretKeyPath:             appConfig.SecretKeyPath,
 		app:                       createdApp,
+		environment:               environment,
 		stopModules:               stopModules,
 		cancelPhysicalLoops:       nil,
 		physicalRunner:            nil,

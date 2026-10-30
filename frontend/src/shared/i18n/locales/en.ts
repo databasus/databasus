@@ -1383,6 +1383,23 @@ export const en = {
     },
   },
   backups: {
+    storageSwitch: {
+      history: 'Storage switch history',
+      pending: 'Storage switched. Old files are being cleaned up.',
+      completed: 'Cleanup completed',
+      remainders:
+        'Storage switched successfully, but deletion of some old files could not be confirmed. Remove these files manually from the old storage.',
+      target: 'Storage after switch: {{storageId}}',
+      database: 'Database: {{databaseId}}',
+      counts:
+        'Files: {{total}}. Pending: {{pending}}. Deleted: {{deleted}}. Remaining: {{remaining}}.',
+      retry: 'Retry status',
+      empty: 'No storage switches.',
+      more: 'Show more',
+      warning:
+        'Switching storage removes the old backup history immediately. The new storage becomes active immediately. Files are deleted in the background, with up to five failed attempts and a 24-hour limit. If the old storage is unreachable, files may remain. Any remaining files must be removed manually. New physical backups start with a FULL.',
+      confirm: 'Switch storage and remove history',
+    },
     encryption: {
       none: 'None',
       encrypted: 'Enabled',
@@ -1425,9 +1442,6 @@ export const en = {
       addStorageTitle: 'Add storage',
       storageDescription:
         'Storage - is a place where backups will be stored (local disk, S3, Google Drive, etc.)',
-      storageChangeWarning:
-        'If you change the storage, all backups in this storage will be deleted.',
-      storageChangeAcknowledge: 'I understand',
       encryption: 'Encryption',
       notifications: 'Notifications',
       noNotifications: 'None',

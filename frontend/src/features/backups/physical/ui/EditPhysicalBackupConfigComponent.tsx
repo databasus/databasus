@@ -10,6 +10,8 @@ import {
   type Schedule,
   ScheduleType,
   backupConfigApi,
+  StorageSwitchHistoryComponent,
+  type StorageSwitch,
   isScheduleFilled,
   toPhysicalBackupConfigInput,
 } from '../../../../entity/backups/config';
@@ -127,6 +129,9 @@ export const EditPhysicalBackupConfigComponent = ({
   const [isShowCreateStorage, setShowCreateStorage] = useState(false);
   const [storageSelectKey, setStorageSelectKey] = useState(0);
 
+  const [savedStorageId, setSavedStorageId] = useState<string | null>(null);
+  const [hasHistory, setHasHistory] = useState<boolean | undefined>(undefined);
+  const [acceptedSwitch, setAcceptedSwitch] = useState<StorageSwitch>();
   const [isShowWarn, setIsShowWarn] = useState(false);
 
   // DB-level strategy lives on the database, not the config. It decides which
@@ -209,6 +214,7 @@ export const EditPhysicalBackupConfigComponent = ({
 
   const showBackupConfig = (shownBackupConfig: PhysicalBackupConfigInput) => {
     setBackupConfig(shownBackupConfig);
+    setSavedStorageId(shownBackupConfig.storageId);
     setFullBackupsRetention(
       shownBackupConfig.settings.retention.fullBackups ?? DEFAULT_FULL_BACKUPS_RETENTION,
     );
@@ -222,15 +228,35 @@ export const EditPhysicalBackupConfigComponent = ({
     if (isSaveToApi) {
       setIsSaving(true);
       try {
-        await backupConfigApi.updateBackupConfig(database.id, configToSave);
+        const saved = await backupConfigApi.updateBackupConfig(database.id, configToSave);
+        if ('targetStorageId' in saved) setAcceptedSwitch(saved);
+        setSavedStorageId(configToSave.storageId);
+        setHasHistory(
+          await backupConfigApi.hasBackupHistory(database.id, true).catch(() => undefined),
+        );
         setIsUnsaved(false);
       } catch (e) {
         alert(translateApiError(e, t));
+        setIsSaving(false);
+        return;
       }
       setIsSaving(false);
     }
 
     onSaved(configToSave);
+  };
+
+  const confirmSaveBackupConfig = () => {
+    if (
+      isSaveToApi &&
+      backupConfig?.storageId &&
+      backupConfig.storageId !== savedStorageId &&
+      (savedStorageId !== null || hasHistory !== false)
+    ) {
+      setIsShowWarn(true);
+      return;
+    }
+    void saveBackupConfig();
   };
 
   const loadStorages = async () => {
@@ -277,6 +303,7 @@ export const EditPhysicalBackupConfigComponent = ({
             await backupConfigApi.getBackupConfig(database.id),
           );
           if (loadedBackupConfig) showBackupConfig(loadedBackupConfig);
+          setHasHistory(await backupConfigApi.hasBackupHistory(database.id, true));
           setIsUnsaved(false);
           setIsSaving(false);
         } else {
@@ -337,7 +364,7 @@ export const EditPhysicalBackupConfigComponent = ({
 
   const isAllFieldsFilled =
     !backupConfig.isBackupsEnabled ||
-    (Boolean(backupConfig.storageId) &&
+    ((isSaveToApi || Boolean(backupConfig.storageId)) &&
       Boolean(backupConfig.encryption) &&
       isScheduleFilled(settings.fullBackupSchedule) &&
       (!isIncrementalAllowed || isScheduleFilled(settings.incrementalBackupSchedule)) &&
@@ -392,18 +419,15 @@ export const EditPhysicalBackupConfigComponent = ({
         <div className="flex w-full items-center">
           <Select
             key={storageSelectKey}
+            allowClear={isSaveToApi}
             value={backupConfig.storageId ?? undefined}
             onChange={(storageId) => {
-              if (storageId.includes('create-new-storage')) {
+              if (storageId?.includes('create-new-storage')) {
                 setShowCreateStorage(true);
                 return;
               }
 
-              updateBackupConfig({ storageId });
-
-              if (backupConfig.storageId) {
-                setIsShowWarn(true);
-              }
+              updateBackupConfig({ storageId: storageId ?? null });
             }}
             size="small"
             className="mr-2 max-w-[200px] grow"
@@ -707,7 +731,7 @@ export const EditPhysicalBackupConfigComponent = ({
         <Button
           type="primary"
           className={`${isShowCancelButton ? 'ml-1' : 'ml-auto'} mr-5`}
-          onClick={saveBackupConfig}
+          onClick={confirmSaveBackupConfig}
           loading={isSaving}
           disabled={!isAllFieldsFilled || (isSaveToApi && !isUnsaved)}
         >
@@ -736,27 +760,32 @@ export const EditPhysicalBackupConfigComponent = ({
             isShowClose={false}
             onClose={() => setShowCreateStorage(false)}
             onChanged={async (createdStorage) => {
-              const hadExistingStorage = !!backupConfig?.storageId;
               await loadStorages();
               updateBackupConfig({ storageId: createdStorage.id });
               setShowCreateStorage(false);
-              if (hadExistingStorage) {
-                setIsShowWarn(true);
-              }
             }}
           />
         </Modal>
       )}
 
+      {isSaveToApi && database.id && (
+        <StorageSwitchHistoryComponent
+          workspaceId={database.workspaceId}
+          databaseId={database.id}
+          initialOperation={acceptedSwitch}
+        />
+      )}
       {isShowWarn && (
         <ConfirmationComponent
-          onConfirm={() => setIsShowWarn(false)}
+          onConfirm={() => {
+            setIsShowWarn(false);
+            void saveBackupConfig();
+          }}
           onDecline={() => setIsShowWarn(false)}
-          description={t('backups.config.storageChangeWarning')}
+          description={t('backups.storageSwitch.warning')}
           actionButtonColor="red"
-          actionText={t('backups.config.storageChangeAcknowledge')}
+          actionText={t('backups.storageSwitch.confirm')}
           cancelText={t('common.actions.cancel')}
-          hideCancelButton
         />
       )}
     </div>

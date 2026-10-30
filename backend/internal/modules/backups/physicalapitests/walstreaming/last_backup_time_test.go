@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -31,6 +32,8 @@ func TestPhysicalBackupTimeAfterWal(t *testing.T) {
 			"SELECT pg_advisory_xact_lock(hashtextextended('physical-backup:' || ?::text,0))",
 			team.Database.Id,
 		)
+		var backupLockOwner int
+		backupLock.QuerySQL(t, &backupLockOwner, "SELECT pg_backend_pid()")
 		team.call(
 			t,
 			apptest.PhysicalStartRequest(team.Database.Id, "FULL"),
@@ -41,32 +44,25 @@ func TestPhysicalBackupTimeAfterWal(t *testing.T) {
 		go func() { team.App.RunJobPass(t, "backups_physical_scheduler"); scheduled <- struct{}{} }()
 		testwait.Until(t, "the next full waits after choosing its start time", func(context.Context) error {
 			var waiting int
-			team.App.QuerySQL(t, &waiting, `SELECT count(*) FROM pg_locks
-				WHERE NOT granted AND locktype='advisory'
-				AND database=(SELECT oid FROM pg_database WHERE datname=current_database())`)
+			team.App.QuerySQL(t, &waiting, `SELECT count(*) FROM pg_locks waiting
+				JOIN pg_locks held USING (locktype, database, classid, objid, objsubid)
+				WHERE NOT waiting.granted AND held.granted AND held.pid=?
+				AND waiting.locktype='advisory'`, backupLockOwner)
 			if waiting == 0 {
 				return fmt.Errorf("the full has not reached the backup lock")
 			}
 			return nil
 		})
-		var firstWalCount int
-		team.App.QuerySQL(
-			t,
-			&firstWalCount,
-			"SELECT count(*) FROM backups_physical_wal_segments WHERE database_id=? AND file_name IS NOT NULL",
-			team.Database.Id,
-		)
+		fullWaitingAt := time.Now().UTC()
 		rotateWal(t, source)
 		testwait.Until(t, "a real WAL upload commits after the full chose its start time", func(context.Context) error {
-			var count int
-			team.App.QuerySQL(
-				t,
-				&count,
-				"SELECT count(*) FROM backups_physical_wal_segments WHERE database_id=? AND file_name IS NOT NULL",
-				team.Database.Id,
-			)
-			if count <= firstWalCount {
-				return fmt.Errorf("no later WAL commit")
+			database, err := team.Owner.Client.GetDatabaseWithResponse(t.Context(), team.Database.Id)
+			if err != nil {
+				return err
+			}
+			require.NotNil(t, database.JSON200)
+			if database.JSON200.LastBackupTime == nil || !database.JSON200.LastBackupTime.After(fullWaitingAt) {
+				return fmt.Errorf("no WAL received after the full began waiting has committed")
 			}
 			return nil
 		})
@@ -105,7 +101,7 @@ func TestPhysicalBackupTimeAfterWal(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, database.JSON200)
 		require.NotNil(t, database.JSON200.LastBackupTime)
-		assert.True(t, walTime.Equal(*database.JSON200.LastBackupTime))
+		assert.Equal(t, walTime, *database.JSON200.LastBackupTime)
 		for _, backup := range team.listBackups(t) {
 			if backup.Type == "FULL" {
 				assert.Equal(t, "COMPLETED", backup.Status)

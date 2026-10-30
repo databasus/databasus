@@ -1408,6 +1408,24 @@ export const pt: typeof en = {
     },
   },
   backups: {
+    storageSwitch: {
+      history: 'Histórico de trocas de armazenamento',
+      pending:
+        'O armazenamento foi alterado. Os arquivos antigos estão sendo excluídos em segundo plano.',
+      completed: 'Limpeza concluída',
+      remainders:
+        'O armazenamento foi alterado com sucesso, mas não foi possível confirmar a exclusão de alguns arquivos antigos. Exclua-os manualmente do armazenamento anterior.',
+      target: 'Armazenamento após a troca: {{storageId}}',
+      database: 'Banco de dados: {{databaseId}}',
+      counts:
+        'Arquivos: {{total}}. Pendentes: {{pending}}. Excluídos: {{deleted}}. Restantes: {{remaining}}.',
+      retry: 'Consultar status novamente',
+      empty: 'Nenhuma troca de armazenamento.',
+      more: 'Mostrar mais',
+      warning:
+        'Ao trocar o armazenamento, o histórico anterior de backups é removido imediatamente e o novo armazenamento entra em uso na hora. Os arquivos são excluídos em segundo plano, com limite de cinco tentativas malsucedidas e 24 horas. Se o armazenamento anterior estiver inacessível, alguns arquivos poderão permanecer nele. Os arquivos restantes devem ser removidos manualmente. Os novos backups físicos começam com um FULL.',
+      confirm: 'Trocar armazenamento e remover histórico',
+    },
     encryption: {
       none: 'Nenhuma',
       encrypted: 'Ativada',
@@ -1450,9 +1468,6 @@ export const pt: typeof en = {
       addStorageTitle: 'Adicionar armazenamento',
       storageDescription:
         'Armazenamento é o lugar onde os backups ficam guardados (disco local, S3, Google Drive, etc.)',
-      storageChangeWarning:
-        'Se você trocar o armazenamento, todos os backups guardados nele serão excluídos.',
-      storageChangeAcknowledge: 'Entendi',
       encryption: 'Criptografia',
       notifications: 'Notificações',
       noNotifications: 'Nenhuma',

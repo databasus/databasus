@@ -1,3 +1,4 @@
+export { storageSwitchApi } from './api/storageSwitchApi';
 export { backupConfigApi } from './api/backupConfigApi';
 export type { BackupConfig } from './model/BackupConfig';
 export type { BackupConfigInput } from './model/BackupConfigInput';
@@ -13,3 +14,6 @@ export type { DatabaseTransfer } from './model/DatabaseTransfer';
 export { BackupSettingsType } from './model/BackupSettingsType';
 export { toLogicalBackupConfigInput } from './model/toLogicalBackupConfigInput';
 export { toPhysicalBackupConfigInput } from './model/toPhysicalBackupConfigInput';
+export type { StorageSwitch } from './model/StorageSwitch';
+export { STORAGE_SWITCH_STATUS_LABEL_KEYS } from './model/StorageSwitchStatusLabelKeys';
+export { StorageSwitchHistoryComponent } from './ui/StorageSwitchHistoryComponent';

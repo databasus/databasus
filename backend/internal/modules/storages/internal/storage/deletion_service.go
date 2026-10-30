@@ -94,6 +94,9 @@ func (s *Service) deleteAndDrainFiles(ctx context.Context, deletedStorage Storag
 	}
 
 	leftBehindFileNames := s.fileDeletions.DrainFiles(ctx, drainRequest)
+	if err := s.fileDeletions.SettleStorageDeletion(ctx, drainRequest, leftBehindFileNames); err != nil {
+		return err
+	}
 
 	err = s.audit.recordAs(ctx, author, deletedStorage.WorkspaceID, "Storage deleted: "+deletedStorage.Name)
 	if err != nil {

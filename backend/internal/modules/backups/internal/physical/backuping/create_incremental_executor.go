@@ -78,10 +78,17 @@ func (uc *IncrementalExecutor) Execute(
 	// Every codec attempt gets its own object key, and the row has to carry it
 	// before the bytes leave, or a failed attempt leaves a file nothing names.
 	mintAndSaveAttemptName := func() (string, error) {
-		attemptName := buildObjectName(label, uuid.New())
+		attemptName := buildObjectName(
+			backupObjectName{DatabaseID: spec.SourceDB.DatabaseID, Label: label, AttemptID: uuid.New()},
+		)
 
 		spec.Backup.FileName = &attemptName
-		if err := spec.BackupRepo.UpdateAttemptFileName(context.WithoutCancel(ctx), spec.Backup); err != nil {
+		if err := spec.Transactor.Transaction(context.WithoutCancel(ctx), func(ctx context.Context) error {
+			if err := spec.Publication.Validate(ctx); err != nil {
+				return err
+			}
+			return spec.BackupRepo.UpdateAttemptFileName(ctx, spec.Backup)
+		}); err != nil {
 			return "", fmt.Errorf("persist file_name at upload-start: %w", err)
 		}
 

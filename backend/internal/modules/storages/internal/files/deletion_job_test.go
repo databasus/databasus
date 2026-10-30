@@ -14,6 +14,31 @@ import (
 
 func TestRunPass(t *testing.T) {
 	t.Parallel()
+	t.Run("persists timeout failures and backs off ordinary deletions", func(t *testing.T) {
+		t.Parallel()
+		files := newTestFiles(t)
+		reference := StoredFileReference{StorageID: files.createStorage(t), FileName: "timed-out.dump"}
+		files.requestDeletions(t, reference)
+		files.provider.onDelete = func() { files.clock.Advance(testTimings().AttemptLease) }
+		files.provider.setDeleteErr(context.DeadlineExceeded)
+
+		files.runPass(t)
+
+		pending, isPending := files.findPending(t, reference)
+		require.True(t, isPending)
+		require.NotNil(t, pending.LastError)
+		assert.Equal(t, context.DeadlineExceeded.Error(), *pending.LastError)
+		assert.Equal(t, files.clock.Now().Add(testTimings().RetryBaseDelay), pending.NotBefore.UTC())
+		assert.Equal(t, 1, pending.AttemptCount)
+		files.runPass(t)
+		pending, _ = files.findPending(t, reference)
+		assert.Equal(t, 1, pending.AttemptCount)
+		files.clock.Advance(testTimings().RetryBaseDelay)
+		files.runPass(t)
+		pending, _ = files.findPending(t, reference)
+		assert.Equal(t, 2, pending.AttemptCount)
+		assert.Equal(t, files.clock.Now().Add(2*testTimings().RetryBaseDelay), pending.NotBefore.UTC())
+	})
 
 	t.Run("deletes a due file and releases its obligation", func(t *testing.T) {
 		t.Parallel()
@@ -262,12 +287,15 @@ func TestGetRetryDelay(t *testing.T) {
 	t.Run("grows exponentially and stops at the maximum", func(t *testing.T) {
 		t.Parallel()
 		job := NewDeletionJob(nil, Deps{
-			Repository: nil,
-			Locator:    nil,
-			Logger:     nil,
-			Clock:      nil,
-			Timings:    Timings{RetryBaseDelay: 10 * time.Millisecond, RetryMaxDelay: 40 * time.Millisecond},
-			Uploads:    nil,
+			Repository:      nil,
+			Batches:         nil,
+			WriteProtection: nil,
+			Transactor:      nil,
+			Locator:         nil,
+			Logger:          nil,
+			Clock:           nil,
+			Timings:         Timings{RetryBaseDelay: 10 * time.Millisecond, RetryMaxDelay: 40 * time.Millisecond},
+			Uploads:         nil,
 		})
 		job.jitter = func(delay time.Duration) time.Duration { return delay }
 

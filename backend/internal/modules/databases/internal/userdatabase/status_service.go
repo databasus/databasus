@@ -47,3 +47,18 @@ func (s *Service) SetHealthStatus(ctx context.Context, databaseID uuid.UUID, sta
 
 	return nil
 }
+
+func (s *Service) LockDatabaseForBackup(ctx context.Context, databaseID uuid.UUID) error {
+	isFound, err := s.repository.lockDatabaseForBackup(ctx, databaseID)
+	if err != nil {
+		return err
+	}
+	if !isFound {
+		return ErrDatabaseNotFound
+	}
+	return nil
+}
+
+func (s *Service) ResetBackupHistory(ctx context.Context, databaseID uuid.UUID) error {
+	return s.repository.resetBackupHistory(ctx, databaseID)
+}

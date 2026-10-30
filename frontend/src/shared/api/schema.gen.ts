@@ -1003,9 +1003,52 @@ export interface paths {
         put?: never;
         /**
          * Move a database to another workspace
-         * @description Needs the role `WORKSPACE_MEMBER` or higher in both workspaces, because the move gives the target workspace's members the database's stored secrets. The database either takes its storage along or switches to a storage of the target workspace; a database whose config was never saved then gets the default config of its method with that storage. Moving the storage gets 409 `in_use` while another database backs up into it. The move happens completely or not at all.
+         * @description Needs the role `WORKSPACE_MEMBER` or higher in both workspaces, because the move gives the target workspace's members the database's stored secrets. The database either takes its storage along or switches to a storage of the target workspace; a database whose config was never saved then gets the default config of its method with that storage. Moving the storage gets 409 `in_use` while another database backs up into it. The move happens completely or not at all. SWITCH_TO_STORAGE commits removal of the old backup history and returns 202 with a StorageSwitch and Location header. File cleanup continues in the background. MOVE_WITH_DATABASE preserves history and returns 204.
          */
         post: operations["transferDatabase"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/storage-switches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List storage switches accepted in a workspace
+         * @description Needs WORKSPACE_VIEWER in the acceptance workspace. Instance admins can read without membership. Ordered newest first by acceptance time and ID. History remains available after database deletion or later transfers. Invalid limits or cursors get 400 invalid_request.
+         */
+        get: operations["listStorageSwitches"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/storage-switches/{storageSwitchId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The committed storage switch identity */
+                storageSwitchId: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * Read the current cleanup outcome of a committed storage switch
+         * @description Needs WORKSPACE_VIEWER in the workspace at acceptance, including after later transfers or database deletion. Instance admins can read without membership.
+         */
+        get: operations["getStorageSwitch"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1049,7 +1092,7 @@ export interface paths {
         get: operations["getBackupConfig"];
         /**
          * Save the backup config of a database
-         * @description Needs the role `WORKSPACE_MEMBER` or higher. The settings must be of the database's method, and a physical config must fit the database's physical backup type; otherwise the answer is 400 `invalid_request` with the field in `errors`. A storage that is not in the database's workspace gets 400 `invalid_request`. A logical config saved with another storage removes the database's logical backups in the same step, and gets 409 `in_use` while one of them is running.
+         * @description Needs the role `WORKSPACE_MEMBER` or higher. The settings must be of the database's method, and a physical config must fit the database's physical backup type; otherwise the answer is 400 `invalid_request` with the field in `errors`. A storage that is not in the database's workspace gets 400 `invalid_request`. A logical config saved with another storage removes the database's logical backups in the same step, and gets 409 `in_use` while one of them is running. Storage switches return 202 with the committed operation and a Location header; ordinary saves, clearing storage and initial assignments without history return 200.
          */
         put: operations["updateBackupConfig"];
         post?: never;
@@ -1618,6 +1661,40 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @description A committed storage change with the current durable cleanup outcome */
+        StorageSwitch: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            databaseId: string;
+            /** Format: uuid */
+            workspaceId: string;
+            /** Format: uuid */
+            previousStorageId?: string;
+            /** Format: uuid */
+            targetStorageId: string;
+            /** @enum {string} */
+            status: "CLEANUP_PENDING" | "COMPLETED" | "COMPLETED_WITH_REMAINDERS";
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            completedAt?: string;
+            /** Format: date-time */
+            cleanupDeadline: string;
+            /** Format: int64 */
+            total: number;
+            /** Format: int64 */
+            pending: number;
+            /** Format: int64 */
+            deleted: number;
+            /** Format: int64 */
+            remaining: number;
+        };
+        /** @description Storage switches ordered newest first by acceptance time and ID */
+        StorageSwitchPage: {
+            items: components["schemas"]["StorageSwitch"][];
+            nextCursor?: string;
+        };
         /** @description All editable settings for scheduled availability checks */
         HealthcheckConfigInput: {
             /** @description Whether scheduled availability checks are enabled */
@@ -3242,7 +3319,7 @@ export interface components {
              */
             type: "MOVE_WITH_DATABASE";
         };
-        /** @description The database switches to a storage of the target workspace; the backups in its previous storage stay there */
+        /** @description The database switches to a storage of the target workspace; the backups in its previous storage are removed from the catalog and their files are deleted in the background */
         StorageSwitchedOnTransfer: {
             /**
              * @description Always `SWITCH_TO_STORAGE` (enum property replaced by openapi-typescript)
@@ -5865,6 +5942,17 @@ export interface operations {
             };
         };
         responses: {
+            /** @description The storage switch is committed; file cleanup continues in the background */
+            202: {
+                headers: {
+                    /** @description The storage switch status resource */
+                    Location?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StorageSwitch"];
+                };
+            };
             /** @description The database belongs to the target workspace */
             204: {
                 headers: {
@@ -5877,6 +5965,67 @@ export interface operations {
             403: components["responses"]["Problem"];
             404: components["responses"]["Problem"];
             409: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    listStorageSwitches: {
+        parameters: {
+            query: {
+                /** @description The workspace at acceptance */
+                workspaceId: string;
+                /** @description Filter by the historical database identity */
+                databaseId?: string;
+                /** @description Maximum operations per page */
+                limit?: number;
+                /** @description The nextCursor of the previous page */
+                after?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The matching storage switches with current cleanup outcomes */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StorageSwitchPage"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    getStorageSwitch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The committed storage switch identity */
+                storageSwitchId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The storage switch with its current cleanup outcome */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StorageSwitch"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
             default: components["responses"]["Problem"];
         };
     };
@@ -5964,6 +6113,17 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BackupConfig"];
+                };
+            };
+            /** @description The storage switch is committed; file cleanup continues in the background */
+            202: {
+                headers: {
+                    /** @description The storage switch status resource */
+                    Location?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StorageSwitch"];
                 };
             };
             400: components["responses"]["Problem"];

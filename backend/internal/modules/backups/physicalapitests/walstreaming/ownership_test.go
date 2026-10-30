@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -30,6 +31,20 @@ func TestClaimPhysicalWalStreamer(t *testing.T) {
 			if status == "RUNNING" {
 				heartbeat = time.Now().UTC()
 			}
+			readConfig := apptest.GetBackupConfig(t, team.Owner, team.Database.Id)
+			saved, saveErr := team.Owner.Client.UpdateBackupConfigWithResponse(
+				t.Context(),
+				team.Database.Id,
+				apiclient.BackupConfigInput{
+					IsBackupsEnabled: false,
+					StorageId:        &team.StorageID,
+					Encryption:       readConfig.Encryption,
+					Settings:         readConfig.Settings,
+				},
+			)
+			require.NoError(t, saveErr)
+			require.Equal(t, http.StatusOK, saved.StatusCode(), "%s", saved.Body)
+
 			team.App.InsertPhysicalWalStreamer(
 				t,
 				apptest.PhysicalWalStreamerSeed{
@@ -124,5 +139,36 @@ func TestRecoverStalePhysicalWalStreamer(t *testing.T) {
 		)
 		assert.Equal(t, "FAILED", status)
 		assert.False(t, team.live(t).IsStreamerRunning)
+	})
+}
+
+func TestPhysicalWalClaimOwnership(t *testing.T) {
+	t.Parallel()
+	t.Run("keeps a newer claim running when the old streamer exits during restart", func(t *testing.T) {
+		team := newWalTeam(t, walTeamSpec{})
+		team.enable(t)
+		team.waitForReceiver(t)
+		claimID := uuid.New()
+		team.App.ExecuteSQL(
+			t,
+			"UPDATE backups_physical_wal_streamers SET claim_id=?,last_heartbeat_at=? WHERE database_id=?",
+			claimID,
+			time.Now().UTC(),
+			team.Database.Id,
+		)
+		team.App.RestartModules(t)
+		var persisted []struct {
+			ClaimID uuid.UUID
+			Status  string
+		}
+		team.App.QuerySQL(
+			t,
+			&persisted,
+			"SELECT claim_id,status FROM backups_physical_wal_streamers WHERE database_id=?",
+			team.Database.Id,
+		)
+		require.Len(t, persisted, 1)
+		assert.Equal(t, claimID, persisted[0].ClaimID)
+		assert.Equal(t, "RUNNING", persisted[0].Status)
 	})
 }

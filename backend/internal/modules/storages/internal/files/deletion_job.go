@@ -8,12 +8,14 @@ import (
 	// math/rand only adds retry jitter here, not anything secret.
 	// nosemgrep: go.lang.security.audit.crypto.math_random.math-random-used
 	"math/rand/v2"
+	"slices"
 	"time"
 
 	"github.com/google/uuid"
 
 	"databasus-backend/internal/lib/background"
 	"databasus-backend/internal/lib/clock"
+	"databasus-backend/internal/lib/database"
 	"databasus-backend/internal/lib/logging"
 )
 
@@ -37,6 +39,8 @@ type DrainRequest struct {
 type DeletionJob struct {
 	store      *Store
 	repository *PendingDeletionRepository
+	batches    *DeletionBatchRepository
+	transactor *database.Transactor
 	locator    StorageLocator
 	logger     *slog.Logger
 	clock      clock.Source
@@ -50,6 +54,8 @@ func NewDeletionJob(store *Store, deps Deps) *DeletionJob {
 	return &DeletionJob{
 		store:      store,
 		repository: deps.Repository,
+		batches:    deps.Batches,
+		transactor: deps.Transactor,
 		locator:    deps.Locator,
 		logger:     deps.Logger,
 		clock:      deps.Clock,
@@ -64,6 +70,15 @@ func (j *DeletionJob) GetJob() background.Job {
 
 // RunPass makes one pass over the due obligations.
 func (j *DeletionJob) RunPass(ctx context.Context, now time.Time) error {
+	err := j.transactor.Transaction(ctx, func(ctx context.Context) error {
+		if err := j.batches.Expire(ctx, now); err != nil {
+			return err
+		}
+		return j.batches.RemoveUnownedPending(ctx)
+	})
+	if err != nil {
+		return err
+	}
 	claimed, err := j.claimDue(ctx, now)
 	if err != nil {
 		return err
@@ -94,6 +109,21 @@ func (j *DeletionJob) PrepareDrain(
 	if err != nil {
 		return DrainRequest{}, err
 	}
+	remainingFileNames, err := j.batches.ListRemainingFiles(ctx, storageID)
+	if err != nil {
+		return DrainRequest{}, err
+	}
+	for _, fileName := range remainingFileNames {
+		if slices.ContainsFunc(
+			pendingDeletions,
+			func(pending PendingDeletion) bool { return pending.FileName == fileName },
+		) {
+			continue
+		}
+		var remaining PendingDeletion
+		remaining.StorageID, remaining.FileName = storageID, fileName
+		pendingDeletions = append(pendingDeletions, remaining)
+	}
 
 	return DrainRequest{Storage: located, PendingDeletions: pendingDeletions, Budget: budget}, nil
 }
@@ -116,6 +146,18 @@ func (j *DeletionJob) DrainFiles(ctx context.Context, request DrainRequest) []st
 
 			continue
 		}
+		canDelete, protectionErr := j.store.writeProtection.TryLockFileForDeletion(ctx, pending.GetReference())
+		if protectionErr != nil || !canDelete {
+			remainingFileNames = append(remainingFileNames, pending.FileName)
+			if protectionErr != nil {
+				j.logger.WarnContext(
+					ctx,
+					"failed to check storage file write protection",
+					slog.Any("error", protectionErr),
+				)
+			}
+			continue
+		}
 
 		attemptCtx, cancel := context.WithTimeout(ctx, j.timings.AttemptLease)
 		deleteErr := request.Storage.Provider.DeleteFile(
@@ -135,6 +177,27 @@ func (j *DeletionJob) DrainFiles(ctx context.Context, request DrainRequest) []st
 	}
 
 	return remainingFileNames
+}
+
+func (j *DeletionJob) SettleStorageDeletion(
+	ctx context.Context,
+	request DrainRequest,
+	remainingFileNames []string,
+) error {
+	confirmedFiles := []string{}
+	for _, pending := range request.PendingDeletions {
+		if !slices.Contains(remainingFileNames, pending.FileName) {
+			confirmedFiles = append(confirmedFiles, pending.FileName)
+		}
+	}
+	return j.batches.SettleStorage(
+		ctx,
+		StorageDeletionSettlement{
+			StorageID:      request.Storage.Location.StorageID,
+			ConfirmedFiles: confirmedFiles,
+			Now:            j.clock.Now(),
+		},
+	)
 }
 
 func (j *DeletionJob) claimDue(ctx context.Context, now time.Time) ([]PendingDeletion, error) {
@@ -161,10 +224,18 @@ func (j *DeletionJob) attemptDeletion(ctx context.Context, pending PendingDeleti
 		slog.String("file_name", pending.FileName),
 		slog.Int("attempt", pending.AttemptCount))
 
-	attemptCtx, cancel := context.WithTimeout(ctx, j.timings.AttemptLease)
+	duration, err := j.prepareAttempt(ctx, pending)
+	if err != nil {
+		j.logger.ErrorContext(ctx, "failed to prepare deletion attempt", slog.Any("error", err))
+		return
+	}
+	if duration <= 0 {
+		return
+	}
+	attemptCtx, cancel := context.WithTimeout(ctx, duration)
 	defer cancel()
 
-	err := j.deleteFromProvider(attemptCtx, pending)
+	err = j.deleteFromProvider(attemptCtx, pending)
 	if err == nil {
 		j.releaseDeletedFile(ctx, pending)
 
@@ -174,12 +245,43 @@ func (j *DeletionJob) attemptDeletion(ctx context.Context, pending PendingDeleti
 	retryDelay := j.getRetryDelay(pending.AttemptCount)
 	now := j.clock.Now()
 
-	isRescheduled, rescheduleErr := j.repository.RescheduleIfGeneration(ctx, Rescheduling{
-		PendingDeletionID: pending.ID,
-		Generation:        pending.Generation,
-		NotBefore:         now.Add(retryDelay),
-		Now:               now,
-	}, sanitizeError(err))
+	var isRescheduled bool
+	rescheduleErr := j.transactor.Transaction(ctx, func(ctx context.Context) error {
+		isCurrent, lockErr := j.repository.LockAttempt(
+			ctx,
+			AttemptLock{Pending: pending, Now: now, ShouldAllowExpired: true},
+		)
+		if lockErr != nil {
+			return lockErr
+		}
+		if batchErr := j.batches.FailFile(ctx, pending, now); batchErr != nil {
+			return batchErr
+		}
+		if !isCurrent {
+			if batchErr := j.batches.Expire(ctx, now); batchErr != nil {
+				return batchErr
+			}
+			return j.batches.RemoveUnownedPending(ctx)
+		}
+		var updateErr error
+		isRescheduled, updateErr = j.repository.RescheduleIfGeneration(
+			ctx,
+			Rescheduling{
+				PendingDeletionID: pending.ID,
+				Generation:        pending.Generation,
+				NotBefore:         now.Add(retryDelay),
+				Now:               now,
+			},
+			sanitizeError(err),
+		)
+		if updateErr != nil {
+			return updateErr
+		}
+		if batchErr := j.batches.Expire(ctx, now); batchErr != nil {
+			return batchErr
+		}
+		return j.batches.RemoveUnownedPending(ctx)
+	})
 	if rescheduleErr != nil {
 		j.logger.ErrorContext(ctx, "failed to reschedule a file deletion", slog.Any("error", rescheduleErr))
 
@@ -198,7 +300,23 @@ func (j *DeletionJob) attemptDeletion(ctx context.Context, pending PendingDeleti
 }
 
 func (j *DeletionJob) releaseDeletedFile(ctx context.Context, pending PendingDeletion) {
-	isReleased, err := j.repository.CompleteIfGeneration(ctx, pending.ID, pending.Generation)
+	var isReleased bool
+	err := j.transactor.Transaction(ctx, func(ctx context.Context) error {
+		now := j.clock.Now()
+		isCurrent, lockErr := j.repository.LockAttempt(
+			ctx,
+			AttemptLock{Pending: pending, Now: now, ShouldAllowExpired: false},
+		)
+		if lockErr != nil || !isCurrent {
+			return lockErr
+		}
+		if batchErr := j.batches.CompleteFile(ctx, pending, now); batchErr != nil {
+			return batchErr
+		}
+		var deleteErr error
+		isReleased, deleteErr = j.repository.CompleteIfGeneration(ctx, pending.ID, pending.Generation)
+		return deleteErr
+	})
 	if err != nil {
 		j.logger.ErrorContext(ctx, "failed to release a completed file deletion", slog.Any("error", err))
 
@@ -269,4 +387,21 @@ func sanitizeError(err error) string {
 	}
 
 	return string(message)
+}
+
+func (j *DeletionJob) prepareAttempt(ctx context.Context, pending PendingDeletion) (time.Duration, error) {
+	var duration time.Duration
+	err := j.transactor.Transaction(ctx, func(ctx context.Context) error {
+		now := j.clock.Now()
+		isCurrent, err := j.repository.LockAttempt(
+			ctx,
+			AttemptLock{Pending: pending, Now: now, ShouldAllowExpired: false},
+		)
+		if err != nil || !isCurrent {
+			return err
+		}
+		duration, err = j.batches.ClaimFile(ctx, pending, now)
+		return err
+	})
+	return duration, err
 }

@@ -47,8 +47,9 @@ const (
 
 // BackupConfig holds what the configs of both methods share.
 type BackupConfig struct {
-	DatabaseID       uuid.UUID
-	IsBackupsEnabled bool
+	StorageGeneration int64
+	DatabaseID        uuid.UUID
+	IsBackupsEnabled  bool
 	// StorageID is nil while the config names no storage.
 	StorageID            *uuid.UUID
 	Encryption           Encryption

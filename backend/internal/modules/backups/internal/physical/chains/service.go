@@ -439,7 +439,7 @@ func (s *Service) deleteIncrementalSet(
 			if err := s.requestFileDeletions(ctx, incremental.StorageID,
 				*incremental.FileName,
 				*incremental.FileName+metadataSuffix,
-				valueOrEmptyString(incremental.ManifestFileName),
+				incremental.GetManifestFileName(),
 			); err != nil {
 				return deleted, deletedMB, err
 			}
@@ -548,7 +548,7 @@ func (s *Service) deleteFullArtifactAndRow(
 		if err := s.requestFileDeletions(ctx, full.StorageID,
 			*full.FileName,
 			*full.FileName+metadataSuffix,
-			valueOrEmptyString(full.ManifestFileName),
+			full.GetManifestFileName(),
 		); err != nil {
 			return err
 		}
@@ -573,6 +573,10 @@ func (s *Service) requestFileDeletions(
 			storages.StoredFileReference{StorageID: storageID, FileName: fileName})
 	}
 
+	if captured, isCapturing := ctx.Value(storageSwitchFilesKey{}).(*storageSwitchFiles); isCapturing {
+		captured.references = append(captured.references, references...)
+		return nil
+	}
 	return s.storages.RequestFileDeletions(ctx, references)
 }
 
@@ -630,12 +634,4 @@ func reverseTopoOrderIncrementals(
 	}
 
 	return ordered
-}
-
-func valueOrEmptyString(value *string) string {
-	if value == nil {
-		return ""
-	}
-
-	return *value
 }

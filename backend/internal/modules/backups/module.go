@@ -31,6 +31,7 @@ import (
 	"databasus-backend/internal/modules/backups/internal/physical/walstreaming"
 	"databasus-backend/internal/modules/backups/internal/pipeline"
 	"databasus-backend/internal/modules/backups/internal/restore"
+	"databasus-backend/internal/modules/backups/internal/storageswitch"
 	"databasus-backend/internal/modules/backups/internal/transfer"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/notifiers"
@@ -40,6 +41,7 @@ import (
 )
 
 type (
+	SavedBackupConfig = config.SavedBackupConfig
 	// Method is how a database is backed up: physically for a physical PostgreSQL database, logically
 	// for every other one.
 	Method = config.Method
@@ -144,7 +146,7 @@ type Module interface {
 	ListEnabledPhysicalBackupConfigs(ctx context.Context) ([]PhysicalBackupConfig, error)
 	// SaveBackupConfig is the save of the contract's updateBackupConfig. It serves the old test helpers
 	// and the seed of the dev database.
-	SaveBackupConfig(ctx context.Context, actor users.Actor, config AnyBackupConfig) (AnyBackupConfig, error)
+	SaveBackupConfig(ctx context.Context, actor users.Actor, config AnyBackupConfig) (SavedBackupConfig, error)
 
 	OnStorageTransferring(ctx context.Context, event storages.StorageTransferring) error
 	OnDatabaseCopied(ctx context.Context, event databases.DatabaseCopied) error
@@ -204,6 +206,11 @@ func New(deps Deps) Module {
 	var physicalService *physical.Service
 	cancellations := background.NewCancellationRegistry()
 
+	switchService := storageswitch.NewService(storageswitch.Deps{
+		Repositories: storageswitch.NewRepositories(deps.DB), Storages: deps.Storages,
+		Workspaces: deps.Workspaces,
+	})
+
 	configService := config.NewService(config.Deps{
 		PhysicalConfigSaved: config.PhysicalConfigSavedReactionFunc(
 			func(ctx context.Context, previous *config.PhysicalBackupConfig, saved config.PhysicalBackupConfig) error {
@@ -217,9 +224,17 @@ func New(deps Deps) Module {
 		Workspaces:   deps.Workspaces,
 		Storages:     deps.Storages,
 		Databases:    deps.Databases,
-		LogicalBackups: config.LogicalBackupRemoverFunc(func(ctx context.Context, databaseID uuid.UUID) error {
-			return logicalService.RemoveBackupsForStorageChange(ctx, databaseID)
-		}),
+		PhysicalBackups: config.BackupHistoryRemoverFunc(
+			func(ctx context.Context, removal config.HistoryRemoval) (config.RemovedBackupHistory, error) {
+				return physicalService.RemoveBackupsForStorageChange(ctx, removal)
+			},
+		),
+		Switches: switchService,
+		LogicalBackups: config.BackupHistoryRemoverFunc(
+			func(ctx context.Context, removal config.HistoryRemoval) (config.RemovedBackupHistory, error) {
+				return logicalService.RemoveBackupsForStorageChange(ctx, removal)
+			},
+		),
 	})
 
 	// One group runs the backups, the restores and the download heartbeats, so the shutdown waits for
@@ -319,6 +334,7 @@ func New(deps Deps) Module {
 		Runs:           runs,
 		Handler: backupshttpapi.NewHandler(backupshttpapi.Deps{
 			PhysicalBackups: physicalService,
+			Switches:        switchService,
 			Configs:         configService,
 			Transfers: transfer.NewService(transfer.Deps{
 				Configs:    configService,

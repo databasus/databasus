@@ -9,6 +9,7 @@ import (
 	"databasus-backend/internal/lib/apierror"
 	"databasus-backend/internal/lib/database"
 	"databasus-backend/internal/modules/backups/internal/config"
+	"databasus-backend/internal/modules/backups/internal/storageswitch"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/modules/storages"
@@ -50,8 +51,13 @@ func NewService(deps Deps) *Service {
 
 // TransferDatabase needs the right to edit content in both workspaces, because the move gives the
 // target workspace's members the database's stored secrets.
-func (s *Service) TransferDatabase(ctx context.Context, actor users.Actor, transfer DatabaseTransfer) error {
-	return s.transactor.Transaction(ctx, func(ctx context.Context) error {
+func (s *Service) TransferDatabase(
+	ctx context.Context,
+	actor users.Actor,
+	transfer DatabaseTransfer,
+) (*storageswitch.Outcome, error) {
+	var operation *storageswitch.Outcome
+	err := s.transactor.Transaction(ctx, func(ctx context.Context) error {
 		transferredDatabase, err := s.getDatabase(ctx, transfer.DatabaseID)
 		if err != nil {
 			return err
@@ -88,7 +94,7 @@ func (s *Service) TransferDatabase(ctx context.Context, actor users.Actor, trans
 		if transfer.TargetStorageID == nil {
 			err = s.moveStorage(ctx, actor, transferredConfig.GetBackupConfig().StorageID, transfer.TargetWorkspaceID)
 		} else {
-			err = s.switchStorage(ctx, transfer)
+			operation, err = s.switchStorage(ctx, transfer)
 		}
 
 		if err != nil {
@@ -108,6 +114,7 @@ func (s *Service) TransferDatabase(ctx context.Context, actor users.Actor, trans
 
 		return nil
 	})
+	return operation, err
 }
 
 // moveStorage is refused with in_use by the configs' transfer check when another database backs up
@@ -128,17 +135,24 @@ func (s *Service) moveStorage(
 	})
 }
 
-func (s *Service) switchStorage(ctx context.Context, transfer DatabaseTransfer) error {
+func (s *Service) switchStorage(ctx context.Context, transfer DatabaseTransfer) (*storageswitch.Outcome, error) {
 	targetStorage, isFound, err := s.storages.GetStorageBlockingTransfer(ctx, *transfer.TargetStorageID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if !isFound || targetStorage.WorkspaceID != transfer.TargetWorkspaceID {
-		return ErrTargetStorageNotInTargetWorkspace
+		return nil, ErrTargetStorageNotInTargetWorkspace
 	}
 
-	return s.configs.SwitchStorage(ctx, transfer.DatabaseID, targetStorage.ID)
+	return s.configs.SwitchStorage(
+		ctx,
+		config.StorageSwitchAssignment{
+			DatabaseID:  transfer.DatabaseID,
+			StorageID:   targetStorage.ID,
+			WorkspaceID: transfer.TargetWorkspaceID,
+		},
+	)
 }
 
 // moveNotifiers moves each notifier under its own savepoint. A notifier another database uses is

@@ -118,7 +118,7 @@ func (r *PendingDeletionRepository) InsertOrTake(
 		INSERT INTO storages_pending_deletions (storage_id, file_name, not_before, created_at, updated_at)
 		VALUES %s
 		ON CONFLICT (storage_id, file_name) DO UPDATE
-		SET not_before = ?,
+		SET is_ordinary = true, not_before = ?,
 		    generation = storages_pending_deletions.generation + 1,
 		    updated_at = ?`, strings.Join(placeholders, ", "))
 
@@ -207,6 +207,7 @@ func (r *PendingDeletionRepository) ClaimDue(ctx context.Context, request ClaimR
 			SELECT id
 			FROM storages_pending_deletions
 			WHERE not_before <= ? %s
+			AND pg_try_advisory_xact_lock(hashtextextended('storages-file-write:' || storage_id::text || ':' || file_name,0))
 			ORDER BY not_before
 			LIMIT ?
 			FOR UPDATE SKIP LOCKED
@@ -311,4 +312,39 @@ func deduplicateReferences(references []StoredFileReference) []StoredFileReferen
 	}
 
 	return unique
+}
+
+type AttemptLock struct {
+	Pending            PendingDeletion
+	Now                time.Time
+	ShouldAllowExpired bool
+}
+
+func (r *PendingDeletionRepository) LockAttempt(
+	ctx context.Context,
+	lock AttemptLock,
+) (bool, error) {
+	var ids []uuid.UUID
+	err := database.Conn(ctx, r.db).
+		Raw(`SELECT id FROM storages_pending_deletions WHERE id=? AND generation=? AND (not_before>? OR ?) FOR UPDATE`, lock.Pending.ID, lock.Pending.Generation, lock.Now, lock.ShouldAllowExpired).
+		Scan(&ids).
+		Error
+	if err != nil {
+		return false, fmt.Errorf("lock deletion attempt: %w", err)
+	}
+	return len(ids) > 0, nil
+}
+
+func (r *PendingDeletionRepository) ListReferencesByPrefix(
+	ctx context.Context,
+	prefix string,
+) ([]StoredFileReference, error) {
+	references := []StoredFileReference{}
+	if err := database.Conn(ctx, r.db).
+		Raw("SELECT storage_id,file_name FROM storages_pending_deletions WHERE left(file_name,length(?))=?", prefix, prefix).
+		Scan(&references).
+		Error; err != nil {
+		return nil, fmt.Errorf("list unfinished files: %w", err)
+	}
+	return references, nil
 }

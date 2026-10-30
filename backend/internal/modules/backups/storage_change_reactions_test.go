@@ -201,8 +201,11 @@ func savePhysicalBackupConfigWithStorage(
 		Encryption:       readConfig.Encryption,
 		Settings:         fromPhysicalBackupSettings(t, physical),
 	})
-	require.Equal(t, http.StatusOK, response.StatusCode(), string(response.Body))
+	require.Contains(t, []int{http.StatusOK, http.StatusAccepted}, response.StatusCode(), string(response.Body))
 
+	if response.JSON202 != nil {
+		return apptest.GetBackupConfig(t, tm.owner, databaseID)
+	}
 	return *response.JSON200
 }
 

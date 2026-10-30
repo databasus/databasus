@@ -11,6 +11,7 @@ import {
   SCHEDULE_TYPE_LABEL_KEYS,
   ScheduleType,
   backupConfigApi,
+  StorageSwitchHistoryComponent,
   toLogicalBackupConfigInput,
 } from '../../../../entity/backups/config';
 import {
@@ -122,6 +123,7 @@ export const ShowLogicalBackupConfigComponent = ({ database }: Props) => {
 
   return (
     <div>
+      <StorageSwitchHistoryComponent workspaceId={database.workspaceId} databaseId={database.id} />
       <div className="mb-1 flex w-full items-center">
         <div className="min-w-[150px] pr-2">{t('backups.config.backupsEnabled')}</div>
         <div className={backupConfig.isBackupsEnabled ? '' : 'font-bold text-red-600'}>

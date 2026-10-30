@@ -12,6 +12,7 @@ import (
 	"databasus-backend/internal/lib/clock"
 	"databasus-backend/internal/lib/crypto"
 	"databasus-backend/internal/lib/database"
+	"databasus-backend/internal/modules/backups/internal/config"
 	"databasus-backend/internal/modules/backups/internal/physical/catalog"
 	"databasus-backend/internal/modules/backups/internal/physical/timelines"
 	"databasus-backend/internal/modules/databases"
@@ -21,6 +22,7 @@ import (
 type timelineIdentityProbe func(context.Context, int) (*timelines.TimelineDecision, error)
 
 type CommonBackupSpec struct {
+	Publication    config.PublicationFence
 	ExecutionClock clock.Source
 	Clock          clock.Source
 	Transactor     *database.Transactor

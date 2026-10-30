@@ -36,10 +36,6 @@ func (s *Service) DeleteBackup(ctx context.Context, actor users.Actor, backupID 
 	})
 }
 
-func (s *Service) deleteFull(ctx context.Context, backup *catalog.Backup) error {
-	return s.deleteBackup(ctx, backup)
-}
-
 func (s *Service) deleteBackup(ctx context.Context, backup *catalog.Backup) error {
 	return s.transactor.Transaction(ctx, func(ctx context.Context) error {
 		runningBackup, _, err := s.backupRepository.FindRunningByDatabaseID(ctx, backup.DatabaseID)

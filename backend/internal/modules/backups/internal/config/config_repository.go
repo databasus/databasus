@@ -48,6 +48,7 @@ type configListFilter struct {
 }
 
 type backupConfigRow struct {
+	StorageGeneration    int64          `gorm:"column:storage_generation"`
 	DatabaseID           uuid.UUID      `gorm:"column:database_id"`
 	Method               Method         `gorm:"column:method"`
 	IsBackupsEnabled     bool           `gorm:"column:is_backups_enabled"`
@@ -99,7 +100,7 @@ type gfsColumns struct {
 
 const (
 	backupConfigColumns = "backups_configs.database_id, backups_configs.method, backups_configs.is_backups_enabled, " +
-		"backups_configs.storage_id, backups_configs.encryption, backups_configs.notification_triggers"
+		"backups_configs.storage_generation, backups_configs.storage_id, backups_configs.encryption, backups_configs.notification_triggers"
 	logicalConfigQuery = "SELECT " + backupConfigColumns + ", interval_type, time_of_day, weekday, day_of_month, " +
 		"cron_expression, retention_policy_type, retention_time_period, retention_count, retention_gfs_hours, " +
 		"retention_gfs_days, retention_gfs_weeks, retention_gfs_months, retention_gfs_years, is_retry_if_failed, " +
@@ -306,16 +307,6 @@ func (r *configRepository) upsertPhysical(ctx context.Context, config PhysicalBa
 	return nil
 }
 
-func (r *configRepository) updateStorage(ctx context.Context, databaseID, storageID uuid.UUID) error {
-	err := database.Conn(ctx, r.db).
-		Exec("UPDATE backups_configs SET storage_id = ? WHERE database_id = ?", storageID, databaseID).Error
-	if err != nil {
-		return fmt.Errorf("update the storage of the backup config: %w", err)
-	}
-
-	return nil
-}
-
 // delete removes the config and, through the module's own cascade, the row of its method.
 func (r *configRepository) delete(ctx context.Context, databaseID uuid.UUID) error {
 	err := database.Conn(ctx, r.db).Exec("DELETE FROM backups_configs WHERE database_id = ?", databaseID).Error
@@ -385,13 +376,14 @@ func (r *configRepository) updateForceRequest(
 
 func (r *configRepository) upsertBackupConfig(ctx context.Context, method Method, config BackupConfig) error {
 	err := database.Conn(ctx, r.db).Exec(`INSERT INTO backups_configs (database_id, method, is_backups_enabled,
-		storage_id, encryption, notification_triggers) VALUES (?, ?, ?, ?, ?, ?::text[])
+		storage_id, last_selected_storage_id, encryption, notification_triggers) VALUES (?, ?, ?, ?, ?, ?, ?::text[])
 		ON CONFLICT (database_id) DO UPDATE SET
 			is_backups_enabled = EXCLUDED.is_backups_enabled,
 			storage_id = EXCLUDED.storage_id,
+			last_selected_storage_id = COALESCE(EXCLUDED.storage_id, backups_configs.last_selected_storage_id),
 			encryption = EXCLUDED.encryption,
 			notification_triggers = EXCLUDED.notification_triggers`,
-		config.DatabaseID, method, config.IsBackupsEnabled, config.StorageID, config.Encryption,
+		config.DatabaseID, method, config.IsBackupsEnabled, config.StorageID, config.StorageID, config.Encryption,
 		toTriggerColumn(config.NotificationTriggers),
 	).Error
 	if err != nil {
@@ -399,6 +391,23 @@ func (r *configRepository) upsertBackupConfig(ctx context.Context, method Method
 	}
 
 	return nil
+}
+
+func (r *configRepository) getLastSelectedStorageID(
+	ctx context.Context,
+	databaseID uuid.UUID,
+) (uuid.UUID, bool, error) {
+	var rows []struct{ LastSelectedStorageID *uuid.UUID }
+	err := database.Conn(ctx, r.db).
+		Raw("SELECT last_selected_storage_id FROM backups_configs WHERE database_id=?", databaseID).
+		Scan(&rows).Error
+	if err != nil {
+		return uuid.Nil, false, fmt.Errorf("read the last selected backup storage: %w", err)
+	}
+	if len(rows) == 0 || rows[0].LastSelectedStorageID == nil {
+		return uuid.Nil, false, nil
+	}
+	return *rows[0].LastSelectedStorageID, true, nil
 }
 
 func (r *configRepository) queryLogical(
@@ -448,6 +457,7 @@ func (r backupConfigRow) toConfig() BackupConfig {
 	}
 
 	return BackupConfig{
+		StorageGeneration:    r.StorageGeneration,
 		DatabaseID:           r.DatabaseID,
 		IsBackupsEnabled:     r.IsBackupsEnabled,
 		StorageID:            r.StorageID,
@@ -535,4 +545,36 @@ func toTriggerColumn(triggers []NotificationTrigger) pq.StringArray {
 	}
 
 	return column
+}
+
+func (r *configRepository) incrementStorageGeneration(ctx context.Context, databaseID uuid.UUID) error {
+	if err := database.Conn(ctx, r.db).
+		Exec("UPDATE backups_configs SET storage_generation=storage_generation+1 WHERE database_id=?", databaseID).
+		Error; err != nil {
+		return fmt.Errorf("advance storage generation: %w", err)
+	}
+	return nil
+}
+
+type physicalRequestsReset struct {
+	DatabaseID  uuid.UUID
+	RequestedAt time.Time
+}
+
+func (r *configRepository) resetPhysicalRequests(
+	ctx context.Context,
+	reset physicalRequestsReset,
+) error {
+	if err := database.Conn(ctx, r.db).
+		Exec("UPDATE backups_configs_physical SET force_incremental_requested_at=NULL,force_full_requested_at=? WHERE database_id=?", reset.RequestedAt, reset.DatabaseID).
+		Error; err != nil {
+		return fmt.Errorf("reset physical backup requests: %w", err)
+	}
+	return nil
+}
+
+func (r *configRepository) lockPhysicalHistory(ctx context.Context, databaseID uuid.UUID) error {
+	return database.Conn(ctx, r.db).
+		Exec("SELECT pg_advisory_xact_lock(hashtextextended('physical-backup:' || ?::text,0))", databaseID).
+		Error
 }

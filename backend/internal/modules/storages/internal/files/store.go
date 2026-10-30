@@ -2,6 +2,7 @@ package files
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -16,11 +17,14 @@ import (
 
 // Deps is what both the store and the deletion job need, so the two constructors cannot drift apart.
 type Deps struct {
-	Repository *PendingDeletionRepository
-	Locator    StorageLocator
-	Logger     *slog.Logger
-	Clock      clock.Source
-	Timings    Timings
+	Repository      *PendingDeletionRepository
+	Batches         *DeletionBatchRepository
+	WriteProtection *WriteProtectionRepository
+	Transactor      *database.Transactor
+	Locator         StorageLocator
+	Logger          *slog.Logger
+	Clock           clock.Source
+	Timings         Timings
 	// Uploads runs the upload of each background write.
 	Uploads *background.Group
 }
@@ -29,12 +33,15 @@ type Deps struct {
 // over to a catalog transaction. It owns the obligation to remove the file until such a transaction
 // claims it.
 type Store struct {
-	repository *PendingDeletionRepository
-	locator    StorageLocator
-	logger     *slog.Logger
-	clock      clock.Source
-	timings    Timings
-	uploads    *background.Group
+	repository      *PendingDeletionRepository
+	batches         *DeletionBatchRepository
+	writeProtection *WriteProtectionRepository
+	transactor      *database.Transactor
+	locator         StorageLocator
+	logger          *slog.Logger
+	clock           clock.Source
+	timings         Timings
+	uploads         *background.Group
 
 	liveWritesMutex sync.Mutex
 	liveWrites      map[uuid.UUID]struct{}
@@ -43,6 +50,9 @@ type Store struct {
 func NewStore(deps Deps) *Store {
 	return &Store{
 		repository:      deps.Repository,
+		batches:         deps.Batches,
+		writeProtection: deps.WriteProtection,
+		transactor:      deps.Transactor,
 		locator:         deps.Locator,
 		logger:          deps.Logger,
 		clock:           deps.Clock,
@@ -55,13 +65,31 @@ func NewStore(deps Deps) *Store {
 
 // WriteFile records the obligation to remove the file before the first byte leaves, so a provider
 // error, a crash or a caller that never publishes all end the same way, with the file removed.
-func (s *Store) WriteFile(ctx context.Context, reference StoredFileReference, file io.Reader) (WriteReceipt, error) {
+func (s *Store) WriteFile(
+	ctx context.Context,
+	reference StoredFileReference,
+	file io.Reader,
+) (receipt WriteReceipt, writeErr error) {
 	pendingID := uuid.New()
+	ctx, cancelWrite := context.WithCancelCause(ctx)
+	defer cancelWrite(nil)
 
 	// Joining before the insert is what makes the deletion job's exclusion sound: a row it can see
 	// belongs to a writer that is already in the set.
 	s.joinLiveWrites(pendingID)
 	defer s.leaveLiveWrites(pendingID)
+	if err := s.writeProtection.ProtectWrite(ctx, writeProtectionRequest{
+		PendingDeletionID: pendingID, Reference: reference, CancelWrite: cancelWrite,
+	}); err != nil {
+		return WriteReceipt{}, err
+	}
+	defer func() {
+		if err := s.writeProtection.ReleaseWrite(ctx, pendingID); err != nil {
+			s.logger.ErrorContext(ctx, "failed to release storage file write protection", slog.Any("error", err))
+			receipt = WriteReceipt{}
+			writeErr = errors.Join(writeErr, err)
+		}
+	}()
 
 	// The obligation commits on its own even when the caller writes from inside a transaction, because
 	// a rollback of that transaction must not take the obligation for an uploaded file with it.

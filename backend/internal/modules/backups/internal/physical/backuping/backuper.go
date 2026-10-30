@@ -150,18 +150,27 @@ func (b *Backuper) runFullBackup(
 
 	fullBackupSpec := FullBackupSpec{
 		CommonBackupSpec: CommonBackupSpec{
+			Publication: config.PublicationFence{
+				Configs: b.configs,
+				Publication: config.StoragePublication{
+					DatabaseID: fullBackup.DatabaseID,
+					StorageID:  fullBackup.StorageID,
+					Generation: fullBackup.StorageGeneration,
+				},
+			},
 			ExecutionClock: b.executionClock,
-			Clock:          b.clock, Transactor: b.transactor,
-			ClientTools:  b.clientTools,
-			SourceDB:     backupCtx.Source,
-			DatabaseName: backupCtx.Database.Name,
-			StorageID:    backupCtx.Storage.ID,
-			FileStore:    b.storages,
-			Encryption:   catalog.BackupEncryption(backupCtx.Config.Encryption),
-			MasterKey:    backupCtx.MasterKey,
-			BackupRepo:   b.backupRepo,
-			HistoryRepo:  b.historyRepo,
-			Logger:       logger,
+			Clock:          b.clock,
+			Transactor:     b.transactor,
+			ClientTools:    b.clientTools,
+			SourceDB:       backupCtx.Source,
+			DatabaseName:   backupCtx.Database.Name,
+			StorageID:      backupCtx.Storage.ID,
+			FileStore:      b.storages,
+			Encryption:     catalog.BackupEncryption(backupCtx.Config.Encryption),
+			MasterKey:      backupCtx.MasterKey,
+			BackupRepo:     b.backupRepo,
+			HistoryRepo:    b.historyRepo,
+			Logger:         logger,
 			ProgressListener: func(completedMb float64, elapsedMs int64) {
 				if err := b.backupRepo.UpdateProgress(ctx, fullBackup.ID, completedMb, elapsedMs); err != nil {
 					logger.ErrorContext(ctx, "failed to update full backup progress", slog.Any("error", err))
@@ -274,18 +283,27 @@ func (b *Backuper) runIncrementalBackup(
 
 	incrBackupSpec := IncrementalBackupSpec{
 		CommonBackupSpec: CommonBackupSpec{
+			Publication: config.PublicationFence{
+				Configs: b.configs,
+				Publication: config.StoragePublication{
+					DatabaseID: incrBackup.DatabaseID,
+					StorageID:  incrBackup.StorageID,
+					Generation: incrBackup.StorageGeneration,
+				},
+			},
 			ExecutionClock: b.executionClock,
-			Clock:          b.clock, Transactor: b.transactor,
-			ClientTools:  b.clientTools,
-			SourceDB:     backupCtx.Source,
-			DatabaseName: backupCtx.Database.Name,
-			StorageID:    backupCtx.Storage.ID,
-			FileStore:    b.storages,
-			Encryption:   catalog.BackupEncryption(backupCtx.Config.Encryption),
-			MasterKey:    backupCtx.MasterKey,
-			BackupRepo:   b.backupRepo,
-			HistoryRepo:  b.historyRepo,
-			Logger:       logger,
+			Clock:          b.clock,
+			Transactor:     b.transactor,
+			ClientTools:    b.clientTools,
+			SourceDB:       backupCtx.Source,
+			DatabaseName:   backupCtx.Database.Name,
+			StorageID:      backupCtx.Storage.ID,
+			FileStore:      b.storages,
+			Encryption:     catalog.BackupEncryption(backupCtx.Config.Encryption),
+			MasterKey:      backupCtx.MasterKey,
+			BackupRepo:     b.backupRepo,
+			HistoryRepo:    b.historyRepo,
+			Logger:         logger,
 			ProgressListener: func(completedMb float64, elapsedMs int64) {
 				if err := b.backupRepo.UpdateProgress(ctx, incrBackup.ID, completedMb, elapsedMs); err != nil {
 					logger.ErrorContext(ctx, "failed to update incremental backup progress", slog.Any("error", err))

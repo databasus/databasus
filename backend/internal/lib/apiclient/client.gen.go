@@ -1408,6 +1408,27 @@ func (e StorageMovedWithDatabaseType) Valid() bool {
 	}
 }
 
+// Defines values for StorageSwitchStatus.
+const (
+	StorageSwitchStatusCLEANUPPENDING          StorageSwitchStatus = "CLEANUP_PENDING"
+	StorageSwitchStatusCOMPLETED               StorageSwitchStatus = "COMPLETED"
+	StorageSwitchStatusCOMPLETEDWITHREMAINDERS StorageSwitchStatus = "COMPLETED_WITH_REMAINDERS"
+)
+
+// Valid indicates whether the value is a known member of the StorageSwitchStatus enum.
+func (e StorageSwitchStatus) Valid() bool {
+	switch e {
+	case StorageSwitchStatusCLEANUPPENDING:
+		return true
+	case StorageSwitchStatusCOMPLETED:
+		return true
+	case StorageSwitchStatusCOMPLETEDWITHREMAINDERS:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for StorageSwitchedOnTransferType.
 const (
 	StorageSwitchedOnTransferTypeSWITCHTOSTORAGE StorageSwitchedOnTransferType = "SWITCH_TO_STORAGE"
@@ -3799,7 +3820,33 @@ type StorageSettingsTest struct {
 	WorkspaceId openapi_types.UUID `json:"workspaceId"`
 }
 
-// StorageSwitchedOnTransfer The database switches to a storage of the target workspace; the backups in its previous storage stay there
+// StorageSwitch A committed storage change with the current durable cleanup outcome
+type StorageSwitch struct {
+	CleanupDeadline   time.Time           `json:"cleanupDeadline"`
+	CompletedAt       *time.Time          `json:"completedAt,omitempty"`
+	CreatedAt         time.Time           `json:"createdAt"`
+	DatabaseId        openapi_types.UUID  `json:"databaseId"`
+	Deleted           int64               `json:"deleted"`
+	Id                openapi_types.UUID  `json:"id"`
+	Pending           int64               `json:"pending"`
+	PreviousStorageId *openapi_types.UUID `json:"previousStorageId,omitempty"`
+	Remaining         int64               `json:"remaining"`
+	Status            StorageSwitchStatus `json:"status"`
+	TargetStorageId   openapi_types.UUID  `json:"targetStorageId"`
+	Total             int64               `json:"total"`
+	WorkspaceId       openapi_types.UUID  `json:"workspaceId"`
+}
+
+// StorageSwitchStatus defines model for StorageSwitch.Status.
+type StorageSwitchStatus string
+
+// StorageSwitchPage Storage switches ordered newest first by acceptance time and ID
+type StorageSwitchPage struct {
+	Items      []StorageSwitch `json:"items"`
+	NextCursor *string         `json:"nextCursor,omitempty"`
+}
+
+// StorageSwitchedOnTransfer The database switches to a storage of the target workspace; the backups in its previous storage are removed from the catalog and their files are deleted in the background
 type StorageSwitchedOnTransfer struct {
 	// StorageId The storage of the target workspace
 	StorageId openapi_types.UUID `json:"storageId"`
@@ -4737,6 +4784,21 @@ type ListRestoresParams struct {
 	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
 
 	// After The `nextCursor` of the previous page
+	After *string `form:"after,omitempty" json:"after,omitempty"`
+}
+
+// ListStorageSwitchesParams defines parameters for ListStorageSwitches.
+type ListStorageSwitchesParams struct {
+	// WorkspaceId The workspace at acceptance
+	WorkspaceId openapi_types.UUID `form:"workspaceId" json:"workspaceId"`
+
+	// DatabaseId Filter by the historical database identity
+	DatabaseId *openapi_types.UUID `form:"databaseId,omitempty" json:"databaseId,omitempty"`
+
+	// Limit Maximum operations per page
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// After The nextCursor of the previous page
 	After *string `form:"after,omitempty" json:"after,omitempty"`
 }
 
@@ -6422,7 +6484,7 @@ type ClientInterface interface {
 
 	// UpdateBackupConfigWithBody Save the backup config of a database
 	//
-	// Needs the role `WORKSPACE_MEMBER` or higher. The settings must be of the database's method, and a physical config must fit the database's physical backup type; otherwise the answer is 400 `invalid_request` with the field in `errors`. A storage that is not in the database's workspace gets 400 `invalid_request`. A logical config saved with another storage removes the database's logical backups in the same step, and gets 409 `in_use` while one of them is running.
+	// Needs the role `WORKSPACE_MEMBER` or higher. The settings must be of the database's method, and a physical config must fit the database's physical backup type; otherwise the answer is 400 `invalid_request` with the field in `errors`. A storage that is not in the database's workspace gets 400 `invalid_request`. A logical config saved with another storage removes the database's logical backups in the same step, and gets 409 `in_use` while one of them is running. Storage switches return 202 with the committed operation and a Location header; ordinary saves, clearing storage and initial assignments without history return 200.
 	//
 	// Takes any type of body and a specified content type.
 	//
@@ -6431,7 +6493,7 @@ type ClientInterface interface {
 
 	// UpdateBackupConfig Save the backup config of a database
 	//
-	// Needs the role `WORKSPACE_MEMBER` or higher. The settings must be of the database's method, and a physical config must fit the database's physical backup type; otherwise the answer is 400 `invalid_request` with the field in `errors`. A storage that is not in the database's workspace gets 400 `invalid_request`. A logical config saved with another storage removes the database's logical backups in the same step, and gets 409 `in_use` while one of them is running.
+	// Needs the role `WORKSPACE_MEMBER` or higher. The settings must be of the database's method, and a physical config must fit the database's physical backup type; otherwise the answer is 400 `invalid_request` with the field in `errors`. A storage that is not in the database's workspace gets 400 `invalid_request`. A logical config saved with another storage removes the database's logical backups in the same step, and gets 409 `in_use` while one of them is running. Storage switches return 202 with the committed operation and a Location header; ordinary saves, clearing storage and initial assignments without history return 200.
 	//
 	// Takes a body of the `application/json` content type.
 	//
@@ -6529,7 +6591,7 @@ type ClientInterface interface {
 
 	// TransferDatabaseWithBody Move a database to another workspace
 	//
-	// Needs the role `WORKSPACE_MEMBER` or higher in both workspaces, because the move gives the target workspace's members the database's stored secrets. The database either takes its storage along or switches to a storage of the target workspace; a database whose config was never saved then gets the default config of its method with that storage. Moving the storage gets 409 `in_use` while another database backs up into it. The move happens completely or not at all.
+	// Needs the role `WORKSPACE_MEMBER` or higher in both workspaces, because the move gives the target workspace's members the database's stored secrets. The database either takes its storage along or switches to a storage of the target workspace; a database whose config was never saved then gets the default config of its method with that storage. Moving the storage gets 409 `in_use` while another database backs up into it. The move happens completely or not at all. SWITCH_TO_STORAGE commits removal of the old backup history and returns 202 with a StorageSwitch and Location header. File cleanup continues in the background. MOVE_WITH_DATABASE preserves history and returns 204.
 	//
 	// Takes any type of body and a specified content type.
 	//
@@ -6538,7 +6600,7 @@ type ClientInterface interface {
 
 	// TransferDatabase Move a database to another workspace
 	//
-	// Needs the role `WORKSPACE_MEMBER` or higher in both workspaces, because the move gives the target workspace's members the database's stored secrets. The database either takes its storage along or switches to a storage of the target workspace; a database whose config was never saved then gets the default config of its method with that storage. Moving the storage gets 409 `in_use` while another database backs up into it. The move happens completely or not at all.
+	// Needs the role `WORKSPACE_MEMBER` or higher in both workspaces, because the move gives the target workspace's members the database's stored secrets. The database either takes its storage along or switches to a storage of the target workspace; a database whose config was never saved then gets the default config of its method with that storage. Moving the storage gets 409 `in_use` while another database backs up into it. The move happens completely or not at all. SWITCH_TO_STORAGE commits removal of the old backup history and returns 202 with a StorageSwitch and Location header. File cleanup continues in the background. MOVE_WITH_DATABASE preserves history and returns 204.
 	//
 	// Takes a body of the `application/json` content type.
 	//
@@ -7045,6 +7107,20 @@ type ClientInterface interface {
 	//
 	// Corresponds with GET /sign-in-options (the `GetSignInOptions` operationId).
 	GetSignInOptions(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListStorageSwitches List storage switches accepted in a workspace
+	//
+	// Needs WORKSPACE_VIEWER in the acceptance workspace. Instance admins can read without membership. Ordered newest first by acceptance time and ID. History remains available after database deletion or later transfers. Invalid limits or cursors get 400 invalid_request.
+	//
+	// Corresponds with GET /storage-switches (the `ListStorageSwitches` operationId).
+	ListStorageSwitches(ctx context.Context, params *ListStorageSwitchesParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetStorageSwitch Read the current cleanup outcome of a committed storage switch
+	//
+	// Needs WORKSPACE_VIEWER in the workspace at acceptance, including after later transfers or database deletion. Instance admins can read without membership.
+	//
+	// Corresponds with GET /storage-switches/{storageSwitchId} (the `GetStorageSwitch` operationId).
+	GetStorageSwitch(ctx context.Context, storageSwitchId openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// TestStorageSettingsWithBody Test the connection with settings that are not saved
 	//
@@ -7570,7 +7646,7 @@ func (c *Client) GetBackupConfig(ctx context.Context, databaseId BackupConfigDat
 
 // UpdateBackupConfigWithBody Save the backup config of a database
 //
-// Needs the role `WORKSPACE_MEMBER` or higher. The settings must be of the database's method, and a physical config must fit the database's physical backup type; otherwise the answer is 400 `invalid_request` with the field in `errors`. A storage that is not in the database's workspace gets 400 `invalid_request`. A logical config saved with another storage removes the database's logical backups in the same step, and gets 409 `in_use` while one of them is running.
+// Needs the role `WORKSPACE_MEMBER` or higher. The settings must be of the database's method, and a physical config must fit the database's physical backup type; otherwise the answer is 400 `invalid_request` with the field in `errors`. A storage that is not in the database's workspace gets 400 `invalid_request`. A logical config saved with another storage removes the database's logical backups in the same step, and gets 409 `in_use` while one of them is running. Storage switches return 202 with the committed operation and a Location header; ordinary saves, clearing storage and initial assignments without history return 200.
 //
 // Takes any type of body and a specified content type.
 //
@@ -7589,7 +7665,7 @@ func (c *Client) UpdateBackupConfigWithBody(ctx context.Context, databaseId Back
 
 // UpdateBackupConfig Save the backup config of a database
 //
-// Needs the role `WORKSPACE_MEMBER` or higher. The settings must be of the database's method, and a physical config must fit the database's physical backup type; otherwise the answer is 400 `invalid_request` with the field in `errors`. A storage that is not in the database's workspace gets 400 `invalid_request`. A logical config saved with another storage removes the database's logical backups in the same step, and gets 409 `in_use` while one of them is running.
+// Needs the role `WORKSPACE_MEMBER` or higher. The settings must be of the database's method, and a physical config must fit the database's physical backup type; otherwise the answer is 400 `invalid_request` with the field in `errors`. A storage that is not in the database's workspace gets 400 `invalid_request`. A logical config saved with another storage removes the database's logical backups in the same step, and gets 409 `in_use` while one of them is running. Storage switches return 202 with the committed operation and a Location header; ordinary saves, clearing storage and initial assignments without history return 200.
 //
 // Takes a body of the `application/json` content type.
 //
@@ -7807,7 +7883,7 @@ func (c *Client) TestDatabase(ctx context.Context, databaseId DatabaseId, reqEdi
 
 // TransferDatabaseWithBody Move a database to another workspace
 //
-// Needs the role `WORKSPACE_MEMBER` or higher in both workspaces, because the move gives the target workspace's members the database's stored secrets. The database either takes its storage along or switches to a storage of the target workspace; a database whose config was never saved then gets the default config of its method with that storage. Moving the storage gets 409 `in_use` while another database backs up into it. The move happens completely or not at all.
+// Needs the role `WORKSPACE_MEMBER` or higher in both workspaces, because the move gives the target workspace's members the database's stored secrets. The database either takes its storage along or switches to a storage of the target workspace; a database whose config was never saved then gets the default config of its method with that storage. Moving the storage gets 409 `in_use` while another database backs up into it. The move happens completely or not at all. SWITCH_TO_STORAGE commits removal of the old backup history and returns 202 with a StorageSwitch and Location header. File cleanup continues in the background. MOVE_WITH_DATABASE preserves history and returns 204.
 //
 // Takes any type of body and a specified content type.
 //
@@ -7826,7 +7902,7 @@ func (c *Client) TransferDatabaseWithBody(ctx context.Context, databaseId Databa
 
 // TransferDatabase Move a database to another workspace
 //
-// Needs the role `WORKSPACE_MEMBER` or higher in both workspaces, because the move gives the target workspace's members the database's stored secrets. The database either takes its storage along or switches to a storage of the target workspace; a database whose config was never saved then gets the default config of its method with that storage. Moving the storage gets 409 `in_use` while another database backs up into it. The move happens completely or not at all.
+// Needs the role `WORKSPACE_MEMBER` or higher in both workspaces, because the move gives the target workspace's members the database's stored secrets. The database either takes its storage along or switches to a storage of the target workspace; a database whose config was never saved then gets the default config of its method with that storage. Moving the storage gets 409 `in_use` while another database backs up into it. The move happens completely or not at all. SWITCH_TO_STORAGE commits removal of the old backup history and returns 202 with a StorageSwitch and Location header. File cleanup continues in the background. MOVE_WITH_DATABASE preserves history and returns 204.
 //
 // Takes a body of the `application/json` content type.
 //
@@ -8944,6 +9020,40 @@ func (c *Client) SignIn(ctx context.Context, body SignInJSONRequestBody, reqEdit
 // Corresponds with GET /sign-in-options (the `GetSignInOptions` operationId).
 func (c *Client) GetSignInOptions(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetSignInOptionsRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ListStorageSwitches List storage switches accepted in a workspace
+//
+// Needs WORKSPACE_VIEWER in the acceptance workspace. Instance admins can read without membership. Ordered newest first by acceptance time and ID. History remains available after database deletion or later transfers. Invalid limits or cursors get 400 invalid_request.
+//
+// Corresponds with GET /storage-switches (the `ListStorageSwitches` operationId).
+func (c *Client) ListStorageSwitches(ctx context.Context, params *ListStorageSwitchesParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListStorageSwitchesRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetStorageSwitch Read the current cleanup outcome of a committed storage switch
+//
+// Needs WORKSPACE_VIEWER in the workspace at acceptance, including after later transfers or database deletion. Instance admins can read without membership.
+//
+// Corresponds with GET /storage-switches/{storageSwitchId} (the `GetStorageSwitch` operationId).
+func (c *Client) GetStorageSwitch(ctx context.Context, storageSwitchId openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetStorageSwitchRequest(c.Server, storageSwitchId)
 	if err != nil {
 		return nil, err
 	}
@@ -12516,6 +12626,126 @@ func NewGetSignInOptionsRequest(server string) (*http.Request, error) {
 	return req, nil
 }
 
+// NewListStorageSwitchesRequest constructs an http.Request for the ListStorageSwitches method
+func NewListStorageSwitchesRequest(server string, params *ListStorageSwitchesParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/storage-switches")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "workspaceId", params.WorkspaceId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: "uuid"}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if params.DatabaseId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "databaseId", *params.DatabaseId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: "uuid"}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "limit", *params.Limit, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.After != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "after", *params.After, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetStorageSwitchRequest constructs an http.Request for the GetStorageSwitch method
+func NewGetStorageSwitchRequest(server string, storageSwitchId openapi_types.UUID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "storageSwitchId", storageSwitchId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/storage-switches/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewTestStorageSettingsRequest calls the generic TestStorageSettings builder with application/json body
 func NewTestStorageSettingsRequest(server string, body TestStorageSettingsJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
@@ -14476,7 +14706,7 @@ type ClientWithResponsesInterface interface {
 
 	// UpdateBackupConfigWithBodyWithResponse Save the backup config of a database
 	//
-	// Needs the role `WORKSPACE_MEMBER` or higher. The settings must be of the database's method, and a physical config must fit the database's physical backup type; otherwise the answer is 400 `invalid_request` with the field in `errors`. A storage that is not in the database's workspace gets 400 `invalid_request`. A logical config saved with another storage removes the database's logical backups in the same step, and gets 409 `in_use` while one of them is running.
+	// Needs the role `WORKSPACE_MEMBER` or higher. The settings must be of the database's method, and a physical config must fit the database's physical backup type; otherwise the answer is 400 `invalid_request` with the field in `errors`. A storage that is not in the database's workspace gets 400 `invalid_request`. A logical config saved with another storage removes the database's logical backups in the same step, and gets 409 `in_use` while one of them is running. Storage switches return 202 with the committed operation and a Location header; ordinary saves, clearing storage and initial assignments without history return 200.
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -14485,7 +14715,7 @@ type ClientWithResponsesInterface interface {
 
 	// UpdateBackupConfigWithResponse Save the backup config of a database
 	//
-	// Needs the role `WORKSPACE_MEMBER` or higher. The settings must be of the database's method, and a physical config must fit the database's physical backup type; otherwise the answer is 400 `invalid_request` with the field in `errors`. A storage that is not in the database's workspace gets 400 `invalid_request`. A logical config saved with another storage removes the database's logical backups in the same step, and gets 409 `in_use` while one of them is running.
+	// Needs the role `WORKSPACE_MEMBER` or higher. The settings must be of the database's method, and a physical config must fit the database's physical backup type; otherwise the answer is 400 `invalid_request` with the field in `errors`. A storage that is not in the database's workspace gets 400 `invalid_request`. A logical config saved with another storage removes the database's logical backups in the same step, and gets 409 `in_use` while one of them is running. Storage switches return 202 with the committed operation and a Location header; ordinary saves, clearing storage and initial assignments without history return 200.
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -14593,7 +14823,7 @@ type ClientWithResponsesInterface interface {
 
 	// TransferDatabaseWithBodyWithResponse Move a database to another workspace
 	//
-	// Needs the role `WORKSPACE_MEMBER` or higher in both workspaces, because the move gives the target workspace's members the database's stored secrets. The database either takes its storage along or switches to a storage of the target workspace; a database whose config was never saved then gets the default config of its method with that storage. Moving the storage gets 409 `in_use` while another database backs up into it. The move happens completely or not at all.
+	// Needs the role `WORKSPACE_MEMBER` or higher in both workspaces, because the move gives the target workspace's members the database's stored secrets. The database either takes its storage along or switches to a storage of the target workspace; a database whose config was never saved then gets the default config of its method with that storage. Moving the storage gets 409 `in_use` while another database backs up into it. The move happens completely or not at all. SWITCH_TO_STORAGE commits removal of the old backup history and returns 202 with a StorageSwitch and Location header. File cleanup continues in the background. MOVE_WITH_DATABASE preserves history and returns 204.
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -14602,7 +14832,7 @@ type ClientWithResponsesInterface interface {
 
 	// TransferDatabaseWithResponse Move a database to another workspace
 	//
-	// Needs the role `WORKSPACE_MEMBER` or higher in both workspaces, because the move gives the target workspace's members the database's stored secrets. The database either takes its storage along or switches to a storage of the target workspace; a database whose config was never saved then gets the default config of its method with that storage. Moving the storage gets 409 `in_use` while another database backs up into it. The move happens completely or not at all.
+	// Needs the role `WORKSPACE_MEMBER` or higher in both workspaces, because the move gives the target workspace's members the database's stored secrets. The database either takes its storage along or switches to a storage of the target workspace; a database whose config was never saved then gets the default config of its method with that storage. Moving the storage gets 409 `in_use` while another database backs up into it. The move happens completely or not at all. SWITCH_TO_STORAGE commits removal of the old backup history and returns 202 with a StorageSwitch and Location header. File cleanup continues in the background. MOVE_WITH_DATABASE preserves history and returns 204.
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -15151,6 +15381,24 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with GET /sign-in-options (the `GetSignInOptions` operationId).
 	GetSignInOptionsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetSignInOptionsResponse, error)
+
+	// ListStorageSwitchesWithResponse List storage switches accepted in a workspace
+	//
+	// Needs WORKSPACE_VIEWER in the acceptance workspace. Instance admins can read without membership. Ordered newest first by acceptance time and ID. History remains available after database deletion or later transfers. Invalid limits or cursors get 400 invalid_request.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /storage-switches (the `ListStorageSwitches` operationId).
+	ListStorageSwitchesWithResponse(ctx context.Context, params *ListStorageSwitchesParams, reqEditors ...RequestEditorFn) (*ListStorageSwitchesResponse, error)
+
+	// GetStorageSwitchWithResponse Read the current cleanup outcome of a committed storage switch
+	//
+	// Needs WORKSPACE_VIEWER in the workspace at acceptance, including after later transfers or database deletion. Instance admins can read without membership.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /storage-switches/{storageSwitchId} (the `GetStorageSwitch` operationId).
+	GetStorageSwitchWithResponse(ctx context.Context, storageSwitchId openapi_types.UUID, reqEditors ...RequestEditorFn) (*GetStorageSwitchResponse, error)
 
 	// TestStorageSettingsWithBodyWithResponse Test the connection with settings that are not saved
 	//
@@ -15893,11 +16141,18 @@ func (r GetBackupConfigResponse) ContentType() string {
 	return ""
 }
 
+// UpdateBackupConfigResponse202Headers the declared response headers of an HTTP 202 response for UpdateBackupConfig
+type UpdateBackupConfigResponse202Headers struct {
+	Location *string
+}
+
 type UpdateBackupConfigResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	// JSON200 the response for an HTTP 200 `application/json` response
 	JSON200 *BackupConfig
+	// JSON202 the response for an HTTP 202 `application/json` response
+	JSON202 *StorageSwitch
 	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
 	ApplicationproblemJSON400 *Problem
 	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
@@ -15910,11 +16165,18 @@ type UpdateBackupConfigResponse struct {
 	ApplicationproblemJSON409 *Problem
 	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
 	ApplicationproblemJSONDefault *Problem
+	// Headers202 the parsed response headers for an HTTP 202 response
+	Headers202 *UpdateBackupConfigResponse202Headers
 }
 
 // GetJSON200 returns the response for an HTTP 200 `application/json` response
 func (r UpdateBackupConfigResponse) GetJSON200() *BackupConfig {
 	return r.JSON200
+}
+
+// GetJSON202 returns the response for an HTTP 202 `application/json` response
+func (r UpdateBackupConfigResponse) GetJSON202() *StorageSwitch {
+	return r.JSON202
 }
 
 // GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
@@ -16563,9 +16825,16 @@ func (r TestDatabaseResponse) ContentType() string {
 	return ""
 }
 
+// TransferDatabaseResponse202Headers the declared response headers of an HTTP 202 response for TransferDatabase
+type TransferDatabaseResponse202Headers struct {
+	Location *string
+}
+
 type TransferDatabaseResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
+	// JSON202 the response for an HTTP 202 `application/json` response
+	JSON202 *StorageSwitch
 	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
 	ApplicationproblemJSON400 *Problem
 	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
@@ -16578,6 +16847,13 @@ type TransferDatabaseResponse struct {
 	ApplicationproblemJSON409 *Problem
 	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
 	ApplicationproblemJSONDefault *Problem
+	// Headers202 the parsed response headers for an HTTP 202 response
+	Headers202 *TransferDatabaseResponse202Headers
+}
+
+// GetJSON202 returns the response for an HTTP 202 `application/json` response
+func (r TransferDatabaseResponse) GetJSON202() *StorageSwitch {
+	return r.JSON202
 }
 
 // GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
@@ -19553,6 +19829,151 @@ func (r GetSignInOptionsResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r GetSignInOptionsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type ListStorageSwitchesResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *StorageSwitchPage
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ListStorageSwitchesResponse) GetJSON200() *StorageSwitchPage {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r ListStorageSwitchesResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r ListStorageSwitchesResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r ListStorageSwitchesResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r ListStorageSwitchesResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r ListStorageSwitchesResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r ListStorageSwitchesResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ListStorageSwitchesResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListStorageSwitchesResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ListStorageSwitchesResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetStorageSwitchResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *StorageSwitch
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetStorageSwitchResponse) GetJSON200() *StorageSwitch {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r GetStorageSwitchResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r GetStorageSwitchResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r GetStorageSwitchResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r GetStorageSwitchResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r GetStorageSwitchResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetStorageSwitchResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetStorageSwitchResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetStorageSwitchResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -22741,7 +23162,7 @@ func (c *ClientWithResponses) GetBackupConfigWithResponse(ctx context.Context, d
 
 // UpdateBackupConfigWithBodyWithResponse Save the backup config of a database
 //
-// Needs the role `WORKSPACE_MEMBER` or higher. The settings must be of the database's method, and a physical config must fit the database's physical backup type; otherwise the answer is 400 `invalid_request` with the field in `errors`. A storage that is not in the database's workspace gets 400 `invalid_request`. A logical config saved with another storage removes the database's logical backups in the same step, and gets 409 `in_use` while one of them is running.
+// Needs the role `WORKSPACE_MEMBER` or higher. The settings must be of the database's method, and a physical config must fit the database's physical backup type; otherwise the answer is 400 `invalid_request` with the field in `errors`. A storage that is not in the database's workspace gets 400 `invalid_request`. A logical config saved with another storage removes the database's logical backups in the same step, and gets 409 `in_use` while one of them is running. Storage switches return 202 with the committed operation and a Location header; ordinary saves, clearing storage and initial assignments without history return 200.
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
@@ -22756,7 +23177,7 @@ func (c *ClientWithResponses) UpdateBackupConfigWithBodyWithResponse(ctx context
 
 // UpdateBackupConfigWithResponse Save the backup config of a database
 //
-// Needs the role `WORKSPACE_MEMBER` or higher. The settings must be of the database's method, and a physical config must fit the database's physical backup type; otherwise the answer is 400 `invalid_request` with the field in `errors`. A storage that is not in the database's workspace gets 400 `invalid_request`. A logical config saved with another storage removes the database's logical backups in the same step, and gets 409 `in_use` while one of them is running.
+// Needs the role `WORKSPACE_MEMBER` or higher. The settings must be of the database's method, and a physical config must fit the database's physical backup type; otherwise the answer is 400 `invalid_request` with the field in `errors`. A storage that is not in the database's workspace gets 400 `invalid_request`. A logical config saved with another storage removes the database's logical backups in the same step, and gets 409 `in_use` while one of them is running. Storage switches return 202 with the committed operation and a Location header; ordinary saves, clearing storage and initial assignments without history return 200.
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
@@ -22936,7 +23357,7 @@ func (c *ClientWithResponses) TestDatabaseWithResponse(ctx context.Context, data
 
 // TransferDatabaseWithBodyWithResponse Move a database to another workspace
 //
-// Needs the role `WORKSPACE_MEMBER` or higher in both workspaces, because the move gives the target workspace's members the database's stored secrets. The database either takes its storage along or switches to a storage of the target workspace; a database whose config was never saved then gets the default config of its method with that storage. Moving the storage gets 409 `in_use` while another database backs up into it. The move happens completely or not at all.
+// Needs the role `WORKSPACE_MEMBER` or higher in both workspaces, because the move gives the target workspace's members the database's stored secrets. The database either takes its storage along or switches to a storage of the target workspace; a database whose config was never saved then gets the default config of its method with that storage. Moving the storage gets 409 `in_use` while another database backs up into it. The move happens completely or not at all. SWITCH_TO_STORAGE commits removal of the old backup history and returns 202 with a StorageSwitch and Location header. File cleanup continues in the background. MOVE_WITH_DATABASE preserves history and returns 204.
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
@@ -22951,7 +23372,7 @@ func (c *ClientWithResponses) TransferDatabaseWithBodyWithResponse(ctx context.C
 
 // TransferDatabaseWithResponse Move a database to another workspace
 //
-// Needs the role `WORKSPACE_MEMBER` or higher in both workspaces, because the move gives the target workspace's members the database's stored secrets. The database either takes its storage along or switches to a storage of the target workspace; a database whose config was never saved then gets the default config of its method with that storage. Moving the storage gets 409 `in_use` while another database backs up into it. The move happens completely or not at all.
+// Needs the role `WORKSPACE_MEMBER` or higher in both workspaces, because the move gives the target workspace's members the database's stored secrets. The database either takes its storage along or switches to a storage of the target workspace; a database whose config was never saved then gets the default config of its method with that storage. Moving the storage gets 409 `in_use` while another database backs up into it. The move happens completely or not at all. SWITCH_TO_STORAGE commits removal of the old backup history and returns 202 with a StorageSwitch and Location header. File cleanup continues in the background. MOVE_WITH_DATABASE preserves history and returns 204.
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
@@ -23871,6 +24292,36 @@ func (c *ClientWithResponses) GetSignInOptionsWithResponse(ctx context.Context, 
 		return nil, err
 	}
 	return ParseGetSignInOptionsResponse(rsp)
+}
+
+// ListStorageSwitchesWithResponse List storage switches accepted in a workspace
+//
+// Needs WORKSPACE_VIEWER in the acceptance workspace. Instance admins can read without membership. Ordered newest first by acceptance time and ID. History remains available after database deletion or later transfers. Invalid limits or cursors get 400 invalid_request.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /storage-switches (the `ListStorageSwitches` operationId).
+func (c *ClientWithResponses) ListStorageSwitchesWithResponse(ctx context.Context, params *ListStorageSwitchesParams, reqEditors ...RequestEditorFn) (*ListStorageSwitchesResponse, error) {
+	rsp, err := c.ListStorageSwitches(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListStorageSwitchesResponse(rsp)
+}
+
+// GetStorageSwitchWithResponse Read the current cleanup outcome of a committed storage switch
+//
+// Needs WORKSPACE_VIEWER in the workspace at acceptance, including after later transfers or database deletion. Instance admins can read without membership.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /storage-switches/{storageSwitchId} (the `GetStorageSwitch` operationId).
+func (c *ClientWithResponses) GetStorageSwitchWithResponse(ctx context.Context, storageSwitchId openapi_types.UUID, reqEditors ...RequestEditorFn) (*GetStorageSwitchResponse, error) {
+	rsp, err := c.GetStorageSwitch(ctx, storageSwitchId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetStorageSwitchResponse(rsp)
 }
 
 // TestStorageSettingsWithBodyWithResponse Test the connection with settings that are not saved
@@ -24949,6 +25400,13 @@ func ParseUpdateBackupConfigResponse(rsp *http.Response) (*UpdateBackupConfigRes
 		}
 		response.JSON200 = &dest
 
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 202:
+		var dest StorageSwitch
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON202 = &dest
+
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
 		var dest Problem
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
@@ -24991,6 +25449,19 @@ func ParseUpdateBackupConfigResponse(rsp *http.Response) (*UpdateBackupConfigRes
 		}
 		response.ApplicationproblemJSONDefault = &dest
 
+	}
+
+	switch {
+	case rsp.StatusCode == 202:
+		var headers UpdateBackupConfigResponse202Headers
+		if values := rsp.Header.Values("Location"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "Location", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.Location = &value
+		}
+		response.Headers202 = &headers
 	}
 
 	return response, nil
@@ -25480,6 +25951,13 @@ func ParseTransferDatabaseResponse(rsp *http.Response) (*TransferDatabaseRespons
 	}
 
 	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 202:
+		var dest StorageSwitch
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON202 = &dest
+
 	case rsp.StatusCode == 204:
 		break // No content-type
 
@@ -25525,6 +26003,19 @@ func ParseTransferDatabaseResponse(rsp *http.Response) (*TransferDatabaseRespons
 		}
 		response.ApplicationproblemJSONDefault = &dest
 
+	}
+
+	switch {
+	case rsp.StatusCode == 202:
+		var headers TransferDatabaseResponse202Headers
+		if values := rsp.Header.Values("Location"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "Location", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.Location = &value
+		}
+		response.Headers202 = &headers
 	}
 
 	return response, nil
@@ -27864,6 +28355,121 @@ func ParseGetSignInOptionsResponse(rsp *http.Response) (*GetSignInOptionsRespons
 			return nil, err
 		}
 		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListStorageSwitchesResponse parses an HTTP response from a ListStorageSwitchesWithResponse call
+func ParseListStorageSwitchesResponse(rsp *http.Response) (*ListStorageSwitchesResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListStorageSwitchesResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest StorageSwitchPage
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetStorageSwitchResponse parses an HTTP response from a GetStorageSwitchWithResponse call
+func ParseGetStorageSwitchResponse(rsp *http.Response) (*GetStorageSwitchResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetStorageSwitchResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest StorageSwitch
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest Problem

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -26,6 +27,11 @@ func TestDeleteStreamingPhysicalDatabase(t *testing.T) {
 			rotateWal(t, source)
 			team.waitForWal(t, 1)
 			team.App.WaitForPhysicalBackups(t)
+			_, err := source.Exec(
+				t.Context(),
+				"CREATE TABLE deletion_backup_payload AS SELECT string_agg(md5(random()::text),'') AS payload FROM generate_series(1,1000000) entry GROUP BY entry/32",
+			)
+			require.NoError(t, err)
 			storageLock := team.App.BeginSQLTransaction(t)
 			var storageIDs []string
 			storageLock.QuerySQL(t, &storageIDs, "SELECT id FROM storages WHERE id=? FOR NO KEY UPDATE", team.StorageID)
@@ -53,6 +59,14 @@ func TestDeleteStreamingPhysicalDatabase(t *testing.T) {
 					return nil
 				},
 			)
+			var runningBackup struct{ ID uuid.UUID }
+			team.App.QuerySQL(
+				t,
+				&runningBackup,
+				"SELECT id FROM backups_physical WHERE database_id=? AND status='IN_PROGRESS'",
+				team.Database.Id,
+			)
+			resumeBackup := apptest.SuspendPhysicalBackupProcess(t, runningBackup.ID)
 			deletionLock := team.App.BeginSQLTransaction(t)
 			var databaseIDs []string
 			deletionLock.QuerySQL(t, &databaseIDs, "SELECT id FROM databases WHERE id=? FOR UPDATE", team.Database.Id)
@@ -103,6 +117,7 @@ func TestDeleteStreamingPhysicalDatabase(t *testing.T) {
 			}
 			require.NoError(t, deletion.Err)
 			require.Equal(t, http.StatusNoContent, deletion.Status, "%s", deletion.Body)
+			resumeBackup()
 			storageLock.Rollback(t)
 			team.App.WaitForPhysicalBackups(t)
 			testwait.Until(t, "the deleted database has no slots, streamer or queue", func(ctx context.Context) error {

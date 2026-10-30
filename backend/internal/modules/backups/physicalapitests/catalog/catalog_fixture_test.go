@@ -33,11 +33,13 @@ func newCatalog(t *testing.T) *catalogFixture {
 	database, err := owner.Client.GetDatabaseWithResponse(t.Context(), databaseID)
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, database.StatusCode())
-	return &catalogFixture{
+	catalog := &catalogFixture{
 		App: testApp, Owner: owner, Admin: admin, DatabaseName: database.JSON200.Name, WorkspaceID: workspace.Id,
 		DatabaseID: databaseID,
 		StorageID:  testApp.CreateLocalStorage(t, owner, workspace.Id),
 	}
+	catalog.saveStorageConfig(t, catalog.StorageID)
+	return catalog
 }
 
 type catalogResponse struct{ Body []byte }

@@ -56,7 +56,7 @@ type Deps struct {
 
 func New(deps Deps) *Service {
 	lifecycle := catalog.NewBackupLifecycle(catalog.BackupLifecycleDeps{
-		Backups: deps.Backups, Databases: deps.Databases, Storages: deps.Storages,
+		Configs: deps.Configs, Backups: deps.Backups, Databases: deps.Databases, Storages: deps.Storages,
 		Transactor: deps.Transactor, Clock: deps.Clock,
 	})
 	chainsService := chains.New(
@@ -134,6 +134,7 @@ func New(deps Deps) *Service {
 	)
 	return &Service{
 		databases:            deps.Databases,
+		storages:             deps.Storages,
 		workspaces:           deps.Workspaces,
 		configs:              deps.Configs,
 		chains:               chainsService,

@@ -453,22 +453,30 @@ func (s *Service) getDatabase(ctx context.Context, databaseID uuid.UUID) (databa
 // deleteBackupsWithFiles removes the rows and requests the deletion of their files in the caller's
 // transaction, so the files go only if the rows do.
 func (s *Service) deleteBackupsWithFiles(ctx context.Context, backupIDs []uuid.UUID) error {
+	removedBackups, err := s.deleteBackupRecords(ctx, backupIDs)
+	if err != nil {
+		return err
+	}
+	return s.requestFileDeletions(ctx, removedBackups)
+}
+
+func (s *Service) deleteBackupRecords(ctx context.Context, backupIDs []uuid.UUID) ([]LogicalBackup, error) {
 	if len(backupIDs) == 0 {
-		return nil
+		return nil, nil
 	}
 
 	for _, handler := range s.deletingBackupHandlers {
 		if err := handler(ctx, BackupsDeleting{BackupIDs: backupIDs}); err != nil {
-			return fmt.Errorf("handle logical backups deleting: %w", err)
+			return nil, fmt.Errorf("handle logical backups deleting: %w", err)
 		}
 	}
 
 	deletedBackups, err := s.repository.deleteByIDs(ctx, backupIDs)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return s.requestFileDeletions(ctx, deletedBackups)
+	return deletedBackups, nil
 }
 
 func (s *Service) requestFileDeletions(ctx context.Context, removedBackups []LogicalBackup) error {

@@ -19,6 +19,7 @@ import (
 	"databasus-backend/internal/lib/clock"
 	"databasus-backend/internal/lib/crypto"
 	"databasus-backend/internal/lib/database"
+	"databasus-backend/internal/modules/backups/internal/config"
 	"databasus-backend/internal/modules/backups/internal/physical/catalog"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/storages"
@@ -183,6 +184,7 @@ func ValidateStartLsnAgainstHistory(
 }
 
 type HistoryUploadSpec struct {
+	Publication config.PublicationFence
 	Inspection  *pgphysical.Inspection
 	TimelineID  int
 	FileStore   storages.Module
@@ -308,6 +310,9 @@ func UploadHistoryFile(
 	}
 
 	err = spec.Transactor.Transaction(ctx, func(ctx context.Context) error {
+		if err := spec.Publication.Validate(ctx); err != nil {
+			return err
+		}
 		if insertErr := historyRepo.Insert(ctx, row, spec.Clock.Now()); insertErr != nil {
 			return insertErr
 		}

@@ -87,7 +87,7 @@ func (s *Streamer) archiveTimelineHistoryFile(ctx context.Context, logger *slog.
 	defer func() { _ = conn.Close(context.WithoutCancel(ctx)) }()
 
 	if _, err := timelines.UploadHistoryFile(ctx, timelines.HistoryUploadSpec{
-		Clock: s.spec.Clock, Transactor: s.spec.Transactor,
+		Publication: s.spec.Publication, Clock: s.spec.Clock, Transactor: s.spec.Transactor,
 		Inspection:  conn,
 		TimelineID:  timelineID,
 		FileStore:   s.spec.FileStore,

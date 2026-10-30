@@ -208,8 +208,14 @@ func buildBackupLabel(
 // Each codec attempt writes its own object, because a name whose cleanup is
 // pending cannot be written again. The codec is recorded on the row, never in the
 // key, so the name stays extension-less.
-func buildObjectName(label string, attemptID uuid.UUID) string {
-	return label + "-" + attemptID.String()
+type backupObjectName struct {
+	DatabaseID uuid.UUID
+	Label      string
+	AttemptID  uuid.UUID
+}
+
+func buildObjectName(object backupObjectName) string {
+	return object.DatabaseID.String() + "-" + object.Label + "-" + object.AttemptID.String()
 }
 
 func verifyFullTimelineCompatibility(

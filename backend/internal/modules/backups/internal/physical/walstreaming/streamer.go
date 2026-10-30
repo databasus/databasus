@@ -19,6 +19,7 @@ import (
 	"databasus-backend/internal/lib/clock"
 	"databasus-backend/internal/lib/crypto"
 	"databasus-backend/internal/lib/database"
+	"databasus-backend/internal/modules/backups/internal/config"
 	"databasus-backend/internal/modules/backups/internal/physical/catalog"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/storages"
@@ -109,6 +110,8 @@ func (e *rapidFailureEscalator) reset() {
 }
 
 type WalStreamSpec struct {
+	ClaimID      uuid.UUID
+	Publication  config.PublicationFence
 	Clock        clock.Source
 	Transactor   *database.Transactor
 	ClientTools  pgshared.ClientTools
@@ -191,7 +194,8 @@ func NewStreamer(spec WalStreamSpec) *Streamer {
 	)
 
 	uploader := NewWalUploader(WalUploadDeps{
-		Clock: spec.Clock, Transactor: spec.Transactor,
+		Publication: spec.Publication,
+		Clock:       spec.Clock, Transactor: spec.Transactor,
 		DatabaseID:          spec.DatabaseID,
 		StorageID:           spec.StorageID,
 		FileStore:           spec.FileStore,

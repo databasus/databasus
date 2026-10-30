@@ -257,7 +257,12 @@ func (s *Streamer) recordWalStreamSample(ctx context.Context,
 
 	input.ReceiverRestarts, input.ReceiverPauses = s.receiverRespawns.takeCounts()
 
-	if err := s.spec.WalStreamSampleRepo.Insert(ctx, buildWalStreamSample(input)); err != nil {
+	if err := s.spec.Transactor.Transaction(ctx, func(ctx context.Context) error {
+		if err := s.spec.Publication.Validate(ctx); err != nil {
+			return err
+		}
+		return s.spec.WalStreamSampleRepo.Insert(ctx, buildWalStreamSample(input))
+	}); err != nil {
 		logger.ErrorContext(ctx, "failed to record a wal stream sample", slog.Any("error", err))
 
 		return
@@ -273,7 +278,7 @@ func (s *Streamer) recordWalStreamSample(ctx context.Context,
 		return
 	}
 
-	if err := s.spec.WalStreamerRepo.ClearFailingSince(ctx, s.spec.DatabaseID); err != nil {
+	if err := s.spec.WalStreamerRepo.ClearFailingSince(ctx, s.spec.ClaimID); err != nil {
 		logger.ErrorContext(ctx, "failed to clear the wal streamer's failing time", slog.Any("error", err))
 	}
 }

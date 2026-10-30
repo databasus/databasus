@@ -263,7 +263,7 @@ func TestSaveBackupConfigRacingStorageTransfer(t *testing.T) {
 			storedStorageID := getBackupConfig(t, tm.owner, databaseID).JSON200.StorageId
 			storageWorkspaceID := getStorage(t, tm.owner, racedStorageID).WorkspaceId
 
-			if roundSaveStatus == http.StatusOK {
+			if roundSaveStatus == http.StatusAccepted {
 				assert.Equal(t, http.StatusConflict, roundTransferStatus)
 				assert.Equal(t, &racedStorageID, storedStorageID)
 				assert.Equal(t, tm.workspace.Id, storageWorkspaceID)

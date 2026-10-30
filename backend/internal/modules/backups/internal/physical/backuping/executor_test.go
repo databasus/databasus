@@ -43,10 +43,11 @@ func Test_BuildBackupLabel_FormatsReadableName(t *testing.T) {
 func Test_BuildObjectName_GivesEachAttemptItsOwnKey(t *testing.T) {
 	label := buildBackupLabel("production", uuid.New(), time.Now().UTC(), "FULL")
 
-	first := buildObjectName(label, uuid.New())
-	second := buildObjectName(label, uuid.New())
+	databaseID := uuid.New()
+	first := buildObjectName(backupObjectName{DatabaseID: databaseID, Label: label, AttemptID: uuid.New()})
+	second := buildObjectName(backupObjectName{DatabaseID: databaseID, Label: label, AttemptID: uuid.New()})
 
 	assert.NotEqual(t, first, second, "a retry must not address the object a pending cleanup owns")
-	assert.True(t, strings.HasPrefix(first, label+"-"))
-	assert.True(t, strings.HasPrefix(second, label+"-"))
+	assert.True(t, strings.HasPrefix(first, databaseID.String()+"-"+label+"-"))
+	assert.True(t, strings.HasPrefix(second, databaseID.String()+"-"+label+"-"))
 }

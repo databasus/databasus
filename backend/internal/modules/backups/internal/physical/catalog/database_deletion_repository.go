@@ -82,3 +82,15 @@ func getFileName(name *string) string {
 	}
 	return *name
 }
+
+func (r *Repository) HasDatabaseHistory(ctx context.Context, databaseID uuid.UUID) (bool, error) {
+	var hasHistory bool
+	err := database.Conn(ctx, r.db).
+		Raw(`SELECT EXISTS(SELECT 1 FROM backups_physical WHERE database_id=?) OR EXISTS(SELECT 1 FROM backups_physical_wal_segments WHERE database_id=?) OR EXISTS(SELECT 1 FROM backups_physical_wal_history_files WHERE database_id=?)`, databaseID, databaseID, databaseID).
+		Scan(&hasHistory).
+		Error
+	if err != nil {
+		return false, fmt.Errorf("check physical history: %w", err)
+	}
+	return hasHistory, nil
+}

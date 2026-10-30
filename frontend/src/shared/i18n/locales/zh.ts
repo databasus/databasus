@@ -1333,6 +1333,22 @@ export const zh: typeof en = {
     },
   },
   backups: {
+    storageSwitch: {
+      history: '存储切换历史',
+      pending: '存储已切换，正在后台清理旧文件。',
+      completed: '清理已完成',
+      remainders: '存储已成功切换，但无法确认部分旧文件是否已删除。请从旧存储中手动删除这些文件。',
+      target: '切换后的存储：{{storageId}}',
+      database: '数据库：{{databaseId}}',
+      counts:
+        '文件总数：{{total}}。待处理：{{pending}}。已删除：{{deleted}}。未删除：{{remaining}}。',
+      retry: '重新查询状态',
+      empty: '暂无存储切换记录。',
+      more: '显示更多',
+      warning:
+        '切换存储后，旧备份历史将立即移除，新存储会立即启用。旧文件将在后台删除，最多允许五次失败尝试，且清理时间不超过24小时。如果旧存储无法访问，可能会留下文件。剩余文件需要手动删除。新的物理备份将从FULL开始。',
+      confirm: '切换存储并删除历史',
+    },
     encryption: {
       none: '无',
       encrypted: '已启用',
@@ -1373,8 +1389,6 @@ export const zh: typeof en = {
       createNewStorage: '新建存储',
       addStorageTitle: '添加存储',
       storageDescription: '存储是存放备份的位置（本地磁盘、S3、Google Drive 等）',
-      storageChangeWarning: '如果更换存储，该存储中的所有备份都会被删除。',
-      storageChangeAcknowledge: '我已了解',
       encryption: '加密',
       notifications: '通知',
       noNotifications: '无',

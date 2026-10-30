@@ -247,6 +247,9 @@ func (s *Scheduler) claimAndInsert(
 		if err := s.backupRepo.AcquireBackupAndOrphanCleanupLock(ctx, backupConfig.DatabaseID); err != nil {
 			return err
 		}
+		if _, err := s.configs.LockBackupConfig(ctx, backupConfig.DatabaseID); err != nil {
+			return err
+		}
 
 		latestConfig, err := s.configs.GetPhysicalBackupConfig(ctx, backupConfig.DatabaseID)
 		if err != nil {
@@ -277,7 +280,7 @@ func (s *Scheduler) claimAndInsert(
 
 		backup := &catalog.Backup{
 			ID: backupID, DatabaseID: backupConfig.DatabaseID, StorageID: *backupConfig.StorageID,
-			Kind: catalog.BackupKind(decision.kind), CreatedAt: now,
+			Kind: catalog.BackupKind(decision.kind), CreatedAt: now, StorageGeneration: backupConfig.StorageGeneration,
 		}
 		if decision.kind == catalog.BackupTypeIncremental {
 			backup.RootFullBackupID = &decision.incrRootFullBackupID

@@ -4,49 +4,51 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+
+	"databasus-backend/internal/modules/backups/internal/storageswitch"
 )
 
-// LockBackupConfig reads the config for a database transfer and locks its saved row until the caller's
-// transaction ends, so no save changes the storage the transfer acts on.
 func (s *Service) LockBackupConfig(ctx context.Context, databaseID uuid.UUID) (AnyBackupConfig, error) {
-	_, _, err := s.repository.get(ctx, databaseID, forUpdateRowLock)
-	if err != nil {
+	if err := s.repository.lockPhysicalHistory(ctx, databaseID); err != nil {
 		return nil, err
 	}
-
+	if err := s.databases.LockDatabaseForBackup(ctx, databaseID); err != nil {
+		return nil, err
+	}
+	if err := s.repository.lockDatabaseConfig(ctx, databaseID); err != nil {
+		return nil, err
+	}
+	if _, _, err := s.repository.get(ctx, databaseID, forUpdateRowLock); err != nil {
+		return nil, err
+	}
 	return s.ReadBackupConfig(ctx, databaseID)
 }
 
-// SwitchStorage points the config at a storage the caller checked, in the caller's transaction. A
-// config that was never saved is saved as the default of its method with that storage. The backups in
-// the previous storage stay, so no storage-change event is published.
-func (s *Service) SwitchStorage(ctx context.Context, databaseID, storageID uuid.UUID) error {
-	_, isSaved, err := s.repository.get(ctx, databaseID, forUpdateRowLock)
+type StorageSwitchAssignment struct {
+	DatabaseID  uuid.UUID
+	StorageID   uuid.UUID
+	WorkspaceID uuid.UUID
+}
+
+func (s *Service) SwitchStorage(
+	ctx context.Context,
+	assignment StorageSwitchAssignment,
+) (*storageswitch.Outcome, error) {
+	previous, err := s.LockBackupConfig(ctx, assignment.DatabaseID)
 	if err != nil {
-		return err
+		return nil, err
 	}
-
-	if isSaved {
-		return s.repository.updateStorage(ctx, databaseID, storageID)
-	}
-
-	defaultConfig, err := s.ReadBackupConfig(ctx, databaseID)
-	if err != nil {
-		return err
-	}
-
-	switch typedConfig := defaultConfig.(type) {
+	scope := storageSwitchScope{WorkspaceID: assignment.WorkspaceID, IsTransfer: true}
+	var saved SavedBackupConfig
+	switch typed := previous.(type) {
 	case LogicalBackupConfig:
-		typedConfig.StorageID = &storageID
-
-		return s.repository.upsertLogical(ctx, typedConfig)
-
+		typed.StorageID = &assignment.StorageID
+		saved, err = s.saveLogicalBackupConfig(ctx, scope, typed)
 	case PhysicalBackupConfig:
-		typedConfig.StorageID = &storageID
-
-		return s.repository.upsertPhysical(ctx, typedConfig)
-
+		typed.StorageID = &assignment.StorageID
+		saved, err = s.savePhysicalBackupConfig(ctx, scope, typed)
 	default:
-		return ErrMethodMismatch
+		return nil, ErrMethodMismatch
 	}
+	return saved.StorageSwitch, err
 }

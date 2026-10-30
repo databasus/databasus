@@ -7,7 +7,8 @@ import (
 )
 
 var (
-	ErrDatabaseNotFound = &apierror.Problem{
+	ErrStaleStoragePublication = errors.New("physical publication belongs to an inactive storage generation")
+	ErrDatabaseNotFound        = &apierror.Problem{
 		Code:   apierror.CodeNotFound,
 		Detail: "the database does not exist",
 		Errors: nil,

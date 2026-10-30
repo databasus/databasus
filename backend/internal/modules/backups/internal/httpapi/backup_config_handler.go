@@ -86,7 +86,15 @@ func (h *Handler) UpdateBackupConfig(
 		return nil, err
 	}
 
-	body, err := toBackupConfigBody(savedConfig)
+	if savedConfig.StorageSwitch != nil {
+		return UpdateBackupConfig202JSONResponse{
+			Body: toStorageSwitch(*savedConfig.StorageSwitch),
+			Headers: UpdateBackupConfig202ResponseHeaders{
+				Location: storageSwitchLocation(savedConfig.StorageSwitch.Operation.ID),
+			},
+		}, nil
+	}
+	body, err := toBackupConfigBody(savedConfig.Config)
 	if err != nil {
 		return nil, err
 	}

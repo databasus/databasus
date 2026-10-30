@@ -4,11 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"os"
-	"path/filepath"
-	"strconv"
-	"strings"
-	"syscall"
 	"testing"
 	"time"
 
@@ -24,17 +19,77 @@ import (
 func TestPhysicalBackupRunOverlap(t *testing.T) {
 	t.Parallel()
 
-	for _, action := range []string{"cancel", "delete", "disable"} {
+	for _, action := range []string{"cancel", "delete", "disable", "switch", "delete then switch", "delete then clear then switch"} {
 		t.Run("waits for the old process before completing the next full after "+action, func(t *testing.T) {
+			isStorageSwitch := action == "switch" || action == "delete then switch" ||
+				action == "delete then clear then switch"
 			team := newBackupTeam(t, backupTeamSpec{})
+			sourceStorageID := team.StorageID
 			backup, releaseStorage := startHeldPhysicalStream(t, team, "full")
-			resume := suspendBackupProcess(t, backup.ID)
+			resume := apptest.SuspendPhysicalBackupProcess(t, backup.ID)
 			releaseStorage()
+			var acceptedTotal int64
+			var acceptedSwitch struct{ ID uuid.UUID }
 			var attemptFiles []string
 			team.App.QuerySQL(t, &attemptFiles, "SELECT file_name FROM backups_physical WHERE id=?", backup.ID)
 			require.Len(t, attemptFiles, 1)
 			require.NotEmpty(t, attemptFiles[0])
 			switch action {
+			case "switch", "delete then switch", "delete then clear then switch":
+				if action != "switch" {
+					status, body := team.App.CallPhysicalAPI(t, team.Owner, apptest.PhysicalDeleteRequest(backup.ID))
+					require.Equal(t, http.StatusNoContent, status, "%s", body)
+					require.Empty(t, team.listBackups(t))
+				}
+				if action == "delete then clear then switch" {
+					cleared := team.saveStorage(t, storageConfigSave{IsEnabled: true})
+					require.Equal(t, http.StatusOK, cleared.StatusCode(), "%s", cleared.Body)
+					require.Nil(t, apptest.GetBackupConfig(t, team.Owner, team.Database.Id).StorageId)
+				}
+				targetWorkspace := apptest.CreateWorkspace(t, team.Owner, "Switched running backup")
+				target := apptest.CreateStorageNamespace(t, team.Owner, targetWorkspace.Id)
+				operation := apptest.TransferToStorage(
+					t,
+					team.Owner,
+					apptest.StorageSwitchTransfer{
+						DatabaseID:  team.Database.Id,
+						WorkspaceID: targetWorkspace.Id,
+						StorageID:   target.StorageID,
+					},
+				)
+				assert.Positive(t, operation.Total)
+				if action == "delete then clear then switch" {
+					assert.Nil(t, operation.PreviousStorageId)
+				}
+				moved, err := team.Owner.Client.GetDatabaseWithResponse(t.Context(), team.Database.Id)
+				require.NoError(t, err)
+				require.NotNil(t, moved.JSON200)
+				assert.Equal(t, targetWorkspace.Id, moved.JSON200.WorkspaceId)
+				assert.Equal(t, &target.StorageID, apptest.GetBackupConfig(t, team.Owner, team.Database.Id).StorageId)
+				team.App.QuerySQL(
+					t,
+					&acceptedSwitch,
+					"SELECT id FROM backups_storage_switches WHERE database_id=?",
+					team.Database.Id,
+				)
+				team.App.QuerySQL(
+					t,
+					&acceptedTotal,
+					"SELECT total FROM storages_deletion_batches WHERE id=(SELECT deletion_batch_id FROM backups_storage_switches WHERE id=?)",
+					acceptedSwitch.ID,
+				)
+				team.StorageID = target.StorageID
+				require.Empty(t, team.listBackups(t))
+				var capturedFiles []string
+				team.App.QuerySQL(
+					t,
+					&capturedFiles,
+					`SELECT file_name FROM storages_deletion_batch_items WHERE batch_id=(SELECT deletion_batch_id FROM backups_storage_switches WHERE id=?)`,
+					acceptedSwitch.ID,
+				)
+				for _, suffix := range []string{"", ".metadata", ".manifest"} {
+					assert.Contains(t, capturedFiles, attemptFiles[0]+suffix)
+				}
 			case "cancel":
 				cancelPhysicalBackup(t, team, backup)
 				assert.Equal(t, "CANCELED", findPhysicalBackup(t, team, backup).Status)
@@ -78,7 +133,25 @@ func TestPhysicalBackupRunOverlap(t *testing.T) {
 				},
 			)
 			assert.Equal(t, "FULL", nextBackup.Type)
-			if action != "delete" {
+			if isStorageSwitch {
+				var settledTotal int64
+				team.App.QuerySQL(
+					t,
+					&settledTotal,
+					"SELECT total FROM storages_deletion_batches WHERE id=(SELECT deletion_batch_id FROM backups_storage_switches WHERE id=?)",
+					acceptedSwitch.ID,
+				)
+				assert.Equal(
+					t,
+					acceptedTotal,
+					settledTotal,
+					"late old writer files must not extend the accepted cleanup set",
+				)
+				var oldHistory int
+				team.App.QuerySQL(t, &oldHistory, "SELECT count(*) FROM backups_physical WHERE id=?", backup.ID)
+				assert.Zero(t, oldHistory)
+			}
+			if action != "delete" && !isStorageSwitch {
 				assert.Equal(t, "CANCELED", findPhysicalBackup(t, team, backup).Status)
 			}
 			var pendingFiles []string
@@ -86,7 +159,7 @@ func TestPhysicalBackupRunOverlap(t *testing.T) {
 				t,
 				&pendingFiles,
 				"SELECT file_name FROM storages_pending_deletions WHERE storage_id=?",
-				team.StorageID,
+				sourceStorageID,
 			)
 			for _, suffix := range []string{"", ".metadata", ".manifest"} {
 				assert.Contains(t, pendingFiles, attemptFiles[0]+suffix)
@@ -105,32 +178,4 @@ func setBackupsEnabled(t *testing.T, team *backupTeam, isEnabled bool) {
 		})
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, response.StatusCode(), "%s", response.Body)
-}
-
-func suspendBackupProcess(t *testing.T, backupID uuid.UUID) func() {
-	t.Helper()
-	processes, err := os.ReadDir("/proc")
-	require.NoError(t, err)
-	for _, entry := range processes {
-		processID, err := strconv.Atoi(entry.Name())
-		if err != nil {
-			continue
-		}
-		arguments, err := os.ReadFile(filepath.Join("/proc", entry.Name(), "cmdline"))
-		if err != nil || !strings.Contains(string(arguments), "pg_basebackup") ||
-			!strings.Contains(string(arguments), backupID.String()) {
-			continue
-		}
-		require.NoError(t, syscall.Kill(processID, syscall.SIGSTOP))
-		resume := func() {
-			currentArguments, err := os.ReadFile(filepath.Join("/proc", entry.Name(), "cmdline"))
-			if err == nil && string(currentArguments) == string(arguments) {
-				_ = syscall.Kill(processID, syscall.SIGCONT)
-			}
-		}
-		t.Cleanup(resume)
-		return resume
-	}
-	t.Fatal("the backup's pg_basebackup process was not found")
-	return nil
 }

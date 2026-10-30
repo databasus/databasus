@@ -6,11 +6,13 @@ import (
 
 	"databasus-backend/internal/lib/clock"
 	"databasus-backend/internal/lib/database"
+	"databasus-backend/internal/modules/backups/internal/config"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/storages"
 )
 
 type BackupLifecycleDeps struct {
+	Configs    *config.Service
 	Backups    *BackupRepository
 	Databases  databases.Module
 	Storages   storages.Module
@@ -19,6 +21,7 @@ type BackupLifecycleDeps struct {
 }
 
 type BackupLifecycle struct {
+	configs    *config.Service
 	backups    *BackupRepository
 	databases  databases.Module
 	storages   storages.Module
@@ -28,7 +31,7 @@ type BackupLifecycle struct {
 
 func NewBackupLifecycle(deps BackupLifecycleDeps) *BackupLifecycle {
 	return &BackupLifecycle{
-		backups: deps.Backups, databases: deps.Databases, storages: deps.Storages,
+		configs: deps.Configs, backups: deps.Backups, databases: deps.Databases, storages: deps.Storages,
 		transactor: deps.Transactor, clock: deps.Clock,
 	}
 }
@@ -36,6 +39,16 @@ func NewBackupLifecycle(deps BackupLifecycleDeps) *BackupLifecycle {
 func (s *BackupLifecycle) Start(ctx context.Context, backup *Backup) (bool, error) {
 	var isInserted bool
 	err := s.transactor.Transaction(ctx, func(ctx context.Context) error {
+		if err := s.configs.CheckStoragePublication(
+			ctx,
+			config.StoragePublication{
+				DatabaseID: backup.DatabaseID,
+				StorageID:  backup.StorageID,
+				Generation: backup.StorageGeneration,
+			},
+		); err != nil {
+			return err
+		}
 		backup.Status = BackupStatusInProgress
 		var err error
 		isInserted, err = s.backups.InsertRunning(ctx, backup)
@@ -98,7 +111,16 @@ func (s *BackupLifecycle) transition(ctx context.Context, spec backupTransition)
 		switch spec.Status {
 		case BackupStatusCompleted:
 			err = s.transactor.Transaction(ctx, func(ctx context.Context) error {
-				// Database deletion locks the database before its backups.
+				if err := s.configs.CheckStoragePublication(
+					ctx,
+					config.StoragePublication{
+						DatabaseID: spec.Backup.DatabaseID,
+						StorageID:  spec.Backup.StorageID,
+						Generation: spec.Backup.StorageGeneration,
+					},
+				); err != nil {
+					return err
+				}
 				if err := s.databases.RecordBackupSuccess(
 					ctx,
 					spec.Backup.DatabaseID,
@@ -119,7 +141,7 @@ func (s *BackupLifecycle) transition(ctx context.Context, spec backupTransition)
 			if err == nil {
 				return nil
 			}
-			if !errors.Is(err, errBackupSuperseded) {
+			if !errors.Is(err, errBackupSuperseded) && !errors.Is(err, config.ErrStaleStoragePublication) {
 				return err
 			}
 		case BackupStatusError:
@@ -141,9 +163,5 @@ func (s *BackupLifecycle) transition(ctx context.Context, spec backupTransition)
 }
 
 func backupFileReferences(backup *Backup) []storages.StoredFileReference {
-	manifestFileName := getFileName(backup.ManifestFileName)
-	if manifestFileName == "" && backup.FileName != nil {
-		manifestFileName = *backup.FileName + ManifestSuffix
-	}
-	return artifactReferences(backup.StorageID, getFileName(backup.FileName), manifestFileName)
+	return artifactReferences(backup.StorageID, getFileName(backup.FileName), backup.GetManifestFileName())
 }

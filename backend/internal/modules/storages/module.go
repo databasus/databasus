@@ -60,18 +60,24 @@ type (
 	// LocalFolders are the folders a local storage writes through.
 	LocalFolders = providers.LocalFolders
 	// FileTimings are the deadlines of the file lifecycle.
-	FileTimings = files.Timings
+	FileTimings          = files.Timings
+	DeletionBatch        = files.DeletionBatch
+	DeletionBatchRequest = files.DeletionBatchRequest
+	DeletionBatchStatus  = files.DeletionBatchStatus
 )
 
 const (
-	TypeLocal       = providers.TypeLocal
-	TypeS3          = providers.TypeS3
-	TypeGoogleDrive = providers.TypeGoogleDrive
-	TypeNAS         = providers.TypeNAS
-	TypeAzureBlob   = providers.TypeAzureBlob
-	TypeFTP         = providers.TypeFTP
-	TypeSFTP        = providers.TypeSFTP
-	TypeRclone      = providers.TypeRclone
+	CleanupPending        = files.CleanupPending
+	CleanupCompleted      = files.CleanupCompleted
+	CleanupWithRemainders = files.CleanupWithRemainders
+	TypeLocal             = providers.TypeLocal
+	TypeS3                = providers.TypeS3
+	TypeGoogleDrive       = providers.TypeGoogleDrive
+	TypeNAS               = providers.TypeNAS
+	TypeAzureBlob         = providers.TypeAzureBlob
+	TypeFTP               = providers.TypeFTP
+	TypeSFTP              = providers.TypeSFTP
+	TypeRclone            = providers.TypeRclone
 )
 
 // ProductionFileTimings is the policy of a running instance; tests pass shorter timings.
@@ -101,6 +107,9 @@ type Module interface {
 	// ConfirmFileWrites and RequestFileDeletions refuse to run outside a transaction in ctx.
 	ConfirmFileWrites(ctx context.Context, receipts []WriteReceipt) error
 	RequestFileDeletions(ctx context.Context, references []StoredFileReference) error
+	RequestDeletionBatch(ctx context.Context, request DeletionBatchRequest) (DeletionBatch, error)
+	GetDeletionBatches(ctx context.Context, ids []uuid.UUID) ([]DeletionBatch, error)
+	GetPendingFileReferences(ctx context.Context, prefix string) ([]StoredFileReference, error)
 	GetStorageReader(ctx context.Context, storageID uuid.UUID) (StorageReader, error)
 
 	// GetStorages leaves out the IDs that match no storage.
@@ -177,12 +186,15 @@ func New(deps Deps) Module {
 	})
 
 	fileDeps := files.Deps{
-		Repository: files.NewPendingDeletionRepository(deps.DB),
-		Locator:    files.NewLocator(files.LocatorDeps{Registry: registry, Settings: settingsReader}),
-		Logger:     deps.Logger,
-		Clock:      deps.Clock,
-		Timings:    deps.FileTimings,
-		Uploads:    writes,
+		Repository:      files.NewPendingDeletionRepository(deps.DB),
+		Batches:         files.NewDeletionBatchRepository(deps.DB),
+		WriteProtection: files.NewWriteProtectionRepository(deps.DB),
+		Transactor:      deps.Transactor,
+		Locator:         files.NewLocator(files.LocatorDeps{Registry: registry, Settings: settingsReader}),
+		Logger:          deps.Logger,
+		Clock:           deps.Clock,
+		Timings:         deps.FileTimings,
+		Uploads:         writes,
 	}
 	fileStore := files.NewStore(fileDeps)
 	deletionJob := files.NewDeletionJob(fileStore, fileDeps)

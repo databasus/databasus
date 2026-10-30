@@ -22,6 +22,7 @@ import (
 	"databasus-backend/internal/modules/backups/internal/physical/streamhealth"
 	"databasus-backend/internal/modules/backups/internal/physical/walstreaming"
 	"databasus-backend/internal/modules/databases"
+	"databasus-backend/internal/modules/storages"
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/modules/workspaces"
 )
@@ -30,6 +31,7 @@ type Service struct {
 	backuping            *backuping.Service
 	cleaner              *retention.Cleaner
 	databases            databases.Module
+	storages             storages.Module
 	workspaces           workspaces.Module
 	configs              *config.Service
 	chains               *chains.Service

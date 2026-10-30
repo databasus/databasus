@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"databasus-backend/internal/modules/backups/internal/config"
 	"databasus-backend/internal/modules/databases"
 )
 
@@ -12,20 +13,39 @@ import (
 // deletion keeps them. It refuses while a backup runs, because the backup still writes its file, and
 // while a restore reads one of the backups.
 func (s *Service) OnDatabaseDeleting(ctx context.Context, event databases.DatabaseDeleting) error {
-	return s.removeDatabaseBackups(ctx, event.DatabaseID, databaseBackupsRemovalRefusals{
+	backups, err := s.removeDatabaseBackupRecords(ctx, event.DatabaseID, databaseBackupsRemovalRefusals{
 		backupRunning:  ErrDatabaseBackupRunning,
 		restoreRunning: ErrDatabaseRestoreRunning,
 	})
+	if err != nil {
+		return err
+	}
+	return s.requestFileDeletions(ctx, backups)
 }
 
 // RemoveBackupsForStorageChange removes the database's backups in the transaction of a config save
 // that names another storage. The save holds the config's row lock, which a backup start shares, so
 // every backup that started before the save is visible here.
-func (s *Service) RemoveBackupsForStorageChange(ctx context.Context, databaseID uuid.UUID) error {
-	return s.removeDatabaseBackups(ctx, databaseID, databaseBackupsRemovalRefusals{
-		backupRunning:  ErrStorageChangeBackupRunning,
-		restoreRunning: ErrStorageChangeRestoreRunning,
-	})
+func (s *Service) RemoveBackupsForStorageChange(
+	ctx context.Context,
+	removal config.HistoryRemoval,
+) (config.RemovedBackupHistory, error) {
+	backups, err := s.removeDatabaseBackupRecords(
+		ctx,
+		removal.DatabaseID,
+		databaseBackupsRemovalRefusals{
+			backupRunning:  ErrStorageChangeBackupRunning,
+			restoreRunning: ErrStorageChangeRestoreRunning,
+		},
+	)
+	if err != nil {
+		return config.RemovedBackupHistory{}, err
+	}
+	history := config.RemovedBackupHistory{HasHistory: len(backups) > 0}
+	for _, backup := range backups {
+		history.References = append(history.References, backup.getStoredFiles()...)
+	}
+	return history, nil
 }
 
 // databaseBackupsRemovalRefusals are the errors that refuse the removal, worded for its cause.
@@ -34,36 +54,36 @@ type databaseBackupsRemovalRefusals struct {
 	restoreRunning error
 }
 
-func (s *Service) removeDatabaseBackups(
+func (s *Service) removeDatabaseBackupRecords(
 	ctx context.Context,
 	databaseID uuid.UUID,
 	refusals databaseBackupsRemovalRefusals,
-) error {
+) ([]LogicalBackup, error) {
 	// A restore start holds a key share lock on its backup's row until it commits, so this lock waits
 	// for a restore that is being inserted and the check below sees it; a later insert waits for the
 	// deletion and fails its reference to the deleted backup.
 	backupIDs, err := s.repository.lockAndListBackupIDsOfDatabase(ctx, databaseID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	isBackupRunning, err := s.repository.isInProgressForDatabase(ctx, databaseID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if isBackupRunning {
-		return refusals.backupRunning
+		return nil, refusals.backupRunning
 	}
 
 	isRestoreRunning, err := s.restores.IsRestoreRunningForDatabase(ctx, databaseID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if isRestoreRunning {
-		return refusals.restoreRunning
+		return nil, refusals.restoreRunning
 	}
 
-	return s.deleteBackupsWithFiles(ctx, backupIDs)
+	return s.deleteBackupRecords(ctx, backupIDs)
 }

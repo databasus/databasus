@@ -45,10 +45,17 @@ func (uc *FullExecutor) Execute(ctx context.Context, spec FullBackupSpec) (execu
 	// Every codec attempt gets its own object key, and the row has to carry it
 	// before the bytes leave, or a failed attempt leaves a file nothing names.
 	mintAndSaveAttemptName := func() (string, error) {
-		attemptName := buildObjectName(label, uuid.New())
+		attemptName := buildObjectName(
+			backupObjectName{DatabaseID: spec.SourceDB.DatabaseID, Label: label, AttemptID: uuid.New()},
+		)
 
 		spec.Backup.FileName = &attemptName
-		if err := spec.BackupRepo.UpdateAttemptFileName(context.WithoutCancel(ctx), spec.Backup); err != nil {
+		if err := spec.Transactor.Transaction(context.WithoutCancel(ctx), func(ctx context.Context) error {
+			if err := spec.Publication.Validate(ctx); err != nil {
+				return err
+			}
+			return spec.BackupRepo.UpdateAttemptFileName(ctx, spec.Backup)
+		}); err != nil {
 			return "", fmt.Errorf("persist file_name at upload-start: %w", err)
 		}
 
@@ -170,7 +177,7 @@ func uploadHistoryForTimelineSwitch(ctx context.Context, common CommonBackupSpec
 	defer func() { _ = historyConn.Close(ctx) }()
 
 	if _, err := timelines.UploadHistoryFile(ctx, timelines.HistoryUploadSpec{
-		Inspection:  historyConn,
+		Publication: common.Publication, Inspection: historyConn,
 		TimelineID:  timelineID,
 		FileStore:   common.FileStore,
 		SourceDB:    common.SourceDB,

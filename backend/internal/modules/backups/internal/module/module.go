@@ -155,7 +155,7 @@ func (m *Module) SaveBackupConfig(
 	ctx context.Context,
 	actor users.Actor,
 	savedConfig config.AnyBackupConfig,
-) (config.AnyBackupConfig, error) {
+) (config.SavedBackupConfig, error) {
 	return m.configs.SaveBackupConfig(ctx, actor, savedConfig)
 }
 
