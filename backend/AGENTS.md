@@ -46,7 +46,7 @@ Rules for writing Go code in `backend/`, which holds the server and the verifica
 Code outside a family never switches on a database, storage or notifier type: only the family's registry maps a type to its implementation. A consumer that serves several engines through an interface of its own maps each database type to its implementation in one registry, and only there. To add a provider:
 
 1. Add a package under the family with its settings struct, its repository and its behavior.
-2. Add a migration with its table. Columns carry `NOT NULL`, `DEFAULT` and `CHECK` where they apply, and the row references the parent through the composite key `(id, type)`.
+2. Add a migration with its table. Columns carry `NOT NULL`, `DEFAULT` and structural constraints where they apply, following [Migrations](#migrations), and the row references the parent through the composite key `(id, type)`.
 3. Register it in the family's registry.
 4. Add its schema to the contract as one more variant of the type's `oneOf`.
 5. Add its conversion between that variant and its settings to the module's `httpapi`.
@@ -65,6 +65,7 @@ Write and delete files in a storage only through the storages module's file stor
 ## Migrations
 
 - Follow "Data" and "Migrations" in [`docs/architecture.md`](../docs/architecture.md#data): module prefixes, `RESTRICT` between modules, constraints in the schema, upgrade safety.
+- Store enum values as `TEXT` and lists of enum values as `TEXT[]`. Application code validates their allowed values. Do not use PostgreSQL enum types or `CHECK` constraints to restrict enum values, including a provider discriminator fixed to one value. Keep structural constraints, such as foreign keys, uniqueness, numeric bounds and required-field relationships.
 - One statement per table, constraint and index. Align column types and put each constraint clause on its own line.
 
 ```sql
