@@ -178,27 +178,6 @@ ALTER TABLE backups_configs
 -- +goose StatementEnd
 
 -- +goose StatementBegin
-ALTER TABLE backups_configs
-    ADD CONSTRAINT ck_backups_configs_method
-    CHECK (method IN ('LOGICAL', 'PHYSICAL'));
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE backups_configs
-    ADD CONSTRAINT ck_backups_configs_encryption
-    CHECK (encryption IN ('NONE', 'ENCRYPTED'));
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE backups_configs
-    ADD CONSTRAINT ck_backups_configs_notification_triggers
-    CHECK (
-        notification_triggers <@ ARRAY['BACKUP_FAILED', 'BACKUP_SUCCESS', 'CHAIN_BROKEN', 'WAL_GAP']::TEXT[]
-        AND (method = 'PHYSICAL' OR notification_triggers <@ ARRAY['BACKUP_FAILED', 'BACKUP_SUCCESS']::TEXT[])
-    );
--- +goose StatementEnd
-
--- +goose StatementBegin
 CREATE INDEX idx_backups_configs_storage_id
     ON backups_configs (storage_id);
 -- +goose StatementEnd
@@ -228,12 +207,6 @@ ALTER TABLE backups_configs_logical
 
 -- +goose StatementBegin
 ALTER TABLE backups_configs_logical
-    ADD CONSTRAINT ck_backups_configs_logical_method
-    CHECK (method = 'LOGICAL');
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE backups_configs_logical
     ADD CONSTRAINT fk_backups_configs_logical_config
     FOREIGN KEY (database_id, method)
     REFERENCES backups_configs (database_id, method)
@@ -242,27 +215,7 @@ ALTER TABLE backups_configs_logical
 
 -- +goose StatementBegin
 ALTER TABLE backups_configs_logical
-    ADD CONSTRAINT ck_backups_configs_logical_retention_policy_type
-    CHECK (retention_policy_type IN ('TIME_PERIOD', 'COUNT', 'GFS'));
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE backups_configs_logical
     ALTER COLUMN retention_time_period SET DEFAULT '3_MONTH';
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE backups_configs_logical
-    ADD CONSTRAINT ck_backups_configs_logical_retention_time_period
-    CHECK (retention_time_period IN (
-        'DAY', 'WEEK', 'MONTH', '3_MONTH', '6_MONTH', 'YEAR', '2_YEARS', '3_YEARS', '4_YEARS', '5_YEARS', 'FOREVER'
-    ));
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE backups_configs_logical
-    ADD CONSTRAINT ck_backups_configs_logical_interval_type
-    CHECK (interval_type IN ('HOURLY', 'DAILY', 'WEEKLY', 'MONTHLY', 'CRON'));
 -- +goose StatementEnd
 
 -- +goose StatementBegin
@@ -290,12 +243,6 @@ ALTER TABLE backups_configs_physical
 
 -- +goose StatementBegin
 ALTER TABLE backups_configs_physical
-    ADD CONSTRAINT ck_backups_configs_physical_method
-    CHECK (method = 'PHYSICAL');
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE backups_configs_physical
     ADD CONSTRAINT fk_backups_configs_physical_config
     FOREIGN KEY (database_id, method)
     REFERENCES backups_configs (database_id, method)
@@ -307,32 +254,8 @@ ALTER TABLE backups_configs_physical
     ALTER COLUMN full_interval_type DROP DEFAULT;
 -- +goose StatementEnd
 
--- +goose StatementBegin
-ALTER TABLE backups_configs_physical
-    ADD CONSTRAINT ck_backups_configs_physical_full_interval_type
-    CHECK (full_interval_type IN ('HOURLY', 'DAILY', 'WEEKLY', 'MONTHLY', 'CRON'));
--- +goose StatementEnd
-
 -- An empty incremental type is the schedule of a database without incremental backups.
--- +goose StatementBegin
-ALTER TABLE backups_configs_physical
-    ADD CONSTRAINT ck_backups_configs_physical_incremental_interval_type
-    CHECK (incremental_interval_type IN ('', 'HOURLY', 'DAILY', 'WEEKLY', 'MONTHLY', 'CRON'));
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE backups_configs_physical
-    ADD CONSTRAINT ck_backups_configs_physical_retention
-    CHECK (retention IN ('CHAINS', 'FULL_BACKUPS', 'CHAINS_AND_FULL_BACKUPS'));
--- +goose StatementEnd
-
 -- An empty full-backups policy is the retention of a config that keeps only chains.
--- +goose StatementBegin
-ALTER TABLE backups_configs_physical
-    ADD CONSTRAINT ck_backups_configs_physical_full_backups_retention_policy
-    CHECK (full_backups_retention_policy IN ('', 'LAST_N', 'GFS'));
--- +goose StatementEnd
-
 -- +goose Down
 -- +goose StatementBegin
 ALTER TABLE backups_configs_physical
@@ -346,22 +269,13 @@ ALTER TABLE backups_configs_logical
 
 -- +goose StatementBegin
 ALTER TABLE backups_configs_physical
-    DROP CONSTRAINT ck_backups_configs_physical_full_backups_retention_policy,
-    DROP CONSTRAINT ck_backups_configs_physical_retention,
-    DROP CONSTRAINT ck_backups_configs_physical_incremental_interval_type,
-    DROP CONSTRAINT ck_backups_configs_physical_full_interval_type,
     DROP CONSTRAINT fk_backups_configs_physical_config,
-    DROP CONSTRAINT ck_backups_configs_physical_method,
     DROP COLUMN method;
 -- +goose StatementEnd
 
 -- +goose StatementBegin
 ALTER TABLE backups_configs_logical
-    DROP CONSTRAINT ck_backups_configs_logical_interval_type,
-    DROP CONSTRAINT ck_backups_configs_logical_retention_time_period,
-    DROP CONSTRAINT ck_backups_configs_logical_retention_policy_type,
     DROP CONSTRAINT fk_backups_configs_logical_config,
-    DROP CONSTRAINT ck_backups_configs_logical_method,
     DROP COLUMN method;
 -- +goose StatementEnd
 

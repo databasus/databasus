@@ -14,6 +14,26 @@ const storagesMigrationName = "20261026120000_move_storages_into_module.sql"
 func TestStoragesMigration(t *testing.T) {
 	t.Parallel()
 
+	for _, storageClass := range []string{"COLD", "DEEP_ARCHIVE"} {
+		t.Run("preserves the provider class when it is "+storageClass, func(t *testing.T) {
+			t.Parallel()
+			db := openDatabaseMigratedBefore(t, storagesMigrationName)
+			workspaceID := insertWorkspace(t, db)
+			storageID := insertOldStorage(t, db, "S3", &workspaceID)
+			execute(t, db, `INSERT INTO s3_storages
+				(storage_id, s3_bucket, s3_region, s3_access_key, s3_secret_key, s3_storage_class)
+				VALUES (?, 'backups', 'us-east-1', 'enc:access', 'enc:secret', ?)`, storageID, storageClass)
+
+			applyAllMigrations(t, db, storagesMigrationName)
+
+			var savedClass string
+			require.NoError(t, db.WithContext(t.Context()).Raw(
+				"SELECT s3_storage_class FROM storages_s3 WHERE storage_id = ?", storageID,
+			).Scan(&savedClass).Error)
+			assert.Equal(t, storageClass, savedClass)
+		})
+	}
+
 	t.Run("deletes the storages that cannot work and the provider rows of another type", func(t *testing.T) {
 		t.Parallel()
 		db := openDatabaseMigratedBefore(t, storagesMigrationName)
@@ -83,12 +103,6 @@ func TestStoragesMigration(t *testing.T) {
 			constraint string
 		}{
 			{
-				name:       "unknown storage type",
-				statement:  "INSERT INTO storages (id, type, name, workspace_id) VALUES (?, 'DROPBOX', 'dropbox', ?)",
-				values:     []any{uuid.New(), workspaceID},
-				constraint: "ck_storages_type",
-			},
-			{
 				name:       "storage without a workspace",
 				statement:  "INSERT INTO storages (id, type, name) VALUES (?, 'LOCAL', 'orphan')",
 				values:     []any{uuid.New()},
@@ -100,21 +114,6 @@ func TestStoragesMigration(t *testing.T) {
 					VALUES (?, 'bucket', 'us-east-1', 'enc:access', 'enc:secret')`,
 				values:     []any{localStorageID},
 				constraint: "fk_storages_s3_storage",
-			},
-			{
-				name: "unknown S3 storage class",
-				statement: `INSERT INTO storages_s3
-					(storage_id, s3_bucket, s3_region, s3_access_key, s3_secret_key, s3_storage_class)
-					VALUES (?, 'bucket', 'us-east-1', 'enc:access', 'enc:secret', 'DEEP_ARCHIVE')`,
-				values:     []any{insertOldStorage(t, db, "S3", &workspaceID)},
-				constraint: "ck_storages_s3_s3_storage_class",
-			},
-			{
-				name: "unknown Azure Blob authentication method",
-				statement: `INSERT INTO storages_azure_blob (storage_id, auth_method, container_name)
-					VALUES (?, 'SAS_TOKEN', 'backups')`,
-				values:     []any{insertOldStorage(t, db, "AZURE_BLOB", &workspaceID)},
-				constraint: "ck_storages_azure_blob_auth_method",
 			},
 		}
 

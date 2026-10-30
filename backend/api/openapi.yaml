@@ -4566,8 +4566,7 @@ components:
           $ref: "#/components/schemas/S3StorageClass"
     S3StorageClass:
       type: string
-      description: The storage class of the stored objects; absent means the bucket's default
-      enum: [STANDARD, STANDARD_IA, ONEZONE_IA, INTELLIGENT_TIERING, REDUCED_REDUNDANCY, GLACIER_IR]
+      description: The provider-defined storage class, forwarded unchanged; absent or empty selects the bucket's default
     GoogleDriveStorageSettings:
       type: object
       description: The Google Drive of the account that authorized the OAuth client

@@ -11,6 +11,9 @@ interface Props {
 
 export function ShowS3StorageComponent({ settings }: Props) {
   const { t } = useTranslation();
+  const storageClassLabelKey = settings.s3StorageClass
+    ? S3_STORAGE_CLASS_LABEL_KEYS.get(settings.s3StorageClass)
+    : undefined;
 
   return (
     <>
@@ -63,7 +66,7 @@ export function ShowS3StorageComponent({ settings }: Props) {
       {settings.s3StorageClass && (
         <div className="mb-1 flex items-center">
           <div className="min-w-[110px] pr-2">{t('storages.fields.storageClass')}</div>
-          {t(S3_STORAGE_CLASS_LABEL_KEYS[settings.s3StorageClass])}
+          {storageClassLabelKey ? t(storageClassLabelKey) : settings.s3StorageClass}
         </div>
       )}
     </>

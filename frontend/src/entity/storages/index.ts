@@ -14,7 +14,6 @@ export type {
   S3StorageSettings,
   SftpStorageSettings,
 } from './models/ProviderStorageSettings';
-export { S3StorageClass } from './models/S3StorageClass';
 export { S3_STORAGE_CLASS_LABEL_KEYS } from './models/S3StorageClassLabelKeys';
 export { AzureBlobAuthMethod } from './models/AzureBlobAuthMethod';
 export { AZURE_BLOB_AUTH_METHOD_LABEL_KEYS } from './models/AzureBlobAuthMethodLabelKeys';

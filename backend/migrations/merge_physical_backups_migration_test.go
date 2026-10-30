@@ -159,11 +159,6 @@ func TestMergePhysicalBackupsMigration(t *testing.T) {
 			assignment, name string
 			backupID         uuid.UUID
 		}{
-			{"kind = 'UNKNOWN'", "kind", fullID},
-			{"status = 'UNKNOWN'", "status", fullID},
-			{"compression = 'UNKNOWN'", "compression", fullID},
-			{"encryption = 'UNKNOWN'", "encryption", fullID},
-			{"error_reason = 'UNKNOWN'", "error_reason", fullID},
 			{"parent_backup_id = id", "chain", fullID},
 			{"root_full_backup_id = id", "chain", fullID},
 			{"parent_backup_id = NULL", "chain", firstIncrementalID},

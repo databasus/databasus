@@ -30,16 +30,16 @@ func NewRepositories(db *gorm.DB, fieldEncryptor *crypto.FieldEncryptor) Reposit
 }
 
 type settingsRow struct {
-	StorageID            uuid.UUID    `gorm:"column:storage_id;primaryKey"`
-	Bucket               string       `gorm:"column:s3_bucket"`
-	Region               string       `gorm:"column:s3_region"`
-	AccessKey            string       `gorm:"column:s3_access_key"`
-	SecretKey            string       `gorm:"column:s3_secret_key"`
-	Endpoint             *string      `gorm:"column:s3_endpoint"`
-	Prefix               *string      `gorm:"column:s3_prefix"`
-	IsVirtualHostedStyle bool         `gorm:"column:s3_use_virtual_hosted_style"`
-	IsSkipTLSVerify      bool         `gorm:"column:skip_tls_verify"`
-	StorageClass         StorageClass `gorm:"column:s3_storage_class"`
+	StorageID            uuid.UUID `gorm:"column:storage_id;primaryKey"`
+	Bucket               string    `gorm:"column:s3_bucket"`
+	Region               string    `gorm:"column:s3_region"`
+	AccessKey            string    `gorm:"column:s3_access_key"`
+	SecretKey            string    `gorm:"column:s3_secret_key"`
+	Endpoint             *string   `gorm:"column:s3_endpoint"`
+	Prefix               *string   `gorm:"column:s3_prefix"`
+	IsVirtualHostedStyle bool      `gorm:"column:s3_use_virtual_hosted_style"`
+	IsSkipTLSVerify      bool      `gorm:"column:skip_tls_verify"`
+	StorageClass         string    `gorm:"column:s3_storage_class"`
 }
 
 func (settingsRow) TableName() string {

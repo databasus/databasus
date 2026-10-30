@@ -441,7 +441,7 @@ func buildS3Storage(t *testing.T, container containers.ContainerHandle) *testedS
 			Prefix:               "",
 			IsVirtualHostedStyle: false,
 			IsSkipTLSVerify:      false,
-			StorageClass:         s3.StorageClassStandard,
+			StorageClass:         "STANDARD",
 		}
 	}
 

@@ -118,3 +118,69 @@ func TestCreateInvalidStorage(t *testing.T) {
 		assert.Empty(t, listStorages(t, tm.owner, tm.workspace.Id))
 	})
 }
+
+func TestS3StorageClass(t *testing.T) {
+	t.Parallel()
+
+	for _, storageClass := range []string{"COLD", "DEEP_ARCHIVE"} {
+		t.Run("preserves the class on create and rename when it is "+storageClass, func(t *testing.T) {
+			t.Parallel()
+			tm := newTeam(t)
+			s3Settings := apiclient.S3StorageSettings{
+				S3Bucket:       "backups",
+				S3AccessKey:    new("access"),
+				S3SecretKey:    new("secret"),
+				S3StorageClass: new(storageClass),
+			}
+			storage := createStorage(t, tm.owner, apiclient.StorageCreate{
+				WorkspaceId: tm.workspace.Id,
+				Name:        "Offsite",
+				Settings:    newS3Settings(t, s3Settings),
+			})
+			savedSettings, err := getStorage(t, tm.owner, storage.Id).Settings.AsS3StorageSettings()
+			require.NoError(t, err)
+			require.NotNil(t, savedSettings.S3StorageClass)
+			assert.Equal(t, storageClass, *savedSettings.S3StorageClass)
+
+			rename := updateStorage(t, tm.owner, storage.Id, apiclient.StorageUpdate{
+				Name:     "Renamed offsite",
+				Settings: newS3Settings(t, savedSettings),
+			})
+			require.Equal(t, http.StatusOK, rename.StatusCode(), string(rename.Body))
+			renamedStorage := getStorage(t, tm.owner, storage.Id)
+			assert.Equal(t, "Renamed offsite", renamedStorage.Name)
+			renamedSettings, err := renamedStorage.Settings.AsS3StorageSettings()
+			require.NoError(t, err)
+			require.NotNil(t, renamedSettings.S3StorageClass)
+			assert.Equal(t, storageClass, *renamedSettings.S3StorageClass)
+		})
+	}
+}
+
+func TestStorageEnumValidation(t *testing.T) {
+	t.Parallel()
+
+	t.Run("returns 400 and creates nothing with an unsupported Azure authentication method", func(t *testing.T) {
+		t.Parallel()
+		tm := newTeam(t)
+
+		response, err := tm.owner.Client.CreateStorageWithResponse(t.Context(), apiclient.StorageCreate{
+			WorkspaceId: tm.workspace.Id,
+			Name:        "Invalid Azure storage",
+			Settings: newAzureBlobSettings(t, apiclient.AzureBlobStorageSettings{
+				AuthMethod:    "SAS_TOKEN",
+				ContainerName: "backups",
+			}),
+		})
+
+		require.NoError(t, err)
+		requireProblem(
+			t,
+			response.StatusCode(),
+			response.Body,
+			http.StatusBadRequest,
+			apiclient.ProblemCodeInvalidRequest,
+		)
+		assert.Empty(t, listStorages(t, tm.owner, tm.workspace.Id))
+	})
+}

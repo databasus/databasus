@@ -45,12 +45,6 @@ SET role = 'WORKSPACE_VIEWER'
 WHERE role NOT IN ('WORKSPACE_OWNER', 'WORKSPACE_ADMIN', 'WORKSPACE_MEMBER', 'WORKSPACE_VIEWER');
 -- +goose StatementEnd
 
--- +goose StatementBegin
-ALTER TABLE workspaces_members
-    ADD CONSTRAINT ck_workspaces_members_role
-    CHECK (role IN ('WORKSPACE_OWNER', 'WORKSPACE_ADMIN', 'WORKSPACE_MEMBER', 'WORKSPACE_VIEWER'));
--- +goose StatementEnd
-
 -- The earliest owner keeps the workspace; every other owner keeps the most of their rights as an
 -- admin.
 -- +goose StatementBegin
@@ -178,11 +172,6 @@ ALTER TABLE workspaces_members
 
 -- +goose StatementBegin
 DROP INDEX IF EXISTS uq_workspaces_members_owner;
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE workspaces_members
-    DROP CONSTRAINT IF EXISTS ck_workspaces_members_role;
 -- +goose StatementEnd
 
 -- +goose StatementBegin

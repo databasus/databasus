@@ -170,7 +170,7 @@ func TestVerificationMigration(t *testing.T) {
 		assert.Empty(t, listIDs(t, db, "SELECT id FROM verification_run_table_stats"))
 	})
 
-	t.Run("rejects invalid enums and deletion of referenced rows after migration", func(t *testing.T) {
+	t.Run("rejects deletion of referenced rows after migration", func(t *testing.T) {
 		t.Parallel()
 		db := openDatabaseMigratedBefore(t, verificationMigrationName)
 		fixture := insertVerificationFixture(t, db)
@@ -185,31 +185,6 @@ func TestVerificationMigration(t *testing.T) {
 			values     []any
 			constraint string
 		}{
-			{
-				"UPDATE verification_runs SET status = 'UNKNOWN' WHERE id = ?",
-				[]any{runID},
-				"ck_verification_runs_status",
-			},
-			{
-				"UPDATE verification_runs SET trigger = 'UNKNOWN' WHERE id = ?",
-				[]any{runID},
-				"ck_verification_runs_trigger",
-			},
-			{
-				"UPDATE verification_configs SET schedule_type = 'UNKNOWN' WHERE database_id = ?",
-				[]any{configDatabaseID},
-				"ck_verification_configs_schedule_type",
-			},
-			{
-				"UPDATE verification_configs SET interval_type = 'UNKNOWN' WHERE database_id = ?",
-				[]any{configDatabaseID},
-				"ck_verification_configs_interval_type",
-			},
-			{
-				"UPDATE verification_configs SET send_notifications_on = ARRAY['UNKNOWN'] WHERE database_id = ?",
-				[]any{configDatabaseID},
-				"ck_verification_configs_send_notifications_on",
-			},
 			{"DELETE FROM databases WHERE id = ?", []any{configDatabaseID}, "fk_verification_configs_database"},
 			{"DELETE FROM backups_logical WHERE id = ?", []any{fixture.backupID}, "fk_verification_runs_backup"},
 		}

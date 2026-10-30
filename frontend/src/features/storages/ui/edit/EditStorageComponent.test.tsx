@@ -15,7 +15,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-const savedS3Storage: Storage = {
+const savedS3Storage = {
   id: 'storage-id',
   workspaceId: 'workspace-id',
   name: 'Offsite backups',
@@ -26,7 +26,7 @@ const savedS3Storage: Storage = {
     isVirtualHostedStyle: false,
     isSkipTlsVerify: false,
   },
-};
+} satisfies Storage;
 
 const renderSavedStorageForm = (storage: Storage) =>
   renderScreen(
@@ -89,6 +89,44 @@ describe('EditStorageComponent', () => {
         isSkipTlsVerify: false,
       },
     });
+  });
+
+  it.each(['COLD', 'DEEP_ARCHIVE'])(
+    'preserves %s when only the storage name changes',
+    async (storageClass) => {
+      mockServer.use(mockApi.post('/storage-tests', 200, { isConnected: true }));
+      const sentUpdates = mockUpdate();
+      renderSavedStorageForm({
+        ...savedS3Storage,
+        settings: { ...savedS3Storage.settings, s3StorageClass: storageClass },
+      });
+
+      expect(screen.getByDisplayValue(storageClass)).toBeTruthy();
+      fireEvent.change(screen.getByDisplayValue('Offsite backups'), {
+        target: { value: 'Renamed backups' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Test connection' }));
+      fireEvent.click(await screen.findByRole('button', { name: 'Save' }));
+
+      await waitFor(() => expect(sentUpdates).toHaveLength(1));
+      expect(sentUpdates[0].settings).toMatchObject({ s3StorageClass: storageClass });
+    },
+  );
+
+  it('saves a custom class when it is entered in the storage editor', async () => {
+    mockServer.use(mockApi.post('/storage-tests', 200, { isConnected: true }));
+    const sentUpdates = mockUpdate();
+    renderSavedStorageForm(savedS3Storage);
+
+    fireEvent.click(screen.getByText('Advanced settings'));
+    fireEvent.change(screen.getByRole('combobox', { name: 'Storage class' }), {
+      target: { value: 'CUSTOM_ARCHIVE' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Test connection' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Save' }));
+
+    await waitFor(() => expect(sentUpdates).toHaveLength(1));
+    expect(sentUpdates[0].settings).toMatchObject({ s3StorageClass: 'CUSTOM_ARCHIVE' });
   });
 
   it("shows the storage's error when the connection test fails", async () => {

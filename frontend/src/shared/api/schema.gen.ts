@@ -2489,11 +2489,8 @@ export interface components {
             isSkipTlsVerify: boolean;
             s3StorageClass?: components["schemas"]["S3StorageClass"];
         };
-        /**
-         * @description The storage class of the stored objects; absent means the bucket's default
-         * @enum {string}
-         */
-        S3StorageClass: "STANDARD" | "STANDARD_IA" | "ONEZONE_IA" | "INTELLIGENT_TIERING" | "REDUCED_REDUNDANCY" | "GLACIER_IR";
+        /** @description The provider-defined storage class, forwarded unchanged; absent or empty selects the bucket's default */
+        S3StorageClass: string;
         /** @description The Google Drive of the account that authorized the OAuth client */
         GoogleDriveStorageSettings: {
             /**

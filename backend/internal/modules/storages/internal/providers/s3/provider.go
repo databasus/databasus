@@ -64,10 +64,6 @@ func (p *Provider) Validate(settings providers.Settings) error {
 		return providers.NewInvalidSettingError("s3SecretKey", "is required")
 	}
 
-	if !s3Settings.StorageClass.isKnown() {
-		return providers.NewInvalidSettingError("s3StorageClass", "is not an S3 storage class")
-	}
-
 	return nil
 }
 

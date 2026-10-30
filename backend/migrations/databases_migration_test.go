@@ -225,18 +225,6 @@ func TestDatabasesMigration(t *testing.T) {
 			constraint string
 		}{
 			{
-				name:       "unknown database type",
-				statement:  "INSERT INTO databases (id, name, type, workspace_id) VALUES (?, 'x', 'ORACLE', ?)",
-				values:     []any{uuid.New(), workspaceID},
-				constraint: "ck_databases_type",
-			},
-			{
-				name:       "unknown health status",
-				statement:  "UPDATE databases SET health_status = 'SICK' WHERE id = ?",
-				values:     []any{logicalDatabaseID},
-				constraint: "ck_databases_health_status",
-			},
-			{
 				name:       "database without a workspace",
 				statement:  "INSERT INTO databases (id, name, type) VALUES (?, 'x', 'POSTGRES_LOGICAL')",
 				values:     []any{uuid.New()},
@@ -256,23 +244,6 @@ func TestDatabasesMigration(t *testing.T) {
 					(?, '16', 'db.example.com', 5432, 'backup', 'enc:p')`,
 				values:     []any{logicalDatabaseID, logicalDatabaseID},
 				constraint: "databases_postgresql_logical_pkey",
-			},
-			{
-				name: "unknown SSL mode",
-				statement: `INSERT INTO databases_postgresql_logical
-					(database_id, version, host, port, username, password, ssl_mode)
-					VALUES (?, '16', 'db.example.com', 5432, 'backup', 'enc:p', 'prefer')`,
-				values:     []any{insertMigratedDatabase(t, db, &workspaceID)},
-				constraint: "ck_databases_postgresql_logical_ssl_mode",
-			},
-			{
-				name: "unknown physical backup type",
-				statement: `INSERT INTO databases_postgresql_physical
-					(database_id, version, host, port, username, password, replication_slot_name, backup_slot_name,
-					backup_type)
-					VALUES (?, '17', 'db.example.com', 5432, 'backup', 'enc:p', 'slot', 'backup_slot', 'DIFFERENTIAL')`,
-				values:     []any{insertMigratedPhysicalDatabase(t, db, workspaceID)},
-				constraint: "ck_databases_postgresql_physical_backup_type",
 			},
 		} {
 			statementResult := db.WithContext(t.Context()).Exec(refusedStatement.statement, refusedStatement.values...)
@@ -483,16 +454,6 @@ func insertWalSegment(
 		VALUES (?, ?, 1, ?, ?, ?::pg_lsn, ?::pg_lsn, ?)`,
 		databaseID, storageID, committedFileName, "wal-"+uuid.NewString(),
 		"0/"+receivedAt.Format("150405"), "0/FFFFFFFF", receivedAt)
-}
-
-func insertMigratedPhysicalDatabase(t *testing.T, db *gorm.DB, workspaceID uuid.UUID) uuid.UUID {
-	t.Helper()
-
-	databaseID := uuid.New()
-	execute(t, db, "INSERT INTO databases (id, name, type, workspace_id) VALUES (?, 'x', 'POSTGRES_PHYSICAL', ?)",
-		databaseID, workspaceID)
-
-	return databaseID
 }
 
 func getLastBackupTime(t *testing.T, db *gorm.DB, databaseID uuid.UUID) time.Time {

@@ -105,12 +105,6 @@ WHERE id IN (SELECT id FROM running WHERE position > 1);
 
 -- +goose StatementBegin
 ALTER TABLE backups_physical
-    ADD CONSTRAINT ck_backups_physical_kind
-    CHECK (kind IN ('FULL', 'INCREMENTAL'));
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE backups_physical
     ADD CONSTRAINT ck_backups_physical_chain
     CHECK ((kind <> 'FULL' OR (parent_backup_id IS NULL AND root_full_backup_id IS NULL))
         AND (kind <> 'INCREMENTAL' OR (parent_backup_id IS NOT NULL AND root_full_backup_id IS NOT NULL)));
@@ -120,30 +114,6 @@ ALTER TABLE backups_physical
 ALTER TABLE backups_physical
     ADD CONSTRAINT ck_backups_physical_completed
     CHECK (status <> 'COMPLETED' OR (file_name IS NOT NULL AND start_lsn IS NOT NULL AND stop_lsn IS NOT NULL AND completed_at IS NOT NULL));
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE backups_physical
-    ADD CONSTRAINT ck_backups_physical_status
-    CHECK (status IN ('IN_PROGRESS', 'COMPLETED', 'ERROR', 'CHAIN_BROKEN', 'CANCELED'));
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE backups_physical
-    ADD CONSTRAINT ck_backups_physical_compression
-    CHECK (compression IN ('ZSTD', 'GZIP', 'NONE'));
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE backups_physical
-    ADD CONSTRAINT ck_backups_physical_encryption
-    CHECK (encryption IN ('NONE', 'ENCRYPTED'));
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE backups_physical
-    ADD CONSTRAINT ck_backups_physical_error_reason
-    CHECK (error_reason IN ('PG_BASEBACKUP_FAILED', 'STORAGE_UPLOAD_FAILED', 'NETWORK_FAILURE', 'NETWORK_STALL_TIMEOUT', 'APPLICATION_RESTART', 'SYSTEM_IDENTIFIER_MISMATCH', 'TIMELINE_REGRESSION', 'TIMELINE_SWITCH_DETECTED', 'FAILOVER_DURING_BACKUP', 'MANIFEST_CORRUPTED', 'START_LSN_OUTSIDE_TIMELINE_RANGE', 'CANCELED_BY_USER', 'CANCELED_BY_DB_REMOVAL', 'SUMMARIES_EXPIRED', 'SUMMARIZER_OFF', 'PARENT_MANIFEST_MISSING', 'SUMMARIZER_FALLING_BEHIND'));
 -- +goose StatementEnd
 
 -- +goose StatementBegin

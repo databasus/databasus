@@ -18,33 +18,9 @@ type Settings struct {
 	Prefix               string
 	IsVirtualHostedStyle bool
 	IsSkipTLSVerify      bool
-	StorageClass         StorageClass
+	StorageClass         string
 }
 
 func (Settings) GetType() providers.Type {
 	return providers.TypeS3
-}
-
-// StorageClass is the class objects are written with. StorageClassDefault leaves the choice to the
-// bucket.
-type StorageClass string
-
-const (
-	StorageClassDefault            StorageClass = ""
-	StorageClassStandard           StorageClass = "STANDARD"
-	StorageClassStandardIA         StorageClass = "STANDARD_IA"
-	StorageClassOnezoneIA          StorageClass = "ONEZONE_IA"
-	StorageClassIntelligentTiering StorageClass = "INTELLIGENT_TIERING"
-	StorageClassReducedRedundancy  StorageClass = "REDUCED_REDUNDANCY"
-	StorageClassGlacierIR          StorageClass = "GLACIER_IR"
-)
-
-func (c StorageClass) isKnown() bool {
-	switch c {
-	case StorageClassDefault, StorageClassStandard, StorageClassStandardIA, StorageClassOnezoneIA,
-		StorageClassIntelligentTiering, StorageClassReducedRedundancy, StorageClassGlacierIR:
-		return true
-	}
-
-	return false
 }

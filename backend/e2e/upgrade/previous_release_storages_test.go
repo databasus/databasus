@@ -98,7 +98,7 @@ type writtenStorage struct {
 }
 
 func newWrittenStorages(workspaceID string) []writtenStorage {
-	return []writtenStorage{
+	writtenStorages := []writtenStorage{
 		{
 			request: previousStorageRequest{
 				WorkspaceID: workspaceID, Type: "LOCAL", Name: storageName, LocalStorage: &struct{}{},
@@ -252,6 +252,19 @@ func newWrittenStorages(workspaceID string) []writtenStorage {
 			},
 		},
 	}
+
+	for _, storageClass := range []string{"COLD", "DEEP_ARCHIVE"} {
+		storage := writtenStorages[1]
+		s3Settings := *storage.request.S3Storage
+		s3Settings.S3StorageClass = storageClass
+		storage.request.S3Storage = &s3Settings
+		storage.request.Name = "upgrade s3 " + storageClass
+		storage.expectedValues = maps.Clone(storage.expectedValues)
+		storage.expectedValues["s3StorageClass"] = storageClass
+		writtenStorages = append(writtenStorages, storage)
+	}
+
+	return writtenStorages
 }
 
 // createStorages saves one storage of every type with every setting filled in. It returns the items
@@ -268,6 +281,18 @@ func createStorages(ctx context.Context, api *apiClient, workspaceID string) ([]
 		err := api.post(ctx, "/storages", storage.request, &createdStorage)
 		if err != nil {
 			return nil, "", fmt.Errorf("create the storage %q: %w", storage.request.Name, err)
+		}
+
+		if storage.request.S3Storage != nil {
+			var savedStorage struct {
+				S3Storage previousS3Request `json:"s3Storage"`
+			}
+			if err := api.get(ctx, "/storages/"+createdStorage.ID, &savedStorage); err != nil {
+				return nil, "", fmt.Errorf("read the previous storage %q: %w", storage.request.Name, err)
+			}
+			if savedStorage.S3Storage.S3StorageClass != storage.request.S3Storage.S3StorageClass {
+				return nil, "", fmt.Errorf("previous storage %q did not preserve its class", storage.request.Name)
+			}
 		}
 
 		if storage.request.LocalStorage != nil {

@@ -71,7 +71,7 @@ ALTER TABLE notifiers_webhook
 
 -- +goose StatementBegin
 ALTER TABLE notifiers_email
-    RENAME CONSTRAINT ck_email_notifiers_security TO ck_notifiers_email_security;
+    DROP CONSTRAINT ck_email_notifiers_security;
 -- +goose StatementEnd
 
 -- A webhook with a method it cannot send keeps sending with the default one.
@@ -202,12 +202,6 @@ ALTER TABLE notifiers
 
 -- +goose StatementBegin
 ALTER TABLE notifiers
-    ADD CONSTRAINT ck_notifiers_type
-    CHECK (type IN ('EMAIL', 'TELEGRAM', 'SLACK', 'DISCORD', 'TEAMS', 'MATTERMOST', 'WEBHOOK'));
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE notifiers
     ALTER COLUMN workspace_id SET NOT NULL;
 -- +goose StatementEnd
 
@@ -239,12 +233,6 @@ ALTER TABLE notifiers_email
 
 -- +goose StatementBegin
 ALTER TABLE notifiers_email
-    ADD CONSTRAINT ck_notifiers_email_type
-    CHECK (type = 'EMAIL');
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE notifiers_email
     ADD CONSTRAINT fk_notifiers_email_notifier
     FOREIGN KEY (notifier_id, type)
     REFERENCES notifiers (id, type)
@@ -259,12 +247,6 @@ ALTER TABLE notifiers_telegram
 -- +goose StatementBegin
 ALTER TABLE notifiers_telegram
     ADD COLUMN type TEXT NOT NULL DEFAULT 'TELEGRAM';
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE notifiers_telegram
-    ADD CONSTRAINT ck_notifiers_telegram_type
-    CHECK (type = 'TELEGRAM');
 -- +goose StatementEnd
 
 -- +goose StatementBegin
@@ -287,12 +269,6 @@ ALTER TABLE notifiers_slack
 
 -- +goose StatementBegin
 ALTER TABLE notifiers_slack
-    ADD CONSTRAINT ck_notifiers_slack_type
-    CHECK (type = 'SLACK');
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE notifiers_slack
     ADD CONSTRAINT fk_notifiers_slack_notifier
     FOREIGN KEY (notifier_id, type)
     REFERENCES notifiers (id, type)
@@ -307,12 +283,6 @@ ALTER TABLE notifiers_discord
 -- +goose StatementBegin
 ALTER TABLE notifiers_discord
     ADD COLUMN type TEXT NOT NULL DEFAULT 'DISCORD';
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE notifiers_discord
-    ADD CONSTRAINT ck_notifiers_discord_type
-    CHECK (type = 'DISCORD');
 -- +goose StatementEnd
 
 -- +goose StatementBegin
@@ -335,12 +305,6 @@ ALTER TABLE notifiers_teams
 
 -- +goose StatementBegin
 ALTER TABLE notifiers_teams
-    ADD CONSTRAINT ck_notifiers_teams_type
-    CHECK (type = 'TEAMS');
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE notifiers_teams
     ADD CONSTRAINT fk_notifiers_teams_notifier
     FOREIGN KEY (notifier_id, type)
     REFERENCES notifiers (id, type)
@@ -355,12 +319,6 @@ ALTER TABLE notifiers_mattermost
 -- +goose StatementBegin
 ALTER TABLE notifiers_mattermost
     ADD COLUMN type TEXT NOT NULL DEFAULT 'MATTERMOST';
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE notifiers_mattermost
-    ADD CONSTRAINT ck_notifiers_mattermost_type
-    CHECK (type = 'MATTERMOST');
 -- +goose StatementEnd
 
 -- +goose StatementBegin
@@ -383,28 +341,10 @@ ALTER TABLE notifiers_webhook
 
 -- +goose StatementBegin
 ALTER TABLE notifiers_webhook
-    ADD CONSTRAINT ck_notifiers_webhook_type
-    CHECK (type = 'WEBHOOK');
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE notifiers_webhook
     ADD CONSTRAINT fk_notifiers_webhook_notifier
     FOREIGN KEY (notifier_id, type)
     REFERENCES notifiers (id, type)
     ON DELETE CASCADE;
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE notifiers_webhook
-    ADD CONSTRAINT ck_notifiers_webhook_webhook_method
-    CHECK (webhook_method IN ('POST', 'GET'));
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE notifiers_mattermost
-    ADD CONSTRAINT ck_notifiers_mattermost_delivery_mode
-    CHECK (delivery_mode IN ('WEBHOOK', 'BOT'));
 -- +goose StatementEnd
 
 -- +goose StatementBegin
@@ -460,18 +400,7 @@ ALTER TABLE notifiers_webhook
     DROP COLUMN accept_notification_types;
 -- +goose StatementEnd
 
--- +goose StatementBegin
-ALTER TABLE notifiers_webhook
-    ADD CONSTRAINT ck_notifiers_webhook_accepted_categories
-    CHECK (accepted_categories <@ ARRAY['ALL', 'BACKUP_SUCCESS', 'BACKUP_FAILED', 'HEALTHCHECK_SUCCESS', 'HEALTHCHECK_FAILED', 'VERIFICATION_SUCCESS', 'VERIFICATION_FAILED']::TEXT[]);
--- +goose StatementEnd
-
 -- +goose Down
--- +goose StatementBegin
-ALTER TABLE notifiers_webhook
-    DROP CONSTRAINT ck_notifiers_webhook_accepted_categories;
--- +goose StatementEnd
-
 -- +goose StatementBegin
 ALTER TABLE notifiers_webhook
     ADD COLUMN accept_notification_types TEXT NOT NULL DEFAULT '["ALL"]';
@@ -505,16 +434,6 @@ ALTER TABLE notifiers_webhook
 -- +goose StatementBegin
 ALTER TABLE notifiers_webhook
     ALTER COLUMN headers SET DEFAULT '[]';
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE notifiers_mattermost
-    DROP CONSTRAINT ck_notifiers_mattermost_delivery_mode;
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE notifiers_webhook
-    DROP CONSTRAINT ck_notifiers_webhook_webhook_method;
 -- +goose StatementEnd
 
 -- +goose StatementBegin
@@ -608,11 +527,6 @@ ALTER TABLE notifiers
 
 -- +goose StatementBegin
 ALTER TABLE notifiers
-    DROP CONSTRAINT ck_notifiers_type;
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE notifiers
     ALTER COLUMN type TYPE VARCHAR(50);
 -- +goose StatementEnd
 
@@ -623,7 +537,8 @@ ALTER TABLE notifiers
 
 -- +goose StatementBegin
 ALTER TABLE notifiers_email
-    RENAME CONSTRAINT ck_notifiers_email_security TO ck_email_notifiers_security;
+    ADD CONSTRAINT ck_email_notifiers_security
+    CHECK (security IN ('tls', 'starttls', 'none'));
 -- +goose StatementEnd
 
 -- +goose StatementBegin

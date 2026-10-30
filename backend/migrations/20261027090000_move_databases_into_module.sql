@@ -366,18 +366,6 @@ WHERE backup_type NOT IN ('FULL', 'FULL_INCREMENTAL', 'FULL_INCREMENTAL_WAL_STRE
 
 -- +goose StatementBegin
 ALTER TABLE databases
-    ADD CONSTRAINT ck_databases_type
-    CHECK (type IN ('POSTGRES_LOGICAL', 'POSTGRES_PHYSICAL', 'MYSQL', 'MARIADB', 'MONGODB'));
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE databases
-    ADD CONSTRAINT ck_databases_health_status
-    CHECK (health_status IN ('AVAILABLE', 'UNAVAILABLE'));
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE databases
     ALTER COLUMN workspace_id SET NOT NULL;
 -- +goose StatementEnd
 
@@ -419,22 +407,10 @@ ALTER TABLE databases_postgresql_logical
 
 -- +goose StatementBegin
 ALTER TABLE databases_postgresql_logical
-    ADD CONSTRAINT ck_databases_postgresql_logical_type
-    CHECK (type = 'POSTGRES_LOGICAL');
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE databases_postgresql_logical
     ADD CONSTRAINT fk_databases_postgresql_logical_database
     FOREIGN KEY (database_id, type)
     REFERENCES databases (id, type)
     ON DELETE CASCADE;
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE databases_postgresql_logical
-    ADD CONSTRAINT ck_databases_postgresql_logical_ssh_auth_type
-    CHECK (ssh_auth_type IN ('PASSWORD', 'PRIVATE_KEY'));
 -- +goose StatementEnd
 
 -- +goose StatementBegin
@@ -460,22 +436,10 @@ ALTER TABLE databases_postgresql_physical
 
 -- +goose StatementBegin
 ALTER TABLE databases_postgresql_physical
-    ADD CONSTRAINT ck_databases_postgresql_physical_type
-    CHECK (type = 'POSTGRES_PHYSICAL');
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE databases_postgresql_physical
     ADD CONSTRAINT fk_databases_postgresql_physical_database
     FOREIGN KEY (database_id, type)
     REFERENCES databases (id, type)
     ON DELETE CASCADE;
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE databases_postgresql_physical
-    ADD CONSTRAINT ck_databases_postgresql_physical_ssh_auth_type
-    CHECK (ssh_auth_type IN ('PASSWORD', 'PRIVATE_KEY'));
 -- +goose StatementEnd
 
 -- +goose StatementBegin
@@ -501,22 +465,10 @@ ALTER TABLE databases_mysql
 
 -- +goose StatementBegin
 ALTER TABLE databases_mysql
-    ADD CONSTRAINT ck_databases_mysql_type
-    CHECK (type = 'MYSQL');
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE databases_mysql
     ADD CONSTRAINT fk_databases_mysql_database
     FOREIGN KEY (database_id, type)
     REFERENCES databases (id, type)
     ON DELETE CASCADE;
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE databases_mysql
-    ADD CONSTRAINT ck_databases_mysql_ssh_auth_type
-    CHECK (ssh_auth_type IN ('PASSWORD', 'PRIVATE_KEY'));
 -- +goose StatementEnd
 
 -- +goose StatementBegin
@@ -542,22 +494,10 @@ ALTER TABLE databases_mariadb
 
 -- +goose StatementBegin
 ALTER TABLE databases_mariadb
-    ADD CONSTRAINT ck_databases_mariadb_type
-    CHECK (type = 'MARIADB');
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE databases_mariadb
     ADD CONSTRAINT fk_databases_mariadb_database
     FOREIGN KEY (database_id, type)
     REFERENCES databases (id, type)
     ON DELETE CASCADE;
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE databases_mariadb
-    ADD CONSTRAINT ck_databases_mariadb_ssh_auth_type
-    CHECK (ssh_auth_type IN ('PASSWORD', 'PRIVATE_KEY'));
 -- +goose StatementEnd
 
 -- +goose StatementBegin
@@ -583,40 +523,10 @@ ALTER TABLE databases_mongodb
 
 -- +goose StatementBegin
 ALTER TABLE databases_mongodb
-    ADD CONSTRAINT ck_databases_mongodb_type
-    CHECK (type = 'MONGODB');
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE databases_mongodb
     ADD CONSTRAINT fk_databases_mongodb_database
     FOREIGN KEY (database_id, type)
     REFERENCES databases (id, type)
     ON DELETE CASCADE;
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE databases_mongodb
-    ADD CONSTRAINT ck_databases_mongodb_ssh_auth_type
-    CHECK (ssh_auth_type IN ('PASSWORD', 'PRIVATE_KEY'));
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE databases_postgresql_logical
-    ADD CONSTRAINT ck_databases_postgresql_logical_ssl_mode
-    CHECK (ssl_mode IN ('disable', 'require', 'verify-ca', 'verify-full'));
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE databases_postgresql_physical
-    ADD CONSTRAINT ck_databases_postgresql_physical_ssl_mode
-    CHECK (ssl_mode IN ('disable', 'require', 'verify-ca', 'verify-full'));
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE databases_postgresql_physical
-    ADD CONSTRAINT ck_databases_postgresql_physical_backup_type
-    CHECK (backup_type IN ('FULL', 'FULL_INCREMENTAL', 'FULL_INCREMENTAL_WAL_STREAM'));
 -- +goose StatementEnd
 
 -- The per-backup replication slot was named after the row's own id, which a later migration drops.
@@ -931,26 +841,6 @@ ALTER TABLE databases_postgresql_physical
 -- +goose StatementEnd
 
 -- +goose StatementBegin
-ALTER TABLE databases_postgresql_physical
-    DROP CONSTRAINT ck_databases_postgresql_physical_backup_type;
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE databases_postgresql_logical
-    DROP CONSTRAINT ck_databases_postgresql_logical_ssl_mode;
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE databases_postgresql_physical
-    DROP CONSTRAINT ck_databases_postgresql_physical_ssl_mode;
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE databases_postgresql_logical
-    DROP CONSTRAINT ck_databases_postgresql_logical_ssh_auth_type;
--- +goose StatementEnd
-
--- +goose StatementBegin
 ALTER TABLE databases_postgresql_logical
     DROP CONSTRAINT fk_databases_postgresql_logical_database;
 -- +goose StatementEnd
@@ -968,11 +858,6 @@ ALTER TABLE databases_postgresql_logical
 -- +goose StatementBegin
 ALTER TABLE databases_postgresql_logical
     ALTER COLUMN database_id DROP NOT NULL;
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE databases_postgresql_physical
-    DROP CONSTRAINT ck_databases_postgresql_physical_ssh_auth_type;
 -- +goose StatementEnd
 
 -- +goose StatementBegin
@@ -997,11 +882,6 @@ ALTER TABLE databases_postgresql_physical
 
 -- +goose StatementBegin
 ALTER TABLE databases_mysql
-    DROP CONSTRAINT ck_databases_mysql_ssh_auth_type;
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE databases_mysql
     DROP CONSTRAINT fk_databases_mysql_database;
 -- +goose StatementEnd
 
@@ -1022,11 +902,6 @@ ALTER TABLE databases_mysql
 
 -- +goose StatementBegin
 ALTER TABLE databases_mariadb
-    DROP CONSTRAINT ck_databases_mariadb_ssh_auth_type;
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE databases_mariadb
     DROP CONSTRAINT fk_databases_mariadb_database;
 -- +goose StatementEnd
 
@@ -1043,11 +918,6 @@ ALTER TABLE databases_mariadb
 -- +goose StatementBegin
 ALTER TABLE databases_mariadb
     ALTER COLUMN database_id DROP NOT NULL;
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE databases_mongodb
-    DROP CONSTRAINT ck_databases_mongodb_ssh_auth_type;
 -- +goose StatementEnd
 
 -- +goose StatementBegin
@@ -1087,16 +957,6 @@ ALTER TABLE databases
 -- +goose StatementBegin
 ALTER TABLE databases
     ALTER COLUMN workspace_id DROP NOT NULL;
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE databases
-    DROP CONSTRAINT ck_databases_health_status;
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE databases
-    DROP CONSTRAINT ck_databases_type;
 -- +goose StatementEnd
 
 -- +goose StatementBegin

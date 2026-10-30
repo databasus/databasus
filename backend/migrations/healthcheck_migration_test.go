@@ -117,10 +117,7 @@ func TestHealthcheckMigration(t *testing.T) {
 			require.Error(t, err)
 			assert.Contains(t, err.Error(), "ck_healthcheck_configs_"+column)
 		}
-		err := db.WithContext(t.Context()).Exec("UPDATE healthcheck_attempts SET status = 'UNKNOWN'").Error
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "ck_healthcheck_attempts_status")
-		err = db.WithContext(t.Context()).Exec("DELETE FROM databases WHERE id = ?", missingID).Error
+		err := db.WithContext(t.Context()).Exec("DELETE FROM databases WHERE id = ?", missingID).Error
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "fk_healthcheck_configs_database_id")
 		execute(t, db, "DELETE FROM healthcheck_configs WHERE database_id = ?", validID)

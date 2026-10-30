@@ -1,18 +1,14 @@
 import { DownOutlined, InfoCircleOutlined, UpOutlined } from '@ant-design/icons';
-import { Checkbox, Input, Select, Tooltip } from 'antd';
+import { AutoComplete, Checkbox, Input, Tooltip } from 'antd';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import {
-  S3StorageClass,
   S3_STORAGE_CLASS_LABEL_KEYS,
   type S3StorageSettings,
 } from '../../../../../entity/storages';
 import { getWebsitePageUrl, useLocale } from '../../../../../shared/i18n';
 import { toOptionalValue } from '../../../../../shared/lib';
-
-// The select's value for an absent storage class, which leaves the bucket's default.
-const DEFAULT_STORAGE_CLASS_OPTION = '';
 
 interface Props {
   settings: S3StorageSettings;
@@ -228,22 +224,24 @@ export function EditS3StorageComponent({ settings, isSaved, onChange, connection
               {t('storages.fields.storageClass')}
             </div>
             <div className="flex items-center">
-              <Select
-                value={settings.s3StorageClass ?? DEFAULT_STORAGE_CLASS_OPTION}
+              <AutoComplete
+                aria-label={t('storages.fields.storageClass')}
+                value={settings.s3StorageClass ?? ''}
+                placeholder={t('storages.s3StorageClasses.default')}
                 options={[
                   {
-                    value: DEFAULT_STORAGE_CLASS_OPTION,
+                    value: '',
                     label: t('storages.s3StorageClasses.default'),
                   },
-                  ...Object.values(S3StorageClass).map((storageClass) => ({
+                  ...Array.from(S3_STORAGE_CLASS_LABEL_KEYS, ([storageClass, labelKey]) => ({
                     value: storageClass,
-                    label: t(S3_STORAGE_CLASS_LABEL_KEYS[storageClass]),
+                    label: t(labelKey),
                   })),
                 ]}
-                onChange={(value: S3StorageClass | typeof DEFAULT_STORAGE_CLASS_OPTION) => {
+                onChange={(value: string) => {
                   onChange({
                     ...settings,
-                    s3StorageClass: value === DEFAULT_STORAGE_CLASS_OPTION ? undefined : value,
+                    s3StorageClass: value === '' ? undefined : value,
                   });
                 }}
                 size="small"

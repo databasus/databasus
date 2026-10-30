@@ -15,6 +15,18 @@ const notifiersMigrationName = "20261025180000_move_notifiers_into_module.sql"
 func TestNotifiersMigration(t *testing.T) {
 	t.Parallel()
 
+	t.Run("accepts text values after the inherited email security check is removed", func(t *testing.T) {
+		t.Parallel()
+		db := openDatabaseMigratedBefore(t, notifiersMigrationName)
+		workspaceID := insertWorkspace(t, db)
+		insertNotifierOfEveryTypeWithSecrets(t, db, workspaceID)
+
+		applyAllMigrations(t, db, notifiersMigrationName)
+
+		execute(t, db, "UPDATE notifiers_email SET security = 'PROVIDER_DEFINED'")
+		assert.Equal(t, []string{"PROVIDER_DEFINED"}, listStrings(t, db, "SELECT security FROM notifiers_email"))
+	})
+
 	t.Run("deletes the notifiers that cannot load and the provider rows of another type", func(t *testing.T) {
 		t.Parallel()
 		db := openDatabaseMigratedBefore(t, notifiersMigrationName)

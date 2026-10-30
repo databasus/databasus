@@ -53,6 +53,27 @@ describe('StorageComponent', () => {
     expect(onStorageDeleted).not.toHaveBeenCalled();
   });
 
+  it.each(['COLD', 'DEEP_ARCHIVE', '__proto__', 'toString'])(
+    'shows the exact class when the storage uses %s',
+    async (storageClass) => {
+      mockServer.use(
+        mockApi.get('/storages/{storageId}', 200, {
+          ...localStorageOfWorkspace,
+          settings: {
+            type: 'S3',
+            s3Bucket: 'backups',
+            isVirtualHostedStyle: false,
+            isSkipTlsVerify: false,
+            s3StorageClass: storageClass,
+          },
+        }),
+      );
+      renderStorage();
+
+      expect(await screen.findByText(storageClass)).toBeTruthy();
+    },
+  );
+
   it('shows no save error box with the storage settings', async () => {
     mockServer.use(mockApi.get('/storages/{storageId}', 200, localStorageOfWorkspace));
     renderStorage();

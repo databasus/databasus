@@ -253,12 +253,6 @@ WHERE s.workspace_id IS NULL
 
 -- +goose StatementBegin
 ALTER TABLE storages
-    ADD CONSTRAINT ck_storages_type
-    CHECK (type IN ('LOCAL', 'S3', 'GOOGLE_DRIVE', 'NAS', 'AZURE_BLOB', 'FTP', 'SFTP', 'RCLONE'));
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE storages
     ALTER COLUMN workspace_id SET NOT NULL;
 -- +goose StatementEnd
 
@@ -295,12 +289,6 @@ ALTER TABLE storages_local
 
 -- +goose StatementBegin
 ALTER TABLE storages_local
-    ADD CONSTRAINT ck_storages_local_type
-    CHECK (type = 'LOCAL');
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE storages_local
     ADD CONSTRAINT fk_storages_local_storage
     FOREIGN KEY (storage_id, type)
     REFERENCES storages (id, type)
@@ -315,12 +303,6 @@ ALTER TABLE storages_s3
 -- +goose StatementBegin
 ALTER TABLE storages_s3
     ADD COLUMN type TEXT NOT NULL DEFAULT 'S3';
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE storages_s3
-    ADD CONSTRAINT ck_storages_s3_type
-    CHECK (type = 'S3');
 -- +goose StatementEnd
 
 -- +goose StatementBegin
@@ -343,12 +325,6 @@ ALTER TABLE storages_google_drive
 
 -- +goose StatementBegin
 ALTER TABLE storages_google_drive
-    ADD CONSTRAINT ck_storages_google_drive_type
-    CHECK (type = 'GOOGLE_DRIVE');
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE storages_google_drive
     ADD CONSTRAINT fk_storages_google_drive_storage
     FOREIGN KEY (storage_id, type)
     REFERENCES storages (id, type)
@@ -363,12 +339,6 @@ ALTER TABLE storages_nas
 -- +goose StatementBegin
 ALTER TABLE storages_nas
     ADD COLUMN type TEXT NOT NULL DEFAULT 'NAS';
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE storages_nas
-    ADD CONSTRAINT ck_storages_nas_type
-    CHECK (type = 'NAS');
 -- +goose StatementEnd
 
 -- +goose StatementBegin
@@ -391,12 +361,6 @@ ALTER TABLE storages_azure_blob
 
 -- +goose StatementBegin
 ALTER TABLE storages_azure_blob
-    ADD CONSTRAINT ck_storages_azure_blob_type
-    CHECK (type = 'AZURE_BLOB');
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE storages_azure_blob
     ADD CONSTRAINT fk_storages_azure_blob_storage
     FOREIGN KEY (storage_id, type)
     REFERENCES storages (id, type)
@@ -411,12 +375,6 @@ ALTER TABLE storages_ftp
 -- +goose StatementBegin
 ALTER TABLE storages_ftp
     ADD COLUMN type TEXT NOT NULL DEFAULT 'FTP';
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE storages_ftp
-    ADD CONSTRAINT ck_storages_ftp_type
-    CHECK (type = 'FTP');
 -- +goose StatementEnd
 
 -- +goose StatementBegin
@@ -439,12 +397,6 @@ ALTER TABLE storages_sftp
 
 -- +goose StatementBegin
 ALTER TABLE storages_sftp
-    ADD CONSTRAINT ck_storages_sftp_type
-    CHECK (type = 'SFTP');
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE storages_sftp
     ADD CONSTRAINT fk_storages_sftp_storage
     FOREIGN KEY (storage_id, type)
     REFERENCES storages (id, type)
@@ -463,41 +415,13 @@ ALTER TABLE storages_rclone
 
 -- +goose StatementBegin
 ALTER TABLE storages_rclone
-    ADD CONSTRAINT ck_storages_rclone_type
-    CHECK (type = 'RCLONE');
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE storages_rclone
     ADD CONSTRAINT fk_storages_rclone_storage
     FOREIGN KEY (storage_id, type)
     REFERENCES storages (id, type)
     ON DELETE CASCADE;
 -- +goose StatementEnd
 
--- +goose StatementBegin
-ALTER TABLE storages_azure_blob
-    ADD CONSTRAINT ck_storages_azure_blob_auth_method
-    CHECK (auth_method IN ('CONNECTION_STRING', 'ACCOUNT_KEY'));
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE storages_s3
-    ADD CONSTRAINT ck_storages_s3_s3_storage_class
-    CHECK (s3_storage_class IN ('', 'STANDARD', 'STANDARD_IA', 'ONEZONE_IA', 'INTELLIGENT_TIERING', 'REDUCED_REDUNDANCY', 'GLACIER_IR'));
--- +goose StatementEnd
-
 -- +goose Down
--- +goose StatementBegin
-ALTER TABLE storages_s3
-    DROP CONSTRAINT ck_storages_s3_s3_storage_class;
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE storages_azure_blob
-    DROP CONSTRAINT ck_storages_azure_blob_auth_method;
--- +goose StatementEnd
-
 -- +goose StatementBegin
 ALTER TABLE storages_rclone
     DROP CONSTRAINT fk_storages_rclone_storage;
@@ -672,11 +596,6 @@ ALTER TABLE storages
 -- +goose StatementBegin
 ALTER TABLE storages
     ALTER COLUMN workspace_id DROP NOT NULL;
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE storages
-    DROP CONSTRAINT ck_storages_type;
 -- +goose StatementEnd
 
 -- +goose StatementBegin

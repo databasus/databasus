@@ -120,7 +120,7 @@ func TestLogicalBackupsMigration(t *testing.T) {
 		db := openDatabaseMigratedBefore(t, logicalBackupsMigrationName)
 		fixture := insertLogicalBackupsFixture(t, db)
 		backupID := insertOldLogicalBackup(t, db, fixture, oldLogicalBackup{status: "IN_PROGRESS", encryption: "NONE"})
-		restoreID := insertOldRestore(t, db, backupID, "IN_PROGRESS")
+		insertOldRestore(t, db, backupID, "IN_PROGRESS")
 		insertOldDownloadToken(t, db, backupID, fixture.userID, false)
 		otherDatabaseID := insertMigratedDatabase(t, db, &fixture.workspaceID)
 
@@ -148,26 +148,6 @@ func TestLogicalBackupsMigration(t *testing.T) {
 				statement: `INSERT INTO backups_restores (backup_id, database_id, status)
 					VALUES (?, ?, 'COMPLETED')`,
 				values: []any{backupID, otherDatabaseID},
-			},
-			{
-				name:      "an unknown backup status",
-				statement: "UPDATE backups_logical SET status = 'PAUSED' WHERE id = ?",
-				values:    []any{backupID},
-			},
-			{
-				name:      "an unknown encryption",
-				statement: "UPDATE backups_logical SET encryption = 'AES' WHERE id = ?",
-				values:    []any{backupID},
-			},
-			{
-				name:      "an unknown verification status",
-				statement: "UPDATE backups_logical SET restore_verification_status = 'MAYBE' WHERE id = ?",
-				values:    []any{backupID},
-			},
-			{
-				name:      "an unknown restore status",
-				statement: "UPDATE backups_restores SET status = 'WAITING' WHERE id = ?",
-				values:    []any{restoreID},
 			},
 			{
 				name:      "deleting a database that has a backup",

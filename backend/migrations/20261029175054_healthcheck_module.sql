@@ -35,10 +35,6 @@ ALTER TABLE healthcheck_configs
     ADD CONSTRAINT ck_healthcheck_configs_attempt_retention_days
     CHECK (attempt_retention_days >= 1);
 
-ALTER TABLE healthcheck_attempts
-    ADD CONSTRAINT ck_healthcheck_attempts_status
-    CHECK (status IN ('AVAILABLE', 'UNAVAILABLE'));
-
 ALTER TABLE healthcheck_configs DROP CONSTRAINT fk_healthcheck_configs_database_id;
 
 ALTER TABLE healthcheck_configs
@@ -79,8 +75,6 @@ ALTER TABLE healthcheck_configs DROP CONSTRAINT ck_healthcheck_configs_interval_
 ALTER TABLE healthcheck_configs DROP CONSTRAINT ck_healthcheck_configs_failed_attempts_before_unavailable;
 
 ALTER TABLE healthcheck_configs DROP CONSTRAINT ck_healthcheck_configs_attempt_retention_days;
-
-ALTER TABLE healthcheck_attempts DROP CONSTRAINT ck_healthcheck_attempts_status;
 
 ALTER TABLE healthcheck_configs RENAME COLUMN is_notification_enabled TO is_sent_notification_when_unavailable;
 

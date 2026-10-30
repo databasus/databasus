@@ -1252,36 +1252,6 @@ func (e RetentionPeriod) Valid() bool {
 	}
 }
 
-// Defines values for S3StorageClass.
-const (
-	S3StorageClassGLACIERIR          S3StorageClass = "GLACIER_IR"
-	S3StorageClassINTELLIGENTTIERING S3StorageClass = "INTELLIGENT_TIERING"
-	S3StorageClassONEZONEIA          S3StorageClass = "ONEZONE_IA"
-	S3StorageClassREDUCEDREDUNDANCY  S3StorageClass = "REDUCED_REDUNDANCY"
-	S3StorageClassSTANDARD           S3StorageClass = "STANDARD"
-	S3StorageClassSTANDARDIA         S3StorageClass = "STANDARD_IA"
-)
-
-// Valid indicates whether the value is a known member of the S3StorageClass enum.
-func (e S3StorageClass) Valid() bool {
-	switch e {
-	case S3StorageClassGLACIERIR:
-		return true
-	case S3StorageClassINTELLIGENTTIERING:
-		return true
-	case S3StorageClassONEZONEIA:
-		return true
-	case S3StorageClassREDUCEDREDUNDANCY:
-		return true
-	case S3StorageClassSTANDARD:
-		return true
-	case S3StorageClassSTANDARDIA:
-		return true
-	default:
-		return false
-	}
-}
-
 // Defines values for S3StorageSettingsType.
 const (
 	S3StorageSettingsTypeS3 S3StorageSettingsType = "S3"
@@ -3541,8 +3511,8 @@ type RestoreTarget struct {
 // RetentionPeriod How long the `TIME_PERIOD` retention keeps a backup
 type RetentionPeriod string
 
-// S3StorageClass The storage class of the stored objects; absent means the bucket's default
-type S3StorageClass string
+// S3StorageClass The provider-defined storage class, forwarded unchanged; absent or empty selects the bucket's default
+type S3StorageClass = string
 
 // S3StorageSettings A bucket of Amazon S3 or of a service compatible with it
 type S3StorageSettings struct {
@@ -3570,7 +3540,7 @@ type S3StorageSettings struct {
 	// S3SecretKey The secret access key
 	S3SecretKey *string `json:"s3SecretKey,omitempty"`
 
-	// S3StorageClass The storage class of the stored objects; absent means the bucket's default
+	// S3StorageClass The provider-defined storage class, forwarded unchanged; absent or empty selects the bucket's default
 	S3StorageClass *S3StorageClass `json:"s3StorageClass,omitempty"`
 
 	// Type Always `S3`

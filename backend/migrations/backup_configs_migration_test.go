@@ -213,19 +213,6 @@ func TestBackupConfigsMigration(t *testing.T) {
 				[]any{logicalDatabaseID},
 			},
 			{
-				"an unknown method", "INSERT INTO backups_configs (database_id, method) VALUES (?, 'SNAPSHOT')",
-				[]any{unsavedDatabaseID},
-			},
-			{"an unknown encryption", `INSERT INTO backups_configs (database_id, method, encryption)
-				VALUES (?, 'LOGICAL', 'AES')`, []any{unsavedDatabaseID}},
-			{
-				"a physical trigger on a logical config", `INSERT INTO backups_configs
-				(database_id, method, notification_triggers) VALUES (?, 'LOGICAL', '{WAL_GAP}')`,
-				[]any{unsavedDatabaseID},
-			},
-			{"an unknown trigger", `INSERT INTO backups_configs (database_id, method, notification_triggers)
-				VALUES (?, 'PHYSICAL', '{BACKUP_LOST}')`, []any{unsavedDatabaseID}},
-			{
 				"a config of a database that does not exist",
 				"INSERT INTO backups_configs (database_id, method) VALUES (?, 'LOGICAL')",
 				[]any{uuid.New()},
@@ -239,9 +226,6 @@ func TestBackupConfigsMigration(t *testing.T) {
 				VALUES (?, 'DAILY')`, []any{unsavedDatabaseID}},
 			{"a physical row on a logical config", `INSERT INTO backups_configs_physical
 				(database_id, full_interval_type) VALUES (?, 'DAILY')`, []any{logicalDatabaseID}},
-			{"an unknown schedule type", "UPDATE backups_configs_logical SET interval_type = 'YEARLY'", nil},
-			{"an unknown retention policy", "UPDATE backups_configs_logical SET retention_policy_type = 'ALL'", nil},
-			{"an unknown retention period", "UPDATE backups_configs_logical SET retention_time_period = ''", nil},
 			{
 				"the deletion of a database with a config", "DELETE FROM databases WHERE id = ?",
 				[]any{logicalDatabaseID},
@@ -255,15 +239,6 @@ func TestBackupConfigsMigration(t *testing.T) {
 		execute(t, db, "INSERT INTO backups_configs (database_id, method) VALUES (?, 'PHYSICAL')", physicalDatabaseID)
 		execute(t, db, "INSERT INTO backups_configs_physical (database_id, full_interval_type) VALUES (?, 'DAILY')",
 			physicalDatabaseID)
-
-		for _, refusedUpdate := range []string{
-			"UPDATE backups_configs_physical SET full_interval_type = ''",
-			"UPDATE backups_configs_physical SET incremental_interval_type = 'YEARLY'",
-			"UPDATE backups_configs_physical SET retention = 'ALL'",
-			"UPDATE backups_configs_physical SET full_backups_retention_policy = 'ALL'",
-		} {
-			require.Error(t, db.WithContext(t.Context()).Exec(refusedUpdate).Error, refusedUpdate)
-		}
 
 		execute(t, db, "DELETE FROM backups_configs WHERE database_id = ?", physicalDatabaseID)
 		assert.Empty(t, listIDs(t, db, "SELECT database_id FROM backups_configs_physical"))

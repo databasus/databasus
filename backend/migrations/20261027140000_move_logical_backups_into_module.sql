@@ -44,8 +44,7 @@ ALTER TABLE backups_logical
     DROP COLUMN is_skip_retry;
 -- +goose StatementEnd
 
--- The repairs replace only values that the CHECK constraints below reject. A status the code never
--- wrote becomes FAILED with a message that keeps the stored value.
+-- Unknown lifecycle states cannot be resumed by the application. Keep their stored value in the failure message.
 -- +goose StatementBegin
 UPDATE backups_logical
 SET status       = 'FAILED',
@@ -117,30 +116,6 @@ WHERE status = 'IN_PROGRESS'
       WHERE status = 'IN_PROGRESS'
       ORDER BY database_id, created_at DESC, id DESC
   );
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE backups_logical
-    ADD CONSTRAINT ck_backups_logical_status
-    CHECK (status IN ('IN_PROGRESS', 'COMPLETED', 'FAILED', 'CANCELED'));
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE backups_logical
-    ADD CONSTRAINT ck_backups_logical_encryption
-    CHECK (encryption IN ('NONE', 'ENCRYPTED'));
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE backups_logical
-    ADD CONSTRAINT ck_backups_logical_restore_verification_status
-    CHECK (restore_verification_status IN ('NOT_VERIFIED', 'VERIFIED_SUCCESSFUL', 'VERIFICATION_FAILED'));
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE backups_restores
-    ADD CONSTRAINT ck_backups_restores_status
-    CHECK (status IN ('IN_PROGRESS', 'COMPLETED', 'FAILED', 'CANCELED'));
 -- +goose StatementEnd
 
 -- A restore keeps its backup's database, so the index below allows one running restore per database;
@@ -382,15 +357,7 @@ ALTER TABLE backups_logical
 
 -- +goose StatementBegin
 ALTER TABLE backups_restores
-    DROP CONSTRAINT ck_backups_restores_status,
     DROP COLUMN database_id;
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE backups_logical
-    DROP CONSTRAINT ck_backups_logical_restore_verification_status,
-    DROP CONSTRAINT ck_backups_logical_encryption,
-    DROP CONSTRAINT ck_backups_logical_status;
 -- +goose StatementEnd
 
 -- +goose StatementBegin

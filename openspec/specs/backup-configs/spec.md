@@ -148,7 +148,7 @@ Moving a database SHALL require the right to edit content in the database's work
 
 ### Requirement: An upgrade keeps every backup config
 
-An upgrade SHALL keep every saved config with its values, its storage and its notification triggers. A database that has a saved config of each method SHALL keep the one of its own method, and the other SHALL be deleted. A stored value that the new constraints reject SHALL be replaced by the default of its method before the constraints are added, so the instance starts.
+An upgrade SHALL keep every saved config with its values, its storage and its notification triggers. A database that has a saved config of each method SHALL keep the one of its own method, and the other SHALL be deleted. A stored application-owned value that the current application cannot use SHALL be replaced by the default of its method during the upgrade, so the instance starts with a usable config. Provider-defined storage classes SHALL be preserved as the storage requirements state.
 
 #### Scenario: A database with both configs
 

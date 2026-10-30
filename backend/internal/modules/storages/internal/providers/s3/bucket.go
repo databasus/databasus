@@ -660,7 +660,7 @@ func (b *bucket) putInnerPart(
 
 func (b *bucket) putObjectOptions() minio.PutObjectOptions {
 	return minio.PutObjectOptions{
-		StorageClass: string(b.settings.StorageClass),
+		StorageClass: b.settings.StorageClass,
 	}
 }
 

@@ -69,29 +69,7 @@ SET status = 'INACTIVE'
 WHERE status NOT IN ('INVITED', 'ACTIVE', 'INACTIVE');
 -- +goose StatementEnd
 
--- +goose StatementBegin
-ALTER TABLE users
-    ADD CONSTRAINT ck_users_role
-    CHECK (role IN ('ADMIN', 'MEMBER'));
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE users
-    ADD CONSTRAINT ck_users_status
-    CHECK (status IN ('INVITED', 'ACTIVE', 'INACTIVE'));
--- +goose StatementEnd
-
 -- +goose Down
--- +goose StatementBegin
-ALTER TABLE users
-    DROP CONSTRAINT IF EXISTS ck_users_status;
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE users
-    DROP CONSTRAINT IF EXISTS ck_users_role;
--- +goose StatementEnd
-
 -- +goose StatementBegin
 ALTER INDEX idx_users_pending_sign_ins_created_at
     RENAME TO idx_two_factor_codes_created_at;

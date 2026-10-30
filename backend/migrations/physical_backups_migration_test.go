@@ -166,13 +166,6 @@ func TestPhysicalBackupsMigration(t *testing.T) {
 					listStrings(t, db, "SELECT COALESCE("+repair.column+", '') FROM "+table+" WHERE id = ?", backupID),
 				)
 			}
-			for _, column := range []string{"status", "compression", "encryption", "error_reason"} {
-				err := db.WithContext(t.Context()).
-					Exec("UPDATE "+table+" SET "+column+" = 'UNKNOWN' WHERE id = ?", repairedIDs[oldTable][0]).
-					Error
-				require.Error(t, err)
-				assert.Contains(t, err.Error(), "ck_"+table+"_"+column)
-			}
 		}
 		assert.Equal(
 			t,
@@ -200,11 +193,10 @@ func TestPhysicalBackupsMigration(t *testing.T) {
 			listStrings(t, db, "SELECT source_state FROM backups_physical_wal_stream_samples"),
 		)
 
-		for table, column := range map[string]string{"backups_physical_wal_segments": "encryption", "backups_physical_wal_streamers": "status", "backups_physical_wal_stream_samples": "source_state", "backups_physical_in_flight": "backup_type"} {
-			err := db.WithContext(t.Context()).Exec("UPDATE " + table + " SET " + column + " = 'UNKNOWN'").Error
-			require.Error(t, err)
-			assert.Contains(t, err.Error(), "ck_"+table+"_"+column)
-		}
+		err := db.WithContext(t.Context()).Exec("UPDATE backups_physical_in_flight SET backup_type = 'UNKNOWN'").Error
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "ck_backups_physical_in_flight_backup_type")
+
 		execute(t, db, "UPDATE backups_physical_wal_stream_samples SET slot_wal_status = 'FUTURE_POSTGRES_VALUE'")
 		for _, suffix := range []string{"full", "incremental", "in_flight", "wal_segments", "wal_history_files", "wal_streamers", "wal_stream_samples"} {
 			table := "backups_physical_" + suffix

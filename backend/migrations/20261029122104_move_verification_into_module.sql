@@ -128,36 +128,6 @@ ALTER TABLE verification_configs
 -- +goose StatementEnd
 
 -- +goose StatementBegin
-ALTER TABLE verification_runs
-    ADD CONSTRAINT ck_verification_runs_status
-    CHECK (status IN ('PENDING', 'RUNNING', 'COMPLETED', 'FAILED', 'CANCELED'));
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE verification_runs
-    ADD CONSTRAINT ck_verification_runs_trigger
-    CHECK (trigger IN ('MANUAL', 'SCHEDULED', 'AFTER_BACKUP'));
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE verification_configs
-    ADD CONSTRAINT ck_verification_configs_schedule_type
-    CHECK (schedule_type IN ('INTERVAL', 'AFTER_BACKUP'));
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE verification_configs
-    ADD CONSTRAINT ck_verification_configs_interval_type
-    CHECK (interval_type IN ('HOURLY', 'DAILY', 'WEEKLY', 'MONTHLY', 'CRON'));
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE verification_configs
-    ADD CONSTRAINT ck_verification_configs_send_notifications_on
-    CHECK (send_notifications_on <@ ARRAY['VERIFICATION_SUCCESS', 'VERIFICATION_FAILED']::TEXT[]);
--- +goose StatementEnd
-
--- +goose StatementBegin
 ALTER TABLE verification_configs
     DROP CONSTRAINT fk_backup_verification_configs_database;
 -- +goose StatementEnd
@@ -234,31 +204,6 @@ ALTER TABLE verification_runs
     FOREIGN KEY (backup_id)
     REFERENCES backups_logical (id)
     ON DELETE CASCADE;
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE verification_runs
-    DROP CONSTRAINT ck_verification_runs_status;
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE verification_runs
-    DROP CONSTRAINT ck_verification_runs_trigger;
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE verification_configs
-    DROP CONSTRAINT ck_verification_configs_schedule_type;
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE verification_configs
-    DROP CONSTRAINT ck_verification_configs_interval_type;
--- +goose StatementEnd
-
--- +goose StatementBegin
-ALTER TABLE verification_configs
-    DROP CONSTRAINT ck_verification_configs_send_notifications_on;
 -- +goose StatementEnd
 
 -- +goose StatementBegin
