@@ -273,8 +273,7 @@ func (r *databaseRepository) existsInWorkspace(ctx context.Context, workspaceID 
 	return isExisting, nil
 }
 
-// delete removes the database with its settings row and attachments through the module's own
-// cascade, and the rows of the old features that still reference it with CASCADE.
+// The module's own cascade removes the database's settings row and attachments.
 func (r *databaseRepository) delete(ctx context.Context, databaseID uuid.UUID) error {
 	err := database.Conn(ctx, r.db).Exec("DELETE FROM databases WHERE id = ?", databaseID).Error
 	if err != nil {

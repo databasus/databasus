@@ -57,10 +57,6 @@ func (m *Module) GetAccessMiddleware() gin.HandlerFunc {
 	return m.access.GetAccessMiddleware()
 }
 
-func (m *Module) GetSessionMiddleware() gin.HandlerFunc {
-	return m.access.GetSessionMiddleware()
-}
-
 func (m *Module) RegisterRoutes(routes gin.IRouter, hooks *apierror.Hooks) {
 	usershttpapi.RegisterHandlersWithOptions(
 		routes,

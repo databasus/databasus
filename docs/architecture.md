@@ -300,7 +300,7 @@ The verification agent is a CLI worker that runs on a machine the user provides.
 |---|---|
 | Layer direction, the module boundary through the root package, `module.go` as the only root file, the agent's allowed imports | `archlint` |
 | File roles, errors in `errors.go`, a bare `go` statement only in `lib` | `archlint` |
-| No `testing`, testify or testcontainers in either production binary; no GORM, Gin or goose in the agent binary | `archlint` (dependency graphs of `cmd/databasus` and `cmd/verification-agent`) |
+| No `testing`, testify or testcontainers in either production binary, except the two third-party rclone importers listed below; no GORM, Gin or goose in the agent binary | `archlint` (dependency graphs of `cmd/databasus` and `cmd/verification-agent`) |
 | A migration adds no `CASCADE` foreign key to another module's table | `archlint` (table prefixes) |
 | A migration runs in its transaction: no `-- +goose NO TRANSACTION` | `archlint` |
 | `*gorm.DB` and `database.Conn` only in repositories; no `time.Sleep`, `Eventually`, `fmt.Print*`, `os.Exit`, `os.Getenv` or `context.Background()` outside the places allowed | `forbidigo` |
@@ -310,6 +310,8 @@ The verification agent is a CLI worker that runs on a machine the user provides.
 | No package-level dependency variables, no `init()`; every `Deps` literal lists all fields | `gochecknoglobals`, `gochecknoinits`, `exhaustruct` |
 | Exhaustive `switch` on enums | `exhaustive` |
 | The contract follows the API rules; generated code is up to date | `vacuum`; `backend:check-generated`, which `backend:lint` runs, and `check:api`, which `frontend:lint` runs |
+
+The server retains two third-party test-library importers for rclone storage support: `github.com/Files-com/files-sdk-go/v3/lib` contains assertion helpers used by the Files.com backend, and `github.com/rclone/Proton-API-Bridge` imports `testing` for the Proton Drive backend. The exact accepted importers and their reasons live in `getAcceptedThirdPartyTestImporters` in [`production_dependencies.go`](../backend/tools/archlint/production_dependencies.go). Every other importer is rejected; repository-owned test support stays out of both production binaries.
 
 `mise run lint` runs all of them; `mise run backend:lint` runs all but the freshness check of the frontend types. The linters check test files too. The `archlint` rules on imports, the module root, file roles, errors and bare `go` check production files only: a module's API tests build the whole application through `apptest`, which sits above the modules, and tests start goroutines of their own to drive concurrent calls.
 

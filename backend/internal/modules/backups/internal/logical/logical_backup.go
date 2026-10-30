@@ -1,5 +1,5 @@
 // Package logical starts, runs, lists, cancels, keeps and deletes the logical backups of databases,
-// and serves their files to the restores, the downloads and the old verification runs.
+// and serves their files to the restores, the downloads and the verification runs.
 package logical
 
 import (
@@ -23,8 +23,7 @@ const (
 	StatusCanceled   Status = "CANCELED"
 )
 
-// VerificationStatus is the outcome of the last restore verification the old verification runs
-// recorded for the backup.
+// VerificationStatus is the outcome of the backup's last restore verification.
 type VerificationStatus string
 
 const (

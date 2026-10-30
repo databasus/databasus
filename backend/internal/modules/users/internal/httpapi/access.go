@@ -16,8 +16,6 @@ import (
 
 const bearerPrefix = "Bearer "
 
-// Access checks sessions for the routes: the contract operations by their access mark and the
-// routes of the old code by the session alone.
 type Access struct {
 	signIn *signin.Service
 	logger *slog.Logger
@@ -50,19 +48,6 @@ func (a *Access) GetAccessMiddleware() gin.HandlerFunc {
 
 			apierror.Write(ginContext, errNotAdmin)
 
-			return
-		}
-
-		ginContext.Next()
-	}
-}
-
-// GetSessionMiddleware requires a valid session without reading an access mark. The routes of the
-// old code use it until their modules move behind the contract guard.
-func (a *Access) GetSessionMiddleware() gin.HandlerFunc {
-	return func(ginContext *gin.Context) {
-		_, isSignedIn := a.signInRequest(ginContext)
-		if !isSignedIn {
 			return
 		}
 

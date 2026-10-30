@@ -128,8 +128,6 @@ type Module interface {
 	RecordBackupFailure(ctx context.Context, databaseID uuid.UUID, message string) error
 	SetHealthStatus(ctx context.Context, databaseID uuid.UUID, status *HealthStatus) error
 
-	// DeleteDatabase is the deletion of the contract's deleteDatabase. It serves the old test helpers,
-	// which delete their databases through the subscribed handlers.
 	DeleteDatabase(ctx context.Context, actor users.Actor, databaseID uuid.UUID) error
 
 	// TransferDatabaseToWorkspace and ReplaceDatabaseNotifiers serve the database transfer of the backups

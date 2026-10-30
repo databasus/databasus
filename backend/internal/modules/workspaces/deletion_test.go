@@ -236,8 +236,6 @@ func requireWorkspaceMembersAndContentListed(t *testing.T, tm team, expectedCont
 	assert.Equal(t, expectedContent, countContent(t, tm.owner, tm.workspace.Id))
 }
 
-// listBackupIDs lists the backups of a database through the old backups route, which the contract
-// does not describe yet.
 func listBackupIDs(t *testing.T, session apptest.Session, databaseID uuid.UUID) []uuid.UUID {
 	t.Helper()
 
@@ -259,8 +257,7 @@ func listBackupIDs(t *testing.T, session apptest.Session, databaseID uuid.UUID) 
 	return backupIDs
 }
 
-// countRows reads a table directly, because the old routes refuse to list the content of a
-// workspace that no longer exists.
+// The API does not list the content of a workspace that no longer exists.
 func countRows(t *testing.T, app *apptest.App, query string, values ...any) int {
 	t.Helper()
 

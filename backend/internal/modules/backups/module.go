@@ -145,8 +145,6 @@ type Module interface {
 	// The lists hold only saved configs, so a database whose config was never saved runs no backup.
 	ListEnabledLogicalBackupConfigs(ctx context.Context) ([]LogicalBackupConfig, error)
 	ListEnabledPhysicalBackupConfigs(ctx context.Context) ([]PhysicalBackupConfig, error)
-	// SaveBackupConfig is the save of the contract's updateBackupConfig. It serves the old test helpers
-	// and the seed of the dev database.
 	SaveBackupConfig(ctx context.Context, actor users.Actor, config AnyBackupConfig) (SavedBackupConfig, error)
 
 	OnStorageTransferring(ctx context.Context, event storages.StorageTransferring) error

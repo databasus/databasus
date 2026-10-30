@@ -65,10 +65,8 @@ func GetActor(ctx context.Context) (Actor, bool) {
 }
 
 type Module interface {
-	// GetAccessMiddleware enforces the access mark of each contract operation and runs right after
-	// the contract guard. GetSessionMiddleware requires a session on the routes of the old code.
+	// The contract guard must run first to set each operation's access mark.
 	GetAccessMiddleware() gin.HandlerFunc
-	GetSessionMiddleware() gin.HandlerFunc
 	RegisterRoutes(routes gin.IRouter, hooks *apierror.Hooks)
 	GetJobs() []background.Job
 
