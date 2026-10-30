@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { type Storage, storageApi } from '../../../entity/storages';
+import { type Storage, storageApi } from '../../../entities/storages';
 import { ApiError } from '../../../shared/api';
 import { translateApiError } from '../../../shared/i18n';
 import { ToastHelper } from '../../../shared/toast';

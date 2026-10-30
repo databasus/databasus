@@ -128,11 +128,12 @@ go test -race -count=1 -failfast $packages
 """
 
 [tasks."frontend:lint"]
-description = "Check the frontend: formatting, linter, types and the generated API types"
+description = "Check the frontend: formatting, source and architecture lint, types and generated API types"
 dir = "frontend"
 run = [
   "pnpm format:check",
   "pnpm lint",
+  "pnpm lint:fsd",
   "pnpm typecheck",
   "pnpm --silent check:api",
 ]

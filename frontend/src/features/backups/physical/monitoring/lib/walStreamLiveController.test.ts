@@ -1,6 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { WalStreamLive, WalStreamLiveResponse } from '../../../../../entity/backups/physical';
+import type {
+  WalStreamLive,
+  WalStreamLiveResponse,
+} from '../../../../../entities/backups/physical';
 import { FakePageVisibility } from './testPageVisibility';
 import { WAL_STREAM_LIVE_INTERVAL_MS, WalStreamLiveController } from './walStreamLiveController';
 

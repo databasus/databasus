@@ -1,4 +1,4 @@
-import { type RefObject, useEffect, useState } from 'react';
+import { type RefObject, useCallback, useEffect, useState } from 'react';
 
 import {
   PagedListController,
@@ -9,7 +9,11 @@ import {
 
 const SCROLL_LOAD_THRESHOLD_PX = 100;
 
-export interface PagedListParams<TItem, TCursor> extends PagedListOptions<TItem, TCursor> {
+export interface PagedListParams<TItem, TCursor, TMetadata = undefined> extends PagedListOptions<
+  TItem,
+  TCursor,
+  TMetadata
+> {
   scrollContainerRef?: RefObject<HTMLDivElement | null>;
   // A change discards the loaded rows and loads the first page again.
   resetKey: string;
@@ -17,27 +21,33 @@ export interface PagedListParams<TItem, TCursor> extends PagedListOptions<TItem,
 
 // Pages a list as the user scrolls: the next page loads when the container is
 // scrolled near its bottom.
-export function usePagedList<TItem, TCursor>({
+export function usePagedList<TItem, TCursor, TMetadata = undefined>({
   fetchPage,
   getItemKey,
   onError,
   scrollContainerRef,
   resetKey,
-}: PagedListParams<TItem, TCursor>) {
-  const [state, setState] = useState<PagedListState<TItem, TCursor>>(createInitialPagedListState);
+}: PagedListParams<TItem, TCursor, TMetadata>) {
+  const [state, setState] = useState<PagedListState<TItem, TCursor, TMetadata>>(
+    createInitialPagedListState,
+  );
   const [controller] = useState(
-    () => new PagedListController<TItem, TCursor>({ fetchPage, getItemKey, onError }, setState),
+    () =>
+      new PagedListController<TItem, TCursor, TMetadata>(
+        { fetchPage, getItemKey, onError },
+        setState,
+      ),
   );
 
-  // The scroll listener and the caller's timers outlive a render, so the
-  // controller reads the latest callbacks. Declared first so it runs before the reload.
   useEffect(() => {
     controller.setOptions({ fetchPage, getItemKey, onError });
-  });
+  }, [controller, fetchPage, getItemKey, onError]);
 
   useEffect(() => {
-    controller.reload();
-  }, [resetKey]);
+    controller.activate();
+    void controller.reload();
+    return () => controller.deactivate();
+  }, [controller, resetKey]);
 
   useEffect(() => {
     const container = scrollContainerRef?.current;
@@ -53,15 +63,23 @@ export function usePagedList<TItem, TCursor>({
 
     container.addEventListener('scroll', handleScroll);
     return () => container.removeEventListener('scroll', handleScroll);
-  }, [scrollContainerRef]);
+  }, [controller, scrollContainerRef]);
+
+  const reload = useCallback(() => controller.reload(), [controller]);
+  const refreshFirstPage = useCallback(() => controller.refreshFirstPage(), [controller]);
+  const replaceOrPrependItem = useCallback(
+    (item: TItem) => controller.replaceOrPrependItem(item),
+    [controller],
+  );
 
   return {
     items: state.list.items,
+    metadata: state.list.metadata,
     isLoading: state.isLoading,
     isLoadingMore: state.isLoadingMore,
     hasMore: state.list.nextCursor !== undefined,
-    reload: () => controller.reload(),
-    refreshFirstPage: () => controller.refreshFirstPage(),
-    replaceOrPrependItem: (item: TItem) => controller.replaceOrPrependItem(item),
+    reload,
+    refreshFirstPage,
+    replaceOrPrependItem,
   };
 }

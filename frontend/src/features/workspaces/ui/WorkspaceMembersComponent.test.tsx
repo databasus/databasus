@@ -3,8 +3,8 @@ import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { HttpResponse, http } from 'msw';
 import { describe, expect, it } from 'vitest';
 
-import type { User } from '../../../entity/users';
-import type { Workspace, WorkspaceMember } from '../../../entity/workspaces';
+import type { User } from '../../../entities/users';
+import type { Workspace, WorkspaceMember } from '../../../entities/workspaces';
 import { API_BASE_PATH, type ApiComponents } from '../../../shared/api';
 import { buildProblem, mockApi, setUpMockApi } from '../../../shared/lib/test/mockApi';
 import { renderScreen } from '../../../shared/lib/test/renderScreen';

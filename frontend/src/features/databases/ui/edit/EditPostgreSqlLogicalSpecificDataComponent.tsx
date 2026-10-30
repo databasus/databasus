@@ -12,9 +12,9 @@ import {
   databaseApi,
   hasStoredSshTunnelSecretsForAuthType,
   isSshTunnelReadyToTest,
-} from '../../../../entity/databases';
-import { ConnectionStringParser } from '../../../../entity/databases/model/postgresql/ConnectionStringParser';
-import type { PostgresqlRestoreOptions } from '../../../../entity/restores';
+} from '../../../../entities/databases';
+import { ConnectionStringParser } from '../../../../entities/databases/model/postgresql/ConnectionStringParser';
+import type { PostgresqlRestoreOptions } from '../../../../entities/restores';
 import {
   getWebsitePageUrl,
   translateApiError,

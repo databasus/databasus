@@ -9,8 +9,8 @@ import {
   type AuditEvent,
   getAuditEventWorkspaceLabel,
   useAuditEventPages,
-} from '../../../entity/audit-logs';
-import type { User } from '../../../entity/users';
+} from '../../../entities/audit-logs';
+import type { User } from '../../../entities/users';
 import { useLocale } from '../../../shared/i18n';
 import { getUserTimeFormat } from '../../../shared/time';
 

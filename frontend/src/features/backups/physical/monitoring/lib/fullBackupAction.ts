@@ -2,7 +2,7 @@ import {
   WalStreamHealthLevel,
   type WalStreamReason,
   WalStreamReasonCode,
-} from '../../../../../entity/backups/physical';
+} from '../../../../../entities/backups/physical';
 import { FullBackupAction } from '../model/FullBackupAction';
 
 interface FullBackupActionInput {

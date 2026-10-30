@@ -6,7 +6,7 @@ import {
   WAL_STREAM_STREAMER_STATE_LABEL_KEYS,
   type WalStreamStatistics,
   WalStreamSourceState,
-} from '../../../../../entity/backups/physical';
+} from '../../../../../entities/backups/physical';
 import { type TranslationKey, useLocale } from '../../../../../shared/i18n';
 import { formatBytes } from '../../../../../shared/lib';
 import { getUserTimeFormat } from '../../../../../shared/time';

@@ -4,7 +4,7 @@ import {
   WalStreamHealthLevel,
   WalStreamReasonCode,
   WalStreamReasonLevel,
-} from '../../../../../entity/backups/physical';
+} from '../../../../../entities/backups/physical';
 import { FullBackupAction } from '../model/FullBackupAction';
 import { getFullBackupAction } from './fullBackupAction';
 

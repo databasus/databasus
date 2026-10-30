@@ -2,7 +2,7 @@ import {
   type Database,
   DatabaseType,
   PhysicalDatabaseBackupType,
-} from '../../../../../entity/databases';
+} from '../../../../../entities/databases';
 
 export const isMonitoringTabShown = (database: Database): boolean =>
   database.settings.type === DatabaseType.POSTGRES_PHYSICAL &&

@@ -13,16 +13,16 @@ import {
   backupConfigApi,
   StorageSwitchHistoryComponent,
   toLogicalBackupConfigInput,
-} from '../../../../entity/backups/config';
+} from '../../../../entities/backups/config';
 import {
   LOGICAL_NOTIFICATION_TRIGGER_LABEL_KEYS,
   LogicalRetentionPolicy,
   RETENTION_PERIOD_LABEL_KEYS,
-} from '../../../../entity/backups/logical';
-import { BACKUP_ENCRYPTION_LABEL_KEYS } from '../../../../entity/backups/shared';
-import type { Database } from '../../../../entity/databases';
-import { WEEKDAY_LABEL_KEYS, type Weekday } from '../../../../entity/intervals';
-import { type Storage, getStorageLogoFromType, storageApi } from '../../../../entity/storages';
+} from '../../../../entities/backups/logical';
+import { BACKUP_ENCRYPTION_LABEL_KEYS } from '../../../../entities/backups/shared';
+import type { Database } from '../../../../entities/databases';
+import { WEEKDAY_LABEL_KEYS, type Weekday } from '../../../../entities/intervals';
+import { type Storage, getStorageLogoFromType, storageApi } from '../../../../entities/storages';
 import {
   type LocalizedText,
   translateApiError,
@@ -73,20 +73,6 @@ export const ShowLogicalBackupConfigComponent = ({ database }: Props) => {
     return texts.map((text) => translateLocalizedText(text, t)).join(listSeparator);
   };
 
-  const loadBackupConfig = async () => {
-    try {
-      const loadedBackupConfig = toLogicalBackupConfigInput(
-        await backupConfigApi.getBackupConfig(database.id),
-      );
-      setBackupConfig(loadedBackupConfig);
-
-      const storageId = loadedBackupConfig?.storageId;
-      setStorage(storageId ? await storageApi.getStorage(storageId) : undefined);
-    } catch (e) {
-      alert(translateApiError(e, t));
-    }
-  };
-
   const timeFormat = useMemo(() => {
     const is12Hour = getIs12Hour();
     return {
@@ -96,10 +82,26 @@ export const ShowLogicalBackupConfigComponent = ({ database }: Props) => {
   }, []);
 
   useEffect(() => {
-    if (database.id) {
-      loadBackupConfig();
-    }
-  }, [database]);
+    let isActive = true;
+    const loadBackupConfig = async () => {
+      try {
+        const loadedBackupConfig = toLogicalBackupConfigInput(
+          await backupConfigApi.getBackupConfig(database.id),
+        );
+        if (!isActive) return;
+        setBackupConfig(loadedBackupConfig);
+        const storageId = loadedBackupConfig?.storageId;
+        const loadedStorage = storageId ? await storageApi.getStorage(storageId) : undefined;
+        if (isActive) setStorage(loadedStorage);
+      } catch (error) {
+        if (isActive) alert(translateApiError(error, t));
+      }
+    };
+    if (database.id) void loadBackupConfig();
+    return () => {
+      isActive = false;
+    };
+  }, [database.id, t]);
 
   if (!backupConfig) return <div />;
 

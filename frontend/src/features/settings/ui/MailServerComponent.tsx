@@ -2,7 +2,7 @@ import { App, Button } from 'antd';
 import { useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
-import { settingsApi } from '../../../entity/users';
+import { settingsApi } from '../../../entities/users';
 import { type ApiComponents } from '../../../shared/api';
 import { getWebsitePageUrl, translateApiError, useLocale } from '../../../shared/i18n';
 

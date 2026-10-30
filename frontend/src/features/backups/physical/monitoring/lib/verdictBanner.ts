@@ -5,7 +5,7 @@ import {
   WalStreamHealthLevel,
   WalStreamReasonCode,
   type WalStreamStatistics,
-} from '../../../../../entity/backups/physical';
+} from '../../../../../entities/backups/physical';
 import type { MonitoringText } from '../model/MonitoringText';
 import type { MonitoringTextParam } from '../model/MonitoringTextParam';
 import { MonitoringTone } from '../model/MonitoringTone';

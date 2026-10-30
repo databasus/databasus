@@ -8,7 +8,7 @@ import {
   validateTeamsNotifier,
   validateTelegramNotifier,
   validateWebhookNotifier,
-} from '../../../entity/notifiers';
+} from '../../../entities/notifiers';
 
 // A saved notifier may leave its secrets empty, because the backend keeps the stored ones.
 export const isNotifierSettingsFilled = (settings: NotifierSettings, isSaved: boolean): boolean => {

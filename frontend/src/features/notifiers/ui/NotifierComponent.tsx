@@ -9,8 +9,8 @@ import { useState } from 'react';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { notifierApi } from '../../../entity/notifiers';
-import type { Notifier } from '../../../entity/notifiers';
+import { notifierApi } from '../../../entities/notifiers';
+import type { Notifier } from '../../../entities/notifiers';
 import { translateApiError } from '../../../shared/i18n';
 import { ToastHelper } from '../../../shared/toast';
 import { ConfirmationComponent } from '../../../shared/ui';

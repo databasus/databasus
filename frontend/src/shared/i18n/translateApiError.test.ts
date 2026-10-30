@@ -40,14 +40,14 @@ describe('translateApiError', () => {
     expect(translateApiError(hourlyCapReached, t)).toBe(t('errors.tooManySignInCodes'));
   });
 
-  it('shows the backend message for an unknown code', () => {
+  it('shows the general message for an unknown code', () => {
     const error = new ApiError({
       message: 'storage quota exceeded',
       code: 'quota_exceeded',
       status: 400,
     });
 
-    expect(translateApiError(error, t)).toBe('Storage quota exceeded');
+    expect(translateApiError(error, t)).toBe(t('errors.unknown'));
   });
 
   it('shows the general message for an unknown code without a message', () => {
@@ -56,10 +56,31 @@ describe('translateApiError', () => {
     expect(translateApiError(error, t)).toBe(t('errors.unknown'));
   });
 
-  it('shows the backend message when there is no code', () => {
+  it('shows the general message when there is no code', () => {
     const error = new ApiError({ message: 'database not found', status: 404 });
 
-    expect(translateApiError(error, t)).toBe('Database not found');
+    expect(translateApiError(error, t)).toBe(t('errors.unknown'));
+  });
+
+  it.each(['constructor', 'toString', '__proto__'])(
+    'uses the safe fallback with code %s',
+    (code) => {
+      expect(
+        translateApiError(new ApiError({ code, message: 'https://private.example/secret' }), t),
+      ).toBe(t('errors.unknown'));
+    },
+  );
+
+  it.each([
+    ['database_connection_failed', 'errors.databaseConnectionFailed'],
+    ['insufficient_disk_space', 'errors.insufficientDiskSpace'],
+  ] as const)('retains supported diagnostics with code %s', (code, key) => {
+    expect(
+      translateApiError(
+        new ApiError({ code, message: 'Connection refused: disk has 1024 bytes' }),
+        t,
+      ),
+    ).toBe(t(key, { detail: 'Connection refused: disk has 1024 bytes' }));
   });
 
   it('never shows the message of an error that is not an ApiError', () => {

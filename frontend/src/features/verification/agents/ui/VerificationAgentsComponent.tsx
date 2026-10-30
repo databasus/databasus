@@ -14,7 +14,7 @@ import { Trans, useTranslation } from 'react-i18next';
 import {
   type VerificationAgent,
   verificationAgentApi,
-} from '../../../../entity/verification/agents';
+} from '../../../../entities/verification/agents';
 import {
   type LocalizedText,
   getWebsitePageUrl,

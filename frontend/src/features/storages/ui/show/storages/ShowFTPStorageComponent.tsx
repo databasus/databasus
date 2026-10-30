@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 
-import type { FtpStorageSettings } from '../../../../../entity/storages';
+import type { FtpStorageSettings } from '../../../../../entities/storages';
 
 interface Props {
   settings: FtpStorageSettings;

@@ -1,4 +1,7 @@
-import type { WalStreamSeries, WalStreamSeriesPoint } from '../../../../../entity/backups/physical';
+import type {
+  WalStreamSeries,
+  WalStreamSeriesPoint,
+} from '../../../../../entities/backups/physical';
 import type { MissingDataRange } from '../model/MissingDataRange';
 import type { WalStreamChartRow } from '../model/WalStreamChartRow';
 

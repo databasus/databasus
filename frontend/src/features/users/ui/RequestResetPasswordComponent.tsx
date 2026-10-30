@@ -2,7 +2,7 @@ import { Button, Input } from 'antd';
 import { type JSX, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
-import { userApi } from '../../../entity/users';
+import { userApi } from '../../../entities/users';
 import { useCloudflareTurnstile } from '../../../shared/hooks/useCloudflareTurnstile';
 import { translateApiError } from '../../../shared/i18n';
 import { FormValidator } from '../../../shared/lib/FormValidator';

@@ -8,7 +8,7 @@ import {
   DatabaseType,
   type LimitedUserCheck,
   databaseApi,
-} from '../../../../entity/databases';
+} from '../../../../entities/databases';
 import {
   TransByKey,
   type TranslationKey,

@@ -73,6 +73,18 @@ func TestGetStorage(t *testing.T) {
   - conflicts of state, such as deleting a storage that holds backups or creating a duplicate.
 - A background job does not run on its own in the test application. Run its pass explicitly, and move the clock instead of waiting for the schedule.
 
+## Frontend screen tests
+
+Use the real screen and domain APIs; replace only their HTTP boundary. Use the [frontend test lifecycle](../../../docs/testing.md#frontend-tests) and its existing renderer and typed response helpers instead of assembling substitute providers or mocking our services.
+
+- Select happy-dom only for tests that need a document. Keep pure algorithms, API calls and architecture fixtures in node.
+- Declare each request's explicit method and finite pathname. Do not hide dependencies behind blanket handlers or silence unexpected-request failures.
+- Prefer user-event and accessible role/name queries. Select the locale, theme and router entry the scenario needs through the renderer; use the app-level wrapper for complete-app tests.
+- Hold overlapping work with controlled responses and release each response explicitly. Advance fake clocks only for time-dependent behavior, and wait for an observable processing signal before asserting that no further request, state update or error occurs.
+- Cover reset, stale success/error, unmount and setup-cleanup-setup when changing an asynchronous hook. Verify timer and listener cleanup and callbacks that use the latest options.
+- Prove harness failures through an isolated runner, checking both nonzero exit and the intended diagnostic. Remove temporary files and terminate child processes on timeout or failure.
+- Unmount before pending responses settle. Restore every global override and browser state the test changes; do not rely on the next test to repair them. A failed test receives the same cleanup.
+
 ## Unit tests and fakes
 
 Write a unit test without the application only for pure logic that has no HTTP entry point or is too slow to enumerate through HTTP. [`docs/testing.md`](../../../docs/testing.md#layers) lists examples.

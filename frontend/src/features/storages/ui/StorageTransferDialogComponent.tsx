@@ -2,9 +2,9 @@ import { Button, Modal, Select, Spin } from 'antd';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { backupConfigApi } from '../../../entity/backups/config';
-import { type Storage, storageApi } from '../../../entity/storages';
-import { type Workspace, workspaceApi } from '../../../entity/workspaces';
+import { backupConfigApi } from '../../../entities/backups/config';
+import { type Storage, storageApi } from '../../../entities/storages';
+import { type Workspace, workspaceApi } from '../../../entities/workspaces';
 import { translateApiError } from '../../../shared/i18n';
 
 interface Props {

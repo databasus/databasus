@@ -9,8 +9,8 @@ import { Button, Input } from 'antd';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { backupConfigApi } from '../../../entity/backups/config';
-import { type Database, DatabaseType, databaseApi } from '../../../entity/databases';
+import { backupConfigApi } from '../../../entities/backups/config';
+import { type Database, DatabaseType, databaseApi } from '../../../entities/databases';
 import { translateApiError } from '../../../shared/i18n';
 import { ToastHelper } from '../../../shared/toast';
 import { ConfirmationComponent } from '../../../shared/ui';
@@ -74,12 +74,6 @@ export const DatabaseConfigComponent = ({
   const [currentStorageId, setCurrentStorageId] = useState<string | undefined>();
 
   const isPhysicalDatabase = database.settings.type === DatabaseType.POSTGRES_PHYSICAL;
-
-  useEffect(() => {
-    backupConfigApi.getBackupConfig(database.id).then((loadedBackupConfig) => {
-      setCurrentStorageId(loadedBackupConfig.storageId ?? undefined);
-    });
-  }, [database.id]);
 
   const loadSettings = () => {
     setDatabase(undefined);
@@ -197,6 +191,21 @@ export const DatabaseConfigComponent = ({
   };
 
   const isLogicalDatabase = database.settings.type === DatabaseType.POSTGRES_LOGICAL;
+
+  useEffect(() => {
+    let isActive = true;
+    backupConfigApi
+      .getBackupConfig(database.id)
+      .then((loadedBackupConfig) => {
+        if (isActive) setCurrentStorageId(loadedBackupConfig.storageId ?? undefined);
+      })
+      .catch((error) => {
+        if (isActive) alert(translateApiError(error, t));
+      });
+    return () => {
+      isActive = false;
+    };
+  }, [database.id, t]);
 
   return (
     <div className="relative w-full rounded-tr-md rounded-br-md rounded-bl-md bg-white p-3 shadow sm:p-5 dark:bg-gray-800">

@@ -10,7 +10,7 @@ import {
   AuditEventAuthorComponent,
   getAuditEventWorkspaceLabel,
   useAuditEventPages,
-} from '../../../entity/audit-logs';
+} from '../../../entities/audit-logs';
 import { useIsMobile } from '../../../shared/hooks';
 import { useLocale } from '../../../shared/i18n';
 import { getUserTimeFormat } from '../../../shared/time';

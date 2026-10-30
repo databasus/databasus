@@ -1,4 +1,4 @@
-import type { WalStreamStatistics } from '../../../../../entity/backups/physical';
+import type { WalStreamStatistics } from '../../../../../entities/backups/physical';
 
 export interface WalStreamRefreshState {
   // The newest successful response; a failed refresh never replaces it.

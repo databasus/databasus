@@ -6,7 +6,7 @@ import {
   type WalStreamReason,
   WalStreamReasonCode,
   WalStreamReasonLevel,
-} from '../../../../../entity/backups/physical';
+} from '../../../../../entities/backups/physical';
 import type { TranslationKey } from '../../../../../shared/i18n';
 import type { MonitoringText } from '../model/MonitoringText';
 import type { MonitoringTextParam } from '../model/MonitoringTextParam';

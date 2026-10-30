@@ -9,7 +9,7 @@ import {
   type EmailNotifierSettings,
   getDefaultEmailNotifierSecurity,
   getSecurityAfterPortChange,
-} from '../../../../../entity/notifiers';
+} from '../../../../../entities/notifiers';
 import { toOptionalValue } from '../../../../../shared/lib';
 import {
   AdvancedFieldRowComponent,

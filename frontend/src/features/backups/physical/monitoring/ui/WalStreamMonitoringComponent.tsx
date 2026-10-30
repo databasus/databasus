@@ -7,8 +7,8 @@ import {
   WalStreamStatisticsPeriod,
   physicalBackupsApi,
   physicalWalStreamStatisticsApi,
-} from '../../../../../entity/backups/physical';
-import type { Database } from '../../../../../entity/databases';
+} from '../../../../../entities/backups/physical';
+import type { Database } from '../../../../../entities/databases';
 import { translateApiError } from '../../../../../shared/i18n';
 import { getFullBackupAction } from '../lib/fullBackupAction';
 import { FullBackupRequestController } from '../lib/fullBackupRequestController';

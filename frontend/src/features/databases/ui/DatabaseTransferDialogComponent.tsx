@@ -8,12 +8,12 @@ import {
   backupConfigApi,
   StorageSwitchHistoryComponent,
   type StorageSwitch,
-} from '../../../entity/backups/config';
-import { type Database, databaseApi } from '../../../entity/databases';
-import type { Notifier } from '../../../entity/notifiers';
-import { notifierApi } from '../../../entity/notifiers';
-import { type Storage, getStorageLogoFromType, storageApi } from '../../../entity/storages';
-import { type Workspace, workspaceApi } from '../../../entity/workspaces';
+} from '../../../entities/backups/config';
+import { type Database, databaseApi } from '../../../entities/databases';
+import type { Notifier } from '../../../entities/notifiers';
+import { notifierApi } from '../../../entities/notifiers';
+import { type Storage, getStorageLogoFromType, storageApi } from '../../../entities/storages';
+import { type Workspace, workspaceApi } from '../../../entities/workspaces';
 import { translateApiError } from '../../../shared/i18n';
 import { ToastHelper } from '../../../shared/toast';
 import { EditNotifierComponent } from '../../notifiers/ui/edit/EditNotifierComponent';

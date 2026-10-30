@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import {
   AZURE_BLOB_AUTH_METHOD_LABEL_KEYS,
   type AzureBlobStorageSettings,
-} from '../../../../../entity/storages';
+} from '../../../../../entities/storages';
 import { toOptionalValue } from '../../../../../shared/lib';
 
 interface Props {

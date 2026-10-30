@@ -5,9 +5,9 @@ import utc from 'dayjs/plugin/utc';
 import { HttpResponse, http } from 'msw';
 import { describe, expect, it } from 'vitest';
 
-import type { LogicalBackup } from '../../../entity/backups/logical';
-import type { Database } from '../../../entity/databases';
-import type { Restore } from '../../../entity/restores';
+import type { LogicalBackup } from '../../../entities/backups/logical';
+import type { Database } from '../../../entities/databases';
+import type { Restore } from '../../../entities/restores';
 import { API_BASE_PATH, type ApiComponents } from '../../../shared/api';
 import { buildProblem, mockApi, setUpMockApi } from '../../../shared/lib/test/mockApi';
 import { renderScreen } from '../../../shared/lib/test/renderScreen';

@@ -9,8 +9,8 @@ import {
   SCHEDULE_TYPE_LABEL_KEYS,
   type Schedule,
   ScheduleType,
-} from '../../../../entity/backups/config';
-import { WEEKDAYS, WEEKDAY_LABEL_KEYS } from '../../../../entity/intervals';
+} from '../../../../entities/backups/config';
+import { WEEKDAYS, WEEKDAY_LABEL_KEYS } from '../../../../entities/intervals';
 import { useLocale } from '../../../../shared/i18n';
 import { getUserTimeFormat } from '../../../../shared/time';
 import {

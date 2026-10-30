@@ -2,8 +2,8 @@ import { Button, Modal, Select, Spin } from 'antd';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { type Database, databaseApi } from '../../../../entity/databases';
-import { type Notifier, notifierApi } from '../../../../entity/notifiers';
+import { type Database, databaseApi } from '../../../../entities/databases';
+import { type Notifier, notifierApi } from '../../../../entities/notifiers';
 import { translateApiError } from '../../../../shared/i18n';
 import { EditNotifierComponent } from '../../../notifiers/ui/edit/EditNotifierComponent';
 

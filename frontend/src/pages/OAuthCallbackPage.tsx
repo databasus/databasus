@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate, useSearchParams } from 'react-router';
 
 import { getOAuthRedirectUri } from '../constants';
-import { userApi } from '../entity/users';
+import { userApi } from '../entities/users';
 import { type TranslationKey, translateApiError } from '../shared/i18n';
 
 type CallbackFailure = { detectedFailureKey: TranslationKey } | { signInError: unknown };

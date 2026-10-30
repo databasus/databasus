@@ -2,8 +2,8 @@ import { Spin } from 'antd';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { healthcheckConfigApi } from '../../../../entity/healthcheck';
-import type { HealthcheckConfig } from '../../../../entity/healthcheck';
+import { healthcheckConfigApi } from '../../../../entities/healthcheck';
+import type { HealthcheckConfig } from '../../../../entities/healthcheck';
 import { translateApiError } from '../../../../shared/i18n';
 
 interface Props {
@@ -18,19 +18,23 @@ export const ShowHealthcheckConfigComponent = ({ databaseId }: Props) => {
   );
 
   useEffect(() => {
+    let isActive = true;
     setIsLoading(true);
     healthcheckConfigApi
       .getHealthcheckConfig(databaseId)
       .then((config) => {
-        setHealthcheckConfig(config);
+        if (isActive) setHealthcheckConfig(config);
       })
       .catch((error) => {
-        alert(translateApiError(error, t));
+        if (isActive) alert(translateApiError(error, t));
       })
       .finally(() => {
-        setIsLoading(false);
+        if (isActive) setIsLoading(false);
       });
-  }, [databaseId]);
+    return () => {
+      isActive = false;
+    };
+  }, [databaseId, t]);
 
   if (isLoading) {
     return <Spin size="small" />;

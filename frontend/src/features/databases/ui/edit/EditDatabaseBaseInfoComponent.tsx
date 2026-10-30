@@ -10,7 +10,7 @@ import {
   databaseApi,
   getDatabaseLogoFromType,
   isPostgresType,
-} from '../../../../entity/databases';
+} from '../../../../entities/databases';
 import { translateApiError } from '../../../../shared/i18n';
 
 interface Props {

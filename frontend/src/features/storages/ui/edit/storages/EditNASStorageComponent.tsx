@@ -2,7 +2,7 @@ import { InfoCircleOutlined } from '@ant-design/icons';
 import { Input, InputNumber, Switch, Tooltip } from 'antd';
 import { useTranslation } from 'react-i18next';
 
-import type { NasStorageSettings } from '../../../../../entity/storages';
+import type { NasStorageSettings } from '../../../../../entities/storages';
 import { toOptionalValue } from '../../../../../shared/lib';
 
 interface Props {

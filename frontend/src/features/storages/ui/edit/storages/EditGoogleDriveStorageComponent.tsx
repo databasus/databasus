@@ -1,7 +1,7 @@
 import { Button, Input } from 'antd';
 import { useTranslation } from 'react-i18next';
 
-import type { GoogleDriveStorageSettings, StorageOauthDto } from '../../../../../entity/storages';
+import type { GoogleDriveStorageSettings, StorageOauthDto } from '../../../../../entities/storages';
 import { getWebsitePageUrl, useLocale } from '../../../../../shared/i18n';
 import { toOptionalValue } from '../../../../../shared/lib';
 

@@ -1,5 +1,5 @@
 /* eslint-disable i18next/no-literal-string -- Tailwind class names */
-import { LogicalBackupVerificationStatus } from '../../../../entity/backups/logical';
+import { LogicalBackupVerificationStatus } from '../../../../entities/backups/logical';
 
 interface VerificationBadgeStyle {
   pillClasses: string;

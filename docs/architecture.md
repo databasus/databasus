@@ -26,6 +26,22 @@ Databasus backs up and restores the user's PostgreSQL, MySQL, MariaDB and MongoD
 - **One process per installation.** The supplied deployments start exactly one backend process (spec `single-instance-runtime`). That process owns all in-memory state: the cache, rate-limit counters, task cancellation and the WAL streamers. There is no separate worker process and no shared cache service.
 - **Backups run remotely.** Databasus connects to the user's database over the network or through an SSH tunnel to a jump host. It runs the dump or replication tools from its own container, and nothing of ours is installed on the database host. Managed databases forbid host installs, and an agent on the database host would double the release and test surface. We tried one and removed it.
 
+## Frontend
+
+The SPA uses `app -> pages -> widgets -> features -> entities -> shared`. Dependencies point only downward. Slices on the same layer do not import one another; app and shared contain segments rather than slices, and their segments may depend on each other. This makes the owner of a screen or reusable interaction visible from its directory and prevents domain changes from spreading through hidden cross-imports.
+
+- **Start in the page.** A screen owns its local UI, requests, state and validation. Extract a feature for an independently reusable interaction and an entity for a domain model with real consumers. Similar-looking code alone is not a reason to introduce a new boundary.
+- **Compose in app.** App owns providers, navigation and the choice of screen. A reusable shell in widgets receives children or slots; it does not import pages. Existing tabs and URLs do not have to change when responsibilities move.
+- **Use each slice's public API.** External consumers import its `index.ts`, including for types and dynamic imports. A barrel cannot authorize an otherwise forbidden dependency. Within a slice, use its own internal modules directly rather than importing its barrel back into itself. Shared libraries and test infrastructure may expose focused entry points without a single shared-layer barrel.
+- **Keep domain operations with their owner.** A domain API facade holds its URLs, filters, request bodies and product policy in an entity, feature or page as appropriate. Shared API holds transport, session-token plumbing, generated types and response normalization. Domain-independent cursor traversal may be shared; a generic CRUD factory is not required to share a loop.
+- **Keep state near its lifecycle.** Form drafts, list selection and page-specific async work belong to their screen or interaction. Generic pagination machinery may live in shared. Application lifecycle hooks belong to app; domain hooks stay with the domain. Cleanup invalidates late results, polling and subscriptions, and setup after cleanup must work again.
+- **Generated aliases are public domain names.** A focused alias of a generated schema is not a duplicate DTO. Keep aliases with their owner, and do not split tiny shape aliases away from the logical unit they describe. Independently meaningful domain or view-state types follow the module's naming conventions.
+- **Reuse existing providers in screen tests.** Shared test code composes locale, theme, library configuration and a memory router without importing app. Complete-application tests live above shared. Mock only the HTTP boundary; tests use the actual domain APIs and screen behavior.
+
+`@/` resolves to `frontend/src` in TypeScript, Vite, Vitest and architecture checks; relative imports follow the same boundaries. The `lint:fsd` command checks imports in addition to ordinary frontend lint. Its configuration and finite migration baseline live under `frontend/`. The baseline identifies individual existing findings by rule, source, target or structural location, occurrence count, owner and removal milestone. It permits no new or multiplied finding, and a repaired finding requires removing its stale entry. Nested domain groups keep explicitly enumerated slice boundaries until their domain milestone flattens them; a group never exempts its descendants from import checks.
+
+The baseline describes migration residue, not the target architecture. Moving screens and application hooks to their final owners happens in the corresponding domain milestones. The [FSD skill](../.agents/skills/feature-sliced-design/SKILL.md) provides placement methodology and links to its pinned upstream source; these project boundaries take precedence over upstream alternatives.
+
 ## Backend layout
 
 ```
@@ -69,17 +85,17 @@ internal/modules/<name>/
 
 Go's `internal/` rule makes the rest of the module unreachable from outside.
 
-| Module | Owns |
-|---|---|
-| `users` | accounts, sign-in (password, GitHub and Google OAuth, email codes), password reset, instance settings, global roles, the request's `Actor`, the instance admin area |
-| `workspaces` | workspaces, members, workspace roles, invitations, ownership transfer, `Authorize`, every audit log view: the global one, a user's and a workspace's |
-| `notifiers` | notification channels and sending a notification |
-| `storages` | storages, the file lifecycle (write receipts, pending deletions and the deletion worker) |
-| `databases` | connections to user databases, the notifiers attached to a database, connection tests, read-only and replication users, the last backup time and health status shown in the list |
-| `backups` | backup configs, logical backups, physical backups and WAL, restores, downloads and restore streams, retention |
-| `verification` | verification agents, verification configs and verification runs |
-| `healthcheck` | scheduled availability checks of user databases |
-| `telemetry` | anonymous usage statistics |
+| Module         | Owns                                                                                                                                                                             |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `users`        | accounts, sign-in (password, GitHub and Google OAuth, email codes), password reset, instance settings, global roles, the request's `Actor`, the instance admin area              |
+| `workspaces`   | workspaces, members, workspace roles, invitations, ownership transfer, `Authorize`, every audit log view: the global one, a user's and a workspace's                             |
+| `notifiers`    | notification channels and sending a notification                                                                                                                                 |
+| `storages`     | storages, the file lifecycle (write receipts, pending deletions and the deletion worker)                                                                                         |
+| `databases`    | connections to user databases, the notifiers attached to a database, connection tests, read-only and replication users, the last backup time and health status shown in the list |
+| `backups`      | backup configs, logical backups, physical backups and WAL, restores, downloads and restore streams, retention                                                                    |
+| `verification` | verification agents, verification configs and verification runs                                                                                                                  |
+| `healthcheck`  | scheduled availability checks of user databases                                                                                                                                  |
+| `telemetry`    | anonymous usage statistics                                                                                                                                                       |
 
 The dependency graph between modules has no cycles. From the lowest module to the highest, the order is: `users`; `workspaces`; `notifiers` and `storages`; `databases`; `backups`; `verification` and `healthcheck`; `telemetry`. A module imports only modules lower in this order.
 
@@ -117,6 +133,7 @@ Databasus has three families of interchangeable implementations. Each family has
   - find its client tool for a server version.
 
   An engine's sources offer small sets of methods, because a physical PostgreSQL source and a logical one support different sets. A consumer that serves several engines through one shape declares the interface it needs, as `ConnectedDatabase` in the `databases` module does, and maps each database type to its implementation in one registry of its own, and only there, as the logical backup pipeline of `backups` does. The provider registry of `databases` cannot hold those entries, because they open work that `databases` knows nothing about, and a restore target has settings but no database row. The engine package `postgresql/logical/pgrestore` builds the restore command and judges its outcome; each caller runs the command its own way. Verification deliberately differs from a restore in ownership, privileges and ignorable errors. The agent imports only `pgrestore`, which depends on the standard library, because the parent `logical` package links the server's frameworks.
+
 - **Storage providers** (`storages/internal/providers/<name>`) save, read and delete files and test a connection.
 - **Notifier providers** (`notifiers/internal/providers/<name>`) send a notification and test a channel.
 
@@ -132,26 +149,26 @@ Settings stay in columns rather than in a JSON document for two reasons. The dat
 
 `internal/lib` holds code without domain logic:
 
-| Package | Holds |
-|---|---|
-| `database` | the database pool, transactions, constraint errors and keyset cursors |
-| `config`, `logging` | configuration, logging |
-| `httpserver` | the HTTP server and its middleware |
-| `apierror` | `Problem` errors |
-| `background`, `shutdown` | background jobs, cancellation and shutdown |
-| `process` | external processes |
-| `clock` | the clock |
-| `crypto` | the master key, field encryption and stream encryption |
-| `audit` | audit events |
-| `mailer` | email |
-| `cache`, `ratelimit` | the in-memory cache and rate limiter |
-| `schedule` | schedules |
-| `gfs` | the grandfather-father-son selection of the backups a retention keeps |
-| `sshtunnel` | SSH tunnels |
-| `diskusage` | disk usage |
-| `iox` | stream helpers |
-| `filename` | portable filename sanitization |
-| `namelist` | the lists of object names a user enters, such as excluded tables |
+| Package                  | Holds                                                                 |
+| ------------------------ | --------------------------------------------------------------------- |
+| `database`               | the database pool, transactions, constraint errors and keyset cursors |
+| `config`, `logging`      | configuration, logging                                                |
+| `httpserver`             | the HTTP server and its middleware                                    |
+| `apierror`               | `Problem` errors                                                      |
+| `background`, `shutdown` | background jobs, cancellation and shutdown                            |
+| `process`                | external processes                                                    |
+| `clock`                  | the clock                                                             |
+| `crypto`                 | the master key, field encryption and stream encryption                |
+| `audit`                  | audit events                                                          |
+| `mailer`                 | email                                                                 |
+| `cache`, `ratelimit`     | the in-memory cache and rate limiter                                  |
+| `schedule`               | schedules                                                             |
+| `gfs`                    | the grandfather-father-son selection of the backups a retention keeps |
+| `sshtunnel`              | SSH tunnels                                                           |
+| `diskusage`              | disk usage                                                            |
+| `iox`                    | stream helpers                                                        |
+| `filename`               | portable filename sanitization                                        |
+| `namelist`               | the lists of object names a user enters, such as excluded tables      |
 
 Test support lives in `lib` too: `testdb`, `testwait`, the contract-checking clients `apiclient` and `agentclienttest` with `contracttest`, `toolstub`, the source and provider containers in `testcontainers`, SSH settings in `testcontainers/bastion`, proxy and timeout behavior in `httpclienttest`, and mail assertions in `mailpittest`. Storage-provider-only support lives in `storages/internal/providers/providertest`. Production dependency checks keep test support out of both binaries.
 
@@ -268,6 +285,7 @@ PostgreSQL owns the backup format, and we do not implement block-level increment
   The application owns a shared shutdown budget in `lib/shutdown` and publishes its absolute six-second drain deadline before canceling module work. Shutdown shortens both new and active cleanup attempts to one second before that deadline; an exhausted cutoff starts no new cleanup SQL. The remaining second is reserved for recording the outcome, whose context is bounded by the drain deadline. A restore stopped first by user cancellation stays canceled when shutdown shortens its cleanup.
 
   An archive failure is established before detached cleanup starts. The PostgreSQL adapter carries that classification into the restore pipeline so later cancellation, timeout or shutdown cannot replace it; errors reading the archive from storage retain their precedence over a tool error. Cleanup failure preserves an existing restore error and is logged with a warning that the target may remain in restoring mode; when the archive succeeded, cleanup failure fails the restore. If work does not stop by the drain deadline, the shutdown report identifies unfinished steps and startup recovery fails any restore without a recorded outcome. Startup recovery cannot repair the target because its credentials are never persisted. Draining still has at most six seconds, followed by at most two seconds for log flushing.
+
 - **Shutdown.** SIGTERM or SIGINT cancels the root context, and then:
   - the HTTP server stops accepting connections and waits for started requests;
   - the runner starts no new passes;
@@ -276,6 +294,7 @@ PostgreSQL owns the backup format, and we do not implement block-level increment
   - the process flushes the logs and exits before the embedded PostgreSQL stops (spec `container-shutdown`).
 
   A second signal during the shutdown neither kills the process nor starts the shutdown again (spec `application-shutdown`). Work still marked in progress at the next start is failed the same way.
+
 - **Time** that drives behavior, such as schedules, deadlines and retention, comes from a clock in `Deps`. SQL receives the current time as a parameter instead of calling `now()`.
 
 ## Configuration
@@ -296,23 +315,24 @@ The verification agent is a CLI worker that runs on a machine the user provides.
 
 ## Automatic checks
 
-| Rule | Checked by |
-|---|---|
-| Layer direction, the module boundary through the root package, `module.go` as the only root file, the agent's allowed imports | `archlint` |
-| File roles, errors in `errors.go`, a bare `go` statement only in `lib` | `archlint` |
-| No `testing`, testify or testcontainers in either production binary, except the two third-party rclone importers listed below; no GORM, Gin or goose in the agent binary | `archlint` (dependency graphs of `cmd/databasus` and `cmd/verification-agent`) |
-| A migration adds no `CASCADE` foreign key to another module's table | `archlint` (table prefixes) |
-| A migration runs in its transaction: no `-- +goose NO TRANSACTION` | `archlint` |
-| `*gorm.DB` and `database.Conn` only in repositories; no `time.Sleep`, `Eventually`, `fmt.Print*`, `os.Exit`, `os.Getenv` or `context.Background()` outside the places allowed | `forbidigo` |
-| Log calls: attributes only, `...Context` methods, constant messages, `snake_case` keys | `sloglint` |
-| Imports of test libraries only in test code, and no Gin or GORM in the verification agent or the engines; fixed import aliases | `depguard`, `importas` |
-| Production code starts an external process only through `lib/process`, except the verification agent's detached daemon start, which must outlive its parent | `forbidigo` |
-| No package-level dependency variables, no `init()`; every `Deps` literal lists all fields | `gochecknoglobals`, `gochecknoinits`, `exhaustruct` |
-| Exhaustive `switch` on enums | `exhaustive` |
-| The contract follows the API rules; generated code is up to date | `vacuum`; `backend:check-generated`, which `backend:lint` runs, and `check:api`, which `frontend:lint` runs |
+| Rule                                                                                                                                                                          | Checked by                                                                                                  |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Layer direction, the module boundary through the root package, `module.go` as the only root file, the agent's allowed imports                                                 | `archlint`                                                                                                  |
+| File roles, errors in `errors.go`, a bare `go` statement only in `lib`                                                                                                        | `archlint`                                                                                                  |
+| No `testing`, testify or testcontainers in either production binary, except the two third-party rclone importers listed below; no GORM, Gin or goose in the agent binary      | `archlint` (dependency graphs of `cmd/databasus` and `cmd/verification-agent`)                              |
+| A migration adds no `CASCADE` foreign key to another module's table                                                                                                           | `archlint` (table prefixes)                                                                                 |
+| A migration runs in its transaction: no `-- +goose NO TRANSACTION`                                                                                                            | `archlint`                                                                                                  |
+| `*gorm.DB` and `database.Conn` only in repositories; no `time.Sleep`, `Eventually`, `fmt.Print*`, `os.Exit`, `os.Getenv` or `context.Background()` outside the places allowed | `forbidigo`                                                                                                 |
+| Log calls: attributes only, `...Context` methods, constant messages, `snake_case` keys                                                                                        | `sloglint`                                                                                                  |
+| Imports of test libraries only in test code, and no Gin or GORM in the verification agent or the engines; fixed import aliases                                                | `depguard`, `importas`                                                                                      |
+| Production code starts an external process only through `lib/process`, except the verification agent's detached daemon start, which must outlive its parent                   | `forbidigo`                                                                                                 |
+| No package-level dependency variables, no `init()`; every `Deps` literal lists all fields                                                                                     | `gochecknoglobals`, `gochecknoinits`, `exhaustruct`                                                         |
+| Exhaustive `switch` on enums                                                                                                                                                  | `exhaustive`                                                                                                |
+| Frontend import direction and slice public APIs, with a finite migration baseline                                                                                             | `frontend:lint` through `lint:fsd`                                                                          |
+| The contract follows the API rules; generated code is up to date                                                                                                              | `vacuum`; `backend:check-generated`, which `backend:lint` runs, and `check:api`, which `frontend:lint` runs |
 
 The server retains two third-party test-library importers for rclone storage support: `github.com/Files-com/files-sdk-go/v3/lib` contains assertion helpers used by the Files.com backend, and `github.com/rclone/Proton-API-Bridge` imports `testing` for the Proton Drive backend. The exact accepted importers and their reasons live in `getAcceptedThirdPartyTestImporters` in [`production_dependencies.go`](../backend/tools/archlint/production_dependencies.go). Every other importer is rejected; repository-owned test support stays out of both production binaries.
 
-`mise run lint` runs all of them; `mise run backend:lint` runs all but the freshness check of the frontend types. The linters check test files too. The `archlint` rules on imports, the module root, file roles, errors and bare `go` check production files only: a module's API tests build the whole application through `apptest`, which sits above the modules, and tests start goroutines of their own to drive concurrent calls.
+`mise run lint` runs all module checks. `mise run backend:lint` runs the backend checks; `mise run frontend:lint` checks frontend formatting, lint, types, architecture and generated API freshness. The linters check test files too. The `archlint` rules on imports, the module root, file roles, errors and bare `go` check production files only: a module's API tests build the whole application through `apptest`, which sits above the modules, and tests start goroutines of their own to drive concurrent calls.
 
 All backend packages and commands follow these checks. Immutable shared tables and process-level test fixture synchronization require a specific, explained lint suppression; application dependencies always belong to their owning instance.

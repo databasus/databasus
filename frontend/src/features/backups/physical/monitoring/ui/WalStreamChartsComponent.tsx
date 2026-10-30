@@ -19,7 +19,7 @@ import {
   WAL_STREAM_STATISTICS_PERIOD_LABEL_KEYS,
   type WalStreamSeries,
   WalStreamStatisticsPeriod,
-} from '../../../../../entity/backups/physical';
+} from '../../../../../entities/backups/physical';
 import { type TranslationKey, useLocale } from '../../../../../shared/i18n';
 import { formatBytes } from '../../../../../shared/lib';
 import { useTheme } from '../../../../../shared/theme';

@@ -3,10 +3,10 @@ import { App, Button, Input, Spin } from 'antd';
 import { useEffect, useRef, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
-import { databaseApi } from '../../../entity/databases/api/databaseApi';
-import type { User } from '../../../entity/users';
-import { UserRole } from '../../../entity/users';
-import { type Workspace, WorkspaceRole, workspaceApi } from '../../../entity/workspaces';
+import { databaseApi } from '../../../entities/databases/api/databaseApi';
+import type { User } from '../../../entities/users';
+import { UserRole } from '../../../entities/users';
+import { type Workspace, WorkspaceRole, workspaceApi } from '../../../entities/workspaces';
 import { useIsMobile } from '../../../shared/hooks';
 import { translateApiError } from '../../../shared/i18n';
 import { WorkspaceAuditLogsComponent } from './WorkspaceAuditLogsComponent';

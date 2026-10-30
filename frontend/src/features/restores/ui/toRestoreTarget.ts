@@ -1,5 +1,5 @@
-import { type DatabaseSettings, DatabaseType } from '../../../entity/databases';
-import type { PostgresqlRestoreOptions, RestoreTarget } from '../../../entity/restores';
+import { type DatabaseSettings, DatabaseType } from '../../../entities/databases';
+import type { PostgresqlRestoreOptions, RestoreTarget } from '../../../entities/restores';
 
 const NO_RESTORE_OPTIONS: PostgresqlRestoreOptions = {
   isExcludeExtensions: false,

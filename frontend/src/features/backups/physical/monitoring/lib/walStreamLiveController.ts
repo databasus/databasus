@@ -1,4 +1,7 @@
-import type { WalStreamLive, WalStreamLiveResponse } from '../../../../../entity/backups/physical';
+import type {
+  WalStreamLive,
+  WalStreamLiveResponse,
+} from '../../../../../entities/backups/physical';
 import type { PageVisibility, RefreshTimer } from './walStreamRefreshController';
 
 // The running streamer answers from memory, so a reading every second is cheap and makes the

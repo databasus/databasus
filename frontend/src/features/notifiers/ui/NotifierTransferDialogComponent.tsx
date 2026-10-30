@@ -2,9 +2,9 @@ import { Button, Modal, Select, Spin } from 'antd';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { databaseApi } from '../../../entity/databases';
-import { type Notifier, notifierApi } from '../../../entity/notifiers';
-import { type Workspace, workspaceApi } from '../../../entity/workspaces';
+import { databaseApi } from '../../../entities/databases';
+import { type Notifier, notifierApi } from '../../../entities/notifiers';
+import { type Workspace, workspaceApi } from '../../../entities/workspaces';
 import { translateApiError } from '../../../shared/i18n';
 
 interface Props {

@@ -8,7 +8,7 @@ import {
   type InstanceSettings,
   type InstanceSettingsUpdate,
   settingsApi,
-} from '../../../entity/users';
+} from '../../../entities/users';
 import { getWebsitePageUrl, translateApiError, useLocale } from '../../../shared/i18n';
 import { ClipboardHelper } from '../../../shared/lib/ClipboardHelper';
 import { VerificationAgentsComponent } from '../../verification/agents';

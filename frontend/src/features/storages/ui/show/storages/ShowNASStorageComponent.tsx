@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 
-import type { NasStorageSettings } from '../../../../../entity/storages';
+import type { NasStorageSettings } from '../../../../../entities/storages';
 
 interface Props {
   settings: NasStorageSettings;

@@ -5,7 +5,7 @@ import {
   DatabaseType,
   PhysicalDatabaseBackupType,
   createDefaultDatabaseSettings,
-} from '../../../../../entity/databases';
+} from '../../../../../entities/databases';
 import { isMonitoringTabShown } from './monitoringTab';
 
 // The entity's public API imports its API client, and the client's config module reads window at

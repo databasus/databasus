@@ -2,7 +2,7 @@ import type {
   Database,
   DatabaseSettings,
   DatabaseSettingsTarget,
-} from '../../../../entity/databases';
+} from '../../../../entities/databases';
 
 // A new database has no ID yet; a saved one names itself, so the server fills in the secrets the
 // form left empty.

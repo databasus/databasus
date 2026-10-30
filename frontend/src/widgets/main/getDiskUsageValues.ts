@@ -1,4 +1,4 @@
-import type { DiskUsage } from '../../entity/disk';
+import type { DiskUsage } from '../../entities/disk';
 
 const BYTES_IN_GB = 1024 ** 3;
 const ONE_DECIMAL: Intl.NumberFormatOptions = {

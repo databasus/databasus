@@ -4,7 +4,10 @@ The standard for this review is `docs/architecture.md` and the architecture rule
 
 - `docs/architecture.md`, completely, for any change under `backend/`;
 - `backend/AGENTS.md`: "Where code goes", "Dependencies", "Handlers, services, repositories", "Engines and providers", "Long-running work", "Migrations";
-- `frontend/AGENTS.md`: "FSD (Feature-Sliced Design)".
+- `docs/architecture.md`: "Frontend", for any change under `frontend/`;
+- `frontend/AGENTS.md`: the applicable frontend conventions, including "Architecture and skills".
+
+For frontend migration findings, accept only the individually recorded occurrences in `frontend/fsd-baseline.json`. New or multiplied violations remain findings.
 
 Check all backend files belonging to the change against the architecture rules, including every command and code outside the former migration layout. Frontend architecture rules remain applicable.
 

@@ -3,7 +3,7 @@ import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { HttpResponse, http } from 'msw';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import type { Notifier, NotifierSettings } from '../../../../entity/notifiers';
+import type { Notifier, NotifierSettings } from '../../../../entities/notifiers';
 import { API_BASE_PATH, type ApiComponents } from '../../../../shared/api';
 import { mockApi, setUpMockApi } from '../../../../shared/lib/test/mockApi';
 import { renderScreen } from '../../../../shared/lib/test/renderScreen';

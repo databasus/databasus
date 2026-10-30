@@ -3,7 +3,7 @@ import { App, Button, Input, Spin } from 'antd';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { USER_ROLE_LABEL_KEYS, type User, userApi } from '../../../entity/users';
+import { USER_ROLE_LABEL_KEYS, type User, userApi } from '../../../entities/users';
 import { translateApiError } from '../../../shared/i18n';
 
 interface Props {

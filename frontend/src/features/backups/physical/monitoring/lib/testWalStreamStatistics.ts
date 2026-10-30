@@ -6,7 +6,7 @@ import {
   type WalStreamStatistics,
   WalStreamStatisticsPeriod,
   WalStreamStreamerState,
-} from '../../../../../entity/backups/physical';
+} from '../../../../../entities/backups/physical';
 
 const MiB = 1024 * 1024;
 

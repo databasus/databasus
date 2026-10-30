@@ -2,7 +2,7 @@ import { InfoCircleOutlined } from '@ant-design/icons';
 import { Input, Tooltip } from 'antd';
 import { useTranslation } from 'react-i18next';
 
-import type { TeamsNotifierSettings } from '../../../../../entity/notifiers';
+import type { TeamsNotifierSettings } from '../../../../../entities/notifiers';
 import { getWebsitePageUrl, useLocale } from '../../../../../shared/i18n';
 import { toOptionalValue } from '../../../../../shared/lib';
 

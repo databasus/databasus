@@ -11,7 +11,7 @@ import {
   WalStreamReasonLevel,
   type WalStreamSeriesPoint,
   type WalStreamStatistics,
-} from '../../../../../entity/backups/physical';
+} from '../../../../../entities/backups/physical';
 import { LocaleProvider } from '../../../../../shared/i18n';
 import { ThemeContext } from '../../../../../shared/theme';
 import { getFullBackupAction } from '../lib/fullBackupAction';

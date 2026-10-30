@@ -1,22 +1,34 @@
-import { cleanup, render } from '@testing-library/react';
-import { App } from 'antd';
-import type { ReactElement } from 'react';
-import { afterEach } from 'vitest';
+import { render } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import type { ReactElement, ReactNode } from 'react';
+import { MemoryRouter } from 'react-router';
 
-import { LocaleProvider } from '../../i18n';
+import { LocaleProvider, type Locale } from '../../i18n';
+import { ThemeProvider, type ThemeMode } from '../../theme';
+import { ScreenConfiguration } from './ScreenConfiguration';
+import './screenTestLifecycle';
 
-// Vitest runs without globals, so Testing Library cannot unmount screens by itself. Each test also
-// starts signed out.
-afterEach(() => {
-  cleanup();
-  localStorage.clear();
-});
+interface ScreenOptions {
+  locale?: Locale;
+  theme?: ThemeMode;
+  route?: string;
+  isStrictMode?: boolean;
+}
 
-// Renders a screen the way the application wraps it: the selected language and the antd App
-// that serves message toasts.
-export const renderScreen = (screen: ReactElement) =>
-  render(
-    <LocaleProvider>
-      <App>{screen}</App>
-    </LocaleProvider>,
+export const renderScreen = (screen: ReactElement, options: ScreenOptions = {}) => {
+  if (options.locale) localStorage.setItem('databasus-locale', options.locale);
+  if (options.theme) localStorage.setItem('databasus-theme', options.theme);
+  const Wrapper = ({ children }: { children: ReactNode }) => (
+    <ThemeProvider>
+      <LocaleProvider>
+        <ScreenConfiguration>
+          <MemoryRouter initialEntries={[options.route ?? '/']}>{children}</MemoryRouter>
+        </ScreenConfiguration>
+      </LocaleProvider>
+    </ThemeProvider>
   );
+  return {
+    user: userEvent.setup(),
+    ...render(screen, { wrapper: Wrapper, reactStrictMode: options.isStrictMode }),
+  };
+};

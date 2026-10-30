@@ -28,7 +28,7 @@ import {
   type StorageSwitch,
   isScheduleFilled,
   toLogicalBackupConfigInput,
-} from '../../../../entity/backups/config';
+} from '../../../../entities/backups/config';
 import {
   LOGICAL_NOTIFICATION_TRIGGER_LABEL_KEYS,
   LOGICAL_RETENTION_POLICY_LABEL_KEYS,
@@ -36,14 +36,14 @@ import {
   LogicalRetentionPolicy,
   RETENTION_PERIOD_LABEL_KEYS,
   RetentionPeriod,
-} from '../../../../entity/backups/logical';
+} from '../../../../entities/backups/logical';
 import {
   BACKUP_ENCRYPTION_OPTION_LABEL_KEYS,
   BackupEncryption,
-} from '../../../../entity/backups/shared';
-import type { Database } from '../../../../entity/databases';
-import { WEEKDAYS, WEEKDAY_LABEL_KEYS } from '../../../../entity/intervals';
-import { type Storage, getStorageLogoFromType, storageApi } from '../../../../entity/storages';
+} from '../../../../entities/backups/shared';
+import type { Database } from '../../../../entities/databases';
+import { WEEKDAYS, WEEKDAY_LABEL_KEYS } from '../../../../entities/intervals';
+import { type Storage, getStorageLogoFromType, storageApi } from '../../../../entities/storages';
 import { translateApiError, useLocale } from '../../../../shared/i18n';
 import { getUserTimeFormat } from '../../../../shared/time';
 import {

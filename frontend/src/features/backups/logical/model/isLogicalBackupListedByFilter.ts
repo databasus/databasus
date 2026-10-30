@@ -1,6 +1,6 @@
 import dayjs from 'dayjs';
 
-import type { LogicalBackup, LogicalBackupListFilter } from '../../../../entity/backups/logical';
+import type { LogicalBackup, LogicalBackupListFilter } from '../../../../entities/backups/logical';
 
 // Whether the server would list the backup under the filter, so a backup a request answered with
 // is shown before the next refresh only where the list would show it.

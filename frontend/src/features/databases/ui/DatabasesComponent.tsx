@@ -6,11 +6,11 @@ import {
   type BackupConfig,
   backupConfigApi,
   StorageSwitchHistoryComponent,
-} from '../../../entity/backups/config';
-import { databaseApi, sortUnavailableDatabasesFirst } from '../../../entity/databases';
-import type { Database } from '../../../entity/databases';
-import { type Storage, storageApi } from '../../../entity/storages';
-import type { Workspace } from '../../../entity/workspaces';
+} from '../../../entities/backups/config';
+import { databaseApi, sortUnavailableDatabasesFirst } from '../../../entities/databases';
+import type { Database } from '../../../entities/databases';
+import { type Storage, storageApi } from '../../../entities/storages';
+import type { Workspace } from '../../../entities/workspaces';
 import { useIsMobile } from '../../../shared/hooks';
 import { translateApiError } from '../../../shared/i18n';
 import { CreateDatabaseComponent } from './CreateDatabaseComponent';

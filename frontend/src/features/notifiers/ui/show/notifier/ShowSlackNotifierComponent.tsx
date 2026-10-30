@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 
-import type { SlackNotifierSettings } from '../../../../../entity/notifiers';
+import type { SlackNotifierSettings } from '../../../../../entities/notifiers';
 
 interface Props {
   settings: SlackNotifierSettings;

@@ -6,7 +6,7 @@ import {
   type PhysicalBackupListItem,
   PhysicalBackupStatus,
   PhysicalBackupType,
-} from '../../../../entity/backups/physical';
+} from '../../../../entities/backups/physical';
 import { LocaleProvider } from '../../../../shared/i18n';
 import {
   PhysicalBackupTypeCellComponent,

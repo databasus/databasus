@@ -16,7 +16,14 @@ const isProblem = (body: unknown): body is Problem => {
 
   const candidate = body as Record<string, unknown>;
 
-  return typeof candidate.code === 'string' && typeof candidate.detail === 'string';
+  return (
+    typeof candidate.type === 'string' &&
+    typeof candidate.title === 'string' &&
+    typeof candidate.status === 'number' &&
+    Number.isInteger(candidate.status) &&
+    typeof candidate.code === 'string' &&
+    typeof candidate.detail === 'string'
+  );
 };
 
 const toApiError = ({ error, response }: FetchResult<unknown>): ApiError => {

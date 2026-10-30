@@ -8,7 +8,7 @@ import {
   PHYSICAL_BACKUP_TYPE_LABEL_KEYS,
   type PhysicalBackupListItem,
   PhysicalBackupType,
-} from '../../../../entity/backups/physical';
+} from '../../../../entities/backups/physical';
 
 interface Props {
   backup: PhysicalBackupListItem;

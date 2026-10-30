@@ -1,87 +1,105 @@
 import { type PagedListPage, appendNextPage, mergeRefreshedFirstPage } from './pagedList';
 
-export interface PagedListOptions<TItem, TCursor> {
-  fetchPage: (cursor: TCursor | undefined) => Promise<PagedListPage<TItem, TCursor>>;
+export interface PagedListOptions<TItem, TCursor, TMetadata = undefined> {
+  fetchPage: (cursor: TCursor | undefined) => Promise<PagedListPage<TItem, TCursor, TMetadata>>;
   getItemKey: (item: TItem) => string;
   onError: (error: unknown) => void;
 }
 
-export interface PagedListState<TItem, TCursor> {
-  list: PagedListPage<TItem, TCursor>;
+export interface PagedListState<TItem, TCursor, TMetadata = undefined> {
+  list: PagedListPage<TItem, TCursor, TMetadata>;
   isLoading: boolean;
   isLoadingMore: boolean;
 }
 
-export const createInitialPagedListState = <TItem, TCursor>(): PagedListState<TItem, TCursor> => ({
+export const createInitialPagedListState = <
+  TItem,
+  TCursor,
+  TMetadata = undefined,
+>(): PagedListState<TItem, TCursor, TMetadata> => ({
   list: { items: [] },
   isLoading: true,
   isLoadingMore: false,
 });
 
-// A response that arrives after a reload belongs to the previous list and is
-// dropped. The class holds no React state, so the paging rules are testable
-// without rendering.
-export class PagedListController<TItem, TCursor> {
-  private state = createInitialPagedListState<TItem, TCursor>();
+export class PagedListController<TItem, TCursor, TMetadata = undefined> {
+  private state = createInitialPagedListState<TItem, TCursor, TMetadata>();
 
   private generation = 0;
-  private isRefreshInFlight = false;
+  private isActive = true;
+  private isReady = false;
+  private refreshRequest?: symbol;
+  private nextPageRequest?: symbol;
 
   constructor(
-    private options: PagedListOptions<TItem, TCursor>,
-    private readonly onStateChange: (state: PagedListState<TItem, TCursor>) => void,
+    private options: PagedListOptions<TItem, TCursor, TMetadata>,
+    private readonly onStateChange: (state: PagedListState<TItem, TCursor, TMetadata>) => void,
   ) {}
 
-  setOptions(options: PagedListOptions<TItem, TCursor>) {
+  setOptions(options: PagedListOptions<TItem, TCursor, TMetadata>) {
     this.options = options;
   }
 
-  getState(): PagedListState<TItem, TCursor> {
+  getState(): PagedListState<TItem, TCursor, TMetadata> {
     return this.state;
   }
 
+  activate() {
+    this.isActive = true;
+  }
+
+  deactivate() {
+    this.isActive = false;
+    this.invalidateRequests();
+  }
+
   async reload() {
-    this.generation += 1;
+    if (!this.isActive) return;
+    this.invalidateRequests();
     const generation = this.generation;
-
-    this.updateState({ isLoading: true });
-
+    this.updateState(createInitialPagedListState());
     try {
       const firstPage = await this.options.fetchPage(undefined);
-      if (generation !== this.generation) return;
-
+      if (!this.isCurrentGeneration(generation)) return;
+      this.isReady = true;
       this.updateState({ list: firstPage, isLoading: false });
-    } catch (e) {
-      if (generation !== this.generation) return;
-
+    } catch (error) {
+      if (!this.isCurrentGeneration(generation)) return;
       this.updateState({ isLoading: false });
-      this.options.onError(e);
+      this.options.onError(error);
     }
   }
 
   async refreshFirstPage() {
-    if (this.isRefreshInFlight) return;
-    this.isRefreshInFlight = true;
-
+    if (!this.isActive || !this.isReady || this.refreshRequest) return;
+    const request = Symbol();
+    this.refreshRequest = request;
     const generation = this.generation;
-
+    const isCurrent = () => this.isCurrentGeneration(generation) && this.refreshRequest === request;
     try {
       const firstPage = await this.options.fetchPage(undefined);
-      if (generation !== this.generation) return;
-
-      this.updateState({
-        list: mergeRefreshedFirstPage(this.state.list, firstPage, this.options.getItemKey),
-      });
-    } catch (e) {
-      if (generation === this.generation) this.options.onError(e);
+      if (!isCurrent()) return;
+      const list = mergeRefreshedFirstPage(this.state.list, firstPage, this.options.getItemKey);
+      const isPendingCursorInvalid =
+        list === firstPage &&
+        (firstPage.nextCursor === undefined || firstPage.nextCursor !== this.state.list.nextCursor);
+      if (isPendingCursorInvalid) {
+        this.nextPageRequest = undefined;
+        this.updateState({ list, isLoadingMore: false });
+      } else {
+        this.updateState({ list });
+      }
+    } catch (error) {
+      if (isCurrent()) this.options.onError(error);
     } finally {
-      this.isRefreshInFlight = false;
+      if (isCurrent()) this.refreshRequest = undefined;
     }
   }
 
   // Shows a row a request answered with before the next refresh lists it: the loaded copy is
   // replaced, and a new row goes to the top of the newest-first list.
   replaceOrPrependItem(item: TItem) {
+    if (!this.isActive) return;
     const itemKey = this.options.getItemKey(item);
     const loadedItems = this.state.list.items;
     const isLoaded = loadedItems.some(
@@ -99,27 +117,41 @@ export class PagedListController<TItem, TCursor> {
 
   async loadNextPage() {
     const cursor = this.state.list.nextCursor;
-    if (this.state.isLoadingMore || cursor === undefined) return;
-
+    if (!this.isActive || !this.isReady || this.nextPageRequest || cursor === undefined) return;
+    const request = Symbol();
+    this.nextPageRequest = request;
     const generation = this.generation;
-
+    const isCurrent = () =>
+      this.isCurrentGeneration(generation) && this.nextPageRequest === request;
     this.updateState({ isLoadingMore: true });
-
     try {
       const nextPage = await this.options.fetchPage(cursor);
-      if (generation !== this.generation) return;
-
+      if (!isCurrent()) return;
       this.updateState({
         list: appendNextPage(this.state.list, nextPage, this.options.getItemKey),
       });
-    } catch (e) {
-      if (generation === this.generation) this.options.onError(e);
+    } catch (error) {
+      if (isCurrent()) this.options.onError(error);
     } finally {
-      this.updateState({ isLoadingMore: false });
+      if (isCurrent()) {
+        this.nextPageRequest = undefined;
+        this.updateState({ isLoadingMore: false });
+      }
     }
   }
 
-  private updateState(change: Partial<PagedListState<TItem, TCursor>>) {
+  private invalidateRequests() {
+    this.generation += 1;
+    this.isReady = false;
+    this.refreshRequest = undefined;
+    this.nextPageRequest = undefined;
+  }
+
+  private isCurrentGeneration(generation: number) {
+    return this.isActive && this.generation === generation;
+  }
+
+  private updateState(change: Partial<PagedListState<TItem, TCursor, TMetadata>>) {
     this.state = { ...this.state, ...change };
     this.onStateChange(this.state);
   }

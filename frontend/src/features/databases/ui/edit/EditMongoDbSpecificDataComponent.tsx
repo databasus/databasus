@@ -12,8 +12,8 @@ import {
   disableSrvWhenTunneled,
   hasStoredSshTunnelSecretsForAuthType,
   isSshTunnelReadyToTest,
-} from '../../../../entity/databases';
-import { MongodbConnectionStringParser } from '../../../../entity/databases/model/mongodb/MongodbConnectionStringParser';
+} from '../../../../entities/databases';
+import { MongodbConnectionStringParser } from '../../../../entities/databases/model/mongodb/MongodbConnectionStringParser';
 import {
   getWebsitePageUrl,
   translateApiError,

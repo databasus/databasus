@@ -4,8 +4,8 @@ import { Spin } from 'antd';
 import { useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
-import { type User, UserRole, type InstanceSettings } from '../../../entity/users';
-import { type Workspace, workspaceApi } from '../../../entity/workspaces';
+import { type User, UserRole, type InstanceSettings } from '../../../entities/users';
+import { type Workspace, workspaceApi } from '../../../entities/workspaces';
 import { translateApiError } from '../../../shared/i18n';
 
 interface Props {

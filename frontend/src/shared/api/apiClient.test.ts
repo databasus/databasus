@@ -1,9 +1,11 @@
 import { HttpResponse, http } from 'msw';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { setUpMockApi } from '../lib/test/mockApi';
+import { buildProblem, mockApi, setUpMockApi } from '../lib/test/mockApi';
 import { accessTokenHelper } from './accessTokenHelper';
 import { API_BASE_PATH, getApiClient } from './apiClient';
+import { API_ERROR_CODES } from './ApiError';
+import { requireData, requireSuccess } from './requireData';
 
 const mockServer = setUpMockApi();
 
@@ -20,6 +22,85 @@ beforeEach(() => {
 });
 
 describe('getApiClient', () => {
+  it('normalizes a network rejection without exposing a URL or replaying a mutation', async () => {
+    mockServer.use(mockApi.network('post', '/workspaces'));
+    await expect(
+      getApiClient().POST('/workspaces', { body: { name: 'Research' } }),
+    ).rejects.toMatchObject({
+      name: 'ApiError',
+      code: API_ERROR_CODES.networkUnreachable,
+      message: '',
+      status: undefined,
+    });
+    expect(mockServer.getRequests()).toHaveLength(1);
+  });
+
+  it('normalizes unreadable success JSON with its response status', async () => {
+    mockServer.use(
+      mockApi.malformed({ method: 'get', path: '/system/version', status: 200, body: '{' }),
+    );
+    await expect(getApiClient().GET('/system/version')).rejects.toMatchObject({
+      name: 'ApiError',
+      code: API_ERROR_CODES.requestFailed,
+      status: 200,
+      message: '',
+    });
+  });
+
+  it.each([
+    [502, 'Bad Gateway'],
+    [500, ''],
+    [422, '{'],
+    [400, '{}'],
+    [400, '{"code":"internal","detail":"private diagnostic"}'],
+  ])('normalizes an invalid error body with status %s and body %s', async (status, body) => {
+    mockServer.use(
+      mockApi.malformed({ method: 'get', path: '/system/version', status: status, body: body }),
+    );
+    await expect(getApiClient().GET('/system/version').then(requireData)).rejects.toMatchObject({
+      name: 'ApiError',
+      code: API_ERROR_CODES.requestFailed,
+      status,
+      message: '',
+    });
+  });
+
+  it('retains a valid Problem and rejects missing required success data', async () => {
+    mockServer.use(
+      mockApi.get('/system/version', 500, {
+        ...buildProblem('internal', 500),
+        detail: 'diagnostic',
+      }),
+    );
+    await expect(getApiClient().GET('/system/version').then(requireData)).rejects.toMatchObject({
+      code: 'internal',
+      message: 'diagnostic',
+      status: 500,
+    });
+    mockServer.use(mockApi.getWithoutBody('/system/version', 200));
+    await expect(getApiClient().GET('/system/version').then(requireData)).rejects.toMatchObject({
+      code: API_ERROR_CODES.requestFailed,
+      status: 200,
+    });
+  });
+
+  it('accepts an empty success without parsing a JSON body', async () => {
+    mockServer.use(mockApi.delete('/workspaces/{workspaceId}', 204, undefined));
+    await expect(
+      getApiClient()
+        .DELETE('/workspaces/{workspaceId}', { params: { path: { workspaceId: 'id' } } })
+        .then(requireSuccess),
+    ).resolves.toBeUndefined();
+  });
+
+  it('preserves intentional cancellation without converting it to a network error', async () => {
+    const controller = new AbortController();
+    controller.abort();
+    await expect(
+      getApiClient().GET('/system/version', { signal: controller.signal }),
+    ).rejects.toMatchObject({ name: 'AbortError' });
+  });
+
   it('sends the stored session token', async () => {
     accessTokenHelper.saveAccessToken('session-token');
     let sentAuthorization: string | null = null;
@@ -59,5 +140,17 @@ describe('getApiClient', () => {
     await getApiClient().POST('/sessions', { body: { email: 'a@example.com', password: 'wrong' } });
 
     expect(window.location.reload).not.toHaveBeenCalled();
+  });
+  it('starts no timers, requests or queues when the API public entry point is imported', async () => {
+    vi.useFakeTimers();
+    vi.resetModules();
+    try {
+      await import('./index');
+      expect(vi.getTimerCount()).toBe(0);
+      expect(mockServer.getRequests()).toHaveLength(0);
+    } finally {
+      vi.clearAllTimers();
+      vi.useRealTimers();
+    }
   });
 });

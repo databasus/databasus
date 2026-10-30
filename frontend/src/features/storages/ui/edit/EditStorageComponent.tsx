@@ -9,7 +9,7 @@ import {
   StorageType,
   getStorageLogoFromType,
   storageApi,
-} from '../../../../entity/storages';
+} from '../../../../entities/storages';
 import { translateApiError } from '../../../../shared/i18n';
 import { ToastHelper } from '../../../../shared/toast';
 import { createDefaultStorageSettings } from '../../lib/createDefaultStorageSettings';

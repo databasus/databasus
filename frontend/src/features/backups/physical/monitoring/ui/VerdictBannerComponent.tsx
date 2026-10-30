@@ -10,7 +10,7 @@ import { Button, theme } from 'antd';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { WalStreamReasonLevel } from '../../../../../entity/backups/physical';
+import { WalStreamReasonLevel } from '../../../../../entities/backups/physical';
 import { translateLocalizedText } from '../../../../../shared/i18n';
 import { getMeasurementAge, getSecondsBetween } from '../lib/roundedDuration';
 import { getToneColors } from '../lib/toneColors';

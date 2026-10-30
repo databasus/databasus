@@ -2,15 +2,15 @@ name: CI and Release
 
 on:
   push:
-    branches: ["**"]
+    branches: ['**']
     paths-ignore:
-      - "website/**"
-      - ".github/workflows/deploy-website.yml"
+      - 'website/**'
+      - '.github/workflows/deploy-website.yml'
   pull_request:
-    branches: ["**"]
+    branches: ['**']
     paths-ignore:
-      - "website/**"
-      - ".github/workflows/deploy-website.yml"
+      - 'website/**'
+      - '.github/workflows/deploy-website.yml'
   workflow_dispatch:
 
 permissions:
@@ -19,7 +19,7 @@ permissions:
 # mise installs every tool of mise.toml before a task by default, so each job installs only the
 # tools its tasks need through install_args.
 env:
-  MISE_TASK_RUN_AUTO_INSTALL: "false"
+  MISE_TASK_RUN_AUTO_INSTALL: 'false'
 
 concurrency:
   group: ci-release-${{ github.ref }}
@@ -38,7 +38,7 @@ jobs:
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
-          install_args: "go golangci-lint vacuum"
+          install_args: 'go golangci-lint vacuum'
 
       - name: Set up Go cache
         uses: namespacelabs/nscloud-cache-action@1124a6f3ce44e5cf84cc22111530961f4d2a15f9 # v1.7.0
@@ -74,7 +74,7 @@ jobs:
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
-          install_args: "node pnpm"
+          install_args: 'node pnpm'
 
       - name: Install dependencies
         run: |
@@ -100,7 +100,7 @@ jobs:
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
-          install_args: "shellcheck"
+          install_args: 'shellcheck'
 
       - name: Run shellcheck
         run: mise run lint-shell
@@ -141,15 +141,10 @@ jobs:
       - name: Check out code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
-      - name: Set up pnpm
-        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
+      - name: Install tools from mise.toml
+        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
-          package_json_file: frontend/package.json
-
-      - name: Set up Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-        with:
-          node-version: "20"
+          install_args: 'node pnpm'
 
       - name: Set up pnpm cache
         uses: namespacelabs/nscloud-cache-action@1124a6f3ce44e5cf84cc22111530961f4d2a15f9 # v1.7.0
@@ -178,7 +173,7 @@ jobs:
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
-          install_args: "go"
+          install_args: 'go'
 
       - name: Set up Go cache
         uses: namespacelabs/nscloud-cache-action@1124a6f3ce44e5cf84cc22111530961f4d2a15f9 # v1.7.0
@@ -206,7 +201,7 @@ jobs:
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
-          install_args: "go"
+          install_args: 'go'
 
       - name: Install database client dependencies
         run: |
@@ -299,7 +294,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
-          go-version: "1.26.10"
+          go-version: '1.26.10'
           cache: false
 
       - name: Set up Go cache
@@ -354,7 +349,7 @@ jobs:
       - name: Run Go tests
         env:
           # Ryuk stays disabled to match scripts/test.sh, so CI and local runs share one code path.
-          TESTCONTAINERS_RYUK_DISABLED: "true"
+          TESTCONTAINERS_RYUK_DISABLED: 'true'
           TEST_GROUP: ${{ matrix.group }}
         run: |
           cd backend
@@ -511,7 +506,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
-          go-version: "1.26.10"
+          go-version: '1.26.10'
           cache: false
 
       - name: Set up Go cache
@@ -980,7 +975,16 @@ jobs:
   determine-version:
     runs-on: namespace-profile-2vcpu-4ram-ubuntu-26-x64
     timeout-minutes: 10
-    needs: [lint-backend, test-backend, test-frontend, test-verification-agent, e2e-verification-agent-podman, test-filesystems, test-upgrade]
+    needs:
+      [
+        lint-backend,
+        test-backend,
+        test-frontend,
+        test-verification-agent,
+        e2e-verification-agent-podman,
+        test-filesystems,
+        test-upgrade,
+      ]
     if: ${{ github.ref == 'refs/heads/main' && !contains(github.event.head_commit.message, '[skip-release]') }}
     outputs:
       should_release: ${{ steps.version_bump.outputs.should_release }}
@@ -1234,7 +1238,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        major: ["12", "13", "14", "15", "16", "17", "18"]
+        major: ['12', '13', '14', '15', '16', '17', '18']
         arch: [amd64, arm64]
         include:
           - arch: amd64
@@ -1327,7 +1331,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        major: ["12", "13", "14", "15", "16", "17", "18"]
+        major: ['12', '13', '14', '15', '16', '17', '18']
     steps:
       - name: Download image digests
         id: download-image-digests-1

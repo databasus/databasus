@@ -10,7 +10,7 @@ import {
   type SshTunnelSettings,
   createEmptySshTunnelSettings,
   setSshTunnelAuthTypeAndClearUnusedSecrets,
-} from '../../../../entity/databases';
+} from '../../../../entities/databases';
 
 interface Props {
   sshTunnel: SshTunnelSettings;

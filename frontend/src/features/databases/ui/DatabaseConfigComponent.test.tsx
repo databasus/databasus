@@ -1,13 +1,13 @@
 // @vitest-environment happy-dom
-import { fireEvent, screen } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { HttpResponse, type RequestHandler, http } from 'msw';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
   type Database,
   DatabaseType,
   createDefaultDatabaseSettings,
-} from '../../../entity/databases';
+} from '../../../entities/databases';
 import { API_BASE_PATH } from '../../../shared/api';
 import { mockApi, setUpMockApi } from '../../../shared/lib/test/mockApi';
 import { renderScreen } from '../../../shared/lib/test/renderScreen';
@@ -34,7 +34,9 @@ const renderDatabaseConfig = (isCanManageDBs: boolean, handlers: RequestHandler[
   mockServer.use(
     ...handlers,
     mockApi.get('/notifiers', 200, { items: [] }),
-    http.all(`*${API_BASE_PATH}/*`, () => new Promise<never>(() => {})),
+    mockApi.pending('get', '/backup-configs/{databaseId}').handler,
+    mockApi.pending('get', '/storages').handler,
+    mockApi.pending('get', '/healthcheck-configs/{databaseId}').handler,
   );
 
   return renderScreen(
@@ -68,6 +70,38 @@ const recordLimitedUserChecks = () => {
 };
 
 describe('DatabaseConfigComponent', () => {
+  it('ignores pending configuration errors after the screen unmounts', async () => {
+    const alert = vi.fn();
+    vi.stubGlobal('alert', alert);
+    const backupConfig = mockApi.pending('get', '/backup-configs/{databaseId}');
+    const healthcheckConfig = mockApi.pending('get', '/healthcheck-configs/{databaseId}');
+    const view = renderDatabaseConfig(false, [backupConfig.handler, healthcheckConfig.handler]);
+    await waitFor(() =>
+      expect(
+        mockServer
+          .getRequests()
+          .filter((request) => /\/(backup-configs|healthcheck-configs)\//.test(request.url)),
+      ).toHaveLength(3),
+    );
+    view.unmount();
+    const requestsFinished = new Promise<void>((resolve) => {
+      let completedRequests = 0;
+      mockServer.events.on('request:end', ({ request }) => {
+        if (
+          /\/(backup-configs|healthcheck-configs)\//.test(request.url) &&
+          ++completedRequests === 3
+        )
+          resolve();
+      });
+    });
+    await act(async () => {
+      backupConfig.cancel();
+      healthcheckConfig.cancel();
+      await requestsFinished;
+    });
+    expect(alert).not.toHaveBeenCalled();
+  });
+
   it('shows the limited-user hint after an editor saves the connection settings', async () => {
     const { handlers, limitedUserCheckCalls } = recordLimitedUserChecks();
     renderDatabaseConfig(true, handlers);

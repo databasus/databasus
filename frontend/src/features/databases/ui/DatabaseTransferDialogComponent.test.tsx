@@ -3,14 +3,18 @@ import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { HttpResponse, http } from 'msw';
 import { describe, expect, it } from 'vitest';
 
-import type { BackupConfig, DatabaseTransfer, StorageSwitch } from '../../../entity/backups/config';
+import type {
+  BackupConfig,
+  DatabaseTransfer,
+  StorageSwitch,
+} from '../../../entities/backups/config';
 import {
   type Database,
   DatabaseType,
   createDefaultDatabaseSettings,
-} from '../../../entity/databases';
-import type { Storage } from '../../../entity/storages';
-import type { Workspace } from '../../../entity/workspaces';
+} from '../../../entities/databases';
+import type { Storage } from '../../../entities/storages';
+import type { Workspace } from '../../../entities/workspaces';
 import { API_BASE_PATH } from '../../../shared/api';
 import { mockApi, setUpMockApi } from '../../../shared/lib/test/mockApi';
 import { renderScreen } from '../../../shared/lib/test/renderScreen';

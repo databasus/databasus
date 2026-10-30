@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 
-import { type MongodbSettings } from '../../../../entity/databases';
+import { type MongodbSettings } from '../../../../entities/databases';
 import { ShowSshTunnelComponent } from './ShowSshTunnelComponent';
 
 interface Props {

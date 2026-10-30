@@ -13,17 +13,25 @@ This document describes the kinds of tests Databasus has and what each kind chec
 
 Paths under `internal/` are inside `backend/`.
 
-| Layer | What it checks | Where it lives | What is real |
-|---|---|---|---|
-| Module API tests | the behavior of each module through its HTTP operations, and that every response matches the contract | `internal/modules/<name>/*_test.go`, package `<name>_test` | the application, the internal database, HTTP; external systems are fakes |
-| Engine tests | connecting, privileges, dumping and restoring against every supported server version | `internal/engines/<engine>/*_test.go` | the database servers in containers |
-| Backup and restore tests | a full backup → restore cycle per engine and version, logical and physical, including SSH tunnels, TLS and failover | `internal/modules/backups/e2e/` | the application, source and target servers, storages in containers, the recovery script |
-| Agent tests | the verification agent's job pipeline, and the agent against a real backend | `internal/agent/**`, `internal/agent/e2e/` | the backend from the test harness, Docker or Podman |
-| Upgrade tests | an instance of the previous release keeps its data after an upgrade to the current code, and its backups restore | `backend/e2e/upgrade/` | both images, real data written through the API |
-| Filesystem tests | the image on the host filesystems and permission setups that users run | `e2e/docker-storage/` | Docker on the host |
-| Frontend tests | screens for every answer the contract allows | `frontend/src/**/*.test.tsx` | the components; the network is mocked through `mockApi`, typed by the contract |
+| Layer                    | What it checks                                                                                                      | Where it lives                                             | What is real                                                                            |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| Module API tests         | the behavior of each module through its HTTP operations, and that every response matches the contract               | `internal/modules/<name>/*_test.go`, package `<name>_test` | the application, the internal database, HTTP; external systems are fakes                |
+| Engine tests             | connecting, privileges, dumping and restoring against every supported server version                                | `internal/engines/<engine>/*_test.go`                      | the database servers in containers                                                      |
+| Backup and restore tests | a full backup → restore cycle per engine and version, logical and physical, including SSH tunnels, TLS and failover | `internal/modules/backups/e2e/`                            | the application, source and target servers, storages in containers, the recovery script |
+| Agent tests              | the verification agent's job pipeline, and the agent against a real backend                                         | `internal/agent/**`, `internal/agent/e2e/`                 | the backend from the test harness, Docker or Podman                                     |
+| Upgrade tests            | an instance of the previous release keeps its data after an upgrade to the current code, and its backups restore    | `backend/e2e/upgrade/`                                     | both images, real data written through the API                                          |
+| Filesystem tests         | the image on the host filesystems and permission setups that users run                                              | `e2e/docker-storage/`                                      | Docker on the host                                                                      |
+| Frontend tests           | screens for every answer the contract allows                                                                        | `frontend/src/**/*.test.tsx`                               | the components; the network is mocked through `mockApi`, typed by the contract          |
 
-A frontend screen test runs in a browser-like DOM, which it selects with `// @vitest-environment happy-dom` on its first line, and renders the screen through `renderScreen` from `shared/lib/test`, which adds the language and the antd `App` the application wraps it in. Testing Library drives it the way a user does, by labels, placeholders and button names. The other frontend tests run in node.
+### Frontend tests
+
+Screen tests select happy-dom with `// @vitest-environment happy-dom` on the first line. `renderScreen` from `shared/lib/test` supplies the real locale and theme providers, AntD configuration and notification context, and an in-memory router. Its options select `locale`, `theme` and `route`, and `isStrictMode` enables replay at the root; its return value includes a configured user-event instance. Rerendering preserves that context and component state. Whole-application tests use the app-level renderer because App supplies its own providers and browser router. Pure logic, API and architecture fixtures keep the default node environment.
+
+The HTTP boundary is mocked through typed `mockApi` responses. Its helpers cover declared JSON and bodyless responses, Problems, network failures, malformed external bodies, and controlled delayed or pending responses. `inspectApiRequest` from its focused `shared/lib/test/inspectApiRequest` entry point checks the declared operation and exposes typed path/body values and query keys; recorded Requests retain headers. Raw MSW handlers support dynamic scenarios. Malformed and delayed responses take named parameter objects. The harness rejects all-method handlers and pathname wildcards; an origin wildcard and named path parameters remain valid. It matches the pathname separately from an origin wildcard, independently records unexpected requests and fails teardown even when the component catches the rejection.
+
+Cleanup unmounts before cancelling controlled pending responses and disposing HTTP handlers. It clears the request ledger and restores storage, document language/title/classes, dayjs locale, global overrides and fake clocks. Raw deferred HTTP handlers also use `createPendingApiResponse`; an unowned handler hits a bounded real-clock cleanup deadline, and final cleanup still clears handlers, listeners, request records and overrides. Components own their timers, listeners and late-response guards; lifecycle tests verify those subscriptions end on unmount and work after StrictMode replay. Expected-failure harness fixtures run in isolated child Vitest processes, check the diagnostic and exit status, and remove their temporary files.
+
+Testing Library and user-event drive controls by accessible roles and names. Tests wait for visible state, an observed request or response completion. Race tests release individual responses in a chosen order; polling tests advance a local fake clock. They never use a fixed pause to give a request time to finish. The [testing skill](../.agents/skills/testing/SKILL.md#frontend-screen-tests) gives the authoring rules.
 
 A module whose API tests outlast one package may split them into test-only packages under its directory, such as `internal/modules/backups/physicalapitests/`.
 
@@ -98,16 +106,16 @@ Local and CI preparation never reset shared source servers. Seed tests own their
 
 ## Commands
 
-| What | Command |
-|---|---|
-| Given backend packages | `mise run backend:test-package <packages>` |
-| Selected CI shards, concurrently | `mise run backend:test-group <shard>...` |
-| Default backend and upgrade suite | `mise run test` |
-| One backend package | `go test -race -count=1 ./internal/modules/<module>/...` in `backend/` |
-| One backend test | `go test -race -count=1 -run 'TestName/scenario text' ./internal/modules/<module>/...` in `backend/` |
-| Verification agent unit tests | `mise run agent:test` |
-| Verification agent end-to-end tests on Docker | `mise run agent:e2e` |
-| Verification agent subset on rootful Podman | `mise run agent:e2e-podman` |
-| Frontend | `pnpm test` in `frontend/`, or `pnpm test -t 'scenario text'` |
-| Upgrade test | `mise run backend:test-upgrade` |
-| Filesystem tests | `mise run test-filesystem` |
+| What                                          | Command                                                                                              |
+| --------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Given backend packages                        | `mise run backend:test-package <packages>`                                                           |
+| Selected CI shards, concurrently              | `mise run backend:test-group <shard>...`                                                             |
+| Default backend and upgrade suite             | `mise run test`                                                                                      |
+| One backend package                           | `go test -race -count=1 ./internal/modules/<module>/...` in `backend/`                               |
+| One backend test                              | `go test -race -count=1 -run 'TestName/scenario text' ./internal/modules/<module>/...` in `backend/` |
+| Verification agent unit tests                 | `mise run agent:test`                                                                                |
+| Verification agent end-to-end tests on Docker | `mise run agent:e2e`                                                                                 |
+| Verification agent subset on rootful Podman   | `mise run agent:e2e-podman`                                                                          |
+| Frontend                                      | `pnpm test` in `frontend/`, or `pnpm test -t 'scenario text'`                                        |
+| Upgrade test                                  | `mise run backend:test-upgrade`                                                                      |
+| Filesystem tests                              | `mise run test-filesystem`                                                                           |

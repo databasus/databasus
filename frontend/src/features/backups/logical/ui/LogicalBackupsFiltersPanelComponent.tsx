@@ -7,7 +7,7 @@ import {
   LOGICAL_BACKUP_STATUS_LABEL_KEYS,
   type LogicalBackupListFilter,
   LogicalBackupStatus,
-} from '../../../../entity/backups/logical';
+} from '../../../../entities/backups/logical';
 
 interface Props {
   filter: LogicalBackupListFilter;

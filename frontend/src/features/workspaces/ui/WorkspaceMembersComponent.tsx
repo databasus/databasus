@@ -24,7 +24,7 @@ import dayjs from 'dayjs';
 import { useEffect, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
-import { type User, UserRole, userManagementApi } from '../../../entity/users';
+import { type User, UserRole, userManagementApi } from '../../../entities/users';
 import {
   type AssignableWorkspaceRole,
   WORKSPACE_ROLE_LABEL_KEYS,
@@ -33,7 +33,7 @@ import {
   WorkspaceRole,
   workspaceApi,
   workspaceMemberApi,
-} from '../../../entity/workspaces';
+} from '../../../entities/workspaces';
 import { useIsMobile } from '../../../shared/hooks';
 import { translateApiError, useLocale } from '../../../shared/i18n';
 import { getUserShortTimeFormat } from '../../../shared/time';

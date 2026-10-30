@@ -14,7 +14,7 @@ import type { TFunction } from 'i18next';
 import { type JSX, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { type BackupConfig, backupConfigApi } from '../../../../entity/backups/config';
+import { type BackupConfig, backupConfigApi } from '../../../../entities/backups/config';
 import {
   PHYSICAL_BACKUP_STATUS_LABEL_KEYS,
   type PhysicalBackupListItem,
@@ -23,12 +23,12 @@ import {
   type PhysicalBackupsFilters,
   type TriggerPhysicalBackupType,
   physicalBackupsApi,
-} from '../../../../entity/backups/physical';
+} from '../../../../entities/backups/physical';
 import {
   type Database,
   DatabaseType,
   PhysicalDatabaseBackupType,
-} from '../../../../entity/databases';
+} from '../../../../entities/databases';
 import { usePersistentState, usePolledPagedList } from '../../../../shared/hooks';
 import { type LocaleContextValue, translateApiError, useLocale } from '../../../../shared/i18n';
 import { formatDuration } from '../../../../shared/lib';
@@ -123,8 +123,6 @@ export const PhysicalBackupsComponent = ({
   const { formatNumber, formatRelativeTime } = useLocale();
   const { message } = App.useApp();
 
-  const [totalUsageMb, setTotalUsageMb] = useState(0);
-
   const [backupConfig, setBackupConfig] = useState<BackupConfig | undefined>();
   const [isBackupConfigLoading, setIsBackupConfigLoading] = useState(false);
 
@@ -161,11 +159,11 @@ export const PhysicalBackupsComponent = ({
       filters,
     );
 
-    if (after === undefined) {
-      setTotalUsageMb(response.totalUsageMb);
-    }
-
-    return { items: response.items, nextCursor: response.nextCursor };
+    return {
+      items: response.items,
+      nextCursor: response.nextCursor,
+      metadata: response.totalUsageMb,
+    };
   };
 
   const triggerBackup = async (type: TriggerPhysicalBackupType) => {
@@ -214,6 +212,7 @@ export const PhysicalBackupsComponent = ({
 
   const {
     items: backups,
+    metadata: totalUsageMb = 0,
     isLoading: isBackupsLoading,
     isLoadingMore,
     hasMore,

@@ -10,15 +10,15 @@ import dayjs from 'dayjs';
 import { useEffect, useRef, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
-import type { LogicalBackup } from '../../../entity/backups/logical';
-import type { Database } from '../../../entity/databases';
+import type { LogicalBackup } from '../../../entities/backups/logical';
+import type { Database } from '../../../entities/databases';
 import {
   type PostgresqlRestoreOptions,
   RESTORE_STATUS_LABEL_KEYS,
   type Restore,
   RestoreStatus,
   restoreApi,
-} from '../../../entity/restores';
+} from '../../../entities/restores';
 import { translateApiError, useLocale } from '../../../shared/i18n';
 import { ClipboardHelper } from '../../../shared/lib/ClipboardHelper';
 import { getUserTimeFormat } from '../../../shared/time';

@@ -1,4 +1,3 @@
-// @vitest-environment happy-dom
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
@@ -6,15 +5,17 @@ import { HttpResponse, http } from 'msw';
 import { useRef } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import type { BackupConfig } from '../../../../entity/backups/config';
-import type { LogicalBackup, LogicalBackupPage } from '../../../../entity/backups/logical';
+import type { BackupConfig } from '../../../../entities/backups/config';
+import type { LogicalBackup, LogicalBackupPage } from '../../../../entities/backups/logical';
 import {
   type Database,
   DatabaseType,
   createDefaultDatabaseSettings,
-} from '../../../../entity/databases';
+} from '../../../../entities/databases';
 import { API_BASE_PATH } from '../../../../shared/api';
 import { buildProblem, mockApi, setUpMockApi } from '../../../../shared/lib/test/mockApi';
+// @vitest-environment happy-dom
+import { createPendingApiResponse } from '../../../../shared/lib/test/pendingApiResponse';
 import { renderScreen } from '../../../../shared/lib/test/renderScreen';
 import { LogicalBackupsComponent } from './LogicalBackupsComponent';
 
@@ -78,7 +79,7 @@ const mockBackupPages = (backupPages: LogicalBackupPage[], requestedCursors: (st
 
     const backupPage = queuedPages.shift();
     if (!backupPage) {
-      return new Promise<never>(() => {});
+      return createPendingApiResponse().response;
     }
 
     return HttpResponse.json(backupPage);

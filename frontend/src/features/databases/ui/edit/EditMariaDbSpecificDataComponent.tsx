@@ -11,8 +11,8 @@ import {
   databaseApi,
   hasStoredSshTunnelSecretsForAuthType,
   isSshTunnelReadyToTest,
-} from '../../../../entity/databases';
-import { MariadbConnectionStringParser } from '../../../../entity/databases/model/mariadb/MariadbConnectionStringParser';
+} from '../../../../entities/databases';
+import { MariadbConnectionStringParser } from '../../../../entities/databases/model/mariadb/MariadbConnectionStringParser';
 import {
   getWebsitePageUrl,
   translateApiError,

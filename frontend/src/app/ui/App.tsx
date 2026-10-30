@@ -1,15 +1,16 @@
-import { App as AntdApp, ConfigProvider, theme } from 'antd';
+import { App as AntdApp, ConfigProvider } from 'antd';
 import { useEffect, useState } from 'react';
 import { BrowserRouter, Navigate, Route } from 'react-router';
 import { Routes } from 'react-router';
 
-import { userApi } from '../../entity/users';
+import { userApi } from '@/entities/users';
+
 import { AuthPageComponent } from '../../pages/AuthPageComponent';
 import { OAuthCallbackPage } from '../../pages/OAuthCallbackPage';
 import { OauthStorageComponent } from '../../pages/OauthStorageComponent';
 import { useVersionCheck } from '../../shared/hooks/useVersionCheck';
 import { LocaleProvider, useLocale } from '../../shared/i18n';
-import { ThemeProvider, useTheme } from '../../shared/theme';
+import { ThemeProvider, useTheme, getAntdTheme } from '../../shared/theme';
 import { MainScreenComponent } from '../../widgets/main/MainScreenComponent';
 
 function AppContent() {
@@ -30,15 +31,7 @@ function AppContent() {
   }, []);
 
   return (
-    <ConfigProvider
-      locale={antdLocale}
-      theme={{
-        algorithm: resolvedTheme === 'dark' ? theme.darkAlgorithm : theme.defaultAlgorithm,
-        token: {
-          colorPrimary: '#155dfc', // Tailwind blue-600
-        },
-      }}
-    >
+    <ConfigProvider locale={antdLocale} theme={getAntdTheme(resolvedTheme)}>
       <AntdApp>
         <BrowserRouter>
           <Routes>

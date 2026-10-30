@@ -6,7 +6,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   StorageSwitchHistoryComponent,
   type StorageSwitch,
-} from '../../../../entity/backups/config';
+} from '../../../../entities/backups/config';
 import { API_BASE_PATH } from '../../../../shared/api';
 import { buildProblem, mockApi, setUpMockApi } from '../../../../shared/lib/test/mockApi';
 import { renderScreen } from '../../../../shared/lib/test/renderScreen';

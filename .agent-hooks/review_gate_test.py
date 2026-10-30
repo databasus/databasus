@@ -976,6 +976,27 @@ class ChangeVerificationParsingTest(unittest.TestCase):
 
         self.assertEqual(checks, [review_gate.Check(".", ("mise", "run", "agent:test"))])
 
+    def test_accepts_exact_isolated_browser_form_without_execution(self):
+        with mock.patch.object(review_gate.subprocess, "run", side_effect=AssertionError("must not run")):
+            checks = self.parse(verification_section("pnpm --dir frontend test:browser --project=ui"))
+        self.assertEqual(checks, [review_gate.Check(".", ("pnpm", "--dir", "frontend", "test:browser", "--project=ui"))])
+
+    def test_rejects_unbounded_browser_forms_and_shell_arguments(self):
+        commands = (
+            "pnpm --dir frontend test:browser",
+            "pnpm --dir frontend test:browser --project=other",
+            "pnpm --dir frontend test:browser --project ui",
+            "pnpm --dir frontend test:browser --project=ui --headed",
+            "pnpm --dir frontend arbitrary-script --project=ui",
+            "pnpm --dir frontend test:browser --project=ui;touch",
+            "pnpm --dir frontend test:browser --project=ui && touch /tmp/x",
+            "pnpm --dir frontend test:browser --project=$(touch)",
+        )
+        for command in commands:
+            with self.subTest(command=command):
+                with self.assertRaises(review_gate.ChangeVerificationError):
+                    self.parse(verification_section(command))
+
     def test_accepts_every_allowed_form_and_skips_empty_and_comment_lines(self):
         checks = self.parse(
             verification_section(
@@ -1139,6 +1160,16 @@ class DiffGateTest(unittest.TestCase):
 
 
 class ArchitectureGateTest(unittest.TestCase):
+    def test_architecture_prompt_reads_authoritative_frontend_architecture_and_finite_baseline(self):
+        repository = HookRepository(self)
+        repository.submit_prompt("Improve a screen")
+        repository.write("frontend/src/pages/Settings.tsx", "export {};\n")
+        repository.stop("architecture")
+        [call] = repository.reviewer_calls()
+        self.assertIn('`docs/architecture.md`: "Frontend"', call["prompt"])
+        self.assertIn('`frontend/AGENTS.md`: the applicable frontend conventions', call["prompt"])
+        self.assertIn('individually recorded occurrences in `frontend/fsd-baseline.json`', call["prompt"])
+
     def test_architecture_prompt_checks_http_contract_against_api_design_skill(self):
         repository = HookRepository(self)
         repository.submit_prompt("Add a widget")
@@ -1428,7 +1459,7 @@ class ImplementationGateChecksTest(ShortReplyAssertions, SummaryAssertions, unit
         repository.submit_prompt("Continue")
         repository.write("backend/internal/features/widgets/service.go", "package widgets\n")
         repository.set_stub("golangci-lint", {"exit_code": 1, "output": "must not run"})
-        repository.complete_tasks(verification_section=verification_section("mise run backend:test-package ./internal/features/widgets/..."))
+        repository.complete_tasks(verification_section=verification_section("mise run backend:test-package ./internal/features/widgets/...", "pnpm --dir frontend test:browser --project=ui"))
 
         response = repository.stop("implementation")
 

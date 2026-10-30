@@ -1,4 +1,4 @@
-import { AzureBlobAuthMethod, type StorageSettings, StorageType } from '../../../entity/storages';
+import { AzureBlobAuthMethod, type StorageSettings, StorageType } from '../../../entities/storages';
 
 // A saved storage may leave its secrets empty, because the backend keeps the stored ones.
 export const isStorageSettingsFilled = (settings: StorageSettings, isSaved: boolean): boolean => {

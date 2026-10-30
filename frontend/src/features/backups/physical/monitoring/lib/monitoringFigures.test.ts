@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   WalStreamHealthLevel,
   WalStreamKeepingUpState,
-} from '../../../../../entity/backups/physical';
+} from '../../../../../entities/backups/physical';
 import { getMonitoringFigures } from './monitoringFigures';
 import { createTestWalStreamStatistics } from './testWalStreamStatistics';
 

@@ -1,5 +1,5 @@
 /* eslint-disable i18next/no-literal-string -- Tailwind class names */
-import { PhysicalBackupStatus } from '../../../../entity/backups/physical';
+import { PhysicalBackupStatus } from '../../../../entities/backups/physical';
 
 interface PhysicalBackupStatusBadgeStyle {
   pillClasses: string;

@@ -3,15 +3,15 @@ import { screen } from '@testing-library/react';
 import { HttpResponse, http } from 'msw';
 import { describe, expect, it } from 'vitest';
 
-import type { BackupConfig } from '../../../entity/backups/config';
+import type { BackupConfig } from '../../../entities/backups/config';
 import {
   type Database,
   DatabaseType,
   type HealthStatus,
   createDefaultDatabaseSettings,
-} from '../../../entity/databases';
-import type { Storage } from '../../../entity/storages';
-import type { Workspace } from '../../../entity/workspaces';
+} from '../../../entities/databases';
+import type { Storage } from '../../../entities/storages';
+import type { Workspace } from '../../../entities/workspaces';
 import { API_BASE_PATH, type ApiComponents } from '../../../shared/api';
 import { mockApi, setUpMockApi } from '../../../shared/lib/test/mockApi';
 import { renderScreen } from '../../../shared/lib/test/renderScreen';
@@ -66,10 +66,6 @@ const buildBackupConfig = (database: Database, storage: Storage): BackupConfig =
   },
 });
 
-// The selected database's details load through operations these tests do not cover.
-const leaveOtherRequestsPending = () =>
-  http.all(`*${API_BASE_PATH}/*`, () => new Promise<never>(() => {}));
-
 describe('DatabasesComponent', () => {
   it('lists unavailable databases first when the server lists them after available ones', async () => {
     mockServer.use(
@@ -81,9 +77,16 @@ describe('DatabasesComponent', () => {
           buildDatabase('Delta', 'UNAVAILABLE'),
         ],
       }),
+      mockApi.get('/storage-switches', 200, { items: [] }),
       mockApi.get('/backup-configs', 200, { items: [] }),
       mockApi.get('/storages', 200, { items: [] }),
-      leaveOtherRequestsPending(),
+      mockApi.pending('get', '/databases/{databaseId}').handler,
+      mockApi.pending('get', '/backup-configs/{databaseId}').handler,
+      mockApi.pending('get', '/logical-backups').handler,
+      mockApi.pending('get', '/healthcheck-configs/{databaseId}').handler,
+      mockApi.pending('get', '/healthcheck-attempts').handler,
+      mockApi.pending('get', '/notifiers').handler,
+      mockApi.pending('get', '/storages/{storageId}').handler,
     );
 
     renderScreen(<DatabasesComponent contentHeight={800} workspace={workspace} isCanManageDBs />);
@@ -110,12 +113,19 @@ describe('DatabasesComponent', () => {
     };
     mockServer.use(
       mockApi.get('/databases', 200, { items: [ordersDatabase, usersDatabase, draftDatabase] }),
+      mockApi.get('/storage-switches', 200, { items: [] }),
       mockApi.get('/storages', 200, { items: [nightlyStorage, archiveStorage] }),
       http.get(`*${API_BASE_PATH}/backup-configs`, ({ request }) => {
         backupConfigListQueries.push(new URL(request.url).searchParams);
         return HttpResponse.json(workspaceBackupConfigPage);
       }),
-      leaveOtherRequestsPending(),
+      mockApi.pending('get', '/databases/{databaseId}').handler,
+      mockApi.pending('get', '/backup-configs/{databaseId}').handler,
+      mockApi.pending('get', '/logical-backups').handler,
+      mockApi.pending('get', '/healthcheck-configs/{databaseId}').handler,
+      mockApi.pending('get', '/healthcheck-attempts').handler,
+      mockApi.pending('get', '/notifiers').handler,
+      mockApi.pending('get', '/storages/{storageId}').handler,
     );
 
     renderScreen(<DatabasesComponent contentHeight={800} workspace={workspace} isCanManageDBs />);

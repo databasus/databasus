@@ -18,7 +18,7 @@ import {
   WalStreamReasonLevel,
   type WalStreamStatistics,
   WalStreamSourceState,
-} from '../../../../../entity/backups/physical';
+} from '../../../../../entities/backups/physical';
 import { type TranslationKey, useLocale } from '../../../../../shared/i18n';
 import { formatBytes } from '../../../../../shared/lib';
 import { useTheme } from '../../../../../shared/theme';

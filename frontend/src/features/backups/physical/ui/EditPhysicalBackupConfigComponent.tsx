@@ -14,7 +14,7 @@ import {
   type StorageSwitch,
   isScheduleFilled,
   toPhysicalBackupConfigInput,
-} from '../../../../entity/backups/config';
+} from '../../../../entities/backups/config';
 import {
   FULL_BACKUPS_RETENTION_POLICY_LABEL_KEYS,
   type FullBackupsRetention,
@@ -22,17 +22,17 @@ import {
   PHYSICAL_NOTIFICATION_TRIGGER_LABEL_KEYS,
   PhysicalNotificationTrigger,
   PhysicalRetentionPolicy,
-} from '../../../../entity/backups/physical';
+} from '../../../../entities/backups/physical';
 import {
   BACKUP_ENCRYPTION_OPTION_LABEL_KEYS,
   BackupEncryption,
-} from '../../../../entity/backups/shared';
+} from '../../../../entities/backups/shared';
 import {
   type Database,
   DatabaseType,
   PhysicalDatabaseBackupType,
-} from '../../../../entity/databases';
-import { type Storage, getStorageLogoFromType, storageApi } from '../../../../entity/storages';
+} from '../../../../entities/databases';
+import { type Storage, getStorageLogoFromType, storageApi } from '../../../../entities/storages';
 import { translateApiError } from '../../../../shared/i18n';
 import { ConfirmationComponent } from '../../../../shared/ui';
 import { EditStorageComponent } from '../../../storages/ui/edit/EditStorageComponent';

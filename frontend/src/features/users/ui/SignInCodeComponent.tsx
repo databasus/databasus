@@ -3,7 +3,7 @@ import { type JSX, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { CLOUDFLARE_TURNSTILE_SITE_KEY } from '../../../constants';
-import { type PendingSignIn, userApi } from '../../../entity/users';
+import { type PendingSignIn, userApi } from '../../../entities/users';
 import { ApiError } from '../../../shared/api';
 import { useCloudflareTurnstile } from '../../../shared/hooks/useCloudflareTurnstile';
 import { translateApiError } from '../../../shared/i18n';

@@ -14,11 +14,13 @@ const rows = (...ids: string[]): Row[] => ids.map((id) => ({ id }));
 
 const createDeferredPage = () => {
   let resolvePage: (page: RowPage) => void = () => {};
-  const promise = new Promise<RowPage>((resolve) => {
+  let rejectPage: (error: Error) => void = () => {};
+  const promise = new Promise<RowPage>((resolve, reject) => {
     resolvePage = resolve;
+    rejectPage = reject;
   });
 
-  return { promise, resolvePage };
+  return { promise, resolvePage, rejectPage };
 };
 
 const createController = (fetchPage: (cursor: string | undefined) => Promise<RowPage>) => {
@@ -215,4 +217,262 @@ describe('PagedListController', () => {
     expect(onError).toHaveBeenCalledTimes(1);
     expect(onError).toHaveBeenCalledWith(new Error('current'));
   });
+  it('blocks scroll and polling until the replacement first page succeeds', async () => {
+    const firstPage = createDeferredPage();
+    const fetchPage = vi
+      .fn()
+      .mockResolvedValueOnce({ items: rows('old'), nextCursor: 'old-cursor' })
+      .mockReturnValueOnce(firstPage.promise);
+    const { controller } = createController(fetchPage);
+    await controller.reload();
+    const reload = controller.reload();
+    await controller.loadNextPage();
+    await controller.refreshFirstPage();
+    expect(fetchPage).toHaveBeenCalledTimes(2);
+    expect(controller.getState().list).toEqual({ items: [] });
+    firstPage.resolvePage({ items: rows('new'), nextCursor: 'new-cursor' });
+    await reload;
+    expect(getLoadedIds(controller)).toEqual(['new']);
+  });
+
+  it('keeps a new next-page loading flag when an old request finishes', async () => {
+    const oldPage = createDeferredPage();
+    const newPage = createDeferredPage();
+    const fetchPage = vi
+      .fn()
+      .mockResolvedValueOnce({ items: rows('old'), nextCursor: 'old-cursor' })
+      .mockReturnValueOnce(oldPage.promise)
+      .mockResolvedValueOnce({ items: rows('new'), nextCursor: 'new-cursor' })
+      .mockReturnValueOnce(newPage.promise);
+    const { controller } = createController(fetchPage);
+    await controller.reload();
+    const oldNext = controller.loadNextPage();
+    await controller.reload();
+    const newNext = controller.loadNextPage();
+    oldPage.resolvePage({ items: rows('stale') });
+    await oldNext;
+    expect(controller.getState().isLoadingMore).toBe(true);
+    await controller.loadNextPage();
+    expect(fetchPage).toHaveBeenCalledTimes(4);
+    newPage.resolvePage({ items: rows('current') });
+    await newNext;
+    expect(getLoadedIds(controller)).toEqual(['new', 'current']);
+  });
+
+  it('allows a new refresh while an old generation is pending and keeps its own lock', async () => {
+    const oldPage = createDeferredPage();
+    const newPage = createDeferredPage();
+    const fetchPage = vi
+      .fn()
+      .mockResolvedValueOnce({ items: rows('old') })
+      .mockReturnValueOnce(oldPage.promise)
+      .mockResolvedValueOnce({ items: rows('new') })
+      .mockReturnValueOnce(newPage.promise);
+    const { controller } = createController(fetchPage);
+    await controller.reload();
+    const oldRefresh = controller.refreshFirstPage();
+    await controller.reload();
+    const newRefresh = controller.refreshFirstPage();
+    expect(fetchPage).toHaveBeenCalledTimes(4);
+    oldPage.resolvePage({ items: rows('stale') });
+    await oldRefresh;
+    await controller.refreshFirstPage();
+    expect(fetchPage).toHaveBeenCalledTimes(4);
+    newPage.resolvePage({ items: rows('current') });
+    await newRefresh;
+    expect(getLoadedIds(controller)).toEqual(['current']);
+  });
+
+  it('requires an explicit reload after the first page fails', async () => {
+    const fetchPage = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('unavailable'))
+      .mockResolvedValueOnce({ items: rows('recovered') });
+    const { controller, onError } = createController(fetchPage);
+    await controller.reload();
+    expect(controller.getState().isLoading).toBe(false);
+    await controller.refreshFirstPage();
+    await controller.loadNextPage();
+    expect(fetchPage).toHaveBeenCalledTimes(1);
+    expect(onError).toHaveBeenCalledOnce();
+    await controller.reload();
+    expect(getLoadedIds(controller)).toEqual(['recovered']);
+  });
+
+  it('ignores errors from an obsolete first page and next page', async () => {
+    const oldPage = createDeferredPage();
+    const oldNextPage = createDeferredPage();
+    const fetchPage = vi
+      .fn()
+      .mockReturnValueOnce(oldPage.promise)
+      .mockResolvedValueOnce({ items: rows('new'), nextCursor: 'next' })
+      .mockReturnValueOnce(oldNextPage.promise)
+      .mockResolvedValueOnce({ items: rows('current') });
+    const { controller, onError } = createController(fetchPage);
+    const oldReload = controller.reload();
+    await controller.reload();
+    const oldNext = controller.loadNextPage();
+    await controller.reload();
+    oldPage.rejectPage(new Error('old first'));
+    oldNextPage.rejectPage(new Error('old next'));
+    await Promise.all([oldReload, oldNext]);
+    expect(onError).not.toHaveBeenCalled();
+    expect(getLoadedIds(controller)).toEqual(['current']);
+  });
+
+  it.each(['refresh', 'next'])(
+    'preserves aligned rows and cursor when %s finishes first',
+    async (first) => {
+      const refreshPage = createDeferredPage();
+      const nextPage = createDeferredPage();
+      const fetchPage = vi
+        .fn()
+        .mockResolvedValueOnce({ items: rows('a', 'b', 'c'), nextCursor: 'after-c' })
+        .mockReturnValueOnce(refreshPage.promise)
+        .mockReturnValueOnce(nextPage.promise);
+      const { controller } = createController(fetchPage);
+      await controller.reload();
+      const refresh = controller.refreshFirstPage();
+      const next = controller.loadNextPage();
+      const finishRefresh = async () => {
+        refreshPage.resolvePage({
+          items: [{ id: 'new' }, { id: 'a', status: 'completed' }],
+          nextCursor: 'after-a',
+        });
+        await refresh;
+      };
+      const finishNext = async () => {
+        nextPage.resolvePage({
+          items: [{ id: 'a', status: 'pending' }, ...rows('c', 'd')],
+          nextCursor: 'after-d',
+        });
+        await next;
+      };
+      if (first === 'refresh') {
+        await finishRefresh();
+        await finishNext();
+      } else {
+        await finishNext();
+        await finishRefresh();
+      }
+      expect(getLoadedIds(controller)).toEqual(['new', 'a', 'b', 'c', 'd']);
+      expect(controller.getState().list.items.find((row) => row.id === 'a')?.status).toBe(
+        'completed',
+      );
+      expect(controller.getState().list.nextCursor).toBe('after-d');
+    },
+  );
+
+  it.each(['refresh', 'next'])(
+    'keeps compatible pagination after an unchanged extent refresh when %s finishes first',
+    async (first) => {
+      const nextPage = createDeferredPage();
+      const refreshPage = createDeferredPage();
+      const fetchPage = vi
+        .fn()
+        .mockResolvedValueOnce({ items: rows('a', 'b'), nextCursor: 'after-b' })
+        .mockReturnValueOnce(nextPage.promise)
+        .mockReturnValueOnce(refreshPage.promise);
+      const { controller } = createController(fetchPage);
+      await controller.reload();
+      const next = controller.loadNextPage();
+      const refresh = controller.refreshFirstPage();
+      const finishRefresh = async () => {
+        refreshPage.resolvePage({
+          items: [{ id: 'a' }, { id: 'b', status: 'completed' }],
+          nextCursor: 'after-b',
+        });
+        await refresh;
+      };
+      const finishNext = async () => {
+        nextPage.resolvePage({ items: rows('c', 'd'), nextCursor: 'after-d' });
+        await next;
+      };
+      if (first === 'refresh') {
+        await finishRefresh();
+        expect(controller.getState().isLoadingMore).toBe(true);
+        await controller.loadNextPage();
+        expect(fetchPage).toHaveBeenCalledTimes(3);
+        await finishNext();
+      } else {
+        await finishNext();
+        await finishRefresh();
+      }
+      expect(getLoadedIds(controller)).toEqual(['a', 'b', 'c', 'd']);
+      expect(controller.getState().list.nextCursor).toBe('after-d');
+      expect(controller.getState().list.items.find((row) => row.id === 'b')?.status).toBe(
+        'completed',
+      );
+      expect(controller.getState().isLoadingMore).toBe(false);
+    },
+  );
+
+  it('makes older surviving rows reachable through the new cursor after overlap disappears', async () => {
+    const fetchPage = vi
+      .fn()
+      .mockResolvedValueOnce({ items: rows('old-a', 'old-b'), nextCursor: 'old-cursor' })
+      .mockResolvedValueOnce({ items: rows('new-a', 'new-b'), nextCursor: 'new-cursor' })
+      .mockResolvedValueOnce({ items: rows('old-a', 'old-b') });
+    const { controller } = createController(fetchPage);
+    await controller.reload();
+    await controller.refreshFirstPage();
+    expect(getLoadedIds(controller)).toEqual(['new-a', 'new-b']);
+    await controller.loadNextPage();
+    expect(fetchPage).toHaveBeenLastCalledWith('new-cursor');
+    expect(getLoadedIds(controller)).toEqual(['new-a', 'new-b', 'old-a', 'old-b']);
+  });
+
+  it.each(['refresh', 'next'])(
+    'keeps a complete refreshed page authoritative when %s finishes first',
+    async (first) => {
+      const refreshPage = createDeferredPage();
+      const nextPage = createDeferredPage();
+      const fetchPage = vi
+        .fn()
+        .mockResolvedValueOnce({ items: rows('a', 'b'), nextCursor: 'after-b' })
+        .mockReturnValueOnce(refreshPage.promise)
+        .mockReturnValueOnce(nextPage.promise);
+      const { controller } = createController(fetchPage);
+      await controller.reload();
+      const refresh = controller.refreshFirstPage();
+      const next = controller.loadNextPage();
+      const finishRefresh = async () => {
+        refreshPage.resolvePage({ items: rows('a') });
+        await refresh;
+      };
+      const finishNext = async () => {
+        nextPage.resolvePage({ items: rows('c') });
+        await next;
+      };
+      if (first === 'refresh') {
+        await finishRefresh();
+        await finishNext();
+      } else {
+        await finishNext();
+        await finishRefresh();
+      }
+      expect(getLoadedIds(controller)).toEqual(['a']);
+      expect(controller.getState().list.nextCursor).toBeUndefined();
+    },
+  );
+  it.each(['success', 'error'])(
+    'publishes no state or errors after deactivation with a pending %s',
+    async (outcome) => {
+      const page = createDeferredPage();
+      const onError = vi.fn();
+      const onStateChange = vi.fn();
+      const controller = new PagedListController<Row, string>(
+        { fetchPage: () => page.promise, getItemKey: (row) => row.id, onError },
+        onStateChange,
+      );
+      const reload = controller.reload();
+      controller.deactivate();
+      const publications = onStateChange.mock.calls.length;
+      if (outcome === 'success') page.resolvePage({ items: rows('late') });
+      else page.rejectPage(new Error('late error'));
+      await reload;
+      expect(onStateChange).toHaveBeenCalledTimes(publications);
+      expect(onError).not.toHaveBeenCalled();
+    },
+  );
 });

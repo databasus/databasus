@@ -3,7 +3,7 @@
 export const API_ERROR_CODES = {
   // The request never got an answer: the server is down or the network is unreachable
   networkUnreachable: 'network_unreachable',
-  // The server answered with an error status but no JSON error body (e.g. a 502 from a proxy)
+  // A response lacks required data, readable JSON or a usable Problem
   requestFailed: 'request_failed',
 } as const;
 
@@ -15,7 +15,7 @@ interface ApiErrorFields {
   status?: number;
 }
 
-// Thrown by apiHelper for failed requests. Show it to users through translateApiError.
+// Describes a failed API request. Show it to users through translateApiError.
 export class ApiError extends Error {
   readonly code?: string;
   readonly status?: number;

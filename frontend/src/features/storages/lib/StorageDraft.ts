@@ -1,4 +1,4 @@
-import type { StorageSettings } from '../../../entity/storages';
+import type { StorageSettings } from '../../../entities/storages';
 
 // A storage form that is filled but not saved yet, such as the one the Google Drive OAuth redirect
 // brings back. storageId names the saved storage the form edits, absent for a new one.

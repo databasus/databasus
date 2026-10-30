@@ -4,7 +4,7 @@ import {
   DATABASE_TYPE_LABEL_KEYS,
   type Database,
   getDatabaseLogoFromType,
-} from '../../../../entity/databases';
+} from '../../../../entities/databases';
 
 interface Props {
   database: Database;

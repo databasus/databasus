@@ -1,7 +1,7 @@
 import {
   type WalStreamKeepingUp,
   WalStreamKeepingUpState,
-} from '../../../../../entity/backups/physical';
+} from '../../../../../entities/backups/physical';
 import type { MonitoringText } from '../model/MonitoringText';
 import { getRoundedDuration } from './roundedDuration';
 

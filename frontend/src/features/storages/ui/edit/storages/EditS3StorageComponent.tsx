@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import {
   S3_STORAGE_CLASS_LABEL_KEYS,
   type S3StorageSettings,
-} from '../../../../../entity/storages';
+} from '../../../../../entities/storages';
 import { getWebsitePageUrl, useLocale } from '../../../../../shared/i18n';
 import { toOptionalValue } from '../../../../../shared/lib';
 

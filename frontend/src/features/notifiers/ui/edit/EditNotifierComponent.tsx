@@ -9,7 +9,7 @@ import {
   NotifierType,
   getNotifierLogoFromType,
   notifierApi,
-} from '../../../../entity/notifiers';
+} from '../../../../entities/notifiers';
 import { translateApiError } from '../../../../shared/i18n';
 import { ToastHelper } from '../../../../shared/toast';
 import { createDefaultNotifierSettings } from '../../lib/createDefaultNotifierSettings';

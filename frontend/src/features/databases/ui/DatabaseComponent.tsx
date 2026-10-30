@@ -1,8 +1,9 @@
 import { Spin } from 'antd';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { type Database, DatabaseType, databaseApi } from '../../../entity/databases';
+import { type Database, DatabaseType, databaseApi } from '../../../entities/databases';
+import { translateApiError } from '../../../shared/i18n';
 import { LogicalBackupsComponent } from '../../backups/logical';
 import {
   PhysicalBackupsComponent,
@@ -48,14 +49,23 @@ export const DatabaseComponent = ({
   const isPhysicalDatabase = database?.settings.type === DatabaseType.POSTGRES_PHYSICAL;
   const isMonitoringShown = database !== undefined && isMonitoringTabShown(database);
 
-  const loadSettings = () => {
-    setDatabase(undefined);
-    setEditDatabase(undefined);
-    databaseApi.getDatabase(databaseId).then(setDatabase);
-  };
+  const showLoadError = useEffectEvent((error: unknown) => alert(translateApiError(error, t)));
 
   useEffect(() => {
-    loadSettings();
+    let isActive = true;
+    setDatabase(undefined);
+    setEditDatabase(undefined);
+    databaseApi
+      .getDatabase(databaseId)
+      .then((loadedDatabase) => {
+        if (isActive) setDatabase(loadedDatabase);
+      })
+      .catch((error) => {
+        if (isActive) showLoadError(error);
+      });
+    return () => {
+      isActive = false;
+    };
   }, [databaseId]);
 
   if (!database) {

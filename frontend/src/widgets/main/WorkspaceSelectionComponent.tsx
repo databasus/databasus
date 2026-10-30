@@ -2,7 +2,7 @@ import { Button, Input } from 'antd';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { type Workspace } from '../../entity/workspaces';
+import { type Workspace } from '../../entities/workspaces';
 import { useIsMobile } from '../../shared/hooks';
 
 interface Props {

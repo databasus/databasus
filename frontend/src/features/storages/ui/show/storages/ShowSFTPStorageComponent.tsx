@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 
-import type { SftpStorageSettings } from '../../../../../entity/storages';
+import type { SftpStorageSettings } from '../../../../../entities/storages';
 
 interface Props {
   settings: SftpStorageSettings;

@@ -13,7 +13,7 @@ import {
   VerificationStatus,
   VerificationTrigger,
   verificationRunsApi,
-} from '../../../../entity/verification/runs';
+} from '../../../../entities/verification/runs';
 import { type LocaleContextValue, translateApiError, useLocale } from '../../../../shared/i18n';
 import { getUserTimeFormat } from '../../../../shared/time';
 

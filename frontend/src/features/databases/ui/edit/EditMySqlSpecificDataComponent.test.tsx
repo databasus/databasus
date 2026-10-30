@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
-import { type Database, type MysqlSettings } from '../../../../entity/databases';
+import { type Database, type MysqlSettings } from '../../../../entities/databases';
 import { LocaleProvider } from '../../../../shared/i18n';
 import { EditMySqlSpecificDataComponent } from './EditMySqlSpecificDataComponent';
 

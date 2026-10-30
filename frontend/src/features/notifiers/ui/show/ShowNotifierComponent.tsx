@@ -5,7 +5,7 @@ import {
   type Notifier,
   NotifierType,
   getNotifierLogoFromType,
-} from '../../../../entity/notifiers';
+} from '../../../../entities/notifiers';
 import { ShowDiscordNotifierComponent } from './notifier/ShowDiscordNotifierComponent';
 import { ShowEmailNotifierComponent } from './notifier/ShowEmailNotifierComponent';
 import { ShowMattermostNotifierComponent } from './notifier/ShowMattermostNotifierComponent';

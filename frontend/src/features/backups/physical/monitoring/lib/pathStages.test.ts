@@ -4,7 +4,7 @@ import {
   WalStreamHealthLevel,
   WalStreamReasonCode,
   WalStreamReasonLevel,
-} from '../../../../../entity/backups/physical';
+} from '../../../../../entities/backups/physical';
 import { MonitoringTone } from '../model/MonitoringTone';
 import { PathStage } from '../model/PathStage';
 import { getAmountProgress, getStageTones } from './pathStages';

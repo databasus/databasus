@@ -5,7 +5,7 @@ import {
   WalStreamHealthLevel,
   WalStreamReasonCode,
   WalStreamReasonLevel,
-} from '../../../../../entity/backups/physical';
+} from '../../../../../entities/backups/physical';
 import { MonitoringTone } from '../model/MonitoringTone';
 import { VerdictIcon } from '../model/VerdictIcon';
 import { createTestWalStreamStatistics } from './testWalStreamStatistics';

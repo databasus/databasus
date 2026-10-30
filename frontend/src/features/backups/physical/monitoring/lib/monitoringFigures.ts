@@ -1,7 +1,7 @@
 import {
   WalStreamHealthLevel,
   type WalStreamStatistics,
-} from '../../../../../entity/backups/physical';
+} from '../../../../../entities/backups/physical';
 import type { MonitoringFigures } from '../model/MonitoringFigures';
 
 // The amounts come from the keeping-up summary rather than the newest sample, so the figures agree

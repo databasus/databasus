@@ -16,8 +16,8 @@ import {
   hasStoredSshTunnelSecretsForAuthType,
   isSshTunnelReadyToTest,
   physicalConnectionErrorContent,
-} from '../../../../entity/databases';
-import { ConnectionStringParser } from '../../../../entity/databases/model/postgresql/ConnectionStringParser';
+} from '../../../../entities/databases';
+import { ConnectionStringParser } from '../../../../entities/databases/model/postgresql/ConnectionStringParser';
 import {
   TransByKey,
   type TranslationKey,

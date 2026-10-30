@@ -10,7 +10,7 @@ import {
   type User,
   UserRole,
   userManagementApi,
-} from '../../../entity/users';
+} from '../../../entities/users';
 import { useIsMobile } from '../../../shared/hooks';
 import { translateApiError, useLocale } from '../../../shared/i18n';
 import { getUserTimeFormat } from '../../../shared/time';

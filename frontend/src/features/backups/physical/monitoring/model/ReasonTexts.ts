@@ -1,4 +1,4 @@
-import type { WalStreamReasonLevel } from '../../../../../entity/backups/physical';
+import type { WalStreamReasonLevel } from '../../../../../entities/backups/physical';
 import type { TranslationKey } from '../../../../../shared/i18n';
 import type { MonitoringText } from './MonitoringText';
 

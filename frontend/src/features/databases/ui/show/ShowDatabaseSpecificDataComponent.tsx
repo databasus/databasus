@@ -1,4 +1,4 @@
-import { type Database, DatabaseType } from '../../../../entity/databases';
+import { type Database, DatabaseType } from '../../../../entities/databases';
 import { ShowMariaDbSpecificDataComponent } from './ShowMariaDbSpecificDataComponent';
 import { ShowMongoDbSpecificDataComponent } from './ShowMongoDbSpecificDataComponent';
 import { ShowMySqlSpecificDataComponent } from './ShowMySqlSpecificDataComponent';

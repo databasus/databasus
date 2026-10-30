@@ -2,9 +2,9 @@ import { Modal, Spin } from 'antd';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { type StorageOauthDto, StorageType } from '../entity/storages';
-import type { User } from '../entity/users';
-import { userApi } from '../entity/users';
+import { type StorageOauthDto, StorageType } from '../entities/storages';
+import type { User } from '../entities/users';
+import { userApi } from '../entities/users';
 import { EditStorageComponent, type StorageDraft } from '../features/storages';
 
 export function OauthStorageComponent() {

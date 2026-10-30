@@ -3,7 +3,7 @@ import { Checkbox, Input, InputNumber, Tooltip } from 'antd';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import type { FtpStorageSettings } from '../../../../../entity/storages';
+import type { FtpStorageSettings } from '../../../../../entities/storages';
 import { toOptionalValue } from '../../../../../shared/lib';
 
 interface Props {

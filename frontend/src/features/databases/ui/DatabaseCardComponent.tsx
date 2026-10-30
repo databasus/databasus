@@ -1,8 +1,8 @@
 import { InfoCircleOutlined } from '@ant-design/icons';
 import { Trans, useTranslation } from 'react-i18next';
 
-import { type Database, HEALTH_STATUS_LABEL_KEYS, HealthStatus } from '../../../entity/databases';
-import { type Storage, getStorageLogoFromType } from '../../../entity/storages';
+import { type Database, HEALTH_STATUS_LABEL_KEYS, HealthStatus } from '../../../entities/databases';
+import { type Storage, getStorageLogoFromType } from '../../../entities/storages';
 import { useLocale } from '../../../shared/i18n';
 
 interface Props {

@@ -5,9 +5,9 @@ import {
   type LogicalBackupConfigInput,
   type PhysicalBackupConfigInput,
   backupConfigApi,
-} from '../../../entity/backups/config';
-import { logicalBackupApi } from '../../../entity/backups/logical';
-import { physicalBackupsApi } from '../../../entity/backups/physical';
+} from '../../../entities/backups/config';
+import { logicalBackupApi } from '../../../entities/backups/logical';
+import { physicalBackupsApi } from '../../../entities/backups/physical';
 import {
   type Database,
   DatabaseType,
@@ -15,7 +15,7 @@ import {
   createDefaultDatabaseSettings,
   databaseApi,
   isPostgresType,
-} from '../../../entity/databases';
+} from '../../../entities/databases';
 import { translateApiError } from '../../../shared/i18n';
 import { EditLogicalBackupConfigComponent } from '../../backups/logical';
 import { EditPhysicalBackupConfigComponent } from '../../backups/physical';

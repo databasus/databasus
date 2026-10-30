@@ -1,7 +1,7 @@
 import { Input } from 'antd';
 import { useTranslation } from 'react-i18next';
 
-import type { SlackNotifierSettings } from '../../../../../entity/notifiers';
+import type { SlackNotifierSettings } from '../../../../../entities/notifiers';
 import { getWebsitePageUrl, useLocale } from '../../../../../shared/i18n';
 import { toOptionalValue } from '../../../../../shared/lib';
 

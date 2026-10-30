@@ -5,7 +5,7 @@ import {
   type Storage,
   StorageType,
   getStorageLogoFromType,
-} from '../../../../entity/storages';
+} from '../../../../entities/storages';
 import { ShowAzureBlobStorageComponent } from './storages/ShowAzureBlobStorageComponent';
 import { ShowFTPStorageComponent } from './storages/ShowFTPStorageComponent';
 import { ShowGoogleDriveStorageComponent } from './storages/ShowGoogleDriveStorageComponent';

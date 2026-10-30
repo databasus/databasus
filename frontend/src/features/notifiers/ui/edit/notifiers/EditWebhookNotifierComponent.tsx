@@ -3,12 +3,12 @@ import { Button, Input, Select, Tooltip } from 'antd';
 import { useMemo } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
-import type { WebhookHeader, WebhookNotifierSettings } from '../../../../../entity/notifiers';
+import type { WebhookHeader, WebhookNotifierSettings } from '../../../../../entities/notifiers';
 import {
   NOTIFICATION_CATEGORY_LABEL_KEYS,
   NotificationCategory,
   WebhookMethod,
-} from '../../../../../entity/notifiers';
+} from '../../../../../entities/notifiers';
 import type { TranslationKey } from '../../../../../shared/i18n';
 import { toOptionalValue } from '../../../../../shared/lib';
 import { DEFAULT_ACCEPTED_CATEGORIES } from '../../../lib/defaultAcceptedCategories';

@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import {
   SSH_TUNNEL_AUTH_TYPE_LABEL_KEYS,
   type SshTunnelSettings,
-} from '../../../../entity/databases';
+} from '../../../../entities/databases';
 
 interface Props {
   sshTunnel: SshTunnelSettings;

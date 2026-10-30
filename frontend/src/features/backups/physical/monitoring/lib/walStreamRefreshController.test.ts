@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   type WalStreamStatistics,
   WalStreamStatisticsPeriod,
-} from '../../../../../entity/backups/physical';
+} from '../../../../../entities/backups/physical';
 import type { WalStreamRefreshState } from '../model/WalStreamRefreshState';
 import { FakePageVisibility } from './testPageVisibility';
 import {

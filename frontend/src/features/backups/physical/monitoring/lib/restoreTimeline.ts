@@ -1,6 +1,6 @@
 import dayjs from 'dayjs';
 
-import type { WalStreamTimeRange } from '../../../../../entity/backups/physical';
+import type { WalStreamTimeRange } from '../../../../../entities/backups/physical';
 import type { MonitoringText } from '../model/MonitoringText';
 import type { MonitoringTextParam } from '../model/MonitoringTextParam';
 import type { RestoreTimelineSegment } from '../model/RestoreTimelineSegment';

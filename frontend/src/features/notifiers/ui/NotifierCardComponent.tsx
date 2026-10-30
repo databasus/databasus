@@ -1,7 +1,7 @@
 import { InfoCircleOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 
-import { type Notifier, NotifierType, getNotifierLogoFromType } from '../../../entity/notifiers';
+import { type Notifier, NotifierType, getNotifierLogoFromType } from '../../../entities/notifiers';
 import type { TranslationKey } from '../../../shared/i18n';
 
 interface Props {

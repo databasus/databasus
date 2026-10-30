@@ -7,9 +7,10 @@ import {
   type Database,
   DatabaseType,
   createDefaultDatabaseSettings,
-} from '../../../../entity/databases';
+} from '../../../../entities/databases';
 import { API_BASE_PATH, type ApiComponents } from '../../../../shared/api';
 import { mockApi, setUpMockApi } from '../../../../shared/lib/test/mockApi';
+import { createPendingApiResponse } from '../../../../shared/lib/test/pendingApiResponse';
 import { renderScreen } from '../../../../shared/lib/test/renderScreen';
 import { HealthcheckAttemptsComponent } from './HealthcheckAttemptsComponent';
 
@@ -65,10 +66,7 @@ describe('HealthcheckAttemptsComponent', () => {
   });
 
   it('discards every old page when the period changes during a multi-page load', async () => {
-    let releaseOldPage!: () => void;
-    const oldPage = new Promise<void>((resolve) => {
-      releaseOldPage = resolve;
-    });
+    const oldPage = createPendingApiResponse();
     let hasRequestedOldPage = false;
     let hasChangedPeriod = false;
     const sinceValues: string[] = [];
@@ -79,8 +77,7 @@ describe('HealthcheckAttemptsComponent', () => {
         sinceValues.push(query.get('since')!);
         if (query.get('after')) {
           hasRequestedOldPage = true;
-          await oldPage;
-          return HttpResponse.json({ items: [attempt('old-last', 'UNAVAILABLE')] });
+          return oldPage.response;
         }
         if (hasChangedPeriod) return HttpResponse.json({ items: [attempt('new', 'AVAILABLE')] });
         return HttpResponse.json({
@@ -98,8 +95,8 @@ describe('HealthcheckAttemptsComponent', () => {
       expect(container.querySelectorAll('[data-status="AVAILABLE"]')).toHaveLength(1),
     );
     await act(async () => {
-      releaseOldPage();
-      await oldPage;
+      oldPage.respond(HttpResponse.json({ items: [attempt('old-last', 'UNAVAILABLE')] }));
+      await oldPage.response;
     });
 
     expect(container.querySelectorAll('[data-status]')).toHaveLength(1);

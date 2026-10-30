@@ -11,8 +11,8 @@ import {
   databaseApi,
   hasStoredSshTunnelSecretsForAuthType,
   isSshTunnelReadyToTest,
-} from '../../../../entity/databases';
-import { MySqlConnectionStringParser } from '../../../../entity/databases/model/mysql/MySqlConnectionStringParser';
+} from '../../../../entities/databases';
+import { MySqlConnectionStringParser } from '../../../../entities/databases/model/mysql/MySqlConnectionStringParser';
 import {
   getWebsitePageUrl,
   translateApiError,

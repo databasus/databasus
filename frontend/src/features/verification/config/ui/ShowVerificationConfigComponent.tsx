@@ -9,13 +9,13 @@ import {
   IntervalType,
   WEEKDAY_LABEL_KEYS,
   type Weekday,
-} from '../../../../entity/intervals';
+} from '../../../../entities/intervals';
 import {
   type VerificationConfig,
   VERIFICATION_NOTIFICATION_TYPE_LABEL_KEYS,
   VerificationScheduleType,
   verificationConfigApi,
-} from '../../../../entity/verification/config';
+} from '../../../../entities/verification/config';
 import { translateApiError, useLocale } from '../../../../shared/i18n';
 import { getUserTimeFormat } from '../../../../shared/time';
 import {

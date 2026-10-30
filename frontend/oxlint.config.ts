@@ -19,7 +19,12 @@ export default defineConfig({
       rules: { 'i18next/no-literal-string': 'error' },
     },
     {
-      files: ['**/*.test.{ts,tsx}', '**/api/**', 'src/shared/i18n/locales/**'],
+      files: [
+        '**/*.test.{ts,tsx}',
+        '**/*.fixture.{ts,tsx}',
+        '**/api/**',
+        'src/shared/i18n/locales/**',
+      ],
       rules: { 'i18next/no-literal-string': 'off' },
     },
   ],

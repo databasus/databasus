@@ -7,8 +7,8 @@ import { Trans, useTranslation } from 'react-i18next';
 import {
   type PhysicalBackupListItem,
   physicalBackupsApi,
-} from '../../../../entity/backups/physical';
-import { type Database, DatabaseType } from '../../../../entity/databases';
+} from '../../../../entities/backups/physical';
+import { type Database, DatabaseType } from '../../../../entities/databases';
 import { ApiError } from '../../../../shared/api';
 import { type TranslationKey, translateApiError } from '../../../../shared/i18n';
 import { ClipboardHelper } from '../../../../shared/lib/ClipboardHelper';

@@ -3,8 +3,8 @@ import { Button, Input, Spin, Switch, Tooltip } from 'antd';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { healthcheckConfigApi } from '../../../../entity/healthcheck';
-import type { HealthcheckConfig } from '../../../../entity/healthcheck';
+import { healthcheckConfigApi } from '../../../../entities/healthcheck';
+import type { HealthcheckConfig } from '../../../../entities/healthcheck';
 import { translateApiError } from '../../../../shared/i18n';
 
 interface Props {

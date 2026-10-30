@@ -3,11 +3,10 @@ import { fireEvent, screen } from '@testing-library/react';
 import { HttpResponse, http } from 'msw';
 import { describe, expect, it } from 'vitest';
 
-import { userApi } from '../../entity/users';
+import { userApi } from '../../entities/users';
 import { accessTokenHelper } from '../../shared/api';
 import { buildProblem, mockApi, setUpMockApi } from '../../shared/lib/test/mockApi';
-import { renderScreen } from '../../shared/lib/test/renderScreen';
-import App from './App';
+import { renderApp } from './renderApp';
 
 const mockServer = setUpMockApi();
 
@@ -43,7 +42,7 @@ const openProfile = async (isTwoFactorAuthRequired: boolean) => {
       HttpResponse.json({ tag_name: 'v0.0.0' }),
     ),
   );
-  renderScreen(<App />);
+  renderApp();
   fireEvent.click(await screen.findByAltText('Profile'));
   await screen.findByDisplayValue('owner@example.com');
   fireEvent.change(screen.getByPlaceholderText('Enter new password'), {

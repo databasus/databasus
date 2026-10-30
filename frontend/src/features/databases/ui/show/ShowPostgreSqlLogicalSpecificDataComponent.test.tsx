@@ -6,7 +6,7 @@ import {
   type PostgresqlLogicalSettings,
   PostgresSslMode,
   createDefaultDatabaseSettings,
-} from '../../../../entity/databases';
+} from '../../../../entities/databases';
 import { LocaleProvider } from '../../../../shared/i18n';
 import { ShowPostgreSqlLogicalSpecificDataComponent } from './ShowPostgreSqlLogicalSpecificDataComponent';
 

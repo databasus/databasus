@@ -10,8 +10,8 @@ import {
   type Database,
   DatabaseType,
   createDefaultDatabaseSettings,
-} from '../../../../entity/databases';
-import type { Verification } from '../../../../entity/verification/runs';
+} from '../../../../entities/databases';
+import type { Verification } from '../../../../entities/verification/runs';
 import { API_BASE_PATH } from '../../../../shared/api';
 import { mockApi, setUpMockApi } from '../../../../shared/lib/test/mockApi';
 import { renderScreen } from '../../../../shared/lib/test/renderScreen';

@@ -1,7 +1,6 @@
 import type { TFunction } from 'i18next';
 
 import { API_ERROR_CODES, type ApiComponents, ApiError } from '../api';
-import { StringUtils } from '../lib/StringUtils';
 import type { TranslationKey } from './TranslationKey';
 
 // Every code the contract declares. A code added to the contract without a key here fails
@@ -44,8 +43,6 @@ const CONTRACT_ERROR_CODE_KEYS = {
   internal: 'errors.internal',
 } as const satisfies Record<ApiComponents['schemas']['ProblemCode'], TranslationKey>;
 
-// Error codes with a translated message. Codes of operations outside the contract are added here as
-// the backend starts sending them; until then the backend's own message is shown.
 const API_ERROR_CODE_KEYS: Record<string, TranslationKey> = {
   ...CONTRACT_ERROR_CODE_KEYS,
   [API_ERROR_CODES.networkUnreachable]: 'errors.networkUnreachable',
@@ -59,11 +56,15 @@ export const translateApiError = (error: unknown, t: TFunction): string => {
     return t('errors.unknown');
   }
 
-  const codeKey = error.code ? API_ERROR_CODE_KEYS[error.code] : undefined;
-  if (codeKey) {
-    return t(codeKey, { status: error.status ?? '', detail: error.message });
-  }
+  const codeKey =
+    error.code && Object.prototype.hasOwnProperty.call(API_ERROR_CODE_KEYS, error.code)
+      ? API_ERROR_CODE_KEYS[error.code]
+      : undefined;
+  if (!codeKey) return t('errors.unknown');
 
-  // Backend messages start in lower case ("user is already a member")
-  return error.message ? StringUtils.capitalizeFirstLetter(error.message) : t('errors.unknown');
+  const detail =
+    error.code === 'database_connection_failed' || error.code === 'insufficient_disk_space'
+      ? error.message
+      : '';
+  return t(codeKey, { status: error.status ?? '', detail });
 };

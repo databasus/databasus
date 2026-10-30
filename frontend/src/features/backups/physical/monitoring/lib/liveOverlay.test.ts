@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { type WalStreamLive, WalStreamSourceState } from '../../../../../entity/backups/physical';
+import { type WalStreamLive, WalStreamSourceState } from '../../../../../entities/backups/physical';
 import { applyLiveValues } from './liveOverlay';
 import { createTestWalStreamStatistics } from './testWalStreamStatistics';
 

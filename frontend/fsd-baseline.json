@@ -1,0 +1,346 @@
+[
+  {
+    "rule": "fsd/forbidden-imports",
+    "source": "features/backups/logical/ui/EditLogicalBackupConfigComponent.tsx",
+    "target": "features/storages/ui/edit/EditStorageComponent.tsx",
+    "count": 1,
+    "owner": "backups",
+    "milestone": 7
+  },
+  {
+    "rule": "fsd/forbidden-imports",
+    "source": "features/backups/logical/ui/LogicalBackupsComponent.tsx",
+    "target": "features/restores/index.ts",
+    "count": 1,
+    "owner": "backups",
+    "milestone": 7
+  },
+  {
+    "rule": "fsd/forbidden-imports",
+    "source": "features/backups/physical/ui/EditPhysicalBackupConfigComponent.tsx",
+    "target": "features/storages/ui/edit/EditStorageComponent.tsx",
+    "count": 1,
+    "owner": "backups",
+    "milestone": 7
+  },
+  {
+    "rule": "fsd/forbidden-imports",
+    "source": "features/databases/ui/CreateDatabaseComponent.tsx",
+    "target": "features/backups/logical/index.ts",
+    "count": 1,
+    "owner": "databases",
+    "milestone": 5
+  },
+  {
+    "rule": "fsd/forbidden-imports",
+    "source": "features/databases/ui/CreateDatabaseComponent.tsx",
+    "target": "features/backups/physical/index.ts",
+    "count": 1,
+    "owner": "databases",
+    "milestone": 5
+  },
+  {
+    "rule": "fsd/forbidden-imports",
+    "source": "features/databases/ui/DatabaseComponent.tsx",
+    "target": "features/backups/logical/index.ts",
+    "count": 1,
+    "owner": "databases",
+    "milestone": 5
+  },
+  {
+    "rule": "fsd/forbidden-imports",
+    "source": "features/databases/ui/DatabaseComponent.tsx",
+    "target": "features/backups/physical/index.ts",
+    "count": 1,
+    "owner": "databases",
+    "milestone": 5
+  },
+  {
+    "rule": "fsd/forbidden-imports",
+    "source": "features/databases/ui/DatabaseComponent.tsx",
+    "target": "features/verification/runs/index.ts",
+    "count": 1,
+    "owner": "databases",
+    "milestone": 5
+  },
+  {
+    "rule": "fsd/forbidden-imports",
+    "source": "features/databases/ui/DatabaseConfigComponent.tsx",
+    "target": "features/backups/logical/index.ts",
+    "count": 1,
+    "owner": "databases",
+    "milestone": 5
+  },
+  {
+    "rule": "fsd/forbidden-imports",
+    "source": "features/databases/ui/DatabaseConfigComponent.tsx",
+    "target": "features/backups/physical/index.ts",
+    "count": 1,
+    "owner": "databases",
+    "milestone": 5
+  },
+  {
+    "rule": "fsd/forbidden-imports",
+    "source": "features/databases/ui/DatabaseConfigComponent.tsx",
+    "target": "features/verification/config/index.ts",
+    "count": 1,
+    "owner": "databases",
+    "milestone": 5
+  },
+  {
+    "rule": "fsd/forbidden-imports",
+    "source": "features/databases/ui/DatabaseTransferDialogComponent.tsx",
+    "target": "features/notifiers/ui/edit/EditNotifierComponent.tsx",
+    "count": 1,
+    "owner": "databases",
+    "milestone": 5
+  },
+  {
+    "rule": "fsd/forbidden-imports",
+    "source": "features/databases/ui/DatabaseTransferDialogComponent.tsx",
+    "target": "features/storages/ui/edit/EditStorageComponent.tsx",
+    "count": 1,
+    "owner": "databases",
+    "milestone": 5
+  },
+  {
+    "rule": "fsd/forbidden-imports",
+    "source": "features/databases/ui/edit/EditDatabaseNotifiersComponent.tsx",
+    "target": "features/notifiers/ui/edit/EditNotifierComponent.tsx",
+    "count": 1,
+    "owner": "databases",
+    "milestone": 5
+  },
+  {
+    "rule": "fsd/forbidden-imports",
+    "source": "features/restores/ui/RestoresComponent.tsx",
+    "target": "features/databases/ui/edit/EditDatabaseSpecificDataComponent.tsx",
+    "count": 1,
+    "owner": "restores",
+    "milestone": 5
+  },
+  {
+    "rule": "fsd/forbidden-imports",
+    "source": "features/settings/ui/SettingsComponent.tsx",
+    "target": "features/verification/agents/index.ts",
+    "count": 1,
+    "owner": "settings",
+    "milestone": 3
+  },
+  {
+    "rule": "fsd/forbidden-imports",
+    "source": "shared/hooks/useVersionCheck.ts",
+    "target": "entities/system/index.ts",
+    "count": 1,
+    "owner": "hooks",
+    "milestone": 3
+  },
+  {
+    "rule": "fsd/no-segmentless-slices",
+    "source": "widgets/main",
+    "target": "This slice has no segments. Consider dividing the code inside into segments.",
+    "count": 1,
+    "owner": "main",
+    "milestone": 3
+  },
+  {
+    "rule": "fsd/public-api",
+    "source": "entities/backups",
+    "target": "This slice is missing a public API.",
+    "count": 1,
+    "owner": "backups",
+    "milestone": 7
+  },
+  {
+    "rule": "fsd/public-api",
+    "source": "entities/verification",
+    "target": "This slice is missing a public API.",
+    "count": 1,
+    "owner": "verification",
+    "milestone": 7
+  },
+  {
+    "rule": "fsd/public-api",
+    "source": "features/verification",
+    "target": "This slice is missing a public API.",
+    "count": 1,
+    "owner": "verification",
+    "milestone": 7
+  },
+  {
+    "rule": "project/forbidden-dependency",
+    "source": "pages/AuthPageComponent.test.tsx",
+    "target": "pages/AuthPageComponent.tsx",
+    "count": 1,
+    "owner": "AuthPageComponent",
+    "milestone": 3
+  },
+  {
+    "rule": "project/private-slice-import",
+    "source": "app/ui/App.tsx",
+    "target": "pages/AuthPageComponent.tsx",
+    "count": 1,
+    "owner": "ui",
+    "milestone": 3
+  },
+  {
+    "rule": "project/private-slice-import",
+    "source": "app/ui/App.tsx",
+    "target": "pages/OAuthCallbackPage.tsx",
+    "count": 1,
+    "owner": "ui",
+    "milestone": 3
+  },
+  {
+    "rule": "project/private-slice-import",
+    "source": "app/ui/App.tsx",
+    "target": "pages/OauthStorageComponent.tsx",
+    "count": 1,
+    "owner": "ui",
+    "milestone": 3
+  },
+  {
+    "rule": "project/private-slice-import",
+    "source": "app/ui/App.tsx",
+    "target": "widgets/main/MainScreenComponent.tsx",
+    "count": 1,
+    "owner": "ui",
+    "milestone": 3
+  },
+  {
+    "rule": "project/private-slice-import",
+    "source": "features/backups/logical/ui/EditLogicalBackupConfigComponent.tsx",
+    "target": "features/storages/ui/edit/EditStorageComponent.tsx",
+    "count": 1,
+    "owner": "backups",
+    "milestone": 7
+  },
+  {
+    "rule": "project/private-slice-import",
+    "source": "features/backups/physical/ui/EditPhysicalBackupConfigComponent.tsx",
+    "target": "features/storages/ui/edit/EditStorageComponent.tsx",
+    "count": 1,
+    "owner": "backups",
+    "milestone": 7
+  },
+  {
+    "rule": "project/private-slice-import",
+    "source": "features/databases/ui/DatabaseTransferDialogComponent.tsx",
+    "target": "features/notifiers/ui/edit/EditNotifierComponent.tsx",
+    "count": 1,
+    "owner": "databases",
+    "milestone": 5
+  },
+  {
+    "rule": "project/private-slice-import",
+    "source": "features/databases/ui/DatabaseTransferDialogComponent.tsx",
+    "target": "features/storages/ui/edit/EditStorageComponent.tsx",
+    "count": 1,
+    "owner": "databases",
+    "milestone": 5
+  },
+  {
+    "rule": "project/private-slice-import",
+    "source": "features/databases/ui/edit/EditDatabaseNotifiersComponent.tsx",
+    "target": "features/notifiers/ui/edit/EditNotifierComponent.tsx",
+    "count": 1,
+    "owner": "databases",
+    "milestone": 5
+  },
+  {
+    "rule": "project/private-slice-import",
+    "source": "features/databases/ui/edit/EditMariaDbSpecificDataComponent.tsx",
+    "target": "entities/databases/model/mariadb/MariadbConnectionStringParser.ts",
+    "count": 1,
+    "owner": "databases",
+    "milestone": 5
+  },
+  {
+    "rule": "project/private-slice-import",
+    "source": "features/databases/ui/edit/EditMongoDbSpecificDataComponent.tsx",
+    "target": "entities/databases/model/mongodb/MongodbConnectionStringParser.ts",
+    "count": 1,
+    "owner": "databases",
+    "milestone": 5
+  },
+  {
+    "rule": "project/private-slice-import",
+    "source": "features/databases/ui/edit/EditMySqlSpecificDataComponent.tsx",
+    "target": "entities/databases/model/mysql/MySqlConnectionStringParser.ts",
+    "count": 1,
+    "owner": "databases",
+    "milestone": 5
+  },
+  {
+    "rule": "project/private-slice-import",
+    "source": "features/databases/ui/edit/EditPostgreSqlLogicalSpecificDataComponent.tsx",
+    "target": "entities/databases/model/postgresql/ConnectionStringParser.ts",
+    "count": 1,
+    "owner": "databases",
+    "milestone": 5
+  },
+  {
+    "rule": "project/private-slice-import",
+    "source": "features/databases/ui/edit/EditPostgreSqlPhysicalSpecificDataComponent.tsx",
+    "target": "entities/databases/model/postgresql/ConnectionStringParser.ts",
+    "count": 1,
+    "owner": "databases",
+    "milestone": 5
+  },
+  {
+    "rule": "project/private-slice-import",
+    "source": "features/restores/ui/RestoresComponent.tsx",
+    "target": "features/databases/ui/edit/EditDatabaseSpecificDataComponent.tsx",
+    "count": 1,
+    "owner": "restores",
+    "milestone": 5
+  },
+  {
+    "rule": "project/private-slice-import",
+    "source": "features/workspaces/ui/WorkspaceSettingsComponent.tsx",
+    "target": "entities/databases/api/databaseApi.ts",
+    "count": 1,
+    "owner": "workspaces",
+    "milestone": 4
+  },
+  {
+    "rule": "project/private-slice-import",
+    "source": "pages/AuthPageComponent.test.tsx",
+    "target": "pages/AuthPageComponent.tsx",
+    "count": 1,
+    "owner": "AuthPageComponent",
+    "milestone": 3
+  },
+  {
+    "rule": "project/private-slice-import",
+    "source": "widgets/main/MainScreenComponent.tsx",
+    "target": "features/databases/ui/DatabasesComponent.tsx",
+    "count": 1,
+    "owner": "main",
+    "milestone": 3
+  },
+  {
+    "rule": "project/private-slice-import",
+    "source": "widgets/main/MainScreenComponent.tsx",
+    "target": "features/notifiers/ui/NotifiersComponent.tsx",
+    "count": 1,
+    "owner": "main",
+    "milestone": 3
+  },
+  {
+    "rule": "project/private-slice-import",
+    "source": "widgets/main/MainScreenComponent.tsx",
+    "target": "features/storages/ui/StoragesComponent.tsx",
+    "count": 1,
+    "owner": "main",
+    "milestone": 3
+  },
+  {
+    "rule": "project/private-slice-import",
+    "source": "widgets/main/MainScreenComponent.tsx",
+    "target": "features/users/ui/UsersComponent.tsx",
+    "count": 1,
+    "owner": "main",
+    "milestone": 3
+  }
+]

@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   type WalStreamKeepingUp,
   WalStreamKeepingUpState,
-} from '../../../../../entity/backups/physical';
+} from '../../../../../entities/backups/physical';
 import { getKeepingUpSentences } from './keepingUpSentences';
 
 // The entity's public API imports its API client, and the client's config module reads window at

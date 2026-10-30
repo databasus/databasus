@@ -12,18 +12,18 @@ import {
   backupConfigApi,
   StorageSwitchHistoryComponent,
   toPhysicalBackupConfigInput,
-} from '../../../../entity/backups/config';
+} from '../../../../entities/backups/config';
 import {
   type FullBackupsRetention,
   FullBackupsRetentionPolicy,
   PHYSICAL_NOTIFICATION_TRIGGER_LABEL_KEYS,
   PHYSICAL_RETENTION_POLICY_LABEL_KEYS,
   PhysicalRetentionPolicy,
-} from '../../../../entity/backups/physical';
-import { BACKUP_ENCRYPTION_LABEL_KEYS } from '../../../../entity/backups/shared';
-import type { Database } from '../../../../entity/databases';
-import { WEEKDAY_LABEL_KEYS, type Weekday } from '../../../../entity/intervals';
-import { type Storage, getStorageLogoFromType, storageApi } from '../../../../entity/storages';
+} from '../../../../entities/backups/physical';
+import { BACKUP_ENCRYPTION_LABEL_KEYS } from '../../../../entities/backups/shared';
+import type { Database } from '../../../../entities/databases';
+import { WEEKDAY_LABEL_KEYS, type Weekday } from '../../../../entities/intervals';
+import { type Storage, getStorageLogoFromType, storageApi } from '../../../../entities/storages';
 import {
   type LocalizedText,
   translateApiError,

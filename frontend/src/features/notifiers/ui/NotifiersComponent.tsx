@@ -2,9 +2,9 @@ import { Button, Modal, Spin } from 'antd';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { notifierApi } from '../../../entity/notifiers';
-import type { Notifier } from '../../../entity/notifiers';
-import type { Workspace } from '../../../entity/workspaces';
+import { notifierApi } from '../../../entities/notifiers';
+import type { Notifier } from '../../../entities/notifiers';
+import type { Workspace } from '../../../entities/workspaces';
 import { useIsMobile } from '../../../shared/hooks';
 import { translateApiError } from '../../../shared/i18n';
 import { EditNotifierComponent } from './edit/EditNotifierComponent';

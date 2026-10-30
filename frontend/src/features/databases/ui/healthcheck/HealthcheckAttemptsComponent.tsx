@@ -3,12 +3,12 @@ import dayjs from 'dayjs';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { type Database, HealthStatus } from '../../../../entity/databases';
+import { type Database, HealthStatus } from '../../../../entities/databases';
 import {
   type HealthcheckAttempt,
   healthcheckAttemptApi,
   healthcheckConfigApi,
-} from '../../../../entity/healthcheck';
+} from '../../../../entities/healthcheck';
 import { translateApiError, useLocale } from '../../../../shared/i18n';
 import { getUserShortTimeFormat } from '../../../../shared/time/getUserTimeFormat';
 

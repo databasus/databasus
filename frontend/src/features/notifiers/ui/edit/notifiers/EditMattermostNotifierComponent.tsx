@@ -7,7 +7,7 @@ import {
   MATTERMOST_DELIVERY_MODE_LABEL_KEYS,
   MattermostDeliveryMode,
   type MattermostNotifierSettings,
-} from '../../../../../entity/notifiers';
+} from '../../../../../entities/notifiers';
 import { getWebsitePageUrl, useLocale } from '../../../../../shared/i18n';
 import { toOptionalValue } from '../../../../../shared/lib';
 

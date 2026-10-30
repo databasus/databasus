@@ -91,8 +91,8 @@ export default function HowToAddStoragePage() {
                 <p className="text-sm text-gray-300 m-0">
                   <strong className="text-amber-400">💡 Note:</strong> This is a
                   contribution guide for developers who want to add new storage
-                  integrations to the Databasus project. If you only want to
-                  use existing storage providers, check out the{" "}
+                  integrations to the Databasus project. If you only want to use
+                  existing storage providers, check out the{" "}
                   <a
                     href="/storages"
                     className="text-blue-400 hover:text-blue-300"
@@ -429,7 +429,7 @@ export default function HowToAddStoragePage() {
               <p>
                 Create your storage model and API integration in{" "}
                 <code>
-                  frontend/src/entity/storages/models/&#123;storage_name&#125;/
+                  frontend/src/entities/storages/models/&#123;storage_name&#125;/
                 </code>
                 . Update the <code>index.ts</code> file to export your new model
                 for use throughout the application.
@@ -458,18 +458,19 @@ export default function HowToAddStoragePage() {
                 <li>
                   Update{" "}
                   <code>
-                    src/entity/storages/models/getStorageLogoFromType.ts
+                    src/entities/storages/models/getStorageLogoFromType.ts
                   </code>{" "}
                   to return your icon path
                 </li>
                 <li>
-                  Update <code>src/entity/storages/models/StorageType.ts</code>{" "}
-                  to include your new storage type constant
+                  Update{" "}
+                  <code>src/entities/storages/models/StorageType.ts</code> to
+                  include your new storage type constant
                 </li>
                 <li>
                   Update{" "}
                   <code>
-                    src/entity/storages/models/getStorageNameFromType.ts
+                    src/entities/storages/models/getStorageNameFromType.ts
                   </code>{" "}
                   to return the display name for your storage
                 </li>

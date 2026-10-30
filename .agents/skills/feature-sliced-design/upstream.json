@@ -1,0 +1,48 @@
+{
+  "repository": "https://github.com/feature-sliced/skills",
+  "revision": "5e95aaebb84541742686e56352b7569acf4306f1",
+  "license": "MIT",
+  "licenseDeclaration": "https://github.com/feature-sliced/skills/blob/5e95aaebb84541742686e56352b7569acf4306f1/README.md#license",
+  "files": {
+    "upstream/methodology.md": {
+      "source": "feature-sliced-design/SKILL.md",
+      "sha256": "880557f6c71a5d35d98cf1ef34cf939d67220677be91447945ce49e45eec9cdb"
+    },
+    "upstream/references/asset-handling.md": {
+      "source": "feature-sliced-design/references/asset-handling.md",
+      "sha256": "031d795f4a864e79f3e15429b47cc735a0086d05e3eaf1be82bf5e1837d8b298"
+    },
+    "upstream/references/auth-and-api.md": {
+      "source": "feature-sliced-design/references/auth-and-api.md",
+      "sha256": "e1bf039c7022fb037d3c0dbfe047a4c718be2ed316687cb9b5715f7efcf8ac9d"
+    },
+    "upstream/references/cross-import-patterns.md": {
+      "source": "feature-sliced-design/references/cross-import-patterns.md",
+      "sha256": "1f5d95ca209ed59fdb9a5f63e0f8a0a6258872e8831908379c324a2858812000"
+    },
+    "upstream/references/excessive-entities.md": {
+      "source": "feature-sliced-design/references/excessive-entities.md",
+      "sha256": "926088dc96d9c3d65c89bcc7571fc655012cf328e527df9255681c4a619b1b85"
+    },
+    "upstream/references/framework-integration.md": {
+      "source": "feature-sliced-design/references/framework-integration.md",
+      "sha256": "cc5d4f7c57560deb12b624fcdf0b21cd8d720408d3a080598bde09966ca6ba72"
+    },
+    "upstream/references/growth-walkthrough.md": {
+      "source": "feature-sliced-design/references/growth-walkthrough.md",
+      "sha256": "f947f6d72b9bea3a3956155553581578848088cb7417d97f7f65a17dcc95bdca"
+    },
+    "upstream/references/layer-structure.md": {
+      "source": "feature-sliced-design/references/layer-structure.md",
+      "sha256": "4b4813b364764622faa1f718bc091b243862ecb1af25584ec92cf162731979a7"
+    },
+    "upstream/references/migration-guide.md": {
+      "source": "feature-sliced-design/references/migration-guide.md",
+      "sha256": "9a8fee41c12cf610eafbde22e6661465bc754d0d773fc63ccce6939fbaf55b53"
+    },
+    "upstream/references/state-management.md": {
+      "source": "feature-sliced-design/references/state-management.md",
+      "sha256": "b85460b2f5538f56ba3f279723db317ae0e4e21d2e4218f78b8fe4460835f0f2"
+    }
+  }
+}

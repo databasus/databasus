@@ -9,7 +9,7 @@ import {
   PhysicalBackupStatus,
   PhysicalBackupType,
   type PhysicalBackupsFilters,
-} from '../../../../entity/backups/physical';
+} from '../../../../entities/backups/physical';
 
 interface Props {
   filters: PhysicalBackupsFilters;

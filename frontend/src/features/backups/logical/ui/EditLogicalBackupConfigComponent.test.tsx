@@ -7,12 +7,12 @@ import type {
   BackupConfig,
   BackupConfigInput,
   StorageSwitch,
-} from '../../../../entity/backups/config';
+} from '../../../../entities/backups/config';
 import {
   type Database,
   DatabaseType,
   createDefaultDatabaseSettings,
-} from '../../../../entity/databases';
+} from '../../../../entities/databases';
 import { API_BASE_PATH } from '../../../../shared/api';
 import { buildProblem, mockApi, setUpMockApi } from '../../../../shared/lib/test/mockApi';
 import { renderScreen } from '../../../../shared/lib/test/renderScreen';

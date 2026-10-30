@@ -1,7 +1,7 @@
 import type {
   WalStreamStatistics,
   WalStreamStatisticsPeriod,
-} from '../../../../../entity/backups/physical';
+} from '../../../../../entities/backups/physical';
 import type { WalStreamRefreshState } from '../model/WalStreamRefreshState';
 
 // Samples arrive every 30 seconds, so refreshing faster shows nothing new and refreshing slower

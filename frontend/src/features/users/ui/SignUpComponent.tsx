@@ -8,7 +8,7 @@ import {
   GITHUB_CLIENT_ID,
   GOOGLE_CLIENT_ID,
 } from '../../../constants';
-import { userApi } from '../../../entity/users';
+import { userApi } from '../../../entities/users';
 import { useCloudflareTurnstile } from '../../../shared/hooks/useCloudflareTurnstile';
 import { translateApiError } from '../../../shared/i18n';
 import { FormValidator } from '../../../shared/lib/FormValidator';

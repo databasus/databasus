@@ -4,7 +4,7 @@ import {
   DATABASE_TYPE_LABEL_KEYS,
   type MariadbSettings,
   DatabaseType,
-} from '../../../../entity/databases';
+} from '../../../../entities/databases';
 import { ShowSshTunnelComponent } from './ShowSshTunnelComponent';
 
 interface Props {

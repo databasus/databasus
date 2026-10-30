@@ -9,7 +9,7 @@ import {
   GOOGLE_CLIENT_ID,
   IS_EMAIL_CONFIGURED,
 } from '../../../constants';
-import { type PendingSignIn, userApi } from '../../../entity/users';
+import { type PendingSignIn, userApi } from '../../../entities/users';
 import { useCloudflareTurnstile } from '../../../shared/hooks/useCloudflareTurnstile';
 import { translateApiError } from '../../../shared/i18n';
 import { FormValidator } from '../../../shared/lib/FormValidator';

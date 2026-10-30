@@ -6,7 +6,7 @@ import {
   POSTGRESQL_SHORT_NAME,
   POSTGRES_SSL_MODE_LABEL_KEYS,
   PostgresSslMode,
-} from '../../../../entity/databases';
+} from '../../../../entities/databases';
 import { ShowSshTunnelComponent } from './ShowSshTunnelComponent';
 
 interface Props {

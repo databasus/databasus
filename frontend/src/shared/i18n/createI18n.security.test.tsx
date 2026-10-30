@@ -3,7 +3,9 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { I18nextProvider, Trans } from 'react-i18next';
 import { beforeAll, describe, expect, it } from 'vitest';
 
+import { ApiError } from '../api';
 import { createI18n } from './createI18n';
+import { translateApiError } from './translateApiError';
 
 // Names a user could give a workspace, a database or themselves. Each must reach the page as the
 // exact text entered, never as markup.
@@ -33,6 +35,36 @@ beforeAll(() => {
 });
 
 describe('translated text renders as text', () => {
+  it.each(['quota_exceeded', 'constructor', undefined])(
+    'renders a general error without server text with code %s',
+    (code) => {
+      const markup = render(
+        <p>
+          {translateApiError(
+            new ApiError({ code, message: 'https://private.example/secret <img src=x>' }),
+            i18n.t,
+          )}
+        </p>,
+      );
+      expect(markup).toBe(`<p>${i18n.t('errors.unknown')}</p>`);
+      expect(markup).not.toContain('private.example');
+      expect(markup).not.toContain('secret');
+    },
+  );
+
+  it.each(['database_connection_failed', 'insufficient_disk_space'])(
+    'renders supported diagnostics as plain text with code %s',
+    (code) => {
+      const markup = render(
+        <p>
+          {translateApiError(new ApiError({ code, message: '<img src=x> 1024 bytes' }), i18n.t)}
+        </p>,
+      );
+      expect(markup).toContain('&lt;img src=x&gt; 1024 bytes');
+      expect(getElementNames(markup)).toEqual(['p']);
+    },
+  );
+
   it.each(HOSTILE_NAMES)('shows %s literally when t() output is rendered', (name) => {
     const markup = render(<p>{i18n.t('securityTest.plain' as never, { name })}</p>);
 

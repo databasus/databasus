@@ -2,8 +2,8 @@ import { App, Modal } from 'antd';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { type Database, DatabaseType, databaseApi } from '../../../../entity/databases';
-import type { PostgresqlRestoreOptions } from '../../../../entity/restores';
+import { type Database, DatabaseType, databaseApi } from '../../../../entities/databases';
+import type { PostgresqlRestoreOptions } from '../../../../entities/restores';
 import { translateApiError } from '../../../../shared/i18n';
 import { CreateReadOnlyComponent } from './CreateReadOnlyComponent';
 import { EditMariaDbSpecificDataComponent } from './EditMariaDbSpecificDataComponent';

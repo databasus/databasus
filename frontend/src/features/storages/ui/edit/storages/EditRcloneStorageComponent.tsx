@@ -2,7 +2,7 @@ import { InfoCircleOutlined } from '@ant-design/icons';
 import { Input, Tooltip } from 'antd';
 import { useTranslation } from 'react-i18next';
 
-import type { RcloneStorageSettings } from '../../../../../entity/storages';
+import type { RcloneStorageSettings } from '../../../../../entities/storages';
 import { toOptionalValue } from '../../../../../shared/lib';
 
 interface Props {

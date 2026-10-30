@@ -2,8 +2,8 @@ import { Button, Modal, Spin } from 'antd';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { type Storage, storageApi } from '../../../entity/storages';
-import type { Workspace } from '../../../entity/workspaces';
+import { type Storage, storageApi } from '../../../entities/storages';
+import type { Workspace } from '../../../entities/workspaces';
 import { useIsMobile } from '../../../shared/hooks';
 import { translateApiError } from '../../../shared/i18n';
 import { EditStorageComponent } from './edit/EditStorageComponent';

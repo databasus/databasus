@@ -1,7 +1,7 @@
 import { Tooltip, theme } from 'antd';
 import { useTranslation } from 'react-i18next';
 
-import type { WalStreamTimeRange } from '../../../../../entity/backups/physical';
+import type { WalStreamTimeRange } from '../../../../../entities/backups/physical';
 import type { TranslationKey } from '../../../../../shared/i18n';
 import { formatMoment } from '../lib/monitoringTextValues';
 import {

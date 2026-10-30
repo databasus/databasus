@@ -5,7 +5,7 @@ import {
   type WalStreamReason,
   WalStreamReasonCode,
   WalStreamReasonLevel,
-} from '../../../../../entity/backups/physical';
+} from '../../../../../entities/backups/physical';
 import { DICTIONARIES } from '../../../../../shared/i18n';
 import { getNoticeTexts, getReasonTexts, getTipTexts, sortReasonsBrokenFirst } from './reasonTexts';
 

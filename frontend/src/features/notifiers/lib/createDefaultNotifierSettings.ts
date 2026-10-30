@@ -4,7 +4,7 @@ import {
   NotifierType,
   WebhookMethod,
   getDefaultEmailNotifierSecurity,
-} from '../../../entity/notifiers';
+} from '../../../entities/notifiers';
 import { DEFAULT_ACCEPTED_CATEGORIES } from './defaultAcceptedCategories';
 
 const UNSET_SMTP_PORT = 0;

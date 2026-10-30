@@ -4,7 +4,7 @@ import {
   type WalStreamSeries,
   type WalStreamSeriesPoint,
   WalStreamStatisticsPeriod,
-} from '../../../../../entity/backups/physical';
+} from '../../../../../entities/backups/physical';
 import {
   getBinaryAxisTicks,
   getChartTimeDomain,

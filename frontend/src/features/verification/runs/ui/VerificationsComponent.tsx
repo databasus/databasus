@@ -14,8 +14,8 @@ import type { TFunction } from 'i18next';
 import { useEffect, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
-import type { Database } from '../../../../entity/databases';
-import { verificationAgentApi } from '../../../../entity/verification/agents';
+import type { Database } from '../../../../entities/databases';
+import { verificationAgentApi } from '../../../../entities/verification/agents';
 import {
   type Verification,
   VERIFICATION_STATUS_LABEL_KEYS,
@@ -23,7 +23,7 @@ import {
   VerificationStatus,
   VerificationTrigger,
   verificationRunsApi,
-} from '../../../../entity/verification/runs';
+} from '../../../../entities/verification/runs';
 import { usePolledPagedList } from '../../../../shared/hooks';
 import { getWebsitePageUrl, translateApiError, useLocale } from '../../../../shared/i18n';
 import { getUserTimeFormat } from '../../../../shared/time';

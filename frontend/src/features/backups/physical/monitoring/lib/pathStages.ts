@@ -3,7 +3,7 @@ import {
   type WalStreamReason,
   WalStreamReasonCode,
   WalStreamReasonLevel,
-} from '../../../../../entity/backups/physical';
+} from '../../../../../entities/backups/physical';
 import type { AmountProgress } from '../model/AmountProgress';
 import { MonitoringTone } from '../model/MonitoringTone';
 import { PathStage } from '../model/PathStage';

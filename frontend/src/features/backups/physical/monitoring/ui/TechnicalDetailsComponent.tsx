@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 
-import type { WalStreamStatistics } from '../../../../../entity/backups/physical';
+import type { WalStreamStatistics } from '../../../../../entities/backups/physical';
 import type { MonitoringTone } from '../model/MonitoringTone';
 import type { PathStage } from '../model/PathStage';
 import type { ReasonTexts } from '../model/ReasonTexts';

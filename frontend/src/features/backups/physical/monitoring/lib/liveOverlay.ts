@@ -1,4 +1,4 @@
-import type { WalStreamLive, WalStreamStatistics } from '../../../../../entity/backups/physical';
+import type { WalStreamLive, WalStreamStatistics } from '../../../../../entities/backups/physical';
 
 const isNewer = (time: string | null, than: string): time is string =>
   time !== null && new Date(time).getTime() > new Date(than).getTime();

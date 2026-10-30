@@ -81,9 +81,9 @@ export default function HowToAddNotifierPage() {
 
               <p className="text-lg text-gray-400">
                 This guide will walk you through the process of contributing a
-                new notification integration to Databasus. You&apos;ll learn
-                how to implement the backend logic, create database migrations
-                and build the frontend UI components.
+                new notification integration to Databasus. You&apos;ll learn how
+                to implement the backend logic, create database migrations and
+                build the frontend UI components.
               </p>
 
               <div className="rounded-lg border border-[#ffffff20] bg-[#1f2937] pt-4 px-4 my-6">
@@ -344,7 +344,7 @@ export default function HowToAddNotifierPage() {
               <p>
                 Create your notifier model and validator in{" "}
                 <code>
-                  frontend/src/entity/notifiers/models/&#123;notifier_name&#125;/
+                  frontend/src/entities/notifiers/models/&#123;notifier_name&#125;/
                 </code>
                 . Update the <code>index.ts</code> file to export your new model
                 for use throughout the application.
@@ -361,19 +361,19 @@ export default function HowToAddNotifierPage() {
                 <li>
                   Update{" "}
                   <code>
-                    src/entity/notifiers/models/getNotifierLogoFromType.ts
+                    src/entities/notifiers/models/getNotifierLogoFromType.ts
                   </code>{" "}
                   to return your icon path
                 </li>
                 <li>
                   Update{" "}
-                  <code>src/entity/notifiers/models/NotifierType.ts</code> to
+                  <code>src/entities/notifiers/models/NotifierType.ts</code> to
                   include your new notifier type constant
                 </li>
                 <li>
                   Update{" "}
                   <code>
-                    src/entity/notifiers/models/getNotifierNameFromType.ts
+                    src/entities/notifiers/models/getNotifierNameFromType.ts
                   </code>{" "}
                   to return the display name for your notifier
                 </li>

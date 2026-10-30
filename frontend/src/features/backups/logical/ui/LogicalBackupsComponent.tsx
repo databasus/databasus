@@ -16,10 +16,10 @@ import { App, Button, Modal, Spin, Table, Tooltip } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import type { TFunction } from 'i18next';
-import { type JSX, useEffect, useState } from 'react';
+import { type JSX, useEffect, useEffectEvent, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
-import { type BackupConfig, backupConfigApi } from '../../../../entity/backups/config';
+import { type BackupConfig, backupConfigApi } from '../../../../entities/backups/config';
 import {
   LOGICAL_BACKUP_STATUS_LABEL_KEYS,
   LOGICAL_BACKUP_VERIFICATION_STATUS_LABEL_KEYS,
@@ -28,10 +28,10 @@ import {
   LogicalBackupStatus,
   LogicalBackupVerificationStatus,
   logicalBackupApi,
-} from '../../../../entity/backups/logical';
-import { BackupEncryption } from '../../../../entity/backups/shared';
-import { type Database, DatabaseType } from '../../../../entity/databases';
-import { verificationRunsApi } from '../../../../entity/verification/runs';
+} from '../../../../entities/backups/logical';
+import { BackupEncryption } from '../../../../entities/backups/shared';
+import { type Database, DatabaseType } from '../../../../entities/databases';
+import { verificationRunsApi } from '../../../../entities/verification/runs';
 import { usePersistentState, usePolledPagedList } from '../../../../shared/hooks';
 import {
   type TranslationKey,
@@ -263,14 +263,26 @@ export const LogicalBackupsComponent = ({
     onError: (e) => alert(translateApiError(e, t)),
   });
 
-  useEffect(() => {
-    setIsBackupConfigLoading(true);
+  const showConfigError = useEffectEvent((error: unknown) => alert(translateApiError(error, t)));
 
-    backupConfigApi.getBackupConfig(database.id).then((loadedBackupConfig) => {
-      setBackupConfig(loadedBackupConfig);
-      setIsBackupConfigLoading(false);
-    });
-  }, [database]);
+  useEffect(() => {
+    let isActive = true;
+    setIsBackupConfigLoading(true);
+    backupConfigApi
+      .getBackupConfig(database.id)
+      .then((loadedBackupConfig) => {
+        if (isActive) setBackupConfig(loadedBackupConfig);
+      })
+      .catch((error) => {
+        if (isActive) showConfigError(error);
+      })
+      .finally(() => {
+        if (isActive) setIsBackupConfigLoading(false);
+      });
+    return () => {
+      isActive = false;
+    };
+  }, [database.id]);
 
   useEffect(() => {
     if (downloadingBackupId) {

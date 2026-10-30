@@ -3,8 +3,8 @@ import { Drawer, Tooltip } from 'antd';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { type DiskUsage } from '../../entity/disk';
-import { type User, UserRole } from '../../entity/users';
+import { type DiskUsage } from '../../entities/disk';
+import { type User, UserRole } from '../../entities/users';
 import { useIsMobile } from '../../shared/hooks';
 import { getWebsitePageUrl, useLocale } from '../../shared/i18n';
 import { useTheme } from '../../shared/theme';

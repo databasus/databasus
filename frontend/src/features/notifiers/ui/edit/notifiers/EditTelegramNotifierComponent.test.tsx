@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { TelegramNotifierSettings } from '../../../../../entity/notifiers';
+import type { TelegramNotifierSettings } from '../../../../../entities/notifiers';
 import { LocaleProvider } from '../../../../../shared/i18n';
 import { EditTelegramNotifierComponent } from './EditTelegramNotifierComponent';
 

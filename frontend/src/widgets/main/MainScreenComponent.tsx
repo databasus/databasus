@@ -4,15 +4,15 @@ import { useEffect, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
 import { APP_VERSION, CONTAINER_ARCH } from '../../constants';
-import { type DiskUsage, diskApi } from '../../entity/disk';
+import { type DiskUsage, diskApi } from '../../entities/disk';
 import {
   type User,
   type InstanceSettings,
   UserRole,
   settingsApi,
   userApi,
-} from '../../entity/users';
-import { type Workspace, WorkspaceRole, workspaceApi } from '../../entity/workspaces';
+} from '../../entities/users';
+import { type Workspace, WorkspaceRole, workspaceApi } from '../../entities/workspaces';
 import { DatabasesComponent } from '../../features/databases/ui/DatabasesComponent';
 import { NotifiersComponent } from '../../features/notifiers/ui/NotifiersComponent';
 import { SettingsComponent } from '../../features/settings';
