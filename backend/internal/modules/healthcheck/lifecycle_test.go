@@ -9,6 +9,8 @@ import (
 )
 
 func TestHealthcheckLifecycle(t *testing.T) {
+	t.Parallel()
+
 	t.Run("copies all settings without attempts when a database is copied", func(t *testing.T) {
 		team := newHealthcheckTeam(t)
 		team.pass(t)

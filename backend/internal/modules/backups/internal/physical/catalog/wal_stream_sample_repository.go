@@ -13,7 +13,7 @@ import (
 
 // Buckets align to date_bin with this origin, the same one Go uses to compute
 // the first bucket, so a sample always lands in the bucket the series lists.
-var seriesBucketOrigin = time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)
+func getSeriesBucketOrigin() time.Time { return time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC) }
 
 type WalStreamSampleRepository struct{ db *gorm.DB }
 
@@ -191,7 +191,7 @@ func (r *WalStreamSampleRepository) GetSeries(
 			"series_end_at":   seriesEndAt,
 			"bucket_seconds":  query.BucketDuration.Seconds(),
 			"sample_seconds":  query.SampleInterval.Seconds(),
-			"origin":          seriesBucketOrigin,
+			"origin":          getSeriesBucketOrigin(),
 		}).
 		Scan(&points).Error
 
@@ -203,7 +203,7 @@ func (r *WalStreamSampleRepository) GetSeries(
 // bucket that holds now minus period, so the series has period ÷ bucket buckets.
 func GetFirstSeriesBucketAt(now time.Time, period, bucketDuration time.Duration) time.Time {
 	periodStart := now.Add(-period)
-	bucketsSinceOrigin := periodStart.Sub(seriesBucketOrigin) / bucketDuration
+	bucketsSinceOrigin := periodStart.Sub(getSeriesBucketOrigin()) / bucketDuration
 
-	return seriesBucketOrigin.Add(bucketsSinceOrigin*bucketDuration + bucketDuration)
+	return getSeriesBucketOrigin().Add(bucketsSinceOrigin*bucketDuration + bucketDuration)
 }

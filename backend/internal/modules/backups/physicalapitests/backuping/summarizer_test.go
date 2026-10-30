@@ -12,6 +12,8 @@ import (
 )
 
 func TestIncrementalBackupWithPendingWalSummaries(t *testing.T) {
+	t.Parallel()
+
 	for _, version := range []string{"17", "18"} {
 		for _, isWriting := range []bool{false, true} {
 			scenario := "completes an incremental on an idle PostgreSQL " + version + " source while summaries trail its full"

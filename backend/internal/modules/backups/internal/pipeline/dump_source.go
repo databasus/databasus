@@ -33,7 +33,9 @@ type storedCompression struct {
 	zstdLevel int
 }
 
-var storedCompressionNone = storedCompression{isZstd: false, zstdLevel: 0}
+func getStoredCompressionNone() storedCompression {
+	return storedCompression{isZstd: false, zstdLevel: 0}
+}
 
 func newZstdStoredCompression(level int) storedCompression {
 	return storedCompression{isZstd: true, zstdLevel: level}

@@ -75,7 +75,11 @@ func seedDevApp(ctx context.Context, httpClient *http.Client, params seedParams,
 			return err
 		}
 
-		logger.Info("created database with logical backups", "name", params.LogicalDatabaseName)
+		logger.InfoContext(
+			ctx,
+			"created database with logical backups",
+			slog.String("name", params.LogicalDatabaseName),
+		)
 	}
 
 	if _, isFound := findNamedItem(existingDatabases, params.WalDatabaseName); !isFound {
@@ -83,10 +87,14 @@ func seedDevApp(ctx context.Context, httpClient *http.Client, params seedParams,
 			return err
 		}
 
-		logger.Info("created database with WAL-streaming backups", "name", params.WalDatabaseName)
+		logger.InfoContext(
+			ctx,
+			"created database with WAL-streaming backups",
+			slog.String("name", params.WalDatabaseName),
+		)
 	}
 
-	logger.Info(fmt.Sprintf("dev app is seeded: sign in as %s", params.Email))
+	logger.InfoContext(ctx, "dev app is seeded", slog.String("sign_in_email", params.Email))
 
 	return nil
 }
@@ -139,7 +147,7 @@ func signInOrSignUp(
 			params.Email, signInErr, signUpErr)
 	}
 
-	logger.Info("registered the dev account")
+	logger.InfoContext(ctx, "registered the dev account")
 
 	return signUp.Token, nil
 }
@@ -165,7 +173,7 @@ func findOrCreateWorkspace(
 		return uuid.Nil, fmt.Errorf("cannot create workspace %q: %w", workspaceName, err)
 	}
 
-	logger.Info("created workspace", "name", workspaceName)
+	logger.InfoContext(ctx, "created workspace", slog.String("name", workspaceName))
 
 	return createdWorkspace.ID, nil
 }
@@ -195,7 +203,7 @@ func findOrCreateLocalStorage(
 		return uuid.Nil, fmt.Errorf("cannot create storage %q: %w", storageName, err)
 	}
 
-	logger.Info("created storage", "name", storageName)
+	logger.InfoContext(ctx, "created storage", slog.String("name", storageName))
 
 	return createdStorage.ID, nil
 }
@@ -220,11 +228,11 @@ func createLogicalDatabase(
 			Password:           source.Password,
 			Database:           source.Database,
 			SslMode:            "disable",
-			SshTunnel:          disabledSshTunnel{IsEnabled: false},
+			SSHTunnel:          disabledSSHTunnel{IsEnabled: false},
 			IncludeSchemas:     []string{},
 			ExcludeTables:      []string{},
 			ExcludeTableData:   []string{},
-			CpuCount:           1,
+			CPUCount:           1,
 			IsSkipUserMappings: false,
 		},
 	})
@@ -268,7 +276,7 @@ func createWalDatabase(
 			Username:   source.Username,
 			Password:   source.Password,
 			SslMode:    "disable",
-			SshTunnel:  disabledSshTunnel{IsEnabled: false},
+			SSHTunnel:  disabledSSHTunnel{IsEnabled: false},
 		},
 	})
 	if err != nil {

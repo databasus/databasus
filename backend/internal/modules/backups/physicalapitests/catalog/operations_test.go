@@ -13,6 +13,8 @@ import (
 )
 
 func TestChangePhysicalBackup(t *testing.T) {
+	t.Parallel()
+
 	t.Run("records cancellation before answering when a running backup has no live process", func(t *testing.T) {
 		catalog := newCatalog(t)
 
@@ -381,6 +383,8 @@ func TestChangePhysicalBackup(t *testing.T) {
 }
 
 func TestPhysicalBackupMemberChanges(t *testing.T) {
+	t.Parallel()
+
 	for _, scenario := range []struct {
 		name     string
 		isCancel bool

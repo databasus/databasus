@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"testing"
 
+	containers "databasus-backend/internal/lib/testcontainers"
 	"databasus-backend/internal/lib/testwait"
-	"databasus-backend/internal/util/testing/containers"
 )
 
 func TestGetWalSummarizerState(t *testing.T) {
-	for _, image := range supportedVersionImages {
+	for _, image := range getSupportedVersionImages() {
 		t.Run(image, func(t *testing.T) {
 			for _, isEnabled := range []bool{true, false} {
 				t.Run(
@@ -21,7 +21,7 @@ func TestGetWalSummarizerState(t *testing.T) {
 							options = append(options, containers.WithoutSummarizer())
 						}
 						server := startTestServer(t, image, options...)
-						inspection := server.openInspection(t, adminRole)
+						inspection := server.openInspection(t, getAdminRole())
 						testwait.Until(t, "summarizer process matches settings", func(ctx context.Context) error {
 							state, err := inspection.GetWalSummarizerState(ctx)
 							if err != nil {

@@ -13,6 +13,8 @@ import (
 )
 
 func TestWalStreamShutdown(t *testing.T) {
+	t.Parallel()
+
 	t.Run("resumes the same slot within thirty seconds when the modules restart", func(t *testing.T) {
 		team := newWalTeam(t, walTeamSpec{})
 		team.enable(t)

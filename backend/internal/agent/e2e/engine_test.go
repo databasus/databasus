@@ -120,8 +120,8 @@ func readContainerStatus(t *testing.T, engine *client.Client, containerID string
 
 func createStrayContainer(t *testing.T, engine *client.Client, agentID uuid.UUID) string {
 	t.Helper()
-	if _, err := engine.ImageInspect(t.Context(), restoreImages[6]); err != nil {
-		download, err := engine.ImagePull(t.Context(), restoreImages[6], client.ImagePullOptions{})
+	if _, err := engine.ImageInspect(t.Context(), getRestoreImages()[6]); err != nil {
+		download, err := engine.ImagePull(t.Context(), getRestoreImages()[6], client.ImagePullOptions{})
 		require.NoError(t, err)
 		_, err = io.Copy(io.Discard, download)
 		closeErr := download.Close()
@@ -133,7 +133,7 @@ func createStrayContainer(t *testing.T, engine *client.Client, agentID uuid.UUID
 		t.Context(),
 		client.ContainerCreateOptions{
 			Config: &container.Config{
-				Image:  restoreImages[6],
+				Image:  getRestoreImages()[6],
 				Cmd:    []string{"sleep", "600"},
 				Labels: map[string]string{agent_container.LabelAgentID: agentID.String()},
 			},

@@ -12,6 +12,8 @@ import (
 )
 
 func TestCancelLogicalBackup(t *testing.T) {
+	t.Parallel()
+
 	server := startRestoreServer(t, restoreServerImage)
 
 	t.Run("returns 202, records the running backup as canceled and deletes its file", func(t *testing.T) {

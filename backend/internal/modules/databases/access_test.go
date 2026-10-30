@@ -11,14 +11,16 @@ import (
 	"github.com/stretchr/testify/require"
 
 	apiclient "databasus-backend/internal/lib/apiclient"
-	"databasus-backend/internal/util/testing/containers"
+	containers "databasus-backend/internal/lib/testcontainers"
 )
 
-// unreachableServer is where the settings of a request point when the request must be refused before
-// any connection.
-var unreachableServer = containers.Endpoint{Host: "db.example.com", Port: 5432}
+func getUnreachableServer() containers.Endpoint {
+	return containers.Endpoint{Host: "db.example.com", Port: 5432}
+}
 
 func TestDatabaseAccess(t *testing.T) {
+	t.Parallel()
+
 	server := containers.StartPostgres(t, "postgres:16")
 
 	t.Run("lets a viewer list and read the databases of the workspace", func(t *testing.T) {
@@ -62,7 +64,7 @@ func TestDatabaseAccess(t *testing.T) {
 			WorkspaceId: tm.workspace.Id,
 			Name:        "Orders",
 			NotifierIds: []uuid.UUID{},
-			Settings:    fromLogicalSettings(t, newLogicalSettings(unreachableServer)),
+			Settings:    fromLogicalSettings(t, newLogicalSettings(getUnreachableServer())),
 		})
 
 		require.NoError(t, err)
@@ -122,7 +124,7 @@ func TestDatabaseAccess(t *testing.T) {
 			updateResponse := updateDatabase(t, stranger, databaseID, apiclient.DatabaseUpdate{
 				Name:        "Taken over",
 				NotifierIds: []uuid.UUID{},
-				Settings:    fromLogicalSettings(t, newLogicalSettings(unreachableServer)),
+				Settings:    fromLogicalSettings(t, newLogicalSettings(getUnreachableServer())),
 			})
 			copyResponse, err := stranger.Client.CopyDatabaseWithResponse(t.Context(), databaseID)
 
@@ -160,7 +162,7 @@ func TestDatabaseAccess(t *testing.T) {
 			WorkspaceId: tm.workspace.Id,
 			Name:        "Planted",
 			NotifierIds: []uuid.UUID{},
-			Settings:    fromLogicalSettings(t, newLogicalSettings(unreachableServer)),
+			Settings:    fromLogicalSettings(t, newLogicalSettings(getUnreachableServer())),
 		})
 
 		require.NoError(t, err)

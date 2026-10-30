@@ -13,6 +13,8 @@ import (
 )
 
 func TestChangeWorkspaceMemberRole(t *testing.T) {
+	t.Parallel()
+
 	t.Run("returns 400 and keeps the owner when an admin makes a member the owner", func(t *testing.T) {
 		tm := newTeam(t)
 		workspaceAdmin, _ := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEADMIN)
@@ -128,6 +130,8 @@ func TestChangeWorkspaceMemberRole(t *testing.T) {
 }
 
 func TestRemoveWorkspaceMember(t *testing.T) {
+	t.Parallel()
+
 	t.Run("returns 409 and keeps the owner when an instance admin removes the owner", func(t *testing.T) {
 		tm := newTeam(t)
 		ownerMember := tm.getOwnerMember(t)
@@ -185,6 +189,8 @@ func TestRemoveWorkspaceMember(t *testing.T) {
 }
 
 func TestTransferWorkspaceOwnership(t *testing.T) {
+	t.Parallel()
+
 	t.Run("makes the admin the owner and the previous owner an admin", func(t *testing.T) {
 		tm := newTeam(t)
 		_, adminMember := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEADMIN)

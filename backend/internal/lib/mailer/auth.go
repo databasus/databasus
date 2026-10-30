@@ -12,10 +12,13 @@ const (
 	mechanismLogin = "LOGIN"
 )
 
-var (
-	loginUsernamePrompts = []string{"username:", "user name"}
-	loginPasswordPrompts = []string{"password:", "password"}
-)
+func getLoginUsernamePrompts() []string {
+	return []string{"username:", "user name"}
+}
+
+func getLoginPasswordPrompts() []string {
+	return []string{"password:", "password"}
+}
 
 type credentials struct {
 	username               string
@@ -87,9 +90,9 @@ func (a *loginAuth) Next(serverPrompt []byte, isMoreExpected bool) ([]byte, erro
 	normalizedPrompt := strings.ToLower(strings.TrimRight(string(serverPrompt), "\x00"))
 
 	switch {
-	case slices.Contains(loginUsernamePrompts, normalizedPrompt):
+	case slices.Contains(getLoginUsernamePrompts(), normalizedPrompt):
 		return []byte(a.username), nil
-	case slices.Contains(loginPasswordPrompts, normalizedPrompt):
+	case slices.Contains(getLoginPasswordPrompts(), normalizedPrompt):
 		return []byte(a.password), nil
 	default:
 		return nil, fmt.Errorf("%w: %q", ErrUnknownLoginPrompt, serverPrompt)

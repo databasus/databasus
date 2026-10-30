@@ -11,6 +11,8 @@ import (
 )
 
 func TestListNotifiers(t *testing.T) {
+	t.Parallel()
+
 	t.Run("pages through the notifiers of the workspace by name", func(t *testing.T) {
 		tm := newTeam(t)
 		for _, name := range []string{"b", "a", "c"} {

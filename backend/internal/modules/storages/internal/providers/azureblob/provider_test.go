@@ -15,9 +15,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	test_utils "databasus-backend/internal/lib/httpclienttest"
+	containers "databasus-backend/internal/lib/testcontainers"
 	"databasus-backend/internal/modules/storages/internal/providers/providertest"
-	test_utils "databasus-backend/internal/util/testing"
-	"databasus-backend/internal/util/testing/containers"
 )
 
 func startAzurite(t *testing.T) (*blobContainer, *azblob.Client, string) {

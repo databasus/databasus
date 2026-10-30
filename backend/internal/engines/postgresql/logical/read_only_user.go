@@ -13,6 +13,7 @@ import (
 
 const maxReadOnlyUserAttempts = 3
 
+//nolint:gochecknoglobals // Shared immutable privilege lookup is reused across table grants; it is never mutated.
 var tableWritePrivileges = map[string]bool{
 	"INSERT":     true,
 	"UPDATE":     true,

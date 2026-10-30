@@ -6,8 +6,6 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-
-	old_config "databasus-backend/internal/config"
 )
 
 func (a *App) DamageLocalBackup(tb testing.TB, backupID uuid.UUID, damagedBytes []byte) {
@@ -20,7 +18,7 @@ func (a *App) DamageLocalBackup(tb testing.TB, backupID uuid.UUID, damagedBytes 
 		tb.Fatal("the backup has no stored file")
 	}
 	if err := os.WriteFile(
-		filepath.Join(old_config.GetEnv().DataFolder, backups[0].FileName),
+		filepath.Join(a.dataFolder, backups[0].FileName),
 		damagedBytes,
 		0o600,
 	); err != nil {
@@ -37,7 +35,7 @@ func (a *App) RemoveLocalBackupFile(tb testing.TB, backupID uuid.UUID) {
 	if len(backups) != 1 || backups[0].FileName == "" {
 		tb.Fatal("the backup has no stored file")
 	}
-	if err := os.Remove(filepath.Join(old_config.GetEnv().DataFolder, backups[0].FileName)); err != nil {
+	if err := os.Remove(filepath.Join(a.dataFolder, backups[0].FileName)); err != nil {
 		tb.Fatalf("remove the stored backup: %v", err)
 	}
 }

@@ -13,6 +13,8 @@ import (
 )
 
 func TestSchedulePhysicalBackupDuringOrphanCleanup(t *testing.T) {
+	t.Parallel()
+
 	for _, testCase := range []struct {
 		name                           string
 		isFullCompletedWhileWaiting    bool

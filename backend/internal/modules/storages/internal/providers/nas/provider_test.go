@@ -9,9 +9,9 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"databasus-backend/internal/lib/background"
+	containers "databasus-backend/internal/lib/testcontainers"
 	"databasus-backend/internal/modules/storages/internal/providers"
 	"databasus-backend/internal/modules/storages/internal/providers/providertest"
-	"databasus-backend/internal/util/testing/containers"
 )
 
 func TestDeleteFile(t *testing.T) {

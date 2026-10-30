@@ -13,6 +13,8 @@ import (
 )
 
 func TestPhysicalWalBackpressure(t *testing.T) {
+	t.Parallel()
+
 	t.Run(
 		"counts a pause and then a restart after the queue drains and the receiver loses its source connection",
 		func(t *testing.T) {

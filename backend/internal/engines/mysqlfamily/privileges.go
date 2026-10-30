@@ -28,11 +28,15 @@ func (t DumpedTable) getRequiredPrivileges() []string {
 
 // The dump tool aborts on an object it can list but cannot read, so these decide whether a dump can
 // run at all. Which of them a given object actually needs is DumpedTable's business.
-var requiredBackupPrivileges = []string{"SELECT", "SHOW VIEW"}
+func getRequiredBackupPrivileges() []string {
+	return []string{"SELECT", "SHOW VIEW"}
+}
 
 // TRIGGER and EVENT are not required: without them the dump tool is told to leave those objects
 // out rather than fail, and the stored set is what the backup consults to decide that.
-var recordedBackupPrivileges = []string{"SELECT", "SHOW VIEW", "TRIGGER", "EVENT"}
+func getRecordedBackupPrivileges() []string {
+	return []string{"SELECT", "SHOW VIEW", "TRIGGER", "EVENT"}
+}
 
 type BackupPrivilegesSpec struct {
 	SchemaName   string
@@ -60,7 +64,7 @@ func GetBackupPrivileges(spec BackupPrivilegesSpec) BackupPrivileges {
 		Grantee:    spec.Grantee,
 	}
 
-	for _, privilege := range recordedBackupPrivileges {
+	for _, privilege := range getRecordedBackupPrivileges() {
 		if isPrivilegeCoveringDump(spec, privilege) {
 			backupPrivileges.EffectivePrivileges = append(backupPrivileges.EffectivePrivileges, privilege)
 		}
@@ -68,7 +72,7 @@ func GetBackupPrivileges(spec BackupPrivilegesSpec) BackupPrivileges {
 
 	slices.Sort(backupPrivileges.EffectivePrivileges)
 
-	for _, privilege := range requiredBackupPrivileges {
+	for _, privilege := range getRequiredBackupPrivileges() {
 		if missingPrivilege, isMissing := getMissingPrivilege(spec, privilege); isMissing {
 			backupPrivileges.Missing = append(backupPrivileges.Missing, missingPrivilege)
 		}

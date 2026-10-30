@@ -124,6 +124,8 @@ func hasDatabase(session *gorm.DB, databaseName string) (bool, error) {
 }
 
 // A process builds or finds each template once, however many tests ask for it.
+//
+//nolint:gochecknoglobals // A process shares template-creation synchronization by migration hash; databases still belong to individual tests.
 var (
 	templatesMutex sync.Mutex
 	templates      = map[string]*templateResult{}

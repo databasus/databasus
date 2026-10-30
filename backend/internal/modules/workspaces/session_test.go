@@ -19,6 +19,8 @@ type unauthenticatedCall struct {
 }
 
 func TestOperationsWithoutSession(t *testing.T) {
+	t.Parallel()
+
 	anyID := uuid.New()
 	calls := []unauthenticatedCall{
 		{

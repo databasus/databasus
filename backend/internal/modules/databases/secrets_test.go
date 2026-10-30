@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	apiclient "databasus-backend/internal/lib/apiclient"
-	"databasus-backend/internal/util/testing/containers"
+	containers "databasus-backend/internal/lib/testcontainers"
 )
 
 const movedSSHTunnelHost = "bastion-moved.example.com"
@@ -26,6 +26,8 @@ type secretLifecycleCase struct {
 }
 
 func TestDatabaseSecrets(t *testing.T) {
+	t.Parallel()
+
 	secretLifecycleCases := []secretLifecycleCase{
 		{
 			name:           "PostgreSQL logical",

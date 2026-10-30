@@ -41,3 +41,25 @@ func TestErrorsFile(t *testing.T) {
 		})
 	})
 }
+
+func TestErrorsOutsideFormerLayout(t *testing.T) {
+	t.Parallel()
+	t.Run("rejects an error declared outside errors.go in another backend package", func(t *testing.T) {
+		t.Parallel()
+		violations := checkFixture(
+			t,
+			map[string]string{
+				"internal/other/service.go": "package other\nimport \"errors\"\nvar ErrFailure = errors.New(\"failure\")\n",
+			},
+		)
+		requireSingleViolation(
+			t,
+			violations,
+			violationSpec{
+				position:     "internal/other/service.go:3",
+				rule:         "errors-file",
+				messageParts: []string{"ErrFailure"},
+			},
+		)
+	})
+}

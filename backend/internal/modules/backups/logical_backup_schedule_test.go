@@ -13,8 +13,8 @@ import (
 
 	"databasus-backend/internal/app/apptest"
 	apiclient "databasus-backend/internal/lib/apiclient"
+	containers "databasus-backend/internal/lib/testcontainers"
 	"databasus-backend/internal/lib/testwait"
-	"databasus-backend/internal/util/testing/containers"
 )
 
 const logicalBackupSchedulerJobName = "backups_logical_scheduler"
@@ -22,6 +22,8 @@ const logicalBackupSchedulerJobName = "backups_logical_scheduler"
 var errScheduledBackupNotFailed = errors.New("the scheduled backup has not failed yet")
 
 func TestLogicalBackupScheduler(t *testing.T) {
+	t.Parallel()
+
 	server := startRestoreServer(t, restoreServerImage)
 
 	t.Run("starts a backup at the next check once the daily time passes", func(t *testing.T) {

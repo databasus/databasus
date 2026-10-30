@@ -13,6 +13,8 @@ import (
 )
 
 func TestLogicalBackupAccess(t *testing.T) {
+	t.Parallel()
+
 	server := startRestoreServer(t, restoreServerImage)
 
 	t.Run("lets a member cancel a running backup and delete a completed one", func(t *testing.T) {

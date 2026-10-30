@@ -19,7 +19,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/blockblob"
 	"github.com/google/uuid"
 
-	io_utils "databasus-backend/internal/util/io"
+	io_utils "databasus-backend/internal/lib/iox"
 )
 
 // blobContainer is one Azure Blob storage while a call runs: the settings it was called with and the

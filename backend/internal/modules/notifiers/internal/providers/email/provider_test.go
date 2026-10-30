@@ -10,12 +10,12 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"databasus-backend/internal/lib/mailer"
+	mailpit "databasus-backend/internal/lib/mailpittest"
+	containers "databasus-backend/internal/lib/testcontainers"
 	"databasus-backend/internal/lib/testwait"
 	"databasus-backend/internal/modules/notifiers/internal/notification"
 	"databasus-backend/internal/modules/notifiers/internal/providers/email"
 	"databasus-backend/internal/modules/notifiers/internal/providers/providertest"
-	"databasus-backend/internal/util/testing/containers"
-	"databasus-backend/internal/util/testing/mailpit"
 )
 
 var errMessageNotArrived = errors.New("the message has not arrived")
@@ -34,7 +34,7 @@ func TestSend(t *testing.T) {
 		var deliveredMessages []mailpit.Message
 
 		testwait.Until(t, "the message arrives at Mailpit", func(context.Context) error {
-			messages, err := mailpitClient.FetchMessages()
+			messages, err := mailpitClient.FetchMessages(t.Context())
 			if err != nil {
 				return err
 			}

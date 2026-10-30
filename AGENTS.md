@@ -43,7 +43,7 @@ The repository's skills live in `.agents/skills/`, which Codex reads directly; C
 | Command | Purpose |
 |---|---|
 | `mise run dev` | Start the app locally: dev database, test fixtures, WAL backup source with its load generator, backend and frontend; seeds a dev account with databases and restarts the backend when its code changes |
-| `mise run test` | Run every test |
+| `mise run test` | Run the default backend and upgrade suite; filesystem tests run separately |
 | `mise run backend:test-package <packages>` | Run the given backend test packages |
 | `mise run test-filesystem` | Run the Docker filesystem suite, mostly left to CI |
 | `mise run pull-testcontainers` | Pull the database images the backend tests use |
@@ -75,16 +75,6 @@ Several agents may work on this repo at once, in different worktrees, sharing on
 - While working, run the packages and tests you need right now. Before handing the work over, run the tests of the packages you touched and of the packages that test the same feature, as [`docs/testing.md`](docs/testing.md#choosing-the-tests-to-run) says.
 - Run the full `mise run test` only when the user asks for it.
 - Never stop the shared test PostgreSQL server or prune Docker, because other runs use them.
-
-### Until the migration finishes
-
-The layout and the tooling described in `docs/` arrive milestone by milestone. Until they do, these substitutes apply:
-
-- The old code gets the configuration, the database and the logger through `config.GetEnv()`, `storage.GetDb()` and `logger.GetLogger()`, which `internal/app` fills; in a test build with the `testhelpers` tag they load themselves.
-- Go code under `backend/` outside the layout block in "Backend layout" of [`docs/architecture.md`](docs/architecture.md#backend-layout) keeps its existing structure until the milestone that moves it, as the first section of that document says.
-- Packages outside that layout keep their cross-package test helpers in files behind the `testhelpers` build tag, so the production binary does not link them. `mise run backend:test-package` passes the tag itself; a `go test` that runs such a package directly passes it too: `go test -race -tags testhelpers -count=1 ./internal/features/databases/...` in `backend/`. Every `go` command in a Claude Code or Codex session sees the tag, and the repository's Zed and VS Code settings pass it to gopls, so the production graph is checked with `go run ./tools/archlint` or with `GOFLAGS=` in front of `go list`.
-
-Temporary docs and plan for migration is here - @temp/refactor
 
 ---
 

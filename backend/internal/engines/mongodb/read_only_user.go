@@ -15,6 +15,7 @@ import (
 
 const maxReadOnlyUserAttempts = 3
 
+//nolint:gochecknoglobals // Shared immutable MongoDB capability lookup is reused for inherited roles and actions; it is never mutated.
 var writeRoles = map[string]bool{
 	"readWrite":            true,
 	"readWriteAnyDatabase": true,
@@ -31,13 +32,13 @@ var writeRoles = map[string]bool{
 	"__system":             true,
 }
 
-// The "backup" role has insert and update on the mms.backup collection, but mongodump needs it, so
-// it counts as read-only here.
+//nolint:gochecknoglobals // Shared immutable MongoDB capability lookup is reused for inherited roles and actions; it is never mutated.
 var readOnlyRoles = map[string]bool{
 	"read":   true,
 	"backup": true,
 }
 
+//nolint:gochecknoglobals // Shared immutable MongoDB capability lookup is reused for inherited roles and actions; it is never mutated.
 var writeActions = map[string]bool{
 	"insert":             true,
 	"update":             true,

@@ -12,13 +12,15 @@ import (
 
 	"databasus-backend/internal/app/apptest"
 	apiclient "databasus-backend/internal/lib/apiclient"
-	"databasus-backend/internal/util/testing/containers"
+	containers "databasus-backend/internal/lib/testcontainers"
 )
 
 // unansweredPort is a port where no test server listens, so a connection to it is refused at once.
 const unansweredPort = 1
 
 func TestCreateDatabase(t *testing.T) {
+	t.Parallel()
+
 	server := containers.StartPostgres(t, "postgres:16")
 
 	t.Run("returns the saved PostgreSQL database with its detected version and without its secrets",
@@ -181,6 +183,8 @@ func listLogicalBackupIDs(t *testing.T, tm team, databaseID uuid.UUID) []uuid.UU
 }
 
 func TestUpdateDatabase(t *testing.T) {
+	t.Parallel()
+
 	server := containers.StartPostgres(t, "postgres:16")
 
 	t.Run("renames the database and keeps the stored password when the request leaves it out",

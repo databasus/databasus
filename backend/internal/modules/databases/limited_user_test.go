@@ -12,12 +12,14 @@ import (
 
 	"databasus-backend/internal/app/apptest"
 	apiclient "databasus-backend/internal/lib/apiclient"
-	"databasus-backend/internal/util/testing/containers"
+	containers "databasus-backend/internal/lib/testcontainers"
 )
 
 const mysqlRootUsername = "root"
 
 func TestMysqlLimitedUser(t *testing.T) {
+	t.Parallel()
+
 	mysqlServer := containers.StartMysql(t, "mysql:8.0")
 	rootSettings := newMysqlServerSettings(t, mysqlServer, mysqlRootUsername, containers.MysqlRootPassword)
 
@@ -59,6 +61,8 @@ func TestMysqlLimitedUser(t *testing.T) {
 }
 
 func TestPostgresqlLimitedUser(t *testing.T) {
+	t.Parallel()
+
 	postgresServer := containers.StartPostgres(t, "postgres:16")
 
 	t.Run("lets a member check and then create a limited user of a saved database", func(t *testing.T) {
@@ -146,6 +150,8 @@ func TestPostgresqlLimitedUser(t *testing.T) {
 }
 
 func TestPhysicalLimitedUser(t *testing.T) {
+	t.Parallel()
+
 	physicalServer := containers.StartPhysicalPostgres(t, "postgres:17")
 
 	t.Run("creates a replication-only user that may force a WAL switch when the source allows it", func(t *testing.T) {

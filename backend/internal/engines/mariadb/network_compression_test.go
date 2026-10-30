@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"databasus-backend/internal/util/testing/containers"
+	containers "databasus-backend/internal/lib/testcontainers"
 )
 
 func TestDumpNetworkCompression(t *testing.T) {

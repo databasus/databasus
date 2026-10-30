@@ -12,6 +12,8 @@ import (
 )
 
 func TestCreateNotifier(t *testing.T) {
+	t.Parallel()
+
 	t.Run("returns the saved telegram notifier without its bot token and proxy URL", func(t *testing.T) {
 		tm := newTeam(t)
 		telegram := newTelegram("123456:AAH-SECRET-TOKEN", "")
@@ -55,6 +57,8 @@ func TestCreateNotifier(t *testing.T) {
 }
 
 func TestGetNotifier(t *testing.T) {
+	t.Parallel()
+
 	t.Run("lists the webhook header names without their values and shows the URL", func(t *testing.T) {
 		tm := newTeam(t)
 		createdNotifier := apptest.CreateNotifier(t, tm.owner, tm.workspace.Id, newWebhookSettings(t,
@@ -104,6 +108,8 @@ func TestGetNotifier(t *testing.T) {
 }
 
 func TestUpdateNotifier(t *testing.T) {
+	t.Parallel()
+
 	t.Run("keeps the stored slack bot token when a rename leaves it out", func(t *testing.T) {
 		slackAPI := startEndpoint(t, http.StatusOK)
 		tm := newTeam(t, apptest.WithNotifierEndpoints(apptest.NotifierEndpoints{

@@ -12,6 +12,8 @@ import (
 )
 
 func TestSystemDiskUsage(t *testing.T) {
+	t.Parallel()
+
 	t.Run("returns byte counts when ordinary users or admins sign in", func(t *testing.T) {
 		application := apptest.New(t)
 		admin := application.CreateAdmin(t)

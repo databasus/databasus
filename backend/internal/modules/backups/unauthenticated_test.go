@@ -12,6 +12,8 @@ import (
 )
 
 func TestBackupConfigOperationsWithoutSession(t *testing.T) {
+	t.Parallel()
+
 	t.Run("returns 401 unauthenticated for a list without a session", func(t *testing.T) {
 		tm := newTeam(t)
 

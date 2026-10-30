@@ -2,8 +2,6 @@
 
 This document states how Databasus is built and why. The architecture review hook checks every plan and every diff against it. Terms follow the [glossary](glossary.md), and [testing.md](testing.md) describes the test setup. Product behavior lives in the OpenSpec specs under `openspec/specs`. Rules that a linter or `archlint` enforces are listed in [Automatic checks](#automatic-checks).
 
-Go code under `backend/` outside the layout block in [Backend layout](#backend-layout) predates this document and is being moved into that layout. New code follows this document. A change to the old code keeps that code's existing structure, unless the change is the one that moves it.
-
 ## System
 
 Databasus backs up and restores the user's PostgreSQL, MySQL, MariaDB and MongoDB databases into storages the user picks, and reports results through notifiers.
@@ -34,6 +32,7 @@ Databasus backs up and restores the user's PostgreSQL, MySQL, MariaDB and MongoD
 backend/
   api/                         openapi.yaml, agent.yaml and the package that embeds them
   cmd/databasus/               the server and its console commands
+  cmd/seed_dev/                development account, workspace and source seeding
   cmd/verification-agent/      the verification agent binary
   internal/app/                composition root: config, database, modules, routes, jobs, event wiring, shutdown
   internal/modules/<name>/     domain modules
@@ -151,9 +150,10 @@ Settings stay in columns rather than in a JSON document for two reasons. The dat
 | `sshtunnel` | SSH tunnels |
 | `diskusage` | disk usage |
 | `iox` | stream helpers |
+| `filename` | portable filename sanitization |
 | `namelist` | the lists of object names a user enters, such as excluded tables |
 
-Test support lives in `lib` too: `testdb`, `testwait`, the contract-checking test clients `apiclient` and `agentclienttest` with their shared response check `contracttest`, `toolstub`, which stands in for a client tool and records how it was started, and `testcontainers` with the containers of every engine and storage.
+Test support lives in `lib` too: `testdb`, `testwait`, the contract-checking clients `apiclient` and `agentclienttest` with `contracttest`, `toolstub`, the source and provider containers in `testcontainers`, SSH settings in `testcontainers/bastion`, proxy and timeout behavior in `httpclienttest`, and mail assertions in `mailpittest`. Storage-provider-only support lives in `storages/internal/providers/providertest`. Production dependency checks keep test support out of both binaries.
 
 Audit events are written through `lib/audit` in the transaction of the operation they describe. Each event stores a snapshot of its audit author's user ID, email and name as they were at the time of the action. The event reads the same after the user changes or is deleted, and reading it needs no join with `users`. `workspaces` serves every audit log view, the global one included: each view shows the name of the workspace an event belongs to, which only `workspaces` can read, and `workspaces` can apply each view's access rule.
 
@@ -289,4 +289,4 @@ The verification agent is a CLI worker that runs on a machine the user provides.
 
 `mise run lint` runs all of them; `mise run backend:lint` runs all but the freshness check of the frontend types. The linters check test files too. The `archlint` rules on imports, the module root, file roles, errors and bare `go` check production files only: a module's API tests build the whole application through `apptest`, which sits above the modules, and tests start goroutines of their own to drive concurrent calls.
 
-`gochecknoglobals` arrives once no package-level dependencies remain. Until a module moves into the layout above, its code keeps the golangci-lint checks it had before these rules, and its test files are not linted; `backend/.golangci.yml` names the target layout. Only the production-binary rule and the testhelpers build tag rule of `archlint` reach that code.
+All backend packages and commands follow these checks. Immutable shared tables and process-level test fixture synchronization require a specific, explained lint suppression; application dependencies always belong to their owning instance.

@@ -13,6 +13,8 @@ import (
 )
 
 func TestRemoveBackupVerifications(t *testing.T) {
+	t.Parallel()
+
 	server := startRestoreServer(t, restoreServerImage)
 
 	t.Run("removes completed running and pending verifications when a member deletes their backup", func(t *testing.T) {

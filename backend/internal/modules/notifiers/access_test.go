@@ -14,6 +14,8 @@ import (
 )
 
 func TestNotifierAccess(t *testing.T) {
+	t.Parallel()
+
 	t.Run("lets a viewer list and read the notifiers of the workspace", func(t *testing.T) {
 		tm := newTeam(t)
 		viewer := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEVIEWER)

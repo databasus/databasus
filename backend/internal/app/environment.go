@@ -1,5 +1,5 @@
 // Package app is the composition root: it loads the configuration, opens the database, applies the
-// migrations, wires the old code and runs the server or a console command.
+// migrations, wires modules and runs the server or a console command.
 package app
 
 import (
@@ -19,7 +19,6 @@ import (
 	"databasus-backend/internal/lib/mailer"
 	"databasus-backend/internal/modules/backups"
 	"databasus-backend/internal/modules/storages"
-	"databasus-backend/internal/util/logger"
 )
 
 type Environment struct {
@@ -120,8 +119,6 @@ func NewEnvironment(ctx context.Context, loadedConfig config.Config, clockSource
 
 		return nil, fmt.Errorf("configure logging: %w", err)
 	}
-
-	logger.Install(loadedLogging)
 
 	clientToolsDir, clientToolsDirErr := findClientToolsDir()
 

@@ -15,6 +15,8 @@ import (
 )
 
 func TestHealthcheckAttemptList(t *testing.T) {
+	t.Parallel()
+
 	t.Run("filters since inclusively and pages newest first including tied timestamps", func(t *testing.T) {
 		team := newHealthcheckTeam(t)
 		now := team.App.Clock.Now()

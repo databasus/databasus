@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	violations, err := check(".", backendSpec)
+	violations, err := check(".", getBackendSpec())
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "archlint: %v\n", err)
 		os.Exit(2)

@@ -15,6 +15,8 @@ import (
 )
 
 func TestPhysicalWalSamples(t *testing.T) {
+	t.Parallel()
+
 	t.Run(
 		"records source and archive values and clears its failing time after the first healthy sample",
 		func(t *testing.T) {

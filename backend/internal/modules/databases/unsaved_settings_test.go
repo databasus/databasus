@@ -13,10 +13,12 @@ import (
 
 	"databasus-backend/internal/app/apptest"
 	apiclient "databasus-backend/internal/lib/apiclient"
-	"databasus-backend/internal/util/testing/containers"
+	containers "databasus-backend/internal/lib/testcontainers"
 )
 
 func TestTestDatabaseSettings(t *testing.T) {
+	t.Parallel()
+
 	postgresServer := containers.StartPostgres(t, "postgres:16")
 	secondPostgresServer := containers.StartPostgres(t, "postgres:16")
 

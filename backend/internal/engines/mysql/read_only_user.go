@@ -8,6 +8,7 @@ import (
 	"databasus-backend/internal/engines/mysqlfamily"
 )
 
+//nolint:gochecknoglobals // Shared immutable write-privilege lookup is reused for each grant during read-only user checks; it is never mutated.
 var writePrivileges = map[string]bool{
 	"INSERT":            true,
 	"UPDATE":            true,

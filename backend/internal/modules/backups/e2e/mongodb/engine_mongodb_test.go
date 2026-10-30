@@ -15,21 +15,27 @@ import (
 
 	"databasus-backend/internal/app/apptest/enginetest"
 	apiclient "databasus-backend/internal/lib/apiclient"
-	"databasus-backend/internal/util/testing/containers"
+	containers "databasus-backend/internal/lib/testcontainers"
 )
 
 const mongodbConnectTimeout = 10 * time.Second
 
-var mongodbVersions = []struct {
+func getMongodbVersions() []struct {
 	name    string
 	version apiclient.MongodbVersion
 	image   string
-}{
-	{"MongoDB 5.0", apiclient.MongodbVersionN5, "mongo:5.0"},
-	{"MongoDB 6.0", apiclient.MongodbVersionN6, "mongo:6.0"},
-	{"MongoDB 7.0", apiclient.MongodbVersionN7, "mongo:7.0"},
-	{"MongoDB 8.2", apiclient.MongodbVersionN8, "mongo:8.2.3-noble"},
-	{"MongoDB 9.0", apiclient.MongodbVersionN9, "mongo:9.0.2-noble"},
+} {
+	return []struct {
+		name    string
+		version apiclient.MongodbVersion
+		image   string
+	}{
+		{"MongoDB 5.0", apiclient.MongodbVersionN5, "mongo:5.0"},
+		{"MongoDB 6.0", apiclient.MongodbVersionN6, "mongo:6.0"},
+		{"MongoDB 7.0", apiclient.MongodbVersionN7, "mongo:7.0"},
+		{"MongoDB 8.2", apiclient.MongodbVersionN8, "mongo:8.2.3-noble"},
+		{"MongoDB 9.0", apiclient.MongodbVersionN9, "mongo:9.0.2-noble"},
+	}
 }
 
 type mongodbTestDocument struct {
@@ -42,7 +48,9 @@ type mongodbTestDocument struct {
 // TestBackupAndRestoreMongodb boots each supported version once and runs every scenario against it,
 // so only one server of the matrix is alive at a time.
 func TestBackupAndRestoreMongodb(t *testing.T) {
-	for _, mongodbVersion := range mongodbVersions {
+	t.Parallel()
+
+	for _, mongodbVersion := range getMongodbVersions() {
 		t.Run(mongodbVersion.name, func(t *testing.T) {
 			endpoint := containers.StartMongodb(t, mongodbVersion.image)
 
@@ -63,6 +71,8 @@ func TestBackupAndRestoreMongodb(t *testing.T) {
 }
 
 func TestBackupAndRestoreMongodbOverTls(t *testing.T) {
+	t.Parallel()
+
 	t.Run("restores the documents over a connection that requires TLS", func(t *testing.T) {
 		certificateDirectory := enginetest.GetTestdataDirectory(t, "ssl")
 		endpoint := containers.StartMongodbSSL(t,
@@ -86,8 +96,10 @@ func TestBackupAndRestoreMongodbOverTls(t *testing.T) {
 }
 
 func TestBackupAndRestoreMongodbOverSshTunnel(t *testing.T) {
+	t.Parallel()
+
 	t.Run("restores the documents through the bastion", func(t *testing.T) {
-		topology := containers.StartMongodbBehindSshBastion(t, "mongo:7.0")
+		topology := containers.StartMongodbBehindSSHBastion(t, "mongo:7.0")
 		server := connectToMongodb(t, enginetest.OpenForwardedEndpoint(t, topology), "")
 		server.createTestDataCollection(t)
 
@@ -108,6 +120,8 @@ func TestBackupAndRestoreMongodbOverSshTunnel(t *testing.T) {
 }
 
 func TestBackupMongodbToFailingStorage(t *testing.T) {
+	t.Parallel()
+
 	t.Run("fails the backup without hanging when the upload fails", func(t *testing.T) {
 		server := connectToMongodb(t, containers.StartMongodb(t, "mongo:7.0"), "")
 		server.createTestDataCollection(t)

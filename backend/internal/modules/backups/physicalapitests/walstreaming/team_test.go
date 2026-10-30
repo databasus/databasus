@@ -15,9 +15,9 @@ import (
 	"databasus-backend/internal/app/apptest"
 	"databasus-backend/internal/app/apptest/enginetest"
 	apiclient "databasus-backend/internal/lib/apiclient"
+	containers "databasus-backend/internal/lib/testcontainers"
 	"databasus-backend/internal/lib/testwait"
 	"databasus-backend/internal/modules/backups"
-	"databasus-backend/internal/util/testing/containers"
 )
 
 type (
@@ -58,7 +58,7 @@ func newWalTeam(t *testing.T, spec walTeamSpec) *walTeam {
 		source = containers.StartPhysicalPostgresMtls(t, mtlsDirectory(t))
 		connectionEndpoint = source
 	case spec.IsBastioned:
-		topology := containers.StartPhysicalPostgresBehindSshBastion(t, image)
+		topology := containers.StartPhysicalPostgresBehindSSHBastion(t, image)
 		source = topology.Database
 		connectionEndpoint = enginetest.OpenForwardedEndpoint(t, topology)
 		tunnel = enginetest.NewBastionSSHTunnelSettings(topology)

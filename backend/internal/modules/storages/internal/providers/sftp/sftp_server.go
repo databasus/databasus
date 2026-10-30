@@ -15,8 +15,8 @@ import (
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
 
+	io_utils "databasus-backend/internal/lib/iox"
 	"databasus-backend/internal/modules/storages/internal/providers/connections"
-	io_utils "databasus-backend/internal/util/io"
 )
 
 // sftpServer is one SFTP storage while a call runs: the settings it was called with, the storage

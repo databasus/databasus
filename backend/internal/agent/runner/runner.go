@@ -35,7 +35,9 @@ const (
 	inContainerArchiveDir = "/tmp"
 )
 
-var supportedMajors = []string{"12", "13", "14", "15", "16", "17", "18"}
+func getSupportedMajors() []string {
+	return []string{"12", "13", "14", "15", "16", "17", "18"}
+}
 
 type SpawnRequest struct {
 	PgMajor            string
@@ -636,7 +638,7 @@ func pgMajorFromDatabase(db agentclient.AssignedDatabase) (string, error) {
 		return "", errors.New("assignment missing postgresql version")
 	}
 
-	if !slices.Contains(supportedMajors, db.PostgresqlLogical.Version) {
+	if !slices.Contains(getSupportedMajors(), db.PostgresqlLogical.Version) {
 		return "", fmt.Errorf("unsupported postgres major %q", db.PostgresqlLogical.Version)
 	}
 

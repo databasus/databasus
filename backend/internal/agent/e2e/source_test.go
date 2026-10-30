@@ -9,17 +9,19 @@ import (
 
 	"databasus-backend/internal/app/apptest/enginetest"
 	apiclient "databasus-backend/internal/lib/apiclient"
-	"databasus-backend/internal/util/testing/containers"
+	containers "databasus-backend/internal/lib/testcontainers"
 )
 
-var restoreImages = []string{
-	"databasus/verification-postgres:12",
-	"databasus/verification-postgres:13",
-	"databasus/verification-postgres:14",
-	"databasus/verification-postgres:15",
-	"databasus/verification-postgres:16",
-	"databasus/verification-postgres:17",
-	"databasus/verification-postgres:18",
+func getRestoreImages() []string {
+	return []string{
+		"databasus/verification-postgres:12",
+		"databasus/verification-postgres:13",
+		"databasus/verification-postgres:14",
+		"databasus/verification-postgres:15",
+		"databasus/verification-postgres:16",
+		"databasus/verification-postgres:17",
+		"databasus/verification-postgres:18",
+	}
 }
 
 const timescaleImage = "timescale/timescaledb:2.17.0-pg17"

@@ -12,6 +12,8 @@ import (
 )
 
 func TestGetSignInOptions(t *testing.T) {
+	t.Parallel()
+
 	t.Run("answers that the instance has no user when nobody signed up", func(t *testing.T) {
 		app := apptest.New(t)
 

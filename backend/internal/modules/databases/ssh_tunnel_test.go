@@ -14,14 +14,16 @@ import (
 	"github.com/stretchr/testify/require"
 
 	apiclient "databasus-backend/internal/lib/apiclient"
-	"databasus-backend/internal/util/testing/containers"
+	containers "databasus-backend/internal/lib/testcontainers"
 )
 
 // Without this the tunnel tests would stay green if the tunnel silently stopped being used, because
 // every other assertion only proves that some route to the database exists.
 func TestBastionedPostgres(t *testing.T) {
+	t.Parallel()
+
 	t.Run("refuses a connection from the host without the tunnel", func(t *testing.T) {
-		topology := containers.StartPostgresBehindSshBastion(t, "postgres:16")
+		topology := containers.StartPostgresBehindSSHBastion(t, "postgres:16")
 		address := net.JoinHostPort(topology.Database.Host, strconv.Itoa(topology.Database.Port))
 
 		dialer := net.Dialer{Timeout: 5 * time.Second}
@@ -35,7 +37,9 @@ func TestBastionedPostgres(t *testing.T) {
 }
 
 func TestDatabaseSSHTunnel(t *testing.T) {
-	topology := containers.StartPostgresBehindSshBastion(t, "postgres:16")
+	t.Parallel()
+
+	topology := containers.StartPostgresBehindSSHBastion(t, "postgres:16")
 	server := containers.StartPostgres(t, "postgres:16")
 
 	t.Run("creates a database over a password tunnel with its detected version and without the tunnel secrets",
@@ -55,12 +59,12 @@ func TestDatabaseSSHTunnel(t *testing.T) {
 			readResponse, err := tm.owner.Client.GetDatabaseWithResponse(t.Context(), createdDatabase.Id)
 			require.NoError(t, err)
 			require.Equal(t, http.StatusOK, readResponse.StatusCode(), string(readResponse.Body))
-			assert.NotContains(t, string(readResponse.Body), containers.SshBastionPassword)
+			assert.NotContains(t, string(readResponse.Body), containers.SSHBastionPassword)
 			readTunnel := getLogicalSettings(t, *readResponse.JSON200).SshTunnel
 			assert.Nil(t, readTunnel.Password)
 			assert.Nil(t, readTunnel.PrivateKey)
 			assert.Nil(t, readTunnel.PrivateKeyPassphrase)
-			assert.Equal(t, new(containers.SshBastionUsername), readTunnel.Username)
+			assert.Equal(t, new(containers.SSHBastionUsername), readTunnel.Username)
 			testResponse, err := tm.owner.Client.TestDatabaseWithResponse(t.Context(), createdDatabase.Id)
 			require.NoError(t, err)
 			require.Equal(t, http.StatusOK, testResponse.StatusCode(), string(testResponse.Body))
@@ -90,7 +94,7 @@ func TestDatabaseSSHTunnel(t *testing.T) {
 		createdDatabase := tm.createDatabaseNamed(t, "Switching auth", fromLogicalSettings(t, logical))
 		switchedLogical := getLogicalSettings(t, createdDatabase)
 		switchedLogical.SshTunnel.AuthType = new(apiclient.SshAuthTypePASSWORD)
-		switchedLogical.SshTunnel.Password = new(containers.SshBastionPassword)
+		switchedLogical.SshTunnel.Password = new(containers.SSHBastionPassword)
 		update := toUpdate(createdDatabase)
 		update.Settings = fromLogicalSettings(t, switchedLogical)
 
@@ -99,7 +103,7 @@ func TestDatabaseSSHTunnel(t *testing.T) {
 		require.Equal(t, http.StatusOK, response.StatusCode(), string(response.Body))
 		storedTunnel := getStoredSSHTunnel(t, tm, "databases_postgresql_logical", createdDatabase.Id)
 		assert.Empty(t, storedTunnel.SSHPrivateKey)
-		assert.Equal(t, containers.SshBastionPassword, tm.app.DecryptSecret(t, storedTunnel.SSHPassword))
+		assert.Equal(t, containers.SSHBastionPassword, tm.app.DecryptSecret(t, storedTunnel.SSHPassword))
 	})
 
 	t.Run("keeps the tunnel settings in a copy of a bastioned database", func(t *testing.T) {
@@ -113,7 +117,7 @@ func TestDatabaseSSHTunnel(t *testing.T) {
 		assert.True(t, copiedTunnel.IsEnabled)
 		assert.Equal(t, new(topology.Bastion.Host), copiedTunnel.Host)
 		assert.Equal(t, new(topology.Bastion.Port), copiedTunnel.Port)
-		assert.Equal(t, new(containers.SshBastionUsername), copiedTunnel.Username)
+		assert.Equal(t, new(containers.SSHBastionUsername), copiedTunnel.Username)
 		testResponse, err := tm.owner.Client.TestDatabaseWithResponse(t.Context(), copiedDatabase.Id)
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, testResponse.StatusCode(), string(testResponse.Body))
@@ -184,7 +188,7 @@ func TestDatabaseSSHTunnel(t *testing.T) {
 	// which does not go through pgx, went through the bastion.
 	t.Run("creates a physical database behind a bastion with its version and cluster identity",
 		func(t *testing.T) {
-			physicalTopology := containers.StartPhysicalPostgresBehindSshBastion(t, "postgres:17")
+			physicalTopology := containers.StartPhysicalPostgresBehindSSHBastion(t, "postgres:17")
 			tm := newTeam(t)
 			physical := newPhysicalSettings(physicalTopology.Database, apiclient.PhysicalBackupTypeFULL)
 			physical.SshTunnel = newBastionTunnel(physicalTopology)
@@ -204,8 +208,8 @@ func newBastionTunnel(topology containers.BastionedDatabase) apiclient.SshTunnel
 		AuthType:             new(apiclient.SshAuthTypePASSWORD),
 		Host:                 new(topology.Bastion.Host),
 		Port:                 new(topology.Bastion.Port),
-		Username:             new(containers.SshBastionUsername),
-		Password:             new(containers.SshBastionPassword),
+		Username:             new(containers.SSHBastionUsername),
+		Password:             new(containers.SSHBastionPassword),
 		PrivateKey:           nil,
 		PrivateKeyPassphrase: nil,
 	}
@@ -245,7 +249,7 @@ func newCreation(tm team, settings apiclient.DatabaseSettings) apiclient.Databas
 func readBastionTestKey(t *testing.T) string {
 	t.Helper()
 
-	privateKey, err := os.ReadFile(filepath.Join(containers.GetSshBastionTestdataDir(t), "test_key"))
+	privateKey, err := os.ReadFile(filepath.Join(containers.GetSSHBastionTestdataDir(t), "test_key"))
 	require.NoError(t, err)
 
 	return string(privateKey)

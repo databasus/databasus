@@ -15,6 +15,8 @@ import (
 )
 
 func TestTwoFactorSignIn(t *testing.T) {
+	t.Parallel()
+
 	t.Run("answers a pending sign-in without a token and sends one code when the second factor is on",
 		func(t *testing.T) {
 			app, admin := newTwoFactorApp(t)
@@ -178,6 +180,8 @@ func TestTwoFactorSignIn(t *testing.T) {
 }
 
 func TestVerifySignInCode(t *testing.T) {
+	t.Parallel()
+
 	t.Run("returns a session when the code that arrived is submitted", func(t *testing.T) {
 		app, admin := newTwoFactorApp(t)
 		pendingSignIn := startTwoFactorSignIn(t, app, admin.Email)
@@ -369,6 +373,8 @@ func TestVerifySignInCode(t *testing.T) {
 }
 
 func TestResendSignInCode(t *testing.T) {
+	t.Parallel()
+
 	t.Run("sends a new code that names a new pending sign-in and retires the previous code", func(t *testing.T) {
 		app, admin := newTwoFactorApp(t)
 		firstPendingSignIn := startTwoFactorSignIn(t, app, admin.Email)
@@ -417,6 +423,8 @@ func TestResendSignInCode(t *testing.T) {
 }
 
 func TestExpiredCodesCleanup(t *testing.T) {
+	t.Parallel()
+
 	t.Run("deletes pending sign-ins older than an hour and keeps younger ones", func(t *testing.T) {
 		app, admin := newTwoFactorApp(t)
 		member := app.CreateNonAdminUser(t, admin)

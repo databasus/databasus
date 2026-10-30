@@ -10,6 +10,8 @@ import (
 )
 
 func TestPhysicalBackupNotifications(t *testing.T) {
+	t.Parallel()
+
 	t.Run("sends no success notification when its trigger is disabled", func(t *testing.T) {
 		team := newBackupTeam(t, backupTeamSpec{})
 		inbox := &webhookInbox{}

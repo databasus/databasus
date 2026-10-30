@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	pgshared "databasus-backend/internal/engines/postgresql/shared"
-	"databasus-backend/internal/util/testing/containers"
+	containers "databasus-backend/internal/lib/testcontainers"
 )
 
 // WAL level "minimal" has no scenario: PostgreSQL accepts it only with max_wal_senders=0, which
@@ -23,8 +23,8 @@ func TestTestReplicationConnection(t *testing.T) {
 			t.Run("returns wal summary disabled code for incremental backups", func(t *testing.T) {
 				t.Parallel()
 
-				err := summarizerOffServer.newSource(adminRole).
-					TestReplicationConnection(t.Context(), newTestLogger(t), incrementalCheck)
+				err := summarizerOffServer.newSource(getAdminRole()).
+					TestReplicationConnection(t.Context(), newTestLogger(t), getIncrementalCheck())
 
 				assert.Equal(t, pgshared.ConnErrWalSummaryDisabled, getConnectionTestErrorCode(t, err))
 			})
@@ -32,8 +32,8 @@ func TestTestReplicationConnection(t *testing.T) {
 			t.Run("returns wal summary disabled code for wal streaming", func(t *testing.T) {
 				t.Parallel()
 
-				err := summarizerOffServer.newSource(adminRole).
-					TestReplicationConnection(t.Context(), newTestLogger(t), walStreamCheck)
+				err := summarizerOffServer.newSource(getAdminRole()).
+					TestReplicationConnection(t.Context(), newTestLogger(t), getWalStreamCheck())
 
 				assert.Equal(t, pgshared.ConnErrWalSummaryDisabled, getConnectionTestErrorCode(t, err))
 			})
@@ -41,8 +41,8 @@ func TestTestReplicationConnection(t *testing.T) {
 			t.Run("succeeds for full backups only", func(t *testing.T) {
 				t.Parallel()
 
-				err := summarizerOffServer.newSource(adminRole).
-					TestReplicationConnection(t.Context(), newTestLogger(t), fullOnlyCheck)
+				err := summarizerOffServer.newSource(getAdminRole()).
+					TestReplicationConnection(t.Context(), newTestLogger(t), getFullOnlyCheck())
 
 				assert.NoError(t, err)
 			})
@@ -51,8 +51,8 @@ func TestTestReplicationConnection(t *testing.T) {
 		t.Run("returns custom tablespaces code when cluster has a custom tablespace", func(t *testing.T) {
 			tablespaceServer := startTestServer(t, server.image, containers.WithTablespace())
 
-			err := tablespaceServer.newSource(adminRole).
-				TestReplicationConnection(t.Context(), newTestLogger(t), fullOnlyCheck)
+			err := tablespaceServer.newSource(getAdminRole()).
+				TestReplicationConnection(t.Context(), newTestLogger(t), getFullOnlyCheck())
 
 			assert.Equal(t, pgshared.ConnErrCustomTablespaces, getConnectionTestErrorCode(t, err))
 		})
@@ -63,18 +63,18 @@ func TestTestReplicationConnection(t *testing.T) {
 		t.Run("returns pg_hba no entry code without a replication pg_hba entry", func(t *testing.T) {
 			noReplicationHbaServer := startTestServer(t, server.image, containers.WithoutReplicationHbaEntry())
 
-			err := noReplicationHbaServer.newSource(adminRole).
-				TestReplicationConnection(t.Context(), newTestLogger(t), fullOnlyCheck)
+			err := noReplicationHbaServer.newSource(getAdminRole()).
+				TestReplicationConnection(t.Context(), newTestLogger(t), getFullOnlyCheck())
 
 			assert.Equal(t, pgshared.ConnErrPgHbaNoEntry, getConnectionTestErrorCode(t, err))
-			assert.ErrorContains(t, err, fmt.Sprintf("host replication %s all scram-sha-256", adminRole.Name))
+			assert.ErrorContains(t, err, fmt.Sprintf("host replication %s all scram-sha-256", getAdminRole().Name))
 		})
 
 		t.Run("succeeds for every backup type when cluster is replication ready", func(t *testing.T) {
 			t.Parallel()
 
-			for _, check := range []ReplicationCheck{fullOnlyCheck, incrementalCheck, walStreamCheck} {
-				err := server.newSource(adminRole).TestReplicationConnection(t.Context(), newTestLogger(t), check)
+			for _, check := range []ReplicationCheck{getFullOnlyCheck(), getIncrementalCheck(), getWalStreamCheck()} {
+				err := server.newSource(getAdminRole()).TestReplicationConnection(t.Context(), newTestLogger(t), check)
 
 				assert.NoError(t, err, "check %+v", check)
 			}
@@ -83,9 +83,9 @@ func TestTestReplicationConnection(t *testing.T) {
 		t.Run("returns bad credentials code with wrong password", func(t *testing.T) {
 			t.Parallel()
 
-			wrongPasswordRole := testRole{Name: adminRole.Name, Password: adminRole.Password + "-wrong"}
+			wrongPasswordRole := testRole{Name: getAdminRole().Name, Password: getAdminRole().Password + "-wrong"}
 			err := server.newSource(wrongPasswordRole).
-				TestReplicationConnection(t.Context(), newTestLogger(t), fullOnlyCheck)
+				TestReplicationConnection(t.Context(), newTestLogger(t), getFullOnlyCheck())
 
 			assert.Equal(t, pgshared.ConnErrBadCredentials, getConnectionTestErrorCode(t, err))
 		})
@@ -95,7 +95,7 @@ func TestTestReplicationConnection(t *testing.T) {
 			ordinaryRole := server.createLoginRole(t, "")
 
 			err := server.newSource(ordinaryRole).
-				TestReplicationConnection(t.Context(), newTestLogger(t), fullOnlyCheck)
+				TestReplicationConnection(t.Context(), newTestLogger(t), getFullOnlyCheck())
 
 			assert.Equal(t, pgshared.ConnErrNoReplicationPrivilege, getConnectionTestErrorCode(t, err))
 		})
@@ -105,7 +105,7 @@ func TestTestReplicationConnection(t *testing.T) {
 			replicationRole := server.createLoginRole(t, "REPLICATION")
 
 			err := server.newSource(replicationRole).
-				TestReplicationConnection(t.Context(), newTestLogger(t), walStreamCheck)
+				TestReplicationConnection(t.Context(), newTestLogger(t), getWalStreamCheck())
 
 			assert.Equal(t, pgshared.ConnErrNoWalSwitchPrivilege, getConnectionTestErrorCode(t, err))
 			assert.ErrorContains(t, err, "GRANT EXECUTE ON FUNCTION pg_switch_wal()")
@@ -117,7 +117,7 @@ func TestTestReplicationConnection(t *testing.T) {
 			grantWalSwitch(t, server, replicationRole.Name)
 
 			err := server.newSource(replicationRole).
-				TestReplicationConnection(t.Context(), newTestLogger(t), walStreamCheck)
+				TestReplicationConnection(t.Context(), newTestLogger(t), getWalStreamCheck())
 
 			assert.NoError(t, err)
 		})
@@ -128,7 +128,7 @@ func TestTestReplicationConnection(t *testing.T) {
 			t.Parallel()
 			replicationRole := server.createLoginRole(t, "REPLICATION")
 
-			for _, check := range []ReplicationCheck{fullOnlyCheck, incrementalCheck} {
+			for _, check := range []ReplicationCheck{getFullOnlyCheck(), getIncrementalCheck()} {
 				err := server.newSource(replicationRole).
 					TestReplicationConnection(t.Context(), newTestLogger(t), check)
 
@@ -138,20 +138,20 @@ func TestTestReplicationConnection(t *testing.T) {
 
 		t.Run("succeeds when cluster has the stored system identifier", func(t *testing.T) {
 			t.Parallel()
-			check := fullOnlyCheck
+			check := getFullOnlyCheck()
 			check.ExpectedSystemIdentifier = server.readSystemIdentifier(t)
 
-			err := server.newSource(adminRole).TestReplicationConnection(t.Context(), newTestLogger(t), check)
+			err := server.newSource(getAdminRole()).TestReplicationConnection(t.Context(), newTestLogger(t), check)
 
 			assert.NoError(t, err)
 		})
 
 		t.Run("returns system identifier mismatch code when cluster differs from the stored one", func(t *testing.T) {
 			t.Parallel()
-			check := fullOnlyCheck
+			check := getFullOnlyCheck()
 			check.ExpectedSystemIdentifier = "1"
 
-			err := server.newSource(adminRole).TestReplicationConnection(t.Context(), newTestLogger(t), check)
+			err := server.newSource(getAdminRole()).TestReplicationConnection(t.Context(), newTestLogger(t), check)
 
 			assert.Equal(t, pgshared.ConnErrSystemIdentifierMismatch, getConnectionTestErrorCode(t, err))
 		})
@@ -162,7 +162,7 @@ func TestReadReplicationSettings(t *testing.T) {
 	t.Run("defaults summarize_wal to off when server predates it", func(t *testing.T) {
 		server := testServer{endpoint: containers.StartPostgres(t, "postgres:16"), image: "postgres:16", version: ""}
 
-		settings, err := readReplicationSettings(t.Context(), server.connectAs(t, adminRole))
+		settings, err := readReplicationSettings(t.Context(), server.connectAs(t, getAdminRole()))
 
 		require.NoError(t, err)
 		assert.Equal(t, "off", settings.SummarizeWal)

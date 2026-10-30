@@ -14,14 +14,15 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	old_config "databasus-backend/internal/config"
 	apiclient "databasus-backend/internal/lib/apiclient"
 )
 
-// postgresArchiveSignature starts every archive pg_dump writes in its custom format.
-var postgresArchiveSignature = []byte("PGDMP")
+// getPostgresArchiveSignature() starts every archive pg_dump writes in its custom format.
+func getPostgresArchiveSignature() []byte { return []byte("PGDMP") }
 
 func TestCreateDownloadToken(t *testing.T) {
+	t.Parallel()
+
 	server := startRestoreServer(t, restoreServerImage)
 
 	t.Run("issues a token that expires in five minutes with the file name", func(t *testing.T) {
@@ -57,6 +58,8 @@ func TestCreateDownloadToken(t *testing.T) {
 }
 
 func TestDownloadLogicalBackup(t *testing.T) {
+	t.Parallel()
+
 	server := startRestoreServer(t, restoreServerImage)
 
 	t.Run("returns the file once and 401 unauthenticated to the second use of the token", func(t *testing.T) {
@@ -67,7 +70,7 @@ func TestDownloadLogicalBackup(t *testing.T) {
 		response := requestBackupDownload(t, tm, database.backup.Id, issuedToken.Token)
 
 		require.Equal(t, http.StatusOK, response.StatusCode(), string(response.Body))
-		assert.True(t, bytes.HasPrefix(response.Body, postgresArchiveSignature))
+		assert.True(t, bytes.HasPrefix(response.Body, getPostgresArchiveSignature()))
 		require.NotNil(t, response.Headers200)
 		require.NotNil(t, response.Headers200.ContentDisposition)
 		assert.Contains(t, *response.Headers200.ContentDisposition, issuedToken.FileName)
@@ -117,7 +120,7 @@ func TestDownloadLogicalBackup(t *testing.T) {
 			if response.StatusCode() == http.StatusOK {
 				servedCount++
 
-				assert.True(t, bytes.HasPrefix(response.Body, postgresArchiveSignature))
+				assert.True(t, bytes.HasPrefix(response.Body, getPostgresArchiveSignature()))
 
 				continue
 			}
@@ -142,7 +145,7 @@ func TestDownloadLogicalBackup(t *testing.T) {
 
 		requireProblem(t, response.StatusCode(), response.Body, http.StatusUnauthorized,
 			apiclient.ProblemCodeUnauthenticated)
-		assert.False(t, bytes.Contains(response.Body, postgresArchiveSignature))
+		assert.False(t, bytes.Contains(response.Body, getPostgresArchiveSignature()))
 	})
 
 	t.Run("returns 401 unauthenticated for a token of another backup and keeps the token usable", func(t *testing.T) {
@@ -157,7 +160,7 @@ func TestDownloadLogicalBackup(t *testing.T) {
 			apiclient.ProblemCodeUnauthenticated)
 
 		downloadedFile := downloadBackupFile(t, tm, database.backup.Id, issuedToken.Token)
-		assert.True(t, bytes.HasPrefix(downloadedFile, postgresArchiveSignature))
+		assert.True(t, bytes.HasPrefix(downloadedFile, getPostgresArchiveSignature()))
 	})
 
 	t.Run("returns 401 unauthenticated for a token that was never issued", func(t *testing.T) {
@@ -177,19 +180,20 @@ func TestDownloadLogicalBackup(t *testing.T) {
 			apiclient.BackupEncryptionENCRYPTED)
 		encryptedBackup := completeRestorableBackup(t, tm.owner, source.databaseID)
 		require.Equal(t, apiclient.BackupEncryptionENCRYPTED, encryptedBackup.Encryption)
-		storedFile, err := os.ReadFile(filepath.Join(old_config.GetEnv().DataFolder,
-			getBackupFileName(t, tm, encryptedBackup.Id)))
+		storedFile, err := os.ReadFile(tm.app.GetLocalStorageFilePath(getBackupFileName(t, tm, encryptedBackup.Id)))
 		require.NoError(t, err)
 		issuedToken := issueDownloadToken(t, tm.owner, encryptedBackup.Id)
 
 		downloadedFile := downloadBackupFile(t, tm, encryptedBackup.Id, issuedToken.Token)
 
-		assert.True(t, bytes.HasPrefix(downloadedFile, postgresArchiveSignature))
-		assert.False(t, bytes.HasPrefix(storedFile, postgresArchiveSignature))
+		assert.True(t, bytes.HasPrefix(downloadedFile, getPostgresArchiveSignature()))
+		assert.False(t, bytes.HasPrefix(storedFile, getPostgresArchiveSignature()))
 	})
 }
 
 func TestDownloadLogicalBackupWhileAnotherStreams(t *testing.T) {
+	t.Parallel()
+
 	server := startRestoreServer(t, restoreServerImage)
 
 	t.Run("returns 409 already_running and issues no token while a download streams", func(t *testing.T) {
@@ -226,7 +230,7 @@ func TestDownloadLogicalBackupWhileAnotherStreams(t *testing.T) {
 		require.NoError(t, streamingResponse.Body.Close())
 
 		secondFile := waitUntilBackupDownloads(t, tm, largeBackup.Id, secondToken.Token)
-		assert.True(t, bytes.HasPrefix(firstFile, postgresArchiveSignature))
+		assert.True(t, bytes.HasPrefix(firstFile, getPostgresArchiveSignature()))
 		assert.Equal(t, firstFile, secondFile)
 	})
 }
@@ -245,7 +249,7 @@ func requireRefusedRacingDownload(t *testing.T, response *apiclient.DownloadLogi
 			apiclient.ProblemCodeUnauthenticated)
 	}
 
-	assert.False(t, bytes.Contains(response.Body, postgresArchiveSignature))
+	assert.False(t, bytes.Contains(response.Body, getPostgresArchiveSignature()))
 }
 
 // completeLargeBackup backs up a database of random data larger than the socket buffers of a local

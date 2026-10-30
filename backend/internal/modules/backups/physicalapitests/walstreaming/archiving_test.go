@@ -12,6 +12,8 @@ import (
 )
 
 func TestArchivePhysicalWal(t *testing.T) {
+	t.Parallel()
+
 	for _, version := range []string{"17", "18"} {
 		t.Run(
 			"archives complete segments and records the backup time when PostgreSQL "+version+" streams WAL",
@@ -59,6 +61,8 @@ func TestArchivePhysicalWal(t *testing.T) {
 }
 
 func TestArchivePhysicalWalAfterRestart(t *testing.T) {
+	t.Parallel()
+
 	t.Run("starts a new session and keeps its slot and queue when modules restart", func(t *testing.T) {
 		team := newWalTeam(t, walTeamSpec{})
 		team.enable(t)

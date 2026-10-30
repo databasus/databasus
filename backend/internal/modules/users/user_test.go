@@ -13,6 +13,8 @@ import (
 )
 
 func TestGetUser(t *testing.T) {
+	t.Parallel()
+
 	t.Run("returns the caller's own user", func(t *testing.T) {
 		app := apptest.New(t)
 		app.CreateAdmin(t)

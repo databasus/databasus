@@ -17,6 +17,8 @@ import (
 )
 
 func TestWalForcedRotation(t *testing.T) {
+	t.Parallel()
+
 	t.Run(
 		"archives a rarely written segment without a manual switch when forced rotation is enabled",
 		func(t *testing.T) {
@@ -66,6 +68,8 @@ func TestWalForcedRotation(t *testing.T) {
 }
 
 func TestWalArchiveStaleness(t *testing.T) {
+	t.Parallel()
+
 	t.Run("alerts while a writing source cannot archive and resumes after S3 recovers", func(t *testing.T) {
 		timings := backups.ProductionWalStreamTimings()
 		timings.ForcedRotationInterval = time.Second

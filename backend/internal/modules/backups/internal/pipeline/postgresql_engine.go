@@ -20,7 +20,7 @@ type postgresqlEngine struct {
 }
 
 func (e *postgresqlEngine) GetStoredCompression() storedCompression {
-	return storedCompressionNone
+	return getStoredCompressionNone()
 }
 
 func (e *postgresqlEngine) GetFileExtension() string {

@@ -23,7 +23,7 @@ func TestShouldSuggestReplicationOnlyUser(t *testing.T) {
 			t.Run("lists membership in "+cloudRole.Name+" when role belongs to it", func(t *testing.T) {
 				server.createClusterRole(t, cloudRole.Name, true)
 
-				shouldSuggest, excessivePrivileges, err := server.newSource(adminRole).
+				shouldSuggest, excessivePrivileges, err := server.newSource(getAdminRole()).
 					ShouldSuggestReplicationOnlyUser(t.Context(), newTestLogger(t))
 
 				require.NoError(t, err)
@@ -35,7 +35,7 @@ func TestShouldSuggestReplicationOnlyUser(t *testing.T) {
 		t.Run("suggests a replication-only user when role is superuser", func(t *testing.T) {
 			t.Parallel()
 
-			shouldSuggest, excessivePrivileges, err := server.newSource(adminRole).
+			shouldSuggest, excessivePrivileges, err := server.newSource(getAdminRole()).
 				ShouldSuggestReplicationOnlyUser(t.Context(), newTestLogger(t))
 
 			require.NoError(t, err)
@@ -46,7 +46,8 @@ func TestShouldSuggestReplicationOnlyUser(t *testing.T) {
 		t.Run("suggests nothing for a freshly created replication-only user", func(t *testing.T) {
 			t.Parallel()
 
-			createdUser, err := server.newSource(adminRole).CreateReplicationOnlyUser(t.Context(), newTestLogger(t))
+			createdUser, err := server.newSource(getAdminRole()).
+				CreateReplicationOnlyUser(t.Context(), newTestLogger(t))
 			require.NoError(t, err)
 
 			createdRole := testRole{Name: createdUser.Username, Password: createdUser.Password}
@@ -63,7 +64,7 @@ func TestShouldSuggestReplicationOnlyUser(t *testing.T) {
 			writerRole := server.createLoginRole(t, "")
 			tableName := "write_probe_" + newNameSuffix()
 
-			execStatements(t, server.connectAs(t, adminRole),
+			execStatements(t, server.connectAs(t, getAdminRole()),
 				fmt.Sprintf(`CREATE TABLE public."%s" (id int)`, tableName),
 				fmt.Sprintf(`GRANT USAGE ON SCHEMA public TO "%s"`, writerRole.Name),
 				fmt.Sprintf(`GRANT INSERT ON public."%s" TO "%s"`, tableName, writerRole.Name),
@@ -90,12 +91,13 @@ func TestCreateReplicationOnlyUser(t *testing.T) {
 		t.Run("grants rds_replication membership on a simulated rds source", func(t *testing.T) {
 			server.createClusterRole(t, "rds_replication", false)
 
-			createdUser, err := server.newSource(adminRole).CreateReplicationOnlyUser(t.Context(), newTestLogger(t))
+			createdUser, err := server.newSource(getAdminRole()).
+				CreateReplicationOnlyUser(t.Context(), newTestLogger(t))
 			require.NoError(t, err)
 
 			var isMember, canReplicate bool
 
-			err = server.connectAs(t, adminRole).QueryRow(t.Context(), `
+			err = server.connectAs(t, getAdminRole()).QueryRow(t.Context(), `
 				SELECT pg_has_role($1, 'rds_replication', 'MEMBER'), rolreplication
 				FROM pg_roles
 				WHERE rolname = $1
@@ -108,7 +110,8 @@ func TestCreateReplicationOnlyUser(t *testing.T) {
 		t.Run(
 			"creates a replication-only user that can stream and rotate wal on a self-managed source",
 			func(t *testing.T) {
-				createdUser, err := server.newSource(adminRole).CreateReplicationOnlyUser(t.Context(), newTestLogger(t))
+				createdUser, err := server.newSource(getAdminRole()).
+					CreateReplicationOnlyUser(t.Context(), newTestLogger(t))
 				require.NoError(t, err)
 
 				assert.True(t, strings.HasPrefix(createdUser.Username, "databasus-"), createdUser.Username)
@@ -119,7 +122,7 @@ func TestCreateReplicationOnlyUser(t *testing.T) {
 				assertRoleHasOnlyReplication(t, server, createdRole.Name)
 
 				err = server.newSource(createdRole).
-					TestReplicationConnection(t.Context(), newTestLogger(t), walStreamCheck)
+					TestReplicationConnection(t.Context(), newTestLogger(t), getWalStreamCheck())
 				assert.NoError(t, err)
 			},
 		)
@@ -127,12 +130,12 @@ func TestCreateReplicationOnlyUser(t *testing.T) {
 		t.Run("grants wal rotation to the created role alone", func(t *testing.T) {
 			bystanderRole := server.createLoginRole(t, "REPLICATION")
 
-			_, err := server.newSource(adminRole).CreateReplicationOnlyUser(t.Context(), newTestLogger(t))
+			_, err := server.newSource(getAdminRole()).CreateReplicationOnlyUser(t.Context(), newTestLogger(t))
 			require.NoError(t, err)
 
 			canBystanderRotate, err := canForceWalRotation(
 				t.Context(),
-				server.connectAs(t, adminRole),
+				server.connectAs(t, getAdminRole()),
 				bystanderRole.Name,
 			)
 			require.NoError(t, err)
@@ -153,7 +156,7 @@ func TestCreateReplicationOnlyUser(t *testing.T) {
 
 			createdRole := testRole{Name: createdUser.Username, Password: createdUser.Password}
 			err = server.newSource(createdRole).
-				TestReplicationConnection(t.Context(), newTestLogger(t), incrementalCheck)
+				TestReplicationConnection(t.Context(), newTestLogger(t), getIncrementalCheck())
 			assert.NoError(t, err)
 		})
 
@@ -169,9 +172,9 @@ func TestCreateReplicationOnlyUser(t *testing.T) {
 		t.Run("retries with a new name when the generated name is taken", func(t *testing.T) {
 			takenName := "databasus-" + newNameSuffix()
 			freshName := "databasus-" + newNameSuffix()
-			execStatements(t, server.connectAs(t, adminRole), fmt.Sprintf(`CREATE ROLE "%s" NOLOGIN`, takenName))
+			execStatements(t, server.connectAs(t, getAdminRole()), fmt.Sprintf(`CREATE ROLE "%s" NOLOGIN`, takenName))
 
-			source := server.newSource(adminRole)
+			source := server.newSource(getAdminRole())
 			generatedNames := []string{takenName, freshName}
 			generateUsernameCalls := 0
 			source.generateUsername = func() string {
@@ -250,7 +253,7 @@ func TestDetectPlatform(t *testing.T) {
 					server.createClusterRole(t, clusterRoleName, false)
 				}
 
-				assert.Equal(t, scenario.platform, detectPlatform(t.Context(), server.connectAs(t, adminRole)))
+				assert.Equal(t, scenario.platform, detectPlatform(t.Context(), server.connectAs(t, getAdminRole())))
 			})
 		}
 
@@ -267,7 +270,7 @@ func assertRoleHasOnlyReplication(t *testing.T, server testServer, roleName stri
 
 	var isSuperuser, canCreateRole, canCreateDB, canBypassRLS, canReplicate bool
 
-	err := server.connectAs(t, adminRole).QueryRow(t.Context(), `
+	err := server.connectAs(t, getAdminRole()).QueryRow(t.Context(), `
 		SELECT rolsuper, rolcreaterole, rolcreatedb, rolbypassrls, rolreplication
 		FROM pg_roles
 		WHERE rolname = $1

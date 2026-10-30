@@ -50,7 +50,7 @@ func inputWithEverySample(
 
 func unreachableSince(unreachableFor time.Duration) func(sample *catalog.WalStreamSample) {
 	return func(sample *catalog.WalStreamSample) {
-		makeUnreachable(sample, testNow.Add(-unreachableFor))
+		makeUnreachable(sample, getTestNow().Add(-unreachableFor))
 	}
 }
 
@@ -67,14 +67,14 @@ func makeUnreachable(sample *catalog.WalStreamSample, since time.Time) {
 
 func archiveStalledFor(stalledFor time.Duration) func(sample *catalog.WalStreamSample) {
 	return func(sample *catalog.WalStreamSample) {
-		sample.ArchiveStalledSince = new(testNow.Add(-stalledFor))
+		sample.ArchiveStalledSince = new(getTestNow().Add(-stalledFor))
 	}
 }
 
 func slotStatusSince(walStatus string, heldFor time.Duration) func(sample *catalog.WalStreamSample) {
 	return func(sample *catalog.WalStreamSample) {
 		sample.SlotWalStatus = new(walStatus)
-		sample.SlotExtraWalSince = new(testNow.Add(-heldFor))
+		sample.SlotExtraWalSince = new(getTestNow().Add(-heldFor))
 	}
 }
 
@@ -148,7 +148,7 @@ func Test_GetVerdict_WithSpecScenarios_ReturnsLevelReasonsAndNotices(t *testing.
 					10*time.Minute,
 					modifyNewestTwo(func(sample *catalog.WalStreamSample) {
 						sample.LocalQueueBytes = testPauseBytes
-						sample.ArchiveStalledSince = new(testNow.Add(-time.Hour))
+						sample.ArchiveStalledSince = new(getTestNow().Add(-time.Hour))
 					}),
 				)
 				input := newTestVerdictInput(samples)
@@ -164,8 +164,8 @@ func Test_GetVerdict_WithSpecScenarios_ReturnsLevelReasonsAndNotices(t *testing.
 			buildInput: func() VerdictInput {
 				input := newTestVerdictInput(buildTestSamples(10*time.Minute, nil))
 				input.Streamer = newRunningTestStreamer()
-				input.Streamer.StartedAt = testNow.Add(-20 * time.Second)
-				input.Streamer.FailingSince = new(testNow.Add(-20 * time.Second))
+				input.Streamer.StartedAt = getTestNow().Add(-20 * time.Second)
+				input.Streamer.FailingSince = new(getTestNow().Add(-20 * time.Second))
 
 				return input
 			},
@@ -185,7 +185,7 @@ func Test_GetVerdict_WithSpecScenarios_ReturnsLevelReasonsAndNotices(t *testing.
 		{
 			name: "Slot removed on the source",
 			buildInput: inputWithNewestTwo(func(sample *catalog.WalStreamSample) {
-				makeUnreachable(sample, testNow)
+				makeUnreachable(sample, getTestNow())
 				sample.SourceState = catalog.WalStreamSourceStateSlotMissing
 				sample.SourceUnreachableSince = nil
 			}),
@@ -215,7 +215,7 @@ func Test_GetVerdict_WithSpecScenarios_ReturnsLevelReasonsAndNotices(t *testing.
 		{
 			name: "Several problems at once",
 			buildInput: inputWithNewestTwo(func(sample *catalog.WalStreamSample) {
-				makeUnreachable(sample, testNow)
+				makeUnreachable(sample, getTestNow())
 				sample.SourceState = catalog.WalStreamSourceStateSlotMissing
 				sample.SourceUnreachableSince = nil
 				sample.LocalQueueBytes = testPauseBytes / 2
@@ -544,7 +544,7 @@ func Test_GetVerdict_WhenChainHasGap_ListsWalChainBrokenOnlyForGapBelowProgressP
 }
 
 func Test_GetVerdict_WhenReasonsCarryValues_ReportsSinceAmountsAndThresholds(t *testing.T) {
-	unreachableAt := testNow.Add(-3 * time.Minute)
+	unreachableAt := getTestNow().Add(-3 * time.Minute)
 	verdict := GetVerdict(inputWithNewestTwo(unreachableSince(3 * time.Minute))())
 
 	sourceUnreachable := findReason(verdict.Reasons, ReasonCodeSourceUnreachable)
@@ -552,7 +552,7 @@ func Test_GetVerdict_WhenReasonsCarryValues_ReportsSinceAmountsAndThresholds(t *
 	require.NotNil(t, sourceUnreachable.Since)
 	assert.Equal(t, unreachableAt, *sourceUnreachable.Since)
 
-	newestSampleAt := testNow.Add(-10 * time.Minute)
+	newestSampleAt := getTestNow().Add(-10 * time.Minute)
 	stoppedInput := newTestVerdictInput(buildTestSamples(10*time.Minute, nil))
 	stoppedInput.Streamer = newFailedTestStreamer(10*time.Minute, 10*time.Minute)
 
@@ -571,7 +571,7 @@ func Test_GetVerdict_WhenReasonsCarryValues_ReportsSinceAmountsAndThresholds(t *
 
 func Test_GetStreamerState_ForEachStreamerRow_ReportsRunningOnlyWithFreshHeartbeat(t *testing.T) {
 	staleStreamer := newRunningTestStreamer()
-	staleStreamer.LastHeartbeatAt = testNow.Add(-StreamerHeartbeatStaleness - time.Second)
+	staleStreamer.LastHeartbeatAt = getTestNow().Add(-StreamerHeartbeatStaleness - time.Second)
 
 	testCases := []struct {
 		name          string
@@ -594,7 +594,7 @@ func Test_GetStreamerState_ForEachStreamerRow_ReportsRunningOnlyWithFreshHeartbe
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			assert.Equal(t, testCase.expectedState, GetStreamerState(testCase.streamer, testNow))
+			assert.Equal(t, testCase.expectedState, GetStreamerState(testCase.streamer, getTestNow()))
 		})
 	}
 }

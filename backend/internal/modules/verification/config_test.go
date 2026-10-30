@@ -11,6 +11,8 @@ import (
 )
 
 func TestVerificationConfig(t *testing.T) {
+	t.Parallel()
+
 	t.Run("returns a disabled after-backup default without storing a row when no config is saved", func(t *testing.T) {
 		team := newVerificationTeam(t)
 		config := team.config(t)

@@ -19,7 +19,7 @@ func TestWalPosition(t *testing.T) {
 		})
 		t.Run("keeps a lost connection retryable when switching wal", func(t *testing.T) {
 			t.Parallel()
-			inspection := server.openInspection(t, adminRole)
+			inspection := server.openInspection(t, getAdminRole())
 			require.NoError(t, inspection.Close(t.Context()))
 			_, err := inspection.SwitchWal(t.Context())
 			require.Error(t, err)
@@ -27,7 +27,7 @@ func TestWalPosition(t *testing.T) {
 		})
 		t.Run("returns the new current position after switching wal", func(t *testing.T) {
 			t.Parallel()
-			inspection := server.openInspection(t, adminRole)
+			inspection := server.openInspection(t, getAdminRole())
 			switchedLSN, err := inspection.SwitchWal(t.Context())
 			require.NoError(t, err)
 			currentLSN, err := inspection.GetCurrentWalLSN(t.Context())

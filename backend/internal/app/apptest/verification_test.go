@@ -12,10 +12,12 @@ import (
 
 	"databasus-backend/internal/app/apptest/enginetest"
 	apiclient "databasus-backend/internal/lib/apiclient"
-	"databasus-backend/internal/util/testing/containers"
+	containers "databasus-backend/internal/lib/testcontainers"
 )
 
 func TestVerificationHelpers(t *testing.T) {
+	t.Parallel()
+
 	t.Run("reads a pending manual verification of a completed backup", func(t *testing.T) {
 		team, backup := newVerificationBackup(t)
 		agent := team.App.CreateVerificationAgent(t, team.Admin)

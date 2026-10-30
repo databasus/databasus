@@ -13,6 +13,8 @@ import (
 )
 
 func TestIdlePhysicalWalSource(t *testing.T) {
+	t.Parallel()
+
 	t.Run(
 		"keeps the same receiver and slot across 150 seconds of samples when the source stays idle",
 		func(t *testing.T) {

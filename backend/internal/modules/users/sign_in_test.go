@@ -14,6 +14,8 @@ import (
 )
 
 func TestSignIn(t *testing.T) {
+	t.Parallel()
+
 	t.Run("returns a session whose token reads the user when the password is correct", func(t *testing.T) {
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)

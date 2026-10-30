@@ -58,6 +58,8 @@ func recordNotifications(t *testing.T, team verificationTeam) <-chan string {
 }
 
 func TestVerificationNotifications(t *testing.T) {
+	t.Parallel()
+
 	for _, scenario := range []struct {
 		name      string
 		report    agentclient.VerificationReport
@@ -119,6 +121,8 @@ func TestVerificationNotifications(t *testing.T) {
 }
 
 func TestVerificationSilentAgentNotification(t *testing.T) {
+	t.Parallel()
+
 	t.Run("notifies only at the final attempt when the scheduler reaps a silent agent", func(t *testing.T) {
 		team := newVerificationTeam(t)
 		backup := team.backup(t)

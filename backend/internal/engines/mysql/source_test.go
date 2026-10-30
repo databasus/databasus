@@ -14,8 +14,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"databasus-backend/internal/engines/clienttools"
+	containers "databasus-backend/internal/lib/testcontainers"
 	"databasus-backend/internal/lib/testwait"
-	"databasus-backend/internal/util/testing/containers"
 )
 
 type serverVersion struct {
@@ -25,12 +25,14 @@ type serverVersion struct {
 	hasRoles bool
 }
 
-var serverVersions = []serverVersion{
-	{"MySQL 5.7", Version57, "mysql:5.7", false},
-	{"MySQL 8.0", Version80, "mysql:8.0", true},
-	{"MySQL 8.4", Version84, "mysql:8.4", true},
-	{"MySQL 9", Version9, "mysql:9", true},
-	{"MySQL 26", Version26, "mysql:26.7", true},
+func getServerVersions() []serverVersion {
+	return []serverVersion{
+		{"MySQL 5.7", Version57, "mysql:5.7", false},
+		{"MySQL 8.0", Version80, "mysql:8.0", true},
+		{"MySQL 8.4", Version84, "mysql:8.4", true},
+		{"MySQL 9", Version9, "mysql:9", true},
+		{"MySQL 26", Version26, "mysql:26.7", true},
+	}
 }
 
 // testServer is one MySQL container shared by the subtests of a version, so every database and
@@ -182,7 +184,7 @@ func newTestLogger() *slog.Logger {
 func TestSource(t *testing.T) {
 	t.Parallel()
 
-	for _, serverVersion := range serverVersions {
+	for _, serverVersion := range getServerVersions() {
 		t.Run(serverVersion.name, func(t *testing.T) {
 			server := startTestServer(t, serverVersion.image)
 

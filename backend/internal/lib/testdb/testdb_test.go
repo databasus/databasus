@@ -124,31 +124,12 @@ func TestOpenEmpty(t *testing.T) {
 	})
 }
 
-func TestOpenForProcess(t *testing.T) {
-	t.Parallel()
-
-	t.Run("gives each call its own migrated database", func(t *testing.T) {
-		t.Parallel()
-
-		firstDsn, err := OpenForProcess(t.Context())
-		require.NoError(t, err)
-		secondDsn, err := OpenForProcess(t.Context())
-		require.NoError(t, err)
-		t.Cleanup(func() {
-			Drop(t, GetDatabaseName(firstDsn))
-			Drop(t, GetDatabaseName(secondDsn))
-		})
-
-		assert.NotEqual(t, GetDatabaseName(firstDsn), GetDatabaseName(secondDsn))
-		assert.True(t, hasTable(t, openDatabase(t, firstDsn), "users"))
-	})
-}
-
 // The cleanup tests name their databases with the current time and run the cleanup with a clock two
 // hours ahead, limited to their own databases. Other processes see the databases as fresh and leave
 // them alone, so only the cleanup under test can drop them.
 const cleanupClockShift = 2 * time.Hour
 
+//nolint:gochecknoglobals // The test binary flag identifies one parent-owned database for the isolated cleanup child process.
 var abandonedDatabaseForChild = flag.String(
 	"abandoned-database",
 	"",

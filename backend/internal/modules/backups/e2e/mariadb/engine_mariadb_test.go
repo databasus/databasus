@@ -8,31 +8,38 @@ import (
 
 	"databasus-backend/internal/app/apptest/enginetest"
 	apiclient "databasus-backend/internal/lib/apiclient"
-	"databasus-backend/internal/util/testing/containers"
+	containers "databasus-backend/internal/lib/testcontainers"
 )
 
-// MariaDB 5.5 and 10.1 are the only servers the legacy client bundle serves, so without them nothing
-// dumps through that bundle. The exclusion scenarios run on a few versions only.
-var mariadbVersions = []struct {
+func getMariadbVersions() []struct {
 	name                string
 	version             apiclient.MariadbVersion
 	image               string
 	isRunningExclusions bool
-}{
-	{"MariaDB 5.5", apiclient.MariadbVersionN55, "mariadb:5.5", false},
-	{"MariaDB 10.1", apiclient.MariadbVersionN101, "mariadb:10.1", false},
-	{"MariaDB 10.6", apiclient.MariadbVersionN106, "mariadb:10.6", false},
-	{"MariaDB 10.11", apiclient.MariadbVersionN1011, "mariadb:10.11", true},
-	{"MariaDB 11.4", apiclient.MariadbVersionN114, "mariadb:11.4", true},
-	{"MariaDB 11.8", apiclient.MariadbVersionN118, "mariadb:11.8", false},
-	{"MariaDB 12.0", apiclient.MariadbVersionN120, "mariadb:12.0", false},
-	{"MariaDB 13.0", apiclient.MariadbVersionN130, "mariadb:13.0", true},
+} {
+	return []struct {
+		name                string
+		version             apiclient.MariadbVersion
+		image               string
+		isRunningExclusions bool
+	}{
+		{"MariaDB 5.5", apiclient.MariadbVersionN55, "mariadb:5.5", false},
+		{"MariaDB 10.1", apiclient.MariadbVersionN101, "mariadb:10.1", false},
+		{"MariaDB 10.6", apiclient.MariadbVersionN106, "mariadb:10.6", false},
+		{"MariaDB 10.11", apiclient.MariadbVersionN1011, "mariadb:10.11", true},
+		{"MariaDB 11.4", apiclient.MariadbVersionN114, "mariadb:11.4", true},
+		{"MariaDB 11.8", apiclient.MariadbVersionN118, "mariadb:11.8", false},
+		{"MariaDB 12.0", apiclient.MariadbVersionN120, "mariadb:12.0", false},
+		{"MariaDB 13.0", apiclient.MariadbVersionN130, "mariadb:13.0", true},
+	}
 }
 
 // TestBackupAndRestoreMariadb boots each supported version once and runs every scenario against it,
 // so only one server of the matrix is alive at a time.
 func TestBackupAndRestoreMariadb(t *testing.T) {
-	for _, mariadbVersion := range mariadbVersions {
+	t.Parallel()
+
+	for _, mariadbVersion := range getMariadbVersions() {
 		t.Run(mariadbVersion.name, func(t *testing.T) {
 			endpoint := containers.StartMariadb(t, mariadbVersion.image)
 
@@ -61,6 +68,8 @@ func TestBackupAndRestoreMariadb(t *testing.T) {
 }
 
 func TestBackupAndRestoreMariadbOverTls(t *testing.T) {
+	t.Parallel()
+
 	t.Run("restores the rows over a connection that requires TLS", func(t *testing.T) {
 		require.NoError(t, enginetest.RegisterSkipVerifyMysqlTLSConfig())
 
@@ -85,8 +94,10 @@ func TestBackupAndRestoreMariadbOverTls(t *testing.T) {
 }
 
 func TestBackupAndRestoreMariadbOverSshTunnel(t *testing.T) {
+	t.Parallel()
+
 	t.Run("restores the rows through the bastion", func(t *testing.T) {
-		topology := containers.StartMariadbBehindSshBastion(t, "mariadb:11.4")
+		topology := containers.StartMariadbBehindSSHBastion(t, "mariadb:11.4")
 		server := enginetest.ConnectToMysqlFamily(
 			t,
 			enginetest.OpenForwardedEndpoint(t, topology),
@@ -115,6 +126,8 @@ func TestBackupAndRestoreMariadbOverSshTunnel(t *testing.T) {
 }
 
 func TestBackupMariadbToFailingStorage(t *testing.T) {
+	t.Parallel()
+
 	t.Run("fails the backup without hanging when the upload fails", func(t *testing.T) {
 		server := enginetest.ConnectToMysqlFamily(
 			t,

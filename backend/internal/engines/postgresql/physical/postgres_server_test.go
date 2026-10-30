@@ -15,33 +15,43 @@ import (
 	"github.com/stretchr/testify/require"
 
 	pgshared "databasus-backend/internal/engines/postgresql/shared"
+	containers "databasus-backend/internal/lib/testcontainers"
 	"databasus-backend/internal/lib/testwait"
-	"databasus-backend/internal/util/testing/containers"
 )
 
 const connCloseTimeout = 5 * time.Second
 
-var supportedVersionImages = []string{"postgres:17", "postgres:18"}
+func getSupportedVersionImages() []string {
+	return []string{"postgres:17", "postgres:18"}
+}
 
-var adminRole = testRole{Name: containers.PostgresUsername, Password: containers.PostgresPassword}
+func getAdminRole() testRole {
+	return testRole{Name: containers.PostgresUsername, Password: containers.PostgresPassword}
+}
 
-var (
-	fullOnlyCheck = ReplicationCheck{
+func getFullOnlyCheck() ReplicationCheck {
+	return ReplicationCheck{
 		IsWalSummaryRequired:     false,
 		IsWalRotationRequired:    false,
 		ExpectedSystemIdentifier: "",
 	}
-	incrementalCheck = ReplicationCheck{
+}
+
+func getIncrementalCheck() ReplicationCheck {
+	return ReplicationCheck{
 		IsWalSummaryRequired:     true,
 		IsWalRotationRequired:    false,
 		ExpectedSystemIdentifier: "",
 	}
-	walStreamCheck = ReplicationCheck{
+}
+
+func getWalStreamCheck() ReplicationCheck {
+	return ReplicationCheck{
 		IsWalSummaryRequired:     true,
 		IsWalRotationRequired:    true,
 		ExpectedSystemIdentifier: "",
 	}
-)
+}
 
 type testRole struct {
 	Name     string
@@ -61,7 +71,7 @@ type testServer struct {
 func runOnEverySupportedVersion(t *testing.T, run func(t *testing.T, server testServer)) {
 	t.Helper()
 
-	for _, image := range supportedVersionImages {
+	for _, image := range getSupportedVersionImages() {
 		t.Run(image, func(t *testing.T) {
 			run(t, startTestServer(t, image))
 		})
@@ -153,7 +163,7 @@ func (s testServer) readSystemIdentifier(t *testing.T) string {
 
 	var systemIdentifier string
 
-	err := s.connectAs(t, adminRole).
+	err := s.connectAs(t, getAdminRole()).
 		QueryRow(t.Context(), "SELECT system_identifier::text FROM pg_control_system()").
 		Scan(&systemIdentifier)
 	require.NoError(t, err)
@@ -167,7 +177,7 @@ func (s testServer) createLoginRole(t *testing.T, attributes string) testRole {
 
 	role := testRole{Name: "test_role_" + newNameSuffix(), Password: "role password 123"}
 
-	execStatements(t, s.connectAs(t, adminRole),
+	execStatements(t, s.connectAs(t, getAdminRole()),
 		fmt.Sprintf(`CREATE USER "%s" WITH PASSWORD '%s' LOGIN %s`, role.Name, role.Password, attributes),
 	)
 
@@ -179,7 +189,7 @@ func (s testServer) isRolePresent(t *testing.T, roleName string) bool {
 
 	var isPresent bool
 
-	err := s.connectAs(t, adminRole).
+	err := s.connectAs(t, getAdminRole()).
 		QueryRow(t.Context(), `SELECT EXISTS(SELECT 1 FROM pg_roles WHERE rolname = $1)`, roleName).
 		Scan(&isPresent)
 	require.NoError(t, err)
@@ -193,15 +203,15 @@ func (s testServer) isRolePresent(t *testing.T, roleName string) bool {
 func (s testServer) createClusterRole(t *testing.T, roleName string, isGrantedToAdmin bool) {
 	t.Helper()
 
-	adminConn := s.connectAs(t, adminRole)
+	adminConn := s.connectAs(t, getAdminRole())
 	execStatements(t, adminConn, fmt.Sprintf(`CREATE ROLE "%s" NOLOGIN`, roleName))
 
 	if isGrantedToAdmin {
-		execStatements(t, adminConn, fmt.Sprintf(`GRANT "%s" TO "%s"`, roleName, adminRole.Name))
+		execStatements(t, adminConn, fmt.Sprintf(`GRANT "%s" TO "%s"`, roleName, getAdminRole().Name))
 	}
 
 	t.Cleanup(func() {
-		cleanupConn, err := pgx.Connect(context.WithoutCancel(t.Context()), s.getConnString(adminRole, false))
+		cleanupConn, err := pgx.Connect(context.WithoutCancel(t.Context()), s.getConnString(getAdminRole(), false))
 		require.NoError(t, err)
 
 		defer closeTestConn(t, cleanupConn.Close)
@@ -214,21 +224,21 @@ func (s testServer) createClusterRole(t *testing.T, roleName string, isGrantedTo
 func (s testServer) createLogicalSlot(t *testing.T, slotName string) {
 	t.Helper()
 
-	execStatements(t, s.connectAs(t, adminRole),
+	execStatements(t, s.connectAs(t, getAdminRole()),
 		fmt.Sprintf(`SELECT pg_create_logical_replication_slot('%s', 'test_decoding')`, slotName))
 }
 
 func (s testServer) createReservedPhysicalSlot(t *testing.T, slotName string) {
 	t.Helper()
 
-	execStatements(t, s.connectAs(t, adminRole),
+	execStatements(t, s.connectAs(t, getAdminRole()),
 		fmt.Sprintf(`SELECT pg_create_physical_replication_slot('%s', true)`, slotName))
 }
 
 func (s testServer) readSlotType(t *testing.T, slotName string) (string, bool) {
 	t.Helper()
 
-	slot, err := (&Inspection{conn: s.connectAs(t, adminRole)}).GetSlot(t.Context(), slotName)
+	slot, err := (&Inspection{conn: s.connectAs(t, getAdminRole())}).GetSlot(t.Context(), slotName)
 	require.NoError(t, err)
 
 	if slot == nil {
@@ -244,12 +254,12 @@ func (s testServer) attachSlotConsumer(t *testing.T, slotName string) {
 
 	var restartLsn string
 
-	err := s.connectAs(t, adminRole).
+	err := s.connectAs(t, getAdminRole()).
 		QueryRow(t.Context(), "SELECT restart_lsn::text FROM pg_replication_slots WHERE slot_name = $1", slotName).
 		Scan(&restartLsn)
 	require.NoError(t, err)
 
-	consumerConn, err := s.openReplicationConn(t, adminRole)
+	consumerConn, err := s.openReplicationConn(t, getAdminRole())
 	require.NoError(t, err)
 
 	frontend := consumerConn.Frontend()
@@ -274,7 +284,7 @@ func (s testServer) attachSlotConsumer(t *testing.T, slotName string) {
 func (s testServer) waitForSlotActive(t *testing.T, slotName string) {
 	t.Helper()
 
-	adminConn := s.connectAs(t, adminRole)
+	adminConn := s.connectAs(t, getAdminRole())
 
 	testwait.Until(t, "replication slot "+slotName+" becomes active", func(ctx context.Context) error {
 		slot, err := (&Inspection{conn: adminConn}).GetSlot(ctx, slotName)

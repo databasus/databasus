@@ -18,6 +18,8 @@ import (
 var errSaveNotBlockedYet = errors.New("the backup config save does not wait for the storage lock yet")
 
 func TestTransferStorage(t *testing.T) {
+	t.Parallel()
+
 	t.Run("moves an unused storage to another workspace of the same user", func(t *testing.T) {
 		tm := newTeam(t)
 		targetWorkspace := apptest.CreateWorkspace(t, tm.owner, "Target")
@@ -143,6 +145,8 @@ func TestTransferStorage(t *testing.T) {
 }
 
 func TestTransferStoragePermissions(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		name           string
 		sourceRole     *apiclient.AssignableWorkspaceRole

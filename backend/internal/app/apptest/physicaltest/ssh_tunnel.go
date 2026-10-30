@@ -16,15 +16,15 @@ import (
 	"databasus-backend/internal/app/apptest"
 	"databasus-backend/internal/app/apptest/enginetest"
 	apiclient "databasus-backend/internal/lib/apiclient"
+	containers "databasus-backend/internal/lib/testcontainers"
 	"databasus-backend/internal/lib/testwait"
-	"databasus-backend/internal/util/testing/containers"
 )
 
 func setupBastionedTeam(t *testing.T, image string) (Team, containers.BastionedDatabase) {
 	t.Helper()
 
 	team := newTeam(t)
-	topology := containers.StartPhysicalPostgresBehindSshBastion(t, image)
+	topology := containers.StartPhysicalPostgresBehindSSHBastion(t, image)
 	team.createDatabase(
 		t,
 		physicalDatabaseSpec{
@@ -169,7 +169,7 @@ func waitForBastionAuthenticating(t *testing.T, endpoint containers.Endpoint) {
 			return err
 		}
 		clientConn, channels, requests, err := ssh.NewClientConn(conn, address, &ssh.ClientConfig{
-			User: containers.SshBastionUsername, Auth: []ssh.AuthMethod{ssh.Password(containers.SshBastionPassword)},
+			User: containers.SSHBastionUsername, Auth: []ssh.AuthMethod{ssh.Password(containers.SSHBastionPassword)},
 			// Each disposable bastion generates a new host key.
 			HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 		})

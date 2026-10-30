@@ -12,6 +12,8 @@ import (
 )
 
 func TestDeleteDatabaseRacingRestoreStart(t *testing.T) {
+	t.Parallel()
+
 	server := startRestoreServer(t, restoreServerImage)
 
 	const roundCount = 3

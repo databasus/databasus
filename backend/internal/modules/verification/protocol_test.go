@@ -43,6 +43,8 @@ func claim(t *testing.T, team verificationTeam, agent apptest.CreatedVerificatio
 }
 
 func TestVerificationProtocol(t *testing.T) {
+	t.Parallel()
+
 	t.Run("updates capacity and the last seen time when an agent heartbeats twice", func(t *testing.T) {
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)

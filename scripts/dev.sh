@@ -9,7 +9,7 @@ readonly test_fixtures=(test-logical-postgres-16 test-physical-postgres-17 test-
 readonly own_services=(backend-db wal-backup-postgres-18 wal-backup-loader)
 
 # `stop`, not `down`: the dev database keeps its data in an anonymous volume that `down` would drop.
-# The test fixtures stay up, because the backend suite and other worktrees share them.
+# Development sources stay up for other development sessions and worktrees.
 stop_services() {
     docker compose -f "$root/docker-compose.yml" stop "${own_services[@]}"
 }

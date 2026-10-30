@@ -10,10 +10,12 @@ import (
 
 	"databasus-backend/internal/app/apptest/enginetest"
 	apiclient "databasus-backend/internal/lib/apiclient"
-	"databasus-backend/internal/util/testing/containers"
+	containers "databasus-backend/internal/lib/testcontainers"
 )
 
 func TestGetLatestCompletedLogicalBackups(t *testing.T) {
+	t.Parallel()
+
 	t.Run("returns the latest completed backup per database when newer backups have failed", func(t *testing.T) {
 		tm := enginetest.NewTeam(t)
 		server := containers.StartPostgres(t, "postgres:18")

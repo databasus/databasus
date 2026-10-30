@@ -11,6 +11,8 @@ import (
 )
 
 func TestVerificationClaimBudget(t *testing.T) {
+	t.Parallel()
+
 	t.Run("skips an oversized oldest candidate and deducts running jobs when choosing work", func(t *testing.T) {
 		team := newVerificationTeam(t)
 		backup := team.backup(t)

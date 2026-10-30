@@ -13,6 +13,8 @@ import (
 )
 
 func TestListLogicalBackups(t *testing.T) {
+	t.Parallel()
+
 	server := startRestoreServer(t, restoreServerImage)
 
 	t.Run("lists only failed backups newest first with the status filter FAILED", func(t *testing.T) {
@@ -63,6 +65,8 @@ func TestListLogicalBackups(t *testing.T) {
 }
 
 func TestListLogicalBackupsWithCursor(t *testing.T) {
+	t.Parallel()
+
 	server := startRestoreServer(t, restoreServerImage)
 
 	t.Run("returns the next backups right after the last one of the first page", func(t *testing.T) {

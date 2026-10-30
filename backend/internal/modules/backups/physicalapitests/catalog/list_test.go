@@ -13,6 +13,8 @@ import (
 )
 
 func TestGetPhysicalBackups(t *testing.T) {
+	t.Parallel()
+
 	t.Run("returns rows in creation order when the owner lists backups", func(t *testing.T) {
 		catalog := newCatalog(t)
 

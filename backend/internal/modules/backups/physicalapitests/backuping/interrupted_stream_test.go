@@ -12,6 +12,8 @@ import (
 )
 
 func TestFailedPhysicalBackupStream(t *testing.T) {
+	t.Parallel()
+
 	t.Run(
 		"discards a partial artifact and drops the slot when the real pg_basebackup walsender is terminated",
 		func(t *testing.T) { terminateFullBackupStream(t, false) },

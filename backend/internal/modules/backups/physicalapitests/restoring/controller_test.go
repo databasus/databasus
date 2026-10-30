@@ -16,6 +16,8 @@ import (
 )
 
 func TestRestorePhysicalBackup(t *testing.T) {
+	t.Parallel()
+
 	t.Run("issues a token and expiry time when a full backup can be restored", func(t *testing.T) {
 		catalog := newCatalog(t)
 

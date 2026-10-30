@@ -15,6 +15,8 @@ import (
 )
 
 func TestListAuditEvents(t *testing.T) {
+	t.Parallel()
+
 	t.Run("returns 403 when a user who is not an instance admin reads the global view", func(t *testing.T) {
 		tm := newTeam(t)
 
@@ -163,6 +165,8 @@ func TestListAuditEvents(t *testing.T) {
 }
 
 func TestPageAuditEvents(t *testing.T) {
+	t.Parallel()
+
 	t.Run("lists every event once newest first when following the pages to the last", func(t *testing.T) {
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
@@ -209,6 +213,8 @@ func TestPageAuditEvents(t *testing.T) {
 }
 
 func TestAuditEventWorkspace(t *testing.T) {
+	t.Parallel()
+
 	t.Run("shows the workspace's new name when the workspace is renamed after the event", func(t *testing.T) {
 		tm := newTeam(t)
 		renameWorkspaceSuccessfully(t, tm.owner, tm.workspace.Id, "Renamed team")

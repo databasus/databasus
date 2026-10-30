@@ -52,7 +52,7 @@ func quietSource() func(index int, sample *catalog.WalStreamSample) {
 }
 
 func getTestKeepingUp(modify func(index int, sample *catalog.WalStreamSample)) KeepingUp {
-	return GetKeepingUp(buildTestSamples(0, modify), testRebuildLagBytes, testNow)
+	return GetKeepingUp(buildTestSamples(0, modify), testRebuildLagBytes, getTestNow())
 }
 
 func Test_GetKeepingUp_WithSpecScenarios_ReturnsStateRatesAndEstimates(t *testing.T) {
@@ -168,7 +168,7 @@ func Test_GetKeepingUp_WhenSlotLagGrows_EstimatesRebuildOnlyOutsideExtendedStatu
 }
 
 func Test_GetKeepingUp_WhenNewestSampleIsStale_ReportsUnknown(t *testing.T) {
-	keepingUp := GetKeepingUp(buildTestSamples(15*time.Minute, nil), testRebuildLagBytes, testNow)
+	keepingUp := GetKeepingUp(buildTestSamples(15*time.Minute, nil), testRebuildLagBytes, getTestNow())
 
 	assert.Equal(t, KeepingUpStateUnknown, keepingUp.State)
 	assert.Equal(t, testRebuildLagBytes, keepingUp.SlotRebuildLagBytes)

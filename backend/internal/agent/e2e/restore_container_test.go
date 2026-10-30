@@ -14,11 +14,13 @@ import (
 	"databasus-backend/internal/app/apptest"
 	"databasus-backend/internal/app/apptest/enginetest"
 	apiclient "databasus-backend/internal/lib/apiclient"
+	containers "databasus-backend/internal/lib/testcontainers"
 	"databasus-backend/internal/lib/testwait"
-	"databasus-backend/internal/util/testing/containers"
 )
 
 func TestRestoreContainer(t *testing.T) {
+	t.Parallel()
+
 	t.Run("runs without root or capabilities when restoring a backup", func(t *testing.T) {
 		endpoint := containers.StartPostgres(t, "postgres:18")
 		team := enginetest.NewTeam(t, apptest.WithAgentBinariesDir(currentBinaryDirectory))

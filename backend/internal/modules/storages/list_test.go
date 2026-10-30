@@ -11,6 +11,8 @@ import (
 )
 
 func TestListStoragesPages(t *testing.T) {
+	t.Parallel()
+
 	t.Run("pages the storages by name and points to the next page while more remain", func(t *testing.T) {
 		tm := newTeam(t)
 		for _, name := range []string{"b", "a", "c"} {

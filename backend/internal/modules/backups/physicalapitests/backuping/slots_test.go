@@ -28,6 +28,8 @@ func (team *backupTeam) slotNames(t *testing.T) (string, string) {
 }
 
 func TestPhysicalBackupSlots(t *testing.T) {
+	t.Parallel()
+
 	for _, version := range []string{"17", "18"} {
 		for _, kind := range []string{"full", "incremental"} {
 			t.Run(
@@ -120,6 +122,8 @@ func TestPhysicalBackupSlots(t *testing.T) {
 }
 
 func TestPhysicalBackupSlotStartupCleanup(t *testing.T) {
+	t.Parallel()
+
 	for _, isBastioned := range []bool{false, true} {
 		scenario := "removes an orphan and preserves the streamer and unrelated slots when modules restart"
 		if isBastioned {

@@ -9,14 +9,16 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var supportedVersionImages = []string{
-	"postgres:12",
-	"postgres:13",
-	"postgres:14",
-	"postgres:15",
-	"postgres:16",
-	"postgres:17",
-	"postgres:18",
+func getSupportedVersionImages() []string {
+	return []string{
+		"postgres:12",
+		"postgres:13",
+		"postgres:14",
+		"postgres:15",
+		"postgres:16",
+		"postgres:17",
+		"postgres:18",
+	}
 }
 
 // TestSource boots each supported version once and runs every scenario of the package against it.
@@ -24,7 +26,7 @@ var supportedVersionImages = []string{
 // "Database servers for engines"); the scenarios of a version run in parallel, each in a database
 // of its own.
 func TestSource(t *testing.T) {
-	for _, image := range supportedVersionImages {
+	for _, image := range getSupportedVersionImages() {
 		t.Run(image, func(t *testing.T) {
 			server := startTestServer(t, image)
 
@@ -107,7 +109,7 @@ func runTestConnectionScenarios(t *testing.T, server testServer) {
 		t.Parallel()
 		database := server.createDatabase(t)
 
-		wrongPasswordRole := testRole{Name: adminRole.Name, Password: adminRole.Password + "-wrong"}
+		wrongPasswordRole := testRole{Name: getAdminRole().Name, Password: getAdminRole().Password + "-wrong"}
 		_, err := database.newSource(wrongPasswordRole).TestConnection(t.Context(), newTestLogger(t), DumpCheck{})
 
 		require.Error(t, err)
@@ -117,7 +119,7 @@ func runTestConnectionScenarios(t *testing.T, server testServer) {
 	t.Run("returns error when nothing listens on port", func(t *testing.T) {
 		t.Parallel()
 
-		settings := server.newSource(adminRole, "testdb").settings
+		settings := server.newSource(getAdminRole(), "testdb").settings
 		settings.Port = 1
 
 		_, err := NewSource(settings).TestConnection(t.Context(), newTestLogger(t), DumpCheck{})
@@ -128,7 +130,7 @@ func runTestConnectionScenarios(t *testing.T, server testServer) {
 	t.Run("returns database name error without database name", func(t *testing.T) {
 		t.Parallel()
 
-		_, err := server.newSource(adminRole, "").TestConnection(t.Context(), newTestLogger(t), DumpCheck{})
+		_, err := server.newSource(getAdminRole(), "").TestConnection(t.Context(), newTestLogger(t), DumpCheck{})
 
 		assert.ErrorIs(t, err, ErrDatabaseNameRequired)
 	})

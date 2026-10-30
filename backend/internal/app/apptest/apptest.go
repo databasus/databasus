@@ -10,7 +10,6 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
-	"sync"
 	"testing"
 	"time"
 
@@ -37,6 +36,8 @@ type App struct {
 	GitHub *FakeGitHub
 	Google *FakeGoogle
 
+	dataFolder                string
+	tempFolder                string
 	databaseDsn               string
 	secretKeyPath             string
 	app                       *app.App
@@ -50,30 +51,6 @@ type App struct {
 // ended writes its outcome at once.
 const backupRunsWaitTimeout = 30 * time.Second
 
-// The old code reaches its configuration and database through process-wide state, so one test
-// application at a time can own it. A test that builds a second one while the first is alive fails
-// instead of reading the other test's data.
-var aliveApp sync.Mutex
-
-// Lazy singletons of the old code may keep a data path from the first configuration they see, so
-// every test application of the process shares one data directory, which no test cleanup deletes.
-var getProcessRootDirectory = sync.OnceValues(func() (string, error) {
-	rootDirectory, err := os.MkdirTemp("", "databasus-apptest-")
-	if err != nil {
-		return "", fmt.Errorf("create the data directory of the test applications: %w", err)
-	}
-
-	err = os.WriteFile(filepath.Join(rootDirectory, ".env"), []byte("ENV_MODE=development\n"), 0o600)
-	if err != nil {
-		return "", fmt.Errorf("write the .env of the test applications: %w", err)
-	}
-
-	return rootDirectory, nil
-})
-
-// New builds the application through app.New with a database from testdb.Open and serves it until
-// the test ends. The API tests of one package run one at a time while the old code is wired through
-// process-wide state, so they never call t.Parallel.
 func New(tb testing.TB, options ...Option) *App {
 	tb.Helper()
 
@@ -101,13 +78,6 @@ func New(tb testing.TB, options ...Option) *App {
 	for _, option := range options {
 		option(&applied)
 	}
-
-	if !aliveApp.TryLock() {
-		tb.Fatalf("another test application is alive in this process: the API tests of one package " +
-			"run one at a time, so a test that calls apptest.New must not call t.Parallel")
-	}
-
-	tb.Cleanup(aliveApp.Unlock)
 
 	databaseDsn := testdb.Open(tb)
 
@@ -143,6 +113,14 @@ func New(tb testing.TB, options ...Option) *App {
 	if err != nil {
 		tb.Fatalf("build the environment of the test application: %v", err)
 	}
+
+	tb.Cleanup(func() {
+		flushCtx, cancelFlush := context.WithTimeout(context.WithoutCancel(tb.Context()), 5*time.Second)
+		defer cancelFlush()
+		if err := environment.Logging.Shutdown(flushCtx); err != nil {
+			tb.Errorf("flush test application logs: %v", err)
+		}
+	})
 
 	if applied.isTurnstileEnabled {
 		environment.ExternalEndpoints.TurnstileVerifyURL = startFakeTurnstile(tb)
@@ -219,6 +197,8 @@ func New(tb testing.TB, options ...Option) *App {
 		Mail:                      mailRecorder,
 		GitHub:                    fakeGitHub,
 		Google:                    fakeGoogle,
+		dataFolder:                appConfig.DataFolder,
+		tempFolder:                appConfig.TempFolder,
 		databaseDsn:               databaseDsn,
 		secretKeyPath:             appConfig.SecretKeyPath,
 		app:                       createdApp,
@@ -378,9 +358,9 @@ func (a *App) stopPhysicalWork(ctx context.Context) error {
 func newConfig(tb testing.TB, databaseDsn string) config.Config {
 	tb.Helper()
 
-	rootDirectory, err := getProcessRootDirectory()
-	if err != nil {
-		tb.Fatalf("%v", err)
+	rootDirectory := tb.TempDir()
+	if err := os.WriteFile(filepath.Join(rootDirectory, ".env"), []byte("ENV_MODE=development\n"), 0o600); err != nil {
+		tb.Fatalf("write test configuration: %v", err)
 	}
 
 	loadedConfig, _, err := config.Load(config.LoadSpec{

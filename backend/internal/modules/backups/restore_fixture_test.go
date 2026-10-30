@@ -16,10 +16,9 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"databasus-backend/internal/app/apptest"
-	old_config "databasus-backend/internal/config"
 	apiclient "databasus-backend/internal/lib/apiclient"
+	containers "databasus-backend/internal/lib/testcontainers"
 	"databasus-backend/internal/lib/testwait"
-	"databasus-backend/internal/util/testing/containers"
 )
 
 const restoreServerImage = "postgres:17"
@@ -534,7 +533,7 @@ func getBackupFilePath(t *testing.T, tm team, backupID uuid.UUID) string {
 	tm.app.QuerySQL(t, &fileNames, "SELECT file_name FROM backups_logical WHERE id = ?", backupID)
 	require.Len(t, fileNames, 1)
 
-	return filepath.Join(old_config.GetEnv().DataFolder, fileNames[0])
+	return tm.app.GetLocalStorageFilePath(fileNames[0])
 }
 
 // listRestoreToolProcesses lists the running pg_restore processes that restore into the database. The
@@ -564,21 +563,19 @@ func listRestoreToolProcesses(t *testing.T, databaseName string) []string {
 }
 
 // listRestoreArchiveDirs lists the folders in which restores download their archives.
-func listRestoreArchiveDirs(t *testing.T) []string {
+func listRestoreArchiveDirs(t *testing.T, tm team) []string {
 	t.Helper()
 
-	archiveDirs, err := filepath.Glob(filepath.Join(old_config.GetEnv().TempFolder, "restore_*"))
+	archiveDirs, err := filepath.Glob(filepath.Join(tm.app.GetTempFolder(), "restore_*"))
 	require.NoError(t, err)
 
 	return archiveDirs
 }
 
-// readApplicationLogs returns the log file of the test applications with its rotated copies. Every
-// test application of the process writes into it.
-func readApplicationLogs(t *testing.T) string {
+func readApplicationLogs(t *testing.T, tm team) string {
 	t.Helper()
 
-	logPaths, err := filepath.Glob(filepath.Join(filepath.Dir(old_config.GetEnv().DataFolder), "databasus*.log"))
+	logPaths, err := filepath.Glob(filepath.Join(filepath.Dir(tm.app.GetLocalStorageFilePath("")), "databasus*.log"))
 	require.NoError(t, err)
 
 	var logs strings.Builder
@@ -593,14 +590,18 @@ func readApplicationLogs(t *testing.T) string {
 	return logs.String()
 }
 
-// waitForRestoreLogRecord waits until the log file holds a record with the message about the restore.
+type restoreLogRecord struct {
+	message   string
+	restoreID uuid.UUID
+}
+
 // The file sink writes from a queue, so a record reaches the file a moment after the call that logs it.
-func waitForRestoreLogRecord(t *testing.T, message string, restoreID uuid.UUID) {
+func waitForRestoreLogRecord(t *testing.T, tm team, record restoreLogRecord) {
 	t.Helper()
 
-	testwait.Until(t, "the log record "+message, func(context.Context) error {
-		for line := range strings.SplitSeq(readApplicationLogs(t), "\n") {
-			if strings.Contains(line, message) && strings.Contains(line, restoreID.String()) {
+	testwait.Until(t, "the log record "+record.message, func(context.Context) error {
+		for line := range strings.SplitSeq(readApplicationLogs(t, tm), "\n") {
+			if strings.Contains(line, record.message) && strings.Contains(line, record.restoreID.String()) {
 				return nil
 			}
 		}

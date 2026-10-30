@@ -12,6 +12,8 @@ import (
 )
 
 func TestVerificationAgentCount(t *testing.T) {
+	t.Parallel()
+
 	t.Run("returns only the number of live agents when a member asks", func(t *testing.T) {
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)

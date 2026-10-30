@@ -16,7 +16,6 @@ import (
 
 	apiclient "databasus-backend/internal/lib/apiclient"
 	"databasus-backend/internal/modules/users"
-	"databasus-backend/internal/storage"
 )
 
 const (
@@ -35,9 +34,9 @@ func TestRunConsoleCommand(t *testing.T) {
 		require.NoError(t, err)
 		assert.Contains(t, output, "Created account "+email+" with the ADMIN role.")
 		assert.Contains(t, output, "It is the administrator of this instance.")
-		assert.True(t, hasAuditRecordContaining(t,
+		assert.True(t, hasAuditRecordContaining(t, testApp,
 			"Account created from the host console: "+email+" (role "+string(users.RoleAdmin)+")"))
-		assert.True(t, hasAuditRecordContaining(t, "First account on the instance now administers it: "+email))
+		assert.True(t, hasAuditRecordContaining(t, testApp, "First account on the instance now administers it: "+email))
 		assert.Contains(t, getAdminLine(t, testApp, email), "bootstrap administrator")
 		require.NoError(t, signIn(t, client, email, consolePassword))
 		signedUpEmail := newConsoleEmail()
@@ -55,7 +54,7 @@ func TestRunConsoleCommand(t *testing.T) {
 		_, err := createConsoleUser(t, testApp, newConsoleEmail(), consolePassword, "member")
 
 		require.ErrorContains(t, err, "create it with the admin role")
-		assert.Zero(t, countUsers(t))
+		assert.Zero(t, countUsers(t, testApp))
 	})
 
 	t.Run("leaves one bootstrap administrator when a sign-up claims the instance at the same time", func(t *testing.T) {
@@ -96,7 +95,7 @@ func TestRunConsoleCommand(t *testing.T) {
 			require.NoError(t, consoleError)
 			require.NoError(t, signUpError)
 			require.Equal(t, http.StatusCreated, signUpStatus)
-			assert.Equal(t, 1, countBootstrapAdministrators(t))
+			assert.Equal(t, 1, countBootstrapAdministrators(t, testApp))
 			assert.Contains(t, getAdminLine(t, testApp, consoleEmail), "| active")
 		}
 	})
@@ -112,7 +111,10 @@ func TestRunConsoleCommand(t *testing.T) {
 		require.NoError(t, err)
 		assert.NotContains(t, output, "administrator of this instance")
 		assert.NotContains(t, getAdminLine(t, testApp, email), "bootstrap administrator")
-		assert.False(t, hasAuditRecordContaining(t, "First account on the instance now administers it: "+email))
+		assert.False(
+			t,
+			hasAuditRecordContaining(t, testApp, "First account on the instance now administers it: "+email),
+		)
 		require.NoError(t, signIn(t, client, email, consolePassword))
 	})
 
@@ -120,7 +122,13 @@ func TestRunConsoleCommand(t *testing.T) {
 		testApp := newTestApp(t)
 		client := newConsoleTestClient(t, testApp)
 		signUp(t, client, newConsoleEmail())
-		executeSQL(t, "UPDATE users_settings SET is_allow_external_registrations = FALSE")
+		executeSQL(
+			t,
+			SQLExecutionSpec{
+				App:       testApp,
+				Statement: "UPDATE users_settings SET is_allow_external_registrations = FALSE",
+			},
+		)
 		email := newConsoleEmail()
 
 		output, err := createConsoleUser(t, testApp, email, consolePassword, "member")
@@ -166,20 +174,20 @@ func TestRunConsoleCommand(t *testing.T) {
 			require.ErrorContains(t, err, testCase.expectedError, testCase.name)
 		}
 
-		assert.Zero(t, countUsers(t))
+		assert.Zero(t, countUsers(t, testApp))
 	})
 
 	t.Run("changes nothing when run again for the same user", func(t *testing.T) {
 		testApp := newTestApp(t)
 		client := newConsoleTestClient(t, testApp)
 		email := createConsoleAdministrator(t, testApp)
-		auditRecordCount := countAuditRecords(t)
+		auditRecordCount := countAuditRecords(t, testApp)
 
 		output, err := createConsoleUser(t, testApp, email, "another-password-456", "admin")
 
 		require.NoError(t, err)
 		assert.Contains(t, output, "Nothing changed, and its password was not changed.")
-		assert.Equal(t, auditRecordCount, countAuditRecords(t))
+		assert.Equal(t, auditRecordCount, countAuditRecords(t, testApp))
 		require.NoError(t, signIn(t, client, email, consolePassword))
 		require.Error(t, signIn(t, client, email, "another-password-456"))
 	})
@@ -203,13 +211,17 @@ func TestRunConsoleCommand(t *testing.T) {
 			email := newConsoleEmail()
 			_, err := createConsoleUser(t, testApp, email, consolePassword, "member")
 			require.NoError(t, err)
-			executeSQL(t, "UPDATE users SET "+testCase.insertedState+" WHERE email = ?", email)
-			storedStateBefore := readStoredState(t, email)
+			executeSQL(t, SQLExecutionSpec{
+				App:       testApp,
+				Statement: "UPDATE users SET " + testCase.insertedState + " WHERE email = ?",
+				Values:    []any{email},
+			})
+			storedStateBefore := readStoredState(t, testApp, email)
 
 			_, err = createConsoleUser(t, testApp, email, rotatedPassword, testCase.requestedRole)
 
 			require.ErrorContains(t, err, "already exists", testCase.name)
-			assert.Equal(t, storedStateBefore, readStoredState(t, email), testCase.name)
+			assert.Equal(t, storedStateBefore, readStoredState(t, testApp, email), testCase.name)
 		}
 	})
 
@@ -224,7 +236,7 @@ func TestRunConsoleCommand(t *testing.T) {
 		_, refusal := createConsoleUser(t, testApp, newConsoleEmail(), rotatedPassword, "owner")
 		require.Error(t, refusal)
 
-		storedHash := readStoredState(t, email).HashedPassword
+		storedHash := readStoredState(t, testApp, email).HashedPassword
 		for _, output := range []string{createdOutput, rerunOutput, refusal.Error()} {
 			assert.NotContains(t, output, consolePassword)
 			assert.NotContains(t, output, rotatedPassword)
@@ -245,7 +257,7 @@ func TestRunConsoleCommand(t *testing.T) {
 		require.NoError(t, err)
 		require.NoError(t, signIn(t, client, email, rotatedPassword))
 		require.Error(t, signIn(t, client, email, consolePassword))
-		assert.Equal(t, int64(1), countPasswordChangeRecords(t, email))
+		assert.Equal(t, int64(1), countPasswordChangeRecords(t, testApp, email))
 		assert.Nil(t, testApp.backgroundGroup)
 	})
 
@@ -266,7 +278,9 @@ func TestRunConsoleCommand(t *testing.T) {
 		testApp := newTestApp(t)
 		client := newConsoleTestClient(t, testApp)
 		email := createConsoleAdministrator(t, testApp)
-		executeSQL(t, "UPDATE users SET email = 'admin' WHERE email = ?", email)
+		executeSQL(t, SQLExecutionSpec{
+			App: testApp, Statement: "UPDATE users SET email = 'admin' WHERE email = ?", Values: []any{email},
+		})
 
 		_, err := testApp.RunConsoleCommand(t.Context(), ConsoleCommand{
 			Kind: ConsoleCommandResetPassword, Email: "admin", NewPassword: rotatedPassword,
@@ -291,16 +305,26 @@ func TestRunConsoleCommand(t *testing.T) {
 
 	t.Run("switches the second factor off and records it in the audit log", func(t *testing.T) {
 		testApp := newTestApp(t)
-		executeSQL(t, "INSERT INTO users_settings (is_two_factor_auth_required) VALUES (TRUE)")
+		executeSQL(
+			t,
+			SQLExecutionSpec{
+				App:       testApp,
+				Statement: "INSERT INTO users_settings (is_two_factor_auth_required) VALUES (TRUE)",
+			},
+		)
 
 		output, err := testApp.RunConsoleCommand(t.Context(), ConsoleCommand{Kind: ConsoleCommandDisableTwoFactor})
 
 		require.NoError(t, err)
 		assert.Contains(t, output, "Two-factor authentication is now off")
-		assert.False(t, isTwoFactorAuthRequired(t))
+		assert.False(t, isTwoFactorAuthRequired(t, testApp))
 		assert.True(
 			t,
-			hasAuditRecordContaining(t, "isTwoFactorAuthRequired: true -> false (switched off from the host console)"),
+			hasAuditRecordContaining(
+				t,
+				testApp,
+				"isTwoFactorAuthRequired: true -> false (switched off from the host console)",
+			),
 		)
 		assert.Nil(t, testApp.backgroundGroup)
 	})
@@ -312,7 +336,7 @@ func TestRunConsoleCommand(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Contains(t, output, "Two-factor authentication was already off")
-		assert.False(t, hasAuditRecordContaining(t, "isTwoFactorAuthRequired"))
+		assert.False(t, hasAuditRecordContaining(t, testApp, "isTwoFactorAuthRequired"))
 	})
 
 	t.Run("lists the administrators unmasked, marks the bootstrap one and leaves members out", func(t *testing.T) {
@@ -320,7 +344,11 @@ func TestRunConsoleCommand(t *testing.T) {
 		bootstrapEmail := createConsoleAdministrator(t, testApp)
 		ordinaryEmail := createConsoleAdministrator(t, testApp)
 		deactivatedEmail := createConsoleAdministrator(t, testApp)
-		executeSQL(t, "UPDATE users SET status = 'INACTIVE' WHERE email = ?", deactivatedEmail)
+		executeSQL(t, SQLExecutionSpec{
+			App:       testApp,
+			Statement: "UPDATE users SET status = 'INACTIVE' WHERE email = ?",
+			Values:    []any{deactivatedEmail},
+		})
 		memberEmail := newConsoleEmail()
 		_, err := createConsoleUser(t, testApp, memberEmail, consolePassword, "member")
 		require.NoError(t, err)
@@ -454,84 +482,90 @@ type storedUserState struct {
 	HashedPassword string
 }
 
-func readStoredState(t *testing.T, email string) storedUserState {
+func readStoredState(t *testing.T, testApp *App, email string) storedUserState {
 	t.Helper()
 
 	var state storedUserState
-	require.NoError(t, storage.GetDb().WithContext(t.Context()).Raw(
+	require.NoError(t, testApp.db.WithContext(t.Context()).Raw(
 		"SELECT role, status, COALESCE(hashed_password, '') AS hashed_password FROM users WHERE email = ?", email,
 	).Scan(&state).Error)
 
 	return state
 }
 
-func executeSQL(t *testing.T, statement string, values ...any) {
-	t.Helper()
-
-	require.NoError(t, storage.GetDb().WithContext(t.Context()).Exec(statement, values...).Error)
+type SQLExecutionSpec struct {
+	App       *App
+	Statement string
+	Values    []any
 }
 
-func countUsers(t *testing.T) int {
+func executeSQL(t *testing.T, spec SQLExecutionSpec) {
+	t.Helper()
+
+	require.NoError(t, spec.App.db.WithContext(t.Context()).Exec(spec.Statement, spec.Values...).Error)
+}
+
+func countUsers(t *testing.T, testApp *App) int {
 	t.Helper()
 
 	var userCount int
 	require.NoError(
 		t,
-		storage.GetDb().WithContext(t.Context()).Raw("SELECT COUNT(*) FROM users").Scan(&userCount).Error,
+		testApp.db.WithContext(t.Context()).Raw("SELECT COUNT(*) FROM users").Scan(&userCount).Error,
 	)
 
 	return userCount
 }
 
-func countBootstrapAdministrators(t *testing.T) int {
+func countBootstrapAdministrators(t *testing.T, testApp *App) int {
 	t.Helper()
 
 	var bootstrapAdminCount int
-	require.NoError(t, storage.GetDb().WithContext(t.Context()).Raw(
+	require.NoError(t, testApp.db.WithContext(t.Context()).Raw(
 		"SELECT COUNT(*) FROM users WHERE is_root_admin",
 	).Scan(&bootstrapAdminCount).Error)
 
 	return bootstrapAdminCount
 }
 
-func countAuditRecords(t *testing.T) int {
+func countAuditRecords(t *testing.T, testApp *App) int {
 	t.Helper()
 
 	var recordCount int
-	require.NoError(t, storage.GetDb().WithContext(t.Context()).Raw(
+	require.NoError(t, testApp.db.WithContext(t.Context()).Raw(
 		"SELECT COUNT(*) FROM lib_audit_events",
 	).Scan(&recordCount).Error)
 
 	return recordCount
 }
 
-func isTwoFactorAuthRequired(t *testing.T) bool {
+func isTwoFactorAuthRequired(t *testing.T, testApp *App) bool {
 	t.Helper()
 
 	var isRequired bool
-	require.NoError(t, storage.GetDb().WithContext(t.Context()).Raw(
+	require.NoError(t, testApp.db.WithContext(t.Context()).Raw(
 		"SELECT is_two_factor_auth_required FROM users_settings",
 	).Scan(&isRequired).Error)
 
 	return isRequired
 }
 
-func hasAuditRecordContaining(t *testing.T, messagePart string) bool {
+func hasAuditRecordContaining(t *testing.T, testApp *App, messagePart string) bool {
 	t.Helper()
 
 	var isPresent bool
-	require.NoError(t, storage.GetDb().WithContext(t.Context()).Raw(
+	require.NoError(t, testApp.db.WithContext(t.Context()).Raw(
 		"SELECT EXISTS (SELECT 1 FROM lib_audit_events WHERE strpos(message, ?) > 0)", messagePart,
 	).Scan(&isPresent).Error)
 
 	return isPresent
 }
 
-func countPasswordChangeRecords(t *testing.T, email string) int64 {
+func countPasswordChangeRecords(t *testing.T, testApp *App, email string) int64 {
 	t.Helper()
 
 	var recordCount int64
-	require.NoError(t, storage.GetDb().WithContext(t.Context()).Raw(
+	require.NoError(t, testApp.db.WithContext(t.Context()).Raw(
 		`SELECT COUNT(*) FROM lib_audit_events
 		 WHERE message = 'Password changed' AND author_email = ?`,
 		email,

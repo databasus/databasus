@@ -10,12 +10,14 @@ import (
 
 	"databasus-backend/internal/app/apptest"
 	apiclient "databasus-backend/internal/lib/apiclient"
-	"databasus-backend/internal/util/testing/containers"
+	containers "databasus-backend/internal/lib/testcontainers"
 )
 
 const storageFileDeletionJobName = "storage_file_deletion"
 
 func TestMoveLogicalBackupConfigToAnotherStorage(t *testing.T) {
+	t.Parallel()
+
 	t.Run("removes the logical backups and deletes their files when the storage changes", func(t *testing.T) {
 		tm := newTeam(t)
 		databaseID := tm.insertLogicalDatabase(t)
@@ -103,6 +105,8 @@ func TestMoveLogicalBackupConfigToAnotherStorage(t *testing.T) {
 }
 
 func TestMovePhysicalBackupConfigToAnotherStorage(t *testing.T) {
+	t.Parallel()
+
 	physicalServer := containers.StartPhysicalPostgres(t, "postgres:17")
 
 	t.Run("removes the full backups kept in the previous storage after the save", func(t *testing.T) {

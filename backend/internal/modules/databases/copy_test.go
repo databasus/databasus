@@ -10,13 +10,14 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"databasus-backend/internal/app/apptest"
-	databases_bridge "databasus-backend/internal/features/databases"
 	apiclient "databasus-backend/internal/lib/apiclient"
+	containers "databasus-backend/internal/lib/testcontainers"
 	"databasus-backend/internal/modules/databases"
-	"databasus-backend/internal/util/testing/containers"
 )
 
 func TestCopyDatabase(t *testing.T) {
+	t.Parallel()
+
 	server := containers.StartPostgres(t, "postgres:16")
 
 	t.Run("creates a logical copy with the settings, notifiers and backup config but no backup history",
@@ -36,10 +37,10 @@ func TestCopyDatabase(t *testing.T) {
 				DatabaseID: originalDatabase.Id,
 				StorageID:  storageID,
 			})
-			require.NoError(t, databases_bridge.GetModule().RecordBackupSuccess(
+			require.NoError(t, tm.app.RecordBackupSuccess(
 				t.Context(), originalDatabase.Id, time.Now().UTC()))
 			unavailable := databases.HealthStatusUnavailable
-			require.NoError(t, databases_bridge.GetModule().SetHealthStatus(
+			require.NoError(t, tm.app.SetHealthStatus(
 				t.Context(), originalDatabase.Id, &unavailable))
 
 			copiedDatabase := copyDatabase(t, tm.owner, originalDatabase.Id)

@@ -10,7 +10,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"databasus-backend/internal/util/testing/containers"
+	containers "databasus-backend/internal/lib/testcontainers"
 )
 
 func startStallableSourceProxy(t *testing.T, source containers.Endpoint) (containers.Endpoint, *atomic.Bool) {

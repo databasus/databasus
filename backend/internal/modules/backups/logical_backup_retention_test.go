@@ -14,6 +14,8 @@ import (
 const logicalBackupRetentionJobName = "backups_logical_retention"
 
 func TestLogicalBackupRetention(t *testing.T) {
+	t.Parallel()
+
 	server := startRestoreServer(t, restoreServerImage)
 
 	t.Run("removes the two oldest of seven backups and deletes their files when the config keeps five",

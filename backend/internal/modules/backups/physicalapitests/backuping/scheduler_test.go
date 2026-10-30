@@ -8,6 +8,8 @@ import (
 )
 
 func TestSchedulePhysicalBackup(t *testing.T) {
+	t.Parallel()
+
 	t.Run(
 		"starts a full backup when AUTO is requested for a full-only database with a completed full",
 		func(t *testing.T) {

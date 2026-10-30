@@ -103,11 +103,13 @@ func (c PhysicalBackupConfig) IsWalStreamingExpected() bool {
 	return c.BackupType.IsWalStreaming()
 }
 
-var physicalNotificationTriggers = []NotificationTrigger{
-	NotificationTriggerBackupFailed,
-	NotificationTriggerBackupSuccess,
-	NotificationTriggerChainBroken,
-	NotificationTriggerWalGap,
+func getPhysicalNotificationTriggers() []NotificationTrigger {
+	return []NotificationTrigger{
+		NotificationTriggerBackupFailed,
+		NotificationTriggerBackupSuccess,
+		NotificationTriggerChainBroken,
+		NotificationTriggerWalGap,
+	}
 }
 
 func (c PhysicalBackupConfig) validate() error {
@@ -130,7 +132,7 @@ func (c PhysicalBackupConfig) validate() error {
 		return err
 	}
 
-	return validateCommonFields(c.BackupConfig, physicalNotificationTriggers)
+	return validateCommonFields(c.BackupConfig, getPhysicalNotificationTriggers())
 }
 
 func (c PhysicalBackupConfig) validateRetention() error {

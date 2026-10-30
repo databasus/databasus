@@ -7,8 +7,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	containers "databasus-backend/internal/lib/testcontainers"
 	"databasus-backend/internal/lib/testwait"
-	"databasus-backend/internal/util/testing/containers"
 )
 
 func TestResolveLiveTimelineID(t *testing.T) {
@@ -67,7 +67,7 @@ func TestResolveLiveTimelineIDUnreadable(t *testing.T) {
 }
 
 func TestReadLiveTimeline(t *testing.T) {
-	for _, image := range supportedVersionImages {
+	for _, image := range getSupportedVersionImages() {
 		t.Run(image, func(t *testing.T) {
 			t.Run("reports the live timeline after promotion before the control file catches up", func(t *testing.T) {
 				primary, standby := containers.StartPhysicalPrimaryWithStandby(
@@ -77,8 +77,8 @@ func TestReadLiveTimeline(t *testing.T) {
 				)
 				primaryServer := testServer{endpoint: primary, image: image, version: ""}
 				standbyServer := testServer{endpoint: standby, image: image, version: ""}
-				primaryConn := primaryServer.connectAs(t, adminRole)
-				standbyConn := standbyServer.connectAs(t, adminRole)
+				primaryConn := primaryServer.connectAs(t, getAdminRole())
+				standbyConn := standbyServer.connectAs(t, getAdminRole())
 				execStatements(
 					t,
 					primaryConn,
@@ -95,7 +95,7 @@ func TestReadLiveTimeline(t *testing.T) {
 					}
 					return nil
 				})
-				inspection := standbyServer.openInspection(t, adminRole)
+				inspection := standbyServer.openInspection(t, getAdminRole())
 				slotName := newSlotName()
 				require.NoError(t, inspection.CreateSlot(t.Context(), slotName))
 				standbySlot, err := inspection.GetSlot(t.Context(), slotName)
@@ -105,7 +105,10 @@ func TestReadLiveTimeline(t *testing.T) {
 				require.Nil(t, standbySlot.CurrentLSN)
 				require.Nil(t, standbySlot.LagBytes)
 				require.Nil(t, standbySlot.SafeWalSizeBytes)
-				require.NoError(t, standbyServer.newSource(adminRole).DropSlot(t.Context(), newTestLogger(t), slotName))
+				require.NoError(
+					t,
+					standbyServer.newSource(getAdminRole()).DropSlot(t.Context(), newTestLogger(t), slotName),
+				)
 				var isPromoted bool
 				require.NoError(
 					t,
@@ -136,7 +139,7 @@ func TestReadLiveTimeline(t *testing.T) {
 			image:    "postgres:16",
 			version:  "",
 		}
-		inspection := server.openInspection(t, adminRole)
+		inspection := server.openInspection(t, getAdminRole())
 		_, err := inspection.InspectCluster(t.Context())
 		require.ErrorIs(t, err, ErrUnsupportedVersion)
 		timeline, systemIdentifier, err := inspection.ReadLiveTimeline(t.Context())

@@ -11,6 +11,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/gin-gonic/gin"
+
 	"databasus-backend/internal/app"
 	"databasus-backend/internal/lib/config"
 	"databasus-backend/internal/lib/shutdown"
@@ -24,6 +26,7 @@ const (
 )
 
 func main() {
+	gin.SetMode(gin.ReleaseMode)
 	os.Exit(run(context.Background(), os.Args[1:], os.Stdout, os.Stderr))
 }
 

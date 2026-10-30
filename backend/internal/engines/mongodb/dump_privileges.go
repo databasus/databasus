@@ -15,7 +15,7 @@ import (
 
 const findAction = "find"
 
-// These are defined on admin and read every database, so they cover the dump whatever it targets.
+//nolint:gochecknoglobals // Shared immutable MongoDB role lookup avoids rebuilding the table for each inherited role; it is never mutated.
 var clusterWideBackupRoles = map[string]bool{
 	"backup":               true,
 	"root":                 true,
@@ -25,7 +25,7 @@ var clusterWideBackupRoles = map[string]bool{
 	"__system":             true,
 }
 
-// These read one database, so they only count when they are scoped to the one being dumped.
+//nolint:gochecknoglobals // Shared immutable MongoDB role lookup avoids rebuilding the table for each inherited role; it is never mutated.
 var databaseScopedBackupRoles = map[string]bool{
 	"read":      true,
 	"readWrite": true,

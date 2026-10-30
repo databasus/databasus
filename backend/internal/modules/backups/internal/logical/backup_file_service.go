@@ -7,8 +7,8 @@ import (
 
 	"github.com/google/uuid"
 
+	files_utils "databasus-backend/internal/lib/filename"
 	"databasus-backend/internal/modules/databases"
-	files_utils "databasus-backend/internal/util/files"
 )
 
 // GetBackupWithDatabase reads the backup and its database without an access check, for a download

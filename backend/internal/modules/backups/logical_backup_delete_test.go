@@ -12,6 +12,8 @@ import (
 )
 
 func TestDeleteLogicalBackup(t *testing.T) {
+	t.Parallel()
+
 	server := startRestoreServer(t, restoreServerImage)
 
 	t.Run("removes the backup from the list and deletes its file and metadata file", func(t *testing.T) {

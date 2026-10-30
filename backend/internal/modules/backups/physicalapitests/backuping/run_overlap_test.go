@@ -22,6 +22,8 @@ import (
 )
 
 func TestPhysicalBackupRunOverlap(t *testing.T) {
+	t.Parallel()
+
 	for _, action := range []string{"cancel", "delete", "disable"} {
 		t.Run("waits for the old process before completing the next full after "+action, func(t *testing.T) {
 			team := newBackupTeam(t, backupTeamSpec{})

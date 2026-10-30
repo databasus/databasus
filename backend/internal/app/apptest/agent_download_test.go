@@ -15,6 +15,8 @@ import (
 )
 
 func TestSystemAgentDownload(t *testing.T) {
+	t.Parallel()
+
 	for _, architecture := range []apiclient.AgentArchitecture{apiclient.AgentArchitectureAmd64, apiclient.AgentArchitectureArm64} {
 		t.Run("streams the binary with exact headers when architecture is "+string(architecture), func(t *testing.T) {
 			directory := t.TempDir()
@@ -87,6 +89,8 @@ func TestSystemAgentDownload(t *testing.T) {
 }
 
 func TestAgentDiscoveryAfterHeartbeatRefusal(t *testing.T) {
+	t.Parallel()
+
 	t.Run("serves public updates when a gigabyte-only heartbeat is rejected", func(t *testing.T) {
 		directory := t.TempDir()
 		require.NoError(

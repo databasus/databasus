@@ -11,6 +11,8 @@ import (
 )
 
 func TestAccessMark(t *testing.T) {
+	t.Parallel()
+
 	t.Run("returns 401 unauthenticated without running a signed-in operation when no token is sent",
 		func(t *testing.T) {
 			app := apptest.New(t)
@@ -59,6 +61,8 @@ func TestAccessMark(t *testing.T) {
 }
 
 func TestPasswordPathsWithoutSession(t *testing.T) {
+	t.Parallel()
+
 	t.Run("returns 404 when an anonymous caller asks to read or set a password of a user", func(t *testing.T) {
 		app := apptest.New(t)
 		app.CreateAdmin(t)

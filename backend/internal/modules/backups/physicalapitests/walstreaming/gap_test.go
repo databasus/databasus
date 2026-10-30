@@ -14,6 +14,8 @@ import (
 )
 
 func TestIncrementalPhysicalBackupAfterWalGap(t *testing.T) {
+	t.Parallel()
+
 	t.Run(
 		"completes an incremental after a missing streamed segment while reporting the catalog gap",
 		func(t *testing.T) {

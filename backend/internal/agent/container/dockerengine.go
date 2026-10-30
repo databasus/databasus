@@ -38,9 +38,7 @@ const (
 	pgInternalPort = 5432
 )
 
-// pgPublishedPort is the parsed network.Port key reused for ExposedPorts and
-// PortBindings; ParsePort is the only constructor in the new SDK.
-var pgPublishedPort = mustParsePort(strconv.Itoa(pgInternalPort) + "/tcp")
+func getPgPublishedPort() network.Port { return mustParsePort(strconv.Itoa(pgInternalPort) + "/tcp") }
 
 func mustParsePort(s string) network.Port {
 	p, err := network.ParsePort(s)
@@ -171,7 +169,7 @@ func toContainerConfigs(spec SpawnSpec) (*container.Config, *container.HostConfi
 		ReadonlyRootfs: spec.ReadonlyRootfs,
 		NetworkMode:    container.NetworkMode(spec.NetworkID),
 		PortBindings: network.PortMap{
-			pgPublishedPort: []network.PortBinding{
+			getPgPublishedPort(): []network.PortBinding{
 				{HostIP: netip.MustParseAddr("127.0.0.1"), HostPort: "0"},
 			},
 		},
@@ -188,7 +186,7 @@ func toContainerConfigs(spec SpawnSpec) (*container.Config, *container.HostConfi
 		Cmd:          spec.Cmd,
 		Env:          spec.Env,
 		Labels:       spec.Labels,
-		ExposedPorts: network.PortSet{pgPublishedPort: struct{}{}},
+		ExposedPorts: network.PortSet{getPgPublishedPort(): struct{}{}},
 	}
 
 	return config, hostConfig

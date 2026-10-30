@@ -12,6 +12,8 @@ import (
 )
 
 func TestRestoreAcrossApplicationRestart(t *testing.T) {
+	t.Parallel()
+
 	server := startRestoreServer(t, restoreServerImage)
 
 	t.Run("fails a restore that runs when the application stops", func(t *testing.T) {

@@ -12,6 +12,8 @@ import (
 )
 
 func TestChangePhysicalWalConfiguration(t *testing.T) {
+	t.Parallel()
+
 	t.Run("stops its receiver and removes the local queue when backups are disabled", func(t *testing.T) {
 		team := newWalTeam(t, walTeamSpec{})
 		team.enable(t)
@@ -82,6 +84,8 @@ func TestChangePhysicalWalConfiguration(t *testing.T) {
 }
 
 func TestFailingPhysicalWalSessions(t *testing.T) {
+	t.Parallel()
+
 	for _, isNotified := range []bool{false, true} {
 		scenario := "keeps the first failure across sessions without notifications when its trigger is disabled"
 		if isNotified {

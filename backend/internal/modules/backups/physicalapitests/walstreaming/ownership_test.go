@@ -16,6 +16,8 @@ import (
 )
 
 func TestClaimPhysicalWalStreamer(t *testing.T) {
+	t.Parallel()
+
 	for _, status := range []string{"FAILED", "STALE", "RUNNING"} {
 		t.Run("claims only dead ownership when the catalog starts with a "+status+" streamer", func(t *testing.T) {
 			team := newWalTeam(t, walTeamSpec{})
@@ -99,6 +101,8 @@ func TestClaimPhysicalWalStreamer(t *testing.T) {
 }
 
 func TestRecoverStalePhysicalWalStreamer(t *testing.T) {
+	t.Parallel()
+
 	t.Run("marks a stale running row failed during startup when the configuration is disabled", func(t *testing.T) {
 		team := newWalTeam(t, walTeamSpec{IsWithoutLoops: true})
 		team.App.InsertPhysicalWalStreamer(

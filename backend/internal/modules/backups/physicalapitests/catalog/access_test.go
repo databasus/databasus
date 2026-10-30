@@ -14,6 +14,8 @@ import (
 )
 
 func TestPhysicalBackupAccess(t *testing.T) {
+	t.Parallel()
+
 	for _, scenario := range []struct {
 		name          string
 		role          string
@@ -78,6 +80,8 @@ func TestPhysicalBackupAccess(t *testing.T) {
 }
 
 func TestTriggerPhysicalBackup(t *testing.T) {
+	t.Parallel()
+
 	t.Run("sets the full request time when a full backup is requested", func(t *testing.T) {
 		catalog := newCatalog(t)
 		apptest.SaveBackupConfigWithStorage(

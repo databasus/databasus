@@ -13,6 +13,8 @@ import (
 )
 
 func TestUpdateUser(t *testing.T) {
+	t.Parallel()
+
 	t.Run("replaces the name and the address, and the next sign-in uses the new address", func(t *testing.T) {
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
@@ -100,6 +102,8 @@ func TestUpdateUser(t *testing.T) {
 }
 
 func TestChangeUserPassword(t *testing.T) {
+	t.Parallel()
+
 	t.Run("signs the user in with the new password and not with the old one", func(t *testing.T) {
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)

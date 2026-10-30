@@ -20,10 +20,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	test_utils "databasus-backend/internal/lib/httpclienttest"
+	containers "databasus-backend/internal/lib/testcontainers"
 	"databasus-backend/internal/modules/storages/internal/providers"
 	"databasus-backend/internal/modules/storages/internal/providers/providertest"
-	test_utils "databasus-backend/internal/util/testing"
-	"databasus-backend/internal/util/testing/containers"
 )
 
 // testInnerPartSize is the S3 minimum non-final part size (5 MiB). Combined with a tiny per-object

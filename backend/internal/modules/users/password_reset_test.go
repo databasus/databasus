@@ -15,6 +15,8 @@ import (
 const resetPassword = "reset-password-456"
 
 func TestRequestPasswordReset(t *testing.T) {
+	t.Parallel()
+
 	t.Run("mails a code that replaces the password of the bootstrap administrator", func(t *testing.T) {
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
@@ -115,6 +117,8 @@ func TestRequestPasswordReset(t *testing.T) {
 }
 
 func TestCompletePasswordReset(t *testing.T) {
+	t.Parallel()
+
 	t.Run("ends the sessions issued before the reset", func(t *testing.T) {
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)

@@ -16,8 +16,8 @@ import (
 	"databasus-backend/internal/app/apptest"
 	"databasus-backend/internal/app/apptest/enginetest"
 	apiclient "databasus-backend/internal/lib/apiclient"
+	containers "databasus-backend/internal/lib/testcontainers"
 	"databasus-backend/internal/lib/testwait"
-	"databasus-backend/internal/util/testing/containers"
 )
 
 type (
@@ -56,7 +56,7 @@ func newBackupTeam(t *testing.T, spec backupTeamSpec) *backupTeam {
 	connectionEndpoint := source
 	tunnel := apiclient.SshTunnelSettings{IsEnabled: false}
 	if spec.IsBastioned {
-		topology := containers.StartPhysicalPostgresBehindSshBastion(t, image)
+		topology := containers.StartPhysicalPostgresBehindSSHBastion(t, image)
 		source = topology.Database
 		connectionEndpoint = enginetest.OpenForwardedEndpoint(t, topology)
 		tunnel = enginetest.NewBastionSSHTunnelSettings(topology)

@@ -15,6 +15,8 @@ import (
 )
 
 func TestDownloadAgentBinary(t *testing.T) {
+	t.Parallel()
+
 	t.Run("serves bytes from the configured directory with the server version", func(t *testing.T) {
 		directory := t.TempDir()
 		require.NoError(

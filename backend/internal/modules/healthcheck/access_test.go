@@ -14,6 +14,8 @@ import (
 )
 
 func TestHealthcheckAccess(t *testing.T) {
+	t.Parallel()
+
 	t.Run("allows reading but refuses saving when a viewer calls", func(t *testing.T) {
 		team := newHealthcheckTeam(t)
 		viewer := team.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEVIEWER)

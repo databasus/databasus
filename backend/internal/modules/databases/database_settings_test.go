@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	apiclient "databasus-backend/internal/lib/apiclient"
-	"databasus-backend/internal/util/testing/containers"
+	containers "databasus-backend/internal/lib/testcontainers"
 )
 
 func toSettings(t *testing.T, convert func(settings *apiclient.DatabaseSettings) error) apiclient.DatabaseSettings {

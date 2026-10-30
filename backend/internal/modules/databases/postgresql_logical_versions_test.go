@@ -6,10 +6,12 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 
-	"databasus-backend/internal/util/testing/containers"
+	containers "databasus-backend/internal/lib/testcontainers"
 )
 
 func TestGetPostgresqlLogicalVersions(t *testing.T) {
+	t.Parallel()
+
 	t.Run(
 		"returns versions without decrypting settings when IDs include other engines and missing databases",
 		func(t *testing.T) {

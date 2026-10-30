@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"databasus-backend/internal/util/testing/containers"
+	containers "databasus-backend/internal/lib/testcontainers"
 )
 
 func TestIsBastionReachable(t *testing.T) {
@@ -22,7 +22,7 @@ func TestIsBastionReachable(t *testing.T) {
 	// was given.
 	t.Run("returns false within the caller's deadline when the bastion is gone", func(t *testing.T) {
 		t.Parallel()
-		bastion := containers.StartSshBastion(t)
+		bastion := containers.StartSSHBastion(t)
 		forwarder := openTestForwarder(t, bastionSettings(bastion))
 		require.NoError(t, readBannerThroughTunnel(t.Context(), forwarder))
 		discardCachedClient(forwarder)
@@ -48,7 +48,7 @@ func TestIsBastionReachable(t *testing.T) {
 	// as a side effect, so a probe built on it would silently reconnect on every call.
 	t.Run("does not cache the dialed client when no client is cached", func(t *testing.T) {
 		t.Parallel()
-		bastion := containers.StartSshBastion(t)
+		bastion := containers.StartSSHBastion(t)
 		forwarder := openTestForwarder(t, bastionSettings(bastion))
 		discardCachedClient(forwarder)
 
@@ -65,7 +65,7 @@ func TestIsBastionReachable(t *testing.T) {
 	// for one second would block for fifteen between two receiver spawns.
 	t.Run("returns false within the caller's deadline when the cached session hangs", func(t *testing.T) {
 		t.Parallel()
-		bastion := containers.StartSshBastion(t)
+		bastion := containers.StartSSHBastion(t)
 		proxy, isStalled := startStallableBastionProxy(t, bastion)
 		forwarder := openTestForwarder(t, bastionSettings(proxy))
 

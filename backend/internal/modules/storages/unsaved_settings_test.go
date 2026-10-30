@@ -17,10 +17,12 @@ import (
 
 	"databasus-backend/internal/app/apptest"
 	apiclient "databasus-backend/internal/lib/apiclient"
-	"databasus-backend/internal/util/testing/containers"
+	containers "databasus-backend/internal/lib/testcontainers"
 )
 
 func TestTestStorageSettings(t *testing.T) {
+	t.Parallel()
+
 	t.Run("connects to the entered FTP server and creates no storage when settings are tested before saving",
 		func(t *testing.T) {
 			tm := newTeam(t)

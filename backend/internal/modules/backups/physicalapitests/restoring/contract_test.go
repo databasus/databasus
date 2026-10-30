@@ -14,6 +14,8 @@ import (
 )
 
 func TestPhysicalRestoreTokenContract(t *testing.T) {
+	t.Parallel()
+
 	t.Run("expires after 15 minutes when a token has not been used", func(t *testing.T) {
 		catalog := newCatalog(t)
 		full := createStreamableFullBackup(t, catalog)

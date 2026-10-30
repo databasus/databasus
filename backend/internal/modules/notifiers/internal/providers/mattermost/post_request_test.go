@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	test_utils "databasus-backend/internal/util/testing"
+	test_utils "databasus-backend/internal/lib/httpclienttest"
 )
 
 func TestNewTLSSkippingTransport(t *testing.T) {

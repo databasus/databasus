@@ -10,12 +10,14 @@ import (
 
 	"databasus-backend/internal/app/apptest"
 	apiclient "databasus-backend/internal/lib/apiclient"
-	"databasus-backend/internal/util/testing/containers"
+	containers "databasus-backend/internal/lib/testcontainers"
 )
 
 const storageFileDeletionJob = "storage_file_deletion"
 
 func TestDeleteDatabase(t *testing.T) {
+	t.Parallel()
+
 	postgresServer := containers.StartPostgres(t, "postgres:16")
 
 	t.Run("deletes the database with its backups and removes their files", func(t *testing.T) {
@@ -95,6 +97,8 @@ func TestDeleteDatabase(t *testing.T) {
 }
 
 func TestDeleteDatabaseAccess(t *testing.T) {
+	t.Parallel()
+
 	postgresServer := containers.StartPostgres(t, "postgres:16")
 
 	t.Run("lets a workspace member delete a database", func(t *testing.T) {

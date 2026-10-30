@@ -14,9 +14,9 @@ import (
 	mysql_engine "databasus-backend/internal/engines/mysql"
 	pglogical "databasus-backend/internal/engines/postgresql/logical"
 	pgshared "databasus-backend/internal/engines/postgresql/shared"
+	test_utils "databasus-backend/internal/lib/httpclienttest"
+	containers "databasus-backend/internal/lib/testcontainers"
 	"databasus-backend/internal/modules/databases"
-	test_utils "databasus-backend/internal/util/testing"
-	"databasus-backend/internal/util/testing/containers"
 )
 
 // TestRunBackupWithFailingStorage dumps a real database of every engine into a storage that fails.
@@ -32,7 +32,7 @@ func TestRunBackupWithFailingStorage(t *testing.T) {
 	}{
 		{
 			name:        "PostgreSQL",
-			compression: storedCompressionNone,
+			compression: getStoredCompressionNone(),
 			openDumpSource: func(t *testing.T) logicalDumpSource {
 				t.Helper()
 
@@ -89,7 +89,7 @@ func TestRunBackupWithFailingStorage(t *testing.T) {
 		},
 		{
 			name:        "MongoDB",
-			compression: storedCompressionNone,
+			compression: getStoredCompressionNone(),
 			openDumpSource: func(t *testing.T) logicalDumpSource {
 				t.Helper()
 

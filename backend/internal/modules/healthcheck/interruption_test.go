@@ -44,6 +44,8 @@ func holdProbe(t *testing.T, team healthcheckTeam) (<-chan net.Conn, chan<- stru
 }
 
 func TestHealthcheckInterruption(t *testing.T) {
+	t.Parallel()
+
 	t.Run("discards a pending probe after checks are disabled", func(t *testing.T) {
 		team := newHealthcheckTeam(t)
 		messages := recordNotifications(t, team)

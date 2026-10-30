@@ -15,6 +15,8 @@ import (
 )
 
 func TestAddWorkspaceMember(t *testing.T) {
+	t.Parallel()
+
 	t.Run("adds an existing user with the requested role", func(t *testing.T) {
 		tm := newTeam(t)
 		workspaceAdmin, _ := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEADMIN)
@@ -230,6 +232,8 @@ func TestAddWorkspaceMember(t *testing.T) {
 }
 
 func TestInvitationEmail(t *testing.T) {
+	t.Parallel()
+
 	publicURLs := []string{"https://databasus.example.com", "https://databasus.example.com/"}
 	for _, publicURL := range publicURLs {
 		t.Run("links to the public address as configured and names the inviter with "+publicURL,
@@ -253,6 +257,8 @@ func TestInvitationEmail(t *testing.T) {
 }
 
 func TestListWorkspaceMembers(t *testing.T) {
+	t.Parallel()
+
 	t.Run("lists an invited member as invited after the members who joined earlier", func(t *testing.T) {
 		tm := newTeam(t)
 		workspaceAdmin, _ := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEADMIN)

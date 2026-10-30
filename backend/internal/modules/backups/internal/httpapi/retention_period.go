@@ -6,25 +6,25 @@ import (
 	"databasus-backend/internal/modules/backups/internal/config"
 )
 
-// The contract spells the periods out, because its enum values start with a letter; the stored values
-// keep the digits they have always had.
-var storedRetentionPeriods = map[RetentionPeriod]config.RetentionPeriod{
-	RetentionPeriodDAY:         config.RetentionPeriodDay,
-	RetentionPeriodWEEK:        config.RetentionPeriodWeek,
-	RetentionPeriodMONTH:       config.RetentionPeriodMonth,
-	RetentionPeriodTHREEMONTHS: config.RetentionPeriod3Months,
-	RetentionPeriodSIXMONTHS:   config.RetentionPeriod6Months,
-	RetentionPeriodYEAR:        config.RetentionPeriodYear,
-	RetentionPeriodTWOYEARS:    config.RetentionPeriod2Years,
-	RetentionPeriodTHREEYEARS:  config.RetentionPeriod3Years,
-	RetentionPeriodFOURYEARS:   config.RetentionPeriod4Years,
-	RetentionPeriodFIVEYEARS:   config.RetentionPeriod5Years,
-	RetentionPeriodFOREVER:     config.RetentionPeriodForever,
+func getStoredRetentionPeriods() map[RetentionPeriod]config.RetentionPeriod {
+	return map[RetentionPeriod]config.RetentionPeriod{
+		RetentionPeriodDAY:         config.RetentionPeriodDay,
+		RetentionPeriodWEEK:        config.RetentionPeriodWeek,
+		RetentionPeriodMONTH:       config.RetentionPeriodMonth,
+		RetentionPeriodTHREEMONTHS: config.RetentionPeriod3Months,
+		RetentionPeriodSIXMONTHS:   config.RetentionPeriod6Months,
+		RetentionPeriodYEAR:        config.RetentionPeriodYear,
+		RetentionPeriodTWOYEARS:    config.RetentionPeriod2Years,
+		RetentionPeriodTHREEYEARS:  config.RetentionPeriod3Years,
+		RetentionPeriodFOURYEARS:   config.RetentionPeriod4Years,
+		RetentionPeriodFIVEYEARS:   config.RetentionPeriod5Years,
+		RetentionPeriodFOREVER:     config.RetentionPeriodForever,
+	}
 }
 
 // toRetentionPeriod passes an unknown value through, so the config's validation names the field.
 func toRetentionPeriod(body RetentionPeriod) config.RetentionPeriod {
-	storedPeriod, isKnown := storedRetentionPeriods[body]
+	storedPeriod, isKnown := getStoredRetentionPeriods()[body]
 	if !isKnown {
 		return config.RetentionPeriod(body)
 	}
@@ -33,7 +33,7 @@ func toRetentionPeriod(body RetentionPeriod) config.RetentionPeriod {
 }
 
 func fromRetentionPeriod(storedPeriod config.RetentionPeriod) (RetentionPeriod, error) {
-	for bodyPeriod, knownPeriod := range storedRetentionPeriods {
+	for bodyPeriod, knownPeriod := range getStoredRetentionPeriods() {
 		if knownPeriod == storedPeriod {
 			return bodyPeriod, nil
 		}

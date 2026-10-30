@@ -23,6 +23,8 @@ func (team *walTeam) addDatabase(t *testing.T) *walTeam {
 }
 
 func TestIndependentPhysicalWalStreams(t *testing.T) {
+	t.Parallel()
+
 	t.Run("archives both databases into independent catalog rows and storage keys on one source", func(t *testing.T) {
 		first := newWalTeam(t, walTeamSpec{})
 		second := first.addDatabase(t)

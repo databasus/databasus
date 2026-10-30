@@ -12,6 +12,8 @@ import (
 )
 
 func TestPhysicalIncrementalRetryBudget(t *testing.T) {
+	t.Parallel()
+
 	t.Run("keeps the chain extendable after two automatic failures and breaks it on the third", func(t *testing.T) {
 		team := newBackupTeam(t, backupTeamSpec{})
 		full := team.runBackup(t, "full")

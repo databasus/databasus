@@ -2,12 +2,12 @@
 
 ## Purpose
 
-Defines which rules of the backend architecture and code style a machine enforces, where those rules apply while the backend moves into its target layout, and what the production server binary may contain.
+Defines which rules of the backend architecture and code style a machine enforces, how those rules apply throughout the backend, and what the production server binary may contain.
 
 ## Requirements
 
-### Requirement: The backend lint enforces the documented rules on code in the target layout
-The backend lint SHALL check these rules, taken from the architecture document and, for suppressions, from the repository's security rules, on production and test files alike, for all code in the target layout: the composition root, the domain modules, the engine drivers, the shared library, the verification agent's new home, the server and agent entry points in the target layout, and the backend's own tools:
+### Requirement: The backend lint enforces the documented rules throughout the backend
+The backend lint SHALL check these rules, taken from the architecture document and, for suppressions, from the repository's security rules, on production and test files alike, throughout the backend, including every command, the composition root, domain modules, engine drivers, shared support, the verification agent and the architecture tools:
 
 - no fixed sleeps or eventual assertions, no printing to standard output, no process exit, no environment reads and no background contexts outside the places the architecture document allows;
 - database access only in repository files;
@@ -15,27 +15,29 @@ The backend lint SHALL check these rules, taken from the architecture document a
 - test libraries only in test code, and no HTTP framework or ORM in the verification agent or in the engine drivers;
 - every field listed in a dependency struct literal;
 - every value handled in a switch on an enum;
-- no package initialization functions;
+- no package initialization functions or package-level application dependencies;
+- no global variables without a documented, specific justification accepted by the lint;
+- consistent import aliases;
 - no lint suppression without a written reason.
 
-On production files in the target layout, the backend lint SHALL also check that external processes start only through the shared library's process helper, which ties a process to its operation and stops it with that operation. The helper itself is the only production code that starts a process directly. Test files are outside this rule, because they start the binary under test or the test binary itself rather than an external tool.
+On production files in the backend, the backend lint SHALL also check that external processes start only through the shared library's process helper, which ties a process to its operation and stops it with that operation. The helper itself is the only production code that starts a process directly. Test files are outside this rule, because they start the binary under test or the test binary itself rather than an external tool.
 
-A violation SHALL fail the lint with the file, the line and the rule. Three rules of the architecture document are outside this requirement: fixed import aliases, the ban on package-level dependency variables, and the checks of the HTTP contract and of generated code.
+A violation SHALL fail the lint with the file, the line and the rule. The architecture document's permissions for particular operations in particular roles SHALL remain applicable. A package's location outside an enumerated set of migrated directories SHALL NOT exempt it from checks. Contract validation and generated-code freshness remain separate checks of the backend lint command.
 
 #### Scenario: A sleep in a new test
-- **WHEN** a test file of a module in the target layout calls a fixed sleep
+- **WHEN** a test file of a module in the backend calls a fixed sleep
 - **THEN** the backend lint fails and names the file, the line and the rule against fixed pauses
 
 #### Scenario: A log call with a formatted message
-- **WHEN** code in the target layout logs a message built from a value instead of passing the value as an attribute
+- **WHEN** code in the backend logs a message built from a value instead of passing the value as an attribute
 - **THEN** the backend lint fails and names the logging rule
 
 #### Scenario: A dependency literal with a missing field
-- **WHEN** code in the target layout builds a module's dependency struct without one of its fields
+- **WHEN** code in the backend builds a module's dependency struct without one of its fields
 - **THEN** the backend lint fails and names the missing field
 
 #### Scenario: A suppression without a reason
-- **WHEN** code in the target layout suppresses a lint finding without a written reason
+- **WHEN** code in the backend suppresses a lint finding without a written reason
 - **THEN** the backend lint fails
 
 #### Scenario: An engine driver starts a client tool directly
@@ -43,30 +45,27 @@ A violation SHALL fail the lint with the file, the line and the rule. Three rule
 - **THEN** the backend lint fails and names the process helper as the only way to start an external program
 
 #### Scenario: A test starts the binary under test
-- **WHEN** a test file in the target layout builds and starts the server binary directly
+- **WHEN** a test file in the backend builds and starts the server binary directly
 - **THEN** the backend lint passes
 
 #### Scenario: An engine driver imports the ORM
 - **WHEN** a file of an engine driver imports the ORM or the HTTP framework
 - **THEN** the backend lint fails and names the rule that engine drivers know no tables and no HTTP
 
-### Requirement: Code awaiting its move keeps the checks it had
-For the rules of the previous requirement, code outside the target layout SHALL be checked exactly as before this change: its production files by the linters that checked them before, and its test files by none. The lint configuration SHALL list the target layout explicitly, so code added outside it falls under the old checks and code added inside it falls under every rule. Two rules of the architecture check also cover code outside the target layout: the production binary contains no test code, and test helpers behind the test helper build tag exist only outside the target layout.
+#### Scenario: A global application dependency
+- **WHEN** a backend package stores an application dependency in a package-level variable
+- **THEN** the backend lint fails and identifies the variable
 
-#### Scenario: An old package with an existing violation of a new rule
-- **WHEN** a production file of a package outside the target layout calls a fixed sleep, as it did before this change
-- **THEN** the backend lint passes
+#### Scenario: A command breaks a backend rule
+- **WHEN** a backend command other than the server or verification agent violates a documented rule that applies to commands
+- **THEN** the backend lint fails under the same rule
 
-#### Scenario: An old package breaks a rule it was checked by before
-- **WHEN** a production file outside the target layout ignores a returned error
-- **THEN** the backend lint fails, as it did before this change
-
-#### Scenario: A new directory in the target layout
-- **WHEN** a developer adds a new domain module in the target layout
-- **THEN** every rule applies to it without a change to the lint configuration
+#### Scenario: A justified fixed lookup table
+- **WHEN** code uses a fixed shared lookup table with a specific lint suppression that explains why it is shared and is never mutated
+- **THEN** the global-variable check accepts that declaration without exempting its package
 
 ### Requirement: The architecture check enforces structure rules
-The backend lint SHALL include an architecture check for the rules the architecture document assigns to it: dependencies point from the entry points through the composition root and the modules to the engines and the shared library, never back; another package reaches a module only through the module's root package, and that root package holds only the module's contract file; methods of a handler, a service or a repository live in files of that role; a package's errors are declared in its errors file; a bare goroutine start appears only in the shared library; the verification agent imports only what the architecture document allows. These rules SHALL apply to production files in the target layout. Test files SHALL be exempt, because a module's API tests build the whole application through the test harness above the modules and start goroutines of their own.
+The backend lint SHALL include an architecture check for the rules the architecture document assigns to it: dependencies point from the entry points through the composition root and the modules to the engines and the shared library, never back; another package reaches a module only through the module's root package, and that root package holds only the module's contract file; methods of a handler, a service or a repository live in files of that role; a package's errors are declared in its errors file; a bare goroutine start appears only in the shared library; the verification agent imports only what the architecture document allows. These rules SHALL apply to production files throughout the backend, including every backend command. There SHALL be no migration-period directory exemption. Test files SHALL be exempt, because a module's API tests build the whole application through the test harness above the modules and start goroutines of their own.
 
 #### Scenario: A module imports another module's internals
 - **WHEN** a module imports a package inside another module's internal directory
@@ -89,12 +88,28 @@ The backend lint SHALL include an architecture check for the rules the architect
 - **THEN** the architecture check fails and names the method, the file and the file of the service role
 
 #### Scenario: The agent imports a module
-- **WHEN** a package of the verification agent in the target layout imports a domain module
+- **WHEN** a package of the verification agent imports a domain module
 - **THEN** the architecture check fails and names the import and the list of packages the agent may import
 
 #### Scenario: A goroutine started in a module
 - **WHEN** a service in a module starts a goroutine with a bare go statement
 - **THEN** the architecture check fails and names the shared library as the only place where a bare go statement is allowed
+
+#### Scenario: A command imports the agent implementation
+- **WHEN** a backend command other than the verification agent imports the agent implementation
+- **THEN** the architecture check fails and identifies the forbidden dependency
+
+#### Scenario: A package outside the former checked directories
+- **WHEN** a backend production package outside the former migration directory list declares a sentinel error outside its errors file
+- **THEN** the architecture check fails and identifies the declaration
+
+#### Scenario: An unclassified package imports the agent
+- **WHEN** a backend production package outside the documented layers imports the verification agent implementation
+- **THEN** the architecture check fails and identifies that only the agent may import its implementation
+
+#### Scenario: An unclassified package imports module internals
+- **WHEN** a backend production package outside the documented layers imports another module's internals
+- **THEN** the architecture check fails and identifies the module boundary
 
 ### Requirement: Migrations add no cascading foreign key to another module's table
 The architecture check SHALL fail when a migration added after this change declares a foreign key with a cascading delete from one module's table to a table of another owner. A table has an owner when its name is a module name from the architecture document, or starts with a module name followed by an underscore, or starts with `lib_<name>_`; a shared library table counts as an owner of its own. A foreign key that involves a table without an owner SHALL NOT be checked, because tables that predate the module prefixes do not follow the scheme yet. Migrations that existed before this change SHALL NOT be checked either.
@@ -136,17 +151,6 @@ No package that the server binary in the image links SHALL import the standard t
 
 #### Scenario: Shared test helpers
 - **WHEN** a helper used by tests of several packages lives in a package that only test files import
-- **THEN** the architecture check passes
-
-### Requirement: Test helpers behind the build tag stay out of the target layout
-Files that only builds with the test helper build tag compile SHALL exist only outside the target layout. The architecture check SHALL fail for such a file in the target layout and name the file and the rule, because tests in the target layout keep their helpers in test files or in packages that only tests import.
-
-#### Scenario: A tagged helper in a module
-- **WHEN** a module in the target layout has a file with the test helper build tag
-- **THEN** the architecture check fails and names the file and the rule
-
-#### Scenario: A tagged helper in an old package
-- **WHEN** a package awaiting its move has a file with the test helper build tag
 - **THEN** the architecture check passes
 
 ### Requirement: Backend tests detect data races

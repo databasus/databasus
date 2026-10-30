@@ -11,6 +11,8 @@ import (
 )
 
 func TestHealthcheckProbe(t *testing.T) {
+	t.Parallel()
+
 	t.Run("marks unavailable only at the threshold and sends one notification until recovery", func(t *testing.T) {
 		team := newHealthcheckTeam(t)
 		failedMessages := recordNotifications(t, team, apiclient.NotificationCategoryHEALTHCHECKFAILED)

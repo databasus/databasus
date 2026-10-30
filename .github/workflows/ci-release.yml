@@ -237,27 +237,12 @@ jobs:
           # Wait for test database (postgres listens on 5432 inside the container)
           timeout 60 bash -c 'until docker exec backend-db-test pg_isready -U postgres; do sleep 2; done'
 
-          # 5004 = shared logical-postgres-16 fixture; 5007-5008 = shared physical-postgres 17/18
-          # primary sources. The per-version, no-summary, tablespace, mTLS and restore-target
-          # physical containers — like the per-version logical PG tests — run on testcontainers and
-          # need no fixed port.
-          timeout 60 bash -c 'until nc -z 127.0.0.1 5004; do sleep 2; done'
-          timeout 60 bash -c 'until nc -z 127.0.0.1 5007; do sleep 2; done'
-          timeout 60 bash -c 'until nc -z 127.0.0.1 5008; do sleep 2; done'
-
       - name: Create data and temp directories
         run: |
           # Create directories that are used for backups and restore
           # These paths match what's configured in config.go
           mkdir -p databasus-data/backups
           mkdir -p databasus-data/temp
-
-      - name: Reset the shared test PostgreSQL servers
-        run: |
-          cd backend
-          set -a && . ../.env && set +a
-          # A CI runner runs one test group and nothing else, so the reset takes no fixtures lock.
-          go run -tags testhelpers ./cmd/cleanup_test_db
 
       - name: Start rootful Podman socket
         run: |
@@ -351,27 +336,12 @@ jobs:
           # Wait for test database (postgres listens on 5432 inside the container)
           timeout 60 bash -c 'until docker exec backend-db-test pg_isready -U postgres; do sleep 2; done'
 
-          # 5004 = shared logical-postgres-16 fixture; 5007-5008 = shared physical-postgres 17/18
-          # primary sources. The per-version, no-summary, tablespace, mTLS and restore-target
-          # physical containers — like the per-version logical PG tests — run on testcontainers and
-          # need no fixed port.
-          timeout 60 bash -c 'until nc -z 127.0.0.1 5004; do sleep 2; done'
-          timeout 60 bash -c 'until nc -z 127.0.0.1 5007; do sleep 2; done'
-          timeout 60 bash -c 'until nc -z 127.0.0.1 5008; do sleep 2; done'
-
       - name: Create data and temp directories
         run: |
           # Create directories that are used for backups and restore
           # These paths match what's configured in config.go
           mkdir -p databasus-data/backups
           mkdir -p databasus-data/temp
-
-      - name: Reset the shared test PostgreSQL servers
-        run: |
-          cd backend
-          set -a && . ../.env && set +a
-          # A CI runner runs one test group and nothing else, so the reset takes no fixtures lock.
-          go run -tags testhelpers ./cmd/cleanup_test_db
 
       - name: Install tools from mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
@@ -393,7 +363,7 @@ jobs:
           run_pattern=$(mise run backend:test-group-tests "$TEST_GROUP")
           # Each leg runs one group on its own runner and allows extra time for CI contention.
           # shellcheck disable=SC2086 # one import path per word
-          go test -race -tags testhelpers -p=8 -count=1 -failfast -timeout 40m ${run_pattern:+-run "$run_pattern"} $packages
+          go test -race -p=8 -count=1 -failfast -timeout 40m ${run_pattern:+-run "$run_pattern"} $packages
 
   build-storage-image:
     if: github.head_ref != 'develop'

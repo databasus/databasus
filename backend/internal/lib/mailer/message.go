@@ -19,7 +19,9 @@ type Message struct {
 	HTMLBody  string
 }
 
-var headerBreakingCharacters = strings.NewReplacer("\r", "", "\n", "", "\x00", "")
+func getHeaderBreakingCharacters() *strings.Replacer {
+	return strings.NewReplacer("\r", "", "\n", "", "\x00", "")
+}
 
 func buildMessage(sender, recipient *mail.Address, subject, htmlBody string, sentAt time.Time) ([]byte, error) {
 	var content bytes.Buffer
@@ -27,7 +29,7 @@ func buildMessage(sender, recipient *mail.Address, subject, htmlBody string, sen
 	headers := [][2]string{
 		{"From", sender.String()},
 		{"To", recipient.String()},
-		{"Subject", mime.QEncoding.Encode("UTF-8", headerBreakingCharacters.Replace(subject))},
+		{"Subject", mime.QEncoding.Encode("UTF-8", getHeaderBreakingCharacters().Replace(subject))},
 		{"Date", sentAt.Format(time.RFC1123Z)},
 		{"Message-ID", fmt.Sprintf("<%s@%s>", uuid.New(), getAddressDomain(sender.Address))},
 		{"MIME-Version", "1.0"},

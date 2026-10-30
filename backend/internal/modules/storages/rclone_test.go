@@ -13,6 +13,8 @@ import (
 const rcloneConfig = "[myremote]\ntype = s3\nprovider = AWS\naccess_key_id = test\nsecret_access_key = secret\n"
 
 func TestRcloneStorage(t *testing.T) {
+	t.Parallel()
+
 	t.Run("returns 403 permission_denied and creates nothing when a member creates an rclone storage",
 		func(t *testing.T) {
 			tm := newTeam(t)

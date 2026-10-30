@@ -7,6 +7,8 @@ import (
 )
 
 func TestRestorePhysicalBackupChain(t *testing.T) {
+	t.Parallel()
+
 	t.Run(
 		"recovers rows written before the full backup with only a full backup",
 		func(t *testing.T) { physicaltest.RunFullOnly(t, "postgres:17") },
@@ -18,6 +20,8 @@ func TestRestorePhysicalBackupChain(t *testing.T) {
 }
 
 func TestRestorePhysicalBackupToTargetTime(t *testing.T) {
+	t.Parallel()
+
 	t.Run(
 		"recovers rows up to the target and drops later ones with streamed wal",
 		func(t *testing.T) { physicaltest.RunTargetTime(t, "postgres:17") },
@@ -33,6 +37,8 @@ func TestRestorePhysicalBackupToTargetTime(t *testing.T) {
 }
 
 func TestRestorePhysicalBackupOnHost(t *testing.T) {
+	t.Parallel()
+
 	t.Run(
 		"serves the restored rows through the image entrypoint after a host restore",
 		func(t *testing.T) { physicaltest.RunHostRestore(t, "postgres:17") },
@@ -48,6 +54,8 @@ func TestRestorePhysicalBackupOnHost(t *testing.T) {
 }
 
 func TestPhysicalBackupAfterPromotion(t *testing.T) {
+	t.Parallel()
+
 	t.Run(
 		"catalogs the new timeline history on the database after the standby is promoted",
 		func(t *testing.T) { physicaltest.RunTimelineHistory(t, "postgres:17") },
@@ -59,6 +67,8 @@ func TestPhysicalBackupAfterPromotion(t *testing.T) {
 }
 
 func TestPhysicalBackupReplicationSlot(t *testing.T) {
+	t.Parallel()
+
 	t.Run(
 		"creates the slot when wal streaming starts and drops it when the database is deleted",
 		func(t *testing.T) { physicaltest.RunSlotLifecycle(t, "postgres:17") },
@@ -70,6 +80,8 @@ func TestPhysicalBackupReplicationSlot(t *testing.T) {
 }
 
 func TestPhysicalBackupOverSshTunnel(t *testing.T) {
+	t.Parallel()
+
 	t.Run(
 		"recovers rows up to the target with a chain built through the bastion",
 		func(t *testing.T) { physicaltest.RunTunnelRestore(t, "postgres:17") },

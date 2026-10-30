@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io/fs"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
@@ -47,34 +46,6 @@ func OpenEmpty(tb testing.TB) string {
 	})
 
 	return keepOnFailureOrDrop(tb, testDsn, databaseName)
-}
-
-// OpenForProcess creates a migrated database for code that reaches the internal database through
-// process-wide state. It lives as long as the process; the abandoned-database cleanup of a later
-// process removes it.
-func OpenForProcess(ctx context.Context) (string, error) {
-	testDsn, err := readTestDsnVariable()
-	if err != nil {
-		return "", err
-	}
-
-	databaseName, err := generateTestDatabaseName(time.Now())
-	if err != nil {
-		return "", err
-	}
-
-	systemDb, err := database.Open(ctx, replaceDatabaseName(testDsn, systemDatabaseName))
-	if err != nil {
-		return "", fmt.Errorf("connect to the test server: %w", err)
-	}
-	defer closeDatabase(systemDb)
-
-	err = createCopyOfMigrations(ctx, systemDb, testDsn, migrations.Files, databaseName)
-	if err != nil {
-		return "", err
-	}
-
-	return replaceDatabaseName(testDsn, databaseName), nil
 }
 
 func openCopyOfMigrations(tb testing.TB, files fs.FS) string {
@@ -137,8 +108,7 @@ func keepOnFailureOrDrop(tb testing.TB, testDsn, databaseName string) string {
 	return databaseDsn
 }
 
-// Drop removes a test database by name, for a database a test cannot hand to Open, such as the one
-// a child test process got from OpenForProcess. FORCE ends the connections still open to it.
+// Drop removes a test-owned database, including connections left by a child test process.
 func Drop(tb testing.TB, databaseName string) {
 	tb.Helper()
 

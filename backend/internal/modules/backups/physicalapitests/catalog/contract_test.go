@@ -16,6 +16,8 @@ import (
 )
 
 func TestPhysicalBackupProblems(t *testing.T) {
+	t.Parallel()
+
 	for _, scenario := range []struct {
 		name    string
 		request func(*catalogFixture) apptest.PhysicalRequest
@@ -52,6 +54,8 @@ func TestPhysicalBackupProblems(t *testing.T) {
 }
 
 func TestPhysicalBackupSession(t *testing.T) {
+	t.Parallel()
+
 	t.Run("returns unauthenticated for each protected operation when no session is supplied", func(t *testing.T) {
 		catalog := newCatalog(t)
 		for _, request := range []apptest.PhysicalRequest{
@@ -74,6 +78,8 @@ func TestPhysicalBackupSession(t *testing.T) {
 }
 
 func TestDeletePhysicalWalSegment(t *testing.T) {
+	t.Parallel()
+
 	t.Run("returns not_found and preserves the range when deletion names a WAL segment", func(t *testing.T) {
 		catalog := newCatalog(t)
 		_, _, segment := seedOneOfEachType(t, catalog)
@@ -89,6 +95,8 @@ func TestDeletePhysicalWalSegment(t *testing.T) {
 }
 
 func TestOldPhysicalBackupPath(t *testing.T) {
+	t.Parallel()
+
 	t.Run("returns not_found when a client requests the removed physical list path", func(t *testing.T) {
 		catalog := newCatalog(t)
 		request, err := http.NewRequestWithContext(
@@ -110,6 +118,8 @@ func TestOldPhysicalBackupPath(t *testing.T) {
 }
 
 func TestPhysicalBackupWorkspacePrivacy(t *testing.T) {
+	t.Parallel()
+
 	t.Run(
 		"returns the missing-resource problem when an outsider names an existing database or backup",
 		func(t *testing.T) {
@@ -174,6 +184,8 @@ func TestPhysicalBackupWorkspacePrivacy(t *testing.T) {
 }
 
 func TestPhysicalFilteredPaging(t *testing.T) {
+	t.Parallel()
+
 	t.Run(
 		"keeps the type filter on every page when full backups share a catalog with incrementals and WAL",
 		func(t *testing.T) {
@@ -237,6 +249,8 @@ func TestPhysicalFilteredPaging(t *testing.T) {
 }
 
 func TestPhysicalViewerReads(t *testing.T) {
+	t.Parallel()
+
 	t.Run("lists backups and issues both token variants when the user is a workspace viewer", func(t *testing.T) {
 		catalog := newCatalog(t)
 		full, _, _ := seedOneOfEachType(t, catalog)

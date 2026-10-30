@@ -17,6 +17,8 @@ import (
 )
 
 func TestCancelPhysicalWorkAfterConfigSave(t *testing.T) {
+	t.Parallel()
+
 	t.Run("keeps completed files when a full finishes while disabling backups waits on its row", func(t *testing.T) {
 		catalog := newCatalog(t)
 		catalog.saveStorageConfig(t, catalog.StorageID)

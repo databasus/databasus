@@ -17,6 +17,8 @@ import (
 )
 
 func TestTelemetrySchedule(t *testing.T) {
+	t.Parallel()
+
 	t.Run("retries after backoff when the receiver redirects to a successful page", func(t *testing.T) {
 		var attempts, redirectedRequests atomic.Int64
 		server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {

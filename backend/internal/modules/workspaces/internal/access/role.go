@@ -15,7 +15,7 @@ const (
 	RoleViewer Role = "WORKSPACE_VIEWER"
 )
 
-// actionsAllowedByRole builds each role on the one below it.
+//nolint:gochecknoglobals // The fixed role/action matrix is shared by authorization checks to avoid repeated allocation; it is never mutated.
 var actionsAllowedByRole = map[Role][]Action{
 	RoleOwner: {
 		ActionView,

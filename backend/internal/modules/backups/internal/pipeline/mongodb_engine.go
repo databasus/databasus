@@ -18,7 +18,7 @@ type mongodbEngine struct {
 }
 
 func (e *mongodbEngine) GetStoredCompression() storedCompression {
-	return storedCompressionNone
+	return getStoredCompressionNone()
 }
 
 func (e *mongodbEngine) GetFileExtension() string {

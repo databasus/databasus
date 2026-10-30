@@ -15,7 +15,9 @@ import (
 
 const testSampleSegmentSize = int64(16 * 1024 * 1024)
 
-var testSampleStartedAt = time.Date(2026, time.October, 18, 12, 0, 0, 0, time.UTC)
+func getTestSampleStartedAt() time.Time {
+	return time.Date(2026, time.October, 18, 12, 0, 0, 0, time.UTC)
+}
 
 func reachableProbe(currentLSN walmath.LSN, walStatus string) slotProbe {
 	return slotProbe{
@@ -32,8 +34,8 @@ func reachableProbe(currentLSN walmath.LSN, walStatus string) slotProbe {
 func newTestSampleInput(probe slotProbe, archiveProgressLSN walmath.LSN) walStreamSampleInput {
 	return walStreamSampleInput{
 		DatabaseID:           uuid.New(),
-		SampledAt:            testSampleStartedAt,
-		SessionStartedAt:     testSampleStartedAt.Add(-time.Hour),
+		SampledAt:            getTestSampleStartedAt(),
+		SessionStartedAt:     getTestSampleStartedAt().Add(-time.Hour),
 		Probe:                probe,
 		ArchiveProgressLSN:   archiveProgressLSN,
 		WalSegmentSizeBytes:  testSampleSegmentSize,
@@ -56,7 +58,7 @@ func buildSamplesForProbes(probes []slotProbe) []*catalog.WalStreamSample {
 	samples := make([]*catalog.WalStreamSample, 0, len(probes))
 
 	for index, probe := range probes {
-		sampledAt := testSampleStartedAt.Add(time.Duration(index) * 30 * time.Second)
+		sampledAt := getTestSampleStartedAt().Add(time.Duration(index) * 30 * time.Second)
 		monitorState.recordProbeOutcome(probe, sampledAt)
 
 		input := newTestSampleInput(probe, walmath.LSN(0x1000000))
@@ -135,7 +137,7 @@ func Test_BuildWalStreamSample_WhileNothingArchived_RecordsNoUnarchivedWal(t *te
 }
 
 func Test_BuildWalStreamSample_WithoutSourceSideValues_LeavesThemEmptyAndFillsTheRest(t *testing.T) {
-	unreachableSince := testSampleStartedAt.Add(-time.Minute)
+	unreachableSince := getTestSampleStartedAt().Add(-time.Minute)
 
 	testCases := []struct {
 		name                           string

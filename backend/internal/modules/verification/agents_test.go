@@ -16,6 +16,8 @@ import (
 )
 
 func TestVerificationAgents(t *testing.T) {
+	t.Parallel()
+
 	t.Run("returns a token once and pages agents newest first when an admin creates agents", func(t *testing.T) {
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
@@ -200,6 +202,8 @@ func requireProblem(t *testing.T, status int, body []byte, expectedStatus int, e
 }
 
 func TestVerificationAgentAudit(t *testing.T) {
+	t.Parallel()
+
 	t.Run("records agent changes without a workspace and returns a hex token when an admin acts", func(t *testing.T) {
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)

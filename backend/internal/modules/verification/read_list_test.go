@@ -12,6 +12,8 @@ import (
 )
 
 func TestListVerifications(t *testing.T) {
+	t.Parallel()
+
 	t.Run("pages newest first without table statistics when a database has three verifications", func(t *testing.T) {
 		team := newVerificationTeam(t)
 		backup := team.backup(t)

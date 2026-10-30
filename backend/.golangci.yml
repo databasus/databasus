@@ -5,12 +5,7 @@ run:
   tests: true
   concurrency: 4
   relative-path-mode: gomod
-  build-tags:
-    - testhelpers
 
-# Code outside the target layout (the anchor `target-layout` below) awaits its move and keeps the
-# checks it had: its production files run only the linters listed before `forbidigo`, and its test
-# files run none. tools/archlint tests that every expression here matches its own pattern.
 linters:
   default: standard
   enable:
@@ -33,6 +28,7 @@ linters:
     - usetesting
     - testifylint
     - thelper
+    - gochecknoglobals
     - gochecknoinits
     - importas
 
@@ -103,6 +99,8 @@ linters:
             - "!**/internal/lib/cache/cachetest/**"
             - "!**/internal/lib/ratelimit/ratelimittest/**"
             - "!**/internal/lib/testcontainers/**"
+            - "!**/internal/lib/httpclienttest/**"
+            - "!**/internal/modules/storages/internal/providers/providertest/**"
             - "!**/internal/lib/apiclient/**"
             - "!**/internal/lib/contracttest/**"
             - "!**/internal/lib/agentclienttest/**"
@@ -165,29 +163,6 @@ linters:
 
   exclusions:
     rules:
-      # The Go part of "Backend layout" in docs/architecture.md.
-      - path-except: &target-layout ^(api|cmd/databasus|cmd/verification-agent|e2e|internal/(app|modules|engines|lib|agent)|tools)/
-        linters:
-          - forbidigo
-          - sloglint
-          - depguard
-          - exhaustive
-          - exhaustruct
-          - revive
-          - nolintlint
-          - usetesting
-          - testifylint
-          - thelper
-          - gochecknoinits
-          - importas
-      # Test files outside the target layout. A rule cannot hold both `path` and `path-except`, so
-      # this one excludes every path that is neither in the target layout (the first branch, a copy of
-      # the anchor) nor a production file; RE2 has no lookahead, so the second branch spells out "a
-      # .go file not ending in _test.go". A rule needs two conditions, and `text: .` matches every
-      # finding.
-      - path-except: ^(api|cmd/databasus|cmd/verification-agent|e2e|internal/(app|modules|engines|lib|agent)|tools)/|(^|/)([^/]*([^t]|[^s]t|[^e]st|[^t]est|[^_]test)|test)\.go$
-        text: .
-
       - path: ^(cmd|tools)/
         linters: [forbidigo]
         text: only commands and tools (print|exit)

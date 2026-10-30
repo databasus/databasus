@@ -11,6 +11,8 @@ import (
 )
 
 func TestUpdateStorage(t *testing.T) {
+	t.Parallel()
+
 	t.Run("returns 400 invalid_request and keeps the local storage when S3 settings are sent", func(t *testing.T) {
 		tm := newTeam(t)
 		localStorage := tm.createLocalStorage(t, "Local")
@@ -80,6 +82,8 @@ func TestUpdateStorage(t *testing.T) {
 }
 
 func TestCreateInvalidStorage(t *testing.T) {
+	t.Parallel()
+
 	t.Run("returns 400 invalid_request and creates nothing when the S3 storage has no bucket", func(t *testing.T) {
 		tm := newTeam(t)
 

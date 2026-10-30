@@ -11,7 +11,7 @@ import (
 	mysqldriver "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 
-	"databasus-backend/internal/util/testing/containers"
+	containers "databasus-backend/internal/lib/testcontainers"
 )
 
 // SkipVerifyMysqlTLSConfigName names the TLS config of the MySQL driver that the TLS tests of MySQL
@@ -20,6 +20,8 @@ const SkipVerifyMysqlTLSConfigName = "engine-tls-skip-verify"
 
 // RegisterSkipVerifyMysqlTLSConfig registers the config once per process, because the driver panics
 // when a name is registered twice.
+//
+//nolint:gochecknoglobals // The external SQL driver registers TLS configurations process-wide; one registration is shared across test-owned connections.
 var RegisterSkipVerifyMysqlTLSConfig = sync.OnceValue(func() error {
 	return mysqldriver.RegisterTLSConfig(SkipVerifyMysqlTLSConfigName, &tls.Config{
 		InsecureSkipVerify: true,

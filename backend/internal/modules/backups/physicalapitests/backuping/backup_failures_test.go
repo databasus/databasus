@@ -13,6 +13,8 @@ import (
 )
 
 func TestPhysicalBackupFailures(t *testing.T) {
+	t.Parallel()
+
 	t.Run(
 		"records the tool exit and server rejection when physical replication is denied by pg_hba",
 		func(t *testing.T) {

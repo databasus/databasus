@@ -11,7 +11,6 @@ import (
 
 	"github.com/google/uuid"
 
-	old_config "databasus-backend/internal/config"
 	"databasus-backend/internal/modules/storages"
 )
 
@@ -48,7 +47,7 @@ func (a *App) WriteUnpublishedFile(tb testing.TB, storageID uuid.UUID, fileName 
 func (a *App) IsLocalStorageStagingFilePresent(tb testing.TB, fileName string) bool {
 	tb.Helper()
 
-	return isFilePresent(tb, filepath.Join(old_config.GetEnv().TempFolder, fileName))
+	return isFilePresent(tb, filepath.Join(a.tempFolder, fileName))
 }
 
 // IsLocalStorageFilePresent tells whether a local storage still holds the file, which every local
@@ -56,7 +55,7 @@ func (a *App) IsLocalStorageStagingFilePresent(tb testing.TB, fileName string) b
 func (a *App) IsLocalStorageFilePresent(tb testing.TB, fileName string) bool {
 	tb.Helper()
 
-	return isFilePresent(tb, filepath.Join(old_config.GetEnv().DataFolder, fileName))
+	return isFilePresent(tb, filepath.Join(a.dataFolder, fileName))
 }
 
 func isFilePresent(tb testing.TB, filePath string) bool {
@@ -73,3 +72,8 @@ func isFilePresent(tb testing.TB, filePath string) bool {
 
 	return true
 }
+
+func (a *App) GetLocalStorageFilePath(fileName string) string {
+	return filepath.Join(a.dataFolder, fileName)
+}
+func (a *App) GetTempFolder() string { return a.tempFolder }

@@ -16,7 +16,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"databasus-backend/internal/util/testing/containers"
+	containers "databasus-backend/internal/lib/testcontainers"
 )
 
 // The bastion's sshd also listens on 2222, which is never published to the host, so forwarding
@@ -36,7 +36,7 @@ func TestBastionInternalPort(t *testing.T) {
 
 	t.Run("is unreachable from the host without the tunnel", func(t *testing.T) {
 		t.Parallel()
-		bastion := containers.StartSshBastion(t)
+		bastion := containers.StartSSHBastion(t)
 
 		dialer := net.Dialer{Timeout: 5 * time.Second}
 		conn, err := dialer.DialContext(
@@ -57,7 +57,7 @@ func TestOpen(t *testing.T) {
 
 	t.Run("forwards bytes to the target with password auth", func(t *testing.T) {
 		t.Parallel()
-		bastion := containers.StartSshBastion(t)
+		bastion := containers.StartSSHBastion(t)
 
 		forwarder := openTestForwarder(t, bastionSettings(bastion))
 
@@ -66,7 +66,7 @@ func TestOpen(t *testing.T) {
 
 	t.Run("forwards bytes to the target with private key auth", func(t *testing.T) {
 		t.Parallel()
-		bastion := containers.StartSshBastion(t)
+		bastion := containers.StartSSHBastion(t)
 		settings := bastionSettings(bastion)
 		settings.AuthType = AuthTypePrivateKey
 		settings.Password = ""
@@ -79,7 +79,7 @@ func TestOpen(t *testing.T) {
 
 	t.Run("forwards bytes to the target with a passphrase protected private key", func(t *testing.T) {
 		t.Parallel()
-		bastion := containers.StartSshBastion(t)
+		bastion := containers.StartSSHBastion(t)
 		settings := bastionSettings(bastion)
 		settings.AuthType = AuthTypePrivateKey
 		settings.Password = ""
@@ -93,7 +93,7 @@ func TestOpen(t *testing.T) {
 
 	t.Run("returns an error without the secret when the password is wrong", func(t *testing.T) {
 		t.Parallel()
-		bastion := containers.StartSshBastion(t)
+		bastion := containers.StartSSHBastion(t)
 		settings := bastionSettings(bastion)
 		settings.Password = "definitely-not-the-password"
 
@@ -106,7 +106,7 @@ func TestOpen(t *testing.T) {
 
 	t.Run("returns an error when the passphrase is wrong", func(t *testing.T) {
 		t.Parallel()
-		bastion := containers.StartSshBastion(t)
+		bastion := containers.StartSSHBastion(t)
 		settings := bastionSettings(bastion)
 		settings.AuthType = AuthTypePrivateKey
 		settings.Password = ""
@@ -147,9 +147,9 @@ func TestOpen(t *testing.T) {
 		openSpec := testOpenSpec(Settings{
 			Host:     "127.0.0.1",
 			Port:     silentAddress.Port,
-			Username: containers.SshBastionUsername,
+			Username: containers.SSHBastionUsername,
 			AuthType: AuthTypePassword,
-			Password: containers.SshBastionPassword,
+			Password: containers.SSHBastionPassword,
 		})
 		openSpec.HandshakeTimeout = 2 * time.Second
 
@@ -178,7 +178,7 @@ func TestClose(t *testing.T) {
 
 	t.Run("releases the local port", func(t *testing.T) {
 		t.Parallel()
-		bastion := containers.StartSshBastion(t)
+		bastion := containers.StartSSHBastion(t)
 		forwarder := openTestForwarder(t, bastionSettings(bastion))
 		localEndpoint := forwarder.GetLocalEndpoint()
 		require.NoError(t, readBannerThroughTunnel(t.Context(), forwarder))
@@ -196,7 +196,7 @@ func TestClose(t *testing.T) {
 
 	t.Run("does not panic when called twice", func(t *testing.T) {
 		t.Parallel()
-		bastion := containers.StartSshBastion(t)
+		bastion := containers.StartSSHBastion(t)
 		forwarder := openTestForwarder(t, bastionSettings(bastion))
 
 		forwarder.Close()
@@ -209,7 +209,7 @@ func TestClose(t *testing.T) {
 	// every host.
 	t.Run("cancels a redial stuck on connect instead of waiting out the timeout", func(t *testing.T) {
 		t.Parallel()
-		bastion := containers.StartSshBastion(t)
+		bastion := containers.StartSSHBastion(t)
 		forwarder := openTestForwarder(t, bastionSettings(bastion))
 		dialStarted := make(chan struct{})
 
@@ -253,7 +253,7 @@ func TestGetOrDialBastion(t *testing.T) {
 	// race window is far too narrow to hit on purpose.
 	t.Run("refuses to open a new session after close", func(t *testing.T) {
 		t.Parallel()
-		bastion := containers.StartSshBastion(t)
+		bastion := containers.StartSSHBastion(t)
 		forwarder := openTestForwarder(t, bastionSettings(bastion))
 		require.NoError(t, readBannerThroughTunnel(t.Context(), forwarder))
 
@@ -278,7 +278,7 @@ func TestForwarder(t *testing.T) {
 	// once, so the redial has to be serialized or the losers leak clients and goroutines.
 	t.Run("recovers every concurrent connection when the cached client is dead", func(t *testing.T) {
 		t.Parallel()
-		bastion := containers.StartSshBastion(t)
+		bastion := containers.StartSSHBastion(t)
 		forwarder := openTestForwarder(t, bastionSettings(bastion))
 		require.NoError(t, readBannerThroughTunnel(t.Context(), forwarder))
 
@@ -326,9 +326,9 @@ func bastionSettings(bastion containers.Endpoint) Settings {
 	return Settings{
 		Host:     bastion.Host,
 		Port:     bastion.Port,
-		Username: containers.SshBastionUsername,
+		Username: containers.SSHBastionUsername,
 		AuthType: AuthTypePassword,
-		Password: containers.SshBastionPassword,
+		Password: containers.SSHBastionPassword,
 	}
 }
 
@@ -363,7 +363,7 @@ func discardCachedClient(forwarder *Forwarder) {
 func readTestKey(t *testing.T, name string) string {
 	t.Helper()
 
-	key, err := os.ReadFile(filepath.Join(containers.GetSshBastionTestdataDir(t), name))
+	key, err := os.ReadFile(filepath.Join(containers.GetSSHBastionTestdataDir(t), name))
 	require.NoError(t, err)
 
 	return string(key)

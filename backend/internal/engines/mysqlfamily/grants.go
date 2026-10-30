@@ -198,10 +198,13 @@ type SchemaGrants struct {
 
 // ALL PRIVILEGES has to be expanded into the privileges this package consults, and a grant on a
 // single table cannot carry the ones that only exist schema-wide.
-var (
-	schemaWideGrantablePrivileges = []string{"SELECT", "SHOW VIEW", "TRIGGER", "EVENT"}
-	tableGrantablePrivileges      = []string{"SELECT", "SHOW VIEW", "TRIGGER"}
-)
+func getSchemaWideGrantablePrivileges() []string {
+	return []string{"SELECT", "SHOW VIEW", "TRIGGER", "EVENT"}
+}
+
+func getTableGrantablePrivileges() []string {
+	return []string{"SELECT", "SHOW VIEW", "TRIGGER"}
+}
 
 func CollectSchemaGrants(grantLines []string, schemaName string) SchemaGrants {
 	collectedGrants := SchemaGrants{
@@ -218,7 +221,7 @@ func CollectSchemaGrants(grantLines []string, schemaName string) SchemaGrants {
 				addGrantedPrivileges(
 					collectedGrants.Revoked,
 					revokedGrant.Privileges,
-					schemaWideGrantablePrivileges,
+					getSchemaWideGrantablePrivileges(),
 				)
 			}
 
@@ -232,13 +235,13 @@ func CollectSchemaGrants(grantLines []string, schemaName string) SchemaGrants {
 
 		switch grant.Scope {
 		case GrantScopeGlobal:
-			addGrantedPrivileges(collectedGrants.Global, grant.Privileges, schemaWideGrantablePrivileges)
+			addGrantedPrivileges(collectedGrants.Global, grant.Privileges, getSchemaWideGrantablePrivileges())
 		case GrantScopeSchema:
 			if isMatchingSchemaPattern(grant.SchemaPattern, schemaName) {
 				addGrantedPrivileges(
 					collectedGrants.Schema,
 					grant.Privileges,
-					schemaWideGrantablePrivileges,
+					getSchemaWideGrantablePrivileges(),
 				)
 			}
 		case GrantScopeTable:
@@ -253,7 +256,7 @@ func CollectSchemaGrants(grantLines []string, schemaName string) SchemaGrants {
 			addGrantedPrivileges(
 				collectedGrants.Tables[grant.TableName],
 				grant.Privileges,
-				tableGrantablePrivileges,
+				getTableGrantablePrivileges(),
 			)
 		}
 	}

@@ -13,6 +13,8 @@ import (
 )
 
 func TestCascadePhysicalBackup(t *testing.T) {
+	t.Parallel()
+
 	t.Run("deletes all chain rows and stored objects while another timeline survives", func(t *testing.T) {
 		catalog := newCatalog(t)
 		full := catalog.seedCascadeFull(t, cascadeFullSpec{})

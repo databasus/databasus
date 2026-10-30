@@ -19,6 +19,8 @@ import (
 )
 
 func TestDeleteStorage(t *testing.T) {
+	t.Parallel()
+
 	t.Run("returns 204 and no longer lists the storage when nothing references it", func(t *testing.T) {
 		tm := newTeam(t)
 		createdStorage := tm.createLocalStorage(t, "Local")
@@ -144,6 +146,8 @@ func TestDeleteStorage(t *testing.T) {
 }
 
 func TestDeleteStorageAccess(t *testing.T) {
+	t.Parallel()
+
 	t.Run("lets a workspace member delete a storage", func(t *testing.T) {
 		tm := newTeam(t)
 		member := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEMEMBER)

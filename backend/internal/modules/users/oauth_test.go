@@ -14,6 +14,8 @@ import (
 const oauthRedirectURI = "http://localhost:3000/auth/callback"
 
 func TestSignInWithGitHub(t *testing.T) {
+	t.Parallel()
+
 	t.Run("makes the user an active admin when the instance has no user", func(t *testing.T) {
 		app := apptest.New(t, apptest.WithGitHub())
 		email := apptest.NewTestEmail("owner")
@@ -164,6 +166,8 @@ func TestSignInWithGitHub(t *testing.T) {
 }
 
 func TestSignInWithGoogle(t *testing.T) {
+	t.Parallel()
+
 	t.Run("makes the user an active admin when the instance has no user", func(t *testing.T) {
 		app := apptest.New(t, apptest.WithGoogle())
 		email := apptest.NewTestEmail("owner")

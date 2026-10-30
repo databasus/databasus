@@ -13,6 +13,8 @@ import (
 )
 
 func TestVerificationAccess(t *testing.T) {
+	t.Parallel()
+
 	t.Run("allows reads and refuses edits when a workspace viewer calls", func(t *testing.T) {
 		team := newVerificationTeam(t)
 		backup := team.backup(t)

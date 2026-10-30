@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"databasus-backend/internal/engines/clienttools"
-	"databasus-backend/internal/util/testing/containers"
+	containers "databasus-backend/internal/lib/testcontainers"
 )
 
 type serverVersion struct {
@@ -27,17 +27,17 @@ type serverVersion struct {
 	hasShowCreateRoutine bool
 }
 
-// 5.5 and 10.1 are here because they are the only servers the legacy client serves: without them
-// nothing exercises that client.
-var serverVersions = []serverVersion{
-	{"MariaDB 5.5", Version55, "mariadb:5.5", false, false},
-	{"MariaDB 10.1", Version101, "mariadb:10.1", true, false},
-	{"MariaDB 10.6", Version106, "mariadb:10.6", true, false},
-	{"MariaDB 10.11", Version1011, "mariadb:10.11", true, false},
-	{"MariaDB 11.4", Version114, "mariadb:11.4", true, true},
-	{"MariaDB 11.8", Version118, "mariadb:11.8", true, true},
-	{"MariaDB 12.0", Version120, "mariadb:12.0", true, true},
-	{"MariaDB 13.0", Version130, "mariadb:13.0", true, true},
+func getServerVersions() []serverVersion {
+	return []serverVersion{
+		{"MariaDB 5.5", Version55, "mariadb:5.5", false, false},
+		{"MariaDB 10.1", Version101, "mariadb:10.1", true, false},
+		{"MariaDB 10.6", Version106, "mariadb:10.6", true, false},
+		{"MariaDB 10.11", Version1011, "mariadb:10.11", true, false},
+		{"MariaDB 11.4", Version114, "mariadb:11.4", true, true},
+		{"MariaDB 11.8", Version118, "mariadb:11.8", true, true},
+		{"MariaDB 12.0", Version120, "mariadb:12.0", true, true},
+		{"MariaDB 13.0", Version130, "mariadb:13.0", true, true},
+	}
 }
 
 // testServer is one MariaDB container shared by the subtests of a version, so every database and
@@ -186,7 +186,7 @@ func newTestLogger() *slog.Logger {
 func TestSource(t *testing.T) {
 	t.Parallel()
 
-	for _, serverVersion := range serverVersions {
+	for _, serverVersion := range getServerVersions() {
 		// The scenarios of one server run one after another: MariaDB rebuilds its privilege cache on
 		// every FLUSH PRIVILEGES and role grant, and a scenario that logs in during another one's
 		// rebuild intermittently sees its host or its inherited role grants missing.

@@ -17,6 +17,8 @@ import (
 var errLogicalBackupStillRunning = errors.New("a logical backup of the database is still in progress")
 
 func TestSaveLogicalBackupConfigRacingBackupStart(t *testing.T) {
+	t.Parallel()
+
 	t.Run("never leaves a backup on the previous storage of a saved config", func(t *testing.T) {
 		tm := newTeam(t)
 		databaseID := tm.insertLogicalDatabase(t)

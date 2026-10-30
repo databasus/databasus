@@ -17,6 +17,8 @@ import (
 )
 
 func TestAgentUpdate(t *testing.T) {
+	t.Parallel()
+
 	t.Run("keeps heartbeating with its capacity after a background update", func(t *testing.T) {
 		app := apptest.New(t, apptest.WithAgentBinariesDir(currentBinaryDirectory))
 		admin := app.CreateAdmin(t)

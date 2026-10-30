@@ -42,6 +42,8 @@ func (team *backupTeam) useUnreachableStorage(t *testing.T) {
 }
 
 func TestPhysicalBackupStorageFailure(t *testing.T) {
+	t.Parallel()
+
 	t.Run("reports storage upload failure when the S3 endpoint cannot be reached", func(t *testing.T) {
 		team := newBackupTeam(t, backupTeamSpec{})
 		team.useUnreachableStorage(t)

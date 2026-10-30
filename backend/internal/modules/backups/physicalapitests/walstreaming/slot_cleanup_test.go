@@ -9,6 +9,8 @@ import (
 )
 
 func TestDeletePhysicalReplicationSlots(t *testing.T) {
+	t.Parallel()
+
 	for _, isUnreachable := range []bool{false, true} {
 		scenario := "drops both orphan slots through the SSH bastion after database deletion commits"
 		if isUnreachable {

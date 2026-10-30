@@ -66,7 +66,7 @@ func TestBuildSpec(t *testing.T) {
 
 		spec := containerManager.buildSpec(newTestSpawnPlan())
 
-		assert.Equal(t, restoreTunedPostgresCmd, spec.Cmd)
+		assert.Equal(t, getRestoreTunedPostgresCmd(), spec.Cmd)
 		assert.Equal(t, "postgres", spec.Cmd[0])
 	})
 }

@@ -9,25 +9,33 @@ import (
 
 	"databasus-backend/internal/app/apptest/enginetest"
 	apiclient "databasus-backend/internal/lib/apiclient"
-	"databasus-backend/internal/util/testing/containers"
+	containers "databasus-backend/internal/lib/testcontainers"
 )
 
-var mysqlVersions = []struct {
+func getMysqlVersions() []struct {
 	name    string
 	version apiclient.MysqlVersion
 	image   string
-}{
-	{"MySQL 5.7", apiclient.MysqlVersionN57, "mysql:5.7"},
-	{"MySQL 8.0", apiclient.MysqlVersionN80, "mysql:8.0"},
-	{"MySQL 8.4", apiclient.MysqlVersionN84, "mysql:8.4"},
-	{"MySQL 9", apiclient.MysqlVersionN9, "mysql:9"},
-	{"MySQL 26", apiclient.MysqlVersionN26, "mysql:26.7"},
+} {
+	return []struct {
+		name    string
+		version apiclient.MysqlVersion
+		image   string
+	}{
+		{"MySQL 5.7", apiclient.MysqlVersionN57, "mysql:5.7"},
+		{"MySQL 8.0", apiclient.MysqlVersionN80, "mysql:8.0"},
+		{"MySQL 8.4", apiclient.MysqlVersionN84, "mysql:8.4"},
+		{"MySQL 9", apiclient.MysqlVersionN9, "mysql:9"},
+		{"MySQL 26", apiclient.MysqlVersionN26, "mysql:26.7"},
+	}
 }
 
 // TestBackupAndRestoreMysql boots each supported version once and runs every scenario against it,
 // so only one server of the matrix is alive at a time.
 func TestBackupAndRestoreMysql(t *testing.T) {
-	for _, mysqlVersion := range mysqlVersions {
+	t.Parallel()
+
+	for _, mysqlVersion := range getMysqlVersions() {
 		t.Run(mysqlVersion.name, func(t *testing.T) {
 			endpoint := containers.StartMysql(t, mysqlVersion.image)
 
@@ -48,6 +56,8 @@ func TestBackupAndRestoreMysql(t *testing.T) {
 }
 
 func TestBackupAndRestoreMysqlOverTls(t *testing.T) {
+	t.Parallel()
+
 	t.Run("restores the rows over a connection that requires TLS", func(t *testing.T) {
 		require.NoError(t, enginetest.RegisterSkipVerifyMysqlTLSConfig())
 
@@ -76,8 +86,10 @@ func TestBackupAndRestoreMysqlOverTls(t *testing.T) {
 }
 
 func TestBackupAndRestoreMysqlOverSshTunnel(t *testing.T) {
+	t.Parallel()
+
 	t.Run("restores the rows through the bastion", func(t *testing.T) {
-		topology := containers.StartMysqlBehindSshBastion(t, "mysql:8.4")
+		topology := containers.StartMysqlBehindSSHBastion(t, "mysql:8.4")
 		server := enginetest.ConnectToMysqlFamily(
 			t,
 			enginetest.OpenForwardedEndpoint(t, topology),
@@ -106,6 +118,8 @@ func TestBackupAndRestoreMysqlOverSshTunnel(t *testing.T) {
 }
 
 func TestBackupMysqlToFailingStorage(t *testing.T) {
+	t.Parallel()
+
 	t.Run("fails the backup without hanging when the upload fails", func(t *testing.T) {
 		server := enginetest.ConnectToMysqlFamily(
 			t,

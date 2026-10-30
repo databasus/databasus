@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -8,34 +9,20 @@ import (
 	"strings"
 	"testing"
 	"testing/fstest"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	old_config "databasus-backend/internal/config"
 	"databasus-backend/internal/lib/config"
 	"databasus-backend/internal/lib/crypto"
 	"databasus-backend/internal/lib/database"
 	"databasus-backend/internal/lib/testdb"
-	"databasus-backend/internal/util/encryption"
 	"databasus-backend/migrations"
 )
 
-// The tests of this package fill the process-wide bridge of the old code, so none of them runs in
-// parallel.
-
 func TestNew(t *testing.T) {
-	t.Run("feeds every public getter of the old code after New", func(t *testing.T) {
-		newTestApp(t)
-
-		for _, getter := range getOldCodeGetters() {
-			t.Run(getter.name, func(t *testing.T) {
-				requireGetterReturnsValue(t, getter)
-			})
-		}
-	})
-
-	t.Run("returns an error naming the migration and fills no bridge when a migration fails", func(t *testing.T) {
+	t.Run("returns an error naming the migration when a migration fails", func(t *testing.T) {
 		databaseDsn := testdb.OpenEmpty(t)
 		db, err := database.Open(t.Context(), databaseDsn)
 		require.NoError(t, err)
@@ -49,9 +36,8 @@ func TestNew(t *testing.T) {
 		require.Error(t, err)
 		assert.Nil(t, createdApp)
 		assert.Contains(t, err.Error(), "20250605090323_init.sql")
-		assert.NotEqual(t, databaseDsn, old_config.GetEnv().DatabaseDsn)
 	})
-	t.Run("returns an error naming both versions and fills no bridge when the schema is newer", func(t *testing.T) {
+	t.Run("returns an error naming both versions when the schema is newer", func(t *testing.T) {
 		databaseDsn := testdb.Open(t)
 		recordNewerMigration(t, databaseDsn)
 
@@ -64,7 +50,6 @@ func TestNew(t *testing.T) {
 		assert.Contains(t, err.Error(), strconv.Itoa(newerMigrationVersion))
 		assert.Contains(t, err.Error(), getNewestMigrationVersion(t))
 		assert.Contains(t, err.Error(), "after an upgrade is not supported")
-		assert.NotEqual(t, databaseDsn, old_config.GetEnv().DatabaseDsn)
 	})
 
 	t.Run(
@@ -130,7 +115,9 @@ func TestNew(t *testing.T) {
 			t.Cleanup(createdApp.Close)
 			assertKeyFileContent(t, environment.Config.SecretKeyPath, legacyMasterKey)
 			assert.Empty(t, listLegacyMasterKeys(t, databaseDsn))
-			decryptedValue, err := encryption.GetFieldEncryptor().Decrypt(encryptedValue)
+			appKey, err := crypto.OpenOrCreateMasterKey(createdApp.environment.Config.SecretKeyPath)
+			require.NoError(t, err)
+			decryptedValue, err := crypto.NewFieldEncryptor(appKey).Decrypt(encryptedValue)
 			require.NoError(t, err)
 			assert.Equal(t, "database-password", decryptedValue)
 		})
@@ -142,6 +129,7 @@ func newTestApp(t *testing.T) *App {
 	createdApp, err := New(t.Context(), newTestEnvironment(t, testdb.Open(t)))
 	require.NoError(t, err)
 
+	t.Cleanup(createdApp.Close)
 	return createdApp
 }
 
@@ -153,7 +141,11 @@ func newTestEnvironment(t *testing.T, databaseDsn string) *Environment {
 
 	environment, err := LoadEnvironment(t.Context(), newIsolatedLoadSpec(t, true))
 	require.NoError(t, err)
-
+	t.Cleanup(func() {
+		flushCtx, cancelFlush := context.WithTimeout(context.WithoutCancel(t.Context()), 5*time.Second)
+		defer cancelFlush()
+		require.NoError(t, environment.Logging.Shutdown(flushCtx))
+	})
 	return environment
 }
 

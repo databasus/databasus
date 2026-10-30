@@ -12,6 +12,7 @@ import (
 
 const abandonedDatabaseAge = time.Hour
 
+//nolint:gochecknoglobals // Once-per-process abandoned database cleanup and its child-test scope coordinate test fixtures without selecting an application database.
 var (
 	abandonedDatabasesCleanup sync.Once
 

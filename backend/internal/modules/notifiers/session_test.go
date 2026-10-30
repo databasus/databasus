@@ -18,6 +18,8 @@ type unauthenticatedCall struct {
 }
 
 func TestOperationsWithoutSession(t *testing.T) {
+	t.Parallel()
+
 	anyID := uuid.New()
 	settings := newWebhookSettings(t, newPostWebhook("https://hooks.example.com"))
 	calls := []unauthenticatedCall{

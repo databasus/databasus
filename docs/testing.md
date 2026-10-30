@@ -6,7 +6,7 @@ This document describes the kinds of tests Databasus has and what each kind chec
 
 - A test checks what a caller observes: the HTTP API of the backend, the behavior of an engine against a real database server, or a screen of the frontend.
 - Our own database, modules and services are never mocked. Fakes replace only systems we cannot run locally and failures that are unsafe to cause for real.
-- Every test can run in parallel with any other test of the same run, apart from the `apptest` limit in [The test application](#the-test-application). Single packages and tests also run alongside runs from other worktrees on the same machine; only full runs take turns through a machine-wide lock. A test never takes a shared resource under a fixed name.
+- Independent tests run in parallel within and across packages. Tests that intentionally change process environment settings or share a bounded engine-version fixture remain sequential. Single packages and tests also run alongside runs from other worktrees on the same machine; only full runs take turns through a machine-wide lock. A test never takes a shared resource under a fixed name.
 - Every check runs locally, and none of them is manual. CI repeats the same tests on a clean machine.
 
 ## Layers
@@ -48,7 +48,7 @@ Physical backup execution has a separate injected system clock for elapsed durat
 
 `apptest.WithWalStreamTimings` shortens forced WAL rotation, archive staleness and the queue pause size for one application. The server keeps the production values. Tests with live physical jobs seed timestamps with margins of minutes. Negative checks use explicit scheduler or cleaner passes; live-job checks wait for positive outcomes.
 
-While old code is wired through process-wide state, the `apptest` tests of one package run one at a time: they never call `t.Parallel`, and a second `apptest.New` while one instance is alive in the process fails the test. Test packages still run in parallel with each other. The limit goes away once no old code is left.
+Each application owns its data, staging and WAL queue directories, encryption key, service state and lifecycle. Several applications can remain alive in one test process, and shutting down one leaves the others usable.
 
 The test talks to the instance over real HTTP through `apiclient.New(t, url)`. The shared response check `contracttest` checks every response against `openapi.yaml` and fails the test on any mismatch. It checks the status, the content type, the body and the field formats. A response whose contract schema has `format: binary` keeps its body unread, so the caller can stream it; the client checks its status, content type and headers. JSON errors from downloads still get full body validation. The frontend tests mock responses by the contract, so they rely on this check. The verification module's tests of agent operations use `agentclienttest`, which checks responses against `agent.yaml` in the same way.
 
@@ -66,12 +66,12 @@ A gateway on the agent's link is the one allowed stand-in in this suite. It forw
 
 A measured Docker run with race checks took 4 minutes 50 seconds (289.770 seconds), including both binary builds, with the required images already cached. Cold pulls and host contention change that duration; the package keeps the 30-minute timeout of `backend:test-package`.
 
-Scenarios run sequentially because of the `apptest` limit. Separate runs can overlap: agents have unique IDs, directories, ports and engine labels. Every scenario waits for its containers and networks to disappear after the outcome; cleanup also stops its process and removes labeled resources on failure. A detached daemon has an explicit PID cleanup. Failed scenarios print the agent output and logs. `mise run agent:test` excludes the e2e package and requires neither an engine nor the test database. CI runs the Docker suite in the `agent-e2e` backend group and the Podman subset as its own check.
+Independent scenarios run concurrently. Separate runs can overlap: agents have unique IDs, directories, ports and engine labels. Every scenario waits for its containers and networks to disappear after the outcome; cleanup also stops its process and removes labeled resources on failure. A detached daemon has an explicit PID cleanup. Failed scenarios print the agent output and logs. `mise run agent:test` excludes the e2e package and requires neither an engine nor the test database. CI runs the Docker suite in the `agent-e2e` backend group and the Podman subset as its own check.
 
 ## Isolation
 
 - **Internal database.** Databases for tests live on one test PostgreSQL server, shared by every worktree on the machine and never stopped by a test run. `testdb.Open(t)` creates a fresh database with a unique name from a template that has every migration applied. The template is built once per set of migrations, under an advisory lock, and it is keyed by a hash of the migrations. A passing test drops its database. A failing test keeps it and prints its address. Each test process removes databases that are older than an hour and have no connections.
-- **Database servers for engines.** Each test package boots one container per engine version, and the package's tests reuse it. The container stops before the next version boots. Booting a server per test is too slow, and booting every version at once does not fit into memory. The servers keep their data in memory with durability turned off. Tests that share a server give a unique name to every object they create: database, role, schema and replication slot.
+- **Database servers for engines.** Tests reuse a source inside its engine-version scope. Each scope stops its container before starting the next version; independent top-level scopes can overlap. Booting a server for every scenario is too slow, and retaining every version at once uses too much memory. The servers keep their data in memory with durability turned off. Tests that share a server give a unique name to every object they create: database, role, schema and replication slot.
 - **Storages.** Each test uses its own bucket, container or directory.
 - **Everything else.** Ports come from `127.0.0.1:0` or `httptest`, and files come from `t.TempDir()`. Containers and processes that a test starts get unique names and labels, and `t.Cleanup` removes them.
 
@@ -91,10 +91,10 @@ While working, run the package or the test you need right now. Before handing th
 
 - Backend tests run with `-race`, and a data race fails the test.
 - CI runs the same groups as the full run, split into shards by the measured duration of tests. Physical backup tests and WAL streaming tests are the slow groups and get their own shards.
-- The upgrade test and the filesystem tests are part of `mise run test`, and CI runs them on every pull request.
+- The upgrade test is part of `mise run test`. Filesystem tests run separately through `mise run test-filesystem`. CI runs both on every pull request.
 - The upgrade test starts from the newest release tag by version. It runs in `mise run test` after the backend packages pass, and in CI as the check `test-upgrade` against the image CI built for the commit. `mise run backend:test-upgrade` runs it alone and builds the image from the checkout unless `DATABASUS_IMAGE` names one.
 
-Until the tests of old code move into modules, the filesystem tests run only through `mise run test-filesystem`. Old tests still change the shared `testdb` database on the three shared test PostgreSQL servers, so `mise run test` resets those servers before its tests. The reset waits up to ten minutes for running test processes to end, and a test process that starts during the reset waits for it. The linter rejects `time.Sleep` and `Eventually` only in the target layout, and tests of the packages outside it run with the `testhelpers` build tag, as "Until the migration finishes" in [`AGENTS.md`](../AGENTS.md#until-the-migration-finishes) says.
+Local and CI preparation never reset shared source servers. Seed tests own their logical and physical source containers. Development compose sources remain available to `mise run dev`; test cleanup never removes their databases, roles or replication slots.
 
 ## Commands
 
@@ -102,7 +102,7 @@ Until the tests of old code move into modules, the filesystem tests run only thr
 |---|---|
 | Given backend packages | `mise run backend:test-package <packages>` |
 | Selected CI shards, concurrently | `mise run backend:test-group <shard>...` |
-| Everything | `mise run test` |
+| Default backend and upgrade suite | `mise run test` |
 | One backend package | `go test -race -count=1 ./internal/modules/<module>/...` in `backend/` |
 | One backend test | `go test -race -count=1 -run 'TestName/scenario text' ./internal/modules/<module>/...` in `backend/` |
 | Verification agent unit tests | `mise run agent:test` |

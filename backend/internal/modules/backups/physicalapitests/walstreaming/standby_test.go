@@ -8,11 +8,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	containers "databasus-backend/internal/lib/testcontainers"
 	"databasus-backend/internal/lib/testwait"
-	"databasus-backend/internal/util/testing/containers"
 )
 
 func TestPhysicalWalSourceInRecovery(t *testing.T) {
+	t.Parallel()
+
 	for _, version := range []string{"17", "18"} {
 		t.Run(
 			"reports unavailable source positions when PostgreSQL "+version+" is replaced by its standby",

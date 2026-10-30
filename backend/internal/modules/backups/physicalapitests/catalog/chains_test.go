@@ -13,6 +13,8 @@ import (
 )
 
 func TestPhysicalBackupChains(t *testing.T) {
+	t.Parallel()
+
 	t.Run("accepts an incremental when the chain has a healthy full", func(t *testing.T) {
 		catalog := newCatalog(t)
 		catalog.seedCascadeFull(t, cascadeFullSpec{})

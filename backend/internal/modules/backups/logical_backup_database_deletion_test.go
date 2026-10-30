@@ -11,6 +11,8 @@ import (
 )
 
 func TestDeleteDatabaseWithLogicalBackups(t *testing.T) {
+	t.Parallel()
+
 	server := startRestoreServer(t, restoreServerImage)
 
 	t.Run("removes the backups, their restore and token and their files with the database", func(t *testing.T) {

@@ -27,7 +27,9 @@ const (
 	excludedDataTableName = "upgrade_excluded_data"
 )
 
-var sourceRows = []string{"first row before the upgrade", "second row before the upgrade"}
+func getSourceRows() []string {
+	return []string{"first row before the upgrade", "second row before the upgrade"}
+}
 
 const rowAddedAfterBackup = "row added after the backup"
 
@@ -79,7 +81,7 @@ func fillSourceDatabase(ctx context.Context, hostPort int) error {
 			}
 		}
 
-		for _, label := range sourceRows {
+		for _, label := range getSourceRows() {
 			_, err = connection.Exec(ctx, "INSERT INTO upgrade_rows (label) VALUES ($1)", label)
 			if err != nil {
 				return fmt.Errorf("insert a source row: %w", err)
@@ -126,9 +128,9 @@ func checkRestoredRows(ctx context.Context, hostPort int) error {
 			return fmt.Errorf("read the restored rows: %w", err)
 		}
 
-		if !slices.Equal(restoredRows, sourceRows) {
+		if !slices.Equal(restoredRows, getSourceRows()) {
 			return fmt.Errorf("the restored database holds rows %q, the source had %q at backup time",
-				restoredRows, sourceRows)
+				restoredRows, getSourceRows())
 		}
 
 		return nil

@@ -19,8 +19,8 @@ import (
 	"google.golang.org/api/googleapi"
 	"google.golang.org/api/option"
 
+	io_utils "databasus-backend/internal/lib/iox"
 	"databasus-backend/internal/modules/storages/internal/providers"
-	io_utils "databasus-backend/internal/util/io"
 )
 
 // driveClient is one Google Drive storage while a call runs. Its settings are a copy, so a token it

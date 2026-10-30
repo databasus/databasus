@@ -9,7 +9,7 @@ import (
 	"github.com/klauspost/compress/zstd"
 	"github.com/stretchr/testify/require"
 
-	io_utils "databasus-backend/internal/util/io"
+	io_utils "databasus-backend/internal/lib/iox"
 )
 
 func TestGetBackupStreamFailure(t *testing.T) {

@@ -43,8 +43,7 @@ services:
     container_name: backend-db
     shm_size: 10gb
 
-  # Dedicated test DB so `mise run test` doesn't pollute the dev DB. Every test and every test process of
-  # old code opens a pool on a database of its own, so the default 100 connections run out.
+  # Each test owns a database and a connection pool on this shared test server.
   backend-db-test:
     image: postgres:17
     command: postgres -c max_connections=300
@@ -79,10 +78,7 @@ services:
   # Test containers
   # ================================================================
 
-  # Shared logical-PostgreSQL fixture: the always-on DB that GetTestPostgresConfig /
-  # CreateTestDatabase point ~100 cross-suite tests at (backups, restores, verification,
-  # healthcheck). The per-version PG logical tests (14-18 + SSL + mTLS) run on
-  # testcontainers, so only 16 — the shared fixture — stays on compose.
+  # Development logical source used by the seed command. Automated tests own their containers.
   test-logical-postgres-16:
     image: postgres:16
     ports:

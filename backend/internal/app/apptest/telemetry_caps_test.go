@@ -14,10 +14,12 @@ import (
 	"databasus-backend/internal/app/apptest"
 	"databasus-backend/internal/app/apptest/enginetest"
 	apiclient "databasus-backend/internal/lib/apiclient"
-	"databasus-backend/internal/util/testing/containers"
+	containers "databasus-backend/internal/lib/testcontainers"
 )
 
 func TestTelemetryCollectionCaps(t *testing.T) {
+	t.Parallel()
+
 	t.Run("limits every array to 200 when the instance contains more entries", func(t *testing.T) {
 		receiver := &telemetryReceiver{status: http.StatusOK}
 		server := httptest.NewServer(receiver)

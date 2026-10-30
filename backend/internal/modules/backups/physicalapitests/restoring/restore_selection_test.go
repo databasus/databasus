@@ -12,6 +12,8 @@ import (
 )
 
 func TestSelectPhysicalRestoreArtifacts(t *testing.T) {
+	t.Parallel()
+
 	t.Run("ships only the selected full without WAL", func(t *testing.T) {
 		catalog := newCatalog(t)
 		timeline := newRestoreTimeline()

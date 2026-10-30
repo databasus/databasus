@@ -12,35 +12,40 @@ import (
 
 const fixtureCascadeCutoff = 20261024122431
 
-var fixtureSpec = checkSpec{entryPoints: backendSpec.entryPoints, cascadeCutoff: fixtureCascadeCutoff}
-
-// fakeTestifyFiles stand in for testify through a replace directive, so a fixture module builds offline.
-var fakeTestifyFiles = map[string]string{
-	"go.mod": "module fixture\n\ngo 1.26\n\nrequire github.com/stretchr/testify v1.0.0\n\n" +
-		"replace github.com/stretchr/testify => ./testify\n",
-	"testify/go.mod":           "module github.com/stretchr/testify\n\ngo 1.26\n",
-	"testify/assert/assert.go": "package assert\n\nfunc True(value bool) bool { return value }\n",
+func getFixtureSpec() checkSpec {
+	return checkSpec{entryPoints: getBackendSpec().entryPoints, cascadeCutoff: fixtureCascadeCutoff}
 }
 
-var cleanModuleFiles = map[string]string{
-	"internal/lib/database/database.go": "package database\n\ntype Pool struct{}\n",
-	"internal/modules/users/module.go":  "package users\n\ntype Module interface{ GetActor() string }\n",
-	"internal/modules/storages/module.go": "package storages\n\nimport (\n\t\"errors\"\n\n" +
-		"\t_ \"fixture/internal/modules/users\"\n)\n\ntype Deps struct{}\n\n" +
-		"var ErrStorageMissing = errors.New(\"storage missing\")\n",
-	"internal/modules/storages/internal/storage/errors.go": "package storage\n\n" +
-		"type QuotaError struct{}\n\nfunc (e QuotaError) Error() string { return \"quota exceeded\" }\n",
-	"internal/modules/storages/internal/storage/service.go": "package storage\n\n" +
-		"import _ \"fixture/internal/lib/database\"\n\ntype StorageService struct{}\n\n" +
-		"func (s *StorageService) Delete() {}\n",
-	"internal/modules/storages/internal/storage/storage_repository.go": "package storage\n\n" +
-		"type storageRepository struct{}\n\nfunc (r *storageRepository) Delete() {}\n",
-	"internal/modules/storages/internal/storage/service_test.go": "package storage\n\n" +
-		"import \"testing\"\n\nfunc TestDelete(t *testing.T) {\n\tgo func() {}()\n}\n",
+func getFakeTestifyFiles() map[string]string {
+	return map[string]string{
+		"go.mod": "module fixture\n\ngo 1.26\n\nrequire github.com/stretchr/testify v1.0.0\n\n" +
+			"replace github.com/stretchr/testify => ./testify\n",
+		"testify/go.mod":           "module github.com/stretchr/testify\n\ngo 1.26\n",
+		"testify/assert/assert.go": "package assert\n\nfunc True(value bool) bool { return value }\n",
+	}
+}
+
+func getCleanModuleFiles() map[string]string {
+	return map[string]string{
+		"internal/lib/database/database.go": "package database\n\ntype Pool struct{}\n",
+		"internal/modules/users/module.go":  "package users\n\ntype Module interface{ GetActor() string }\n",
+		"internal/modules/storages/module.go": "package storages\n\nimport (\n\t\"errors\"\n\n" +
+			"\t_ \"fixture/internal/modules/users\"\n)\n\ntype Deps struct{}\n\n" +
+			"var ErrStorageMissing = errors.New(\"storage missing\")\n",
+		"internal/modules/storages/internal/storage/errors.go": "package storage\n\n" +
+			"type QuotaError struct{}\n\nfunc (e QuotaError) Error() string { return \"quota exceeded\" }\n",
+		"internal/modules/storages/internal/storage/service.go": "package storage\n\n" +
+			"import _ \"fixture/internal/lib/database\"\n\ntype StorageService struct{}\n\n" +
+			"func (s *StorageService) Delete() {}\n",
+		"internal/modules/storages/internal/storage/storage_repository.go": "package storage\n\n" +
+			"type storageRepository struct{}\n\nfunc (r *storageRepository) Delete() {}\n",
+		"internal/modules/storages/internal/storage/service_test.go": "package storage\n\n" +
+			"import \"testing\"\n\nfunc TestDelete(t *testing.T) {\n\tgo func() {}()\n}\n",
+	}
 }
 
 func withFakeTestify(files map[string]string) map[string]string {
-	maps.Copy(files, fakeTestifyFiles)
+	maps.Copy(files, getFakeTestifyFiles())
 
 	return files
 }
@@ -71,7 +76,7 @@ func checkFixture(t *testing.T, files map[string]string) []violation {
 		require.NoError(t, os.WriteFile(fullPath, []byte(content), 0o600))
 	}
 
-	violations, err := check(root, fixtureSpec)
+	violations, err := check(root, getFixtureSpec())
 	require.NoError(t, err)
 
 	return violations

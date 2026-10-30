@@ -22,7 +22,7 @@ packages=$(mise run --quiet backend:test-group-packages "$group")
 # go test -list would run each package's TestMain, which starts its database containers, so
 # the names come from the test sources.
 # shellcheck disable=SC2086 # one import path per word
-package_directories=$(go list -tags testhelpers -f '{{ .Dir }}' $packages)
+package_directories=$(go list -f '{{ .Dir }}' $packages)
 shopt -s nullglob
 test_files=()
 for package_directory in $package_directories; do

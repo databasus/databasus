@@ -8,12 +8,14 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	containers "databasus-backend/internal/lib/testcontainers"
 	"databasus-backend/internal/lib/testwait"
 	"databasus-backend/internal/modules/backups"
-	"databasus-backend/internal/util/testing/containers"
 )
 
 func TestPhysicalWalSlotRetentionSample(t *testing.T) {
+	t.Parallel()
+
 	t.Run("records the start of extended slot retention while a paused receiver cannot advance", func(t *testing.T) {
 		timings := backups.ProductionWalStreamTimings()
 		timings.ForcedRotationInterval = 0

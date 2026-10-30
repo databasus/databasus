@@ -23,7 +23,7 @@ func TestVerifySlot(t *testing.T) {
 			t.Parallel()
 			slotName := newSlotName()
 
-			err := server.newSource(adminRole).VerifySlot(t.Context(), newTestLogger(t), slotName)
+			err := server.newSource(getAdminRole()).VerifySlot(t.Context(), newTestLogger(t), slotName)
 			require.NoError(t, err)
 
 			slotType, isSlotPresent := server.readSlotType(t, slotName)
@@ -34,14 +34,14 @@ func TestVerifySlot(t *testing.T) {
 		t.Run("keeps the existing slot when called a second time", func(t *testing.T) {
 			t.Parallel()
 			slotName := newSlotName()
-			source := server.newSource(adminRole)
+			source := server.newSource(getAdminRole())
 
 			require.NoError(t, source.VerifySlot(t.Context(), newTestLogger(t), slotName))
 			require.NoError(t, source.VerifySlot(t.Context(), newTestLogger(t), slotName))
 
 			var slotCount int
 
-			err := server.connectAs(t, adminRole).
+			err := server.connectAs(t, getAdminRole()).
 				QueryRow(t.Context(), "SELECT count(*) FROM pg_replication_slots WHERE slot_name = $1", slotName).
 				Scan(&slotCount)
 			require.NoError(t, err)
@@ -53,7 +53,7 @@ func TestVerifySlot(t *testing.T) {
 			slotName := newSlotName()
 			server.createLogicalSlot(t, slotName)
 
-			err := server.newSource(adminRole).VerifySlot(t.Context(), newTestLogger(t), slotName)
+			err := server.newSource(getAdminRole()).VerifySlot(t.Context(), newTestLogger(t), slotName)
 
 			assert.ErrorContains(t, err, "expected physical")
 		})
@@ -77,7 +77,7 @@ func TestDropSlot(t *testing.T) {
 			slotName := newSlotName()
 			server.createReservedPhysicalSlot(t, slotName)
 
-			err := server.newSource(adminRole).DropSlot(t.Context(), newTestLogger(t), slotName)
+			err := server.newSource(getAdminRole()).DropSlot(t.Context(), newTestLogger(t), slotName)
 			require.NoError(t, err)
 
 			_, isSlotPresent := server.readSlotType(t, slotName)
@@ -87,7 +87,7 @@ func TestDropSlot(t *testing.T) {
 		t.Run("succeeds when the slot is missing", func(t *testing.T) {
 			t.Parallel()
 
-			err := server.newSource(adminRole).DropSlot(t.Context(), newTestLogger(t), newSlotName())
+			err := server.newSource(getAdminRole()).DropSlot(t.Context(), newTestLogger(t), newSlotName())
 
 			assert.NoError(t, err)
 		})
@@ -97,7 +97,7 @@ func TestDropSlot(t *testing.T) {
 			slotName := newSlotName()
 			server.createLogicalSlot(t, slotName)
 
-			err := server.newSource(adminRole).DropSlot(t.Context(), newTestLogger(t), slotName)
+			err := server.newSource(getAdminRole()).DropSlot(t.Context(), newTestLogger(t), slotName)
 			require.ErrorContains(t, err, "expected physical")
 
 			_, isSlotPresent := server.readSlotType(t, slotName)
@@ -110,7 +110,7 @@ func TestDropSlot(t *testing.T) {
 			server.createReservedPhysicalSlot(t, slotName)
 			server.attachSlotConsumer(t, slotName)
 
-			err := server.newSource(adminRole).DropSlot(t.Context(), newTestLogger(t), slotName)
+			err := server.newSource(getAdminRole()).DropSlot(t.Context(), newTestLogger(t), slotName)
 			require.ErrorContains(t, err, "is active")
 
 			_, isSlotPresent := server.readSlotType(t, slotName)
@@ -136,7 +136,7 @@ func TestDropSlotForRemoval(t *testing.T) {
 			slotName := newSlotName()
 			server.createReservedPhysicalSlot(t, slotName)
 
-			err := server.newSource(adminRole).DropSlotForRemoval(t.Context(), newTestLogger(t), slotName)
+			err := server.newSource(getAdminRole()).DropSlotForRemoval(t.Context(), newTestLogger(t), slotName)
 			require.NoError(t, err)
 
 			_, isSlotPresent := server.readSlotType(t, slotName)
@@ -151,7 +151,7 @@ func TestDropSlotForRemoval(t *testing.T) {
 			server.createReservedPhysicalSlot(t, slotName)
 			server.attachSlotConsumer(t, slotName)
 
-			err := server.newSource(adminRole).DropSlotForRemoval(t.Context(), newTestLogger(t), slotName)
+			err := server.newSource(getAdminRole()).DropSlotForRemoval(t.Context(), newTestLogger(t), slotName)
 			require.NoError(t, err)
 
 			_, isSlotPresent := server.readSlotType(t, slotName)
@@ -161,7 +161,7 @@ func TestDropSlotForRemoval(t *testing.T) {
 		t.Run("succeeds when the slot is missing", func(t *testing.T) {
 			t.Parallel()
 
-			err := server.newSource(adminRole).DropSlotForRemoval(t.Context(), newTestLogger(t), newSlotName())
+			err := server.newSource(getAdminRole()).DropSlotForRemoval(t.Context(), newTestLogger(t), newSlotName())
 
 			assert.NoError(t, err)
 		})
@@ -171,7 +171,7 @@ func TestDropSlotForRemoval(t *testing.T) {
 			slotName := newSlotName()
 			server.createLogicalSlot(t, slotName)
 
-			err := server.newSource(adminRole).DropSlotForRemoval(t.Context(), newTestLogger(t), slotName)
+			err := server.newSource(getAdminRole()).DropSlotForRemoval(t.Context(), newTestLogger(t), slotName)
 			require.ErrorContains(t, err, "expected physical")
 
 			_, isSlotPresent := server.readSlotType(t, slotName)

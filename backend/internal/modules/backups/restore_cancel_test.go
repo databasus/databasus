@@ -19,6 +19,8 @@ import (
 )
 
 func TestCancelRestore(t *testing.T) {
+	t.Parallel()
+
 	server := startRestoreServer(t, restoreServerImage)
 
 	t.Run("returns 202 and leaves no restore tool process when the restore runs", func(t *testing.T) {
@@ -26,8 +28,12 @@ func TestCancelRestore(t *testing.T) {
 		database := newBackedUpDatabase(t, tm, server)
 		runningRestore, targetSpec := startBlockedRestore(t, tm.owner, server, database.backup.Id)
 		require.NotEmpty(t, listRestoreToolProcesses(t, targetSpec.databaseName))
-		waitForRestoreLogRecord(t, "executing pg_restore command", runningRestore.Id)
-		require.True(t, hasRestoreToolStartRecord(t, targetSpec.databaseName))
+		waitForRestoreLogRecord(
+			t,
+			tm,
+			restoreLogRecord{message: "executing pg_restore command", restoreID: runningRestore.Id},
+		)
+		require.True(t, hasRestoreToolStartRecord(t, tm, targetSpec.databaseName))
 
 		response := cancelRestore(t, tm.owner, runningRestore.Id)
 
@@ -40,7 +46,7 @@ func TestCancelRestore(t *testing.T) {
 		tm := newTeam(t)
 		database := newBackedUpDatabase(t, tm, server)
 		slowBackupFile := replaceBackupFileWithSlowFile(t, tm, database)
-		archiveDirsBefore := listRestoreArchiveDirs(t)
+		archiveDirsBefore := listRestoreArchiveDirs(t, tm)
 		targetSpec := server.newTargetSpec(t)
 		targetSpec.cpuCount = 2
 
@@ -50,16 +56,20 @@ func TestCancelRestore(t *testing.T) {
 			database.backup.Id,
 			server.newRestoreTarget(t, targetSpec),
 		)
-		archiveDir := waitForArchiveCopy(t, archiveDirsBefore, slowBackupFile.servedBytes)
+		archiveDir := waitForArchiveCopy(t, archiveCopySpec{
+			team: tm, archiveDirsBefore: archiveDirsBefore, servedBytes: slowBackupFile.servedBytes,
+		})
 
 		response := cancelRestore(t, tm.owner, downloadingRestore.Id)
 		require.Equal(t, http.StatusAccepted, response.StatusCode(), string(response.Body))
 		slowBackupFile.serveRest(t)
 
 		waitForRestoreStatus(t, tm.owner, downloadingRestore.Id, apiclient.RestoreStatusCANCELED)
-		waitForRestoreLogRecord(t, "logical restore cancelled on request", downloadingRestore.Id)
+		waitForRestoreLogRecord(t, tm, restoreLogRecord{
+			message: "logical restore cancelled on request", restoreID: downloadingRestore.Id,
+		})
 		assert.NoDirExists(t, archiveDir)
-		assert.False(t, hasRestoreToolStartRecord(t, targetSpec.databaseName),
+		assert.False(t, hasRestoreToolStartRecord(t, tm, targetSpec.databaseName),
 			"the log records a start of pg_restore into %s", targetSpec.databaseName)
 		assert.False(t, server.hasItemsTable(t, targetSpec.databaseName))
 	})
@@ -118,16 +128,20 @@ func (f *slowBackupFile) serveRest(t *testing.T) {
 	require.NoError(t, err)
 }
 
-// waitForArchiveCopy waits until a restore archive folder that did not exist before holds the served
-// bytes of the backup's file, and returns the folder.
-func waitForArchiveCopy(t *testing.T, archiveDirsBefore []string, servedBytes []byte) string {
+type archiveCopySpec struct {
+	team              team
+	archiveDirsBefore []string
+	servedBytes       []byte
+}
+
+func waitForArchiveCopy(t *testing.T, spec archiveCopySpec) string {
 	t.Helper()
 
 	var archiveDir string
 
 	testwait.Until(t, "the restore copies the served part of the archive", func(context.Context) error {
-		for _, listedDir := range listRestoreArchiveDirs(t) {
-			if slices.Contains(archiveDirsBefore, listedDir) {
+		for _, listedDir := range listRestoreArchiveDirs(t, spec.team) {
+			if slices.Contains(spec.archiveDirsBefore, listedDir) {
 				continue
 			}
 
@@ -136,12 +150,12 @@ func waitForArchiveCopy(t *testing.T, archiveDirsBefore []string, servedBytes []
 				return fmt.Errorf("%w: %w", errRestoreArchiveNotCopied, err)
 			}
 
-			if archiveInfo.Size() != int64(len(servedBytes)) {
+			if archiveInfo.Size() != int64(len(spec.servedBytes)) {
 				return fmt.Errorf(
 					"%w: %d of %d bytes",
 					errRestoreArchiveNotCopied,
 					archiveInfo.Size(),
-					len(servedBytes),
+					len(spec.servedBytes),
 				)
 			}
 
@@ -158,10 +172,10 @@ func waitForArchiveCopy(t *testing.T, archiveDirsBefore []string, servedBytes []
 
 // hasRestoreToolStartRecord tells whether the log records a start of pg_restore into the database. The
 // restore logs every start of the tool with its arguments, the target database among them.
-func hasRestoreToolStartRecord(t *testing.T, databaseName string) bool {
+func hasRestoreToolStartRecord(t *testing.T, tm team, databaseName string) bool {
 	t.Helper()
 
-	for line := range strings.SplitSeq(readApplicationLogs(t), "\n") {
+	for line := range strings.SplitSeq(readApplicationLogs(t, tm), "\n") {
 		if strings.Contains(line, "executing pg_restore command") && strings.Contains(line, databaseName) {
 			return true
 		}

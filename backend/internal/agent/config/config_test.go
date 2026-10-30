@@ -28,9 +28,11 @@ func loadConfig(t *testing.T, args ...string) *Config {
 	return cfg
 }
 
-var allFlagNames = []string{
-	"databasus-host", "agent-id", "token", "max-cpu", "max-ram-mb",
-	"max-disk-gb", "max-concurrent-jobs", "allow-insecure-http", "verification-pg-image-repo",
+func getAllFlagNames() []string {
+	return []string{
+		"databasus-host", "agent-id", "token", "max-cpu", "max-ram-mb",
+		"max-disk-gb", "max-concurrent-jobs", "allow-insecure-http", "verification-pg-image-repo",
+	}
 }
 
 func emptyReader() *bufio.Reader {
@@ -243,7 +245,7 @@ func TestLoadFromJSONAndArgs(t *testing.T) {
 		assert.True(t, cfg.AllowInsecureHTTP)
 		assert.Equal(t, "registry/pg", cfg.VerificationPgImageRepo)
 
-		for _, name := range allFlagNames {
+		for _, name := range getAllFlagNames() {
 			assert.Equal(t, "command line args", cfg.flagSources[name], name)
 		}
 	})
@@ -296,7 +298,7 @@ func TestLoadFromJSONAndArgs(t *testing.T) {
 
 		cfg := loadConfig(t)
 
-		for _, name := range allFlagNames {
+		for _, name := range getAllFlagNames() {
 			assert.Equal(t, "not configured", cfg.flagSources[name], name)
 		}
 	})

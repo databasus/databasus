@@ -12,10 +12,12 @@ import (
 
 	"databasus-backend/internal/app/apptest"
 	apiclient "databasus-backend/internal/lib/apiclient"
-	"databasus-backend/internal/util/testing/containers"
+	containers "databasus-backend/internal/lib/testcontainers"
 )
 
 func TestTestDatabase(t *testing.T) {
+	t.Parallel()
+
 	postgresServer := containers.StartPostgres(t, "postgres:16")
 
 	t.Run("reports a successful connection when a viewer tests a saved database", func(t *testing.T) {
@@ -96,6 +98,8 @@ func TestTestDatabase(t *testing.T) {
 }
 
 func TestTestPhysicalDatabase(t *testing.T) {
+	t.Parallel()
+
 	physicalServer := containers.StartPhysicalPostgres(t, "postgres:17")
 
 	t.Run("reports the missing replication privilege when the user cannot replicate", func(t *testing.T) {

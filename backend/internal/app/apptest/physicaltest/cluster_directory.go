@@ -4,7 +4,7 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"databasus-backend/internal/util/testing/containers"
+	containers "databasus-backend/internal/lib/testcontainers"
 )
 
 const restoreWorkDir = "/restore"

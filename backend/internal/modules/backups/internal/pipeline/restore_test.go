@@ -41,14 +41,14 @@ type stubRestoreEngine struct {
 
 func getStubRestoreEngines() []stubRestoreEngine {
 	return []stubRestoreEngine{
-		{name: "PostgreSQL", compression: storedCompressionNone, openSink: openStubPostgresqlRestoreSink},
+		{name: "PostgreSQL", compression: getStoredCompressionNone(), openSink: openStubPostgresqlRestoreSink},
 		{name: "MySQL", compression: (&mysqlEngine{}).GetStoredCompression(), openSink: openStubMysqlRestoreSink},
 		{
 			name:        "MariaDB",
 			compression: (&mariadbEngine{}).GetStoredCompression(),
 			openSink:    openStubMariadbRestoreSink,
 		},
-		{name: "MongoDB", compression: storedCompressionNone, openSink: openStubMongodbRestoreSink},
+		{name: "MongoDB", compression: getStoredCompressionNone(), openSink: openStubMongodbRestoreSink},
 	}
 }
 
@@ -176,7 +176,7 @@ func TestRestoreFromStorage(t *testing.T) {
 		backup, encryptedFile := encryptTestBackup(t, restorePipeline, dump)
 
 		err := restorePipeline.restoreFromStorage(t.Context(), newStubRestoreRun(
-			backup, &memoryStorageReader{file: encryptedFile, failAtEndErr: nil}, sink, storedCompressionNone,
+			backup, &memoryStorageReader{file: encryptedFile, failAtEndErr: nil}, sink, getStoredCompressionNone(),
 		))
 
 		require.NoError(t, err)
@@ -192,7 +192,7 @@ func TestRestoreFromStorage(t *testing.T) {
 		encryptedFile[len(encryptedFile)/2] ^= 0xFF
 
 		err := restorePipeline.restoreFromStorage(t.Context(), newStubRestoreRun(
-			backup, &memoryStorageReader{file: encryptedFile, failAtEndErr: nil}, sink, storedCompressionNone,
+			backup, &memoryStorageReader{file: encryptedFile, failAtEndErr: nil}, sink, getStoredCompressionNone(),
 		))
 
 		require.Error(t, err)
@@ -209,7 +209,7 @@ func TestRestoreFromStorage(t *testing.T) {
 			backup,
 			&memoryStorageReader{file: encryptedFile[:len(encryptedFile)-2500], failAtEndErr: nil},
 			sink,
-			storedCompressionNone,
+			getStoredCompressionNone(),
 		))
 
 		require.Error(t, err)
@@ -224,7 +224,7 @@ func TestRestoreFromStorage(t *testing.T) {
 		_, otherBackupFile := encryptTestBackup(t, restorePipeline, []byte("PGDMP second backup"))
 
 		err := restorePipeline.restoreFromStorage(t.Context(), newStubRestoreRun(
-			backup, &memoryStorageReader{file: otherBackupFile, failAtEndErr: nil}, sink, storedCompressionNone,
+			backup, &memoryStorageReader{file: otherBackupFile, failAtEndErr: nil}, sink, getStoredCompressionNone(),
 		))
 
 		require.ErrorIs(t, err, crypto.ErrStreamHeaderMismatch)
@@ -246,7 +246,7 @@ func TestBackupRoundTrip(t *testing.T) {
 		backupResult, err := roundTripPipeline.streamDumpToStorage(t.Context(), backupStream{
 			spec:        spec,
 			dumpSource:  openStubPostgresqlDumpSource(t, "printf 'PGDMP "+encryptionMarker+"'"),
-			compression: storedCompressionNone,
+			compression: getStoredCompressionNone(),
 		})
 		require.NoError(t, err)
 		sink, pgRestore := openStubPostgresqlRestoreSink(t, toolstub.Spec{IsReadingStdin: true, Script: ""})
@@ -258,7 +258,7 @@ func TestBackupRoundTrip(t *testing.T) {
 			StorageID:        spec.StorageID,
 			FileName:         spec.FileName,
 			EncryptionHeader: backupResult.EncryptionHeader,
-		}, storageReader, sink, storedCompressionNone))
+		}, storageReader, sink, getStoredCompressionNone()))
 
 		require.NoError(t, err)
 		assert.Equal(t, []byte("PGDMP "+encryptionMarker), pgRestore.GetStdin(t))
@@ -288,7 +288,7 @@ func TestRestoreThatPanics(t *testing.T) {
 
 		openedTarget := &OpenedRestoreTarget{
 			sink:        nil,
-			compression: storedCompressionNone,
+			compression: getStoredCompressionNone(),
 			pipeline:    newTestPipeline(t, panickingStorage{}),
 			logger:      slog.New(slog.DiscardHandler),
 		}

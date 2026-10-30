@@ -9,7 +9,7 @@ import (
 
 	"databasus-backend/internal/app/apptest"
 	apiclient "databasus-backend/internal/lib/apiclient"
-	"databasus-backend/internal/util/testing/containers"
+	containers "databasus-backend/internal/lib/testcontainers"
 )
 
 func newConnectedCatalog(t *testing.T) *catalogFixture {
@@ -49,6 +49,8 @@ func newConnectedCatalog(t *testing.T) *catalogFixture {
 }
 
 func TestStopWalStreamingAfterBackupTypeChange(t *testing.T) {
+	t.Parallel()
+
 	t.Run("deletes the streamer and keeps the running full when the database stops streaming WAL", func(t *testing.T) {
 		catalog := newConnectedCatalog(t)
 		catalog.saveStorageConfig(t, catalog.StorageID)

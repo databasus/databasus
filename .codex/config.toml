@@ -2,8 +2,6 @@
 project_doc_max_bytes = 65536
 
 [shell_environment_policy.set]
-# Include cross-package test helpers in commands the agent runs directly.
-GOFLAGS = "-tags=testhelpers"
 AGENT_REVIEW_CLIENT = "codex"
 
 [mcp_servers.chrome-devtools]

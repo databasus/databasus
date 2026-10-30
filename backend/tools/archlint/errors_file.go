@@ -16,7 +16,7 @@ func checkErrorsFile(sourceModule *sourceModule) []violation {
 	var violations []violation
 
 	for _, file := range sourceModule.files {
-		if file.isTest || !isInTargetLayout(file.relativePath) || isErrorsFile(file) {
+		if file.isTest || isErrorsFile(file) {
 			continue
 		}
 

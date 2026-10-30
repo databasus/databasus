@@ -9,18 +9,18 @@ import (
 	"strings"
 )
 
-// moduleNames lists the domain modules of the module table in docs/architecture.md. A table belongs
-// to a module when its name equals the module name or starts with it and an underscore.
-var moduleNames = []string{
-	"users",
-	"workspaces",
-	"notifiers",
-	"storages",
-	"databases",
-	"backups",
-	"verification",
-	"healthcheck",
-	"telemetry",
+func getModuleNames() []string {
+	return []string{
+		"users",
+		"workspaces",
+		"notifiers",
+		"storages",
+		"databases",
+		"backups",
+		"verification",
+		"healthcheck",
+		"telemetry",
+	}
 }
 
 var (
@@ -168,7 +168,7 @@ func getTableOwner(table string) (string, bool) {
 		return "lib_" + name, true
 	}
 
-	for _, moduleName := range moduleNames {
+	for _, moduleName := range getModuleNames() {
 		if table == moduleName || strings.HasPrefix(table, moduleName+"_") {
 			return moduleName, true
 		}

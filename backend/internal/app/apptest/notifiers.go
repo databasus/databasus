@@ -52,8 +52,7 @@ func (a *App) AttachNotifierToDatabase(tb testing.TB, attachment NotifierAttachm
 		attachment.DatabaseID, attachment.NotifierID)
 }
 
-// BeginNotifierAttachment writes the attachment in a transaction it leaves open, like an attach of
-// the old code that has not committed yet, and returns the function that commits it.
+// An open transaction lets a test prove that notification delivery sees only committed attachments.
 func (a *App) BeginNotifierAttachment(tb testing.TB, attachment NotifierAttachment) func() {
 	tb.Helper()
 
@@ -82,8 +81,7 @@ func (a *App) BeginNotifierAttachment(tb testing.TB, attachment NotifierAttachme
 	}
 }
 
-// Notify sends a notification to the notifiers the way the old code does when a backup or a
-// healthcheck ends. It returns at once, while the deliveries run.
+// Notify returns while delivery continues, as it does after a backup or healthcheck.
 func (a *App) Notify(tb testing.TB, notifierIDs []uuid.UUID, notification notifiers.Notification) {
 	tb.Helper()
 

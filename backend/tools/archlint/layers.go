@@ -23,7 +23,7 @@ func getLayer(relativePath string) layer {
 	switch {
 	case hasPathPrefix(relativePath, "internal/agent"), hasPathPrefix(relativePath, "cmd/verification-agent"):
 		return layerAgent
-	case hasPathPrefix(relativePath, "cmd/databasus"):
+	case hasPathPrefix(relativePath, "cmd"):
 		return layerCmd
 	case hasPathPrefix(relativePath, "internal/app"):
 		return layerApp
@@ -60,7 +60,7 @@ func checkImports(sourceModule *sourceModule) []violation {
 	var violations []violation
 
 	for _, file := range sourceModule.files {
-		if file.isTest || !isInTargetLayout(file.relativePath) {
+		if file.isTest {
 			continue
 		}
 
@@ -115,11 +115,8 @@ func checkImport(edge importEdge) []violation {
 		}}
 	}
 
-	if importedLayer == layerNone || edge.importerLayer == layerNone {
-		return nil
-	}
-
-	if importedLayer == layerAgent || importedLayer > edge.importerLayer {
+	if importedLayer == layerAgent ||
+		(edge.importerLayer != layerNone && importedLayer > edge.importerLayer) {
 		return []violation{{
 			position: edge.position,
 			rule:     "layer",

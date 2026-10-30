@@ -8,12 +8,10 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	old_config "databasus-backend/internal/config"
 	"databasus-backend/internal/lib/background"
 	"databasus-backend/internal/lib/config"
 	"databasus-backend/internal/lib/httpserver"
 	"databasus-backend/internal/lib/shutdown"
-	files_utils "databasus-backend/internal/util/files"
 )
 
 // The drain and the log flush together stay under 8 seconds, which leaves the embedded PostgreSQL
@@ -35,7 +33,7 @@ func (a *App) Serve(ctx context.Context, address string) error {
 		return err
 	}
 
-	err = files_utils.CleanFolder(a.environment.Config.TempFolder)
+	err = cleanFolder(a.environment.Config.TempFolder)
 	if err != nil {
 		a.logger.ErrorContext(ctx, "failed to clean temp folder", slog.Any("error", err))
 	}
@@ -75,7 +73,6 @@ func (a *App) Serve(ctx context.Context, address string) error {
 
 	a.logger.InfoContext(ctx, "shutdown signal received")
 
-	old_config.BeginShutdown()
 	cancelLoops()
 
 	shutdown.Drain(ctx, shutdown.DrainSpec{
@@ -114,8 +111,6 @@ func (a *App) NewHandler() (http.Handler, error) {
 // the *gin.Context as their context.Context, so ContextWithFallback lets them read the values the
 // middleware put into the request context, such as the actor and the client IP.
 func (a *App) newRouter() *gin.Engine {
-	gin.SetMode(gin.ReleaseMode)
-
 	router := gin.New()
 	router.ContextWithFallback = true
 	router.Use(httpserver.AssignRequestID())

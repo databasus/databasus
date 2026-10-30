@@ -418,9 +418,9 @@ THIRD_WAVE_BUDGET_SECONDS = 14
 THIRD_WAVE_REVIEWER_TIMEOUT_SECONDS = 6
 THIRD_WAVE_REVIEWER_SECONDS = 5.5
 # These keep the production relationship, budget >= checks total + 2 x reviewer limit, while the check
-# and the reviewers use almost all of their limits.
-TWO_WAVES_CHECKS_TIMEOUT_SECONDS = 2
-TWO_WAVES_REVIEWER_TIMEOUT_SECONDS = 4
+# and two reviewer waves exceed one reviewer deadline. Two seconds per subprocess allow startup under host contention.
+TWO_WAVES_CHECKS_TIMEOUT_SECONDS = 4
+TWO_WAVES_REVIEWER_TIMEOUT_SECONDS = 6
 TWO_WAVES_BUDGET_SECONDS = TWO_WAVES_CHECKS_TIMEOUT_SECONDS + 2 * TWO_WAVES_REVIEWER_TIMEOUT_SECONDS + 2
 
 
@@ -782,13 +782,14 @@ class HookConfigurationTest(unittest.TestCase):
         self.assertNotIn("PreToolUse", self.codex_hooks)
         self.assertNotIn("plan", [shlex.split(hook["command"])[-3] for hook in self.get_hooks(self.codex_hooks, "Stop")])
 
-    def test_matches_browser_launcher_and_build_tag_when_clients_share_project_settings(self):
+    def test_matches_browser_launcher_without_a_helper_tag_in_project_settings(self):
         root = HOOK_PATH.parent.parent
         codex_config = tomllib.loads((root / ".codex/config.toml").read_text())
         browser_config = json.loads((root / ".mcp.json").read_text())["mcpServers"]["chrome-devtools"]
 
         self.assertEqual(codex_config["mcp_servers"]["chrome-devtools"], browser_config)
-        self.assertEqual(codex_config["shell_environment_policy"]["set"]["GOFLAGS"], self.claude_config["env"]["GOFLAGS"])
+        self.assertNotIn("GOFLAGS", codex_config["shell_environment_policy"]["set"])
+        self.assertNotIn("GOFLAGS", self.claude_config["env"])
         self.assertEqual(codex_config["shell_environment_policy"]["set"]["AGENT_REVIEW_CLIENT"], "codex")
         self.assertEqual(self.claude_config["env"]["AGENT_REVIEW_CLIENT"], "claude")
 
@@ -1522,7 +1523,7 @@ class ImplementationGateReviewTest(ShortReplyAssertions, SummaryAssertions, unit
             ],
         )
 
-    def test_implementation_architecture_reviewer_prompt_checks_layout_contract_and_exempts_old_code(self):
+    def test_implementation_architecture_reviewer_prompt_checks_all_backend_files_and_contract(self):
         repository = HookRepository(self)
         repository.submit_prompt("Continue")
         repository.complete_tasks()
@@ -1538,11 +1539,10 @@ class ImplementationGateReviewTest(ShortReplyAssertions, SummaryAssertions, unit
             "When the change edits an HTTP contract file under `backend/api/`, read `.agents/skills/api-design/SKILL.md`",
             architecture_role,
         )
-        self.assertIn(
-            'Go code under `backend/` outside the layout block in "Backend layout" of `docs/architecture.md`',
-            architecture_role,
-        )
-        self.assertIn("The exemption does not cover the frontend.", architecture_role)
+        self.assertIn("Check all backend files belonging to the change", architecture_role)
+        self.assertIn("including every command", architecture_role)
+        self.assertIn("Frontend architecture rules remain applicable.", architecture_role)
+        self.assertNotIn("keeps its existing structure", architecture_role)
 
     def test_implementation_docs_reviewer_prompt_checks_agent_instructions(self):
         repository = HookRepository(self)
@@ -1593,8 +1593,8 @@ class ImplementationGateReviewTest(ShortReplyAssertions, SummaryAssertions, unit
 
     def test_runs_two_waves_of_reviewers_without_running_checks(self):
         repository = HookRepository(self)
-        repository.set_stub("golangci-lint", {"sleep_seconds": TWO_WAVES_CHECKS_TIMEOUT_SECONDS - 0.1})
-        repository.set_stub(repository.review_client, {"sleep_seconds": TWO_WAVES_REVIEWER_TIMEOUT_SECONDS - 0.2})
+        repository.set_stub("golangci-lint", {"sleep_seconds": TWO_WAVES_CHECKS_TIMEOUT_SECONDS - 2})
+        repository.set_stub(repository.review_client, {"sleep_seconds": TWO_WAVES_REVIEWER_TIMEOUT_SECONDS - 2})
         repository.write_change(spec_names=("widgets", *(f"spec{index}" for index in range(4))), tasks="- [x] 1.1 Build\n")
         repository.submit_prompt("Continue")
         repository.write("backend/internal/features/widgets/service.go", "package widgets\n")
@@ -2193,11 +2193,10 @@ class ProposalGateReviewTest(ShortReplyAssertions, SummaryAssertions, unittest.T
             "When the change adds or changes an HTTP operation, read `.agents/skills/api-design/SKILL.md`",
             architecture_role,
         )
-        self.assertIn(
-            'Go code under `backend/` outside the layout block in "Backend layout" of `docs/architecture.md`',
-            architecture_role,
-        )
-        self.assertIn("The exemption does not cover the frontend.", architecture_role)
+        self.assertIn("Check all backend files belonging to the change", architecture_role)
+        self.assertIn("including every command", architecture_role)
+        self.assertIn("Frontend architecture rules remain applicable.", architecture_role)
+        self.assertNotIn("keeps its existing structure", architecture_role)
 
     def test_names_reviewer_prompt_checks_naming_rules_data_section_and_glossary(self):
         repository = HookRepository(self)
@@ -2255,8 +2254,8 @@ class ProposalGateReviewTest(ShortReplyAssertions, SummaryAssertions, unittest.T
 
     def test_runs_two_waves_of_reviewers_after_validation_uses_checks_total_limit(self):
         repository = HookRepository(self)
-        repository.set_stub("openspec", {"validate": {"sleep_seconds": TWO_WAVES_CHECKS_TIMEOUT_SECONDS - 0.1}})
-        repository.set_stub(repository.review_client, {"sleep_seconds": TWO_WAVES_REVIEWER_TIMEOUT_SECONDS - 0.2})
+        repository.set_stub("openspec", {"validate": {"sleep_seconds": TWO_WAVES_CHECKS_TIMEOUT_SECONDS - 2}})
+        repository.set_stub(repository.review_client, {"sleep_seconds": TWO_WAVES_REVIEWER_TIMEOUT_SECONDS - 2})
         repository.submit_prompt("Write a spec")
         repository.write_proposal(spec_names=tuple(f"spec{index}" for index in range(5)))
 

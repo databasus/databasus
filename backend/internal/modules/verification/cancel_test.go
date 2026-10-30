@@ -11,6 +11,8 @@ import (
 )
 
 func TestCancelVerification(t *testing.T) {
+	t.Parallel()
+
 	t.Run("cancels a pending verification when a member asks", func(t *testing.T) {
 		team := newVerificationTeam(t)
 		backup := team.backup(t)

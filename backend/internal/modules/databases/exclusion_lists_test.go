@@ -7,10 +7,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"databasus-backend/internal/util/testing/containers"
+	containers "databasus-backend/internal/lib/testcontainers"
 )
 
 func TestDatabaseExclusionLists(t *testing.T) {
+	t.Parallel()
+
 	server := containers.StartPostgres(t, "postgres:16")
 
 	t.Run("stores trimmed unique names when the lists are pasted over several lines", func(t *testing.T) {

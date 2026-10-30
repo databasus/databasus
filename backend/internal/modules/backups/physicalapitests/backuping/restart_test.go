@@ -13,6 +13,8 @@ import (
 )
 
 func TestRecoverPhysicalBackupAfterRestart(t *testing.T) {
+	t.Parallel()
+
 	for _, testCase := range []struct {
 		name        string
 		hasArtifact bool

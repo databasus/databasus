@@ -145,7 +145,7 @@ func TestStreamDumpToStorage(t *testing.T) {
 		backupResult, err := backupPipeline.streamDumpToStorage(t.Context(), backupStream{
 			spec:        spec,
 			dumpSource:  openStubPostgresqlDumpSource(t, "printf '"+encryptionMarker+"'"),
-			compression: storedCompressionNone,
+			compression: getStoredCompressionNone(),
 		})
 
 		require.NoError(t, err)
@@ -166,13 +166,13 @@ func TestStreamDumpToStorage(t *testing.T) {
 		firstResult, err := newTestPipeline(t, firstStorage).streamDumpToStorage(t.Context(), backupStream{
 			spec:        firstSpec,
 			dumpSource:  openStubPostgresqlDumpSource(t, "printf 'unchanged dump'"),
-			compression: storedCompressionNone,
+			compression: getStoredCompressionNone(),
 		})
 		require.NoError(t, err)
 		secondResult, err := newTestPipeline(t, secondStorage).streamDumpToStorage(t.Context(), backupStream{
 			spec:        secondSpec,
 			dumpSource:  openStubPostgresqlDumpSource(t, "printf 'unchanged dump'"),
-			compression: storedCompressionNone,
+			compression: getStoredCompressionNone(),
 		})
 		require.NoError(t, err)
 

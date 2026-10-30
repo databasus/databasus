@@ -14,7 +14,7 @@ import (
 
 	"github.com/minio/minio-go/v7"
 
-	io_utils "databasus-backend/internal/util/io"
+	io_utils "databasus-backend/internal/lib/iox"
 )
 
 type reassemblingReaderSpec struct {

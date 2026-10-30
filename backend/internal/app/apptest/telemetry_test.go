@@ -54,6 +54,8 @@ func (r *telemetryReceiver) getUserAgents() []string {
 }
 
 func TestTelemetry(t *testing.T) {
+	t.Parallel()
+
 	t.Run("delivers anonymous api state after warmup and reuses its identity", func(t *testing.T) {
 		receiver := &telemetryReceiver{status: http.StatusAccepted}
 		server := httptest.NewServer(receiver)
@@ -197,6 +199,8 @@ func TestTelemetry(t *testing.T) {
 }
 
 func TestTelemetryIdentityFailures(t *testing.T) {
+	t.Parallel()
+
 	for _, scenario := range []string{"unreadable directory", "unwritable parent"} {
 		t.Run("skips reporting when identity has an "+scenario, func(t *testing.T) {
 			receiver := &telemetryReceiver{status: http.StatusOK}

@@ -16,6 +16,7 @@ import (
 	"databasus-backend/internal/agent/upgrade"
 )
 
+//nolint:gochecknoglobals // The release build sets version metadata through the linker; runtime code never changes it.
 var Version = "dev"
 
 func main() { os.Exit(runCommand(os.Args[1:])) }

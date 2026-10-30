@@ -14,6 +14,8 @@ import (
 )
 
 func TestLogicalBackupAndRestoreAccess(t *testing.T) {
+	t.Parallel()
+
 	server := startRestoreServer(t, restoreServerImage)
 
 	t.Run("lets a viewer back up, get a download token and restore", func(t *testing.T) {

@@ -24,13 +24,15 @@ func runningSlotBreakSample(state *pgphysical.Slot, walLagThresholdBytes int64, 
 
 const lagWindowTestThresholdBytes int64 = 100 * 1024 * 1024
 
-var lagWindowTestStartedAt = time.Date(2026, time.October, 19, 12, 0, 0, 0, time.UTC)
+func getLagWindowTestStartedAt() time.Time {
+	return time.Date(2026, time.October, 19, 12, 0, 0, 0, time.UTC)
+}
 
 func getThresholdPercentBytes(percent float64) int64 {
 	return int64(float64(lagWindowTestThresholdBytes) * percent / 100)
 }
 
-// Samples one lag monitor tick apart, the first at lagWindowTestStartedAt.
+// Samples one lag monitor tick apart, the first at getLagWindowTestStartedAt().
 type lagSampleTimeline struct {
 	walLagThresholdBytes int64
 	samples              []slotBreakSample
@@ -41,7 +43,7 @@ func newLagSampleTimeline() *lagSampleTimeline {
 }
 
 func (l *lagSampleTimeline) getNextObservedAt() time.Time {
-	return lagWindowTestStartedAt.Add(time.Duration(len(l.samples)) * streamhealth.SampleInterval)
+	return getLagWindowTestStartedAt().Add(time.Duration(len(l.samples)) * streamhealth.SampleInterval)
 }
 
 // A zero runStartedAt is a tick with no receiver running.
@@ -90,7 +92,7 @@ func getFirstBreakIndex(classifiedBreaks []classifiedBreak, action slotBreakActi
 
 // With one sample per tick, the hold of running time is covered by this many
 // intervals between samples of the same run.
-var lagWindowHoldIntervals = int(streamhealth.WarningSlotStatusHoldPeriod / streamhealth.SampleInterval)
+const lagWindowHoldIntervals = int(streamhealth.WarningSlotStatusHoldPeriod / streamhealth.SampleInterval)
 
 func requireLagRebuildAt(t *testing.T, classifiedBreaks []classifiedBreak, expectedIndex int, message string) {
 	t.Helper()
@@ -183,7 +185,7 @@ func Test_RecordSampleAndClassifyBreak_WhenReceiverResumesWithLagAboveThreshold_
 func Test_RecordSampleAndClassifyBreak_WhenFirstSampleOfSessionShowsShrinkingLag_DoesNotRebuild(t *testing.T) {
 	timeline := newLagSampleTimeline()
 
-	runStartedAt := lagWindowTestStartedAt.Add(-time.Second)
+	runStartedAt := getLagWindowTestStartedAt().Add(-time.Second)
 	for sampleIndex := range 2*lagWindowHoldIntervals + 1 {
 		timeline.addRunningSample(
 			runStartedAt,
@@ -200,7 +202,7 @@ func Test_RecordSampleAndClassifyBreak_WhenFirstSampleOfSessionShowsShrinkingLag
 func Test_RecordSampleAndClassifyBreak_WhenSlowCatchUpOutlastsHold_DoesNotRebuild(t *testing.T) {
 	timeline := newLagSampleTimeline()
 
-	runStartedAt := lagWindowTestStartedAt
+	runStartedAt := getLagWindowTestStartedAt()
 	for sampleIndex := range 4*lagWindowHoldIntervals + 1 {
 		timeline.addRunningSample(
 			runStartedAt,
@@ -246,7 +248,7 @@ func Test_RecordSampleAndClassifyBreak_WhenRunningReceiverCannotKeepUp_RebuildsO
 ) {
 	timeline := newLagSampleTimeline()
 
-	runStartedAt := lagWindowTestStartedAt
+	runStartedAt := getLagWindowTestStartedAt()
 	for sampleIndex := range lagWindowHoldIntervals + 1 {
 		timeline.addRunningSample(
 			runStartedAt,
@@ -265,7 +267,7 @@ func Test_RecordSampleAndClassifyBreak_WhenLagFluctuatesAboveThreshold_RebuildsO
 ) {
 	timeline := newLagSampleTimeline()
 
-	runStartedAt := lagWindowTestStartedAt
+	runStartedAt := getLagWindowTestStartedAt()
 	for sampleIndex := range lagWindowHoldIntervals + 1 {
 		swingBytes := int64(sampleIndex%2) * getThresholdPercentBytes(3)
 		trendBytes := int64(sampleIndex) * getThresholdPercentBytes(0.4)
@@ -287,8 +289,8 @@ func Test_RecordSampleAndClassifyBreak_WhenStalledReceiverIsRestartedEvery70Seco
 	timeline := newLagSampleTimeline()
 
 	for sampleIndex := range 30 {
-		sinceStart := timeline.getNextObservedAt().Sub(lagWindowTestStartedAt)
-		runStartedAt := lagWindowTestStartedAt.Add(sinceStart / restartInterval * restartInterval)
+		sinceStart := timeline.getNextObservedAt().Sub(getLagWindowTestStartedAt())
+		runStartedAt := getLagWindowTestStartedAt().Add(sinceStart / restartInterval * restartInterval)
 
 		timeline.addRunningSample(
 			runStartedAt,
@@ -332,7 +334,7 @@ func Test_RecordSampleAndClassifyBreak_WhenReceiverStoppedWithLagOverThreshold_D
 func Test_RecordSampleAndClassifyBreak_WhenLagDipsBelowThreshold_RestartsHoldOfRunningTime(t *testing.T) {
 	timeline := newLagSampleTimeline()
 
-	runStartedAt := lagWindowTestStartedAt
+	runStartedAt := getLagWindowTestStartedAt()
 	lagBytes := lagWindowTestThresholdBytes + getThresholdPercentBytes(1)
 
 	for range lagWindowHoldIntervals - 1 {
@@ -358,7 +360,7 @@ func Test_RecordSampleAndClassifyBreak_WhenThresholdIsZero_NeverRebuildsForLag(t
 	timeline := newLagSampleTimeline()
 	timeline.walLagThresholdBytes = 0
 
-	runStartedAt := lagWindowTestStartedAt
+	runStartedAt := getLagWindowTestStartedAt()
 	for sampleIndex := range 4 * lagWindowHoldIntervals {
 		timeline.addRunningSample(runStartedAt, int64(sampleIndex+1)*lagWindowTestThresholdBytes)
 	}
@@ -384,7 +386,7 @@ func Test_RecordSampleAndClassifyBreak_WhenSlotStatusEpisodeEndsAboveThreshold_R
 		t.Run(episode.walStatus, func(t *testing.T) {
 			timeline := newLagSampleTimeline()
 
-			runStartedAt := lagWindowTestStartedAt
+			runStartedAt := getLagWindowTestStartedAt()
 			lagBytes := lagWindowTestThresholdBytes + getThresholdPercentBytes(1)
 
 			for range lagWindowHoldIntervals - 2 {
@@ -420,7 +422,7 @@ func Test_RecordSampleAndClassifyBreak_WhenReceiverStallsAfterDrainingHold_Rebui
 ) {
 	timeline := newLagSampleTimeline()
 
-	runStartedAt := lagWindowTestStartedAt
+	runStartedAt := getLagWindowTestStartedAt()
 	lagBytes := 2 * lagWindowTestThresholdBytes
 
 	for range lagWindowHoldIntervals + 1 {
@@ -445,7 +447,7 @@ func Test_RecordSampleAndClassifyBreak_WhenReceiverStallsAfterDrainingHold_Rebui
 func Test_RecordSampleAndClassifyBreak_WhenExtendedSlotLagsAboveThreshold_AlertsWithoutRebuilding(t *testing.T) {
 	timeline := newLagSampleTimeline()
 
-	runStartedAt := lagWindowTestStartedAt
+	runStartedAt := getLagWindowTestStartedAt()
 	for sampleIndex := range 2*lagWindowHoldIntervals + 1 {
 		timeline.addSample(
 			runStartedAt,

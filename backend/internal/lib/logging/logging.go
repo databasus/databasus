@@ -70,7 +70,7 @@ func (l *Logging) GetAuditLogger() *slog.Logger {
 }
 
 // Shutdown is one-way - the file writer stops accepting writes and the OTLP provider becomes a
-// no-op - so it belongs only at process exit.
+// no-op - so each logging instance is shut down only when its application ends.
 func (l *Logging) Shutdown(ctx context.Context) error {
 	var shutdownErrors []error
 

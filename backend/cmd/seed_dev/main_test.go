@@ -3,300 +3,307 @@ package main
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
-	"strconv"
 	"sync"
 	"testing"
-	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	openapi_types "github.com/oapi-codegen/runtime/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	contract "databasus-backend/api"
-	"databasus-backend/internal/app/systemhttpapi"
-	"databasus-backend/internal/config"
-	"databasus-backend/internal/engines/clienttools"
-	"databasus-backend/internal/features/caching"
-	databases_bridge "databasus-backend/internal/features/databases"
-	notifiers_bridge "databasus-backend/internal/features/notifiers"
-	storages_bridge "databasus-backend/internal/features/storages"
-	users_bridge "databasus-backend/internal/features/users"
-	users_testing "databasus-backend/internal/features/users/testing"
-	workspaces_bridge "databasus-backend/internal/features/workspaces"
-	"databasus-backend/internal/lib/apiclient"
-	"databasus-backend/internal/lib/apierror"
-	"databasus-backend/internal/lib/audit"
-	"databasus-backend/internal/lib/clock"
-	"databasus-backend/internal/lib/diskusage"
-	"databasus-backend/internal/lib/httpserver"
-	"databasus-backend/internal/modules/backups"
-	"databasus-backend/internal/modules/users"
-	"databasus-backend/internal/modules/verification"
-	"databasus-backend/internal/storage"
-	"databasus-backend/internal/util/logger"
-	test_utils "databasus-backend/internal/util/testing"
+	"databasus-backend/internal/app/apptest"
+	apiclient "databasus-backend/internal/lib/apiclient"
+	containers "databasus-backend/internal/lib/testcontainers"
+	"databasus-backend/internal/lib/testwait"
 )
 
 const (
 	seedPassword  = "Q1234567"
 	otherPassword = "Other-password-1"
-
-	firstBackupTimeout = 2 * time.Minute
 )
 
-func Test_Seed_WhenAccountIsNew_CreatesWorkspaceStorageAndDatabasesWithBackups(t *testing.T) {
-	fixture, params := setUpSeedTest(t)
-	router := fixture.router
+func TestSeed(t *testing.T) {
+	t.Parallel()
 
-	exitCode, output := runSeedForTest(t, params)
-	require.Equal(t, 0, exitCode, output)
+	t.Run("creates workspace storage and configured backups when the account is new", func(t *testing.T) {
+		t.Parallel()
 
-	token := signInForTest(t, router, params.Email, seedPassword).Token
-	workspaceID := findWorkspaceID(t, router, token, params.WorkspaceName)
-	require.NotEqual(t, uuid.Nil, workspaceID, "workspace %q was not created", params.WorkspaceName)
+		fixture, params := setUpSeedTest(t)
+		router := fixture.router
 
-	storageID := findStorageID(t, router, token, workspaceID, params.StorageName)
-	require.NotEqual(t, uuid.Nil, storageID, "storage %q was not created", params.StorageName)
+		exitCode, output := runSeedForTest(t, params)
+		require.Equal(t, 0, exitCode, output)
 
-	logicalDatabaseID := findDatabaseID(t, router, token, workspaceID, params.LogicalDatabaseName)
-	walDatabaseID := findDatabaseID(t, router, token, workspaceID, params.WalDatabaseName)
-	require.NotEqual(t, uuid.Nil, logicalDatabaseID)
-	require.NotEqual(t, uuid.Nil, walDatabaseID)
+		token := signInForTest(t, router, params.Email, seedPassword).Token
+		workspaceID := findWorkspaceID(t, router, token, params.WorkspaceName)
+		require.NotEqual(t, uuid.Nil, workspaceID, "workspace %q was not created", params.WorkspaceName)
 
-	logicalConfig := getBackupConfig(t, router, token, logicalDatabaseID)
-	logicalSettings, err := logicalConfig.Settings.AsLogicalBackupSettings()
-	require.NoError(t, err)
+		storageID := findStorageID(t, router, token, workspaceID, params.StorageName)
+		require.NotEqual(t, uuid.Nil, storageID, "storage %q was not created", params.StorageName)
 
-	assert.True(t, logicalConfig.IsBackupsEnabled)
-	assert.Equal(t, storageID, *logicalConfig.StorageId)
-	assert.Equal(t, apiclient.LogicalRetentionPolicyCOUNT, logicalSettings.Retention.Policy)
-	assert.Equal(t, 3, logicalSettings.Retention.Count)
+		logicalDatabaseID := findDatabaseID(t, router, token, workspaceID, params.LogicalDatabaseName)
+		walDatabaseID := findDatabaseID(t, router, token, workspaceID, params.WalDatabaseName)
+		require.NotEqual(t, uuid.Nil, logicalDatabaseID)
+		require.NotEqual(t, uuid.Nil, walDatabaseID)
 
-	var logicalBackups apiclient.LogicalBackupPage
-	test_utils.MakeGetRequestAndUnmarshal(t, router,
-		"/api/v1/logical-backups?databaseId="+logicalDatabaseID.String(),
-		"Bearer "+token, http.StatusOK, &logicalBackups)
-	assert.NotEmpty(t, logicalBackups.Items, "the first logical backup was not started")
+		logicalConfig := getBackupConfig(t, router, token, logicalDatabaseID)
+		logicalSettings, err := logicalConfig.Settings.AsLogicalBackupSettings()
+		require.NoError(t, err)
 
-	walConfig := getBackupConfig(t, router, token, walDatabaseID)
-	walSettings, err := walConfig.Settings.AsPhysicalBackupSettings()
-	require.NoError(t, err)
+		assert.True(t, logicalConfig.IsBackupsEnabled)
+		assert.Equal(t, storageID, *logicalConfig.StorageId)
+		assert.Equal(t, apiclient.LogicalRetentionPolicyCOUNT, logicalSettings.Retention.Policy)
+		assert.Equal(t, 3, logicalSettings.Retention.Count)
 
-	assert.True(t, walConfig.IsBackupsEnabled)
-	assert.Equal(t, storageID, *walConfig.StorageId)
-	assert.Equal(t, apiclient.PhysicalRetentionPolicyCHAINS, walSettings.Retention.Policy)
-	assert.Equal(t, 2, walSettings.Retention.ChainsCount)
+		var logicalBackups apiclient.LogicalBackupPage
+		backupResponse, err := router.NewSessionClient(t, token).
+			ListLogicalBackupsWithResponse(t.Context(), &apiclient.ListLogicalBackupsParams{DatabaseId: logicalDatabaseID})
+		require.NoError(t, err)
+		require.NotNil(t, backupResponse.JSON200)
+		logicalBackups = *backupResponse.JSON200
+		assert.NotEmpty(t, logicalBackups.Items, "the first logical backup was not started")
 
-	storedWalConfig, err := fixture.backups.GetPhysicalBackupConfig(t.Context(), walDatabaseID)
-	require.NoError(t, err)
-	assert.NotNil(t, storedWalConfig.ForceFullRequestedAt, "the first WAL-streaming backup was not requested")
-}
+		walConfig := getBackupConfig(t, router, token, walDatabaseID)
+		walSettings, err := walConfig.Settings.AsPhysicalBackupSettings()
+		require.NoError(t, err)
 
-func Test_Seed_WhenRunTwice_CreatesNothingAndKeepsEditedDatabase(t *testing.T) {
-	fixture, params := setUpSeedTest(t)
-	router := fixture.router
+		assert.True(t, walConfig.IsBackupsEnabled)
+		assert.Equal(t, storageID, *walConfig.StorageId)
+		assert.Equal(t, apiclient.PhysicalRetentionPolicyCHAINS, walSettings.Retention.Policy)
+		assert.Equal(t, 2, walSettings.Retention.ChainsCount)
 
-	exitCode, output := runSeedForTest(t, params)
-	require.Equal(t, 0, exitCode, output)
+		var forceFullRequests int
+		router.QuerySQL(
+			t,
+			&forceFullRequests,
+			"SELECT COUNT(*) FROM backups_configs_physical WHERE database_id = ? AND force_full_requested_at IS NOT NULL",
+			walDatabaseID,
+		)
+		assert.Equal(t, 1, forceFullRequests, "the first WAL-streaming backup was not requested")
+	})
 
-	token := signInForTest(t, router, params.Email, seedPassword).Token
-	workspaceID := findWorkspaceID(t, router, token, params.WorkspaceName)
-	logicalDatabaseID := findDatabaseID(t, router, token, workspaceID, params.LogicalDatabaseName)
-	waitForLogicalBackups(t, logicalDatabaseID)
+	t.Run("preserves existing items and edited backup settings when run twice", func(t *testing.T) {
+		t.Parallel()
 
-	editedConfig := getBackupConfig(t, router, token, logicalDatabaseID)
-	editedSettings, err := editedConfig.Settings.AsLogicalBackupSettings()
-	require.NoError(t, err)
+		fixture, params := setUpSeedTest(t)
+		router := fixture.router
 
-	editedSettings.Retention.Count = 9
-	require.NoError(t, editedConfig.Settings.FromLogicalBackupSettings(editedSettings))
-	test_utils.MakePutRequest(t, router, "/api/v1/backup-configs/"+logicalDatabaseID.String(), "Bearer "+token,
-		apiclient.BackupConfigInput{
-			IsBackupsEnabled: false,
-			StorageId:        editedConfig.StorageId,
-			Encryption:       editedConfig.Encryption,
-			Settings:         editedConfig.Settings,
-		},
-		http.StatusOK)
+		exitCode, output := runSeedForTest(t, params)
+		require.Equal(t, 0, exitCode, output)
 
-	itemsBefore := listSeededItems(t, router, token)
+		token := signInForTest(t, router, params.Email, seedPassword).Token
+		workspaceID := findWorkspaceID(t, router, token, params.WorkspaceName)
+		logicalDatabaseID := findDatabaseID(t, router, token, workspaceID, params.LogicalDatabaseName)
+		waitForLogicalBackups(t, seedDatabase{app: router, token: token, databaseID: logicalDatabaseID})
 
-	exitCode, output = runSeedForTest(t, params)
-	require.Equal(t, 0, exitCode, output)
+		editedConfig := getBackupConfig(t, router, token, logicalDatabaseID)
+		editedSettings, err := editedConfig.Settings.AsLogicalBackupSettings()
+		require.NoError(t, err)
 
-	assert.Equal(t, itemsBefore, listSeededItems(t, router, token))
+		editedSettings.Retention.Count = 9
+		require.NoError(t, editedConfig.Settings.FromLogicalBackupSettings(editedSettings))
+		response, err := router.NewSessionClient(t, token).
+			UpdateBackupConfigWithResponse(t.Context(), logicalDatabaseID, apiclient.BackupConfigInput{
+				IsBackupsEnabled: false,
+				StorageId:        editedConfig.StorageId,
+				Encryption:       editedConfig.Encryption,
+				Settings:         editedConfig.Settings,
+			})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, response.StatusCode())
 
-	configAfter := getBackupConfig(t, router, token, logicalDatabaseID)
-	settingsAfter, err := configAfter.Settings.AsLogicalBackupSettings()
-	require.NoError(t, err)
+		itemsBefore := listSeededItems(t, router, token)
 
-	assert.Equal(t, 9, settingsAfter.Retention.Count)
-	assert.False(t, configAfter.IsBackupsEnabled)
-}
+		exitCode, output = runSeedForTest(t, params)
+		require.Equal(t, 0, exitCode, output)
 
-func Test_Seed_WhenSeededDatabaseWasDeleted_RecreatesOnlyThatDatabase(t *testing.T) {
-	fixture, params := setUpSeedTest(t)
-	router := fixture.router
+		assert.Equal(t, itemsBefore, listSeededItems(t, router, token))
 
-	exitCode, output := runSeedForTest(t, params)
-	require.Equal(t, 0, exitCode, output)
+		configAfter := getBackupConfig(t, router, token, logicalDatabaseID)
+		settingsAfter, err := configAfter.Settings.AsLogicalBackupSettings()
+		require.NoError(t, err)
 
-	token := signInForTest(t, router, params.Email, seedPassword).Token
-	workspaceID := findWorkspaceID(t, router, token, params.WorkspaceName)
-	storageID := findStorageID(t, router, token, workspaceID, params.StorageName)
-	logicalDatabaseID := findDatabaseID(t, router, token, workspaceID, params.LogicalDatabaseName)
-	deletedWalDatabaseID := findDatabaseID(t, router, token, workspaceID, params.WalDatabaseName)
+		assert.Equal(t, 9, settingsAfter.Retention.Count)
+		assert.False(t, configAfter.IsBackupsEnabled)
+	})
 
-	test_utils.MakeDeleteRequest(t, router, "/api/v1/databases/"+deletedWalDatabaseID.String(),
-		"Bearer "+token, http.StatusNoContent)
+	t.Run("recreates only the deleted database when seeded again", func(t *testing.T) {
+		t.Parallel()
 
-	exitCode, output = runSeedForTest(t, params)
-	require.Equal(t, 0, exitCode, output)
+		fixture, params := setUpSeedTest(t)
+		router := fixture.router
 
-	recreatedWalDatabaseID := findDatabaseID(t, router, token, workspaceID, params.WalDatabaseName)
-	require.NotEqual(t, uuid.Nil, recreatedWalDatabaseID)
-	assert.NotEqual(t, deletedWalDatabaseID, recreatedWalDatabaseID)
+		exitCode, output := runSeedForTest(t, params)
+		require.Equal(t, 0, exitCode, output)
 
-	assert.True(t, getBackupConfig(t, router, token, recreatedWalDatabaseID).IsBackupsEnabled)
+		token := signInForTest(t, router, params.Email, seedPassword).Token
+		workspaceID := findWorkspaceID(t, router, token, params.WorkspaceName)
+		storageID := findStorageID(t, router, token, workspaceID, params.StorageName)
+		logicalDatabaseID := findDatabaseID(t, router, token, workspaceID, params.LogicalDatabaseName)
+		deletedWalDatabaseID := findDatabaseID(t, router, token, workspaceID, params.WalDatabaseName)
 
-	assert.Equal(t, workspaceID, findWorkspaceID(t, router, token, params.WorkspaceName))
-	assert.Equal(t, storageID, findStorageID(t, router, token, workspaceID, params.StorageName))
-	assert.Equal(t, logicalDatabaseID, findDatabaseID(t, router, token, workspaceID, params.LogicalDatabaseName))
-	assert.Len(t, listSeededItems(t, router, token).databaseIDs, 2)
-}
+		response, err := router.NewSessionClient(t, token).DeleteDatabaseWithResponse(t.Context(), deletedWalDatabaseID)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusNoContent, response.StatusCode())
 
-func Test_Seed_WhenAccountHasAnotherPassword_FailsAndLeavesAccountUnchanged(t *testing.T) {
-	fixture, params := setUpSeedTest(t)
-	router := fixture.router
+		exitCode, output = runSeedForTest(t, params)
+		require.Equal(t, 0, exitCode, output)
 
-	signUpForTest(t, router, params.Email, otherPassword)
-	sessionBefore := signInForTest(t, router, params.Email, otherPassword)
-	profileBefore := getProfile(t, router, sessionBefore.UserId, sessionBefore.Token)
+		recreatedWalDatabaseID := findDatabaseID(t, router, token, workspaceID, params.WalDatabaseName)
+		require.NotEqual(t, uuid.Nil, recreatedWalDatabaseID)
+		assert.NotEqual(t, deletedWalDatabaseID, recreatedWalDatabaseID)
 
-	exitCode, output := runSeedForTest(t, params)
+		assert.True(t, getBackupConfig(t, router, token, recreatedWalDatabaseID).IsBackupsEnabled)
 
-	assert.Equal(t, 1, exitCode)
-	assert.Contains(t, output, params.Email)
-	assert.Contains(t, output, "password is incorrect")
+		assert.Equal(t, workspaceID, findWorkspaceID(t, router, token, params.WorkspaceName))
+		assert.Equal(t, storageID, findStorageID(t, router, token, workspaceID, params.StorageName))
+		assert.Equal(t, logicalDatabaseID, findDatabaseID(t, router, token, workspaceID, params.LogicalDatabaseName))
+		assert.Len(t, listSeededItems(t, router, token).databaseIDs, 2)
+	})
 
-	sessionAfter := signInForTest(t, router, params.Email, otherPassword)
-	assert.Equal(t, profileBefore, getProfile(t, router, sessionAfter.UserId, sessionAfter.Token))
-	assert.Empty(t, listSeededItems(t, router, sessionAfter.Token).workspaceIDs)
-}
+	t.Run("preserves the account when its password differs", func(t *testing.T) {
+		t.Parallel()
 
-func Test_Seed_WhenAnotherAccountExists_LeavesThatAccountUnchanged(t *testing.T) {
-	fixture, params := setUpSeedTest(t)
-	router := fixture.router
+		fixture, params := setUpSeedTest(t)
+		router := fixture.router
 
-	otherEmail := "seed-other-" + uuid.NewString() + "@example.com"
-	signUpForTest(t, router, otherEmail, otherPassword)
-	t.Cleanup(func() { removeAccountWithItems(t, router, otherEmail) })
+		signUpForTest(t, router, params.Email, otherPassword)
+		sessionBefore := signInForTest(t, router, params.Email, otherPassword)
+		profileBefore := getProfile(t, router, sessionBefore.UserId, sessionBefore.Token)
 
-	otherSessionBefore := signInForTest(t, router, otherEmail, otherPassword)
-	otherProfileBefore := getProfile(t, router, otherSessionBefore.UserId, otherSessionBefore.Token)
+		exitCode, output := runSeedForTest(t, params)
 
-	exitCode, output := runSeedForTest(t, params)
-	require.Equal(t, 0, exitCode, output)
+		assert.Equal(t, 1, exitCode)
+		assert.Contains(t, output, params.Email)
+		assert.Contains(t, output, "password is incorrect")
 
-	otherSession := signInForTest(t, router, otherEmail, otherPassword)
-	assert.Equal(t, otherProfileBefore, getProfile(t, router, otherSession.UserId, otherSession.Token))
-	assert.Empty(t, listSeededItems(t, router, otherSession.Token).workspaceIDs)
-}
+		sessionAfter := signInForTest(t, router, params.Email, otherPassword)
+		assert.Equal(t, profileBefore, getProfile(t, router, sessionAfter.UserId, sessionAfter.Token))
+		assert.Empty(t, listSeededItems(t, router, sessionAfter.Token).workspaceIDs)
+	})
 
-func Test_Seed_WhenTwoFactorSignInIsRequired_FailsAndCreatesNothing(t *testing.T) {
-	fixture, params := setUpSeedTest(t)
-	router := fixture.router
+	t.Run("preserves another account when seeding a new account", func(t *testing.T) {
+		t.Parallel()
 
-	token := signUpForTest(t, router, params.Email, seedPassword).Token
+		fixture, params := setUpSeedTest(t)
+		router := fixture.router
 
-	users_testing.EnableTwoFactorAuth(t.Context())
-	t.Cleanup(func() { users_testing.ResetSettingsToDefaults(context.Background()) })
+		otherEmail := "seed-other-" + uuid.NewString() + "@example.com"
+		signUpForTest(t, router, otherEmail, otherPassword)
 
-	exitCode, output := runSeedForTest(t, params)
+		otherSessionBefore := signInForTest(t, router, otherEmail, otherPassword)
+		otherProfileBefore := getProfile(t, router, otherSessionBefore.UserId, otherSessionBefore.Token)
 
-	assert.Equal(t, 1, exitCode)
-	assert.Contains(t, output, params.Email)
-	assert.Contains(t, output, "two-factor sign-in")
-	assert.Empty(t, listSeededItems(t, router, token).workspaceIDs)
-}
+		exitCode, output := runSeedForTest(t, params)
+		require.Equal(t, 0, exitCode, output)
 
-func Test_Seed_WhenMemberMayNotCreateWorkspaces_FailsNamingWorkspace(t *testing.T) {
-	fixture, params := setUpSeedTest(t)
-	router := fixture.router
+		otherSession := signInForTest(t, router, otherEmail, otherPassword)
+		assert.Equal(t, otherProfileBefore, getProfile(t, router, otherSession.UserId, otherSession.Token))
+		assert.Empty(t, listSeededItems(t, router, otherSession.Token).workspaceIDs)
+	})
 
-	session := signUpForTest(t, router, params.Email, seedPassword)
-	token := session.Token
-	require.Equal(t, apiclient.UserRoleMEMBER, getProfile(t, router, session.UserId, session.Token).Role)
+	t.Run("creates nothing when two factor sign in is required", func(t *testing.T) {
+		t.Parallel()
 
-	var existingWorkspace apiclient.Workspace
-	test_utils.MakePostRequestAndUnmarshal(t, router, "/api/v1/workspaces", "Bearer "+token,
-		apiclient.WorkspaceCreate{Name: "Existing"}, http.StatusCreated, &existingWorkspace)
+		fixture, params := setUpSeedTest(t)
+		router := fixture.router
 
-	test_utils.MakePostRequest(t, router, "/api/v1/storages", "Bearer "+token, map[string]any{
-		"workspaceId": existingWorkspace.Id,
-		"name":        "Existing storage",
-		"settings":    map[string]any{"type": "LOCAL"},
-	}, http.StatusCreated)
+		token := signUpForTest(t, router, params.Email, seedPassword).Token
 
-	workspacesBefore := listWorkspaces(t, router, token)
-	storagesBefore := listStorages(t, router, token, existingWorkspace.Id)
+		updateSeedSettings(t, fixture, seedSettings{
+			isTwoFactorRequired: true, isWorkspaceCreationAllowed: true,
+		})
 
-	users_testing.DisableMemberWorkspaceCreation(t.Context())
-	t.Cleanup(func() { users_testing.ResetSettingsToDefaults(context.Background()) })
+		exitCode, output := runSeedForTest(t, params)
 
-	exitCode, output := runSeedForTest(t, params)
+		assert.Equal(t, 1, exitCode)
+		assert.Contains(t, output, params.Email)
+		assert.Contains(t, output, "two-factor sign-in")
+		assert.Empty(t, listSeededItems(t, router, token).workspaceIDs)
+	})
 
-	assert.Equal(t, 1, exitCode)
-	assert.Contains(t, output, params.WorkspaceName)
-	assert.Contains(t, output, "the instance does not allow this user to create workspaces")
+	t.Run("names the workspace when its creation is forbidden", func(t *testing.T) {
+		t.Parallel()
 
-	assert.Equal(t, workspacesBefore, listWorkspaces(t, router, token))
-	assert.Equal(t, storagesBefore, listStorages(t, router, token, existingWorkspace.Id))
-	assert.Equal(t, uuid.Nil, findWorkspaceID(t, router, token, params.WorkspaceName))
-}
+		fixture, params := setUpSeedTest(t)
+		router := fixture.router
 
-func Test_Seed_WhenBackendDoesNotAnswer_FailsWithDevTaskHint(t *testing.T) {
-	stoppedServer := httptest.NewServer(http.NotFoundHandler())
-	stoppedServer.Close()
+		session := signUpForTest(t, router, params.Email, seedPassword)
+		token := session.Token
+		require.Equal(t, apiclient.UserRoleMEMBER, getProfile(t, router, session.UserId, session.Token).Role)
 
-	params := buildTestSeedParams(stoppedServer.URL)
+		existingSession := apptest.Session{
+			Client: router.NewSessionClient(t, token),
+			UserID: session.UserId,
+			Token:  token,
+		}
+		existingWorkspace := apptest.CreateWorkspace(t, existingSession, "Existing")
+		router.CreateLocalStorage(t, existingSession, existingWorkspace.Id)
+		workspacesBefore := listWorkspaces(t, router, token)
+		storagesBefore := listStorages(t, router, token, existingWorkspace.Id)
 
-	exitCode, output := runSeedForTest(t, params)
+		updateSeedSettings(t, fixture, seedSettings{
+			isTwoFactorRequired: false, isWorkspaceCreationAllowed: false,
+		})
 
-	assert.Equal(t, 1, exitCode)
-	assert.Contains(t, output, "mise run dev")
-}
+		exitCode, output := runSeedForTest(t, params)
 
-// A full disk is unsafe to reproduce, so a stub stands in for the backend's health check.
-func Test_Seed_WhenBackendReportsItselfUnhealthy_FailsWithReasonAndSendsNothingElse(t *testing.T) {
-	const unhealthyReason = "more than 95% of the disk is used"
+		assert.Equal(t, 1, exitCode)
+		assert.Contains(t, output, params.WorkspaceName)
+		assert.Contains(t, output, "the instance does not allow this user to create workspaces")
 
-	var receivedPathsMutex sync.Mutex
-	var receivedPaths []string
+		assert.Equal(t, workspacesBefore, listWorkspaces(t, router, token))
+		assert.Equal(t, storagesBefore, listStorages(t, router, token, existingWorkspace.Id))
+		assert.Equal(t, uuid.Nil, findWorkspaceID(t, router, token, params.WorkspaceName))
+	})
 
-	stubServer := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+	t.Run("suggests the dev task when the backend does not answer", func(t *testing.T) {
+		t.Parallel()
+
+		stoppedServer := httptest.NewServer(http.NotFoundHandler())
+		stoppedServer.Close()
+
+		params := buildTestSeedParams(stoppedServer.URL)
+
+		exitCode, output := runSeedForTest(t, params)
+
+		assert.Equal(t, 1, exitCode)
+		assert.Contains(t, output, "mise run dev")
+	})
+
+	t.Run("reports the reason without other requests when the backend is unhealthy", func(t *testing.T) {
+		t.Parallel()
+
+		// A full disk is unsafe to reproduce, so a stub stands in for the backend health check.
+		const unhealthyReason = "more than 95% of the disk is used"
+
+		var receivedPathsMutex sync.Mutex
+		var receivedPaths []string
+
+		stubServer := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+			receivedPathsMutex.Lock()
+			receivedPaths = append(receivedPaths, request.URL.Path)
+			receivedPathsMutex.Unlock()
+
+			writer.Header().Set("Content-Type", "application/problem+json")
+			writer.WriteHeader(http.StatusServiceUnavailable)
+			_, _ = writer.Write([]byte(`{"status":503,"code":"instance_unhealthy","detail":"` + unhealthyReason + `"}`))
+		}))
+		t.Cleanup(stubServer.Close)
+
+		exitCode, output := runSeedForTest(t, buildTestSeedParams(stubServer.URL))
+
+		assert.Equal(t, 1, exitCode)
+		assert.Contains(t, output, unhealthyReason)
+
 		receivedPathsMutex.Lock()
-		receivedPaths = append(receivedPaths, request.URL.Path)
-		receivedPathsMutex.Unlock()
-
-		writer.Header().Set("Content-Type", "application/problem+json")
-		writer.WriteHeader(http.StatusServiceUnavailable)
-		_, _ = writer.Write([]byte(`{"status":503,"code":"instance_unhealthy","detail":"` + unhealthyReason + `"}`))
-	}))
-	t.Cleanup(stubServer.Close)
-
-	exitCode, output := runSeedForTest(t, buildTestSeedParams(stubServer.URL))
-
-	assert.Equal(t, 1, exitCode)
-	assert.Contains(t, output, unhealthyReason)
-
-	receivedPathsMutex.Lock()
-	defer receivedPathsMutex.Unlock()
-	assert.Equal(t, []string{"/api/v1/system/health"}, receivedPaths)
+		defer receivedPathsMutex.Unlock()
+		assert.Equal(t, []string{"/api/v1/system/health"}, receivedPaths)
+	})
 }
 
 type seededItems struct {
@@ -305,122 +312,60 @@ type seededItems struct {
 	databaseIDs  []uuid.UUID
 }
 
-// Every test claims the instance with an account of its own first, so the seeded account
-// registers as a member, the way it does on a dev instance someone already uses.
+type seedFixture struct {
+	router *apptest.App
+	admin  apptest.Session
+}
+
 func setUpSeedTest(t *testing.T) (seedFixture, seedParams) {
 	t.Helper()
-
-	fixture := newSeedTestRouter(t)
-	router := fixture.router
-	server := httptest.NewServer(router)
-	t.Cleanup(server.Close)
-
-	users_testing.ResetSettingsToDefaults(t.Context())
-
-	instanceOwner := users_testing.CreateTestUser(t.Context(), users.RoleMember)
-	t.Cleanup(func() { users_testing.DeleteTestUser(context.Background(), instanceOwner.UserID) })
-
-	params := buildTestSeedParams(server.URL)
-	t.Cleanup(func() { removeAccountWithItems(t, router, params.Email) })
-
-	return fixture, params
-}
-
-type seedFixture struct {
-	router  *gin.Engine
-	backups backups.Module
-}
-
-func newSeedTestRouter(t *testing.T) seedFixture {
-	gin.SetMode(gin.TestMode)
-	router := gin.New()
-
-	contractGuard, err := httpserver.RequireContractOperation(contract.OpenAPI, logger.GetLogger())
-	if err != nil {
-		panic(err)
+	logicalSource := containers.StartPostgres(t, "postgres:16")
+	walSource := containers.StartPhysicalPostgres(t, "postgres:18")
+	testApp := apptest.New(t)
+	admin := testApp.CreateAdmin(t)
+	response, err := admin.Client.UpdateInstanceSettingsWithResponse(t.Context(), apiclient.InstanceSettingsUpdate{
+		IsAllowExternalRegistrations: true, IsAllowMemberInvitations: true, IsMemberAllowedToCreateWorkspaces: true,
+	})
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, response.StatusCode())
+	params := buildTestSeedParams(testApp.URL)
+	params.LogicalSource = postgresSource{
+		Host:     logicalSource.Host,
+		Port:     logicalSource.Port,
+		Username: containers.PostgresUsername,
+		Password: containers.PostgresPassword,
+		Database: containers.PostgresDatabase,
 	}
+	params.WalSource = postgresSource{
+		Host:     walSource.Host,
+		Port:     walSource.Port,
+		Username: containers.PostgresUsername,
+		Password: containers.PostgresPassword,
+	}
+	return seedFixture{router: testApp, admin: admin}, params
+}
 
-	usersModule := users_bridge.NewModuleWithoutApp(acceptingMailer{})
-	users_bridge.Install(usersModule)
-	workspacesModule := workspaces_bridge.NewModuleWithoutApp(usersModule)
-	workspaces_bridge.Install(workspacesModule)
+type seedSettings struct {
+	isTwoFactorRequired        bool
+	isWorkspaceCreationAllowed bool
+}
 
-	contractRoutes := router.Group("/api/v1", contractGuard, usersModule.GetAccessMiddleware())
-	errorHooks := apierror.NewHooks(apierror.Deps{Logger: logger.GetLogger()})
-	usersModule.RegisterRoutes(contractRoutes, errorHooks)
-	workspacesModule.RegisterRoutes(contractRoutes, errorHooks)
-	storages_bridge.GetModule().RegisterRoutes(contractRoutes, errorHooks)
-	databases_bridge.GetModule().RegisterRoutes(contractRoutes, errorHooks)
-	backupsModule := newSeedBackups(t)
-	backupsModule.RegisterRoutes(contractRoutes, errorHooks)
-
-	verificationModule := verification.New(verification.Deps{
-		DB:         storage.GetDb(),
-		Transactor: storage.GetTransactor(),
-		Logger:     logger.GetLogger(),
-		Clock:      clock.NewSystem(),
-		AuditLog: audit.New(
-			audit.Deps{DB: storage.GetDb(), Clock: clock.NewSystem(), AuditLogger: logger.GetAuditLogger()},
-		),
-		Users:       usersModule,
-		Workspaces:  workspacesModule,
-		Databases:   databases_bridge.GetModule(),
-		Backups:     backupsModule,
-		Notifiers:   notifiers_bridge.GetModule(),
-		RateLimiter: caching.GetRateLimiter(),
-	})
-	systemHandler := systemhttpapi.NewHandler(systemhttpapi.Deps{
-		Version:         config.GetEnv().AppVersion,
-		Clock:           clock.NewSystem(),
-		Logger:          logger.GetLogger(),
-		DB:              storage.GetDb(),
-		Verification:    verificationModule,
-		ClientTools:     clienttools.NewChecker(nil),
-		DataDirectory:   config.GetEnv().DataDirectory,
-		BinaryDirectory: "",
-		GetJobs:         func(time.Time) []systemhttpapi.JobHealth { return []systemhttpapi.JobHealth{} },
-		InspectDisk:     diskusage.Get,
-	})
-	systemhttpapi.RegisterHandlersWithOptions(
-		contractRoutes,
-		systemhttpapi.NewStrictHandlerWithOptions(systemHandler, nil, systemhttpapi.StrictGinServerOptions{
-			RequestErrorHandlerFunc:  errorHooks.HandleRequestError,
-			HandlerErrorFunc:         errorHooks.HandleHandlerError,
-			ResponseErrorHandlerFunc: errorHooks.HandleResponseError,
-		}),
-		systemhttpapi.GinServerOptions{ErrorHandler: errorHooks.HandleParameterError},
+func updateSeedSettings(t *testing.T, fixture seedFixture, settings seedSettings) {
+	t.Helper()
+	response, err := fixture.admin.Client.UpdateInstanceSettingsWithResponse(
+		t.Context(),
+		apiclient.InstanceSettingsUpdate{
+			IsAllowExternalRegistrations:      true,
+			IsAllowMemberInvitations:          true,
+			IsMemberAllowedToCreateWorkspaces: settings.isWorkspaceCreationAllowed,
+			IsTwoFactorAuthRequired:           settings.isTwoFactorRequired,
+		},
 	)
-
-	databases_bridge.SetupDependencies()
-
-	return seedFixture{router: router, backups: backupsModule}
-}
-
-// acceptingMailer is a mail server that accepts every message, so an instance that requires
-// two-factor sign-in answers the seed with a code request instead of a refusal to send the code.
-type acceptingMailer struct{}
-
-func (acceptingMailer) IsConfigured() bool {
-	return true
-}
-
-func (acceptingMailer) SendEmail(context.Context, string, string, string) error {
-	return nil
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, response.StatusCode())
 }
 
 func buildTestSeedParams(baseURL string) seedParams {
-	env := config.GetEnv()
-
-	logicalPort, err := strconv.Atoi(env.TestLogicalPostgres16Port)
-	if err != nil {
-		panic(err)
-	}
-
-	physicalPort, err := strconv.Atoi(env.TestPhysicalPostgres18Port)
-	if err != nil {
-		panic(err)
-	}
-
 	return seedParams{
 		BaseURL:             baseURL,
 		Email:               "seed-" + uuid.NewString() + "@example.com",
@@ -428,20 +373,7 @@ func buildTestSeedParams(baseURL string) seedParams {
 		WorkspaceName:       "Dev",
 		StorageName:         "Local",
 		LogicalDatabaseName: "Logical PG16",
-		LogicalSource: postgresSource{
-			Host:     env.TestLocalhost,
-			Port:     logicalPort,
-			Username: "testuser",
-			Password: "testpassword",
-			Database: "testdb",
-		},
-		WalDatabaseName: "WAL PG18",
-		WalSource: postgresSource{
-			Host:     env.TestLocalhost,
-			Port:     physicalPort,
-			Username: "testuser",
-			Password: "testpassword",
-		},
+		WalDatabaseName:     "WAL PG18",
 	}
 }
 
@@ -455,49 +387,46 @@ func runSeedForTest(t *testing.T, params seedParams) (int, string) {
 	return exitCode, output.String()
 }
 
-func signUpForTest(t *testing.T, router *gin.Engine, email, password string) apiclient.Session {
+func signUpForTest(t *testing.T, router *apptest.App, email, password string) apiclient.Session {
 	t.Helper()
 
-	var signUp apiclient.Session
-	test_utils.MakePostRequestAndUnmarshal(t, router, "/api/v1/users", "",
-		signUpRequest{Email: email, Password: password, Name: "Seed Test"},
-		http.StatusCreated, &signUp)
-
-	return signUp
+	response, err := router.NewClient(t).
+		SignUpWithResponse(t.Context(), apiclient.SignUpRequest{Email: openapi_types.Email(email), Password: new(password), Name: "Seed Test"})
+	require.NoError(t, err)
+	require.Equal(t, http.StatusCreated, response.StatusCode())
+	return *response.JSON201
 }
 
-func signInForTest(t *testing.T, router *gin.Engine, email, password string) apiclient.SignInCompleted {
+func signInForTest(t *testing.T, router *apptest.App, email, password string) apiclient.SignInCompleted {
 	t.Helper()
-
-	var signIn apiclient.SignInCompleted
-	test_utils.MakePostRequestAndUnmarshal(t, router, "/api/v1/sessions", "",
-		signInRequest{Email: email, Password: password}, http.StatusOK, &signIn)
-	require.NotEmpty(t, signIn.Token)
-
-	return signIn
+	response, err := router.NewClient(t).
+		SignInWithResponse(t.Context(), apiclient.SignInRequest{Email: email, Password: new(password)})
+	require.NoError(t, err)
+	require.NotNil(t, response.JSON200)
+	session, err := response.JSON200.AsSignInCompleted()
+	require.NoError(t, err)
+	require.NotEmpty(t, session.Token)
+	return session
 }
 
-func getProfile(t *testing.T, router *gin.Engine, userID uuid.UUID, token string) apiclient.User {
+func getProfile(t *testing.T, router *apptest.App, userID uuid.UUID, token string) apiclient.User {
 	t.Helper()
-
-	var profile apiclient.User
-	test_utils.MakeGetRequestAndUnmarshal(t, router, "/api/v1/users/"+userID.String(), "Bearer "+token,
-		http.StatusOK, &profile)
-
-	return profile
+	response, err := router.NewSessionClient(t, token).GetUserWithResponse(t.Context(), userID)
+	require.NoError(t, err)
+	require.NotNil(t, response.JSON200)
+	return *response.JSON200
 }
 
-func listWorkspaces(t *testing.T, router *gin.Engine, token string) []apiclient.Workspace {
+func listWorkspaces(t *testing.T, router *apptest.App, token string) []apiclient.Workspace {
 	t.Helper()
-
-	var listedWorkspaces apiclient.WorkspacePage
-	test_utils.MakeGetRequestAndUnmarshal(t, router, "/api/v1/workspaces?limit=100", "Bearer "+token,
-		http.StatusOK, &listedWorkspaces)
-
-	return listedWorkspaces.Items
+	response, err := router.NewSessionClient(t, token).
+		ListWorkspacesWithResponse(t.Context(), &apiclient.ListWorkspacesParams{Limit: new(100)})
+	require.NoError(t, err)
+	require.NotNil(t, response.JSON200)
+	return response.JSON200.Items
 }
 
-func findWorkspaceID(t *testing.T, router *gin.Engine, token, name string) uuid.UUID {
+func findWorkspaceID(t *testing.T, router *apptest.App, token, name string) uuid.UUID {
 	t.Helper()
 
 	for _, workspace := range listWorkspaces(t, router, token) {
@@ -509,7 +438,7 @@ func findWorkspaceID(t *testing.T, router *gin.Engine, token, name string) uuid.
 	return uuid.Nil
 }
 
-func findStorageID(t *testing.T, router *gin.Engine, token string, workspaceID uuid.UUID, name string) uuid.UUID {
+func findStorageID(t *testing.T, router *apptest.App, token string, workspaceID uuid.UUID, name string) uuid.UUID {
 	t.Helper()
 
 	for _, storage := range listStorages(t, router, token, workspaceID) {
@@ -521,7 +450,7 @@ func findStorageID(t *testing.T, router *gin.Engine, token string, workspaceID u
 	return uuid.Nil
 }
 
-func findDatabaseID(t *testing.T, router *gin.Engine, token string, workspaceID uuid.UUID, name string) uuid.UUID {
+func findDatabaseID(t *testing.T, router *apptest.App, token string, workspaceID uuid.UUID, name string) uuid.UUID {
 	t.Helper()
 
 	for _, database := range listDatabases(t, router, token, workspaceID) {
@@ -533,30 +462,25 @@ func findDatabaseID(t *testing.T, router *gin.Engine, token string, workspaceID 
 	return uuid.Nil
 }
 
-// listStorages reads one page of 100, more than a seeded workspace holds.
-func listStorages(t *testing.T, router *gin.Engine, token string, workspaceID uuid.UUID) []apiclient.Storage {
+func listStorages(t *testing.T, router *apptest.App, token string, workspaceID uuid.UUID) []apiclient.Storage {
 	t.Helper()
-
-	var storagePage apiclient.StoragePage
-	test_utils.MakeGetRequestAndUnmarshal(t, router,
-		"/api/v1/storages?limit=100&workspaceId="+workspaceID.String(),
-		"Bearer "+token, http.StatusOK, &storagePage)
-
-	return storagePage.Items
+	response, err := router.NewSessionClient(t, token).
+		ListStoragesWithResponse(t.Context(), &apiclient.ListStoragesParams{WorkspaceId: workspaceID, Limit: new(100)})
+	require.NoError(t, err)
+	require.NotNil(t, response.JSON200)
+	return response.JSON200.Items
 }
 
-// listDatabases reads one page of 100, more than a seeded workspace holds.
-func listDatabases(t *testing.T, router *gin.Engine, token string, workspaceID uuid.UUID) []apiclient.Database {
+func listDatabases(t *testing.T, router *apptest.App, token string, workspaceID uuid.UUID) []apiclient.Database {
 	t.Helper()
-
-	var databasePage apiclient.DatabasePage
-	test_utils.MakeGetRequestAndUnmarshal(t, router, "/api/v1/databases?limit=100&workspaceId="+workspaceID.String(),
-		"Bearer "+token, http.StatusOK, &databasePage)
-
-	return databasePage.Items
+	response, err := router.NewSessionClient(t, token).
+		ListDatabasesWithResponse(t.Context(), &apiclient.ListDatabasesParams{WorkspaceId: workspaceID, Limit: new(100)})
+	require.NoError(t, err)
+	require.NotNil(t, response.JSON200)
+	return response.JSON200.Items
 }
 
-func listSeededItems(t *testing.T, router *gin.Engine, token string) seededItems {
+func listSeededItems(t *testing.T, router *apptest.App, token string) seededItems {
 	t.Helper()
 
 	var items seededItems
@@ -576,83 +500,96 @@ func listSeededItems(t *testing.T, router *gin.Engine, token string) seededItems
 	return items
 }
 
-// A logical backup the seed started still writes its file, and its database cannot be deleted before
-// it finishes. The wait runs in the test's cleanup, after the test's context ended, so it keeps a
-// deadline of its own instead of testwait's.
-func waitForLogicalBackups(t *testing.T, databaseID uuid.UUID) {
-	t.Helper()
-
-	waitCtx, cancelWait := context.WithTimeout(context.Background(), firstBackupTimeout)
-	defer cancelWait()
-
-	ticker := time.NewTicker(time.Second)
-	defer ticker.Stop()
-
-	for {
-		var runningCount int64
-		require.NoError(t, storage.GetDb().WithContext(waitCtx).
-			Raw("SELECT COUNT(*) FROM backups_logical WHERE database_id = ? AND status = 'IN_PROGRESS'", databaseID).
-			Scan(&runningCount).Error)
-
-		if runningCount == 0 {
-			return
-		}
-
-		select {
-		case <-ticker.C:
-		case <-waitCtx.Done():
-			t.Fatalf("the logical backups of database %s did not finish in %s", databaseID, firstBackupTimeout)
-		}
-	}
+type seedDatabase struct {
+	app        *apptest.App
+	token      string
+	databaseID uuid.UUID
 }
 
-func removeAccountWithItems(t *testing.T, router *gin.Engine, email string) {
+func waitForLogicalBackups(t *testing.T, database seedDatabase) {
 	t.Helper()
-
-	ctx := context.Background()
-
-	var userIDs []uuid.UUID
-	require.NoError(t, storage.GetDb().WithContext(ctx).
-		Raw("SELECT id FROM users WHERE email = ?", email).Scan(&userIDs).Error)
-	if len(userIDs) == 0 {
-		return
-	}
-
-	userID := userIDs[0]
-	token := users_testing.IssueTestToken(ctx, userID)
-	items := listSeededItems(t, router, token)
-
-	for _, workspaceID := range items.workspaceIDs {
-		for _, database := range listDatabases(t, router, token, workspaceID) {
-			databaseType, err := database.Settings.Discriminator()
-			require.NoError(t, err)
-
-			if databaseType == string(apiclient.PostgresqlLogicalSettingsTypePOSTGRESLOGICAL) {
-				waitForLogicalBackups(t, database.Id)
+	testwait.Until(t, "logical backups finish", func(_ context.Context) error {
+		response, err := database.app.NewSessionClient(t, database.token).
+			ListLogicalBackupsWithResponse(t.Context(), &apiclient.ListLogicalBackupsParams{DatabaseId: database.databaseID})
+		require.NoError(t, err)
+		require.NotNil(t, response.JSON200)
+		for _, backup := range response.JSON200.Items {
+			if backup.Status == apiclient.LogicalBackupStatusINPROGRESS {
+				return fmt.Errorf("backup %s is running", backup.Id)
 			}
-
-			test_utils.MakeDeleteRequest(t, router, "/api/v1/databases/"+database.Id.String(),
-				"Bearer "+token, http.StatusNoContent)
 		}
-
-		for _, storage := range listStorages(t, router, token, workspaceID) {
-			test_utils.MakeDeleteRequest(t, router, "/api/v1/storages/"+storage.Id.String(),
-				"Bearer "+token, http.StatusNoContent)
-		}
-
-		test_utils.MakeDeleteRequest(t, router, "/api/v1/workspaces/"+workspaceID.String(),
-			"Bearer "+token, http.StatusNoContent)
-	}
-
-	users_testing.DeleteTestUser(ctx, userID)
+		return nil
+	})
 }
 
-func getBackupConfig(t *testing.T, router *gin.Engine, token string, databaseID uuid.UUID) apiclient.BackupConfig {
+func getBackupConfig(t *testing.T, router *apptest.App, token string, databaseID uuid.UUID) apiclient.BackupConfig {
 	t.Helper()
+	response, err := router.NewSessionClient(t, token).GetBackupConfigWithResponse(t.Context(), databaseID)
+	require.NoError(t, err)
+	require.NotNil(t, response.JSON200)
+	return *response.JSON200
+}
 
-	var backupConfig apiclient.BackupConfig
-	test_utils.MakeGetRequestAndUnmarshal(t, router, "/api/v1/backup-configs/"+databaseID.String(),
-		"Bearer "+token, http.StatusOK, &backupConfig)
-
-	return backupConfig
+func TestSeedOverlap(t *testing.T) {
+	t.Parallel()
+	t.Run("creates both configured backups when seeds overlap", func(t *testing.T) {
+		firstFixture, firstParams := setUpSeedTest(t)
+		secondFixture, secondParams := setUpSeedTest(t)
+		firstParams.Email = "same-seed@example.com"
+		secondParams.Email = firstParams.Email
+		require.NotEqual(t, firstParams.LogicalSource.Port, secondParams.LogicalSource.Port)
+		require.NotEqual(t, firstParams.WalSource.Port, secondParams.WalSource.Port)
+		var seeds sync.WaitGroup
+		for _, seed := range []struct {
+			fixture seedFixture
+			params  seedParams
+		}{{firstFixture, firstParams}, {secondFixture, secondParams}} {
+			seeds.Go(func() {
+				exitCode, output := runSeedForTest(t, seed.params)
+				assert.Equal(t, 0, exitCode, output)
+			})
+		}
+		seeds.Wait()
+		for _, seed := range []struct {
+			fixture seedFixture
+			params  seedParams
+		}{{firstFixture, firstParams}, {secondFixture, secondParams}} {
+			session := signInForTest(t, seed.fixture.router, seed.params.Email, seedPassword)
+			workspaceID := findWorkspaceID(t, seed.fixture.router, session.Token, seed.params.WorkspaceName)
+			logicalID := findDatabaseID(
+				t,
+				seed.fixture.router,
+				session.Token,
+				workspaceID,
+				seed.params.LogicalDatabaseName,
+			)
+			physicalID := findDatabaseID(
+				t,
+				seed.fixture.router,
+				session.Token,
+				workspaceID,
+				seed.params.WalDatabaseName,
+			)
+			require.NotEqual(t, uuid.Nil, logicalID)
+			require.NotEqual(t, uuid.Nil, physicalID)
+			waitForLogicalBackups(
+				t,
+				seedDatabase{app: seed.fixture.router, token: session.Token, databaseID: logicalID},
+			)
+			response, err := seed.fixture.router.NewSessionClient(t, session.Token).
+				ListLogicalBackupsWithResponse(t.Context(), &apiclient.ListLogicalBackupsParams{DatabaseId: logicalID})
+			require.NoError(t, err)
+			require.NotNil(t, response.JSON200)
+			require.NotEmpty(t, response.JSON200.Items)
+			assert.Equal(t, apiclient.LogicalBackupStatusCOMPLETED, response.JSON200.Items[0].Status)
+			var requestCount int
+			seed.fixture.router.QuerySQL(
+				t,
+				&requestCount,
+				"SELECT COUNT(*) FROM backups_configs_physical WHERE database_id = ? AND force_full_requested_at IS NOT NULL",
+				physicalID,
+			)
+			assert.Equal(t, 1, requestCount)
+		}
+	})
 }

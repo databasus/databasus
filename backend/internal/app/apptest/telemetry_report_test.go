@@ -16,10 +16,12 @@ import (
 	"databasus-backend/internal/app/apptest/enginetest"
 	"databasus-backend/internal/lib/agentclient"
 	apiclient "databasus-backend/internal/lib/apiclient"
-	"databasus-backend/internal/util/testing/containers"
+	containers "databasus-backend/internal/lib/testcontainers"
 )
 
 func TestTelemetryReport(t *testing.T) {
+	t.Parallel()
+
 	t.Run("joins backups by database and selects completed full backups deterministically", func(t *testing.T) {
 		receiver := &telemetryReceiver{status: http.StatusOK}
 		server := httptest.NewServer(receiver)

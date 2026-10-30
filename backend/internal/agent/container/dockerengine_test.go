@@ -108,11 +108,11 @@ func TestToContainerConfigs(t *testing.T) {
 				assert.Equal(t, container.NetworkMode("net-id"), hostConfig.NetworkMode)
 
 				assert.Equal(t, network.PortMap{
-					pgPublishedPort: []network.PortBinding{
+					getPgPublishedPort(): []network.PortBinding{
 						{HostIP: netip.MustParseAddr("127.0.0.1"), HostPort: "0"},
 					},
 				}, hostConfig.PortBindings)
-				assert.Equal(t, network.PortSet{pgPublishedPort: struct{}{}}, config.ExposedPorts)
+				assert.Equal(t, network.PortSet{getPgPublishedPort(): struct{}{}}, config.ExposedPorts)
 				assert.Equal(t, spec.Image, config.Image)
 				assert.Equal(t, spec.Labels, config.Labels)
 				assert.Equal(t, "postgres", config.User)

@@ -14,6 +14,8 @@ import (
 )
 
 func TestPhysicalRestoreIntegrity(t *testing.T) {
+	t.Parallel()
+
 	t.Run(
 		"streams compressed backup and WAL bytes with plaintext history and an integrity manifest",
 		func(t *testing.T) {

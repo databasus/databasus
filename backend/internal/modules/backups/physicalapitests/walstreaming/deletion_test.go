@@ -14,6 +14,8 @@ import (
 )
 
 func TestDeleteStreamingPhysicalDatabase(t *testing.T) {
+	t.Parallel()
+
 	t.Run(
 		"cancels the real backup and streamer and removes both slots and their local queue after database deletion",
 		func(t *testing.T) {

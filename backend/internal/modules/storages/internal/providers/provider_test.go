@@ -23,6 +23,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"databasus-backend/internal/lib/background"
+	containers "databasus-backend/internal/lib/testcontainers"
 	"databasus-backend/internal/modules/storages/internal/providers"
 	"databasus-backend/internal/modules/storages/internal/providers/azureblob"
 	"databasus-backend/internal/modules/storages/internal/providers/ftp"
@@ -32,8 +33,6 @@ import (
 	"databasus-backend/internal/modules/storages/internal/providers/rclone"
 	"databasus-backend/internal/modules/storages/internal/providers/s3"
 	"databasus-backend/internal/modules/storages/internal/providers/sftp"
-	test_utils "databasus-backend/internal/util/testing"
-	"databasus-backend/internal/util/testing/containers"
 )
 
 // The storage answers every packet 50 ms late, so each round trip a write pays shows up in its
@@ -141,7 +140,7 @@ func TestSaveFile(t *testing.T) {
 
 					// FTP data connections still go straight to the container's passive ports, so
 					// only control connections, one per session, cross the forwarder.
-					forwarder := test_utils.StartCountingForwarder(t, providertest.GetAddress(container.Endpoint))
+					forwarder := providertest.StartCountingForwarder(t, providertest.GetAddress(container.Endpoint))
 					forwardedContainer := container
 					forwardedContainer.Endpoint = containers.Endpoint{Host: forwarder.Host, Port: forwarder.Port}
 

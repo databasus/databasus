@@ -13,6 +13,8 @@ import (
 )
 
 func TestChangePhysicalBackupStorage(t *testing.T) {
+	t.Parallel()
+
 	t.Run("removes the old chain and schedules its files for deletion when storage changes", func(t *testing.T) {
 		catalog := newCatalog(t)
 		newStorageID := catalog.App.CreateLocalStorage(t, catalog.Owner, catalog.WorkspaceID)

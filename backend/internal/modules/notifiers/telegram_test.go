@@ -12,6 +12,8 @@ import (
 )
 
 func TestTelegramBotAPIURL(t *testing.T) {
+	t.Parallel()
+
 	t.Run("returns the bot API URL in clear and clears it when a change leaves it out", func(t *testing.T) {
 		tm := newTeam(t)
 		telegram := newTelegram("123456:AAH-TOKEN", "https://gateway.example.com/telegram")

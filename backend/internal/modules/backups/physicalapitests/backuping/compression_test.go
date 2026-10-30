@@ -14,6 +14,8 @@ import (
 )
 
 func TestPhysicalBackupCompression(t *testing.T) {
+	t.Parallel()
+
 	t.Run("completes with gzip and retries zstd on the next backup when the source rejects zstd", func(t *testing.T) {
 		workingDirectory, err := os.Getwd()
 		require.NoError(t, err)

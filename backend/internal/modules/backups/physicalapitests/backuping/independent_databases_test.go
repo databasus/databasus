@@ -14,6 +14,8 @@ import (
 )
 
 func TestIndependentPhysicalBackupSlots(t *testing.T) {
+	t.Parallel()
+
 	t.Run("runs two database backups with distinct slots on the same source", func(t *testing.T) {
 		first := newBackupTeam(t, backupTeamSpec{})
 		settings, err := first.Database.Settings.AsPostgresqlPhysicalSettings()
@@ -39,9 +41,9 @@ func TestIndependentPhysicalBackupSlots(t *testing.T) {
 		require.NotEqual(t, firstSlot, secondSlot)
 		source := first.openSource(t)
 		lock := first.App.BeginSQLTransaction(t)
-		var storageIDs []string
-		lock.QuerySQL(t, &storageIDs, "SELECT id FROM storages WHERE id=? FOR NO KEY UPDATE", first.StorageID)
-		require.Len(t, storageIDs, 1)
+		// Each backup creates its slot before registering its first file write, so this lock
+		// keeps both slots alive until the test observes them, regardless of backup speed.
+		lock.ExecuteSQL(t, "LOCK TABLE storages_pending_deletions IN SHARE MODE")
 		first.trigger(t, "full")
 		second.trigger(t, "full")
 		first.App.RunJobPass(t, "backups_physical_scheduler")

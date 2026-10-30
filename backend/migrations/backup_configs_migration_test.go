@@ -248,7 +248,7 @@ func TestBackupConfigsMigration(t *testing.T) {
 			},
 		} {
 			refusal := db.WithContext(t.Context()).Exec(refusedWrite.statement, refusedWrite.values...)
-			assert.Error(t, refusal.Error, refusedWrite.name)
+			require.Error(t, refusal.Error, refusedWrite.name)
 		}
 
 		physicalDatabaseID := insertOldDatabase(t, db, "POSTGRES_PHYSICAL", &workspaceID)
@@ -262,7 +262,7 @@ func TestBackupConfigsMigration(t *testing.T) {
 			"UPDATE backups_configs_physical SET retention = 'ALL'",
 			"UPDATE backups_configs_physical SET full_backups_retention_policy = 'ALL'",
 		} {
-			assert.Error(t, db.WithContext(t.Context()).Exec(refusedUpdate).Error, refusedUpdate)
+			require.Error(t, db.WithContext(t.Context()).Exec(refusedUpdate).Error, refusedUpdate)
 		}
 
 		execute(t, db, "DELETE FROM backups_configs WHERE database_id = ?", physicalDatabaseID)

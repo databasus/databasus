@@ -61,7 +61,7 @@ type createDatabaseRequest struct {
 	Settings    any         `json:"settings"`
 }
 
-type disabledSshTunnel struct {
+type disabledSSHTunnel struct {
 	IsEnabled bool `json:"isEnabled"`
 }
 
@@ -73,11 +73,11 @@ type postgresqlLogicalSettings struct {
 	Password           string            `json:"password"`
 	Database           string            `json:"database"`
 	SslMode            string            `json:"sslMode"`
-	SshTunnel          disabledSshTunnel `json:"sshTunnel"`
+	SSHTunnel          disabledSSHTunnel `json:"sshTunnel"`
 	IncludeSchemas     []string          `json:"includeSchemas"`
 	ExcludeTables      []string          `json:"excludeTables"`
 	ExcludeTableData   []string          `json:"excludeTableData"`
-	CpuCount           int               `json:"cpuCount"`
+	CPUCount           int               `json:"cpuCount"`
 	IsSkipUserMappings bool              `json:"isSkipUserMappings"`
 }
 
@@ -89,7 +89,7 @@ type postgresqlPhysicalSettings struct {
 	Username   string            `json:"username"`
 	Password   string            `json:"password"`
 	SslMode    string            `json:"sslMode"`
-	SshTunnel  disabledSshTunnel `json:"sshTunnel"`
+	SSHTunnel  disabledSSHTunnel `json:"sshTunnel"`
 }
 
 type startLogicalBackupRequest struct {

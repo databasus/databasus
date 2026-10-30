@@ -14,6 +14,8 @@ import (
 )
 
 func TestCreateWorkspace(t *testing.T) {
+	t.Parallel()
+
 	t.Run("makes the creator the owner when the instance lets members create workspaces", func(t *testing.T) {
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
@@ -89,6 +91,8 @@ func TestCreateWorkspace(t *testing.T) {
 }
 
 func TestListWorkspaces(t *testing.T) {
+	t.Parallel()
+
 	t.Run("lists only the workspaces the user is a member of with the user's role", func(t *testing.T) {
 		tm := newTeam(t)
 		otherOwner := tm.app.CreateNonAdminUser(t, tm.admin)
@@ -155,6 +159,8 @@ func TestListWorkspaces(t *testing.T) {
 }
 
 func TestGetWorkspace(t *testing.T) {
+	t.Parallel()
+
 	t.Run("returns 404 when the user is not a member of the workspace", func(t *testing.T) {
 		tm := newTeam(t)
 		stranger := tm.app.CreateNonAdminUser(t, tm.admin)
@@ -205,6 +211,8 @@ func TestGetWorkspace(t *testing.T) {
 }
 
 func TestUpdateWorkspace(t *testing.T) {
+	t.Parallel()
+
 	t.Run("renames the workspace when an admin of it renames it", func(t *testing.T) {
 		tm := newTeam(t)
 		workspaceAdmin, _ := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEADMIN)

@@ -10,15 +10,15 @@ set -euo pipefail
 group="${usage_group:?}"
 group_name=$(sed -E 's/-[0-9]+-of-[0-9]+$//' <<<"$group")
 case "$group_name" in
-    physical) go list -tags testhelpers ./internal/modules/backups/e2e/postgresqlphysical/... ;;
-    logical) go list -tags testhelpers ./internal/modules/backups/e2e/... |
+    physical) go list ./internal/modules/backups/e2e/postgresqlphysical/... ;;
+    logical) go list ./internal/modules/backups/e2e/... |
         grep -Ev '/postgresqlphysical(/|$)' ;;
-    physical-api) go list -tags testhelpers ./internal/modules/backups/physicalapitests/... ;;
-    agent-e2e) go list -tags testhelpers ./internal/agent/e2e/... ;;
+    physical-api) go list ./internal/modules/backups/physicalapitests/... ;;
+    agent-e2e) go list ./internal/agent/e2e/... ;;
     other)
-        go list -tags testhelpers ./internal/... |
+        go list ./internal/... |
             grep -Ev '/internal/(modules/backups/(physicalapitests|e2e)(/|$)|agent/e2e(/|$))'
-        go list -tags testhelpers ./cmd/...
+        go list ./cmd/...
         ;;
     *) echo "unknown test group: $group (expected physical, logical, physical-api, agent-e2e or other)" >&2; exit 1 ;;
 esac

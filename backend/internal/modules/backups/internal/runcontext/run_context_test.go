@@ -8,7 +8,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	test_utils "databasus-backend/internal/util/testing"
+	test_utils "databasus-backend/internal/lib/httpclienttest"
 )
 
 func TestDescribeBackupInterruption(t *testing.T) {

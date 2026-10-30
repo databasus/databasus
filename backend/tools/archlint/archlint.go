@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"path/filepath"
-	"regexp"
 	"slices"
 	"strings"
 )
@@ -14,20 +13,16 @@ type checkSpec struct {
 	cascadeCutoff int64
 }
 
-var backendSpec = checkSpec{
-	entryPoints: []entryPointSpec{
-		{path: "./cmd/databasus", forbiddenPaths: testLibraryPaths},
-		{path: "./cmd/verification-agent", forbiddenPaths: slices.Concat(testLibraryPaths,
-			[]string{"gorm.io", "github.com/gin-gonic/gin", "github.com/pressly/goose"})},
-	},
-	cascadeCutoff: 20261024122431,
+func getBackendSpec() checkSpec {
+	return checkSpec{
+		entryPoints: []entryPointSpec{
+			{path: "./cmd/databasus", forbiddenPaths: getTestLibraryPaths()},
+			{path: "./cmd/verification-agent", forbiddenPaths: slices.Concat(getTestLibraryPaths(),
+				[]string{"gorm.io", "github.com/gin-gonic/gin", "github.com/pressly/goose"})},
+		},
+		cascadeCutoff: 20261024122431,
+	}
 }
-
-// targetLayoutPattern is the Go part of "Backend layout" in docs/architecture.md; backend/.golangci.yml
-// holds the same expression, and TestTargetLayoutPattern keeps the two equal.
-var targetLayoutPattern = regexp.MustCompile(
-	`^(api|cmd/databasus|cmd/verification-agent|e2e|internal/(app|modules|engines|lib|agent)|tools)/`,
-)
 
 type violation struct {
 	position string
@@ -37,10 +32,6 @@ type violation struct {
 
 func (v violation) String() string {
 	return fmt.Sprintf("%s: %s: %s", v.position, v.rule, v.message)
-}
-
-func isInTargetLayout(relativePath string) bool {
-	return targetLayoutPattern.MatchString(relativePath)
 }
 
 func check(root string, spec checkSpec) ([]violation, error) {
@@ -55,7 +46,6 @@ func check(root string, spec checkSpec) ([]violation, error) {
 		checkFileRoles(sourceModule),
 		checkErrorsFile(sourceModule),
 		checkBareGo(sourceModule),
-		checkBuildTags(sourceModule),
 	)
 
 	cascadeViolations, err := checkCascades(root, filepath.Join(root, "migrations"), spec.cascadeCutoff)

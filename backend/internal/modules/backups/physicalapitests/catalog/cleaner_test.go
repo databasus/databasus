@@ -13,6 +13,8 @@ import (
 )
 
 func TestCleanPhysicalBackups(t *testing.T) {
+	t.Parallel()
+
 	t.Run("keeps the newest inactive chains and the active chain when chain retention runs", func(t *testing.T) {
 		catalog := newCleanerCatalog(t)
 		configureRetentionSchedule(&catalog.Config)

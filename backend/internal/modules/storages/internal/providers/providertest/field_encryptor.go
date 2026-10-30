@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"databasus-backend/internal/lib/crypto"
-	"databasus-backend/internal/util/testing/containers"
+	containers "databasus-backend/internal/lib/testcontainers"
 )
 
 // NewFieldEncryptor returns an encryptor under a master key of the test's own.

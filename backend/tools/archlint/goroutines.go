@@ -10,7 +10,7 @@ func checkBareGo(sourceModule *sourceModule) []violation {
 	var violations []violation
 
 	for _, file := range sourceModule.files {
-		if file.isTest || !isInTargetLayout(file.relativePath) || hasPathPrefix(file.getDirectory(), "internal/lib") {
+		if file.isTest || hasPathPrefix(file.getDirectory(), "internal/lib") {
 			continue
 		}
 

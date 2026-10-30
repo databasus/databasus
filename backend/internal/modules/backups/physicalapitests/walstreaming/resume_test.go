@@ -13,6 +13,8 @@ import (
 )
 
 func TestPhysicalWalResumeAfterSlotAdvance(t *testing.T) {
+	t.Parallel()
+
 	t.Run("archives older queued WAL and resumes above the rebuilt slot after modules restart", func(t *testing.T) {
 		team := newWalTeam(t, walTeamSpec{})
 		roleName := team.useReplicationRole(t)

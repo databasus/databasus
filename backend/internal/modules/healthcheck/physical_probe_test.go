@@ -9,10 +9,12 @@ import (
 
 	"databasus-backend/internal/app/apptest/enginetest"
 	apiclient "databasus-backend/internal/lib/apiclient"
-	"databasus-backend/internal/util/testing/containers"
+	containers "databasus-backend/internal/lib/testcontainers"
 )
 
 func TestHealthcheckPhysicalProbe(t *testing.T) {
+	t.Parallel()
+
 	t.Run("records success and failure for a physical PostgreSQL database", func(t *testing.T) {
 		team := enginetest.NewTeam(t)
 		endpoint := containers.StartPhysicalPostgres(t, "postgres:17")

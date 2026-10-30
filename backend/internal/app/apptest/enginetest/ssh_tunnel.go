@@ -6,8 +6,8 @@ import (
 
 	apiclient "databasus-backend/internal/lib/apiclient"
 	"databasus-backend/internal/lib/sshtunnel"
-	"databasus-backend/internal/util/testing/bastion"
-	"databasus-backend/internal/util/testing/containers"
+	containers "databasus-backend/internal/lib/testcontainers"
+	"databasus-backend/internal/lib/testcontainers/bastion"
 )
 
 func NewDisabledSSHTunnelSettings() apiclient.SshTunnelSettings {

@@ -14,6 +14,8 @@ import (
 )
 
 func TestStorageAccess(t *testing.T) {
+	t.Parallel()
+
 	t.Run("lets a viewer list and read the workspace's storages", func(t *testing.T) {
 		tm := newTeam(t)
 		viewer := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEVIEWER)

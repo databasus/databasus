@@ -10,7 +10,7 @@ import (
 
 	"databasus-backend/internal/app/apptest"
 	"databasus-backend/internal/lib/process"
-	"databasus-backend/internal/util/testing/containers"
+	containers "databasus-backend/internal/lib/testcontainers"
 )
 
 type hostRecoverySpec struct {

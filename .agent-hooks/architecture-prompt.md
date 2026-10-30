@@ -6,7 +6,7 @@ The standard for this review is `docs/architecture.md` and the architecture rule
 - `backend/AGENTS.md`: "Where code goes", "Dependencies", "Handlers, services, repositories", "Engines and providers", "Long-running work", "Migrations";
 - `frontend/AGENTS.md`: "FSD (Feature-Sliced Design)".
 
-Go code under `backend/` outside the layout block in "Backend layout" of `docs/architecture.md` predates that document. A change there keeps that code's existing structure and is not blocked for not following the new layout, unless the change itself moves the code. Code inside that layout follows `docs/architecture.md` fully. The exemption does not cover the frontend.
+Check all backend files belonging to the change against the architecture rules, including every command and code outside the former migration layout. Frontend architecture rules remain applicable.
 
 When a plan adds or changes an HTTP operation, or a finished change edits a file under `backend/api/`, also read `.agents/skills/api-design/SKILL.md` and check the operation or the edit against it. Name the rule of the `api-design` skill that is broken.
 

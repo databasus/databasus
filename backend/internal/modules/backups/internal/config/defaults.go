@@ -56,7 +56,7 @@ func newDefaultPhysicalBackupConfig(
 			IsBackupsEnabled:     false,
 			StorageID:            nil,
 			Encryption:           EncryptionNone,
-			NotificationTriggers: slices.Clone(physicalNotificationTriggers),
+			NotificationTriggers: slices.Clone(getPhysicalNotificationTriggers()),
 		},
 		BackupType:                backupType,
 		FullBackupSchedule:        newDailySchedule(),

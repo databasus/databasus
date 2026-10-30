@@ -17,7 +17,7 @@ func TestJSONStore(t *testing.T) {
 
 	t.Run("keeps a value for the default lifetime unless a lifetime is given", func(t *testing.T) {
 		t.Parallel()
-		manualClock := clock.NewManual(testStart)
+		manualClock := clock.NewManual(getTestStart())
 		jsonStore := NewJSONStore[string](newTestMemoryStore(1024, manualClock), "values")
 		require.NoError(t, jsonStore.Set(t.Context(), "default", "default value"))
 		require.NoError(t, jsonStore.SetWithLifetime(t.Context(), ExpiringValue[string]{
@@ -40,7 +40,7 @@ func TestJSONStore(t *testing.T) {
 
 	t.Run("keeps equal keys apart when the namespaces differ", func(t *testing.T) {
 		t.Parallel()
-		memoryStore := newTestMemoryStore(1024, clock.NewManual(testStart))
+		memoryStore := newTestMemoryStore(1024, clock.NewManual(getTestStart()))
 		firstStore := NewJSONStore[string](memoryStore, "first")
 		secondStore := NewJSONStore[string](memoryStore, "second")
 
@@ -60,7 +60,7 @@ func TestJSONStore(t *testing.T) {
 
 	t.Run("returns a decode error when the stored payload is malformed", func(t *testing.T) {
 		t.Parallel()
-		memoryStore := newTestMemoryStore(1024, clock.NewManual(testStart))
+		memoryStore := newTestMemoryStore(1024, clock.NewManual(getTestStart()))
 		jsonStore := NewJSONStore[string](memoryStore, "values")
 		require.NoError(t, memoryStore.Set(t.Context(), Entry{
 			Key:      jsonStore.key("malformed"),
@@ -76,7 +76,7 @@ func TestJSONStore(t *testing.T) {
 
 	t.Run("returns an encode error when the value cannot be encoded", func(t *testing.T) {
 		t.Parallel()
-		jsonStore := NewJSONStore[func()](newTestMemoryStore(1024, clock.NewManual(testStart)), "functions")
+		jsonStore := NewJSONStore[func()](newTestMemoryStore(1024, clock.NewManual(getTestStart())), "functions")
 
 		err := jsonStore.Set(t.Context(), "function", func() {})
 

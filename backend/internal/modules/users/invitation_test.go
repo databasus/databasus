@@ -16,6 +16,8 @@ import (
 // The contract has no invitation operation: the product invites a user by adding an unknown address
 // to a workspace, which addWorkspaceMember serves through Module.InviteUser.
 func TestInviteUser(t *testing.T) {
+	t.Parallel()
+
 	t.Run("invites an unknown address an instance admin adds to a workspace", func(t *testing.T) {
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)

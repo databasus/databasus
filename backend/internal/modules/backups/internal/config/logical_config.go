@@ -109,9 +109,11 @@ func (c LogicalBackupConfig) GetMethod() Method {
 	return MethodLogical
 }
 
-var logicalNotificationTriggers = []NotificationTrigger{
-	NotificationTriggerBackupFailed,
-	NotificationTriggerBackupSuccess,
+func getLogicalNotificationTriggers() []NotificationTrigger {
+	return []NotificationTrigger{
+		NotificationTriggerBackupFailed,
+		NotificationTriggerBackupSuccess,
+	}
 }
 
 func (c LogicalBackupConfig) validate() error {
@@ -129,7 +131,7 @@ func (c LogicalBackupConfig) validate() error {
 		return newInvalidSettingError("maxFailedTriesCount", "must be greater than 0 when failed backups are retried")
 	}
 
-	return validateCommonFields(c.BackupConfig, logicalNotificationTriggers)
+	return validateCommonFields(c.BackupConfig, getLogicalNotificationTriggers())
 }
 
 func (c LogicalBackupConfig) validateRetention() error {

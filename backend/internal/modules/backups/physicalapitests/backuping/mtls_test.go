@@ -27,6 +27,8 @@ func readMtlsFile(t *testing.T, name string) string {
 }
 
 func TestPhysicalBackupOverMtls(t *testing.T) {
+	t.Parallel()
+
 	t.Run(
 		"publishes the full and manifest after replication authentication with a client certificate",
 		func(t *testing.T) {

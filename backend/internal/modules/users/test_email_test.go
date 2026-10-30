@@ -12,6 +12,8 @@ import (
 )
 
 func TestSendTestEmail(t *testing.T) {
+	t.Parallel()
+
 	t.Run("sends a message to the admin and records the delivery in the audit log", func(t *testing.T) {
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)

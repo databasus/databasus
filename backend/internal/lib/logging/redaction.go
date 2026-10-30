@@ -10,16 +10,24 @@ import (
 
 const redactedValue = "***"
 
-var (
-	// "webhook" belongs here rather than with the URL keys: an incoming-webhook URL is itself the
-	// credential, and its secret sits in the path, where stripping userinfo would not reach it.
-	secretKeyParts = []string{
+// An incoming webhook URL is itself a credential, including its path; removing URL userinfo
+// alone would leave its secret in the log.
+func getSecretKeyParts() []string {
+	return []string{
 		"password", "passwd", "secret", "token", "api_key", "apikey",
 		"authorization", "cookie", "credential", "private_key", "webhook",
 	}
-	urlKeyParts   = []string{"url", "uri", "dsn", "endpoint", "conn"}
-	emailKeyParts = []string{"email", "mail"}
+}
 
+func getURLKeyParts() []string {
+	return []string{"url", "uri", "dsn", "endpoint", "conn"}
+}
+
+func getEmailKeyParts() []string {
+	return []string{"email", "mail"}
+}
+
+var (
 	urlCredentialsPattern = regexp.MustCompile(`([a-zA-Z][a-zA-Z0-9+.-]*)://[^\s:/@]+:[^\s@]*@`)
 	keyValueSecretPattern = regexp.MustCompile(
 		`(?i)\b(password|passwd|secret|token|api[_-]?key|authorization)\s*=\s*\S+`,
@@ -53,7 +61,7 @@ func redactAttr(attr slog.Attr) slog.Attr {
 
 	// Numbers keep their type even under a secret-looking key: "token_count" is a diagnostic, not a
 	// secret, and blanking it loses information without protecting anything.
-	if hasAnyPart(key, secretKeyParts) && !isNumericLike(attr.Value) {
+	if hasAnyPart(key, getSecretKeyParts()) && !isNumericLike(attr.Value) {
 		attr.Value = slog.StringValue(redactedValue)
 
 		return attr
@@ -74,9 +82,9 @@ func redactAttr(attr slog.Attr) slog.Attr {
 	// These keys are semantically textual, so rendering a non-string value to a scrubbed string is
 	// safe. Numeric look-alikes such as "connection_count" or "endpoint_timeout" are not: they
 	// match the same substring lists, and retyping them would corrupt the record.
-	case hasAnyPart(key, urlKeyParts) && (isText || isRenderableText(attr.Value)):
+	case hasAnyPart(key, getURLKeyParts()) && (isText || isRenderableText(attr.Value)):
 		attr.Value = slog.StringValue(stripURLCredentials(attr.Value.String()))
-	case hasAnyPart(key, emailKeyParts) && (isText || isRenderableText(attr.Value)):
+	case hasAnyPart(key, getEmailKeyParts()) && (isText || isRenderableText(attr.Value)):
 		attr.Value = slog.StringValue(maskEmails(attr.Value.String()))
 	case isText:
 		attr.Value = slog.StringValue(redactMessage(attr.Value.String()))

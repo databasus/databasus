@@ -9,15 +9,14 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	databases_bridge "databasus-backend/internal/features/databases"
 	apiclient "databasus-backend/internal/lib/apiclient"
+	containers "databasus-backend/internal/lib/testcontainers"
 	"databasus-backend/internal/modules/databases"
-	"databasus-backend/internal/util/testing/containers"
 )
 
-// The old backup and health check code records the status through the module the application
-// installs in the bridge, so the tests record it the same way and read it back through the API.
 func TestDatabaseStatusUpdates(t *testing.T) {
+	t.Parallel()
+
 	server := containers.StartPostgres(t, "postgres:16")
 
 	t.Run("keeps the password a user saved before a backup finishes", func(t *testing.T) {
@@ -27,7 +26,7 @@ func TestDatabaseStatusUpdates(t *testing.T) {
 			tm.app.EncryptSecret(t, "password-saved-meanwhile"), databaseID)
 		backupTime := time.Now().UTC().Truncate(time.Second)
 
-		require.NoError(t, databases_bridge.GetModule().RecordBackupSuccess(t.Context(), databaseID, backupTime))
+		require.NoError(t, tm.app.RecordBackupSuccess(t.Context(), databaseID, backupTime))
 
 		assert.Equal(t, "password-saved-meanwhile",
 			tm.app.DecryptSecret(t, getStoredPassword(t, tm, "databases_postgresql_logical", databaseID)))
@@ -45,7 +44,7 @@ func TestDatabaseStatusUpdates(t *testing.T) {
 		require.Equal(t, http.StatusOK, response.StatusCode(), string(response.Body))
 		unavailable := databases.HealthStatusUnavailable
 
-		require.NoError(t, databases_bridge.GetModule().SetHealthStatus(t.Context(), createdDatabase.Id, &unavailable))
+		require.NoError(t, tm.app.SetHealthStatus(t.Context(), createdDatabase.Id, &unavailable))
 
 		readDatabase := getDatabase(t, tm.owner, createdDatabase.Id)
 		assert.Equal(t, "Orders renamed", readDatabase.Name)
@@ -58,7 +57,7 @@ func TestDatabaseStatusUpdates(t *testing.T) {
 		databaseBefore := getDatabase(t, tm.owner, databaseID)
 		passwordBefore := getStoredPassword(t, tm, "databases_postgresql_logical", databaseID)
 
-		require.NoError(t, databases_bridge.GetModule().RecordBackupFailure(
+		require.NoError(t, tm.app.RecordBackupFailure(
 			t.Context(), databaseID, "connection refused"))
 
 		databaseAfter := getDatabase(t, tm.owner, databaseID)
@@ -70,15 +69,15 @@ func TestDatabaseStatusUpdates(t *testing.T) {
 
 	t.Run("returns ErrDatabaseNotFound for every status write when the database no longer exists",
 		func(t *testing.T) {
-			newTeam(t)
+			tm := newTeam(t)
 			missingDatabaseID := uuid.New()
 			available := databases.HealthStatusAvailable
 
-			successErr := databases_bridge.GetModule().RecordBackupSuccess(
+			successErr := tm.app.RecordBackupSuccess(
 				t.Context(), missingDatabaseID, time.Now().UTC())
-			failureErr := databases_bridge.GetModule().RecordBackupFailure(
+			failureErr := tm.app.RecordBackupFailure(
 				t.Context(), missingDatabaseID, "connection refused")
-			healthErr := databases_bridge.GetModule().SetHealthStatus(t.Context(), missingDatabaseID, &available)
+			healthErr := tm.app.SetHealthStatus(t.Context(), missingDatabaseID, &available)
 
 			require.ErrorIs(t, successErr, databases.ErrDatabaseNotFound)
 			require.ErrorIs(t, failureErr, databases.ErrDatabaseNotFound)

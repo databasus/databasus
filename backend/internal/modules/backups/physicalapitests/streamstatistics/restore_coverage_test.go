@@ -9,6 +9,8 @@ import (
 )
 
 func TestGetPhysicalRestoreCoverage(t *testing.T) {
+	t.Parallel()
+
 	t.Run("returns no ranges when no full backup completed", func(t *testing.T) {
 		catalog := newCoverageCatalog(t)
 		clock := newRestoreTimeline()

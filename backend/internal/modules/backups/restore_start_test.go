@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	apiclient "databasus-backend/internal/lib/apiclient"
-	"databasus-backend/internal/util/testing/containers"
+	containers "databasus-backend/internal/lib/testcontainers"
 )
 
 // hugeBackupSizeMb is more than any disk the test runs on has free.
@@ -20,6 +20,8 @@ const hugeBackupSizeMb = 1_000_000_000_000
 var insufficientDiskSpaceDetail = regexp.MustCompile(`needs (\d+) bytes .* but (\d+) bytes are free`)
 
 func TestStartRestore(t *testing.T) {
+	t.Parallel()
+
 	server := startRestoreServer(t, restoreServerImage)
 
 	t.Run("returns 202 and completes the restore with a reachable target of the same version", func(t *testing.T) {

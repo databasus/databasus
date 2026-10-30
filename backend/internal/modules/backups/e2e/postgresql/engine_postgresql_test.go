@@ -17,7 +17,7 @@ import (
 
 	"databasus-backend/internal/app/apptest/enginetest"
 	apiclient "databasus-backend/internal/lib/apiclient"
-	"databasus-backend/internal/util/testing/containers"
+	containers "databasus-backend/internal/lib/testcontainers"
 )
 
 const (
@@ -28,18 +28,24 @@ const (
 	skippedTableMinSizeMb = 15.0
 )
 
-var postgresqlVersions = []struct {
+func getPostgresqlVersions() []struct {
 	name  string
 	tag   string
 	image string
-}{
-	{"PostgreSQL 12", "12", "postgres:12"},
-	{"PostgreSQL 13", "13", "postgres:13"},
-	{"PostgreSQL 14", "14", "postgres:14"},
-	{"PostgreSQL 15", "15", "postgres:15"},
-	{"PostgreSQL 16", "16", "postgres:16"},
-	{"PostgreSQL 17", "17", "postgres:17"},
-	{"PostgreSQL 18", "18", "postgres:18"},
+} {
+	return []struct {
+		name  string
+		tag   string
+		image string
+	}{
+		{"PostgreSQL 12", "12", "postgres:12"},
+		{"PostgreSQL 13", "13", "postgres:13"},
+		{"PostgreSQL 14", "14", "postgres:14"},
+		{"PostgreSQL 15", "15", "postgres:15"},
+		{"PostgreSQL 16", "16", "postgres:16"},
+		{"PostgreSQL 17", "17", "postgres:17"},
+		{"PostgreSQL 18", "18", "postgres:18"},
+	}
 }
 
 type postgresqlTestRow struct {
@@ -57,7 +63,9 @@ type relationRef struct {
 // TestBackupAndRestorePostgresql boots each supported version once and runs every scenario against
 // it, so only one server of the matrix is alive at a time.
 func TestBackupAndRestorePostgresql(t *testing.T) {
-	for _, postgresqlVersion := range postgresqlVersions {
+	t.Parallel()
+
+	for _, postgresqlVersion := range getPostgresqlVersions() {
 		t.Run(postgresqlVersion.name, func(t *testing.T) {
 			endpoint := containers.StartPostgres(t, postgresqlVersion.image)
 
@@ -120,6 +128,8 @@ func TestBackupAndRestorePostgresql(t *testing.T) {
 }
 
 func TestBackupAndRestoreTimescaledb(t *testing.T) {
+	t.Parallel()
+
 	endpoint := containers.StartTimescaleDB(t, timescaledbImage)
 
 	t.Run("restores the hypertable with its chunks with one job", func(t *testing.T) {
@@ -164,6 +174,8 @@ INSERT INTO public.%[1]s (id, label) VALUES (1, 'alpha'), (2, 'beta'), (3, 'gamm
 }
 
 func TestBackupAndRestorePostgresqlOverTls(t *testing.T) {
+	t.Parallel()
+
 	t.Run("restores the rows over a connection that requires TLS", func(t *testing.T) {
 		endpoint := containers.StartPostgresSSL(t, enginetest.GetTestdataDirectory(t, "ssl"))
 		server := connectToPostgresql(t, endpoint, "sslmode=require")
@@ -187,6 +199,8 @@ func TestBackupAndRestorePostgresqlOverTls(t *testing.T) {
 }
 
 func TestBackupAndRestorePostgresqlOverMutualTls(t *testing.T) {
+	t.Parallel()
+
 	endpoint := containers.StartPostgresMtls(t, enginetest.GetTestdataDirectory(t, "mtls"))
 	clientCert, clientKey, rootCert := readMtlsCertificates(t)
 
@@ -236,8 +250,10 @@ func TestBackupAndRestorePostgresqlOverMutualTls(t *testing.T) {
 }
 
 func TestBackupAndRestorePostgresqlOverSshTunnel(t *testing.T) {
+	t.Parallel()
+
 	t.Run("restores the rows through the bastion", func(t *testing.T) {
-		topology := containers.StartPostgresBehindSshBastion(t, "postgres:16")
+		topology := containers.StartPostgresBehindSSHBastion(t, "postgres:16")
 		server := connectToPostgresql(t, enginetest.OpenForwardedEndpoint(t, topology), postgresqlPlainConnection)
 		tableName := "test_data_ssh_tunnel_" + enginetest.NewUniqueSuffix()
 		server.execute(t, createAndFillPostgresqlTableQuery(tableName))
@@ -260,6 +276,8 @@ func TestBackupAndRestorePostgresqlOverSshTunnel(t *testing.T) {
 }
 
 func TestBackupPostgresqlToFailingStorage(t *testing.T) {
+	t.Parallel()
+
 	t.Run("fails the backup without hanging when the upload fails", func(t *testing.T) {
 		server := connectToPostgresql(t, containers.StartPostgres(t, "postgres:16"), postgresqlPlainConnection)
 		tableName := "test_data_" + enginetest.NewUniqueSuffix()

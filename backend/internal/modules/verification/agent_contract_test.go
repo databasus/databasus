@@ -18,6 +18,8 @@ import (
 )
 
 func TestVerificationHeartbeatMemory(t *testing.T) {
+	t.Parallel()
+
 	for _, memoryMb := range []int{0, 512, 4096} {
 		t.Run(fmt.Sprintf("stores %d megabytes when explicitly reported", memoryMb), func(t *testing.T) {
 			application := apptest.New(t)
@@ -82,6 +84,8 @@ func TestVerificationHeartbeatMemory(t *testing.T) {
 }
 
 func TestVerificationAgentAuthentication(t *testing.T) {
+	t.Parallel()
+
 	t.Run(
 		"returns one detail without updating capacity when credentials do not belong to the named agent",
 		func(t *testing.T) {
@@ -134,6 +138,8 @@ func TestVerificationAgentAuthentication(t *testing.T) {
 }
 
 func TestVerificationAgentCapacityValidation(t *testing.T) {
+	t.Parallel()
+
 	t.Run("preserves capacity when a heartbeat contains a negative value", func(t *testing.T) {
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
@@ -175,6 +181,8 @@ func TestVerificationAgentCapacityValidation(t *testing.T) {
 }
 
 func TestVerificationAgentReportValidation(t *testing.T) {
+	t.Parallel()
+
 	for _, scenario := range []struct {
 		name   string
 		report agentclient.VerificationReport
@@ -203,6 +211,8 @@ func TestVerificationAgentReportValidation(t *testing.T) {
 }
 
 func TestVerificationAgentGone(t *testing.T) {
+	t.Parallel()
+
 	for _, state := range []string{"cancelled", "reclaimed", "unknown", "deleted backup", "completed"} {
 		t.Run("returns gone for stream and report when the verification is "+state, func(t *testing.T) {
 			team := newVerificationTeam(t)
@@ -273,6 +283,8 @@ func TestVerificationAgentGone(t *testing.T) {
 }
 
 func TestVerificationBackupStreamFailure(t *testing.T) {
+	t.Parallel()
+
 	t.Run("returns internal and preserves ownership when the stored backup file is missing", func(t *testing.T) {
 		team := newVerificationTeam(t)
 		backup := team.backup(t)

@@ -16,7 +16,11 @@ func TestCanForceWalRotation(t *testing.T) {
 			t.Parallel()
 			replicationRole := server.createLoginRole(t, "REPLICATION")
 
-			canRotate, err := canForceWalRotation(t.Context(), server.connectAs(t, adminRole), replicationRole.Name)
+			canRotate, err := canForceWalRotation(
+				t.Context(),
+				server.connectAs(t, getAdminRole()),
+				replicationRole.Name,
+			)
 
 			require.NoError(t, err)
 			assert.False(t, canRotate)
@@ -27,7 +31,11 @@ func TestCanForceWalRotation(t *testing.T) {
 			replicationRole := server.createLoginRole(t, "REPLICATION")
 			grantWalSwitch(t, server, replicationRole.Name)
 
-			canRotate, err := canForceWalRotation(t.Context(), server.connectAs(t, adminRole), replicationRole.Name)
+			canRotate, err := canForceWalRotation(
+				t.Context(),
+				server.connectAs(t, getAdminRole()),
+				replicationRole.Name,
+			)
 
 			require.NoError(t, err)
 			assert.True(t, canRotate)
@@ -38,9 +46,9 @@ func TestCanForceWalRotation(t *testing.T) {
 		t.Run("answers for the probed role when an administrator probes another role", func(t *testing.T) {
 			t.Parallel()
 			replicationRole := server.createLoginRole(t, "REPLICATION")
-			adminConn := server.connectAs(t, adminRole)
+			adminConn := server.connectAs(t, getAdminRole())
 
-			canAdminRotate, err := canForceWalRotation(t.Context(), adminConn, adminRole.Name)
+			canAdminRotate, err := canForceWalRotation(t.Context(), adminConn, getAdminRole().Name)
 			require.NoError(t, err)
 			require.True(t, canAdminRotate, "the test administrator must be able to rotate")
 
@@ -55,6 +63,6 @@ func TestCanForceWalRotation(t *testing.T) {
 func grantWalSwitch(t *testing.T, server testServer, roleName string) {
 	t.Helper()
 
-	execStatements(t, server.connectAs(t, adminRole),
+	execStatements(t, server.connectAs(t, getAdminRole()),
 		fmt.Sprintf(`GRANT EXECUTE ON FUNCTION pg_switch_wal() TO "%s"`, roleName))
 }

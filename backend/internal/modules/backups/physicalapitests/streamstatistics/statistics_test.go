@@ -16,6 +16,8 @@ import (
 )
 
 func TestGetWalStreamStatistics(t *testing.T) {
+	t.Parallel()
+
 	t.Run("returns current values and series when a workspace member requests statistics", func(t *testing.T) {
 		catalog := newStatisticsCatalog(t)
 		catalog.insertStreamer(

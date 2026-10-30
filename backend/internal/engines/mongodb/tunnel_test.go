@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"databasus-backend/internal/lib/sshtunnel"
-	"databasus-backend/internal/util/testing/containers"
+	containers "databasus-backend/internal/lib/testcontainers"
 )
 
 // TestOpenTunnel is not parallel, so its server never runs beside the version matrix's one.
@@ -45,7 +45,7 @@ func TestOpenTunnel(t *testing.T) {
 	})
 
 	t.Run("detects the version through the bastion with a direct connection to the local end", func(t *testing.T) {
-		topology := containers.StartMongodbBehindSshBastion(t, "mongo:7.0")
+		topology := containers.StartMongodbBehindSSHBastion(t, "mongo:7.0")
 		settings := Settings{
 			Host:               topology.Database.Host,
 			Port:               topology.Database.Port,
@@ -59,9 +59,9 @@ func TestOpenTunnel(t *testing.T) {
 			SSHTunnel: &sshtunnel.Settings{
 				Host:                 topology.Bastion.Host,
 				Port:                 topology.Bastion.Port,
-				Username:             containers.SshBastionUsername,
+				Username:             containers.SSHBastionUsername,
 				AuthType:             sshtunnel.AuthTypePassword,
-				Password:             containers.SshBastionPassword,
+				Password:             containers.SSHBastionPassword,
 				PrivateKey:           "",
 				PrivateKeyPassphrase: "",
 			},

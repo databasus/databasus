@@ -8,8 +8,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	containers "databasus-backend/internal/lib/testcontainers"
 	"databasus-backend/internal/lib/testwait"
-	"databasus-backend/internal/util/testing/containers"
 )
 
 func prepareRestoreTarget(t *testing.T, image string) containers.RestoreTarget {
@@ -51,14 +51,17 @@ func startRestoredCluster(t *testing.T, target containers.RestoreTarget, image s
 			return
 		}
 
-		t.Logf("=== restored pg.log ===\n%s", target.ExecBestEffort("", "cat", restoreWorkDir+"/pg.log"))
+		t.Logf(
+			"=== restored pg.log ===\n%s",
+			target.ExecBestEffort(context.WithoutCancel(t.Context()), "", "cat", restoreWorkDir+"/pg.log"),
+		)
 	})
 
 	target.ExecAs(t, "postgres",
 		"pg_ctl", "-D", clusterDir, "-l", restoreWorkDir+"/pg.log", "-w", "start")
 
 	t.Cleanup(func() {
-		target.ExecBestEffort("postgres",
+		target.ExecBestEffort(context.WithoutCancel(t.Context()), "postgres",
 			"pg_ctl", "-D", clusterDir, "-m", "immediate", "stop")
 	})
 
@@ -69,7 +72,7 @@ func waitForRecoveryToFinish(t *testing.T, target containers.RestoreTarget) {
 	t.Helper()
 
 	testwait.Until(t, "the restored cluster finishes replaying WAL", func(context.Context) error {
-		recoveryState := target.ExecBestEffort(
+		recoveryState := target.ExecBestEffort(context.WithoutCancel(t.Context()),
 			"postgres",
 			"psql",
 			"-U",

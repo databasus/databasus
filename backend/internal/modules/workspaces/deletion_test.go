@@ -18,6 +18,8 @@ import (
 var errLaterStepFailed = errors.New("a later step of the deletion failed: secret-internal-cause")
 
 func TestDeleteWorkspace(t *testing.T) {
+	t.Parallel()
+
 	t.Run("returns 409 and deletes nothing when the workspace has a database", func(t *testing.T) {
 		tm := newTeam(t)
 		tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEVIEWER)

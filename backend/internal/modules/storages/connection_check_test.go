@@ -11,10 +11,12 @@ import (
 
 	"databasus-backend/internal/app/apptest"
 	apiclient "databasus-backend/internal/lib/apiclient"
-	"databasus-backend/internal/util/testing/containers"
+	containers "databasus-backend/internal/lib/testcontainers"
 )
 
 func TestTestStorage(t *testing.T) {
+	t.Parallel()
+
 	t.Run("reports a local storage as connected when a viewer tests it", func(t *testing.T) {
 		tm := newTeam(t)
 		viewer := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEVIEWER)

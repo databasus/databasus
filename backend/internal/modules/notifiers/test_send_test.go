@@ -18,6 +18,8 @@ import (
 const telegramBotToken = "123456:AAH-TEST-TOKEN"
 
 func TestTestNotifier(t *testing.T) {
+	t.Parallel()
+
 	t.Run("reports the test message as delivered when a viewer tests a working webhook", func(t *testing.T) {
 		tm := newTeam(t)
 		viewer := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEVIEWER)
@@ -118,6 +120,8 @@ func TestTestNotifier(t *testing.T) {
 }
 
 func TestTestNotifierSettings(t *testing.T) {
+	t.Parallel()
+
 	t.Run("sends to the entered discord webhook and creates no notifier", func(t *testing.T) {
 		tm := newTeam(t)
 		discordWebhook := startEndpoint(t, http.StatusNoContent)
@@ -310,6 +314,8 @@ func TestTestNotifierSettings(t *testing.T) {
 }
 
 func TestUpgradedNotifierSecrets(t *testing.T) {
+	t.Parallel()
+
 	t.Run("sends the decrypted header value an older release stored encrypted", func(t *testing.T) {
 		tm := newTeam(t)
 		webhookEndpoint := startEndpoint(t, http.StatusOK)

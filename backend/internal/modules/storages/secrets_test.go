@@ -13,12 +13,14 @@ import (
 
 	"databasus-backend/internal/app/apptest"
 	apiclient "databasus-backend/internal/lib/apiclient"
-	"databasus-backend/internal/util/testing/containers"
+	containers "databasus-backend/internal/lib/testcontainers"
 )
 
 const sftpPrivateKey = "-----BEGIN OPENSSH PRIVATE KEY-----\noriginal-private-key\n-----END OPENSSH PRIVATE KEY-----"
 
 func TestCreateStorage(t *testing.T) {
+	t.Parallel()
+
 	t.Run("returns the saved S3 storage without its keys", func(t *testing.T) {
 		tm := newTeam(t)
 
@@ -49,6 +51,8 @@ func TestCreateStorage(t *testing.T) {
 }
 
 func TestListStorages(t *testing.T) {
+	t.Parallel()
+
 	t.Run("lists an SFTP storage without its password and private key", func(t *testing.T) {
 		tm := newTeam(t)
 		createStorage(t, tm.owner, apiclient.StorageCreate{
@@ -87,6 +91,8 @@ func TestListStorages(t *testing.T) {
 }
 
 func TestUpdateStorageSecrets(t *testing.T) {
+	t.Parallel()
+
 	t.Run("writes the next backup with the stored keys after a rename without them", func(t *testing.T) {
 		tm := newTeam(t)
 		bucket := startMinioBucket(t)
@@ -154,6 +160,8 @@ type storedSecretColumn struct {
 }
 
 func TestStorageSecretsLifecycle(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		name            string
 		isAdminRequired bool

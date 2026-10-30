@@ -32,6 +32,8 @@ func (team verificationTeam) enableSchedule(t *testing.T, scheduleType apiclient
 }
 
 func TestVerificationScheduler(t *testing.T) {
+	t.Parallel()
+
 	t.Run(
 		"uses the newest completed backup and keeps one interval verification when the schedule is due",
 		func(t *testing.T) {
@@ -174,6 +176,8 @@ func TestVerificationScheduler(t *testing.T) {
 }
 
 func TestAfterBackupVerification(t *testing.T) {
+	t.Parallel()
+
 	t.Run("supersedes pending automatic work and keeps manual work when a new backup completes", func(t *testing.T) {
 		team := newVerificationTeam(t)
 		team.enableSchedule(t, apiclient.VerificationScheduleTypeAFTERBACKUP)

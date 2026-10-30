@@ -14,6 +14,8 @@ import (
 const logicalRetentionJobName = "backups_logical_retention"
 
 func TestWorkWhileRestoreRuns(t *testing.T) {
+	t.Parallel()
+
 	server := startRestoreServer(t, restoreServerImage)
 
 	t.Run("returns 409 in_use and keeps the backup when a restore reads it on delete", func(t *testing.T) {

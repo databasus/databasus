@@ -14,9 +14,9 @@ import (
 
 	"databasus-backend/internal/app/apptest"
 	apiclient "databasus-backend/internal/lib/apiclient"
+	containers "databasus-backend/internal/lib/testcontainers"
 	"databasus-backend/internal/lib/testwait"
 	"databasus-backend/internal/modules/backups"
-	"databasus-backend/internal/util/testing/containers"
 )
 
 type liveStreamReading struct {
@@ -33,6 +33,8 @@ type liveStreamReading struct {
 }
 
 func TestGetWalStreamLive(t *testing.T) {
+	t.Parallel()
+
 	t.Run("reports current values when the application runs a real WAL streamer", func(t *testing.T) {
 		source := containers.StartPhysicalPostgres(t, "postgres:17")
 		timings := backups.ProductionWalStreamTimings()

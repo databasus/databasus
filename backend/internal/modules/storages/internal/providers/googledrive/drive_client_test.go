@@ -21,8 +21,8 @@ import (
 	"golang.org/x/oauth2"
 	drive "google.golang.org/api/drive/v3"
 
+	test_utils "databasus-backend/internal/lib/httpclienttest"
 	"databasus-backend/internal/modules/storages/internal/providers/providertest"
-	test_utils "databasus-backend/internal/util/testing"
 )
 
 func TestTransport(t *testing.T) {

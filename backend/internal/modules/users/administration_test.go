@@ -15,6 +15,8 @@ import (
 )
 
 func TestListUsers(t *testing.T) {
+	t.Parallel()
+
 	t.Run("pages through every user, the newest first", func(t *testing.T) {
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
@@ -141,6 +143,8 @@ func TestListUsers(t *testing.T) {
 }
 
 func TestDeactivateUser(t *testing.T) {
+	t.Parallel()
+
 	t.Run("returns 401 unauthenticated for a token of the deactivated user", func(t *testing.T) {
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
@@ -201,6 +205,8 @@ func TestDeactivateUser(t *testing.T) {
 }
 
 func TestActivateUser(t *testing.T) {
+	t.Parallel()
+
 	t.Run("lets the deactivated user sign in again", func(t *testing.T) {
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
@@ -217,6 +223,8 @@ func TestActivateUser(t *testing.T) {
 }
 
 func TestManageAdmins(t *testing.T) {
+	t.Parallel()
+
 	t.Run("lets the bootstrap administrator manage admins after changing address", func(t *testing.T) {
 		app := apptest.New(t)
 		bootstrapAdmin := app.CreateAdmin(t)

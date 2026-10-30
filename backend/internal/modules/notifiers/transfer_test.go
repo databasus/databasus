@@ -18,6 +18,8 @@ import (
 var errTransferNotWaiting = errors.New("no transfer waits for the lock on the notifier")
 
 func TestTransferNotifier(t *testing.T) {
+	t.Parallel()
+
 	t.Run("moves an unused notifier to another workspace of the user", func(t *testing.T) {
 		tm := newTeam(t)
 		targetWorkspace := apptest.CreateWorkspace(t, tm.owner, "Target "+uuid.NewString()[:8])
@@ -112,6 +114,8 @@ func TestTransferNotifier(t *testing.T) {
 }
 
 func TestTransferDatabaseWithNotifiers(t *testing.T) {
+	t.Parallel()
+
 	t.Run("moves the database and its notifier and keeps the notifier attached", func(t *testing.T) {
 		tm := newTeam(t)
 		targetWorkspace := apptest.CreateWorkspace(t, tm.owner, "Target "+uuid.NewString()[:8])

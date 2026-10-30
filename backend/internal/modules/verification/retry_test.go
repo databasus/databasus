@@ -14,6 +14,8 @@ import (
 )
 
 func TestVerificationReportRetries(t *testing.T) {
+	t.Parallel()
+
 	t.Run("requeues twice and fails at the third attempt when an agent cannot prepare the restore", func(t *testing.T) {
 		team := newVerificationTeam(t)
 		backup := team.backup(t)
@@ -68,6 +70,8 @@ func TestVerificationReportRetries(t *testing.T) {
 }
 
 func TestVerificationHeartbeatReconciliation(t *testing.T) {
+	t.Parallel()
+
 	for _, scenario := range []struct {
 		name       string
 		age        time.Duration
@@ -136,6 +140,8 @@ func TestVerificationHeartbeatReconciliation(t *testing.T) {
 }
 
 func TestVerificationMixedHeartbeat(t *testing.T) {
+	t.Parallel()
+
 	t.Run("reclaims only the dropped verification when an agent continues another one", func(t *testing.T) {
 		team := newVerificationTeam(t)
 		backup := team.backup(t)

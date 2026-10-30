@@ -15,6 +15,8 @@ import (
 )
 
 func TestCancelRunningPhysicalBackup(t *testing.T) {
+	t.Parallel()
+
 	t.Run("keeps its slot during the real full and drops it after HTTP cancellation", func(t *testing.T) {
 		team := newBackupTeam(t, backupTeamSpec{})
 		source := team.openSource(t)

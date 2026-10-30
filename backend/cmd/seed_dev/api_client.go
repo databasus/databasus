@@ -11,18 +11,6 @@ import (
 	"strings"
 )
 
-// The contract routes answer a refusal with a Problem {"detail": "..."}, the old routes with
-// {"error": "..."} and an unhealthy check with {"status": "..."}; each text is the reason the
-// developer needs to see.
-type apiError struct {
-	StatusCode int
-	Reason     string
-}
-
-func (e *apiError) Error() string {
-	return e.Reason
-}
-
 type apiClient struct {
 	httpClient *http.Client
 	baseURL    string

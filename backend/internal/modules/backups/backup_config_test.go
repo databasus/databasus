@@ -15,6 +15,8 @@ import (
 )
 
 func TestReadBackupConfig(t *testing.T) {
+	t.Parallel()
+
 	t.Run(
 		"reads the logical default of a database whose config was never saved and stores nothing",
 		func(t *testing.T) {
@@ -80,6 +82,8 @@ func TestReadBackupConfig(t *testing.T) {
 }
 
 func TestSaveBackupConfig(t *testing.T) {
+	t.Parallel()
+
 	t.Run("refuses a physical config for a logical database and keeps the config", func(t *testing.T) {
 		tm := newTeam(t)
 		databaseID := tm.insertLogicalDatabase(t)
@@ -225,6 +229,8 @@ func TestSaveBackupConfig(t *testing.T) {
 }
 
 func TestSaveBackupConfigRacingStorageTransfer(t *testing.T) {
+	t.Parallel()
+
 	t.Run("lets exactly one of a save and a transfer of its storage succeed", func(t *testing.T) {
 		tm := newTeam(t)
 		targetWorkspace := tm.createWorkspace(t)
@@ -272,6 +278,8 @@ func TestSaveBackupConfigRacingStorageTransfer(t *testing.T) {
 }
 
 func TestListBackupConfigs(t *testing.T) {
+	t.Parallel()
+
 	t.Run("lists the saved configs of a workspace in one response with their storages", func(t *testing.T) {
 		tm := newTeam(t)
 		storageID := tm.createLocalStorage(t)
@@ -386,6 +394,8 @@ func TestListBackupConfigs(t *testing.T) {
 }
 
 func TestCopyDatabaseBackupConfig(t *testing.T) {
+	t.Parallel()
+
 	t.Run("gives the copy of a database the copy of its saved logical config", func(t *testing.T) {
 		tm := newTeam(t)
 		databaseID := tm.insertLogicalDatabase(t)
@@ -414,6 +424,8 @@ func TestCopyDatabaseBackupConfig(t *testing.T) {
 }
 
 func TestDeleteDatabaseBackupConfig(t *testing.T) {
+	t.Parallel()
+
 	t.Run("deletes the saved config with the database", func(t *testing.T) {
 		tm := newTeam(t)
 		databaseID := tm.insertLogicalDatabase(t)
@@ -444,6 +456,8 @@ func TestDeleteDatabaseBackupConfig(t *testing.T) {
 }
 
 func TestBackupConfigAccess(t *testing.T) {
+	t.Parallel()
+
 	t.Run("lets a viewer list the workspace's configs and read a database's config", func(t *testing.T) {
 		tm := newTeam(t)
 		viewer := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEVIEWER)

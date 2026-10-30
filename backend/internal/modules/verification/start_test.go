@@ -11,6 +11,8 @@ import (
 )
 
 func TestStartVerification(t *testing.T) {
+	t.Parallel()
+
 	t.Run("returns a pending verification before any agent runs when the backup is completed", func(t *testing.T) {
 		team := newVerificationTeam(t)
 		backup := team.backup(t)
@@ -89,6 +91,8 @@ func TestStartVerification(t *testing.T) {
 }
 
 func TestStartVerificationConcurrentRequests(t *testing.T) {
+	t.Parallel()
+
 	t.Run("creates one verification when members start it concurrently", func(t *testing.T) {
 		team := newVerificationTeam(t)
 		backup := team.backup(t)

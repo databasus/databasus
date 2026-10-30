@@ -16,7 +16,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 
-	"databasus-backend/internal/util/testing/containers"
+	containers "databasus-backend/internal/lib/testcontainers"
 )
 
 type supportedServer struct {
@@ -25,12 +25,14 @@ type supportedServer struct {
 	image   string
 }
 
-var supportedServers = []supportedServer{
-	{"MongoDB 5.0", Version5, "mongo:5.0"},
-	{"MongoDB 6.0", Version6, "mongo:6.0"},
-	{"MongoDB 7.0", Version7, "mongo:7.0"},
-	{"MongoDB 8.2", Version8, "mongo:8.2.3-noble"},
-	{"MongoDB 9.0", Version9, "mongo:9.0.2-noble"},
+func getSupportedServers() []supportedServer {
+	return []supportedServer{
+		{"MongoDB 5.0", Version5, "mongo:5.0"},
+		{"MongoDB 6.0", Version6, "mongo:6.0"},
+		{"MongoDB 7.0", Version7, "mongo:7.0"},
+		{"MongoDB 8.2", Version8, "mongo:8.2.3-noble"},
+		{"MongoDB 9.0", Version9, "mongo:9.0.2-noble"},
+	}
 }
 
 // testServer is one MongoDB server shared by the subtests of its version. Each subtest works in a
@@ -45,7 +47,7 @@ type testServer struct {
 // server against it. It is not parallel: docs/testing.md keeps one server per package alive at a
 // time, and TestOpenTunnel boots one of its own.
 func TestSourceAcrossSupportedVersions(t *testing.T) {
-	for _, server := range supportedServers {
+	for _, server := range getSupportedServers() {
 		t.Run(server.name, func(t *testing.T) {
 			startedServer := startTestServer(t, server.image, server.version)
 

@@ -4,7 +4,6 @@
     "typescript-lsp@claude-plugins-official": true
   },
   "env": {
-    "GOFLAGS": "-tags=testhelpers",
     "AGENT_REVIEW_CLIENT": "claude"
   },
   "hooks": {

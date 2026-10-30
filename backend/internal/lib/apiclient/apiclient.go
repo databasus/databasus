@@ -15,6 +15,7 @@ import (
 
 const apiBasePath = "/api/v1"
 
+//nolint:gochecknoglobals // The immutable contract router is parsed once and shared by test clients; it holds no application state.
 var loadContractRouter = sync.OnceValues(func() (routers.Router, error) {
 	return httpserver.NewContractRouter(contract.OpenAPI)
 })

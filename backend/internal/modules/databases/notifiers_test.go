@@ -12,13 +12,15 @@ import (
 
 	"databasus-backend/internal/app/apptest"
 	apiclient "databasus-backend/internal/lib/apiclient"
+	containers "databasus-backend/internal/lib/testcontainers"
 	"databasus-backend/internal/lib/testwait"
-	"databasus-backend/internal/util/testing/containers"
 )
 
 var errAttachmentNotWaiting = errors.New("no attachment waits for the lock on the notifier")
 
 func TestDatabaseNotifiers(t *testing.T) {
+	t.Parallel()
+
 	server := containers.StartPostgres(t, "postgres:16")
 
 	t.Run("returns 400 invalid_request naming the notifiers and creates nothing with a notifier of another workspace",

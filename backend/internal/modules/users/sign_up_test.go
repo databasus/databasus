@@ -13,6 +13,8 @@ import (
 )
 
 func TestSignUp(t *testing.T) {
+	t.Parallel()
+
 	t.Run("makes the user an active admin when the instance has no user", func(t *testing.T) {
 		app := apptest.New(t)
 

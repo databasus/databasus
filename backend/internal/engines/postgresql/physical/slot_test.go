@@ -16,7 +16,7 @@ func TestInspectionSlot(t *testing.T) {
 		t.Helper()
 
 		t.Run("reports allowance and current position with and without a slot wal limit", func(t *testing.T) {
-			inspection := server.openInspection(t, adminRole)
+			inspection := server.openInspection(t, getAdminRole())
 			slotName := newSlotName()
 			require.NoError(t, inspection.CreateSlot(t.Context(), slotName))
 			positionBeforeInspect, err := inspection.GetCurrentWalLSN(t.Context())
@@ -28,7 +28,7 @@ func TestInspectionSlot(t *testing.T) {
 			require.NotNil(t, slot.LagBytes)
 			assert.Nil(t, slot.SafeWalSizeBytes)
 			assert.GreaterOrEqual(t, *slot.CurrentLSN, positionBeforeInspect)
-			adminConn := server.connectAs(t, adminRole)
+			adminConn := server.connectAs(t, getAdminRole())
 			execStatements(t, adminConn, "ALTER SYSTEM SET max_slot_wal_keep_size = '100GB'", "SELECT pg_reload_conf()")
 			t.Cleanup(func() {
 				_, _ = adminConn.Exec(context.WithoutCancel(t.Context()), "ALTER SYSTEM RESET max_slot_wal_keep_size")
@@ -47,14 +47,14 @@ func TestInspectionSlot(t *testing.T) {
 		})
 		t.Run("reports a taken name when creating a slot twice", func(t *testing.T) {
 			t.Parallel()
-			inspection := server.openInspection(t, adminRole)
+			inspection := server.openInspection(t, getAdminRole())
 			slotName := newSlotName()
 			require.NoError(t, inspection.CreateSlot(t.Context(), slotName))
 			require.ErrorIs(t, inspection.CreateSlot(t.Context(), slotName), ErrSlotNameTaken)
 		})
 		t.Run("drops a logical slot when replacing a per backup slot", func(t *testing.T) {
 			t.Parallel()
-			inspection := server.openInspection(t, adminRole)
+			inspection := server.openInspection(t, getAdminRole())
 			slotName := newSlotName()
 			server.createLogicalSlot(t, slotName)
 			require.NoError(t, inspection.DropBackupSlotIfExists(t.Context(), slotName))

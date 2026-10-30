@@ -17,8 +17,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	io_utils "databasus-backend/internal/lib/iox"
 	"databasus-backend/internal/modules/storages/internal/providers/providertest"
-	io_utils "databasus-backend/internal/util/io"
 )
 
 func TestReadChunkedStream(t *testing.T) {

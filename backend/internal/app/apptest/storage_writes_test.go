@@ -12,6 +12,8 @@ import (
 )
 
 func TestPublishStorageFile(t *testing.T) {
+	t.Parallel()
+
 	t.Run("keeps a file when the deletion job processes expired commit windows", func(t *testing.T) {
 		testApp := New(t)
 		owner := testApp.CreateAdmin(t)

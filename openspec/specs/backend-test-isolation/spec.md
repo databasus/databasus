@@ -41,7 +41,7 @@ When a test that got its own internal database passes, its database SHALL be rem
 
 ### Requirement: Abandoned test databases are removed
 
-Test databases are the per-test and per-process copies. A test database that has no connections and was created more than an hour ago SHALL be removed by the next test process that asks for a test database, once per process. The migrated templates the copies are made from SHALL NOT be removed. A test database that has an open connection SHALL NOT be removed, whatever its age. Databases on the test server that are not test databases SHALL NOT be removed.
+Test databases are the copies allocated to individual tests. A test database that has no connections and was created more than an hour ago SHALL be removed by the next test process that asks for a test database, once per process. The migrated templates the copies are made from SHALL NOT be removed. A test database that has an open connection SHALL NOT be removed, whatever its age. Databases on the test server that are not test databases SHALL NOT be removed.
 
 #### Scenario: A killed run left databases behind
 
@@ -53,36 +53,18 @@ Test databases are the per-test and per-process copies. A test database that has
 - **WHEN** a test database was created more than an hour ago and a test still holds a connection to it
 - **THEN** another test process does not remove it
 
-### Requirement: Tests of code outside the target layout get a database per test process
+### Requirement: Test runs preserve unrelated database sources
 
-A test of backend code outside the target layout, which reaches the internal database through the process-wide database access, SHALL get one migrated internal database for its whole test process. Two such test processes running at the same time SHALL use different databases. The number of test packages that run at once SHALL NOT be limited by a number of prepared databases.
+Local and CI test runs SHALL NOT reset shared source servers or remove databases, roles, permissions or replication slots belonging to another test, worktree or development session. Source fixtures that a test changes SHALL belong to that test or use uniquely named objects with cleanup limited to those objects. The existing cleanup of abandoned internal test databases remains governed by its separate requirement.
 
-#### Scenario: Eight packages run at once
+#### Scenario: A local run starts beside a development session
+- **WHEN** a local backend run starts while a development source holds a database, a role and a replication slot
+- **THEN** preparing the run leaves those objects unchanged and issues no shared-source reset
 
-- **WHEN** eight backend test packages of old code run at the same time
-- **THEN** each package's process uses a database no other process uses
+#### Scenario: CI prepares a backend selection
+- **WHEN** CI prepares a backend test selection
+- **THEN** it does not run a shared-source reset or wait for fixed source ports that selection does not use
 
-#### Scenario: More packages than before
-
-- **WHEN** a developer runs backend tests with twelve packages at once
-- **THEN** every package gets its database and none waits for another to finish
-
-### Requirement: Resetting the shared database servers does not break running tests
-
-Test runs share three long-lived test PostgreSQL servers (one for logical backups, two for physical backups), and a full run first resets them: it drops the databases, roles and replication slots that tests left there. The reset SHALL start only after every test process on the machine that uses those servers has finished. A test process that starts while the reset runs SHALL wait for the reset to finish before it uses those servers. When the reset cannot start within 600 seconds because test processes keep using the servers, the full run SHALL stop with a non-zero status and a message that says other test runs are using the shared servers, and SHALL NOT reset them. Servers of other engines are not shared between runs and are not reset.
-
-#### Scenario: An agent's package run is in progress
-
-- **WHEN** a full run starts while a test package of another worktree is using the shared servers
-- **THEN** the reset starts only after that package's process has ended
-- **AND** that package's tests are not affected by the reset
-
-#### Scenario: Another run keeps the servers longer than the limit
-
-- **WHEN** a full run starts while another worktree's test process keeps using the shared servers for longer than 600 seconds
-- **THEN** the full run exits with a non-zero status, prints that other test runs are using the shared servers, and does not reset them
-
-#### Scenario: A package starts during the reset
-
-- **WHEN** a test package starts while the reset runs
-- **THEN** its tests use the shared servers only after the reset has finished
+#### Scenario: Seed tests overlap
+- **WHEN** two development-seed tests run concurrently using their own backend instances and source fixtures
+- **THEN** both can create their configured backups without changing the other test's source or internal data

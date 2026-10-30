@@ -13,8 +13,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	apiclient "databasus-backend/internal/lib/apiclient"
+	containers "databasus-backend/internal/lib/testcontainers"
 	"databasus-backend/internal/lib/testwait"
-	"databasus-backend/internal/util/testing/containers"
 )
 
 func (team *walTeam) useUnavailableStorage(t *testing.T) {
@@ -84,6 +84,8 @@ func (team *walTeam) recoverStorage(t *testing.T) *minio.Client {
 }
 
 func TestRecoverQueuedPhysicalWal(t *testing.T) {
+	t.Parallel()
+
 	t.Run("retains local segments after upload failure and commits them after S3 recovers", func(t *testing.T) {
 		team := newWalTeam(t, walTeamSpec{})
 		team.useUnavailableStorage(t)

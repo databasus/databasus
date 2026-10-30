@@ -10,10 +10,12 @@ import (
 	"github.com/stretchr/testify/require"
 
 	apiclient "databasus-backend/internal/lib/apiclient"
-	"databasus-backend/internal/util/testing/containers"
+	containers "databasus-backend/internal/lib/testcontainers"
 )
 
 func TestStartLogicalBackup(t *testing.T) {
+	t.Parallel()
+
 	server := startRestoreServer(t, restoreServerImage)
 
 	t.Run("returns 202 with a listed backup in progress that later completes with its size", func(t *testing.T) {
@@ -138,6 +140,8 @@ func TestStartLogicalBackup(t *testing.T) {
 }
 
 func TestStartLogicalBackupOfPhysicalDatabase(t *testing.T) {
+	t.Parallel()
+
 	physicalServer := containers.StartPhysicalPostgres(t, "postgres:17")
 
 	t.Run("returns 400 invalid_request for a physical database and starts nothing", func(t *testing.T) {

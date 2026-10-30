@@ -21,14 +21,16 @@ import (
 	"databasus-backend/internal/lib/background"
 	"databasus-backend/internal/lib/clock"
 	"databasus-backend/internal/lib/database"
+	containers "databasus-backend/internal/lib/testcontainers"
 	"databasus-backend/internal/lib/testwait"
 	"databasus-backend/internal/modules/backups"
-	"databasus-backend/internal/util/testing/containers"
 )
 
 const isolationMarkerVersion = 99990101000000
 
 func TestNew(t *testing.T) {
+	t.Parallel()
+
 	t.Run("passes the response through the middleware of the server", func(t *testing.T) {
 		testApp := New(t)
 		client := apiclient.New(t, testApp.URL)
@@ -64,23 +66,11 @@ func TestNew(t *testing.T) {
 		).Scan(&markerCount).Error)
 		assert.Zero(t, markerCount)
 	})
-
-	t.Run("fails the test when another test application is alive", func(t *testing.T) {
-		New(t)
-		secondTest := &fatalRecorder{TB: t, failure: "", mutex: sync.Mutex{}}
-
-		isFinished := make(chan struct{})
-		go func() {
-			defer close(isFinished)
-			New(secondTest)
-		}()
-		<-isFinished
-
-		assert.Contains(t, secondTest.getFailure(), "run one at a time")
-	})
 }
 
 func TestRunJobPass(t *testing.T) {
+	t.Parallel()
+
 	t.Run("refuses a WAL manager pass when live physical jobs are disabled", func(t *testing.T) {
 		testApp := New(t)
 		recordingTest := &fatalRecorder{TB: t, failure: "", mutex: sync.Mutex{}}
@@ -166,6 +156,8 @@ func (r *fatalRecorder) getFailure() string {
 }
 
 func TestPhysicalBackupLoops(t *testing.T) {
+	t.Parallel()
+
 	t.Run("records distinct sample times and exposes no manual clock with live jobs", func(t *testing.T) {
 		testApp := New(t, WithPhysicalBackupLoops())
 		require.Nil(t, testApp.Clock)
@@ -409,6 +401,8 @@ func listPhysicalBackups(t *testing.T, testApp *App, owner Session, databaseID u
 }
 
 func TestPhysicalStartupWork(t *testing.T) {
+	t.Parallel()
+
 	t.Run("fails an unfinished backup when modules restart", func(t *testing.T) {
 		testApp := New(t)
 		source := containers.StartPhysicalPostgres(t, "postgres:17")
@@ -540,6 +534,8 @@ func openPhysicalSource(t *testing.T, source containers.Endpoint) *pgx.Conn {
 }
 
 func TestWalStreamTimings(t *testing.T) {
+	t.Parallel()
+
 	t.Run("archives WAL from a quiet source when the application shortens forced rotation", func(t *testing.T) {
 		timings := backups.ProductionWalStreamTimings()
 		timings.ForcedRotationInterval = 2 * time.Second

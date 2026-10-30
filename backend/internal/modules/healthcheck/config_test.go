@@ -12,6 +12,8 @@ import (
 )
 
 func TestHealthcheckConfig(t *testing.T) {
+	t.Parallel()
+
 	t.Run("returns the enabled default after database creation without changing it on read", func(t *testing.T) {
 		team := newHealthcheckTeam(t)
 		config := team.getConfig(t)

@@ -12,6 +12,8 @@ import (
 )
 
 func TestGetInstanceSettings(t *testing.T) {
+	t.Parallel()
+
 	t.Run("returns the defaults of a new instance with the second factor off", func(t *testing.T) {
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
@@ -60,6 +62,8 @@ func TestGetInstanceSettings(t *testing.T) {
 }
 
 func TestUpdateInstanceSettings(t *testing.T) {
+	t.Parallel()
+
 	t.Run("replaces the settings and reads them back when an admin updates them", func(t *testing.T) {
 		app := apptest.New(t)
 		admin := app.CreateAdmin(t)
@@ -172,6 +176,8 @@ func TestUpdateInstanceSettings(t *testing.T) {
 }
 
 func TestTwoFactorSetting(t *testing.T) {
+	t.Parallel()
+
 	t.Run("refuses to turn the second factor on and names the mail server when there is none", func(t *testing.T) {
 		app := apptest.New(t, apptest.WithoutMailServer())
 		admin := app.CreateAdmin(t)
@@ -245,6 +251,8 @@ func TestTwoFactorSetting(t *testing.T) {
 }
 
 func TestSignUpWithClosedRegistration(t *testing.T) {
+	t.Parallel()
+
 	t.Run("returns 403 registration_closed when the instance has a user and registration is closed",
 		func(t *testing.T) {
 			app := apptest.New(t)

@@ -15,6 +15,8 @@ import (
 )
 
 func TestTransferDatabase(t *testing.T) {
+	t.Parallel()
+
 	t.Run("moves the database and its storage when no other database uses the storage", func(t *testing.T) {
 		tm := newTeam(t)
 		targetWorkspace := tm.createWorkspace(t)
@@ -217,6 +219,8 @@ func TestTransferDatabase(t *testing.T) {
 }
 
 func TestTransferDatabasePermissions(t *testing.T) {
+	t.Parallel()
+
 	t.Run("moves the database when the user is a member of both workspaces", func(t *testing.T) {
 		tm := newTeam(t)
 		member := tm.addMember(t, apiclient.AssignableWorkspaceRoleWORKSPACEMEMBER)
@@ -297,6 +301,8 @@ func TestTransferDatabasePermissions(t *testing.T) {
 }
 
 func TestTransferDatabaseOutsideSourceWorkspace(t *testing.T) {
+	t.Parallel()
+
 	t.Run("answers a database of another team exactly as a database that does not exist", func(t *testing.T) {
 		tm := newTeam(t)
 		stranger := tm.app.CreateNonAdminUser(t, tm.admin)

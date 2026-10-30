@@ -13,10 +13,12 @@ import (
 	"databasus-backend/internal/app/apptest"
 	"databasus-backend/internal/app/apptest/enginetest"
 	apiclient "databasus-backend/internal/lib/apiclient"
-	"databasus-backend/internal/util/testing/containers"
+	containers "databasus-backend/internal/lib/testcontainers"
 )
 
 func TestVerifyBackup(t *testing.T) {
+	t.Parallel()
+
 	for _, version := range []struct {
 		major string
 		image string

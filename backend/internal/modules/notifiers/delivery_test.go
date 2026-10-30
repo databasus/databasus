@@ -19,10 +19,10 @@ import (
 
 	"databasus-backend/internal/app/apptest"
 	apiclient "databasus-backend/internal/lib/apiclient"
+	mailpit "databasus-backend/internal/lib/mailpittest"
+	containers "databasus-backend/internal/lib/testcontainers"
 	"databasus-backend/internal/lib/testwait"
 	"databasus-backend/internal/modules/notifiers"
-	"databasus-backend/internal/util/testing/containers"
-	"databasus-backend/internal/util/testing/mailpit"
 )
 
 var (
@@ -32,13 +32,17 @@ var (
 	errNoMail           = errors.New("the message has not arrived")
 )
 
-var backupFailedNotification = notifiers.Notification{
-	Category: notifiers.CategoryBackupFailed,
-	Heading:  "Backup failed",
-	Message:  "The disk of the storage is full",
+func getBackupFailedNotification() notifiers.Notification {
+	return notifiers.Notification{
+		Category: notifiers.CategoryBackupFailed,
+		Heading:  "Backup failed",
+		Message:  "The disk of the storage is full",
+	}
 }
 
 func TestNotify(t *testing.T) {
+	t.Parallel()
+
 	t.Run("delivers to discord without waiting for a webhook that never answers, which then times out",
 		func(t *testing.T) {
 			tm := newTeam(t, apptest.WithNotificationDeliveryTimeout(time.Second))
@@ -50,11 +54,11 @@ func TestNotify(t *testing.T) {
 				newDiscordSettings(t, discordWebhook.URL))
 			notifiedAt := time.Now()
 
-			tm.app.Notify(t, []uuid.UUID{webhookNotifier.Id, discordNotifier.Id}, backupFailedNotification)
+			tm.app.Notify(t, []uuid.UUID{webhookNotifier.Id, discordNotifier.Id}, getBackupFailedNotification())
 
 			assert.Less(t, time.Since(notifiedAt), 500*time.Millisecond)
 			waitForRequest(t, discordWebhook)
-			assert.Contains(t, discordWebhook.getRequests()[0].Body, backupFailedNotification.Message)
+			assert.Contains(t, discordWebhook.getRequests()[0].Body, getBackupFailedNotification().Message)
 			lastSendError := waitForSendError(t, tm.owner, webhookNotifier.Id)
 			assert.Contains(t, lastSendError, "timed out")
 		})
@@ -101,6 +105,8 @@ func TestNotify(t *testing.T) {
 }
 
 func TestDeliveryOutcome(t *testing.T) {
+	t.Parallel()
+
 	t.Run("keeps the name and URL saved during a delivery and records the delivery's error", func(t *testing.T) {
 		tm := newTeam(t)
 		blockingEndpoint := startBlockingEndpoint(t, http.StatusInternalServerError)
@@ -108,7 +114,7 @@ func TestDeliveryOutcome(t *testing.T) {
 		webhookNotifier := apptest.CreateNotifier(t, tm.owner, tm.workspace.Id,
 			newWebhookSettings(t, newPostWebhook(blockingEndpoint.URL)))
 
-		tm.app.Notify(t, []uuid.UUID{webhookNotifier.Id}, backupFailedNotification)
+		tm.app.Notify(t, []uuid.UUID{webhookNotifier.Id}, getBackupFailedNotification())
 		testwait.Until(t, "the delivery reaches the endpoint", func(context.Context) error {
 			if blockingEndpoint.requestCount.Load() == 0 {
 				return errNoRequest
@@ -145,10 +151,10 @@ func TestDeliveryOutcome(t *testing.T) {
 			webhookNotifier := apptest.CreateNotifier(t, tm.owner, tm.workspace.Id,
 				newWebhookSettings(t, newPostWebhook(switchingEndpoint.URL)))
 
-			tm.app.Notify(t, []uuid.UUID{webhookNotifier.Id}, backupFailedNotification)
+			tm.app.Notify(t, []uuid.UUID{webhookNotifier.Id}, getBackupFailedNotification())
 			failedDeliveryError := waitForSendError(t, tm.owner, webhookNotifier.Id)
 			endpointStatus.Store(http.StatusOK)
-			tm.app.Notify(t, []uuid.UUID{webhookNotifier.Id}, backupFailedNotification)
+			tm.app.Notify(t, []uuid.UUID{webhookNotifier.Id}, getBackupFailedNotification())
 
 			assert.Contains(t, failedDeliveryError, "502")
 			testwait.Until(t, "the successful delivery clears the error", func(context.Context) error {
@@ -162,17 +168,19 @@ func TestDeliveryOutcome(t *testing.T) {
 }
 
 func TestDeliveryThroughEachProvider(t *testing.T) {
+	t.Parallel()
+
 	t.Run("posts the notification to the webhook", func(t *testing.T) {
 		tm := newTeam(t)
 		webhookEndpoint := startEndpoint(t, http.StatusOK)
 		webhookNotifier := apptest.CreateNotifier(t, tm.owner, tm.workspace.Id,
 			newWebhookSettings(t, newPostWebhook(webhookEndpoint.URL)))
 
-		tm.app.Notify(t, []uuid.UUID{webhookNotifier.Id}, backupFailedNotification)
+		tm.app.Notify(t, []uuid.UUID{webhookNotifier.Id}, getBackupFailedNotification())
 
 		waitForRequest(t, webhookEndpoint)
-		assert.Contains(t, webhookEndpoint.getRequests()[0].Body, backupFailedNotification.Heading)
-		assert.Contains(t, webhookEndpoint.getRequests()[0].Body, backupFailedNotification.Message)
+		assert.Contains(t, webhookEndpoint.getRequests()[0].Body, getBackupFailedNotification().Heading)
+		assert.Contains(t, webhookEndpoint.getRequests()[0].Body, getBackupFailedNotification().Message)
 	})
 
 	t.Run("posts the notification to the discord channel webhook", func(t *testing.T) {
@@ -181,10 +189,10 @@ func TestDeliveryThroughEachProvider(t *testing.T) {
 		discordNotifier := apptest.CreateNotifier(t, tm.owner, tm.workspace.Id,
 			newDiscordSettings(t, discordWebhook.URL))
 
-		tm.app.Notify(t, []uuid.UUID{discordNotifier.Id}, backupFailedNotification)
+		tm.app.Notify(t, []uuid.UUID{discordNotifier.Id}, getBackupFailedNotification())
 
 		waitForRequest(t, discordWebhook)
-		assert.Contains(t, discordWebhook.getRequests()[0].Body, backupFailedNotification.Message)
+		assert.Contains(t, discordWebhook.getRequests()[0].Body, getBackupFailedNotification().Message)
 	})
 
 	t.Run("posts the notification to the teams workflow", func(t *testing.T) {
@@ -198,10 +206,10 @@ func TestDeliveryThroughEachProvider(t *testing.T) {
 				})
 			}))
 
-		tm.app.Notify(t, []uuid.UUID{teamsNotifier.Id}, backupFailedNotification)
+		tm.app.Notify(t, []uuid.UUID{teamsNotifier.Id}, getBackupFailedNotification())
 
 		waitForRequest(t, teamsWorkflow)
-		assert.Contains(t, teamsWorkflow.getRequests()[0].Body, backupFailedNotification.Message)
+		assert.Contains(t, teamsWorkflow.getRequests()[0].Body, getBackupFailedNotification().Message)
 	})
 
 	t.Run("posts the notification to the mattermost incoming webhook", func(t *testing.T) {
@@ -223,10 +231,10 @@ func TestDeliveryThroughEachProvider(t *testing.T) {
 				})
 			}))
 
-		tm.app.Notify(t, []uuid.UUID{mattermostNotifier.Id}, backupFailedNotification)
+		tm.app.Notify(t, []uuid.UUID{mattermostNotifier.Id}, getBackupFailedNotification())
 
 		waitForRequest(t, mattermostWebhook)
-		assert.Contains(t, mattermostWebhook.getRequests()[0].Body, backupFailedNotification.Message)
+		assert.Contains(t, mattermostWebhook.getRequests()[0].Body, getBackupFailedNotification().Message)
 	})
 
 	t.Run("posts the notification to the slack channel with the bot token", func(t *testing.T) {
@@ -242,14 +250,14 @@ func TestDeliveryThroughEachProvider(t *testing.T) {
 				TargetChatId: "C0123",
 			}))
 
-		tm.app.Notify(t, []uuid.UUID{slackNotifier.Id}, backupFailedNotification)
+		tm.app.Notify(t, []uuid.UUID{slackNotifier.Id}, getBackupFailedNotification())
 
 		waitForRequest(t, slackAPI)
 		slackRequest := slackAPI.getRequests()[0]
 		assert.Equal(t, "/api/chat.postMessage", slackRequest.Path)
 		assert.Equal(t, "Bearer xoxb-delivery-token", slackRequest.Headers.Get("Authorization"))
 		assert.Contains(t, slackRequest.Body, `"channel":"C0123"`)
-		assert.Contains(t, slackRequest.Body, backupFailedNotification.Message)
+		assert.Contains(t, slackRequest.Body, getBackupFailedNotification().Message)
 	})
 
 	t.Run("sends the notification through the official bot API when the notifier names none", func(t *testing.T) {
@@ -261,13 +269,13 @@ func TestDeliveryThroughEachProvider(t *testing.T) {
 		telegramNotifier := apptest.CreateNotifier(t, tm.owner, tm.workspace.Id,
 			newTelegramSettings(t, newTelegram(telegramBotToken, "")))
 
-		tm.app.Notify(t, []uuid.UUID{telegramNotifier.Id}, backupFailedNotification)
+		tm.app.Notify(t, []uuid.UUID{telegramNotifier.Id}, getBackupFailedNotification())
 
 		waitForRequest(t, botAPI)
 		botAPIRequest := botAPI.getRequests()[0]
 		assert.Equal(t, "/bot"+telegramBotToken+"/sendMessage", botAPIRequest.Path)
 		assert.Equal(t, "123456", getFormValue(t, botAPIRequest.Body, "chat_id"))
-		assert.Contains(t, getFormValue(t, botAPIRequest.Body, "text"), backupFailedNotification.Message)
+		assert.Contains(t, getFormValue(t, botAPIRequest.Body, "text"), getBackupFailedNotification().Message)
 	})
 
 	t.Run("mails the notification through the notifier's SMTP server", func(t *testing.T) {
@@ -290,12 +298,12 @@ func TestDeliveryThroughEachProvider(t *testing.T) {
 				})
 			}))
 
-		tm.app.Notify(t, []uuid.UUID{emailNotifier.Id}, backupFailedNotification)
+		tm.app.Notify(t, []uuid.UUID{emailNotifier.Id}, getBackupFailedNotification())
 
 		var deliveredMessages []mailpit.Message
 
 		testwait.Until(t, "the message arrives at Mailpit", func(context.Context) error {
-			messages, err := mailpitClient.FetchMessages()
+			messages, err := mailpitClient.FetchMessages(t.Context())
 			if err != nil {
 				return err
 			}
@@ -310,7 +318,7 @@ func TestDeliveryThroughEachProvider(t *testing.T) {
 		})
 
 		require.Len(t, deliveredMessages, 1)
-		assert.Equal(t, backupFailedNotification.Heading, deliveredMessages[0].Subject)
+		assert.Equal(t, getBackupFailedNotification().Heading, deliveredMessages[0].Subject)
 		require.Len(t, deliveredMessages[0].To, 1)
 		assert.Equal(t, "recipient@databasus.local", deliveredMessages[0].To[0].Address)
 	})

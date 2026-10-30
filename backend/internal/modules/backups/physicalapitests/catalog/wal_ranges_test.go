@@ -9,6 +9,8 @@ import (
 )
 
 func TestGetPhysicalBackupWalRanges(t *testing.T) {
+	t.Parallel()
+
 	type walRangeCase struct {
 		stopSegment uint64
 		count       int

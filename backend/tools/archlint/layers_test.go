@@ -65,7 +65,73 @@ func TestImports(t *testing.T) {
 
 	t.Run("passes for a clean module", func(t *testing.T) {
 		t.Parallel()
-		violations := checkFixture(t, cleanModuleFiles)
+		violations := checkFixture(t, getCleanModuleFiles())
+
+		assert.Empty(t, violations)
+	})
+}
+
+func TestCommandImports(t *testing.T) {
+	t.Parallel()
+	for _, commandName := range []string{"seed_dev", "other"} {
+		t.Run("rejects agent implementation imports from "+commandName, func(t *testing.T) {
+			t.Parallel()
+			violations := checkFixture(t, map[string]string{
+				"internal/agent/worker/worker.go": "package worker\n",
+				"cmd/" + commandName + "/main.go": "package main\nimport _ \"fixture/internal/agent/worker\"\n",
+			})
+			requireSingleViolation(
+				t,
+				violations,
+				violationSpec{
+					position:     "cmd/" + commandName + "/main.go:2",
+					rule:         "layer",
+					messageParts: []string{"only the agent imports the agent"},
+				},
+			)
+		})
+	}
+}
+
+func TestUnclassifiedImports(t *testing.T) {
+	t.Parallel()
+
+	t.Run("rejects agent implementation when the importer has no classified layer", func(t *testing.T) {
+		t.Parallel()
+		violations := checkFixture(t, map[string]string{
+			"internal/agent/config/config.go": "package config\n",
+			"internal/other/service.go":       "package other\n\nimport _ \"fixture/internal/agent/config\"\n",
+		})
+
+		requireSingleViolation(t, violations, violationSpec{
+			position:     "internal/other/service.go:3",
+			rule:         "layer",
+			messageParts: []string{"only the agent imports the agent"},
+		})
+	})
+
+	t.Run("rejects module internals when the importer has no classified layer", func(t *testing.T) {
+		t.Parallel()
+		violations := checkFixture(t, map[string]string{
+			"internal/modules/users/module.go":                  "package users\n",
+			"internal/modules/users/internal/access/service.go": "package access\n",
+			"internal/other/service.go": "package other\n\n" +
+				"import _ \"fixture/internal/modules/users/internal/access\"\n",
+		})
+
+		requireSingleViolation(t, violations, violationSpec{
+			position:     "internal/other/service.go:3",
+			rule:         "module-boundary",
+			messageParts: []string{"only through internal/modules/users"},
+		})
+	})
+
+	t.Run("accepts a module contract when the importer has no classified layer", func(t *testing.T) {
+		t.Parallel()
+		violations := checkFixture(t, map[string]string{
+			"internal/modules/users/module.go": "package users\n",
+			"internal/other/service.go":        "package other\n\nimport _ \"fixture/internal/modules/users\"\n",
+		})
 
 		assert.Empty(t, violations)
 	})

@@ -13,6 +13,7 @@ import (
 	"databasus-backend/internal/lib/config"
 )
 
+//nolint:gochecknoglobals // TestMain builds the binaries and sets their paths and version once before any scenario runs.
 var (
 	currentBinaryDirectory string
 	olderBinaryDirectory   string

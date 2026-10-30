@@ -12,6 +12,8 @@ import (
 )
 
 func TestRestoreOutcome(t *testing.T) {
+	t.Parallel()
+
 	server := startRestoreServer(t, restoreServerImage)
 
 	t.Run("fails the restore with the storage error when the storage refuses the read", func(t *testing.T) {

@@ -13,15 +13,18 @@ import (
 	"github.com/stretchr/testify/require"
 
 	apiclient "databasus-backend/internal/lib/apiclient"
-	"databasus-backend/internal/util/testing/containers"
+	containers "databasus-backend/internal/lib/testcontainers"
 )
 
 const restoreTargetPassword = "restore-secret-5d1e"
 
-// restoreFields are every field of a restore in the contract, none of which belongs to its target.
-var restoreFields = []string{"id", "backupId", "status", "failMessage", "durationMs", "createdAt"}
+func getRestoreFields() []string {
+	return []string{"id", "backupId", "status", "failMessage", "durationMs", "createdAt"}
+}
 
 func TestRestoreTargetCredentials(t *testing.T) {
+	t.Parallel()
+
 	server := startRestoreServer(t, restoreServerImage)
 
 	t.Run("returns the restore without any field of its target", func(t *testing.T) {
@@ -39,7 +42,7 @@ func TestRestoreTargetCredentials(t *testing.T) {
 		require.NoError(t, json.Unmarshal(response.Body, &restoreBody))
 
 		for field := range restoreBody {
-			assert.True(t, slices.Contains(restoreFields, field), "the restore returns the field %s", field)
+			assert.True(t, slices.Contains(getRestoreFields(), field), "the restore returns the field %s", field)
 		}
 
 		assert.NotContains(t, string(response.Body), targetSpec.databaseName)
@@ -53,10 +56,14 @@ func TestRestoreTargetCredentials(t *testing.T) {
 
 		startedRestore := requireStartedRestore(t, tm.owner, database.backup.Id, server.newRestoreTarget(t, targetSpec))
 		waitForRestoreStatus(t, tm.owner, startedRestore.Id, apiclient.RestoreStatusCOMPLETED)
-		waitForRestoreLogRecord(t, "logical restore completed", startedRestore.Id)
+		waitForRestoreLogRecord(
+			t,
+			tm,
+			restoreLogRecord{message: "logical restore completed", restoreID: startedRestore.Id},
+		)
 
 		assert.Empty(t, listTablesHolding(t, tm, restoreTargetPassword))
-		assert.NotContains(t, readApplicationLogs(t), restoreTargetPassword)
+		assert.NotContains(t, readApplicationLogs(t, tm), restoreTargetPassword)
 	})
 }
 

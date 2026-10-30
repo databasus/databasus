@@ -13,19 +13,21 @@ import (
 	"golang.org/x/tools/go/packages"
 )
 
-var testLibraryPaths = []string{"testing", "github.com/stretchr/testify", "github.com/testcontainers/testcontainers-go"}
+func getTestLibraryPaths() []string {
+	return []string{"testing", "github.com/stretchr/testify", "github.com/testcontainers/testcontainers-go"}
+}
 
-// acceptedThirdPartyTestImporters are dependencies outside our control whose production code imports
-// a test library. Each entry names why the package is linked; any other importer fails the check.
-var acceptedThirdPartyTestImporters = map[string]string{
-	"github.com/Files-com/files-sdk-go/v3/lib": "rclone's Files.com backend links the SDK's lib package, " +
-		"which keeps assertion helpers in production code",
-	"github.com/rclone/Proton-API-Bridge": "rclone's Proton Drive backend links the bridge, " +
-		"which imports testing in production code",
+func getAcceptedThirdPartyTestImporters() map[string]string {
+	return map[string]string{
+		"github.com/Files-com/files-sdk-go/v3/lib": "rclone's Files.com backend links the SDK's lib package, " +
+			"which keeps assertion helpers in production code",
+		"github.com/rclone/Proton-API-Bridge": "rclone's Proton Drive backend links the bridge, " +
+			"which imports testing in production code",
+	}
 }
 
 func isTestLibrary(importPath string) bool {
-	return slices.ContainsFunc(testLibraryPaths, func(libraryPath string) bool {
+	return slices.ContainsFunc(getTestLibraryPaths(), func(libraryPath string) bool {
 		return hasPathPrefix(importPath, libraryPath)
 	})
 }
@@ -89,7 +91,7 @@ func checkEntryPointDependencies(root string, entryPoint entryPointSpec) ([]viol
 				continue
 			}
 
-			if isTestLibrary(importPath) && acceptedThirdPartyTestImporters[loadedPackage.PkgPath] != "" {
+			if isTestLibrary(importPath) && getAcceptedThirdPartyTestImporters()[loadedPackage.PkgPath] != "" {
 				continue
 			}
 

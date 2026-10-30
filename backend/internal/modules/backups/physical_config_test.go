@@ -9,10 +9,12 @@ import (
 	"github.com/stretchr/testify/require"
 
 	apiclient "databasus-backend/internal/lib/apiclient"
-	"databasus-backend/internal/util/testing/containers"
+	containers "databasus-backend/internal/lib/testcontainers"
 )
 
 func TestSavePhysicalBackupConfig(t *testing.T) {
+	t.Parallel()
+
 	physicalServer := containers.StartPhysicalPostgres(t, "postgres:17")
 
 	t.Run("refuses an incremental schedule slower than the full one", func(t *testing.T) {

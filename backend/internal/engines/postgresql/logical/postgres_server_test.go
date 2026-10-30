@@ -13,10 +13,12 @@ import (
 	"github.com/stretchr/testify/require"
 
 	pgshared "databasus-backend/internal/engines/postgresql/shared"
-	"databasus-backend/internal/util/testing/containers"
+	containers "databasus-backend/internal/lib/testcontainers"
 )
 
-var adminRole = testRole{Name: containers.PostgresUsername, Password: containers.PostgresPassword}
+func getAdminRole() testRole {
+	return testRole{Name: containers.PostgresUsername, Password: containers.PostgresPassword}
+}
 
 type testRole struct {
 	Name     string
@@ -58,7 +60,7 @@ func (s testServer) createDatabase(t *testing.T) testDatabase {
 func (s testServer) createNamedDatabase(t *testing.T, databaseName string) testDatabase {
 	t.Helper()
 
-	serverConn, err := s.openConn(t.Context(), adminRole, containers.PostgresDatabase)
+	serverConn, err := s.openConn(t.Context(), getAdminRole(), containers.PostgresDatabase)
 	require.NoError(t, err)
 
 	_, err = serverConn.Exec(t.Context(), fmt.Sprintf(`CREATE DATABASE "%s"`, databaseName))
@@ -74,7 +76,7 @@ func (s testServer) createNamedDatabase(t *testing.T, databaseName string) testD
 	return testDatabase{
 		server:           s,
 		name:             databaseName,
-		admin:            s.connectAs(t, adminRole, databaseName),
+		admin:            s.connectAs(t, getAdminRole(), databaseName),
 		createdRoleNames: createdRoleNames,
 	}
 }
@@ -84,7 +86,7 @@ func (s testServer) dropDatabaseAndRoles(t *testing.T, databaseName string, role
 
 	ctx := context.WithoutCancel(t.Context())
 
-	serverConn, err := s.openConn(ctx, adminRole, containers.PostgresDatabase)
+	serverConn, err := s.openConn(ctx, getAdminRole(), containers.PostgresDatabase)
 	if err != nil {
 		t.Logf("failed to connect to drop database %s: %v", databaseName, err)
 
@@ -180,7 +182,7 @@ func (d testDatabase) newSource(role testRole) *Source {
 }
 
 func (d testDatabase) newAdminSource() *Source {
-	return d.newSource(adminRole)
+	return d.newSource(getAdminRole())
 }
 
 func (d testDatabase) connectAs(t *testing.T, role testRole) *pgx.Conn {

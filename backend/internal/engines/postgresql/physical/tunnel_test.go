@@ -11,7 +11,7 @@ import (
 
 	pgshared "databasus-backend/internal/engines/postgresql/shared"
 	"databasus-backend/internal/lib/sshtunnel"
-	"databasus-backend/internal/util/testing/containers"
+	containers "databasus-backend/internal/lib/testcontainers"
 )
 
 const unreachableBastionTimeout = 2 * time.Second
@@ -60,11 +60,11 @@ func TestOpenTunnel(t *testing.T) {
 		assert.Error(t, err)
 	})
 
-	for _, image := range supportedVersionImages {
+	for _, image := range getSupportedVersionImages() {
 		// PostgreSQL keeps the real host through a tunnel: sslmode=verify-full matches the
 		// certificate against it, and libpq looks up .pgpass by host and port.
 		t.Run("inspects the cluster through the bastion with the real host kept on "+image, func(t *testing.T) {
-			topology := containers.StartPhysicalPostgresBehindSshBastion(t, image)
+			topology := containers.StartPhysicalPostgresBehindSSHBastion(t, image)
 			settings := newUnreachableSettings()
 			settings.Host = topology.Database.Host
 			settings.Port = topology.Database.Port
@@ -102,8 +102,8 @@ func newUnreachableSettings() Settings {
 		Host:     "cluster.internal",
 		HostAddr: "",
 		Port:     5432,
-		Username: adminRole.Name,
-		Password: adminRole.Password,
+		Username: getAdminRole().Name,
+		Password: getAdminRole().Password,
 		TLS: pgshared.TLS{
 			Mode:       pgshared.SslModeDisable,
 			ClientCert: "",
@@ -118,9 +118,9 @@ func newBastionSettings(bastion containers.Endpoint) *sshtunnel.Settings {
 	return &sshtunnel.Settings{
 		Host:                 bastion.Host,
 		Port:                 bastion.Port,
-		Username:             containers.SshBastionUsername,
+		Username:             containers.SSHBastionUsername,
 		AuthType:             sshtunnel.AuthTypePassword,
-		Password:             containers.SshBastionPassword,
+		Password:             containers.SSHBastionPassword,
 		PrivateKey:           "",
 		PrivateKeyPassphrase: "",
 	}

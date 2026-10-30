@@ -17,6 +17,8 @@ import (
 const shutdownFailMessage = "backup interrupted by application shutdown"
 
 func TestPhysicalBackupShutdown(t *testing.T) {
+	t.Parallel()
+
 	for _, kind := range []string{"full", "incremental"} {
 		t.Run(
 			"records failure and notifies subscribers when shutdown interrupts a "+kind+" stream",
@@ -82,6 +84,8 @@ func TestPhysicalBackupShutdown(t *testing.T) {
 }
 
 func TestCancelDispatchedPhysicalBackup(t *testing.T) {
+	t.Parallel()
+
 	t.Run(
 		"waits for process cleanup when cancellation records a terminal status before the process stops",
 		func(t *testing.T) {

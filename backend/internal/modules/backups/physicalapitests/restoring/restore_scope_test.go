@@ -8,6 +8,8 @@ import (
 )
 
 func TestPhysicalRestoreWalScope(t *testing.T) {
+	t.Parallel()
+
 	for _, testCase := range []struct {
 		name   string
 		offset fixtureLSN

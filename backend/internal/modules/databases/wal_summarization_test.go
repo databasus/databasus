@@ -9,10 +9,12 @@ import (
 
 	pgshared "databasus-backend/internal/engines/postgresql/shared"
 	apiclient "databasus-backend/internal/lib/apiclient"
-	"databasus-backend/internal/util/testing/containers"
+	containers "databasus-backend/internal/lib/testcontainers"
 )
 
 func TestPhysicalDatabaseWalSummarization(t *testing.T) {
+	t.Parallel()
+
 	incrementalBackupTypes := []apiclient.PhysicalBackupType{
 		apiclient.PhysicalBackupTypeFULLINCREMENTAL,
 		apiclient.PhysicalBackupTypeFULLINCREMENTALWALSTREAM,

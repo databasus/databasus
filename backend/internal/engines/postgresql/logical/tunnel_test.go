@@ -10,7 +10,7 @@ import (
 
 	pgshared "databasus-backend/internal/engines/postgresql/shared"
 	"databasus-backend/internal/lib/sshtunnel"
-	"databasus-backend/internal/util/testing/containers"
+	containers "databasus-backend/internal/lib/testcontainers"
 )
 
 const unreachableBastionTimeout = 2 * time.Second
@@ -88,13 +88,13 @@ func TestOpenTunnel(t *testing.T) {
 	// and libpq looks up .pgpass by host and port.
 	t.Run("reaches database through bastion and keeps the real host", func(t *testing.T) {
 		t.Parallel()
-		bastionedDatabase := containers.StartPostgresBehindSshBastion(t, "postgres:17")
+		bastionedDatabase := containers.StartPostgresBehindSSHBastion(t, "postgres:17")
 		tunnelSettings := sshtunnel.Settings{
 			Host:                 bastionedDatabase.Bastion.Host,
 			Port:                 bastionedDatabase.Bastion.Port,
-			Username:             containers.SshBastionUsername,
+			Username:             containers.SSHBastionUsername,
 			AuthType:             sshtunnel.AuthTypePassword,
-			Password:             containers.SshBastionPassword,
+			Password:             containers.SSHBastionPassword,
 			PrivateKey:           "",
 			PrivateKeyPassphrase: "",
 		}

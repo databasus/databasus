@@ -18,6 +18,8 @@ import (
 var errLaterHandlerRefused = errors.New("a later handler refuses the deletion")
 
 func TestDeleteNotifier(t *testing.T) {
+	t.Parallel()
+
 	t.Run("returns 409 in_use and keeps the notifier when a database uses it", func(t *testing.T) {
 		tm := newTeam(t)
 		createdNotifier := apptest.CreateNotifier(t, tm.owner, tm.workspace.Id,
@@ -64,6 +66,8 @@ func TestDeleteNotifier(t *testing.T) {
 }
 
 func TestDeleteWorkspaceWithNotifiers(t *testing.T) {
+	t.Parallel()
+
 	t.Run("deletes the notifiers of the workspace with it", func(t *testing.T) {
 		tm := newTeam(t)
 		apptest.CreateNotifier(t, tm.owner, tm.workspace.Id,

@@ -11,6 +11,8 @@ import (
 )
 
 func TestVerificationDatabaseEvents(t *testing.T) {
+	t.Parallel()
+
 	for _, isSaved := range []bool{false, true} {
 		t.Run(
 			"copies the saved config or keeps the default when a database is copied with saved="+map[bool]string{false: "false", true: "true"}[isSaved],

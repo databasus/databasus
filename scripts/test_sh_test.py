@@ -4,7 +4,6 @@ from pathlib import Path
 import re
 import shutil
 import signal
-import socket
 import subprocess
 import tempfile
 import textwrap
@@ -14,7 +13,6 @@ import unittest
 
 REPOSITORY_ROOT = Path(__file__).resolve().parent.parent
 FULL_RUN_LOCK_NAME = "databasus-full-test.lock"
-FIXTURES_LOCK_NAME = "databasus-test-fixtures.lock"
 WAIT_TIMEOUT_SECONDS = 30
 RUN_LABEL_FILTER = "label=databasus.test-run="
 
@@ -92,26 +90,14 @@ class TestScriptTestCase(unittest.TestCase):
             stub_path.write_text("#!/usr/bin/env bash\n" + textwrap.dedent(source))
             stub_path.chmod(0o755)
 
-        fixture_port = self.start_fixture_listener()
         self.environment = {
             **os.environ,
             "PATH": f"{stubs_directory}:{os.environ['PATH']}",
             "STUB_CALLS": str(self.calls_path),
             "TMPDIR": str(self.lock_directory),
-            "TEST_LOGICAL_POSTGRES_16_PORT": str(fixture_port),
-            "TEST_PHYSICAL_POSTGRES_17_PORT": str(fixture_port),
-            "TEST_PHYSICAL_POSTGRES_18_PORT": str(fixture_port),
         }
         self.environment.pop("DATABASUS_TEST_RUN_ID", None)
         self.real_mise = shutil.which("mise", path=os.environ["PATH"])
-
-    def start_fixture_listener(self):
-        listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        listener.bind(("127.0.0.1", 0))
-        listener.listen(16)
-        self.addCleanup(listener.close)
-
-        return listener.getsockname()[1]
 
     def start_script(self, extra_environment=None):
         script = subprocess.Popen(
@@ -285,33 +271,27 @@ class TestScriptTestCase(unittest.TestCase):
         self.assertIn("docker network rm network-of-run", docker_calls)
         self.assertIn("docker volume rm -f volume-of-run", docker_calls)
 
-    def test_the_reset_waits_for_running_tests_and_runs_before_the_tests(self):
-        fixtures_lock = self.hold_lock(FIXTURES_LOCK_NAME, fcntl.LOCK_SH)
+    def test_preparation_does_not_reset_sources_beside_an_active_package_run(self):
+        package_run = subprocess.Popen(
+            ["go", "test", "./fixture"], env={**self.environment, "STUB_GO_TEST_SECONDS": "60"},
+            start_new_session=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+        )
+        self.addCleanup(self.stop_script, package_run)
+        self.wait_for_call("go test")
         script = self.start_script()
-        self.wait_for_call("mise run backend:pull-testcontainers")
-
-        released_at = time.time()
-        fixtures_lock.close()
         exit_status, _, stderr = self.finish_script(script)
-
         self.assertEqual(exit_status, 0, stderr)
-        reset_call = self.find_call("go run -tags testhelpers ./cmd/cleanup_test_db")
-        test_call = self.find_call("go test")
-        self.assertIsNotNone(reset_call)
-        self.assertIsNotNone(test_call)
-        self.assertGreater(reset_call[0], released_at)
-        self.assertLess(reset_call[0], test_call[0])
-
-    def test_the_run_stops_without_a_reset_when_tests_keep_the_servers_past_the_limit(self):
-        self.hold_lock(FIXTURES_LOCK_NAME, fcntl.LOCK_SH)
-        script = self.start_script({"DATABASUS_FIXTURE_RESET_WAIT_SECONDS": "1"})
-
-        exit_status, _, stderr = self.finish_script(script)
-
-        self.assertNotEqual(exit_status, 0)
-        self.assertIn("other test runs are using the shared test PostgreSQL servers", stderr)
+        self.assertIsNone(package_run.poll())
         self.assertIsNone(self.find_call("go run"))
-        self.assertIsNone(self.find_call("go test"))
+        self.assertFalse(any("cleanup_test_db" in call for _, call in self.read_calls()))
+
+    def test_both_ci_preparations_use_only_the_internal_test_database_wait(self):
+        workflow = (REPOSITORY_ROOT / ".github/workflows/ci-release.yml").read_text()
+        self.assertNotIn("cleanup_test_db", workflow)
+        self.assertNotIn("Reset the shared", workflow)
+        self.assertEqual(workflow.count("docker exec backend-db-test pg_isready"), 2)
+        for port in ("5004", "5007", "5008"):
+            self.assertNotRegex(workflow, rf"nc -z[^\n]*{port}")
 
 
 if __name__ == "__main__":

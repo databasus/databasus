@@ -75,7 +75,7 @@ A backend test that calls the API through a contract-checking test client SHALL 
 
 ### Requirement: Backend API tests run against the real application
 
-A backend API test SHALL call an application built by the same code that builds the server, with the same routes and middleware, its own internal database and no background loops running on their own. Data one test writes SHALL NOT be visible to another test. While code outside the target layout is wired through process-wide state, the API tests of one package SHALL run one at a time: a second test application started in a process while one is alive SHALL fail that test with a message saying so. Test packages SHALL still run in parallel with each other.
+A backend API test SHALL call an application built by the same code that builds the server, with the same routes and middleware, its own internal database and no background loops running on their own. Data one test writes SHALL NOT be visible to another test. Multiple test applications SHALL be able to remain alive in the same process. Each SHALL own its internal database, filesystem directories, encryption key, clocks, mutable service state and lifecycle. Independent API tests SHALL run concurrently within a package as well as across packages. A test that intentionally changes process-wide environment settings or uses a shared external fixture MAY remain sequential.
 
 A test MAY ask its test application to run the physical backup scheduler and the reconciliation of WAL streams live, as background jobs of the backups module, for as long as the application lives. Such an application SHALL run on the system clock, because WAL stream samples and their health are measured in real time, and it SHALL expose no clock the test can move. Without that request, the application runs on a clock the test moves, no physical backup starts on its own and no WAL stream runs. The physical backup cleaner SHALL NOT run on its own even then. A test SHALL be able to run one pass of the physical backup scheduler, of the physical backup cleaner and of the reconciliation of WAL streams by their job names, `backups_physical_scheduler` and `backups_physical_cleaner`, with or without the live jobs. One pass of the reconciliation of WAL streams, `backups_physical_wal_stream_manager`, SHALL run only with the live jobs; without them it SHALL fail the test with a message saying so, because a WAL stream measured on a clock the test moves would report a false health. A pass of the scheduler SHALL return once it has started the backups it decided on, without waiting for them to end. When the test ends, the live jobs SHALL stop, and every physical backup and WAL stream of the application SHALL have ended, before the application closes its internal database. A physical backup or a WAL stream that is still running at that point SHALL fail the test.
 
@@ -96,7 +96,7 @@ A test MAY shorten, for its own application only, the interval of forced WAL rot
 #### Scenario: Two test applications at once
 
 - **WHEN** a test builds a test application while another one is alive in the same process
-- **THEN** that test fails with a message that API tests of one package run one at a time
+- **THEN** both applications serve requests successfully and each reads only its own accounts and workspace data
 
 #### Scenario: Physical backups do not start without the request
 
@@ -180,6 +180,18 @@ A test MAY shorten, for its own application only, the interval of forced WAL rot
 
 - **WHEN** a test builds a test application with the live physical jobs
 - **THEN** the application offers no clock the test can move
+
+#### Scenario: Concurrent applications write the same local filename
+
+- **WHEN** two live test applications write different content under the same local storage filename
+- **THEN** each application reads its own content and their staging, backup and WAL queue directories are distinct
+- **AND** each application uses its own encryption key file
+
+#### Scenario: One application ends before its neighbour
+
+- **WHEN** one of two live test applications shuts down while the other continues to handle requests and write stored files
+- **THEN** the remaining application keeps serving its own data and files
+- **AND** shutting down the first application does not cancel the other's work or remove its files
 
 ### Requirement: Frontend tests mock the network by the contract
 

@@ -28,8 +28,7 @@ const (
 	newerMigrationVersion = 99991231235959
 )
 
-// binaryPath is the server binary built without the testhelpers tag, as the image builds it. A
-// getter that the bridge does not feed panics there instead of loading test settings.
+//nolint:gochecknoglobals // The binary is built once in TestMain and its path is read-only throughout the test run.
 var binaryPath string
 
 func TestMain(m *testing.M) {

@@ -7,11 +7,13 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	apiclient "databasus-backend/internal/lib/apiclient"
+	containers "databasus-backend/internal/lib/testcontainers"
 	"databasus-backend/internal/modules/databases"
-	"databasus-backend/internal/util/testing/containers"
 )
 
 func Test_GetPhysicalBackupTypes(t *testing.T) {
+	t.Parallel()
+
 	t.Run("returns the backup type of each physical database and leaves out the other IDs", func(t *testing.T) {
 		physicalServer := containers.StartPhysicalPostgres(t, "postgres:17")
 		tm := newTeam(t)

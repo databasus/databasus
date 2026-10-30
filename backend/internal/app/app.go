@@ -11,15 +11,7 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	old_config "databasus-backend/internal/config"
 	"databasus-backend/internal/engines/clienttools"
-	"databasus-backend/internal/features/caching"
-	databases_bridge "databasus-backend/internal/features/databases"
-	"databasus-backend/internal/features/email"
-	notifiers_bridge "databasus-backend/internal/features/notifiers"
-	storages_bridge "databasus-backend/internal/features/storages"
-	users_bridge "databasus-backend/internal/features/users"
-	workspaces_bridge "databasus-backend/internal/features/workspaces"
 	"databasus-backend/internal/lib/audit"
 	"databasus-backend/internal/lib/background"
 	"databasus-backend/internal/lib/cache"
@@ -37,9 +29,6 @@ import (
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/modules/verification"
 	"databasus-backend/internal/modules/workspaces"
-	"databasus-backend/internal/storage"
-	"databasus-backend/internal/util/encryption"
-	files_utils "databasus-backend/internal/util/files"
 	"databasus-backend/migrations"
 )
 
@@ -71,7 +60,7 @@ type App struct {
 }
 
 // New prepares everything the server and the console commands share: the schema of the current
-// version, the data directories, the master key file and the wiring of the old code.
+// version, the data directories, the master key file and the module graph.
 func New(ctx context.Context, environment *Environment) (*App, error) {
 	appLogger := environment.Logging.GetLogger()
 
@@ -103,15 +92,12 @@ func New(ctx context.Context, environment *Environment) (*App, error) {
 	appLogger.InfoContext(ctx, "database migrations completed successfully",
 		slog.Int("applied_count", len(appliedMigrations)))
 
-	err = files_utils.EnsureDirectories([]string{environment.Config.TempFolder, environment.Config.DataFolder})
+	err = ensureDirectories([]string{environment.Config.TempFolder, environment.Config.DataFolder})
 	if err != nil {
 		closeDatabase(db)
 
 		return nil, fmt.Errorf("ensure data directories: %w", err)
 	}
-
-	old_config.Install(environment.Config, environment.ClientToolsDir)
-	storage.Install(db)
 
 	transactor := database.NewTransactor(db)
 
@@ -129,15 +115,12 @@ func New(ctx context.Context, environment *Environment) (*App, error) {
 	}
 
 	fieldEncryptor := crypto.NewFieldEncryptor(masterKey)
-	encryption.Install(masterKey, fieldEncryptor)
-	email.Install(environment.Mailer)
 
 	cacheStore := cache.NewMemoryStore(cache.Deps{
 		PayloadBudgetBytes: cache.DefaultPayloadBudgetBytes,
 		Clock:              environment.Clock,
 	})
 	rateLimiter := ratelimit.NewMemoryCounter(ratelimit.Deps{Store: cacheStore, Clock: environment.Clock})
-	caching.Install(cacheStore, rateLimiter)
 
 	auditLog := audit.New(audit.Deps{
 		DB:          db,
@@ -174,7 +157,6 @@ func New(ctx context.Context, environment *Environment) (*App, error) {
 			UserInfoURL:  environment.ExternalEndpoints.GoogleUserInfoURL,
 		},
 	})
-	users_bridge.Install(usersModule)
 
 	workspacesModule := workspaces.New(workspaces.Deps{
 		DB:         db,
@@ -186,7 +168,6 @@ func New(ctx context.Context, environment *Environment) (*App, error) {
 		Users:      usersModule,
 		PublicURL:  environment.Config.DatabasusURL,
 	})
-	workspaces_bridge.Install(workspacesModule)
 
 	notifiersModule := notifiers.New(notifiers.Deps{
 		DB:              db,
@@ -203,7 +184,6 @@ func New(ctx context.Context, environment *Environment) (*App, error) {
 		},
 		PublicURL: environment.Config.DatabasusURL,
 	})
-	notifiers_bridge.Install(notifiersModule)
 
 	storagesModule := storages.New(storages.Deps{
 		DB:             db,
@@ -220,7 +200,6 @@ func New(ctx context.Context, environment *Environment) (*App, error) {
 		},
 		FileTimings: environment.StorageFileTimings,
 	})
-	storages_bridge.Install(storagesModule)
 
 	databasesModule := databases.New(databases.Deps{
 		DB:             db,
@@ -233,7 +212,6 @@ func New(ctx context.Context, environment *Environment) (*App, error) {
 		Workspaces:     workspacesModule,
 		Notifiers:      notifiersModule,
 	})
-	databases_bridge.Install(databasesModule)
 
 	backupsModule := backups.New(backups.Deps{
 		PhysicalExecutionClock: clock.NewSystem(),
@@ -358,8 +336,7 @@ func (a *App) RunJobPass(ctx context.Context, name string) error {
 	return a.runner.RunPass(ctx, name)
 }
 
-// moveLegacyAndOpenMasterKey runs before the old code is wired, so nothing encrypts with a key that a
-// legacy key from the database is about to replace.
+// The persisted key must reach its file before modules can encrypt new values.
 func moveLegacyAndOpenMasterKey(ctx context.Context, legacyKeyDeps crypto.Deps) (*crypto.MasterKey, error) {
 	err := crypto.MoveLegacyMasterKeyToFile(ctx, legacyKeyDeps)
 	if err != nil {
@@ -397,8 +374,6 @@ func (a *App) GetPhysicalBackupTypes(
 	return a.databasesModule.GetPhysicalBackupTypes(ctx, databaseIDs)
 }
 
-// Notify hands a notification to the notifiers module. A test application uses it to stand in for
-// the old code that notifies.
 func (a *App) Notify(ctx context.Context, notifierIDs []uuid.UUID, notification notifiers.Notification) {
 	a.notifiersModule.Notify(ctx, notifierIDs, notification)
 }
@@ -407,8 +382,6 @@ func (a *App) WaitForNotificationDeliveries(ctx context.Context) error {
 	return a.notifiersModule.WaitForDeliveries(ctx)
 }
 
-// WriteStorageFile hands a file to the file store of the storages module. A test application uses it
-// to stand in for the old backup code that writes files.
 func (a *App) WriteStorageFile(
 	ctx context.Context,
 	reference storages.StoredFileReference,

@@ -1,6 +1,1 @@
-{
-  "go.buildTags": "testhelpers",
-  "gopls": {
-    "buildFlags": ["-tags=testhelpers"]
-  }
-}
+{}

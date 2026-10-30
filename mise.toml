@@ -19,7 +19,7 @@ shellcheck = "0.11.0"
 vacuum = "0.35.1"
 
 [env]
-# Each wrapper in tools/lsp explains why it shadows the mise shim.
+# The TypeScript wrapper supplies frontend/node_modules before the mise shim changes NODE_PATH.
 _.path = ["{{config_root}}/tools/lsp"]
 
 # Every task of a module sets dir to that module, so it runs the same from any directory. Scripts
@@ -109,7 +109,7 @@ run = """
 source ../scripts/fedora.sh
 apply_libedit_shim
 # shellcheck disable=SC2086 # one package path per word
-go test -race -tags testhelpers -count=1 -timeout 30m $usage_packages
+go test -race -count=1 -timeout 30m $usage_packages
 """
 
 [tasks."agent:build"]
