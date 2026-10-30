@@ -1,7 +1,6 @@
 package verification_test
 
 import (
-	"io"
 	"net/http"
 	"testing"
 	"time"
@@ -10,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"databasus-backend/internal/app/apptest"
+	apiclient "databasus-backend/internal/lib/apiclient"
 )
 
 func TestVerificationAgentHealth(t *testing.T) {
@@ -47,25 +47,33 @@ func TestVerificationAgentHealth(t *testing.T) {
 				require.Equal(t, http.StatusNoContent, deleted.StatusCode())
 			}
 			app.RunJobPass(t, "backups_logical_scheduler")
-			request, err := http.NewRequestWithContext(
-				t.Context(),
-				http.MethodGet,
-				app.URL+"/api/v1/system/health",
-				nil,
-			)
+			response, err := app.NewClient(t).GetInstanceHealthWithResponse(t.Context())
 			require.NoError(t, err)
-			response, err := http.DefaultClient.Do(request)
-			require.NoError(t, err)
-			body, err := io.ReadAll(response.Body)
-			require.NoError(t, err)
-			require.NoError(t, response.Body.Close())
-			status := response.StatusCode
-			if scenario.isHealthy {
-				assert.Equal(t, http.StatusOK, status, string(body))
+			var checks []apiclient.HealthCheck
+			if response.JSON200 != nil {
+				checks = response.JSON200.Checks
 			} else {
-				assert.Equal(t, http.StatusServiceUnavailable, status, string(body))
-				assert.Contains(t, string(body), "verification agents not seen")
+				require.NotNil(t, response.ApplicationproblemJSON503, string(response.Body))
+				checks = response.ApplicationproblemJSON503.Checks
 			}
+			assert.NotContains(t, string(response.Body), agent.Token)
+			assert.NotContains(t, string(response.Body), agent.Agent.ID.String())
+
+			hasAgentCheck := false
+			for _, check := range checks {
+				if check.Name != "VERIFICATION_AGENTS" {
+					continue
+				}
+				hasAgentCheck = true
+				if scenario.isHealthy {
+					assert.Equal(t, apiclient.HealthCheckOutcomePASSED, check.Outcome)
+					assert.Equal(t, 0, *check.StaleAgentCount)
+				} else {
+					assert.Equal(t, apiclient.HealthCheckOutcomeFAILED, check.Outcome)
+					assert.Equal(t, 1, *check.StaleAgentCount)
+				}
+			}
+			assert.True(t, hasAgentCheck)
 		})
 	}
 }

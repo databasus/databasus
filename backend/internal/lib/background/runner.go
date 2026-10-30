@@ -42,7 +42,9 @@ type Runner struct {
 type scheduledJob struct {
 	job Job
 	// passMutex keeps a pass from RunPass and a pass of the loop from overlapping.
-	passMutex sync.Mutex
+	passMutex     sync.Mutex
+	snapshotMutex sync.RWMutex
+	snapshot      JobSnapshot
 }
 
 // NewRunner panics when two jobs share a name, because RunPass could not tell them apart.
@@ -54,7 +56,10 @@ func NewRunner(deps RunnerDeps, jobs ...Job) *Runner {
 			panic(fmt.Sprintf("background job %q is registered twice", job.Name))
 		}
 
-		scheduledJobs[job.Name] = &scheduledJob{job: job, passMutex: sync.Mutex{}}
+		scheduledJobs[job.Name] = &scheduledJob{
+			job: job, passMutex: sync.Mutex{}, snapshotMutex: sync.RWMutex{},
+			snapshot: JobSnapshot{Name: job.Name, Interval: job.Interval, ActivatedAt: deps.Clock.Now().UTC()},
+		}
 	}
 
 	return &Runner{
@@ -74,6 +79,11 @@ func (r *Runner) Start(ctx context.Context) {
 	}
 
 	for _, job := range r.jobs {
+		job.snapshotMutex.Lock()
+		if job.snapshot.LastStartedAt == nil {
+			job.snapshot.ActivatedAt = r.clock.Now().UTC()
+		}
+		job.snapshotMutex.Unlock()
 		r.waitGroup.Go(func() {
 			r.runLoop(ctx, job)
 		})
@@ -123,7 +133,7 @@ func (r *Runner) runLoop(ctx context.Context, job *scheduledJob) {
 	}
 }
 
-func (r *Runner) runPass(ctx context.Context, job *scheduledJob) error {
+func (r *Runner) runPass(ctx context.Context, job *scheduledJob) (passError error) {
 	job.passMutex.Lock()
 	defer job.passMutex.Unlock()
 
@@ -131,26 +141,52 @@ func (r *Runner) runPass(ctx context.Context, job *scheduledJob) error {
 		slog.String("job_name", job.job.Name),
 		slog.String("job_id", uuid.NewString()),
 	)
-	now := r.clock.Now()
+	now := r.clock.Now().UTC()
+	job.snapshotMutex.Lock()
+	job.snapshot.IsRunning = true
+	job.snapshot.LastStartedAt = &now
+	job.snapshotMutex.Unlock()
 
-	err := RunRecovering(passContext, func(ctx context.Context) error {
+	defer func() { r.completePass(job, passError) }()
+
+	passError = RunRecovering(passContext, func(ctx context.Context) error {
 		return job.job.Run(ctx, now)
 	})
 
 	var panicError *PanicError
 
 	switch {
-	case err == nil:
-	case errors.As(err, &panicError):
+	case passError == nil:
+	case errors.As(passError, &panicError):
 		r.logger.ErrorContext(passContext, "background job pass panicked",
 			slog.Any("error", panicError),
 			slog.String("stack", panicError.Stack),
 		)
 	case ctx.Err() != nil:
-		r.logger.InfoContext(passContext, "background job pass interrupted", slog.Any("error", err))
+		r.logger.InfoContext(passContext, "background job pass interrupted", slog.Any("error", passError))
 	default:
-		r.logger.ErrorContext(passContext, "background job pass failed", slog.Any("error", err))
+		r.logger.ErrorContext(passContext, "background job pass failed", slog.Any("error", passError))
 	}
 
-	return err
+	return passError
+}
+
+func (r *Runner) completePass(job *scheduledJob, err error) {
+	var panicError *PanicError
+	outcome := PassSucceeded
+	switch {
+	case errors.As(err, &panicError):
+		outcome = PassPanicked
+	case errors.Is(err, context.Canceled), errors.Is(err, context.DeadlineExceeded):
+		outcome = PassCanceled
+	case err != nil:
+		outcome = PassFailed
+	}
+	completedAt := r.clock.Now().UTC()
+	job.snapshotMutex.Lock()
+	job.snapshot.IsRunning = false
+	job.snapshot.LastCompletedAt = &completedAt
+	job.snapshot.LastOutcome = outcome
+	job.snapshot.LastError = err
+	job.snapshotMutex.Unlock()
 }

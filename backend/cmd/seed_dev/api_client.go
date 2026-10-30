@@ -93,22 +93,9 @@ func (c *apiClient) send(ctx context.Context, method, path string, body, respons
 func readRefusalReason(statusCode int, responseBody []byte) string {
 	var refusal struct {
 		Detail string `json:"detail"`
-		Error  string `json:"error"`
-		Status string `json:"status"`
 	}
-
-	if json.Unmarshal(responseBody, &refusal) == nil {
-		if refusal.Detail != "" {
-			return refusal.Detail
-		}
-
-		if refusal.Error != "" {
-			return refusal.Error
-		}
-
-		if refusal.Status != "" {
-			return refusal.Status
-		}
+	if json.Unmarshal(responseBody, &refusal) == nil && refusal.Detail != "" {
+		return refusal.Detail
 	}
 
 	if text := strings.TrimSpace(string(responseBody)); text != "" {

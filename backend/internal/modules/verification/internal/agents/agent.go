@@ -30,9 +30,8 @@ func (a *Agent) IsDeleted() bool {
 }
 
 type AgentCapacity struct {
-	MaxCPU                int
-	MaxRAMMb              *int
-	LegacyMaxRAMGigabytes *int
-	MaxDiskGb             int
-	MaxConcurrentJobs     int
+	MaxCPU            int
+	MaxRAMMb          int
+	MaxDiskGb         int
+	MaxConcurrentJobs int
 }

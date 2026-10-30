@@ -133,6 +133,7 @@ export const zh: typeof en = {
     noRestorableBackup: '没有可用于恢复的已完成备份。',
     targetTimeUnreachable: '现有备份和 WAL 无法恢复到指定时间。',
     notRunning: '该操作已不在进行中，无需取消。',
+    instanceUnhealthy: '实例运行异常。',
     insufficientDiskSpace: 'Databasus 服务器的可用磁盘空间不足：{{detail}}',
     unknown: '出了点问题，请重试。',
     networkUnreachable: '无法连接 Databasus 服务器。请检查网络连接后重试。',

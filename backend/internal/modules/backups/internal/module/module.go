@@ -68,14 +68,6 @@ func (m *Module) GetLatestCompletedLogicalBackup(
 	return m.logicalBackups.GetLatestCompletedBackup(ctx, databaseID)
 }
 
-func (m *Module) HasSuccessfulLogicalBackupSince(
-	ctx context.Context,
-	databaseID uuid.UUID,
-	since time.Time,
-) (bool, error) {
-	return m.logicalBackups.HasCompletedBackupSince(ctx, databaseID, since)
-}
-
 func (m *Module) OpenLogicalBackupFile(ctx context.Context, backupID uuid.UUID) (io.ReadCloser, error) {
 	return m.logicalBackups.OpenBackupFileByID(ctx, backupID)
 }
@@ -86,10 +78,6 @@ func (m *Module) SetLogicalBackupVerificationStatus(
 	status logical.VerificationStatus,
 ) error {
 	return m.logicalBackups.SetVerificationStatus(ctx, backupID, status)
-}
-
-func (m *Module) IsLogicalBackupSchedulerRunning(context.Context) bool {
-	return m.logicalBackups.IsSchedulerRunning()
 }
 
 func (m *Module) SubscribeToLogicalBackupCompleted(handler logical.BackupCompletedHandler) {

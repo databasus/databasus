@@ -140,6 +140,7 @@ export const fr: typeof en = {
     targetTimeUnreachable:
       'Les backups et le WAL disponibles ne permettent pas de restaurer à l’instant demandé.',
     notRunning: "Ce n'est plus en cours : il n'y a rien à annuler.",
+    instanceUnhealthy: 'L’instance présente des problèmes.',
     insufficientDiskSpace: "Le serveur Databasus n'a pas assez d'espace disque libre : {{detail}}",
     unknown: "Une erreur s'est produite. Réessayez.",
     networkUnreachable:

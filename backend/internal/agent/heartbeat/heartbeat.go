@@ -116,7 +116,7 @@ func (h *Heartbeater) IsAborted(id uuid.UUID) bool {
 func (h *Heartbeater) sendHeartbeat(ctx context.Context, logger *slog.Logger) {
 	request := agentclient.HeartbeatRequest{
 		MaxCPU:                 h.capacity.MaxCPU,
-		MaxRAMMb:               &h.capacity.MaxRAMMb,
+		MaxRAMMb:               h.capacity.MaxRAMMb,
 		MaxDiskGb:              h.capacity.MaxDiskGb,
 		MaxConcurrentJobs:      h.capacity.MaxConcurrentJobs,
 		CurrentVerificationIDs: h.GetRunningVerificationIDs(),

@@ -34,11 +34,10 @@ func (h *Handler) RecordHeartbeat(
 		getAgent(ctx),
 		verifications.Heartbeat{
 			Capacity: agents.AgentCapacity{
-				MaxCPU:                request.Body.MaxCPU,
-				MaxRAMMb:              request.Body.MaxRAMMb,
-				LegacyMaxRAMGigabytes: request.Body.MaxRamGb,
-				MaxDiskGb:             request.Body.MaxDiskGb,
-				MaxConcurrentJobs:     request.Body.MaxConcurrentJobs,
+				MaxCPU:            request.Body.MaxCPU,
+				MaxRAMMb:          request.Body.MaxRAMMb,
+				MaxDiskGb:         request.Body.MaxDiskGb,
+				MaxConcurrentJobs: request.Body.MaxConcurrentJobs,
 			},
 			CurrentVerificationIDs: request.Body.CurrentVerificationIDs,
 		},

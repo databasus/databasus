@@ -181,19 +181,6 @@ func (r *backupRepository) isInProgressForDatabase(ctx context.Context, database
 	return isInProgress, nil
 }
 
-func (r *backupRepository) hasCompletedSince(ctx context.Context, databaseID uuid.UUID, since time.Time) (bool, error) {
-	var hasCompleted bool
-
-	err := database.Conn(ctx, r.db).Raw(`SELECT EXISTS (SELECT 1 FROM backups_logical
-		WHERE database_id = ? AND status = 'COMPLETED' AND created_at >= ?)`, databaseID, since,
-	).Scan(&hasCompleted).Error
-	if err != nil {
-		return false, fmt.Errorf("check for a completed logical backup: %w", err)
-	}
-
-	return hasCompleted, nil
-}
-
 // updateProgress leaves a backup that is no longer running as it is, so a late progress tick cannot
 // overwrite its outcome.
 func (r *backupRepository) updateProgress(

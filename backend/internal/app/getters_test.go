@@ -9,10 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	caching "databasus-backend/internal/features/caching"
-	disk "databasus-backend/internal/features/disk"
 	email "databasus-backend/internal/features/email"
-	system_healthcheck "databasus-backend/internal/features/system/healthcheck"
-	telemetry "databasus-backend/internal/features/telemetry"
 	users_bridge "databasus-backend/internal/features/users"
 	workspaces_bridge "databasus-backend/internal/features/workspaces"
 	util_cloudflare_turnstile "databasus-backend/internal/util/cloudflare_turnstile"
@@ -28,20 +25,9 @@ type oldCodeGetter struct {
 // not feed, or a cycle between lazy values, shows up right after New.
 func getOldCodeGetters() []oldCodeGetter {
 	return []oldCodeGetter{
-		{"features/disk.GetDiskService", func() any { return disk.GetDiskService() }},
-		{"features/disk.GetDiskController", func() any { return disk.GetDiskController() }},
 		{"features/caching.GetStore", func() any { return caching.GetStore() }},
 		{"features/caching.GetRateLimiter", func() any { return caching.GetRateLimiter() }},
 		{"features/email.GetInstanceSender", func() any { return email.GetInstanceSender() }},
-		{
-			"features/system/healthcheck.GetHealthcheckController",
-			func() any { return system_healthcheck.GetHealthcheckController() },
-		},
-		{"features/telemetry.GetTelemetryService", func() any { return telemetry.GetTelemetryService() }},
-		{
-			"features/telemetry.GetTelemetryBackgroundService",
-			func() any { return telemetry.GetTelemetryBackgroundService() },
-		},
 		{"features/users.GetModule", func() any { return users_bridge.GetModule() }},
 		{"features/workspaces.GetModule", func() any { return workspaces_bridge.GetModule() }},
 		{

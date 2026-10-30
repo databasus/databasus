@@ -52,14 +52,15 @@ const notificationDeliveryTimeout = 30 * time.Second
 // ExternalEndpoints are the addresses of the identity providers, of Cloudflare Turnstile, of the
 // Slack API and of the official Telegram Bot API.
 type ExternalEndpoints struct {
-	GitHubAuthURL      string
-	GitHubTokenURL     string
-	GitHubUserURL      string
-	GitHubEmailsURL    string
-	GoogleAuthURL      string
-	GoogleTokenURL     string
-	GoogleUserInfoURL  string
-	TurnstileVerifyURL string
+	TelemetryReceiverURL string
+	GitHubAuthURL        string
+	GitHubTokenURL       string
+	GitHubUserURL        string
+	GitHubEmailsURL      string
+	GoogleAuthURL        string
+	GoogleTokenURL       string
+	GoogleUserInfoURL    string
+	TurnstileVerifyURL   string
 	// SlackPostMessageURL is the chat.postMessage method of the Slack Web API.
 	SlackPostMessageURL string
 	// TelegramBotAPIURL is the Bot API a Telegram notifier uses when it names none of its own.
@@ -70,16 +71,17 @@ type ExternalEndpoints struct {
 // call.
 func GetPublicExternalEndpoints() ExternalEndpoints {
 	return ExternalEndpoints{
-		GitHubAuthURL:       github.Endpoint.AuthURL,
-		GitHubTokenURL:      github.Endpoint.TokenURL,
-		GitHubUserURL:       "https://api.github.com/user",
-		GitHubEmailsURL:     "https://api.github.com/user/emails",
-		GoogleAuthURL:       google.Endpoint.AuthURL,
-		GoogleTokenURL:      google.Endpoint.TokenURL,
-		GoogleUserInfoURL:   "https://www.googleapis.com/oauth2/v2/userinfo",
-		TurnstileVerifyURL:  "https://challenges.cloudflare.com/turnstile/v0/siteverify",
-		SlackPostMessageURL: "https://slack.com/api/chat.postMessage",
-		TelegramBotAPIURL:   "https://api.telegram.org",
+		TelemetryReceiverURL: "https://metrics.databasus.com/api/anonymous/collect",
+		GitHubAuthURL:        github.Endpoint.AuthURL,
+		GitHubTokenURL:       github.Endpoint.TokenURL,
+		GitHubUserURL:        "https://api.github.com/user",
+		GitHubEmailsURL:      "https://api.github.com/user/emails",
+		GoogleAuthURL:        google.Endpoint.AuthURL,
+		GoogleTokenURL:       google.Endpoint.TokenURL,
+		GoogleUserInfoURL:    "https://www.googleapis.com/oauth2/v2/userinfo",
+		TurnstileVerifyURL:   "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+		SlackPostMessageURL:  "https://slack.com/api/chat.postMessage",
+		TelegramBotAPIURL:    "https://api.telegram.org",
 	}
 }
 

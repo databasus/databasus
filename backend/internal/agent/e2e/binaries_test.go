@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	system_version "databasus-backend/internal/features/system/version"
+	"databasus-backend/internal/lib/config"
 )
 
 var (
@@ -30,7 +30,13 @@ func TestMain(m *testing.M) {
 	//nolint:forbidigo // TestMain has no testing.T context; both builds share a bounded lifetime.
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
-	serverVersion = system_version.GetAppVersion()
+	loadedConfig, _, err := config.Load(
+		config.LoadSpec{IsDatabaseRequired: false, RootDirectory: "", PublishedDatabaseDsnPath: ""},
+	)
+	if err != nil {
+		panic(err)
+	}
+	serverVersion = loadedConfig.AppVersion
 	currentBinaryDirectory = filepath.Join(directory, "current")
 	olderBinaryDirectory = filepath.Join(directory, "older")
 	for _, binary := range []struct {

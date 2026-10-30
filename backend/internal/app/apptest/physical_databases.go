@@ -15,5 +15,11 @@ func (a *App) InsertPhysicalDatabase(tb testing.TB, workspaceID uuid.UUID) uuid.
   (database_id, version, host, port, username, password, backup_type, replication_slot_name, backup_slot_name)
   VALUES (?, '17', '127.0.0.1', 1, 'postgres', '', 'FULL_INCREMENTAL_WAL_STREAM', ?, ?)`,
 		databaseID, "databasus_slot_"+databaseID.String()[:8], "databasus_basebackup_"+databaseID.String()[:8])
+	a.ExecuteSQL(
+		tb,
+		`INSERT INTO healthcheck_configs (database_id, interval_minutes, failed_attempts_before_unavailable, attempt_retention_days)
+ VALUES (?,1,3,7)`,
+		databaseID,
+	)
 	return databaseID
 }

@@ -1,7 +1,6 @@
 package app
 
 import (
-	"databasus-backend/internal/features/telemetry"
 	"databasus-backend/internal/modules/backups"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/healthcheck"
@@ -10,12 +9,6 @@ import (
 	"databasus-backend/internal/modules/verification"
 	"databasus-backend/internal/modules/workspaces"
 )
-
-// setUpDependencies registers the listeners between the old features. The server and the console
-// commands share it, so a command writes the same audit records as the server.
-func setUpDependencies() {
-	telemetry.SetupDependencies()
-}
 
 // subscribeToWorkspaceDeleting sets the order in which a workspace deletion runs its handlers:
 // the databases refuse a workspace that still has some before the notifiers and the storages are

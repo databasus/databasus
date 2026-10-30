@@ -12,8 +12,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"databasus-backend/internal/app/apptest"
-	system_agent "databasus-backend/internal/features/system/agent"
-	system_version "databasus-backend/internal/features/system/version"
 )
 
 func TestDownloadAgentBinary(t *testing.T) {
@@ -42,6 +40,14 @@ func TestDownloadAgentBinary(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, http.StatusOK, response.StatusCode)
 		assert.Equal(t, "test agent", string(contents))
-		assert.Equal(t, system_version.GetAppVersion(), response.Header.Get(system_agent.AgentVersionHeader))
+		assert.Equal(t, getTestVersion(t, app), response.Header.Get("X-Databasus-Version"))
 	})
+}
+
+func getTestVersion(t *testing.T, application *apptest.App) string {
+	t.Helper()
+	response, err := application.NewClient(t).GetVersionWithResponse(t.Context())
+	require.NoError(t, err)
+	require.NotNil(t, response.JSON200)
+	return response.JSON200.Version
 }

@@ -15,29 +15,15 @@ import (
 const (
 	SchedulerJobName  = "backups_logical_scheduler"
 	schedulerInterval = 15 * time.Second
-	// schedulerStallThreshold is how long the scheduler may go without a pass before the health
-	// check reports it as stopped.
-	schedulerStallThreshold = 5 * time.Minute
 )
 
 func (s *Service) GetSchedulerJob() background.Job {
 	return background.Job{Name: SchedulerJobName, Interval: schedulerInterval, Run: s.runSchedulerPass}
 }
 
-// IsSchedulerRunning reports whether the scheduler passed within the threshold, for the old health
-// check. A module that was never started, which only a test without the application builds, has no
-// scheduler to stall.
-func (s *Service) IsSchedulerRunning() bool {
-	lastPassTime := s.lastSchedulerPassTime.Load()
-
-	return lastPassTime == nil || s.clock.Now().Sub(*lastPassTime) < schedulerStallThreshold
-}
-
 // runSchedulerPass starts a backup of every database the schedule or a retry makes due. A start that
 // fails is logged and the pass goes on with the next database.
 func (s *Service) runSchedulerPass(ctx context.Context, now time.Time) error {
-	defer s.lastSchedulerPassTime.Store(&now)
-
 	enabledConfigs, err := s.configs.ListEnabledLogicalBackupConfigs(ctx)
 	if err != nil {
 		return err

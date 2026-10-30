@@ -6,7 +6,6 @@ import (
 	"crypto/subtle"
 	"fmt"
 	"log/slog"
-	"math"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -195,18 +194,10 @@ func (s *Service) AuthenticateAgent(ctx context.Context, credentials AgentCreden
 }
 
 func (s *Service) RecordHeartbeat(ctx context.Context, id uuid.UUID, capacity AgentCapacity) (time.Time, error) {
-	if capacity.MaxCPU < 0 || capacity.MaxDiskGb < 0 || capacity.MaxConcurrentJobs < 0 ||
-		(capacity.MaxRAMMb != nil && *capacity.MaxRAMMb < 0) ||
-		(capacity.LegacyMaxRAMGigabytes != nil && (*capacity.LegacyMaxRAMGigabytes < 0 || *capacity.LegacyMaxRAMGigabytes > math.MaxInt/1024)) {
+	if capacity.MaxCPU < 0 || capacity.MaxDiskGb < 0 || capacity.MaxConcurrentJobs < 0 || capacity.MaxRAMMb < 0 {
 		return time.Time{}, apierror.NewInvalidFieldsProblem(
-			[]apierror.FieldError{{Field: "capacity", Detail: "must be nonnegative and fit in megabytes"}},
+			[]apierror.FieldError{{Field: "capacity", Detail: "must be nonnegative"}},
 		)
-	}
-	maxRAMMb := 0
-	if capacity.MaxRAMMb != nil {
-		maxRAMMb = *capacity.MaxRAMMb
-	} else if capacity.LegacyMaxRAMGigabytes != nil {
-		maxRAMMb = *capacity.LegacyMaxRAMGigabytes * 1024
 	}
 	now := s.clock.Now()
 	isUpdated, err := s.repository.update(
@@ -214,7 +205,7 @@ func (s *Service) RecordHeartbeat(ctx context.Context, id uuid.UUID, capacity Ag
 		id,
 		map[string]any{
 			"max_cpu":             capacity.MaxCPU,
-			"max_ram_mb":          maxRAMMb,
+			"max_ram_mb":          capacity.MaxRAMMb,
 			"max_disk_gb":         capacity.MaxDiskGb,
 			"max_concurrent_jobs": capacity.MaxConcurrentJobs,
 			"last_seen_at":        now,

@@ -263,7 +263,9 @@ Agent requests SHALL be limited per agent: within one second the eleventh and la
 
 ### Requirement: A verification agent reports its memory in megabytes
 
-A heartbeat SHALL report the memory the agent may use in megabytes, as given to the agent. The server SHALL store that value and SHALL return it in megabytes in the list of verification agents. The agents list in the interface SHALL show the memory of any agent that reported more than zero, with the unit that fits the value, such as "512 MB" or "4 GB".
+A heartbeat SHALL include the required nonnegative integer `maxRamMb` with the memory the agent may use in megabytes, as given to the agent. The server SHALL store that value and SHALL return it in megabytes in the list of verification agents. An explicit zero SHALL remain valid. The agents list in the interface SHALL show the memory of any agent that reported more than zero, with the unit that fits the value, such as "512 MB" or "4 GB". Stored memory SHALL survive upgrades without being reset or converted again.
+
+A heartbeat without `maxRamMb`, including one that supplies memory only in whole gigabytes, SHALL get 400 with code `invalid_request`. The server SHALL neither infer memory from another unit nor replace a missing value with zero. Rejection SHALL leave the stored capacity and last-seen timestamp unchanged.
 
 #### Scenario: An agent with less than one gigabyte of memory
 
@@ -275,31 +277,21 @@ A heartbeat SHALL report the memory the agent may use in megabytes, as given to 
 - **WHEN** an agent started with 4096 MB of memory sends a heartbeat
 - **THEN** the list of verification agents returns `4096` as its memory in megabytes, and the agents list shows "4 GB RAM" for it
 
-### Requirement: An agent of the previous release keeps working until it updates
+#### Scenario: Memory is explicitly zero
 
-The agent operations SHALL keep the paths, request bodies and success responses that the agent of the previous release uses. A heartbeat that reports memory only in whole gigabytes, as the previous release does, SHALL be accepted and stored as that number multiplied by 1024 megabytes. A heartbeat that reports memory both in megabytes and in gigabytes SHALL be stored with the value in megabytes. A heartbeat that reports neither SHALL store zero, which reads as not reported.
+- **WHEN** a valid agent sends a heartbeat with `maxRamMb` equal to zero
+- **THEN** the heartbeat succeeds and stores zero megabytes
 
-Stored memory SHALL survive the upgrade: an agent whose memory was stored in gigabytes before the upgrade SHALL read after it as the same amount in megabytes.
+#### Scenario: Memory is omitted or reported only in gigabytes
 
-#### Scenario: A heartbeat of the previous release
+- **WHEN** a valid agent sends a heartbeat without `maxRamMb`, with or without a gigabyte memory value
+- **THEN** the response is 400 with code `invalid_request`
+- **AND** the stored capacity and last-seen timestamp stay unchanged
 
-- **WHEN** an agent sends a heartbeat with 8 GB of memory and no value in megabytes
-- **THEN** the heartbeat succeeds and the list of verification agents returns `8192` as its memory in megabytes
+#### Scenario: Persisted memory survives the upgrade
 
-#### Scenario: A heartbeat with both units
-
-- **WHEN** an agent sends a heartbeat with 512 MB and 0 GB of memory
-- **THEN** the list of verification agents returns `512` as its memory in megabytes
-
-#### Scenario: A heartbeat without memory
-
-- **WHEN** an agent that reported 512 MB sends a heartbeat with no memory value in either unit
-- **THEN** the heartbeat succeeds and the list of verification agents returns `0` as its memory in megabytes
-
-#### Scenario: Memory stored before the upgrade
-
-- **WHEN** the instance upgrades with an agent whose memory was stored as 2 GB
-- **THEN** the list of verification agents returns `2048` as that agent's memory in megabytes
+- **WHEN** the instance upgrades with an agent whose stored memory is 2048 megabytes
+- **THEN** the list of verification agents still returns 2048 megabytes before the next heartbeat
 
 ### Requirement: An agent's capacity and report are checked before they are used
 

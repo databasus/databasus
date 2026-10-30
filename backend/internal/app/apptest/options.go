@@ -11,6 +11,9 @@ import (
 type Option func(*settings)
 
 type settings struct {
+	isTelemetryEnabled           bool
+	telemetryReceiverURL         string
+	telemetryIdentityPath        string
 	isPhysicalBackupLoopsEnabled bool
 	physicalBackupStopTimeout    time.Duration
 	isMailServerMissing          bool

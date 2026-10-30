@@ -83,7 +83,7 @@ rules:
     then:
       function: pattern
       functionOptions:
-        match: ^(/system/version|/system/verification-agent|/agent/verification/\{agentId\}/heartbeat|/agent/verifications/\{agentId\}/claim|/agent/verifications/\{agentId\}/\{verificationId\}/backup-stream|/agent/verifications/\{agentId\}/\{verificationId\}/report|(/[a-z0-9-]*s(/\{[a-z][a-zA-Z0-9]*\}(/[a-z0-9-]+)?)?)+)$
+        match: ^(/system/health|/system/disk-usages|/system/version|/system/verification-agent|/agent/verification/\{agentId\}/heartbeat|/agent/verifications/\{agentId\}/claim|/agent/verifications/\{agentId\}/\{verificationId\}/backup-stream|/agent/verifications/\{agentId\}/\{verificationId\}/report|(/[a-z0-9-]*s(/\{[a-z][a-zA-Z0-9]*\}(/[a-z0-9-]+)?)?)+)$
 
   databasus-path-parameter-names-entity:
     description: A path parameter names its entity, such as storageId, never id

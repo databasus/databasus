@@ -86,7 +86,11 @@ func (m *Module) ListEnabledConfigs(ctx context.Context) ([]configs.Config, erro
 }
 
 func (m *Module) RegisterAgentRoutes(routes gin.IRouter, hooks *apierror.Hooks) {
-	group := routes.Group("", m.agentHandler.GetAuthenticationMiddleware(hooks))
+	group := routes.Group(
+		"",
+		m.agentHandler.GetAuthenticationMiddleware(hooks),
+		agentapi.GetHeartbeatValidationMiddleware(hooks),
+	)
 	agentapi.RegisterHandlersWithOptions(
 		group,
 		agentapi.NewStrictHandlerWithOptions(m.agentHandler, nil, agentapi.StrictGinServerOptions{

@@ -138,6 +138,7 @@ export const en = {
     targetTimeUnreachable:
       'The requested time cannot be reached with the available backups and WAL.',
     notRunning: 'It is no longer running, so there is nothing to cancel.',
+    instanceUnhealthy: 'The instance is unhealthy.',
     insufficientDiskSpace: 'The Databasus server does not have enough free disk space: {{detail}}',
     unknown: 'Something went wrong. Please try again.',
     networkUnreachable: 'Cannot reach the Databasus server. Check your connection and try again.',

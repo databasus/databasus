@@ -122,9 +122,6 @@ const (
 )
 
 type Module interface {
-	// Telemetry reads the latest full backup until it moves into a module.
-	GetLatestCompletedPhysicalFullBackup(ctx context.Context, databaseID uuid.UUID) (*PhysicalBackup, error)
-
 	RegisterRoutes(routes gin.IRouter, hooks *apierror.Hooks)
 	// Start fails the backups the previous run left in progress and keeps ctx, the application's
 	// context, from which every backup run derives its own. internal/app calls it before the jobs
@@ -159,8 +156,11 @@ type Module interface {
 	// IDs that match no backup.
 	GetLogicalBackups(ctx context.Context, backupIDs []uuid.UUID) ([]LogicalBackup, error)
 	GetLatestCompletedLogicalBackups(ctx context.Context, databaseIDs []uuid.UUID) (map[uuid.UUID]LogicalBackup, error)
+	GetLatestCompletedPhysicalFullBackups(
+		ctx context.Context,
+		databaseIDs []uuid.UUID,
+	) (map[uuid.UUID]PhysicalBackup, error)
 	GetLatestCompletedLogicalBackup(ctx context.Context, databaseID uuid.UUID) (LogicalBackup, bool, error)
-	HasSuccessfulLogicalBackupSince(ctx context.Context, databaseID uuid.UUID, since time.Time) (bool, error)
 	// OpenLogicalBackupFile opens the decrypted file of the backup.
 	OpenLogicalBackupFile(ctx context.Context, backupID uuid.UUID) (io.ReadCloser, error)
 	SetLogicalBackupVerificationStatus(
@@ -168,9 +168,6 @@ type Module interface {
 		backupID uuid.UUID,
 		status LogicalBackupVerificationStatus,
 	) error
-	// IsLogicalBackupSchedulerRunning serves the old system health check: false when the scheduler
-	// made no pass in the last five minutes.
-	IsLogicalBackupSchedulerRunning(ctx context.Context) bool
 
 	// The handlers of LogicalBackupCompleted run after the publication's commit, in the run of the
 	// backup; an error is logged.

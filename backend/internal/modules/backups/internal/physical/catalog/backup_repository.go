@@ -353,6 +353,27 @@ func (r *BackupRepository) HasRunningFullBackup(ctx context.Context, databaseID 
 	return count > 0, err
 }
 
+func (r *BackupRepository) GetLatestCompletedFullBackups(
+	ctx context.Context,
+	databaseIDs []uuid.UUID,
+) (map[uuid.UUID]Backup, error) {
+	indexed := make(map[uuid.UUID]Backup, len(databaseIDs))
+	if len(databaseIDs) == 0 {
+		return indexed, nil
+	}
+	var backups []Backup
+	err := database.Conn(ctx, r.db).Raw(`SELECT DISTINCT ON (database_id) * FROM backups_physical
+ WHERE database_id IN ? AND kind = 'FULL' AND status = ?
+ ORDER BY database_id, created_at DESC, id DESC`, databaseIDs, BackupStatusCompleted).Scan(&backups).Error
+	if err != nil {
+		return nil, err
+	}
+	for _, backup := range backups {
+		indexed[backup.DatabaseID] = backup
+	}
+	return indexed, nil
+}
+
 func (r *BackupRepository) markTerminal(
 	ctx context.Context,
 	backup *Backup,

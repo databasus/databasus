@@ -1,7 +1,10 @@
 package verification_test
 
 import (
+	"encoding/json"
+	"fmt"
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 
@@ -15,31 +18,65 @@ import (
 )
 
 func TestVerificationHeartbeatMemory(t *testing.T) {
-	for _, scenario := range []struct {
-		name                      string
-		memoryMb, legacyGigabytes *int
-		storedMb                  int
-	}{
-		{"stores 512 megabytes when the capacity is below one gigabyte", new(512), nil, 512},
-		{"stores 4096 megabytes when the capacity is whole gigabytes", new(4096), nil, 4096},
-		{"converts gigabytes when the previous release sends its heartbeat", nil, new(8), 8192},
-		{"prefers megabytes when both units arrive", new(512), new(0), 512},
-		{"clears memory when neither unit arrives", nil, nil, 0},
-	} {
-		t.Run(scenario.name, func(t *testing.T) {
-			app := apptest.New(t)
-			admin := app.CreateAdmin(t)
-			agent := app.CreateVerificationAgent(t, admin)
-			status, body := newProtocolAgent(t, app, agent).recordHeartbeat(agent.Agent.ID, heartbeatBody(nil))
-			require.Equal(t, http.StatusOK, status, string(body))
+	for _, memoryMb := range []int{0, 512, 4096} {
+		t.Run(fmt.Sprintf("stores %d megabytes when explicitly reported", memoryMb), func(t *testing.T) {
+			application := apptest.New(t)
+			admin := application.CreateAdmin(t)
+			agent := application.CreateVerificationAgent(t, admin)
 			heartbeat := heartbeatBody(nil)
-			heartbeat.MaxRAMMb = scenario.memoryMb
-			heartbeat.MaxRamGb = scenario.legacyGigabytes
-			status, body = newProtocolAgent(t, app, agent).recordHeartbeat(agent.Agent.ID, heartbeat)
+			heartbeat.MaxRAMMb = memoryMb
+			status, body := newProtocolAgent(t, application, agent).recordHeartbeat(agent.Agent.ID, heartbeat)
 			require.Equal(t, http.StatusOK, status, string(body))
-			agents := app.ListVerificationAgents(t, admin)
+			agents := application.ListVerificationAgents(t, admin)
 			require.Len(t, agents, 1)
-			assert.Equal(t, scenario.storedMb, agents[0].MaxRAMMb)
+			assert.Equal(t, memoryMb, agents[0].MaxRAMMb)
+		})
+	}
+	t.Run("keeps persisted megabytes when an upgraded instance has no new heartbeat", func(t *testing.T) {
+		application := apptest.New(t)
+		admin := application.CreateAdmin(t)
+		agent := application.CreateVerificationAgent(t, admin)
+		application.ExecuteSQL(t, "UPDATE verification_agents SET max_ram_mb = 2048 WHERE id = ?", agent.Agent.ID)
+		listed := application.ListVerificationAgents(t, admin)
+		require.Len(t, listed, 1)
+		assert.Equal(t, 2048, listed[0].MaxRAMMb)
+		assert.Nil(t, listed[0].LastSeenAt)
+	})
+
+	for _, body := range []string{
+		`{"maxCpu":1,"maxDiskGb":2,"maxConcurrentJobs":1,"currentVerificationIds":[]}`,
+		`{"maxCpu":1,"maxRamGb":16,"maxDiskGb":2,"maxConcurrentJobs":1,"currentVerificationIds":[]}`,
+	} {
+		t.Run("preserves capacity and last contact when megabytes are missing", func(t *testing.T) {
+			application := apptest.New(t)
+			admin := application.CreateAdmin(t)
+			agent := application.CreateVerificationAgent(t, admin)
+			status, responseBody := newProtocolAgent(
+				t,
+				application,
+				agent,
+			).recordHeartbeat(agent.Agent.ID, heartbeatBody(nil))
+			require.Equal(t, http.StatusOK, status, string(responseBody))
+			beforeRefusal := application.ListVerificationAgents(t, admin)[0]
+			application.Clock.Advance(time.Minute)
+			request, err := http.NewRequestWithContext(
+				t.Context(),
+				http.MethodPost,
+				application.URL+"/api/v1/agent/verification/"+agent.Agent.ID.String()+"/heartbeat",
+				strings.NewReader(body),
+			)
+			require.NoError(t, err)
+			request.Header.Set("Content-Type", "application/json")
+			request.Header.Set("Authorization", "Bearer "+agent.Token)
+			response, err := http.DefaultClient.Do(request)
+			require.NoError(t, err)
+			defer func() { require.NoError(t, response.Body.Close()) }()
+			require.Equal(t, http.StatusBadRequest, response.StatusCode)
+			var problem agentclient.Problem
+			require.NoError(t, json.NewDecoder(response.Body).Decode(&problem))
+			assert.Equal(t, agentclient.ProblemCodeInvalidRequest, problem.Code)
+			afterRefusal := application.ListVerificationAgents(t, admin)[0]
+			assert.Equal(t, beforeRefusal, afterRefusal)
 		})
 	}
 }
@@ -104,7 +141,7 @@ func TestVerificationAgentCapacityValidation(t *testing.T) {
 		status, body := newProtocolAgent(t, app, agent).recordHeartbeat(agent.Agent.ID, heartbeatBody(nil))
 		require.Equal(t, http.StatusOK, status, string(body))
 		for _, heartbeat := range []agentclient.HeartbeatRequest{
-			{MaxRAMMb: new(-1)}, {MaxRamGb: new(-1)}, {MaxCPU: -1}, {MaxDiskGb: -1}, {MaxConcurrentJobs: -1},
+			{MaxRAMMb: -1}, {MaxCPU: -1}, {MaxDiskGb: -1}, {MaxConcurrentJobs: -1},
 		} {
 			status, body := newProtocolAgent(t, app, agent).recordHeartbeat(agent.Agent.ID, heartbeat)
 			requireAgentProblem(

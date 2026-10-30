@@ -29,23 +29,6 @@ const (
 // row, leaves before parents), usage accounting, and orphan-WAL deletion. It is
 // the single seam through which the cleaner mutates catalog rows — the cleaner
 // never issues raw DELETEs.
-// GetLatestCompletedFullBackup returns the most recent completed FULL backup for
-// a database, or nil when the database has none. Telemetry uses its raw/compressed
-// sizes as the physical database's size of record.
-func (s *Service) GetLatestCompletedFullBackup(ctx context.Context, databaseID uuid.UUID,
-) (*catalog.Backup, error) {
-	completedBackups, err := s.backupRepository.FindCompletedFullNewestFirstByDatabase(ctx, databaseID)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(completedBackups) == 0 {
-		return nil, nil
-	}
-
-	return completedBackups[0], nil
-}
-
 // DeleteFull cascades one chain's deletion bounded by walByteBudgetMB. The
 // order is WAL (oldest LSN first) → INCRs (leaves first) → orphaned history →
 // the FULL itself, each object deleted from storage before its row. Idempotent:

@@ -37,6 +37,24 @@ func (e AddedWorkspaceMemberOutcome) Valid() bool {
 	}
 }
 
+// Defines values for AgentArchitecture.
+const (
+	AgentArchitectureAmd64 AgentArchitecture = "amd64"
+	AgentArchitectureArm64 AgentArchitecture = "arm64"
+)
+
+// Valid indicates whether the value is a known member of the AgentArchitecture enum.
+func (e AgentArchitecture) Valid() bool {
+	switch e {
+	case AgentArchitectureAmd64:
+		return true
+	case AgentArchitectureArm64:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for AssignableWorkspaceRole.
 const (
 	AssignableWorkspaceRoleWORKSPACEADMIN  AssignableWorkspaceRole = "WORKSPACE_ADMIN"
@@ -244,6 +262,117 @@ const (
 func (e GoogleDriveStorageSettingsType) Valid() bool {
 	switch e {
 	case GoogleDriveStorageSettingsTypeGOOGLEDRIVE:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for HealthCheckFailureCode.
+const (
+	HealthCheckFailureCodeAGENTSSTALE      HealthCheckFailureCode = "AGENTS_STALE"
+	HealthCheckFailureCodeCONNECTIONFAILED HealthCheckFailureCode = "CONNECTION_FAILED"
+	HealthCheckFailureCodeDISKFULL         HealthCheckFailureCode = "DISK_FULL"
+	HealthCheckFailureCodeINSPECTIONFAILED HealthCheckFailureCode = "INSPECTION_FAILED"
+	HealthCheckFailureCodeQUERYFAILED      HealthCheckFailureCode = "QUERY_FAILED"
+	HealthCheckFailureCodeTOOLSUNUSABLE    HealthCheckFailureCode = "TOOLS_UNUSABLE"
+)
+
+// Valid indicates whether the value is a known member of the HealthCheckFailureCode enum.
+func (e HealthCheckFailureCode) Valid() bool {
+	switch e {
+	case HealthCheckFailureCodeAGENTSSTALE:
+		return true
+	case HealthCheckFailureCodeCONNECTIONFAILED:
+		return true
+	case HealthCheckFailureCodeDISKFULL:
+		return true
+	case HealthCheckFailureCodeINSPECTIONFAILED:
+		return true
+	case HealthCheckFailureCodeQUERYFAILED:
+		return true
+	case HealthCheckFailureCodeTOOLSUNUSABLE:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for HealthCheckName.
+const (
+	HealthCheckNameCLIENTTOOLS        HealthCheckName = "CLIENT_TOOLS"
+	HealthCheckNameDISK               HealthCheckName = "DISK"
+	HealthCheckNameINTERNALDATABASE   HealthCheckName = "INTERNAL_DATABASE"
+	HealthCheckNameVERIFICATIONAGENTS HealthCheckName = "VERIFICATION_AGENTS"
+)
+
+// Valid indicates whether the value is a known member of the HealthCheckName enum.
+func (e HealthCheckName) Valid() bool {
+	switch e {
+	case HealthCheckNameCLIENTTOOLS:
+		return true
+	case HealthCheckNameDISK:
+		return true
+	case HealthCheckNameINTERNALDATABASE:
+		return true
+	case HealthCheckNameVERIFICATIONAGENTS:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for HealthCheckOutcome.
+const (
+	HealthCheckOutcomeFAILED HealthCheckOutcome = "FAILED"
+	HealthCheckOutcomePASSED HealthCheckOutcome = "PASSED"
+)
+
+// Valid indicates whether the value is a known member of the HealthCheckOutcome enum.
+func (e HealthCheckOutcome) Valid() bool {
+	switch e {
+	case HealthCheckOutcomeFAILED:
+		return true
+	case HealthCheckOutcomePASSED:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for HealthReportStatus.
+const (
+	HealthReportStatusHEALTHY HealthReportStatus = "HEALTHY"
+)
+
+// Valid indicates whether the value is a known member of the HealthReportStatus enum.
+func (e HealthReportStatus) Valid() bool {
+	switch e {
+	case HealthReportStatusHEALTHY:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for JobHealthLastOutcome.
+const (
+	JobHealthLastOutcomeCANCELED  JobHealthLastOutcome = "CANCELED"
+	JobHealthLastOutcomeFAILED    JobHealthLastOutcome = "FAILED"
+	JobHealthLastOutcomePANICKED  JobHealthLastOutcome = "PANICKED"
+	JobHealthLastOutcomeSUCCEEDED JobHealthLastOutcome = "SUCCEEDED"
+)
+
+// Valid indicates whether the value is a known member of the JobHealthLastOutcome enum.
+func (e JobHealthLastOutcome) Valid() bool {
+	switch e {
+	case JobHealthLastOutcomeCANCELED:
+		return true
+	case JobHealthLastOutcomeFAILED:
+		return true
+	case JobHealthLastOutcomePANICKED:
+		return true
+	case JobHealthLastOutcomeSUCCEEDED:
 		return true
 	default:
 		return false
@@ -934,6 +1063,7 @@ const (
 	ProblemCodeEmailTaken               ProblemCode = "email_taken"
 	ProblemCodeHumanVerificationFailed  ProblemCode = "human_verification_failed"
 	ProblemCodeInUse                    ProblemCode = "in_use"
+	ProblemCodeInstanceUnhealthy        ProblemCode = "instance_unhealthy"
 	ProblemCodeInsufficientDiskSpace    ProblemCode = "insufficient_disk_space"
 	ProblemCodeInternal                 ProblemCode = "internal"
 	ProblemCodeInvalidCredentials       ProblemCode = "invalid_credentials"
@@ -982,6 +1112,8 @@ func (e ProblemCode) Valid() bool {
 	case ProblemCodeHumanVerificationFailed:
 		return true
 	case ProblemCodeInUse:
+		return true
+	case ProblemCodeInstanceUnhealthy:
 		return true
 	case ProblemCodeInsufficientDiskSpace:
 		return true
@@ -1774,6 +1906,9 @@ type AddedWorkspaceMember struct {
 // AddedWorkspaceMemberOutcome `ADDED` for a user who already had an account, `INVITED` for an address that got an invited user
 type AddedWorkspaceMemberOutcome string
 
+// AgentArchitecture A processor architecture used by installed agents
+type AgentArchitecture string
+
 // AssignableWorkspaceRole A workspace role a request may set; the owner role changes hands only through a transfer
 type AssignableWorkspaceRole string
 
@@ -2045,6 +2180,18 @@ type DiscordNotifierSettings struct {
 // DiscordNotifierSettingsType Always `DISCORD`
 type DiscordNotifierSettingsType string
 
+// DiskUsage Space on the filesystem holding the data volume
+type DiskUsage struct {
+	// FreeSpaceBytes Free volume space in bytes
+	FreeSpaceBytes int64 `json:"freeSpaceBytes"`
+
+	// TotalSpaceBytes Total volume capacity in bytes
+	TotalSpaceBytes int64 `json:"totalSpaceBytes"`
+
+	// UsedSpaceBytes Used volume space in bytes
+	UsedSpaceBytes int64 `json:"usedSpaceBytes"`
+}
+
 // DownloadToken A single-use token that downloads one backup file within five minutes
 type DownloadToken struct {
 	// ExpiresAt When the token stops working
@@ -2183,6 +2330,72 @@ type GoogleDriveStorageSettings struct {
 // GoogleDriveStorageSettingsType Always `GOOGLE_DRIVE`
 type GoogleDriveStorageSettingsType string
 
+// HealthCheck One dependency monitoring result without internal errors
+type HealthCheck struct {
+	// FailureCode A safe reason for the failure
+	FailureCode *HealthCheckFailureCode `json:"failureCode,omitempty"`
+
+	// Name The dependency being checked
+	Name HealthCheckName `json:"name"`
+
+	// Outcome Whether the dependency meets its monitoring check
+	Outcome HealthCheckOutcome `json:"outcome"`
+
+	// StaleAgentCount The number of active agents older than five minutes
+	StaleAgentCount *int `json:"staleAgentCount,omitempty"`
+}
+
+// HealthCheckFailureCode A safe reason for the failure
+type HealthCheckFailureCode string
+
+// HealthCheckName The dependency being checked
+type HealthCheckName string
+
+// HealthCheckOutcome Whether the dependency meets its monitoring check
+type HealthCheckOutcome string
+
+// HealthProblem An unhealthy instance with safe diagnostics and the instance_unhealthy code
+type HealthProblem struct {
+	// Checks Every dependency check
+	Checks []HealthCheck `json:"checks"`
+
+	// Code The cause of the error for programs; a value never changes its meaning
+	Code ProblemCode `json:"code"`
+
+	// Detail An explanation of this occurrence, meant for logs and scripts
+	Detail string `json:"detail"`
+
+	// Errors The fields that break the contract or a validation rule
+	Errors *[]FieldError `json:"errors,omitempty"`
+
+	// Jobs Every registered job in name order
+	Jobs []JobHealth `json:"jobs"`
+
+	// Status The HTTP status of the response
+	Status int `json:"status"`
+
+	// Title A short summary of the kind of error, the same for every error with this code
+	Title string `json:"title"`
+
+	// Type A URI that identifies the kind of error
+	Type string `json:"type"`
+}
+
+// HealthReport A healthy instance with complete dependency and job diagnostics
+type HealthReport struct {
+	// Checks Every dependency check
+	Checks []HealthCheck `json:"checks"`
+
+	// Jobs Every registered job in name order
+	Jobs []JobHealth `json:"jobs"`
+
+	// Status The instance monitoring status
+	Status HealthReportStatus `json:"status"`
+}
+
+// HealthReportStatus The instance monitoring status
+type HealthReportStatus string
+
 // HealthcheckAttempt One recorded availability check
 type HealthcheckAttempt struct {
 	// CreatedAt The time of this check in UTC
@@ -2274,6 +2487,39 @@ type InstanceSettingsUpdate struct {
 	// IsTwoFactorAuthRequired A password sign-in also needs a code emailed to the user
 	IsTwoFactorAuthRequired bool `json:"isTwoFactorAuthRequired"`
 }
+
+// JobHealth A copied observation of a job and its permitted pass duration
+type JobHealth struct {
+	// ActivatedAt The activation time used for first-pass grace
+	ActivatedAt time.Time `json:"activatedAt"`
+
+	// IntervalSeconds Delay between passes in seconds
+	IntervalSeconds float64 `json:"intervalSeconds"`
+
+	// IsRunning Whether a pass is running
+	IsRunning bool `json:"isRunning"`
+
+	// IsStale Whether a completion or running-pass deadline has been reached
+	IsStale bool `json:"isStale"`
+
+	// LastCompletedAt The most recent completion, absent before a pass completes
+	LastCompletedAt *time.Time `json:"lastCompletedAt,omitempty"`
+
+	// LastOutcome The outcome of the most recent completed pass
+	LastOutcome *JobHealthLastOutcome `json:"lastOutcome,omitempty"`
+
+	// LastStartedAt The most recent pass start, absent before the first pass
+	LastStartedAt *time.Time `json:"lastStartedAt,omitempty"`
+
+	// MaxPassDurationSeconds Monitoring budget in seconds that never cancels execution
+	MaxPassDurationSeconds float64 `json:"maxPassDurationSeconds"`
+
+	// Name The registered job name
+	Name string `json:"name"`
+}
+
+// JobHealthLastOutcome The outcome of the most recent completed pass
+type JobHealthLastOutcome string
 
 // LimitedUser A user created on the database's server for its backups
 type LimitedUser struct {
@@ -4534,6 +4780,12 @@ type ListStoragesParams struct {
 
 	// After The `nextCursor` of the previous page
 	After *string `form:"after,omitempty" json:"after,omitempty"`
+}
+
+// DownloadVerificationAgentParams defines parameters for DownloadVerificationAgent.
+type DownloadVerificationAgentParams struct {
+	// Arch The Linux processor architecture
+	Arch AgentArchitecture `form:"arch" json:"arch"`
 }
 
 // ListUsersParams defines parameters for ListUsers.
@@ -6924,6 +7176,27 @@ type ClientInterface interface {
 	// Corresponds with POST /storages/{storageId}/transfer (the `TransferStorage` operationId).
 	TransferStorage(ctx context.Context, storageId StorageId, body TransferStorageJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// GetDiskUsage Get data-volume disk usage
+	//
+	// Available to every signed-in user.
+	//
+	// Corresponds with GET /system/disk-usages (the `GetDiskUsage` operationId).
+	GetDiskUsage(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetInstanceHealth Get instance health diagnostics
+	//
+	// Public monitoring of local dependencies and periodic jobs, with wildcard CORS on both statuses.
+	//
+	// Corresponds with GET /system/health (the `GetInstanceHealth` operationId).
+	GetInstanceHealth(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DownloadVerificationAgent Download the verification agent
+	//
+	// Public self-update download for installed agents, independent of heartbeat acceptance.
+	//
+	// Corresponds with GET /system/verification-agent (the `DownloadVerificationAgent` operationId).
+	DownloadVerificationAgent(ctx context.Context, params *DownloadVerificationAgentParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// GetVersion Get the version of the running instance
 	//
 	// Public, because installed verification agents call it without a token to decide whether to update themselves. Its path and its body never change.
@@ -8921,6 +9194,57 @@ func (c *Client) TransferStorageWithBody(ctx context.Context, storageId StorageI
 // Corresponds with POST /storages/{storageId}/transfer (the `TransferStorage` operationId).
 func (c *Client) TransferStorage(ctx context.Context, storageId StorageId, body TransferStorageJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewTransferStorageRequest(c.Server, storageId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetDiskUsage Get data-volume disk usage
+//
+// Available to every signed-in user.
+//
+// Corresponds with GET /system/disk-usages (the `GetDiskUsage` operationId).
+func (c *Client) GetDiskUsage(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetDiskUsageRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetInstanceHealth Get instance health diagnostics
+//
+// Public monitoring of local dependencies and periodic jobs, with wildcard CORS on both statuses.
+//
+// Corresponds with GET /system/health (the `GetInstanceHealth` operationId).
+func (c *Client) GetInstanceHealth(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetInstanceHealthRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// DownloadVerificationAgent Download the verification agent
+//
+// Public self-update download for installed agents, independent of heartbeat acceptance.
+//
+// Corresponds with GET /system/verification-agent (the `DownloadVerificationAgent` operationId).
+func (c *Client) DownloadVerificationAgent(ctx context.Context, params *DownloadVerificationAgentParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDownloadVerificationAgentRequest(c.Server, params)
 	if err != nil {
 		return nil, err
 	}
@@ -12572,6 +12896,110 @@ func NewTransferStorageRequestWithBody(server string, storageId StorageId, conte
 	return req, nil
 }
 
+// NewGetDiskUsageRequest constructs an http.Request for the GetDiskUsage method
+func NewGetDiskUsageRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/system/disk-usages")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetInstanceHealthRequest constructs an http.Request for the GetInstanceHealth method
+func NewGetInstanceHealthRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/system/health")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewDownloadVerificationAgentRequest constructs an http.Request for the DownloadVerificationAgent method
+func NewDownloadVerificationAgentRequest(server string, params *DownloadVerificationAgentParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/system/verification-agent")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "arch", params.Arch, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewGetVersionRequest constructs an http.Request for the GetVersion method
 func NewGetVersionRequest(server string) (*http.Request, error) {
 	var err error
@@ -14861,6 +15289,33 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with POST /storages/{storageId}/transfer (the `TransferStorage` operationId).
 	TransferStorageWithResponse(ctx context.Context, storageId StorageId, body TransferStorageJSONRequestBody, reqEditors ...RequestEditorFn) (*TransferStorageResponse, error)
+
+	// GetDiskUsageWithResponse Get data-volume disk usage
+	//
+	// Available to every signed-in user.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /system/disk-usages (the `GetDiskUsage` operationId).
+	GetDiskUsageWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetDiskUsageResponse, error)
+
+	// GetInstanceHealthWithResponse Get instance health diagnostics
+	//
+	// Public monitoring of local dependencies and periodic jobs, with wildcard CORS on both statuses.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /system/health (the `GetInstanceHealth` operationId).
+	GetInstanceHealthWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetInstanceHealthResponse, error)
+
+	// DownloadVerificationAgentWithResponse Download the verification agent
+	//
+	// Public self-update download for installed agents, independent of heartbeat acceptance.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /system/verification-agent (the `DownloadVerificationAgent` operationId).
+	DownloadVerificationAgentWithResponse(ctx context.Context, params *DownloadVerificationAgentParams, reqEditors ...RequestEditorFn) (*DownloadVerificationAgentResponse, error)
 
 	// GetVersionWithResponse Get the version of the running instance
 	//
@@ -19721,6 +20176,179 @@ func (r TransferStorageResponse) ContentType() string {
 	return ""
 }
 
+type GetDiskUsageResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *DiskUsage
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetDiskUsageResponse) GetJSON200() *DiskUsage {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r GetDiskUsageResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r GetDiskUsageResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r GetDiskUsageResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetDiskUsageResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetDiskUsageResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetDiskUsageResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetInstanceHealthResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *HealthReport
+	// ApplicationproblemJSON503 the response for an HTTP 503 `application/problem+json` response
+	ApplicationproblemJSON503 *HealthProblem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetInstanceHealthResponse) GetJSON200() *HealthReport {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON503 returns the response for an HTTP 503 `application/problem+json` response
+func (r GetInstanceHealthResponse) GetApplicationproblemJSON503() *HealthProblem {
+	return r.ApplicationproblemJSON503
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r GetInstanceHealthResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r GetInstanceHealthResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetInstanceHealthResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetInstanceHealthResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetInstanceHealthResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// DownloadVerificationAgentResponse200Headers the declared response headers of an HTTP 200 response for DownloadVerificationAgent
+type DownloadVerificationAgentResponse200Headers struct {
+	ContentDisposition *string
+	XDatabasusVersion  *string
+}
+
+type DownloadVerificationAgentResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+	// Headers200 the parsed response headers for an HTTP 200 response
+	Headers200 *DownloadVerificationAgentResponse200Headers
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r DownloadVerificationAgentResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r DownloadVerificationAgentResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r DownloadVerificationAgentResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r DownloadVerificationAgentResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r DownloadVerificationAgentResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DownloadVerificationAgentResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r DownloadVerificationAgentResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type GetVersionResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -23453,6 +24081,51 @@ func (c *ClientWithResponses) TransferStorageWithResponse(ctx context.Context, s
 		return nil, err
 	}
 	return ParseTransferStorageResponse(rsp)
+}
+
+// GetDiskUsageWithResponse Get data-volume disk usage
+//
+// Available to every signed-in user.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /system/disk-usages (the `GetDiskUsage` operationId).
+func (c *ClientWithResponses) GetDiskUsageWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetDiskUsageResponse, error) {
+	rsp, err := c.GetDiskUsage(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetDiskUsageResponse(rsp)
+}
+
+// GetInstanceHealthWithResponse Get instance health diagnostics
+//
+// Public monitoring of local dependencies and periodic jobs, with wildcard CORS on both statuses.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /system/health (the `GetInstanceHealth` operationId).
+func (c *ClientWithResponses) GetInstanceHealthWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetInstanceHealthResponse, error) {
+	rsp, err := c.GetInstanceHealth(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetInstanceHealthResponse(rsp)
+}
+
+// DownloadVerificationAgentWithResponse Download the verification agent
+//
+// Public self-update download for installed agents, independent of heartbeat acceptance.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /system/verification-agent (the `DownloadVerificationAgent` operationId).
+func (c *ClientWithResponses) DownloadVerificationAgentWithResponse(ctx context.Context, params *DownloadVerificationAgentParams, reqEditors ...RequestEditorFn) (*DownloadVerificationAgentResponse, error) {
+	rsp, err := c.DownloadVerificationAgent(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDownloadVerificationAgentResponse(rsp)
 }
 
 // GetVersionWithResponse Get the version of the running instance
@@ -27702,6 +28375,146 @@ func ParseTransferStorageResponse(rsp *http.Response) (*TransferStorageResponse,
 		}
 		response.ApplicationproblemJSONDefault = &dest
 
+	}
+
+	return response, nil
+}
+
+// ParseGetDiskUsageResponse parses an HTTP response from a GetDiskUsageWithResponse call
+func ParseGetDiskUsageResponse(rsp *http.Response) (*GetDiskUsageResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetDiskUsageResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest DiskUsage
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetInstanceHealthResponse parses an HTTP response from a GetInstanceHealthWithResponse call
+func ParseGetInstanceHealthResponse(rsp *http.Response) (*GetInstanceHealthResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetInstanceHealthResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest HealthReport
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest HealthProblem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON503 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseDownloadVerificationAgentResponse parses an HTTP response from a DownloadVerificationAgentWithResponse call
+func ParseDownloadVerificationAgentResponse(rsp *http.Response) (*DownloadVerificationAgentResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DownloadVerificationAgentResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 200:
+		var headers DownloadVerificationAgentResponse200Headers
+		if values := rsp.Header.Values("Content-Disposition"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "Content-Disposition", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.ContentDisposition = &value
+		}
+		if values := rsp.Header.Values("X-Databasus-Version"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "X-Databasus-Version", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.XDatabasusVersion = &value
+		}
+		response.Headers200 = &headers
 	}
 
 	return response, nil

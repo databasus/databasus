@@ -15,11 +15,6 @@ const restartFailMessage = "Backup failed due to application restart"
 func (s *Service) Start(appCtx context.Context) error {
 	s.appCtx.Store(&appCtx)
 
-	// The scheduler's first pass comes one interval after the start, and the health check must not
-	// report it as stopped meanwhile.
-	startedAt := s.clock.Now()
-	s.lastSchedulerPassTime.Store(&startedAt)
-
 	var failedBackups []LogicalBackup
 
 	err := s.transactor.Transaction(appCtx, func(ctx context.Context) error {

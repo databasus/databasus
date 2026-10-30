@@ -66,7 +66,6 @@ type Service struct {
 	restores      runningRestores
 	// appCtx is the application's context that Start keeps; every run derives its own from it.
 	appCtx                  atomic.Pointer[context.Context]
-	lastSchedulerPassTime   atomic.Pointer[time.Time]
 	completedBackupHandlers []BackupCompletedHandler
 	deletingBackupHandlers  []BackupsDeletingHandler
 }
@@ -104,7 +103,6 @@ func NewService(deps Deps) *Service {
 		notifiers:               deps.Notifiers,
 		restores:                deps.Restores,
 		appCtx:                  atomic.Pointer[context.Context]{},
-		lastSchedulerPassTime:   atomic.Pointer[time.Time]{},
 		completedBackupHandlers: nil,
 		deletingBackupHandlers:  nil,
 	}

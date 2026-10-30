@@ -352,7 +352,7 @@ func TestHeartbeat(t *testing.T) {
 
 		response, err := client.Heartbeat(t.Context(), agentclient.HeartbeatRequest{
 			MaxCPU:                 8,
-			MaxRAMMb:               new(512),
+			MaxRAMMb:               512,
 			MaxDiskGb:              100,
 			MaxConcurrentJobs:      4,
 			CurrentVerificationIDs: []uuid.UUID{},
@@ -524,10 +524,7 @@ func TestHeartbeatRetries(t *testing.T) {
 			if !assert.NoError(t, json.NewDecoder(request.Body).Decode(&heartbeat)) {
 				return
 			}
-			if !assert.NotNil(t, heartbeat.MaxRAMMb) {
-				return
-			}
-			assert.Equal(t, 512, *heartbeat.MaxRAMMb)
+			assert.Equal(t, 512, heartbeat.MaxRAMMb)
 			if calls.Add(1) < 3 {
 				writer.WriteHeader(http.StatusServiceUnavailable)
 				return
@@ -550,7 +547,7 @@ func TestHeartbeatRetries(t *testing.T) {
 		)
 		response, err := client.Heartbeat(
 			t.Context(),
-			agentclient.HeartbeatRequest{MaxRAMMb: new(512), CurrentVerificationIDs: []uuid.UUID{}},
+			agentclient.HeartbeatRequest{MaxRAMMb: 512, CurrentVerificationIDs: []uuid.UUID{}},
 		)
 		require.NoError(t, err)
 		require.NotNil(t, response)

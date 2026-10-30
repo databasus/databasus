@@ -2,7 +2,6 @@ package notifiers_test
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"net/http"
 	"testing"
@@ -178,17 +177,8 @@ func isNotifierLockAwaited(t *testing.T, tm team) bool {
 func getDatabaseWorkspaceID(t *testing.T, tm team, databaseID uuid.UUID) uuid.UUID {
 	t.Helper()
 
-	status, body := tm.app.CallOldAPI(t, tm.owner, apptest.OldAPICall{
-		Method: http.MethodGet,
-		Path:   "/databases/" + databaseID.String(),
-		Body:   nil,
-	})
-	require.Equal(t, http.StatusOK, status, string(body))
-
-	var readDatabase struct {
-		WorkspaceID uuid.UUID `json:"workspaceId"`
-	}
-	require.NoError(t, json.Unmarshal(body, &readDatabase))
-
-	return readDatabase.WorkspaceID
+	response, err := tm.owner.Client.GetDatabaseWithResponse(t.Context(), databaseID)
+	require.NoError(t, err)
+	require.NotNil(t, response.JSON200, string(response.Body))
+	return response.JSON200.WorkspaceId
 }

@@ -154,3 +154,22 @@ func TestLoad(t *testing.T) {
 		require.Error(t, err)
 	})
 }
+
+func TestApplicationVersion(t *testing.T) {
+	for _, scenario := range []struct {
+		name       string
+		configured string
+		reported   string
+	}{
+		{"keeps the development default when APP_VERSION is unset", "", "3.26.0"},
+		{"uses the configured version when APP_VERSION is set", "9.8.7", "9.8.7"},
+	} {
+		t.Run(scenario.name, func(t *testing.T) {
+			setRequiredVariables(t)
+			t.Setenv("APP_VERSION", scenario.configured)
+			loadedConfig, _, err := Load(newIsolatedSpec(t, ""))
+			require.NoError(t, err)
+			assert.Equal(t, scenario.reported, loadedConfig.AppVersion)
+		})
+	}
+}

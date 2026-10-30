@@ -8,9 +8,9 @@ import (
 	"databasus-backend/internal/modules/backups/internal/physical/catalog"
 )
 
-func (m *Module) GetLatestCompletedPhysicalFullBackup(
+func (m *Module) GetLatestCompletedPhysicalFullBackups(
 	ctx context.Context,
-	databaseID uuid.UUID,
-) (*catalog.Backup, error) {
-	return m.physical.GetLatestCompletedFullBackup(ctx, databaseID)
+	databaseIDs []uuid.UUID,
+) (map[uuid.UUID]catalog.Backup, error) {
+	return m.physical.GetLatestCompletedFullBackups(ctx, databaseIDs)
 }

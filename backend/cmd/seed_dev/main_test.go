@@ -17,19 +17,25 @@ import (
 	"github.com/stretchr/testify/require"
 
 	contract "databasus-backend/api"
+	"databasus-backend/internal/app/systemhttpapi"
 	"databasus-backend/internal/config"
 	"databasus-backend/internal/engines/clienttools"
-	backups_bridge "databasus-backend/internal/features/backups/config"
+	"databasus-backend/internal/features/caching"
 	databases_bridge "databasus-backend/internal/features/databases"
+	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	storages_bridge "databasus-backend/internal/features/storages"
-	system_healthcheck "databasus-backend/internal/features/system/healthcheck"
 	users_bridge "databasus-backend/internal/features/users"
 	users_testing "databasus-backend/internal/features/users/testing"
 	workspaces_bridge "databasus-backend/internal/features/workspaces"
 	"databasus-backend/internal/lib/apiclient"
 	"databasus-backend/internal/lib/apierror"
+	"databasus-backend/internal/lib/audit"
+	"databasus-backend/internal/lib/clock"
+	"databasus-backend/internal/lib/diskusage"
 	"databasus-backend/internal/lib/httpserver"
+	"databasus-backend/internal/modules/backups"
 	"databasus-backend/internal/modules/users"
+	"databasus-backend/internal/modules/verification"
 	"databasus-backend/internal/storage"
 	"databasus-backend/internal/util/logger"
 	test_utils "databasus-backend/internal/util/testing"
@@ -43,7 +49,8 @@ const (
 )
 
 func Test_Seed_WhenAccountIsNew_CreatesWorkspaceStorageAndDatabasesWithBackups(t *testing.T) {
-	router, params := setUpSeedTest(t)
+	fixture, params := setUpSeedTest(t)
+	router := fixture.router
 
 	exitCode, output := runSeedForTest(t, params)
 	require.Equal(t, 0, exitCode, output)
@@ -84,13 +91,14 @@ func Test_Seed_WhenAccountIsNew_CreatesWorkspaceStorageAndDatabasesWithBackups(t
 	assert.Equal(t, apiclient.PhysicalRetentionPolicyCHAINS, walSettings.Retention.Policy)
 	assert.Equal(t, 2, walSettings.Retention.ChainsCount)
 
-	storedWalConfig, err := backups_bridge.GetModule().GetPhysicalBackupConfig(t.Context(), walDatabaseID)
+	storedWalConfig, err := fixture.backups.GetPhysicalBackupConfig(t.Context(), walDatabaseID)
 	require.NoError(t, err)
 	assert.NotNil(t, storedWalConfig.ForceFullRequestedAt, "the first WAL-streaming backup was not requested")
 }
 
 func Test_Seed_WhenRunTwice_CreatesNothingAndKeepsEditedDatabase(t *testing.T) {
-	router, params := setUpSeedTest(t)
+	fixture, params := setUpSeedTest(t)
+	router := fixture.router
 
 	exitCode, output := runSeedForTest(t, params)
 	require.Equal(t, 0, exitCode, output)
@@ -131,7 +139,8 @@ func Test_Seed_WhenRunTwice_CreatesNothingAndKeepsEditedDatabase(t *testing.T) {
 }
 
 func Test_Seed_WhenSeededDatabaseWasDeleted_RecreatesOnlyThatDatabase(t *testing.T) {
-	router, params := setUpSeedTest(t)
+	fixture, params := setUpSeedTest(t)
+	router := fixture.router
 
 	exitCode, output := runSeedForTest(t, params)
 	require.Equal(t, 0, exitCode, output)
@@ -161,7 +170,8 @@ func Test_Seed_WhenSeededDatabaseWasDeleted_RecreatesOnlyThatDatabase(t *testing
 }
 
 func Test_Seed_WhenAccountHasAnotherPassword_FailsAndLeavesAccountUnchanged(t *testing.T) {
-	router, params := setUpSeedTest(t)
+	fixture, params := setUpSeedTest(t)
+	router := fixture.router
 
 	signUpForTest(t, router, params.Email, otherPassword)
 	sessionBefore := signInForTest(t, router, params.Email, otherPassword)
@@ -179,7 +189,8 @@ func Test_Seed_WhenAccountHasAnotherPassword_FailsAndLeavesAccountUnchanged(t *t
 }
 
 func Test_Seed_WhenAnotherAccountExists_LeavesThatAccountUnchanged(t *testing.T) {
-	router, params := setUpSeedTest(t)
+	fixture, params := setUpSeedTest(t)
+	router := fixture.router
 
 	otherEmail := "seed-other-" + uuid.NewString() + "@example.com"
 	signUpForTest(t, router, otherEmail, otherPassword)
@@ -197,7 +208,8 @@ func Test_Seed_WhenAnotherAccountExists_LeavesThatAccountUnchanged(t *testing.T)
 }
 
 func Test_Seed_WhenTwoFactorSignInIsRequired_FailsAndCreatesNothing(t *testing.T) {
-	router, params := setUpSeedTest(t)
+	fixture, params := setUpSeedTest(t)
+	router := fixture.router
 
 	token := signUpForTest(t, router, params.Email, seedPassword).Token
 
@@ -213,7 +225,8 @@ func Test_Seed_WhenTwoFactorSignInIsRequired_FailsAndCreatesNothing(t *testing.T
 }
 
 func Test_Seed_WhenMemberMayNotCreateWorkspaces_FailsNamingWorkspace(t *testing.T) {
-	router, params := setUpSeedTest(t)
+	fixture, params := setUpSeedTest(t)
+	router := fixture.router
 
 	session := signUpForTest(t, router, params.Email, seedPassword)
 	token := session.Token
@@ -270,9 +283,9 @@ func Test_Seed_WhenBackendReportsItselfUnhealthy_FailsWithReasonAndSendsNothingE
 		receivedPaths = append(receivedPaths, request.URL.Path)
 		receivedPathsMutex.Unlock()
 
-		writer.Header().Set("Content-Type", "application/json")
+		writer.Header().Set("Content-Type", "application/problem+json")
 		writer.WriteHeader(http.StatusServiceUnavailable)
-		_, _ = writer.Write([]byte(`{"status":"` + unhealthyReason + `"}`))
+		_, _ = writer.Write([]byte(`{"status":503,"code":"instance_unhealthy","detail":"` + unhealthyReason + `"}`))
 	}))
 	t.Cleanup(stubServer.Close)
 
@@ -294,10 +307,11 @@ type seededItems struct {
 
 // Every test claims the instance with an account of its own first, so the seeded account
 // registers as a member, the way it does on a dev instance someone already uses.
-func setUpSeedTest(t *testing.T) (*gin.Engine, seedParams) {
+func setUpSeedTest(t *testing.T) (seedFixture, seedParams) {
 	t.Helper()
 
-	router := newSeedTestRouter()
+	fixture := newSeedTestRouter(t)
+	router := fixture.router
 	server := httptest.NewServer(router)
 	t.Cleanup(server.Close)
 
@@ -309,14 +323,17 @@ func setUpSeedTest(t *testing.T) (*gin.Engine, seedParams) {
 	params := buildTestSeedParams(server.URL)
 	t.Cleanup(func() { removeAccountWithItems(t, router, params.Email) })
 
-	return router, params
+	return fixture, params
 }
 
-func newSeedTestRouter() *gin.Engine {
+type seedFixture struct {
+	router  *gin.Engine
+	backups backups.Module
+}
+
+func newSeedTestRouter(t *testing.T) seedFixture {
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
-
-	v1 := router.Group("/api/v1")
 
 	contractGuard, err := httpserver.RequireContractOperation(contract.OpenAPI, logger.GetLogger())
 	if err != nil {
@@ -334,17 +351,49 @@ func newSeedTestRouter() *gin.Engine {
 	workspacesModule.RegisterRoutes(contractRoutes, errorHooks)
 	storages_bridge.GetModule().RegisterRoutes(contractRoutes, errorHooks)
 	databases_bridge.GetModule().RegisterRoutes(contractRoutes, errorHooks)
-	backups_bridge.GetModule().RegisterRoutes(contractRoutes, errorHooks)
+	backupsModule := newSeedBackups(t)
+	backupsModule.RegisterRoutes(contractRoutes, errorHooks)
 
-	system_healthcheck.InstallClientToolsChecker(clienttools.NewChecker(nil))
-	system_healthcheck.GetHealthcheckController().RegisterRoutes(v1)
-
-	protected := v1.Group("")
-	protected.Use(users_testing.GetSessionMiddleware())
+	verificationModule := verification.New(verification.Deps{
+		DB:         storage.GetDb(),
+		Transactor: storage.GetTransactor(),
+		Logger:     logger.GetLogger(),
+		Clock:      clock.NewSystem(),
+		AuditLog: audit.New(
+			audit.Deps{DB: storage.GetDb(), Clock: clock.NewSystem(), AuditLogger: logger.GetAuditLogger()},
+		),
+		Users:       usersModule,
+		Workspaces:  workspacesModule,
+		Databases:   databases_bridge.GetModule(),
+		Backups:     backupsModule,
+		Notifiers:   notifiers_bridge.GetModule(),
+		RateLimiter: caching.GetRateLimiter(),
+	})
+	systemHandler := systemhttpapi.NewHandler(systemhttpapi.Deps{
+		Version:         config.GetEnv().AppVersion,
+		Clock:           clock.NewSystem(),
+		Logger:          logger.GetLogger(),
+		DB:              storage.GetDb(),
+		Verification:    verificationModule,
+		ClientTools:     clienttools.NewChecker(nil),
+		DataDirectory:   config.GetEnv().DataDirectory,
+		BinaryDirectory: "",
+		GetJobs:         func(time.Time) []systemhttpapi.JobHealth { return []systemhttpapi.JobHealth{} },
+		InspectDisk:     diskusage.Get,
+	})
+	systemhttpapi.RegisterHandlersWithOptions(
+		contractRoutes,
+		systemhttpapi.NewStrictHandlerWithOptions(systemHandler, nil, systemhttpapi.StrictGinServerOptions{
+			RequestErrorHandlerFunc:  errorHooks.HandleRequestError,
+			HandlerErrorFunc:         errorHooks.HandleHandlerError,
+			ResponseErrorHandlerFunc: errorHooks.HandleResponseError,
+		}),
+		systemhttpapi.GinServerOptions{ErrorHandler: errorHooks.HandleParameterError},
+	)
 
 	databases_bridge.SetupDependencies()
 
-	return router
+	return seedFixture{router: router, backups: backupsModule}
 }
 
 // acceptingMailer is a mail server that accepts every message, so an instance that requires

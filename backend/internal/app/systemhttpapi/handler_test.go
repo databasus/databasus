@@ -9,8 +9,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"databasus-backend/internal/app/apptest"
-	system_version "databasus-backend/internal/features/system/version"
 	apiclient "databasus-backend/internal/lib/apiclient"
+	"databasus-backend/internal/lib/config"
 )
 
 // Installed verification agents update themselves through this operation with their own parser, so
@@ -25,7 +25,7 @@ func TestGetVersion(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, response.StatusCode())
 		require.NotNil(t, response.JSON200)
-		assert.Equal(t, system_version.GetAppVersion(), response.JSON200.Version)
+		assert.Equal(t, getConfiguredVersion(t), response.JSON200.Version)
 	})
 
 	t.Run("returns a body with the version field alone", func(t *testing.T) {
@@ -37,7 +37,7 @@ func TestGetVersion(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, "application/json", response.HTTPResponse.Header.Get("Content-Type"))
 		assert.Equal(t,
-			`{"version":"`+system_version.GetAppVersion()+`"}`,
+			`{"version":"`+getConfiguredVersion(t)+`"}`,
 			strings.TrimSuffix(string(response.Body), "\n"),
 		)
 	})
@@ -51,4 +51,14 @@ func TestGetVersion(t *testing.T) {
 		require.NoError(t, err)
 		assert.NotEmpty(t, response.HTTPResponse.Header.Get("X-Request-Id"))
 	})
+}
+
+func getConfiguredVersion(t *testing.T) string {
+	t.Helper()
+	t.Setenv("ENV_MODE", "development")
+	loadedConfig, _, err := config.Load(
+		config.LoadSpec{IsDatabaseRequired: false, RootDirectory: t.TempDir(), PublishedDatabaseDsnPath: ""},
+	)
+	require.NoError(t, err)
+	return loadedConfig.AppVersion
 }

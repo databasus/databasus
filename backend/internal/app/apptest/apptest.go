@@ -78,6 +78,7 @@ func New(tb testing.TB, options ...Option) *App {
 	tb.Helper()
 
 	applied := settings{
+		isTelemetryEnabled:           false,
 		isPhysicalBackupLoopsEnabled: false,
 		physicalBackupStopTimeout:    2 * time.Minute,
 		isMailServerMissing:          false,
@@ -119,6 +120,10 @@ func New(tb testing.TB, options ...Option) *App {
 
 	appConfig := newConfig(tb, databaseDsn)
 	appConfig.DatabasusURL = applied.publicURL
+	appConfig.IsDisableAnonymousTelemetry = !applied.isTelemetryEnabled
+	if applied.telemetryIdentityPath != "" {
+		appConfig.TelemetryInstancePath = applied.telemetryIdentityPath
+	}
 
 	if applied.isTurnstileEnabled {
 		appConfig.CloudflareTurnstileSecretKey = turnstileSecretKey
@@ -168,6 +173,9 @@ func New(tb testing.TB, options ...Option) *App {
 		environment.AgentBinariesDir = applied.agentBinariesDir
 	}
 
+	if applied.telemetryReceiverURL != "" {
+		environment.ExternalEndpoints.TelemetryReceiverURL = applied.telemetryReceiverURL
+	}
 	environment.ExternalEndpoints.SlackPostMessageURL = applied.notifierEndpoints.SlackPostMessageURL
 	environment.ExternalEndpoints.TelegramBotAPIURL = applied.notifierEndpoints.TelegramBotAPIURL
 

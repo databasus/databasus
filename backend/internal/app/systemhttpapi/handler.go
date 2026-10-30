@@ -4,18 +4,28 @@ import "context"
 
 var _ StrictServerInterface = (*Handler)(nil)
 
-type Deps struct {
-	Version string
+type Handler struct{ service *Service }
+
+func NewHandler(deps Deps) *Handler { return &Handler{service: NewService(deps)} }
+
+func (h *Handler) GetVersion(ctx context.Context, _ GetVersionRequestObject) (GetVersionResponseObject, error) {
+	return h.service.GetVersion(ctx)
 }
 
-type Handler struct {
-	version string
+func (h *Handler) GetInstanceHealth(
+	ctx context.Context,
+	_ GetInstanceHealthRequestObject,
+) (GetInstanceHealthResponseObject, error) {
+	return h.service.GetHealth(ctx)
 }
 
-func NewHandler(deps Deps) *Handler {
-	return &Handler{version: deps.Version}
+func (h *Handler) GetDiskUsage(ctx context.Context, _ GetDiskUsageRequestObject) (GetDiskUsageResponseObject, error) {
+	return h.service.GetDiskUsage(ctx)
 }
 
-func (h *Handler) GetVersion(context.Context, GetVersionRequestObject) (GetVersionResponseObject, error) {
-	return GetVersion200JSONResponse{Version: h.version}, nil
+func (h *Handler) DownloadVerificationAgent(
+	ctx context.Context,
+	request DownloadVerificationAgentRequestObject,
+) (DownloadVerificationAgentResponseObject, error) {
+	return h.service.DownloadAgent(ctx, request.Params.Arch)
 }

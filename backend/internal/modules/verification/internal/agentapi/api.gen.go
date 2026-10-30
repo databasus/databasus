@@ -102,9 +102,7 @@ type HeartbeatRequest struct {
 	MaxConcurrentJobs      int                  `json:"maxConcurrentJobs"`
 	MaxCPU                 int                  `json:"maxCpu"`
 	MaxDiskGb              int                  `json:"maxDiskGb"`
-	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
-	MaxRamGb *int `json:"maxRamGb,omitempty"`
-	MaxRAMMb *int `json:"maxRamMb,omitempty"`
+	MaxRAMMb               int                  `json:"maxRamMb"`
 }
 
 // HeartbeatResponse HeartbeatResponse

@@ -748,6 +748,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/system/health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get instance health diagnostics
+         * @description Public monitoring of local dependencies and periodic jobs, with wildcard CORS on both statuses.
+         */
+        get: operations["getInstanceHealth"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/system/disk-usages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get data-volume disk usage
+         * @description Available to every signed-in user.
+         */
+        get: operations["getDiskUsage"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/system/verification-agent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download the verification agent
+         * @description Public self-update download for installed agents, independent of heartbeat acceptance.
+         */
+        get: operations["downloadVerificationAgent"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/system/version": {
         parameters: {
             query?: never;
@@ -2869,6 +2929,107 @@ export interface components {
             /** @description The collections the dump leaves out */
             excludeCollections: string[];
         };
+        /**
+         * @description A processor architecture used by installed agents
+         * @enum {string}
+         */
+        AgentArchitecture: "amd64" | "arm64";
+        /** @description Space on the filesystem holding the data volume */
+        DiskUsage: {
+            /**
+             * Format: int64
+             * @description Total volume capacity in bytes
+             */
+            totalSpaceBytes: number;
+            /**
+             * Format: int64
+             * @description Used volume space in bytes
+             */
+            usedSpaceBytes: number;
+            /**
+             * Format: int64
+             * @description Free volume space in bytes
+             */
+            freeSpaceBytes: number;
+        };
+        /** @description One dependency monitoring result without internal errors */
+        HealthCheck: {
+            /**
+             * @description The dependency being checked
+             * @enum {string}
+             */
+            name: "DISK" | "INTERNAL_DATABASE" | "CLIENT_TOOLS" | "VERIFICATION_AGENTS";
+            /**
+             * @description Whether the dependency meets its monitoring check
+             * @enum {string}
+             */
+            outcome: "PASSED" | "FAILED";
+            /**
+             * @description A safe reason for the failure
+             * @enum {string}
+             */
+            failureCode?: "INSPECTION_FAILED" | "DISK_FULL" | "CONNECTION_FAILED" | "TOOLS_UNUSABLE" | "AGENTS_STALE" | "QUERY_FAILED";
+            /** @description The number of active agents older than five minutes */
+            staleAgentCount?: number;
+        };
+        /** @description A copied observation of a job and its permitted pass duration */
+        JobHealth: {
+            /** @description The registered job name */
+            name: string;
+            /**
+             * Format: double
+             * @description Delay between passes in seconds
+             */
+            intervalSeconds: number;
+            /**
+             * Format: double
+             * @description Monitoring budget in seconds that never cancels execution
+             */
+            maxPassDurationSeconds: number;
+            /** @description Whether a pass is running */
+            isRunning: boolean;
+            /** @description Whether a completion or running-pass deadline has been reached */
+            isStale: boolean;
+            /**
+             * Format: date-time
+             * @description The activation time used for first-pass grace
+             */
+            activatedAt: string;
+            /**
+             * Format: date-time
+             * @description The most recent pass start, absent before the first pass
+             */
+            lastStartedAt?: string;
+            /**
+             * Format: date-time
+             * @description The most recent completion, absent before a pass completes
+             */
+            lastCompletedAt?: string;
+            /**
+             * @description The outcome of the most recent completed pass
+             * @enum {string}
+             */
+            lastOutcome?: "SUCCEEDED" | "FAILED" | "PANICKED" | "CANCELED";
+        };
+        /** @description A healthy instance with complete dependency and job diagnostics */
+        HealthReport: {
+            /**
+             * @description The instance monitoring status
+             * @enum {string}
+             */
+            status: "HEALTHY";
+            /** @description Every dependency check */
+            checks: components["schemas"]["HealthCheck"][];
+            /** @description Every registered job in name order */
+            jobs: components["schemas"]["JobHealth"][];
+        };
+        /** @description An unhealthy instance with safe diagnostics and the instance_unhealthy code */
+        HealthProblem: components["schemas"]["Problem"] & {
+            /** @description Every dependency check */
+            checks: components["schemas"]["HealthCheck"][];
+            /** @description Every registered job in name order */
+            jobs: components["schemas"]["JobHealth"][];
+        };
         /** @description An error in the RFC 9457 format. The client chooses its text by `code` */
         Problem: {
             /** @description A URI that identifies the kind of error */
@@ -2887,7 +3048,7 @@ export interface components {
          * @description The cause of the error for programs; a value never changes its meaning
          * @enum {string}
          */
-        ProblemCode: "invalid_request" | "unauthenticated" | "permission_denied" | "not_found" | "rate_limited" | "human_verification_failed" | "invalid_credentials" | "user_deactivated" | "registration_closed" | "email_taken" | "invalid_reset_code" | "oauth_not_configured" | "oauth_failed" | "pending_sign_in_not_usable" | "sign_in_code_not_sent" | "too_many_sign_in_codes" | "sign_in_code_resent_too_soon" | "sign_in_code_incorrect" | "email_not_configured" | "admin_email_missing" | "already_member" | "cannot_change_own_role" | "owner_requires_transfer" | "workspace_not_empty" | "in_use" | "database_connection_failed" | "backup_not_completed" | "already_running" | "not_running" | "no_extendable_chain" | "no_restorable_backup" | "target_time_unreachable" | "insufficient_disk_space" | "internal";
+        ProblemCode: "invalid_request" | "unauthenticated" | "permission_denied" | "not_found" | "rate_limited" | "human_verification_failed" | "invalid_credentials" | "user_deactivated" | "registration_closed" | "email_taken" | "invalid_reset_code" | "oauth_not_configured" | "oauth_failed" | "pending_sign_in_not_usable" | "sign_in_code_not_sent" | "too_many_sign_in_codes" | "sign_in_code_resent_too_soon" | "sign_in_code_incorrect" | "email_not_configured" | "admin_email_missing" | "already_member" | "cannot_change_own_role" | "owner_requires_transfer" | "workspace_not_empty" | "in_use" | "database_connection_failed" | "backup_not_completed" | "already_running" | "not_running" | "no_extendable_chain" | "no_restorable_backup" | "target_time_unreachable" | "insufficient_disk_space" | "instance_unhealthy" | "internal";
         /** @description A field of the request that breaks the contract or a validation rule */
         FieldError: {
             /** @description The path of the field in the request, such as `name` or `settings.bucket` */
@@ -5288,6 +5449,88 @@ export interface operations {
             400: components["responses"]["Problem"];
             401: components["responses"]["Problem"];
             403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    getInstanceHealth: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Every monitoring check passes */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HealthReport"];
+                };
+            };
+            /** @description At least one monitoring check fails */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HealthProblem"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    getDiskUsage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The data volume usage in bytes */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DiskUsage"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    downloadVerificationAgent: {
+        parameters: {
+            query: {
+                /** @description The Linux processor architecture */
+                arch: components["schemas"]["AgentArchitecture"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The agent binary streamed from the running release */
+            200: {
+                headers: {
+                    /** @description The attachment filename */
+                    "Content-Disposition"?: string;
+                    /** @description The running application version */
+                    "X-Databasus-Version"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": string;
+                };
+            };
+            400: components["responses"]["Problem"];
             404: components["responses"]["Problem"];
             default: components["responses"]["Problem"];
         };

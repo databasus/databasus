@@ -67,6 +67,7 @@ const (
 	ProblemCodeEmailTaken               ProblemCode = "email_taken"
 	ProblemCodeHumanVerificationFailed  ProblemCode = "human_verification_failed"
 	ProblemCodeInUse                    ProblemCode = "in_use"
+	ProblemCodeInstanceUnhealthy        ProblemCode = "instance_unhealthy"
 	ProblemCodeInsufficientDiskSpace    ProblemCode = "insufficient_disk_space"
 	ProblemCodeInternal                 ProblemCode = "internal"
 	ProblemCodeInvalidCredentials       ProblemCode = "invalid_credentials"
@@ -115,6 +116,8 @@ func (e ProblemCode) Valid() bool {
 	case ProblemCodeHumanVerificationFailed:
 		return true
 	case ProblemCodeInUse:
+		return true
+	case ProblemCodeInstanceUnhealthy:
 		return true
 	case ProblemCodeInsufficientDiskSpace:
 		return true

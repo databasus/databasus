@@ -180,6 +180,9 @@ func (s *Service) GetJobs() []background.Job {
 	return []background.Job{s.backuping.Scheduler.GetJob(), s.cleaner.GetJob(), s.streams.GetJob()}
 }
 
-func (s *Service) GetLatestCompletedFullBackup(ctx context.Context, databaseID uuid.UUID) (*catalog.Backup, error) {
-	return s.chains.GetLatestCompletedFullBackup(ctx, databaseID)
+func (s *Service) GetLatestCompletedFullBackups(
+	ctx context.Context,
+	databaseIDs []uuid.UUID,
+) (map[uuid.UUID]catalog.Backup, error) {
+	return s.backupRepository.GetLatestCompletedFullBackups(ctx, databaseIDs)
 }

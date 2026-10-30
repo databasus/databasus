@@ -141,7 +141,7 @@ components:
     HeartbeatRequest:
       type: object
       description: HeartbeatRequest
-      required: [maxCpu, maxDiskGb, maxConcurrentJobs, currentVerificationIds]
+      required: [maxCpu, maxRamMb, maxDiskGb, maxConcurrentJobs, currentVerificationIds]
       properties:
         maxCpu:
           x-go-type-skip-optional-pointer: true
@@ -152,10 +152,6 @@ components:
           x-go-name: MaxRAMMb
           type: integer
           minimum: 0
-        maxRamGb:
-          type: integer
-          minimum: 0
-          deprecated: true
         maxDiskGb:
           x-go-type-skip-optional-pointer: true
           type: integer

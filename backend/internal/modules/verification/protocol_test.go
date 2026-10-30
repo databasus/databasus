@@ -18,7 +18,7 @@ import (
 func heartbeatBody(ids []uuid.UUID) agentclient.HeartbeatRequest {
 	return agentclient.HeartbeatRequest{
 		MaxCPU:                 4,
-		MaxRAMMb:               new(8192),
+		MaxRAMMb:               8192,
 		MaxDiskGb:              10,
 		MaxConcurrentJobs:      2,
 		CurrentVerificationIDs: ids,
@@ -103,7 +103,7 @@ func TestVerificationProtocol(t *testing.T) {
 		)
 		assert.Equal(t, refusedDetail, malformedIDProblem.Detail)
 		negative := heartbeatBody(nil)
-		negative.MaxRAMMb = new(-1)
+		negative.MaxRAMMb = -1
 		status, _ = newProtocolAgent(t, app, agent).recordHeartbeat(agent.Agent.ID, negative)
 		assert.Equal(t, http.StatusBadRequest, status)
 		agentClient := app.NewSessionClient(t, agent.Token)

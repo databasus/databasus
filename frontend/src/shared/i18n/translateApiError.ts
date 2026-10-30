@@ -39,6 +39,7 @@ const CONTRACT_ERROR_CODE_KEYS = {
   no_restorable_backup: 'errors.noRestorableBackup',
   target_time_unreachable: 'errors.targetTimeUnreachable',
   not_running: 'errors.notRunning',
+  instance_unhealthy: 'errors.instanceUnhealthy',
   insufficient_disk_space: 'errors.insufficientDiskSpace',
   internal: 'errors.internal',
 } as const satisfies Record<ApiComponents['schemas']['ProblemCode'], TranslationKey>;

@@ -1,5 +1,3 @@
-export type DiskUsage = {
-  totalSpaceBytes: number;
-  usedSpaceBytes: number;
-  freeSpaceBytes: number;
-};
+import type { components } from '../../../shared/api/schema.gen';
+
+export type DiskUsage = components['schemas']['DiskUsage'];

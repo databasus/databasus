@@ -65,7 +65,6 @@ func (a *App) Serve(ctx context.Context, address string) error {
 
 	a.backgroundGroup = background.New(background.Deps{Logger: a.logger})
 
-	a.startBackgroundLoops(loopsCtx)
 	a.runner.Start(loopsCtx)
 
 	a.backgroundGroup.Go(loopsCtx, "http server", func(context.Context) error {
@@ -105,8 +104,6 @@ func (a *App) NewHandler() (http.Handler, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	a.registerRoutes(router)
 
 	router.NoRoute(httpserver.HandleUnknownPath(frontendDirectory))
 

@@ -1476,6 +1476,84 @@ paths:
           $ref: "#/components/responses/Problem"
         default:
           $ref: "#/components/responses/Problem"
+  /system/health:
+    get:
+      operationId: getInstanceHealth
+      tags: [system]
+      summary: Get instance health diagnostics
+      description: Public monitoring of local dependencies and periodic jobs, with wildcard CORS on both statuses.
+      x-access: public
+      security: []
+      responses:
+        "200":
+          description: Every monitoring check passes
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthReport"
+        "503":
+          description: At least one monitoring check fails
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/HealthProblem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /system/disk-usages:
+    get:
+      operationId: getDiskUsage
+      tags: [system]
+      summary: Get data-volume disk usage
+      description: Available to every signed-in user.
+      responses:
+        "200":
+          description: The data volume usage in bytes
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DiskUsage"
+        "401":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /system/verification-agent:
+    get:
+      operationId: downloadVerificationAgent
+      tags: [system]
+      summary: Download the verification agent
+      description: Public self-update download for installed agents, independent of heartbeat acceptance.
+      x-access: public
+      security: []
+      parameters:
+        - name: arch
+          in: query
+          required: true
+          description: The Linux processor architecture
+          schema:
+            $ref: "#/components/schemas/AgentArchitecture"
+      responses:
+        "200":
+          description: The agent binary streamed from the running release
+          headers:
+            Content-Disposition:
+              description: The attachment filename
+              schema:
+                type: string
+            X-Databasus-Version:
+              description: The running application version
+              schema:
+                type: string
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        "400":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
   /system/version:
     get:
       operationId: getVersion
@@ -5204,6 +5282,122 @@ components:
           items:
             type: string
           description: The collections the dump leaves out
+    AgentArchitecture:
+      type: string
+      description: A processor architecture used by installed agents
+      x-engine-values: true
+      enum: [amd64, arm64]
+    DiskUsage:
+      type: object
+      description: Space on the filesystem holding the data volume
+      required: [totalSpaceBytes, usedSpaceBytes, freeSpaceBytes]
+      properties:
+        totalSpaceBytes:
+          type: integer
+          format: int64
+          description: Total volume capacity in bytes
+        usedSpaceBytes:
+          type: integer
+          format: int64
+          description: Used volume space in bytes
+        freeSpaceBytes:
+          type: integer
+          format: int64
+          description: Free volume space in bytes
+    HealthCheck:
+      type: object
+      description: One dependency monitoring result without internal errors
+      required: [name, outcome]
+      properties:
+        name:
+          type: string
+          enum: [DISK, INTERNAL_DATABASE, CLIENT_TOOLS, VERIFICATION_AGENTS]
+          description: The dependency being checked
+        outcome:
+          type: string
+          enum: [PASSED, FAILED]
+          description: Whether the dependency meets its monitoring check
+        failureCode:
+          type: string
+          enum: [INSPECTION_FAILED, DISK_FULL, CONNECTION_FAILED, TOOLS_UNUSABLE, AGENTS_STALE, QUERY_FAILED]
+          description: A safe reason for the failure
+        staleAgentCount:
+          type: integer
+          description: The number of active agents older than five minutes
+    JobHealth:
+      type: object
+      description: A copied observation of a job and its permitted pass duration
+      required: [name, intervalSeconds, maxPassDurationSeconds, isRunning, isStale, activatedAt]
+      properties:
+        name:
+          type: string
+          description: The registered job name
+        intervalSeconds:
+          type: number
+          format: double
+          description: Delay between passes in seconds
+        maxPassDurationSeconds:
+          type: number
+          format: double
+          description: Monitoring budget in seconds that never cancels execution
+        isRunning:
+          type: boolean
+          description: Whether a pass is running
+        isStale:
+          type: boolean
+          description: Whether a completion or running-pass deadline has been reached
+        activatedAt:
+          type: string
+          format: date-time
+          description: The activation time used for first-pass grace
+        lastStartedAt:
+          type: string
+          format: date-time
+          description: The most recent pass start, absent before the first pass
+        lastCompletedAt:
+          type: string
+          format: date-time
+          description: The most recent completion, absent before a pass completes
+        lastOutcome:
+          type: string
+          enum: [SUCCEEDED, FAILED, PANICKED, CANCELED]
+          description: The outcome of the most recent completed pass
+    HealthReport:
+      type: object
+      description: A healthy instance with complete dependency and job diagnostics
+      required: [status, checks, jobs]
+      properties:
+        status:
+          type: string
+          enum: [HEALTHY]
+          description: The instance monitoring status
+        checks:
+          type: array
+          description: Every dependency check
+          items:
+            $ref: "#/components/schemas/HealthCheck"
+        jobs:
+          type: array
+          description: Every registered job in name order
+          items:
+            $ref: "#/components/schemas/JobHealth"
+    HealthProblem:
+      description: An unhealthy instance with safe diagnostics and the instance_unhealthy code
+      allOf:
+        - $ref: "#/components/schemas/Problem"
+        - type: object
+          required: [checks, jobs]
+          properties:
+            checks:
+              type: array
+              description: Every dependency check
+              items:
+                $ref: "#/components/schemas/HealthCheck"
+            jobs:
+              type: array
+              description: Every registered job in name order
+              items:
+                $ref: "#/components/schemas/JobHealth"
     Problem:
       type: object
       description: An error in the RFC 9457 format. The client chooses its text by `code`
@@ -5265,6 +5459,7 @@ components:
         - no_restorable_backup
         - target_time_unreachable
         - insufficient_disk_space
+        - instance_unhealthy
         - internal
     FieldError:
       type: object

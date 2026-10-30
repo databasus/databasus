@@ -43,7 +43,7 @@ type Config struct {
 	LogFileIsEnabled     string `env:"LOG_FILE_IS_ENABLED"`
 	OpenTelemetryURL     string `env:"OPEN_TELEMETRY_URL"`
 	OpenTelemetryHeaders string `env:"OPEN_TELEMETRY_HEADERS"`
-	AppVersion           string `env:"APP_VERSION"`
+	AppVersion           string `env:"APP_VERSION"            envDefault:"3.26.0"`
 
 	// The paths below all live in DataDirectory, the one data volume.
 	DataDirectory         string `env:"-"`

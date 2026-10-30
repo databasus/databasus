@@ -139,6 +139,7 @@ export const ru: typeof en = {
     targetTimeUnreachable:
       'Доступных бэкапов и WAL недостаточно для восстановления на выбранный момент.',
     notRunning: 'Это уже не выполняется, отменять нечего.',
+    instanceUnhealthy: 'Экземпляр Databasus работает с ошибками.',
     insufficientDiskSpace: 'На сервере Databasus не хватает свободного места на диске: {{detail}}',
     unknown: 'Что-то пошло не так. Попробуйте еще раз.',
     networkUnreachable: 'Сервер Databasus недоступен. Проверьте подключение и попробуйте еще раз.',

@@ -7,21 +7,17 @@ import (
 	"io"
 	"log/slog"
 	"path/filepath"
-	"sync"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
 	old_config "databasus-backend/internal/config"
 	"databasus-backend/internal/engines/clienttools"
-	backups_bridge "databasus-backend/internal/features/backups/config"
 	"databasus-backend/internal/features/caching"
 	databases_bridge "databasus-backend/internal/features/databases"
 	"databasus-backend/internal/features/email"
 	notifiers_bridge "databasus-backend/internal/features/notifiers"
 	storages_bridge "databasus-backend/internal/features/storages"
-	system_healthcheck "databasus-backend/internal/features/system/healthcheck"
-	"databasus-backend/internal/features/telemetry"
 	users_bridge "databasus-backend/internal/features/users"
 	workspaces_bridge "databasus-backend/internal/features/workspaces"
 	"databasus-backend/internal/lib/audit"
@@ -30,12 +26,14 @@ import (
 	"databasus-backend/internal/lib/clock"
 	"databasus-backend/internal/lib/crypto"
 	"databasus-backend/internal/lib/database"
+	"databasus-backend/internal/lib/diskusage"
 	"databasus-backend/internal/lib/ratelimit"
 	"databasus-backend/internal/modules/backups"
 	"databasus-backend/internal/modules/databases"
 	"databasus-backend/internal/modules/healthcheck"
 	"databasus-backend/internal/modules/notifiers"
 	"databasus-backend/internal/modules/storages"
+	"databasus-backend/internal/modules/telemetry"
 	"databasus-backend/internal/modules/users"
 	"databasus-backend/internal/modules/verification"
 	"databasus-backend/internal/modules/workspaces"
@@ -44,10 +42,6 @@ import (
 	files_utils "databasus-backend/internal/util/files"
 	"databasus-backend/migrations"
 )
-
-// The listeners of the old features live in process-wide state, so a second App in one process,
-// such as the next test application, must not register them again.
-var setUpDependenciesOnce sync.Once
 
 const olderVersionRefusal = "Returning to an older Databasus version after an upgrade is not supported. " +
 	"Start the image of the newer version instead"
@@ -69,8 +63,10 @@ type App struct {
 	backgroundGroup *background.Group
 	// runner is started only by Serve; a console command and a test application run its passes
 	// through RunJobPass.
+	jobHealthPolicies  map[string]JobHealthPolicy
 	jobs               []background.Job
 	runner             *background.Runner
+	inspectDisk        func(string) (diskusage.Usage, error)
 	clientToolsChecker *clienttools.Checker
 }
 
@@ -258,7 +254,6 @@ func New(ctx context.Context, environment *Environment) (*App, error) {
 		Storages:               storagesModule,
 		Databases:              databasesModule,
 	})
-	backups_bridge.Install(backupsModule)
 	verificationModule := verification.New(
 		verification.Deps{
 			DB:          db,
@@ -287,13 +282,23 @@ func New(ctx context.Context, environment *Environment) (*App, error) {
 		Notifiers:  notifiersModule,
 	})
 
-	telemetry.InstallVerificationModule(verificationModule)
-	system_healthcheck.InstallVerificationModule(verificationModule)
+	telemetryModule := telemetry.New(telemetry.Deps{
+		Users:        usersModule,
+		Databases:    databasesModule,
+		Storages:     storagesModule,
+		Notifiers:    notifiersModule,
+		Backups:      backupsModule,
+		Verification: verificationModule,
+		Clock:        environment.Clock,
+		Logger:       appLogger,
+		Version:      environment.Config.AppVersion,
+		ReceiverURL:  environment.ExternalEndpoints.TelemetryReceiverURL,
+		IdentityPath: environment.Config.TelemetryInstancePath,
+		IsDisabled:   environment.Config.IsDisableAnonymousTelemetry,
+	})
 
 	clientToolsChecker := newClientToolsChecker(environment.ClientToolsDir)
-	system_healthcheck.InstallClientToolsChecker(clientToolsChecker)
 
-	setUpDependenciesOnce.Do(setUpDependencies)
 	subscribeToWorkspaceDeleting(workspacesModule, databasesModule, notifiersModule, storagesModule)
 	subscribeToNotifierTransferring(notifiersModule, databasesModule)
 	subscribeToStorageTransferring(storagesModule, backupsModule)
@@ -310,6 +315,7 @@ func New(ctx context.Context, environment *Environment) (*App, error) {
 	jobs = append(jobs, backupsModule.GetJobs()...)
 	jobs = append(jobs, verificationModule.GetJobs()...)
 	jobs = append(jobs, healthcheckModule.GetJobs()...)
+	jobs = append(jobs, telemetryModule.GetJobs()...)
 	runner := background.NewRunner(background.RunnerDeps{Logger: appLogger, Clock: environment.Clock}, jobs...)
 
 	return &App{
@@ -326,7 +332,9 @@ func New(ctx context.Context, environment *Environment) (*App, error) {
 		transactor:         transactor,
 		logger:             appLogger,
 		backgroundGroup:    nil,
+		jobHealthPolicies:  newJobHealthPolicies(jobs, environment.StorageFileTimings),
 		jobs:               jobs, runner: runner,
+		inspectDisk:        diskusage.Get,
 		clientToolsChecker: clientToolsChecker,
 	}, nil
 }

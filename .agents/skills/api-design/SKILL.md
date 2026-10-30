@@ -68,9 +68,7 @@ A file the browser downloads is returned with `Content-Disposition` and with `ap
 
 ## Compatibility
 
-- `openapi.yaml` may change incompatibly in a release when the frontend changes in the same change. The change's proposal marks it as breaking, so the release notes mention it for users' scripts.
-- `/api/v1/system/version` and `/api/v1/system/verification-agent` never change. Installed agents update themselves through them.
-- An operation in `agent.yaml` stays compatible with the agent of the previous release, because an agent keeps running until its next update check.
+Follow the compatibility policy in [architecture.md, HTTP API](../../../docs/architecture.md#http-api), including frozen agent-discovery paths and explicit approval of request-shape breaks.
 
 ## Backend side
 

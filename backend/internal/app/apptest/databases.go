@@ -51,6 +51,12 @@ func (a *App) InsertDatabase(tb testing.TB, workspaceID uuid.UUID) uuid.UUID {
 		VALUES (?, '17', 'localhost', 5432, 'postgres', 'password')`,
 		databaseID)
 
+	a.ExecuteSQL(
+		tb,
+		`INSERT INTO healthcheck_configs (database_id, interval_minutes, failed_attempts_before_unavailable, attempt_retention_days)
+ VALUES (?,1,3,7)`,
+		databaseID,
+	)
 	return databaseID
 }
 
