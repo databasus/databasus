@@ -44,7 +44,7 @@ interface Props {
   saveButtonText?: string;
   isSaveToApi: boolean;
   // The restore options are only shown, and only meaningful, in restore mode.
-  onSaved: (database: Database, restoreOptions: PostgresqlRestoreOptions) => void;
+  onSaved: (database: Database, restoreOptions: PostgresqlRestoreOptions) => void | Promise<void>;
 
   isShowDbName?: boolean;
   isRestoreMode?: boolean;
@@ -226,17 +226,18 @@ export const EditPostgreSqlLogicalSpecificDataComponent = ({
   };
 
   const saveDatabase = async () => {
-    const editedDatabase: Database = { ...database, settings: editingSettings };
+    if (isSaving) return;
 
-    if (!isSaveToApi) {
-      onSaved(editedDatabase, restoreOptions);
-      return;
-    }
+    const editedDatabase: Database = { ...database, settings: editingSettings };
 
     setIsSaving(true);
 
     try {
-      onSaved(await databaseApi.updateDatabase(database.id, editedDatabase), restoreOptions);
+      if (isSaveToApi) {
+        onSaved(await databaseApi.updateDatabase(database.id, editedDatabase), restoreOptions);
+      } else {
+        await onSaved(editedDatabase, restoreOptions);
+      }
     } catch (e) {
       alert(translateApiError(e, t));
     }
@@ -364,6 +365,9 @@ export const EditPostgreSqlLogicalSpecificDataComponent = ({
   };
 
   const renderPgDumpForm = () => {
+    // A restore start connects to the target itself, so restore mode needs no separate test.
+    const isSubmitShown = isConnectionTested || isRestoreMode;
+
     let isAllFieldsFilled = true;
     if (!editingSettings.host) isAllFieldsFilled = false;
     if (!editingSettings.port) isAllFieldsFilled = false;
@@ -771,7 +775,7 @@ export const EditPostgreSqlLogicalSpecificDataComponent = ({
 
         {renderFooter(
           <>
-            {!isConnectionTested && (
+            {!isSubmitShown && (
               <Button
                 type="primary"
                 onClick={() => testConnection()}
@@ -783,7 +787,7 @@ export const EditPostgreSqlLogicalSpecificDataComponent = ({
               </Button>
             )}
 
-            {isConnectionTested && (
+            {isSubmitShown && (
               <Button
                 type="primary"
                 onClick={() => saveDatabase()}

@@ -24,6 +24,7 @@ import { ClipboardHelper } from '../../../shared/lib/ClipboardHelper';
 import { getUserTimeFormat } from '../../../shared/time';
 import { ConfirmationComponent } from '../../../shared/ui';
 import { EditDatabaseSpecificDataComponent } from '../../databases/ui/edit/EditDatabaseSpecificDataComponent';
+import { createRestoreTargetDraft } from './createRestoreTargetDraft';
 import { toRestoreTarget } from './toRestoreTarget';
 
 interface Props {
@@ -31,24 +32,13 @@ interface Props {
   backup: LogicalBackup;
 }
 
-// The target is another server, so the form starts without the source's host and credentials.
-const createInitialEditingDatabase = (database: Database): Database => ({
-  ...database,
-  settings: {
-    ...database.settings,
-    host: '',
-    username: '',
-    password: '',
-  },
-});
-
 export const RestoresComponent = ({ database, backup }: Props) => {
   const { t } = useTranslation();
   const { formatRelativeTime } = useLocale();
   const { message } = App.useApp();
 
   const [editingDatabase, setEditingDatabase] = useState<Database>(
-    createInitialEditingDatabase(database),
+    createRestoreTargetDraft(database),
   );
 
   const [restores, setRestores] = useState<Restore[]>([]);
@@ -162,7 +152,7 @@ export const RestoresComponent = ({ database, backup }: Props) => {
           isSaveToApi={false}
           onSaved={(database, restoreOptions) => {
             setEditingDatabase({ ...database });
-            startRestore(database, restoreOptions);
+            return startRestore(database, restoreOptions);
           }}
           isRestoreMode={true}
         />

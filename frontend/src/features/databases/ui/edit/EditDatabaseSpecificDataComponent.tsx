@@ -25,7 +25,7 @@ interface Props {
   saveButtonText?: string;
   isSaveToApi: boolean;
   // Restore options come only from a PostgreSQL logical form in restore mode.
-  onSaved: (database: Database, restoreOptions?: PostgresqlRestoreOptions) => void;
+  onSaved: (database: Database, restoreOptions?: PostgresqlRestoreOptions) => void | Promise<void>;
 
   isShowDbName?: boolean;
   isRestoreMode?: boolean;
@@ -56,12 +56,13 @@ export const EditDatabaseSpecificDataComponent = ({
   const [editingDatabase, setEditingDatabase] = useState<Database>(database);
 
   const saveDb = async (databaseToSave: Database, restoreOptions?: PostgresqlRestoreOptions) => {
-    setEditingDatabase(databaseToSave);
-
+    // Replacing the draft would reset the form while the caller still handles the submission.
     if (!isSaveToApi) {
-      onSaved(databaseToSave, restoreOptions);
+      await onSaved(databaseToSave, restoreOptions);
       return;
     }
+
+    setEditingDatabase(databaseToSave);
 
     try {
       const limitedUserCheck = await databaseApi.checkLimitedUser(
@@ -147,10 +148,28 @@ export const EditDatabaseSpecificDataComponent = ({
         />
       );
     case DatabaseType.MYSQL:
-      return <EditMySqlSpecificDataComponent {...commonProps} settings={settings} />;
+      return (
+        <EditMySqlSpecificDataComponent
+          {...commonProps}
+          settings={settings}
+          isRestoreMode={isRestoreMode}
+        />
+      );
     case DatabaseType.MARIADB:
-      return <EditMariaDbSpecificDataComponent {...commonProps} settings={settings} />;
+      return (
+        <EditMariaDbSpecificDataComponent
+          {...commonProps}
+          settings={settings}
+          isRestoreMode={isRestoreMode}
+        />
+      );
     case DatabaseType.MONGODB:
-      return <EditMongoDbSpecificDataComponent {...commonProps} settings={settings} />;
+      return (
+        <EditMongoDbSpecificDataComponent
+          {...commonProps}
+          settings={settings}
+          isRestoreMode={isRestoreMode}
+        />
+      );
   }
 };

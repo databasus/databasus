@@ -42,9 +42,10 @@ interface Props {
 
   saveButtonText?: string;
   isSaveToApi: boolean;
-  onSaved: (database: Database) => void;
+  onSaved: (database: Database) => void | Promise<void>;
 
   isShowDbName?: boolean;
+  isRestoreMode?: boolean;
 }
 
 export const EditMongoDbSpecificDataComponent = ({
@@ -61,6 +62,7 @@ export const EditMongoDbSpecificDataComponent = ({
   isSaveToApi,
   onSaved,
   isShowDbName = true,
+  isRestoreMode = false,
 }: Props) => {
   const { t } = useTranslation();
   const { locale } = useLocale();
@@ -167,17 +169,18 @@ export const EditMongoDbSpecificDataComponent = ({
   };
 
   const saveDatabase = async () => {
-    const editedDatabase: Database = { ...database, settings: editingSettings };
+    if (isSaving) return;
 
-    if (!isSaveToApi) {
-      onSaved(editedDatabase);
-      return;
-    }
+    const editedDatabase: Database = { ...database, settings: editingSettings };
 
     setIsSaving(true);
 
     try {
-      onSaved(await databaseApi.updateDatabase(database.id, editedDatabase));
+      if (isSaveToApi) {
+        onSaved(await databaseApi.updateDatabase(database.id, editedDatabase));
+      } else {
+        await onSaved(editedDatabase);
+      }
     } catch (e) {
       alert(translateApiError(e, t));
     }
@@ -203,6 +206,9 @@ export const EditMongoDbSpecificDataComponent = ({
     editingSettings.sshTunnel?.authType,
     database.id,
   );
+
+  // A restore start connects to the target itself, so restore mode needs no separate test.
+  const isSubmitShown = isConnectionTested || isRestoreMode;
 
   let isAllFieldsFilled = true;
   if (!editingSettings.host) isAllFieldsFilled = false;
@@ -496,7 +502,7 @@ export const EditMongoDbSpecificDataComponent = ({
           </Button>
         )}
 
-        {!isConnectionTested && (
+        {!isSubmitShown && (
           <Button
             type="primary"
             onClick={() => testConnection()}
@@ -508,7 +514,7 @@ export const EditMongoDbSpecificDataComponent = ({
           </Button>
         )}
 
-        {isConnectionTested && (
+        {isSubmitShown && (
           <Button
             type="primary"
             onClick={() => saveDatabase()}
