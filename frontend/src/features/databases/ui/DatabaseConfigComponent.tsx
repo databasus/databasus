@@ -26,14 +26,14 @@ import {
   EditVerificationConfigComponent,
   ShowVerificationConfigComponent,
 } from '../../verification/config';
-import { DatabaseTransferDialogComponent } from './DatabaseTransferDialogComponent';
-import { EditDatabaseNotifiersComponent } from './edit/EditDatabaseNotifiersComponent';
+import type { DatabaseResourceComposition } from '../model/DatabaseResourceComposition';
 import { EditDatabaseSpecificDataComponent } from './edit/EditDatabaseSpecificDataComponent';
 import { EditHealthcheckConfigComponent, ShowHealthcheckConfigComponent } from './healthcheck';
 import { ShowDatabaseNotifiersComponent } from './show/ShowDatabaseNotifiersComponent';
 import { ShowDatabaseSpecificDataComponent } from './show/ShowDatabaseSpecificDataComponent';
 
 interface Props {
+  resourceComposition: DatabaseResourceComposition;
   database: Database;
   setDatabase: (database?: Database | undefined) => void;
   onDatabaseChanged: (database: Database) => void;
@@ -45,6 +45,7 @@ interface Props {
 }
 
 export const DatabaseConfigComponent = ({
+  resourceComposition,
   database,
   setDatabase,
   onDatabaseChanged,
@@ -53,6 +54,8 @@ export const DatabaseConfigComponent = ({
   setEditDatabase,
   isCanManageDBs,
 }: Props) => {
+  const EditDatabaseNotifiersComponent = resourceComposition.renderNotifiers;
+  const DatabaseTransferDialogComponent = resourceComposition.renderTransfer;
   const { t } = useTranslation();
   const [isEditName, setIsEditName] = useState(false);
   const [isEditDatabaseSpecificDataSettings, setIsEditDatabaseSpecificDataSettings] =
@@ -353,6 +356,7 @@ export const DatabaseConfigComponent = ({
               {isEditBackupConfig ? (
                 isPhysicalDatabase ? (
                   <EditPhysicalBackupConfigComponent
+                    renderStorageSelection={resourceComposition.renderStorageSelection}
                     database={database}
                     isShowCancelButton
                     onCancel={() => {
@@ -366,6 +370,7 @@ export const DatabaseConfigComponent = ({
                   />
                 ) : (
                   <EditLogicalBackupConfigComponent
+                    renderStorageSelection={resourceComposition.renderStorageSelection}
                     database={database}
                     isShowCancelButton
                     onCancel={() => {

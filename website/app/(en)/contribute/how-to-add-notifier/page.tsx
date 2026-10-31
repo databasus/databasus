@@ -386,13 +386,13 @@ export default function HowToAddNotifierPage() {
               <ul>
                 <li>
                   <code>
-                    src/features/notifiers/ui/edit/notifiers/Edit&#123;NotifierName&#125;Component.tsx
+                    src/features/edit-notifier/ui/edit/notifiers/Edit&#123;NotifierName&#125;Component.tsx
                   </code>{" "}
                   - for creating and editing notifier configuration
                 </li>
                 <li>
                   <code>
-                    src/features/notifiers/ui/show/notifier/Show&#123;NotifierName&#125;Component.tsx
+                    src/pages/notifiers/ui/show/notifier/Show&#123;NotifierName&#125;Component.tsx
                   </code>{" "}
                   - for displaying notifier details in read-only mode
                 </li>

@@ -1,6 +1,6 @@
 # Frontend design
 
-The interface uses AntD components and icons with Tailwind for layout and spacing. Shared controls, the application shell, authentication and account screens, and the SMTP notifier editor use semantic presentation; the remaining domain screens migrate in their own milestones.
+The interface uses AntD components and icons with Tailwind for layout and spacing. Shared controls, the application shell, authentication and account screens, workspace settings, resource lists/details and storage/notifier editors use semantic presentation; the remaining domain screens migrate in their own milestones.
 
 ## Theme and typography
 
@@ -26,7 +26,7 @@ Use field errors beside fields and themed AntD error/loading/empty primitives fo
 
 Dialogs and drawers have an accessible title, trap focus while open and restore focus to an available invoker. `ConfirmationComponent` also restores focus when its owner unmounts it immediately. Standard glyphs use AntD icons; provider/engine illustrations stay assets. Give meaningful images an alternative and decorative images an empty one.
 
-A bounded region has one vertical scroll owner. Use `min-h-0` and `min-w-0` along its flex/grid chain; do not infer a child's dimensions from an unrelated viewport subtraction. The shell owns the visualViewport height and allocates content with flex layout. Migrated account pages own their single scrolling content region. App passes only the shell's measured content boundary to domain features that still require `contentHeight`; those features retain their own migrations. Keep technical horizontal scrolling inside its own region and allow ordinary translated text to wrap. Support a 320 CSS-pixel viewport and actual 200 percent text enlargement; never disable browser zoom.
+A bounded region has one vertical scroll owner. Use `min-h-0` and `min-w-0` along its flex/grid chain; do not infer a child's dimensions from an unrelated viewport subtraction. The shell owns the visualViewport height and allocates content with flex layout. Desktop navigation scrolls within its allocated height when the window is shorter than the menu. Migrated account and workspace settings pages own their single scrolling content region. Storage/notifier list-detail regions allocate scrolling through `ResourceListDetail`. App passes only the shell's measured content boundary to domain features that still require `contentHeight`; those features retain their own migrations. Keep technical horizontal scrolling inside its own region and allow ordinary translated text to wrap. Support a 320 CSS-pixel viewport and actual 200 percent text enlargement; never disable browser zoom.
 
 Charts use labelled numeric/time axes, non-color distinctions and positive measured dimensions. Reduced motion disables chart entry transitions. A DOM-only render cannot establish plot geometry; the browser suite exercises the production WAL route.
 
@@ -34,4 +34,4 @@ Charts use labelled numeric/time axes, non-color distinctions and positive measu
 
 `pnpm --dir frontend lint:styles` parses TypeScript/TSX and CSS, resolves presentation constants and checks color utilities, arbitrary values and focus removal. It accepts semantic references, layout utilities and technical data. Only the exact theme and WAL palette files define independent colors. The finite `frontend/style-baseline.json` records remaining constructs and counts with an owner and removal milestone. Repairing an occurrence requires removing its stale baseline entry; copying one fails lint.
 
-Shared UI, the SMTP pilot, shell and migrated account pages have no baseline entries. Other domain screens and the legacy toast implementation remain assigned to their migration milestones. Avoid expanding those exceptions. [Testing](testing.md#browser-ui-tests) describes the browser environment, failure artifacts and explicit reference updates.
+Shared UI, the shell, migrated account/workspace/resource pages and reusable storage/notifier editors have no baseline entries. Other domain screens and the legacy toast implementation remain assigned to their migration milestones. Avoid expanding those exceptions. [Testing](testing.md#browser-ui-tests) describes the browser environment, failure artifacts and explicit reference updates.

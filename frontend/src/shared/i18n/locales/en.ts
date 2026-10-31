@@ -1172,6 +1172,7 @@ export const en = {
       bot: 'Bot account',
     },
     list: {
+      empty: 'No notifiers in this workspace yet',
       addNotifier: 'Add notifier',
       searchPlaceholder: 'Search notifier',
       noSearchResults: 'No notifiers found matching "{{query}}"',
@@ -2031,6 +2032,7 @@ export const en = {
       privateKey: 'Private key',
     },
     list: {
+      empty: 'No storages in this workspace yet',
       addStorage: 'Add storage',
       description: 'Storage - is a place where backups will be stored (local disk, S3, etc.)',
       backToList: '← Back to storages',

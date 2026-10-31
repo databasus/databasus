@@ -4,7 +4,6 @@ import {
   Checkbox,
   Input,
   InputNumber,
-  Modal,
   Select,
   Spin,
   Switch,
@@ -14,7 +13,10 @@ import {
 import { CronExpressionParser } from 'cron-parser';
 import dayjs, { Dayjs } from 'dayjs';
 import { useEffect, useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+
+import type { StorageSelectionOptions } from '@/entities/storages';
 
 import {
   BackupSettingsType,
@@ -43,7 +45,6 @@ import {
 } from '../../../../entities/backups/shared';
 import type { Database } from '../../../../entities/databases';
 import { WEEKDAYS, WEEKDAY_LABEL_KEYS } from '../../../../entities/intervals';
-import { type Storage, getStorageLogoFromType, storageApi } from '../../../../entities/storages';
 import { translateApiError, useLocale } from '../../../../shared/i18n';
 import { getUserTimeFormat } from '../../../../shared/time';
 import {
@@ -54,9 +55,9 @@ import {
   getUtcWeekday,
 } from '../../../../shared/time/utils';
 import { ConfirmationComponent } from '../../../../shared/ui';
-import { EditStorageComponent } from '../../../storages/ui/edit/EditStorageComponent';
 
 interface Props {
+  renderStorageSelection: (options: StorageSelectionOptions) => ReactNode;
   database: Database;
 
   isShowBackButton: boolean;
@@ -102,6 +103,7 @@ const createDefaultLogicalBackupConfig = (): LogicalBackupConfigInput => ({
 });
 
 export const EditLogicalBackupConfigComponent = ({
+  renderStorageSelection,
   database,
 
   isShowBackButton,
@@ -118,10 +120,6 @@ export const EditLogicalBackupConfigComponent = ({
   const [backupConfig, setBackupConfig] = useState<LogicalBackupConfigInput>();
   const [isUnsaved, setIsUnsaved] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-
-  const [storages, setStorages] = useState<Storage[]>([]);
-  const [isShowCreateStorage, setShowCreateStorage] = useState(false);
-  const [storageSelectKey, setStorageSelectKey] = useState(0);
 
   const [savedStorageId, setSavedStorageId] = useState<string | null>(null);
   const [hasHistory, setHasHistory] = useState<boolean | undefined>(undefined);
@@ -228,15 +226,6 @@ export const EditLogicalBackupConfigComponent = ({
     void saveBackupConfig();
   };
 
-  const loadStorages = async () => {
-    try {
-      const storages = await storageApi.listAllStorages(database.workspaceId);
-      setStorages(storages);
-    } catch (e) {
-      alert(translateApiError(e, t));
-    }
-  };
-
   useEffect(() => {
     const run = async () => {
       setIsLoading(true);
@@ -252,8 +241,6 @@ export const EditLogicalBackupConfigComponent = ({
         } else {
           setBackupConfig(createDefaultLogicalBackupConfig());
         }
-
-        await loadStorages();
       } catch (e) {
         alert(translateApiError(e, t));
       } finally {
@@ -293,8 +280,6 @@ export const EditLogicalBackupConfigComponent = ({
       : schedule.dayOfMonth;
 
   const retentionPolicy = retention.policy;
-
-  const selectedStorage = storages.find((storage) => storage.id === backupConfig.storageId);
 
   const isShowGfsHours =
     schedule.type === ScheduleType.HOURLY || schedule.type === ScheduleType.CRON;
@@ -399,6 +384,7 @@ export const EditLogicalBackupConfigComponent = ({
                 value={displayedWeekday}
                 onChange={(localWeekday) => {
                   if (!localWeekday) return;
+
                   const ref = localTime ?? dayjs();
                   updateSchedule({ weekday: getUtcWeekday(localWeekday, ref) });
                 }}
@@ -420,6 +406,7 @@ export const EditLogicalBackupConfigComponent = ({
                 value={displayedDayOfMonth}
                 onChange={(localDom) => {
                   if (!localDom) return;
+
                   const ref = localTime ?? dayjs();
                   updateSchedule({ dayOfMonth: getUtcDayOfMonth(localDom, ref) });
                 }}
@@ -516,6 +503,7 @@ export const EditLogicalBackupConfigComponent = ({
                 className="w-full max-w-[200px] grow"
                 onChange={(pickedTime) => {
                   if (!pickedTime) return;
+
                   const patch: Partial<Schedule> = {
                     timeOfDay: pickedTime.utc().format('HH:mm'),
                   };
@@ -540,34 +528,12 @@ export const EditLogicalBackupConfigComponent = ({
       <div className="mt-5 mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
         <div className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2">{t('backups.config.storage')}</div>
         <div className="flex w-full items-center">
-          <Select
-            key={storageSelectKey}
-            allowClear={isSaveToApi}
-            value={backupConfig.storageId ?? undefined}
-            onChange={(storageId) => {
-              if (storageId?.includes('create-new-storage')) {
-                setShowCreateStorage(true);
-                return;
-              }
-
-              updateBackupConfig({ storageId: storageId ?? null });
-            }}
-            size="small"
-            className="mr-2 max-w-[200px] grow"
-            options={[
-              ...storages.map((s) => ({ label: s.name, value: s.id })),
-              { label: t('backups.config.createNewStorage'), value: 'create-new-storage' },
-            ]}
-            placeholder={t('backups.config.selectStorage')}
-          />
-
-          {selectedStorage && (
-            <img
-              src={getStorageLogoFromType(selectedStorage.settings.type)}
-              alt=""
-              className="ml-1 h-4 w-4"
-            />
-          )}
+          {renderStorageSelection({
+            workspaceId: database.workspaceId,
+            selectedStorageId: backupConfig.storageId ?? undefined,
+            canClear: isSaveToApi,
+            onSelect: (storageId) => updateBackupConfig({ storageId: storageId ?? null }),
+          })}
         </div>
       </div>
 
@@ -880,35 +846,6 @@ export const EditLogicalBackupConfigComponent = ({
           {saveButtonText || t('common.actions.save')}
         </Button>
       </div>
-
-      {isShowCreateStorage && (
-        <Modal
-          title={t('backups.config.addStorageTitle')}
-          footer={<div />}
-          open={isShowCreateStorage}
-          onCancel={() => {
-            setShowCreateStorage(false);
-            setStorageSelectKey((prev) => prev + 1);
-          }}
-          maskClosable={false}
-        >
-          <div className="my-3 max-w-[275px] text-gray-500 dark:text-gray-400">
-            {t('backups.config.storageDescription')}
-          </div>
-
-          <EditStorageComponent
-            workspaceId={database.workspaceId}
-            isShowName
-            isShowClose={false}
-            onClose={() => setShowCreateStorage(false)}
-            onChanged={async (createdStorage) => {
-              await loadStorages();
-              updateBackupConfig({ storageId: createdStorage.id });
-              setShowCreateStorage(false);
-            }}
-          />
-        </Modal>
-      )}
 
       {isSaveToApi && database.id && (
         <StorageSwitchHistoryComponent

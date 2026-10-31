@@ -483,13 +483,13 @@ export default function HowToAddStoragePage() {
               <ul>
                 <li>
                   <code>
-                    src/features/storages/ui/edit/storages/Edit&#123;StorageName&#125;Component.tsx
+                    src/features/edit-storage/ui/edit/storages/Edit&#123;StorageName&#125;Component.tsx
                   </code>{" "}
                   - for creating and editing storage configuration
                 </li>
                 <li>
                   <code>
-                    src/features/storages/ui/show/storages/Show&#123;StorageName&#125;Component.tsx
+                    src/pages/storages/ui/show/storages/Show&#123;StorageName&#125;Component.tsx
                   </code>{" "}
                   - for displaying storage details in read-only mode
                 </li>

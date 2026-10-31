@@ -17,6 +17,7 @@ export function useApplicationStartup() {
 
   const load = async () => {
     const requestRevision = revision.current.Invalidate();
+    accessRevision.current.Invalidate();
     const isCurrent = () => isSessionCurrent() && revision.current.IsCurrent(requestRevision);
     setIsLoading(true);
     setError(undefined);
@@ -33,10 +34,14 @@ export function useApplicationStartup() {
         workspaceApi.listAllWorkspaces(),
       ]);
       if (!isCurrent()) return;
+
       setUser(currentUser);
       setSettings(currentSettings);
       setWorkspaces(accessibleWorkspaces);
-      const remembered = localStorage.getItem('selected_workspace_id');
+      let remembered: string | null = null;
+      try {
+        remembered = localStorage.getItem('selected_workspace_id');
+      } catch {}
       setSelectedWorkspaceId(
         (current) =>
           accessibleWorkspaces.find((workspace) => workspace.id === (current ?? remembered))?.id ??
@@ -57,23 +62,77 @@ export function useApplicationStartup() {
   };
   const acceptWorkspace = (workspace: Workspace) => {
     if (!isSessionCurrent()) return;
+
+    accessRevision.current.Invalidate();
     setWorkspaces((current) => [...current.filter((item) => item.id !== workspace.id), workspace]);
     setSelectedWorkspaceId(workspace.id);
   };
+  const updateWorkspace = (workspace: Workspace) => {
+    if (!isSessionCurrent()) return;
+
+    accessRevision.current.Invalidate();
+    setWorkspaces((current) =>
+      current.map((item) => (item.id === workspace.id ? workspace : item)),
+    );
+  };
+  const removeWorkspace = (workspaceId: string) => {
+    if (!isSessionCurrent()) return;
+
+    accessRevision.current.Invalidate();
+    setWorkspaces((current) => current.filter((workspace) => workspace.id !== workspaceId));
+    setSelectedWorkspaceId((current) =>
+      current === workspaceId
+        ? workspaces.find((workspace) => workspace.id !== workspaceId)?.id
+        : current,
+    );
+  };
+  const selectWorkspace = (workspace: Workspace) => {
+    if (!isSessionCurrent()) return;
+
+    accessRevision.current.Invalidate();
+    setSelectedWorkspaceId(workspace.id);
+  };
+  const reconcileUnavailableWorkspace = async (workspaceId: string) => {
+    if (!isSessionCurrent()) return;
+
+    removeWorkspace(workspaceId);
+    const requestRevision = accessRevision.current.Invalidate();
+
+    try {
+      const accessible = await workspaceApi.listAllWorkspaces();
+      if (!isSessionCurrent() || !accessRevision.current.IsCurrent(requestRevision)) return;
+
+      setWorkspaces(accessible);
+      setSelectedWorkspaceId((current) =>
+        accessible.some((workspace) => workspace.id === current) ? current : accessible[0]?.id,
+      );
+    } catch (failure) {
+      if (isSessionCurrent() && accessRevision.current.IsCurrent(requestRevision))
+        setError(failure);
+    }
+  };
   const isSessionCurrent = useSessionGuard();
   const revision = useRef(new RequestRevision());
+  const accessRevision = useRef(new RequestRevision());
 
   useEffect(() => {
     void load();
     return () => {
       revision.current.Invalidate();
+      accessRevision.current.Invalidate();
     };
   }, []);
   useEffect(() => {
-    if (selectedWorkspaceId) localStorage.setItem('selected_workspace_id', selectedWorkspaceId);
-  }, [selectedWorkspaceId]);
+    if (isLoading || error !== undefined) return;
 
-  const selectedWorkspace = workspaces.find((workspace) => workspace.id === selectedWorkspaceId);
+    try {
+      if (selectedWorkspaceId) localStorage.setItem('selected_workspace_id', selectedWorkspaceId);
+      else localStorage.removeItem('selected_workspace_id');
+    } catch {}
+  }, [selectedWorkspaceId, isLoading, error]);
+
+  const selectedWorkspace =
+    workspaces.find((workspace) => workspace.id === selectedWorkspaceId) ?? workspaces[0];
   const isReady = !isLoading && error === undefined && !!user && !!settings;
   const isAdmin = isReady && user.role === UserRole.ADMIN;
   const canCreateWorkspace = isReady && (isAdmin || settings.isMemberAllowedToCreateWorkspaces);
@@ -99,6 +158,9 @@ export function useApplicationStartup() {
     acceptUser,
     acceptSettings,
     acceptWorkspace,
-    selectWorkspace: (workspace: Workspace) => setSelectedWorkspaceId(workspace.id),
+    updateWorkspace,
+    removeWorkspace,
+    reconcileUnavailableWorkspace,
+    selectWorkspace,
   };
 }

@@ -6,7 +6,7 @@ import {
   getStorageAuthorizationChannelName,
   isStorageAuthorizationState,
   type StorageAuthorizationResponse,
-} from '@/features/storages';
+} from '@/features/edit-storage';
 
 const getCallbackResponse = (): StorageAuthorizationResponse | undefined => {
   const parameters = new URLSearchParams(window.location.search);
@@ -34,6 +34,7 @@ export function StorageOAuthPage() {
   useEffect(() => {
     window.history.replaceState(window.history.state, '', window.location.pathname);
     if (!response) return;
+
     let channel: BroadcastChannel;
     let timer: ReturnType<typeof setTimeout>;
     const release = () => {

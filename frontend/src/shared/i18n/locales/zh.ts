@@ -1127,6 +1127,7 @@ export const zh: typeof en = {
       bot: '机器人账号',
     },
     list: {
+      empty: '此工作空间中暂无通知器',
       addNotifier: '添加通知渠道',
       searchPlaceholder: '搜索通知渠道',
       noSearchResults: '没有找到与“{{query}}”匹配的通知渠道',
@@ -1939,6 +1940,7 @@ export const zh: typeof en = {
       privateKey: '私钥',
     },
     list: {
+      empty: '此工作空间中暂无存储',
       addStorage: '添加存储',
       description: '存储是存放备份的位置（本地磁盘、S3 等）',
       backToList: '← 返回存储列表',

@@ -16,6 +16,8 @@ export function InstanceAuditLogs({ scrollContainerRef }: Props) {
     <section className="max-w-[1200px]">
       <h2 className="mb-4 text-xl font-bold">{t('auditLogs.title')}</h2>
       <AuditEventList
+        error={pages.error}
+        onRetry={() => void pages.reload()}
         events={pages.items}
         isLoading={pages.isLoading}
         isLoadingMore={pages.isLoadingMore}

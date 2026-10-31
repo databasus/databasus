@@ -15,11 +15,13 @@ import { useSessionGuard } from '../../../shared/auth';
 import { useIsMobile } from '../../../shared/hooks';
 import { translateApiError } from '../../../shared/i18n';
 import { RequestRevision } from '../../../shared/lib/RequestRevision';
+import type { DatabaseResourceComposition } from '../model/DatabaseResourceComposition';
 import { CreateDatabaseComponent } from './CreateDatabaseComponent';
 import { DatabaseCardComponent } from './DatabaseCardComponent';
 import { DatabaseComponent } from './DatabaseComponent';
 
 interface Props {
+  resourceComposition: DatabaseResourceComposition;
   contentHeight: number;
   workspace: Workspace;
   isCanManageDBs: boolean;
@@ -50,7 +52,12 @@ const mapStoragesByDatabaseId = (
   return storagesByDatabaseId;
 };
 
-export const DatabasesComponent = ({ contentHeight, workspace, isCanManageDBs }: Props) => {
+export const DatabasesComponent = ({
+  resourceComposition,
+  contentHeight,
+  workspace,
+  isCanManageDBs,
+}: Props) => {
   const [isLoading, setIsLoading] = useState(true);
   const [databases, setDatabases] = useState<Database[]>([]);
   const [storagesByDatabaseId, setStoragesByDatabaseId] = useState<Map<string, Storage>>(new Map());
@@ -63,6 +70,7 @@ export const DatabasesComponent = ({ contentHeight, workspace, isCanManageDBs }:
 
   const updateSelectedDatabaseId = (databaseId: string | undefined) => {
     if (!isCurrent()) return;
+
     setSelectedDatabaseId(databaseId);
     if (databaseId) {
       localStorage.setItem(`${SELECTED_DATABASE_STORAGE_KEY}_${workspace.id}`, databaseId);
@@ -73,6 +81,7 @@ export const DatabasesComponent = ({ contentHeight, workspace, isCanManageDBs }:
 
   const loadDatabases = (isSilent = false, selectDatabaseId?: string) => {
     if (!isCurrent()) return;
+
     const revision = loadRevision.current.Invalidate();
     if (!isSilent) {
       setIsLoading(true);
@@ -85,6 +94,7 @@ export const DatabasesComponent = ({ contentHeight, workspace, isCanManageDBs }:
     ])
       .then(([listedDatabases, listedBackupConfigs, listedStorages]) => {
         if (!isCurrent() || !loadRevision.current.IsCurrent(revision)) return;
+
         const databases = sortUnavailableDatabasesFirst(listedDatabases);
         setDatabases(databases);
         setStoragesByDatabaseId(mapStoragesByDatabaseId(listedBackupConfigs, listedStorages));
@@ -229,6 +239,7 @@ export const DatabasesComponent = ({ contentHeight, workspace, isCanManageDBs }:
             )}
 
             <DatabaseComponent
+              resourceComposition={resourceComposition}
               contentHeight={isMobile ? contentHeight - 50 : contentHeight}
               databaseId={selectedDatabaseId}
               onDatabaseChanged={() => {
@@ -260,6 +271,7 @@ export const DatabasesComponent = ({ contentHeight, workspace, isCanManageDBs }:
           <div className="mt-5" />
 
           <CreateDatabaseComponent
+            resourceComposition={resourceComposition}
             workspaceId={workspace.id}
             onCreated={(databaseId) => {
               loadDatabases(false, databaseId);

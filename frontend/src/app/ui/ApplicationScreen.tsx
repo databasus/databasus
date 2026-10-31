@@ -3,13 +3,13 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { APP_VERSION, CONTAINER_ARCH } from '@/constants';
-import { DatabasesComponent } from '@/features/databases';
-import { NotifiersComponent } from '@/features/notifiers';
-import { StoragesComponent } from '@/features/storages';
-import { CreateWorkspaceDialogComponent, WorkspaceSettingsComponent } from '@/features/workspaces';
+import { DatabasesPage } from '@/pages/databases';
 import { InstanceSettingsPage } from '@/pages/instance-settings';
+import { NotifiersComponent } from '@/pages/notifiers';
 import { ProfilePage } from '@/pages/profile';
+import { StoragesComponent } from '@/pages/storages';
 import { UsersPage } from '@/pages/users';
+import { WorkspaceSettingsComponent } from '@/pages/workspace-settings';
 import { useSessionGuard } from '@/shared/auth';
 import { useIsNewGitHubVersionAvailable } from '@/shared/hooks';
 import { translateApiError, useLocale } from '@/shared/i18n';
@@ -23,6 +23,7 @@ import {
 } from '@/widgets/app-shell';
 
 import { useApplicationStartup } from '../model/useApplicationStartup';
+import { CreateWorkspaceDialogComponent } from './CreateWorkspaceDialogComponent';
 
 export const ApplicationScreen = () => {
   const [selectedTab, setSelectedTab] = useState<MainTab>('databases');
@@ -31,12 +32,14 @@ export const ApplicationScreen = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const handleCreateWorkspace = () => {
     if (!canCreateWorkspace || !isCurrent()) return;
+
     workspaceCreationInvoker.current =
       document.activeElement instanceof HTMLElement ? document.activeElement : null;
     setShowCreateWorkspaceDialog(true);
   };
   const handleCloseCreateWorkspace = () => {
     if (!isCurrent()) return;
+
     setShowCreateWorkspaceDialog(false);
     queueMicrotask(() => {
       if (isCurrent() && workspaceCreationInvoker.current?.isConnected)
@@ -202,7 +205,7 @@ export const ApplicationScreen = () => {
                 (selectedWorkspace ? (
                   <>
                     {selectedTab === 'databases' && (
-                      <DatabasesComponent
+                      <DatabasesPage
                         contentHeight={contentHeight}
                         workspace={selectedWorkspace}
                         isCanManageDBs={canManageWorkspace}
@@ -211,23 +214,23 @@ export const ApplicationScreen = () => {
                     )}
                     {selectedTab === 'storages' && (
                       <StoragesComponent
-                        contentHeight={contentHeight}
+                        onUnavailable={startup.reconcileUnavailableWorkspace}
                         workspace={selectedWorkspace}
                         isCanManageStorages={canManageWorkspace}
-                        key={`storages-${selectedWorkspace.id}`}
                       />
                     )}
                     {selectedTab === 'notifiers' && (
                       <NotifiersComponent
-                        contentHeight={contentHeight}
+                        onUnavailable={startup.reconcileUnavailableWorkspace}
                         workspace={selectedWorkspace}
                         isCanManageNotifiers={canManageWorkspace}
-                        key={`notifiers-${selectedWorkspace.id}`}
                       />
                     )}
                     {selectedTab === 'settings' && user && (
                       <WorkspaceSettingsComponent
-                        contentHeight={contentHeight}
+                        onRenamed={startup.updateWorkspace}
+                        onDeleted={startup.removeWorkspace}
+                        onUnavailable={startup.reconcileUnavailableWorkspace}
                         selectedWorkspace={selectedWorkspace}
                         user={user}
                         key={`settings-${selectedWorkspace.id}`}

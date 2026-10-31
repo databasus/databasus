@@ -11,10 +11,12 @@ import {
   isMonitoringTabShown,
 } from '../../backups/physical';
 import { VerificationsComponent } from '../../verification/runs';
+import type { DatabaseResourceComposition } from '../model/DatabaseResourceComposition';
 import { DatabaseConfigComponent } from './DatabaseConfigComponent';
 import { HealthcheckAttemptsComponent } from './healthcheck';
 
 interface Props {
+  resourceComposition: DatabaseResourceComposition;
   contentHeight: number;
   databaseId: string;
   onDatabaseChanged: (database: Database) => void;
@@ -23,6 +25,7 @@ interface Props {
 }
 
 export const DatabaseComponent = ({
+  resourceComposition,
   contentHeight,
   databaseId,
   onDatabaseChanged,
@@ -114,6 +117,7 @@ export const DatabaseComponent = ({
 
       {currentTab === 'config' && (
         <DatabaseConfigComponent
+          resourceComposition={resourceComposition}
           database={database}
           setDatabase={setDatabase}
           onDatabaseChanged={onDatabaseChanged}

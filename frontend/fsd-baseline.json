@@ -1,24 +1,8 @@
 [
   {
     "rule": "fsd/forbidden-imports",
-    "source": "features/backups/logical/ui/EditLogicalBackupConfigComponent.tsx",
-    "target": "features/storages/ui/edit/EditStorageComponent.tsx",
-    "count": 1,
-    "owner": "backups",
-    "milestone": 7
-  },
-  {
-    "rule": "fsd/forbidden-imports",
     "source": "features/backups/logical/ui/LogicalBackupsComponent.tsx",
     "target": "features/restores/index.ts",
-    "count": 1,
-    "owner": "backups",
-    "milestone": 7
-  },
-  {
-    "rule": "fsd/forbidden-imports",
-    "source": "features/backups/physical/ui/EditPhysicalBackupConfigComponent.tsx",
-    "target": "features/storages/ui/edit/EditStorageComponent.tsx",
     "count": 1,
     "owner": "backups",
     "milestone": 7
@@ -89,30 +73,6 @@
   },
   {
     "rule": "fsd/forbidden-imports",
-    "source": "features/databases/ui/DatabaseTransferDialogComponent.tsx",
-    "target": "features/notifiers/ui/edit/EditNotifierComponent.tsx",
-    "count": 1,
-    "owner": "databases",
-    "milestone": 5
-  },
-  {
-    "rule": "fsd/forbidden-imports",
-    "source": "features/databases/ui/DatabaseTransferDialogComponent.tsx",
-    "target": "features/storages/ui/edit/EditStorageComponent.tsx",
-    "count": 1,
-    "owner": "databases",
-    "milestone": 5
-  },
-  {
-    "rule": "fsd/forbidden-imports",
-    "source": "features/databases/ui/edit/EditDatabaseNotifiersComponent.tsx",
-    "target": "features/notifiers/ui/edit/EditNotifierComponent.tsx",
-    "count": 1,
-    "owner": "databases",
-    "milestone": 5
-  },
-  {
-    "rule": "fsd/forbidden-imports",
     "source": "features/restores/ui/RestoresComponent.tsx",
     "target": "features/databases/ui/edit/EditDatabaseSpecificDataComponent.tsx",
     "count": 1,
@@ -142,46 +102,6 @@
     "count": 1,
     "owner": "verification",
     "milestone": 7
-  },
-  {
-    "rule": "project/private-slice-import",
-    "source": "features/backups/logical/ui/EditLogicalBackupConfigComponent.tsx",
-    "target": "features/storages/ui/edit/EditStorageComponent.tsx",
-    "count": 1,
-    "owner": "backups",
-    "milestone": 7
-  },
-  {
-    "rule": "project/private-slice-import",
-    "source": "features/backups/physical/ui/EditPhysicalBackupConfigComponent.tsx",
-    "target": "features/storages/ui/edit/EditStorageComponent.tsx",
-    "count": 1,
-    "owner": "backups",
-    "milestone": 7
-  },
-  {
-    "rule": "project/private-slice-import",
-    "source": "features/databases/ui/DatabaseTransferDialogComponent.tsx",
-    "target": "features/notifiers/ui/edit/EditNotifierComponent.tsx",
-    "count": 1,
-    "owner": "databases",
-    "milestone": 5
-  },
-  {
-    "rule": "project/private-slice-import",
-    "source": "features/databases/ui/DatabaseTransferDialogComponent.tsx",
-    "target": "features/storages/ui/edit/EditStorageComponent.tsx",
-    "count": 1,
-    "owner": "databases",
-    "milestone": 5
-  },
-  {
-    "rule": "project/private-slice-import",
-    "source": "features/databases/ui/edit/EditDatabaseNotifiersComponent.tsx",
-    "target": "features/notifiers/ui/edit/EditNotifierComponent.tsx",
-    "count": 1,
-    "owner": "databases",
-    "milestone": 5
   },
   {
     "rule": "project/private-slice-import",
@@ -230,13 +150,5 @@
     "count": 1,
     "owner": "restores",
     "milestone": 5
-  },
-  {
-    "rule": "project/private-slice-import",
-    "source": "features/workspaces/ui/WorkspaceSettingsComponent.tsx",
-    "target": "entities/databases/api/databaseApi.ts",
-    "count": 1,
-    "owner": "workspaces",
-    "milestone": 4
   }
 ]

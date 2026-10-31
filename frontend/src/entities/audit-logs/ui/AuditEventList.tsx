@@ -1,9 +1,9 @@
-import { Spin, Table } from 'antd';
+import { Alert, Button, Spin, Table } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import { useTranslation } from 'react-i18next';
 
-import { type TranslationKey, useLocale } from '@/shared/i18n';
+import { type TranslationKey, useLocale, translateApiError } from '@/shared/i18n';
 import { getUserTimeFormat, getUserShortTimeFormat } from '@/shared/time';
 
 import { type AuditEvent } from '../model/AuditEvent';
@@ -12,6 +12,8 @@ import { AuditEventAuthorComponent } from './AuditEventAuthorComponent';
 
 interface Props {
   events: AuditEvent[];
+  error?: unknown;
+  onRetry?: () => void;
   isLoading: boolean;
   isLoadingMore: boolean;
   hasMore: boolean;
@@ -24,7 +26,15 @@ interface Props {
   };
 }
 
-export function AuditEventList({ events, isLoading, isLoadingMore, hasMore, view }: Props) {
+export function AuditEventList({
+  events,
+  isLoading,
+  isLoadingMore,
+  hasMore,
+  view,
+  error,
+  onRetry,
+}: Props) {
   const formatTimestamp = (createdAt: string) =>
     `${dayjs(createdAt).format((view.timeFormat === 'short' ? getUserShortTimeFormat() : getUserTimeFormat()).format)} (${formatRelativeTime(dayjs(createdAt))})`;
   const { t } = useTranslation();
@@ -72,16 +82,37 @@ export function AuditEventList({ events, isLoading, isLoadingMore, hasMore, view
       ),
     },
   ];
+
   if (isLoading)
     return (
       <div className="flex h-64 items-center justify-center">
         <Spin size="large" />
       </div>
     );
+
+  if (error !== undefined && !events.length)
+    return (
+      <Alert
+        type="error"
+        showIcon
+        message={translateApiError(error, t)}
+        action={<Button onClick={onRetry}>{t('common.actions.retry')}</Button>}
+      />
+    );
+
   if (!events.length)
     return <div className="py-8 text-center text-sm text-muted">{t(view.emptyKey)}</div>;
+
   return (
     <>
+      {error !== undefined && (
+        <Alert
+          type="error"
+          showIcon
+          message={translateApiError(error, t)}
+          action={<Button onClick={onRetry}>{t('common.actions.retry')}</Button>}
+        />
+      )}
       {view.mode === 'cards' ? (
         events.map((event) => (
           <article

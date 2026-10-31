@@ -1202,6 +1202,7 @@ export const es: typeof en = {
       bot: 'Cuenta de bot',
     },
     list: {
+      empty: 'Este espacio de trabajo aún no tiene notificadores',
       addNotifier: 'Añadir canal de notificación',
       searchPlaceholder: 'Buscar canal de notificación',
       noSearchResults: 'No se encontraron canales de notificación que coincidan con "{{query}}"',
@@ -2081,6 +2082,7 @@ export const es: typeof en = {
       privateKey: 'Clave privada',
     },
     list: {
+      empty: 'Este espacio de trabajo aún no tiene almacenamientos',
       addStorage: 'Añadir almacenamiento',
       description:
         'Un almacenamiento es el lugar donde se guardan las copias de seguridad (disco local, S3, etc.)',

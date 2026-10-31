@@ -13,6 +13,8 @@ export function UserAuditLogsSidebar({ user }: Props) {
   return (
     <div ref={scrollContainerRef} className="h-full min-w-0 overflow-y-auto">
       <AuditEventList
+        error={pages.error}
+        onRetry={() => void pages.reload()}
         events={pages.items}
         isLoading={pages.isLoading}
         isLoadingMore={pages.isLoadingMore}

@@ -1195,6 +1195,7 @@ export const pt: typeof en = {
       bot: 'Conta de bot',
     },
     list: {
+      empty: 'Este espaço de trabalho ainda não tem notificadores',
       addNotifier: 'Adicionar canal de notificação',
       searchPlaceholder: 'Buscar canal de notificação',
       noSearchResults: 'Nenhum canal de notificação encontrado para "{{query}}"',
@@ -2072,6 +2073,7 @@ export const pt: typeof en = {
       privateKey: 'Chave privada',
     },
     list: {
+      empty: 'Este espaço de trabalho ainda não tem armazenamentos',
       addStorage: 'Adicionar armazenamento',
       description:
         'Armazenamento é o lugar onde os backups ficam guardados (disco local, S3, etc.)',

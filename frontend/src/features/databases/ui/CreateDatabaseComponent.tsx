@@ -19,13 +19,14 @@ import {
 import { translateApiError } from '../../../shared/i18n';
 import { EditLogicalBackupConfigComponent } from '../../backups/logical';
 import { EditPhysicalBackupConfigComponent } from '../../backups/physical';
+import type { DatabaseResourceComposition } from '../model/DatabaseResourceComposition';
 import { ChoosePostgresBackupTypeComponent } from './edit/ChoosePostgresBackupTypeComponent';
 import { CreateReadOnlyComponent } from './edit/CreateReadOnlyComponent';
 import { EditDatabaseBaseInfoComponent } from './edit/EditDatabaseBaseInfoComponent';
-import { EditDatabaseNotifiersComponent } from './edit/EditDatabaseNotifiersComponent';
 import { EditDatabaseSpecificDataComponent } from './edit/EditDatabaseSpecificDataComponent';
 
 interface Props {
+  resourceComposition: DatabaseResourceComposition;
   workspaceId: string;
   onCreated: (databaseId: string) => void;
   onClose: () => void;
@@ -43,12 +44,14 @@ const createInitialDatabase = (workspaceId: string): Database => ({
 });
 
 export const CreateDatabaseComponent = ({
+  resourceComposition,
   workspaceId,
   onCreated,
   onClose,
   onConnectionErrorChange,
   onWideStepChange,
 }: Props) => {
+  const EditDatabaseNotifiersComponent = resourceComposition.renderNotifiers;
   const { t } = useTranslation();
   const [isCreating, setIsCreating] = useState(false);
   const [backupConfig, setBackupConfig] = useState<LogicalBackupConfigInput | undefined>();
@@ -178,6 +181,7 @@ export const CreateDatabaseComponent = ({
     if (isPhysical) {
       return (
         <EditPhysicalBackupConfigComponent
+          renderStorageSelection={resourceComposition.renderStorageSelection}
           database={database}
           initialConfig={physicalBackupConfig}
           isShowCancelButton={false}
@@ -196,6 +200,7 @@ export const CreateDatabaseComponent = ({
 
     return (
       <EditLogicalBackupConfigComponent
+        renderStorageSelection={resourceComposition.renderStorageSelection}
         database={database}
         isShowCancelButton={false}
         onCancel={() => onClose()}

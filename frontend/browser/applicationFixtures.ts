@@ -1,6 +1,13 @@
 import type { components as ApiComponents } from '../src/shared/api/schema.gen';
 import { apiResponse, type HttpFixture } from './HttpFixture';
 
+export const workspace: ApiComponents['schemas']['Workspace'] = {
+  id: 'workspace-id',
+  name: 'Test workspace',
+  currentUserRole: 'WORKSPACE_OWNER',
+  createdAt: '2026-10-01T00:00:00Z',
+};
+
 export const smtpNotifier: ApiComponents['schemas']['Notifier'] = {
   id: 'smtp-id',
   workspaceId: 'workspace-id',
@@ -45,14 +52,7 @@ export const applicationFixtures = (): HttpFixture[] => [
     path: '/workspaces',
     status: 200,
     body: {
-      items: [
-        {
-          id: 'workspace-id',
-          name: 'Test workspace',
-          currentUserRole: 'WORKSPACE_OWNER',
-          createdAt: '2026-10-01T00:00:00Z',
-        },
-      ],
+      items: [workspace],
     },
   }),
   apiResponse({

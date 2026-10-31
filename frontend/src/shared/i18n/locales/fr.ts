@@ -1209,6 +1209,7 @@ export const fr: typeof en = {
       bot: 'Compte bot',
     },
     list: {
+      empty: 'Cet espace de travail ne contient pas encore de canal de notification',
       addNotifier: 'Ajouter un canal de notification',
       searchPlaceholder: 'Rechercher un canal de notification',
       noSearchResults: 'Aucun canal de notification ne correspond à « {{query}} »',
@@ -2095,6 +2096,7 @@ export const fr: typeof en = {
       privateKey: 'Clé privée',
     },
     list: {
+      empty: 'Cet espace de travail ne contient pas encore de stockage',
       addStorage: 'Ajouter un stockage',
       description:
         "Un stockage est l'endroit où les sauvegardes sont conservées (disque local, S3, etc.)",

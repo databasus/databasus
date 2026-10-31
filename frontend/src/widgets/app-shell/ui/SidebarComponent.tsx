@@ -58,18 +58,17 @@ export const SidebarComponent = ({
   const { locale, formatNumber } = useLocale();
   const isMobile = useIsMobile();
 
-  // Close sidebar on desktop when it becomes desktop size
   useEffect(() => {
     if (!isMobile && isOpen) {
       onClose();
     }
   }, [isMobile, isOpen, onClose]);
 
-  // Prevent background scrolling when mobile sidebar is open
   useEffect(() => {
     if (isMobile && isOpen) {
       const previousOverflow = document.body.style.overflowY;
       document.body.style.overflowY = 'hidden';
+
       return () => {
         document.body.style.overflowY = previousOverflow;
       };
@@ -85,7 +84,7 @@ export const SidebarComponent = ({
 
   if (!isMobile) {
     return (
-      <div className="h-full max-w-[60px] min-w-[60px] rounded bg-surface py-2 shadow">
+      <div className="h-full min-h-0 max-w-[60px] min-w-[60px] overflow-y-auto rounded bg-surface py-2 shadow">
         <div className="flex h-full flex-col">
           <div className="flex-1">
             {filteredTabs.map((tab) => (

@@ -1,9 +1,6 @@
-import { App } from 'antd';
-import type { RefObject } from 'react';
-import { useTranslation } from 'react-i18next';
+import { type RefObject, useState } from 'react';
 
 import { usePagedList } from '../../../shared/hooks';
-import { translateApiError } from '../../../shared/i18n';
 import { auditEventApi } from '../api/auditEventApi';
 import type { AuditEvent } from './AuditEvent';
 
@@ -13,6 +10,7 @@ interface Params {
   workspaceId?: string;
   authorUserId?: string;
   pageSize: number;
+  onError?: (error: unknown) => void;
   scrollContainerRef: RefObject<HTMLDivElement | null>;
 }
 
@@ -22,16 +20,23 @@ export function useAuditEventPages({
   authorUserId,
   pageSize,
   scrollContainerRef,
+  onError,
 }: Params) {
-  const { t } = useTranslation();
-  const { message } = App.useApp();
+  const [error, setError] = useState<unknown>();
 
-  return usePagedList<AuditEvent, string>({
-    fetchPage: (after) =>
-      auditEventApi.listAuditEvents({ workspaceId, authorUserId, limit: pageSize, after }),
+  const pages = usePagedList<AuditEvent, string>({
+    fetchPage: (after) => {
+      setError(undefined);
+      return auditEventApi.listAuditEvents({ workspaceId, authorUserId, limit: pageSize, after });
+    },
     getItemKey: (event) => event.id,
-    onError: (error) => message.error(translateApiError(error, t)),
+    onError: (failure) => {
+      setError(failure);
+      onError?.(failure);
+    },
     scrollContainerRef,
     resetKey: `${workspaceId ?? ''}|${authorUserId ?? ''}`,
   });
+
+  return { ...pages, error };
 }
