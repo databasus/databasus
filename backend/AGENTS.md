@@ -93,7 +93,7 @@ ALTER TABLE storages_s3
 
 ## Code style
 
-- `mise run backend:format` sets the formatting. Beyond that, separate logical blocks with a blank line: after declarations, between error handling and what follows, before the final `return`.
+- `mise run backend:format` sets the formatting. Group statements per [Blank lines separate logical steps](../AGENTS.md#blank-lines-separate-logical-steps).
 - `modernize` enforces current standard-library idioms. Use `omitzero` instead of `omitempty` for `time.Time`, `time.Duration`, structs, slices and maps.
 - Every HTTP operation is described in the contract; Go code carries no API annotations.
 

@@ -176,6 +176,12 @@ Code is split into units that each hold one concept: a type with its methods, a 
 
 Where a unit belongs across packages, modules and layers is decided by [`docs/architecture.md`](docs/architecture.md). A file whose content `docs/architecture.md` or a module doc fixes follows that rule instead: `module.go` holds the whole public contract of a module, `errors.go` holds every error of its package, an enum sits next to the entity whose field it types, and a role file holds its role. The module docs add the other conventions of their stack.
 
+## Blank lines separate logical steps
+
+Use a single blank line to separate logically distinct steps inside a function or other code block: setup, validation, main work and return. Separate independent branches and guards from the surrounding steps. Keep statements that form one step together, including a call and its immediate error check. This applies to all code, including tests, where setup, execution and assertions form distinct steps.
+
+Do not put a blank line after every statement, at the start or end of a body, or inside a single statement split across lines. Never stack two blank lines. Keep a short (≤ 5-line) function together. If blank lines are not enough to make a body easy to follow, extract a function rather than adding comments to label its steps.
+
 ## Comments are a last resort
 
 The default is **no comment**. Before writing one, reach for a clearer name or a smaller function first — self-explanatory code beats commented code every time. A comment is justified only when it carries something the code cannot: a *why* (business rule, hidden cross-system constraint, non-obvious algorithm or optimisation, a reference to `docs/architecture.md` or a spec). Never write a comment that restates *what* the code does or narrates the obvious — if a `// Foo does X` comment sits above the code, that's a naming bug: rename until the comment is redundant, then delete it. This applies everywhere, tests included — a well-named test needs no header comment explaining what it checks.

@@ -76,7 +76,7 @@ export const ReactComponent = ({ someValue }: Props): JSX.Element => {
 
 ## Vertical spacing
 
-- Structure function bodies with vertical rhythm. Put a blank line between logically distinct steps (setup / main work / return, independent branches, before and after a guard). Do not leave blank lines at the start or end of a body, never stack two in a row. Do not insert blanks inside a tight expression, a single statement split across lines, or a short (≤ 5-line) function. If blank lines alone aren't enough to navigate a body, extract — don't add comments.
+Follow [Blank lines separate logical steps](../AGENTS.md#blank-lines-separate-logical-steps) in the root rules.
 
 ---
 

@@ -35,8 +35,9 @@ Actions:
   necessity      Checks a plan or an OpenSpec proposal: is the task needed, is there a much simpler option.
   diff           Reviews a finished change.
   architecture   Checks a plan or a change against docs/architecture.md and the architecture rules of the module docs.
-  code-shape     Checks how code the request changed is split into files and functions, and its names
-                 and comments, against AGENTS.md and the module docs. Runs when a .go, .ts or .tsx
+  code-shape     Checks how code the request changed is split into files, functions and steps separated
+                 by blank lines, and its names and comments, against AGENTS.md and the module docs.
+                 Includes test code. Runs when a .go, .ts or .tsx
                  file under backend/, frontend/src/ or website/ changed.
   implementation Full review of an OpenSpec change whose tasks are all checked: parallel reviewers,
                  one per delta spec, and one each for architecture, documentation and tasks, and tests;
