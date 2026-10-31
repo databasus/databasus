@@ -7,7 +7,5 @@ interface Props {
 
 // A monospace font alone barely sets code apart from prose, so inline code also gets a background.
 export const InlineCodeComponent = ({ children }: Props) => (
-  <code className="rounded bg-gray-100 box-decoration-clone px-1 py-0.5 text-[0.9em] dark:bg-gray-700">
-    {children}
-  </code>
+  <code className="rounded bg-code box-decoration-clone px-1 py-0.5 text-[0.9em]">{children}</code>
 );

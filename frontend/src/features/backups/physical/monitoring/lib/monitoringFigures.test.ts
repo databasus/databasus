@@ -4,8 +4,8 @@ import {
   WalStreamHealthLevel,
   WalStreamKeepingUpState,
 } from '../../../../../entities/backups/physical';
+import { createTestWalStreamStatistics } from '../../../../../shared/lib/test/buildWalStreamStatistics';
 import { getMonitoringFigures } from './monitoringFigures';
-import { createTestWalStreamStatistics } from './testWalStreamStatistics';
 
 // The entity's public API imports its API client, and the client's config module reads window at
 // import time. The tests run in node, so they supply window.

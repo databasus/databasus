@@ -1,12 +1,6 @@
 /* eslint-disable i18next/no-literal-string -- a test fixture of UTC times and WAL positions, not copy */
-import {
-  WalStreamHealthLevel,
-  WalStreamKeepingUpState,
-  WalStreamSourceState,
-  type WalStreamStatistics,
-  WalStreamStatisticsPeriod,
-  WalStreamStreamerState,
-} from '../../../../../entities/backups/physical';
+import type { ApiComponents } from '../../api';
+type WalStreamStatistics = ApiComponents['schemas']['WalStreamStatistics'];
 
 const MiB = 1024 * 1024;
 
@@ -16,7 +10,7 @@ export const createTestWalStreamStatistics = (
   overrides: Partial<WalStreamStatistics> = {},
 ): WalStreamStatistics => ({
   health: {
-    level: WalStreamHealthLevel.HEALTHY,
+    level: 'HEALTHY',
     reasons: [],
     notices: [],
     isFullBackupPending: false,
@@ -24,7 +18,7 @@ export const createTestWalStreamStatistics = (
   latestRestorableAt: '2026-10-18T11:59:20Z',
   restorableRanges: [{ from: '2026-10-17T03:00:00Z', to: '2026-10-18T11:59:20Z' }],
   streamer: {
-    state: WalStreamStreamerState.RUNNING,
+    state: 'RUNNING',
     sessionStartedAt: '2026-10-18T10:00:00Z',
     failingSince: null,
     restartsLastHour: 0,
@@ -33,7 +27,7 @@ export const createTestWalStreamStatistics = (
     sampledAt: '2026-10-18T11:59:48Z',
     lastArchivedWalAt: '2026-10-18T11:59:20Z',
     sessionStartedAt: '2026-10-18T10:00:00Z',
-    sourceState: WalStreamSourceState.REACHABLE,
+    sourceState: 'REACHABLE',
     sourceUnreachableSince: null,
     sourceCurrentLsn: '0/5000000',
     archiveProgressLsn: '0/4F00000',
@@ -59,7 +53,7 @@ export const createTestWalStreamStatistics = (
     isForcedRotationDenied: false,
   },
   keepingUp: {
-    state: WalStreamKeepingUpState.KEEPING_UP,
+    state: 'KEEPING_UP',
     sourceWriteBytesPerSecond: 10 * MiB,
     archiveBytesPerSecond: 10 * MiB,
     unarchivedWalBytes: 20 * MiB,
@@ -72,7 +66,7 @@ export const createTestWalStreamStatistics = (
     estimatedSlotLimitSeconds: null,
   },
   series: {
-    period: WalStreamStatisticsPeriod.HOUR,
+    period: 'HOUR',
     bucketSeconds: 60,
     from: '2026-10-18T11:01:00Z',
     to: '2026-10-18T12:01:00Z',

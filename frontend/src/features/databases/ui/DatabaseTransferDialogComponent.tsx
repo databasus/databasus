@@ -520,8 +520,8 @@ export const DatabaseTransferDialogComponent = ({
             isShowName
             isShowClose={false}
             onClose={() => setIsShowCreateNotifier(false)}
+            onPersisted={() => loadTargetWorkspaceData(selectedWorkspaceId)}
             onChanged={(notifier) => {
-              loadTargetWorkspaceData(selectedWorkspaceId);
               setSelectedNotifierIds([...selectedNotifierIds, notifier.id]);
               setIsShowCreateNotifier(false);
             }}

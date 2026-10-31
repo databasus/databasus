@@ -161,6 +161,34 @@ jobs:
           cd frontend
           pnpm test
 
+  test-frontend-browser-ui:
+    if: github.ref != 'refs/heads/develop' && github.head_ref != 'develop'
+    runs-on: namespace-profile-4vcpu-8ram-ubuntu-26-x64
+    timeout-minutes: 20
+    needs: [lint-frontend]
+    steps:
+      - name: Check out code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Install tools from mise.toml
+        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
+        with:
+          install_args: 'node pnpm'
+
+      - name: Install dependencies
+        run: pnpm --dir frontend install --frozen-lockfile
+
+      - name: Verify production browser UI
+        run: pnpm --dir frontend test:browser --project=ui
+
+      - name: Upload synthetic browser failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: frontend-browser-ui
+          path: frontend/browser-results/
+          retention-days: 7
+
   test-verification-agent:
     if: github.ref != 'refs/heads/develop' && github.head_ref != 'develop'
     runs-on: namespace-profile-4vcpu-8ram-ubuntu-26-x64
@@ -980,6 +1008,7 @@ jobs:
         lint-backend,
         test-backend,
         test-frontend,
+        test-frontend-browser-ui,
         test-verification-agent,
         e2e-verification-agent-podman,
         test-filesystems,

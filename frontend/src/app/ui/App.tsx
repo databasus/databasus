@@ -10,7 +10,7 @@ import { OAuthCallbackPage } from '../../pages/OAuthCallbackPage';
 import { OauthStorageComponent } from '../../pages/OauthStorageComponent';
 import { useVersionCheck } from '../../shared/hooks/useVersionCheck';
 import { LocaleProvider, useLocale } from '../../shared/i18n';
-import { ThemeProvider, useTheme, getAntdTheme } from '../../shared/theme';
+import { ThemeProvider, useTheme, getAntdTheme, ThemeCssVariables } from '../../shared/theme';
 import { MainScreenComponent } from '../../widgets/main/MainScreenComponent';
 
 function AppContent() {
@@ -31,7 +31,12 @@ function AppContent() {
   }, []);
 
   return (
-    <ConfigProvider locale={antdLocale} theme={getAntdTheme(resolvedTheme)}>
+    <ConfigProvider
+      button={{ autoInsertSpace: false }}
+      locale={antdLocale}
+      theme={getAntdTheme(resolvedTheme)}
+    >
+      <ThemeCssVariables />
       <AntdApp>
         <BrowserRouter>
           <Routes>

@@ -1,6 +1,6 @@
 import { InfoCircleOutlined } from '@ant-design/icons';
 import { Input, Switch, Tooltip } from 'antd';
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
 import type { TelegramNotifierSettings } from '../../../../../entities/notifiers';
@@ -24,6 +24,7 @@ const chatIdBotLink = <a href="https://t.me/getmyid_bot" target="_blank" rel="no
 
 export function EditTelegramNotifierComponent({ settings, isSaved, onChange }: Props) {
   const { t } = useTranslation();
+  const fieldPrefix = useId();
   const [isShowHowToGetChatId, setIsShowHowToGetChatId] = useState(false);
   const [isShowAdvanced, setIsShowAdvanced] = useState(
     !!settings.botApiUrl || settings.isProxyEnabled,
@@ -79,7 +80,7 @@ export function EditTelegramNotifierComponent({ settings, isSaved, onChange }: P
           />
 
           <Tooltip className="cursor-pointer" title={t('notifiers.telegram.targetChatIdTooltip')}>
-            <InfoCircleOutlined className="ml-2" style={{ color: 'gray' }} />
+            <InfoCircleOutlined className="ml-2 text-muted" />
           </Tooltip>
         </div>
       </div>
@@ -128,7 +129,7 @@ export function EditTelegramNotifierComponent({ settings, isSaved, onChange }: P
             className="cursor-pointer"
             title={t('notifiers.telegram.sendToGroupTopicTooltip')}
           >
-            <InfoCircleOutlined className="ml-2" style={{ color: 'gray' }} />
+            <InfoCircleOutlined className="ml-2 text-muted" />
           </Tooltip>
         </div>
       </div>
@@ -158,7 +159,7 @@ export function EditTelegramNotifierComponent({ settings, isSaved, onChange }: P
               />
 
               <Tooltip className="cursor-pointer" title={t('notifiers.telegram.threadIdTooltip')}>
-                <InfoCircleOutlined className="ml-2" style={{ color: 'gray' }} />
+                <InfoCircleOutlined className="ml-2 text-muted" />
               </Tooltip>
             </div>
           </div>
@@ -187,18 +188,22 @@ export function EditTelegramNotifierComponent({ settings, isSaved, onChange }: P
       )}
 
       <AdvancedSettingsToggleComponent
+        regionId={`${fieldPrefix}-advanced`}
         label={t('notifiers.advancedSettings')}
         isShowAdvanced={isShowAdvanced}
         onToggle={() => setIsShowAdvanced(!isShowAdvanced)}
       />
 
       {isShowAdvanced && (
-        <>
+        <div id={`${fieldPrefix}-advanced`}>
           <AdvancedFieldRowComponent
+            controlId={`${fieldPrefix}-botApiUrl`}
             label={t('notifiers.telegram.botApiUrl')}
             tooltip={t('notifiers.telegram.botApiUrlTooltip')}
           >
             <Input
+              id={`${fieldPrefix}-botApiUrl`}
+              aria-describedby={`${fieldPrefix}-botApiUrl-help`}
               value={settings.botApiUrl ?? ''}
               onChange={(e) =>
                 onChange({
@@ -214,10 +219,13 @@ export function EditTelegramNotifierComponent({ settings, isSaved, onChange }: P
           </AdvancedFieldRowComponent>
 
           <AdvancedFieldRowComponent
+            controlId={`${fieldPrefix}-useProxy`}
             label={t('notifiers.telegram.useProxy')}
             tooltip={t('notifiers.telegram.useProxyTooltip')}
           >
             <Switch
+              id={`${fieldPrefix}-useProxy`}
+              aria-describedby={`${fieldPrefix}-useProxy-help`}
               checked={settings.isProxyEnabled}
               onChange={(checked) =>
                 onChange({
@@ -232,10 +240,13 @@ export function EditTelegramNotifierComponent({ settings, isSaved, onChange }: P
 
           {settings.isProxyEnabled && (
             <AdvancedFieldRowComponent
+              controlId={`${fieldPrefix}-proxyUrl`}
               label={t('notifiers.telegram.proxyUrl')}
               tooltip={t('notifiers.telegram.proxyUrlTooltip')}
             >
               <Input
+                id={`${fieldPrefix}-proxyUrl`}
+                aria-describedby={`${fieldPrefix}-proxyUrl-help`}
                 value={settings.proxyUrl ?? ''}
                 onChange={(e) =>
                   onChange({
@@ -254,7 +265,7 @@ export function EditTelegramNotifierComponent({ settings, isSaved, onChange }: P
               />
             </AdvancedFieldRowComponent>
           )}
-        </>
+        </div>
       )}
     </>
   );

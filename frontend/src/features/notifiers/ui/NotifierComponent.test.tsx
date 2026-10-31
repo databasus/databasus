@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { Notifier } from '../../../entities/notifiers';
@@ -40,8 +40,10 @@ describe('NotifierComponent', () => {
     );
 
     await screen.findByText('Team alerts');
-    fireEvent.click(screen.getByRole('button', { name: 'delete' }));
-    fireEvent.click(await screen.findByRole('button', { name: 'Remove' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Remove' }));
+    fireEvent.click(
+      within(await screen.findByRole('dialog')).getByRole('button', { name: 'Remove' }),
+    );
 
     await waitFor(() =>
       expect(alertSpy).toHaveBeenCalledWith(

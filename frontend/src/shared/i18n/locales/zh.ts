@@ -62,6 +62,7 @@ export const zh: typeof en = {
       system: '跟随系统',
     },
     navigation: {
+      menu: '导航菜单',
       databases: '数据库',
       storages: '存储',
       notifiers: '通知渠道',
@@ -1189,6 +1190,11 @@ export const zh: typeof en = {
       skipTls: '跳过 TLS 验证',
     },
     email: {
+      validation: {
+        targetEmail: '请输入有效的电子邮件地址',
+        smtpHost: '请输入 SMTP 主机',
+        smtpPort: '请输入 1 到 65535 之间的端口',
+      },
       targetEmail: '收件邮箱',
       targetEmailTooltip: '接收通知的邮箱地址',
       smtpHost: 'SMTP 主机',

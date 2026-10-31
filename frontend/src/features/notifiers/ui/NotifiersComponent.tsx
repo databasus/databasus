@@ -39,7 +39,7 @@ export const NotifiersComponent = ({ contentHeight, workspace, isCanManageNotifi
     }
   };
 
-  const loadNotifiers = (isSilent = false, selectNotifierId?: string) => {
+  const loadNotifiers = (isSilent = false) => {
     if (!isSilent) {
       setIsLoading(true);
     }
@@ -48,9 +48,7 @@ export const NotifiersComponent = ({ contentHeight, workspace, isCanManageNotifi
       .listAllNotifiers(workspace.id)
       .then((notifiers) => {
         setNotifiers(notifiers);
-        if (selectNotifierId) {
-          updateSelectedNotifierId(selectNotifierId);
-        } else if (!selectedNotifierId && !isSilent && !isMobile) {
+        if (!selectedNotifierId && !isSilent && !isMobile) {
           // On desktop, auto-select a notifier; on mobile, keep it unselected to show the list first
           const savedNotifierId = localStorage.getItem(
             `${SELECTED_NOTIFIER_STORAGE_KEY}_${workspace.id}`,
@@ -95,17 +93,14 @@ export const NotifiersComponent = ({ contentHeight, workspace, isCanManageNotifi
   );
 
   // On mobile, show either the list or the notifier details
-  const showNotifierList = !isMobile || !selectedNotifierId;
-  const showNotifierDetails = selectedNotifierId && (!isMobile || selectedNotifierId);
+  const isNotifierListShown = !isMobile || !selectedNotifierId;
+  const isNotifierDetailsShown = selectedNotifierId && (!isMobile || selectedNotifierId);
 
   return (
     <>
-      <div className="flex grow">
-        {showNotifierList && (
-          <div
-            className="w-full overflow-y-auto md:mx-3 md:w-[250px] md:min-w-[250px] md:pr-2"
-            style={{ height: contentHeight }}
-          >
+      <div className="flex min-h-0 min-w-0 grow" style={{ height: contentHeight }}>
+        {isNotifierListShown && (
+          <div className="w-full overflow-y-auto md:mx-3 md:w-[250px] md:min-w-[250px] md:pr-2">
             {notifiers.length >= 5 && (
               <>
                 {isCanManageNotifiers && addNotifierButton}
@@ -115,7 +110,7 @@ export const NotifiersComponent = ({ contentHeight, workspace, isCanManageNotifi
                     placeholder={t('notifiers.list.searchPlaceholder')}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full border-b border-gray-300 p-1 text-gray-500 outline-none dark:text-gray-400"
+                    className="w-full border-b border-border p-1 text-muted focus-visible:outline-2 focus-visible:outline-accent"
                   />
                 </div>
               </>
@@ -131,7 +126,7 @@ export const NotifiersComponent = ({ contentHeight, workspace, isCanManageNotifi
                   />
                 ))
               : searchQuery && (
-                  <div className="mb-4 text-center text-sm text-gray-500 dark:text-gray-400">
+                  <div className="mb-4 text-center text-sm text-muted">
                     {t('notifiers.list.noSearchResults', {
                       query: searchQuery,
                     })}
@@ -140,14 +135,14 @@ export const NotifiersComponent = ({ contentHeight, workspace, isCanManageNotifi
 
             {notifiers.length < 5 && isCanManageNotifiers && addNotifierButton}
 
-            <div className="mx-3 text-center text-xs text-gray-500 dark:text-gray-400">
+            <div className="mx-3 text-center text-xs text-muted">
               {t('notifiers.list.description')}
             </div>
           </div>
         )}
 
-        {showNotifierDetails && (
-          <div className="flex w-full flex-col md:flex-1">
+        {isNotifierDetailsShown && (
+          <div className="flex min-h-0 w-full min-w-0 flex-col md:flex-1">
             {isMobile && (
               <div className="mb-2">
                 <Button
@@ -163,7 +158,7 @@ export const NotifiersComponent = ({ contentHeight, workspace, isCanManageNotifi
             <NotifierComponent
               notifierId={selectedNotifierId}
               onNotifierChanged={() => {
-                loadNotifiers();
+                loadNotifiers(true);
               }}
               onNotifierDeleted={() => {
                 const remainingNotifiers = notifiers.filter(
@@ -193,17 +188,16 @@ export const NotifiersComponent = ({ contentHeight, workspace, isCanManageNotifi
           onCancel={() => setIsShowAddNotifier(false)}
           maskClosable={false}
         >
-          <div className="my-3 max-w-[250px] text-gray-500 dark:text-gray-400">
-            {t('notifiers.list.description')}
-          </div>
+          <div className="my-3 max-w-[250px] text-muted">{t('notifiers.list.description')}</div>
 
           <EditNotifierComponent
             workspaceId={workspace.id}
             isShowName
             isShowClose={false}
             onClose={() => setIsShowAddNotifier(false)}
+            onPersisted={() => loadNotifiers(true)}
             onChanged={(notifier) => {
-              loadNotifiers(false, notifier.id);
+              updateSelectedNotifierId(notifier.id);
               setIsShowAddNotifier(false);
             }}
           />

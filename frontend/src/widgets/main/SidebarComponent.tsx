@@ -97,7 +97,9 @@ export const SidebarComponent = ({
           <div className="flex-1">
             {filteredTabs.map((tab) => (
               <div key={tab.text} className="flex justify-center">
-                <div
+                <button
+                  type="button"
+                  aria-label={tab.text}
                   className={`flex h-[50px] w-[50px] cursor-pointer items-center justify-center rounded select-none ${selectedTab === tab.name ? 'bg-blue-600' : 'hover:bg-blue-50 dark:hover:bg-gray-700'}`}
                   onClick={() => handleTabClick(tab)}
                   style={{ marginTop: tab.marginTop }}
@@ -112,7 +114,7 @@ export const SidebarComponent = ({
                       />
                     </div>
                   </div>
-                </div>
+                </button>
               </div>
             ))}
           </div>
@@ -144,6 +146,8 @@ export const SidebarComponent = ({
         <div className="flex items-center justify-between border-b border-gray-200 px-3 py-3 dark:border-gray-700">
           <LanguageThemeControlComponent />
           <button
+            type="button"
+            aria-label={t('common.actions.close')}
             onClick={onClose}
             className="flex h-8 w-8 items-center justify-center rounded hover:bg-gray-100 dark:hover:bg-gray-700"
           >
@@ -159,8 +163,10 @@ export const SidebarComponent = ({
 
             return (
               <div key={tab.text}>
-                <div
-                  className={`flex cursor-pointer items-center gap-3 rounded px-3 py-3 select-none ${selectedTab === tab.name ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700'}`}
+                <button
+                  type="button"
+                  aria-label={tab.text}
+                  className={`flex w-full cursor-pointer items-center gap-3 rounded px-3 py-3 select-none ${selectedTab === tab.name ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700'}`}
                   onClick={() => handleTabClick(tab)}
                 >
                   <img
@@ -170,7 +176,7 @@ export const SidebarComponent = ({
                     loading="lazy"
                   />
                   <span className="text-sm font-medium">{tab.text}</span>
-                </div>
+                </button>
                 {showDivider && (
                   <div className="my-2 border-t border-gray-200 dark:border-gray-700" />
                 )}

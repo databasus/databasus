@@ -1,6 +1,5 @@
-import { InfoCircleOutlined } from '@ant-design/icons';
-import { Checkbox, Input, Select, Tooltip } from 'antd';
-import { useState } from 'react';
+import { Checkbox, Form, Input, Select } from 'antd';
+import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import {
@@ -23,52 +22,121 @@ interface Props {
 }
 
 export function EditEmailNotifierComponent({ settings, isSaved, onChange }: Props) {
-  const { t } = useTranslation();
-  const hasAdvancedValues =
+  const [isShowAdvanced, setIsShowAdvanced] = useState(
     settings.isInsecureSkipVerify ||
-    !!settings.heloName ||
-    settings.security !== getDefaultEmailNotifierSecurity(settings.smtpPort);
-  const [showAdvanced, setShowAdvanced] = useState(hasAdvancedValues);
+      !!settings.heloName ||
+      settings.security !== getDefaultEmailNotifierSecurity(settings.smtpPort),
+  );
+  const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({});
+  const { t } = useTranslation();
+  const fieldPrefix = useId();
+  const invalidFields = {
+    isTargetEmailInvalid: !/^.+@[^\s@]+$/.test(settings.targetEmail ?? ''),
+    isSmtpHostInvalid: !settings.smtpHost?.trim(),
+    isSmtpPortInvalid:
+      !Number.isInteger(settings.smtpPort) || settings.smtpPort < 1 || settings.smtpPort > 65535,
+  };
+  const fieldErrors = {
+    targetEmail:
+      touchedFields.targetEmail && invalidFields.isTargetEmailInvalid
+        ? t('notifiers.email.validation.targetEmail')
+        : undefined,
+    smtpHost:
+      touchedFields.smtpHost && invalidFields.isSmtpHostInvalid
+        ? t('notifiers.email.validation.smtpHost')
+        : undefined,
+    smtpPort:
+      touchedFields.smtpPort && invalidFields.isSmtpPortInvalid
+        ? t('notifiers.email.validation.smtpPort')
+        : undefined,
+  };
 
   return (
-    <>
-      <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
-        <div className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2">{t('notifiers.email.targetEmail')}</div>
-        <div className="flex items-center">
-          <Input
-            value={settings.targetEmail ?? ''}
-            onChange={(e) => onChange({ ...settings, targetEmail: e.target.value.trim() })}
-            size="small"
-            className="w-full max-w-[250px]"
-            placeholder="example@gmail.com"
-          />
-
-          <Tooltip className="cursor-pointer" title={t('notifiers.email.targetEmailTooltip')}>
-            <InfoCircleOutlined className="ml-2" style={{ color: 'gray' }} />
-          </Tooltip>
-        </div>
-      </div>
-
-      <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
-        <div className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2">{t('notifiers.email.smtpHost')}</div>
+    <div className="min-w-0">
+      <Form.Item
+        layout="vertical"
+        label={t('notifiers.email.targetEmail')}
+        htmlFor={`${fieldPrefix}-targetEmail`}
+        validateStatus={fieldErrors.targetEmail ? 'error' : undefined}
+        help={
+          fieldErrors.targetEmail ? (
+            <span id={`${fieldPrefix}-targetEmail-error`}>{fieldErrors.targetEmail}</span>
+          ) : undefined
+        }
+        extra={
+          <span id={`${fieldPrefix}-targetEmail-help`}>
+            {t('notifiers.email.targetEmailTooltip')}
+          </span>
+        }
+      >
         <Input
-          value={settings.smtpHost ?? ''}
-          onChange={(e) => onChange({ ...settings, smtpHost: e.target.value.trim() })}
+          id={`${fieldPrefix}-targetEmail`}
+          type="email"
+          value={settings.targetEmail ?? ''}
+          onChange={(event) => onChange({ ...settings, targetEmail: event.target.value.trim() })}
           size="small"
-          className="w-full max-w-[250px]"
+          className="w-full min-w-0"
+          onBlur={() => setTouchedFields({ ...touchedFields, targetEmail: true })}
+          aria-invalid={!!fieldErrors.targetEmail}
+          aria-describedby={
+            [
+              `${fieldPrefix}-targetEmail-help`,
+              fieldErrors.targetEmail ? `${fieldPrefix}-targetEmail-error` : undefined,
+            ]
+              .filter(Boolean)
+              .join(' ') || undefined
+          }
+          placeholder="example@gmail.com"
+        />
+      </Form.Item>
+
+      <Form.Item
+        layout="vertical"
+        label={t('notifiers.email.smtpHost')}
+        htmlFor={`${fieldPrefix}-smtpHost`}
+        validateStatus={fieldErrors.smtpHost ? 'error' : undefined}
+        help={
+          fieldErrors.smtpHost ? (
+            <span id={`${fieldPrefix}-smtpHost-error`}>{fieldErrors.smtpHost}</span>
+          ) : undefined
+        }
+      >
+        <Input
+          id={`${fieldPrefix}-smtpHost`}
+          type="text"
+          value={settings.smtpHost ?? ''}
+          onChange={(event) => onChange({ ...settings, smtpHost: event.target.value.trim() })}
+          size="small"
+          className="w-full min-w-0"
+          onBlur={() => setTouchedFields({ ...touchedFields, smtpHost: true })}
+          aria-invalid={!!fieldErrors.smtpHost}
+          aria-describedby={
+            [fieldErrors.smtpHost ? `${fieldPrefix}-smtpHost-error` : undefined]
+              .filter(Boolean)
+              .join(' ') || undefined
+          }
           // eslint-disable-next-line i18next/no-literal-string -- example hostname
           placeholder="smtp.gmail.com"
         />
-      </div>
+      </Form.Item>
 
-      <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
-        <div className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2">{t('notifiers.email.smtpPort')}</div>
+      <Form.Item
+        layout="vertical"
+        label={t('notifiers.email.smtpPort')}
+        htmlFor={`${fieldPrefix}-smtpPort`}
+        validateStatus={fieldErrors.smtpPort ? 'error' : undefined}
+        help={
+          fieldErrors.smtpPort ? (
+            <span id={`${fieldPrefix}-smtpPort-error`}>{fieldErrors.smtpPort}</span>
+          ) : undefined
+        }
+      >
         <Input
+          id={`${fieldPrefix}-smtpPort`}
           type="number"
           value={settings.smtpPort ?? ''}
-          onChange={(e) => {
-            const nextPort = Number(e.target.value);
-
+          onChange={(event) => {
+            const nextPort = Number(event.target.value);
             onChange({
               ...settings,
               smtpPort: nextPort,
@@ -76,89 +144,101 @@ export function EditEmailNotifierComponent({ settings, isSaved, onChange }: Prop
             });
           }}
           size="small"
-          className="w-full max-w-[250px]"
+          className="w-full min-w-0"
+          onBlur={() => setTouchedFields({ ...touchedFields, smtpPort: true })}
+          aria-invalid={!!fieldErrors.smtpPort}
+          aria-describedby={
+            [fieldErrors.smtpPort ? `${fieldPrefix}-smtpPort-error` : undefined]
+              .filter(Boolean)
+              .join(' ') || undefined
+          }
           placeholder="25"
+          min={1}
+          max={65535}
         />
-      </div>
+      </Form.Item>
 
-      <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
-        <div className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2">{t('notifiers.email.smtpUser')}</div>
+      <Form.Item
+        layout="vertical"
+        label={t('notifiers.email.smtpUser')}
+        htmlFor={`${fieldPrefix}-smtpUser`}
+      >
         <Input
+          id={`${fieldPrefix}-smtpUser`}
+          type="text"
           value={settings.smtpUser ?? ''}
-          onChange={(e) =>
-            onChange({
-              ...settings,
-              smtpUser: toOptionalValue(e.target.value.trim()),
-            })
+          onChange={(event) =>
+            onChange({ ...settings, smtpUser: toOptionalValue(event.target.value.trim()) })
           }
           size="small"
-          className="w-full max-w-[250px]"
+          className="w-full min-w-0"
           placeholder="user@gmail.com"
         />
-      </div>
+      </Form.Item>
 
-      <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
-        <div className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2">
-          {t('notifiers.email.smtpPassword')}
-        </div>
+      <Form.Item
+        layout="vertical"
+        label={t('notifiers.email.smtpPassword')}
+        htmlFor={`${fieldPrefix}-smtpPassword`}
+      >
         <Input
+          id={`${fieldPrefix}-smtpPassword`}
           type="password"
           value={settings.smtpPassword ?? ''}
-          onChange={(e) =>
-            onChange({
-              ...settings,
-              smtpPassword: toOptionalValue(e.target.value.trim()),
-            })
+          onChange={(event) =>
+            onChange({ ...settings, smtpPassword: toOptionalValue(event.target.value) })
           }
           size="small"
-          className="w-full max-w-[250px]"
+          className="w-full min-w-0"
           placeholder={
             isSaved
               ? t('notifiers.secretKeptPlaceholder')
               : t('notifiers.email.smtpPasswordPlaceholder')
           }
         />
-      </div>
+      </Form.Item>
 
-      <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
-        <div className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2">{t('notifiers.email.from')}</div>
-        <div className="flex items-center">
-          <Input
-            value={settings.from ?? ''}
-            onChange={(e) =>
-              onChange({
-                ...settings,
-                from: toOptionalValue(e.target.value.trim()),
-              })
-            }
-            size="small"
-            className="w-full max-w-[250px]"
-            placeholder="example@example.com"
-          />
-
-          <Tooltip className="cursor-pointer" title={t('notifiers.email.fromTooltip')}>
-            <InfoCircleOutlined className="ml-2" style={{ color: 'gray' }} />
-          </Tooltip>
-        </div>
-      </div>
+      <Form.Item
+        layout="vertical"
+        label={t('notifiers.email.from')}
+        htmlFor={`${fieldPrefix}-from`}
+        extra={<span id={`${fieldPrefix}-from-help`}>{t('notifiers.email.fromTooltip')}</span>}
+      >
+        <Input
+          id={`${fieldPrefix}-from`}
+          type="text"
+          value={settings.from ?? ''}
+          onChange={(event) =>
+            onChange({ ...settings, from: toOptionalValue(event.target.value.trim()) })
+          }
+          size="small"
+          className="w-full min-w-0"
+          aria-describedby={[`${fieldPrefix}-from-help`].filter(Boolean).join(' ') || undefined}
+          placeholder="example@example.com"
+        />
+      </Form.Item>
 
       <AdvancedSettingsToggleComponent
+        regionId={`${fieldPrefix}-advanced`}
         label={t('notifiers.advancedSettings')}
-        isShowAdvanced={showAdvanced}
-        onToggle={() => setShowAdvanced(!showAdvanced)}
+        isShowAdvanced={isShowAdvanced}
+        onToggle={() => setIsShowAdvanced(!isShowAdvanced)}
       />
 
-      {showAdvanced && (
-        <>
+      {isShowAdvanced && (
+        <div id={`${fieldPrefix}-advanced`}>
           <AdvancedFieldRowComponent
+            controlId={`${fieldPrefix}-security`}
             label={t('notifiers.email.security')}
             tooltip={t('notifiers.email.securityTooltip')}
           >
             <Select
+              id={`${fieldPrefix}-security`}
+              aria-describedby={`${fieldPrefix}-security-help`}
               value={settings.security}
               onChange={(security: EmailNotifierSecurity) => onChange({ ...settings, security })}
               size="small"
-              className="w-[250px] max-w-[250px]"
+              className="w-full min-w-0 sm:w-[250px]"
               options={Object.values(EmailNotifierSecurity).map(
                 (security: EmailNotifierSecurity) => ({
                   value: security,
@@ -169,10 +249,13 @@ export function EditEmailNotifierComponent({ settings, isSaved, onChange }: Prop
           </AdvancedFieldRowComponent>
 
           <AdvancedFieldRowComponent
+            controlId={`${fieldPrefix}-heloName`}
             label={t('notifiers.email.heloName')}
             tooltip={t('notifiers.email.heloNameTooltip')}
           >
             <Input
+              id={`${fieldPrefix}-heloName`}
+              aria-describedby={`${fieldPrefix}-heloName-help`}
               value={settings.heloName ?? ''}
               onChange={(e) =>
                 onChange({
@@ -187,10 +270,13 @@ export function EditEmailNotifierComponent({ settings, isSaved, onChange }: Prop
           </AdvancedFieldRowComponent>
 
           <AdvancedFieldRowComponent
+            controlId={`${fieldPrefix}-skipTlsVerify`}
             label={t('notifiers.fields.skipTlsVerify')}
             tooltip={t('notifiers.email.skipTlsTooltip')}
           >
             <Checkbox
+              id={`${fieldPrefix}-skipTlsVerify`}
+              aria-describedby={`${fieldPrefix}-skipTlsVerify-help`}
               checked={settings.isInsecureSkipVerify}
               onChange={(e) =>
                 onChange({
@@ -202,8 +288,8 @@ export function EditEmailNotifierComponent({ settings, isSaved, onChange }: Prop
               {t('notifiers.fields.skipTls')}
             </Checkbox>
           </AdvancedFieldRowComponent>
-        </>
+        </div>
       )}
-    </>
+    </div>
   );
 }

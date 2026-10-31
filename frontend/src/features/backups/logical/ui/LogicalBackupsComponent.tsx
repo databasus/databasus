@@ -691,7 +691,7 @@ export const LogicalBackupsComponent = ({
           onConfirm={deleteBackup}
           onDecline={() => setDeleteConfimationId(undefined)}
           description={t('backups.logical.list.deleteConfirmation')}
-          actionButtonColor="red"
+          isDestructive
           actionText={t('common.actions.delete')}
         />
       )}

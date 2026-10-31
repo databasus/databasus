@@ -13,12 +13,12 @@ import {
   type WalStreamStatistics,
 } from '../../../../../entities/backups/physical';
 import { LocaleProvider } from '../../../../../shared/i18n';
+import { createTestWalStreamStatistics } from '../../../../../shared/lib/test/buildWalStreamStatistics';
 import { ThemeContext } from '../../../../../shared/theme';
 import { getFullBackupAction } from '../lib/fullBackupAction';
 import { getMonitoringFigures } from '../lib/monitoringFigures';
 import { getStageTones } from '../lib/pathStages';
 import { getTipTexts } from '../lib/reasonTexts';
-import { createTestWalStreamStatistics } from '../lib/testWalStreamStatistics';
 import { getVerdictBanner } from '../lib/verdictBanner';
 import { ChangesPathComponent } from './ChangesPathComponent';
 import { MonitoringFiguresComponent } from './MonitoringFiguresComponent';

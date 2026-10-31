@@ -62,6 +62,7 @@ export const ru: typeof en = {
       system: 'Системная',
     },
     navigation: {
+      menu: 'Меню навигации',
       databases: 'Базы данных',
       storages: 'Хранилища',
       notifiers: 'Каналы уведомлений',
@@ -1244,6 +1245,11 @@ export const ru: typeof en = {
       skipTls: 'Не проверять TLS',
     },
     email: {
+      validation: {
+        targetEmail: 'Укажите корректный адрес электронной почты',
+        smtpHost: 'Укажите SMTP-сервер',
+        smtpPort: 'Укажите порт от 1 до 65535',
+      },
       targetEmail: 'Email получателя',
       targetEmailTooltip: 'Адрес, на который будут приходить уведомления',
       smtpHost: 'SMTP-хост',

@@ -1,5 +1,5 @@
 // The source of truth for the set of keys. Every other dictionary is typed `typeof en`.
-// Keep it one object literal: see frontend/AGENTS.md - Interface languages (i18n).
+// Keep it one object literal: see docs/frontend-localization.md - Dictionaries.
 export const en = {
   language: {
     nativeName: 'English',
@@ -62,6 +62,7 @@ export const en = {
       system: 'System',
     },
     navigation: {
+      menu: 'Navigation menu',
       databases: 'Databases',
       storages: 'Storages',
       notifiers: 'Notifiers',
@@ -1238,6 +1239,11 @@ export const en = {
       skipTls: 'Skip TLS',
     },
     email: {
+      validation: {
+        targetEmail: 'Enter a valid email address',
+        smtpHost: 'Enter an SMTP host',
+        smtpPort: 'Enter a port from 1 to 65535',
+      },
       targetEmail: 'Target email',
       targetEmailTooltip: 'The email where you want to receive the message',
       smtpHost: 'SMTP host',

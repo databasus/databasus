@@ -588,7 +588,7 @@ export const PhysicalBackupsComponent = ({
               ? t('backups.physical.list.deleteFullConfirmation')
               : t('backups.physical.list.deleteIncrementalConfirmation')
           }
-          actionButtonColor="red"
+          isDestructive
           actionText={t('common.actions.delete')}
         />
       )}

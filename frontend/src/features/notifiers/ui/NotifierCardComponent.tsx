@@ -30,16 +30,17 @@ export const NotifierCardComponent = ({
   const { t } = useTranslation();
 
   return (
-    <div
-      className={`mb-3 cursor-pointer rounded p-3 shadow ${selectedNotifierId === notifier.id ? 'bg-blue-100 dark:bg-blue-800' : 'bg-white dark:bg-gray-800'}`}
+    <button
+      type="button"
+      aria-label={notifier.name}
+      aria-pressed={selectedNotifierId === notifier.id}
+      className={`mb-3 w-full cursor-pointer rounded p-3 text-left shadow ${selectedNotifierId === notifier.id ? 'bg-hover' : 'bg-surface'}`}
       onClick={() => setSelectedNotifierId(notifier.id)}
     >
       <div className="mb-1 font-bold">{notifier.name}</div>
 
       <div className="flex items-center">
-        <div className="text-sm text-gray-500 dark:text-gray-400">
-          {t(NOTIFY_TO_KEYS[notifier.settings.type])}
-        </div>
+        <div className="text-sm text-muted">{t(NOTIFY_TO_KEYS[notifier.settings.type])}</div>
 
         <img
           src={getNotifierLogoFromType(notifier.settings.type)}
@@ -49,11 +50,11 @@ export const NotifierCardComponent = ({
       </div>
 
       {notifier.lastSendError && (
-        <div className="mt-1 flex items-center text-sm text-red-600 underline dark:text-red-400">
-          <InfoCircleOutlined className="mr-1" style={{ color: 'red' }} />
+        <div className="mt-1 flex items-center text-sm text-danger underline">
+          <InfoCircleOutlined className="mr-1" />
           {t('notifiers.card.hasSendError')}
         </div>
       )}
-    </div>
+    </button>
   );
 };

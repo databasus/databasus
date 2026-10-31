@@ -1,19 +1,17 @@
-import { Button, Input, Select } from 'antd';
-import { useEffect, useState } from 'react';
+import { Alert, Button, Form, Input, Select, notification } from 'antd';
+import { useEffect, useId } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import {
   NOTIFIER_TYPE_LABEL_KEYS,
   type Notifier,
-  type NotifierSettings,
   NotifierType,
   getNotifierLogoFromType,
-  notifierApi,
 } from '../../../../entities/notifiers';
 import { translateApiError } from '../../../../shared/i18n';
-import { ToastHelper } from '../../../../shared/toast';
 import { createDefaultNotifierSettings } from '../../lib/createDefaultNotifierSettings';
 import { isNotifierSettingsFilled } from '../../lib/isNotifierSettingsFilled';
+import { useNotifierDraft } from '../../model/useNotifierDraft';
 import { EditDiscordNotifierComponent } from './notifiers/EditDiscordNotifierComponent';
 import { EditEmailNotifierComponent } from './notifiers/EditEmailNotifierComponent';
 import { EditMattermostNotifierComponent } from './notifiers/EditMattermostNotifierComponent';
@@ -32,6 +30,7 @@ interface Props {
 
   editingNotifier?: Notifier;
   onChanged: (notifier: Notifier) => void;
+  onPersisted: (notifier: Notifier) => void;
 }
 
 const SELECTABLE_NOTIFIER_TYPES: NotifierType[] = [
@@ -51,133 +50,88 @@ export function EditNotifierComponent({
   isShowName,
   editingNotifier,
   onChanged,
+  onPersisted,
 }: Props) {
   const { t } = useTranslation();
-  const [name, setName] = useState('');
-  const [settings, setSettings] = useState<NotifierSettings | undefined>();
-  const [isUnsaved, setIsUnsaved] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
+  const fieldId = useId();
+  const noticeId = useId();
+  const [notices, noticeHolder] = notification.useNotification();
+  const form = useNotifierDraft({
+    workspaceId,
+    editingNotifier,
+    onChanged,
+    onPersisted,
+    onTestSucceeded: () =>
+      notices.success({
+        key: noticeId,
+        message: t('notifiers.testNotification.sent.title'),
+        description: t('notifiers.testNotification.sent.description'),
+        duration: 4,
+        placement: 'bottomRight',
+        pauseOnHover: false,
+      }),
+  });
 
-  const [isSendingTestNotification, setIsSendingTestNotification] = useState(false);
-  const [isTestNotificationSuccess, setIsTestNotificationSuccess] = useState(false);
+  useEffect(
+    () => () => notices.destroy(noticeId),
+    [notices, noticeId, workspaceId, editingNotifier?.id],
+  );
 
-  const changeSettings = (changedSettings: NotifierSettings) => {
-    setSettings(changedSettings);
-    setIsUnsaved(true);
-    setIsTestNotificationSuccess(false);
-  };
-
-  const save = async () => {
-    if (!settings) return;
-
-    setIsSaving(true);
-
-    try {
-      const savedNotifier = editingNotifier
-        ? await notifierApi.updateNotifier(editingNotifier.id, name, settings)
-        : await notifierApi.createNotifier(workspaceId, name, settings);
-      onChanged(savedNotifier);
-      setIsUnsaved(false);
-    } catch (e) {
-      alert(translateApiError(e, t));
-    }
-
-    setIsSaving(false);
-  };
-
-  const sendTestNotification = async () => {
-    if (!settings) return;
-
-    setIsSendingTestNotification(true);
-
-    try {
-      const testResult = await notifierApi.testNotifierSettings(
-        workspaceId,
-        settings,
-        editingNotifier?.id,
-      );
-
-      if (testResult.isDelivered) {
-        setIsTestNotificationSuccess(true);
-        ToastHelper.showToast({
-          title: t('notifiers.testNotification.sent.title'),
-          description: t('notifiers.testNotification.sent.description'),
-        });
-      } else {
-        alert(
-          t('notifiers.testNotification.notDelivered', {
-            error: testResult.error,
-          }),
-        );
-
-        if (settings.type === NotifierType.SLACK) {
-          alert(t('notifiers.slack.testFailedHint'));
-        }
-      }
-    } catch (e) {
-      alert(translateApiError(e, t));
-    }
-
-    setIsSendingTestNotification(false);
-  };
-
-  useEffect(() => {
-    setIsUnsaved(false);
-    setIsTestNotificationSuccess(false);
-    setName(editingNotifier?.name ?? '');
-    setSettings(
-      editingNotifier
-        ? structuredClone(editingNotifier.settings)
-        : createDefaultNotifierSettings(NotifierType.TELEGRAM),
-    );
-  }, [editingNotifier]);
-
-  if (!settings) return <div />;
-
-  const isSaved = editingNotifier !== undefined;
-  const isAllDataFilled = !!name && isNotifierSettingsFilled(settings, isSaved);
+  const { name, settings, isUnsaved, isSaving, changeSettings, save } = form;
+  const isSendingTestNotification = form.isTesting;
+  const isTestNotificationSuccess = form.isTested;
+  const sendTestNotification = form.testSettings;
+  const isSaved = form.savedNotifierId !== undefined;
+  const isAllDataFilled = !!name.trim() && isNotifierSettingsFilled(settings, isSaved);
+  const errorText =
+    form.error?.kind === 'api'
+      ? translateApiError(form.error.error, t)
+      : form.error?.kind === 'delivery'
+        ? t('notifiers.testNotification.notDelivered', { error: form.error.diagnostic })
+        : undefined;
 
   return (
-    <div>
+    <section
+      key={`${workspaceId}:${editingNotifier?.id ?? 'new'}`}
+      aria-label={t('notifiers.config.settingsTitle')}
+      className="min-h-0 min-w-0 text-content"
+    >
+      {noticeHolder}
       {isShowName && (
-        <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
-          <div className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2">{t('common.fields.name')}</div>
-
+        <Form.Item label={t('common.fields.name')} htmlFor={fieldId} layout="vertical">
           <Input
+            id={fieldId}
             value={name}
-            onChange={(e) => {
-              setName(e.target.value);
-              setIsUnsaved(true);
-            }}
+            onChange={(event) => form.changeName(event.target.value)}
             size="small"
-            className="w-full max-w-[250px]"
+            className="w-full"
             placeholder={t('notifiers.create.namePlaceholder')}
           />
-        </div>
+        </Form.Item>
       )}
 
-      <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
-        <div className="mb-1 min-w-[150px] sm:mb-0 sm:pr-2">{t('common.fields.type')}</div>
-
-        <div className="flex items-center">
+      <Form.Item label={t('common.fields.type')} htmlFor={`${fieldId}-type`} layout="vertical">
+        <div className="flex min-w-0 items-center gap-2">
           {isSaved ? (
-            t(NOTIFIER_TYPE_LABEL_KEYS[settings.type])
+            <span>{t(NOTIFIER_TYPE_LABEL_KEYS[settings.type])}</span>
           ) : (
             <Select
+              virtual={false}
+              id={`${fieldId}-type`}
               value={settings.type}
+              disabled={isSaving}
               options={SELECTABLE_NOTIFIER_TYPES.map((type) => ({
                 label: t(NOTIFIER_TYPE_LABEL_KEYS[type]),
                 value: type,
               }))}
               onChange={(type: NotifierType) => changeSettings(createDefaultNotifierSettings(type))}
               size="small"
-              className="w-[250px] max-w-[250px]"
+              className="min-w-0 flex-1"
             />
           )}
-
-          <img src={getNotifierLogoFromType(settings.type)} className="ml-2 h-4 w-4" />
+          <img src={getNotifierLogoFromType(settings.type)} alt="" className="h-4 w-4" />
         </div>
-      </div>
+      </Form.Item>
 
       <div className="mt-5" />
 
@@ -239,11 +193,28 @@ export function EditNotifierComponent({
         )}
       </div>
 
-      <div className="mt-3 flex">
+      {errorText && (
+        <Alert
+          role="alert"
+          type="error"
+          showIcon
+          message={
+            <div className="max-h-40 overflow-auto font-mono whitespace-pre-wrap">{errorText}</div>
+          }
+          description={
+            form.error?.kind === 'delivery' && form.error.isSlack
+              ? t('notifiers.slack.testFailedHint')
+              : undefined
+          }
+          className="mt-3 break-words"
+        />
+      )}
+
+      <div className="mt-3 flex flex-wrap gap-2">
         {isUnsaved && !isTestNotificationSuccess ? (
           <Button
-            className="mr-1"
-            disabled={isSendingTestNotification || !isAllDataFilled}
+            className="h-auto min-h-8 max-w-full text-left whitespace-normal"
+            disabled={isSendingTestNotification || isSaving || !isAllDataFilled}
             loading={isSendingTestNotification}
             type="primary"
             onClick={sendTestNotification}
@@ -256,7 +227,7 @@ export function EditNotifierComponent({
 
         {isUnsaved && isTestNotificationSuccess ? (
           <Button
-            className="mr-1"
+            className="h-auto min-h-8 max-w-full text-left whitespace-normal"
             disabled={isSaving || !isAllDataFilled}
             loading={isSaving}
             type="primary"
@@ -270,11 +241,8 @@ export function EditNotifierComponent({
 
         {isShowClose ? (
           <Button
-            className="mr-1"
+            className="h-auto min-h-8 max-w-full text-left whitespace-normal"
             disabled={isSaving}
-            type="primary"
-            danger
-            ghost
             onClick={onClose}
           >
             {t('common.actions.cancel')}
@@ -283,6 +251,6 @@ export function EditNotifierComponent({
           <div />
         )}
       </div>
-    </div>
+    </section>
   );
 }

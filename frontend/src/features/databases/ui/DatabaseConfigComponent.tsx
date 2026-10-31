@@ -539,7 +539,7 @@ export const DatabaseConfigComponent = ({
           onDecline={() => setIsShowCopyConfirm(false)}
           description={t('databases.config.copyConfirmation')}
           actionText={t('common.actions.copy')}
-          actionButtonColor="blue"
+          isDestructive={false}
         />
       )}
 
@@ -549,7 +549,7 @@ export const DatabaseConfigComponent = ({
           onDecline={() => setIsShowRemoveConfirm(false)}
           description={t('databases.config.removeConfirmation')}
           actionText={t('common.actions.remove')}
-          actionButtonColor="red"
+          isDestructive
         />
       )}
 

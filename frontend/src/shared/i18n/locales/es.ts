@@ -62,6 +62,7 @@ export const es: typeof en = {
       system: 'Sistema',
     },
     navigation: {
+      menu: 'Menú de navegación',
       databases: 'Bases de datos',
       storages: 'Almacenamientos',
       notifiers: 'Canales de notificación',
@@ -1269,6 +1270,11 @@ export const es: typeof en = {
       skipTls: 'No verificar TLS',
     },
     email: {
+      validation: {
+        targetEmail: 'Introduce una dirección de correo válida',
+        smtpHost: 'Introduce un servidor SMTP',
+        smtpPort: 'Introduce un puerto entre 1 y 65535',
+      },
       targetEmail: 'Correo electrónico de destino',
       targetEmailTooltip:
         'La dirección de correo electrónico en la que quiere recibir los mensajes',

@@ -2,6 +2,7 @@ import {
   ArrowRightOutlined,
   CloseOutlined,
   DeleteOutlined,
+  EditOutlined,
   InfoCircleOutlined,
 } from '@ant-design/icons';
 import { Button, Input, Spin } from 'antd';
@@ -145,8 +146,8 @@ export const NotifierComponent = ({
   }, [notifierId]);
 
   return (
-    <div className="w-full">
-      <div className="grow overflow-y-auto rounded bg-white p-5 shadow dark:bg-gray-800">
+    <div className="flex min-h-0 w-full min-w-0 flex-col">
+      <div className="min-h-0 min-w-0 grow overflow-y-auto rounded bg-surface p-4 text-content shadow sm:p-5">
         {!notifier ? (
           <div className="mt-10 flex justify-center">
             <Spin />
@@ -154,12 +155,17 @@ export const NotifierComponent = ({
         ) : (
           <div>
             {!isEditName ? (
-              <div className="mb-5 flex items-center text-2xl font-bold">
+              <div className="mb-5 flex min-w-0 items-center text-2xl font-bold break-words">
                 {notifier.name}
                 {isCanManageNotifiers && (
-                  <div className="ml-2 cursor-pointer" onClick={() => startEdit('name')}>
-                    <img src="/icons/pen-gray.svg" />
-                  </div>
+                  <Button
+                    type="text"
+                    size="small"
+                    className="ml-2 shrink-0"
+                    aria-label={t('common.actions.edit')}
+                    icon={<EditOutlined aria-hidden />}
+                    onClick={() => startEdit('name')}
+                  />
                 )}
               </div>
             ) : (
@@ -179,13 +185,14 @@ export const NotifierComponent = ({
                   <div className="ml-1 flex items-center">
                     <Button
                       type="text"
+                      aria-label={t('common.actions.cancel')}
                       className="flex h-6 w-6 items-center justify-center p-0"
                       onClick={() => {
                         setIsEditName(false);
                         setIsNameUnsaved(false);
                       }}
                     >
-                      <CloseOutlined className="text-gray-500 dark:text-gray-400" />
+                      <CloseOutlined aria-hidden className="text-muted" />
                     </Button>
                   </div>
                 </div>
@@ -205,9 +212,9 @@ export const NotifierComponent = ({
             )}
 
             {notifier.lastSendError && (
-              <div className="max-w-[400px] rounded border border-red-600 px-3 py-3">
-                <div className="mt-1 flex items-center text-sm font-bold text-red-600">
-                  <InfoCircleOutlined className="mr-2" style={{ color: 'red' }} />
+              <div className="max-w-[400px] rounded border border-danger px-3 py-3">
+                <div className="mt-1 flex items-center text-sm font-bold text-danger">
+                  <InfoCircleOutlined className="mr-2" />
                   {t('notifiers.config.sendError.title')}
                 </div>
 
@@ -217,7 +224,7 @@ export const NotifierComponent = ({
                   {notifier.lastSendError}
                 </div>
 
-                <div className="mt-3 text-sm break-words whitespace-pre-wrap text-gray-500 dark:text-gray-400">
+                <div className="mt-3 text-sm break-words whitespace-pre-wrap text-muted">
                   {t('notifiers.config.sendError.clearHint')}
                   <ul>
                     <li>{t('notifiers.config.sendError.clearBySendingTest')}</li>
@@ -231,9 +238,14 @@ export const NotifierComponent = ({
               <div>{t('notifiers.config.settingsTitle')}</div>
 
               {!isEditSettings && isCanManageNotifiers ? (
-                <div className="ml-2 h-4 w-4 cursor-pointer" onClick={() => startEdit('settings')}>
-                  <img src="/icons/pen-gray.svg" />
-                </div>
+                <Button
+                  type="text"
+                  size="small"
+                  className="ml-2"
+                  aria-label={t('common.actions.edit')}
+                  icon={<EditOutlined aria-hidden />}
+                  onClick={() => startEdit('settings')}
+                />
               ) : (
                 <div />
               )}
@@ -250,11 +262,11 @@ export const NotifierComponent = ({
                   }}
                   isShowName={false}
                   editingNotifier={notifier}
-                  onChanged={(savedNotifier) => {
+                  onPersisted={(savedNotifier) => {
                     setNotifier(savedNotifier);
-                    setIsEditSettings(false);
                     onNotifierChanged(savedNotifier);
                   }}
+                  onChanged={() => setIsEditSettings(false)}
                 />
               ) : (
                 <ShowNotifierComponent notifier={notifier} />
@@ -278,7 +290,8 @@ export const NotifierComponent = ({
                     <Button
                       type="primary"
                       ghost
-                      icon={<ArrowRightOutlined />}
+                      aria-label={t('notifiers.transfer.submit')}
+                      icon={<ArrowRightOutlined aria-hidden />}
                       onClick={() => setIsShowTransferDialog(true)}
                       className="mr-1"
                     />
@@ -287,7 +300,8 @@ export const NotifierComponent = ({
                       type="primary"
                       ghost
                       danger
-                      icon={<DeleteOutlined />}
+                      aria-label={t('common.actions.remove')}
+                      icon={<DeleteOutlined aria-hidden />}
                       onClick={() => setIsShowRemoveConfirm(true)}
                       loading={isRemoving}
                       disabled={isRemoving}
@@ -305,7 +319,7 @@ export const NotifierComponent = ({
             onDecline={() => setIsShowRemoveConfirm(false)}
             description={t('notifiers.config.removeConfirmation')}
             actionText={t('common.actions.remove')}
-            actionButtonColor="red"
+            isDestructive
           />
         )}
       </div>

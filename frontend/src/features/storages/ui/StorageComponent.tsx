@@ -271,7 +271,7 @@ export const StorageComponent = ({
             onDecline={() => setIsShowRemoveConfirm(false)}
             description={t('storages.config.removeConfirmation')}
             actionText={t('common.actions.remove')}
-            actionButtonColor="red"
+            isDestructive
           />
         )}
       </div>

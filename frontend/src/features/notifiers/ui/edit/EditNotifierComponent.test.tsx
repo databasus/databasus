@@ -1,10 +1,11 @@
 // @vitest-environment happy-dom
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { HttpResponse, http } from 'msw';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { Notifier, NotifierSettings } from '../../../../entities/notifiers';
 import { API_BASE_PATH, type ApiComponents } from '../../../../shared/api';
+import { DICTIONARIES } from '../../../../shared/i18n';
 import { mockApi, setUpMockApi } from '../../../../shared/lib/test/mockApi';
 import { renderScreen } from '../../../../shared/lib/test/renderScreen';
 import { EditNotifierComponent } from './EditNotifierComponent';
@@ -44,11 +45,11 @@ const renderSavedNotifierForm = (notifier: Notifier) =>
       onClose={() => {}}
       isShowName
       editingNotifier={notifier}
+      onPersisted={() => {}}
       onChanged={() => {}}
     />,
   );
 
-// Records every update the form sends and answers it with the notifier the update describes.
 const mockUpdate = () => {
   const sentUpdates: ApiComponents['schemas']['NotifierUpdate'][] = [];
   mockServer.use(
@@ -70,11 +71,70 @@ const renameAndSave = async (name: string) => {
   fireEvent.change(screen.getByDisplayValue('Team alerts'), {
     target: { value: name },
   });
-  fireEvent.click(screen.getByRole('button', { name: 'Send test notification' }));
-  fireEvent.click(await screen.findByRole('button', { name: 'Save' }));
+  fireEvent.click(screen.getByRole('button', { name: /Send test notification/ }));
+  fireEvent.click(await screen.findByRole('button', { name: /Save/ }));
 };
 
 describe('EditNotifierComponent', () => {
+  it('hides actions when an edit returns to the saved baseline', () => {
+    renderSavedNotifierForm(savedWebhookNotifier);
+    const name = screen.getByDisplayValue('Team alerts');
+    fireEvent.change(name, { target: { value: 'Changed alerts' } });
+    fireEvent.change(name, { target: { value: 'Team alerts' } });
+    expect(screen.queryByRole('button', { name: /Send test notification/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Save/ })).toBeNull();
+  });
+
+  it('rejects a successful test when settings change before its response', async () => {
+    const testResponse = mockApi.delayed({
+      method: 'post',
+      path: '/notifier-tests',
+      status: 200,
+      body: { isDelivered: true },
+    });
+    mockServer.use(testResponse.handler);
+    renderSavedNotifierForm(savedWebhookNotifier);
+    fireEvent.change(screen.getByDisplayValue('Team alerts'), { target: { value: 'Changed' } });
+    fireEvent.click(screen.getByRole('button', { name: /Send test notification/ }));
+    fireEvent.change(screen.getByDisplayValue('https://hooks.example.com/backups'), {
+      target: { value: 'https://hooks.example.com/changed' },
+    });
+    const responded = new Promise<void>((resolve) =>
+      mockServer.events.on('response:mocked', () => resolve()),
+    );
+    await act(async () => {
+      testResponse.release();
+      await responded;
+    });
+    expect(
+      screen.queryByText(DICTIONARIES.en.notifiers.testNotification.sent.title, { exact: true }),
+    ).toBeNull();
+    expect(screen.queryByRole('button', { name: /Save/ })).toBeNull();
+    expect(screen.getByRole('button', { name: /Send test notification/ })).toBeTruthy();
+  });
+
+  it('keeps newer edits when a submitted save completes', async () => {
+    mockServer.use(mockApi.post('/notifier-tests', 200, { isDelivered: true }));
+    const saveResponse = mockApi.delayed({
+      method: 'put',
+      path: '/notifiers/{notifierId}',
+      status: 200,
+      body: { ...savedWebhookNotifier, name: 'Submitted' },
+    });
+    mockServer.use(saveResponse.handler);
+    renderSavedNotifierForm(savedWebhookNotifier);
+    await renameAndSave('Submitted');
+    fireEvent.change(screen.getByDisplayValue('Submitted'), { target: { value: 'Newer edit' } });
+    saveResponse.release();
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('button', { name: /Save/ })?.classList.contains('ant-btn-loading') ??
+          false,
+      ).toBe(false),
+    );
+    expect(screen.getByDisplayValue('Newer edit')).toBeTruthy();
+    expect(screen.getByRole('button', { name: /Save/ })).toBeTruthy();
+  });
   it('shows the type of a saved notifier as text instead of a type selector', () => {
     renderSavedNotifierForm(savedSlackNotifier);
 
@@ -112,7 +172,6 @@ describe('EditNotifierComponent', () => {
   });
 
   it("shows the channel's error when the test message is not delivered", async () => {
-    const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
     mockServer.use(
       mockApi.post('/notifier-tests', 200, {
         isDelivered: false,
@@ -124,13 +183,11 @@ describe('EditNotifierComponent', () => {
     fireEvent.change(screen.getByDisplayValue('Team alerts'), {
       target: { value: 'Renamed' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Send test notification' }));
+    fireEvent.click(screen.getByRole('button', { name: /Send test notification/ }));
 
-    await waitFor(() =>
-      expect(alertSpy).toHaveBeenCalledWith(
-        'The test message was not delivered: the webhook answered 500 Internal Server Error',
-      ),
+    expect((await screen.findByRole('alert')).textContent).toContain(
+      'The test message was not delivered: the webhook answered 500 Internal Server Error',
     );
-    expect(screen.queryByRole('button', { name: 'Save' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Save/ })).toBeNull();
   });
 });

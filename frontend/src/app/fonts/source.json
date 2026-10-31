@@ -1,0 +1,28 @@
+{
+  "package": "@fontsource-variable/jost",
+  "version": "5.3.0",
+  "url": "https://registry.npmjs.org/@fontsource-variable/jost/-/jost-5.3.0.tgz",
+  "archiveSha256": "82991d31e672bee51565e187d2f5634061978dcc612395bad778b3df3c67f21a",
+  "assets": [
+    {
+      "file": "LICENSE",
+      "bytes": 4497,
+      "sha256": "536533cad95838e13777663c4109b802aa662ef1ef285337f0c7f51d35682fdc"
+    },
+    {
+      "file": "jost-cyrillic-wght-normal.woff2",
+      "bytes": 10140,
+      "sha256": "732ac61fdb7b964d3edfe40fe4a96aba1d1e34c349aebf0353118f8bda4aabdb"
+    },
+    {
+      "file": "jost-latin-ext-wght-normal.woff2",
+      "bytes": 17104,
+      "sha256": "312ef2b80cefd8d6fd0e8553536862e7103f80be117a5aeba333dac68e4c0a6a"
+    },
+    {
+      "file": "jost-latin-wght-normal.woff2",
+      "bytes": 26576,
+      "sha256": "7726a5cd6f3c0e876c028ea2a643d45f7aad4b0f164b70966c669f4a4668f4b9"
+    }
+  ]
+}

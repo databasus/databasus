@@ -1,0 +1,5490 @@
+[
+  {
+    "rule": "direct-color",
+    "source": "pages/AuthPageComponent.tsx",
+    "construct": "class:dark:bg-gray-900",
+    "count": 1,
+    "owner": "pages/AuthPageComponent.tsx",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "pages/OAuthCallbackPage.tsx",
+    "construct": "class:text-red-600",
+    "count": 1,
+    "owner": "pages/OAuthCallbackPage.tsx",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "pages/OAuthCallbackPage.tsx",
+    "construct": "class:text-gray-600",
+    "count": 2,
+    "owner": "pages/OAuthCallbackPage.tsx",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "pages/OAuthCallbackPage.tsx",
+    "construct": "class:text-blue-600",
+    "count": 1,
+    "owner": "pages/OAuthCallbackPage.tsx",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "pages/OAuthCallbackPage.tsx",
+    "construct": "class:hover:text-blue-700",
+    "count": 1,
+    "owner": "pages/OAuthCallbackPage.tsx",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "pages/OauthStorageComponent.tsx",
+    "construct": "class:text-gray-500",
+    "count": 1,
+    "owner": "pages/OauthStorageComponent.tsx",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "pages/OauthStorageComponent.tsx",
+    "construct": "class:dark:text-gray-400",
+    "count": 1,
+    "owner": "pages/OauthStorageComponent.tsx",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "widgets/main/MainScreenComponent.tsx",
+    "construct": "class:bg-[#f5f5f5]",
+    "count": 1,
+    "owner": "widgets/main",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "widgets/main/MainScreenComponent.tsx",
+    "construct": "class:dark:bg-gray-900",
+    "count": 1,
+    "owner": "widgets/main",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "widgets/main/MainScreenComponent.tsx",
+    "construct": "class:bg-white",
+    "count": 1,
+    "owner": "widgets/main",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "widgets/main/MainScreenComponent.tsx",
+    "construct": "class:dark:bg-gray-800",
+    "count": 1,
+    "owner": "widgets/main",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "widgets/main/MainScreenComponent.tsx",
+    "construct": "class:!text-black",
+    "count": 2,
+    "owner": "widgets/main",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "widgets/main/MainScreenComponent.tsx",
+    "construct": "class:dark:!text-gray-200",
+    "count": 2,
+    "owner": "widgets/main",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "widgets/main/MainScreenComponent.tsx",
+    "construct": "class:text-red-500",
+    "count": 1,
+    "owner": "widgets/main",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "widgets/main/MainScreenComponent.tsx",
+    "construct": "class:text-gray-500",
+    "count": 1,
+    "owner": "widgets/main",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "widgets/main/MainScreenComponent.tsx",
+    "construct": "class:dark:text-gray-400",
+    "count": 1,
+    "owner": "widgets/main",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "widgets/main/MainScreenComponent.tsx",
+    "construct": "class:border-blue-600",
+    "count": 1,
+    "owner": "widgets/main",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "widgets/main/MainScreenComponent.tsx",
+    "construct": "class:bg-blue-600",
+    "count": 1,
+    "owner": "widgets/main",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "widgets/main/MainScreenComponent.tsx",
+    "construct": "class:hover:border-blue-700",
+    "count": 1,
+    "owner": "widgets/main",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "widgets/main/MainScreenComponent.tsx",
+    "construct": "class:hover:bg-blue-700",
+    "count": 1,
+    "owner": "widgets/main",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "widgets/main/MainScreenComponent.tsx",
+    "construct": "class:text-gray-400",
+    "count": 1,
+    "owner": "widgets/main",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "widgets/main/MainScreenComponent.tsx",
+    "construct": "class:bg-green-500",
+    "count": 1,
+    "owner": "widgets/main",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "widgets/main/SidebarComponent.tsx",
+    "construct": "class:bg-white",
+    "count": 1,
+    "owner": "widgets/main",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "widgets/main/SidebarComponent.tsx",
+    "construct": "class:dark:bg-gray-800",
+    "count": 2,
+    "owner": "widgets/main",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "widgets/main/SidebarComponent.tsx",
+    "construct": "class:bg-blue-600",
+    "count": 2,
+    "owner": "widgets/main",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "widgets/main/SidebarComponent.tsx",
+    "construct": "class:hover:bg-blue-50",
+    "count": 1,
+    "owner": "widgets/main",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "widgets/main/SidebarComponent.tsx",
+    "construct": "class:dark:hover:bg-gray-700",
+    "count": 5,
+    "owner": "widgets/main",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "widgets/main/SidebarComponent.tsx",
+    "construct": "backgroundColor:#1f2937",
+    "count": 2,
+    "owner": "widgets/main",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "widgets/main/SidebarComponent.tsx",
+    "construct": "class:border-gray-200",
+    "count": 3,
+    "owner": "widgets/main",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "widgets/main/SidebarComponent.tsx",
+    "construct": "class:dark:border-gray-700",
+    "count": 3,
+    "owner": "widgets/main",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "widgets/main/SidebarComponent.tsx",
+    "construct": "class:hover:bg-gray-100",
+    "count": 4,
+    "owner": "widgets/main",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "widgets/main/SidebarComponent.tsx",
+    "construct": "class:text-white",
+    "count": 1,
+    "owner": "widgets/main",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "widgets/main/SidebarComponent.tsx",
+    "construct": "class:text-gray-700",
+    "count": 1,
+    "owner": "widgets/main",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "widgets/main/SidebarComponent.tsx",
+    "construct": "class:dark:text-gray-200",
+    "count": 1,
+    "owner": "widgets/main",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "widgets/main/SidebarComponent.tsx",
+    "construct": "class:bg-gray-50",
+    "count": 1,
+    "owner": "widgets/main",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "widgets/main/SidebarComponent.tsx",
+    "construct": "class:text-red-500",
+    "count": 1,
+    "owner": "widgets/main",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "widgets/main/SidebarComponent.tsx",
+    "construct": "class:text-gray-600",
+    "count": 1,
+    "owner": "widgets/main",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "widgets/main/SidebarComponent.tsx",
+    "construct": "class:dark:text-gray-400",
+    "count": 1,
+    "owner": "widgets/main",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "widgets/main/SidebarComponent.tsx",
+    "construct": "class:!text-gray-700",
+    "count": 2,
+    "owner": "widgets/main",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "widgets/main/SidebarComponent.tsx",
+    "construct": "class:hover:!text-blue-600",
+    "count": 2,
+    "owner": "widgets/main",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "widgets/main/SidebarComponent.tsx",
+    "construct": "class:dark:!text-gray-300",
+    "count": 2,
+    "owner": "widgets/main",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "widgets/main/WorkspaceSelectionComponent.tsx",
+    "construct": "class:border-blue-600",
+    "count": 1,
+    "owner": "widgets/main",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "widgets/main/WorkspaceSelectionComponent.tsx",
+    "construct": "class:bg-blue-600",
+    "count": 1,
+    "owner": "widgets/main",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "widgets/main/WorkspaceSelectionComponent.tsx",
+    "construct": "class:hover:border-blue-700",
+    "count": 1,
+    "owner": "widgets/main",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "widgets/main/WorkspaceSelectionComponent.tsx",
+    "construct": "class:hover:bg-blue-700",
+    "count": 1,
+    "owner": "widgets/main",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "widgets/main/WorkspaceSelectionComponent.tsx",
+    "construct": "class:text-gray-400",
+    "count": 1,
+    "owner": "widgets/main",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "widgets/main/WorkspaceSelectionComponent.tsx",
+    "construct": "class:bg-gray-100",
+    "count": 1,
+    "owner": "widgets/main",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "widgets/main/WorkspaceSelectionComponent.tsx",
+    "construct": "class:hover:bg-gray-200",
+    "count": 1,
+    "owner": "widgets/main",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "widgets/main/WorkspaceSelectionComponent.tsx",
+    "construct": "class:dark:bg-gray-700",
+    "count": 1,
+    "owner": "widgets/main",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "widgets/main/WorkspaceSelectionComponent.tsx",
+    "construct": "class:dark:hover:bg-gray-600",
+    "count": 1,
+    "owner": "widgets/main",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "widgets/main/WorkspaceSelectionComponent.tsx",
+    "construct": "class:dark:text-gray-200",
+    "count": 2,
+    "owner": "widgets/main",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "widgets/main/WorkspaceSelectionComponent.tsx",
+    "construct": "class:border-gray-200",
+    "count": 1,
+    "owner": "widgets/main",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "widgets/main/WorkspaceSelectionComponent.tsx",
+    "construct": "class:bg-white",
+    "count": 1,
+    "owner": "widgets/main",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "widgets/main/WorkspaceSelectionComponent.tsx",
+    "construct": "class:dark:border-gray-600",
+    "count": 1,
+    "owner": "widgets/main",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "widgets/main/WorkspaceSelectionComponent.tsx",
+    "construct": "class:dark:bg-gray-800",
+    "count": 1,
+    "owner": "widgets/main",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "widgets/main/WorkspaceSelectionComponent.tsx",
+    "construct": "class:border-gray-100",
+    "count": 2,
+    "owner": "widgets/main",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "widgets/main/WorkspaceSelectionComponent.tsx",
+    "construct": "class:dark:border-gray-700",
+    "count": 2,
+    "owner": "widgets/main",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "widgets/main/WorkspaceSelectionComponent.tsx",
+    "construct": "class:hover:bg-gray-50",
+    "count": 2,
+    "owner": "widgets/main",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "widgets/main/WorkspaceSelectionComponent.tsx",
+    "construct": "class:dark:hover:bg-gray-700",
+    "count": 2,
+    "owner": "widgets/main",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "widgets/main/WorkspaceSelectionComponent.tsx",
+    "construct": "class:text-gray-500",
+    "count": 1,
+    "owner": "widgets/main",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "widgets/main/WorkspaceSelectionComponent.tsx",
+    "construct": "class:dark:text-gray-400",
+    "count": 1,
+    "owner": "widgets/main",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "widgets/main/WorkspaceSelectionComponent.tsx",
+    "construct": "class:text-blue-600",
+    "count": 1,
+    "owner": "widgets/main",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "widgets/main/WorkspaceSelectionComponent.tsx",
+    "construct": "class:hover:text-blue-700",
+    "count": 1,
+    "owner": "widgets/main",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "entities/audit-logs/ui/AuditEventAuthorComponent.tsx",
+    "construct": "class:bg-gray-100",
+    "count": 1,
+    "owner": "entities/audit-logs",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "entities/audit-logs/ui/AuditEventAuthorComponent.tsx",
+    "construct": "class:text-gray-600",
+    "count": 1,
+    "owner": "entities/audit-logs",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "entities/audit-logs/ui/AuditEventAuthorComponent.tsx",
+    "construct": "class:dark:bg-gray-700",
+    "count": 1,
+    "owner": "entities/audit-logs",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "entities/audit-logs/ui/AuditEventAuthorComponent.tsx",
+    "construct": "class:dark:text-gray-300",
+    "count": 1,
+    "owner": "entities/audit-logs",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "entities/audit-logs/ui/AuditEventAuthorComponent.tsx",
+    "construct": "class:bg-blue-100",
+    "count": 1,
+    "owner": "entities/audit-logs",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "entities/audit-logs/ui/AuditEventAuthorComponent.tsx",
+    "construct": "class:text-blue-800",
+    "count": 1,
+    "owner": "entities/audit-logs",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "entities/audit-logs/ui/AuditEventAuthorComponent.tsx",
+    "construct": "class:dark:bg-blue-900",
+    "count": 1,
+    "owner": "entities/audit-logs",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "entities/audit-logs/ui/AuditEventAuthorComponent.tsx",
+    "construct": "class:dark:text-blue-200",
+    "count": 1,
+    "owner": "entities/audit-logs",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/DatabaseCardComponent.tsx",
+    "construct": "class:bg-blue-100",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/DatabaseCardComponent.tsx",
+    "construct": "class:dark:bg-blue-800",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/DatabaseCardComponent.tsx",
+    "construct": "class:bg-white",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/DatabaseCardComponent.tsx",
+    "construct": "class:dark:bg-gray-800",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/DatabaseCardComponent.tsx",
+    "construct": "class:text-white",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/DatabaseCardComponent.tsx",
+    "construct": "class:bg-green-500",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/DatabaseCardComponent.tsx",
+    "construct": "class:bg-red-500",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/DatabaseCardComponent.tsx",
+    "construct": "class:text-gray-500",
+    "count": 2,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/DatabaseCardComponent.tsx",
+    "construct": "class:dark:text-gray-400",
+    "count": 2,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/DatabaseCardComponent.tsx",
+    "construct": "class:text-red-600",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/DatabaseCardComponent.tsx",
+    "construct": "class:dark:text-red-400",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/DatabaseCardComponent.tsx",
+    "construct": "color:red",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/DatabaseComponent.tsx",
+    "construct": "class:bg-white",
+    "count": 4,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/DatabaseComponent.tsx",
+    "construct": "class:dark:bg-gray-800",
+    "count": 4,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/DatabaseComponent.tsx",
+    "construct": "class:bg-gray-200",
+    "count": 4,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/DatabaseComponent.tsx",
+    "construct": "class:dark:bg-gray-700",
+    "count": 4,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/DatabaseConfigComponent.tsx",
+    "construct": "class:bg-white",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/DatabaseConfigComponent.tsx",
+    "construct": "class:dark:bg-gray-800",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/DatabaseConfigComponent.tsx",
+    "construct": "class:bg-white/80",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/DatabaseConfigComponent.tsx",
+    "construct": "class:dark:bg-gray-800/80",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/DatabaseConfigComponent.tsx",
+    "construct": "class:border-gray-300",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/DatabaseConfigComponent.tsx",
+    "construct": "class:text-gray-600",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/DatabaseConfigComponent.tsx",
+    "construct": "class:dark:text-gray-300",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/DatabaseConfigComponent.tsx",
+    "construct": "class:text-gray-500",
+    "count": 2,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/DatabaseConfigComponent.tsx",
+    "construct": "class:dark:text-gray-400",
+    "count": 2,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/DatabaseConfigComponent.tsx",
+    "construct": "class:border-red-600",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/DatabaseConfigComponent.tsx",
+    "construct": "class:text-red-600",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/DatabaseConfigComponent.tsx",
+    "construct": "color:red",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/DatabaseTransferDialogComponent.tsx",
+    "construct": "class:border-red-300",
+    "count": 2,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/DatabaseTransferDialogComponent.tsx",
+    "construct": "class:bg-red-50",
+    "count": 2,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/DatabaseTransferDialogComponent.tsx",
+    "construct": "class:text-red-600",
+    "count": 2,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/DatabaseTransferDialogComponent.tsx",
+    "construct": "class:dark:border-red-600",
+    "count": 2,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/DatabaseTransferDialogComponent.tsx",
+    "construct": "class:dark:bg-red-900/20",
+    "count": 2,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/DatabaseTransferDialogComponent.tsx",
+    "construct": "class:text-green-600",
+    "count": 2,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/DatabaseTransferDialogComponent.tsx",
+    "construct": "class:dark:text-green-400",
+    "count": 2,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/DatabaseTransferDialogComponent.tsx",
+    "construct": "class:dark:text-red-600",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/DatabaseTransferDialogComponent.tsx",
+    "construct": "class:text-gray-500",
+    "count": 3,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/DatabaseTransferDialogComponent.tsx",
+    "construct": "class:dark:text-gray-400",
+    "count": 3,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/DatabasesComponent.tsx",
+    "construct": "class:border-gray-300",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/DatabasesComponent.tsx",
+    "construct": "class:text-gray-500",
+    "count": 3,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "invisible-focus",
+    "source": "features/databases/ui/DatabasesComponent.tsx",
+    "construct": "class:outline-none",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/DatabasesComponent.tsx",
+    "construct": "class:dark:text-gray-400",
+    "count": 3,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/notifiers/ui/NotifierTransferDialogComponent.tsx",
+    "construct": "class:text-gray-700",
+    "count": 1,
+    "owner": "features/notifiers",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/notifiers/ui/NotifierTransferDialogComponent.tsx",
+    "construct": "class:dark:text-gray-300",
+    "count": 1,
+    "owner": "features/notifiers",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/notifiers/ui/NotifierTransferDialogComponent.tsx",
+    "construct": "class:text-gray-500",
+    "count": 1,
+    "owner": "features/notifiers",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/notifiers/ui/NotifierTransferDialogComponent.tsx",
+    "construct": "class:dark:text-gray-400",
+    "count": 1,
+    "owner": "features/notifiers",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/restores/ui/RestoresComponent.tsx",
+    "construct": "class:text-gray-400",
+    "count": 1,
+    "owner": "features/restores",
+    "removalMilestone": "6"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/restores/ui/RestoresComponent.tsx",
+    "construct": "class:border-gray-200",
+    "count": 1,
+    "owner": "features/restores",
+    "removalMilestone": "6"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/restores/ui/RestoresComponent.tsx",
+    "construct": "class:text-red-600",
+    "count": 1,
+    "owner": "features/restores",
+    "removalMilestone": "6"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/restores/ui/RestoresComponent.tsx",
+    "construct": "color:#ff0000",
+    "count": 2,
+    "owner": "features/restores",
+    "removalMilestone": "6"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/restores/ui/RestoresComponent.tsx",
+    "construct": "color:#008000",
+    "count": 1,
+    "owner": "features/restores",
+    "removalMilestone": "6"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/restores/ui/RestoresComponent.tsx",
+    "construct": "class:text-gray-500",
+    "count": 2,
+    "owner": "features/restores",
+    "removalMilestone": "6"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/restores/ui/RestoresComponent.tsx",
+    "construct": "color:#808080",
+    "count": 1,
+    "owner": "features/restores",
+    "removalMilestone": "6"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/restores/ui/RestoresComponent.tsx",
+    "construct": "class:text-blue-600",
+    "count": 1,
+    "owner": "features/restores",
+    "removalMilestone": "6"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/restores/ui/RestoresComponent.tsx",
+    "construct": "class:dark:text-gray-400",
+    "count": 1,
+    "owner": "features/restores",
+    "removalMilestone": "6"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/restores/ui/RestoresComponent.tsx",
+    "construct": "class:border-yellow-300",
+    "count": 1,
+    "owner": "features/restores",
+    "removalMilestone": "6"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/restores/ui/RestoresComponent.tsx",
+    "construct": "class:bg-yellow-50",
+    "count": 1,
+    "owner": "features/restores",
+    "removalMilestone": "6"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/restores/ui/RestoresComponent.tsx",
+    "construct": "class:dark:border-yellow-600",
+    "count": 1,
+    "owner": "features/restores",
+    "removalMilestone": "6"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/restores/ui/RestoresComponent.tsx",
+    "construct": "class:dark:bg-yellow-900/30",
+    "count": 1,
+    "owner": "features/restores",
+    "removalMilestone": "6"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/settings/ui/AuditLogsComponent.tsx",
+    "construct": "class:text-gray-900",
+    "count": 2,
+    "owner": "features/settings",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/settings/ui/AuditLogsComponent.tsx",
+    "construct": "class:dark:text-gray-100",
+    "count": 2,
+    "owner": "features/settings",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/settings/ui/AuditLogsComponent.tsx",
+    "construct": "class:bg-blue-100",
+    "count": 2,
+    "owner": "features/settings",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/settings/ui/AuditLogsComponent.tsx",
+    "construct": "class:text-blue-800",
+    "count": 2,
+    "owner": "features/settings",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/settings/ui/AuditLogsComponent.tsx",
+    "construct": "class:dark:bg-blue-900",
+    "count": 2,
+    "owner": "features/settings",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/settings/ui/AuditLogsComponent.tsx",
+    "construct": "class:dark:text-blue-200",
+    "count": 2,
+    "owner": "features/settings",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/settings/ui/AuditLogsComponent.tsx",
+    "construct": "class:bg-gray-100",
+    "count": 1,
+    "owner": "features/settings",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/settings/ui/AuditLogsComponent.tsx",
+    "construct": "class:text-gray-600",
+    "count": 1,
+    "owner": "features/settings",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/settings/ui/AuditLogsComponent.tsx",
+    "construct": "class:dark:bg-gray-700",
+    "count": 1,
+    "owner": "features/settings",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/settings/ui/AuditLogsComponent.tsx",
+    "construct": "class:dark:text-gray-300",
+    "count": 2,
+    "owner": "features/settings",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/settings/ui/AuditLogsComponent.tsx",
+    "construct": "class:text-gray-700",
+    "count": 1,
+    "owner": "features/settings",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/settings/ui/AuditLogsComponent.tsx",
+    "construct": "class:border-gray-200",
+    "count": 1,
+    "owner": "features/settings",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/settings/ui/AuditLogsComponent.tsx",
+    "construct": "class:bg-white",
+    "count": 1,
+    "owner": "features/settings",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/settings/ui/AuditLogsComponent.tsx",
+    "construct": "class:dark:border-gray-700",
+    "count": 1,
+    "owner": "features/settings",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/settings/ui/AuditLogsComponent.tsx",
+    "construct": "class:dark:bg-gray-800",
+    "count": 1,
+    "owner": "features/settings",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/settings/ui/AuditLogsComponent.tsx",
+    "construct": "class:text-gray-500",
+    "count": 4,
+    "owner": "features/settings",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/settings/ui/AuditLogsComponent.tsx",
+    "construct": "class:dark:text-gray-400",
+    "count": 4,
+    "owner": "features/settings",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/settings/ui/AuditLogsComponent.tsx",
+    "construct": "class:text-gray-400",
+    "count": 1,
+    "owner": "features/settings",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/settings/ui/AuditLogsComponent.tsx",
+    "construct": "class:dark:text-gray-500",
+    "count": 1,
+    "owner": "features/settings",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/settings/ui/AuditLogsComponent.tsx",
+    "construct": "class:dark:text-white",
+    "count": 1,
+    "owner": "features/settings",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/settings/ui/MailServerComponent.tsx",
+    "construct": "class:dark:text-white",
+    "count": 2,
+    "owner": "features/settings",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/settings/ui/MailServerComponent.tsx",
+    "construct": "class:text-gray-900",
+    "count": 1,
+    "owner": "features/settings",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/settings/ui/MailServerComponent.tsx",
+    "construct": "class:text-green-600",
+    "count": 1,
+    "owner": "features/settings",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/settings/ui/MailServerComponent.tsx",
+    "construct": "class:dark:text-green-400",
+    "count": 1,
+    "owner": "features/settings",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/settings/ui/MailServerComponent.tsx",
+    "construct": "class:text-amber-500",
+    "count": 1,
+    "owner": "features/settings",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/settings/ui/MailServerComponent.tsx",
+    "construct": "class:dark:text-amber-400",
+    "count": 1,
+    "owner": "features/settings",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/settings/ui/MailServerComponent.tsx",
+    "construct": "class:text-gray-500",
+    "count": 2,
+    "owner": "features/settings",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/settings/ui/MailServerComponent.tsx",
+    "construct": "class:dark:text-gray-400",
+    "count": 2,
+    "owner": "features/settings",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/settings/ui/MailServerComponent.tsx",
+    "construct": "class:!text-blue-600",
+    "count": 1,
+    "owner": "features/settings",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/settings/ui/MailServerComponent.tsx",
+    "construct": "class:text-red-600",
+    "count": 2,
+    "owner": "features/settings",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/settings/ui/SettingsComponent.tsx",
+    "construct": "class:bg-white",
+    "count": 1,
+    "owner": "features/settings",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/settings/ui/SettingsComponent.tsx",
+    "construct": "class:dark:bg-gray-800",
+    "count": 1,
+    "owner": "features/settings",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/settings/ui/SettingsComponent.tsx",
+    "construct": "class:dark:text-white",
+    "count": 6,
+    "owner": "features/settings",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/settings/ui/SettingsComponent.tsx",
+    "construct": "class:border-gray-200",
+    "count": 4,
+    "owner": "features/settings",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/settings/ui/SettingsComponent.tsx",
+    "construct": "class:dark:border-gray-700",
+    "count": 4,
+    "owner": "features/settings",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/settings/ui/SettingsComponent.tsx",
+    "construct": "class:text-gray-900",
+    "count": 4,
+    "owner": "features/settings",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/settings/ui/SettingsComponent.tsx",
+    "construct": "class:text-gray-500",
+    "count": 7,
+    "owner": "features/settings",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/settings/ui/SettingsComponent.tsx",
+    "construct": "class:dark:text-gray-400",
+    "count": 7,
+    "owner": "features/settings",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/settings/ui/SettingsComponent.tsx",
+    "construct": "backgroundColor:#155dfc",
+    "count": 4,
+    "owner": "features/settings",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/settings/ui/SettingsComponent.tsx",
+    "construct": "class:!text-blue-600",
+    "count": 2,
+    "owner": "features/settings",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/settings/ui/SettingsComponent.tsx",
+    "construct": "class:border-blue-600",
+    "count": 1,
+    "owner": "features/settings",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/settings/ui/SettingsComponent.tsx",
+    "construct": "class:bg-blue-600",
+    "count": 1,
+    "owner": "features/settings",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/settings/ui/SettingsComponent.tsx",
+    "construct": "class:hover:border-blue-700",
+    "count": 1,
+    "owner": "features/settings",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/settings/ui/SettingsComponent.tsx",
+    "construct": "class:hover:bg-blue-700",
+    "count": 1,
+    "owner": "features/settings",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/settings/ui/SettingsComponent.tsx",
+    "construct": "class:border-gray-300",
+    "count": 1,
+    "owner": "features/settings",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/settings/ui/SettingsComponent.tsx",
+    "construct": "class:bg-gray-50",
+    "count": 1,
+    "owner": "features/settings",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/settings/ui/SettingsComponent.tsx",
+    "construct": "class:text-gray-700",
+    "count": 1,
+    "owner": "features/settings",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/settings/ui/SettingsComponent.tsx",
+    "construct": "class:dark:border-gray-600",
+    "count": 1,
+    "owner": "features/settings",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/settings/ui/SettingsComponent.tsx",
+    "construct": "class:dark:bg-gray-700",
+    "count": 1,
+    "owner": "features/settings",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/settings/ui/SettingsComponent.tsx",
+    "construct": "class:dark:text-gray-200",
+    "count": 1,
+    "owner": "features/settings",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/settings/ui/SettingsComponent.tsx",
+    "construct": "class:hover:text-blue-600",
+    "count": 1,
+    "owner": "features/settings",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/storages/ui/StorageCardComponent.tsx",
+    "construct": "class:bg-blue-100",
+    "count": 1,
+    "owner": "features/storages",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/storages/ui/StorageCardComponent.tsx",
+    "construct": "class:dark:bg-blue-800",
+    "count": 1,
+    "owner": "features/storages",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/storages/ui/StorageCardComponent.tsx",
+    "construct": "class:bg-white",
+    "count": 1,
+    "owner": "features/storages",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/storages/ui/StorageCardComponent.tsx",
+    "construct": "class:dark:bg-gray-800",
+    "count": 1,
+    "owner": "features/storages",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/storages/ui/StorageCardComponent.tsx",
+    "construct": "class:text-gray-500",
+    "count": 1,
+    "owner": "features/storages",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/storages/ui/StorageCardComponent.tsx",
+    "construct": "class:dark:text-gray-400",
+    "count": 1,
+    "owner": "features/storages",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/storages/ui/StorageComponent.tsx",
+    "construct": "class:bg-white",
+    "count": 1,
+    "owner": "features/storages",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/storages/ui/StorageComponent.tsx",
+    "construct": "class:dark:bg-gray-800",
+    "count": 1,
+    "owner": "features/storages",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/storages/ui/StorageComponent.tsx",
+    "construct": "class:text-gray-500",
+    "count": 1,
+    "owner": "features/storages",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/storages/ui/StorageComponent.tsx",
+    "construct": "class:dark:text-gray-400",
+    "count": 1,
+    "owner": "features/storages",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/storages/ui/StorageTransferDialogComponent.tsx",
+    "construct": "class:text-gray-700",
+    "count": 1,
+    "owner": "features/storages",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/storages/ui/StorageTransferDialogComponent.tsx",
+    "construct": "class:dark:text-gray-300",
+    "count": 1,
+    "owner": "features/storages",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/storages/ui/StorageTransferDialogComponent.tsx",
+    "construct": "class:text-gray-500",
+    "count": 1,
+    "owner": "features/storages",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/storages/ui/StorageTransferDialogComponent.tsx",
+    "construct": "class:dark:text-gray-400",
+    "count": 1,
+    "owner": "features/storages",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/storages/ui/StoragesComponent.tsx",
+    "construct": "class:text-gray-500",
+    "count": 2,
+    "owner": "features/storages",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/storages/ui/StoragesComponent.tsx",
+    "construct": "class:dark:text-gray-400",
+    "count": 2,
+    "owner": "features/storages",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/AuthNavbarComponent.tsx",
+    "construct": "class:!text-blue-600",
+    "count": 1,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/AuthNavbarComponent.tsx",
+    "construct": "class:!text-black",
+    "count": 2,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/AuthNavbarComponent.tsx",
+    "construct": "class:dark:!text-gray-200",
+    "count": 2,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/ProfileComponent.tsx",
+    "construct": "class:bg-white",
+    "count": 1,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/ProfileComponent.tsx",
+    "construct": "class:dark:bg-gray-800",
+    "count": 1,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/ProfileComponent.tsx",
+    "construct": "class:dark:text-white",
+    "count": 3,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/ProfileComponent.tsx",
+    "construct": "class:dark:text-gray-200",
+    "count": 6,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/ProfileComponent.tsx",
+    "construct": "class:text-gray-600",
+    "count": 1,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/ProfileComponent.tsx",
+    "construct": "class:dark:text-gray-400",
+    "count": 1,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/ProfileComponent.tsx",
+    "construct": "class:bg-blue-100",
+    "count": 1,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/ProfileComponent.tsx",
+    "construct": "class:text-blue-800",
+    "count": 1,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/ProfileComponent.tsx",
+    "construct": "class:dark:bg-blue-900",
+    "count": 1,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/ProfileComponent.tsx",
+    "construct": "class:dark:text-blue-200",
+    "count": 1,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/ProfileComponent.tsx",
+    "construct": "class:border-blue-600",
+    "count": 2,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/ProfileComponent.tsx",
+    "construct": "class:bg-blue-600",
+    "count": 2,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/ProfileComponent.tsx",
+    "construct": "class:hover:border-blue-700",
+    "count": 2,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/ProfileComponent.tsx",
+    "construct": "class:hover:bg-blue-700",
+    "count": 2,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/RequestResetPasswordComponent.tsx",
+    "construct": "class:text-gray-600",
+    "count": 2,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/RequestResetPasswordComponent.tsx",
+    "construct": "class:dark:text-gray-400",
+    "count": 2,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/RequestResetPasswordComponent.tsx",
+    "construct": "class:text-red-600",
+    "count": 1,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/RequestResetPasswordComponent.tsx",
+    "construct": "class:text-green-600",
+    "count": 1,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/RequestResetPasswordComponent.tsx",
+    "construct": "class:text-blue-600",
+    "count": 1,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/RequestResetPasswordComponent.tsx",
+    "construct": "class:hover:text-blue-700",
+    "count": 1,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/RequestResetPasswordComponent.tsx",
+    "construct": "class:dark:!text-blue-500",
+    "count": 1,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/ResetPasswordComponent.tsx",
+    "construct": "class:text-gray-600",
+    "count": 2,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/ResetPasswordComponent.tsx",
+    "construct": "class:dark:text-gray-400",
+    "count": 2,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/ResetPasswordComponent.tsx",
+    "construct": "class:text-red-600",
+    "count": 1,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/ResetPasswordComponent.tsx",
+    "construct": "class:text-blue-600",
+    "count": 2,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/ResetPasswordComponent.tsx",
+    "construct": "class:hover:text-blue-700",
+    "count": 2,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/ResetPasswordComponent.tsx",
+    "construct": "class:dark:!text-blue-500",
+    "count": 2,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/SignInCodeComponent.tsx",
+    "construct": "class:text-gray-600",
+    "count": 2,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/SignInCodeComponent.tsx",
+    "construct": "class:dark:text-gray-400",
+    "count": 2,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/SignInCodeComponent.tsx",
+    "construct": "class:text-red-600",
+    "count": 1,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/SignInCodeComponent.tsx",
+    "construct": "class:text-blue-600",
+    "count": 2,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/SignInCodeComponent.tsx",
+    "construct": "class:hover:text-blue-700",
+    "count": 2,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/SignInCodeComponent.tsx",
+    "construct": "class:dark:!text-blue-500",
+    "count": 2,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/SignInComponent.tsx",
+    "construct": "class:border-gray-300",
+    "count": 1,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/SignInComponent.tsx",
+    "construct": "class:bg-white",
+    "count": 1,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/SignInComponent.tsx",
+    "construct": "class:text-gray-500",
+    "count": 1,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/SignInComponent.tsx",
+    "construct": "class:dark:bg-gray-900",
+    "count": 1,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/SignInComponent.tsx",
+    "construct": "class:dark:text-gray-400",
+    "count": 2,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/SignInComponent.tsx",
+    "construct": "class:text-red-600",
+    "count": 1,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/SignInComponent.tsx",
+    "construct": "class:text-gray-600",
+    "count": 1,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/SignInComponent.tsx",
+    "construct": "class:text-blue-600",
+    "count": 2,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/SignInComponent.tsx",
+    "construct": "class:hover:text-blue-700",
+    "count": 2,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/SignInComponent.tsx",
+    "construct": "class:dark:!text-blue-500",
+    "count": 2,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/SignUpComponent.tsx",
+    "construct": "class:text-gray-600",
+    "count": 2,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/SignUpComponent.tsx",
+    "construct": "class:dark:text-gray-400",
+    "count": 3,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/SignUpComponent.tsx",
+    "construct": "class:border-gray-300",
+    "count": 1,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/SignUpComponent.tsx",
+    "construct": "class:bg-white",
+    "count": 1,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/SignUpComponent.tsx",
+    "construct": "class:text-gray-500",
+    "count": 1,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/SignUpComponent.tsx",
+    "construct": "class:dark:bg-gray-900",
+    "count": 1,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/SignUpComponent.tsx",
+    "construct": "class:text-red-600",
+    "count": 1,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/SignUpComponent.tsx",
+    "construct": "class:text-blue-600",
+    "count": 1,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/SignUpComponent.tsx",
+    "construct": "class:hover:text-blue-700",
+    "count": 1,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/SignUpComponent.tsx",
+    "construct": "class:dark:!text-blue-500",
+    "count": 1,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/UserAuditLogsSidebarComponent.tsx",
+    "construct": "class:text-gray-900",
+    "count": 1,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/UserAuditLogsSidebarComponent.tsx",
+    "construct": "class:dark:text-white",
+    "count": 3,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/UserAuditLogsSidebarComponent.tsx",
+    "construct": "class:bg-blue-100",
+    "count": 1,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/UserAuditLogsSidebarComponent.tsx",
+    "construct": "class:text-blue-800",
+    "count": 1,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/UserAuditLogsSidebarComponent.tsx",
+    "construct": "class:bg-gray-100",
+    "count": 1,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/UserAuditLogsSidebarComponent.tsx",
+    "construct": "class:text-gray-600",
+    "count": 1,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/UserAuditLogsSidebarComponent.tsx",
+    "construct": "class:dark:bg-gray-700",
+    "count": 1,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/UserAuditLogsSidebarComponent.tsx",
+    "construct": "class:text-gray-700",
+    "count": 1,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/UserAuditLogsSidebarComponent.tsx",
+    "construct": "class:text-gray-500",
+    "count": 3,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/UserAuditLogsSidebarComponent.tsx",
+    "construct": "class:dark:text-gray-400",
+    "count": 3,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/UsersComponent.tsx",
+    "construct": "color:#3b82f6",
+    "count": 3,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/UsersComponent.tsx",
+    "construct": "color:#10b981",
+    "count": 3,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/UsersComponent.tsx",
+    "construct": "color:#6b7280",
+    "count": 3,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/UsersComponent.tsx",
+    "construct": "backgroundColor:#155dfc",
+    "count": 2,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/UsersComponent.tsx",
+    "construct": "class:text-gray-600",
+    "count": 4,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/UsersComponent.tsx",
+    "construct": "class:dark:text-gray-400",
+    "count": 9,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/UsersComponent.tsx",
+    "construct": "class:text-gray-400",
+    "count": 2,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/UsersComponent.tsx",
+    "construct": "class:dark:text-gray-500",
+    "count": 1,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/UsersComponent.tsx",
+    "construct": "class:border-gray-200",
+    "count": 1,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/UsersComponent.tsx",
+    "construct": "class:bg-white",
+    "count": 2,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/UsersComponent.tsx",
+    "construct": "class:dark:border-gray-700",
+    "count": 1,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/UsersComponent.tsx",
+    "construct": "class:dark:bg-gray-800",
+    "count": 2,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/UsersComponent.tsx",
+    "construct": "class:text-gray-900",
+    "count": 2,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/UsersComponent.tsx",
+    "construct": "class:dark:text-white",
+    "count": 3,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/users/ui/UsersComponent.tsx",
+    "construct": "class:text-gray-500",
+    "count": 5,
+    "owner": "features/users",
+    "removalMilestone": "3"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/workspaces/ui/CreateWorkspaceDialogComponent.tsx",
+    "construct": "class:border-blue-600",
+    "count": 1,
+    "owner": "features/workspaces",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/workspaces/ui/CreateWorkspaceDialogComponent.tsx",
+    "construct": "class:bg-blue-600",
+    "count": 1,
+    "owner": "features/workspaces",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/workspaces/ui/CreateWorkspaceDialogComponent.tsx",
+    "construct": "class:hover:border-blue-700",
+    "count": 1,
+    "owner": "features/workspaces",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/workspaces/ui/CreateWorkspaceDialogComponent.tsx",
+    "construct": "class:hover:bg-blue-700",
+    "count": 1,
+    "owner": "features/workspaces",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/workspaces/ui/CreateWorkspaceDialogComponent.tsx",
+    "construct": "class:dark:text-gray-300",
+    "count": 2,
+    "owner": "features/workspaces",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/workspaces/ui/CreateWorkspaceDialogComponent.tsx",
+    "construct": "class:text-gray-700",
+    "count": 1,
+    "owner": "features/workspaces",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/workspaces/ui/WorkspaceAuditLogsComponent.tsx",
+    "construct": "class:text-gray-900",
+    "count": 3,
+    "owner": "features/workspaces",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/workspaces/ui/WorkspaceAuditLogsComponent.tsx",
+    "construct": "class:dark:text-gray-100",
+    "count": 2,
+    "owner": "features/workspaces",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/workspaces/ui/WorkspaceAuditLogsComponent.tsx",
+    "construct": "class:text-gray-700",
+    "count": 1,
+    "owner": "features/workspaces",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/workspaces/ui/WorkspaceAuditLogsComponent.tsx",
+    "construct": "class:dark:text-gray-300",
+    "count": 1,
+    "owner": "features/workspaces",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/workspaces/ui/WorkspaceAuditLogsComponent.tsx",
+    "construct": "class:border-gray-200",
+    "count": 1,
+    "owner": "features/workspaces",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/workspaces/ui/WorkspaceAuditLogsComponent.tsx",
+    "construct": "class:bg-white",
+    "count": 1,
+    "owner": "features/workspaces",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/workspaces/ui/WorkspaceAuditLogsComponent.tsx",
+    "construct": "class:dark:border-gray-700",
+    "count": 1,
+    "owner": "features/workspaces",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/workspaces/ui/WorkspaceAuditLogsComponent.tsx",
+    "construct": "class:dark:bg-gray-800",
+    "count": 1,
+    "owner": "features/workspaces",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/workspaces/ui/WorkspaceAuditLogsComponent.tsx",
+    "construct": "class:text-gray-500",
+    "count": 4,
+    "owner": "features/workspaces",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/workspaces/ui/WorkspaceAuditLogsComponent.tsx",
+    "construct": "class:dark:text-gray-400",
+    "count": 4,
+    "owner": "features/workspaces",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/workspaces/ui/WorkspaceAuditLogsComponent.tsx",
+    "construct": "class:text-gray-400",
+    "count": 1,
+    "owner": "features/workspaces",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/workspaces/ui/WorkspaceAuditLogsComponent.tsx",
+    "construct": "class:dark:text-gray-500",
+    "count": 1,
+    "owner": "features/workspaces",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/workspaces/ui/WorkspaceAuditLogsComponent.tsx",
+    "construct": "class:dark:text-white",
+    "count": 1,
+    "owner": "features/workspaces",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/workspaces/ui/WorkspaceMembersComponent.tsx",
+    "construct": "class:dark:text-white",
+    "count": 6,
+    "owner": "features/workspaces",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/workspaces/ui/WorkspaceMembersComponent.tsx",
+    "construct": "color:gold",
+    "count": 1,
+    "owner": "features/workspaces",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/workspaces/ui/WorkspaceMembersComponent.tsx",
+    "construct": "class:text-gray-500",
+    "count": 8,
+    "owner": "features/workspaces",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/workspaces/ui/WorkspaceMembersComponent.tsx",
+    "construct": "class:dark:text-gray-400",
+    "count": 8,
+    "owner": "features/workspaces",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/workspaces/ui/WorkspaceMembersComponent.tsx",
+    "construct": "class:text-gray-400",
+    "count": 5,
+    "owner": "features/workspaces",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/workspaces/ui/WorkspaceMembersComponent.tsx",
+    "construct": "class:dark:text-gray-500",
+    "count": 5,
+    "owner": "features/workspaces",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/workspaces/ui/WorkspaceMembersComponent.tsx",
+    "construct": "color:purple",
+    "count": 2,
+    "owner": "features/workspaces",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/workspaces/ui/WorkspaceMembersComponent.tsx",
+    "construct": "color:orange",
+    "count": 2,
+    "owner": "features/workspaces",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/workspaces/ui/WorkspaceMembersComponent.tsx",
+    "construct": "color:blue",
+    "count": 2,
+    "owner": "features/workspaces",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/workspaces/ui/WorkspaceMembersComponent.tsx",
+    "construct": "color:green",
+    "count": 2,
+    "owner": "features/workspaces",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/workspaces/ui/WorkspaceMembersComponent.tsx",
+    "construct": "class:text-gray-600",
+    "count": 4,
+    "owner": "features/workspaces",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/workspaces/ui/WorkspaceMembersComponent.tsx",
+    "construct": "class:dark:text-gray-300",
+    "count": 4,
+    "owner": "features/workspaces",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/workspaces/ui/WorkspaceMembersComponent.tsx",
+    "construct": "class:border-gray-200",
+    "count": 1,
+    "owner": "features/workspaces",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/workspaces/ui/WorkspaceMembersComponent.tsx",
+    "construct": "class:bg-white",
+    "count": 1,
+    "owner": "features/workspaces",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/workspaces/ui/WorkspaceMembersComponent.tsx",
+    "construct": "class:dark:border-gray-700",
+    "count": 1,
+    "owner": "features/workspaces",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/workspaces/ui/WorkspaceMembersComponent.tsx",
+    "construct": "class:dark:bg-gray-800",
+    "count": 1,
+    "owner": "features/workspaces",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/workspaces/ui/WorkspaceMembersComponent.tsx",
+    "construct": "class:text-gray-900",
+    "count": 5,
+    "owner": "features/workspaces",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/workspaces/ui/WorkspaceMembersComponent.tsx",
+    "construct": "class:border-blue-600",
+    "count": 1,
+    "owner": "features/workspaces",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/workspaces/ui/WorkspaceMembersComponent.tsx",
+    "construct": "class:bg-blue-600",
+    "count": 1,
+    "owner": "features/workspaces",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/workspaces/ui/WorkspaceMembersComponent.tsx",
+    "construct": "class:hover:border-blue-700",
+    "count": 1,
+    "owner": "features/workspaces",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/workspaces/ui/WorkspaceMembersComponent.tsx",
+    "construct": "class:hover:bg-blue-700",
+    "count": 1,
+    "owner": "features/workspaces",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/workspaces/ui/WorkspaceMembersComponent.tsx",
+    "construct": "class:text-blue-600",
+    "count": 1,
+    "owner": "features/workspaces",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/workspaces/ui/WorkspaceMembersComponent.tsx",
+    "construct": "class:dark:text-blue-400",
+    "count": 1,
+    "owner": "features/workspaces",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/workspaces/ui/WorkspaceMembersComponent.tsx",
+    "construct": "class:bg-yellow-50",
+    "count": 1,
+    "owner": "features/workspaces",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/workspaces/ui/WorkspaceMembersComponent.tsx",
+    "construct": "class:dark:bg-yellow-900/30",
+    "count": 1,
+    "owner": "features/workspaces",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/workspaces/ui/WorkspaceMembersComponent.tsx",
+    "construct": "class:text-yellow-800",
+    "count": 1,
+    "owner": "features/workspaces",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/workspaces/ui/WorkspaceMembersComponent.tsx",
+    "construct": "class:dark:text-yellow-200",
+    "count": 1,
+    "owner": "features/workspaces",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/workspaces/ui/WorkspaceMembersComponent.tsx",
+    "construct": "class:bg-gray-50",
+    "count": 1,
+    "owner": "features/workspaces",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/workspaces/ui/WorkspaceMembersComponent.tsx",
+    "construct": "class:dark:bg-gray-700",
+    "count": 1,
+    "owner": "features/workspaces",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/workspaces/ui/WorkspaceSettingsComponent.tsx",
+    "construct": "class:text-red-600",
+    "count": 1,
+    "owner": "features/workspaces",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/workspaces/ui/WorkspaceSettingsComponent.tsx",
+    "construct": "class:bg-white",
+    "count": 1,
+    "owner": "features/workspaces",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/workspaces/ui/WorkspaceSettingsComponent.tsx",
+    "construct": "class:dark:bg-gray-800",
+    "count": 1,
+    "owner": "features/workspaces",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/workspaces/ui/WorkspaceSettingsComponent.tsx",
+    "construct": "class:dark:text-white",
+    "count": 3,
+    "owner": "features/workspaces",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/workspaces/ui/WorkspaceSettingsComponent.tsx",
+    "construct": "class:bg-yellow-50",
+    "count": 1,
+    "owner": "features/workspaces",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/workspaces/ui/WorkspaceSettingsComponent.tsx",
+    "construct": "class:dark:bg-yellow-900/30",
+    "count": 1,
+    "owner": "features/workspaces",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/workspaces/ui/WorkspaceSettingsComponent.tsx",
+    "construct": "class:text-yellow-800",
+    "count": 1,
+    "owner": "features/workspaces",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/workspaces/ui/WorkspaceSettingsComponent.tsx",
+    "construct": "class:dark:text-yellow-200",
+    "count": 1,
+    "owner": "features/workspaces",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/workspaces/ui/WorkspaceSettingsComponent.tsx",
+    "construct": "class:border-gray-200",
+    "count": 3,
+    "owner": "features/workspaces",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/workspaces/ui/WorkspaceSettingsComponent.tsx",
+    "construct": "class:dark:border-gray-700",
+    "count": 3,
+    "owner": "features/workspaces",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/workspaces/ui/WorkspaceSettingsComponent.tsx",
+    "construct": "class:text-gray-900",
+    "count": 2,
+    "owner": "features/workspaces",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/workspaces/ui/WorkspaceSettingsComponent.tsx",
+    "construct": "class:border-blue-600",
+    "count": 1,
+    "owner": "features/workspaces",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/workspaces/ui/WorkspaceSettingsComponent.tsx",
+    "construct": "class:bg-blue-600",
+    "count": 1,
+    "owner": "features/workspaces",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/workspaces/ui/WorkspaceSettingsComponent.tsx",
+    "construct": "class:hover:border-blue-700",
+    "count": 1,
+    "owner": "features/workspaces",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/workspaces/ui/WorkspaceSettingsComponent.tsx",
+    "construct": "class:hover:bg-blue-700",
+    "count": 1,
+    "owner": "features/workspaces",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/workspaces/ui/WorkspaceSettingsComponent.tsx",
+    "construct": "class:border-red-200",
+    "count": 1,
+    "owner": "features/workspaces",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/workspaces/ui/WorkspaceSettingsComponent.tsx",
+    "construct": "class:bg-red-50",
+    "count": 1,
+    "owner": "features/workspaces",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/workspaces/ui/WorkspaceSettingsComponent.tsx",
+    "construct": "class:dark:border-red-800",
+    "count": 1,
+    "owner": "features/workspaces",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/workspaces/ui/WorkspaceSettingsComponent.tsx",
+    "construct": "class:dark:bg-red-900/30",
+    "count": 1,
+    "owner": "features/workspaces",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/workspaces/ui/WorkspaceSettingsComponent.tsx",
+    "construct": "class:text-red-900",
+    "count": 1,
+    "owner": "features/workspaces",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/workspaces/ui/WorkspaceSettingsComponent.tsx",
+    "construct": "class:dark:text-red-200",
+    "count": 1,
+    "owner": "features/workspaces",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/workspaces/ui/WorkspaceSettingsComponent.tsx",
+    "construct": "class:text-red-700",
+    "count": 1,
+    "owner": "features/workspaces",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/workspaces/ui/WorkspaceSettingsComponent.tsx",
+    "construct": "class:dark:text-red-300",
+    "count": 1,
+    "owner": "features/workspaces",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/workspaces/ui/WorkspaceSettingsComponent.tsx",
+    "construct": "class:bg-red-600",
+    "count": 1,
+    "owner": "features/workspaces",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/workspaces/ui/WorkspaceSettingsComponent.tsx",
+    "construct": "class:hover:bg-red-700",
+    "count": 1,
+    "owner": "features/workspaces",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/logical/ui/EditLogicalBackupConfigComponent.tsx",
+    "construct": "color:gray",
+    "count": 6,
+    "owner": "features/backups",
+    "removalMilestone": "6"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/logical/ui/EditLogicalBackupConfigComponent.tsx",
+    "construct": "class:text-gray-600",
+    "count": 9,
+    "owner": "features/backups",
+    "removalMilestone": "6"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/logical/ui/EditLogicalBackupConfigComponent.tsx",
+    "construct": "class:dark:text-gray-400",
+    "count": 10,
+    "owner": "features/backups",
+    "removalMilestone": "6"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/logical/ui/EditLogicalBackupConfigComponent.tsx",
+    "construct": "class:text-red-500",
+    "count": 2,
+    "owner": "features/backups",
+    "removalMilestone": "6"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/logical/ui/EditLogicalBackupConfigComponent.tsx",
+    "construct": "class:text-blue-600",
+    "count": 2,
+    "owner": "features/backups",
+    "removalMilestone": "6"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/logical/ui/EditLogicalBackupConfigComponent.tsx",
+    "construct": "class:hover:text-blue-800",
+    "count": 2,
+    "owner": "features/backups",
+    "removalMilestone": "6"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/logical/ui/EditLogicalBackupConfigComponent.tsx",
+    "construct": "class:text-gray-500",
+    "count": 1,
+    "owner": "features/backups",
+    "removalMilestone": "6"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/logical/ui/LogicalBackupsComponent.tsx",
+    "construct": "class:!text-blue-600",
+    "count": 1,
+    "owner": "features/backups",
+    "removalMilestone": "6"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/logical/ui/LogicalBackupsComponent.tsx",
+    "construct": "class:text-red-600",
+    "count": 2,
+    "owner": "features/backups",
+    "removalMilestone": "6"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/logical/ui/LogicalBackupsComponent.tsx",
+    "construct": "class:text-green-600",
+    "count": 1,
+    "owner": "features/backups",
+    "removalMilestone": "6"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/logical/ui/LogicalBackupsComponent.tsx",
+    "construct": "class:text-blue-600",
+    "count": 2,
+    "owner": "features/backups",
+    "removalMilestone": "6"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/logical/ui/LogicalBackupsComponent.tsx",
+    "construct": "class:text-gray-600",
+    "count": 1,
+    "owner": "features/backups",
+    "removalMilestone": "6"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/logical/ui/LogicalBackupsComponent.tsx",
+    "construct": "color:#ff0000",
+    "count": 2,
+    "owner": "features/backups",
+    "removalMilestone": "6"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/logical/ui/LogicalBackupsComponent.tsx",
+    "construct": "color:#155dfc",
+    "count": 5,
+    "owner": "features/backups",
+    "removalMilestone": "6"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/logical/ui/LogicalBackupsComponent.tsx",
+    "construct": "class:text-gray-500",
+    "count": 10,
+    "owner": "features/backups",
+    "removalMilestone": "6"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/logical/ui/LogicalBackupsComponent.tsx",
+    "construct": "class:dark:text-gray-400",
+    "count": 8,
+    "owner": "features/backups",
+    "removalMilestone": "6"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/logical/ui/LogicalBackupsComponent.tsx",
+    "construct": "class:dark:text-gray-500",
+    "count": 2,
+    "owner": "features/backups",
+    "removalMilestone": "6"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/logical/ui/LogicalBackupsComponent.tsx",
+    "construct": "class:bg-white",
+    "count": 2,
+    "owner": "features/backups",
+    "removalMilestone": "6"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/logical/ui/LogicalBackupsComponent.tsx",
+    "construct": "class:dark:bg-gray-800",
+    "count": 2,
+    "owner": "features/backups",
+    "removalMilestone": "6"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/logical/ui/LogicalBackupsComponent.tsx",
+    "construct": "class:dark:text-white",
+    "count": 1,
+    "owner": "features/backups",
+    "removalMilestone": "6"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/logical/ui/LogicalBackupsComponent.tsx",
+    "construct": "class:bg-blue-600",
+    "count": 1,
+    "owner": "features/backups",
+    "removalMilestone": "6"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/logical/ui/LogicalBackupsComponent.tsx",
+    "construct": "class:border-gray-200",
+    "count": 2,
+    "owner": "features/backups",
+    "removalMilestone": "6"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/logical/ui/LogicalBackupsComponent.tsx",
+    "construct": "class:dark:border-gray-700",
+    "count": 1,
+    "owner": "features/backups",
+    "removalMilestone": "6"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/logical/ui/LogicalBackupsFiltersPanelComponent.tsx",
+    "construct": "class:text-gray-500",
+    "count": 2,
+    "owner": "features/backups",
+    "removalMilestone": "6"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/logical/ui/LogicalBackupsFiltersPanelComponent.tsx",
+    "construct": "class:dark:text-gray-400",
+    "count": 2,
+    "owner": "features/backups",
+    "removalMilestone": "6"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/logical/ui/ShowLogicalBackupConfigComponent.tsx",
+    "construct": "class:text-red-600",
+    "count": 1,
+    "owner": "features/backups",
+    "removalMilestone": "6"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/logical/ui/ShowLogicalBackupConfigComponent.tsx",
+    "construct": "class:bg-gray-100",
+    "count": 1,
+    "owner": "features/backups",
+    "removalMilestone": "6"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/logical/ui/ShowLogicalBackupConfigComponent.tsx",
+    "construct": "class:dark:bg-gray-700",
+    "count": 1,
+    "owner": "features/backups",
+    "removalMilestone": "6"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/logical/ui/ShowLogicalBackupConfigComponent.tsx",
+    "construct": "color:gray",
+    "count": 2,
+    "owner": "features/backups",
+    "removalMilestone": "6"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/ui/EditPhysicalBackupConfigComponent.tsx",
+    "construct": "class:text-gray-500",
+    "count": 3,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/ui/EditPhysicalBackupConfigComponent.tsx",
+    "construct": "class:dark:text-gray-400",
+    "count": 11,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/ui/EditPhysicalBackupConfigComponent.tsx",
+    "construct": "color:gray",
+    "count": 3,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/ui/EditPhysicalBackupConfigComponent.tsx",
+    "construct": "class:text-gray-600",
+    "count": 8,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/ui/PhysicalBackupTypeCellComponent.tsx",
+    "construct": "class:bg-indigo-500/15",
+    "count": 1,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/ui/PhysicalBackupTypeCellComponent.tsx",
+    "construct": "class:text-indigo-700",
+    "count": 1,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/ui/PhysicalBackupTypeCellComponent.tsx",
+    "construct": "class:ring-indigo-500/40",
+    "count": 1,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/ui/PhysicalBackupTypeCellComponent.tsx",
+    "construct": "class:dark:text-indigo-300",
+    "count": 2,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/ui/PhysicalBackupTypeCellComponent.tsx",
+    "construct": "class:bg-slate-400/10",
+    "count": 1,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/ui/PhysicalBackupTypeCellComponent.tsx",
+    "construct": "class:text-slate-600",
+    "count": 1,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/ui/PhysicalBackupTypeCellComponent.tsx",
+    "construct": "class:ring-slate-400/30",
+    "count": 1,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/ui/PhysicalBackupTypeCellComponent.tsx",
+    "construct": "class:dark:text-slate-300",
+    "count": 1,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/ui/PhysicalBackupTypeCellComponent.tsx",
+    "construct": "class:bg-indigo-400/10",
+    "count": 1,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/ui/PhysicalBackupTypeCellComponent.tsx",
+    "construct": "class:text-indigo-600",
+    "count": 1,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/ui/PhysicalBackupTypeCellComponent.tsx",
+    "construct": "class:ring-indigo-400/30",
+    "count": 1,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/ui/PhysicalBackupsComponent.tsx",
+    "construct": "color:#ff0000",
+    "count": 2,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/ui/PhysicalBackupsComponent.tsx",
+    "construct": "color:#155dfc",
+    "count": 1,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/ui/PhysicalBackupsComponent.tsx",
+    "construct": "class:text-gray-500",
+    "count": 13,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/ui/PhysicalBackupsComponent.tsx",
+    "construct": "class:dark:text-gray-400",
+    "count": 14,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/ui/PhysicalBackupsComponent.tsx",
+    "construct": "class:bg-white",
+    "count": 2,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/ui/PhysicalBackupsComponent.tsx",
+    "construct": "class:dark:bg-gray-800",
+    "count": 2,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/ui/PhysicalBackupsComponent.tsx",
+    "construct": "class:dark:text-white",
+    "count": 1,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/ui/PhysicalBackupsComponent.tsx",
+    "construct": "class:text-blue-600",
+    "count": 1,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/ui/PhysicalBackupsComponent.tsx",
+    "construct": "class:bg-blue-600",
+    "count": 1,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/ui/PhysicalBackupsComponent.tsx",
+    "construct": "class:text-red-600",
+    "count": 1,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/ui/PhysicalBackupsComponent.tsx",
+    "construct": "class:text-gray-600",
+    "count": 1,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/ui/PhysicalBackupsComponent.tsx",
+    "construct": "class:border-gray-200",
+    "count": 2,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/ui/PhysicalBackupsComponent.tsx",
+    "construct": "class:dark:border-gray-700",
+    "count": 1,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/ui/PhysicalBackupsFiltersPanelComponent.tsx",
+    "construct": "class:text-gray-500",
+    "count": 3,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/ui/PhysicalBackupsFiltersPanelComponent.tsx",
+    "construct": "class:dark:text-gray-400",
+    "count": 3,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/ui/PhysicalIntervalEditor.tsx",
+    "construct": "color:gray",
+    "count": 1,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/ui/PhysicalIntervalEditor.tsx",
+    "construct": "class:text-gray-600",
+    "count": 2,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/ui/PhysicalIntervalEditor.tsx",
+    "construct": "class:dark:text-gray-400",
+    "count": 2,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/ui/PhysicalIntervalEditor.tsx",
+    "construct": "class:text-red-500",
+    "count": 2,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/ui/PhysicalRestoreComponent.tsx",
+    "construct": "class:text-gray-600",
+    "count": 3,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/ui/PhysicalRestoreComponent.tsx",
+    "construct": "class:dark:text-gray-300",
+    "count": 1,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/ui/PhysicalRestoreComponent.tsx",
+    "construct": "class:bg-gray-100",
+    "count": 1,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/ui/PhysicalRestoreComponent.tsx",
+    "construct": "class:text-gray-700",
+    "count": 1,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/ui/PhysicalRestoreComponent.tsx",
+    "construct": "class:dark:bg-gray-700",
+    "count": 1,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/ui/PhysicalRestoreComponent.tsx",
+    "construct": "class:dark:text-gray-200",
+    "count": 1,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/ui/PhysicalRestoreComponent.tsx",
+    "construct": "class:dark:text-gray-400",
+    "count": 4,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/ui/PhysicalRestoreComponent.tsx",
+    "construct": "class:border-red-300/50",
+    "count": 1,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/ui/PhysicalRestoreComponent.tsx",
+    "construct": "class:bg-red-50",
+    "count": 1,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/ui/PhysicalRestoreComponent.tsx",
+    "construct": "class:text-red-700",
+    "count": 1,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/ui/PhysicalRestoreComponent.tsx",
+    "construct": "class:dark:border-red-600/30",
+    "count": 1,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/ui/PhysicalRestoreComponent.tsx",
+    "construct": "class:dark:bg-red-900/20",
+    "count": 1,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/ui/PhysicalRestoreComponent.tsx",
+    "construct": "class:dark:text-red-400",
+    "count": 1,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/ui/PhysicalRestoreComponent.tsx",
+    "construct": "class:border-gray-200",
+    "count": 2,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/ui/PhysicalRestoreComponent.tsx",
+    "construct": "class:text-gray-500",
+    "count": 2,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/ui/PhysicalRestoreComponent.tsx",
+    "construct": "class:dark:border-gray-700",
+    "count": 2,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/ui/ShowPhysicalBackupConfigComponent.tsx",
+    "construct": "class:bg-gray-100",
+    "count": 1,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/ui/ShowPhysicalBackupConfigComponent.tsx",
+    "construct": "class:dark:bg-gray-700",
+    "count": 1,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/ui/ShowPhysicalBackupConfigComponent.tsx",
+    "construct": "class:text-red-600",
+    "count": 1,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/ui/ShowPhysicalBackupConfigComponent.tsx",
+    "construct": "color:gray",
+    "count": 1,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/edit/ChoosePostgresBackupTypeComponent.tsx",
+    "construct": "class:hover:border-blue-400",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/edit/ChoosePostgresBackupTypeComponent.tsx",
+    "construct": "class:border-blue-500",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/edit/ChoosePostgresBackupTypeComponent.tsx",
+    "construct": "class:bg-blue-50",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/edit/ChoosePostgresBackupTypeComponent.tsx",
+    "construct": "class:dark:bg-blue-900/40",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/edit/ChoosePostgresBackupTypeComponent.tsx",
+    "construct": "class:border-gray-200",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/edit/ChoosePostgresBackupTypeComponent.tsx",
+    "construct": "class:bg-white",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/edit/ChoosePostgresBackupTypeComponent.tsx",
+    "construct": "class:dark:border-gray-700",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/edit/ChoosePostgresBackupTypeComponent.tsx",
+    "construct": "class:dark:bg-gray-800",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/edit/ChoosePostgresBackupTypeComponent.tsx",
+    "construct": "class:text-gray-500",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/edit/ChoosePostgresBackupTypeComponent.tsx",
+    "construct": "class:dark:text-gray-400",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/edit/CreateReadOnlyComponent.tsx",
+    "construct": "class:!text-blue-600",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/edit/CreateReadOnlyComponent.tsx",
+    "construct": "class:dark:!text-blue-400",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/edit/CreateReadOnlyComponent.tsx",
+    "construct": "class:text-blue-600",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/edit/EditDatabaseBaseInfoComponent.tsx",
+    "construct": "class:hover:border-blue-400",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/edit/EditDatabaseBaseInfoComponent.tsx",
+    "construct": "class:border-blue-500",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/edit/EditDatabaseBaseInfoComponent.tsx",
+    "construct": "class:bg-blue-50",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/edit/EditDatabaseBaseInfoComponent.tsx",
+    "construct": "class:dark:bg-blue-900/40",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/edit/EditDatabaseBaseInfoComponent.tsx",
+    "construct": "class:border-gray-200",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/edit/EditDatabaseBaseInfoComponent.tsx",
+    "construct": "class:bg-white",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/edit/EditDatabaseBaseInfoComponent.tsx",
+    "construct": "class:dark:border-gray-700",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/edit/EditDatabaseBaseInfoComponent.tsx",
+    "construct": "class:dark:bg-gray-800",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/edit/EditDatabaseNotifiersComponent.tsx",
+    "construct": "class:text-gray-500",
+    "count": 2,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/edit/EditDatabaseNotifiersComponent.tsx",
+    "construct": "class:dark:text-gray-400",
+    "count": 2,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/edit/EditMariaDbSpecificDataComponent.tsx",
+    "construct": "class:text-gray-600",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/edit/EditMariaDbSpecificDataComponent.tsx",
+    "construct": "class:hover:text-gray-900",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/edit/EditMariaDbSpecificDataComponent.tsx",
+    "construct": "class:dark:text-gray-400",
+    "count": 3,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/edit/EditMariaDbSpecificDataComponent.tsx",
+    "construct": "class:dark:hover:text-gray-200",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/edit/EditMariaDbSpecificDataComponent.tsx",
+    "construct": "class:text-gray-500",
+    "count": 2,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/edit/EditMariaDbSpecificDataComponent.tsx",
+    "construct": "class:!text-blue-600",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/edit/EditMariaDbSpecificDataComponent.tsx",
+    "construct": "class:dark:!text-blue-400",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/edit/EditMariaDbSpecificDataComponent.tsx",
+    "construct": "color:gray",
+    "count": 3,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/edit/EditMongoDbSpecificDataComponent.tsx",
+    "construct": "class:text-gray-600",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/edit/EditMongoDbSpecificDataComponent.tsx",
+    "construct": "class:hover:text-gray-900",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/edit/EditMongoDbSpecificDataComponent.tsx",
+    "construct": "class:dark:text-gray-400",
+    "count": 3,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/edit/EditMongoDbSpecificDataComponent.tsx",
+    "construct": "class:dark:hover:text-gray-200",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/edit/EditMongoDbSpecificDataComponent.tsx",
+    "construct": "class:text-gray-500",
+    "count": 2,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/edit/EditMongoDbSpecificDataComponent.tsx",
+    "construct": "class:!text-blue-600",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/edit/EditMongoDbSpecificDataComponent.tsx",
+    "construct": "class:dark:!text-blue-400",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/edit/EditMongoDbSpecificDataComponent.tsx",
+    "construct": "color:gray",
+    "count": 4,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/edit/EditMySqlSpecificDataComponent.tsx",
+    "construct": "class:text-gray-600",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/edit/EditMySqlSpecificDataComponent.tsx",
+    "construct": "class:hover:text-gray-900",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/edit/EditMySqlSpecificDataComponent.tsx",
+    "construct": "class:dark:text-gray-400",
+    "count": 3,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/edit/EditMySqlSpecificDataComponent.tsx",
+    "construct": "class:dark:hover:text-gray-200",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/edit/EditMySqlSpecificDataComponent.tsx",
+    "construct": "class:text-gray-500",
+    "count": 2,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/edit/EditMySqlSpecificDataComponent.tsx",
+    "construct": "class:!text-blue-600",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/edit/EditMySqlSpecificDataComponent.tsx",
+    "construct": "class:dark:!text-blue-400",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/edit/EditMySqlSpecificDataComponent.tsx",
+    "construct": "color:gray",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/edit/EditPostgreSqlLogicalSpecificDataComponent.tsx",
+    "construct": "color:gray",
+    "count": 8,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/edit/EditPostgreSqlLogicalSpecificDataComponent.tsx",
+    "construct": "class:text-gray-600",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/edit/EditPostgreSqlLogicalSpecificDataComponent.tsx",
+    "construct": "class:hover:text-gray-900",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/edit/EditPostgreSqlLogicalSpecificDataComponent.tsx",
+    "construct": "class:dark:text-gray-400",
+    "count": 4,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/edit/EditPostgreSqlLogicalSpecificDataComponent.tsx",
+    "construct": "class:dark:hover:text-gray-200",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/edit/EditPostgreSqlLogicalSpecificDataComponent.tsx",
+    "construct": "class:text-gray-500",
+    "count": 3,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/edit/EditPostgreSqlLogicalSpecificDataComponent.tsx",
+    "construct": "class:!text-blue-600",
+    "count": 2,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/edit/EditPostgreSqlLogicalSpecificDataComponent.tsx",
+    "construct": "class:dark:!text-blue-400",
+    "count": 2,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/edit/EditPostgreSqlPhysicalSpecificDataComponent.tsx",
+    "construct": "color:gray",
+    "count": 2,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/edit/EditPostgreSqlPhysicalSpecificDataComponent.tsx",
+    "construct": "class:bg-gray-900",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/edit/EditPostgreSqlPhysicalSpecificDataComponent.tsx",
+    "construct": "class:text-gray-100",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/edit/EditPostgreSqlPhysicalSpecificDataComponent.tsx",
+    "construct": "class:text-gray-400",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/edit/EditPostgreSqlPhysicalSpecificDataComponent.tsx",
+    "construct": "class:hover:text-white",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/edit/EditPostgreSqlPhysicalSpecificDataComponent.tsx",
+    "construct": "class:text-gray-600",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/edit/EditPostgreSqlPhysicalSpecificDataComponent.tsx",
+    "construct": "class:hover:text-gray-900",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/edit/EditPostgreSqlPhysicalSpecificDataComponent.tsx",
+    "construct": "class:dark:text-gray-400",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/edit/EditPostgreSqlPhysicalSpecificDataComponent.tsx",
+    "construct": "class:dark:hover:text-gray-200",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/edit/EditSshTunnelComponent.tsx",
+    "construct": "color:gray",
+    "count": 2,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/healthcheck/EditHealthcheckConfigComponent.tsx",
+    "construct": "color:gray",
+    "count": 5,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/healthcheck/HealthcheckAttemptsComponent.tsx",
+    "construct": "class:bg-white",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/healthcheck/HealthcheckAttemptsComponent.tsx",
+    "construct": "class:dark:bg-gray-800",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/healthcheck/HealthcheckAttemptsComponent.tsx",
+    "construct": "class:bg-green-500",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/healthcheck/HealthcheckAttemptsComponent.tsx",
+    "construct": "class:bg-red-500",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/healthcheck/HealthcheckAttemptsComponent.tsx",
+    "construct": "class:text-gray-400",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/show/ShowDatabaseNotifiersComponent.tsx",
+    "construct": "class:text-gray-500",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/show/ShowDatabaseNotifiersComponent.tsx",
+    "construct": "class:dark:text-gray-400",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/verification/agents/ui/VerificationAgentsComponent.tsx",
+    "construct": "class:bg-gray-900",
+    "count": 1,
+    "owner": "features/verification",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/verification/agents/ui/VerificationAgentsComponent.tsx",
+    "construct": "class:text-gray-100",
+    "count": 1,
+    "owner": "features/verification",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/verification/agents/ui/VerificationAgentsComponent.tsx",
+    "construct": "class:text-gray-400",
+    "count": 5,
+    "owner": "features/verification",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/verification/agents/ui/VerificationAgentsComponent.tsx",
+    "construct": "class:hover:text-white",
+    "count": 1,
+    "owner": "features/verification",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/verification/agents/ui/VerificationAgentsComponent.tsx",
+    "construct": "class:text-gray-500",
+    "count": 4,
+    "owner": "features/verification",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/verification/agents/ui/VerificationAgentsComponent.tsx",
+    "construct": "class:dark:text-gray-400",
+    "count": 6,
+    "owner": "features/verification",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/verification/agents/ui/VerificationAgentsComponent.tsx",
+    "construct": "class:bg-gray-100",
+    "count": 2,
+    "owner": "features/verification",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/verification/agents/ui/VerificationAgentsComponent.tsx",
+    "construct": "class:dark:bg-gray-700",
+    "count": 2,
+    "owner": "features/verification",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/verification/agents/ui/VerificationAgentsComponent.tsx",
+    "construct": "class:hover:text-gray-700",
+    "count": 1,
+    "owner": "features/verification",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/verification/agents/ui/VerificationAgentsComponent.tsx",
+    "construct": "class:dark:hover:text-white",
+    "count": 1,
+    "owner": "features/verification",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/verification/agents/ui/VerificationAgentsComponent.tsx",
+    "construct": "class:text-gray-700",
+    "count": 5,
+    "owner": "features/verification",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/verification/agents/ui/VerificationAgentsComponent.tsx",
+    "construct": "class:dark:text-gray-300",
+    "count": 5,
+    "owner": "features/verification",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/verification/agents/ui/VerificationAgentsComponent.tsx",
+    "construct": "class:dark:text-white",
+    "count": 5,
+    "owner": "features/verification",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/verification/agents/ui/VerificationAgentsComponent.tsx",
+    "construct": "class:text-gray-600",
+    "count": 2,
+    "owner": "features/verification",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/verification/agents/ui/VerificationAgentsComponent.tsx",
+    "construct": "class:text-gray-900",
+    "count": 1,
+    "owner": "features/verification",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/verification/agents/ui/VerificationAgentsComponent.tsx",
+    "construct": "color:green",
+    "count": 1,
+    "owner": "features/verification",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/verification/agents/ui/VerificationAgentsComponent.tsx",
+    "construct": "color:orange",
+    "count": 1,
+    "owner": "features/verification",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/verification/agents/ui/VerificationAgentsComponent.tsx",
+    "construct": "color:red",
+    "count": 1,
+    "owner": "features/verification",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/verification/agents/ui/VerificationAgentsComponent.tsx",
+    "construct": "class:dark:text-gray-500",
+    "count": 3,
+    "owner": "features/verification",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/verification/agents/ui/VerificationAgentsComponent.tsx",
+    "construct": "class:text-amber-600",
+    "count": 1,
+    "owner": "features/verification",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/verification/agents/ui/VerificationAgentsComponent.tsx",
+    "construct": "class:dark:text-amber-400",
+    "count": 1,
+    "owner": "features/verification",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/verification/config/ui/EditVerificationConfigComponent.tsx",
+    "construct": "color:gray",
+    "count": 2,
+    "owner": "features/verification",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/verification/config/ui/EditVerificationConfigComponent.tsx",
+    "construct": "class:text-gray-600",
+    "count": 3,
+    "owner": "features/verification",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/verification/config/ui/EditVerificationConfigComponent.tsx",
+    "construct": "class:dark:text-gray-400",
+    "count": 3,
+    "owner": "features/verification",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/verification/config/ui/EditVerificationConfigComponent.tsx",
+    "construct": "class:text-red-500",
+    "count": 2,
+    "owner": "features/verification",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/verification/config/ui/ShowVerificationConfigComponent.tsx",
+    "construct": "class:text-gray-500",
+    "count": 1,
+    "owner": "features/verification",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/verification/config/ui/ShowVerificationConfigComponent.tsx",
+    "construct": "class:bg-gray-100",
+    "count": 1,
+    "owner": "features/verification",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/verification/config/ui/ShowVerificationConfigComponent.tsx",
+    "construct": "class:dark:bg-gray-700",
+    "count": 1,
+    "owner": "features/verification",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/verification/config/ui/ShowVerificationConfigComponent.tsx",
+    "construct": "class:text-gray-600",
+    "count": 1,
+    "owner": "features/verification",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/verification/config/ui/ShowVerificationConfigComponent.tsx",
+    "construct": "class:dark:text-gray-400",
+    "count": 1,
+    "owner": "features/verification",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/verification/runs/ui/VerificationDetailDrawer.tsx",
+    "construct": "color:green",
+    "count": 1,
+    "owner": "features/verification",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/verification/runs/ui/VerificationDetailDrawer.tsx",
+    "construct": "color:red",
+    "count": 1,
+    "owner": "features/verification",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/verification/runs/ui/VerificationDetailDrawer.tsx",
+    "construct": "color:blue",
+    "count": 2,
+    "owner": "features/verification",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/verification/runs/ui/VerificationDetailDrawer.tsx",
+    "construct": "color:purple",
+    "count": 1,
+    "owner": "features/verification",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/verification/runs/ui/VerificationDetailDrawer.tsx",
+    "construct": "class:text-gray-500",
+    "count": 4,
+    "owner": "features/verification",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/verification/runs/ui/VerificationDetailDrawer.tsx",
+    "construct": "class:dark:text-gray-400",
+    "count": 4,
+    "owner": "features/verification",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/verification/runs/ui/VerificationDetailDrawer.tsx",
+    "construct": "class:border-gray-100",
+    "count": 1,
+    "owner": "features/verification",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/verification/runs/ui/VerificationDetailDrawer.tsx",
+    "construct": "class:dark:border-gray-700",
+    "count": 2,
+    "owner": "features/verification",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/verification/runs/ui/VerificationDetailDrawer.tsx",
+    "construct": "class:text-gray-800",
+    "count": 1,
+    "owner": "features/verification",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/verification/runs/ui/VerificationDetailDrawer.tsx",
+    "construct": "class:dark:text-gray-200",
+    "count": 1,
+    "owner": "features/verification",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/verification/runs/ui/VerificationDetailDrawer.tsx",
+    "construct": "class:text-gray-400",
+    "count": 1,
+    "owner": "features/verification",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/verification/runs/ui/VerificationDetailDrawer.tsx",
+    "construct": "class:dark:text-gray-500",
+    "count": 1,
+    "owner": "features/verification",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/verification/runs/ui/VerificationDetailDrawer.tsx",
+    "construct": "class:border-gray-200",
+    "count": 1,
+    "owner": "features/verification",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/verification/runs/ui/VerificationDetailDrawer.tsx",
+    "construct": "class:bg-gray-50",
+    "count": 1,
+    "owner": "features/verification",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/verification/runs/ui/VerificationDetailDrawer.tsx",
+    "construct": "class:text-gray-700",
+    "count": 1,
+    "owner": "features/verification",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/verification/runs/ui/VerificationDetailDrawer.tsx",
+    "construct": "class:dark:bg-gray-800",
+    "count": 1,
+    "owner": "features/verification",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/verification/runs/ui/VerificationDetailDrawer.tsx",
+    "construct": "class:dark:text-gray-300",
+    "count": 1,
+    "owner": "features/verification",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/verification/runs/ui/VerificationDetailDrawer.tsx",
+    "construct": "class:border-red-200",
+    "count": 1,
+    "owner": "features/verification",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/verification/runs/ui/VerificationDetailDrawer.tsx",
+    "construct": "class:bg-red-50",
+    "count": 1,
+    "owner": "features/verification",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/verification/runs/ui/VerificationDetailDrawer.tsx",
+    "construct": "class:text-red-700",
+    "count": 1,
+    "owner": "features/verification",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/verification/runs/ui/VerificationDetailDrawer.tsx",
+    "construct": "class:dark:border-red-900",
+    "count": 1,
+    "owner": "features/verification",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/verification/runs/ui/VerificationDetailDrawer.tsx",
+    "construct": "class:dark:bg-red-950",
+    "count": 1,
+    "owner": "features/verification",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/verification/runs/ui/VerificationDetailDrawer.tsx",
+    "construct": "class:dark:text-red-300",
+    "count": 1,
+    "owner": "features/verification",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/verification/runs/ui/VerificationDetailDrawer.tsx",
+    "construct": "class:dark:text-white",
+    "count": 1,
+    "owner": "features/verification",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/verification/runs/ui/VerificationsComponent.tsx",
+    "construct": "class:text-green-600",
+    "count": 1,
+    "owner": "features/verification",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/verification/runs/ui/VerificationsComponent.tsx",
+    "construct": "class:text-red-600",
+    "count": 2,
+    "owner": "features/verification",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/verification/runs/ui/VerificationsComponent.tsx",
+    "construct": "class:text-blue-600",
+    "count": 1,
+    "owner": "features/verification",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/verification/runs/ui/VerificationsComponent.tsx",
+    "construct": "class:text-gray-600",
+    "count": 1,
+    "owner": "features/verification",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/verification/runs/ui/VerificationsComponent.tsx",
+    "construct": "class:text-gray-500",
+    "count": 12,
+    "owner": "features/verification",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/verification/runs/ui/VerificationsComponent.tsx",
+    "construct": "color:blue",
+    "count": 1,
+    "owner": "features/verification",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/verification/runs/ui/VerificationsComponent.tsx",
+    "construct": "color:purple",
+    "count": 1,
+    "owner": "features/verification",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/verification/runs/ui/VerificationsComponent.tsx",
+    "construct": "class:text-gray-400",
+    "count": 2,
+    "owner": "features/verification",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/verification/runs/ui/VerificationsComponent.tsx",
+    "construct": "color:#ff0000",
+    "count": 1,
+    "owner": "features/verification",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/verification/runs/ui/VerificationsComponent.tsx",
+    "construct": "color:#155dfc",
+    "count": 1,
+    "owner": "features/verification",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/verification/runs/ui/VerificationsComponent.tsx",
+    "construct": "class:dark:text-gray-400",
+    "count": 9,
+    "owner": "features/verification",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/verification/runs/ui/VerificationsComponent.tsx",
+    "construct": "class:bg-white",
+    "count": 2,
+    "owner": "features/verification",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/verification/runs/ui/VerificationsComponent.tsx",
+    "construct": "class:dark:bg-gray-800",
+    "count": 2,
+    "owner": "features/verification",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/verification/runs/ui/VerificationsComponent.tsx",
+    "construct": "class:dark:text-white",
+    "count": 1,
+    "owner": "features/verification",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/verification/runs/ui/VerificationsComponent.tsx",
+    "construct": "class:border-amber-200",
+    "count": 1,
+    "owner": "features/verification",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/verification/runs/ui/VerificationsComponent.tsx",
+    "construct": "class:bg-amber-50",
+    "count": 1,
+    "owner": "features/verification",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/verification/runs/ui/VerificationsComponent.tsx",
+    "construct": "class:text-amber-900",
+    "count": 1,
+    "owner": "features/verification",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/verification/runs/ui/VerificationsComponent.tsx",
+    "construct": "class:dark:border-amber-900/50",
+    "count": 1,
+    "owner": "features/verification",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/verification/runs/ui/VerificationsComponent.tsx",
+    "construct": "class:dark:bg-amber-950/40",
+    "count": 1,
+    "owner": "features/verification",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/verification/runs/ui/VerificationsComponent.tsx",
+    "construct": "class:dark:text-amber-200",
+    "count": 1,
+    "owner": "features/verification",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/verification/runs/ui/VerificationsComponent.tsx",
+    "construct": "class:border-gray-200",
+    "count": 2,
+    "owner": "features/verification",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/verification/runs/ui/VerificationsComponent.tsx",
+    "construct": "class:dark:border-gray-700",
+    "count": 2,
+    "owner": "features/verification",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/monitoring/ui/ChangesPathComponent.tsx",
+    "construct": "class:bg-gray-300",
+    "count": 3,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/monitoring/ui/ChangesPathComponent.tsx",
+    "construct": "class:dark:bg-gray-600",
+    "count": 3,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/monitoring/ui/ChangesPathComponent.tsx",
+    "construct": "class:text-gray-400",
+    "count": 3,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/monitoring/ui/ChangesPathComponent.tsx",
+    "construct": "class:dark:text-gray-500",
+    "count": 1,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/monitoring/ui/ChangesPathComponent.tsx",
+    "construct": "class:text-gray-600",
+    "count": 4,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/monitoring/ui/ChangesPathComponent.tsx",
+    "construct": "class:dark:text-gray-400",
+    "count": 4,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/monitoring/ui/ChangesPathComponent.tsx",
+    "construct": "class:border-gray-200",
+    "count": 2,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/monitoring/ui/ChangesPathComponent.tsx",
+    "construct": "class:text-gray-900",
+    "count": 1,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/monitoring/ui/ChangesPathComponent.tsx",
+    "construct": "class:dark:border-gray-600",
+    "count": 1,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/monitoring/ui/ChangesPathComponent.tsx",
+    "construct": "class:dark:text-gray-100",
+    "count": 1,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/monitoring/ui/ChangesPathComponent.tsx",
+    "construct": "class:dark:border-gray-700",
+    "count": 1,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/monitoring/ui/ChangesPathComponent.tsx",
+    "construct": "class:text-orange-600",
+    "count": 1,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/monitoring/ui/ChangesPathComponent.tsx",
+    "construct": "class:dark:text-orange-400",
+    "count": 1,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/monitoring/ui/MonitoringFiguresComponent.tsx",
+    "construct": "class:border-gray-200",
+    "count": 1,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/monitoring/ui/MonitoringFiguresComponent.tsx",
+    "construct": "class:dark:border-gray-700",
+    "count": 1,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/monitoring/ui/MonitoringFiguresComponent.tsx",
+    "construct": "class:text-gray-600",
+    "count": 2,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/monitoring/ui/MonitoringFiguresComponent.tsx",
+    "construct": "class:dark:text-gray-400",
+    "count": 2,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/monitoring/ui/MonitoringFiguresComponent.tsx",
+    "construct": "class:text-gray-400",
+    "count": 1,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/monitoring/ui/MonitoringFiguresComponent.tsx",
+    "construct": "class:dark:text-gray-500",
+    "count": 1,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/monitoring/ui/MonitoringTipsComponent.tsx",
+    "construct": "class:text-gray-400",
+    "count": 1,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/monitoring/ui/MonitoringTipsComponent.tsx",
+    "construct": "class:dark:text-gray-500",
+    "count": 1,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/monitoring/ui/MonitoringTipsComponent.tsx",
+    "construct": "class:text-gray-600",
+    "count": 1,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/monitoring/ui/MonitoringTipsComponent.tsx",
+    "construct": "class:dark:text-gray-400",
+    "count": 1,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/monitoring/ui/PathAmountComponent.tsx",
+    "construct": "class:text-gray-600",
+    "count": 3,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/monitoring/ui/PathAmountComponent.tsx",
+    "construct": "class:dark:text-gray-400",
+    "count": 3,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/monitoring/ui/PathAmountComponent.tsx",
+    "construct": "class:bg-gray-100",
+    "count": 1,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/monitoring/ui/PathAmountComponent.tsx",
+    "construct": "class:dark:bg-gray-700",
+    "count": 1,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/monitoring/ui/PathAmountComponent.tsx",
+    "construct": "class:text-red-600",
+    "count": 1,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/monitoring/ui/PathAmountComponent.tsx",
+    "construct": "class:dark:text-red-400",
+    "count": 1,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/monitoring/ui/RestoreTimelineComponent.tsx",
+    "construct": "class:text-gray-600",
+    "count": 2,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/monitoring/ui/RestoreTimelineComponent.tsx",
+    "construct": "class:dark:text-gray-400",
+    "count": 2,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/monitoring/ui/RestoreTimelineComponent.tsx",
+    "construct": "class:bg-gray-100",
+    "count": 1,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/monitoring/ui/RestoreTimelineComponent.tsx",
+    "construct": "class:dark:bg-gray-700",
+    "count": 1,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/monitoring/ui/TechnicalDetailsComponent.tsx",
+    "construct": "class:border-gray-200",
+    "count": 1,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/monitoring/ui/TechnicalDetailsComponent.tsx",
+    "construct": "class:dark:border-gray-700",
+    "count": 1,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/monitoring/ui/VerdictBannerComponent.tsx",
+    "construct": "class:text-gray-600",
+    "count": 3,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/monitoring/ui/VerdictBannerComponent.tsx",
+    "construct": "class:dark:text-gray-400",
+    "count": 3,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/monitoring/ui/WalStreamChartsComponent.tsx",
+    "construct": "class:text-gray-600",
+    "count": 4,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/monitoring/ui/WalStreamChartsComponent.tsx",
+    "construct": "class:dark:text-gray-400",
+    "count": 4,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/monitoring/ui/WalStreamChartsComponent.tsx",
+    "construct": "class:border-gray-300",
+    "count": 1,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/monitoring/ui/WalStreamChartsComponent.tsx",
+    "construct": "class:dark:border-gray-600",
+    "count": 1,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/monitoring/ui/WalStreamMonitoringComponent.tsx",
+    "construct": "class:bg-white",
+    "count": 1,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/monitoring/ui/WalStreamMonitoringComponent.tsx",
+    "construct": "class:dark:bg-gray-800",
+    "count": 1,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/monitoring/ui/WalStreamMonitoringComponent.tsx",
+    "construct": "class:border-gray-200",
+    "count": 3,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/monitoring/ui/WalStreamMonitoringComponent.tsx",
+    "construct": "class:dark:border-gray-700",
+    "count": 3,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/monitoring/ui/WalStreamRawValuesComponent.tsx",
+    "construct": "class:text-gray-600",
+    "count": 1,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/backups/physical/monitoring/ui/WalStreamRawValuesComponent.tsx",
+    "construct": "class:dark:text-gray-400",
+    "count": 1,
+    "owner": "features/backups",
+    "removalMilestone": "7"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/notifiers/ui/edit/notifiers/EditDiscordNotifierComponent.tsx",
+    "construct": "class:text-gray-500",
+    "count": 1,
+    "owner": "features/notifiers",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/notifiers/ui/edit/notifiers/EditDiscordNotifierComponent.tsx",
+    "construct": "class:dark:text-gray-400",
+    "count": 1,
+    "owner": "features/notifiers",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/notifiers/ui/edit/notifiers/EditMattermostNotifierComponent.tsx",
+    "construct": "class:!text-blue-600",
+    "count": 1,
+    "owner": "features/notifiers",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/notifiers/ui/edit/notifiers/EditMattermostNotifierComponent.tsx",
+    "construct": "color:gray",
+    "count": 5,
+    "owner": "features/notifiers",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/notifiers/ui/edit/notifiers/EditMattermostNotifierComponent.tsx",
+    "construct": "class:text-blue-600",
+    "count": 1,
+    "owner": "features/notifiers",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/notifiers/ui/edit/notifiers/EditMattermostNotifierComponent.tsx",
+    "construct": "class:text-gray-500",
+    "count": 1,
+    "owner": "features/notifiers",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/notifiers/ui/edit/notifiers/EditMattermostNotifierComponent.tsx",
+    "construct": "class:dark:text-gray-400",
+    "count": 1,
+    "owner": "features/notifiers",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/notifiers/ui/edit/notifiers/EditSlackNotifierComponent.tsx",
+    "construct": "class:!text-blue-600",
+    "count": 1,
+    "owner": "features/notifiers",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/notifiers/ui/edit/notifiers/EditTeamsNotifierComponent.tsx",
+    "construct": "class:!text-blue-600",
+    "count": 1,
+    "owner": "features/notifiers",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/notifiers/ui/edit/notifiers/EditTeamsNotifierComponent.tsx",
+    "construct": "color:gray",
+    "count": 1,
+    "owner": "features/notifiers",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/notifiers/ui/edit/notifiers/EditTelegramNotifierComponent.tsx",
+    "construct": "class:!text-blue-600",
+    "count": 1,
+    "owner": "features/notifiers",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/notifiers/ui/edit/notifiers/EditTelegramNotifierComponent.tsx",
+    "construct": "class:text-blue-600",
+    "count": 1,
+    "owner": "features/notifiers",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/notifiers/ui/edit/notifiers/EditTelegramNotifierComponent.tsx",
+    "construct": "class:text-gray-500",
+    "count": 2,
+    "owner": "features/notifiers",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/notifiers/ui/edit/notifiers/EditTelegramNotifierComponent.tsx",
+    "construct": "class:dark:text-gray-400",
+    "count": 2,
+    "owner": "features/notifiers",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/notifiers/ui/edit/notifiers/EditTelegramNotifierComponent.tsx",
+    "construct": "class:bg-gray-100",
+    "count": 1,
+    "owner": "features/notifiers",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/notifiers/ui/edit/notifiers/EditWebhookNotifierComponent.tsx",
+    "construct": "color:gray",
+    "count": 1,
+    "owner": "features/notifiers",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/notifiers/ui/edit/notifiers/EditWebhookNotifierComponent.tsx",
+    "construct": "class:text-orange-700",
+    "count": 1,
+    "owner": "features/notifiers",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/notifiers/ui/edit/notifiers/EditWebhookNotifierComponent.tsx",
+    "construct": "class:text-gray-500",
+    "count": 2,
+    "owner": "features/notifiers",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/notifiers/ui/edit/notifiers/EditWebhookNotifierComponent.tsx",
+    "construct": "class:dark:text-gray-400",
+    "count": 3,
+    "owner": "features/notifiers",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/notifiers/ui/edit/notifiers/EditWebhookNotifierComponent.tsx",
+    "construct": "class:bg-gray-100",
+    "count": 4,
+    "owner": "features/notifiers",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/notifiers/ui/edit/notifiers/EditWebhookNotifierComponent.tsx",
+    "construct": "class:dark:bg-gray-700",
+    "count": 2,
+    "owner": "features/notifiers",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/notifiers/ui/edit/notifiers/EditWebhookNotifierComponent.tsx",
+    "construct": "class:text-red-500",
+    "count": 1,
+    "owner": "features/notifiers",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/notifiers/ui/edit/notifiers/EditWebhookNotifierComponent.tsx",
+    "construct": "class:dark:bg-gray-800",
+    "count": 2,
+    "owner": "features/notifiers",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/notifiers/ui/edit/notifiers/EditWebhookNotifierComponent.tsx",
+    "construct": "class:text-blue-600",
+    "count": 2,
+    "owner": "features/notifiers",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/notifiers/ui/edit/notifiers/EditWebhookNotifierComponent.tsx",
+    "construct": "class:dark:text-blue-400",
+    "count": 2,
+    "owner": "features/notifiers",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/notifiers/ui/edit/notifiers/EditWebhookNotifierComponent.tsx",
+    "construct": "class:border-gray-200",
+    "count": 1,
+    "owner": "features/notifiers",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/notifiers/ui/edit/notifiers/EditWebhookNotifierComponent.tsx",
+    "construct": "class:dark:border-gray-600",
+    "count": 1,
+    "owner": "features/notifiers",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/notifiers/ui/edit/notifiers/EditWebhookNotifierComponent.tsx",
+    "construct": "class:text-gray-600",
+    "count": 1,
+    "owner": "features/notifiers",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/notifiers/ui/show/notifier/ShowWebhookNotifierComponent.tsx",
+    "construct": "class:text-gray-600",
+    "count": 1,
+    "owner": "features/notifiers",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/notifiers/ui/show/notifier/ShowWebhookNotifierComponent.tsx",
+    "construct": "class:bg-gray-50",
+    "count": 1,
+    "owner": "features/notifiers",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/notifiers/ui/show/notifier/ShowWebhookNotifierComponent.tsx",
+    "construct": "class:dark:bg-gray-700",
+    "count": 1,
+    "owner": "features/notifiers",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/storages/ui/edit/storages/EditAzureBlobStorageComponent.tsx",
+    "construct": "color:gray",
+    "count": 3,
+    "owner": "features/storages",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/storages/ui/edit/storages/EditAzureBlobStorageComponent.tsx",
+    "construct": "class:text-blue-600",
+    "count": 1,
+    "owner": "features/storages",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/storages/ui/edit/storages/EditAzureBlobStorageComponent.tsx",
+    "construct": "class:hover:text-blue-800",
+    "count": 1,
+    "owner": "features/storages",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/storages/ui/edit/storages/EditFTPStorageComponent.tsx",
+    "construct": "color:gray",
+    "count": 3,
+    "owner": "features/storages",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/storages/ui/edit/storages/EditFTPStorageComponent.tsx",
+    "construct": "class:text-blue-600",
+    "count": 1,
+    "owner": "features/storages",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/storages/ui/edit/storages/EditFTPStorageComponent.tsx",
+    "construct": "class:hover:text-blue-800",
+    "count": 1,
+    "owner": "features/storages",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/storages/ui/edit/storages/EditGoogleDriveStorageComponent.tsx",
+    "construct": "class:text-blue-600",
+    "count": 1,
+    "owner": "features/storages",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/storages/ui/edit/storages/EditLocalStorageComponent.tsx",
+    "construct": "class:text-yellow-600",
+    "count": 1,
+    "owner": "features/storages",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/storages/ui/edit/storages/EditLocalStorageComponent.tsx",
+    "construct": "class:dark:text-yellow-400",
+    "count": 1,
+    "owner": "features/storages",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/storages/ui/edit/storages/EditNASStorageComponent.tsx",
+    "construct": "class:text-yellow-600",
+    "count": 1,
+    "owner": "features/storages",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/storages/ui/edit/storages/EditNASStorageComponent.tsx",
+    "construct": "color:gray",
+    "count": 3,
+    "owner": "features/storages",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/storages/ui/edit/storages/EditRcloneStorageComponent.tsx",
+    "construct": "color:gray",
+    "count": 2,
+    "owner": "features/storages",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/storages/ui/edit/storages/EditRcloneStorageComponent.tsx",
+    "construct": "class:text-gray-400",
+    "count": 1,
+    "owner": "features/storages",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/storages/ui/edit/storages/EditRcloneStorageComponent.tsx",
+    "construct": "class:text-blue-600",
+    "count": 1,
+    "owner": "features/storages",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/storages/ui/edit/storages/EditS3StorageComponent.tsx",
+    "construct": "class:text-blue-600",
+    "count": 2,
+    "owner": "features/storages",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/storages/ui/edit/storages/EditS3StorageComponent.tsx",
+    "construct": "color:gray",
+    "count": 5,
+    "owner": "features/storages",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/storages/ui/edit/storages/EditS3StorageComponent.tsx",
+    "construct": "class:hover:text-blue-800",
+    "count": 1,
+    "owner": "features/storages",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/storages/ui/edit/storages/EditSFTPStorageComponent.tsx",
+    "construct": "color:gray",
+    "count": 3,
+    "owner": "features/storages",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/storages/ui/edit/storages/EditSFTPStorageComponent.tsx",
+    "construct": "class:text-blue-600",
+    "count": 1,
+    "owner": "features/storages",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/storages/ui/edit/storages/EditSFTPStorageComponent.tsx",
+    "construct": "class:hover:text-blue-800",
+    "count": 1,
+    "owner": "features/storages",
+    "removalMilestone": "4"
+  },
+  {
+    "rule": "direct-color",
+    "source": "features/databases/ui/DatabaseConfigComponent.tsx",
+    "construct": "class:border-t-blue-500",
+    "count": 1,
+    "owner": "features/databases",
+    "removalMilestone": "5"
+  },
+  {
+    "rule": "direct-color",
+    "source": "shared/toast/ToastHelper.ts",
+    "construct": "style.backgroundColor:#fff",
+    "count": 1,
+    "owner": "shared/toast",
+    "removalMilestone": "8"
+  },
+  {
+    "rule": "direct-color",
+    "source": "shared/toast/ToastHelper.ts",
+    "construct": "style.color:#000",
+    "count": 1,
+    "owner": "shared/toast",
+    "removalMilestone": "8"
+  },
+  {
+    "rule": "direct-color",
+    "source": "shared/toast/ToastHelper.ts",
+    "construct": "style.border:1px solid gainsboro",
+    "count": 1,
+    "owner": "shared/toast",
+    "removalMilestone": "8"
+  },
+  {
+    "rule": "direct-color",
+    "source": "shared/toast/ToastHelper.ts",
+    "construct": "style.boxShadow:0 1rem 3rem rgba(0, 0, 0, .175)",
+    "count": 1,
+    "owner": "shared/toast",
+    "removalMilestone": "8"
+  }
+]

@@ -68,8 +68,8 @@ export const EditDatabaseNotifiersComponent = ({
     setIsSaving(false);
   };
 
-  const loadNotifiers = async () => {
-    setIsNotifiersLoading(true);
+  const loadNotifiers = async (isSilent = false) => {
+    if (!isSilent) setIsNotifiersLoading(true);
 
     try {
       setNotifiers(await notifierApi.listAllNotifiers(workspaceId));
@@ -180,8 +180,8 @@ export const EditDatabaseNotifiersComponent = ({
             isShowName
             isShowClose={false}
             onClose={() => setShowCreateNotifier(false)}
+            onPersisted={() => loadNotifiers(true)}
             onChanged={() => {
-              loadNotifiers();
               setShowCreateNotifier(false);
             }}
           />

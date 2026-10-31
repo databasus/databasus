@@ -257,6 +257,8 @@ export const MainScreenComponent = () => {
         <div className="ml-auto flex items-center gap-2 md:hidden">
           <Button
             type="text"
+            aria-label={t('app.navigation.menu')}
+            aria-expanded={isSidebarOpen}
             icon={<MenuOutlined style={{ fontSize: '20px' }} />}
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
             className="mt-1"
@@ -321,7 +323,7 @@ export const MainScreenComponent = () => {
                 </div>
               ) : (
                 <>
-                  <div className="flex-1 md:pl-1">
+                  <div className="min-w-0 flex-1 md:pl-1">
                     {selectedTab === 'notifiers' && selectedWorkspace && (
                       <NotifiersComponent
                         contentHeight={contentHeight}

@@ -393,7 +393,7 @@ export const RestoresComponent = ({ database, backup }: Props) => {
             </>
           }
           actionText={t('restores.cancelConfirmation.confirm')}
-          actionButtonColor="red"
+          isDestructive
         />
       )}
     </div>

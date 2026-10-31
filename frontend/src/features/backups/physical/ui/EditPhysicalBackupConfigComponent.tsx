@@ -783,7 +783,7 @@ export const EditPhysicalBackupConfigComponent = ({
           }}
           onDecline={() => setIsShowWarn(false)}
           description={t('backups.storageSwitch.warning')}
-          actionButtonColor="red"
+          isDestructive
           actionText={t('backups.storageSwitch.confirm')}
           cancelText={t('common.actions.cancel')}
         />

@@ -6,9 +6,9 @@ import {
   WalStreamReasonCode,
   WalStreamReasonLevel,
 } from '../../../../../entities/backups/physical';
+import { createTestWalStreamStatistics } from '../../../../../shared/lib/test/buildWalStreamStatistics';
 import { MonitoringTone } from '../model/MonitoringTone';
 import { VerdictIcon } from '../model/VerdictIcon';
-import { createTestWalStreamStatistics } from './testWalStreamStatistics';
 import { getVerdictBanner } from './verdictBanner';
 
 // The entity's public API imports its API client, and the client's config module reads window at

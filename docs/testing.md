@@ -33,6 +33,20 @@ Cleanup unmounts before cancelling controlled pending responses and disposing HT
 
 Testing Library and user-event drive controls by accessible roles and names. Tests wait for visible state, an observed request or response completion. Race tests release individual responses in a chosen order; polling tests advance a local fake clock. They never use a fixed pause to give a request time to finish. The [testing skill](../.agents/skills/testing/SKILL.md#frontend-screen-tests) gives the authoring rules.
 
+### Browser UI tests
+
+`pnpm --dir frontend test:browser --project=ui` builds the production application and exercises its actual routes, providers and domain API facades with finite synthetic HTTP responses. It needs Docker, not backend services. The real-API `e2e` project remains unavailable and selecting it fails explicitly.
+
+The entry point builds a cached dependency image from the digest-pinned Playwright Linux/Chromium/font image in `frontend/browser/environment.json`. Node and pnpm match mise; Node's archive is hash-checked and dependency installation uses the frozen lockfile. Each run gets a unique temporary checkout, copied dependencies, build/cache outputs, container name and unprivileged runtime user. The production preview binds a free internal port, passes readiness and stops with its owning container. Success, failure and interruption remove only that run's container and temporary directory. The reusable immutable dependency image remains cached; no shared database or container is stopped.
+
+`frontend/browser/HttpFixture.ts` types API response builders through generated operations. It matches explicit methods and finite paths and independently records undeclared requests and page errors. Teardown fails even if application code catches an HTTP failure. Only same-origin GET navigation and static resource requests pass through; fetch/XHR requests require fixtures regardless of their path or file extension. Browser scenarios may share pure response builders with screen tests, but do not replace domain APIs or providers. Non-English assertions read the interface dictionaries.
+
+The suite checks SMTP state and requests, keyboard/disclosure/confirmation focus, scoped accessibility, local fonts and fallback, 320 CSS-pixel reflow, actual text enlargement and WAL plot geometry. Screen tests remain the faster layer for overlapping responses and editing-session policy.
+
+Visual references live in `frontend/browser/references`. Ordinary runs use `updateSnapshots: 'none'`: missing or changed images fail without updating expected images. To deliberately replace references, run `pnpm --dir frontend test:browser:update` in the same pinned environment and inspect the resulting images. Locale, theme, viewport, data, time, reduced motion and font readiness are fixed by the scenarios. Synthetic traces and actual/diff images are copied into the unique run directory under `frontend/browser-results/`; CI uploads failures.
+
+Node runner/style fixtures live under `frontend/tooling/*.test.ts` and are explicitly included in Vitest. Playwright scenarios remain outside Vitest discovery. The frontend lint task also runs `lint:styles`, which checks parsed presentation against its exact shrinking baseline. The [design document](frontend-design.md#enforcement-and-migration) explains ownership.
+
 A module whose API tests outlast one package may split them into test-only packages under its directory, such as `internal/modules/backups/physicalapitests/`.
 
 Module API tests cover most behavior. A unit test without the application is used only for pure logic that has no HTTP entry point, or that is too slow to enumerate through HTTP. Examples are the scheduler's decision function, retention arithmetic, WAL position math, manifest reconstruction and parsers.
@@ -117,5 +131,7 @@ Local and CI preparation never reset shared source servers. Seed tests own their
 | Verification agent end-to-end tests on Docker | `mise run agent:e2e`                                                                                 |
 | Verification agent subset on rootful Podman   | `mise run agent:e2e-podman`                                                                          |
 | Frontend                                      | `pnpm test` in `frontend/`, or `pnpm test -t 'scenario text'`                                        |
+| Frontend production browser UI                | `pnpm --dir frontend test:browser --project=ui`                                                     |
+| Update browser visual references              | `pnpm --dir frontend test:browser:update`                                                          |
 | Upgrade test                                  | `mise run backend:test-upgrade`                                                                      |
 | Filesystem tests                              | `mise run test-filesystem`                                                                           |
