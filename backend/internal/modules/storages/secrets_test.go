@@ -1,6 +1,7 @@
 package storages_test
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"testing"
@@ -59,6 +60,10 @@ func TestListStorages(t *testing.T) {
 			WorkspaceId: tm.workspace.Id,
 			Name:        "Archive",
 			Settings: newSftpSettings(t, apiclient.SftpStorageSettings{
+				AuthMethods: []apiclient.SftpAuthMethod{
+					apiclient.SftpAuthMethodPASSWORD,
+					apiclient.SftpAuthMethodPRIVATEKEY,
+				},
 				Host:       "sftp.example.com",
 				Port:       22,
 				Username:   "backup",
@@ -336,6 +341,10 @@ func TestStorageSecretsLifecycle(t *testing.T) {
 				t.Helper()
 
 				return newSftpSettings(t, apiclient.SftpStorageSettings{
+					AuthMethods: []apiclient.SftpAuthMethod{
+						apiclient.SftpAuthMethodPASSWORD,
+						apiclient.SftpAuthMethodPRIVATEKEY,
+					},
 					Host:       "sftp.example.com",
 					Port:       22,
 					Username:   "testuser",
@@ -348,6 +357,10 @@ func TestStorageSecretsLifecycle(t *testing.T) {
 				t.Helper()
 
 				return newSftpSettings(t, apiclient.SftpStorageSettings{
+					AuthMethods: []apiclient.SftpAuthMethod{
+						apiclient.SftpAuthMethodPASSWORD,
+						apiclient.SftpAuthMethodPRIVATEKEY,
+					},
 					Host:     "sftp2.example.com",
 					Port:     2222,
 					Username: "testuser2",
@@ -514,4 +527,32 @@ func getStoredS3Keys(t *testing.T, app *apptest.App, storageID uuid.UUID) []stri
 		"SELECT s3_access_key || ' ' || s3_secret_key FROM storages_s3 WHERE storage_id = ?", storageID)
 
 	return storedKeys
+}
+
+func TestSftpAuthenticationMetadata(t *testing.T) {
+	t.Parallel()
+	t.Run("reports private key authentication when saved credentials are hidden", func(t *testing.T) {
+		t.Parallel()
+		storageTeam := newTeam(t)
+		createdStorage := createStorage(t, storageTeam.owner, apiclient.StorageCreate{
+			WorkspaceId: storageTeam.workspace.Id,
+			Name:        "Key archive",
+			Settings: newSftpSettings(t, apiclient.SftpStorageSettings{
+				AuthMethods: []apiclient.SftpAuthMethod{apiclient.SftpAuthMethodPRIVATEKEY},
+				Host:        "sftp.example.com", Port: 22, Username: "backup", PrivateKey: new(sftpPrivateKey),
+			}),
+		})
+
+		response, err := storageTeam.owner.Client.GetStorageWithResponse(t.Context(), createdStorage.Id)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, response.StatusCode(), string(response.Body))
+
+		var storageBody struct {
+			Settings map[string]any `json:"settings"`
+		}
+		require.NoError(t, json.Unmarshal(response.Body, &storageBody))
+		assert.Equal(t, []any{"PRIVATE_KEY"}, storageBody.Settings["authMethods"])
+		assert.NotContains(t, storageBody.Settings, "password")
+		assert.NotContains(t, storageBody.Settings, "privateKey")
+	})
 }

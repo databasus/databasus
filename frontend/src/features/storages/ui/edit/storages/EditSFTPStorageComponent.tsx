@@ -1,206 +1,164 @@
-import { DownOutlined, InfoCircleOutlined, UpOutlined } from '@ant-design/icons';
-import { Checkbox, Input, InputNumber, Radio, Tooltip } from 'antd';
-import { useState } from 'react';
+import { Checkbox, Form, Input, InputNumber, Select } from 'antd';
+import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import type { SftpStorageSettings } from '../../../../../entities/storages';
+import {
+  SFTP_AUTH_METHOD_LABEL_KEYS,
+  SftpAuthMethod,
+  type SftpStorageSettings,
+} from '../../../../../entities/storages';
 import { toOptionalValue } from '../../../../../shared/lib';
+import { AdvancedSettingsToggleComponent } from '../../../../../shared/ui';
 
 interface Props {
   settings: SftpStorageSettings;
+  savedAuthMethods: SftpAuthMethod[];
   onChange: (settings: SftpStorageSettings) => void;
 }
 
-type SftpAuthMethod = 'password' | 'privateKey';
-
-export function EditSFTPStorageComponent({ settings, onChange }: Props) {
+export function EditSFTPStorageComponent({ settings, savedAuthMethods, onChange }: Props) {
+  const [isShowAdvanced, setIsShowAdvanced] = useState(settings.isSkipHostKeyVerify);
   const { t } = useTranslation();
-  const hasAdvancedValues = !!settings.isSkipHostKeyVerify;
-  const [showAdvanced, setShowAdvanced] = useState(hasAdvancedValues);
-
-  const initialAuthMethod: SftpAuthMethod = settings.privateKey ? 'privateKey' : 'password';
-  const [authMethod, setAuthMethod] = useState<SftpAuthMethod>(initialAuthMethod);
+  const controlId = useId();
+  const hasPassword = settings.authMethods.includes(SftpAuthMethod.PASSWORD);
+  const hasPrivateKey = settings.authMethods.includes(SftpAuthMethod.PRIVATE_KEY);
+  const isPasswordSaved = savedAuthMethods.includes(SftpAuthMethod.PASSWORD);
+  const isPrivateKeySaved = savedAuthMethods.includes(SftpAuthMethod.PRIVATE_KEY);
+  const authMethodOptions = [
+    { value: SftpAuthMethod.PASSWORD, label: t(SFTP_AUTH_METHOD_LABEL_KEYS.PASSWORD) },
+    { value: SftpAuthMethod.PRIVATE_KEY, label: t(SFTP_AUTH_METHOD_LABEL_KEYS.PRIVATE_KEY) },
+    { value: 'BOTH', label: t('storages.sftpAuthMethods.both') },
+  ];
 
   return (
-    <>
-      <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
-        <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">{t('common.fields.host')}</div>
+    <Form component="div" layout="vertical" size="small" className="w-full max-w-sm">
+      <Form.Item label={t('common.fields.host')} htmlFor={`${controlId}-host`}>
         <Input
-          value={settings.host || ''}
-          onChange={(e) => {
-            onChange({ ...settings, host: e.target.value.trim() });
-          }}
-          size="small"
-          className="w-full max-w-[250px]"
+          id={`${controlId}-host`}
+          value={settings.host}
+          onChange={(event) => onChange({ ...settings, host: event.target.value.trim() })}
           // eslint-disable-next-line i18next/no-literal-string -- example hostname
           placeholder="sftp.example.com"
         />
-      </div>
-
-      <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
-        <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">{t('common.fields.port')}</div>
+      </Form.Item>
+      <Form.Item label={t('common.fields.port')} htmlFor={`${controlId}-port`}>
         <InputNumber
+          id={`${controlId}-port`}
           value={settings.port}
-          onChange={(value) => {
-            if (!value) return;
-
-            onChange({ ...settings, port: value });
-          }}
-          size="small"
-          className="w-full max-w-[250px]"
+          onChange={(port) => port && onChange({ ...settings, port })}
           min={1}
           max={65535}
-          placeholder="22"
         />
-      </div>
-
-      <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
-        <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">{t('common.fields.username')}</div>
+      </Form.Item>
+      <Form.Item label={t('common.fields.username')} htmlFor={`${controlId}-username`}>
         <Input
-          value={settings.username || ''}
-          onChange={(e) => {
-            onChange({ ...settings, username: e.target.value.trim() });
-          }}
-          size="small"
-          className="w-full max-w-[250px]"
-          placeholder={t('storages.edit.usernamePlaceholder')}
+          id={`${controlId}-username`}
+          value={settings.username}
+          onChange={(event) => onChange({ ...settings, username: event.target.value.trim() })}
+          autoComplete="off"
         />
-      </div>
-
-      <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
-        <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">{t('storages.fields.authMethod')}</div>
-        <Radio.Group
-          value={authMethod}
-          onChange={(e) => {
-            const newMethod = e.target.value as SftpAuthMethod;
-            setAuthMethod(newMethod);
-
-            if (newMethod === 'password') {
-              onChange({ ...settings, privateKey: undefined });
-            } else {
-              onChange({ ...settings, password: undefined });
-            }
+      </Form.Item>
+      <Form.Item label={t('storages.fields.authMethod')} htmlFor={`${controlId}-methods`}>
+        <Select
+          id={`${controlId}-methods`}
+          value={hasPassword && hasPrivateKey ? 'BOTH' : settings.authMethods[0]}
+          options={authMethodOptions}
+          virtual={false}
+          onChange={(method) => {
+            const authMethods: SftpAuthMethod[] =
+              method === 'BOTH'
+                ? [SftpAuthMethod.PASSWORD, SftpAuthMethod.PRIVATE_KEY]
+                : [method as SftpAuthMethod];
+            onChange({
+              ...settings,
+              authMethods,
+              password: authMethods.includes(SftpAuthMethod.PASSWORD)
+                ? settings.password
+                : undefined,
+              privateKey: authMethods.includes(SftpAuthMethod.PRIVATE_KEY)
+                ? settings.privateKey
+                : undefined,
+            });
           }}
-          size="small"
+        />
+      </Form.Item>
+      {hasPassword && (
+        <Form.Item
+          label={t('common.fields.password')}
+          htmlFor={`${controlId}-password`}
+          help={
+            <span id={`${controlId}-password-help`}>
+              {isPasswordSaved
+                ? t('storages.edit.sftp.savedPassword')
+                : !settings.password
+                  ? t('storages.edit.sftp.requiredPassword')
+                  : undefined}
+            </span>
+          }
+          validateStatus={!settings.password && !isPasswordSaved ? 'error' : undefined}
         >
-          <Radio value="password">{t('storages.sftpAuthMethods.password')}</Radio>
-          <Radio value="privateKey">{t('storages.sftpAuthMethods.privateKey')}</Radio>
-        </Radio.Group>
-      </div>
-
-      {authMethod === 'password' && (
-        <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
-          <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">{t('common.fields.password')}</div>
           <Input.Password
-            value={settings.password || ''}
-            onChange={(e) => {
-              onChange({ ...settings, password: toOptionalValue(e.target.value) });
-            }}
-            size="small"
-            className="w-full max-w-[250px]"
-            placeholder={t('storages.edit.passwordPlaceholder')}
-            autoComplete="off"
-            data-1p-ignore
-            data-lpignore="true"
-            data-form-type="other"
+            id={`${controlId}-password`}
+            aria-describedby={`${controlId}-password-help`}
+            value={settings.password ?? ''}
+            onChange={(event) =>
+              onChange({ ...settings, password: toOptionalValue(event.target.value) })
+            }
+            autoComplete="new-password"
           />
-        </div>
+        </Form.Item>
       )}
-
-      {authMethod === 'privateKey' && (
-        <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
-          <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">
-            {t('storages.fields.privateKey')}
-          </div>
-          <div className="flex w-full max-w-[250px] flex-col">
-            <Input.TextArea
-              value={settings.privateKey || ''}
-              onChange={(e) => {
-                onChange({ ...settings, privateKey: toOptionalValue(e.target.value) });
-              }}
-              size="small"
-              className="w-full"
-              // eslint-disable-next-line i18next/no-literal-string -- key format example, not copy
-              placeholder="-----BEGIN OPENSSH PRIVATE KEY-----"
-              rows={4}
-            />
-            <Tooltip
-              className="mt-1 cursor-pointer"
-              title={t('storages.edit.sftp.privateKeyTooltip')}
-            >
-              <InfoCircleOutlined style={{ color: 'gray' }} />
-            </Tooltip>
-          </div>
-        </div>
-      )}
-
-      <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
-        <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">{t('storages.fields.path')}</div>
-        <div className="flex items-center">
-          <Input
-            value={settings.path || ''}
-            onChange={(e) => {
-              let pathValue = e.target.value.trim();
-              if (pathValue.startsWith('/')) {
-                pathValue = pathValue.substring(1);
-              }
-
-              onChange({ ...settings, path: pathValue || undefined });
-            }}
-            size="small"
-            className="w-full max-w-[250px]"
-            placeholder={t('storages.edit.optionalPlaceholder', { example: 'backups' })}
-          />
-
-          <Tooltip className="cursor-pointer" title={t('storages.edit.remotePathTooltip')}>
-            <InfoCircleOutlined className="ml-2" style={{ color: 'gray' }} />
-          </Tooltip>
-        </div>
-      </div>
-
-      <div className="mt-4 mb-3 flex items-center">
-        <div
-          className="flex cursor-pointer items-center text-sm text-blue-600 hover:text-blue-800"
-          onClick={() => setShowAdvanced(!showAdvanced)}
+      {hasPrivateKey && (
+        <Form.Item
+          label={t('storages.fields.privateKey')}
+          htmlFor={`${controlId}-key`}
+          help={
+            <span id={`${controlId}-key-help`}>
+              {isPrivateKeySaved
+                ? t('storages.edit.sftp.savedPrivateKey')
+                : !settings.privateKey
+                  ? t('storages.edit.sftp.requiredPrivateKey')
+                  : t('storages.edit.sftp.privateKeyTooltip')}
+            </span>
+          }
+          validateStatus={!settings.privateKey && !isPrivateKeySaved ? 'error' : undefined}
         >
-          <span className="mr-2">{t('storages.edit.advancedSettings')}</span>
-
-          {showAdvanced ? (
-            <UpOutlined style={{ fontSize: '12px' }} />
-          ) : (
-            <DownOutlined style={{ fontSize: '12px' }} />
-          )}
-        </div>
-      </div>
-
-      {showAdvanced && (
-        <>
-          <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
-            <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">
-              {t('storages.fields.skipHostKey')}
-            </div>
-            <div className="flex items-center">
-              <Checkbox
-                checked={settings.isSkipHostKeyVerify || false}
-                onChange={(e) => {
-                  onChange({ ...settings, isSkipHostKeyVerify: e.target.checked });
-                }}
-              >
-                {t('storages.edit.sftp.skipHostKeyVerification')}
-              </Checkbox>
-
-              <Tooltip
-                className="cursor-pointer"
-                title={t('storages.edit.sftp.skipHostKeyTooltip')}
-              >
-                <InfoCircleOutlined className="ml-2" style={{ color: 'gray' }} />
-              </Tooltip>
-            </div>
-          </div>
-        </>
+          <Input.TextArea
+            id={`${controlId}-key`}
+            aria-describedby={`${controlId}-key-help`}
+            value={settings.privateKey ?? ''}
+            onChange={(event) =>
+              onChange({ ...settings, privateKey: toOptionalValue(event.target.value) })
+            }
+            rows={4}
+          />
+        </Form.Item>
       )}
-
-      <div className="mb-5" />
-    </>
+      <Form.Item label={t('storages.fields.path')} htmlFor={`${controlId}-path`}>
+        <Input
+          id={`${controlId}-path`}
+          value={settings.path ?? ''}
+          onChange={(event) => onChange({ ...settings, path: toOptionalValue(event.target.value) })}
+        />
+      </Form.Item>
+      <AdvancedSettingsToggleComponent
+        label={t('storages.edit.advancedSettings')}
+        isShowAdvanced={isShowAdvanced}
+        onToggle={() => setIsShowAdvanced(!isShowAdvanced)}
+        regionId={`${controlId}-advanced`}
+      />
+      <div id={`${controlId}-advanced`} hidden={!isShowAdvanced}>
+        <Form.Item>
+          <Checkbox
+            checked={settings.isSkipHostKeyVerify}
+            onChange={(event) =>
+              onChange({ ...settings, isSkipHostKeyVerify: event.target.checked })
+            }
+          >
+            {t('storages.edit.sftp.skipHostKeyVerification')}
+          </Checkbox>
+        </Form.Item>
+      </div>
+    </Form>
   );
 }

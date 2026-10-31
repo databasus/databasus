@@ -72,6 +72,7 @@ func TestTestStorageSettings(t *testing.T) {
 				WorkspaceId: tm.workspace.Id,
 				Name:        "Archive",
 				Settings: newSftpSettings(t, apiclient.SftpStorageSettings{
+					AuthMethods:         []apiclient.SftpAuthMethod{apiclient.SftpAuthMethodPASSWORD},
 					Host:                sftpServer.Host,
 					Port:                sftpServer.Port,
 					Username:            containers.SftpUsername,
@@ -85,6 +86,7 @@ func TestTestStorageSettings(t *testing.T) {
 				WorkspaceId: tm.workspace.Id,
 				StorageId:   &sftpStorage.Id,
 				Settings: newSftpSettings(t, apiclient.SftpStorageSettings{
+					AuthMethods:         []apiclient.SftpAuthMethod{apiclient.SftpAuthMethodPASSWORD},
 					Host:                sftpServer.Host,
 					Port:                sftpServer.Port,
 					Username:            containers.SftpUsername,
@@ -128,10 +130,11 @@ func TestTestStorageSettings(t *testing.T) {
 				WorkspaceId: tm.workspace.Id,
 				Name:        "Archive",
 				Settings: newSftpSettings(t, apiclient.SftpStorageSettings{
-					Host:     listener.host,
-					Port:     listener.port,
-					Username: "backup",
-					Password: new("stored-password"),
+					AuthMethods: []apiclient.SftpAuthMethod{apiclient.SftpAuthMethodPASSWORD},
+					Host:        listener.host,
+					Port:        listener.port,
+					Username:    "backup",
+					Password:    new("stored-password"),
 				}),
 			})
 

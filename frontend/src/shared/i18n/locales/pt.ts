@@ -2067,6 +2067,7 @@ export const pt: typeof en = {
       connectionString: 'String de conexão',
     },
     sftpAuthMethods: {
+      both: 'Senha e chave privada',
       password: 'Senha',
       privateKey: 'Chave privada',
     },
@@ -2216,6 +2217,10 @@ export const pt: typeof en = {
           'Não verifica o certificado TLS. Ative se o seu servidor FTP usa um certificado autoassinado. Atenção: isso reduz a segurança.',
       },
       sftp: {
+        savedPassword: 'Há uma senha salva. Deixe o campo vazio para mantê-la.',
+        savedPrivateKey: 'Há uma chave privada salva. Deixe o campo vazio para mantê-la.',
+        requiredPassword: 'Digite uma senha para este método.',
+        requiredPrivateKey: 'Digite uma chave privada para este método.',
         privateKeyTooltip:
           'Cole sua chave privada SSH (formato PEM). Aceita chaves RSA, DSA, ECDSA e Ed25519.',
         skipHostKeyVerification: 'Não verificar a chave do host',

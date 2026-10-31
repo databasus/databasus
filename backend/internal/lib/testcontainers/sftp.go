@@ -1,6 +1,7 @@
 package containers
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -39,11 +40,30 @@ func StartSftp(t *testing.T) Endpoint {
 func StartSftpContainer(t *testing.T) ContainerHandle {
 	t.Helper()
 
+	return StartSftpWithCredentials(t, SftpCredentials{Password: SftpPassword, PublicKey: ""})
+}
+
+type SftpCredentials struct {
+	Password  string
+	PublicKey string
+}
+
+func StartSftpWithCredentials(t *testing.T, credentials SftpCredentials) ContainerHandle {
+	t.Helper()
+
 	req := testcontainers.ContainerRequest{
 		Image:        "atmoz/sftp:latest",
 		ExposedPorts: []string{sftpPort},
-		Cmd:          []string{SftpUsername + ":" + SftpPassword + ":1001::" + SftpUploadDir},
+		Cmd:          []string{SftpUsername + ":" + credentials.Password + ":1001::" + SftpUploadDir},
 		WaitingFor:   sftpReady(),
+	}
+
+	if credentials.PublicKey != "" {
+		req.Files = []testcontainers.ContainerFile{{
+			Reader:            strings.NewReader(credentials.PublicKey),
+			ContainerFilePath: "/home/" + SftpUsername + "/.ssh/keys/backup.pub",
+			FileMode:          0o644,
+		}}
 	}
 
 	return startContainer(t, req, sftpPort)

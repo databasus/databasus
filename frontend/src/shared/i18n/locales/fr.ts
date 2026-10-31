@@ -2090,6 +2090,7 @@ export const fr: typeof en = {
       connectionString: 'Chaîne de connexion',
     },
     sftpAuthMethods: {
+      both: 'Mot de passe et clé privée',
       password: 'Mot de passe',
       privateKey: 'Clé privée',
     },
@@ -2242,6 +2243,10 @@ export const fr: typeof en = {
           'Ne pas vérifier le certificat TLS. Activez cette option si votre serveur FTP utilise un certificat auto-signé. Attention : cela réduit la sécurité.',
       },
       sftp: {
+        savedPassword: 'Un mot de passe est enregistré. Laissez le champ vide pour le conserver.',
+        savedPrivateKey: 'Une clé privée est enregistrée. Laissez le champ vide pour la conserver.',
+        requiredPassword: 'Saisissez un mot de passe pour cette méthode.',
+        requiredPrivateKey: 'Saisissez une clé privée pour cette méthode.',
         privateKeyTooltip:
           'Collez votre clé privée SSH (format PEM). Les clés RSA, DSA, ECDSA et Ed25519 sont prises en charge.',
         skipHostKeyVerification: "Ignorer la vérification de la clé d'hôte",

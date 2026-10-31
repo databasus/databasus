@@ -1,7 +1,11 @@
 import { AzureBlobAuthMethod, type StorageSettings, StorageType } from '../../../entities/storages';
 
-// A saved storage may leave its secrets empty, because the backend keeps the stored ones.
-export const isStorageSettingsFilled = (settings: StorageSettings, isSaved: boolean): boolean => {
+// SFTP can retain only credentials present in its acknowledged saved method set.
+export const isStorageSettingsFilled = (
+  settings: StorageSettings,
+  isSaved: boolean,
+  savedSettings?: StorageSettings,
+): boolean => {
   switch (settings.type) {
     case StorageType.LOCAL:
       return true;
@@ -41,7 +45,13 @@ export const isStorageSettingsFilled = (settings: StorageSettings, isSaved: bool
         !!settings.host &&
         !!settings.port &&
         !!settings.username &&
-        (isSaved || !!settings.password || !!settings.privateKey)
+        settings.authMethods.length > 0 &&
+        settings.authMethods.every(
+          (method) =>
+            !!(method === 'PASSWORD' ? settings.password : settings.privateKey) ||
+            (savedSettings?.type === StorageType.SFTP &&
+              savedSettings.authMethods.includes(method)),
+        )
       );
     case StorageType.RCLONE:
       return isSaved || !!settings.configContent;

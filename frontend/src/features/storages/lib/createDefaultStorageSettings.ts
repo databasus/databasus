@@ -27,7 +27,14 @@ export const createDefaultStorageSettings = (type: StorageType): StorageSettings
         isSkipTlsVerify: false,
       };
     case StorageType.SFTP:
-      return { type, host: '', port: DEFAULT_SFTP_PORT, username: '', isSkipHostKeyVerify: false };
+      return {
+        type,
+        host: '',
+        port: DEFAULT_SFTP_PORT,
+        username: '',
+        authMethods: ['PASSWORD'],
+        isSkipHostKeyVerify: false,
+      };
     case StorageType.RCLONE:
       return { type };
   }

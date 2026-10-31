@@ -84,3 +84,36 @@ describe('StorageComponent', () => {
     expect(screen.queryByText('Save error')).toBeNull();
   });
 });
+
+it.each([
+  { methods: ['PASSWORD'] as ('PASSWORD' | 'PRIVATE_KEY')[], labels: ['Password'] },
+  { methods: ['PRIVATE_KEY'] as ('PASSWORD' | 'PRIVATE_KEY')[], labels: ['Private key'] },
+  {
+    methods: ['PASSWORD', 'PRIVATE_KEY'] as ('PASSWORD' | 'PRIVATE_KEY')[],
+    labels: ['Password', 'Private key'],
+  },
+])('shows persisted SFTP methods without secrets for $methods', async ({ methods, labels }) => {
+  mockServer.use(
+    mockApi.get('/storages/{storageId}', 200, {
+      ...localStorageOfWorkspace,
+      settings: {
+        type: 'SFTP',
+        authMethods: methods,
+        host: 'sftp.example.com',
+        port: 22,
+        username: 'backup',
+        isSkipHostKeyVerify: false,
+      },
+    }),
+  );
+
+  renderStorage();
+  await screen.findByText('sftp.example.com');
+
+  for (const label of labels) expect(screen.getByText(label, { exact: true })).toBeTruthy();
+
+  if (methods.length === 1)
+    expect(
+      screen.queryByText(methods[0] === 'PASSWORD' ? 'Private key' : 'Password', { exact: true }),
+    ).toBeNull();
+});

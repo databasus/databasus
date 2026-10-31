@@ -668,7 +668,7 @@ export interface paths {
         get: operations["getStorage"];
         /**
          * Replace the name and the settings of a storage
-         * @description Needs the role `WORKSPACE_MEMBER` or higher; an rclone storage needs an instance admin. A secret the request leaves out keeps its stored value. Settings of another type than the storage's, or an S3 or Azure Blob prefix other than the stored one, get 400 `invalid_request`, because both are fixed when the storage is created.
+         * @description Needs the role `WORKSPACE_MEMBER` or higher; an rclone storage needs an instance admin. A secret the request leaves out keeps its stored value. SFTP retains only secrets selected by `authMethods` and removes excluded credentials. Settings of another type than the storage's, or an S3 or Azure Blob prefix other than the stored one, get 400 `invalid_request`, because both are fixed when the storage is created.
          */
         put: operations["updateStorage"];
         post?: never;
@@ -739,7 +739,7 @@ export interface paths {
         put?: never;
         /**
          * Test the connection with settings that are not saved
-         * @description Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test may send stored secrets wherever the request points; rclone settings need an instance admin. With `storageId`, a secret the request leaves out is taken from that storage, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type or another prefix than that storage's get 400 `invalid_request`. Nothing leaves the backend on a refusal, and nothing is saved.
+         * @description Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test may send stored secrets wherever the request points; rclone settings need an instance admin. With `storageId`, a secret the request leaves out is taken from that storage, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type or another prefix than that storage's get 400 `invalid_request`. Nothing leaves the backend on a refusal, and nothing is saved. SFTP uses only credentials selected by `authMethods`, with the same retained-secret fallback and validation as saving.
          */
         post: operations["testStorageSettings"];
         delete?: never;
@@ -2654,7 +2654,12 @@ export interface components {
             /** @description Whether the TLS certificate of the server goes unchecked */
             isSkipTlsVerify: boolean;
         };
-        /** @description A folder of an SFTP server */
+        /**
+         * @description A credential kind selected for SFTP authentication
+         * @enum {string}
+         */
+        SftpAuthMethod: "PASSWORD" | "PRIVATE_KEY";
+        /** @description A folder of an SFTP server. Requests require explicit authentication methods; missing methods and explicitly empty credentials are rejected. Responses report stored methods without secrets. Existing rows need no migration. */
         SftpStorageSettings: {
             /**
              * @description Always `SFTP` (enum property replaced by openapi-typescript)
@@ -2667,13 +2672,15 @@ export interface components {
             port: number;
             /** @description The user name */
             username: string;
-            /** @description The password, absent when the private key signs in */
+            /** @description Selected credentials; excluded credentials are removed on save */
+            authMethods: components["schemas"]["SftpAuthMethod"][];
+            /** @description The selected password; omit to retain its stored value */
             password?: string;
-            /** @description The private key, absent when the password signs in */
+            /** @description The selected private key; omit to retain its stored value */
             privateKey?: string;
             /** @description The folder on the server, absent for the login folder */
             path?: string;
-            /** @description Whether the host key of the server goes unchecked */
+            /** @description Host-key verification preference. The transport currently ignores host keys regardless of this value; credential selection does not establish host authenticity. */
             isSkipHostKeyVerify: boolean;
         };
         /** @description A remote of rclone; only an instance admin may write or test its configuration */

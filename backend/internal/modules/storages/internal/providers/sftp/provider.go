@@ -3,6 +3,7 @@ package sftp
 import (
 	"context"
 	"io"
+	"slices"
 
 	"databasus-backend/internal/lib/crypto"
 	"databasus-backend/internal/modules/storages/internal/providers"
@@ -52,10 +53,50 @@ func (p *Provider) Validate(settings providers.Settings) error {
 		return providers.NewInvalidSettingError("host", "is required")
 	case sftpSettings.Username == "":
 		return providers.NewInvalidSettingError("username", "is required")
-	case sftpSettings.Password == "" && sftpSettings.PrivateKey == "":
-		return providers.NewInvalidSettingError("password", "is required when no private key is given")
 	case sftpSettings.Port <= 0 || sftpSettings.Port > maxPort:
 		return providers.NewInvalidSettingError("port", "must be between 1 and 65535")
+	}
+
+	return validateAuthentication(sftpSettings)
+}
+
+func validateAuthentication(settings Settings) error {
+	if len(settings.AuthMethods) == 0 || len(settings.AuthMethods) > 2 {
+		return providers.NewInvalidSettingError("authMethods", "must select one or two authentication methods")
+	}
+
+	for index, method := range settings.AuthMethods {
+		if method != AuthMethodPassword && method != AuthMethodPrivateKey {
+			return providers.NewInvalidSettingError("authMethods", "contains an unsupported authentication method")
+		}
+
+		if slices.Contains(settings.AuthMethods[:index], method) {
+			return providers.NewInvalidSettingError("authMethods", "must contain unique authentication methods")
+		}
+	}
+
+	for _, credential := range []struct {
+		method AuthMethod
+		field  string
+		value  string
+	}{
+		{AuthMethodPassword, "password", settings.Password},
+		{AuthMethodPrivateKey, "privateKey", settings.PrivateKey},
+	} {
+		isSelected := slices.Contains(settings.AuthMethods, credential.method)
+		if isSelected && credential.value == "" {
+			return providers.NewInvalidSettingError(
+				credential.field,
+				"is required for the selected authentication method",
+			)
+		}
+
+		if !isSelected && credential.value != "" {
+			return providers.NewInvalidSettingError(
+				credential.field,
+				"must be omitted for an excluded authentication method",
+			)
+		}
 	}
 
 	return nil
@@ -72,11 +113,11 @@ func (p *Provider) MergeStoredSettings(merge providers.SettingsMerge) (providers
 		return nil, err
 	}
 
-	if incomingSettings.Password == "" {
+	if slices.Contains(incomingSettings.AuthMethods, AuthMethodPassword) && incomingSettings.Password == "" {
 		incomingSettings.Password = storedSettings.Password
 	}
 
-	if incomingSettings.PrivateKey == "" {
+	if slices.Contains(incomingSettings.AuthMethods, AuthMethodPrivateKey) && incomingSettings.PrivateKey == "" {
 		incomingSettings.PrivateKey = storedSettings.PrivateKey
 	}
 

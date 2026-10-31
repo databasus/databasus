@@ -51,7 +51,11 @@ func (m *Module) RegisterRoutes(routes gin.IRouter, hooks *apierror.Hooks) {
 			HandlerErrorFunc:         hooks.HandleHandlerError,
 			ResponseErrorHandlerFunc: hooks.HandleResponseError,
 		}),
-		storageshttpapi.GinServerOptions{BaseURL: "", Middlewares: nil, ErrorHandler: hooks.HandleParameterError},
+		storageshttpapi.GinServerOptions{
+			BaseURL:      "",
+			Middlewares:  []storageshttpapi.MiddlewareFunc{storageshttpapi.NewRequestValidator(hooks)},
+			ErrorHandler: hooks.HandleParameterError,
+		},
 	)
 }
 

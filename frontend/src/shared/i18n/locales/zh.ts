@@ -1934,6 +1934,7 @@ export const zh: typeof en = {
       connectionString: '连接字符串',
     },
     sftpAuthMethods: {
+      both: '密码和私钥',
       password: '密码',
       privateKey: '私钥',
     },
@@ -2072,6 +2073,10 @@ export const zh: typeof en = {
           '跳过 TLS 证书验证。如果 FTP 服务器使用自签名证书，请开启此项。警告：这会降低安全性。',
       },
       sftp: {
+        savedPassword: '已保存密码。留空即可保留。',
+        savedPrivateKey: '已保存私钥。留空即可保留。',
+        requiredPassword: '请输入此登录方式所需的密码。',
+        requiredPrivateKey: '请输入此登录方式所需的私钥。',
         privateKeyTooltip: '粘贴你的 SSH 私钥（PEM 格式）。支持 RSA、DSA、ECDSA 和 Ed25519 密钥。',
         skipHostKeyVerification: '跳过主机密钥验证',
         skipHostKeyTooltip:

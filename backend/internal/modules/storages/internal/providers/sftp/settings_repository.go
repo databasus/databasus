@@ -92,7 +92,17 @@ func (r *settingsRepository) ListByStorageIDs(
 
 	settingsByStorageID := make(map[uuid.UUID]providers.Settings, len(rows))
 	for _, row := range rows {
+		authMethods := make([]AuthMethod, 0, 2)
+		if valueOrEmpty(row.Password) != "" {
+			authMethods = append(authMethods, AuthMethodPassword)
+		}
+
+		if valueOrEmpty(row.PrivateKey) != "" {
+			authMethods = append(authMethods, AuthMethodPrivateKey)
+		}
+
 		settingsByStorageID[row.StorageID] = Settings{
+			AuthMethods:         authMethods,
 			Host:                row.Host,
 			Port:                row.Port,
 			Username:            row.Username,

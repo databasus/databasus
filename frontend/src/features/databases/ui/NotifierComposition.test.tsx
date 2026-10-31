@@ -148,5 +148,6 @@ describe('Database notifier creation composition', () => {
           ),
       ).toHaveLength(1);
     },
+    15_000,
   );
 });

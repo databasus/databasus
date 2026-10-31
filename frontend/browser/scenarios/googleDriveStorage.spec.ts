@@ -385,6 +385,11 @@ test('keeps authorization controls accessible at a narrow width', async ({ page,
   await installGoogle(context);
   const { editor } = await openNestedEditor(page);
   await page.setViewportSize({ width: 320, height: 900 });
+  await editor.evaluate(async (element) => {
+    await Promise.allSettled(
+      element.getAnimations({ subtree: true }).map((animation) => animation.finished),
+    );
+  });
   const accessibility = await new AxeBuilder({ page })
     .include('[role="dialog"]')
     .withTags(['wcag2a', 'wcag2aa'])

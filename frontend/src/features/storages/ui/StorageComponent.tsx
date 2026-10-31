@@ -123,6 +123,11 @@ export const StorageComponent = ({
     setIsSaving(false);
   };
 
+  const acknowledgeStorage = (savedStorage: Storage) => {
+    setStorage(savedStorage);
+    onStorageChanged(savedStorage);
+  };
+
   const loadSettings = () => {
     setStorage(undefined);
     setEditStorage(undefined);
@@ -130,6 +135,8 @@ export const StorageComponent = ({
   };
 
   useEffect(() => {
+    setIsEditName(false);
+    setIsEditSettings(false);
     loadSettings();
   }, [storageId]);
 
@@ -219,8 +226,8 @@ export const StorageComponent = ({
                     loadSettings();
                   }}
                   isShowName={false}
-                  editingStorage={storage}
-                  onChanged={onStorageChanged}
+                  editingStorage={editStorage}
+                  onChanged={acknowledgeStorage}
                 />
               ) : (
                 <ShowStorageComponent storage={storage} />

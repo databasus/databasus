@@ -6,6 +6,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Storage } from '../../../../entities/storages';
 import { API_BASE_PATH, type ApiComponents } from '../../../../shared/api';
 import { activateSession } from '../../../../shared/auth';
+import { useLocale } from '../../../../shared/i18n';
+import { en } from '../../../../shared/i18n/locales/en';
+import { ru } from '../../../../shared/i18n/locales/ru';
 import { mockApi, setUpMockApi } from '../../../../shared/lib/test/mockApi';
 import { createPendingApiResponse } from '../../../../shared/lib/test/pendingApiResponse';
 import { renderScreen } from '../../../../shared/lib/test/renderScreen';
@@ -233,3 +236,350 @@ it.each(
     }
   },
 );
+
+const savedSftpStorage = (authMethods: ('PASSWORD' | 'PRIVATE_KEY')[]): Storage => ({
+  id: 'sftp-id',
+  workspaceId: 'workspace-id',
+  name: 'SFTP archive',
+  settings: {
+    type: 'SFTP',
+    host: 'sftp.example.com',
+    port: 22,
+    username: 'backup',
+    authMethods,
+    isSkipHostKeyVerify: false,
+  },
+});
+
+const selectSftpMethods = async (user: ReturnType<typeof renderScreen>['user'], label: string) => {
+  await user.click(screen.getByRole('combobox', { name: 'Auth method' }));
+  await user.click(await screen.findByRole('option', { name: label }));
+};
+
+describe('SFTP credentials', () => {
+  it.each([
+    {
+      outcome: 'success',
+      scenario: 'allows retesting a newer draft after a save invalidates a pending successful test',
+    },
+    {
+      outcome: 'network failure',
+      scenario: 'allows retesting a newer draft after a save invalidates a pending failed test',
+    },
+  ])('$scenario', async ({ outcome }) => {
+    const pendingSave = createPendingApiResponse();
+    const pendingTest = createPendingApiResponse();
+    const fetchObservation = vi.spyOn(globalThis, 'fetch');
+    const alert = vi.spyOn(window, 'alert').mockImplementation(() => {});
+    const sentUpdates: ApiComponents['schemas']['StorageUpdate'][] = [];
+    let testRequests = 0;
+    const storage = savedSftpStorage(['PASSWORD']);
+    mockServer.use(
+      http.post(`*${API_BASE_PATH}/storage-tests`, () => {
+        testRequests++;
+        return testRequests === 2 ? pendingTest.response : HttpResponse.json({ isConnected: true });
+      }),
+      http.put(`*${API_BASE_PATH}/storages/sftp-id`, async ({ request }) => {
+        sentUpdates.push((await request.json()) as ApiComponents['schemas']['StorageUpdate']);
+        return sentUpdates.length === 1 ? pendingSave.response : HttpResponse.json(storage);
+      }),
+    );
+    const { user } = renderSavedStorageForm(storage);
+    const passwordInput = screen.getByLabelText('Password', { exact: true });
+    await user.type(passwordInput, 'submitted-password');
+    await user.click(screen.getByRole('button', { name: 'Test connection' }));
+    await user.click(await screen.findByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(sentUpdates).toHaveLength(1));
+    const savingFetch =
+      fetchObservation.mock.results[fetchObservation.mock.results.length - 1].value;
+
+    await user.clear(passwordInput);
+    await user.type(passwordInput, 'newer-password');
+    await user.click(screen.getByRole('button', { name: 'Test connection' }));
+    await waitFor(() => expect(testRequests).toBe(2));
+    const testingFetch =
+      fetchObservation.mock.results[fetchObservation.mock.results.length - 1].value;
+
+    await act(async () => {
+      pendingSave.respond(HttpResponse.json(storage));
+      await savingFetch;
+    });
+
+    await waitFor(() =>
+      expect(
+        (screen.getByRole('button', { name: /Test connection/ }) as HTMLButtonElement).disabled,
+      ).toBe(false),
+    );
+    expect((passwordInput as HTMLInputElement).value).toBe('newer-password');
+
+    await act(async () => {
+      pendingTest.respond(
+        outcome === 'success' ? HttpResponse.json({ isConnected: true }) : HttpResponse.error(),
+      );
+      await testingFetch.catch(() => undefined);
+    });
+
+    expect(alert).not.toHaveBeenCalled();
+    expect(screen.queryByRole('button', { name: 'Save' })).toBeNull();
+
+    await user.click(screen.getByRole('button', { name: /Test connection/ }));
+    await user.click(await screen.findByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(sentUpdates).toHaveLength(2));
+
+    expect(sentUpdates[1].settings).toMatchObject({ password: 'newer-password' });
+  });
+
+  it.each([
+    { methods: ['PASSWORD'] as ('PASSWORD' | 'PRIVATE_KEY')[], hasPassword: true, hasKey: false },
+    {
+      methods: ['PRIVATE_KEY'] as ('PASSWORD' | 'PRIVATE_KEY')[],
+      hasPassword: false,
+      hasKey: true,
+    },
+    {
+      methods: ['PASSWORD', 'PRIVATE_KEY'] as ('PASSWORD' | 'PRIVATE_KEY')[],
+      hasPassword: true,
+      hasKey: true,
+    },
+  ])(
+    'preserves selected saved credentials when renaming $methods',
+    async ({ methods, hasPassword, hasKey }) => {
+      const storage = savedSftpStorage(methods);
+      const sentUpdates: ApiComponents['schemas']['StorageUpdate'][] = [];
+      mockServer.use(
+        mockApi.post('/storage-tests', 200, { isConnected: true }),
+        http.put(`*${API_BASE_PATH}/storages/sftp-id`, async ({ request }) => {
+          sentUpdates.push((await request.json()) as ApiComponents['schemas']['StorageUpdate']);
+          return HttpResponse.json({ ...storage, name: 'Renamed archive' });
+        }),
+      );
+      const { user } = renderSavedStorageForm(storage);
+
+      expect(!!screen.queryByLabelText('Password', { exact: true })).toBe(hasPassword);
+      expect(!!screen.queryByRole('textbox', { name: 'Private key' })).toBe(hasKey);
+
+      if (hasPassword)
+        expect(screen.getByText('A password is saved. Leave blank to keep it.')).toBeTruthy();
+
+      if (hasKey)
+        expect(screen.getByText('A private key is saved. Leave blank to keep it.')).toBeTruthy();
+
+      await user.clear(screen.getByRole('textbox', { name: 'Name' }));
+      await user.type(screen.getByRole('textbox', { name: 'Name' }), 'Renamed archive');
+      await user.click(screen.getByRole('button', { name: 'Test connection' }));
+      await user.click(await screen.findByRole('button', { name: 'Save' }));
+      await waitFor(() => expect(sentUpdates).toHaveLength(1));
+
+      expect(sentUpdates[0].settings).toEqual(storage.settings);
+    },
+  );
+
+  it('requires a new credential and invalidates approval when methods change', async () => {
+    mockServer.use(mockApi.post('/storage-tests', 200, { isConnected: true }));
+    const { user } = renderSavedStorageForm(savedSftpStorage(['PASSWORD']));
+
+    await user.click(screen.getByRole('button', { name: 'Test connection' }));
+
+    expect(await screen.findByRole('button', { name: 'Save' })).toBeTruthy();
+
+    await selectSftpMethods(user, 'Private key');
+
+    expect(screen.queryByLabelText('Password', { exact: true })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Save' })).toBeNull();
+    expect(screen.getByText('Enter a private key for this method.')).toBeTruthy();
+    expect(
+      (screen.getByRole('button', { name: 'Test connection' }) as HTMLButtonElement).disabled,
+    ).toBe(true);
+
+    await user.type(screen.getByRole('textbox', { name: 'Private key' }), 'replacement-key');
+
+    expect(
+      (screen.getByRole('button', { name: 'Test connection' }) as HTMLButtonElement).disabled,
+    ).toBe(false);
+
+    await selectSftpMethods(user, 'Password');
+    await selectSftpMethods(user, 'Private key');
+
+    expect(
+      (screen.getByRole('textbox', { name: 'Private key' }) as HTMLTextAreaElement).value,
+    ).toBe('');
+    expect(
+      (screen.getByRole('button', { name: 'Test connection' }) as HTMLButtonElement).disabled,
+    ).toBe(true);
+  });
+
+  it('retains persisted credentials when an unsaved method change is undone', async () => {
+    const { user } = renderSavedStorageForm(savedSftpStorage(['PASSWORD', 'PRIVATE_KEY']));
+
+    await user.type(screen.getByLabelText('Password', { exact: true }), 'discarded-password');
+    await selectSftpMethods(user, 'Private key');
+    await selectSftpMethods(user, 'Password and private key');
+
+    expect((screen.getByLabelText('Password', { exact: true }) as HTMLInputElement).value).toBe('');
+    expect(
+      (screen.getByRole('button', { name: 'Test connection' }) as HTMLButtonElement).disabled,
+    ).toBe(false);
+  });
+
+  it.each([
+    {
+      hasNewerInput: false,
+      scenario: 'clears submitted credentials when the input is unchanged during saving',
+    },
+    {
+      hasNewerInput: true,
+      scenario: 'preserves newer credentials when the input changes during saving',
+    },
+  ])('$scenario', async ({ hasNewerInput }) => {
+    const pendingSave = createPendingApiResponse();
+    const requests: ApiComponents['schemas']['StorageUpdate'][] = [];
+    mockServer.use(
+      mockApi.post('/storage-tests', 200, { isConnected: true }),
+      http.put(`*${API_BASE_PATH}/storages/sftp-id`, async ({ request }) => {
+        requests.push((await request.json()) as ApiComponents['schemas']['StorageUpdate']);
+        return requests.length === 1
+          ? pendingSave.response
+          : HttpResponse.json(savedSftpStorage(['PASSWORD', 'PRIVATE_KEY']));
+      }),
+    );
+    const { user } = renderSavedStorageForm(savedSftpStorage(['PASSWORD', 'PRIVATE_KEY']));
+    await user.type(screen.getByLabelText('Password', { exact: true }), 'submitted-password');
+    await user.click(screen.getByRole('button', { name: 'Test connection' }));
+    await user.click(await screen.findByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(requests).toHaveLength(1));
+    if (hasNewerInput) {
+      await user.clear(screen.getByLabelText('Password', { exact: true }));
+      await user.type(screen.getByLabelText('Password', { exact: true }), 'newer-password');
+    }
+    pendingSave.respond(HttpResponse.json(savedSftpStorage(['PASSWORD', 'PRIVATE_KEY'])));
+    await waitFor(() =>
+      expect((screen.getByLabelText('Password', { exact: true }) as HTMLInputElement).value).toBe(
+        hasNewerInput ? 'newer-password' : '',
+      ),
+    );
+    await user.type(screen.getByRole('textbox', { name: 'Path' }), 'other-path');
+    await user.click(screen.getByRole('button', { name: 'Test connection' }));
+    await user.click(await screen.findByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(requests).toHaveLength(2));
+    expect(requests[0].settings).toMatchObject({
+      password: 'submitted-password',
+      authMethods: ['PASSWORD', 'PRIVATE_KEY'],
+    });
+    expect(requests[0].settings).not.toHaveProperty('privateKey');
+    if (hasNewerInput) expect(requests[1].settings).toHaveProperty('password', 'newer-password');
+    else expect(requests[1].settings).not.toHaveProperty('password');
+    expect(requests[1].settings).not.toHaveProperty('privateKey');
+  });
+});
+
+function SftpLocaleControl() {
+  const { setLocale } = useLocale();
+  return <button onClick={() => setLocale('ru')}>Russian</button>;
+}
+
+it('translates guidance and validation while preserving the SFTP draft when the locale changes', async () => {
+  const { user } = renderScreen(
+    <>
+      <SftpLocaleControl />
+      {savedStorageEditor(savedSftpStorage(['PASSWORD']))}
+    </>,
+  );
+  await user.type(screen.getByRole('textbox', { name: 'Path' }), 'draft-path');
+  await selectSftpMethods(user, en.storages.sftpAuthMethods.both);
+  expect(screen.getByText(en.storages.edit.sftp.savedPassword)).toBeTruthy();
+  expect(screen.getByText(en.storages.edit.sftp.requiredPrivateKey)).toBeTruthy();
+  await user.click(screen.getByRole('button', { name: 'Russian' }));
+  expect(screen.getByText(ru.storages.edit.sftp.savedPassword)).toBeTruthy();
+  expect(screen.getByText(ru.storages.edit.sftp.requiredPrivateKey)).toBeTruthy();
+  expect(
+    (
+      screen.getByRole('textbox', {
+        name: ru.storages.fields.path,
+      }) as HTMLInputElement
+    ).value,
+  ).toBe('draft-path');
+  expect(
+    (screen.getByRole('button', { name: ru.storages.actions.testConnection }) as HTMLButtonElement)
+      .disabled,
+  ).toBe(true);
+});
+
+it.each(
+  ['workspace', 'storage', 'session', 'unmount'].flatMap((changedContext) =>
+    ['success', 'failure'].map((outcome) => ({ changedContext, outcome })),
+  ),
+)(
+  'ignores a pending SFTP save $outcome after the $changedContext changes',
+  async ({ changedContext, outcome }) => {
+    activateSession({ token: 'save-session', userId: 'owner-id' });
+    const pendingSave = createPendingApiResponse();
+    const alert = vi.spyOn(window, 'alert').mockImplementation(() => {});
+    const onChanged = vi.fn();
+    const fetchObservation = vi.spyOn(globalThis, 'fetch');
+    let saveRequests = 0;
+    const editor = (storage: Storage, workspaceId = 'workspace-id') => (
+      <EditStorageComponent
+        workspaceId={workspaceId}
+        editingStorage={storage}
+        onChanged={onChanged}
+        isShowName
+        isShowClose={false}
+        onClose={() => {}}
+      />
+    );
+    mockServer.use(
+      mockApi.post('/storage-tests', 200, { isConnected: true }),
+      http.put(`*${API_BASE_PATH}/storages/sftp-id`, () => {
+        saveRequests++;
+        return pendingSave.response;
+      }),
+    );
+    const storage = savedSftpStorage(['PRIVATE_KEY']);
+    const view = renderScreen(editor(storage));
+    await view.user.type(screen.getByRole('textbox', { name: 'Private key' }), 'submitted-key');
+    await view.user.click(screen.getByRole('button', { name: 'Test connection' }));
+    await view.user.click(await screen.findByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(saveRequests).toBe(1));
+    const savingFetch =
+      fetchObservation.mock.results[fetchObservation.mock.results.length - 1].value;
+    if (changedContext === 'workspace') view.rerender(editor(storage, 'other-workspace'));
+    if (changedContext === 'storage') view.rerender(editor({ ...storage, id: 'other-storage' }));
+    if (changedContext === 'session')
+      act(() => activateSession({ token: 'new-session', userId: 'owner-id' }));
+    if (changedContext === 'unmount') view.unmount();
+    await act(async () => {
+      pendingSave.respond(
+        outcome === 'success'
+          ? HttpResponse.json(storage)
+          : HttpResponse.json({ code: 'invalid_request' }, { status: 400 }),
+      );
+      await savingFetch;
+    });
+    expect(onChanged).not.toHaveBeenCalled();
+    expect(alert).not.toHaveBeenCalled();
+  },
+);
+
+it('requires the removed key when it is selected again after a successful method switch', async () => {
+  mockServer.use(
+    mockApi.post('/storage-tests', 200, { isConnected: true }),
+    mockApi.put('/storages/{storageId}', 200, savedSftpStorage(['PASSWORD'])),
+  );
+  const { user } = renderSavedStorageForm(savedSftpStorage(['PRIVATE_KEY']));
+
+  await selectSftpMethods(user, 'Password');
+  await user.type(screen.getByLabelText('Password'), 'new-password');
+  await user.click(screen.getByRole('button', { name: 'Test connection' }));
+  await user.click(await screen.findByRole('button', { name: 'Save' }));
+  await waitFor(() =>
+    expect((screen.getByLabelText('Password') as HTMLInputElement).value).toBe(''),
+  );
+
+  await selectSftpMethods(user, 'Private key');
+
+  expect(screen.queryByText('A private key is saved. Leave blank to keep it.')).toBeNull();
+  expect(screen.getByText('Enter a private key for this method.')).toBeTruthy();
+  expect(
+    (screen.getByRole('button', { name: 'Test connection' }) as HTMLButtonElement).disabled,
+  ).toBe(true);
+});

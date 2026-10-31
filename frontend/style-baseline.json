@@ -3793,30 +3793,6 @@
   },
   {
     "rule": "direct-color",
-    "source": "features/storages/ui/edit/storages/EditSFTPStorageComponent.tsx",
-    "construct": "color:gray",
-    "count": 3,
-    "owner": "features/storages",
-    "removalMilestone": "4"
-  },
-  {
-    "rule": "direct-color",
-    "source": "features/storages/ui/edit/storages/EditSFTPStorageComponent.tsx",
-    "construct": "class:text-blue-600",
-    "count": 1,
-    "owner": "features/storages",
-    "removalMilestone": "4"
-  },
-  {
-    "rule": "direct-color",
-    "source": "features/storages/ui/edit/storages/EditSFTPStorageComponent.tsx",
-    "construct": "class:hover:text-blue-800",
-    "count": 1,
-    "owner": "features/storages",
-    "removalMilestone": "4"
-  },
-  {
-    "rule": "direct-color",
     "source": "features/databases/ui/DatabaseConfigComponent.tsx",
     "construct": "class:border-t-blue-500",
     "count": 1,

@@ -147,7 +147,7 @@ export const StoragesComponent = ({ contentHeight, workspace, isCanManageStorage
             <StorageComponent
               storageId={selectedStorageId}
               onStorageChanged={() => {
-                loadStorages();
+                loadStorages(true);
               }}
               onStorageDeleted={() => {
                 const remainingStorages = storages.filter(

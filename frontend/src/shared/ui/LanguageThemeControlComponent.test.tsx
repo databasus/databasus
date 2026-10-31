@@ -26,8 +26,10 @@ describe('LanguageThemeControlComponent', () => {
     expect(selectedLanguage.classList.contains('ant-dropdown-menu-item-selected')).toBe(true);
     await waitFor(() => expect(menu.contains(document.activeElement)).toBe(true));
     await user.keyboard('{Escape}');
-    expect(language.getAttribute('aria-expanded')).toBe('false');
-    expect(document.activeElement).toBe(language);
+    await waitFor(() => {
+      expect(language.getAttribute('aria-expanded')).toBe('false');
+      expect(document.activeElement).toBe(language);
+    });
   });
 
   it('opens the language menu on hover and restores focus when Escape dismisses it', async () => {
@@ -36,7 +38,9 @@ describe('LanguageThemeControlComponent', () => {
     await user.hover(language);
     const menu = await screen.findByRole('menu');
     fireEvent.keyDown(menu, { key: 'Escape' });
-    expect(language.getAttribute('aria-expanded')).toBe('false');
-    expect(document.activeElement).toBe(language);
+    await waitFor(() => {
+      expect(language.getAttribute('aria-expanded')).toBe('false');
+      expect(document.activeElement).toBe(language);
+    });
   });
 });

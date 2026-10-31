@@ -1,6 +1,9 @@
 import { useTranslation } from 'react-i18next';
 
-import type { SftpStorageSettings } from '../../../../../entities/storages';
+import {
+  SFTP_AUTH_METHOD_LABEL_KEYS,
+  type SftpStorageSettings,
+} from '../../../../../entities/storages';
 
 interface Props {
   settings: SftpStorageSettings;
@@ -8,10 +11,6 @@ interface Props {
 
 export function ShowSFTPStorageComponent({ settings }: Props) {
   const { t } = useTranslation();
-
-  const authMethodLabel = settings.privateKey
-    ? t('storages.sftpAuthMethods.privateKey')
-    : t('storages.sftpAuthMethods.password');
 
   return (
     <>
@@ -32,7 +31,9 @@ export function ShowSFTPStorageComponent({ settings }: Props) {
 
       <div className="mb-1 flex items-center">
         <div className="min-w-[110px] pr-2">{t('storages.fields.authMethod')}</div>
-        {authMethodLabel}
+        {settings.authMethods.map((method) => (
+          <div key={method}>{t(SFTP_AUTH_METHOD_LABEL_KEYS[method])}</div>
+        ))}
       </div>
 
       <div className="mb-1 flex items-center">

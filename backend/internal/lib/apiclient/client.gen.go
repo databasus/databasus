@@ -1294,6 +1294,24 @@ func (e ScheduleType) Valid() bool {
 	}
 }
 
+// Defines values for SftpAuthMethod.
+const (
+	SftpAuthMethodPASSWORD   SftpAuthMethod = "PASSWORD"
+	SftpAuthMethodPRIVATEKEY SftpAuthMethod = "PRIVATE_KEY"
+)
+
+// Valid indicates whether the value is a known member of the SftpAuthMethod enum.
+func (e SftpAuthMethod) Valid() bool {
+	switch e {
+	case SftpAuthMethodPASSWORD:
+		return true
+	case SftpAuthMethodPRIVATEKEY:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for SftpStorageSettingsType.
 const (
 	SftpStorageSettingsTypeSFTP SftpStorageSettingsType = "SFTP"
@@ -3604,15 +3622,21 @@ type Session struct {
 	UserId openapi_types.UUID `json:"userId"`
 }
 
-// SftpStorageSettings A folder of an SFTP server
+// SftpAuthMethod A credential kind selected for SFTP authentication
+type SftpAuthMethod string
+
+// SftpStorageSettings A folder of an SFTP server. Requests require explicit authentication methods; missing methods and explicitly empty credentials are rejected. Responses report stored methods without secrets. Existing rows need no migration.
 type SftpStorageSettings struct {
+	// AuthMethods Selected credentials; excluded credentials are removed on save
+	AuthMethods []SftpAuthMethod `json:"authMethods"`
+
 	// Host The host of the server
 	Host string `json:"host"`
 
-	// IsSkipHostKeyVerify Whether the host key of the server goes unchecked
+	// IsSkipHostKeyVerify Host-key verification preference. The transport currently ignores host keys regardless of this value; credential selection does not establish host authenticity.
 	IsSkipHostKeyVerify bool `json:"isSkipHostKeyVerify"`
 
-	// Password The password, absent when the private key signs in
+	// Password The selected password; omit to retain its stored value
 	Password *string `json:"password,omitempty"`
 
 	// Path The folder on the server, absent for the login folder
@@ -3621,7 +3645,7 @@ type SftpStorageSettings struct {
 	// Port The port of the server
 	Port int `json:"port"`
 
-	// PrivateKey The private key, absent when the password signs in
+	// PrivateKey The selected private key; omit to retain its stored value
 	PrivateKey *string `json:"privateKey,omitempty"`
 
 	// Type Always `SFTP`
@@ -7124,7 +7148,7 @@ type ClientInterface interface {
 
 	// TestStorageSettingsWithBody Test the connection with settings that are not saved
 	//
-	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test may send stored secrets wherever the request points; rclone settings need an instance admin. With `storageId`, a secret the request leaves out is taken from that storage, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type or another prefix than that storage's get 400 `invalid_request`. Nothing leaves the backend on a refusal, and nothing is saved.
+	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test may send stored secrets wherever the request points; rclone settings need an instance admin. With `storageId`, a secret the request leaves out is taken from that storage, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type or another prefix than that storage's get 400 `invalid_request`. Nothing leaves the backend on a refusal, and nothing is saved. SFTP uses only credentials selected by `authMethods`, with the same retained-secret fallback and validation as saving.
 	//
 	// Takes any type of body and a specified content type.
 	//
@@ -7133,7 +7157,7 @@ type ClientInterface interface {
 
 	// TestStorageSettings Test the connection with settings that are not saved
 	//
-	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test may send stored secrets wherever the request points; rclone settings need an instance admin. With `storageId`, a secret the request leaves out is taken from that storage, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type or another prefix than that storage's get 400 `invalid_request`. Nothing leaves the backend on a refusal, and nothing is saved.
+	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test may send stored secrets wherever the request points; rclone settings need an instance admin. With `storageId`, a secret the request leaves out is taken from that storage, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type or another prefix than that storage's get 400 `invalid_request`. Nothing leaves the backend on a refusal, and nothing is saved. SFTP uses only credentials selected by `authMethods`, with the same retained-secret fallback and validation as saving.
 	//
 	// Takes a body of the `application/json` content type.
 	//
@@ -7181,7 +7205,7 @@ type ClientInterface interface {
 
 	// UpdateStorageWithBody Replace the name and the settings of a storage
 	//
-	// Needs the role `WORKSPACE_MEMBER` or higher; an rclone storage needs an instance admin. A secret the request leaves out keeps its stored value. Settings of another type than the storage's, or an S3 or Azure Blob prefix other than the stored one, get 400 `invalid_request`, because both are fixed when the storage is created.
+	// Needs the role `WORKSPACE_MEMBER` or higher; an rclone storage needs an instance admin. A secret the request leaves out keeps its stored value. SFTP retains only secrets selected by `authMethods` and removes excluded credentials. Settings of another type than the storage's, or an S3 or Azure Blob prefix other than the stored one, get 400 `invalid_request`, because both are fixed when the storage is created.
 	//
 	// Takes any type of body and a specified content type.
 	//
@@ -7190,7 +7214,7 @@ type ClientInterface interface {
 
 	// UpdateStorage Replace the name and the settings of a storage
 	//
-	// Needs the role `WORKSPACE_MEMBER` or higher; an rclone storage needs an instance admin. A secret the request leaves out keeps its stored value. Settings of another type than the storage's, or an S3 or Azure Blob prefix other than the stored one, get 400 `invalid_request`, because both are fixed when the storage is created.
+	// Needs the role `WORKSPACE_MEMBER` or higher; an rclone storage needs an instance admin. A secret the request leaves out keeps its stored value. SFTP retains only secrets selected by `authMethods` and removes excluded credentials. Settings of another type than the storage's, or an S3 or Azure Blob prefix other than the stored one, get 400 `invalid_request`, because both are fixed when the storage is created.
 	//
 	// Takes a body of the `application/json` content type.
 	//
@@ -9066,7 +9090,7 @@ func (c *Client) GetStorageSwitch(ctx context.Context, storageSwitchId openapi_t
 
 // TestStorageSettingsWithBody Test the connection with settings that are not saved
 //
-// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test may send stored secrets wherever the request points; rclone settings need an instance admin. With `storageId`, a secret the request leaves out is taken from that storage, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type or another prefix than that storage's get 400 `invalid_request`. Nothing leaves the backend on a refusal, and nothing is saved.
+// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test may send stored secrets wherever the request points; rclone settings need an instance admin. With `storageId`, a secret the request leaves out is taken from that storage, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type or another prefix than that storage's get 400 `invalid_request`. Nothing leaves the backend on a refusal, and nothing is saved. SFTP uses only credentials selected by `authMethods`, with the same retained-secret fallback and validation as saving.
 //
 // Takes any type of body and a specified content type.
 //
@@ -9085,7 +9109,7 @@ func (c *Client) TestStorageSettingsWithBody(ctx context.Context, contentType st
 
 // TestStorageSettings Test the connection with settings that are not saved
 //
-// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test may send stored secrets wherever the request points; rclone settings need an instance admin. With `storageId`, a secret the request leaves out is taken from that storage, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type or another prefix than that storage's get 400 `invalid_request`. Nothing leaves the backend on a refusal, and nothing is saved.
+// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test may send stored secrets wherever the request points; rclone settings need an instance admin. With `storageId`, a secret the request leaves out is taken from that storage, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type or another prefix than that storage's get 400 `invalid_request`. Nothing leaves the backend on a refusal, and nothing is saved. SFTP uses only credentials selected by `authMethods`, with the same retained-secret fallback and validation as saving.
 //
 // Takes a body of the `application/json` content type.
 //
@@ -9193,7 +9217,7 @@ func (c *Client) GetStorage(ctx context.Context, storageId StorageId, reqEditors
 
 // UpdateStorageWithBody Replace the name and the settings of a storage
 //
-// Needs the role `WORKSPACE_MEMBER` or higher; an rclone storage needs an instance admin. A secret the request leaves out keeps its stored value. Settings of another type than the storage's, or an S3 or Azure Blob prefix other than the stored one, get 400 `invalid_request`, because both are fixed when the storage is created.
+// Needs the role `WORKSPACE_MEMBER` or higher; an rclone storage needs an instance admin. A secret the request leaves out keeps its stored value. SFTP retains only secrets selected by `authMethods` and removes excluded credentials. Settings of another type than the storage's, or an S3 or Azure Blob prefix other than the stored one, get 400 `invalid_request`, because both are fixed when the storage is created.
 //
 // Takes any type of body and a specified content type.
 //
@@ -9212,7 +9236,7 @@ func (c *Client) UpdateStorageWithBody(ctx context.Context, storageId StorageId,
 
 // UpdateStorage Replace the name and the settings of a storage
 //
-// Needs the role `WORKSPACE_MEMBER` or higher; an rclone storage needs an instance admin. A secret the request leaves out keeps its stored value. Settings of another type than the storage's, or an S3 or Azure Blob prefix other than the stored one, get 400 `invalid_request`, because both are fixed when the storage is created.
+// Needs the role `WORKSPACE_MEMBER` or higher; an rclone storage needs an instance admin. A secret the request leaves out keeps its stored value. SFTP retains only secrets selected by `authMethods` and removes excluded credentials. Settings of another type than the storage's, or an S3 or Azure Blob prefix other than the stored one, get 400 `invalid_request`, because both are fixed when the storage is created.
 //
 // Takes a body of the `application/json` content type.
 //
@@ -15402,7 +15426,7 @@ type ClientWithResponsesInterface interface {
 
 	// TestStorageSettingsWithBodyWithResponse Test the connection with settings that are not saved
 	//
-	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test may send stored secrets wherever the request points; rclone settings need an instance admin. With `storageId`, a secret the request leaves out is taken from that storage, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type or another prefix than that storage's get 400 `invalid_request`. Nothing leaves the backend on a refusal, and nothing is saved.
+	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test may send stored secrets wherever the request points; rclone settings need an instance admin. With `storageId`, a secret the request leaves out is taken from that storage, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type or another prefix than that storage's get 400 `invalid_request`. Nothing leaves the backend on a refusal, and nothing is saved. SFTP uses only credentials selected by `authMethods`, with the same retained-secret fallback and validation as saving.
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -15411,7 +15435,7 @@ type ClientWithResponsesInterface interface {
 
 	// TestStorageSettingsWithResponse Test the connection with settings that are not saved
 	//
-	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test may send stored secrets wherever the request points; rclone settings need an instance admin. With `storageId`, a secret the request leaves out is taken from that storage, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type or another prefix than that storage's get 400 `invalid_request`. Nothing leaves the backend on a refusal, and nothing is saved.
+	// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test may send stored secrets wherever the request points; rclone settings need an instance admin. With `storageId`, a secret the request leaves out is taken from that storage, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type or another prefix than that storage's get 400 `invalid_request`. Nothing leaves the backend on a refusal, and nothing is saved. SFTP uses only credentials selected by `authMethods`, with the same retained-secret fallback and validation as saving.
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -15465,7 +15489,7 @@ type ClientWithResponsesInterface interface {
 
 	// UpdateStorageWithBodyWithResponse Replace the name and the settings of a storage
 	//
-	// Needs the role `WORKSPACE_MEMBER` or higher; an rclone storage needs an instance admin. A secret the request leaves out keeps its stored value. Settings of another type than the storage's, or an S3 or Azure Blob prefix other than the stored one, get 400 `invalid_request`, because both are fixed when the storage is created.
+	// Needs the role `WORKSPACE_MEMBER` or higher; an rclone storage needs an instance admin. A secret the request leaves out keeps its stored value. SFTP retains only secrets selected by `authMethods` and removes excluded credentials. Settings of another type than the storage's, or an S3 or Azure Blob prefix other than the stored one, get 400 `invalid_request`, because both are fixed when the storage is created.
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -15474,7 +15498,7 @@ type ClientWithResponsesInterface interface {
 
 	// UpdateStorageWithResponse Replace the name and the settings of a storage
 	//
-	// Needs the role `WORKSPACE_MEMBER` or higher; an rclone storage needs an instance admin. A secret the request leaves out keeps its stored value. Settings of another type than the storage's, or an S3 or Azure Blob prefix other than the stored one, get 400 `invalid_request`, because both are fixed when the storage is created.
+	// Needs the role `WORKSPACE_MEMBER` or higher; an rclone storage needs an instance admin. A secret the request leaves out keeps its stored value. SFTP retains only secrets selected by `authMethods` and removes excluded credentials. Settings of another type than the storage's, or an S3 or Azure Blob prefix other than the stored one, get 400 `invalid_request`, because both are fixed when the storage is created.
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -24326,7 +24350,7 @@ func (c *ClientWithResponses) GetStorageSwitchWithResponse(ctx context.Context, 
 
 // TestStorageSettingsWithBodyWithResponse Test the connection with settings that are not saved
 //
-// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test may send stored secrets wherever the request points; rclone settings need an instance admin. With `storageId`, a secret the request leaves out is taken from that storage, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type or another prefix than that storage's get 400 `invalid_request`. Nothing leaves the backend on a refusal, and nothing is saved.
+// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test may send stored secrets wherever the request points; rclone settings need an instance admin. With `storageId`, a secret the request leaves out is taken from that storage, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type or another prefix than that storage's get 400 `invalid_request`. Nothing leaves the backend on a refusal, and nothing is saved. SFTP uses only credentials selected by `authMethods`, with the same retained-secret fallback and validation as saving.
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
@@ -24341,7 +24365,7 @@ func (c *ClientWithResponses) TestStorageSettingsWithBodyWithResponse(ctx contex
 
 // TestStorageSettingsWithResponse Test the connection with settings that are not saved
 //
-// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test may send stored secrets wherever the request points; rclone settings need an instance admin. With `storageId`, a secret the request leaves out is taken from that storage, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type or another prefix than that storage's get 400 `invalid_request`. Nothing leaves the backend on a refusal, and nothing is saved.
+// Needs the role `WORKSPACE_MEMBER` or higher in the workspace, because a test may send stored secrets wherever the request points; rclone settings need an instance admin. With `storageId`, a secret the request leaves out is taken from that storage, which must belong to the same workspace, or the answer is 404 `not_found`; settings of another type or another prefix than that storage's get 400 `invalid_request`. Nothing leaves the backend on a refusal, and nothing is saved. SFTP uses only credentials selected by `authMethods`, with the same retained-secret fallback and validation as saving.
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
@@ -24431,7 +24455,7 @@ func (c *ClientWithResponses) GetStorageWithResponse(ctx context.Context, storag
 
 // UpdateStorageWithBodyWithResponse Replace the name and the settings of a storage
 //
-// Needs the role `WORKSPACE_MEMBER` or higher; an rclone storage needs an instance admin. A secret the request leaves out keeps its stored value. Settings of another type than the storage's, or an S3 or Azure Blob prefix other than the stored one, get 400 `invalid_request`, because both are fixed when the storage is created.
+// Needs the role `WORKSPACE_MEMBER` or higher; an rclone storage needs an instance admin. A secret the request leaves out keeps its stored value. SFTP retains only secrets selected by `authMethods` and removes excluded credentials. Settings of another type than the storage's, or an S3 or Azure Blob prefix other than the stored one, get 400 `invalid_request`, because both are fixed when the storage is created.
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
@@ -24446,7 +24470,7 @@ func (c *ClientWithResponses) UpdateStorageWithBodyWithResponse(ctx context.Cont
 
 // UpdateStorageWithResponse Replace the name and the settings of a storage
 //
-// Needs the role `WORKSPACE_MEMBER` or higher; an rclone storage needs an instance admin. A secret the request leaves out keeps its stored value. Settings of another type than the storage's, or an S3 or Azure Blob prefix other than the stored one, get 400 `invalid_request`, because both are fixed when the storage is created.
+// Needs the role `WORKSPACE_MEMBER` or higher; an rclone storage needs an instance admin. A secret the request leaves out keeps its stored value. SFTP retains only secrets selected by `authMethods` and removes excluded credentials. Settings of another type than the storage's, or an S3 or Azure Blob prefix other than the stored one, get 400 `invalid_request`, because both are fixed when the storage is created.
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //

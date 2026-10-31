@@ -1,6 +1,7 @@
 package: httpapi
 output: api.gen.go
 generate:
+  embedded-spec: true
   models: true
   gin-server: true
   strict-server: true

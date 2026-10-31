@@ -1332,7 +1332,8 @@ paths:
       summary: Replace the name and the settings of a storage
       description: >-
         Needs the role `WORKSPACE_MEMBER` or higher; an rclone storage needs an instance admin. A
-        secret the request leaves out keeps its stored value. Settings of another type than the
+        secret the request leaves out keeps its stored value. SFTP retains only secrets selected by
+        `authMethods` and removes excluded credentials. Settings of another type than the
         storage's, or an S3 or Azure Blob prefix other than the stored one, get 400
         `invalid_request`, because both are fixed when the storage is created.
       requestBody:
@@ -1451,7 +1452,8 @@ paths:
         `storageId`, a secret the request leaves out is taken from that storage, which must belong
         to the same workspace, or the answer is 404 `not_found`; settings of another type or another
         prefix than that storage's get 400 `invalid_request`. Nothing leaves the backend on a
-        refusal, and nothing is saved.
+        refusal, and nothing is saved. SFTP uses only credentials selected by `authMethods`, with the
+        same retained-secret fallback and validation as saving.
       requestBody:
         description: The settings to test.
         required: true
@@ -4820,10 +4822,17 @@ components:
         isSkipTlsVerify:
           type: boolean
           description: Whether the TLS certificate of the server goes unchecked
+    SftpAuthMethod:
+      type: string
+      enum: [PASSWORD, PRIVATE_KEY]
+      description: A credential kind selected for SFTP authentication
     SftpStorageSettings:
       type: object
-      description: A folder of an SFTP server
-      required: [type, host, port, username, isSkipHostKeyVerify]
+      description: >-
+        A folder of an SFTP server. Requests require explicit authentication methods; missing
+        methods and explicitly empty credentials are rejected. Responses report stored methods
+        without secrets. Existing rows need no migration.
+      required: [type, host, port, username, authMethods, isSkipHostKeyVerify]
       properties:
         type:
           type: string
@@ -4840,20 +4849,32 @@ components:
         username:
           type: string
           description: The user name
+        authMethods:
+          type: array
+          minItems: 1
+          maxItems: 2
+          uniqueItems: true
+          items:
+            $ref: "#/components/schemas/SftpAuthMethod"
+          description: Selected credentials; excluded credentials are removed on save
         password:
           type: string
+          minLength: 1
           writeOnly: true
-          description: The password, absent when the private key signs in
+          description: The selected password; omit to retain its stored value
         privateKey:
           type: string
+          minLength: 1
           writeOnly: true
-          description: The private key, absent when the password signs in
+          description: The selected private key; omit to retain its stored value
         path:
           type: string
           description: The folder on the server, absent for the login folder
         isSkipHostKeyVerify:
           type: boolean
-          description: Whether the host key of the server goes unchecked
+          description: >-
+            Host-key verification preference. The transport currently ignores host keys regardless
+            of this value; credential selection does not establish host authenticity.
     RcloneStorageSettings:
       type: object
       description: A remote of rclone; only an instance admin may write or test its configuration

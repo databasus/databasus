@@ -21,7 +21,7 @@ type Provider interface {
 	GetType() Type
 	// Validate answers an apierror problem naming the setting it refuses.
 	Validate(settings Settings) error
-	// MergeStoredSettings fills the secrets the incoming settings left out from the stored ones and
+	// MergeStoredSettings applies the provider's secret selection and retention policy and
 	// refuses a change of a setting fixed at creation, such as the S3 prefix.
 	MergeStoredSettings(merge SettingsMerge) (Settings, error)
 	SaveFile(ctx context.Context, file FileAccess, content io.Reader) error

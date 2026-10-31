@@ -533,6 +533,7 @@ func buildSftpStorage(t *testing.T, container containers.ContainerHandle) *teste
 	provider := sftp.New(sftp.Deps{Repositories: sftp.Repositories{}, FieldEncryptor: fieldEncryptor})
 	settingsWithSecret := func(secret string) providers.Settings {
 		return sftp.Settings{
+			AuthMethods:         []sftp.AuthMethod{sftp.AuthMethodPassword},
 			Host:                container.Host,
 			Port:                container.Port,
 			Username:            containers.SftpUsername,

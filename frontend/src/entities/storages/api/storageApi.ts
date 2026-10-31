@@ -41,7 +41,7 @@ export const storageApi = {
     );
   },
 
-  // A secret the settings leave out keeps its stored value.
+  // Omitted secrets remain stored; SFTP removes credentials excluded by authMethods.
   async updateStorage(
     storageId: string,
     name: string,
@@ -71,7 +71,7 @@ export const storageApi = {
     );
   },
 
-  // A secret the settings leave out is taken from the saved storage the test names.
+  // Omitted selected credentials come from the named storage, using the same policy as saving.
   async testStorageSettings(
     workspaceId: string,
     settings: StorageSettings,

@@ -18,3 +18,6 @@ export { AzureBlobAuthMethod } from './models/AzureBlobAuthMethod';
 export { AZURE_BLOB_AUTH_METHOD_LABEL_KEYS } from './models/AzureBlobAuthMethodLabelKeys';
 export { getStorageLogoFromType } from './models/getStorageLogoFromType';
 export { STORAGE_TYPE_LABEL_KEYS } from './models/StorageTypeLabelKeys';
+
+export { SftpAuthMethod } from './models/SftpAuthMethod';
+export { SFTP_AUTH_METHOD_LABEL_KEYS } from './models/SftpAuthMethodLabelKeys';

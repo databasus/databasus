@@ -2026,6 +2026,7 @@ export const en = {
       connectionString: 'Connection string',
     },
     sftpAuthMethods: {
+      both: 'Password and private key',
       password: 'Password',
       privateKey: 'Private key',
     },
@@ -2171,6 +2172,10 @@ export const en = {
           'Skip TLS certificate verification. Enable this if your FTP server uses a self-signed certificate. Warning: this reduces security.',
       },
       sftp: {
+        savedPassword: 'A password is saved. Leave blank to keep it.',
+        savedPrivateKey: 'A private key is saved. Leave blank to keep it.',
+        requiredPassword: 'Enter a password for this method.',
+        requiredPrivateKey: 'Enter a private key for this method.',
         privateKeyTooltip:
           'Paste your SSH private key (PEM format). Supports RSA, DSA, ECDSA, and Ed25519 keys.',
         skipHostKeyVerification: 'Skip host key verification',

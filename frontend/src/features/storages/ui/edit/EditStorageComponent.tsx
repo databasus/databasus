@@ -63,6 +63,7 @@ export function EditStorageComponent({
   const [name, setName] = useState('');
   const [settings, setSettings] = useState<StorageSettings | undefined>();
   const [isUnsaved, setIsUnsaved] = useState(false);
+  const [savedSettings, setSavedSettings] = useState<StorageSettings | undefined>();
   const [isSaving, setIsSaving] = useState(false);
 
   const [isTestingConnection, setIsTestingConnection] = useState(false);
@@ -76,6 +77,12 @@ export function EditStorageComponent({
     setConnectionError(undefined);
   };
 
+  const invalidatePendingRequests = () => {
+    invalidateConnectionTest();
+    saveRevision.current.Invalidate();
+    setIsSaving(false);
+  };
+
   const changeSettings = (changedSettings: StorageSettings) => {
     invalidateConnectionTest();
     setSettings(changedSettings);
@@ -85,19 +92,43 @@ export function EditStorageComponent({
   const save = async () => {
     if (!settings) return;
 
+    const revision = saveRevision.current.Invalidate();
+    const session = getSessionSnapshot();
+    const isCurrentSave = () =>
+      saveRevision.current.IsCurrent(revision) && isCurrentSession(session);
     setIsSaving(true);
 
     try {
       const savedStorage = storageId
         ? await storageApi.updateStorage(storageId, name, settings)
         : await storageApi.createStorage(workspaceId, name, settings);
-      onChanged(savedStorage);
-      setIsUnsaved(false);
-    } catch (e) {
-      alert(translateApiError(e, t));
-    }
 
-    setIsSaving(false);
+      if (!isCurrentSave()) return;
+
+      setStorageId(savedStorage.id);
+      setSavedSettings(savedStorage.settings);
+      const currentSettings = currentConnectionContext.current.settings;
+
+      if (settings.type === StorageType.SFTP && currentSettings?.type === StorageType.SFTP) {
+        invalidateConnectionTest();
+        setSettings({
+          ...currentSettings,
+          password:
+            currentSettings.password === settings.password ? undefined : currentSettings.password,
+          privateKey:
+            currentSettings.privateKey === settings.privateKey
+              ? undefined
+              : currentSettings.privateKey,
+        });
+      }
+
+      onChanged(savedStorage);
+      setIsUnsaved(currentSettings !== settings || currentConnectionContext.current.name !== name);
+    } catch (e) {
+      if (isCurrentSave()) alert(translateApiError(e, t));
+    } finally {
+      if (isCurrentSave()) setIsSaving(false);
+    }
   };
 
   const testConnection = async () => {
@@ -140,28 +171,31 @@ export function EditStorageComponent({
 
   const controlId = useId();
   const connectionTestRevision = useRef(new RequestRevision());
-  const currentConnectionContext = useRef({ workspaceId, storageId, settings });
-  currentConnectionContext.current = { workspaceId, storageId, settings };
+  const saveRevision = useRef(new RequestRevision());
+  const currentConnectionContext = useRef({ workspaceId, storageId, settings, name });
+  currentConnectionContext.current = { workspaceId, storageId, settings, name };
 
-  useEffect(() => subscribeSession(invalidateConnectionTest), []);
+  useEffect(() => subscribeSession(invalidatePendingRequests), []);
 
   useEffect(() => {
     const initialDraft = draft ?? toDraft(editingStorage);
-    invalidateConnectionTest();
+    invalidatePendingRequests();
 
     setStorageId(initialDraft.storageId);
     setName(initialDraft.name);
     setSettings(initialDraft.settings);
+    setSavedSettings(editingStorage?.settings);
     setIsUnsaved(true);
     return () => {
       connectionTestRevision.current.Invalidate();
+      saveRevision.current.Invalidate();
     };
   }, [editingStorage, draft, workspaceId]);
 
   if (!settings) return <div />;
 
   const isSaved = storageId !== undefined;
-  const isAllDataFilled = !!name && isStorageSettingsFilled(settings, isSaved);
+  const isAllDataFilled = !!name && isStorageSettingsFilled(settings, isSaved, savedSettings);
 
   const storageTypeOptions = Object.values(StorageType).map((storageType) => ({
     label: t(STORAGE_TYPE_LABEL_KEYS[storageType]),
@@ -254,7 +288,13 @@ export function EditStorageComponent({
         )}
 
         {settings.type === StorageType.SFTP && (
-          <EditSFTPStorageComponent settings={settings} onChange={changeSettings} />
+          <EditSFTPStorageComponent
+            settings={settings}
+            savedAuthMethods={
+              savedSettings?.type === StorageType.SFTP ? savedSettings.authMethods : []
+            }
+            onChange={changeSettings}
+          />
         )}
 
         {settings.type === StorageType.RCLONE && (

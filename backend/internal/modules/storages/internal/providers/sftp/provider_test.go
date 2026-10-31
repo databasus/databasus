@@ -50,6 +50,7 @@ func startSftpServer(t *testing.T) *sftpServer {
 			Deps{Repositories: Repositories{settings: nil}, FieldEncryptor: providertest.NewFieldEncryptor(t)},
 		),
 		settings: Settings{
+			AuthMethods:         []AuthMethod{AuthMethodPassword},
 			Host:                endpoint.Host,
 			Port:                endpoint.Port,
 			Username:            containers.SftpUsername,

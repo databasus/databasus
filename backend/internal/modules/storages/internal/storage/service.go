@@ -300,8 +300,8 @@ func (s *Service) getAuthorized(
 	return foundStorage, nil
 }
 
-// mergeAndValidate fills the secrets the incoming settings leave out from the stored storage's
-// settings, then validates the result. Settings of another type than the stored storage's are
+// mergeAndValidate resolves secrets under the provider's selection and retention policy, then
+// validates the result. Settings of another type than the stored storage's are
 // refused, as is a change of a setting fixed at creation.
 func (s *Service) mergeAndValidate(
 	ctx context.Context,
