@@ -286,7 +286,7 @@ The change verification commands SHALL be the lines of the first code block fenc
 - backend CI shards: `mise run backend:test-group` followed by one or more shard names of `physical`, `logical` or `physical-api`, which the agent runs from the repository root;
 - the verification agent's tests: `mise run agent:test`, with no further arguments, which the agent runs from the repository root;
 - frontend tests: `pnpm --dir frontend test`, optionally followed by test file paths or filters;
-- isolated frontend browser UI tests: exactly `pnpm --dir frontend test:browser --project=ui`, with no additional arguments.
+- isolated frontend browser tests: exactly `pnpm --dir frontend test:browser --project=ui` or `pnpm --dir frontend test:browser --project=e2e`, with no additional arguments.
 
 The implementing agent SHALL run these commands before review. The hook SHALL parse them only to validate the section and MUST NOT execute them. The backend task passes its package paths on to a shell script, so every argument after the fixed prefix MUST consist only of letters, digits and the characters `.`, `/`, `_`, `-`, `=`, `:` and `@`, and a package path MUST start with `./`. A shard name MUST match `<group>-<index>-of-<count>` with positive integers, and its index MUST NOT exceed its count. Unsharded groups, unknown groups and `other` MUST be rejected. This character set leaves out every shell operator and substitution. A line that is not one of the allowed forms or has an argument outside the allowed characters, a section without a closed `sh` block, and a block without commands SHALL each block the turn with the reason and the list of allowed forms. No reviewer starts in that case.
 
@@ -346,9 +346,15 @@ The implementing agent SHALL run these commands before review. The hook SHALL pa
 - **THEN** the hook accepts the command format without executing the browser runner
 - **AND** the implementing agent remains responsible for running the declared tests and providing verification evidence
 
+#### Scenario: The isolated real-API browser command
+
+- **WHEN** the verification block contains exactly `pnpm --dir frontend test:browser --project=e2e`
+- **THEN** the hook accepts the command format without executing the real-API browser runner
+- **AND** the implementing agent remains responsible for running the declared tests and providing verification evidence
+
 #### Scenario: An unbounded browser command
 
-- **WHEN** the block omits the browser project, selects another project, adds arguments or uses a different package script
+- **WHEN** the block omits the browser project, selects a project other than `ui` or `e2e`, adds arguments or uses a different package script
 - **THEN** the hook rejects the command before any reviewer starts
 
 ### Requirement: The full review ends within the hook timeout

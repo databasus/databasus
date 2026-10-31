@@ -11,3 +11,4 @@ export { useAuditEventPages } from './model/useAuditEventPages';
 
 // UI
 export { AuditEventAuthorComponent } from './ui/AuditEventAuthorComponent';
+export { AuditEventList } from './ui/AuditEventList';

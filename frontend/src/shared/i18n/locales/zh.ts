@@ -867,6 +867,7 @@ export const zh: typeof en = {
       newPassword: '新密码',
     },
     validation: {
+      emailInvalid: '请输入有效的电子邮件地址',
       nameRequired: '请输入姓名',
       emailRequired: '请输入邮箱',
       passwordTooShort: '密码长度至少为 {{minLength}} 个字符',

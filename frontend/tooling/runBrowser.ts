@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
+import { runBrowserE2E } from './runBrowserE2E.ts';
 import { runChild } from './runChild.ts';
 
 export const runBrowser = async ({
@@ -13,8 +14,9 @@ export const runBrowser = async ({
   frontendRoot: string;
   args: string[];
 }): Promise<number> => {
+  if (args.length === 1 && args[0] === '--project=e2e') return runBrowserE2E(frontendRoot);
   if (!args.includes('--project=ui'))
-    throw new Error('Select --project=ui. Real-API e2e is not available yet.');
+    throw new Error('Select exactly --project=ui or --project=e2e.');
   const isUpdatingReferences = args.includes('--update-references');
   if (args.some((argument) => !['--project=ui', '--update-references'].includes(argument)))
     throw new Error('Unsupported browser argument; use the documented UI entry points.');

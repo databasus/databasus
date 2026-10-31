@@ -1,0 +1,96 @@
+import { MenuOutlined } from '@ant-design/icons';
+import { Button } from 'antd';
+import { useEffect, useRef, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
+
+import { useIsMobile, useScreenHeight } from '@/shared/hooks';
+import { getWebsitePageUrl, useLocale } from '@/shared/i18n';
+import { LanguageThemeControlComponent } from '@/shared/ui';
+import { StarButtonComponent } from '@/shared/ui/StarButtonComponent';
+
+interface Props {
+  workspaceSelector: ReactNode;
+  sidebar: ReactNode;
+  auxiliary?: ReactNode;
+  children: ReactNode;
+  isSidebarOpen: boolean;
+  onOpenSidebar: () => void;
+  onContentHeight: (height: number) => void;
+}
+
+export const AppShell = ({
+  workspaceSelector,
+  sidebar,
+  auxiliary,
+  children,
+  isSidebarOpen,
+  onOpenSidebar,
+  onContentHeight,
+}: Props) => {
+  const { t } = useTranslation();
+  const { locale } = useLocale();
+  const height = useScreenHeight();
+  const isMobile = useIsMobile();
+  const contentRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const element = contentRef.current;
+    if (!element) return;
+    const measure = () => onContentHeight(element.getBoundingClientRect().height);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [onContentHeight]);
+  return (
+    <div
+      className="flex min-h-0 min-w-0 flex-col gap-2 bg-page p-2 text-content md:gap-3 md:p-3"
+      style={{ height }}
+    >
+      <header className="flex min-h-[50px] shrink-0 flex-wrap items-center gap-2 rounded bg-surface px-2 py-2 shadow md:min-h-[60px] md:gap-4 md:p-3">
+        <a href={getWebsitePageUrl('home', locale)} target="_blank" rel="noreferrer">
+          <img className="h-[30px] w-[30px] md:h-[40px] md:w-[40px]" src="/logo.svg" alt="" />
+        </a>
+        <div className="min-w-0 flex-1 md:flex-initial">{workspaceSelector}</div>
+        {!isMobile && (
+          <div className="ml-auto flex max-w-full min-w-0 flex-wrap items-center justify-end gap-x-5 gap-y-2">
+            <a
+              className="!text-content"
+              href={getWebsitePageUrl('installation', locale)}
+              target="_blank"
+              rel="noreferrer"
+            >
+              {t('app.navigation.docs')}
+            </a>
+            <a
+              className="!text-content"
+              href="https://t.me/databasus_community"
+              target="_blank"
+              rel="noreferrer"
+            >
+              {t('app.navigation.community')}
+            </a>
+            {auxiliary}
+            <StarButtonComponent />
+            <LanguageThemeControlComponent />
+          </div>
+        )}
+        {isMobile && (
+          <Button
+            className="ml-auto"
+            type="text"
+            aria-label={t('app.navigation.menu')}
+            aria-expanded={isSidebarOpen}
+            icon={<MenuOutlined />}
+            onClick={onOpenSidebar}
+          />
+        )}
+      </header>
+      <div className="relative flex min-h-0 min-w-0 flex-1 gap-2 md:gap-3">
+        {sidebar}
+        <main ref={contentRef} className="flex min-h-0 min-w-0 flex-1 flex-col">
+          {children}
+        </main>
+      </div>
+    </div>
+  );
+};

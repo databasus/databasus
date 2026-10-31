@@ -932,6 +932,7 @@ export const pt: typeof en = {
       newPassword: 'Nova senha',
     },
     validation: {
+      emailInvalid: 'Insira um endereço de e-mail válido',
       nameRequired: 'O nome é obrigatório',
       emailRequired: 'O e-mail é obrigatório',
       passwordTooShort: 'A senha precisa ter pelo menos {{minLength}} caracteres',

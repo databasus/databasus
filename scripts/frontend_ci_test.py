@@ -59,7 +59,7 @@ class FrontendCiTest(unittest.TestCase):
         release = get_job(self.workflow, "determine-version")
         prerequisites = re.findall(r"[a-zA-Z0-9_-]+", re.search(r"needs:\s*\[([^]]+)\]", release).group(1))
         self.assertEqual(set(prerequisites), {
-            "lint-backend", "test-backend", "test-frontend", "test-frontend-browser-ui", "test-verification-agent",
+            "lint-backend", "test-backend", "test-frontend", "test-frontend-browser-ui", "test-frontend-browser-e2e", "test-verification-agent",
             "e2e-verification-agent-podman", "test-filesystems", "test-upgrade",
         })
 
@@ -78,6 +78,25 @@ class FrontendCiTest(unittest.TestCase):
         package = json.loads((ROOT / "frontend/package.json").read_text())
         self.assertEqual(package["devDependencies"]["@playwright/test"], environment["playwrightVersion"])
         self.assertIn("lint:styles", package["scripts"])
+
+    def test_real_api_browser_is_independent_and_required_before_release(self):
+        job = get_job(self.workflow, "test-frontend-browser-e2e")
+        self.assertNotIn("needs:", job)
+        self.assertIn("install_args: 'go node pnpm'", job)
+        self.assertIn("pnpm --dir frontend install --frozen-lockfile", job)
+        self.assertIn("docker compose up -d backend-db-test", job)
+        self.assertIn("backend-db-test pg_isready", job)
+        self.assertIn("pnpm --dir frontend test:browser --project=e2e", job)
+        self.assertIn("pnpm --dir frontend exec vitest run --config vitest.browser-e2e.config.ts", job)
+        self.assertIn("frontend/browser-results/e2e-*/status.json", job)
+        self.assertNotIn("continue-on-error", job)
+        for action in re.findall(r"uses: ([^\s]+)", job):
+            self.assertRegex(action, r"@[a-f0-9]{40}$")
+        release = get_job(self.workflow, "determine-version")
+        self.assertIn("test-frontend-browser-e2e,", release)
+        self.assertNotIn("always()", release)
+        self.assertNotIn("failure()", release)
+        self.assertNotIn("continue-on-error", release)
 
     def test_detects_runtime_drift_and_mutable_dependency_installs(self):
         for changed in (

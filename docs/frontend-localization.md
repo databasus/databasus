@@ -51,6 +51,8 @@ Keep persistent errors as API errors, translation keys with parameters, or suppo
 
 Context-bound AntD feedback inherits the active theme. Transient success notices capture their language when created and expire after their original bounded lifetime. A locale switch does not recreate a notice or restart its deadline. A later success uses the current language. Closing an editing session destroys its own notice, and late results from an obsolete session cannot create one.
 
+Authentication/profile field errors retain validity flags and render their descriptions beside associated controls. Account API errors remain data until rendering. Profile and settings retain newer edits across language/theme changes and pending saves; async success notices use the language active when completion is accepted.
+
 SMTP field errors are derived from the controlled settings and touched fields. Changing locale updates the label, help and error without clearing values, expanded settings or successful testing of unchanged settings.
 
 ## Verification

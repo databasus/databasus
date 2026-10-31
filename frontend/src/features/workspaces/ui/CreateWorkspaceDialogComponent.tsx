@@ -6,6 +6,7 @@ import { Trans, useTranslation } from 'react-i18next';
 
 import { type User, UserRole, type InstanceSettings } from '../../../entities/users';
 import { type Workspace, workspaceApi } from '../../../entities/workspaces';
+import { useSessionGuard } from '../../../shared/auth';
 import { translateApiError } from '../../../shared/i18n';
 
 interface Props {
@@ -25,17 +26,14 @@ export const CreateWorkspaceDialogComponent = ({
   onWorkspaceCreated,
   workspacesCount,
 }: Props) => {
-  const { t } = useTranslation();
-  const { message } = App.useApp();
+  const { t, i18n } = useTranslation();
   const [isCreating, setIsCreating] = useState(false);
   const [workspaceName, setWorkspaceName] = useState(
     workspacesCount === 0 ? t('workspaces.create.defaultName') : '',
   );
 
-  const isAllowedToCreateWorkspaces =
-    globalSettings.isMemberAllowedToCreateWorkspaces || user.role === UserRole.ADMIN;
-
   const handleCreateWorkspace = async () => {
+    if (isCreating) return;
     if (!workspaceName.trim()) {
       message.error(t('workspaces.create.nameRequired'));
       return;
@@ -46,15 +44,22 @@ export const CreateWorkspaceDialogComponent = ({
     try {
       const newWorkspace = await workspaceApi.createWorkspace(workspaceName.trim());
 
-      message.success(t('workspaces.create.created'));
+      if (!isCurrent()) return;
+      message.success(i18n.t('workspaces.create.created'));
       onWorkspaceCreated(newWorkspace);
       onClose();
     } catch (error) {
-      message.error(translateApiError(error, t));
+      if (isCurrent()) message.error(translateApiError(error, i18n.t));
     } finally {
-      setIsCreating(false);
+      if (isCurrent()) setIsCreating(false);
     }
   };
+  const { message } = App.useApp();
+
+  const isAllowedToCreateWorkspaces =
+    globalSettings.isMemberAllowedToCreateWorkspaces || user.role === UserRole.ADMIN;
+
+  const isCurrent = useSessionGuard();
 
   if (!isAllowedToCreateWorkspaces) {
     return (

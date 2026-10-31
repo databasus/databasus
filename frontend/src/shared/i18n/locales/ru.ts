@@ -915,6 +915,7 @@ export const ru: typeof en = {
       newPassword: 'Новый пароль',
     },
     validation: {
+      emailInvalid: 'Введите корректный адрес электронной почты',
       nameRequired: 'Укажите имя',
       emailRequired: 'Укажите email',
       passwordTooShort: 'Пароль слишком короткий. Минимальная длина: {{minLength}}',

@@ -1,30 +1,30 @@
 import createClient, { type Middleware } from 'openapi-fetch';
 
 import { getApplicationServer } from '../../constants';
-import { accessTokenHelper } from './accessTokenHelper';
+import { getSessionSnapshot, invalidateSession, type SessionSnapshot } from '../auth';
 import { API_ERROR_CODES, ApiError } from './ApiError';
 import type { paths } from './schema.gen';
 
 export const API_BASE_PATH = '/api/v1';
 
-// A 401 to a request that carried the session means the session ended, so the token is cleared and
-// the page reloads into the sign-in screen. A 401 to a request without one is a refused sign-in,
-// which the screen shows itself.
+const authorizedRequests = new WeakMap<Request, SessionSnapshot>();
+
 const apiMiddleware: Middleware = {
   onRequest({ request }) {
-    const token = accessTokenHelper.getAccessToken();
+    const session = getSessionSnapshot();
+    const token = session.token;
     if (token) {
       request.headers.set('Authorization', `Bearer ${token}`);
+      authorizedRequests.set(request, session);
     }
 
     return request;
   },
 
   async onResponse({ request, response, options }) {
-    if (response.status === 401 && request.headers.has('Authorization')) {
-      accessTokenHelper.clearStoredSession();
-      window.location.reload();
-    }
+    const session = authorizedRequests.get(request);
+    authorizedRequests.delete(request);
+    if (response.status === 401 && session) invalidateSession(session);
 
     if (
       response.status !== 204 &&

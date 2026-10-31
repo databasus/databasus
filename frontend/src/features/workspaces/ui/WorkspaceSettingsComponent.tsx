@@ -7,6 +7,7 @@ import { databaseApi } from '../../../entities/databases/api/databaseApi';
 import type { User } from '../../../entities/users';
 import { UserRole } from '../../../entities/users';
 import { type Workspace, WorkspaceRole, workspaceApi } from '../../../entities/workspaces';
+import { useSessionGuard } from '../../../shared/auth';
 import { useIsMobile } from '../../../shared/hooks';
 import { translateApiError } from '../../../shared/i18n';
 import { WorkspaceAuditLogsComponent } from './WorkspaceAuditLogsComponent';
@@ -19,31 +20,15 @@ interface Props {
 }
 
 export function WorkspaceSettingsComponent({ selectedWorkspace, user, contentHeight }: Props) {
-  const { t } = useTranslation();
-  const { message, modal } = App.useApp();
-  const isMobile = useIsMobile();
   const [workspace, setWorkspace] = useState<Workspace | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-
   const [formWorkspace, setFormWorkspace] = useState<Partial<Workspace>>({});
-  const [nameError, setNameError] = useState(false);
+  const [isNameError, setNameError] = useState(false);
 
-  const [basicInfoChanges, setBasicInfoChanges] = useState(false);
-
-  const isInstanceAdmin = user.role === UserRole.ADMIN;
-  const canEdit =
-    isInstanceAdmin ||
-    selectedWorkspace.currentUserRole === WorkspaceRole.OWNER ||
-    selectedWorkspace.currentUserRole === WorkspaceRole.ADMIN;
-  const canDelete = isInstanceAdmin || selectedWorkspace.currentUserRole === WorkspaceRole.OWNER;
-
-  useEffect(() => {
-    loadWorkspace();
-  }, [selectedWorkspace.id]);
+  const [isBasicInfoChanged, setBasicInfoChanges] = useState(false);
 
   const checkBasicInfoChanges = (newFormWorkspace: Partial<Workspace>): boolean => {
     if (!workspace) return false;
@@ -55,15 +40,16 @@ export function WorkspaceSettingsComponent({ selectedWorkspace, user, contentHei
 
     try {
       const workspaceData = await workspaceApi.getWorkspace(selectedWorkspace.id);
+      if (!isCurrent()) return;
       setWorkspace(workspaceData);
       setFormWorkspace(workspaceData);
       setNameError(false);
 
       setBasicInfoChanges(false);
     } catch (error: unknown) {
-      message.error(translateApiError(error, t));
+      if (isCurrent()) message.error(translateApiError(error, t));
     } finally {
-      setIsLoading(false);
+      if (isCurrent()) setIsLoading(false);
     }
   };
 
@@ -77,7 +63,7 @@ export function WorkspaceSettingsComponent({ selectedWorkspace, user, contentHei
   };
 
   const saveBasicInfo = async () => {
-    if (!basicInfoChanges || !workspace || !canEdit) return;
+    if (!isBasicInfoChanged || !workspace || !canEdit) return;
 
     if (!formWorkspace.name?.trim()) {
       setNameError(true);
@@ -92,6 +78,7 @@ export function WorkspaceSettingsComponent({ selectedWorkspace, user, contentHei
         workspace.id,
         formWorkspace.name.trim(),
       );
+      if (!isCurrent()) return;
       setWorkspace(updatedWorkspace);
       setFormWorkspace(updatedWorkspace);
 
@@ -100,9 +87,9 @@ export function WorkspaceSettingsComponent({ selectedWorkspace, user, contentHei
       setNameError(false);
       message.success(t('workspaces.settings.updated'));
     } catch (error: unknown) {
-      message.error(translateApiError(error, t));
+      if (isCurrent()) message.error(translateApiError(error, t));
     } finally {
-      setIsSaving(false);
+      if (isCurrent()) setIsSaving(false);
     }
   };
 
@@ -139,10 +126,11 @@ export function WorkspaceSettingsComponent({ selectedWorkspace, user, contentHei
       okType: 'danger',
       cancelText: t('common.actions.cancel'),
       onOk: async () => {
+        if (!isCurrent()) return;
         setIsDeleting(true);
         try {
-          // Check if there are any databases in the workspace
           const databases = await databaseApi.listAllDatabases(workspace.id);
+          if (!isCurrent()) return;
 
           if (databases.length > 0) {
             message.error(t('workspaces.delete.hasDatabases', { count: databases.length }));
@@ -150,16 +138,34 @@ export function WorkspaceSettingsComponent({ selectedWorkspace, user, contentHei
           }
 
           await workspaceApi.deleteWorkspace(workspace.id);
+          if (!isCurrent()) return;
           message.success(t('workspaces.delete.deleted'));
           window.location.href = '/';
         } catch (error: unknown) {
-          message.error(translateApiError(error, t));
+          if (isCurrent()) message.error(translateApiError(error, t));
         } finally {
-          setIsDeleting(false);
+          if (isCurrent()) setIsDeleting(false);
         }
       },
     });
   };
+  const { t } = useTranslation();
+  const { message, modal } = App.useApp();
+  const isMobile = useIsMobile();
+  const isCurrent = useSessionGuard();
+
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  const isInstanceAdmin = user.role === UserRole.ADMIN;
+  const canEdit =
+    isInstanceAdmin ||
+    selectedWorkspace.currentUserRole === WorkspaceRole.OWNER ||
+    selectedWorkspace.currentUserRole === WorkspaceRole.ADMIN;
+  const canDelete = isInstanceAdmin || selectedWorkspace.currentUserRole === WorkspaceRole.OWNER;
+
+  useEffect(() => {
+    loadWorkspace();
+  }, [selectedWorkspace.id]);
 
   return (
     <div className="flex grow">
@@ -200,11 +206,11 @@ export function WorkspaceSettingsComponent({ selectedWorkspace, user, contentHei
                       disabled={!canEdit}
                       placeholder={t('workspaces.fields.namePlaceholder')}
                       maxLength={100}
-                      status={nameError ? 'error' : undefined}
+                      status={isNameError ? 'error' : undefined}
                     />
                   </div>
 
-                  {basicInfoChanges && canEdit && (
+                  {isBasicInfoChanged && canEdit && (
                     <div className="mt-4 flex space-x-2">
                       <Button
                         type="primary"

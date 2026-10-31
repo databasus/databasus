@@ -6,13 +6,14 @@ import {
   InfoCircleOutlined,
 } from '@ant-design/icons';
 import { Button, Input, Spin } from 'antd';
-import { useState } from 'react';
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { notifierApi } from '../../../entities/notifiers';
 import type { Notifier } from '../../../entities/notifiers';
+import { useSessionGuard } from '../../../shared/auth';
 import { translateApiError } from '../../../shared/i18n';
+import { RequestRevision } from '../../../shared/lib/RequestRevision';
 import { ToastHelper } from '../../../shared/toast';
 import { ConfirmationComponent } from '../../../shared/ui';
 import { EditNotifierComponent } from './edit/EditNotifierComponent';
@@ -34,7 +35,6 @@ export const NotifierComponent = ({
   onNotifierTransferred,
   isCanManageNotifiers,
 }: Props) => {
-  const { t } = useTranslation();
   const [notifier, setNotifier] = useState<Notifier | undefined>();
 
   const [isEditName, setIsEditName] = useState(false);
@@ -51,13 +51,18 @@ export const NotifierComponent = ({
 
   const [isShowTransferDialog, setIsShowTransferDialog] = useState(false);
 
+  const isCurrentNotifier = (revision: number) =>
+    isCurrent() && notifierRevision.current.IsCurrent(revision);
+
   const sendTestNotification = async () => {
-    if (!notifier) return;
+    if (!notifier || !isCurrent()) return;
+    const revision = notifierRevision.current.GetCurrent();
 
     setIsSendingTestNotification(true);
 
     try {
       const testResult = await notifierApi.testNotifier(notifier.id);
+      if (!isCurrentNotifier(revision)) return;
       const testedNotifier = {
         ...notifier,
         lastSendError: testResult.error ?? null,
@@ -65,12 +70,12 @@ export const NotifierComponent = ({
 
       if (testResult.isDelivered) {
         ToastHelper.showToast({
-          title: t('notifiers.testNotification.sent.title'),
-          description: t('notifiers.testNotification.sent.description'),
+          title: i18n.t('notifiers.testNotification.sent.title'),
+          description: i18n.t('notifiers.testNotification.sent.description'),
         });
       } else {
         alert(
-          t('notifiers.testNotification.notDelivered', {
+          i18n.t('notifiers.testNotification.notDelivered', {
             error: testResult.error,
           }),
         );
@@ -81,26 +86,30 @@ export const NotifierComponent = ({
         onNotifierChanged(testedNotifier);
       }
     } catch (e) {
-      alert(translateApiError(e, t));
+      if (!isCurrentNotifier(revision)) return;
+      alert(translateApiError(e, i18n.t));
     }
 
-    setIsSendingTestNotification(false);
+    if (isCurrentNotifier(revision)) setIsSendingTestNotification(false);
   };
 
   const remove = async () => {
-    if (!notifier) return;
+    if (!notifier || !isCurrent()) return;
+    const revision = notifierRevision.current.GetCurrent();
 
     setIsRemoving(true);
 
     try {
       await notifierApi.deleteNotifier(notifier.id);
+      if (!isCurrentNotifier(revision)) return;
       onNotifierDeleted();
     } catch (e) {
-      alert(translateApiError(e, t));
+      if (!isCurrentNotifier(revision)) return;
+      alert(translateApiError(e, i18n.t));
       setIsShowRemoveConfirm(false);
     }
 
-    setIsRemoving(false);
+    if (isCurrentNotifier(revision)) setIsRemoving(false);
   };
 
   const startEdit = (type: 'name' | 'settings') => {
@@ -112,7 +121,8 @@ export const NotifierComponent = ({
 
   // The settings of the response carry no secrets, so the backend keeps the stored ones.
   const saveName = async () => {
-    if (!notifier) return;
+    if (!notifier || !isCurrent()) return;
+    const revision = notifierRevision.current.GetCurrent();
 
     setIsSaving(true);
 
@@ -122,27 +132,42 @@ export const NotifierComponent = ({
         editName,
         notifier.settings,
       );
+      if (!isCurrentNotifier(revision)) return;
       setNotifier(savedNotifier);
       setIsNameUnsaved(false);
       setIsEditName(false);
       onNotifierChanged(savedNotifier);
     } catch (e) {
-      alert(translateApiError(e, t));
+      if (!isCurrentNotifier(revision)) return;
+      alert(translateApiError(e, i18n.t));
     }
 
-    setIsSaving(false);
+    if (isCurrentNotifier(revision)) setIsSaving(false);
   };
 
   const loadSettings = () => {
+    if (!isCurrent()) return;
+    const revision = notifierRevision.current.Invalidate();
     setNotifier(undefined);
     notifierApi
       .getNotifier(notifierId)
-      .then(setNotifier)
-      .catch((e: unknown) => alert(translateApiError(e, t)));
+      .then((loadedNotifier) => {
+        if (isCurrentNotifier(revision)) setNotifier(loadedNotifier);
+      })
+      .catch((e: unknown) => {
+        if (isCurrentNotifier(revision)) alert(translateApiError(e, i18n.t));
+      });
   };
+
+  const { t, i18n } = useTranslation();
+  const isCurrent = useSessionGuard();
+  const notifierRevision = useRef(new RequestRevision());
 
   useEffect(() => {
     loadSettings();
+    return () => {
+      notifierRevision.current.Invalidate();
+    };
   }, [notifierId]);
 
   return (
@@ -263,6 +288,7 @@ export const NotifierComponent = ({
                   isShowName={false}
                   editingNotifier={notifier}
                   onPersisted={(savedNotifier) => {
+                    if (!isCurrent() || savedNotifier.id !== notifierId) return;
                     setNotifier(savedNotifier);
                     onNotifierChanged(savedNotifier);
                   }}

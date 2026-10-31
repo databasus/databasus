@@ -14,6 +14,29 @@ ROOT = Path(__file__).resolve().parent.parent
 TIMEOUT = 30
 
 
+class PackageCoverageTest(unittest.TestCase):
+    def test_pins_go_when_ci_collects_real_package_coverage(self):
+        workflow = (ROOT / ".github/workflows/ci-release.yml").read_text()
+        job = re.search(r"^  lint-shell:\n(.*?)(?=^  [a-zA-Z0-9_-]+:|\Z)", workflow, re.M | re.S).group(1)
+        tools = re.search(r"install_args:\s*['\"]?([^'\"\n]+)", job).group(1).split()
+        self.assertIn("go", tools)
+        self.assertIn("shellcheck", tools)
+        self.assertRegex(job, r"jdx/mise-action@[a-f0-9]{40}")
+        self.assertIn("python3 -m unittest discover -s scripts -p '*_test.py'", job)
+
+    def test_real_groups_cover_every_backend_package_once_without_the_upgrade_package(self):
+        groups = ("physical", "logical", "physical-api", "agent-e2e", "browser-e2e", "other")
+        selections = {}
+        for group in groups:
+            packages = subprocess.check_output(["bash", str(ROOT / "mise-tasks/backend/test-group-packages")], cwd=ROOT / "backend", env={**os.environ, "usage_group": group}, text=True).splitlines()
+            selections[group] = set(packages)
+        all_packages = subprocess.check_output(["go", "list", "./internal/...", "./cmd/..."], cwd=ROOT / "backend", text=True).splitlines()
+        self.assertEqual(set(all_packages), set().union(*selections.values()))
+        self.assertEqual(len(all_packages), sum(len(packages) for packages in selections.values()))
+        self.assertEqual(selections["browser-e2e"], {"databasus-backend/internal/app/browsertests"})
+        self.assertNotIn("databasus-backend/internal/app/browsertests", selections["other"])
+
+
 class ShardFixture(unittest.TestCase):
     def setUp(self):
         self.workspace = Path(tempfile.mkdtemp(prefix="test-groups-"))

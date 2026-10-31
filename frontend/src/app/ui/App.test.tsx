@@ -1,17 +1,18 @@
-// @vitest-environment happy-dom
-import { fireEvent, screen } from '@testing-library/react';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { HttpResponse, http } from 'msw';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
-import { userApi } from '../../entities/users';
-import { accessTokenHelper } from '../../shared/api';
+import { activateSession, getSessionSnapshot, invalidateSession } from '@/shared/auth';
+// @vitest-environment happy-dom
+import { DICTIONARIES } from '@/shared/i18n';
+
 import { buildProblem, mockApi, setUpMockApi } from '../../shared/lib/test/mockApi';
 import { renderApp } from './renderApp';
 
 const mockServer = setUpMockApi();
 
 const openProfile = async (isTwoFactorAuthRequired: boolean) => {
-  userApi.saveAuthorizedData('old-session', 'owner-id');
+  activateSession({ token: 'old-session', userId: 'owner-id' });
   mockServer.use(
     mockApi.get('/sign-in-options', 200, { hasAnyUser: true }),
     mockApi.get('/system/disk-usages', 200, {
@@ -89,8 +90,8 @@ describe('App password change', () => {
         expect(
           await screen.findByText('Password changed. Sign in again with your new password.'),
         ).toBeTruthy();
-        expect(accessTokenHelper.getAccessToken()).toBeUndefined();
-        expect(accessTokenHelper.getUserId()).toBeUndefined();
+        expect(getSessionSnapshot().token).toBeUndefined();
+        expect(getSessionSnapshot().userId).toBeUndefined();
         expect(sessionRequestCount).toBe(0);
       } finally {
         mockServer.events.removeListener('request:start', onRequest);
@@ -105,10 +106,80 @@ describe('App password change', () => {
     await openProfile(true);
     fireEvent.click(screen.getByRole('button', { name: 'Change password' }));
     expect(await screen.findByText('You do not have permission to do this.')).toBeTruthy();
-    expect(accessTokenHelper.getAccessToken()).toBe('old-session');
+    expect(getSessionSnapshot().token).toBe('old-session');
     expect(screen.getByDisplayValue('owner@example.com')).toBeTruthy();
     expect(
       screen.queryByText('Password changed. Sign in again with your new password.'),
     ).toBeNull();
   });
+});
+
+describe('App routes', () => {
+  it.each(['/unrecognized/path', '/auth/callback?error=access_denied'])(
+    'opens a fresh sign-in page after recovery from %s',
+    async (path) => {
+      const previousAddress = window.location.href;
+      invalidateSession();
+      mockServer.use(
+        mockApi.get('/sign-in-options', 200, { hasAnyUser: true }),
+        http.get('https://api.github.com/repos/databasus/databasus', () =>
+          HttpResponse.json({ stargazers_count: 1 }),
+        ),
+      );
+      window.history.replaceState(null, '', path);
+      try {
+        renderApp();
+        if (path.startsWith('/auth/callback')) {
+          fireEvent.click(await screen.findByRole('button', { name: 'Return to sign in' }));
+        }
+        expect(await screen.findByRole('button', { name: 'Sign in' })).toBeTruthy();
+        expect(window.location.pathname).toBe('/');
+        expect(window.location.search).toBe('');
+        expect(getSessionSnapshot().token).toBeUndefined();
+        expect(
+          mockServer.getRequests().filter((request) => request.method === 'POST'),
+        ).toHaveLength(0);
+      } finally {
+        window.history.replaceState(null, '', previousAddress);
+      }
+    },
+  );
+});
+
+it('runs the storage callback flow when its existing application address is opened', async () => {
+  const previousAddress = window.location.href;
+  const alert = vi.spyOn(window, 'alert').mockImplementation(() => {});
+  activateSession({ token: 'storage-owner-session', userId: 'owner-id' });
+  mockServer.use(
+    mockApi.get('/users/{userId}', 200, {
+      id: 'owner-id',
+      email: 'owner@example.com',
+      name: 'Owner',
+      role: 'ADMIN',
+      status: 'ACTIVE',
+      createdAt: '2026-10-01T00:00:00Z',
+    }),
+  );
+  const state = encodeURIComponent(
+    JSON.stringify({
+      workspaceId: 'workspace-id',
+      name: 'Storage draft',
+      settings: { type: 'GOOGLE_DRIVE', clientId: 'public-client', clientSecret: '' },
+    }),
+  );
+  window.history.replaceState(
+    null,
+    '',
+    `/storages/google-oauth?code=synthetic-code&state=${state}`,
+  );
+  try {
+    renderApp();
+    expect(alert).toHaveBeenCalledWith(DICTIONARIES.en.app.oauthStorage.configNotFound);
+    expect(window.location.pathname).toBe('/storages/google-oauth');
+    await waitFor(() => expect(mockServer.getRequests()).toHaveLength(1));
+    expect(new URL(mockServer.getRequests()[0].url).pathname).toBe('/api/v1/users/owner-id');
+    expect(screen.queryByRole('button', { name: 'Sign in' })).toBeNull();
+  } finally {
+    window.history.replaceState(null, '', previousAddress);
+  }
 });

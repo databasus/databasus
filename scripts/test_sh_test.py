@@ -33,8 +33,13 @@ STUB_SOURCES = {
     "go": """
         if [[ "$1" == test ]]; then
             echo "$(date +%s.%N) go test run_id=${DATABASUS_TEST_RUN_ID:-}" >>"$STUB_CALLS"
+            echo "$(date +%s.%N) go selection $*" >>"$STUB_CALLS"
             sleep "${STUB_GO_TEST_SECONDS:-0}"
             exit "${STUB_GO_TEST_EXIT_STATUS:-0}"
+        elif [[ "$1" == list ]]; then
+            echo "databasus-backend/internal/lib/ordinary"
+            echo "databasus-backend/internal/app/browsertests"
+            exit "${STUB_GO_LIST_EXIT_STATUS:-0}"
         else
             echo "$(date +%s.%N) go $*" >>"$STUB_CALLS"
         fi
@@ -200,6 +205,22 @@ class TestScriptTestCase(unittest.TestCase):
         self.assertEqual(package_run.returncode, 0, package_run.stderr)
         self.assertIsNotNone(self.find_call("go test"))
 
+    def test_default_selection_excludes_browser_ownership_without_starting_frontend_tools(self):
+        script = self.start_script()
+        _, errors = script.communicate(timeout=30)
+        self.assertEqual(script.returncode, 0, errors)
+        selection = self.find_call("go selection")
+        self.assertIn("databasus-backend/internal/lib/ordinary", selection[1])
+        self.assertNotIn("browsertests", selection[1])
+        self.assertNotIn("node", selection[1])
+
+    def test_discovery_stops_verification_when_go_list_fails_after_partial_output(self):
+        script = self.start_script({"STUB_GO_LIST_EXIT_STATUS": "7"})
+        exit_status, _, _ = self.finish_script(script)
+        self.assertEqual(exit_status, 7)
+        self.assertIsNone(self.find_call("go test"))
+        self.assertIsNone(self.find_call(self.get_upgrade_test_call()))
+
     def test_the_upgrade_test_runs_after_the_packages_pass(self):
         script = self.start_script()
 
@@ -285,11 +306,11 @@ class TestScriptTestCase(unittest.TestCase):
         self.assertIsNone(self.find_call("go run"))
         self.assertFalse(any("cleanup_test_db" in call for _, call in self.read_calls()))
 
-    def test_both_ci_preparations_use_only_the_internal_test_database_wait(self):
+    def test_all_ci_preparations_use_only_the_internal_test_database_wait(self):
         workflow = (REPOSITORY_ROOT / ".github/workflows/ci-release.yml").read_text()
         self.assertNotIn("cleanup_test_db", workflow)
         self.assertNotIn("Reset the shared", workflow)
-        self.assertEqual(workflow.count("docker exec backend-db-test pg_isready"), 2)
+        self.assertEqual(workflow.count("docker exec backend-db-test pg_isready"), 3)
         for port in ("5004", "5007", "5008"):
             self.assertNotRegex(workflow, rf"nc -z[^\n]*{port}")
 

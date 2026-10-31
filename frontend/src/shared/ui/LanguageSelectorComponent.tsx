@@ -5,6 +5,7 @@ import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { DICTIONARIES, SUPPORTED_LOCALES, useLocale } from '../i18n';
+import { useDropdownFocus } from './useDropdownFocus';
 
 interface Props {
   isSplitStart?: boolean;
@@ -13,14 +14,15 @@ interface Props {
 // Opens on hover like the website's selector; click is kept for touch screens, which have no
 // hover. Each language is listed by the name its own dictionary gives it.
 export function LanguageSelectorComponent({ isSplitStart = false }: Props) {
-  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
-  const controlRef = useRef<HTMLButtonElement>(null);
 
   const changeOpen = (isNextOpen: boolean) => {
     setIsOpen(isNextOpen);
     if (!isNextOpen) controlRef.current?.focus();
   };
+  const { t } = useTranslation();
+  const controlRef = useRef<HTMLButtonElement>(null);
+  const focusMenu = useDropdownFocus(isOpen);
 
   const { locale, setLocale } = useLocale();
 
@@ -37,12 +39,13 @@ export function LanguageSelectorComponent({ isSplitStart = false }: Props) {
     <Dropdown
       open={isOpen}
       onOpenChange={changeOpen}
-      autoFocus
+      popupRender={(menu) => <div ref={focusMenu}>{menu}</div>}
       menu={{
         selectable: true,
         items,
         selectedKeys: [locale],
         onKeyDown: (event) => {
+          if (event.key === 'Enter') event.preventDefault();
           if (event.key === 'Escape') {
             event.preventDefault();
             event.stopPropagation();

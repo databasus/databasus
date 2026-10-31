@@ -1,12 +1,14 @@
 import { Button, Modal, Spin } from 'antd';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { notifierApi } from '../../../entities/notifiers';
 import type { Notifier } from '../../../entities/notifiers';
 import type { Workspace } from '../../../entities/workspaces';
+import { useSessionGuard } from '../../../shared/auth';
 import { useIsMobile } from '../../../shared/hooks';
 import { translateApiError } from '../../../shared/i18n';
+import { RequestRevision } from '../../../shared/lib/RequestRevision';
 import { EditNotifierComponent } from './edit/EditNotifierComponent';
 import { NotifierCardComponent } from './NotifierCardComponent';
 import { NotifierComponent } from './NotifierComponent';
@@ -21,8 +23,6 @@ interface Props {
 const SELECTED_NOTIFIER_STORAGE_KEY = 'selectedNotifierId';
 
 export const NotifiersComponent = ({ contentHeight, workspace, isCanManageNotifiers }: Props) => {
-  const { t } = useTranslation();
-  const isMobile = useIsMobile();
   const [isLoading, setIsLoading] = useState(true);
   const [notifiers, setNotifiers] = useState<Notifier[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -31,6 +31,7 @@ export const NotifiersComponent = ({ contentHeight, workspace, isCanManageNotifi
   const [selectedNotifierId, setSelectedNotifierId] = useState<string | undefined>(undefined);
 
   const updateSelectedNotifierId = (notifierId: string | undefined) => {
+    if (!isCurrent()) return;
     setSelectedNotifierId(notifierId);
     if (notifierId) {
       localStorage.setItem(`${SELECTED_NOTIFIER_STORAGE_KEY}_${workspace.id}`, notifierId);
@@ -40,6 +41,8 @@ export const NotifiersComponent = ({ contentHeight, workspace, isCanManageNotifi
   };
 
   const loadNotifiers = (isSilent = false) => {
+    if (!isCurrent()) return;
+    const revision = loadRevision.current.Invalidate();
     if (!isSilent) {
       setIsLoading(true);
     }
@@ -47,6 +50,7 @@ export const NotifiersComponent = ({ contentHeight, workspace, isCanManageNotifi
     notifierApi
       .listAllNotifiers(workspace.id)
       .then((notifiers) => {
+        if (!isCurrent() || !loadRevision.current.IsCurrent(revision)) return;
         setNotifiers(notifiers);
         if (!selectedNotifierId && !isSilent && !isMobile) {
           // On desktop, auto-select a notifier; on mobile, keep it unselected to show the list first
@@ -54,15 +58,25 @@ export const NotifiersComponent = ({ contentHeight, workspace, isCanManageNotifi
             `${SELECTED_NOTIFIER_STORAGE_KEY}_${workspace.id}`,
           );
           const notifierToSelect =
-            savedNotifierId && notifiers.some((n) => n.id === savedNotifierId)
+            savedNotifierId && notifiers.some((notifier) => notifier.id === savedNotifierId)
               ? savedNotifierId
               : notifiers[0]?.id;
           updateSelectedNotifierId(notifierToSelect);
         }
       })
-      .catch((e: unknown) => alert(translateApiError(e, t)))
-      .finally(() => setIsLoading(false));
+      .catch((e: unknown) => {
+        if (isCurrent() && loadRevision.current.IsCurrent(revision))
+          alert(translateApiError(e, i18n.t));
+      })
+      .finally(() => {
+        if (isCurrent() && loadRevision.current.IsCurrent(revision)) setIsLoading(false);
+      });
   };
+
+  const { t, i18n } = useTranslation();
+  const isMobile = useIsMobile();
+  const isCurrent = useSessionGuard();
+  const loadRevision = useRef(new RequestRevision());
 
   useEffect(() => {
     loadNotifiers();
@@ -71,7 +85,10 @@ export const NotifiersComponent = ({ contentHeight, workspace, isCanManageNotifi
       loadNotifiers(true);
     }, 5 * 60_000);
 
-    return () => clearInterval(interval);
+    return () => {
+      loadRevision.current.Invalidate();
+      clearInterval(interval);
+    };
   }, []);
 
   if (isLoading) {
@@ -156,6 +173,7 @@ export const NotifiersComponent = ({ contentHeight, workspace, isCanManageNotifi
             )}
 
             <NotifierComponent
+              key={selectedNotifierId}
               notifierId={selectedNotifierId}
               onNotifierChanged={() => {
                 loadNotifiers(true);

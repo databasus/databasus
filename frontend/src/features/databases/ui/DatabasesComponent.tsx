@@ -1,5 +1,5 @@
 import { Button, Modal, Spin } from 'antd';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import {
@@ -11,8 +11,10 @@ import { databaseApi, sortUnavailableDatabasesFirst } from '../../../entities/da
 import type { Database } from '../../../entities/databases';
 import { type Storage, storageApi } from '../../../entities/storages';
 import type { Workspace } from '../../../entities/workspaces';
+import { useSessionGuard } from '../../../shared/auth';
 import { useIsMobile } from '../../../shared/hooks';
 import { translateApiError } from '../../../shared/i18n';
+import { RequestRevision } from '../../../shared/lib/RequestRevision';
 import { CreateDatabaseComponent } from './CreateDatabaseComponent';
 import { DatabaseCardComponent } from './DatabaseCardComponent';
 import { DatabaseComponent } from './DatabaseComponent';
@@ -49,8 +51,6 @@ const mapStoragesByDatabaseId = (
 };
 
 export const DatabasesComponent = ({ contentHeight, workspace, isCanManageDBs }: Props) => {
-  const { t } = useTranslation();
-  const isMobile = useIsMobile();
   const [isLoading, setIsLoading] = useState(true);
   const [databases, setDatabases] = useState<Database[]>([]);
   const [storagesByDatabaseId, setStoragesByDatabaseId] = useState<Map<string, Storage>>(new Map());
@@ -62,6 +62,7 @@ export const DatabasesComponent = ({ contentHeight, workspace, isCanManageDBs }:
   const [selectedDatabaseId, setSelectedDatabaseId] = useState<string | undefined>(undefined);
 
   const updateSelectedDatabaseId = (databaseId: string | undefined) => {
+    if (!isCurrent()) return;
     setSelectedDatabaseId(databaseId);
     if (databaseId) {
       localStorage.setItem(`${SELECTED_DATABASE_STORAGE_KEY}_${workspace.id}`, databaseId);
@@ -71,6 +72,8 @@ export const DatabasesComponent = ({ contentHeight, workspace, isCanManageDBs }:
   };
 
   const loadDatabases = (isSilent = false, selectDatabaseId?: string) => {
+    if (!isCurrent()) return;
+    const revision = loadRevision.current.Invalidate();
     if (!isSilent) {
       setIsLoading(true);
     }
@@ -81,6 +84,7 @@ export const DatabasesComponent = ({ contentHeight, workspace, isCanManageDBs }:
       storageApi.listAllStorages(workspace.id),
     ])
       .then(([listedDatabases, listedBackupConfigs, listedStorages]) => {
+        if (!isCurrent() || !loadRevision.current.IsCurrent(revision)) return;
         const databases = sortUnavailableDatabasesFirst(listedDatabases);
         setDatabases(databases);
         setStoragesByDatabaseId(mapStoragesByDatabaseId(listedBackupConfigs, listedStorages));
@@ -92,7 +96,7 @@ export const DatabasesComponent = ({ contentHeight, workspace, isCanManageDBs }:
             `${SELECTED_DATABASE_STORAGE_KEY}_${workspace.id}`,
           );
           const databaseToSelect =
-            savedDatabaseId && databases.some((db) => db.id === savedDatabaseId)
+            savedDatabaseId && databases.some((database) => database.id === savedDatabaseId)
               ? savedDatabaseId
               : databases[0]?.id;
           updateSelectedDatabaseId(databaseToSelect);
@@ -100,12 +104,19 @@ export const DatabasesComponent = ({ contentHeight, workspace, isCanManageDBs }:
       })
       .catch((e) => {
         // A background refresh retries on its own; an alert every 30 seconds would only get in the way.
-        if (!isSilent) {
-          alert(translateApiError(e, t));
+        if (!isSilent && isCurrent() && loadRevision.current.IsCurrent(revision)) {
+          alert(translateApiError(e, i18n.t));
         }
       })
-      .finally(() => setIsLoading(false));
+      .finally(() => {
+        if (isCurrent() && loadRevision.current.IsCurrent(revision)) setIsLoading(false);
+      });
   };
+
+  const { t, i18n } = useTranslation();
+  const isMobile = useIsMobile();
+  const isCurrent = useSessionGuard();
+  const loadRevision = useRef(new RequestRevision());
 
   useEffect(() => {
     loadDatabases();
@@ -120,6 +131,7 @@ export const DatabasesComponent = ({ contentHeight, workspace, isCanManageDBs }:
     document.addEventListener(VISIBILITY_CHANGE_EVENT, refreshIfVisible);
 
     return () => {
+      loadRevision.current.Invalidate();
       clearInterval(interval);
       document.removeEventListener(VISIBILITY_CHANGE_EVENT, refreshIfVisible);
     };
@@ -151,14 +163,14 @@ export const DatabasesComponent = ({ contentHeight, workspace, isCanManageDBs }:
   );
 
   // On mobile, show either the list or the database details
-  const showDatabaseList = !isMobile || !selectedDatabaseId;
-  const showDatabaseDetails = selectedDatabaseId && (!isMobile || selectedDatabaseId);
+  const isDatabaseListShown = !isMobile || !selectedDatabaseId;
+  const isDatabaseDetailsShown = selectedDatabaseId && (!isMobile || selectedDatabaseId);
 
   return (
     <>
       <StorageSwitchHistoryComponent workspaceId={workspace.id} />
       <div className="flex grow">
-        {showDatabaseList && (
+        {isDatabaseListShown && (
           <div
             className="w-full overflow-y-auto md:mx-3 md:w-[250px] md:min-w-[250px] md:pr-2"
             style={{ height: contentHeight }}
@@ -202,7 +214,7 @@ export const DatabasesComponent = ({ contentHeight, workspace, isCanManageDBs }:
           </div>
         )}
 
-        {showDatabaseDetails && (
+        {isDatabaseDetailsShown && (
           <div className="flex w-full flex-col md:flex-1">
             {isMobile && (
               <div className="mb-2">

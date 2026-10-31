@@ -940,6 +940,7 @@ export const fr: typeof en = {
       newPassword: 'Nouveau mot de passe',
     },
     validation: {
+      emailInvalid: 'Saisissez une adresse e-mail valide',
       nameRequired: 'Le nom est obligatoire',
       emailRequired: "L'e-mail est obligatoire",
       passwordTooShort: 'Mot de passe trop court. Longueur minimale : {{minLength}}',

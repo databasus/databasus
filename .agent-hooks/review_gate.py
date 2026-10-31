@@ -21,7 +21,7 @@ Doctor checks executable availability, without a paid authentication or model pr
 Examples outside an agent: `mise run doctor --client claude` and
 `mise run review support-codex-review-pipeline --client codex`.
 Frontend verification accepts Vitest commands and exactly
-`pnpm --dir frontend test:browser --project=ui`; these are parsed without execution.
+`pnpm --dir frontend test:browser --project=ui` or `pnpm --dir frontend test:browser --project=e2e`; these are parsed without execution.
 The plan gates intercept ExitPlanMode only in Claude Code; Codex runs the Stop gates.
 Codex 0.164.0 needs persisted project trust to load a new clone's .codex/ layer; a command-line
 trust override alone is insufficient. The project's chrome-devtools entry replaces the global one.
@@ -270,6 +270,14 @@ VERIFICATION_FORMS = (
         is_package_list=False,
     ),
     VerificationForm(
+        prefix=("pnpm", "--dir", "frontend", "test:browser", "--project=e2e"),
+        directory=".",
+        usage="pnpm --dir frontend test:browser --project=e2e",
+        min_arguments=0,
+        max_arguments=0,
+        is_package_list=False,
+    ),
+    VerificationForm(
         prefix=("pnpm", "--dir", "frontend", "test"),
         directory=".",
         usage="pnpm --dir frontend test [<argument>...]",
@@ -279,7 +287,7 @@ VERIFICATION_FORMS = (
     ),
 )
 # Verification entries describe commands for the implementing agent, not for review to execute.
-# Browser verification admits only the isolated UI project, with no extra arguments.
+# Browser verification admits exactly the isolated UI or E2E project, with no extra arguments.
 # Restrict arguments because the backend tasks eventually pass them to shell scripts.
 VERIFICATION_ARGUMENT_PATTERN = re.compile(r"[A-Za-z0-9._/=:@-]+")
 ALLOWED_VERIFICATION_FORMS = (
@@ -289,6 +297,7 @@ ALLOWED_VERIFICATION_FORMS = (
     "- `mise run agent:test`, with nothing after it\n"
     "- `pnpm --dir frontend test [<argument>...]`\n"
     "- exactly `pnpm --dir frontend test:browser --project=ui`, with nothing after it\n"
+    "- exactly `pnpm --dir frontend test:browser --project=e2e`, with nothing after it\n"
     "Arguments may hold only letters, digits and `.`, `/`, `_`, `-`, `=`, `:`, `@`."
 )
 

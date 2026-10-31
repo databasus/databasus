@@ -909,6 +909,7 @@ export const en = {
       newPassword: 'New Password',
     },
     validation: {
+      emailInvalid: 'Enter a valid email address',
       nameRequired: 'Name is required',
       emailRequired: 'Email is required',
       passwordTooShort: 'Password must be at least {{minLength}} characters long',

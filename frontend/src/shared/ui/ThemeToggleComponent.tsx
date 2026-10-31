@@ -5,20 +5,29 @@ import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { THEME_MODE_LABEL_KEYS, useTheme } from '../theme';
+import { useDropdownFocus } from './useDropdownFocus';
 
 interface Props {
   isSplitEnd?: boolean;
 }
 
 export function ThemeToggleComponent({ isSplitEnd = false }: Props) {
-  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
-  const controlRef = useRef<HTMLButtonElement>(null);
 
   const changeOpen = (isNextOpen: boolean) => {
     setIsOpen(isNextOpen);
     if (!isNextOpen) controlRef.current?.focus();
   };
+
+  const getCurrentIcon = () => {
+    if (theme === 'system') {
+      return <DesktopOutlined aria-hidden />;
+    }
+    return resolvedTheme === 'dark' ? <MoonOutlined aria-hidden /> : <SunOutlined aria-hidden />;
+  };
+  const { t } = useTranslation();
+  const controlRef = useRef<HTMLButtonElement>(null);
+  const focusMenu = useDropdownFocus(isOpen);
 
   const { theme, setTheme, resolvedTheme } = useTheme();
 
@@ -64,23 +73,17 @@ export function ThemeToggleComponent({ isSplitEnd = false }: Props) {
     },
   ];
 
-  const getCurrentIcon = () => {
-    if (theme === 'system') {
-      return <DesktopOutlined aria-hidden />;
-    }
-    return resolvedTheme === 'dark' ? <MoonOutlined aria-hidden /> : <SunOutlined aria-hidden />;
-  };
-
   return (
     <Dropdown
       open={isOpen}
       onOpenChange={changeOpen}
-      autoFocus
+      popupRender={(menu) => <div ref={focusMenu}>{menu}</div>}
       menu={{
         selectable: true,
         items,
         selectedKeys: [theme],
         onKeyDown: (event) => {
+          if (event.key === 'Enter') event.preventDefault();
           if (event.key === 'Escape') {
             event.preventDefault();
             event.stopPropagation();

@@ -8,13 +8,14 @@ import {
 } from '@ant-design/icons';
 import { App, Button, Input, Modal, Popconfirm, Spin, Table, Tag, Tooltip } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffectEvent, useEffect, useRef, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
 import {
   type VerificationAgent,
   verificationAgentApi,
 } from '../../../../entities/verification/agents';
+import { useSessionGuard } from '../../../../shared/auth';
 import {
   type LocalizedText,
   getWebsitePageUrl,
@@ -66,10 +67,6 @@ const getCapacityParts = (
 };
 
 export const VerificationAgentsComponent = () => {
-  const { t } = useTranslation();
-  const { locale, formatRelativeTime, formatNumber } = useLocale();
-  const { message } = App.useApp();
-
   const [agents, setAgents] = useState<VerificationAgent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -93,9 +90,9 @@ export const VerificationAgentsComponent = () => {
   const copyToClipboard = async (text: string) => {
     try {
       await ClipboardHelper.copyToClipboard(text);
-      message.success(t('common.messages.copiedToClipboard'));
+      if (isCurrent()) message.success(i18n.t('common.messages.copiedToClipboard'));
     } catch {
-      message.error(t('verification.agents.copyFailed'));
+      if (isCurrent()) message.error(i18n.t('verification.agents.copyFailed'));
     }
   };
 
@@ -159,7 +156,7 @@ export const VerificationAgentsComponent = () => {
     </div>
   );
 
-  const renderInstallAndLaunchSteps = (agentId: string, token: string) => (
+  const renderInstallAndLaunchSteps = ({ agentId, token }: { agentId: string; token: string }) => (
     <>
       <div className="mt-4 font-semibold dark:text-white">
         {t('verification.agents.install.stepInstall')}
@@ -214,6 +211,7 @@ export const VerificationAgentsComponent = () => {
   };
 
   const handleCreate = async () => {
+    if (!isCurrent() || isCreating) return;
     const name = newAgentName.trim();
     if (!name) {
       message.error(t('verification.agents.create.nameRequired'));
@@ -224,6 +222,7 @@ export const VerificationAgentsComponent = () => {
 
     try {
       const response = await verificationAgentApi.createAgent(name);
+      if (!isCurrent()) return;
       setAgents((prev) => [response.agent, ...prev]);
       setRevealedToken(response.token);
       setRevealedTokenAgentName(response.agent.name);
@@ -231,43 +230,49 @@ export const VerificationAgentsComponent = () => {
       setIsCreateModalOpen(false);
       setNewAgentName('');
     } catch (e) {
-      message.error(translateApiError(e, t));
+      if (isCurrent()) message.error(translateApiError(e, i18n.t));
     } finally {
-      setIsCreating(false);
+      if (isCurrent()) setIsCreating(false);
     }
   };
 
   const handleConfirmRotate = async () => {
-    if (!rotatingAgent) return;
+    if (!isCurrent() || !rotatingAgent || isRotating) return;
 
     setIsRotating(true);
 
     try {
       const response = await verificationAgentApi.rotateToken(rotatingAgent.id);
+      if (!isCurrent()) return;
       setRevealedToken(response.token);
       setRevealedTokenAgentName(rotatingAgent.name);
       setRevealedTokenAgentId(rotatingAgent.id);
       setRotatingAgent(null);
     } catch (e) {
-      message.error(translateApiError(e, t));
+      if (isCurrent()) message.error(translateApiError(e, i18n.t));
     } finally {
-      setIsRotating(false);
+      if (isCurrent()) setIsRotating(false);
     }
   };
 
   const handleDelete = async (agent: VerificationAgent) => {
+    if (!isCurrent() || deletingAgentId) return;
     setDeletingAgentId(agent.id);
 
     try {
       await verificationAgentApi.deleteAgent(agent.id);
+      if (!isCurrent()) return;
       setAgents((prev) => prev.filter((a) => a.id !== agent.id));
-      message.success(t('verification.agents.deleted', { name: agent.name }));
+      message.success(i18n.t('verification.agents.deleted', { name: agent.name }));
     } catch (e) {
-      message.error(translateApiError(e, t));
+      if (isCurrent()) message.error(translateApiError(e, i18n.t));
     } finally {
-      setDeletingAgentId(null);
+      if (isCurrent()) setDeletingAgentId(null);
     }
   };
+  const { t, i18n } = useTranslation();
+  const { locale, formatRelativeTime, formatNumber } = useLocale();
+  const { message } = App.useApp();
 
   // Pause background polling while any modal is open so it doesn't trample state.
   const hasOpenModal = useRef(false);
@@ -277,22 +282,33 @@ export const VerificationAgentsComponent = () => {
     rotatingAgent !== null ||
     viewingInstallAgent !== null;
 
-  const loadAgents = useCallback(async () => {
+  const isCurrent = useSessionGuard();
+  const loadRevision = useRef(0);
+  const loadAgents = useEffectEvent(async () => {
+    if (!isCurrent()) return;
+    const requestRevision = ++loadRevision.current;
     try {
       const list = await verificationAgentApi.listAgents();
-      setAgents(list);
+      if (isCurrent() && loadRevision.current === requestRevision) setAgents(list);
     } catch (e) {
-      message.error(translateApiError(e, t));
+      if (isCurrent() && loadRevision.current === requestRevision)
+        message.error(translateApiError(e, i18n.t));
+    } finally {
+      if (isCurrent() && loadRevision.current === requestRevision) setIsLoading(false);
     }
-  }, [message, t]);
+  });
 
   useEffect(() => {
     setIsLoading(true);
-    loadAgents().finally(() => setIsLoading(false));
-  }, [loadAgents]);
+    void loadAgents();
+    return () => {
+      loadRevision.current++;
+    };
+  }, []);
 
   useEffect(() => {
     const interval = window.setInterval(() => {
+      if (!isCurrent()) return;
       setCurrentTimeMs(Date.now());
 
       if (!hasOpenModal.current) {
@@ -301,7 +317,7 @@ export const VerificationAgentsComponent = () => {
     }, LIST_REFRESH_MS);
 
     return () => window.clearInterval(interval);
-  }, [loadAgents]);
+  }, [isCurrent]);
 
   const columns: ColumnsType<VerificationAgent> = [
     {
@@ -400,7 +416,7 @@ export const VerificationAgentsComponent = () => {
 
   return (
     <section className="my-8 max-w-[800px]">
-      <div className="mb-3 flex items-center justify-between">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-baseline gap-3">
           <h2 className="text-xl font-bold dark:text-white">{t('verification.agents.title')}</h2>
         </div>
@@ -410,6 +426,7 @@ export const VerificationAgentsComponent = () => {
             type="primary"
             size="small"
             icon={<PlusOutlined />}
+            className="!h-auto min-h-8 max-w-full !whitespace-normal"
             onClick={() => setIsCreateModalOpen(true)}
           >
             {t('common.actions.create')}
@@ -534,7 +551,10 @@ export const VerificationAgentsComponent = () => {
 
           {renderAgentIdRow(revealedTokenAgentId)}
           {renderArchitecturePicker()}
-          {renderInstallAndLaunchSteps(revealedTokenAgentId, revealedToken ?? '')}
+          {renderInstallAndLaunchSteps({
+            agentId: revealedTokenAgentId,
+            token: revealedToken ?? '',
+          })}
 
           <p className="mt-3 text-sm text-amber-600 dark:text-amber-400">
             {t('verification.agents.token.shownOnce')}
@@ -571,7 +591,10 @@ export const VerificationAgentsComponent = () => {
           <>
             {renderAgentIdRow(viewingInstallAgent.id)}
             {renderArchitecturePicker()}
-            {renderInstallAndLaunchSteps(viewingInstallAgent.id, TOKEN_PLACEHOLDER)}
+            {renderInstallAndLaunchSteps({
+              agentId: viewingInstallAgent.id,
+              token: TOKEN_PLACEHOLDER,
+            })}
           </>
         )}
       </Modal>

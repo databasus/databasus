@@ -937,6 +937,7 @@ export const es: typeof en = {
       newPassword: 'Nueva contraseña',
     },
     validation: {
+      emailInvalid: 'Introduce una dirección de correo electrónico válida',
       nameRequired: 'El nombre es obligatorio',
       emailRequired: 'El correo electrónico es obligatorio',
       passwordTooShort: 'La contraseña debe tener al menos {{minLength}} caracteres',

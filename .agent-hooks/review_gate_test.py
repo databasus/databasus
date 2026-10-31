@@ -981,12 +981,19 @@ class ChangeVerificationParsingTest(unittest.TestCase):
             checks = self.parse(verification_section("pnpm --dir frontend test:browser --project=ui"))
         self.assertEqual(checks, [review_gate.Check(".", ("pnpm", "--dir", "frontend", "test:browser", "--project=ui"))])
 
+    def test_accepts_exact_real_api_browser_form_without_execution(self):
+        with mock.patch.object(review_gate.subprocess, "run", side_effect=AssertionError("must not run")):
+            checks = self.parse(verification_section("pnpm --dir frontend test:browser --project=e2e"))
+        self.assertEqual(checks, [review_gate.Check(".", ("pnpm", "--dir", "frontend", "test:browser", "--project=e2e"))])
+
     def test_rejects_unbounded_browser_forms_and_shell_arguments(self):
         commands = (
             "pnpm --dir frontend test:browser",
             "pnpm --dir frontend test:browser --project=other",
             "pnpm --dir frontend test:browser --project ui",
             "pnpm --dir frontend test:browser --project=ui --headed",
+            "pnpm --dir frontend test:browser --project=e2e --headed",
+            "pnpm --dir frontend test:browser --project=e2e;touch",
             "pnpm --dir frontend arbitrary-script --project=ui",
             "pnpm --dir frontend test:browser --project=ui;touch",
             "pnpm --dir frontend test:browser --project=ui && touch /tmp/x",

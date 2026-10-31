@@ -112,10 +112,10 @@ describe('Browser runner resource ownership', () => {
     expect(interrupted.exitCode).toBe(130);
     expect((await runFixture({ mode: 'success' })).exitCode).toBe(0);
   });
-  it('rejects the reserved real-API project before creating resources', async () => {
+  it('rejects unknown projects when no supported project is selected', async () => {
     const { runBrowser } = await import('./runBrowser.ts');
     await expect(
-      runBrowser({ frontendRoot: resolve('.'), args: ['--project=e2e'] }),
-    ).rejects.toThrow('Real-API e2e is not available yet');
+      runBrowser({ frontendRoot: resolve('.'), args: ['--project=unknown'] }),
+    ).rejects.toThrow('Select exactly');
   });
 });

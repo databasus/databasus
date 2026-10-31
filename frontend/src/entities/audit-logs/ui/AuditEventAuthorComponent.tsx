@@ -11,14 +11,14 @@ export function AuditEventAuthorComponent({ author }: Props) {
 
   if (!author) {
     return (
-      <span className="inline-block rounded-full bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+      <span className="inline-block rounded-full bg-surface px-1.5 py-0.5 text-xs font-medium text-muted">
         {t('auditLogs.systemUser')}
       </span>
     );
   }
 
   return (
-    <span className="inline-block rounded-full bg-blue-100 px-1.5 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+    <span className="inline-block rounded-full bg-hover px-1.5 py-0.5 text-xs font-medium text-accent">
       {`${author.name} (${author.email})`}
     </span>
   );

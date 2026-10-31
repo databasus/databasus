@@ -1,8 +1,8 @@
 import { HttpResponse, http } from 'msw';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { activateSession, getSessionSnapshot, subscribeSession } from '../auth';
 import { buildProblem, mockApi, setUpMockApi } from '../lib/test/mockApi';
-import { accessTokenHelper } from './accessTokenHelper';
 import { API_BASE_PATH, getApiClient } from './apiClient';
 import { API_ERROR_CODES } from './ApiError';
 import { requireData, requireSuccess } from './requireData';
@@ -102,7 +102,7 @@ describe('getApiClient', () => {
   });
 
   it('sends the stored session token', async () => {
-    accessTokenHelper.saveAccessToken('session-token');
+    activateSession({ token: 'session-token', userId: 'owner' });
     let sentAuthorization: string | null = null;
     mockServer.use(
       http.get(`*${API_BASE_PATH}/system/version`, ({ request }) => {
@@ -116,8 +116,8 @@ describe('getApiClient', () => {
     expect(sentAuthorization).toBe('Bearer session-token');
   });
 
-  it('clears the token and reloads the page when the session is refused', async () => {
-    accessTokenHelper.saveAccessToken('ended-session-token');
+  it('ends the session without reloading when its authorized request is refused', async () => {
+    activateSession({ token: 'ended-session-token', userId: 'owner' });
     mockServer.use(
       http.get(`*${API_BASE_PATH}/system/version`, () =>
         HttpResponse.json({ code: 'unauthenticated' }, { status: 401 }),
@@ -126,8 +126,26 @@ describe('getApiClient', () => {
 
     await getApiClient().GET('/system/version');
 
-    expect(accessTokenHelper.getAccessToken()).toBeUndefined();
-    expect(window.location.reload).toHaveBeenCalledOnce();
+    expect(getSessionSnapshot().token).toBeUndefined();
+    expect(window.location.reload).not.toHaveBeenCalled();
+  });
+
+  it('preserves the newer session after an old authorized request receives 401', async () => {
+    activateSession({ token: 'old-session', userId: 'old-owner' });
+    const refusal = mockApi.delayed({
+      method: 'get',
+      path: '/system/version',
+      status: 401,
+      body: buildProblem('unauthenticated', 401),
+    });
+    mockServer.use(refusal.handler);
+    const oldRequest = getApiClient().GET('/system/version');
+    await vi.waitFor(() => expect(mockServer.getRequests()).toHaveLength(1));
+    activateSession({ token: 'new-session', userId: 'new-owner' });
+    refusal.release();
+    await oldRequest;
+    expect(getSessionSnapshot().token).toBe('new-session');
+    expect(window.location.reload).not.toHaveBeenCalled();
   });
 
   it('keeps the page when a request without a session is refused', async () => {
@@ -153,4 +171,37 @@ describe('getApiClient', () => {
       vi.useRealTimers();
     }
   });
+});
+
+it('publishes one invalidation when concurrent authorized requests receive refusals', async () => {
+  activateSession({ token: 'refused-session', userId: 'owner' });
+  const versionRefusal = mockApi.delayed({
+    method: 'get',
+    path: '/system/version',
+    status: 401,
+    body: buildProblem('unauthenticated', 401),
+  });
+  const diskRefusal = mockApi.delayed({
+    method: 'get',
+    path: '/system/disk-usages',
+    status: 401,
+    body: buildProblem('unauthenticated', 401),
+  });
+  mockServer.use(versionRefusal.handler, diskRefusal.handler);
+  const onSession = vi.fn();
+  const dispose = subscribeSession(onSession);
+  try {
+    const versionRequest = getApiClient().GET('/system/version');
+    const diskRequest = getApiClient().GET('/system/disk-usages');
+    await vi.waitFor(() => expect(mockServer.getRequests()).toHaveLength(2));
+    versionRefusal.release();
+    diskRefusal.release();
+    await Promise.all([versionRequest, diskRequest]);
+    expect(getSessionSnapshot().token).toBeUndefined();
+    expect(onSession).toHaveBeenCalledOnce();
+  } finally {
+    versionRefusal.cancel();
+    diskRefusal.cancel();
+    dispose();
+  }
 });

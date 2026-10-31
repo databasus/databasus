@@ -1,11 +1,13 @@
 import { Button, Modal, Spin } from 'antd';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { type Storage, storageApi } from '../../../entities/storages';
 import type { Workspace } from '../../../entities/workspaces';
+import { useSessionGuard } from '../../../shared/auth';
 import { useIsMobile } from '../../../shared/hooks';
 import { translateApiError } from '../../../shared/i18n';
+import { RequestRevision } from '../../../shared/lib/RequestRevision';
 import { EditStorageComponent } from './edit/EditStorageComponent';
 import { StorageCardComponent } from './StorageCardComponent';
 import { StorageComponent } from './StorageComponent';
@@ -20,8 +22,6 @@ interface Props {
 const SELECTED_STORAGE_STORAGE_KEY = 'selectedStorageId';
 
 export const StoragesComponent = ({ contentHeight, workspace, isCanManageStorages }: Props) => {
-  const { t } = useTranslation();
-  const isMobile = useIsMobile();
   const [isLoading, setIsLoading] = useState(true);
   const [storages, setStorages] = useState<Storage[]>([]);
 
@@ -29,6 +29,7 @@ export const StoragesComponent = ({ contentHeight, workspace, isCanManageStorage
   const [selectedStorageId, setSelectedStorageId] = useState<string | undefined>(undefined);
 
   const updateSelectedStorageId = (storageId: string | undefined) => {
+    if (!isCurrent()) return;
     setSelectedStorageId(storageId);
     if (storageId) {
       localStorage.setItem(`${SELECTED_STORAGE_STORAGE_KEY}_${workspace.id}`, storageId);
@@ -38,6 +39,8 @@ export const StoragesComponent = ({ contentHeight, workspace, isCanManageStorage
   };
 
   const loadStorages = (isSilent = false, selectStorageId?: string) => {
+    if (!isCurrent()) return;
+    const revision = loadRevision.current.Invalidate();
     if (!isSilent) {
       setIsLoading(true);
     }
@@ -45,6 +48,7 @@ export const StoragesComponent = ({ contentHeight, workspace, isCanManageStorage
     storageApi
       .listAllStorages(workspace.id)
       .then((storages: Storage[]) => {
+        if (!isCurrent() || !loadRevision.current.IsCurrent(revision)) return;
         setStorages(storages);
         if (selectStorageId) {
           updateSelectedStorageId(selectStorageId);
@@ -54,18 +58,31 @@ export const StoragesComponent = ({ contentHeight, workspace, isCanManageStorage
             `${SELECTED_STORAGE_STORAGE_KEY}_${workspace.id}`,
           );
           const storageToSelect =
-            savedStorageId && storages.some((s) => s.id === savedStorageId)
+            savedStorageId && storages.some((storage) => storage.id === savedStorageId)
               ? savedStorageId
               : storages[0]?.id;
           updateSelectedStorageId(storageToSelect);
         }
       })
-      .catch((e: unknown) => alert(translateApiError(e, t)))
-      .finally(() => setIsLoading(false));
+      .catch((e: unknown) => {
+        if (isCurrent() && loadRevision.current.IsCurrent(revision))
+          alert(translateApiError(e, i18n.t));
+      })
+      .finally(() => {
+        if (isCurrent() && loadRevision.current.IsCurrent(revision)) setIsLoading(false);
+      });
   };
+
+  const { t, i18n } = useTranslation();
+  const isMobile = useIsMobile();
+  const isCurrent = useSessionGuard();
+  const loadRevision = useRef(new RequestRevision());
 
   useEffect(() => {
     loadStorages();
+    return () => {
+      loadRevision.current.Invalidate();
+    };
   }, []);
 
   if (isLoading) {
@@ -83,13 +100,13 @@ export const StoragesComponent = ({ contentHeight, workspace, isCanManageStorage
   );
 
   // On mobile, show either the list or the storage details
-  const showStorageList = !isMobile || !selectedStorageId;
-  const showStorageDetails = selectedStorageId && (!isMobile || selectedStorageId);
+  const isStorageListShown = !isMobile || !selectedStorageId;
+  const isStorageDetailsShown = selectedStorageId && (!isMobile || selectedStorageId);
 
   return (
     <>
       <div className="flex grow">
-        {showStorageList && (
+        {isStorageListShown && (
           <div
             className="w-full overflow-y-auto md:mx-3 md:w-[250px] md:min-w-[250px] md:pr-2"
             style={{ height: contentHeight }}
@@ -113,7 +130,7 @@ export const StoragesComponent = ({ contentHeight, workspace, isCanManageStorage
           </div>
         )}
 
-        {showStorageDetails && (
+        {isStorageDetailsShown && (
           <div className="flex w-full flex-col md:flex-1">
             {isMobile && (
               <div className="mb-2">

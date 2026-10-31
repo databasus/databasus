@@ -2,7 +2,14 @@ import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
   testDir: './browser/scenarios',
-  projects: [{ name: 'ui', use: { browserName: 'chromium' } }],
+  projects: [
+    { name: 'ui', testDir: './browser/scenarios', use: { browserName: 'chromium' } },
+    {
+      name: 'e2e',
+      testDir: './browser/e2e',
+      use: { browserName: 'chromium', trace: 'off', screenshot: 'off', video: 'off' },
+    },
+  ],
   forbidOnly: true,
   fullyParallel: true,
   workers: 2,

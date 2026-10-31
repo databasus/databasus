@@ -30,6 +30,7 @@ This is the project's common language. Each concept has one term in the document
 | User | user | A person with an account on the instance: email, name, global role and status (`INVITED`, `ACTIVE` or `INACTIVE`). |
 | Session | session | A signed-in user's right to call the API, carried as a token the sign-in returns once. A session carries the user's password version; every successful password replacement ends all earlier sessions, independently of time. |
 | Password version | `PasswordVersion`, password version | A random UUID assigned to each user and rotated atomically with every password replacement. Sessions and pending sign-ins are usable only with the current version. |
+| OAuth sign-in attempt | `OAuthSignInAttempt` | A single-use, time-limited browser record binding an external-provider callback to sign-in started in that tab. Unlike a server-side pending sign-in awaiting an emailed code, it binds OAuth state to the provider and redirect address and is consumed before code exchange. |
 | Pending sign-in | pending sign-in, `pendingSignInId` | A password sign-in that waits for the code emailed to the user, when the instance requires two-factor sign-in. |
 | Instance settings | instance settings | The settings an instance admin sets for the whole instance: open registration, member invitations, workspace creation by members and two-factor sign-in. |
 | Sign-in options | sign-in options | What the sign-in page offers, such as the first registration on an instance without users. |
