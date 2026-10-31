@@ -113,15 +113,10 @@ export const es: typeof en = {
       completing: 'Completando la autenticación...',
     },
     oauthStorage: {
-      configNotFound: 'No se encontró la configuración del almacenamiento de Google Drive',
-      exchangeFailed: 'No se pudo canjear el código de OAuth',
-      unsupportedType: 'Este tipo de almacenamiento no admite OAuth',
-      invalidState: 'El parámetro state de OAuth no es válido',
-      paramNotFound:
-        'No se encontró el parámetro de OAuth. Compruebe que la URL de redirección esté bien configurada.',
-      addStorageTitle: 'Añadir almacenamiento',
-      storageDescription:
-        'Un almacenamiento es el lugar donde se guardan las copias de seguridad (disco local, S3, etc.)',
+      waiting: 'Completando la autorización del almacenamiento...',
+      complete: 'Autorización recibida. Vuelve al editor del almacenamiento.',
+      restart:
+        'No se pudo contactar con el editor original. Cierra esta ventana e inicia la autorización de nuevo desde el editor.',
     },
   },
   errors: {
@@ -2190,6 +2185,23 @@ export const es: typeof en = {
       googleDrive: {
         guideLink: '¿Cómo conectar Google Drive?',
         authorize: 'Autorizar',
+        authorized: 'Autorizado',
+        waiting: 'Esperando la autorización de Google...',
+        exchanging: 'Intercambiando el código de autorización...',
+        cancel: 'Cancelar autorización',
+        restart: 'Reiniciar autorización',
+        reconnect: 'Volver a conectar',
+        reconnectHelp:
+          'Introduce de nuevo el secreto del cliente para reconectar. Si falla, se conservan las credenciales guardadas.',
+        expired: 'La autorización ha caducado. Vuelve a empezar.',
+        refused: 'Se rechazó la autorización de Google. Puedes intentarlo de nuevo.',
+        exchangeFailed: 'No se pudo intercambiar el código de autorización. Vuelve a empezar.',
+        missingRefreshToken:
+          'Google no devolvió un token de actualización. Repite la autorización y permite el acceso sin conexión.',
+        popupBlocked:
+          'Se bloqueó la ventana de autorización. Permite las ventanas emergentes e inténtalo de nuevo.',
+        unavailable:
+          'La autorización no está disponible en este navegador. Comprueba la compatibilidad con BroadcastChannel e inténtalo de nuevo.',
       },
       nas: {
         shareWithSlashWarning:

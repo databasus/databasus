@@ -1,142 +1,92 @@
-import { Modal, Spin } from 'antd';
+import { Alert, Spin } from 'antd';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { type StorageOauthDto, StorageType } from '@/entities/storages';
-import type { User } from '@/entities/users';
-import { userApi } from '@/entities/users';
-import { EditStorageComponent, type StorageDraft } from '@/features/storages';
+import {
+  getStorageAuthorizationChannelName,
+  isStorageAuthorizationState,
+  type StorageAuthorizationResponse,
+} from '@/features/storages';
+
+const getCallbackResponse = (): StorageAuthorizationResponse | undefined => {
+  const parameters = new URLSearchParams(window.location.search);
+  const state = parameters.get('state');
+  const code = parameters.get('code');
+  const error = parameters.get('error');
+  if (
+    !isStorageAuthorizationState(state) ||
+    parameters.getAll('state').length !== 1 ||
+    parameters.getAll('code').length > 1 ||
+    parameters.getAll('error').length > 1
+  )
+    return;
+  if (code?.trim() && !parameters.has('error')) return { type: 'code', state, code };
+  if (error?.trim() && !parameters.has('code')) return { type: 'refusal', state };
+};
 
 export function StorageOAuthPage() {
-  const [workspaceId, setWorkspaceId] = useState<string | undefined>();
-  const [draft, setDraft] = useState<StorageDraft | undefined>();
-  const [user, setUser] = useState<User | undefined>();
-
-  const exchangeGoogleOauthCode = async (oauthDto: StorageOauthDto) => {
-    const { clientId, clientSecret } = oauthDto.settings;
-
-    if (!clientSecret) {
-      alert(t('app.oauthStorage.configNotFound'));
-      return;
-    }
-
-    const { authCode } = oauthDto;
-
-    const redirectUri = `${window.location.origin}/storages/google-oauth`;
-
-    try {
-      const response = await fetch('https://oauth2.googleapis.com/token', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({
-          code: authCode,
-          client_id: clientId,
-          client_secret: clientSecret,
-          redirect_uri: redirectUri,
-          grant_type: 'authorization_code',
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(
-          errorData.error_description || `OAuth exchange failed: ${response.statusText}`,
-        );
-      }
-
-      const tokenData = await response.json();
-
-      setWorkspaceId(oauthDto.workspaceId);
-      setDraft({
-        storageId: oauthDto.storageId,
-        name: oauthDto.name,
-        settings: { ...oauthDto.settings, tokenJson: JSON.stringify(tokenData) },
-      });
-    } catch (error) {
-      // Google's own error description is English and technical: it goes to the console only
-      console.error('Failed to exchange OAuth code:', error);
-      alert(t('app.oauthStorage.exchangeFailed'));
-      setTimeout(() => {
-        window.location.href = '/';
-      }, 3000);
-    }
-  };
-
-  const processOauthDto = (oauthDto: StorageOauthDto) => {
-    if (oauthDto.settings?.type === StorageType.GOOGLE_DRIVE) {
-      exchangeGoogleOauthCode(oauthDto);
-    } else {
-      alert(t('app.oauthStorage.unsupportedType'));
-    }
-  };
+  const [response] = useState(getCallbackResponse);
+  const [status, setStatus] = useState<'waiting' | 'complete' | 'restart'>(
+    response ? 'waiting' : 'restart',
+  );
   const { t } = useTranslation();
 
   useEffect(() => {
-    userApi
-      .getCurrentUser()
-      .then(setUser)
-      .catch(() => {
-        window.location.href = '/';
-      });
-
-    const urlParams = new URLSearchParams(window.location.search);
-    const code = urlParams.get('code');
-    const state = urlParams.get('state');
-
-    if (code && state) {
-      try {
-        const decodedState = decodeURIComponent(state);
-        const oauthDto: StorageOauthDto = JSON.parse(decodedState);
-
-        oauthDto.authCode = code;
-
-        processOauthDto(oauthDto);
-        return;
-      } catch (e) {
-        console.error('Error parsing OAuth state:', e);
-        alert(t('app.oauthStorage.invalidState'));
-        return;
-      }
+    window.history.replaceState(window.history.state, '', window.location.pathname);
+    if (!response) return;
+    let channel: BroadcastChannel;
+    let timer: ReturnType<typeof setTimeout>;
+    const release = () => {
+      clearTimeout(timer);
+      channel?.close();
+    };
+    try {
+      channel = new BroadcastChannel(getStorageAuthorizationChannelName(response.state));
+      channel.onmessage = (event: MessageEvent<unknown>) => {
+        const message = event.data;
+        if (
+          event.origin !== window.location.origin ||
+          !message ||
+          typeof message !== 'object' ||
+          Object.keys(message).sort().join(',') !== 'state,type' ||
+          !('type' in message) ||
+          message.type !== 'ack' ||
+          !('state' in message) ||
+          message.state !== response.state
+        )
+          return;
+        release();
+        setStatus('complete');
+        window.close();
+      };
+      timer = setTimeout(() => {
+        release();
+        setStatus('restart');
+      }, 5000);
+      channel.postMessage(response);
+    } catch {
+      release();
+      setStatus('restart');
     }
-
-    alert(t('app.oauthStorage.paramNotFound'));
-  }, []);
-
-  if (!workspaceId || !draft || !user) {
-    return (
-      <div className="mt-20 flex justify-center">
-        <Spin />
-      </div>
-    );
-  }
+    return release;
+  }, [response]);
 
   return (
-    <div>
-      <Modal
-        title={t('app.oauthStorage.addStorageTitle')}
-        footer={<div />}
-        open
-        onCancel={() => {
-          window.location.href = '/';
-        }}
-      >
-        <div className="my-3 max-w-[250px] text-muted">
-          {t('app.oauthStorage.storageDescription')}
+    <div className="mx-auto w-full max-w-lg p-4">
+      {status === 'waiting' ? (
+        <div role="status">
+          <Spin />
+          {t('app.oauthStorage.waiting')}
         </div>
-
-        <EditStorageComponent
-          workspaceId={workspaceId}
-          isShowClose={false}
-          onClose={() => {}}
-          isShowName={false}
-          draft={draft}
-          onChanged={() => {
-            window.location.href = '/';
-          }}
+      ) : (
+        <Alert
+          type={status === 'complete' ? 'success' : 'error'}
+          showIcon
+          message={t(
+            status === 'complete' ? 'app.oauthStorage.complete' : 'app.oauthStorage.restart',
+          )}
         />
-      </Modal>
+      )}
     </div>
   );
 }

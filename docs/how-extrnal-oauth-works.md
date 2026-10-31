@@ -1,26 +1,25 @@
-Cloud storages usually require OAuth (Google Drive, Dropbox, OneDrive)
+# Google Drive storage authorization
 
-OAuth services usually need HTTPS domain for authorization. Self hosted Databasus can be hosted via HTTP or even without static IP so this way does not work. To make OAuth works even on localhost, we proxy requests via databasus.com domain
-
-As permanent URL for authorization we use main Databasus domain. It forward responses to the self hosted domain so it can get access to the cloud
-
-This is the sequence of requests (example for Google Drive):
+The initiating storage editor keeps the draft, entered client secret and Google tokens in memory. It opens Google with the configured client ID, the instance’s `/storages/google-oauth` redirect URI and a random state. The state contains no credentials or serialized draft.
 
 ```mermaid
 sequenceDiagram
-    participant SelfHosted as http://localhost:4005<br/>Self-hosted Databasus
-    participant Proxy as https://databasus.com<br/>Proxy website
+    participant Editor as Storage editor
     participant Google as Google OAuth
-
-    SelfHosted->>Google: Send auth request with DTO
-
-    Google->>Proxy: Redirect with auth code<br/>to databasus.com/oauth
-
-    Proxy->>SelfHosted: Redirect to self-hosted instance<br/>with DTO + auth code
-
-    SelfHosted->>Google: Exchange auth code for tokens<br/>POST /oauth2/token
-    Google->>SelfHosted: Return access & refresh tokens
-
-    SelfHosted->>SelfHosted: Store Google Drive config for files exchange
+    participant Callback as Instance callback page
+    Editor->>Google: Open authorization with random state
+    Google->>Callback: Redirect with state and code or refusal
+    Callback->>Callback: Capture response and clear query
+    Callback->>Editor: Relay code or refusal over attempt-specific BroadcastChannel
+    Editor->>Editor: Validate and consume current attempt
+    Editor->>Callback: Acknowledge accepted response
+    Editor->>Google: Exchange code using captured client settings
+    Google->>Editor: Return access and refresh tokens
+    Editor->>Editor: Update authorization status and current draft
 ```
 
+The callback sends no credentials and requires no opener relationship. It stops waiting after five seconds if the initiating editor is unavailable. The editor rejects responses for canceled, replaced, expired or consumed attempts and ignores obsolete exchange completions. [The frontend architecture](architecture.md#frontend) describes ownership and lifetime rules.
+
+Authorization does not save a storage or change the surrounding backup configuration. The user explicitly tests the connection and saves through the existing storage API. Saved credentials remain omitted from API responses; renaming a saved storage needs no secret re-entry, while reconnecting requires the client secret again.
+
+Reloading the original tab loses the attempt and requires a fresh authorization. Old JSON-state callbacks are rejected. Browser-held secrets remain accessible to the browser user and code running in the application origin. Direct Google token exchange still depends on the provider’s CORS policy and the user’s client configuration; failures produce local feedback without automatic retries or a backend fallback.

@@ -1,115 +1,85 @@
-import { Button, Input } from 'antd';
+import { Alert, Button, Form, Input } from 'antd';
+import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import type { GoogleDriveStorageSettings, StorageOauthDto } from '../../../../../entities/storages';
+import type { GoogleDriveStorageSettings } from '../../../../../entities/storages';
 import { getWebsitePageUrl, useLocale } from '../../../../../shared/i18n';
 import { toOptionalValue } from '../../../../../shared/lib';
+import { useGoogleDriveAuthorization } from '../../../model/useGoogleDriveAuthorization';
 
 interface Props {
   settings: GoogleDriveStorageSettings;
   onChange: (settings: GoogleDriveStorageSettings) => void;
-  // The rest of the form, which the OAuth redirect carries back to the page that saves the storage.
-  oauthForm: Omit<StorageOauthDto, 'settings' | 'authCode'>;
+  workspaceId: string;
+  storageId?: string;
 }
 
-export function EditGoogleDriveStorageComponent({ settings, onChange, oauthForm }: Props) {
+export function EditGoogleDriveStorageComponent(props: Props) {
+  const { settings, onChange, storageId } = props;
   const { t } = useTranslation();
   const { locale } = useLocale();
-
-  const goToAuthUrl = () => {
-    if (!settings.clientId || !settings.clientSecret) {
-      return;
-    }
-
-    const redirectUri = `${window.location.origin}/storages/google-oauth`;
-    const clientId = settings.clientId;
-    const scope = 'https://www.googleapis.com/auth/drive.file';
-
-    const oauthDto: StorageOauthDto = { ...oauthForm, settings, authCode: '' };
-
-    // eslint-disable-next-line i18next/no-literal-string -- OAuth request URL, not copy
-    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${
-      clientId
-    }&redirect_uri=${redirectUri}&response_type=code&scope=${encodeURIComponent(scope)}&access_type=offline&prompt=consent&state=${encodeURIComponent(JSON.stringify(oauthDto))}`;
-
-    window.open(authUrl);
-  };
+  const controlId = useId();
+  const authorization = useGoogleDriveAuthorization(props);
+  const hasAuthorization = !!settings.tokenJson || !!storageId;
 
   return (
-    <>
-      <div className="mb-2 flex items-center">
-        <div className="hidden min-w-[110px] sm:block" />
-
-        <div className="text-xs text-blue-600">
-          <a
-            href={getWebsitePageUrl('storagesGoogleDrive', locale)}
-            target="_blank"
-            rel="noreferrer"
-          >
-            {t('storages.edit.googleDrive.guideLink')}
-          </a>
-        </div>
-      </div>
-
-      <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
-        <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">{t('storages.fields.clientId')}</div>
+    <div className="min-w-0">
+      <a href={getWebsitePageUrl('storagesGoogleDrive', locale)} target="_blank" rel="noreferrer">
+        {t('storages.edit.googleDrive.guideLink')}
+      </a>
+      <Form.Item label={t('storages.fields.clientId')} htmlFor={`${controlId}-client`}>
         <Input
-          value={settings.clientId || ''}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-            onChange({ ...settings, clientId: e.target.value.trim() });
-          }}
+          id={`${controlId}-client`}
+          value={settings.clientId}
           size="small"
-          className="w-full max-w-[250px]"
-          // eslint-disable-next-line i18next/no-literal-string -- example client ID
-          placeholder="my-client-id"
-          disabled={!!settings.tokenJson}
+          onChange={(event) => onChange({ ...settings, clientId: event.target.value.trim() })}
         />
-      </div>
-
-      <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
-        <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">
-          {t('storages.fields.clientSecret')}
-        </div>
-        <Input
+      </Form.Item>
+      <Form.Item
+        label={t('storages.fields.clientSecret')}
+        htmlFor={`${controlId}-secret`}
+        help={storageId ? t('storages.edit.googleDrive.reconnectHelp') : undefined}
+      >
+        <Input.Password
+          id={`${controlId}-secret`}
           value={settings.clientSecret || ''}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-            onChange({ ...settings, clientSecret: toOptionalValue(e.target.value.trim()) });
-          }}
           size="small"
-          className="w-full max-w-[250px]"
-          // eslint-disable-next-line i18next/no-literal-string -- example client secret
-          placeholder="my-client-secret"
-          disabled={!!settings.tokenJson}
+          onChange={(event) =>
+            onChange({ ...settings, clientSecret: toOptionalValue(event.target.value.trim()) })
+          }
         />
-      </div>
-
-      {settings.tokenJson && (
-        <>
-          <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
-            <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">
-              {t('storages.fields.userToken')}
-            </div>
-            <Input
-              value={settings.tokenJson || ''}
-              disabled
-              size="small"
-              className="w-full max-w-[250px]"
-              // eslint-disable-next-line i18next/no-literal-string -- example token
-              placeholder="my-user-token"
-            />
-          </div>
-        </>
+      </Form.Item>
+      {hasAuthorization && <div role="status">{t('storages.edit.googleDrive.authorized')}</div>}
+      {authorization.isPending && (
+        <div role="status">
+          {t(
+            authorization.status === 'waiting'
+              ? 'storages.edit.googleDrive.waiting'
+              : 'storages.edit.googleDrive.exchanging',
+          )}
+        </div>
       )}
-
-      {!settings.tokenJson && (
+      {authorization.errorKey && (
+        <Alert type="error" showIcon message={t(authorization.errorKey)} />
+      )}
+      <div className="mt-2 flex flex-wrap gap-2">
         <Button
           type="primary"
           disabled={!settings.clientId || !settings.clientSecret}
-          onClick={goToAuthUrl}
+          onClick={authorization.start}
         >
-          {t('storages.edit.googleDrive.authorize')}
+          {t(
+            authorization.isPending || authorization.errorKey
+              ? 'storages.edit.googleDrive.restart'
+              : hasAuthorization
+                ? 'storages.edit.googleDrive.reconnect'
+                : 'storages.edit.googleDrive.authorize',
+          )}
         </Button>
-      )}
-    </>
+        {authorization.isPending && (
+          <Button onClick={authorization.cancel}>{t('storages.edit.googleDrive.cancel')}</Button>
+        )}
+      </div>
+    </div>
   );
 }

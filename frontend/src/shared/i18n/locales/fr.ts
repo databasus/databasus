@@ -113,15 +113,10 @@ export const fr: typeof en = {
       completing: "Finalisation de l'authentification...",
     },
     oauthStorage: {
-      configNotFound: 'Configuration du stockage Google Drive introuvable',
-      exchangeFailed: "Impossible d'échanger le code OAuth",
-      unsupportedType: 'Ce type de stockage ne prend pas en charge OAuth',
-      invalidState: 'Paramètre state OAuth non valide',
-      paramNotFound:
-        "Paramètre OAuth introuvable. Vérifiez que l'URL de redirection est correctement configurée.",
-      addStorageTitle: 'Ajouter un stockage',
-      storageDescription:
-        "Un stockage est l'endroit où les sauvegardes sont conservées (disque local, S3, etc.)",
+      waiting: 'Finalisation de l’autorisation du stockage...',
+      complete: 'Autorisation reçue. Revenez à l’éditeur du stockage.',
+      restart:
+        'Impossible de joindre l’éditeur d’origine. Fermez cette fenêtre et relancez l’autorisation depuis cet éditeur.',
     },
   },
   errors: {
@@ -2203,6 +2198,23 @@ export const fr: typeof en = {
       googleDrive: {
         guideLink: 'Comment connecter Google Drive ?',
         authorize: 'Autoriser',
+        authorized: 'Autorisé',
+        waiting: 'En attente de l’autorisation Google...',
+        exchanging: 'Échange du code d’autorisation...',
+        cancel: 'Annuler l’autorisation',
+        restart: 'Relancer l’autorisation',
+        reconnect: 'Reconnecter',
+        reconnectHelp:
+          'Saisissez à nouveau le secret client pour reconnecter le stockage. Les identifiants enregistrés sont conservés en cas d’échec.',
+        expired: 'L’autorisation a expiré. Recommencez.',
+        refused: 'L’autorisation Google a été refusée. Vous pouvez réessayer.',
+        exchangeFailed: 'Impossible d’échanger le code d’autorisation. Recommencez.',
+        missingRefreshToken:
+          'Google n’a pas renvoyé de jeton d’actualisation. Relancez l’autorisation et autorisez l’accès hors connexion.',
+        popupBlocked:
+          'La fenêtre d’autorisation a été bloquée. Autorisez les fenêtres surgissantes et réessayez.',
+        unavailable:
+          'L’autorisation n’est pas disponible dans ce navigateur. Vérifiez la prise en charge de BroadcastChannel et réessayez.',
       },
       nas: {
         shareWithSlashWarning:

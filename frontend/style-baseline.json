@@ -3713,14 +3713,6 @@
   },
   {
     "rule": "direct-color",
-    "source": "features/storages/ui/edit/storages/EditGoogleDriveStorageComponent.tsx",
-    "construct": "class:text-blue-600",
-    "count": 1,
-    "owner": "features/storages",
-    "removalMilestone": "4"
-  },
-  {
-    "rule": "direct-color",
     "source": "features/storages/ui/edit/storages/EditLocalStorageComponent.tsx",
     "construct": "class:text-yellow-600",
     "count": 1,

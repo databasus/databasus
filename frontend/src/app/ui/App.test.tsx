@@ -1,10 +1,9 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen } from '@testing-library/react';
 import { HttpResponse, http } from 'msw';
 import { describe, expect, it, vi } from 'vitest';
 
 import { activateSession, getSessionSnapshot, invalidateSession } from '@/shared/auth';
 // @vitest-environment happy-dom
-import { DICTIONARIES } from '@/shared/i18n';
 
 import { buildProblem, mockApi, setUpMockApi } from '../../shared/lib/test/mockApi';
 import { renderApp } from './renderApp';
@@ -146,25 +145,14 @@ describe('App routes', () => {
   );
 });
 
-it('runs the storage callback flow when its existing application address is opened', async () => {
+it('rejects an unbound legacy storage callback without requests or draft reconstruction', async () => {
   const previousAddress = window.location.href;
-  const alert = vi.spyOn(window, 'alert').mockImplementation(() => {});
-  activateSession({ token: 'storage-owner-session', userId: 'owner-id' });
-  mockServer.use(
-    mockApi.get('/users/{userId}', 200, {
-      id: 'owner-id',
-      email: 'owner@example.com',
-      name: 'Owner',
-      role: 'ADMIN',
-      status: 'ACTIVE',
-      createdAt: '2026-10-01T00:00:00Z',
-    }),
-  );
+  vi.spyOn(window, 'alert').mockImplementation(() => {});
   const state = encodeURIComponent(
     JSON.stringify({
       workspaceId: 'workspace-id',
-      name: 'Storage draft',
-      settings: { type: 'GOOGLE_DRIVE', clientId: 'public-client', clientSecret: '' },
+      name: 'Private draft',
+      settings: { type: 'GOOGLE_DRIVE', clientId: 'client', clientSecret: '' },
     }),
   );
   window.history.replaceState(
@@ -174,11 +162,10 @@ it('runs the storage callback flow when its existing application address is open
   );
   try {
     renderApp();
-    expect(alert).toHaveBeenCalledWith(DICTIONARIES.en.app.oauthStorage.configNotFound);
-    expect(window.location.pathname).toBe('/storages/google-oauth');
-    await waitFor(() => expect(mockServer.getRequests()).toHaveLength(1));
-    expect(new URL(mockServer.getRequests()[0].url).pathname).toBe('/api/v1/users/owner-id');
-    expect(screen.queryByRole('button', { name: 'Sign in' })).toBeNull();
+    expect(window.location.search).toBe('');
+    expect(await screen.findByRole('alert')).toBeTruthy();
+    expect(mockServer.getRequests()).toHaveLength(0);
+    expect(screen.queryByRole('button', { name: 'Save' })).toBeNull();
   } finally {
     window.history.replaceState(null, '', previousAddress);
   }

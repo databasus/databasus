@@ -112,13 +112,9 @@ export const zh: typeof en = {
       completing: '正在完成认证…',
     },
     oauthStorage: {
-      configNotFound: '未找到 Google Drive 存储配置',
-      exchangeFailed: 'OAuth 授权码交换失败',
-      unsupportedType: '该存储类型不支持 OAuth',
-      invalidState: 'OAuth state 参数无效',
-      paramNotFound: '未找到 OAuth 参数。请确认重定向 URL 配置正确。',
-      addStorageTitle: '添加存储',
-      storageDescription: '存储是存放备份的位置（本地磁盘、S3 等）',
+      waiting: '正在完成存储授权...',
+      complete: '已收到授权结果。请返回存储编辑器。',
+      restart: '无法联系原来的编辑器。请关闭此窗口，并从编辑器重新开始授权。',
     },
   },
   errors: {
@@ -2041,6 +2037,19 @@ export const zh: typeof en = {
       googleDrive: {
         guideLink: '如何连接 Google Drive？',
         authorize: '授权',
+        authorized: '已授权',
+        waiting: '正在等待 Google 授权...',
+        exchanging: '正在交换授权码...',
+        cancel: '取消授权',
+        restart: '重新授权',
+        reconnect: '重新连接',
+        reconnectHelp: '重新连接需要再次输入客户端密钥。如果连接失败，已保存的凭据将保持不变。',
+        expired: '授权已过期。请重新开始。',
+        refused: 'Google 授权被拒绝。您可以重试。',
+        exchangeFailed: '无法交换授权码。请重新开始。',
+        missingRefreshToken: 'Google 未返回刷新令牌。请重新授权并允许离线访问。',
+        popupBlocked: '授权窗口被拦截。请允许弹出窗口后重试。',
+        unavailable: '此浏览器无法进行授权。请检查是否支持 BroadcastChannel 后重试。',
       },
       nas: {
         shareWithSlashWarning:

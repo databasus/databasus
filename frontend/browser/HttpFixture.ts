@@ -56,12 +56,16 @@ export const installHttpFixtures = async ({
 }) => {
   validateHttpFixtures(fixtures);
   const resourceUrls: string[] = [];
-  page.on('request', (request) => resourceUrls.push(request.url()));
+  const context = page.context();
+  context.on('request', (request) => resourceUrls.push(request.url()));
   const unexpected: string[] = [];
   const requests: { method: string; path: string; body: unknown }[] = [];
   const pageErrors: string[] = [];
-  page.on('pageerror', (error) => pageErrors.push(error.message));
-  await page.route('**/*', async (route) => {
+  const observePage = (observedPage: Page) =>
+    observedPage.on('pageerror', (error) => pageErrors.push(error.message));
+  observePage(page);
+  context.on('page', observePage);
+  await context.route('**/*', async (route) => {
     const request = route.request();
     const url = new URL(request.url());
     const applicationOrigin = new URL(process.env.BROWSER_BASE_URL!).origin;
@@ -90,7 +94,11 @@ export const installHttpFixtures = async ({
     requests.push({
       method: request.method(),
       path: pathname,
-      body: fixture ? request.postDataJSON() : request.postData(),
+      body: fixture
+        ? request.headers()['content-type']?.startsWith('application/x-www-form-urlencoded')
+          ? Object.fromEntries(new URLSearchParams(request.postData() ?? ''))
+          : request.postDataJSON()
+        : request.postData(),
     });
     if (!fixture) {
       unexpected.push(`${request.method()} ${url.origin}${url.pathname}`);

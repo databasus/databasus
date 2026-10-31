@@ -1,5 +1,5 @@
 import { Button, Input, Select } from 'antd';
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import {
@@ -10,7 +10,9 @@ import {
   getStorageLogoFromType,
   storageApi,
 } from '../../../../entities/storages';
+import { getSessionSnapshot, isCurrentSession, subscribeSession } from '../../../../shared/auth';
 import { translateApiError } from '../../../../shared/i18n';
+import { RequestRevision } from '../../../../shared/lib/RequestRevision';
 import { ToastHelper } from '../../../../shared/toast';
 import { createDefaultStorageSettings } from '../../lib/createDefaultStorageSettings';
 import { isStorageSettingsFilled } from '../../lib/isStorageSettingsFilled';
@@ -67,11 +69,17 @@ export function EditStorageComponent({
   const [isTestConnectionSuccess, setIsTestConnectionSuccess] = useState(false);
   const [connectionError, setConnectionError] = useState<string | undefined>();
 
-  const changeSettings = (changedSettings: StorageSettings) => {
-    setSettings(changedSettings);
-    setIsUnsaved(true);
+  const invalidateConnectionTest = () => {
+    connectionTestRevision.current.Invalidate();
+    setIsTestingConnection(false);
     setIsTestConnectionSuccess(false);
     setConnectionError(undefined);
+  };
+
+  const changeSettings = (changedSettings: StorageSettings) => {
+    invalidateConnectionTest();
+    setSettings(changedSettings);
+    setIsUnsaved(true);
   };
 
   const save = async () => {
@@ -95,11 +103,22 @@ export function EditStorageComponent({
   const testConnection = async () => {
     if (!settings) return;
 
+    const revision = connectionTestRevision.current.Invalidate();
+    const session = getSessionSnapshot();
+    const isCurrentTest = () =>
+      connectionTestRevision.current.IsCurrent(revision) &&
+      isCurrentSession(session) &&
+      currentConnectionContext.current.workspaceId === workspaceId &&
+      currentConnectionContext.current.storageId === storageId &&
+      currentConnectionContext.current.settings === settings;
+
     setIsTestingConnection(true);
+    setIsTestConnectionSuccess(false);
     setConnectionError(undefined);
 
     try {
       const testResult = await storageApi.testStorageSettings(workspaceId, settings, storageId);
+      if (!isCurrentTest()) return;
 
       if (testResult.isConnected) {
         setIsTestConnectionSuccess(true);
@@ -112,22 +131,32 @@ export function EditStorageComponent({
         alert(t('storages.connectionTestFailed', { error: testResult.error }));
       }
     } catch (e) {
+      if (!isCurrentTest()) return;
       alert(translateApiError(e, t));
     }
 
-    setIsTestingConnection(false);
+    if (isCurrentTest()) setIsTestingConnection(false);
   };
+
+  const controlId = useId();
+  const connectionTestRevision = useRef(new RequestRevision());
+  const currentConnectionContext = useRef({ workspaceId, storageId, settings });
+  currentConnectionContext.current = { workspaceId, storageId, settings };
+
+  useEffect(() => subscribeSession(invalidateConnectionTest), []);
 
   useEffect(() => {
     const initialDraft = draft ?? toDraft(editingStorage);
+    invalidateConnectionTest();
 
     setStorageId(initialDraft.storageId);
     setName(initialDraft.name);
     setSettings(initialDraft.settings);
     setIsUnsaved(true);
-    setIsTestConnectionSuccess(false);
-    setConnectionError(undefined);
-  }, [editingStorage, draft]);
+    return () => {
+      connectionTestRevision.current.Invalidate();
+    };
+  }, [editingStorage, draft, workspaceId]);
 
   if (!settings) return <div />;
 
@@ -143,9 +172,12 @@ export function EditStorageComponent({
     <div>
       {isShowName && (
         <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
-          <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">{t('common.fields.name')}</div>
+          <label htmlFor={`${controlId}-name`} className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">
+            {t('common.fields.name')}
+          </label>
 
           <Input
+            id={`${controlId}-name`}
             value={name}
             onChange={(e) => {
               setName(e.target.value);
@@ -159,13 +191,19 @@ export function EditStorageComponent({
       )}
 
       <div className="mb-1 flex w-full flex-col items-start sm:flex-row sm:items-center">
-        <div className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2">{t('common.fields.type')}</div>
+        <label
+          htmlFor={isSaved ? undefined : `${controlId}-type`}
+          className="mb-1 min-w-[110px] sm:mb-0 sm:pr-2"
+        >
+          {t('common.fields.type')}
+        </label>
 
         <div className="flex items-center">
           {isSaved ? (
             t(STORAGE_TYPE_LABEL_KEYS[settings.type])
           ) : (
             <Select
+              id={`${controlId}-type`}
               value={settings.type}
               options={storageTypeOptions}
               onChange={(type: StorageType) => changeSettings(createDefaultStorageSettings(type))}
@@ -174,7 +212,7 @@ export function EditStorageComponent({
             />
           )}
 
-          <img src={getStorageLogoFromType(settings.type)} className="ml-2 h-4 w-4" />
+          <img alt="" src={getStorageLogoFromType(settings.type)} className="ml-2 h-4 w-4" />
         </div>
       </div>
 
@@ -194,7 +232,8 @@ export function EditStorageComponent({
           <EditGoogleDriveStorageComponent
             settings={settings}
             onChange={changeSettings}
-            oauthForm={{ workspaceId, storageId, name }}
+            workspaceId={workspaceId}
+            storageId={storageId}
           />
         )}
 

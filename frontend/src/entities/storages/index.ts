@@ -2,7 +2,6 @@ export { storageApi } from './api/storageApi';
 export type { Storage } from './models/Storage';
 export type { StorageSettings } from './models/StorageSettings';
 export type { StorageTestResult } from './models/StorageTestResult';
-export type { StorageOauthDto } from './models/StorageOauthDto';
 export { StorageType } from './models/StorageType';
 export type {
   AzureBlobStorageSettings,

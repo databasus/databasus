@@ -112,14 +112,10 @@ export const en = {
       completing: 'Completing authentication...',
     },
     oauthStorage: {
-      configNotFound: 'Google Drive storage configuration not found',
-      exchangeFailed: 'Failed to exchange OAuth code',
-      unsupportedType: 'Unsupported storage type for OAuth',
-      invalidState: 'OAuth state parameter is invalid',
-      paramNotFound: 'OAuth param not found. Ensure the redirect URL is configured correctly.',
-      addStorageTitle: 'Add storage',
-      storageDescription:
-        'Storage - is a place where backups will be stored (local disk, S3, etc.)',
+      waiting: 'Completing storage authorization...',
+      complete: 'Authorization received. Return to the storage editor.',
+      restart:
+        'Authorization could not reach the original editor. Close this window and start authorization again from that editor.',
     },
   },
   errors: {
@@ -2136,6 +2132,22 @@ export const en = {
       googleDrive: {
         guideLink: 'How to connect Google Drive?',
         authorize: 'Authorize',
+        authorized: 'Authorized',
+        waiting: 'Waiting for Google authorization...',
+        exchanging: 'Exchanging authorization code...',
+        cancel: 'Cancel authorization',
+        restart: 'Restart authorization',
+        reconnect: 'Reconnect',
+        reconnectHelp:
+          'Enter the client secret again to reconnect. Stored credentials are kept if reconnection fails.',
+        expired: 'Authorization expired. Start again.',
+        refused: 'Google authorization was refused. You can try again.',
+        exchangeFailed: 'Could not exchange the authorization code. Start again.',
+        missingRefreshToken:
+          'Google did not return a refresh token. Start authorization again and grant offline access.',
+        popupBlocked: 'The authorization window was blocked. Allow popups and try again.',
+        unavailable:
+          'Authorization is unavailable in this browser. Check support for BroadcastChannel and try again.',
       },
       nas: {
         shareWithSlashWarning:

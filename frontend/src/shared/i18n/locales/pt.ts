@@ -114,15 +114,10 @@ export const pt: typeof en = {
       completing: 'Concluindo a autenticação...',
     },
     oauthStorage: {
-      configNotFound: 'Configuração do armazenamento Google Drive não encontrada',
-      exchangeFailed: 'Não foi possível trocar o código OAuth',
-      unsupportedType: 'Este tipo de armazenamento não aceita OAuth',
-      invalidState: 'O parâmetro state do OAuth é inválido',
-      paramNotFound:
-        'Parâmetro OAuth não encontrado. Verifique se a URL de redirecionamento está configurada corretamente.',
-      addStorageTitle: 'Adicionar armazenamento',
-      storageDescription:
-        'Armazenamento é o lugar onde os backups ficam guardados (disco local, S3, etc.)',
+      waiting: 'Concluindo a autorização do armazenamento...',
+      complete: 'Autorização recebida. Volte ao editor do armazenamento.',
+      restart:
+        'Não foi possível contatar o editor original. Feche esta janela e inicie a autorização novamente pelo editor.',
     },
   },
   errors: {
@@ -2179,6 +2174,22 @@ export const pt: typeof en = {
       googleDrive: {
         guideLink: 'Como conectar o Google Drive?',
         authorize: 'Autorizar',
+        authorized: 'Autorizado',
+        waiting: 'Aguardando autorização do Google...',
+        exchanging: 'Trocando o código de autorização...',
+        cancel: 'Cancelar autorização',
+        restart: 'Reiniciar autorização',
+        reconnect: 'Reconectar',
+        reconnectHelp:
+          'Informe o segredo do cliente novamente para reconectar. As credenciais salvas são mantidas se a reconexão falhar.',
+        expired: 'A autorização expirou. Comece novamente.',
+        refused: 'A autorização do Google foi recusada. Você pode tentar novamente.',
+        exchangeFailed: 'Não foi possível trocar o código de autorização. Comece novamente.',
+        missingRefreshToken:
+          'O Google não retornou um token de atualização. Autorize novamente e permita o acesso off-line.',
+        popupBlocked: 'A janela de autorização foi bloqueada. Permita pop-ups e tente novamente.',
+        unavailable:
+          'A autorização não está disponível neste navegador. Verifique o suporte a BroadcastChannel e tente novamente.',
       },
       nas: {
         shareWithSlashWarning:

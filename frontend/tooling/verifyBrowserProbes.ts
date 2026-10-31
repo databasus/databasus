@@ -36,6 +36,19 @@ test('isolated harness failure probe', async ({ page }) => {
       request.onloadend = () => resolveRequest(undefined);
       request.send();
     }), process.env.BROWSER_BASE_URL + '/undeclared-xhr-probe');
+  } else if (mode === 'unexpected-popup') {
+    const popup = page.waitForEvent('popup');
+    await page.evaluate(() => { window.open('https://unexpected-popup.example/undeclared-probe'); });
+    const opened = await popup;
+    await opened.waitForLoadState();
+  } else if (mode === 'popup-error') {
+    const popup = page.waitForEvent('popup');
+    await page.evaluate((url) => { window.open(url); }, process.env.BROWSER_BASE_URL + '/storages/google-oauth');
+    const opened = await popup;
+    await opened.waitForLoadState();
+    const failure = opened.waitForEvent('pageerror');
+    await opened.evaluate(() => queueMicrotask(() => { throw new Error('deliberate popup failure'); }));
+    await failure;
   } else if (mode === 'page-error') {
     const failure = page.waitForEvent('pageerror');
     await page.evaluate(() => queueMicrotask(() => { throw new Error('deliberate page failure'); }));
@@ -89,6 +102,11 @@ test('isolated harness failure probe', async ({ page }) => {
       mode: 'unexpected-xhr',
       diagnostic: `Unexpected HTTP request: GET ${process.env.BROWSER_BASE_URL}/undeclared-xhr-probe`,
     });
+    await probe({
+      mode: 'unexpected-popup',
+      diagnostic: 'Unexpected HTTP request: GET https://unexpected-popup.example/undeclared-probe',
+    });
+    await probe({ mode: 'popup-error', diagnostic: 'Page error: deliberate popup failure' });
     await probe({ mode: 'page-error', diagnostic: 'Page error: deliberate page failure' });
     const reference = join(directory, 'references/probe.png');
     await probe({ mode: 'missing', diagnostic: "snapshot doesn't exist" });
@@ -112,7 +130,7 @@ test('isolated harness failure probe', async ({ page }) => {
       throw new Error('An ordinary changed-reference run overwrote the expected image');
     await probe({ mode: 'stable' });
     console.log(
-      'Browser harness probes passed: scenario, caught unexpected API/non-API HTTP and XHR, page error, missing/changed immutable references and following-run isolation.',
+      'Browser harness probes passed: scenario, caught unexpected API/non-API HTTP and XHR, first popup requests, page and popup errors, missing/changed immutable references and following-run isolation.',
     );
   } finally {
     await rm(directory, { recursive: true, force: true });
